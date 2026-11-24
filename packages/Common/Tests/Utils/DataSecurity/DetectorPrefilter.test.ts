@@ -9,10 +9,14 @@ import {
   expandBackReferences,
   getDataTypePrefilter,
   MAX_PREFILTER_LENGTH,
+  PERCENT_ESCAPE_PREFILTER,
   RE2_MAX_REPEAT,
   toRe2Prefilter,
 } from "../../../Utils/DataSecurity/DetectorPrefilter";
-import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
+import {
+  findSensitiveValues,
+  ScanDetector,
+} from "../../../Utils/DataSecurity/TextScanner";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { positivesOf } from "./DetectorPositives";
 
@@ -287,6 +291,72 @@ describe("a data type's expression", () => {
 
     expect(asJavaScript(phone).test("Call +44 20 7946 0958 now")).toBe(true);
     expect(asJavaScript(phone).test("Call (212) 555-0147 now")).toBe(true);
+  });
+
+  /*
+   * #10467: the IP address detectors read a text with its percent-escapes
+   * read too, so an address in an encoded URL is found though its colons
+   * are written %3A. A search narrowed by the patterns alone would never
+   * hand such a record over - not to Show the records it was seen in, not
+   * to a scrub rule's proof - so the expression takes a text holding an
+   * escape too.
+   */
+  test("a type whose detectors read percent-encoded text also takes a text holding an escape (#10467)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "ip-address",
+    })!;
+    const encoded: Array<string> = [
+      "target=http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D%2F",
+      "u=http%3a%2f%2f%5b2606%3a4700%3a%3a1111%5d",
+      "u=8%2E8%2E8%2E8",
+      "u=%38%2E%38%2E%38%2E%38",
+      "u=%32%30%30%31%3A%3A%31",
+      "to%3Dhttp%253A%252F%252F%255B2606%253A%253A1%255D",
+      "peer=%3A%3Affff%3A8.8.8.8",
+    ];
+
+    expect(isRe2Syntax(expression)).toBe(true);
+    expect(expression).toContain(PERCENT_ESCAPE_PREFILTER);
+
+    for (const text of encoded) {
+      // The detectors find an address in it, and the expression takes it.
+      expect([
+        text,
+        findSensitiveValues(text, {
+          detectors: getBuiltInDetectorsOf("ip-address"),
+        }).length > 0,
+        asJavaScript(expression).test(text),
+      ]).toEqual([text, true, true]);
+    }
+
+    // Still narrows: no address, no escape.
+    expect(
+      asJavaScript(expression).test(
+        "GET /health returned 200 in 12ms for the checkout service",
+      ),
+    ).toBe(false);
+    // An escape of a byte beyond ASCII is none the reading reads.
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(
+      false,
+    );
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("cpu 100% busy")).toBe(
+      false,
+    );
+  });
+
+  test("a type whose detectors read only what is written takes no escape alone", () => {
+    for (const dataTypeId of ["email-address", "credit-card-number"]) {
+      const expression: string = getDataTypePrefilter({ dataTypeId })!;
+
+      expect([
+        dataTypeId,
+        expression.includes(PERCENT_ESCAPE_PREFILTER),
+      ]).toEqual([dataTypeId, false]);
+      expect([dataTypeId, asJavaScript(expression).test("a%20b%3Ac")]).toEqual([
+        dataTypeId,
+        false,
+      ]);
+    }
   });
 
   test("a project's own type is narrowed by the pattern the project wrote", () => {

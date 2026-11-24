@@ -15,7 +15,9 @@ import {
  * the traces - a sentence of its own for each, since the noun the sentence
  * agrees with changes with it in most languages. One that goes on says
  * since when, one that ended from when to when. Under it, how much was not
- * stored.
+ * stored. A moment that goes on brings its own words (#10622,
+ * Utils/MomentPhrases): "at 14:25" today, "on 27 Nov at 14:25" on another
+ * day, so its sentence writes no preposition before it.
  *
  * React-free, so a plain test pins the words beside the rules that choose
  * them.
@@ -27,25 +29,25 @@ export const TRACES_SOURCE: string = translationKey("Traces");
 
 // The logs: a daily budget used up.
 export const LOGS_BUDGET_USED_UP_SINCE: string = translationKey(
-  "Your daily logs budget was used up at {{time}}. Logs since then were refused and not scanned.",
+  "Your daily logs budget was used up {{time}}. Logs since then were refused and not scanned.",
 );
 export const LOGS_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "Your daily logs budget was used up from {{from}} to {{to}}. Logs in that time were refused and not scanned.",
 );
 export const LOGS_KEY_BUDGET_USED_UP_SINCE: string = translationKey(
-  "The ingestion key {{name}} used up its own daily logs budget at {{time}}. Logs sent with it since then were refused and not scanned.",
+  "The ingestion key {{name}} used up its own daily logs budget {{time}}. Logs sent with it since then were refused and not scanned.",
 );
 export const LOGS_KEY_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "The ingestion key {{name}} used up its own daily logs budget from {{from}} to {{to}}. Logs sent with it in that time were refused and not scanned.",
 );
 export const LOGS_TEAM_BUDGET_USED_UP_SINCE: string = translationKey(
-  "The team {{name}} used up its own daily logs budget at {{time}}. Logs from its services since then were dropped and not scanned.",
+  "The team {{name}} used up its own daily logs budget {{time}}. Logs from its services since then were dropped and not scanned.",
 );
 export const LOGS_TEAM_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "The team {{name}} used up its own daily logs budget from {{from}} to {{to}}. Logs from its services in that time were dropped and not scanned.",
 );
 export const LOGS_LABEL_BUDGET_USED_UP_SINCE: string = translationKey(
-  "The label {{name}} used up its own daily logs budget at {{time}}. Logs from the services with it since then were dropped and not scanned.",
+  "The label {{name}} used up its own daily logs budget {{time}}. Logs from the services with it since then were dropped and not scanned.",
 );
 export const LOGS_LABEL_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "The label {{name}} used up its own daily logs budget from {{from}} to {{to}}. Logs from the services with it in that time were dropped and not scanned.",
@@ -53,13 +55,13 @@ export const LOGS_LABEL_BUDGET_USED_UP_BETWEEN: string = translationKey(
 
 // The logs: a rate that throttled them.
 export const LOGS_RATE_LIMITED_SINCE: string = translationKey(
-  "Your logs have come in faster than your ingestion rate since {{time}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.",
+  "Your logs have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.",
 );
 export const LOGS_RATE_LIMITED_BETWEEN: string = translationKey(
   "Your logs came in faster than your ingestion rate from {{from}} to {{to}}. Requests over it were throttled, and their senders retry, so some logs may have arrived late or not at all.",
 );
 export const LOGS_KEY_RATE_LIMITED_SINCE: string = translationKey(
-  "Logs sent with the ingestion key {{name}} have come in faster than its own rate since {{time}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.",
+  "Logs sent with the ingestion key {{name}} have come in faster than its own rate {{since}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.",
 );
 export const LOGS_KEY_RATE_LIMITED_BETWEEN: string = translationKey(
   "Logs sent with the ingestion key {{name}} came in faster than its own rate from {{from}} to {{to}}. Requests over it were throttled, and their senders retry, so some logs may have arrived late or not at all.",
@@ -67,25 +69,25 @@ export const LOGS_KEY_RATE_LIMITED_BETWEEN: string = translationKey(
 
 // The traces: a daily budget used up.
 export const TRACES_BUDGET_USED_UP_SINCE: string = translationKey(
-  "Your daily traces budget was used up at {{time}}. Traces since then were refused and not scanned.",
+  "Your daily traces budget was used up {{time}}. Traces since then were refused and not scanned.",
 );
 export const TRACES_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "Your daily traces budget was used up from {{from}} to {{to}}. Traces in that time were refused and not scanned.",
 );
 export const TRACES_KEY_BUDGET_USED_UP_SINCE: string = translationKey(
-  "The ingestion key {{name}} used up its own daily traces budget at {{time}}. Traces sent with it since then were refused and not scanned.",
+  "The ingestion key {{name}} used up its own daily traces budget {{time}}. Traces sent with it since then were refused and not scanned.",
 );
 export const TRACES_KEY_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "The ingestion key {{name}} used up its own daily traces budget from {{from}} to {{to}}. Traces sent with it in that time were refused and not scanned.",
 );
 export const TRACES_TEAM_BUDGET_USED_UP_SINCE: string = translationKey(
-  "The team {{name}} used up its own daily traces budget at {{time}}. Traces from its services since then were dropped and not scanned.",
+  "The team {{name}} used up its own daily traces budget {{time}}. Traces from its services since then were dropped and not scanned.",
 );
 export const TRACES_TEAM_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "The team {{name}} used up its own daily traces budget from {{from}} to {{to}}. Traces from its services in that time were dropped and not scanned.",
 );
 export const TRACES_LABEL_BUDGET_USED_UP_SINCE: string = translationKey(
-  "The label {{name}} used up its own daily traces budget at {{time}}. Traces from the services with it since then were dropped and not scanned.",
+  "The label {{name}} used up its own daily traces budget {{time}}. Traces from the services with it since then were dropped and not scanned.",
 );
 export const TRACES_LABEL_BUDGET_USED_UP_BETWEEN: string = translationKey(
   "The label {{name}} used up its own daily traces budget from {{from}} to {{to}}. Traces from the services with it in that time were dropped and not scanned.",
@@ -93,13 +95,13 @@ export const TRACES_LABEL_BUDGET_USED_UP_BETWEEN: string = translationKey(
 
 // The traces: a rate that throttled them.
 export const TRACES_RATE_LIMITED_SINCE: string = translationKey(
-  "Your traces have come in faster than your ingestion rate since {{time}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.",
+  "Your traces have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.",
 );
 export const TRACES_RATE_LIMITED_BETWEEN: string = translationKey(
   "Your traces came in faster than your ingestion rate from {{from}} to {{to}}. Requests over it were throttled, and their senders retry, so some traces may have arrived late or not at all.",
 );
 export const TRACES_KEY_RATE_LIMITED_SINCE: string = translationKey(
-  "Traces sent with the ingestion key {{name}} have come in faster than its own rate since {{time}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.",
+  "Traces sent with the ingestion key {{name}} have come in faster than its own rate {{since}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.",
 );
 export const TRACES_KEY_RATE_LIMITED_BETWEEN: string = translationKey(
   "Traces sent with the ingestion key {{name}} came in faster than its own rate from {{from}} to {{to}}. Requests over it were throttled, and their senders retry, so some traces may have arrived late or not at all.",

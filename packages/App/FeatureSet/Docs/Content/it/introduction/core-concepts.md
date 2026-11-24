@@ -92,7 +92,7 @@ Entrambi registrano un problema, ed entrambi possono avvisare chi è reperibile.
 
 | | Incidente | Avviso |
 | --- | --- | --- |
-| **Cos'è** | Un problema che riguarda i tuoi utenti, come un'interruzione o un rallentamento | Un problema che il tuo team deve esaminare prima che gli utenti ne risentano |
+| **Che cos'è** | Un problema che riguarda i tuoi utenti, come un'interruzione o un rallentamento | Un problema che il tuo team deve esaminare prima che gli utenti ne risentano |
 | **Sulle pagine di stato** | Può comparire, e avvisa gli iscritti | Mai |
 | **Stati iniziali** | **Identificato**, **Riconosciuto**, **Risolto** | **Identificato**, **Riconosciuto**, **Risolto** |
 | **Gravità iniziali** | Critical Incident, Major Incident, Minor Incident | **Alto**, **Basso** |

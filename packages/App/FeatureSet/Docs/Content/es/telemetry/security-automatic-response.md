@@ -35,11 +35,13 @@ Una política actúa sobre una detección en cuanto se registra en su caso, unos
 
 | Política | Actúa sobre | Hace | Primer bloqueo |
 | --- | --- | --- | --- |
-| **Escáneres** | Escaneos web e intentos de explotación (ATT&CK T1595, T1190): intentos de inyección SQL, de recorrido de rutas y de Log4Shell, y muchas coincidencias de reglas administradas de Cloudflare desde una dirección, mientras todas las solicitudes de la dirección hayan sido rechazadas | Desafío | 1 hora |
+| **Escáneres** | Escaneos web e intentos de explotación (ATT&CK T1595, T1190): intentos de inyección SQL, de recorrido de rutas y de Log4Shell, escaneos en busca de archivos sensibles como `/.env`, `/.git/config` y `/wp-admin`, y muchas coincidencias de reglas administradas de Cloudflare desde una dirección, mientras todas las solicitudes de la dirección hayan sido rechazadas | Desafío | 1 hora |
 | **Adivinación de contraseñas** | Fuerza bruta y rociado de contraseñas (ATT&CK T1110): inicios de sesión fallidos desde una dirección, e inicios de sesión fallidos seguidos de uno correcto desde la misma dirección | Bloquear | 1 hora |
 | **Direcciones maliciosas conocidas** | Cualquier detección sobre una dirección que tu [inteligencia de amenazas](/docs/telemetry/threat-intelligence) incluye | Bloquear | 24 horas |
 
 Las personas superan un desafío, los scripts y los bots, no. Escáneres solo somete a desafío una dirección mientras ninguna de sus solicitudes haya llegado a tu aplicación: una dirección cuyas solicitudes pasaron es un caso para una persona.
+
+El escaneo en busca de archivos sensibles solo cuenta las solicitudes que tu sitio rechazó o las de algo que no tiene, y solo cuando una dirección pide tres o más archivos o páginas de administración distintos en un plazo de cinco minutos. Una página que tu sitio sirve nunca cuenta, así que los propios administradores de un sitio WordPress pueden cargar `/wp-admin` y `/wp-login.php` tantas veces como quieran.
 
 Activar Escáneres o Adivinación de contraseñas, en su periodo de prueba o del todo, ejecuta en tiempo real las reglas de la **Biblioteca de reglas** sobre las que actúa, y añade las que tu proyecto no tiene: una regla en tiempo real se dispara segundos después de que lleguen los eventos, mientras que una programada lee con minutos de retraso. Una regla que alguien desactivó sigue desactivada. Un proyecto ejecuta como máximo 50 reglas en tiempo real: a partir de ahí, una regla se queda en su programación, y la tarjeta de la política muestra **Según una programación** a su lado.
 
@@ -66,7 +68,7 @@ Para activar una política sin su semana de periodo de prueba, abre **Más ajust
 - **Nunca tus propias direcciones ni las protegidas.** Las entradas de **Entidades protegidas**, y todo lo que OneUptime protege por sí mismo: tus hosts, recursos en la nube y sondas, los rangos que no están en internet, y el borde delante de tu aplicación. Consulta [Lista de bloqueo](/docs/telemetry/security-cases#lista-de-bloqueo).
 - **Nunca una dirección que un usuario con sesión iniciada haya usado en los últimos 30 días.** La red de una oficina, el proxy de un cliente o la casa de una persona: OneUptime busca la dirección en los inicios de sesión de tu proveedor de identidad y en las solicitudes que tu aplicación atendió a un usuario con sesión iniciada, las que llevan un ID de usuario en sus trazas o registros. Una dirección que no puede comprobar, porque esos eventos no se pudieron leer o porque tus reglas de depuración ocultan las direcciones de un modo que no puede cotejar, se deja a una persona.
 - **Bloqueos más largos para una dirección que vuelve.** El primer bloqueo dura 1 hora, luego 24 horas, luego 7 días para una dirección bloqueada de nuevo en un plazo de 30 días. Direcciones maliciosas conocidas empieza en 24 horas.
-- **Como máximo 50 bloqueos automáticos por hora.** A partir de ahí, tus políticas dejan de bloquear y avisan a tus responsables de seguridad: un ataque tan grande necesita a una persona. La página lo dice mientras dura.
+- **Como máximo 50 bloqueos automáticos por hora, o el límite que fijes.** A partir de ahí, tus políticas dejan de bloquear y avisan a tus responsables de seguridad: un ataque tan grande necesita a una persona. La página lo dice mientras dura. Un Administrador de seguridad, Administrador del proyecto o Propietario del proyecto puede fijar el límite entre 1 y 500, en **Más ajustes** al pie de la página: **Límite por hora**. Un límite nuevo se aplica desde la siguiente detección.
 - **Deshacer ante la duda.** Cuando se ve a un usuario con sesión iniciada desde una dirección que una política bloqueó, la política levanta el bloqueo y avisa a tus responsables de seguridad.
 
 Tus responsables de seguridad son los Administradores de seguridad de tu proyecto o, si no tiene ninguno, los Propietarios del proyecto. Cada dirección que una salvaguarda dejó en paz aparece en su caso, con el motivo.
@@ -101,7 +103,7 @@ Mira la cronología del caso: una política que dejó en paz una dirección dice
 :::
 
 :::details La página dice que se agotaron los bloqueos automáticos de la hora
-Tus políticas hicieron 50 bloqueos automáticos en la última hora y avisaron a tus responsables de seguridad. Vuelven a empezar a medida que los bloqueos de esa hora envejecen. Mira los casos del ataque, y bloquea un rango desde **Lista de bloqueo** si viene de una sola red.
+Tus políticas alcanzaron tu límite por hora de bloqueos automáticos, 50 salvo que alguien lo haya cambiado, y avisaron a tus responsables de seguridad. Vuelven a empezar a medida que los bloqueos de esa hora envejecen. Mira los casos del ataque, y bloquea un rango desde **Lista de bloqueo** si viene de una sola red. Si tu proyecto sufre a menudo tantos escáneres, haz clic en **Cambiar límite** junto al aviso y súbelo.
 :::
 
 ## Próximos pasos

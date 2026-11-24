@@ -599,15 +599,16 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
         cardDescription={
           /*
            * Give feedback is also emailed (#8893): on OneUptime Cloud to the
-           * OneUptime team, on a self-hosted server to its Admin
-           * Notification Email when one is set, never to OneUptime.
+           * OneUptime team, on a self-hosted server where Settings > Help
+           * and Support sends it (#10865) - its Admin Notification Email
+           * when one is set, by default - never to OneUptime.
            */
           BILLING_ENABLED
             ? translationKey(
                 "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to support@oneuptime.com, and scores, never words, go to product analytics.",
               )
             : translationKey(
-                "Answers are kept on this server and read here by its master admins. Give feedback is also emailed to the Admin Notification Email, when one is set. Nothing is sent to OneUptime.",
+                "Answers are kept on this server and read here by its master admins. Give feedback also goes where Settings › Help and Support sends it, the Admin Notification Email by default. Nothing goes to OneUptime.",
               )
         }
         title="Ask people how things went"

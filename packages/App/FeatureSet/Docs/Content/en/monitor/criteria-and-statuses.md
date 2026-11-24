@@ -87,6 +87,7 @@ With **Evaluate this criteria over a period of time** ticked, **Evaluate** says 
 | **Count** | The number of checks that met the condition compares as set under **Checks That Match**: **Greater Than** 30, say. |
 | **Percentage** | Their share of the window's checks compares as set under **Share of Checks That Match**: **Greater Than** 10%, say. |
 | **Status Changes** | The number of times the checks changed between meeting the condition and not compares as set under **Times It Changed**. A device that goes down and comes back up changes twice. |
+| **Previous Check** | This check, compared with the previous check of the same probe: a response time more than 50% above it, say, or a site that is down now and was not before. See [Comparing a check with the previous one](#comparing-a-check-with-the-previous-one). |
 
 A sentence under the window's settings reads the filter back as it is set: "Check if "Is Online" is false on more than 30 checks in the past 8 hours".
 
@@ -94,7 +95,7 @@ A sentence under the window's settings reads the filter back as it is set: "Chec
 - **A window that is not full yet.** Until the checks reach back to the start of the window, a monitor that only just started has fewer checks than it will. **Count** and **Status Changes** match early when they are already past **Greater Than** or **Greater Than Or Equal To**, since more checks only add to them; anything else waits for a full window.
 - **A window with no checks.** While the window has no checks, or is not full yet, **If No Data** decides: **Ignore** waits, **Trigger** matches, and **Treat As Zero** judges it as if the missing checks had not met the condition.
 
-The averages and percentiles read the values of every probe's checks, as **Average** always has. **Count**, **Percentage** and **Status Changes** are offered for every filter that is offered a window: on Website, API, Ping, IP and Port monitors, a server's CPU, memory, disks and load, a network device's **SNMP Device Is Online** and response time, and DNS, NTP, Database, External Status Page and Probe Status monitors. A Server monitor's **Is Online** is not counted: it is judged on the time since the server last reported. Metrics and other telemetry monitors judge the time range of their query instead, with the query's own aggregation, which reads percentiles too.
+The averages and percentiles read the values of every probe's checks, as **Average** always has. **Count**, **Percentage** and **Status Changes** are offered for every filter that is offered a window: on Website, API, Ping, IP and Port monitors, a server's CPU, memory, disks and load, a network device's **SNMP Device Is Online** and response time, an SSL Certificate monitor's **Expires In Days**, and DNS, NTP, Database, External Status Page and Probe Status monitors. A Server monitor's **Is Online** is not counted: it is judged on the time since the server last reported. Metrics and other telemetry monitors judge the time range of their query instead, with the query's own aggregation, which reads percentiles too.
 
 ### Example: an access point that is down, and one that is unstable
 
@@ -107,6 +108,20 @@ A Ping monitor checks an office access point every minute. Before windows could 
 | Access point is online | **Is Online** is **True** | Not over a period of time | **Operational** |
 
 For the second, turn on **Recover only when a condition of its own is met** with **Status Changes**, **Less Than Or Equal To** 1, **For the last** 1 hour: the instability incident stays open until the access point has been steady for an hour, rather than closing the first minute it is up. To alert when it fails more than 30 pings in 8 hours, make the second criteria **Count**, **Greater Than** 30, **For the last** 8 hours instead.
+
+### Comparing a check with the previous one
+
+**Previous Check** compares each check with the previous check of the same probe, and of the same disk for a disk's usage. **For the last** is how long ago that check may be, so make it longer than the monitoring interval. It is offered for the same filters as **Count**.
+
+A measured value, such as a response time, matches when it is more than the change set under **Change From the Previous Check** above the previous check, with **Greater Than**, or below it, with **Less Than**. The change is an **Amount in the check's own unit**, such as 200 ms, or a **Percent of the previous check**, such as 50%, and 0 matches any rise or fall. **Equal To** and **Not Equal To** compare with the previous value itself.
+
+A filter that is true or false, such as **Is Online**, and a body, header or expression filter match on the check that started to meet the condition: **Is Online** set to **False** matches on the check the site went down on, and not again until the next time it goes down.
+
+Either way it matches on one check, and on the next one the criteria stops acting. To hold the status it sets, or keep its incident open, give it a recovery condition of its own: see [When a criteria recovers](#when-a-criteria-recovers).
+
+With no previous check in the window, as on the monitor's first check, for a probe just added or after a gap, **If No Data** decides: **Ignore** does not match, **Trigger** matches, and **Treat As Zero** compares as if the previous check had read 0, or had not met the condition.
+
+The sentence under the window's settings reads it back: "Check if "Response Time (in ms)" is more than 50% above the previous check", or "Check if "Is Online" is false now, but not on the previous check".
 
 ## When a criteria recovers
 

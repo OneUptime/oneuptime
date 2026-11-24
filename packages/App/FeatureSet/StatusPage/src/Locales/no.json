@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} grupper",
     "noResourcesTitle": "Ingenting å vise ennå",
     "noResourcesDescription": "Denne siden viser ingen tjenester ennå.",
-    "noResourcesPreviewDescription": "Besøkende ser denne meldingen til du legger til ressurser. Legg til monitorer eller grupper på denne statussiden under Ressurser i dashbordet."
+    "noResourcesPreviewDescription": "Besøkende ser denne meldingen til du legger til ressurser.",
+    "noResourcesPreviewLink": "Legg til ressurser i dashbordet"
   },
   "eventItem": {
     "affectedResources": "Berørte ressurser",
@@ -485,6 +486,9 @@
   "No options available": "Ingen tilgjengelige alternativer",
   "No matches found": "Ingen treff",
   "{{eventType}} state changed to {{state}}": "{{eventType}}: status endret til {{state}}",
+  "{{count}} related incidents": "{{count}} relaterte hendelser",
+  "{{count}} related incidents_one": "{{count}} relatert hendelse",
+  "Part of {{incident}}": "Del av {{incident}}",
   "Use at least {{minimum}} characters.": "Bruk minst {{minimum}} tegn.",
   "Try a few unrelated words.": "Prøv noen ord uten sammenheng med hverandre.",
   "Password meets requirements": "Passordet oppfyller kravene",

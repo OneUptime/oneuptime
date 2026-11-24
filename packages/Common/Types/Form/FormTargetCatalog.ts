@@ -4,7 +4,8 @@ import FormTargetType from "./FormTargetType";
 
 /*
  * The built-in fields of each target that a form can ask for: the "Incident
- * fields" and "Scheduled maintenance fields" of the form builder's palette.
+ * fields", "Alert fields" and "Scheduled maintenance fields" of the form
+ * builder's palette.
  * A question added from here is linked to that field, and its answer becomes
  * the field's value on the record the submission creates.
  *
@@ -23,6 +24,7 @@ import FormTargetType from "./FormTargetType";
  */
 export enum FormTargetOptionsSource {
   IncidentSeverity = "IncidentSeverity",
+  AlertSeverity = "AlertSeverity",
   Monitor = "Monitor",
   Label = "Label",
   StatusPage = "StatusPage",
@@ -69,6 +71,9 @@ export interface FormTargetFieldDefinition {
 
 // The longest title an incident takes: Incident.title is a varchar(500).
 export const FORM_INCIDENT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
+
+// The longest title an alert takes: Alert.title is a varchar(500).
+export const FORM_ALERT_TITLE_MAX_LENGTH: number = ColumnLength.LongText;
 
 /*
  * The longest title a scheduled maintenance event takes:
@@ -125,6 +130,79 @@ const INCIDENT_FIELDS: Array<FormTargetFieldDefinition> = [
       "The submitter picks the affected monitors from a list you choose.",
     defaultLabel: "Affected Monitors",
     inputType: CustomFieldType.MultiSelectDropdown,
+    optionsSource: FormTargetOptionsSource.Monitor,
+    mustChooseOptions: true,
+    isRequiredByTarget: false,
+    hasDefault: true,
+  },
+  {
+    key: "labels",
+    title: "Labels",
+    description: "The submitter picks labels from a list you choose.",
+    defaultLabel: "Labels",
+    inputType: CustomFieldType.MultiSelectDropdown,
+    optionsSource: FormTargetOptionsSource.Label,
+    mustChooseOptions: true,
+    isRequiredByTarget: false,
+    hasDefault: true,
+  },
+  {
+    key: "impactStartedAt",
+    title: "Impact Started At",
+    description: "When the problem started, as the submitter remembers it.",
+    defaultLabel: "When did it start?",
+    inputType: CustomFieldType.DateTime,
+    isRequiredByTarget: false,
+    hasDefault: false,
+  },
+];
+
+/*
+ * An alert's: as an incident's, but with the alert's own severities, and
+ * one monitor - an alert is about one monitor (Alert.monitor), so the
+ * submitter picks one of those the form offers.
+ */
+const ALERT_FIELDS: Array<FormTargetFieldDefinition> = [
+  {
+    key: "title",
+    title: "Title",
+    description: "A one-line summary that becomes the alert's title.",
+    defaultLabel: "Title",
+    defaultHelpText: "A short summary of what needs a look.",
+    inputType: CustomFieldType.Text,
+    maxLength: FORM_ALERT_TITLE_MAX_LENGTH,
+    isRequiredByTarget: true,
+    hasDefault: true,
+  },
+  {
+    key: "description",
+    title: "Description",
+    description: "Rich text that becomes the alert's description.",
+    defaultLabel: "Description",
+    defaultHelpText: "What you noticed, where, and since when.",
+    inputType: CustomFieldType.Markdown,
+    maxLength: FORM_DESCRIPTION_MAX_LENGTH,
+    isRequiredByTarget: false,
+    hasDefault: false,
+  },
+  {
+    key: "alertSeverityId",
+    title: "Severity",
+    description: "The submitter picks one of your alert severities.",
+    defaultLabel: "Severity",
+    inputType: CustomFieldType.Dropdown,
+    optionsSource: FormTargetOptionsSource.AlertSeverity,
+    mustChooseOptions: false,
+    isRequiredByTarget: true,
+    hasDefault: true,
+  },
+  {
+    key: "monitor",
+    title: "Monitor",
+    description:
+      "The submitter picks the affected monitor from a list you choose.",
+    defaultLabel: "Affected Monitor",
+    inputType: CustomFieldType.Dropdown,
     optionsSource: FormTargetOptionsSource.Monitor,
     mustChooseOptions: true,
     isRequiredByTarget: false,
@@ -235,6 +313,7 @@ export const FORM_TARGET_FIELDS: Readonly<
 > = {
   [FormTargetType.Incident]: INCIDENT_FIELDS,
   [FormTargetType.ScheduledMaintenance]: SCHEDULED_MAINTENANCE_FIELDS,
+  [FormTargetType.Alert]: ALERT_FIELDS,
 };
 
 export type GetFormTargetFieldsFunction = (

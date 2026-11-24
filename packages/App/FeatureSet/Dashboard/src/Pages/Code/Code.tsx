@@ -8,11 +8,12 @@ import CodeApi, {
 } from "../../Components/Code/CodeApi";
 import CodeAskBox, {
   CODE_COLUMN_CLASS_NAME,
+  pickStartingRepository,
+  readRememberedRepositoryId,
 } from "../../Components/Code/CodeAskBox";
 import { CodeConnectGitHubFix } from "../../Components/Code/CodeBlockerNotice";
-import CodeTaskList, {
-  CodeTaskRepositoryHost,
-} from "../../Components/Code/CodeTaskList";
+import CodeTaskList from "../../Components/Code/CodeTaskList";
+import { CodeRepositoryListOrder } from "Common/Types/AI/CodeTask";
 import {
   useCodeConnectDialog,
   UseCodeConnectDialog,
@@ -31,50 +32,69 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
-  useMemo,
   useState,
 } from "react";
 import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase";
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 /*
- * Where each repository is hosted, by id, for the mark beside its name on
- * task rows across repositories.
+ * What Code's first page reads before it draws (#10764): whether the reader
+ * has any repository at all, the tasks that have none, and the repository
+ * the request box starts on - never a list of the project's first
+ * repositories. The box's picker finds every other on the server, and each
+ * task row is named by its repository's id (the list reads it).
  */
-export const getRepositoryHosts: (
-  repositories: Array<CodeRepositoryListItem>,
-) => Map<string, CodeTaskRepositoryHost> = (
-  repositories: Array<CodeRepositoryListItem>,
-): Map<string, CodeTaskRepositoryHost> => {
-  return new Map<string, CodeTaskRepositoryHost>(
-    repositories.map(
-      (
-        repository: CodeRepositoryListItem,
-      ): [string, CodeTaskRepositoryHost] => {
-        return [
-          repository.id,
-          {
-            provider: repository.provider,
-            hostProduct: repository.connection?.hostProduct,
-          },
-        ];
-      },
-    ),
-  );
-};
+export interface CodeHomeData {
+  repositories: CodeRepositoriesResponse;
+  startingRepository: CodeRepositoryListItem | null;
+}
 
-// The repositories' names by id, for task rows across repositories.
-export const getRepositoryNames: (
-  repositories: Array<CodeRepositoryListItem>,
-) => Map<string, string> = (
-  repositories: Array<CodeRepositoryListItem>,
-): Map<string, string> => {
-  return new Map<string, string>(
-    repositories.map((repository: CodeRepositoryListItem): [string, string] => {
-      return [repository.id, repository.name];
-    }),
-  );
-};
+/*
+ * The repository the request box starts on: the one picked here last time,
+ * read by its id, while the reader may still read it; else the first the
+ * server lists by activity - the connected repository where something
+ * happened most recently, or, with none connected, the most recently active
+ * one, so the box can say what connects it (pickStartingRepository).
+ */
+export const readCodeHomeData: () => Promise<CodeHomeData> =
+  async (): Promise<CodeHomeData> => {
+    const rememberedId: string | null = readRememberedRepositoryId();
+
+    const [repositories, remembered]: [
+      CodeRepositoriesResponse,
+      Array<CodeRepositoryListItem>,
+    ] = await Promise.all([
+      CodeApi.getRepositories({
+        order: CodeRepositoryListOrder.Activity,
+        limit: 1,
+      }),
+      rememberedId
+        ? CodeApi.getRepositoriesById([rememberedId]).catch(
+            (): Array<CodeRepositoryListItem> => {
+              // Not read: the box starts on the first repository instead.
+              return [];
+            },
+          )
+        : Promise.resolve([]),
+    ]);
+
+    const candidates: Array<CodeRepositoryListItem> = [
+      ...remembered,
+      ...repositories.repositories,
+    ];
+    const startingId: string | null = pickStartingRepository(
+      candidates,
+      rememberedId,
+    );
+
+    return {
+      repositories,
+      startingRepository:
+        candidates.find((repository: CodeRepositoryListItem): boolean => {
+          return repository.id === startingId;
+        }) || null,
+    };
+  };
 
 /*
  * What connecting GitHub from the request box does on this page, where
@@ -115,7 +135,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const isPlanAccessible: boolean = isAIAccessibleOnCurrentPlan();
 
-  const [data, setData] = useState<CodeRepositoriesResponse | null>(null);
+  const [home, setHome] = useState<CodeHomeData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [taskCount, setTaskCount] = useState<number | null>(null);
@@ -124,7 +144,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     setIsLoading(true);
 
     try {
-      setData(await CodeApi.getRepositories());
+      setHome(await readCodeHomeData());
       setError(null);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -161,17 +181,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
     });
   }, [load, isPlanAccessible]);
 
-  const repositories: Array<CodeRepositoryListItem> = useMemo(() => {
-    return data?.repositories || [];
-  }, [data]);
-
-  const repositoryNames: Map<string, string> = useMemo(() => {
-    return getRepositoryNames(repositories);
-  }, [repositories]);
-
-  const repositoryHosts: Map<string, CodeTaskRepositoryHost> = useMemo(() => {
-    return getRepositoryHosts(repositories);
-  }, [repositories]);
+  const data: CodeRepositoriesResponse | null = home?.repositories || null;
 
   /*
    * Every task the reader may read, newest first, under the box. With none
@@ -202,11 +212,13 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           )}
         </h2>
         <div className="mt-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          {/*
+           * Each row names its repository as the list read it, by the
+           * repository's id - however far past any first page it is.
+           */}
           <CodeTaskList
             scope={{ allRepositories: true }}
             showFilters={true}
-            repositoryNames={repositoryNames}
-            repositoryHosts={repositoryHosts}
             onCount={(count: number) => {
               setTaskCount(count);
             }}
@@ -268,7 +280,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
       );
     }
 
-    if (!data || data.repositories.length === 0) {
+    if (!data || data.facts.total === 0) {
       return (
         <div className={`${CODE_COLUMN_CLASS_NAME} pt-2 sm:pt-6`}>
           <ConnectGitHubEmptyState
@@ -303,7 +315,7 @@ const CodePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </h1>
 
         <CodeAskBox
-          repositories={repositories}
+          startingRepository={home?.startingRepository || null}
           isLarge={true}
           showExamples={taskCount === 0}
           connectGitHub={getConnectGitHubFix(connection)}

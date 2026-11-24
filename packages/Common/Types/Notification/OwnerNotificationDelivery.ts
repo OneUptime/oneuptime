@@ -103,6 +103,14 @@ export enum OwnerNotificationKind {
   RunnerOwnerAdded = "RunnerOwnerAdded",
   // Someone assigned to an incident with a role: told as its owners are (#8573).
   IncidentMemberAdded = "IncidentMemberAdded",
+  /*
+   * A custom probe that falls a major release behind the OneUptime it
+   * reports to (#9977): its owners told once for each major release of
+   * OneUptime (Workers Probe:NotifyMajorReleaseBehind), the occurrence the
+   * day the notice went out, so each time it falls behind is a notice of
+   * its own.
+   */
+  ProbeMajorReleaseBehind = "ProbeMajorReleaseBehind",
 }
 
 export enum OwnerNotificationDeliveryStatus {

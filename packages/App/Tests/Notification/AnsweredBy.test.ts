@@ -10,6 +10,7 @@ import {
   VOICEMAIL_MESSAGE_WITHOUT_WORDS,
 } from "../../FeatureSet/Notification/Utils/AnsweredBy";
 import { CallOutcome } from "../../FeatureSet/Notification/Utils/CallOutcome";
+import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import CallStatus from "Common/Types/Call/CallStatus";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { NotificationDeliveryStatus } from "Common/Server/Utils/Telemetry/NotificationDeliveryMetrics";
@@ -165,17 +166,22 @@ describe("a call a machine answered, for its log and its notification", () => {
   });
 });
 
+/*
+ * Written OneUptime, so an installation that goes by its own name says that
+ * instead (ProductBrandingText) - written "One Uptime", it never did. The
+ * call says it as two words (Common/Utils/Call/CallSpeech).
+ */
 describe("the message left on voicemail", () => {
   test("what the call said, then what to do", () => {
     expect(
       getVoicemailMessage(
-        "This is a call from One Uptime. Incident number 42, API is down.",
+        "This is a call from Acme. A new incident has been created: I N C 42.",
       ),
     ).toBe(
-      `This is a call from One Uptime. Incident number 42, API is down. ${VOICEMAIL_MESSAGE_CLOSING}`,
+      `This is a call from Acme. A new incident has been created: I N C 42. ${VOICEMAIL_MESSAGE_CLOSING}`,
     );
     expect(VOICEMAIL_MESSAGE_CLOSING).toBe(
-      "Open One Uptime to respond. Good bye.",
+      "Open OneUptime to respond. Good bye.",
     );
   });
 
@@ -184,10 +190,20 @@ describe("the message left on voicemail", () => {
     (words: string | null) => {
       expect(getVoicemailMessage(words)).toBe(VOICEMAIL_MESSAGE_WITHOUT_WORDS);
       expect(VOICEMAIL_MESSAGE_WITHOUT_WORDS).toBe(
-        "This is a call from One Uptime about an on-call page. Open One Uptime to respond. Good bye.",
+        "This is a call from OneUptime about an on-call page. Open OneUptime to respond. Good bye.",
       );
     },
   );
+
+  test("an installation that goes by its own name says it, where a call said One Uptime on every one", () => {
+    expect(
+      ProductBrandingText.brandText(VOICEMAIL_MESSAGE_WITHOUT_WORDS, {
+        productName: "Acme Monitoring",
+      }),
+    ).toBe(
+      "This is a call from Acme Monitoring about an on-call page. Open Acme Monitoring to respond. Good bye.",
+    );
+  });
 
   test("asks for no key press: the voicemail cannot press one", () => {
     expect(getVoicemailMessage("Words.")).not.toMatch(/press/i);

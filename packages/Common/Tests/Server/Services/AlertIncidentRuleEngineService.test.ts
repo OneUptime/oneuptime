@@ -30,6 +30,7 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY,
 } from "../../../Types/Incident/IncidentAlertLink";
 import { JSONObject } from "../../../Types/JSON";
@@ -734,6 +735,12 @@ describe("the incident an alert incident rule declares", () => {
       [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID.toString()],
       [INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY]: "Critical alerts",
     });
+    /*
+     * The switch is left on (#10867): IncidentService makes the alert's
+     * owners the incident's as it declares it, told once by Incident
+     * Created - nobody picks owners for a rule's incident.
+     */
+    expect(INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY in miscDataProps).toBe(false);
   });
 
   test("is private when its alert is", async () => {

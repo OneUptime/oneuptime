@@ -108,7 +108,9 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * enableTelegramNotifications), and nothing else: every other column's own
    * update list leaves them out, and the server checks both lists on every
    * update. Edit Incoming Request Secret is here for one column alone,
-   * requireIncomingRequestSecret (issue #8502), the same way.
+   * requireIncomingRequestSecret (issue #8502), the same way, and so is
+   * Security Admin, for the hourly limit of automatic blocks
+   * (securityAutomaticResponseMaxBlocksPerHour, #10746).
    */
   update: [
     Permission.ProjectOwner,
@@ -118,6 +120,7 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.ManageProjectBilling,
     Permission.EditProject,
     Permission.EditIncomingRequestSecret,
+    Permission.SecurityAdmin,
   ],
 })
 @TableMetadata({
@@ -3213,6 +3216,51 @@ export default class Project extends TenantModel {
     nullable: true,
   })
   public securityTrustedProxies?: string = undefined;
+
+  /*
+   * The most automatic blocks the project's automatic response policies
+   * make in an hour (#10746, Security Events > Playbooks > Automatic
+   * Response, under More settings): past it they stop blocking and page the
+   * project's security owners. 50 unless changed, a whole number from 1 to
+   * 500 (Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy);
+   * the server refuses anything else. A Security Admin sets it, as they turn
+   * the policies on - the one Project column they may change, which is why
+   * the table's update list names them too.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Automatic Response Hourly Limit",
+    description:
+      "The most automatic blocks the project's automatic response policies make in an hour: a whole number from 1 to 500, 50 unless changed. Past it, they stop blocking and page the project's security owners.",
+    defaultValue: 50,
+    example: 50,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    unique: false,
+    default: 50,
+  })
+  public securityAutomaticResponseMaxBlocksPerHour?: number = undefined;
 
   /*
    * Fixing new incidents and alerts automatically (auto-remediation): the

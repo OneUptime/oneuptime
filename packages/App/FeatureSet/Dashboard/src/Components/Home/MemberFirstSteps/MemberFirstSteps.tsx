@@ -22,6 +22,11 @@ import useSetupChecklist, {
 } from "../../UserSettings/SetupChecklist/useSetupChecklist";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import {
+  MobileAppOffer,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
@@ -107,6 +112,14 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
   const [isAcknowledgedHere, setIsAcknowledgedHere] = useState<boolean>(false);
   const [isMobileAppOpen, setIsMobileAppOpen] = useState<boolean>(false);
 
+  /*
+   * How the server offers the mobile app (Admin Dashboard > Settings > Help
+   * and Support, #10866): OneUptime's stores, a page of its own, or not at
+   * all - then the card has no mobile app step.
+   */
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
+
   const projectIdString: string = props.projectId.toString();
 
   useEffect(() => {
@@ -160,6 +173,8 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
     hasAcknowledgedTestPage:
       props.answer.hasAcknowledgedTestPage || isAcknowledgedHere,
     clock: clock,
+    // No "Get the mobile app" where the server's admins took it away (#10866).
+    isMobileAppOffered: mobileAppOffer !== null,
   });
 
   /*
@@ -404,7 +419,7 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
           {steps.tiles.map(drawTile)}
         </div>
-        {isMobileAppOpen ? (
+        {isMobileAppOpen && mobileAppOffer ? (
           <MobileAppCodes
             dataTestId="member-first-steps-mobile-app-panel"
             serverUrlDataTestId="member-first-steps-server-url"

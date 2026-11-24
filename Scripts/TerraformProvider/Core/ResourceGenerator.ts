@@ -21,6 +21,14 @@ import {
   MONITOR_STEPS_VALUES_CASES_FILE,
   monitorStepsValuesCasesFile,
 } from "./MonitorStepsValuesCases";
+import {
+  MONITOR_STEPS_ACTIVE_HOURS_CASES_FILE,
+  monitorStepsActiveHoursCasesFile,
+} from "./MonitorStepsActiveHoursCases";
+import {
+  MONITOR_STEPS_SERVER_DEFAULTS_CASES_FILE,
+  monitorStepsServerDefaultsCasesFile,
+} from "./MonitorStepsServerDefaultsCases";
 import { PHONE_CASES_FILE, phoneCasesFile } from "./PhoneCases";
 import {
   HANDWRITTEN_RESOURCES,
@@ -637,6 +645,38 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
       "internal/provider/testdata",
       MONITOR_STEPS_VALUES_CASES_FILE,
       monitorStepsValuesCasesFile(),
+    );
+    /*
+     * A criteria's recovery condition and active hours (#10822): active_hours
+     * converted both ways as the server's WorkingHours does, checked against
+     * cases this generator writes from it, and a monitor whose criteria have
+     * both set in the dashboard imported, planned, applied and refreshed
+     * through the real protocol server.
+     */
+    await this.copyStaticFile(
+      "monitorsteps_recovery_activehours_test.go",
+      "internal/provider",
+    );
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      MONITOR_STEPS_ACTIVE_HOURS_CASES_FILE,
+      monitorStepsActiveHoursCasesFile(),
+    );
+    /*
+     * A setting added in the Dashboard to steps Terraform wrote (#10907):
+     * what OneUptime writes of its own is no change, a setting of its own
+     * is, and the state keeps no default it does not need. Checked against
+     * what the server's own code answers for steps written sparsely
+     * (Core/MonitorStepsServerDefaultsCases.ts), and through the real
+     * protocol server: the plan shows the setting, and the apply that
+     * follows does what the plan said.
+     */
+    await this.copyStaticFile("monitorstepsdrift.go", "internal/provider");
+    await this.copyStaticFile("monitorstepsdrift_test.go", "internal/provider");
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      MONITOR_STEPS_SERVER_DEFAULTS_CASES_FILE,
+      monitorStepsServerDefaultsCasesFile(),
     );
     await this.copyStaticFile(
       "provider_schema_smoke_test.go",
@@ -3661,12 +3701,16 @@ func (r *${resourceTypeName}Resource) Delete(ctx context.Context, req resource.D
       case "monitor_steps":
         /*
          * Typed nested monitor steps: conversion (and dropping of
-         * server-injected extras like ids) lives in monitorsteps.go.
+         * server-injected extras like ids) lives in monitorsteps.go. What
+         * OneUptime writes of its own that the prior steps - the state a read
+         * refreshes, the plan an apply carries out - leave out is left out of
+         * state, so a setting added in the Dashboard is what a plan shows
+         * (MonitorStepsKeepWritten, monitorstepsdrift.go, #10907).
          */
         return `{
         mappedSteps, stepsDiags := MonitorStepsFromAPI(ctx, ${responseValue})
         resp.Diagnostics.Append(stepsDiags...)
-        ${fieldName} = MonitorStepsValue{ListValue: mappedSteps}
+        ${fieldName} = MonitorStepsValue{ListValue: MonitorStepsKeepWritten(ctx, ${fieldName}.ListValue, mappedSteps)}
     }`;
       case "string":
         // Handle binary format fields (like base64 file content) specially

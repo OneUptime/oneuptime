@@ -371,7 +371,49 @@ export enum EvaluateOverTimeType {
   Count = "Count",
   Percentage = "Percentage",
   StatusChanges = "Status Changes",
+  /*
+   * This check compared with the one before it (#10821), probe by probe. A
+   * measured value is compared with a threshold made from the previous
+   * check's value, by the filter's own comparison: "Response Time Greater
+   * Than" with a change of 50% matches when this check's response time is
+   * more than 50% above the previous check's (changeType, changeValue). A
+   * yes or no check - a true/false series, or a body, header or expression
+   * judged from its match history - matches on the check that started to
+   * meet the filter's condition: the previous check did not.
+   *
+   * The window is how long ago the previous check may be. With none in it -
+   * the first check, or one after a gap longer than the window - If No Data
+   * decides (PreviousCheckComparison on the server).
+   */
+  PreviousCheck = "Previous Check",
 }
+
+/*
+ * How far a check must be from the previous one, for Previous Check: an
+ * amount in the check's own unit (200 ms, 1 day), or a share of the
+ * previous check's value, in % (50%).
+ */
+export enum PreviousCheckChangeType {
+  Amount = "Amount",
+  Percentage = "Percentage",
+}
+
+// A change written without a type: an amount, in the check's own unit.
+export const DEFAULT_PREVIOUS_CHECK_CHANGE_TYPE: PreviousCheckChangeType =
+  PreviousCheckChangeType.Amount;
+
+/*
+ * The change the criteria form starts a Previous Check at: more than 50%
+ * above (or below) the previous check. One the API leaves out is 0, any
+ * rise or fall past the previous value.
+ */
+export const DEFAULT_FORM_PREVIOUS_CHECK_CHANGE: {
+  changeType: PreviousCheckChangeType;
+  changeValue: number;
+} = {
+  changeType: PreviousCheckChangeType.Percentage,
+  changeValue: 50,
+};
 
 /*
  * The percentiles the criteria form offers for EvaluateOverTimeType.
@@ -570,6 +612,16 @@ export interface EvaluateOverTimeOptions {
    */
   countFilterType?: FilterType | undefined;
   countValue?: number | undefined;
+  /*
+   * Previous Check only, on a measured value: how far from the previous
+   * check's value this check must be, in the direction of the filter's own
+   * comparison - above it for Greater Than, below it for Less Than - as an
+   * amount in the check's unit, or a share of the previous value in %.
+   * Equal To and Not Equal To compare with the previous value itself. An
+   * amount of 0 when unset: any rise or fall.
+   */
+  changeType?: PreviousCheckChangeType | undefined;
+  changeValue?: number | undefined;
 }
 
 export interface CriteriaFilter {
@@ -959,11 +1011,14 @@ export class CriteriaFilterUtil {
     /*
      * A count of the window's checks reads every check as a yes or a no
      * (CheckWindowCounts), so it is what it says on any check that can be
-     * counted at all. On one that cannot, it is judged as All Values.
+     * counted at all. On one that cannot, it is judged as All Values. So is a
+     * comparison with the previous check (#10821): it reads the same record
+     * of the checks, a series or a match history.
      */
     if (
       evaluateOverTimeType &&
-      CriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType)
+      (CriteriaFilterUtil.isCountedWindowType(evaluateOverTimeType) ||
+        evaluateOverTimeType === EvaluateOverTimeType.PreviousCheck)
     ) {
       return CriteriaFilterUtil.canCountChecks(
         criteriaFilter?.checkOn,
@@ -1088,6 +1143,159 @@ export class CriteriaFilterUtil {
     );
   }
 
+  /*
+   * Whether this filter compares this check with the previous one (#10821):
+   * it is evaluated over a window of some minutes - how long ago the
+   * previous check may be - its type is Previous Check, and its check keeps
+   * a record of its checks on the monitor to read the previous one from
+   * (canCountChecks).
+   */
+  public static isComparedWithPreviousCheck(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    if (
+      !criteriaFilter?.evaluateOverTime ||
+      CriteriaFilterUtil.getEvaluateOverTimeMinutes(criteriaFilter) <= 0
+    ) {
+      return false;
+    }
+
+    return (
+      CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(
+        criteriaFilter,
+        monitorType,
+      ) === EvaluateOverTimeType.PreviousCheck
+    );
+  }
+
+  /*
+   * Whether a comparison with the previous check compares a measured value -
+   * by a change, in the direction of the filter's comparison - rather than
+   * asking whether a yes or no check started to meet its condition
+   * (isJudgedCheckByCheck). A body, header or expression judged from its
+   * match history, and a true/false series, are yes or no checks.
+   */
+  public static comparesValueWithPreviousCheck(
+    criteriaFilter: CriteriaFilter | undefined,
+    monitorType?: MonitorType | undefined,
+  ): boolean {
+    return (
+      CriteriaFilterUtil.isComparedWithPreviousCheck(
+        criteriaFilter,
+        monitorType,
+      ) &&
+      !CriteriaFilterUtil.isJudgedCheckByCheck(
+        criteriaFilter?.checkOn,
+        monitorType,
+      )
+    );
+  }
+
+  /*
+   * How far from the previous check a measured value must be: its own, or
+   * an amount of 0 - any rise past the previous value for Greater Than, any
+   * fall for Less Than.
+   */
+  public static getPreviousCheckChange(
+    criteriaFilter: CriteriaFilter | undefined,
+  ): { type: PreviousCheckChangeType; value: number } {
+    const type: PreviousCheckChangeType | undefined =
+      criteriaFilter?.evaluateOverTimeOptions?.changeType;
+    const value: number = Number(
+      criteriaFilter?.evaluateOverTimeOptions?.changeValue,
+    );
+
+    return {
+      type:
+        type === PreviousCheckChangeType.Percentage
+          ? PreviousCheckChangeType.Percentage
+          : DEFAULT_PREVIOUS_CHECK_CHANGE_TYPE,
+      value: Number.isFinite(value) && value >= 0 ? value : 0,
+    };
+  }
+
+  /*
+   * Whether a comparison of a measured value with the previous check takes
+   * a change: Greater Than, Less Than and their "Or Equal To"s, which say
+   * above or below the previous value. Equal To and Not Equal To compare
+   * with the previous value itself: unchanged, or changed.
+   */
+  public static isPreviousCheckChangeComparison(
+    filterType: FilterType | undefined,
+  ): boolean {
+    return (
+      filterType === FilterType.GreaterThan ||
+      filterType === FilterType.GreaterThanOrEqualTo ||
+      filterType === FilterType.LessThan ||
+      filterType === FilterType.LessThanOrEqualTo
+    );
+  }
+
+  /*
+   * The threshold this check's value is compared with, made from the
+   * previous check's (#10821), and the comparison it is read with: the
+   * filter's own, so every check compares as it always has and needs no
+   * comparison of its own. The previous value plus the change for Greater
+   * Than (Or Equal To), minus it for Less Than (Or Equal To), the previous
+   * value itself for Equal To and Not Equal To.
+   *
+   * A share is of the previous value's size, so "50% above" a reading below
+   * zero (an optic's dBm) is still above it. Any rise from 0 is an endless
+   * share of it, and no rise none: from a previous value of 0, "at least 50%
+   * above" needs a rise, so Greater Than Or Equal To reads as Greater Than
+   * (and "at least 50% below" as Less Than).
+   *
+   * Null for a comparison that reads no number.
+   */
+  public static getPreviousCheckComparison(data: {
+    previousValue: number;
+    filterType: FilterType | undefined;
+    change: { type: PreviousCheckChangeType; value: number };
+  }): { filterType: FilterType; threshold: number } | null {
+    const previousValue: number = data.previousValue;
+
+    if (!Number.isFinite(previousValue) || !data.filterType) {
+      return null;
+    }
+
+    if (
+      data.filterType === FilterType.EqualTo ||
+      data.filterType === FilterType.NotEqualTo
+    ) {
+      return { filterType: data.filterType, threshold: previousValue };
+    }
+
+    if (!CriteriaFilterUtil.isPreviousCheckChangeComparison(data.filterType)) {
+      return null;
+    }
+
+    const isShare: boolean =
+      data.change.type === PreviousCheckChangeType.Percentage;
+    const changeValue: number =
+      Number.isFinite(data.change.value) && data.change.value > 0
+        ? data.change.value
+        : 0;
+    const amount: number = isShare
+      ? (Math.abs(previousValue) * changeValue) / 100
+      : changeValue;
+
+    const isAbove: boolean =
+      data.filterType === FilterType.GreaterThan ||
+      data.filterType === FilterType.GreaterThanOrEqualTo;
+
+    let filterType: FilterType = data.filterType;
+
+    if (isShare && changeValue > 0 && previousValue === 0) {
+      filterType = isAbove ? FilterType.GreaterThan : FilterType.LessThan;
+    }
+
+    return {
+      filterType: filterType,
+      threshold: isAbove ? previousValue + amount : previousValue - amount,
+    };
+  }
+
   // The percentile a Percentile window reads: its own, or 95.
   public static getPercentile(
     criteriaFilter: CriteriaFilter | undefined,
@@ -1147,13 +1355,18 @@ export class CriteriaFilterUtil {
       return [];
     }
 
-    // Counting the window's checks, where they can be counted (#10355).
+    /*
+     * Counting the window's checks, where they can be counted (#10355), and
+     * comparing a check with the one before it, read from the same record
+     * of the checks (#10821).
+     */
     const counts: Array<EvaluateOverTimeType> =
       CriteriaFilterUtil.canCountChecks(criteriaFilter.checkOn, monitorType)
         ? [
             EvaluateOverTimeType.Count,
             EvaluateOverTimeType.Percentage,
             EvaluateOverTimeType.StatusChanges,
+            EvaluateOverTimeType.PreviousCheck,
           ]
         : [];
 
@@ -1314,7 +1527,13 @@ export class CriteriaFilterUtil {
        */
       checkOn === CheckOn.ConnectedProbes ||
       checkOn === CheckOn.DisconnectedProbes ||
-      checkOn === CheckOn.ProbesBehind
+      checkOn === CheckOn.ProbesBehind ||
+      /*
+       * Written each check since #10905, so a certificate's days left can be
+       * compared with the previous check: down by more than one is a
+       * certificate replaced by one that expires sooner, up is a renewal.
+       */
+      checkOn === CheckOn.ExpiresInDays
     );
   }
 }

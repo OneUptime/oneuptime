@@ -3341,8 +3341,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     metricName: string;
     windowStart: Date;
     windowEnd: Date;
-    // Rows whose attribute equals the value: the filter key of a match history.
-    attributes?: Record<string, string> | undefined;
+    /*
+     * Rows whose attribute equals the value, or one of the values: the filter
+     * key of a match history, the step of a series (MonitorStepSeries).
+     */
+    attributes?: MonitorCheckAttributeFilter | undefined;
     // The attributes each group is one value of: probeId, and diskPath.
     groupByAttributeKeys: Array<string>;
     condition: MonitorCheckCondition;
@@ -3423,14 +3426,10 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         }} AND isNotNull(value)`,
       );
 
-    for (const [key, value] of Object.entries(data.attributes || {})) {
-      statement.append(
-        SQL` AND attributes[${{
-          value: key,
-          type: TableColumnType.Text,
-        }}] = ${{ value: value, type: TableColumnType.Text }}`,
-      );
-    }
+    MetricService.appendMonitorCheckAttributeFilter({
+      statement: statement,
+      attributes: data.attributes,
+    });
 
     statement.append(this.getRetentionReadFilter());
 
@@ -3474,6 +3473,175 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     );
   }
 
+  /**
+   * Each group's previous check of one monitor's series (#10821): for every
+   * probe - and every disk of a disk series - the newest row before `before`
+   * that is no older than `windowStart`, its value and when it was written.
+   * What a criteria that compares a check with the one before it reads:
+   * "the response time is more than 50% above the previous check".
+   *
+   * `before` is when the check being judged was written, to the second the
+   * rows are kept in, so its own rows - written before it is judged - are
+   * not read as its previous check. One statement whatever the number of
+   * groups, over the table's own sort key (projectId, name, primaryEntityId,
+   * time) as summarizeMonitorChecks reads it: a bounded range of one
+   * monitor's rows, read in place and handed back as one row a group.
+   */
+  public async readPreviousMonitorChecks(data: {
+    projectId: ObjectID;
+    monitorId: ObjectID;
+    metricName: string;
+    windowStart: Date;
+    before: Date;
+    /*
+     * Rows whose attribute equals the value, or one of the values: the filter
+     * key of a match history, the step of a series (MonitorStepSeries).
+     */
+    attributes?: MonitorCheckAttributeFilter | undefined;
+    // The attributes each group is one value of: probeId, and diskPath.
+    groupByAttributeKeys: Array<string>;
+  }): Promise<Array<MonitorPreviousCheckRow>> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string = this.database.getDatasourceOptions().database!;
+
+    const groupKeys: Array<string> = data.groupByAttributeKeys.slice(0, 4);
+
+    /*
+     * A check's rows are written to the second (MonitorMetricUtil), so the
+     * check written at 12:00:05.300 has rows at 12:00:05: the bound is the
+     * second it was written in, or its own rows would read as before it.
+     */
+    const before: Date = new Date(
+      Math.floor(data.before.getTime() / 1000) * 1000,
+    );
+
+    const statement: Statement = SQL`SELECT `;
+
+    groupKeys.forEach((key: string, index: number): void => {
+      statement
+        .append(SQL`attributes[${{ value: key, type: TableColumnType.Text }}]`)
+        .append(` AS g${index}, `);
+    });
+
+    /*
+     * The value is Nullable, like each check's state in
+     * summarizeMonitorChecks: the WHERE keeps only checks with a value, so
+     * it is read as one.
+     */
+    statement
+      .append(
+        ` argMax(assumeNotNull(value), time) AS previousValue, max(time) AS previousAt FROM ${databaseName}.${this.model.tableName}`,
+      )
+      .append(
+        SQL` WHERE projectId = ${{
+          value: data.projectId.toString(),
+          type: TableColumnType.ObjectID,
+        }} AND name = ${{
+          value: data.metricName,
+          type: TableColumnType.Text,
+        }} AND primaryEntityId = ${{
+          value: data.monitorId.toString(),
+          type: TableColumnType.ObjectID,
+        }} AND time >= ${{
+          value: data.windowStart,
+          type: TableColumnType.DateTime64,
+        }} AND time < ${{
+          value: before,
+          type: TableColumnType.DateTime64,
+        }} AND isNotNull(value)`,
+      );
+
+    MetricService.appendMonitorCheckAttributeFilter({
+      statement: statement,
+      attributes: data.attributes,
+    });
+
+    statement.append(this.getRetentionReadFilter());
+
+    if (groupKeys.length > 0) {
+      statement.append(
+        ` GROUP BY ${groupKeys
+          .map((_key: string, index: number): string => {
+            return `g${index}`;
+          })
+          .join(", ")}`,
+      );
+    }
+
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    const dbResult: ResultSet<"JSON"> = await this.executeQuery(statement);
+    const responseJSON: ResponseJSON<JSONObject> =
+      await dbResult.json<JSONObject>();
+
+    const rows: Array<MonitorPreviousCheckRow> = [];
+
+    for (const row of responseJSON.data || []) {
+      const value: number = Number(row["previousValue"]);
+      const at: Date | null = MetricService.readSummaryTime(row["previousAt"]);
+
+      if (!Number.isFinite(value) || !at) {
+        continue;
+      }
+
+      const group: Record<string, string> = {};
+
+      groupKeys.forEach((key: string, index: number): void => {
+        group[key] = String(row[`g${index}`] ?? "");
+      });
+
+      rows.push({ group: group, value: value, at: at });
+    }
+
+    return rows;
+  }
+
+  /*
+   * The attribute filter of a monitor check read: each attribute equal to
+   * its value, or to one of its values - "" for a row that does not have
+   * the attribute, as a map reads a missing key. Every value a bound
+   * parameter.
+   */
+  public static appendMonitorCheckAttributeFilter(data: {
+    statement: Statement;
+    attributes: MonitorCheckAttributeFilter | undefined;
+  }): void {
+    for (const [key, value] of Object.entries(data.attributes || {})) {
+      if (Array.isArray(value)) {
+        /*
+         * No value at all matches no row: never a filter left out, which
+         * would read every row of the series.
+         */
+        if (value.length === 0) {
+          data.statement.append(` AND 0`);
+          continue;
+        }
+
+        data.statement.append(
+          SQL` AND attributes[${{
+            value: key,
+            type: TableColumnType.Text,
+          }}] IN ${{
+            value: new Includes(value),
+            type: TableColumnType.Text,
+          }}`,
+        );
+
+        continue;
+      }
+
+      data.statement.append(
+        SQL` AND attributes[${{
+          value: key,
+          type: TableColumnType.Text,
+        }}] = ${{ value: value, type: TableColumnType.Text }}`,
+      );
+    }
+  }
+
   // A DateTime64 as the JSON format writes it, read on UTC's clock.
   private static readSummaryTime(value: unknown): Date | null {
     if (value === undefined || value === null || value === "") {
@@ -3503,6 +3671,16 @@ export interface MonitorCheckCondition {
   threshold: number;
 }
 
+/*
+ * Which rows of a monitor's series a check read takes, by their attributes:
+ * each attribute equal to its value, or to one of its values ("" for a row
+ * without the attribute) - a match history's filter key, a series' step.
+ */
+export type MonitorCheckAttributeFilter = Record<
+  string,
+  string | Array<string>
+>;
+
 const MONITOR_CHECK_CONDITION_OPERATORS: Record<
   MonitorCheckComparison,
   string
@@ -3527,6 +3705,18 @@ export interface MonitorCheckSummaryRow {
   lastAt: Date | null;
   firstMatched: boolean;
   lastMatched: boolean;
+}
+
+/*
+ * One group's previous check of a monitor's series, as
+ * readPreviousMonitorChecks reads it.
+ */
+export interface MonitorPreviousCheckRow {
+  // Each grouped attribute's value in this group: "" when the rows have none.
+  group: Record<string, string>;
+  value: number;
+  // When its row was written, on the server's clock.
+  at: Date;
 }
 
 export default new MetricService();

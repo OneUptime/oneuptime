@@ -13,6 +13,7 @@ import UserNotificationRuleService, {
 } from "./UserNotificationRuleService";
 import UserSmsService from "./UserSmsService";
 import CallRequest from "../../Types/Call/CallRequest";
+import { ONEUPTIME_PRODUCT_NAME } from "../../Types/Branding/ProductBranding";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import TwilioConfig from "../../Types/CallAndSMS/TwilioConfig";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -526,11 +527,17 @@ export class Service extends DatabaseService<Model> {
     // add space to make it more clear and slow down the message
     const spokenCode: string = code.split("").join("  ");
 
+    /*
+     * From the product, as the verification text is: "OneUptime", which an
+     * installation that goes by its own name says instead
+     * (ProductBrandingText), and which the call says as two words
+     * (Utils/Call/CallSpeech).
+     */
     const callRequest: CallRequest = {
       to: item.phone!,
       data: [
         {
-          sayMessage: "This call is from One Uptime.",
+          sayMessage: `This is a call from ${ONEUPTIME_PRODUCT_NAME}.`,
         },
         {
           sayMessage: "Your verification code is " + spokenCode,
@@ -542,7 +549,7 @@ export class Service extends DatabaseService<Model> {
           sayMessage: "Your verification code is " + spokenCode,
         },
         {
-          sayMessage: "Thank you for using One Uptime. Goodbye.",
+          sayMessage: `Thank you for using ${ONEUPTIME_PRODUCT_NAME}. Good bye.`,
         },
       ],
     };

@@ -75,6 +75,12 @@ export enum PageSearchGate {
    * shown only where OneUptime Cloud records them.
    */
   DashboardRecording = "dashboard-recording",
+  /*
+   * The Mobile Apps page, where the server offers the mobile app: not where
+   * its admins took it away (Admin Dashboard > Settings > Help and Support,
+   * #10866), as the settings menu lists no such page there.
+   */
+  MobileApp = "mobile-app",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -834,6 +840,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Mobile Apps",
             icon: IconProp.DevicePhoneMobile,
             keywords: ["ios", "android", "push notifications", "phone app"],
+            gate: PageSearchGate.MobileApp,
           },
         ],
       },
@@ -2773,6 +2780,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "fail2ban",
               "challenge bots",
             ],
+            settings: [
+              /*
+               * Folded under the page's More settings (#10746): the result
+               * opens the fold at its card (HOURLY_LIMIT_CARD_KEY).
+               */
+              { name: "Hourly Limit", anchor: "hourly-limit" },
+            ],
           },
           {
             page: PageMap.SECURITY_BLOCKLIST,
@@ -3122,7 +3136,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
             title: "Scan Settings",
             icon: IconProp.Clock,
-            keywords: ["scan schedule", "scanning", "sampling"],
+            keywords: [
+              "scan schedule",
+              "scanning",
+              "sampling",
+              "names and street addresses",
+            ],
           },
           {
             page: PageMap.DATA_SECURITY_SETTINGS_AI,

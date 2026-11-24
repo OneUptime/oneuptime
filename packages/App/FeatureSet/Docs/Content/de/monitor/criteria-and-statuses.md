@@ -87,6 +87,7 @@ Ist **Diese Kriterien über einen Zeitraum hinweg auswerten** angehakt, legt **A
 | **Anzahl** | Die Zahl der Prüfungen, die die Bedingung erfüllt haben, so abschneidet, wie unter **Zutreffende Prüfungen** eingestellt: etwa **Größer als** 30. |
 | **Prozentsatz** | Ihr Anteil an den Prüfungen des Fensters so abschneidet, wie unter **Anteil zutreffender Prüfungen** eingestellt: etwa **Größer als** 10 %. |
 | **Statuswechsel** | Die Zahl der Wechsel der Prüfungen zwischen Erfüllen und Nichterfüllen der Bedingung so abschneidet, wie unter **Anzahl der Wechsel** eingestellt. Ein Gerät, das ausfällt und wieder hochkommt, wechselt zweimal. |
+| **Vorherige Prüfung** | Diese Prüfung, verglichen mit der vorherigen Prüfung derselben Sonde: etwa eine Antwortzeit, die mehr als 50 % darüber liegt, oder eine Website, die jetzt ausgefallen ist und es vorher nicht war. Siehe [Eine Prüfung mit der vorherigen vergleichen](#eine-prüfung-mit-der-vorherigen-vergleichen). |
 
 Ein Satz unter den Einstellungen des Fensters gibt den Filter so wieder, wie er eingestellt ist: „Prüfen: "Ist online" ist falsch bei mehr als 30 Prüfungen der letzten 8 Stunden“.
 
@@ -94,7 +95,7 @@ Ein Satz unter den Einstellungen des Fensters gibt den Filter so wieder, wie er 
 - **Ein Fenster, das noch nicht voll ist.** Bis die Prüfungen an den Anfang des Fensters zurückreichen, hat ein gerade gestarteter Monitor weniger Prüfungen, als er haben wird. **Anzahl** und **Statuswechsel** treffen früh zu, wenn sie **Größer als** oder **Größer als oder gleich** schon überschritten haben, da weitere Prüfungen sie nur erhöhen; alles andere wartet auf ein volles Fenster.
 - **Ein Fenster ohne Prüfungen.** Solange das Fenster keine Prüfungen hat oder noch nicht voll ist, entscheidet **Bei keinen Daten**: **Ignore** wartet, **Auslöser** trifft zu, und **Treat As Zero** bewertet es so, als hätten die fehlenden Prüfungen die Bedingung nicht erfüllt.
 
-Die Durchschnitte und Perzentile lesen die Werte der Prüfungen aller Sonden, wie **Durchschnitt** es schon immer tut. **Anzahl**, **Prozentsatz** und **Statuswechsel** werden für jeden Filter angeboten, dem ein Fenster angeboten wird: bei Website-, API-, Ping-, IP- und Port-Monitoren, für CPU, Arbeitsspeicher, Festplatten und Last eines Servers, für **SNMP-Gerät ist online** und die Antwortzeit eines Netzwerkgeräts sowie bei DNS-, NTP-, Datenbank-, Monitoren für externe Statusseiten und Sondenstatus-Monitoren. **Ist online** eines Server-Monitors wird nicht gezählt: Es wird nach der Zeit seit der letzten Meldung des Servers bewertet. Metrik- und andere Telemetrie-Monitore bewerten stattdessen den Zeitraum ihrer Abfrage, mit deren eigener Aggregation, die auch Perzentile liest.
+Die Durchschnitte und Perzentile lesen die Werte der Prüfungen aller Sonden, wie **Durchschnitt** es schon immer tut. **Anzahl**, **Prozentsatz** und **Statuswechsel** werden für jeden Filter angeboten, dem ein Fenster angeboten wird: bei Website-, API-, Ping-, IP- und Port-Monitoren, für CPU, Arbeitsspeicher, Festplatten und Last eines Servers, für **SNMP-Gerät ist online** und die Antwortzeit eines Netzwerkgeräts, für **Tage bis zum Ablauf** einer SSL-Zertifikat-Überwachung sowie bei DNS-, NTP-, Datenbank-, Monitoren für externe Statusseiten und Sondenstatus-Monitoren. **Ist online** eines Server-Monitors wird nicht gezählt: Es wird nach der Zeit seit der letzten Meldung des Servers bewertet. Metrik- und andere Telemetrie-Monitore bewerten stattdessen den Zeitraum ihrer Abfrage, mit deren eigener Aggregation, die auch Perzentile liest.
 
 ### Beispiel: ein Access Point, der ausgefallen ist, und einer, der instabil ist
 
@@ -107,6 +108,20 @@ Ein Ping-Monitor prüft jede Minute einen Access Point im Büro. Bevor Fenster P
 | Access Point ist online | **Ist online** ist **Wahr** | Nicht über einen Zeitraum | **Betriebsbereit** |
 
 Schalten Sie beim zweiten **Nur erholen, wenn eine eigene Bedingung erfüllt ist** mit **Statuswechsel**, **Kleiner als oder gleich** 1, **Für die letzten** 1 Stunde ein: Der Instabilitäts-Vorfall bleibt offen, bis der Access Point eine Stunde lang stabil war, statt in der ersten Minute zu schließen, in der er erreichbar ist. Um zu alarmieren, wenn er in 8 Stunden mehr als 30 Pings verfehlt, stellen Sie das zweite Kriterium stattdessen auf **Anzahl**, **Größer als** 30, **Für die letzten** 8 Stunden.
+
+### Eine Prüfung mit der vorherigen vergleichen
+
+**Vorherige Prüfung** vergleicht jede Prüfung mit der vorherigen Prüfung derselben Sonde, bei der Belegung eines Datenträgers auch desselben Datenträgers. **Für die letzten** gibt an, wie lange diese Prüfung zurückliegen darf; wählen Sie den Zeitraum daher länger als das Überwachungsintervall. Angeboten wird es für dieselben Filter wie **Anzahl**.
+
+Ein gemessener Wert, etwa eine Antwortzeit, trifft zu, wenn er um mehr als die unter **Änderung gegenüber der vorherigen Prüfung** eingestellte Änderung über der vorherigen Prüfung liegt (mit **Größer als**) oder darunter (mit **Kleiner als**). Die Änderung ist ein **Wert in der Einheit der Prüfung**, etwa 200 ms, oder ein **Prozent der vorherigen Prüfung**, etwa 50 %, und 0 trifft bei jedem Anstieg oder Rückgang zu. **Gleich** und **Ungleich** vergleichen mit dem vorherigen Wert selbst.
+
+Ein Filter, der wahr oder falsch ist, etwa **Ist online**, und ein Filter auf den Body, einen Header oder einen Ausdruck treffen bei der Prüfung zu, die die Bedingung zu erfüllen begann: **Ist online** auf **Falsch** trifft bei der Prüfung zu, bei der die Website ausfiel, und erst beim nächsten Ausfall wieder.
+
+In beiden Fällen trifft es bei einer Prüfung zu, und bei der nächsten wirkt das Kriterium nicht mehr. Damit es den gesetzten Status hält oder seinen Vorfall offen lässt, geben Sie ihm eine eigene Wiederherstellungsbedingung: siehe [Wann sich ein Kriterium erholt](#wann-sich-ein-kriterium-erholt).
+
+Gibt es im Fenster keine vorherige Prüfung, etwa bei der ersten Prüfung des Monitors, bei einer gerade hinzugefügten Sonde oder nach einer Lücke, entscheidet **Bei keinen Daten**: **Ignore** trifft nicht zu, **Auslöser** trifft zu, und **Treat As Zero** vergleicht so, als hätte die vorherige Prüfung 0 ergeben oder die Bedingung nicht erfüllt.
+
+Der Satz unter den Einstellungen des Fensters gibt es wieder: „Prüfen: "Antwortzeit (in ms)" liegt mehr als 50 % über der vorherigen Prüfung“ oder „Prüfen: "Ist online" ist falsch bei dieser Prüfung, aber nicht bei der vorherigen“.
 
 ## Wann sich ein Kriterium erholt
 

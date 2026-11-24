@@ -82,6 +82,8 @@ In een rastergroep vraagt het dialoogvenster boven **Meer velden** ook om de rij
 > [!TIP]
 > Om meerdere controles als één rij te tonen, voegt u een [monitorgroep](/docs/monitor/monitor-groups) toe. Met de schakelaar **Monitorgroepen** aan (**Projectinstellingen** > **Basis** > **Producten**, die wordt opgeslagen zodra u hem omzet) staat onder de keuzelijst een link **Voeg in plaats daarvan een monitorgroep toe.** Klik erop en **Monitor** wordt **Monitorgroep** (**Selecteer monitorgroep**); **Voeg in plaats daarvan een monitor toe.** zet het terug.
 
+**Resource bewerken**, het potlood bij een rij, opent op wat de rij toont: de rij van een monitorgroep op **Monitorgroep**, met de groep gekozen, en die van een monitor op **Monitor**. Met de schakelaar **Monitorgroepen** aan zegt de link onder de keuzelijst **Toon in plaats daarvan een monitor.** bij de rij van een groep en **Toon in plaats daarvan een monitorgroep.** bij die van een monitor. Hij wisselt de keuzelijst alleen in dat dialoogvenster, en opslaan richt de rij op wat u in plaats daarvan koos. **Weergavenaam** volgt de nieuwe keuze zolang hij nog de naam is van wat de rij toonde, en blijft zoals hij is als u de rij een andere naam gaf. In de lijst zegt de rij van een groep waarvan de weergavenaam die van de groep zelf is **Gelijk aan de naam van de monitorgroep**.
+
 ### Meerdere tegelijk toevoegen
 
 **Meerdere toevoegen** (ook **Meerdere monitors toevoegen** in het menu **Meer acties**) opent **Meerdere monitors toevoegen**. Ook dat is één pagina: een meervoudige selectie **Monitoren**, dan dezelfde ingeklapte **Meer velden**, waarvan de weergaveopties gelden voor elke monitor die u kiest. Elke resource neemt de weergavenaam en beschrijving van zijn monitor over, en **Monitoren toevoegen** voegt ze allemaal toe. Zo vult u het snelst een nieuwe pagina.
@@ -97,6 +99,8 @@ Een statuspagina toont een monitor maar één keer. Toevoegen is idempotent, dus
 De samenvatting aan het eind van het bulksgewijs toevoegen zegt dat ook: toegevoegde monitoren staan onder **Toegevoegd**, en de monitoren die er al stonden onder **Al toegevoegd**. Niets wordt als fout gemeld, en voor die monitoren wordt niets weggeschreven.
 
 Dezelfde regel geldt overal waar een resource wordt aangemaakt. Een monitor die al op de pagina staat, toevoegen vanuit het formulier voor één monitor, of een bestaande resource er vanuit het bewerkformulier naar laten verwijzen, wordt geweigerd met *"This monitor is already added to this status page"*, ook wanneer de bestaande resource in een andere groep staat, want een bezoeker zou de monitor anders toch twee keer zien. Om een monitor in een andere groep te tonen, verwijdert u de resource die hij al heeft en voegt u hem toe waar u hem wilt hebben.
+
+Een resource toont één monitor of één monitorgroep, nooit beide en nooit geen van beide. Een resource op het een richten maakt het ander leeg, dus een rij van een monitor naar een monitorgroep verplaatsen is één wijziging. Via de API wordt een resource die beide noemt geweigerd met *"A status page resource shows a monitor or a monitor group, not both. Send one of them."*, en een die geen van beide noemt, of een wijziging die er geen van beide zou overlaten, met *"A status page resource needs a monitor or a monitor group to show"*.
 
 ## Weergaveopties van een resource
 
@@ -122,7 +126,7 @@ Groepen hebben hun eigen exemplaren van deze schakelaars (zie hieronder), dus ee
 
 De kleuren van de balken in de geschiedenisgrafiek stelt u in onder **Meer instellingen** op de pagina **Huisstijl**, en welke monitorstatussen als "down" tellen bij **Telt als downtime**, op de kaart **Wat uw statuspagina toont** van **Instellingen**; beide worden behandeld in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
 
-Elke balk is één dag. Wijs een balk aan of klik erop (tik erop op een telefoon, of druk op Enter met het toetsenbord) om de dag te lezen: de beschikbaarheid, hoe lang elke status duurde, de incidenten die die dag zijn gemeld en het geplande onderhoud dat erop liep, elk met een link naar de eigen pagina. Een dag met gepland onderhoud heeft boven aan de balk een blauwe band, en zolang een gebeurtenis loopt, staat bij elke resource van haar monitors "In onderhoud" naast de naam. Onderhoud verandert niets aan de kleur van een balk of aan de beschikbaarheid, die uit de statussen van de monitor komen: om gepland werk buiten de beschikbaarheid te houden, kiest u voor de gebeurtenis bij **Monitorstatus wijzigen naar** een status die niet bij de statussen van **Telt als downtime** van de pagina hoort. Zie [Wat een gebeurtenis beïnvloedt](/docs/scheduled-maintenance/index#wat-een-gebeurtenis-beïnvloedt).
+Elke balk is één dag. Wijs een balk aan of klik erop (tik erop op een telefoon, of druk op Enter met het toetsenbord) om de dag te lezen: de beschikbaarheid, hoe lang elke status duurde, de incidenten die die dag zijn gemeld en het geplande onderhoud dat erop liep, elk met een link naar de eigen pagina. Op een pagina die episoden toont maar geen incidenten, vermeldt de dag in plaats daarvan de episode waartoe elk van zijn incidenten behoort, elke episode één keer, met een link naar de pagina van de episode. Een dag met gepland onderhoud heeft boven aan de balk een blauwe band, en zolang een gebeurtenis loopt, staat bij elke resource van haar monitors "In onderhoud" naast de naam. Onderhoud verandert niets aan de kleur van een balk of aan de beschikbaarheid, die uit de statussen van de monitor komen: om gepland werk buiten de beschikbaarheid te houden, kiest u voor de gebeurtenis bij **Monitorstatus wijzigen naar** een status die niet bij de statussen van **Telt als downtime** van de pagina hoort. Zie [Wat een gebeurtenis beïnvloedt](/docs/scheduled-maintenance/index#wat-een-gebeurtenis-beïnvloedt).
 
 Elke balk is een dag in de eigen tijdzone van de lezer, dezelfde waarin de pagina alle andere tijden toont, zodat de laatste balk zijn vandaag is. De balk van een monitorgroep laat zien hoe lang de groep zelf die dag in elke status was: op elk moment heeft de groep de slechtste status van haar monitoren, zodat de statussen van een dag optellen tot de tijd waarin minstens één van haar monitoren werd gecontroleerd, en nooit tot meer dan de dag.
 
@@ -280,6 +284,10 @@ De import maakt groepen aan, geen resources: voeg daarna monitoren toe met **Mon
 
 :::details "This monitor is already added to this status page"
 Een pagina toont elke monitor maar één keer, ook over groepen heen. De monitor heeft al een resource, misschien in een andere groep of toegevoegd door een monitorregel. Zoek hem op in de navigator, verwijder die resource en voeg de monitor toe waar u hem wilt hebben.
+:::
+
+:::details "A status page resource needs a monitor or a monitor group to show"
+De API, Terraform of een script stuurde een resource zonder monitor en zonder monitorgroep, of een wijziging die leegmaakt wat hij toont. Stuur `monitorId` of `monitorGroupId`, een van de twee. Om een resource op de andere soort te richten, stuurt u de nieuwe in dezelfde wijziging: de oude wordt leeggemaakt. Resources die voor deze regel geen van beide toonden, zijn nooit aan bezoekers getoond, en een upgrade verwijdert ze.
 :::
 
 :::details Een monitor die ik heb toegevoegd, verschijnt niet op de statuspagina

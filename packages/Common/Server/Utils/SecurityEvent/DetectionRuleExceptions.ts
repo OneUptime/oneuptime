@@ -19,6 +19,8 @@ import {
   readDetectionRuleExceptionDate,
 } from "../../../Types/SecurityEvent/DetectionRuleException";
 import { getApiKeyPrincipal } from "../../../Types/SecurityEvent/OneUptimeActorPrincipal";
+import LinearRegExp from "../../../Utils/LinearRegExp/LinearRegExp";
+import { tryGetLinearRegExp } from "../../../Utils/LinearRegExp/PatternCache";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import ApiKeyService from "../../Services/ApiKeyService";
 import DetectionRuleExceptionService from "../../Services/DetectionRuleExceptionService";
@@ -214,15 +216,24 @@ export function doesDetectionRuleExceptionValueMatchText(
     return candidate === lowered;
   }
 
-  // Each piece literal, the stars between them any run, newlines included.
-  return new RegExp(
+  /*
+   * Each piece literal, the stars between them any run, newlines included.
+   * The value is a project's people's to write, so it runs on the
+   * linear-time matcher, in time in line with the text however many stars
+   * it has: on JavaScript's own engine "*a*a*a*a*a*a*b" took time that
+   * grew with the text to the power of its stars. A value the matcher
+   * cannot compile matches nothing, so no key is skipped on its account.
+   */
+  const matcher: LinearRegExp | null = tryGetLinearRegExp(
     `^${lowered
       .split(SECURITY_VALUE_WILDCARD)
       .map((piece: string): string => {
         return escapeRegExp(piece);
       })
       .join("[\\s\\S]*")}$`,
-  ).test(candidate);
+  );
+
+  return matcher ? matcher.test(candidate) : false;
 }
 
 /*

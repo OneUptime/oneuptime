@@ -306,11 +306,13 @@ describe.each(SCRUB_RULE_PAGES)("$form", (page: DataRulePage) => {
     }
   });
 
-  test("folds the description, the action, the fields, the service and Enabled under one Advanced, last", () => {
+  test("folds the description, the action, the fields, the attributes a pattern reads, the service and Enabled under one Advanced, last", () => {
     expect(keys(foldedFields(form))).toEqual([
       "description",
       "scrubAction",
       "fieldsToScrub",
+      // The only attributes a pattern rule reads, empty for every one (#10751).
+      "attributeKeys",
       "service",
       "isEnabled",
     ]);

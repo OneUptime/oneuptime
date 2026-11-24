@@ -112,4 +112,44 @@ const ExceptionIssueBadges: FunctionComponent<ComponentProps> = (
   );
 };
 
+/*
+ * SPLIT: ONE OF A PAIR A SCRUB RULE SPLIT (#10897).
+ *
+ * Before #10434 a scrub rule that hid part of an exception found in logs
+ * split it in two. Both halves carry this pill in the list - the split one
+ * and the one it was split from - so a person tidying up sees each pair at
+ * a glance. It says why on hover; the exception's page names the other and
+ * offers Merge Exceptions (ExceptionSplitNotice). The indigo of that note.
+ */
+export function getExceptionSplitPillPresentation(translator: Translator): {
+  label: string;
+  title: string;
+  className: string;
+} {
+  return {
+    label: translator.translateText("Split") as string,
+    title: translator.translateText(
+      "A scrub rule split this exception and another one apart. Open it to merge them.",
+    ) as string,
+    className: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  };
+}
+
+export const ExceptionSplitPill: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
+  const pill: { label: string; title: string; className: string } =
+    getExceptionSplitPillPresentation(translator);
+
+  return (
+    <span
+      title={pill.title}
+      data-testid="exception-badge-split"
+      // 11px, as the badges beside it are (ReadableTextContrastGuard).
+      className={`whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[11px] font-medium ${pill.className}`}
+    >
+      {pill.label}
+    </span>
+  );
+};
+
 export default ExceptionIssueBadges;

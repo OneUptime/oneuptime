@@ -369,17 +369,19 @@ describe("NodeDetail: the Network Throughput chart header", () => {
   );
 
   test("the header carries an (i) with the throughput text", () => {
+    // The (i) after the header's last word (WordsWithInfoTooltip, #8044).
     expect(code).toContain(
       compact(
-        'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
+        'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";',
       ),
     );
     expect(extraCharts).toContain(
       compact(
-        `<span>{translator.translateText("Network Throughput")}</span>
-         <InfoTooltip
+        `<WordsWithInfoTooltip
+           className="min-w-0"
+           text={translator.translateText("Network Throughput") || "Network Throughput"}
            label="Network Throughput"
-           text={ ${REC}.nodeNetworkThroughput }
+           description={ ${REC}.nodeNetworkThroughput }
          />`,
       ),
     );
@@ -1023,13 +1025,15 @@ describe("KubernetesContainersTab: the container cards explain their numbers", (
   ] as Array<[string, KubernetesResourceMetric]>)(
     "the %s header has an (i) with %s",
     (title: string, key: KubernetesResourceMetric) => {
+      // The (i) after the header's last word (WordsWithInfoTooltip, #8044).
       expect(code).toContain(
         compact(
-          `<span>{translator.translateText("${title}")}</span>
-           <InfoTooltip
+          `<WordsWithInfoTooltip
+             className="min-w-0"
+             text={translator.translateText("${title}") || "${title}"}
              label="${title}"
-             text={${REC}.${key}}
-             className="normal-case tracking-normal"
+             description={${REC}.${key}}
+             infoClassName="normal-case tracking-normal"
            />`,
         ),
       );
@@ -1037,7 +1041,8 @@ describe("KubernetesContainersTab: the container cards explain their numbers", (
   );
 
   test("exactly two inline (i)s, and neither inside the expand buttons", () => {
-    expect(countOf(code, "<InfoTooltip")).toBe(2);
+    expect(countOf(code, "<WordsWithInfoTooltip")).toBe(2);
+    expect(countOf(code, "<InfoTooltip")).toBe(0);
 
     for (const toggle of [
       "setShowEnv(!showEnv);",

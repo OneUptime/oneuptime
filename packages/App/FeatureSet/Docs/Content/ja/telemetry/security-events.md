@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 形式は `?format=`、 `x-oneuptime-security-event-format` ヘッダー、または最上位の `"format"` フィールドで指定します。指定しなければイベントごとに形式が判定されるので、ひとつの Webhook で検出と生のイベントを混在させることができます。
 
 - 本文は、ひとつのイベント、イベントの配列、または `{ "events": [...] }` のいずれかです。
+- バッチは gzip で圧縮し、`Content-Encoding: gzip` を付けて送ることもできます。その場合も、圧縮していない同じバッチとして読み取られます。Fluent Bit の `http` 出力は `compress gzip`、Vector の `http` シンクは `compression = "gzip"`、Logstash の `http` 出力は `http_compression => true` で圧縮します。圧縮したまま読み取るのは JSON だけで、それ以外の種類の圧縮された本文は `400` で拒否されます。
 - `x-oneuptime-service-name` ヘッダーは、イベントが属するテレメトリサービスを指定します。指定しなければ、最初のイベントの製品名またはベンダー名にちなんだサービス、または `Security Events` に属します。
 - 対応付けられなかったものも破棄されません。ソースのすべての項目がイベントの属性に入ります。
 
@@ -174,6 +175,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ auditd、syslog、Falco など、すでに収集しているセキュリティ�
 
 ### ログからセキュリティイベントを見つける
 
-**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH や Windows のサインイン、sudo コマンド、クラウドの監査レコード、セキュリティ製品の CEF や LEEF のレコード、Palo Alto Networks、FortiGate、Cisco ASA のファイアウォールのレコード、Kubernetes の監査レコード、Web 攻撃がそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
+**接続** の上部にある **ログ** は、すでに OneUptime に送っているログをソースにします。**ログからセキュリティイベントを見つける** を有効にすると、プロジェクトの新しいログが毎分読み取られ、そこに含まれる SSH や Windows のサインイン、sudo コマンド、クラウドの監査レコード、セキュリティ製品の CEF や LEEF のレコード、Palo Alto Networks、FortiGate、Cisco ASA のファイアウォールのレコード、Kubernetes の監査レコード、Web 攻撃、機密ファイルへの拒否されたリクエストがそれぞれセキュリティイベントとして保存されます。種類ごとの内容は [セキュリティをはじめる](/docs/telemetry/security-getting-started#ログからセキュリティイベントを見つける) を参照してください。
 
 どの種類も、通常のログとして OneUptime に届きます。
 
@@ -297,6 +299,8 @@ OneUptime 14.0.84 より前に保存されたイベントでは、プロセス�
 - **概要** は、セキュリティイベントが読み取るアドレスを隠しているルールの名前を、同じく **スクラブルールを開く** とともに示します。
 
 ハッシュするルールはセキュリティイベントのためにアドレスを保存するので、イベントにはアドレスが示されます。ただし、トークンが 30 日より古い場合や、トークンにキーがなかった頃に作られた場合は除きます。[機密データをスクラブする](/docs/telemetry/drop-filters-and-scrub-rules#機密データをスクラブする)を参照してください。これらのイベントを見つけるには、`@oneuptime.request.client_address_hidden:scrub-rule` を検索します。ルールがアドレスの代わりに残したもの（`[REDACTED]` など）は `oneuptime.request.client_address_scrubbed` に入っています。宛先については `@oneuptime.target_address_hidden:scrub-rule` を検索します。
+
+アドレスごとに数える検出ルールは、ルールライブラリのルールと同じように `principalIp` または `targetIp` ごとに数えてください。これらは、ハッシュするルールのトークンの裏にあるアドレスを示します。`openstack.audit.initiator_address` や `asa.src_ip` のような形式固有のアドレス項目は、ログに書かれたアドレスだけを保持するので、スクラブルールがアドレスを隠した場所では空のままです。
 
 ユーザーを秘匿またはマスクするルールも、同じようにユーザーを隠します。イベントがユーザーを示すはずの場所では、 **送信元ユーザー** または **宛先ユーザー** に、スクラブルールがユーザーを隠したことが示されます。セキュリティイベントがユーザーを読み取る箇所では、ハッシュするルールがセキュリティイベントのためにユーザーを保存します。リクエストの `enduser.id` や `user.id` 、AI 呼び出しのユーザー、ログ行が示すユーザー（クラウド監査ログのプリンシパルなど）です。そのため、イベントにはトークンの背後にいるユーザーが示され、そのユーザーについてのケースにはアカウントが示され、プレイブックはほかのユーザーと同じようにそのアカウントに対処できます。ルールが残したものは `oneuptime.principal_user_hashed_as` または `oneuptime.target_user_hashed_as` に入っているので、トークンしか含まないログやトレースでそのユーザーを探せます。ユーザーが保存されていないトークン（トークンにキーがなかった頃に作られたトークンなど）は、そのままイベントのユーザーになります。ルールはそれをひとつのアカウントとして数え、どのプレイブックもそれには対処しません。
 

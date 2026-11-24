@@ -9,6 +9,7 @@ Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gesc
 - [Wie ein Scan Stichproben nimmt](#wie-ein-scan-stichproben-nimmt): Die neuesten Datensätze jedes Dienstes, jede Stunde.
 - [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme verbergen, in dem Dienst, in dem er gefunden wurde.
 - [Von sich aus eingedämmt](#von-sich-aus-eingedämmt): Ein Geheimnis, das verborgen wird, ohne dass jemand auf etwas klickt, wo das nachweislich sicher ist.
+- [Im Code beheben](#im-code-beheben): Ein Pull Request, der einen Dienst davon abhält, irgendeines seiner Lecks zu schreiben.
 - [Diese Metrik verwerfen](#diese-metrik-verwerfen): Die Metriken nicht mehr speichern, deren Namen sensible Daten enthalten.
 - [Was als bereinigt zählt](#was-als-bereinigt-zählt): Wann eine Bereinigungsregel einen Fund bereits abdeckt.
 :::
@@ -99,7 +100,7 @@ Klicken Sie auf **Bereinigen**. Ein Dialog sagt, was die Regel tun würde, bevor
 
 ### Auch den Code beheben
 
-Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
+Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut. **Mit KI beheben** am Problem öffnet einen Pull Request für jedes Leck des Dienstes: siehe [Im Code beheben](#im-code-beheben).
 :::
 
 Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in log attributes of checkout“, oder „Data Security: Password or secret in db.password of checkout“ bei einer Regel, die ihr Attribut nennt, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist die engste Regel, die die Daten des Funds verbirgt, die erste der folgenden, die passt:
@@ -118,7 +119,7 @@ Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email 
 
 Bevor der Dialog sagt, was die Regel tun würde, führt OneUptime jede Regel, die es erstellen könnte, auf den Einträgen aus, in denen der Fund gesehen wurde, und auf den neuesten Datensätzen seines Dienstes mit einem Wert an dieser Stelle, mit genau dem Code, den die Aufnahme ausführt, und fragt den Scanner, was übrig bleibt. Die erste Regel, die die Daten in jedem Wert verbirgt, der sie enthielt, und höchstens 5 von 100 der anderen Werte dort ändert, ist die richtige. Der Dialog sagt, auf wie vielen Datensätzen sie ausgeführt wurde, wie viele Werte die Daten enthielten und wie viele andere sie geändert hat. Ein Muster, das mehr ändern würde, wird nie angeboten: Angeboten wird stattdessen die Regel, die das Attribut nennt, mit dem, was sie sonst noch ändert.
 
-Der Nachweis wird bei der Regel gespeichert, und die Liste der Bereinigungsregeln zeigt **Nachgewiesen** in ihrer Zeile, bis die Regel geändert wird. Ist kein Eintrag mehr übrig, auf dem eine Regel ausgeführt werden kann, etwa bei einer Ausnahme oder einer Sitzungswiedergabe, oder bei Datensätzen jenseits ihrer Aufbewahrung, wird die Regel so erstellt, wie sie geplant ist, und der Dialog sagt das.
+Der Nachweis wird bei der Regel gespeichert, und die Liste der Bereinigungsregeln zeigt **Nachgewiesen** in ihrer Zeile, bis die Regel geändert wird. Die Regel für eine Ausnahme wird auf den Ausnahmen ausgeführt, in denen die Daten gesehen wurden, so wie die Aufnahme die Ausnahme bereinigt, die ein Span aufzeichnet. Ist kein Eintrag mehr übrig, auf dem eine Regel ausgeführt werden kann, etwa bei einer Sitzungswiedergabe, oder bei Datensätzen jenseits ihrer Aufbewahrung, wird die Regel so erstellt, wie sie geplant ist, und der Dialog sagt das.
 
 Eine Regel für Logs oder Traces gilt für den Dienst, in dem der Fund gefunden wurde: Sie bereinigt die Logs oder Spans dieses Dienstes, und die anderer Dienste bleiben, wie sie sind, sodass sich nichts ändert, was deren Daten liest. Die Spalte **Geltungsbereich** der Liste der Bereinigungsregeln sagt, für welchen Dienst eine Regel gilt. Ein Fund in den Sitzungsaufzeichnungen einer RUM-Anwendung erstellt eine Regel für alle Dienste und Apps des Projekts, da Regeln für Logs auch Aufzeichnungen bereinigen, und der Dialog sagt das. Gibt es den Dienst nicht mehr, sagt **Bereinigen** das und erstellt keine Regel.
 
@@ -144,9 +145,11 @@ Während OneUptime AI an Problemen der Datensicherheit arbeitet (siehe [OneUptim
 - **Nichts liest, was sie verbirgt**: kein Monitor, kein Dashboard, keine gespeicherte Ansicht, keine Aufzeichnungsregel und kein SLO, und nichts, was Sicherheitsereignisse braucht.
 - **Sie gilt für den Dienst**, in dem die Daten gesehen wurden.
 
-Alles andere wird stattdessen vorgeschlagen, unter **Datensicherheit → KI** und auf der Seite des Problems, mit dem, wie die Regel nachgewiesen wurde und was liest, was sie verbergen würde: personenbezogene Daten, eine Regel, deren Werte von etwas gelesen werden, eine, die andere Werte ändert, eine, für die kein Eintrag zum Ausführen übrig war, eine für alle Dienste, die Pipeline-Regel einer Metrik und jede Stelle, deren frühere Regel eine Person rückgängig gemacht oder verworfen hat. Eine KI-Regel der Datensicherheit, die für ein Problem **Eindämmen** auf **Automatisch** setzt, lässt auch nachgewiesene personenbezogene Daten von sich aus verbergen. Keine Regel lässt eine Änderung von sich aus laufen, die nicht nachweislich sicher ist.
+Alles andere wird stattdessen vorgeschlagen, unter **Datensicherheit → KI** und auf der Seite des Problems, mit dem, wie die Regel nachgewiesen wurde und was liest, was sie verbergen würde: personenbezogene Daten, eine Regel, deren Werte von etwas gelesen werden, eine, die andere Werte ändert, eine, für die kein Eintrag zum Ausführen übrig war, eine für alle Dienste und jede Stelle, deren frühere Regel eine Person rückgängig gemacht oder verworfen hat. Eine KI-Regel der Datensicherheit, die für ein Problem **Eindämmen** auf **Automatisch** setzt, lässt auch nachgewiesene personenbezogene Daten von sich aus verbergen. Keine Regel lässt eine Änderung von sich aus laufen, die nicht nachweislich sicher ist.
 
-Wo keine der Regeln von **Bereinigen** die Daten verbergen kann, etwa bei einem Ihrer eigenen Datentypen ohne Muster, schreibt OneUptime AI eine: ein Muster für die Daten oder das Attribut, das ganz verborgen wird. OneUptime AI erfährt den Datentyp, wo er steht, die Namen der Attribute daneben und die Formen der Werte, etwa `AA-9999` für `AB-1234`, nie einen Wert, und was sie schreibt, wird wie jede andere Regel an den Einträgen nachgewiesen, bevor es vorgeschlagen oder erstellt wird.
+Für das Attribut einer Metrik gelten dieselben Bedingungen. Seine Regel wird auf den Datenpunkten ausgeführt, in denen der Fund gesehen wurde, und auf den neuesten seines Dienstes mit einem Wert in diesem Attribut, mit der Metrik-Pipeline, die die Aufnahme ausführt, und was es liest, sind alle Monitore, Dashboards, Aufzeichnungsregeln und SLOs, die eine der Metriken des Dienstes lesen, die das Attribut am letzten Tag trugen.
+
+Wo keine der Regeln von **Bereinigen** die Daten verbergen kann, etwa bei einem Ihrer eigenen Datentypen ohne Muster, schreibt OneUptime AI eine: ein Muster für die Daten oder das Attribut, das ganz verborgen wird. OneUptime AI erfährt den Datentyp, wo er steht, die Namen der Attribute daneben und die Formen der Werte, etwa `AA-9999` für `AB-1234`, nie einen Wert, und was sie schreibt, wird wie jede andere Regel an den Einträgen nachgewiesen, bevor es vorgeschlagen oder erstellt wird. OneUptime AI wird für jede Stelle einmal gefragt: Was sie geschrieben hat, oder dass sie nichts schreiben konnte, wird beim Fund gespeichert, sodass, wenn das Problem wieder bearbeitet wird, das Geschriebene erneut an den neuesten Datensätzen nachgewiesen und kein KI-Guthaben verbraucht wird. Erneut gefragt wird sie, wenn sich ändert, was sie erfahren würde: der Datentyp, wo die Daten stehen, die Namen daneben oder die Formen ihrer Werte. Ein fehlgeschlagener Aufruf speichert nichts, sodass sie zu dieser Stelle beim nächsten Mal erneut gefragt wird.
 
 Eine Änderung, die OneUptime AI von sich aus vorgenommen hat:
 
@@ -155,6 +158,48 @@ Eine Änderung, die OneUptime AI von sich aus vorgenommen hat:
 - **Sagt, dass ein Geheimnis rotiert werden muss.** Ein Geheimnis zu verbergen, stoppt nur neue Kopien: Das Geheimnis funktioniert weiterhin, und die vor der Regel gespeicherten Datensätze behalten es, bis ihre Aufbewahrung endet. Die Zeitachse und die E-Mail sagen, wo es gesehen wurde.
 
 Neue Funde in einem Dienst, dessen Problem bereits offen ist, werden auf dieselbe Weise eingedämmt, sobald der stündliche Scan sie findet.
+
+## Im Code beheben
+
+Eine Bereinigungsregel verbirgt neue Daten bei der Aufnahme, doch der Code schreibt sie weiterhin. **Mit KI beheben** an einem Telemetrieproblem bittet OneUptime AI um einen Pull Request, der den Dienst davon abhält, irgendein Leck zu schreiben, das OneUptime noch in seiner Telemetrie sieht: das dieses Problems und die anderen des Dienstes, auch die bei der Aufnahme eingedämmten. Ein Dialog zeigt, was der Pull Request tun wird, bevor etwas startet, und **Pull Request öffnen** fordert genau das an.
+
+:::steps
+### Finden, wo jedes Leck geschrieben wird
+
+Bevor OneUptime AI beginnt, liest Datensicherheit die Einträge, in denen jedes Leck gesehen wurde, innerhalb von OneUptime erneut und behält nur, wo der Code sie geschrieben hat:
+
+- **Ein Span oder ein KI-Aufruf**: die Datei, Zeile und Funktion, die seine Attribute `code.*` nennen, und der Name des Spans.
+- **Eine Ausnahme**: ihre eigenen obersten Frames, die im Code des Dienstes.
+- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`.
+- **Eine Metrik**: der Name der Metrik.
+- **Jedes Leck**: sein Attributschlüssel, etwa `user.email`, den der Code meist unverändert schreibt.
+
+### Das Repository wählen
+
+Der Pull Request geht an das Repository, das die Dateien enthält, die die Einträge nennen, abgeglichen wie die Dateien eines Stacktraces. Ein Leck, dessen Einträge keine Datei nennen, geht dorthin, wo die anderen Lecks des Dienstes sind, sonst an das Repository, das wie der Dienst heißt, oder an das einzige des Projekts. In einem Repository mit mehreren Diensten arbeitet OneUptime AI im Ordner des Dienstes: dem, den diese Dateien teilen, sonst dem, den die Produktionsprüfungen des Dienstes verwenden. Wenn nichts entscheidet, wählen Sie selbst, unter den Repositorys, in denen Sie OneUptime AI arbeiten lassen dürfen.
+
+### Den Pull Request öffnen
+
+Der Dialog sagt, wie sich der Code ändern wird, listet jedes Leck mit dem Ort auf, an dem es geschrieben wird, und nennt das Repository, warum es dieses ist, und die Dateien, bei denen OneUptime AI beginnt. **Pull Request öffnen** fordert genau diesen Plan an: Wurde seit dem Öffnen ein Leck gefunden oder behoben, startet nichts, und der Plan wird erneut angezeigt.
+:::
+
+Wie sich der Code ändert, hängt davon ab, an wie vielen Stellen die Daten geschrieben werden:
+
+| Wo die Daten geschrieben werden | Was der Pull Request tut |
+| --- | --- |
+| An drei Stellen oder weniger | Ändert den Code an jeder Stelle: lässt den Wert weg oder maskiert oder hasht ihn, bevor er gesendet wird |
+| An mehr als drei Stellen | Fügt einen Schwärzungsschritt mit einem Test dort hinzu, wo der Dienst seine Telemetrie einrichtet, statt jede Stelle zu ändern |
+| Wo Ihre Bereinigungsregeln sie bereits bei der Aufnahme verbergen | Fügt diesen Schwärzungsschritt auch für diese Schlüssel hinzu, damit der Code tut, was die Aufnahme tut |
+
+Ein Pull Request behebt einen Dienst in einem Repository: Ein Dienst, dessen Lecks in zwei Repositorys geschrieben werden, bekommt in jedem einen. Während er geschrieben wird, verweist **Mit KI beheben** an jedem Problem des Dienstes darauf, und kein zweiter wird gestartet.
+
+OneUptime AI erhält die Stellen, Schlüssel, Datentypen und Vorlagen, nie einen Wert Ihrer Daten, eine maskierte Stichprobe oder einen Eintrag, und der Coding-Agent liest während der Arbeit nichts aus Ihrer Telemetrie. Die Beschreibung des Pull Requests listet die Lecks auf, verlinkt die Probleme, die er behebt, und zitiert nie einen Eintrag.
+
+Jedes Problem, das der Pull Request behebt, behält ihn: Seine Karte **Behebung** sagt, ob er gerade geschrieben wird, offen, zusammengeführt oder geschlossen ist, mit Links zum Pull Request und zur Aufgabe, und nach dem Zusammenführen, was die Produktion gezeigt hat. Die Zeitleiste des Problems sagt, wann er geöffnet wurde. Das Problem wird als **Im Code korrigiert** gelöst, sobald die neue Version des Dienstes die Daten nicht mehr schreibt (siehe [Was mit einem Problem geschieht](/docs/data-security/checks-and-issues#was-mit-einem-problem-geschieht)).
+
+Ein Geheimnis braucht mehr als eine Codekorrektur: Der Code verhindert nur neue Kopien, und das Geheimnis funktioniert weiterhin. Der Pull Request, die Zeitleiste des Problems und seine Karte **Behebung** sagen, dass es rotiert werden muss, und die Karte listet auf, wo es gesehen wurde.
+
+Mit **An neuen Problemen arbeiten** schlägt OneUptime AI die Korrektur jedes Dienstes auch von sich aus vor, den riskantesten Dienst zuerst, unter **Datensicherheit → KI** und beim riskantesten Problem des Dienstes. Standardmäßig wartet sie auf Sie. Eine KI-Regel der Datensicherheit, die **Behebung** für das riskanteste Problem des Dienstes auf **Automatisch** setzt, öffnet den Pull Request ohne Nachfrage, in einem Repository, über das etwas entschieden hat. **Max. offene Korrektur-Pull-Requests** des Repositorys begrenzt beides: Ist die Grenze erreicht, wartet ein Pull Request, den eine Regel öffnen würde, auf Sie, und kein neuer Korrektur-Pull-Request wird geöffnet, bis einer zusammengeführt oder geschlossen ist.
 
 ## Diese Metrik verwerfen
 

@@ -204,7 +204,9 @@ describe("DeclaredCodeChanges", () => {
   let rootRead: SpyInstance<typeof AutoRemediationSuggestionService.findOneBy>;
   let targetRead: SpyInstance<typeof CloudAiTargets.findChangeTarget>;
   let candidates: SpyInstance<typeof DeclaredCodeOwner.findCandidates>;
-  let readable: SpyInstance<typeof CodeTaskAccess.listReadableRepositories>;
+  let readable: SpyInstance<
+    typeof CodeTaskAccess.listReadableRepositoriesByIds
+  >;
   let canAsk: SpyInstance<typeof CodeTaskAccess.canAskInRepository>;
   let getRepository: SpyInstance<typeof CodeTaskAccess.getReadableRepository>;
   let gate: SpyInstance<typeof CodeTaskGate.assertCanStart>;
@@ -257,12 +259,30 @@ describe("DeclaredCodeChanges", () => {
           40,
         ),
       ]);
+    /*
+     * The repositories the reader may read, read by the ids asked for
+     * (#10764): never a first page of the project's.
+     */
     readable = jest
-      .spyOn(CodeTaskAccess, "listReadableRepositories")
-      .mockResolvedValue([
-        codeRepository(REPOSITORY_ID, "platform"),
-        codeRepository(OTHER_REPOSITORY_ID, "checkout-app"),
-      ]);
+      .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
+      .mockImplementation(
+        async (data: {
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Array<CodeRepository>> => {
+          const asked: Set<string> = new Set<string>(
+            data.repositoryIds.map((id: ObjectID | string): string => {
+              return id.toString().toLowerCase();
+            }),
+          );
+
+          return [
+            codeRepository(REPOSITORY_ID, "platform"),
+            codeRepository(OTHER_REPOSITORY_ID, "checkout-app"),
+          ].filter((repository: CodeRepository): boolean => {
+            return asked.has(repository.id!.toString().toLowerCase());
+          });
+        },
+      );
     canAsk = jest
       .spyOn(CodeTaskAccess, "canAskInRepository")
       .mockImplementation(
@@ -555,6 +575,18 @@ describe("DeclaredCodeChanges", () => {
       // Read with the reader's own permissions.
       expect(userRead.mock.calls[0]![0]).toMatchObject({ props: PROPS });
       expect(readable.mock.calls[0]![0]).toMatchObject({ props: PROPS });
+      /*
+       * Readable or not is read by the ranked repositories' ids (#10764):
+       * one past the project's first 500 by name is weighed like any other.
+       */
+      const asked: Array<string> = (
+        readable.mock.calls[0]![0] as { repositoryIds: Array<string> }
+      ).repositoryIds.map((id: string): string => {
+        return id.toString();
+      });
+
+      expect(asked).toHaveLength(3);
+      expect(asked.slice(0, 2)).toEqual([REPOSITORY_ID, OTHER_REPOSITORY_ID]);
       expect(targetRead.mock.calls[0]![0]).toMatchObject({
         providerResourceId: ECS,
         cloudAccountId: new ObjectID(CLOUD_ACCOUNT_ID),

@@ -61,7 +61,8 @@
     "subGroupCount": "그룹 {{total}}개",
     "noResourcesTitle": "아직 표시할 내용이 없습니다",
     "noResourcesDescription": "이 페이지에는 아직 표시되는 서비스가 없습니다.",
-    "noResourcesPreviewDescription": "리소스를 추가할 때까지 방문자에게 이 내용이 표시됩니다. 대시보드의 리소스에서 이 상태 페이지에 모니터나 그룹을 추가하세요."
+    "noResourcesPreviewDescription": "리소스를 추가할 때까지 방문자에게 이 내용이 표시됩니다.",
+    "noResourcesPreviewLink": "대시보드에서 리소스 추가"
   },
   "eventItem": {
     "affectedResources": "영향을 받은 리소스",
@@ -485,6 +486,9 @@
   "No options available": "사용 가능한 옵션 없음",
   "No matches found": "일치하는 항목이 없습니다",
   "{{eventType}} state changed to {{state}}": "{{eventType}} 상태가 {{state}}(으)로 변경됨",
+  "{{count}} related incidents": "관련 사고 {{count}}건",
+  "{{count}} related incidents_one": "관련 사고 {{count}}건",
+  "Part of {{incident}}": "{{incident}}의 일부",
   "Use at least {{minimum}} characters.": "{{minimum}}자 이상 사용하세요.",
   "Try a few unrelated words.": "서로 관련 없는 단어 몇 개를 조합해 보세요.",
   "Password meets requirements": "비밀번호가 요구 사항을 충족합니다",

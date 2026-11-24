@@ -36,6 +36,9 @@ import {
   isPrivateFlowNameLookupAllowed,
   parseFlowNameDnsServers,
 } from "./Utils/NetFlow/FlowAddressNamer";
+import ProbeInterfaceAddressesUtil, {
+  ProbeHostAddressesSetting,
+} from "Common/Types/Probe/ProbeInterfaceAddresses";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
   logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
@@ -262,6 +265,30 @@ export const PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS: number =
     defaultValue: 10000,
     min: 100,
   });
+
+/*
+ * The host's addresses, for a probe without host networking (#10633): a
+ * Kubernetes pod, or a container on a Docker bridge network, whose polls
+ * leave the host source-NATed to the host's address. Listed beside the
+ * probe's own interfaces' addresses each time it checks in (Jobs/Alive), so
+ * Security Events knows its polls, discovery sweeps and monitor checks in
+ * the project's flows for its own work. Comma- or space-separated; in
+ * Kubernetes, set from the Downward API's status.hostIPs. An entry that is
+ * no address is left out, with a warning (Types/Probe/ProbeInterfaceAddresses).
+ */
+const hostAddressesSetting: ProbeHostAddressesSetting =
+  ProbeInterfaceAddressesUtil.readHostAddressesSetting(
+    process.env["PROBE_HOST_IP_ADDRESSES"],
+  );
+
+if (hostAddressesSetting.invalid.length > 0) {
+  logger.warn(
+    `PROBE_HOST_IP_ADDRESSES: not an address OneUptime keeps, left out: ${hostAddressesSetting.invalid.join(", ")}. Write each as the host's IPv4 or IPv6 address, separated by commas (10.0.0.4, fd00::4). Loopback and link-local addresses are never kept.`,
+  );
+}
+
+export const PROBE_HOST_IP_ADDRESSES: Array<string> =
+  hostAddressesSetting.addresses;
 
 /*
  * Hard ceiling on ONE monitor's full check inside the probing loop — every

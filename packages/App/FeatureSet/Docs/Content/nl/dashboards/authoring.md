@@ -134,7 +134,13 @@ Inzoomen werkt alleen in leesmodus; in bewerkmodus verplaatst en schaalt slepen 
 
 ## Volledig scherm
 
-**⋯ → Volledig scherm** toont de widgets van het dashboard op het hele scherm, voor een scherm aan de muur of een vergadering. Druk op Esc om het te verlaten.
+Volledig scherm toont alleen het dashboard, op het hele scherm: de werkbalk en de widgets, zonder bovenste balk, zijmenu of kruimelpad eromheen. Alles werkt zoals op de pagina van het dashboard, en voor dezelfde mensen: bewerken, widgets toevoegen en verwijderen, het tijdsbereik, automatisch vernieuwen en de variabelen.
+
+- **Volledig scherm**, de vierkante knop aan het eind van de werkbalk van het dashboard, of **⋯ → Volledig scherm** toont het dashboard op volledig scherm. Ook je browser gaat naar volledig scherm, waar hij dat toestaat.
+- **Openen in nieuw tabblad**, in het menu **⋯** van het dashboard of in het menu **⋯** van een rij in de lijst **Dashboards**, opent het dashboard op volledig scherm in een eigen tabblad. In dat tabblad zet **Scherm vullen** ook je browser op volledig scherm.
+- **Volledig scherm afsluiten**, of Esc, gaat terug naar de pagina van het dashboard en haalt ook je browser uit volledig scherm. Na **Scherm vullen** haalt de eerste Esc alleen je browser uit volledig scherm.
+
+Een dashboard op volledig scherm heeft een eigen adres, dat eindigt op `?view=full-screen`: zet er een bladwijzer op of open het op een scherm aan de muur, en het dashboard opent op volledig scherm. Om meerdere dashboards na elkaar op een scherm te tonen, gebruik je een [afspeellijst](/docs/dashboards/playlists).
 
 ## Tips voor dashboards die goed blijven
 

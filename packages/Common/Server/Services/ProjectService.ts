@@ -144,6 +144,10 @@ import {
 } from "../../Types/AuditLog/AuditLogRetention";
 import { getRiskCaseThresholdError } from "../../Utils/SecurityCase/SecurityEntityRiskScore";
 import {
+  getSecurityAutomaticResponseHourlyLimitError,
+  readSecurityAutomaticResponseHourlyLimit,
+} from "../../Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
+import {
   getTrustedProxyListError,
   readTrustedProxyList,
 } from "../../Utils/SecurityEvent/ClientAddressTrust";
@@ -830,6 +834,34 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The hourly limit of automatic blocks a project sets (#10746, Security
+   * Events > Playbooks > Automatic Response, under More settings): a whole
+   * number from 1 to 500, written as a number. Anything else is refused with
+   * the reason, never stored and read as the default later.
+   */
+  public applySecurityAutomaticResponseLimitRules(data: {
+    securityAutomaticResponseMaxBlocksPerHour?: unknown;
+  }): void {
+    if (data.securityAutomaticResponseMaxBlocksPerHour === undefined) {
+      return;
+    }
+
+    const value: unknown = coerceNumericColumnValue(
+      data.securityAutomaticResponseMaxBlocksPerHour,
+    );
+    const error: string | null =
+      getSecurityAutomaticResponseHourlyLimitError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    // The number it is, however it was written.
+    data.securityAutomaticResponseMaxBlocksPerHour =
+      readSecurityAutomaticResponseHourlyLimit(value);
+  }
+
+  /*
    * How long OneUptime AI holds a new security case's alerts while it
    * responds first (#10353, Security Events -> AI -> Settings): a whole
    * number of minutes from 1 to 30, written as a number. Anything else is
@@ -1221,6 +1253,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(data.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       data.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applySecurityAutomaticResponseLimitRules(
+      data.data as { securityAutomaticResponseMaxBlocksPerHour?: unknown },
     );
     this.applySecurityCaseAiHoldRules(
       data.data as {
@@ -2024,6 +2059,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     this.applyAiContextRules(updateBy.data as { aiContext?: unknown });
     this.applySecurityRiskRules(
       updateBy.data as { securityRiskCaseThreshold?: unknown },
+    );
+    this.applySecurityAutomaticResponseLimitRules(
+      updateBy.data as { securityAutomaticResponseMaxBlocksPerHour?: unknown },
     );
     this.applySecurityCaseAiHoldRules(
       updateBy.data as {

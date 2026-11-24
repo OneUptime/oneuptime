@@ -42,6 +42,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 
 import FormsCopy from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import FormTargetCard from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/OnSubmit/FormTargetCard";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import Form from "../../../Models/DatabaseModels/Form";
 import {
   FormField,
@@ -311,5 +312,182 @@ describe("changing it", () => {
     });
 
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * An alert, beside an incident and a maintenance event (#10760): one choice
+ * of three, and set up only by someone who may create alerts.
+ */
+describe("an alert form", () => {
+  function clickAndConfirm(target: FormTargetType): Promise<void> {
+    return (async (): Promise<void> => {
+      await act(async () => {
+        fireEvent.click(option(target));
+      });
+      await act(async () => {
+        fireEvent.click(
+          within(screen.getByTestId("modal")).getByTestId(
+            "modal-footer-submit-button",
+          ),
+        );
+      });
+    })();
+  }
+
+  test("is one choice of three, beside an incident, with its own words", async () => {
+    await renderCard();
+
+    expect(
+      screen.getAllByRole("radio").map((radio: HTMLElement): string | null => {
+        return radio.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      `form-target-${FormTargetType.Incident}`,
+      `form-target-${FormTargetType.Alert}`,
+      `form-target-${FormTargetType.ScheduledMaintenance}`,
+    ]);
+    expect(option(FormTargetType.Alert)).toHaveTextContent(
+      FORM_TARGET_TYPE_TEXT[FormTargetType.Alert].title,
+    );
+    expect(option(FormTargetType.Alert)).toHaveTextContent(
+      FORM_TARGET_TYPE_TEXT[FormTargetType.Alert].description,
+    );
+    expect(option(FormTargetType.Alert)).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
+  });
+
+  test("choosing it asks first, saying the monitors do not stay linked", async () => {
+    await renderCard();
+
+    await act(async () => {
+      fireEvent.click(option(FormTargetType.Alert));
+    });
+
+    expect(screen.getByTestId("modal")).toHaveTextContent(
+      FormsCopy.changeTargetToAlert,
+    );
+    expect(updateByIdMock).not.toHaveBeenCalled();
+  });
+
+  test("confirmed, the form creates alerts: an incident's severity becomes a question of its own", async () => {
+    await renderCard();
+    await clickAndConfirm(FormTargetType.Alert);
+
+    await waitFor(() => {
+      expect(updateByIdMock).toHaveBeenCalledTimes(1);
+    });
+
+    const data: Record<string, unknown> = (
+      updateByIdMock.mock.calls[0]![0] as Record<string, unknown>
+    )["data"] as Record<string, unknown>;
+
+    expect(data["targetType"]).toBe(FormTargetType.Alert);
+    expect(data["targetSettings"]).toEqual({});
+
+    const fields: Array<FormField> = data["fields"] as Array<FormField>;
+    const severity: FormField | undefined = fields.find(
+      (field: FormField): boolean => {
+        return field.id === "severity";
+      },
+    );
+
+    // An alert has severities of its own: the question keeps its words, not its link.
+    expect(severity?.source).toBe(FormFieldSource.Question);
+    expect(severity?.label).toBe("How bad is it?");
+    // Title and description stay linked.
+    expect(
+      fields
+        .filter((field: FormField): boolean => {
+          return field.source === FormFieldSource.TargetField;
+        })
+        .map((field: FormField): string => {
+          return field.targetField || "";
+        }),
+    ).toEqual(expect.arrayContaining(["title", "description"]));
+    expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+
+  test.each([
+    [FormTargetType.Incident, FormsCopy.changeTargetFromAlertToIncident],
+    [
+      FormTargetType.ScheduledMaintenance,
+      FormsCopy.changeTargetFromAlertToScheduledMaintenance,
+    ],
+  ])(
+    "from an alert form to %s, with the words that say what stays linked",
+    async (target: FormTargetType, words: string) => {
+      await renderCard(
+        FormTargetType.Alert,
+        getDefaultFormFields(FormTargetType.Alert),
+      );
+
+      expect(option(FormTargetType.Alert)).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+
+      await act(async () => {
+        fireEvent.click(option(target));
+      });
+
+      expect(screen.getByTestId("modal")).toHaveTextContent(words);
+    },
+  );
+
+  test("someone known unable to create alerts finds Alert locked, saying why, and the others choosable", async () => {
+    getJestSpyOn(PermissionGate, "check").mockImplementation(((
+      model: unknown,
+    ): PermissionGateResult => {
+      return model instanceof Alert
+        ? {
+            isAllowed: false,
+            disabledReason: "You need the Create Alert permission.",
+          }
+        : { isAllowed: true };
+    }) as never);
+
+    await renderCard();
+
+    const alertOption: HTMLElement = option(FormTargetType.Alert);
+
+    expect(alertOption).toBeDisabled();
+    expect(alertOption).toHaveAttribute(
+      "title",
+      "You need the Create Alert permission.",
+    );
+    expect(option(FormTargetType.ScheduledMaintenance)).not.toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(alertOption);
+    });
+
+    expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  test("an alert form stays readable to someone who may not create alerts, and may be turned into another", async () => {
+    getJestSpyOn(PermissionGate, "check").mockImplementation(((
+      model: unknown,
+    ): PermissionGateResult => {
+      return model instanceof Alert
+        ? {
+            isAllowed: false,
+            disabledReason: "You need the Create Alert permission.",
+          }
+        : { isAllowed: true };
+    }) as never);
+
+    await renderCard(
+      FormTargetType.Alert,
+      getDefaultFormFields(FormTargetType.Alert),
+    );
+
+    expect(option(FormTargetType.Alert)).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(option(FormTargetType.Incident)).not.toBeDisabled();
   });
 });

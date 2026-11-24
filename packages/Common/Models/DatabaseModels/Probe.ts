@@ -353,6 +353,38 @@ export default class Probe extends BaseModel {
   public reportedVersion?: string = undefined;
 
   /*
+   * The major release of OneUptime this probe's owners were last told it is
+   * behind (OneUptime issue #9977; Types/Probe/ProbeMajorReleaseNotice): 18
+   * when they were told a probe on 17.x is behind OneUptime 18. Once a day
+   * Workers' Probe:NotifyMajorReleaseBehind tells them of a major release
+   * they were not told of yet, and keeps it here, so a probe that stays
+   * behind is not told of again; it forgets it once the probe runs
+   * OneUptime's major release again, so one that falls behind later is told
+   * again. Written by OneUptime alone, and read by the probe's readers.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: false,
+    required: false,
+    computed: true,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: false,
+    title: "Major Version Behind Notified For",
+    description:
+      "The major release of OneUptime this probe's owners were last told the probe is behind. Set by OneUptime once a day; empty while the probe runs OneUptime's major release.",
+    example: 18,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public majorVersionBehindNotifiedFor?: number = undefined;
+
+  /*
    * The address the probe's requests reach OneUptime from (#10338): what
    * the server sees when the probe checks in, kept with its liveness stamp.
    * A probe's checks leave from it, so the blocklist never blocks it: a

@@ -87,6 +87,8 @@ Les critères décident quand le certificat compte comme bon, dégradé ou défa
 
 **Jours avant expiration** compte des jours entiers : un certificat qui expire dans 14 jours et 20 heures a encore 14 jours. **Heures avant expiration** compte des heures entières de la même manière.
 
+**Jours avant expiration** propose aussi **Évaluer ce critère sur une période donnée**, et avec **Vérification précédente** il compare chaque vérification à la précédente de la même sonde. **Inférieur à** avec une **Valeur dans l'unité de la vérification** de `1` correspond quand les jours restants ont baissé de plus d'un depuis la vérification précédente, comme lorsque le certificat a été remplacé par un autre qui expire plus tôt. **Supérieur à** correspond quand ils ont augmenté, comme lorsque le certificat a été renouvelé. Voir [Comparer une vérification à la précédente](/docs/monitor/criteria-and-statuses#comparer-une-vérification-à-la-précédente).
+
 Avec deux filtres ou plus, **Condition de correspondance** décide si **Tous** doivent correspondre ou si **Au moins un** suffit. Les **Actions** d'un critère décident de ce qu'il fait : changer l'état du moniteur, créer une alerte, déclarer un incident, ou plusieurs de ces actions.
 
 ### Critères par défaut

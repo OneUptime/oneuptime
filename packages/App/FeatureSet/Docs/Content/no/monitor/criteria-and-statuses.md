@@ -87,6 +87,7 @@ Med **Evaluer disse kriteriene over en tidsperiode** avkrysset angir **Evaluer**
 | **Antall** | Antallet sjekker som oppfylte betingelsen, sammenlignes slik det er satt under **Sjekker som samsvarer**: for eksempel **Større enn** 30. |
 | **Prosentandel** | Andelen deres av vinduets sjekker sammenlignes slik det er satt under **Andel sjekker som samsvarer**: for eksempel **Større enn** 10 %. |
 | **Statusskifter** | Antall ganger sjekkene skiftet mellom å oppfylle betingelsen og ikke, sammenlignes slik det er satt under **Antall skifter**. En enhet som går ned og kommer opp igjen, skifter to ganger. |
+| **Forrige sjekk** | Denne sjekken sammenlignet med den forrige sjekken fra samme sonde: for eksempel en svartid som ligger mer enn 50 % over den, eller et nettsted som er nede nå og ikke var det før. Se [Sammenligne en sjekk med den forrige](#sammenligne-en-sjekk-med-den-forrige). |
 
 En setning under vinduets innstillinger gjengir filteret slik det er satt: «Sjekk: "Er tilkoblet" er usann ved flere enn 30 sjekker i den siste perioden på 8 timer».
 
@@ -94,7 +95,7 @@ En setning under vinduets innstillinger gjengir filteret slik det er satt: «Sje
 - **Et vindu som ennå ikke er fullt.** Til sjekkene når tilbake til starten av vinduet, har en monitor som nettopp har startet, færre sjekker enn den vil få. **Antall** og **Statusskifter** samsvarer tidlig når de allerede er forbi **Større enn** eller **Større enn eller lik**, siden flere sjekker bare øker dem; alt annet venter på et fullt vindu.
 - **Et vindu uten sjekker.** Så lenge vinduet ikke har sjekker eller ennå ikke er fullt, avgjør **Hvis ingen data**: **Ignore** venter, **Utløser** samsvarer, og **Treat As Zero** vurderer det som om de manglende sjekkene ikke hadde oppfylt betingelsen.
 
-Gjennomsnitt og persentiler leser verdiene fra alle sonders sjekker, slik **Gjennomsnitt** alltid har gjort. **Antall**, **Prosentandel** og **Statusskifter** tilbys for hvert filter som tilbys et vindu: på Website-, API-, Ping-, IP- og Port-monitorer, for en servers CPU, minne, disker og last, for en nettverksenhets **SNMP-enhet er tilkoblet** og responstid, og på DNS-, NTP-, database-, eksterne statusside- og sondestatusmonitorer. **Er tilkoblet** for en Server-monitor telles ikke: den vurderes ut fra tiden siden serveren sist rapporterte. Metrics- og andre telemetrimonitorer vurderer i stedet tidsrommet for spørringen sin, med spørringens egen aggregering, som også leser persentiler.
+Gjennomsnitt og persentiler leser verdiene fra alle sonders sjekker, slik **Gjennomsnitt** alltid har gjort. **Antall**, **Prosentandel** og **Statusskifter** tilbys for hvert filter som tilbys et vindu: på Website-, API-, Ping-, IP- og Port-monitorer, for en servers CPU, minne, disker og last, for en nettverksenhets **SNMP-enhet er tilkoblet** og responstid, for en SSL-sertifikat-monitors **Dager til utløp**, og på DNS-, NTP-, database-, eksterne statusside- og sondestatusmonitorer. **Er tilkoblet** for en Server-monitor telles ikke: den vurderes ut fra tiden siden serveren sist rapporterte. Metrics- og andre telemetrimonitorer vurderer i stedet tidsrommet for spørringen sin, med spørringens egen aggregering, som også leser persentiler.
 
 ### Eksempel: et tilgangspunkt som er nede, og et som er ustabilt
 
@@ -107,6 +108,20 @@ En Ping-monitor sjekker et tilgangspunkt på kontoret hvert minutt. Før vinduer
 | Tilgangspunktet er tilkoblet | **Er tilkoblet** er **Sann** | Ikke over en periode | **I drift** |
 
 For det andre slår du på **Gjenopprett bare når en egen betingelse er oppfylt** med **Statusskifter**, **Mindre enn eller lik** 1, **For de siste** 1 time: ustabilitetshendelsen forblir åpen til tilgangspunktet har vært stabilt i en time, i stedet for å lukkes det første minuttet det er oppe. For å varsle når det feiler mer enn 30 ping på 8 timer, setter du i stedet det andre kriteriet til **Antall**, **Større enn** 30, **For de siste** 8 timer.
+
+### Sammenligne en sjekk med den forrige
+
+**Forrige sjekk** sammenligner hver sjekk med den forrige sjekken fra samme sonde, og for en disks bruk fra samme disk. **For de siste** er hvor lenge siden den sjekken kan være, så sett den lengre enn overvåkingsintervallet. Den tilbys for de samme filtrene som **Antall**.
+
+En målt verdi, for eksempel en svartid, slår til når den ligger mer enn endringen under **Endring fra forrige sjekk** over den forrige sjekken, med **Større enn**, eller under den, med **Mindre enn**. Endringen er en **Verdi i sjekkens egen enhet**, for eksempel 200 ms, eller en **Prosent av forrige sjekk**, for eksempel 50 %, og 0 slår til ved enhver økning eller nedgang. **Lik** og **Ikke lik** sammenligner med selve den forrige verdien.
+
+Et filter som er sant eller usant, for eksempel **Er tilkoblet**, og et filter på brødteksten, en header eller et uttrykk slår til ved sjekken som begynte å oppfylle betingelsen: **Er tilkoblet** satt til **Usann** slår til ved sjekken der nettstedet gikk ned, og ikke igjen før neste gang det går ned.
+
+I begge tilfeller slår det til ved én sjekk, og ved den neste slutter kriteriet å virke. Skal det holde statusen det setter, eller la hendelsen sin stå åpen, gi det en egen gjenopprettingsbetingelse: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
+
+Uten noen forrige sjekk i vinduet, som ved monitorens første sjekk, for en sonde som nettopp er lagt til, eller etter et opphold, avgjør **Hvis ingen data**: **Ignore** slår ikke til, **Utløser** slår til, og **Treat As Zero** sammenligner som om den forrige sjekken hadde lest 0, eller ikke hadde oppfylt betingelsen.
+
+Setningen under vinduets innstillinger gjengir det: «Sjekk: "Svartid (i ms)" ligger mer enn 50 % over forrige sjekk», eller «Sjekk: "Er tilkoblet" er usann ved denne sjekken, men ikke ved den forrige».
 
 ## Når et kriterium gjenopprettes
 

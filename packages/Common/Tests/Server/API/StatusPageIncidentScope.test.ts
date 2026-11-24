@@ -1197,11 +1197,10 @@ function episodeMonitors(
 }
 
 describe("StatusPageAPI shows an incident only on the status pages in its scope", () => {
-  let api: StatusPageAPI;
-
   beforeAll(() => {
     mockRouter.routes.length = 0;
-    api = new StatusPageAPI();
+    // Registers the routes on the mocked router.
+    new StatusPageAPI();
   });
 
   beforeEach(() => {
@@ -2151,7 +2150,13 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
       },
     );
 
-    it("no status page read selects an incident's scope columns except the episode members it filters", async () => {
+    /*
+     * An episode's members were read by id with the scope columns, to be
+     * filtered in memory. They come through IncidentStatusPageScope now, in
+     * SQL, like every incident a page shows (StatusPageEpisodeIncidents,
+     * #10767), so no read needs the columns at all.
+     */
+    it("no status page read selects an incident's scope columns", async () => {
       for (const pageId of ALL_SITES) {
         for (const view of views) {
           await invokeRoute({
@@ -2162,6 +2167,8 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
         }
       }
 
+      expect(incidentReads.length).toBeGreaterThan(0);
+
       const readsWithScope: Array<IncidentRead> = incidentReads.filter(
         (read: IncidentRead) => {
           return INCIDENT_SCOPE_COLUMNS.some((column: string) => {
@@ -2170,18 +2177,7 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
         },
       );
 
-      expect(readsWithScope.length).toBeGreaterThan(0);
-
-      for (const read of readsWithScope) {
-        // An episode's members, read by id to map it to the page's monitors.
-        expect(Object.keys(read.query).sort()).toEqual(
-          expect.arrayContaining(["_id", "projectId"]),
-        );
-        expect(read.query).not.toHaveProperty("monitors");
-        expect(read.select).toHaveProperty("monitors");
-        expect(read.select).not.toHaveProperty("title");
-        expect(read.select).not.toHaveProperty("statusPagesNotifiedOnCreation");
-      }
+      expect(readsWithScope).toEqual([]);
     });
   });
 
@@ -2234,103 +2230,54 @@ describe("StatusPageAPI shows an incident only on the status pages in its scope"
     });
   });
 
-  describe("the episode member filter", () => {
-    type MemberFilter = (data: {
-      incidents: Array<Incident>;
-      statusPage: StatusPage;
-    }) => Array<Incident>;
+  /*
+   * An episode's incidents - which of the page's monitors it is shown
+   * against - are read through the scope split in SQL, as every incident a
+   * page shows is (StatusPageEpisodeIncidents, #10767). They used to be read
+   * by id and filtered in memory by a member filter of StatusPageAPI's own.
+   */
+  describe("an episode's incidents", () => {
+    it.each(pageCases([SITE_A, SITE_B, SITE_C]))(
+      "are read for %s through the scope split, shown and on its monitors",
+      async (_page: string, pageId: string) => {
+        await getJson({
+          route: EPISODES_ROUTE,
+          params: { statusPageIdOrDomain: pageId },
+        });
 
-    function filterMembers(
-      pageId: string,
-      select: Dictionary<unknown>,
-    ): Array<Incident> {
-      const filter: MemberFilter = (
-        api as unknown as { keepMemberIncidentsInScope: MemberFilter }
-      ).keepMemberIncidentsInScope.bind(api);
+        // The episode list reads members by id only through the helper.
+        const memberReads: Array<IncidentRead> = incidentReads.filter(
+          (read: IncidentRead) => {
+            return "_id" in read.query;
+          },
+        );
 
-      return filter({
-        incidents: INCIDENTS.map((fixture: IncidentFixture): Incident => {
-          return readIncident(fixture, {
-            _id: true,
-            monitors: true,
-            isScopedToStatusPages: true,
-            statusPages: true,
-            statusPagesNotifiedOnCreation: true,
-          });
-        }),
-        statusPage: readPage(pageId, select)!,
-      });
-    }
+        expect(memberReads.length).toBeGreaterThan(0);
 
-    it.each(
-      labelled<[string, Array<string>]>(
-        [
-          [
-            SITE_A,
-            [
-              UNSCOPED,
-              SCOPED_TO_A,
-              SCOPED_TO_A_AND_C,
-              SECOND_SCOPED_TO_A,
-              OTHER_PROJECT_INCIDENT,
-              PRIVATE_UNSCOPED,
-              PRIVATE_SCOPED_TO_A,
-            ],
-          ],
-          /*
-           * Visibility, privacy and project are the member query's to
-           * filter, not scope.
-           */
-          [
-            SITE_B,
-            [
-              UNSCOPED,
-              HIDDEN_SCOPED_TO_B,
-              OTHER_PROJECT_INCIDENT,
-              PRIVATE_UNSCOPED,
-            ],
-          ],
-          [SITE_C, [SCOPED_TO_A_AND_C, PRIVATE_SCOPED_TO_A]],
-        ] as Array<[string, Array<string>]>,
-        (pageId: string): string => {
-          return pageName(pageId);
-        },
-      ),
-    )(
-      "keeps the members %s shows as far as scope goes",
-      (_page: string, pageId: string, expected: Array<string>) => {
-        expect(
-          filterMembers(pageId, { onlyShowScopedIncidents: true }).map(
-            (incident: Incident): string => {
-              return incident._id!;
-            },
-          ),
-        ).toEqual(expected);
+        for (const read of memberReads) {
+          expect(read.query["isVisibleOnStatusPage"]).toBe(true);
+          expect(typeof read.query["isScopedToStatusPages"]).toBe("boolean");
+          expect(toIdList(read.query["monitors"]).sort()).toEqual(
+            sorted(pageFixture(pageId)!.monitorIds),
+          );
+          expect(read.limit).toBe(LIMIT_PER_PROJECT);
+        }
       },
     );
 
-    it("keeps no unscoped member for a page whose onlyShowScopedIncidents was not loaded", () => {
-      expect(
-        filterMembers(SITE_B, {}).map((incident: Incident): string => {
-          return incident._id!;
-        }),
-      ).toEqual([HIDDEN_SCOPED_TO_B]);
-    });
-
-    it("removes the scope columns from what it keeps, and leaves the monitors", () => {
-      const kept: Array<Incident> = filterMembers(SITE_A, {
-        onlyShowScopedIncidents: true,
+    it("never asks for an unscoped member on a page that only shows incidents limited to it", async () => {
+      await getJson({
+        route: EPISODES_ROUTE,
+        params: { statusPageIdOrDomain: SITE_C },
       });
 
-      expect(kept.length).toBeGreaterThan(0);
-
-      for (const incident of kept) {
-        for (const column of INCIDENT_SCOPE_COLUMNS) {
-          expect(incident).not.toHaveProperty(column);
-        }
-
-        expect(incident.monitors!.length).toBeGreaterThan(0);
-      }
+      expect(
+        incidentReads.filter((read: IncidentRead) => {
+          return (
+            "_id" in read.query && read.query["isScopedToStatusPages"] === false
+          );
+        }),
+      ).toEqual([]);
     });
   });
 });

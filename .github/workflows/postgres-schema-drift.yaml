@@ -4729,6 +4729,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
 
+      # An exception moved to a private fingerprint (#10619): one made before
+      # #10434 under an unkeyed hash of text a scrub rule now hides moves, on
+      # its next occurrence the rule changed, to the keyed fingerprint of the
+      # same text - once, whatever copies race to it - and keeps its id,
+      # state and counts. Its old fingerprint is kept by a row merged into
+      # it, which the reads of its earlier occurrences follow, until no
+      # occurrence carries it. And a pair a scrub rule split (#10618): Merge
+      # keeps the older one, with Unmerge after. Clones the migrated
+      # TelemetryException into an isolated schema, as the merge suite does.
+      - name: Test moving an exception to a private fingerprint on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EXCEPTION_MERGE_TESTS: "true"
+          EXCEPTION_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ExceptionPrivateFingerprintPostgres.test.ts --forceExit
+
       # A key used only over OTLP gRPC shows as used (#7887), end to end: the
       # production gRPC server on a loopback port, a real client's OTLP
       # export, the key resolved from Postgres and its lastUsedAt written by
@@ -5102,7 +5123,18 @@ jobs:
       # a policy name's words, and what the shown rules hold - owners'
       # teams and people, who joins a channel - named by their ids; the
       # project's people paged past their first 10,000 memberships, and
-      # labels searched as they are typed.
+      # labels searched as they are typed. #10764: Code's repositories past
+      # the 500th - listed, searched, paged and read by id through Code's
+      # routes, their tasks in the list across repositories and an insight's
+      # summaries, each member kept to the repositories they may read (a
+      # label's reader never gets another), who may ask AI weighed in one
+      # read, the scope sent as one array of 70,000 ids, and an AI rule's
+      # field searched by name or organization; the telemetry pages'
+      # services searched, named by id and counted, as a member and as a
+      # label's reader; and the lower pickers past their first 10,000 - the
+      # on-call setup's and Setup Health's policies, a budget's team or
+      # label, a workflow step's workflow (never the one being edited) and
+      # incident template, and Add to Dashboard's dashboards.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -5124,6 +5156,9 @@ jobs:
           Tests/Server/API/ProjectPeopleAndLabelSearchPostgres.test.ts
           Tests/Server/API/TelemetryStepScopeSearchPostgres.test.ts
           Tests/Server/API/MonitorAndCloudPickerSearchPostgres.test.ts
+          Tests/Server/API/CodeRepositorySearchPostgres.test.ts
+          Tests/Server/API/TelemetryServicePickerSearchPostgres.test.ts
+          Tests/Server/API/LowerPickersSearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two

@@ -26,6 +26,7 @@ import {
   RecordRecipient,
   RecordTransfer,
 } from "Common/Types/DataSecurity/RecordOfProcessing";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import downloadFile, { getExportFilename } from "Common/UI/Utils/DownloadFile";
 
 /*
@@ -265,7 +266,7 @@ export function getAuditEvidenceMarkdown(data: {
   const lines: Array<string> = [
     `# Audit Evidence: ${evidence.framework}, ${evidence.fullName}`,
     "",
-    `Scope: ${evidence.scope} Period: the last ${evidence.periodInDays} days, to ${day(data.exportedAt)}. Score: ${
+    `Scope: ${evidence.scope} Period: the last ${evidence.periodInDays}${NO_BREAK_SPACE}days, to ${day(data.exportedAt)}. Score: ${
       evidence.score === null ? "not evaluated" : `${evidence.score}%`
     }. ${evidence.storesInScope} ${evidence.storesInScope === 1 ? "store" : "stores"} in scope. Exported from OneUptime on ${day(data.exportedAt)}.`,
     "",

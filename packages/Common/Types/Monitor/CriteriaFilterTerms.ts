@@ -220,4 +220,5 @@ export const EVALUATE_OVER_TIME_TERMS: Readonly<
   [EvaluateOverTimeType.Count]: translationKey("Count"),
   [EvaluateOverTimeType.Percentage]: translationKey("Percentage"),
   [EvaluateOverTimeType.StatusChanges]: translationKey("Status Changes"),
+  [EvaluateOverTimeType.PreviousCheck]: translationKey("Previous Check"),
 };

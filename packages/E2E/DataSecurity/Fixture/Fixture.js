@@ -111,14 +111,19 @@ import {
   COMPLIANCE_FRAMEWORK_INFO,
 } from "Common/Types/DataSecurity/ComplianceFramework";
 import { scoreComplianceFramework } from "Common/Types/DataSecurity/ComplianceRequirementCatalog";
-import DataCategory from "Common/Types/DataSecurity/DataCategory";
+import DataCategory, {
+  isPersonalDataCategory,
+} from "Common/Types/DataSecurity/DataCategory";
 import DataSecurityIssueStatus from "Common/Types/DataSecurity/DataSecurityIssueStatus";
 import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
 } from "Common/Types/DataSecurity/DataStoreAccess";
 import DataStoreEnvironment from "Common/Types/DataSecurity/DataStoreEnvironment";
-import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreKind,
+  TELEMETRY_DATA_STORE_KINDS,
+} from "Common/Types/DataSecurity/DataStoreKind";
 import { DataStoreExposure } from "Common/Types/DataSecurity/DataStorePosture";
 import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
 import {
@@ -126,6 +131,22 @@ import {
   moreSevere,
 } from "Common/Types/DataSecurity/DataSecurityRisk";
 import { getDataSecurityCheck } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
+import { getBuiltInDataType } from "Common/Types/DataSecurity/DataTypeCatalog";
+import {
+  getScrubTarget,
+  ScrubbedField,
+} from "Common/Types/DataSecurity/TelemetryScrubTarget";
+import LogScrubAction from "Common/Types/Log/LogScrubAction";
+import LogScrubField from "Common/Types/Log/LogScrubField";
+import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
+import { DATA_TYPE_OF_SCRUB_PATTERN_TYPE } from "Common/Types/Telemetry/ScrubRule";
+import { SCRUB_RULES_HIDING_ADDRESSES_API_PATH } from "Common/Types/Telemetry/ScrubRuleAddresses";
+import {
+  getEmptyTelemetryFieldReadersByKind,
+  TelemetryFieldPart,
+  TelemetryFieldReaderKind,
+  TelemetryFieldUse,
+} from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityResponseUnavailableReason,
@@ -3377,18 +3398,292 @@ function occurrences(findingId) {
   return kept([]);
 }
 
-// Scrub It: the finding is masked at ingest from now on, by a rule as named.
-function scrub(findingId) {
+/*
+ * ---------------------------------------------------------------------------
+ * Scrub It, said before it is done (#10433)
+ * ---------------------------------------------------------------------------
+ *
+ * Security Events reads none of this project's logs or spans: the fixture
+ * models no Security Events source. So no IP Address rule keeps an address
+ * from it (#10396), and Scrub It redacts an IP address rather than hashing
+ * it.
+ */
+
+// The scrub rule pattern of each data type that has one, as a rule names it.
+const SCRUB_PATTERN_OF_DATA_TYPE = new Map(
+  Object.entries(DATA_TYPE_OF_SCRUB_PATTERN_TYPE).map(
+    ([patternType, dataTypeId]) => {
+      return [dataTypeId, patternType];
+    },
+  ),
+);
+
+// The team's own rule that already hides a finding's data: the phone numbers.
+const TEAM_SCRUB_RULES = {
+  [ID.finding(9)]: {
+    id: uuid("1c300000", 1),
+    name: "Mask phone numbers",
+    signal: "log",
+  },
+};
+
+// The rules Scrub It made here, by finding: asked again, it names the one it made.
+const madeScrubRules = new Map();
+
+/*
+ * What a planned rule was proven on (#10366): the records the finding was
+ * seen in, run through ingest's own code. Counts only, never a value. The
+ * client addresses' place also holds the "-" the load balancer's health
+ * checks are logged with, which the rule leaves alone.
+ */
+const SCRUB_PROOFS = {
+  [ID.finding(8)]: {
+    recordsRead: 64,
+    findingRecordsRead: 1,
+    valuesWithData: 50,
+    valuesStillWithData: 0,
+    otherValues: 14,
+    otherValuesChanged: 0,
+  },
+  [ID.finding(3)]: {
+    recordsRead: 384,
+    findingRecordsRead: 5,
+    valuesWithData: 18,
+    valuesStillWithData: 0,
+    otherValues: 366,
+    otherValuesChanged: 0,
+  },
+};
+
+// A telemetry store's service, as the scanner names its stores: "checkout · Logs".
+function serviceNameOf(store) {
+  return (store.name || "").split(" · ")[0];
+}
+
+/*
+ * The rule Scrub It would make for a finding in a service's logs, as the
+ * server plans it (TelemetryScrubPlanner.planScrubRuleCandidates,
+ * TelemetryScrubCoverage.nameScrubItRule): the data type's own pattern, in
+ * the part of the log it sits in, for the service it was seen in - an IP
+ * address redacted, since Security Events reads none of these logs,
+ * personal data masked, anything else redacted - and named after those
+ * parts and the service. Null for one the fixture does not model.
+ */
+function scrubPlan(finding, store) {
+  const target = getScrubTarget(store.kind, (finding.location || "").trim());
+  const patternType = SCRUB_PATTERN_OF_DATA_TYPE.get(finding.dataTypeId);
+  if (!target || target.signal !== "log" || !patternType || !store.serviceId) {
+    return null;
+  }
+  const isBody = target.field === ScrubbedField.Body;
+  const serviceName = serviceNameOf(store);
+  let scrubAction = LogScrubAction.Redact;
+  if (
+    patternType !== LogScrubPatternType.IPAddress &&
+    isPersonalDataCategory(finding.dataCategory)
+  ) {
+    scrubAction = LogScrubAction.Mask;
+  }
+  return {
+    target,
+    rule: {
+      signal: "log",
+      name: `Data Security: ${finding.dataTypeName} in ${isBody ? "log bodies" : "log attributes"} of ${serviceName}`,
+      scrubAction,
+      patternType,
+      fieldsToScrub: isBody ? LogScrubField.Body : LogScrubField.Attributes,
+      dataTypeName: finding.dataTypeName,
+      serviceId: store.serviceId.toString(),
+      serviceName,
+      ...(SCRUB_PROOFS[finding._id]
+        ? { proof: SCRUB_PROOFS[finding._id] }
+        : {}),
+    },
+  };
+}
+
+/*
+ * What reads the data a planned rule would hide, as the server finds it
+ * (TelemetryFieldReaders): a monitor that groups the checkout service's
+ * failed requests by the client's address, which would see what the rule
+ * leaves in its place. Nothing else reads it, and Security Events reads
+ * none of the project's telemetry.
+ */
+function scrubRuleReaders(target) {
+  const kinds = getEmptyTelemetryFieldReadersByKind(true);
+  if (target.key === "http.client_ip") {
+    kinds[TelemetryFieldReaderKind.Monitor].readers.push({
+      id: uuid("1c400000", 1),
+      name: "Checkout errors by client IP",
+      reads: [
+        {
+          part: TelemetryFieldPart.Attributes,
+          key: "http.client_ip",
+          use: TelemetryFieldUse.GroupBy,
+        },
+      ],
+    });
+  }
+  return {
+    kinds,
+    securityEvents: { isChecked: true, sources: [], loses: [] },
+  };
+}
+
+function findingAndStore(findingId) {
   const finding = table(DataStoreFinding).find((row) => {
     return row._id === findingId;
   });
-  if (finding) {
-    finding.isScrubbed = true;
+  return { finding, store: finding ? storeById(finding.dataStoreId) : null };
+}
+
+/*
+ * What Scrub It would do for a finding, for its dialog to say before the
+ * rule is made, as the server answers (DataSecurityAPI's scrubImpact,
+ * TelemetryScrubImpact.getScrubItImpact): the rule that already hides the
+ * data, or the rule it would make and what reads what it would hide. A
+ * finding in a cloud store, not in telemetry, is refused in the server's
+ * words.
+ */
+function scrubImpact(findingId) {
+  const { finding, store } = findingAndStore(findingId);
+  if (!finding || !store) {
+    return new HTTPErrorResponse(400, { message: "Finding not found." }, {});
   }
+  if (!TELEMETRY_DATA_STORE_KINDS.includes(store.kind)) {
+    return new HTTPErrorResponse(
+      400,
+      {
+        message:
+          "Scrub It hides data in telemetry as it arrives; this finding is in a data store, not in telemetry.",
+      },
+      {},
+    );
+  }
+  const existingRule =
+    madeScrubRules.get(findingId) || TEAM_SCRUB_RULES[findingId];
+  if (existingRule) {
+    return new HTTPResponse(200, { isAvailable: true, existingRule }, {});
+  }
+  const plan = scrubPlan(finding, store);
+  if (!plan) {
+    fixture.unhandled.push({ kind: "scrub-impact", findingId });
+    return new HTTPResponse(200, {}, {});
+  }
+  return new HTTPResponse(
+    200,
+    {
+      isAvailable: true,
+      rule: plan.rule,
+      readers: scrubRuleReaders(plan.target),
+    },
+    {},
+  );
+}
+
+// Scrub It: the finding is hidden at ingest from now on, by the rule its dialog named.
+function scrub(findingId) {
+  const { finding, store } = findingAndStore(findingId);
+  const plan = finding && store ? scrubPlan(finding, store) : null;
+  if (!plan) {
+    fixture.unhandled.push({ kind: "scrub", findingId });
+    return {};
+  }
+  finding.isScrubbed = true;
+  const made = {
+    id: uuid("1c300000", 2 + madeScrubRules.size),
+    name: plan.rule.name,
+    signal: plan.rule.signal,
+  };
+  madeScrubRules.set(findingId, made);
   return {
-    signal: "log",
-    scrubRuleId: uuid("1c000000", 1),
-    scrubRuleName: `Data Security: ${finding?.dataTypeName || "Data"} in ${finding?.location || ""}`,
+    signal: made.signal,
+    scrubRuleId: made.id,
+    scrubRuleName: made.name,
+  };
+}
+
+/*
+ * The IP Address rules that keep Security Events from naming an attacker's
+ * address (#10396), as the server answers (ScrubRuleAddressesAPI): none,
+ * since Security Events reads none of the project's logs or spans. A
+ * Security Viewer, who may not read scrub rules, is refused, and the page
+ * then names no rule.
+ */
+function scrubRulesHidingAddresses() {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "You do not have permission to read scrub rules, so OneUptime does not say which of them hide addresses from Security Events.",
+      },
+      {},
+    );
+  }
+  return new HTTPResponse(
+    200,
+    { isChecked: true, signalsRead: [], rules: [] },
+    {},
+  );
+}
+
+/*
+ * The GDPR record of processing on Compliance, as the server writes it
+ * (DataSecurityAPI.getRecordOfProcessing): a row for each store that holds
+ * personal data, with the data types it holds by the catalog's names, the
+ * frameworks they fall under, and its owners by name. This project keeps
+ * none of the stores OneUptime declares for a project's security: it does
+ * not use Security Events.
+ */
+function recordOfProcessing() {
+  const ownersOf = (storeId) => {
+    return table(DataStoreOwnerUser)
+      .filter((row) => {
+        return String(row.dataStoreId) === storeId;
+      })
+      .map((row) => {
+        return row.user?.name?.toString() || "";
+      })
+      .filter(Boolean);
+  };
+  return {
+    rows: table(DataStore)
+      .filter((store) => {
+        return (
+          !store.isArchived &&
+          (store.dataCategories || []).some(isPersonalDataCategory)
+        );
+      })
+      .map((store) => {
+        const frameworks = new Set();
+        for (const dataTypeId of store.dataTypeIds || []) {
+          const dataType = getBuiltInDataType(dataTypeId);
+          for (const framework of dataType?.frameworks || []) {
+            frameworks.add(framework);
+          }
+        }
+        return {
+          dataStoreId: store._id,
+          name: store.name || "",
+          kind: store.kind || "",
+          provider: store.provider || "",
+          region: store.region || "",
+          environment: store.environment || "",
+          sensitivity:
+            store.sensitivityOverride ||
+            store.sensitivity ||
+            DataSensitivity.Public,
+          dataCategories: store.dataCategories || [],
+          dataTypeNames: (store.dataTypeIds || []).map((dataTypeId) => {
+            return getBuiltInDataType(dataTypeId)?.name || dataTypeId;
+          }),
+          owners: ownersOf(store._id),
+          purpose: store.purpose || "",
+          retention: store.retention || "",
+          frameworks: [...frameworks],
+        };
+      }),
   };
 }
 
@@ -3401,6 +3696,12 @@ const ROUTE = {
   issueAnalysis: DATA_SECURITY_API_ROUTES.issueAnalysis(":id"),
   occurrences: DATA_SECURITY_API_ROUTES.findingOccurrences(":id"),
   scrub: DATA_SECURITY_API_ROUTES.scrubFinding(":id"),
+  // What Scrub It would do, before it is done (#10433).
+  scrubImpact: DATA_SECURITY_API_ROUTES.scrubImpact(":id"),
+  // The IP Address rules that hide addresses from Security Events (#10396).
+  scrubRulesHidingAddresses: SCRUB_RULES_HIDING_ADDRESSES_API_PATH,
+  // The record of processing on Compliance (#10398).
+  recordOfProcessing: DATA_SECURITY_API_ROUTES.recordOfProcessing,
   approveAiProposal: DATA_SECURITY_API_ROUTES.approveAiProposal(":id"),
   dismissAiProposal: DATA_SECURITY_API_ROUTES.dismissAiProposal(":id"),
   undoAiProposal: DATA_SECURITY_API_ROUTES.undoAiProposal(":id"),
@@ -3485,6 +3786,14 @@ async function handleApi(method, options) {
     return new HTTPResponse(200, compliance(), {});
   }
 
+  if (method === "POST" && pathname.endsWith(ROUTE.recordOfProcessing)) {
+    return new HTTPResponse(200, recordOfProcessing(), {});
+  }
+
+  if (method === "POST" && pathname.endsWith(ROUTE.scrubRulesHidingAddresses)) {
+    return scrubRulesHidingAddresses();
+  }
+
   const actionsFor = idOf(ROUTE.responseActions, pathname);
   if (method === "POST" && actionsFor) {
     return new HTTPResponse(200, responseActions(actionsFor), {});
@@ -3543,6 +3852,19 @@ async function handleApi(method, options) {
       );
     }
     return new HTTPResponse(200, occurrences(occurrencesOf), {});
+  }
+
+  // Asked by whoever may press Scrub It, as the press itself is.
+  const impactOf = idOf(ROUTE.scrubImpact, pathname);
+  if (method === "POST" && impactOf) {
+    if (role === "viewer") {
+      return new HTTPErrorResponse(
+        403,
+        { message: "You do not have permission to do this in Data Security." },
+        {},
+      );
+    }
+    return scrubImpact(impactOf);
   }
 
   const scrubOf = idOf(ROUTE.scrub, pathname);

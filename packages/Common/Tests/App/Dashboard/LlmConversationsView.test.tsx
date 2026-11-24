@@ -8,6 +8,7 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -16,11 +17,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
-import {
-  chooseDropdownOption,
-  getShownDropdownPlaceholder,
-  listDropdownOptions,
-} from "../../DropdownPicks";
+import { chooseDropdownOption, listDropdownOptions } from "../../DropdownPicks";
 import { MemoryRouter } from "react-router-dom";
 import LlmConversationsView from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationsView";
 import {
@@ -301,7 +298,12 @@ describe("opening the list", () => {
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toHaveTextContent("Where should I go in May?");
-    expect(rows[0]).toHaveTextContent("Support bot");
+    // The row's app, read by its id (#10764).
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("llm-conversation-row")[0],
+      ).toHaveTextContent("Support bot");
+    });
   });
 
   test("each row opens its conversation, with where to look for it", async () => {
@@ -479,15 +481,27 @@ describe("narrowing the list", () => {
   test("one app", async () => {
     await openList();
 
-    const select: HTMLElement = within(
+    const select: HTMLElement = await within(
       await screen.findByTestId("llm-conversations-app"),
-    ).getByRole("combobox", { name: "App" });
+    ).findByRole("combobox", { name: "App" });
 
-    // Every app is the placeholder; each app is offered by its name.
-    expect(getShownDropdownPlaceholder(select)).toBe("All apps");
-    expect(await listDropdownOptions(select)).toContain("Support bot");
+    /*
+     * Every app is the placeholder; each app is offered by its name,
+     * searched on the server as the picker opens (#10764).
+     */
+    expect(select).toHaveAttribute("placeholder", "All apps");
 
-    chooseDropdownOption(select, "Support bot");
+    await act(async () => {
+      fireEvent.focus(select);
+    });
+
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: /Support bot/,
+    });
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
     await settled(2);
 
     expect(lastBody()["serviceIds"]).toEqual([APP_ID]);
@@ -956,10 +970,12 @@ describe("an empty list says why, from the setup check", () => {
     expect(screen.getByTestId("llm-conversations-empty")).toHaveTextContent(
       "Your app's AI calls aren't recorded",
     );
-    // The app by its name, the host it called, how often.
-    expect(text).toHaveTextContent(
-      "Support bot called contoso.openai.azure.com",
-    );
+    // The app by its name - read by its id (#10764) - the host it called, how often.
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("llm-conversations-diagnosis"),
+      ).toHaveTextContent("Support bot called contoso.openai.azure.com");
+    });
     // The count as the reader's language writes it.
     expect(text).toHaveTextContent("1,240 times in the past day");
 

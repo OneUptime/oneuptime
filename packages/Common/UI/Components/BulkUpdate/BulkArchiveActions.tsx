@@ -51,6 +51,13 @@ export interface BulkArchiveActionsConfig<T extends BaseModel> {
    */
   archiveConfirmMessage?: string | undefined;
   unarchiveConfirmMessage?: string | undefined;
+  /*
+   * The list's Archived page, as its side menu names it under Advanced
+   * (an English key): "Archived" unless the list says otherwise, as
+   * Network's "Archived Devices" does. The default sentences send the
+   * reader there to unarchive.
+   */
+  archivedPageTitle?: string | undefined;
   // How a row's question names the row; its name column otherwise.
   getItemName?: ((item: T) => string) | undefined;
   /*
@@ -102,15 +109,30 @@ export const ROW_UNARCHIVE_QUESTION: string = translationKey(
 );
 
 /*
- * What archiving one telemetry resource does, said under a row's question
- * on a list that gives no sentence of its own - the same as the bulk one.
+ * WHAT ARCHIVING A TELEMETRY RESOURCE DOES, ON A LIST THAT GIVES NO
+ * SENTENCE OF ITS OWN (#8033).
+ *
+ * Said under the dialog's question - the bulk dialog's title, "Archive 3
+ * hosts?", or a row's "Are you sure you want to archive web-01?" - and
+ * never asking it again: the row leaves the list, keeps collecting
+ * telemetry and loses nothing, and the way back is the list's Archived
+ * page, under Advanced in its side menu ({{page}}, as the side menu names
+ * it: ARCHIVED_PAGE_TITLE, or the list's own). The bulk sentence used to
+ * open with "Are you sure you want to archive the selected hosts?" under a
+ * title that had just asked it, and sent the reader to "the Archived tab",
+ * which is no tab: it is a page of the side menu, folded under Advanced.
+ * One selected row and a row's own Archive say the one-row sentence; the
+ * five archivable kinds say their own (ResourceArchiveCopy).
  */
 export const ROW_ARCHIVE_TELEMETRY_SENTENCE: string = translationKey(
-  "It will be hidden from this list but will keep collecting telemetry. You can unarchive it at any time.",
+  "It leaves this list but keeps collecting telemetry, and nothing is deleted. Unarchive it at any time from Advanced > {{page}}.",
 );
 export const ROW_UNARCHIVE_SENTENCE: string = translationKey(
   "It will reappear in the main list.",
 );
+
+// The Archived page's name in a list's side menu, under Advanced.
+export const ARCHIVED_PAGE_TITLE: string = translationKey("Archived");
 
 /*
  * The bulk dialog's title, with how many are selected: "Archive 3 hosts?".
@@ -128,25 +150,23 @@ export const BULK_UNARCHIVE_TITLE: PluralTemplate = {
 };
 
 /*
- * The bulk dialog's question on a list that gives no sentence of its own,
- * about a telemetry resource: one selected, or several. No count is said,
- * so these are two sentences, not a plural - "the selected hosts" for 21 of
- * them in Russian too, where 21 takes the "one" form of a count.
+ * The bulk dialog's sentence under its title, on a list that gives no
+ * sentence of its own: one selected, or several. No count is said - the
+ * title says it - so these are two sentences, not a plural: "they" for 21
+ * hosts in Russian too, where 21 takes the "one" form of a count.
  */
-export const BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE: string = translationKey(
-  "Are you sure you want to archive the selected {{itemName}}? It will be hidden from the list but will keep collecting telemetry. You can unarchive it anytime from the Archived tab.",
-);
+export const BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE: string =
+  ROW_ARCHIVE_TELEMETRY_SENTENCE;
 
 export const BULK_ARCHIVE_TELEMETRY_SENTENCE: string = translationKey(
-  "Are you sure you want to archive the selected {{itemsName}}? They will be hidden from the list but will keep collecting telemetry. You can unarchive them anytime from the Archived tab.",
+  "They leave this list but keep collecting telemetry, and nothing is deleted. Unarchive them at any time from Advanced > {{page}}.",
 );
 
-export const BULK_UNARCHIVE_SENTENCE_ONE: string = translationKey(
-  "Are you sure you want to unarchive the selected {{itemName}}? It will reappear in the main list.",
-);
+// Unarchiving from the Archived page: the title asks, the sentence says.
+export const BULK_UNARCHIVE_SENTENCE_ONE: string = ROW_UNARCHIVE_SENTENCE;
 
 export const BULK_UNARCHIVE_SENTENCE: string = translationKey(
-  "Are you sure you want to unarchive the selected {{itemsName}}? They will reappear in the main list.",
+  "They will reappear in the main list.",
 );
 
 type ArchiveMode = "archive" | "unarchive";
@@ -179,10 +199,9 @@ function useBulkArchiveActions<T extends BaseModel>(
     config.pluralName || model.pluralName || "resources";
 
   /*
-   * The names as the dialog's title ("Archive 3 services?") and its
-   * question ("... the selected services?") say them: in the reader's
-   * language - both are keys of the Dashboard's locales - and cased as in
-   * the middle of a sentence, as the Settings card's title says the one
+   * The names as the dialog's title says them ("Archive 3 services?"): in
+   * the reader's language - keys of the Dashboard's locales - and cased as
+   * in the middle of a sentence, as the Settings card's title says the one
    * ("Archive service") and the lists with sentences of their own say
    * theirs ("Archive 3 workflows?"). The title used to say the label as
    * written ("Archive 3 Services?"), so most languages put it in brackets
@@ -193,6 +212,15 @@ function useBulkArchiveActions<T extends BaseModel>(
   const names: TemplateValues = {
     itemName: translatableTerm(singularName, { inSentence: true }),
     itemsName: translatableTerm(pluralName, { inSentence: true }),
+  };
+
+  /*
+   * Where the default sentences send the reader to unarchive: the list's
+   * Archived page as its side menu names it, in the reader's words
+   * ("Advanced > Archiviert").
+   */
+  const archivedPage: TemplateValues = {
+    page: translatableTerm(config.archivedPageTitle || ARCHIVED_PAGE_TITLE),
   };
 
   // The dialog's title for this many: "Archive 3 hosts?", "Archive 1 SLO?".
@@ -208,8 +236,9 @@ function useBulkArchiveActions<T extends BaseModel>(
   };
 
   /*
-   * The dialog's question on a list that gives no sentence of its own: the
-   * one-selected sentence for one, the several-selected one otherwise.
+   * The dialog's sentence under its title on a list that gives no sentence
+   * of its own: the one-selected sentence for one, the several-selected one
+   * otherwise.
    */
   const getDefaultConfirmMessage: (
     mode: ArchiveMode,
@@ -222,13 +251,13 @@ function useBulkArchiveActions<T extends BaseModel>(
         isOne
           ? BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE
           : BULK_ARCHIVE_TELEMETRY_SENTENCE,
-        names,
+        archivedPage,
       );
     }
 
     return translator.translateTemplate(
       isOne ? BULK_UNARCHIVE_SENTENCE_ONE : BULK_UNARCHIVE_SENTENCE,
-      names,
+      {},
     );
   };
 
@@ -346,9 +375,21 @@ function useBulkArchiveActions<T extends BaseModel>(
         getRecordDisplayName(item, { model: model }) ||
         translator.translateTerm(singularName);
 
-      const sentence: string = isArchiving
-        ? config.archiveConfirmMessage || ROW_ARCHIVE_TELEMETRY_SENTENCE
-        : config.unarchiveConfirmMessage || ROW_UNARCHIVE_SENTENCE;
+      /*
+       * A list's own sentence is drawn as its key words it; the telemetry
+       * one names where to unarchive (archivedPage).
+       */
+      const ownSentence: string | undefined = isArchiving
+        ? config.archiveConfirmMessage
+        : config.unarchiveConfirmMessage;
+      const sentence: string = ownSentence
+        ? translator.translateText(ownSentence) || ownSentence
+        : translator.translateTemplate(
+            isArchiving
+              ? ROW_ARCHIVE_TELEMETRY_SENTENCE
+              : ROW_UNARCHIVE_SENTENCE,
+            archivedPage,
+          );
 
       return {
         title: translator.translateTemplate(
@@ -370,7 +411,7 @@ function useBulkArchiveActions<T extends BaseModel>(
               data-testid="row-archive-consequence"
               className="text-sm leading-6 text-gray-600"
             >
-              {translator.translateText(sentence) || sentence}
+              {sentence}
             </p>
             {isArchiving && config.getArchiveConfirmationDetails ? (
               <div className="mt-3">

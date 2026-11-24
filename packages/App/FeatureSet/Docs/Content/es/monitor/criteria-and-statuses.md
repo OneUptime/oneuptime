@@ -87,6 +87,7 @@ Con **Evaluar estos criterios durante un periodo de tiempo** marcado, **Evaluar*
 | **Recuento** | El número de comprobaciones que cumplieron la condición se compara como se define en **Comprobaciones que coinciden**: **Mayor que** 30, por ejemplo. |
 | **Porcentaje** | Su proporción entre las comprobaciones de la ventana se compara como se define en **Proporción de comprobaciones que coinciden**: **Mayor que** 10 %, por ejemplo. |
 | **Cambios de estado** | Las veces que las comprobaciones pasaron de cumplir la condición a no cumplirla, o al revés, se comparan como se define en **Veces que cambió**. Un dispositivo que se cae y vuelve cambia dos veces. |
+| **Comprobación anterior** | Esta comprobación, comparada con la comprobación anterior de la misma sonda: un tiempo de respuesta más de un 50 % por encima, por ejemplo, o un sitio que ahora está caído y antes no. Consulta [Comparar una comprobación con la anterior](#comparar-una-comprobación-con-la-anterior). |
 
 Una frase bajo la configuración de la ventana repite el filtro tal como está configurado: «Comprobar si "En línea" es falso en más de 30 comprobaciones del último período de 8 horas».
 
@@ -94,7 +95,7 @@ Una frase bajo la configuración de la ventana repite el filtro tal como está c
 - **Una ventana que aún no está llena.** Hasta que las comprobaciones lleguen al inicio de la ventana, un monitor recién iniciado tiene menos comprobaciones de las que tendrá. **Recuento** y **Cambios de estado** coinciden pronto cuando ya superan **Mayor que** o **Mayor o igual que**, ya que más comprobaciones solo los aumentan; todo lo demás espera a una ventana llena.
 - **Una ventana sin comprobaciones.** Mientras la ventana no tenga comprobaciones, o aún no esté llena, decide **Si no hay datos**: **Ignore** espera, **Disparador** coincide, y **Treat As Zero** la juzga como si las comprobaciones que faltan no hubieran cumplido la condición.
 
-Los promedios y percentiles leen los valores de las comprobaciones de todas las sondas, como siempre ha hecho **Promedio**. **Recuento**, **Porcentaje** y **Cambios de estado** se ofrecen para cada filtro al que se le ofrece una ventana: en los monitores Website, API, Ping, IP y Port, para la CPU, la memoria, los discos y la carga de un servidor, para **Dispositivo SNMP en línea** y el tiempo de respuesta de un dispositivo de red, y en los monitores DNS, NTP, de base de datos, de página de estado externa y de estado de sondas. **En línea** de un monitor de servidor no se cuenta: se juzga por el tiempo desde el último informe del servidor. Los monitores de métricas y otros de telemetría juzgan en cambio el intervalo de tiempo de su consulta, con la agregación propia de la consulta, que también lee percentiles.
+Los promedios y percentiles leen los valores de las comprobaciones de todas las sondas, como siempre ha hecho **Promedio**. **Recuento**, **Porcentaje** y **Cambios de estado** se ofrecen para cada filtro al que se le ofrece una ventana: en los monitores Website, API, Ping, IP y Port, para la CPU, la memoria, los discos y la carga de un servidor, para **Dispositivo SNMP en línea** y el tiempo de respuesta de un dispositivo de red, para **Días hasta la caducidad** de un monitor de certificado SSL, y en los monitores DNS, NTP, de base de datos, de página de estado externa y de estado de sondas. **En línea** de un monitor de servidor no se cuenta: se juzga por el tiempo desde el último informe del servidor. Los monitores de métricas y otros de telemetría juzgan en cambio el intervalo de tiempo de su consulta, con la agregación propia de la consulta, que también lee percentiles.
 
 ### Ejemplo: un punto de acceso caído y otro inestable
 
@@ -107,6 +108,20 @@ Un monitor Ping comprueba un punto de acceso de una oficina cada minuto. Antes d
 | El punto de acceso está en línea | **En línea** es **Verdadero** | No durante un período | **Operativo** |
 
 Para el segundo, active **Recuperarse solo cuando se cumpla una condición propia** con **Cambios de estado**, **Menor o igual que** 1, **En el último período de** 1 hora: el incidente de inestabilidad sigue abierto hasta que el punto de acceso lleve una hora estable, en lugar de cerrarse el primer minuto en que responde. Para alertar cuando falle más de 30 pings en 8 horas, configure en cambio el segundo criterio con **Recuento**, **Mayor que** 30, **En el último período de** 8 horas.
+
+### Comparar una comprobación con la anterior
+
+**Comprobación anterior** compara cada comprobación con la comprobación anterior de la misma sonda, y del mismo disco para el uso de un disco. **En el último período de** indica cuánto tiempo atrás puede estar esa comprobación, así que hazlo más largo que el intervalo de monitorización. Se ofrece para los mismos filtros que **Recuento**.
+
+Un valor medido, como un tiempo de respuesta, coincide cuando supera la comprobación anterior en más que el cambio definido en **Cambio respecto a la comprobación anterior**, con **Mayor que**, o queda por debajo en más que ese cambio, con **Menor que**. El cambio es un **Valor en la unidad de la comprobación**, como 200 ms, o un **Porcentaje de la comprobación anterior**, como 50 %, y 0 coincide con cualquier subida o bajada. **Igual a** y **Distinto de** comparan con el propio valor anterior.
+
+Un filtro verdadero o falso, como **En línea**, y un filtro sobre el cuerpo, una cabecera o una expresión coinciden en la comprobación que empezó a cumplir la condición: **En línea** en **Falso** coincide en la comprobación en la que el sitio se cayó, y no vuelve a hacerlo hasta la siguiente caída.
+
+En ambos casos coincide en una sola comprobación, y en la siguiente el criterio deja de actuar. Para que mantenga el estado que fija, o deje abierto su incidente, dale una condición de recuperación propia: consulta [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio).
+
+Si no hay comprobación anterior en la ventana, como en la primera comprobación del monitor, en una sonda recién añadida o tras un hueco, decide **Si no hay datos**: **Ignore** no coincide, **Disparador** coincide y **Treat As Zero** compara como si la comprobación anterior hubiera leído 0, o no hubiera cumplido la condición.
+
+La frase bajo la configuración de la ventana lo repite: «Comprobar si "Tiempo de respuesta (en ms)" supera en más de 50 % a la comprobación anterior», o «Comprobar si "En línea" es falso en esta comprobación, pero no en la anterior».
 
 ## Cuándo se recupera un criterio
 

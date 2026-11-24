@@ -1,6 +1,6 @@
 # Vue d'ensemble des formulaires
 
-Un formulaire est une page que toute personne disposant de son lien peut remplir, sans compte OneUptime. Chaque soumission crée quelque chose dans votre projet : un **incident**, pour les signalements de problèmes, ou un **événement de maintenance**, pour les demandes de changement et de maintenance. Vous construisez les questions du formulaire dans un éditeur par glisser-déposer, décidez comment les réponses deviennent l'enregistrement et partagez le lien avec les personnes qui doivent l'utiliser.
+Un formulaire est une page que toute personne disposant de son lien peut remplir, sans compte OneUptime. Chaque soumission crée quelque chose dans votre projet : un **incident**, pour les signalements de problèmes, une **alerte**, pour les avertissements et les points à vérifier, ou un **événement de maintenance**, pour les demandes de changement et de maintenance. Vous construisez les questions du formulaire dans un éditeur par glisser-déposer, décidez comment les réponses deviennent l'enregistrement et partagez le lien avec les personnes qui doivent l'utiliser.
 
 Utilisez un formulaire quand les personnes qui remarquent un problème, ou qui ont besoin d'un changement, ne sont pas celles qui gèrent vos incidents et vos maintenances : agents du support, collègues d'un autre service, responsable de magasin, équipe d'exploitation d'un client. Elles ouvrent le lien, répondent à vos questions et cliquent sur **Soumettre**. Votre équipe reçoit un incident ou un événement ordinaire, avec les réponses dans ses champs et une note privée qui indique qui l'a envoyé.
 
@@ -13,16 +13,19 @@ Utilisez un formulaire quand les personnes qui remarquent un problème, ou qui o
 
 ## Fonctionnement d'un formulaire
 
-```mermaid title="D'un formulaire rempli à un incident ou un événement de maintenance"
+```mermaid title="D'un formulaire rempli à un incident, une alerte ou un événement de maintenance"
 flowchart TB
     submitter["Une personne avec le lien,<br/>sans compte"] --> page["La page du formulaire"]
     page -->|Soumettre| checks["Protections et<br/>vérification des réponses"]
     checks --> submission["Soumission, conservée<br/>avec le formulaire"]
     submission --> target{"Chaque soumission crée"}
     target -->|Incident| incident["Incident, masqué<br/>sur les pages de statut"]
+    target -->|Alerte| alert["Alerte, à vérifier<br/>par ses propriétaires"]
     target -->|Maintenance planifiée| event["Événement de maintenance,<br/>masqué sauf réglage contraire"]
     incident --> response["Les politiques d'astreinte<br/>et les règles s'exécutent"]
+    alert --> response
     incident --> note["Note privée : qui l'a envoyé,<br/>autres réponses"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Quand vous créez un formulaire, vous choisissez ce que **Chaque soumission cré
 | Chaque soumission crée | À utiliser pour | Ce qui se passe |
 | --- | --- | --- |
 | **Incident** | Les signalements de problèmes | Un incident est déclaré immédiatement, si bien que vos politiques d'astreinte et vos règles s'exécutent et que les personnes d'astreinte sont prévenues. Il reste absent des pages de statut jusqu'à ce qu'un intervenant le publie. |
+| **Alerte** | Les avertissements et les points à vérifier | Une alerte est créée, si bien que ses propriétaires sont prévenus et que ses politiques d'astreinte et ses règles s'exécutent, sans qu'un incident soit déclaré. Une alerte qui démarre dans un état ultérieur, comme **Pris en compte**, n'alerte personne. |
 | **Maintenance planifiée** | Les demandes de changement et de maintenance | Un événement de maintenance est planifié pour la fenêtre demandée par la personne qui soumet. Sauf indication contraire du formulaire, il reste absent de ses pages de statut et ne prévient aucun abonné. |
 
-Les formulaires commencent avec ces deux-là, et d'autres types d'enregistrements suivront.
+Configurer un formulaire qui crée des alertes demande en plus l'autorisation de créer des alertes : voir [Autorisations](#autorisations).
 
 ## Avant de commencer
 
 - **Un plan qui inclut les formulaires.** Sur OneUptime Cloud, les formulaires demandent le plan **Growth** ou supérieur. Voir [Plan](#plan).
 - **L'autorisation de créer des formulaires.** **Create Form** appartient aux Propriétaires du projet et Administrateurs du projet, ainsi qu'aux rôles auxquels vous la donnez. Voir [Autorisations](#autorisations).
 - **Pour un formulaire d'incident, une gravité.** Chaque incident en a besoin d'une : issue d'une question, des paramètres du formulaire ou de son modèle d'incident. Sans elle, chaque soumission est refusée. Voir [Ce que crée une soumission](/docs/forms/on-submit#comment-une-soumission-devient-un-incident).
+- **Pour un formulaire d'alerte, une gravité.** Chaque alerte en a besoin d'une, elle aussi : issue d'une question ou des paramètres du formulaire. Voir [Comment une soumission devient une alerte](/docs/forms/on-submit#comment-une-soumission-devient-une-alerte).
 
 ## Créer votre premier formulaire
 
@@ -144,6 +149,8 @@ Les formulaires permettent à des personnes extérieures à votre équipe de cr�
 | **Delete Form Domain** | Retirer les domaines personnalisés d'un formulaire. | Propriétaire du projet, Administrateur du projet et **Edit Form** |
 | **Read Form Domain** | Voir les domaines personnalisés d'un formulaire, leurs enregistrements DNS et où en est chacun sur le chemin vers HTTPS. | Toute personne qui a **Read Form** |
 
+**Un formulaire qui crée des alertes demande l'autorisation de créer des alertes.** Toute personne disposant de son lien peut créer des alertes, prévenir leurs propriétaires et alerter leurs personnes d'astreinte ; créer un formulaire qui crée des alertes, transformer un formulaire en formulaire d'alerte, et modifier les questions, les modèles ou les paramètres **À la soumission** d'un formulaire d'alerte demandent donc chacun aussi une autorisation qui peut créer des alertes : Propriétaire du projet, Administrateur du projet, Membre du projet, Administrateur des alertes, Membre des alertes ou **Create Alert**. Son nom, son lien, **Accepte les soumissions**, son image de marque et sa **Liste d'autorisation IP** ne demandent que les autorisations **Form**. Sans cette autorisation, l'option **Alerte** n'est pas proposée quand vous créez un formulaire, et elle est verrouillée sur sa page **À la soumission**, avec une infobulle qui nomme l'autorisation ; une requête qui essaie quand même est refusée avec "Only people who may create alerts can set up a form that creates them." Les formulaires d'incident et de maintenance ne demandent que les autorisations **Form**, comme toujours.
+
 Les soumissions contiennent ce que des inconnus ont saisi (noms, adresses e-mail et réponses qui n'atteignent peut-être jamais l'enregistrement) ; seuls les Propriétaires du projet et Administrateurs du projet les voient donc, sauf si vous accordez **Read Form Submission**. Quiconque peut lire un formulaire peut voir et partager son lien. Soumettre un formulaire ne demande aucune autorisation. Pour savoir comment les rôles et les autorisations granulaires se combinent, voir [Utilisateurs, équipes et autorisations](/docs/permissions/index).
 
 ## Plan
@@ -156,7 +163,7 @@ Les formulaires sont une ressource d'API ordinaire à `/api/form`, et leurs soum
 
 ### Questions et paramètres
 
-Les questions d'un formulaire sont sa colonne `fields`, une liste JSON dans l'ordre où le formulaire les pose, et ses paramètres À la soumission sont ses `targetSettings` :
+Le `targetType` d'un formulaire est ce que crée chaque soumission : `Incident`, `Alert` ou `ScheduledMaintenance`. Ses questions sont sa colonne `fields`, une liste JSON dans l'ordre où le formulaire les pose, et ses paramètres À la soumission sont ses `targetSettings` — pour un formulaire d'alerte, `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` et `ownerTeamIds` :
 
 ```json
 {
@@ -199,8 +206,8 @@ Chaque question a son propre `id` (lettres, chiffres, `-` et `_`), une `source`,
 | `source` | Ce qu'elle demande |
 | --- | --- |
 | `Question` | Une question propre au formulaire, à laquelle on répond selon son `type` : `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` ou `MultipleFiles`. Une liste déroulante liste ses `dropdownOptions`, une par ligne. |
-| `TargetField` | Un champ de ce que crée le formulaire, nommé par `targetField` : `title`, `description`, `incidentSeverityId`, `monitors`, `labels` et `impactStartedAt` pour un incident ; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` et `labels` pour un événement de maintenance. Un champ auquel on répond par un choix liste les enregistrements qu'il propose dans `allowedOptionIds`. |
-| `TargetCustomField` | L'un des champs personnalisés de l'incident ou de l'événement, nommé par `customFieldId`. |
+| `TargetField` | Un champ de ce que crée le formulaire, nommé par `targetField` : `title`, `description`, `incidentSeverityId`, `monitors`, `labels` et `impactStartedAt` pour un incident ; `title`, `description`, `alertSeverityId`, `monitor`, `labels` et `impactStartedAt` pour une alerte ; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` et `labels` pour un événement de maintenance. Un champ auquel on répond par un choix liste les enregistrements qu'il propose dans `allowedOptionIds`. |
+| `TargetCustomField` | L'un des champs personnalisés de l'incident, de l'alerte ou de l'événement, nommé par `customFieldId`. |
 | `Submitter` | Le `Name` ou l'`Email` de la personne qui soumet, nommé par `submitterField`. |
 
 Une question dont `isHidden` vaut `true` n'est pas affichée sur la page publique, n'est jamais obligatoire et ne reçoit de réponse que du modèle nommé par une soumission, sauf si ce modèle la pose. `isRequired` et `isHidden` sont la valeur par défaut du formulaire ; chaque modèle peut poser une question à sa façon.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ La réponse à une question de fichiers, ce sont les fichiers tels qu'ils ont é
 
 ### Flux de travail
 
-Les formulaires ont les composants de flux de travail générés : **À la création : Formulaire**, **À la mise à jour : Formulaire**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **À la création : Incident** ou **À la création : Événement de maintenance**.
+Les formulaires ont les composants de flux de travail générés : **À la création : Formulaire**, **À la mise à jour : Formulaire**, etc. Pour agir sur ce qu'un formulaire a créé, utilisez **À la création : Incident**, **À la création : Alerte** ou **À la création : Événement de maintenance**.
 
 ### Les points de terminaison propres à la page publique
 

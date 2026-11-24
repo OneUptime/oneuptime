@@ -87,6 +87,7 @@ Con **Valuta questo criterio su un periodo di tempo** selezionato, **Valuta** di
 | **Conteggio** | Il numero di controlli che hanno soddisfatto la condizione si confronta come impostato in **Controlli corrispondenti**: **Maggiore di** 30, ad esempio. |
 | **Percentuale** | La loro quota sui controlli della finestra si confronta come impostato in **Quota di controlli corrispondenti**: **Maggiore di** 10%, ad esempio. |
 | **Cambi di stato** | Il numero di volte in cui i controlli sono passati dal soddisfare la condizione al non soddisfarla, o viceversa, si confronta come impostato in **Volte che è cambiato**. Un dispositivo che cade e torna su cambia due volte. |
+| **Controllo precedente** | Questo controllo, confrontato con il controllo precedente della stessa sonda: un tempo di risposta superiore di oltre il 50%, per esempio, o un sito che ora è giù e prima non lo era. Vedi [Confrontare un controllo con il precedente](#confrontare-un-controllo-con-il-precedente). |
 
 Una frase sotto le impostazioni della finestra rilegge il filtro così come è impostato: «Verifica se "Online" è falso in più di 30 controlli dell'ultimo periodo di 8 ore».
 
@@ -94,7 +95,7 @@ Una frase sotto le impostazioni della finestra rilegge il filtro così come è i
 - **Una finestra non ancora piena.** Finché i controlli non risalgono all'inizio della finestra, un monitor appena avviato ha meno controlli di quanti ne avrà. **Conteggio** e **Cambi di stato** corrispondono in anticipo quando superano già **Maggiore di** o **Maggiore o uguale a**, perché altri controlli possono solo aumentarli; tutto il resto attende una finestra piena.
 - **Una finestra senza controlli.** Finché la finestra non ha controlli, o non è ancora piena, decide **Se nessun dato**: **Ignore** attende, **Trigger** corrisponde, e **Treat As Zero** la giudica come se i controlli mancanti non avessero soddisfatto la condizione.
 
-Le medie e i percentili leggono i valori dei controlli di tutte le sonde, come **Media** ha sempre fatto. **Conteggio**, **Percentuale** e **Cambi di stato** sono offerti per ogni filtro a cui è offerta una finestra: sui monitor Website, API, Ping, IP e Port, per CPU, memoria, dischi e carico di un server, per **Dispositivo SNMP online** e il tempo di risposta di un dispositivo di rete, e sui monitor DNS, NTP, di database, di pagina di stato esterna e di stato delle sonde. **Online** di un monitor di server non viene contato: è giudicato in base al tempo trascorso dall'ultima segnalazione del server. I monitor di metriche e gli altri monitor di telemetria giudicano invece l'intervallo di tempo della loro query, con l'aggregazione propria della query, che legge anche i percentili.
+Le medie e i percentili leggono i valori dei controlli di tutte le sonde, come **Media** ha sempre fatto. **Conteggio**, **Percentuale** e **Cambi di stato** sono offerti per ogni filtro a cui è offerta una finestra: sui monitor Website, API, Ping, IP e Port, per CPU, memoria, dischi e carico di un server, per **Dispositivo SNMP online** e il tempo di risposta di un dispositivo di rete, per **Giorni alla scadenza** di un monitor certificato SSL, e sui monitor DNS, NTP, di database, di pagina di stato esterna e di stato delle sonde. **Online** di un monitor di server non viene contato: è giudicato in base al tempo trascorso dall'ultima segnalazione del server. I monitor di metriche e gli altri monitor di telemetria giudicano invece l'intervallo di tempo della loro query, con l'aggregazione propria della query, che legge anche i percentili.
 
 ### Esempio: un access point fuori servizio e uno instabile
 
@@ -107,6 +108,20 @@ Un monitor Ping controlla ogni minuto un access point d'ufficio. Prima che le fi
 | L'access point è online | **Online** è **Vero** | Non su un periodo di tempo | **Operativo** |
 
 Per il secondo, attiva **Ripristina solo quando è soddisfatta una condizione propria** con **Cambi di stato**, **Minore o uguale a** 1, **Nell'ultimo periodo di** 1 ora: l'incidente di instabilità resta aperto finché l'access point non è stabile da un'ora, invece di chiudersi il primo minuto in cui risponde. Per ricevere un avviso quando fallisce più di 30 ping in 8 ore, imposta invece il secondo criterio su **Conteggio**, **Maggiore di** 30, **Nell'ultimo periodo di** 8 ore.
+
+### Confrontare un controllo con il precedente
+
+**Controllo precedente** confronta ogni controllo con il controllo precedente della stessa sonda, e dello stesso disco per l'occupazione di un disco. **Nell'ultimo periodo di** indica quanto può essere vecchio quel controllo, quindi impostalo più lungo dell'intervallo di monitoraggio. È offerto per gli stessi filtri di **Conteggio**.
+
+Un valore misurato, come un tempo di risposta, corrisponde quando supera il controllo precedente di più della variazione impostata in **Variazione rispetto al controllo precedente**, con **Maggiore di**, o gli resta sotto di più di quella variazione, con **Minore di**. La variazione è un **Valore nell'unità del controllo**, come 200 ms, o una **Percentuale del controllo precedente**, come il 50%, e 0 corrisponde a qualsiasi aumento o calo. **Uguale a** e **Diverso da** confrontano con il valore precedente stesso.
+
+Un filtro vero o falso, come **Online**, e un filtro sul corpo, su un'intestazione o su un'espressione corrispondono al controllo che ha iniziato a soddisfare la condizione: **Online** impostato su **Falso** corrisponde al controllo in cui il sito è caduto, e non di nuovo fino alla caduta successiva.
+
+In entrambi i casi corrisponde a un solo controllo, e al successivo il criterio smette di agire. Perché mantenga lo stato che imposta, o lasci aperto il suo incidente, dagli una condizione di ripristino propria: vedi [Quando un criterio si ripristina](#quando-un-criterio-si-ripristina).
+
+Senza un controllo precedente nella finestra, come al primo controllo del monitor, per una sonda appena aggiunta o dopo un'interruzione, decide **Se nessun dato**: **Ignore** non corrisponde, **Trigger** corrisponde e **Treat As Zero** confronta come se il controllo precedente avesse letto 0, o non avesse soddisfatto la condizione.
+
+La frase sotto le impostazioni della finestra lo rilegge: «Verifica se "Tempo di risposta (in ms)" supera di oltre 50% il controllo precedente», oppure «Verifica se "Online" è falso in questo controllo, ma non in quello precedente».
 
 ## Quando un criterio si ripristina
 

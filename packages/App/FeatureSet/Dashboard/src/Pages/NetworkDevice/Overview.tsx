@@ -52,7 +52,7 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { isRecordNameAsWritten } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -627,13 +627,11 @@ const NetworkOverview: FunctionComponent<
            * the (i) says so, and where ping-only devices went.
            */
           title={
-            <span className="inline-flex items-center gap-1.5">
-              {FLEET_BY_VENDOR_TITLE}
-              <InfoTooltip
-                label={FLEET_BY_VENDOR_TITLE}
-                text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetByVendor}
-              />
-            </span>
+            <WordsWithInfoTooltip
+              text={FLEET_BY_VENDOR_TITLE}
+              label={FLEET_BY_VENDOR_TITLE}
+              description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetByVendor}
+            />
           }
           description="What your network is made of, from SNMP-discovered vendor identity."
         >

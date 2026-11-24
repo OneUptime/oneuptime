@@ -70,7 +70,7 @@ flowchart LR
 | Fortinet FortiGate | 來自 FortiGate 本身 syslog 的 IPS 和防毒發現、被拒絕的流量、VPN 和管理員登入以及設定變更 |
 | Cisco ASA | 來自 Cisco ASA 和 Firepower Threat Defense 的被拒絕連線、威脅偵測和 IPS 發現、VPN 和管理員登入以及命令 |
 | Kubernetes 稽核日誌 | 對叢集的變更、在 Pod 中開啟的 shell、被讀取的 secret 和被拒絕的要求 |
-| Web 攻擊 | Web 伺服器存取日誌中嘗試 SQL 注入、路徑周遊或 Log4Shell 的要求 |
+| Web 攻擊 | Web 伺服器存取日誌中嘗試 SQL 注入、路徑周遊或 Log4Shell 的要求，以及要求 `/.env` 或 `/.git/config` 等敏感檔案、但被你的網站拒絕或網站上並不存在的要求 |
 
 您的日誌會保持原樣。只有對安全性重要的行才會變成事件：絕不會是 Web 伺服器回傳的每個頁面，也不會是對 API 的每次讀取。
 

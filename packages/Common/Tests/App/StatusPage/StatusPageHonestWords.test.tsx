@@ -32,6 +32,7 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { getStatusPageResourcesByIdPath } from "../../../Types/StatusPage/StatusPageResourcesLink";
 import { PluralTemplate } from "../../../Types/Translator";
 import Navigation from "../../../UI/Utils/Navigation";
 import {
@@ -525,7 +526,96 @@ describe("a status page with no resources", () => {
     expect(
       document.getElementById("overview-empty-state-owner-note"),
     ).toHaveTextContent(
-      "Add monitors or groups to this status page under Resources in the Dashboard.",
+      "Visitors see this until you add resources. Add resources in the Dashboard",
+    );
+  });
+});
+
+/*
+ * The owner's note links to the page's Resources in the Dashboard (#9180).
+ * The preview knows the page's id and no project - the public overview
+ * hands out none - so it links to the Dashboard's address for the page by
+ * its id alone (Common/Types/StatusPage/StatusPageResourcesLink), on the
+ * host it is served from, and the Dashboard opens the page in its project
+ * (OpenStatusPageResources).
+ */
+describe("the owner's note in the preview links to the page's Resources", () => {
+  function link(): HTMLAnchorElement | null {
+    return document.getElementById(
+      "overview-empty-state-resources-link",
+    ) as HTMLAnchorElement | null;
+  }
+
+  async function renderPreview(): Promise<void> {
+    window.history.replaceState({}, "", `/status-page/${STATUS_PAGE_ID}/`);
+    mockRespondToPost = (): PostResponse => {
+      return ok(noResourcesOverview());
+    };
+    await renderPage(Overview as PageComponent);
+  }
+
+  test("by the page's id alone, under the Dashboard on the preview's own host", async () => {
+    await renderPreview();
+
+    expect(link()).not.toBeNull();
+    expect(link()!.tagName).toBe("A");
+    expect(link()!.getAttribute("href")).toBe(
+      `${window.location.protocol}//${window.location.host}/dashboard${getStatusPageResourcesByIdPath(STATUS_PAGE_ID)}`,
+    );
+    expect(link()!.getAttribute("href")).toContain(
+      `/dashboard/status-pages/${STATUS_PAGE_ID}/resources`,
+    );
+    // It opens the Dashboard in place of the preview, as any link does.
+    expect(link()!.getAttribute("target")).toBeNull();
+    expect(link()).toHaveTextContent("Add resources in the Dashboard");
+  });
+
+  test("the link is inside the note, after its sentence", async () => {
+    await renderPreview();
+
+    const note: HTMLElement = document.getElementById(
+      "overview-empty-state-owner-note",
+    )!;
+
+    expect(note.contains(link())).toBe(true);
+    expect(note.textContent).toBe(
+      "Visitors see this until you add resources. Add resources in the Dashboard",
+    );
+  });
+
+  test("in the reader's language, to the same address", async () => {
+    await i18next.changeLanguage("de");
+    await renderPreview();
+
+    expect(link()).toHaveTextContent("Ressourcen im Dashboard hinzufügen");
+    expect(
+      document.getElementById("overview-empty-state-owner-note"),
+    ).toHaveTextContent(
+      "Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen.",
+    );
+    expect(link()!.getAttribute("href")).toContain(
+      `/dashboard/status-pages/${STATUS_PAGE_ID}/resources`,
+    );
+  });
+
+  test("is never shown to a visitor of the page itself", async () => {
+    mockRespondToPost = (): PostResponse => {
+      return ok(noResourcesOverview());
+    };
+    await renderPage(Overview as PageComponent);
+
+    expect(StatusPageUtil.isPreviewPage()).toBe(false);
+    expect(link()).toBeNull();
+    expect(document.body).not.toHaveTextContent(
+      "Add resources in the Dashboard",
+    );
+  });
+
+  test("names no project: the public overview hands out none", async () => {
+    await renderPreview();
+
+    expect(link()!.getAttribute("href")).not.toMatch(
+      /\/dashboard\/[0-9a-f-]{36}\/status-pages/,
     );
   });
 });
@@ -535,6 +625,7 @@ describe("every status page language words all of it", () => {
     ["overview", "noResourcesTitle"],
     ["overview", "noResourcesDescription"],
     ["overview", "noResourcesPreviewDescription"],
+    ["overview", "noResourcesPreviewLink"],
     ["incidents", "notFoundTitle"],
     ["incidents", "noneDescription"],
     ["incidents", "notFound"],

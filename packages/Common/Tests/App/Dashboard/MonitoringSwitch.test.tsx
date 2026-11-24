@@ -211,14 +211,14 @@ describe("the Monitoring card on a monitor's Settings page", () => {
     await flush();
 
     const dialog: HTMLElement = screen.getByRole("dialog");
-    expect(dialog).toHaveTextContent("Turn off monitoring?");
+    expect(dialog).toHaveTextContent("Turn monitoring off?");
     expect(dialog).toHaveTextContent(
       "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
     );
     expect(updateByIdMock).not.toHaveBeenCalled();
 
     fireEvent.click(
-      within(dialog).getByRole("button", { name: "Turn off monitoring" }),
+      within(dialog).getByRole("button", { name: "Turn monitoring off" }),
     );
     await flush();
 
@@ -533,7 +533,7 @@ describe("the card and the banner on one screen (the Settings page)", () => {
     await flush();
     fireEvent.click(
       within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Turn off monitoring",
+        name: "Turn monitoring off",
       }),
     );
     await flush();

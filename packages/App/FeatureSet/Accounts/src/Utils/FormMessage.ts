@@ -29,6 +29,8 @@ enum FormMessage {
   CaptchaFailed = "Captcha verification failed. Please try again.",
   // 400: neither the submitter, the form nor its template names a severity.
   NoSeverity = "This form cannot create an incident because it has no severity. Please let the team that shared it know.",
+  // 400: an alert form whose submitter and settings name no severity.
+  NoAlertSeverity = "This form cannot create an alert because it has no severity. Please let the team that shared it know.",
   // 503: the submit rate limiter's counter is down, so submits are refused.
   SubmissionsUnavailable = "Submissions cannot be accepted right now. Please try again in a few minutes.",
   // 429 on submit: the form took in as many files as it may this hour.

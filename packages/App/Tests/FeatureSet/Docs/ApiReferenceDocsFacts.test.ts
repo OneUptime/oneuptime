@@ -625,7 +625,10 @@ describe("OneUptime API Reference: a request and its answer", () => {
       "if (countCap !== undefined && count.toNumber() > countCap) {",
     );
     expect(getList).toContain("new PositiveNumber(countCap)");
-    expect(getList).toContain("{ isCountCapped: true }");
+    // Beside the retired columns a request still named (#10469).
+    expect(getList).toContain(
+      "{ isCountCapped: true, retiredColumns: retiredColumns }",
+    );
 
     const capped: JSONObject = new ListData({
       data: [],

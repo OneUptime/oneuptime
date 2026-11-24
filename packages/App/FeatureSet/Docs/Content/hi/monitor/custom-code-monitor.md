@@ -167,7 +167,7 @@ return {
 
 कुछ attribute नाम OneUptime के अपने हैं, और स्क्रिप्ट उन्हें नहीं लिख सकती। अगर आपकी स्क्रिप्ट इनमें से कोई सेट करती है, तो वह attribute हटा दिया जाता है — मेट्रिक फिर भी दर्ज होता है — और OneUptime के सर्वर लॉग में उस key का नाम बताने वाली एक चेतावनी लिखी जाती है। ये हैं:
 
-- मॉनिटर की पहचान: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`।
+- मॉनिटर की पहचान: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`।
 - `oneuptime.` या `resource.` namespaces में मौजूद सब कुछ — इनमें वे पहचानकर्ता होते हैं जो OneUptime डेटा ग्रहण करते समय लगाता है।
 - संसाधन पहचान attributes: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` और `docker.swarm.cluster.name`।
 

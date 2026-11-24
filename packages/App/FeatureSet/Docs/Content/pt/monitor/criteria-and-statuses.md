@@ -87,6 +87,7 @@ Com **Avaliar este critério durante um período de tempo** marcado, **Avaliar**
 | **Contagem** | O número de verificações que atenderam à condição é comparado conforme definido em **Verificações correspondentes**: **Maior que** 30, por exemplo. |
 | **Porcentagem** | A proporção delas entre as verificações da janela é comparada conforme definido em **Proporção de verificações correspondentes**: **Maior que** 10%, por exemplo. |
 | **Mudanças de status** | O número de vezes que as verificações passaram de atender à condição para não atender, ou o contrário, é comparado conforme definido em **Vezes que mudou**. Um dispositivo que cai e volta muda duas vezes. |
+| **Verificação anterior** | Esta verificação, comparada com a verificação anterior da mesma sonda: um tempo de resposta mais de 50% acima dela, por exemplo, ou um site que está fora do ar agora e antes não estava. Veja [Comparar uma verificação com a anterior](#comparar-uma-verificação-com-a-anterior). |
 
 Uma frase abaixo das configurações da janela repete o filtro como ele está definido: “Verificar se "Online" é falso em mais de 30 verificações do último período de 8 horas”.
 
@@ -94,7 +95,7 @@ Uma frase abaixo das configurações da janela repete o filtro como ele está de
 - **Uma janela que ainda não está cheia.** Até que as verificações cheguem ao início da janela, um monitor que acabou de começar tem menos verificações do que terá. **Contagem** e **Mudanças de status** correspondem cedo quando já passaram de **Maior que** ou **Maior ou igual a**, já que mais verificações só aumentam esses números; todo o resto espera uma janela cheia.
 - **Uma janela sem verificações.** Enquanto a janela não tiver verificações, ou ainda não estiver cheia, **Se não houver dados** decide: **Ignore** espera, **Gatilho** corresponde, e **Treat As Zero** a julga como se as verificações que faltam não tivessem atendido à condição.
 
-As médias e os percentis leem os valores das verificações de todas as sondas, como **Média** sempre fez. **Contagem**, **Porcentagem** e **Mudanças de status** são oferecidos para todo filtro ao qual se oferece uma janela: em monitores Website, API, Ping, IP e Port, para CPU, memória, discos e carga de um servidor, para **Dispositivo SNMP online** e o tempo de resposta de um dispositivo de rede, e em monitores DNS, NTP, de banco de dados, de página de status externa e de status de sondas. **Online** de um monitor de servidor não é contado: é julgado pelo tempo desde o último relatório do servidor. Monitores de métricas e outros de telemetria julgam em vez disso o intervalo de tempo da sua consulta, com a agregação da própria consulta, que também lê percentis.
+As médias e os percentis leem os valores das verificações de todas as sondas, como **Média** sempre fez. **Contagem**, **Porcentagem** e **Mudanças de status** são oferecidos para todo filtro ao qual se oferece uma janela: em monitores Website, API, Ping, IP e Port, para CPU, memória, discos e carga de um servidor, para **Dispositivo SNMP online** e o tempo de resposta de um dispositivo de rede, para **Dias até a expiração** de um monitor de certificado SSL, e em monitores DNS, NTP, de banco de dados, de página de status externa e de status de sondas. **Online** de um monitor de servidor não é contado: é julgado pelo tempo desde o último relatório do servidor. Monitores de métricas e outros de telemetria julgam em vez disso o intervalo de tempo da sua consulta, com a agregação da própria consulta, que também lê percentis.
 
 ### Exemplo: um ponto de acesso fora do ar e outro instável
 
@@ -107,6 +108,20 @@ Um monitor Ping verifica um ponto de acesso de escritório a cada minuto. Antes 
 | O ponto de acesso está online | **Online** é **Verdadeiro** | Não durante um período | **Operacional** |
 
 No segundo, ative **Recuperar apenas quando uma condição própria for atendida** com **Mudanças de status**, **Menor ou igual a** 1, **No último período de** 1 hora: o incidente de instabilidade fica aberto até o ponto de acesso ficar estável por uma hora, em vez de fechar no primeiro minuto em que ele responde. Para alertar quando ele falhar mais de 30 pings em 8 horas, defina o segundo critério como **Contagem**, **Maior que** 30, **No último período de** 8 horas.
+
+### Comparar uma verificação com a anterior
+
+**Verificação anterior** compara cada verificação com a verificação anterior da mesma sonda, e do mesmo disco para o uso de um disco. **No último período de** diz há quanto tempo essa verificação pode ter sido feita, então defina um período maior que o intervalo de monitoramento. Ele é oferecido para os mesmos filtros que **Contagem**.
+
+Um valor medido, como um tempo de resposta, corresponde quando fica acima da verificação anterior por mais que a variação definida em **Variação em relação à verificação anterior**, com **Maior que**, ou abaixo dela por mais que essa variação, com **Menor que**. A variação é um **Valor na unidade da verificação**, como 200 ms, ou um **Percentual da verificação anterior**, como 50%, e 0 corresponde a qualquer alta ou queda. **Igual a** e **Diferente de** comparam com o próprio valor anterior.
+
+Um filtro verdadeiro ou falso, como **Online**, e um filtro sobre o corpo, um cabeçalho ou uma expressão correspondem na verificação que começou a atender à condição: **Online** definido como **Falso** corresponde na verificação em que o site caiu, e só de novo na próxima queda.
+
+Nos dois casos ele corresponde em uma única verificação, e na seguinte o critério deixa de agir. Para que mantenha o status que define, ou deixe seu incidente aberto, dê a ele uma condição de recuperação própria: veja [Quando um critério se recupera](#quando-um-critério-se-recupera).
+
+Sem verificação anterior na janela, como na primeira verificação do monitor, em uma sonda recém-adicionada ou após uma lacuna, **Se não houver dados** decide: **Ignore** não corresponde, **Gatilho** corresponde e **Treat As Zero** compara como se a verificação anterior tivesse lido 0, ou não tivesse atendido à condição.
+
+A frase abaixo das configurações da janela repete isso: “Verificar se "Tempo de resposta (em ms)" está mais de 50% acima da verificação anterior”, ou “Verificar se "Online" é falso nesta verificação, mas não na anterior”.
 
 ## Quando um critério se recupera
 

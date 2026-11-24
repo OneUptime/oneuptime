@@ -20,6 +20,7 @@ import {
 import { getLoadErrorStateProps } from "../Table/TableEmptyStateBuilders";
 import useTranslateValue from "../../Utils/Translation";
 import Input from "../Input/Input";
+import { withSearchIn } from "../EntityDropdown/EntityDropdownQuery";
 import StaticModelList from "../ModelList/StaticModelList";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -27,7 +28,6 @@ import URL from "../../../Types/API/URL";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
-import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
@@ -36,12 +36,30 @@ import Select from "../../../Types/BaseDatabase/Select";
 export const NO_ITEMS_FOUND: string = "No items found.";
 export const NO_ITEMS_MATCH_YOUR_SEARCH: string = "No items match your search";
 
+// A list searched on the server (searchesServer): how many rows it reads at a time.
+export const MODEL_LIST_SERVER_SEARCH_LIMIT: number = 50;
+
+// How long typing rests before the server is asked.
+export const MODEL_LIST_SERVER_SEARCH_DELAY_MS: number = 250;
+
+// Under a list searched on the server, while it holds more than it shows.
+export const MODEL_LIST_SEARCH_TO_FIND_MORE: string = "Search to find more.";
+
 export interface ComponentProps<TBaseModel extends BaseModel> {
   id: string;
   query?: Query<TBaseModel>;
   modelType: { new (): TBaseModel };
   titleField: string;
   isSearchEnabled?: boolean | undefined;
+  /*
+   * The list is searched on the server as the person types - by titleField
+   * and descriptionField - rather than read whole and filtered here (#10764):
+   * for a list too long to read, a project's dashboards. It reads
+   * MODEL_LIST_SERVER_SEARCH_LIMIT rows at a time, by titleField unless
+   * sortBy says otherwise, and says to search to find more while there are
+   * more. Off unless set: the list is read whole, its first 10,000.
+   */
+  searchesServer?: boolean | undefined;
   descriptionField?: string | undefined;
   selectMultiple?: boolean | undefined;
   overrideFetchApiUrl?: URL | undefined;
@@ -116,6 +134,16 @@ const ModelList: <TBaseModel extends BaseModel>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [searchedList, setSearchedList] = useState<Array<TBaseModel>>([]);
   const [searchText, setSearchText] = useState<string>("");
+  /*
+   * A list searched on the server (searchesServer): how many rows match
+   * what is typed, and whether a search is on its way - the search box stays
+   * while it is, so the person keeps typing.
+   */
+  const [matchingCount, setMatchingCount] = useState<number>(0);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const searchTimerRef: React.MutableRefObject<ReturnType<
+    typeof setTimeout
+  > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     props.onSelectChange?.(selectedList);
@@ -131,6 +159,10 @@ const ModelList: <TBaseModel extends BaseModel>(
   useEffect(() => {
     return () => {
       fetchGenerationRef.current++;
+
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
     };
   }, []);
 
@@ -147,9 +179,17 @@ const ModelList: <TBaseModel extends BaseModel>(
     }
   }, [props.isSearchEnabled, modelList]);
 
-  const fetchItems: PromiseVoidFunction = async (): Promise<void> => {
+  /*
+   * `search`: what a list searched on the server (searchesServer) reads the
+   * rows for - drawn as a search on its way, not as the list loading, so
+   * the search box stays.
+   */
+  const fetchItems: (search?: string | undefined) => Promise<void> = async (
+    search?: string | undefined,
+  ): Promise<void> => {
     fetchGenerationRef.current++;
     const generation: number = fetchGenerationRef.current;
+    const isSearch: boolean = search !== undefined;
 
     type IsStaleFunction = () => boolean;
 
@@ -158,7 +198,12 @@ const ModelList: <TBaseModel extends BaseModel>(
     };
 
     setError("");
-    setIsLoading(true);
+
+    if (isSearch) {
+      setIsSearching(true);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
       const select: Select<TBaseModel> = {
@@ -202,6 +247,29 @@ const ModelList: <TBaseModel extends BaseModel>(
           skip: 0,
           limit: LIMIT_PER_PROJECT,
         };
+      } else if (props.searchesServer) {
+        // A page of the rows whose title or description holds the search.
+        listResult = await ModelAPI.getList<TBaseModel>({
+          modelType: props.modelType,
+          query: withSearchIn(
+            { ...props.query },
+            [props.titleField, props.descriptionField].filter(
+              (field: string | undefined): field is string => {
+                return Boolean(field);
+              },
+            ),
+            search || searchText,
+          ) as Query<TBaseModel>,
+          limit: MODEL_LIST_SERVER_SEARCH_LIMIT,
+          skip: 0,
+          select: select,
+          sort: props.sortBy
+            ? {
+                [props.sortBy as any]: props.sortOrder,
+              }
+            : ({ [props.titleField]: SortOrder.Ascending } as any),
+          requestOptions: props.fetchRequestOptions,
+        });
       } else {
         listResult = await ModelAPI.getList<TBaseModel>({
           modelType: props.modelType,
@@ -227,6 +295,7 @@ const ModelList: <TBaseModel extends BaseModel>(
 
       props.onListLoaded?.(listResult.data);
       setModalList(listResult.data);
+      setMatchingCount(listResult.count);
     } catch (err) {
       if (isStale()) {
         return;
@@ -236,10 +305,46 @@ const ModelList: <TBaseModel extends BaseModel>(
     }
 
     setIsLoading(false);
+    setIsSearching(false);
   };
 
+  /*
+   * A list searched on the server reads the rows for what is typed, once
+   * typing rests (searchesServer). Cleared, at once.
+   */
+  const isFirstSearchRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(true);
+
   useEffect(() => {
-    if (!searchText) {
+    if (!props.searchesServer) {
+      return;
+    }
+
+    // The list's own first read reads it for nothing typed.
+    if (isFirstSearchRef.current) {
+      isFirstSearchRef.current = false;
+      return;
+    }
+
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    const search: string = searchText.trim();
+
+    searchTimerRef.current = setTimeout(
+      () => {
+        fetchItems(search).catch((err: Error) => {
+          setError(API.getFriendlyMessage(err));
+        });
+      },
+      search ? MODEL_LIST_SERVER_SEARCH_DELAY_MS : 0,
+    );
+  }, [searchText]);
+
+  useEffect(() => {
+    // Searched on the server: the rows read are the search's already.
+    if (!searchText || props.searchesServer) {
       setSearchedList([...modelList]);
     } else {
       // search
@@ -328,6 +433,7 @@ const ModelList: <TBaseModel extends BaseModel>(
             <Input
               isSearchOrFilter={true}
               placeholder="Search..."
+              value={props.searchesServer ? searchText : undefined}
               onChange={(value: string) => {
                 setSearchText(value);
               }}
@@ -357,9 +463,14 @@ const ModelList: <TBaseModel extends BaseModel>(
         ) : (
           <></>
         )}
-        {isLoading ? <CardListSkeleton count={3} lines={1} /> : <></>}
+        {isLoading || isSearching ? (
+          <CardListSkeleton count={3} lines={1} />
+        ) : (
+          <></>
+        )}
 
         {!isLoading &&
+        !isSearching &&
         !error &&
         searchedList.length === 0 &&
         (Boolean(searchText) || !props.hideEmptyState) ? (
@@ -368,7 +479,7 @@ const ModelList: <TBaseModel extends BaseModel>(
           <></>
         )}
 
-        {!error && !isLoading && (
+        {!error && !isLoading && !isSearching && (
           <StaticModelList<TBaseModel>
             enableDragAndDrop={props.enableDragAndDrop}
             dragDropIdField={props.dragDropIdField}
@@ -460,6 +571,24 @@ const ModelList: <TBaseModel extends BaseModel>(
               }
             }}
           />
+        )}
+        {/*
+         * Searched on the server, with more rows than it shows: the rest are
+         * found by searching.
+         */}
+        {props.searchesServer &&
+        !error &&
+        !isLoading &&
+        !isSearching &&
+        matchingCount > modelList.length ? (
+          <p
+            className="px-2 pt-2 text-xs text-gray-500"
+            data-testid={`${props.id}-search-to-find-more`}
+          >
+            {translate(MODEL_LIST_SEARCH_TO_FIND_MORE)}
+          </p>
+        ) : (
+          <></>
         )}
         {props.footer}
       </div>

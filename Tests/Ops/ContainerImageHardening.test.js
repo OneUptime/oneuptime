@@ -1368,18 +1368,22 @@ describe("App", () => {
       "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
     const CALENDAR =
       "/usr/src/Common/Server/Utils/ScheduledMaintenance/ExternalCalendar";
+    // Data Security's names-and-addresses model, whose worker thread alone requires ONNX Runtime.
+    const MODEL = "/usr/src/Common/Server/Utils/DataSecurity/Model";
     const pruneLine = (extraEntries) => {
       return [
         "RUN node /tmp/PruneUnreachablePackages.js",
         "--entry /usr/src/app/Index.ts",
         "--entry /usr/src/app/Migrate.ts",
         `--entry ${CALENDAR}/ExternalCalendarExpansionWorker.cjs`,
+        `--entry ${MODEL}/NameAddressModelWorker.cjs`,
         "--entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js",
         ...extraEntries.map((entry) => {
           return `--entry ${entry}`;
         }),
         "--entry-loader /usr/src/app/Utils/EnterpriseLoader.ts",
         `--entry-loader ${CALENDAR}/ExternalCalendarExpansion.ts`,
+        `--entry-loader ${MODEL}/NameAddressModelThread.ts`,
         "--package /usr/src/Common",
         "&& npm prune --omit=dev --offline --no-audit --no-fund",
         "&& node -e \"for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }\"",
@@ -1461,7 +1465,7 @@ describe("App", () => {
         return match[1];
       });
 
-      expect(files).toHaveLength(7);
+      expect(files).toHaveLength(9);
       for (const file of files) {
         const [prefix, repository] = inImage.find(([candidate]) => {
           return file.startsWith(candidate);

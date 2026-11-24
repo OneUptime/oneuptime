@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 可以用 `?format=`、`x-oneuptime-security-event-format` 标头，或顶层的 `"format"` 字段指定格式。不指定时，每个事件的格式会单独判断，所以一个 Webhook 可以混合发送检测和原始事件。
 
 - 正文可以是一个事件、一个事件数组，或 `{ "events": [...] }`。
+- 一个批次可以用 gzip 压缩，并带上 `Content-Encoding: gzip` 发送：它会被当作未压缩的同一批次读取。Fluent Bit 的 `http` 输出用 `compress gzip` 压缩，Vector 的 `http` 接收器用 `compression = "gzip"`，Logstash 的 `http` 输出用 `http_compression => true`。只有 JSON 会以压缩形式读取：其他类型的压缩正文会以 `400` 被拒绝。
 - `x-oneuptime-service-name` 标头指定事件所属的遥测服务。没有它时，事件属于以第一个事件的产品或供应商命名的服务，或属于 `Security Events`。
 - 不会因为无法映射而丢弃任何内容：来源的每个字段都会进入事件的属性。
 
@@ -174,6 +175,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日志中查找安全事件
 
-**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Palo Alto Networks、FortiGate 或 Cisco ASA 防火墙的记录、Kubernetes 审计记录和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Palo Alto Networks、FortiGate 或 Cisco ASA 防火墙的记录、Kubernetes 审计记录、Web 攻击和被拒绝的敏感文件请求都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
 
 每一类都以普通日志的形式到达 OneUptime：
 
@@ -297,6 +299,8 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 - **概览** 会指出隐藏安全事件所读取地址的规则，同样提供 **打开清理规则**。
 
 执行哈希的规则会为安全事件保存地址，因此事件会指出该地址，除非其令牌已超过 30 天，或是在令牌有密钥之前生成的：请参阅[清理敏感数据](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感数据)。要找到这些事件，请搜索 `@oneuptime.request.client_address_hidden:scrub-rule`。规则在地址处留下的内容（例如 `[REDACTED]`）保存在 `oneuptime.request.client_address_scrubbed` 中。对于目标地址，请搜索 `@oneuptime.target_address_hidden:scrub-rule`。
+
+按地址计数的检测规则应按 `principalIp` 或 `targetIp` 计数，就像规则库中的规则那样：它们会指出执行哈希的规则所生成令牌背后的地址。某种格式自身的地址字段，例如 `openstack.audit.initiator_address` 或 `asa.src_ip`，只保存日志写下的地址，因此在清理规则隐藏了地址的地方，它会保持为空。
 
 清除或遮盖用户的规则也会以同样的方式隐藏用户：凡是事件本应指出用户的地方，**源用户** 或 **目标用户** 都会说明是某条清理规则隐藏了该用户。在安全事件读取用户的位置，执行哈希的规则会为安全事件保存该用户：请求的 `enduser.id` 或 `user.id` 、AI 调用的用户，以及日志行指出的用户，例如云审计日志的主体。因此，事件会指出令牌背后的用户，关于该用户的案例会指出该账号，剧本也可以像对待其他任何用户一样对该账号采取行动。规则留下的内容保存在 `oneuptime.principal_user_hashed_as` 或 `oneuptime.target_user_hashed_as` 中，方便你在只包含令牌的日志和追踪中找到该用户。没有保存用户的令牌，例如在令牌有密钥之前生成的令牌，仍是事件的用户：规则会把它算作一个账号，任何剧本都不会对它采取行动。
 
