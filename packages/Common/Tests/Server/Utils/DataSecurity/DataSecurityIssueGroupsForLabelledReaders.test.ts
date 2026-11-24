@@ -246,7 +246,7 @@ function paymentsEditor(): DatabaseCommonInteractionProps {
 }
 
 function nobody(): DatabaseCommonInteractionProps {
-  return personWith(world.projectId, [Permission.ReadMonitor]);
+  return personWith(world.projectId, [Permission.ReadMonitorCustomField]);
 }
 
 async function group(): Promise<void> {
