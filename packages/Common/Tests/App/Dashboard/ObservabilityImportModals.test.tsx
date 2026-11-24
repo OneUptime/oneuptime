@@ -36,16 +36,23 @@ jest.mock("react-i18next", () => {
 import ImportAlertsModal from "../../../../App/FeatureSet/Dashboard/src/Components/ObservabilityImport/ImportAlertsModal";
 import ImportDashboardModal from "../../../../App/FeatureSet/Dashboard/src/Components/ObservabilityImport/ImportDashboardModal";
 import MetricUtil from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/Metrics";
+import Metric, {
+  AggregationTemporality,
+} from "../../../Models/AnalyticsModels/Metric";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
+import MetricType from "../../../Models/DatabaseModels/MetricType";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { MetricMonitorQueryLanguage } from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { ImportItemStatus } from "../../../Types/ObservabilityImport/ObservabilityImport";
+import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -114,6 +121,12 @@ beforeEach(() => {
       const taken: Monitor = new Monitor();
       taken.name = "InstanceDown";
       data = [taken];
+    } else if (args.modelType === MetricType) {
+      // The project has checkout.orders, a gauge as the Agent sends a rate.
+      const orders: MetricType = new MetricType();
+      orders.name = "checkout.orders";
+      orders.aggregationTemporality = AggregationTemporality.Cumulative;
+      data = [orders];
     }
 
     return { data, count: data.length, skip: 0, limit: 100 };
@@ -370,5 +383,171 @@ describe("Import Alerts", () => {
         return (item.model as Monitor).name || "";
       }),
     ).toEqual(["High error ratio"]);
+  });
+
+  /*
+   * Datadog's anomaly, forecast and log monitors (issues #10324, #10325):
+   * each becomes the monitor of what it reads, its condition said as the
+   * monitor form says it.
+   */
+  test("Datadog's anomaly, forecast and log monitors become a Metrics monitor of one metric, a PromQL forecast and a Logs monitor", async () => {
+    const monitors: Array<unknown> = [
+      "datadog-monitor-nginx-5xx.json",
+      "datadog-monitor-kubernetes-autoscaler-forecast.json",
+      "datadog-monitor-cisco-aci-critical-fault.json",
+    ].map((name: string): unknown => {
+      return JSON.parse(readFixture(name));
+    });
+
+    await renderModal(() => {});
+    paste(JSON.stringify(monitors));
+    await preview();
+
+    const anomaly: HTMLElement = rowTitled(
+      "[NGINX] 5xx Errors higher than usual",
+    );
+
+    expect(
+      within(anomaly).getByTestId(
+        `import-status-${ImportItemStatus.Approximate}`,
+      ),
+    ).toBeInTheDocument();
+    expect(within(anomaly).getByTestId("import-query")).toHaveTextContent(
+      "avg by (upstream) (nginx.upstream.peers.responses.5xx)",
+    );
+    expect(
+      within(anomaly).getByTestId("import-rule-sentence"),
+    ).toHaveTextContent("is unusually high for this hour of the week");
+    expect(
+      within(anomaly).getByTestId("import-rule-sensitivity"),
+    ).toHaveTextContent("Sensitivity High");
+
+    const forecast: HTMLElement = rowTitled(
+      "Kubernetes Cluster Autoscaler too many unused nodes forecast",
+    );
+
+    expect(
+      within(forecast).getByTestId("import-rule-sentence"),
+    ).toHaveTextContent("forecast to rise above");
+
+    // Its name is longer than a monitor's: the row shows its start.
+    const logs: HTMLElement | undefined = screen
+      .getAllByTestId("import-item")
+      .find((candidate: HTMLElement): boolean => {
+        return (candidate.textContent || "").includes(
+          "[Cisco ACI] critical fault received",
+        );
+      });
+
+    if (!logs) {
+      throw new Error("no row of the Cisco ACI monitor");
+    }
+
+    expect(within(logs).getByTestId("import-query")).toHaveTextContent(
+      "@datadog.source:cisco-aci @cisco_aci.severity:critical",
+    );
+    expect(within(logs).getByTestId("import-rule-sentence")).toHaveTextContent(
+      "Alerts when any matching log arrives in",
+    );
+
+    await submit();
+
+    const byName: Map<string, Monitor> = new Map<string, Monitor>(
+      created.map((item: Created): [string, Monitor] => {
+        const monitor: Monitor = item.model as Monitor;
+        return [monitor.name || "", monitor];
+      }),
+    );
+    const stepOf: (name: string) => MonitorStep | undefined = (
+      name: string,
+    ): MonitorStep | undefined => {
+      return byName.get(name)?.monitorSteps?.data?.monitorStepsInstanceArray[0];
+    };
+
+    expect(created).toHaveLength(3);
+    expect(
+      byName.get("[NGINX] 5xx Errors higher than usual")?.monitorType,
+    ).toBe(MonitorType.Metrics);
+    expect(
+      stepOf("[NGINX] 5xx Errors higher than usual")?.data?.metricMonitor
+        ?.queryLanguage,
+    ).toBe(MetricMonitorQueryLanguage.Builder);
+    expect(
+      stepOf("Kubernetes Cluster Autoscaler too many unused nodes forecast")
+        ?.data?.metricMonitor?.queryLanguage,
+    ).toBe(MetricMonitorQueryLanguage.PromQL);
+
+    const logMonitor: Monitor | undefined = Array.from(byName.values()).find(
+      (monitor: Monitor): boolean => {
+        return monitor.monitorType === MonitorType.Logs;
+      },
+    );
+
+    expect(logMonitor).toBeDefined();
+    expect(
+      logMonitor?.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data
+        ?.logMonitor?.lastXSecondsOfLogs,
+    ).toBe(300);
+  });
+});
+
+describe("a DogStatsD count in a Datadog dashboard", () => {
+  test("the preview asks whether the gauge is a rate and its seconds, and counts it per interval, exactly", async () => {
+    const asked: Array<JSONObject> = [];
+    const point: Metric = new Metric();
+
+    point.time = new Date("2026-11-23T10:00:10.000Z");
+    point.startTime = new Date("2026-11-23T10:00:00.000Z");
+
+    jest.spyOn(AnalyticsModelAPI, "getList").mockImplementation((async (args: {
+      query: JSONObject;
+    }) => {
+      asked.push(args.query);
+      return { data: [point], count: 1, skip: 0, limit: 1 };
+    }) as never);
+
+    await act(async () => {
+      render(
+        <MemoryRouter>
+          <ImportDashboardModal onClose={() => {}} onCreated={() => {}} />
+        </MemoryRouter>,
+      );
+    });
+
+    paste(
+      JSON.stringify({
+        title: "Checkout",
+        layout_type: "ordered",
+        widgets: [
+          {
+            definition: {
+              type: "timeseries",
+              title: "Orders",
+              requests: [{ q: "sum:checkout.orders{*}.as_count()" }],
+            },
+          },
+        ],
+      }),
+    );
+    await preview();
+
+    // Asked once, for the gauge read with .as_count(), marked as a rate.
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!["name"]).toBe("checkout.orders");
+    expect(asked[0]!["attributes"]).toEqual({ "datadog.metric.type": "rate" });
+
+    const orders: HTMLElement = rowTitled("Orders");
+
+    expect(
+      within(orders).getByTestId(`import-status-${ImportItemStatus.Exact}`),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(within(orders).getByTestId("import-item-queries-toggle"));
+    });
+
+    expect(within(orders).getByTestId("import-query")).toHaveTextContent(
+      "sum (sum_over_time(checkout_orders[$__interval]) * 10)",
+    );
   });
 });

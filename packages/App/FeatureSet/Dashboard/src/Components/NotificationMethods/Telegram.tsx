@@ -55,6 +55,13 @@ const Telegram: () => JSX.Element = (): ReactElement => {
   const [verificationInfo, setVerificationInfo] =
     useState<VerificationInfo | null>(null);
   const [verificationError, setVerificationError] = useState<string>("");
+  /*
+   * The deep link whose QR code could not be drawn (#6653): the code's
+   * place then says so, and "Scan on phone" under it would say the
+   * opposite. Kept by link, so a new one - after Rotate Code - is drawn and
+   * captioned again.
+   */
+  const [failedQrLink, setFailedQrLink] = useState<string | null>(null);
   const [isLoadingVerification, setIsLoadingVerification] =
     useState<boolean>(false);
   const [isPolling, setIsPolling] = useState<boolean>(false);
@@ -83,6 +90,8 @@ const Telegram: () => JSX.Element = (): ReactElement => {
     if (!showVerificationModal) {
       setVerificationError("");
       setIsPolling(false);
+      // Opened again, the code is drawn again, and captioned until it fails.
+      setFailedQrLink(null);
     }
   }, [showVerificationModal]);
 
@@ -348,10 +357,22 @@ const Telegram: () => JSX.Element = (): ReactElement => {
                   )}
                 </p>
                 <div className="flex flex-col items-center space-y-2">
-                  <QRCodeElement text={verificationInfo.deepLinkUrl} />
-                  <p className="text-xs text-gray-500">
-                    {translator.translateText("Scan on phone to open Telegram")}
-                  </p>
+                  <QRCodeElement
+                    text={verificationInfo.deepLinkUrl}
+                    onError={() => {
+                      setFailedQrLink(verificationInfo.deepLinkUrl);
+                    }}
+                  />
+                  {failedQrLink !== verificationInfo.deepLinkUrl ? (
+                    <p
+                      className="text-xs text-gray-500"
+                      data-testid="telegram-qr-caption"
+                    >
+                      {translator.translateText(
+                        "Scan on phone to open Telegram",
+                      )}
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex flex-col space-y-2">
                   <a

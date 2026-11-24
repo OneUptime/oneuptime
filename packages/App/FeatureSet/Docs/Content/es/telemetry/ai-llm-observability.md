@@ -317,6 +317,8 @@ Las métricas de GenAI como `gen_ai.client.token.usage` y `gen_ai.client.operati
 
 Las llamadas de IA se guardan como spans de traza, así que las **Reglas de depuración** y los **Filtros de descarte** de las trazas se aplican a ellas: enmascara un atributo, o descarta un span, antes de que se guarde. Encuentras ambos en **Trazas → Ajustes**. La columna del correo del empleado se depura junto con el atributo del que se leyó, así que una regla que enmascara correos también la cubre.
 
+Una persona oculta por una regla de depuración nunca se muestra como tal. **Conversaciones** y **Llamadas** muestran el id de una llamada cuando una regla ocultó su correo pero dejó el id intacto, y **Oculta por una regla de depuración** cuando una regla ocultó todos los nombres de la llamada, tanto si los ocultó como si los enmascaró o los convirtió en hash. **Llamadas** muestra de la misma forma un equipo oculto por una regla.
+
 Los prompts y las respuestas enviados como eventos de log se guardan como logs, así que se les aplican las **Reglas de depuración** y los **Filtros de descarte** de los logs, en **Registros → Ajustes**: una regla que enmascara correos en las trazas no los enmascara en los eventos de log. Una conversación solo los muestra a quien también puede leer los logs de esa aplicación, y quienes pueden leerlos también los encuentran en la página **Registros**.
 
 En ambos casos, una regla lee cada texto dentro de una lista o de un valor estructurado, como los mensajes que una instrumentación envía como lista en lugar de como texto JSON, y conserva la forma del valor: una dirección de correo en un prompt se enmascara esté donde esté. Consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles).

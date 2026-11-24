@@ -85,6 +85,15 @@ Verweist ein Monitor auf ein Geheimnis, das er nicht verwenden darf, bleibt der 
 
 Wenn die Prüfung eines Monitors vom Typ API, Website oder Externe Statusseite fehlschlägt, nennt ihr Fehler die URL nur mit Schema, Host und Port, etwa `https://api.example.com`, sodass ein Geheimnis in der URL nie angezeigt wird.
 
+Eine Prüfung kann den Wert eines Geheimnisses auch zurückgeben: Ein Browser nennt die URL einer Seite, die er nicht laden konnte, ein Skript protokolliert, was es enthält, und ein Server kann die Abfrage, die Header oder den Text zurückgeben, die er erhalten hat. OneUptime verbirgt den Wert überall, wo er in dem steht, was die Prüfung meldet: im Fehler, in den Protokollmeldungen und im Ergebnis eines Skripts, im Text und in den Headern einer Antwort sowie in der Fehlerursache der Prüfung und jedes Versuchs. So steht der Wert weder in den Protokollen des Monitors noch in seiner Zusammenfassung, im Ergebnis eines Monitortests oder in der Grundursache eines Vorfalls oder einer Warnung. OneUptime schreibt an seiner Stelle `[REDACTED]` und behält den Rest, sodass eine Seite unter `https://app.example.com/login?token={{monitorSecrets.Token}}`, die sich nicht laden lässt, als `https://app.example.com/login?token=[REDACTED]` gemeldet wird. Der Wert wird in jeder Groß- und Kleinschreibung gefunden und so, wie die Prüfung ihn auch geschrieben hat: prozentkodiert, in JSON oder HTML maskiert oder in Base64.
+
+OneUptime verbirgt nicht:
+
+- Einen Wert mit weniger als 4 Zeichen, Leerzeichen am Anfang und am Ende nicht mitgezählt. Ein so kurzer Wert ist Teil gewöhnlichen Textes, etwa von Zahlen und Wörtern.
+- Was ein Screenshot zeigt. Ein Screenshot ist ein Bild, ein Geheimnis, das die Seite auf dem Bildschirm zeigt, ist also darin zu sehen.
+
+Kriterien lesen eine Prüfung so, wie sie gemeldet wird. Schreiben Sie ein Kriterium gegen den Text rund um ein Geheimnis, etwa `ERR_NAME_NOT_RESOLVED` oder `token=`, statt gegen den Wert des Geheimnisses: Ein Kriterium sieht jeder, der den Monitor lesen kann.
+
 Wenn Sie einen Monitor testen, bevor Sie ihn speichern, werden nur Geheimnisse ausgefüllt, die für **Alle Monitore** verfügbar sind, weil ein neuer Monitor in keiner Liste steht und noch keine Beschriftungen hat. Nachdem Sie den Monitor gespeichert haben, verwenden Tests jedes Geheimnis, das der Monitor verwenden darf.
 
 ## Mit einem Einmalcode anmelden
@@ -144,6 +153,10 @@ Bevor ein Monitor gespeichert ist, werden nur Geheimnisse ausgefüllt, die für 
 
 :::details Ein Feld ignoriert das Geheimnis
 Nur die Felder in der Tabelle oben nehmen Geheimnisse an. In jedem anderen Feld wird `{{monitorSecrets.NAME}}` gesendet, wie es geschrieben ist.
+:::
+
+:::details Eine Prüfung zeigt `[REDACTED]`, wo ein Wert stand
+Der Wert eines Geheimnisses stand in dem, was die Prüfung gemeldet hat, und OneUptime hat ihn verborgen. Der Text drumherum, etwa `token=[REDACTED]`, zeigt, wo das Skript oder die Anfrage das Geheimnis verwendet hat.
 :::
 
 :::details Die Website lehnt den Einmalcode ab

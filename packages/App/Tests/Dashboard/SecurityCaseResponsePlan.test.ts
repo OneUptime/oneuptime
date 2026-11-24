@@ -787,6 +787,11 @@ describe("containing what the case is about", () => {
         type: SecurityEntityType.User,
         value: "workflow:0192f1a0-0000-7000-8000-00000000f001",
       },
+      // A project API key, as its events name it since #10630.
+      {
+        type: SecurityEntityType.User,
+        value: "api-key:0192f1a0-0000-7000-8000-00000000f002",
+      },
       { type: SecurityEntityType.User, value: "oneuptime" },
       { type: SecurityEntityType.IpAddress, value: "***.***.***.***" },
       { type: SecurityEntityType.User, value: "ana" },
@@ -813,6 +818,29 @@ describe("containing what the case is about", () => {
         );
       }),
     ).toEqual(["contain:user:ana"]);
+  });
+
+  /*
+   * #10632: the scans name the user behind a Hash rule's token from
+   * Security Events' user vault before the event is stored, so a case
+   * about a hashed account holds the account, contained as any other. A
+   * token the vault did not know stays on the case as what the rule left,
+   * and no step offers to suspend it.
+   */
+  test("a hashed user the scans named is contained as any account; a token they could not name never is", () => {
+    const entities: Array<SecurityEntity> = [
+      { type: SecurityEntityType.User, value: "mallory@acme.example" },
+      { type: SecurityEntityType.User, value: "[HASHED:0e1f2a3b4c5d6e7f]" },
+    ];
+    const built: ReturnType<Plan["buildResponsePlan"]> = plan.buildResponsePlan(
+      input({ entities, matches: null }),
+    );
+
+    expect(
+      keys(built).filter((key: string): boolean => {
+        return key.startsWith("contain:user:");
+      }),
+    ).toEqual(["contain:user:mallory@acme.example"]);
   });
 });
 

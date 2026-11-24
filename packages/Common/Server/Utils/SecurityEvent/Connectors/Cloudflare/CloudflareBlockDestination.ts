@@ -394,11 +394,13 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
   }): SecurityBlockSupport {
     if (
       entry.indicatorType !== SecurityBlockIndicatorType.IpAddress &&
-      entry.indicatorType !== SecurityBlockIndicatorType.IpRange
+      entry.indicatorType !== SecurityBlockIndicatorType.IpRange &&
+      entry.indicatorType !== SecurityBlockIndicatorType.Asn
     ) {
       return {
         isSupported: false,
-        reason: "Cloudflare blocks IP addresses and ranges only",
+        reason:
+          "Cloudflare blocks IP addresses, ranges and networks by their ASN only",
       };
     }
 
@@ -412,6 +414,15 @@ export class CloudflareBlockDestination implements SecurityBlockDestination {
         isSupported: false,
         reason: "blocking at Cloudflare is not set up yet",
       };
+    }
+
+    /*
+     * A whole network by its ASN (#10354) is an IP Access Rule, which every
+     * plan has, whatever the action's addresses use: its list's state is
+     * not its own.
+     */
+    if (entry.indicatorType === SecurityBlockIndicatorType.Asn) {
+      return { isSupported: true };
     }
 
     if (!action.isInPlace) {

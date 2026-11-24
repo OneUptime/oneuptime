@@ -9,6 +9,7 @@ import {
   AZURE_KEY_METRICS,
   AzureTypeKeyMetrics,
   getAzureKeyMetricNames,
+  getAzureKeyMetricSplit,
   getAzureStoredMetricName,
   isAzureFiveMinuteKeyMetric,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
@@ -389,7 +390,7 @@ describe("every key metric of every type, while a stream delivers every type", (
     },
   );
 
-  test("the read keeps exactly the ones a diagnostic setting cannot export, those it reads at five minutes, and every one of a namespace it splits by queue", () => {
+  test("the read keeps exactly the ones a diagnostic setting cannot export, those it reads at five minutes, every one of a namespace it splits by queue, and one it splits alone", () => {
     const kept: Array<string> = [];
     let streamedCount: number = 0;
 
@@ -399,7 +400,9 @@ describe("every key metric of every type, while a stream delivers every type", (
           entry.splitByDimension ||
           (entry.notExportedByDiagnosticSettings || []).includes(metric) ||
           // A stream delivers a minute at a time: never a five-minute metric.
-          isAzureFiveMinuteKeyMetric(entry.type, metric)
+          isAzureFiveMinuteKeyMetric(entry.type, metric) ||
+          // A Container App's Requests, by status code category (#10837).
+          Boolean(getAzureKeyMetricSplit(entry.type, metric))
         ) {
           kept.push(
             `11111111 ${getAzureStoredMetricName(metric, "Average")} ${label(entry, metric)}`,
@@ -421,13 +424,17 @@ describe("every key metric of every type, while a stream delivers every type", (
     // Both sides are real: some metrics are the stream's, some stay the read's.
     expect(streamedCount).toBeGreaterThan(50);
     /*
-     * 67 a diagnostic setting cannot export, the namespaces' 10, and an
-     * App Service app's health check, which it exports but the read reads
-     * at five minutes.
+     * 67 a diagnostic setting cannot export, the namespaces' 10, an App
+     * Service app's health check, which it exports but the read reads at
+     * five minutes, and a Container App's Requests, which it exports whole
+     * while the read reads them by status code category (#10837).
      */
-    expect(kept.length).toBe(78);
+    expect(kept.length).toBe(79);
     expect(kept).toContain(
       `11111111 azure_healthcheckstatus_average Microsoft.Web/sites HealthCheckStatus`,
+    );
+    expect(kept).toContain(
+      `11111111 azure_requests_average Microsoft.App/containerApps Requests`,
     );
   });
 

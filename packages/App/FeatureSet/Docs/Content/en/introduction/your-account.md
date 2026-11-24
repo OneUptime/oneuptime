@@ -114,7 +114,7 @@ Open **Security → Two-factor authentication** and click **Enable two-factor au
 
 ### Set it up
 
-For an authenticator app, scan the QR code with an app such as 1Password, Google Authenticator or Microsoft Authenticator, enter the 6-digit code it shows, and click **Verify and finish**. For a USB or NFC key, name it and follow your browser's prompt. Two-factor authentication is then on, and the card reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
+For an authenticator app, scan the QR code with an app such as 1Password, Google Authenticator or Microsoft Authenticator, enter the 6-digit code it shows, and click **Verify and finish**. On a phone, tap **Add to Authenticator App** instead of scanning: your app opens with your account filled in. For a USB or NFC key, name it and follow your browser's prompt. Two-factor authentication is then on, and the card reads **Enabled**. From your next sign-in with a password or an emailed link, OneUptime asks for your second step.
 
 ### Save your backup codes
 
@@ -127,7 +127,7 @@ If you already have an app under **Authenticator apps** or a key under **Securit
 
 When an administrator requires two-factor authentication and you have nothing set up yet, your next sign-in with a password or an emailed link asks you to set it up before it lets you in. Choose **Authenticator app** or **Security key**, and click **Continue**:
 
-- **Authenticator app**: scan the QR code, enter the 6-digit code your app shows, and click **Verify and Sign In**.
+- **Authenticator app**: scan the QR code, enter the 6-digit code your app shows, and click **Verify and Sign In**. On a phone, tap **Add to Authenticator App** instead of scanning.
 - **Security key**: click **Register Security Key** and follow your browser's prompt. Touch a USB or NFC key, or use your phone's or computer's fingerprint, face or screen lock.
 
 If you have no backup codes yet, OneUptime then shows them once, and you are signed in. **Choose another way** goes back to the choice. A browser that cannot register a security key, such as one on a page without HTTPS, offers only the authenticator app.

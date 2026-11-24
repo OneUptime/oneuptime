@@ -136,7 +136,7 @@ Darunter steht jeder Schritt, den es ausgeführt, erfragt oder überlassen hat, 
 
 ### Ein Fall, den es als harmlos oder als Fehlalarm einschätzt
 
-**Mit KI reagieren** schließt einen Fall, den die Triage als Wahrscheinlich harmlos oder Wahrscheinlich Fehlalarm eingeschätzt hat, als Harmlos positiv oder Falsch positiv, soweit **Den Fall schließen** es erlaubt. Sobald er geschlossen ist, hebt OneUptime AI die Sperren auf, die der Fall gesetzt hat, ebenfalls soweit **Den Fall schließen** es erlaubt, und schlägt für die Regel des Falls eine Ausnahme für den Wert vor, der ihn ausgelöst hat. Die Ausnahme wartet immer auf eine Person: **Genehmigen** fügt sie hinzu, in Ihrem Namen.
+**Mit KI reagieren** schließt einen Fall, den die Triage als Wahrscheinlich harmlos oder Wahrscheinlich Fehlalarm eingeschätzt hat, als Harmlos positiv oder Falsch positiv, soweit **Den Fall schließen** es erlaubt. Sobald er geschlossen ist, hebt OneUptime AI die Sperren auf, die der Fall gesetzt hat, ebenfalls soweit **Den Fall schließen** es erlaubt, und schlägt für die Regel des Falls eine Ausnahme für den Wert vor, der ihn ausgelöst hat. Die Ausnahme wartet immer auf eine Person: **Genehmigen** fügt sie hinzu, in Ihrem Namen. Eine Person, die den Fall zuvor wieder öffnet oder übernimmt, verhindert beides, und solange das Produkt Sicherheitsereignisse ausgeschaltet ist, überlässt OneUptime AI beides einer Person.
 
 ## Was OneUptime AI in einem Fall tun darf
 

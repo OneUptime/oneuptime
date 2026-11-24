@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: auf Ihrer Liste geschützter Entitäten, daher wird nie darauf eingewirkt",
   "{{target}}: one of the case's addresses": "{{target}}: eine der Adressen des Falls",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: eine Ihrer eigenen Adressen, daher wird sie nie gesperrt",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: hat dieselben Anfragen mit denselben Werkzeugen gesendet wie die Adresse des Falls",
   "{{target}}: the case is grouped on it": "{{target}}: der Fall ist danach gruppiert",
   "{{target}}: undone at {{time}}": "{{target}}: um {{time}} rückgängig gemacht",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: von {{person}} um {{time}} rückgängig gemacht",

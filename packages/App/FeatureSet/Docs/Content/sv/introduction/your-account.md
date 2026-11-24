@@ -114,7 +114,7 @@ Tvåfaktorsautentisering gäller när du loggar in med ditt lösenord eller en l
 
 ### Konfigurera det
 
-För en autentiseringsapp skannar du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, anger den sexsiffriga kod den visar och klickar på **Verifiera och slutför**. En USB- eller NFC-nyckel ger du ett namn och följer webbläsarens anvisningar. Tvåfaktorsautentisering är sedan aktiverad, och kortet visar **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
+För en autentiseringsapp skannar du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, anger den sexsiffriga kod den visar och klickar på **Verifiera och slutför**. På en telefon trycker du på **Lägg till i autentiseringsapp** i stället för att skanna: appen öppnas med ditt konto ifyllt. En USB- eller NFC-nyckel ger du ett namn och följer webbläsarens anvisningar. Tvåfaktorsautentisering är sedan aktiverad, och kortet visar **Aktiverad**. Från din nästa inloggning med lösenord eller en länk via e-post ber OneUptime om ditt andra steg.
 
 ### Spara dina reservkoder
 
@@ -127,7 +127,7 @@ Har du redan en app under **Autentiseringsappar** eller en nyckel under **Säker
 
 När en administratör kräver tvåfaktorsautentisering och du inte har konfigurerat något ännu, ber din nästa inloggning med lösenord eller en länk via e-post dig att konfigurera den innan du släpps in. Välj **Autentiseringsapp** eller **Säkerhetsnyckel** och klicka på **Fortsätt**:
 
-- **Autentiseringsapp**: skanna QR-koden, ange den sexsiffriga kod din app visar och klicka på **Verifiera och logga in**.
+- **Autentiseringsapp**: skanna QR-koden, ange den sexsiffriga kod din app visar och klicka på **Verifiera och logga in**. På en telefon trycker du på **Lägg till i autentiseringsapp** i stället för att skanna.
 - **Säkerhetsnyckel**: klicka på **Registrera säkerhetsnyckel** och följ webbläsarens anvisningar. Rör vid en USB- eller NFC-nyckel, eller använd fingeravtryck, ansikte eller skärmlås på din telefon eller dator.
 
 Har du inga reservkoder ännu visar OneUptime dem sedan en gång, och du är inloggad. **Välj ett annat sätt** går tillbaka till valet. En webbläsare som inte kan registrera en säkerhetsnyckel, till exempel på en sida utan HTTPS, erbjuder bara autentiseringsappen.

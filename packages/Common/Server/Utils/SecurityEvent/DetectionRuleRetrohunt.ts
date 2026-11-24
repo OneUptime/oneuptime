@@ -4,7 +4,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  SecurityEntity,
   SecurityEntityType,
+  getEntityAsActionable,
   inferSecurityEntityType,
   securityEntityTypeForField,
 } from "../../../Types/SecurityCase/SecurityEntity";
@@ -647,7 +649,10 @@ export function readSingleRuleRetrohuntRows(
 
 /*
  * The kind of entity a group's value is: by the field the rule groups by
- * when that field says, else by the value's shape ("" when it is none).
+ * when that field says, else by the value's shape ("" when it is none). A
+ * value no response could act on as that kind - what a scrub rule left, or
+ * one of OneUptime's own actors as a user: a workflow, a project API key
+ * (#10630) - is no kind at all, as a case holds it (getEntityAsActionable).
  */
 export function getRetrohuntEntityType(
   groupByField: string | undefined,
@@ -657,10 +662,14 @@ export function getRetrohuntEntityType(
     return "";
   }
 
-  const type: SecurityEntityType =
-    securityEntityTypeForField(groupByField) || inferSecurityEntityType(value);
+  const entity: SecurityEntity | null = getEntityAsActionable({
+    type:
+      securityEntityTypeForField(groupByField) ||
+      inferSecurityEntityType(value),
+    value,
+  });
 
-  return type === SecurityEntityType.Other ? "" : type;
+  return !entity || entity.type === SecurityEntityType.Other ? "" : entity.type;
 }
 
 /*

@@ -13,6 +13,7 @@ import {
 import {
   AKS_ID,
   CONNECTION_ID,
+  CONTAINER_APP_ID,
   EVENT_HUBS_ID,
   MINUTE_MS,
   SERVICE_BUS_ID,
@@ -343,6 +344,38 @@ describe("a platform metric's minute", () => {
     expect(decoded.resourceMetrics).toEqual([]);
     // No sighting: the read never leaves a namespace's metrics to a stream.
     expect(decoded.sightings).toEqual([]);
+  });
+
+  test("a Container App's Requests are left to the read, which writes them by status code category, and its response time is the stream's (#10837)", () => {
+    const decoded: AzureDiagnosticDecoded = decode([
+      eventOf([
+        // Exported, as the app's total of every category.
+        metricRecord({
+          resourceId: CONTAINER_APP_ID,
+          metricName: "Requests",
+          total: 120,
+          count: 1,
+          minimum: 120,
+          maximum: 120,
+        }),
+        metricRecord({
+          resourceId: CONTAINER_APP_ID,
+          metricName: "ResponseTime",
+          total: 85,
+          count: 1,
+          minimum: 85,
+          maximum: 85,
+        }),
+      ]),
+    ]);
+
+    expect(decoded.leftToRead).toBe(1);
+    expect(decoded.datapoints).toBe(1);
+    expect(
+      metricsOf(decoded).map((metric: JSONObject) => {
+        return metric["name"];
+      }),
+    ).toEqual(["azure_responsetime_average"]);
   });
 
   test("a stream of only what the read keeps is no stream of the type: its sighting names the types written, and no other", () => {

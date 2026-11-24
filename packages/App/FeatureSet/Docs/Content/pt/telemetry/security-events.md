@@ -298,6 +298,8 @@ Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o ende
 
 Uma regra que aplica hash guarda o endereço para Eventos de segurança, então o evento o nomeia, a menos que seu token tenha mais de 30 dias ou tenha sido criado antes de os tokens terem uma chave: veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). Para encontrar esses eventos, pesquise `@oneuptime.request.client_address_hidden:scrub-rule`. O que a regra deixou no lugar do endereço, como `[REDACTED]`, fica em `oneuptime.request.client_address_scrubbed`. Para um destino, pesquise `@oneuptime.target_address_hidden:scrub-rule`.
 
+Uma regra que apaga ou mascara um usuário o oculta da mesma forma: onde o evento nomearia o usuário, **Usuário de origem** ou **Usuário de destino** diz que uma regra de mascaramento o ocultou. Onde Eventos de segurança lê um usuário, uma regra que aplica hash guarda o usuário para ele: o `enduser.id` ou o `user.id` de uma requisição, o usuário de uma chamada de IA e o usuário que uma linha de log nomeia, como o principal de um log de auditoria da nuvem. Assim, o evento nomeia o usuário por trás do token, um caso sobre ele nomeia a conta, e um playbook pode agir sobre ela como sobre qualquer outro usuário. O que a regra deixou fica em `oneuptime.principal_user_hashed_as` ou em `oneuptime.target_user_hashed_as`, para você encontrar o usuário nos seus logs e traces, que guardam só o token. Um token sem usuário guardado, como um criado antes de os tokens terem uma chave, continua sendo o usuário do evento: as regras o contam como uma só conta, e nenhum playbook age sobre ele.
+
 ## Explorar os eventos de segurança
 
 **Eventos** é um explorador de telemetria como os de logs e traces: um gráfico dos eventos da janela por gravidade, uma barra lateral de facetas, a lista e um painel com cada campo e atributo do evento que você abrir. A janela, os filtros e a pesquisa ficam todos na URL, então uma visualização filtrada pode ser compartilhada e sobrevive a um recarregamento.
@@ -331,7 +333,16 @@ Um evento lido de uma linha de log escrita dentro de uma requisição rastreada 
 
 ### Campaigns
 
-**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro.
+**Campanhas** lista cada endereço que enviou requisições de ataque como uma única linha, com os tipos de ataque, as ferramentas e as requisições que enviou, e quantas passaram. Os endereços cujas requisições chegaram ao seu app vêm primeiro. Uma linha que sua lista de bloqueio já contém diz até quando ela está bloqueada ou desafiada, e nomeia o intervalo ou a rede que a contém.
+
+Para bloquear vários atacantes de uma vez, selecione as linhas deles e clique em **Bloquear endereços**. Uma única caixa de diálogo lista cada endereço que ela bloqueia e cada um que ela deixa de fora, com o motivo: já bloqueado, um dos seus ou um protegido, um que um usuário conectado usou nos últimos 30 dias, ou um que o OneUptime não conseguiu verificar. Ela bloqueia por 24 horas, a menos que você escolha outra duração, ou desafia com **Desafio em vez disso**, e cada bloqueio vai para a sua [lista de bloqueio](/docs/telemetry/security-cases#lista-de-bloqueio) como seu.
+
+**Agrupar por rede** coloca os endereços de uma mesma rede em uma única linha: pelo seu ASN quando os eventos da sua conexão da [Cloudflare](/docs/integrations/cloudflare) informam um e, caso contrário, pelo seu /24 no IPv4 ou pelo seu /48 no IPv6. A linha de um ASN lista os intervalos de onde seus endereços enviaram. **Desafiar esta rede** diz o que vai fazer, onde e por quanto tempo antes de fazer: 24 horas, a menos que você escolha outra duração, e o próximo degrau da escada para uma rede já desafiada antes. A Cloudflare guarda um intervalo na sua lista de desafio, e um ASN como uma IP Access Rule, que todo plano tem.
+
+- Uma rede que contém um endereço que um usuário conectado usou nos últimos 30 dias, ou um dos seus, nunca é desafiada, e a caixa de diálogo diz quem ou o quê.
+- Um intervalo mais amplo que um /24 (um /48 no IPv6), e um ASN inteiro, exigem um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto. A linha de um ASN também oferece cada um dos seus intervalos, que qualquer pessoa que possa bloquear pode desafiar.
+- Quando o OneUptime não consegue saber quem usa uma rede, porque ela é um ASN inteiro ou porque uma regra de mascaramento oculta os endereços dos clientes, somente um Administrador de segurança, um Administrador do projeto ou um Proprietário do projeto pode desafiá-la, depois de marcar que está ciente disso.
+- Nada é bloqueado nem desafiado enquanto Eventos de segurança estiver desativado no servidor.
 
 ### Correlacionar
 
@@ -583,6 +594,7 @@ Uma exceção é algo que uma regra ignora porque você já espera, como um scan
 | **Uma janela de tempo** | Todo evento de **Começa em** até **Termina em**, com no máximo 30 dias de diferença |
 
 - Os valores correspondem sem diferenciar maiúsculas e minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` ignora toda conta de serviço, e `*.lab.example.com` todo host de um domínio. Um endereço IP pode ser um intervalo, como `10.20.0.0/16`. Um valor feito só de `*` é recusado: para parar uma regra, desative-a.
+- Os eventos do próprio log de auditoria do OneUptime nomeiam uma chave de API do projeto em `principalUser` como `api-key:` seguido do ID dela, então duas chaves com o mesmo nome são dois atores, e nenhum playbook oferece uma chave como um usuário a suspender. O nome da chave continua na mensagem do evento e em `audit.api_key_name`. Uma exceção para o nome de uma chave, como usuário ou como valor de `principalUser`, ainda ignora toda chave com esse nome, e uma para `api-key:` seguido do ID da chave ignora só essa chave.
 - Cada exceção diz o porquê em seu **Motivo**, que todos que leem a lista veem, e guarda quem a adicionou e quando. Uma entidade ou um valor pode ter uma data em **Expira em**, depois da qual a regra volta a vê-lo; uma janela de tempo termina sozinha.
 - **Status** diz em que ponto cada uma está: **Ativo**, **Programado** para uma janela que ainda não começou, **Expirado** ou **Encerrado**. Sob o nome de uma regra em **Regras de detecção**, uma linha conta suas exceções ativas, e **Ver exceções** na linha da regra abre a lista filtrada por ela.
 - Os eventos ignorados são descartados antes que a regra conte qualquer coisa, então nunca contam para seu **Limite de correspondências** e não abrem caso, alerta, incidente nem achado. As exceções valem para toda execução da regra, correlações incluídas, e para **Executar em eventos passados**, mas nunca para um ataque de teste, que verifica se os eventos chegam.

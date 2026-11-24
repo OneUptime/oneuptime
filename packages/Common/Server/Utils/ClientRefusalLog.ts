@@ -2,15 +2,9 @@ import {
   getHttpRouteTemplate,
   UNMATCHED_HTTP_ROUTE,
 } from "../Middleware/HttpMetricsMiddleware";
-import { TelemetryErrorClassEnabled } from "../EnvironmentConfig";
+import { isClientErrorStatus, isClientRefusal } from "./ClientRefusal";
 import { ExpressRequest, OneUptimeRequest } from "./Express";
 import logger, { getLogAttributesFromRequest, LogAttributes } from "./Logger";
-import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
-import {
-  DeclaredErrorClass,
-  declaredErrorClass,
-  isNonActionableErrorClass,
-} from "../../Types/Telemetry/ErrorClass";
 
 /*
  * A CLIENT'S REFUSAL IS LOGGED AT DEBUG, AND COUNTED BY ROUTE (#10768).
@@ -72,33 +66,12 @@ export const OTHER_CLIENT_REFUSAL_ROUTES: string = "other routes";
 // The most of a refusal's words a warn line repeats.
 const MAX_LOGGED_MESSAGE_LENGTH: number = 300;
 
-// Whether a status is a refusal of what the client sent: 4xx.
-export const isClientErrorStatus: (status: number) => boolean = (
-  status: number,
-): boolean => {
-  return Number.isInteger(status) && status >= 400 && status < 500;
-};
-
 /*
- * Whether an error answered with `status` is a client's refusal (see the
- * top of the file): a 4xx, its fault declared the client's, in words.
+ * The rule itself (see the top of the file) lives in ClientRefusal, where
+ * the @CaptureSpan recorder reads it too (#10797); named here as well, for
+ * the code that logs by it.
  */
-export const isClientRefusal: (error: unknown, status: number) => boolean = (
-  error: unknown,
-  status: number,
-): boolean => {
-  if (!isClientErrorStatus(status) || !TelemetryErrorClassEnabled) {
-    return false;
-  }
-
-  if (!(error instanceof Error) || isEmptyErrorPhrase(error.message)) {
-    return false;
-  }
-
-  const declared: DeclaredErrorClass | null = declaredErrorClass(error);
-
-  return declared !== null && isNonActionableErrorClass(declared.errorClass);
-};
+export { isClientErrorStatus, isClientRefusal };
 
 interface RouteRefusals {
   // Refusals since the last line.

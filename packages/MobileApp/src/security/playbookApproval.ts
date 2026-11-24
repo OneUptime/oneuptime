@@ -59,7 +59,9 @@ export type SecurityPlaybookTargetReason =
   | "Grouped On"
   | "Threat Intel"
   // A person picked it on the case: an address they blocked from its plan.
-  | "On the Case";
+  | "On the Case"
+  // Block the Whole Campaign: another address of the case's address's campaign.
+  | "In the Campaign";
 
 /*
  * Each action a step can take, by the title the step list reads, as the
@@ -128,6 +130,8 @@ const TRIGGER_DESCRIPTIONS: Readonly<Record<string, string>> = {
   // A step OneUptime AI asks about while it works the case (#10352).
   "OneUptime AI":
     "Started on its own by OneUptime AI, which is working the case",
+  // An automatic response policy's block, started as the detection was made (#10350).
+  "Automatic Response": "Started on its own by an automatic response policy",
 };
 
 export interface PlaybookTarget {
@@ -212,7 +216,8 @@ export function readPlaybookTargets(value: unknown): Array<PlaybookTarget> {
       reason:
         reason === "Grouped On" ||
         reason === "Threat Intel" ||
-        reason === "On the Case"
+        reason === "On the Case" ||
+        reason === "In the Campaign"
           ? reason
           : null,
       state: record["state"],
@@ -318,6 +323,10 @@ export function describePlaybookTarget(target: PlaybookTarget): string {
 
   if (target.reason === "On the Case") {
     return "One of the case's addresses";
+  }
+
+  if (target.reason === "In the Campaign") {
+    return "Sent the same requests with the same tools as the case's address";
   }
 
   return target.reason === "Threat Intel"

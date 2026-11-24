@@ -2,7 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProbeMajorVersionBehindNotifiedFor1809187530000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187530000-AddProbeMajorVersionBehindNotifiedFor";
+import { AddProbeMajorVersionBehindNotifiedFor1809187550000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187550000-AddProbeMajorVersionBehindNotifiedFor";
 import Probe from "../../../../Models/DatabaseModels/Probe";
 import ColumnType from "../../../../Types/Database/ColumnType";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
@@ -53,11 +53,11 @@ function typeOrmColumn(): ColumnMetadataArgs {
   return column!;
 }
 
-describe("AddProbeMajorVersionBehindNotifiedFor1809187530000", () => {
+describe("AddProbeMajorVersionBehindNotifiedFor1809187550000", () => {
   test("adds the one column to Probe, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProbeMajorVersionBehindNotifiedFor1809187530000().up(
+        return new AddProbeMajorVersionBehindNotifiedFor1809187550000().up(
           runner,
         );
       }),
@@ -68,7 +68,7 @@ describe("AddProbeMajorVersionBehindNotifiedFor1809187530000", () => {
 
   test("nullable, no default, no index, no key, no row rewritten", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddProbeMajorVersionBehindNotifiedFor1809187530000().up(
+      return new AddProbeMajorVersionBehindNotifiedFor1809187550000().up(
         runner,
       );
     })) {
@@ -124,7 +124,7 @@ describe("AddProbeMajorVersionBehindNotifiedFor1809187530000", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProbeMajorVersionBehindNotifiedFor1809187530000().down(
+        return new AddProbeMajorVersionBehindNotifiedFor1809187550000().down(
           runner,
         );
       }),
@@ -138,21 +138,21 @@ describe("AddProbeMajorVersionBehindNotifiedFor1809187530000", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddProbeMajorVersionBehindNotifiedFor1809187530000;
+        return candidate === AddProbeMajorVersionBehindNotifiedFor1809187550000;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddProbeMajorVersionBehindNotifiedFor1809187530000,
+      AddProbeMajorVersionBehindNotifiedFor1809187550000,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
     ).toBeLessThan(
-      timestampOf(AddProbeMajorVersionBehindNotifiedFor1809187530000),
+      timestampOf(AddProbeMajorVersionBehindNotifiedFor1809187550000),
     );
-    expect(new AddProbeMajorVersionBehindNotifiedFor1809187530000().name).toBe(
-      "AddProbeMajorVersionBehindNotifiedFor1809187530000",
+    expect(new AddProbeMajorVersionBehindNotifiedFor1809187550000().name).toBe(
+      "AddProbeMajorVersionBehindNotifiedFor1809187550000",
     );
   });
 });

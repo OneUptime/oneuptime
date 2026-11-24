@@ -1,6 +1,8 @@
 import { describe, expect, jest, test } from "@jest/globals";
 import crypto from "crypto";
-import KeyedExceptionFingerprint from "../../../../Server/Utils/Telemetry/KeyedExceptionFingerprint";
+import KeyedExceptionFingerprint, {
+  KEYED_V1_TEXT_PREFIX,
+} from "../../../../Server/Utils/Telemetry/KeyedExceptionFingerprint";
 import {
   ExceptionGroupingBasis,
   getExceptionGroupingKey,
@@ -349,5 +351,122 @@ describe("working a fingerprint back to what a rule hid", () => {
         });
       }),
     ).toEqual([TARGET]);
+  });
+});
+
+/*
+ * An exception made before grouping v2 is grouped by v1's text: the project,
+ * the service, the normalized message and stack trace and the type, run
+ * together. When a scrub rule hid part of that text it moves to the keyed
+ * fingerprint of the same text (#10619), with a line of its own in front, so
+ * it never equals the keyed fingerprint of a grouping v2 or v3 text.
+ */
+describe("the keyed fingerprint of grouping v1's text", () => {
+  const v1Text: string = [
+    PROJECT_ID.toString(),
+    SERVICE_ID.toString(),
+    cardMessage("1234"),
+    "",
+    "PaymentDeclinedError",
+  ].join("");
+
+  test("is the keyed fingerprint of the text with grouping v1's line in front", () => {
+    expect(
+      KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: PROJECT_ID,
+        text: v1Text,
+      }),
+    ).toBe(
+      KeyedExceptionFingerprint.ofGroupingText({
+        projectId: PROJECT_ID,
+        text: `${KEYED_V1_TEXT_PREFIX}${v1Text}`,
+      }),
+    );
+    expect(KEYED_V1_TEXT_PREFIX).toBe("grouping-v1\n");
+  });
+
+  test("is never the keyed fingerprint of the same text without it, nor its unkeyed hash", () => {
+    const keyedV1: string = KeyedExceptionFingerprint.ofFirstGroupingText({
+      projectId: PROJECT_ID,
+      text: v1Text,
+    });
+
+    expect(keyedV1).toMatch(HEX_64);
+    expect(keyedV1).not.toBe(
+      KeyedExceptionFingerprint.ofGroupingText({
+        projectId: PROJECT_ID,
+        text: v1Text,
+      }),
+    );
+    expect(keyedV1).not.toBe(unkeyed(v1Text));
+  });
+
+  test("is the same every time, and another in another project", () => {
+    expect(
+      KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: PROJECT_ID,
+        text: v1Text,
+      }),
+    ).toBe(
+      KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: PROJECT_ID.toString().toUpperCase(),
+        text: v1Text,
+      }),
+    );
+    expect(
+      KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: PROJECT_ID,
+        text: v1Text,
+      }),
+    ).not.toBe(
+      KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: OTHER_PROJECT_ID,
+        text: v1Text,
+      }),
+    );
+  });
+
+  test("is made as written, a known vector under a fixed secret", () => {
+    const install: KeyedExceptionFingerprintClass =
+      loadWithEncryptionSecret(KNOWN_VECTOR_SECRET);
+
+    expect(
+      install.ofFirstGroupingText({ projectId: PROJECT_ID, text: v1Text }),
+    ).toBe(
+      keyedWith(KNOWN_VECTOR_SECRET, PROJECT_ID, `grouping-v1\n${v1Text}`),
+    );
+  });
+
+  test("gives no guess at the hidden digits back to anyone without the secret", () => {
+    const install: KeyedExceptionFingerprintClass =
+      loadWithEncryptionSecret(INSTALL_SECRET);
+    const textOf: (lastFour: string) => string = (lastFour: string): string => {
+      return [
+        PROJECT_ID.toString(),
+        SERVICE_ID.toString(),
+        cardMessage(lastFour),
+        "",
+        "PaymentDeclinedError",
+      ].join("");
+    };
+    const stolen: string = install.ofFirstGroupingText({
+      projectId: PROJECT_ID,
+      text: textOf("4821"),
+    });
+    const matches: Array<string> = [];
+
+    for (const lastFour of everyLastFour()) {
+      for (const secret of PUBLIC_SECRETS) {
+        if (
+          keyedWith(secret, PROJECT_ID, `grouping-v1\n${textOf(lastFour)}`) ===
+            stolen ||
+          unkeyed(textOf(lastFour)) === stolen
+        ) {
+          matches.push(lastFour);
+        }
+      }
+    }
+
+    expect(matches).toEqual([]);
   });
 });

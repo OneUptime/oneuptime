@@ -1,3 +1,4 @@
+import { JSONObject } from "../../../Types/JSON";
 import LogScrubAction from "../../../Types/Log/LogScrubAction";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../Types/ObjectID";
@@ -48,6 +49,32 @@ export interface ScrubHashedAddressRecorder {
     token: string;
     // In the one spelling its token is made of (ScrubIpAddress.canonicalize).
     address: string;
+  }): void;
+}
+
+/*
+ * Told what a record's rules did to the places Security Events reads a user
+ * from: what ingest keeps for Security Events' user vault (#10632), for a
+ * batch of logs or traces Security Events reads whose rules hash
+ * (Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter.ts). The
+ * engines hand over what those places held before the rules and what the
+ * rules left; the recorder keeps a user only where a Hash rule's token is
+ * worked out of the value again (ScrubHashToken), so nothing but what the
+ * rule really hashed is ever kept, and only where Security Events reads a
+ * user.
+ */
+export interface ScrubHashedUserRecorder {
+  // A span's user field the rules changed (enduser.id, user.id, an AI call's user).
+  recordScrubbedUserValue(data: { before: string; after: string }): void;
+  /*
+   * A log line the rules changed, for the users Security Events' log
+   * parsers read in it: its body and top-level attributes before the rules,
+   * and the row as they left it.
+   */
+  recordScrubbedLogLine(data: {
+    bodyBefore: string;
+    attributesBefore: JSONObject;
+    logRow: JSONObject;
   }): void;
 }
 

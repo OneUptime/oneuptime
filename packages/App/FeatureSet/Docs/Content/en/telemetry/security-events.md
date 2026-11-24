@@ -298,6 +298,8 @@ An IP Address scrub rule that redacts or masks your logs or traces hides the add
 
 A rule that hashes keeps the address for Security Events, so the event names it, unless its token is older than 30 days or was made before tokens had a key: see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). To find these events, search `@oneuptime.request.client_address_hidden:scrub-rule`. What the rule left in the address's place, such as `[REDACTED]`, is in `oneuptime.request.client_address_scrubbed`. For a destination, search `@oneuptime.target_address_hidden:scrub-rule`.
 
+A rule that redacts or masks a user hides them the same way: where the event would name the user, **Principal User** or **Target User** says a scrub rule hid them. Where Security Events reads a user, a rule that hashes keeps the user for it: a request's `enduser.id` or `user.id`, an AI call's user, and a user a log line names, such as a cloud audit log's principal. So the event names the user behind the token, a case about them names the account, and a playbook can act on it as on any other user. What the rule left is in `oneuptime.principal_user_hashed_as` or `oneuptime.target_user_hashed_as`, so you can find the user in your logs and traces, which hold only the token. A token with no user kept for it, such as one made before tokens had a key, stays the event's user: rules count it as one account, and no playbook acts on it.
+
 ## Explore security events
 
 **Events** is a telemetry explorer like the Logs and Traces explorers: a chart of the window's events by severity, a sidebar of facets, the list, and a panel with every field and attribute of the event you open. The window, the filters and the search all live in the URL, so a filtered view can be shared and survives a refresh.
@@ -331,7 +333,16 @@ An event read from a log line written inside a traced request is followed into t
 
 ### Campaigns
 
-**Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first.
+**Campaigns** lists every address that sent attack requests as one row, with the kinds of attack, the tools and the requests it sent, and how many got through. The ones whose requests reached your app come first. A row your blocklist already holds says until when it is blocked or challenged, and names the range or network that holds it.
+
+To block several attackers at once, select their rows and press **Block Addresses**. One dialog lists every address it blocks and every one it leaves out, with why: already blocked, one of your own or a protected one, one a signed-in user used in the last 30 days, or one OneUptime could not check. It blocks for 24 hours unless you choose another length, or challenges with **Challenge Instead**, and each block goes on your [blocklist](/docs/telemetry/security-cases#blocklist) as yours.
+
+**Group by network** puts the addresses of one network on one row: by its ASN where your [Cloudflare](/docs/integrations/cloudflare) connection's events name one, and otherwise by its /24 for IPv4 or its /48 for IPv6. An ASN's row lists the ranges its addresses sent from. **Challenge This Network** says what it will do, where and for how long before it does it: 24 hours unless you choose another length, and the next step of the ladder for a network challenged before. Cloudflare holds a range in its challenge list, and an ASN as an IP Access Rule, which every plan has.
+
+- A network that holds an address a signed-in user used in the last 30 days, or one of your own, is never challenged, and the dialog names who or what.
+- A range wider than a /24 (a /48 for IPv6), and a whole ASN, take a Security Admin, a Project Admin or a Project Owner. An ASN's row also offers each of its ranges, which anyone who can block may challenge.
+- When OneUptime cannot tell who uses a network, because it is a whole ASN or a scrub rule hides client addresses, only a Security Admin, a Project Admin or a Project Owner can challenge it, once they tick that they know.
+- Nothing is blocked or challenged while Security Events is switched off on the server.
 
 ### Correlate
 
@@ -583,6 +594,7 @@ An exception is something a rule skips because you expect it, such as a vulnerab
 | **A time window** | Every event from **Starts At** to **Ends At**, at most 30 days apart |
 
 - Values match whatever their case, and `*` stands for any run of characters: `svc-*` skips every service account, and `*.lab.example.com` every host of a domain. An IP address can be a range, such as `10.20.0.0/16`. A value of only `*` is refused: to stop a rule, turn it off.
+- Events from OneUptime's own audit log name a project API key in `principalUser` as `api-key:` followed by its ID, so two keys with one name are two actors, and no playbook offers a key as a user to suspend. The key's name stays in the event's message and in `audit.api_key_name`. An exception for a key's name, as a user or as a value of `principalUser`, still skips every key of that name, and one for `api-key:` followed by the key's ID skips that key alone.
 - Each exception says why in its **Reason**, which everyone who reads the list sees, and keeps who added it and when. An entity or a value can have an **Expires At**, after which the rule sees it again; a time window ends by itself.
 - **Status** says where each one stands: **Active**, **Upcoming** for a window that has not started, **Expired** or **Ended**. Under a rule's name in **Detection Rules**, a line counts its active exceptions, and **View Exceptions** in the rule's row opens the list filtered to it.
 - Skipped events are left out before the rule counts anything, so they never count toward its **Match Count Threshold** and open no case, alert, incident or finding. Exceptions apply to every run of the rule, correlations included, and to **Run on Past Events**, but never to a test attack, which checks that events get through.

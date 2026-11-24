@@ -162,7 +162,7 @@ Blockering behöver skrivbehörigheter på anslutningens API-token:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Skapar sina två listor, och lägger till och tar bort deras adresser. |
 | `Zone > Zone WAF > Edit`, på varje zon där det ska blockeras | Lägger till sina anpassade regler, och läser zonens egna. |
-| `Account > Account Firewall Access Rules > Edit` | Lägger till och tar bort IP Access Rules, på en plan utan ledig lista eller ledig anpassad regel. |
+| `Account > Account Firewall Access Rules > Edit` | Lägger till och tar bort IP Access Rules: på en plan utan ledig lista eller ledig anpassad regel, och för ett nätverk som utmanas utifrån sitt ASN från **Kampanjer**. |
 
 :::steps
 ### Ge token skrivbehörigheter
@@ -183,6 +183,7 @@ Medan blockering är påslagen kör **Testa anslutningen** samma kontroller: **H
 | Listorna `oneuptime_block` och `oneuptime_challenge` | Två IP-listor i kontot, en för blockeringar och en för utmaningar. Deras beskrivning nämner ditt OneUptime-projekt. |
 | En anpassad regel per lista, i varje zon | `(ip.src in $oneuptime_block)` med åtgärden Block, och `(ip.src in $oneuptime_challenge)` med åtgärden Managed Challenge. Deras beskrivning säger att OneUptime hanterar dem. |
 | Ett listobjekt per blockering | Dess kommentar nämner ärendet och när blockeringen upphör, till exempel `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| En IP Access Rule per nätverk som utmanas utifrån sitt ASN | Ett helt nätverk som utmanas från **Kampanjer**, som en IP Access Rule vars mål är `asn`, som alla planer har. Dess anteckning säger samma sak som ett listobjekts kommentar. Utan `Account > Account Firewall Access Rules > Edit` på token tillämpas inte utmaningen, och **Blocklista** säger vilken behörighet som ska läggas till. |
 
 Varje regel kommer först bland zonens anpassade regler, så den körs före dina: En Skip-regel från dig kan inte släppa förbi en blockerad adress. När dina Skip-regler släpper igenom adresser, till exempel dina monitorers eller en partners, nämner **Blockeringsstatus** dem. **Skydda dessa adresser** lägger till dem i **Skyddade entiteter**, som ingen kan blockera.
 
