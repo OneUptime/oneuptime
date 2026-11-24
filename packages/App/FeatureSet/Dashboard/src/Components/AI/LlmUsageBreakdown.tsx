@@ -47,6 +47,9 @@ import {
   formatLlmCost,
   formatLlmCount,
 } from "../LlmConversations/LlmConversationFormat";
+import LlmHiddenByScrubRule, {
+  LLM_HIDDEN_BY_A_SCRUB_RULE,
+} from "../LlmConversations/LlmHiddenByScrubRule";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   composedValue,
@@ -105,8 +108,10 @@ const UNATTRIBUTED_NOTES: Partial<Record<LlmUsageDimension, string>> = {
  * The usage whose person or team a scrub rule hid (#10435): one row, in
  * place of a "[REDACTED]" person who was everybody, and what it is, in the
  * words of the dimension on screen. Said only when the table has that row.
+ * Named as Conversations and Calls name a person or a team a rule hid
+ * (LlmHiddenByScrubRule, #10631).
  */
-const HIDDEN_LABEL: string = translationKey("Hidden by a scrub rule");
+const HIDDEN_LABEL: string = LLM_HIDDEN_BY_A_SCRUB_RULE;
 
 const HIDDEN_NOTES: Partial<Record<LlmUsageDimension, string>> = {
   [LlmUsageDimension.Employee]: translationKey(
@@ -424,14 +429,7 @@ const LlmUsageBreakdown: FunctionComponent = (): ReactElement => {
      * person called "[REDACTED]" (#10435).
      */
     if (HIDDEN_NOTES[dimension.key] && isLlmUsageHiddenGroup(row.key)) {
-      return (
-        <span
-          className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700"
-          data-testid="llm-usage-hidden"
-        >
-          {translator.translateText(HIDDEN_LABEL)}
-        </span>
-      );
+      return <LlmHiddenByScrubRule dataTestId="llm-usage-hidden" />;
     }
 
     if (dimension.key === LlmUsageDimension.Service) {

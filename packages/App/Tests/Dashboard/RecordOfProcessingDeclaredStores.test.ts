@@ -12,6 +12,7 @@ import {
   DeclaredStoreRetentionBasis,
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { Translator, createTranslator } from "Common/Types/Translator";
 import * as DownloadFile from "Common/UI/Utils/DownloadFile";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
@@ -23,15 +24,25 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/DataSecurity/ComplianceExport";
 import {
   DECLARED_PURPOSE,
+  DECLARED_STORE_DESCRIPTION,
+  DECLARED_STORE_KIND_NAMES,
+  DECLARED_USER_VAULT_DESCRIPTION,
+  RETENTION_AFTER_USER_LAST_SEEN,
   RETENTION_FOLLOWS_SETTINGS,
   RETENTION_FROM_ARRIVAL,
   RETENTION_FROM_LAST_SEEN,
+  RETENTION_FROM_USER_LAST_SEEN,
   getDeclaredPurposeText,
   getDeclaredReaderNames,
   getDeclaredRetentionHint,
   getDeclaredRetentionText,
+  getDeclaredStoreDescription,
   getStoreDisplayName,
 } from "../../FeatureSet/Dashboard/src/Components/DataSecurity/DeclaredStoreCopy";
+import {
+  DASHBOARD_LANGUAGES,
+  readDashboardLocale,
+} from "Common/Tests/Helpers/DashboardLocales";
 import { sortRecordRows } from "../../FeatureSet/Dashboard/src/Components/DataSecurity/RecordOfProcessingRows";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import fs from "fs";
@@ -351,6 +362,119 @@ describe("a declared store's words", () => {
       PermissionHelper.getPermissionTitles(SECURITY_READERS),
     );
     expect(getDeclaredReaderNames(VAULT.declared!, ENGLISH)).toEqual([]);
+  });
+});
+
+/*
+ * #10632: Security Events' user vault is declared beside the address
+ * vault, on the same terms, and its words say users where the address
+ * vault's say addresses - in the reader's language.
+ */
+describe("the user vault's words", () => {
+  const USER_VAULT: DataSecurityDeclaredStore = declaredOf({
+    kind: DataStoreKind.SecurityUserVault,
+    retentionInDays: 30,
+    retentionBasis: DeclaredStoreRetentionBasis.UserVault,
+    retentionText: "30 days after a user was last seen",
+    readers: DeclaredStoreReaders.SecurityEventsScansOnly,
+    readPermissions: [],
+    readerNames: [],
+  });
+
+  test("its retention is after a user was last seen, said where it comes from", () => {
+    expect(
+      getDeclaredRetentionText(
+        { retention: "", declared: USER_VAULT },
+        ENGLISH,
+      ),
+    ).toBe("30 days after a user was last seen");
+    expect(
+      getDeclaredRetentionText(
+        { retention: "", declared: { ...USER_VAULT, retentionInDays: 1 } },
+        ENGLISH,
+      ),
+    ).toBe("1 day after a user was last seen");
+    // The count keeps its word on its line (a no-break space): read past it.
+    expect(
+      getDeclaredRetentionText({ retention: "", declared: USER_VAULT }, GERMAN)
+        .split(NO_BREAK_SPACE)
+        .join(" "),
+    ).toBe(
+      GERMAN_WORDS[RETENTION_AFTER_USER_LAST_SEEN.other]!.replace(
+        "{{count}}",
+        "30",
+      ),
+    );
+    expect(getDeclaredRetentionHint(USER_VAULT)).toBe(
+      RETENTION_FROM_USER_LAST_SEEN,
+    );
+    expect(getDeclaredReaderNames(USER_VAULT, ENGLISH)).toEqual([]);
+  });
+
+  test("its Overview says it holds users, every other store's addresses", () => {
+    expect(getDeclaredStoreDescription(DataStoreKind.SecurityUserVault)).toBe(
+      DECLARED_USER_VAULT_DESCRIPTION,
+    );
+    expect(DECLARED_USER_VAULT_DESCRIPTION).toContain("these users");
+
+    for (const kind of [
+      DataStoreKind.SecurityEvents,
+      DataStoreKind.NetworkFlows,
+      DataStoreKind.SecurityAddressVault,
+    ]) {
+      expect(getDeclaredStoreDescription(kind)).toBe(
+        DECLARED_STORE_DESCRIPTION,
+      );
+    }
+  });
+
+  test("its name is a declared kind's, read in the reader's language", () => {
+    expect(DECLARED_STORE_KIND_NAMES).toContain("Security User Vault");
+    expect(
+      getStoreDisplayName(
+        { name: "Security User Vault", kind: DataStoreKind.SecurityUserVault },
+        GERMAN,
+      ),
+    ).toBe(GERMAN_WORDS["Security User Vault"]);
+  });
+
+  test.each(
+    DASHBOARD_LANGUAGES.map((language: string): [string] => {
+      return [language];
+    }),
+  )("every word of it is worded in %s", (language: string) => {
+    const words: Record<string, unknown> = readDashboardLocale(language);
+    const keys: Array<string> = [
+      "Security User Vault",
+      RETENTION_AFTER_USER_LAST_SEEN.other,
+      `${RETENTION_AFTER_USER_LAST_SEEN.other}_one`,
+      RETENTION_FROM_USER_LAST_SEEN,
+      DECLARED_USER_VAULT_DESCRIPTION,
+    ];
+
+    for (const key of keys) {
+      const value: unknown = words[key];
+
+      expect(typeof value).toBe("string");
+      expect(String(value).trim().length).toBeGreaterThan(0);
+
+      if (language !== "en") {
+        // Translated, not left in English.
+        expect(value).not.toBe(key);
+      }
+    }
+
+    // The count is kept wherever the language puts it.
+    expect(String(words[RETENTION_AFTER_USER_LAST_SEEN.other])).toContain(
+      "{{count}}",
+    );
+    expect(
+      String(words[`${RETENTION_AFTER_USER_LAST_SEEN.other}_one`]),
+    ).toContain("{{count}}");
+    // The vaults are told apart: the user vault's name is not the address vault's.
+    expect(words["Security User Vault"]).not.toBe(
+      words["Security Address Vault"],
+    );
   });
 });
 
