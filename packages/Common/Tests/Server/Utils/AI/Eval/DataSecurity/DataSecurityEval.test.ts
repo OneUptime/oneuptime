@@ -410,11 +410,14 @@ describe("the company's own data types (#10371)", () => {
       const call: DataSecurityEvalCall = buildEvalCall(testCase);
       const sent: string = JSON.stringify(call.messages);
 
-      expect(call.messages[0]!.content.startsWith(DRAFT_DATA_TYPE_SYSTEM_PROMPT)).toBe(
-        true,
-      );
+      expect(
+        call.messages[0]!.content.startsWith(DRAFT_DATA_TYPE_SYSTEM_PROMPT),
+      ).toBe(true);
 
-      for (const value of [...testCase.expect.finds, ...testCase.expect.keeps]) {
+      for (const value of [
+        ...testCase.expect.finds,
+        ...testCase.expect.keeps,
+      ]) {
         expect({ id: testCase.id, value, sent: sent.includes(value) }).toEqual({
           id: testCase.id,
           value,
@@ -455,9 +458,11 @@ describe("the company's own data types (#10371)", () => {
     }
 
     expect(
-      DRAFT_DATA_TYPE_EVAL_CASES.filter((testCase: { expect: { becomes: unknown } }) => {
-        return testCase.expect.becomes === null;
-      }).length,
+      DRAFT_DATA_TYPE_EVAL_CASES.filter(
+        (testCase: { expect: { becomes: unknown } }) => {
+          return testCase.expect.becomes === null;
+        },
+      ).length,
     ).toBeGreaterThanOrEqual(2);
   });
 
@@ -467,25 +472,27 @@ describe("the company's own data types (#10371)", () => {
     const answer: (pattern: string) => string = (pattern: string): string => {
       return JSON.stringify({
         dataType: {
-          ...(JSON.parse(expectedDataTypeAnswer(policies)) as {
-            dataType: Record<string, unknown>;
-          }).dataType,
+          ...(
+            JSON.parse(expectedDataTypeAnswer(policies)) as {
+              dataType: Record<string, unknown>;
+            }
+          ).dataType,
           pattern,
         },
         reason: "",
       });
     };
 
-    expect(scoreDataTypeDraft(policies, answer("\\b[A-Z]{2}-\\d{7}\\b"))).toEqual({
+    expect(
+      scoreDataTypeDraft(policies, answer("\\b[A-Z]{2}-\\d{7}\\b")),
+    ).toEqual({
       passed: false,
       notes: ["/\\b[A-Z]{2}-\\d{7}\\b/ misses XY9876543"],
     });
     expect(
       scoreDataTypeDraft(policies, answer("[A-Z]{2,3}-?\\d{6,8}")).notes,
     ).toEqual(
-      expect.arrayContaining([
-        "/[A-Z]{2,3}-?\\d{6,8}/ also finds AB-123456",
-      ]),
+      expect.arrayContaining(["/[A-Z]{2,3}-?\\d{6,8}/ also finds AB-123456"]),
     );
     expect(scoreDataTypeDraft(policies, answer("\\w+"))).toEqual({
       passed: false,

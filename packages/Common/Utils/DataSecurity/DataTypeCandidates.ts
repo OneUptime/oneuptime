@@ -277,10 +277,13 @@ export function getOwnNameWords(location: string): Array<string> {
   return words;
 }
 
+// A number on its own says nothing of what a field holds.
+const DIGITS_ONLY: RegExp = /^\d+$/;
+
 // A word that says what a field holds: not a generic one, and not a letter or two.
 export function isSignificantWord(word: string): boolean {
   return (
-    word.length >= 3 && !GENERIC_NAME_WORDS.has(word) && !/^\d+$/.test(word)
+    word.length >= 3 && !GENERIC_NAME_WORDS.has(word) && !DIGITS_ONLY.test(word)
   );
 }
 
@@ -400,7 +403,9 @@ function mergeShapes(
 }
 
 // The word a group's fields' names share most: the one its key keeps.
-function rankWords(fields: ReadonlyArray<DataTypeCandidateField>): Array<string> {
+function rankWords(
+  fields: ReadonlyArray<DataTypeCandidateField>,
+): Array<string> {
   const counts: Map<string, number> = new Map();
 
   for (const entry of fields) {
@@ -467,9 +472,8 @@ export function findDataTypeCandidates(
     const fieldsByName: Map<string, Array<number>> = new Map();
 
     for (const index of indexes) {
-      const words: Array<string> = fields[index]!.nameWords.filter(
-        isSignificantWord,
-      );
+      const words: Array<string> =
+        fields[index]!.nameWords.filter(isSignificantWord);
 
       if (words.length === 0) {
         const name: string = fields[index]!.nameWords.join(" ");

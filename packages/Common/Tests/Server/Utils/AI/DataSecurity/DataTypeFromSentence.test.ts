@@ -62,7 +62,10 @@ let answers: Array<string>;
 let aiEnabled: boolean;
 let executeSpy: jest.SpyInstance;
 
-function answer(draft: JSONObject | null, reason: string = "As described."): string {
+function answer(
+  draft: JSONObject | null,
+  reason: string = "As described.",
+): string {
   return JSON.stringify({ dataType: draft, reason });
 }
 
@@ -71,7 +74,9 @@ function request(index: number = 0): AILogRequest {
 }
 
 function sentData(index: number = 0): JSONObject {
-  return JSON.parse(request(index).messages[1]!.content as string) as JSONObject;
+  return JSON.parse(
+    request(index).messages[1]!.content as string,
+  ) as JSONObject;
 }
 
 function describeIt(
@@ -102,7 +107,8 @@ beforeEach(() => {
   executeSpy = jest
     .spyOn(AIService, "executeWithLogging")
     .mockImplementation((async () => {
-      const content: string = answers.length > 1 ? answers.shift()! : answers[0]!;
+      const content: string =
+        answers.length > 1 ? answers.shift()! : answers[0]!;
       return { content };
     }) as never);
   jest
@@ -111,9 +117,7 @@ beforeEach(() => {
       return {
         setting: {},
         options: {},
-        customTypes: new Map([
-          ["custom:1", { name: "Policy number" }],
-        ]),
+        customTypes: new Map([["custom:1", { name: "Policy number" }]]),
       };
     }) as never);
   jest.spyOn(logger, "warn").mockImplementation((): void => {});
@@ -126,10 +130,9 @@ afterEach(() => {
 describe("what the browser sends", () => {
   test("examples come as their shapes, each read again as one, at most ten", () => {
     expect(readExampleShapes(undefined)).toEqual([]);
-    expect(readExampleShapes(["AAA-999999", "AAA999999", "AAA-999999"])).toEqual([
-      "AAA-999999",
-      "AAA999999",
-    ]);
+    expect(
+      readExampleShapes(["AAA-999999", "AAA999999", "AAA-999999"]),
+    ).toEqual(["AAA-999999", "AAA999999"]);
     expect(
       readExampleShapes(
         Array.from({ length: 30 }, (_value: unknown, index: number) => {
@@ -140,7 +143,12 @@ describe("what the browser sends", () => {
   });
 
   test("an example sent as itself refuses the request: a value never reaches the model", () => {
-    for (const sent of [["EMP-204518"], ["AAA-999999", "emp@acme.example"], "AAA-999999", [42]]) {
+    for (const sent of [
+      ["EMP-204518"],
+      ["AAA-999999", "emp@acme.example"],
+      "AAA-999999",
+      [42],
+    ]) {
       expect(() => {
         return readExampleShapes(sent);
       }).toThrow(DESCRIBE_EXAMPLES_NOT_SHAPES_MESSAGE);
@@ -179,11 +187,17 @@ describe("drafting from a sentence", () => {
 
     expect(sent.feature).toBe(AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE);
     expect(sent.userId).toBe(USER_ID);
-    expect(sent.requestTimeoutInMs).toBe(INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS);
+    expect(sent.requestTimeoutInMs).toBe(
+      INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
+    );
     expect(sent.requestRetries).toBe(0);
     expect(sent.storeContentPreviews).toBe(false);
     expect(sent.recordContentInTelemetry).toBe(false);
-    expect((sent.messages[0]!.content as string).startsWith(DESCRIBE_DATA_TYPE_SYSTEM_PROMPT)).toBe(true);
+    expect(
+      (sent.messages[0]!.content as string).startsWith(
+        DESCRIBE_DATA_TYPE_SYSTEM_PROMPT,
+      ),
+    ).toBe(true);
 
     expect(sentData()).toEqual(
       expect.objectContaining({
@@ -235,7 +249,9 @@ describe("drafting from a sentence", () => {
   test("when the sentence describes no data type, says why, and fills nothing", async () => {
     answers = [answer(null, "It describes a colour, not data.")];
 
-    await expect(describeIt({ sentence: "Make the dashboard blue." })).rejects.toThrow(
+    await expect(
+      describeIt({ sentence: "Make the dashboard blue." }),
+    ).rejects.toThrow(
       "OneUptime AI found no data type to draft in that description: It describes a colour, not data. Describe it differently, or write the pattern yourself.",
     );
     expect(executeSpy).toHaveBeenCalledTimes(1);

@@ -15,9 +15,7 @@ jest.mock("../../../Server/Utils/Logger", () => {
 import CommonAPI from "../../../Server/API/CommonAPI";
 import DataSecurityCustomDataTypeAPI from "../../../Server/API/DataSecurityCustomDataTypeAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
-import AIService, {
-  AILogRequest,
-} from "../../../Server/Services/AIService";
+import AIService, { AILogRequest } from "../../../Server/Services/AIService";
 import DataSecurityCustomDataTypeService from "../../../Server/Services/DataSecurityCustomDataTypeService";
 import { DESCRIBE_EXAMPLES_NOT_SHAPES_MESSAGE } from "../../../Server/Utils/AI/DataSecurity/DataTypeFromSentence";
 import DataSecurityRunner from "../../../Server/Utils/DataSecurity/DataSecurityRunner";

@@ -41,9 +41,7 @@ export const ADD_DATA_TYPE_FROM_FORM_MESSAGE: string =
 export const ADD_DATA_TYPE_NOT_FOUND_MESSAGE: string =
   "The data type you saved could not be found in this project, so nothing was done.";
 
-function permissionsOf(
-  operation: "create" | "delete",
-): Array<Permission> {
+function permissionsOf(operation: "create" | "delete"): Array<Permission> {
   const model: DataSecurityCustomDataType = new DataSecurityCustomDataType();
 
   return operation === "create"

@@ -80,7 +80,6 @@ import DataCategory from "../../../Types/DataSecurity/DataCategory";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { DESCRIBE_DATA_TYPE_ROUTE } from "../../../Types/DataSecurity/DataTypeDescribe";
 import { JSONObject } from "../../../Types/JSON";
-import ObjectID from "../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import API from "../../../UI/Utils/API/API";
 import { CustomDataTypeValidator } from "../../../Utils/DataSecurity/CustomDataTypeDetector";
@@ -217,9 +216,7 @@ describe("the proposal's numbers, in words", () => {
 
   test("say so when some stores were not scanned in time, and only then", () => {
     expect(getPartlyCountedSentence(ENGLISH, proof())).toBe("");
-    expect(
-      getPartlyCountedSentence(ENGLISH, proof({ storesCounted: 4 })),
-    ).toBe(
+    expect(getPartlyCountedSentence(ENGLISH, proof({ storesCounted: 4 }))).toBe(
       "Counted on the scans of 4 of its 6 stores: the others were not scanned in time.",
     );
   });
@@ -234,9 +231,7 @@ describe("the proposal's numbers, in words", () => {
 
 describe("Data Types to Review", () => {
   test("is not drawn while no proposal waits", async () => {
-    const { container } = render(
-      <DataTypesToReview onAdd={(): void => {}} />,
-    );
+    const { container } = render(<DataTypesToReview onAdd={(): void => {}} />);
 
     await new Promise((resolve: (value: unknown) => void) => {
       setTimeout(resolve, 50);
@@ -433,9 +428,10 @@ describe("Describe It", () => {
       "EMP-1",
       "EMP-2",
     ]);
-    expect(toExampleShapes(["EMP-482913", "EMP-771204", "emp771204"])).toEqual(
-      ["AAA-999999", "aaa999999"],
-    );
+    expect(toExampleShapes(["EMP-482913", "EMP-771204", "emp771204"])).toEqual([
+      "AAA-999999",
+      "aaa999999",
+    ]);
   });
 
   test("cannot be pressed without a sentence, and says why the server would not draft one", async () => {

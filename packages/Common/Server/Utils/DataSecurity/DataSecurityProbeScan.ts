@@ -20,6 +20,7 @@ import {
   readShadowCounts,
   ShadowCounts,
   ShadowDraft,
+  toShadowDefinition,
 } from "../../../Utils/DataSecurity/ShadowCount";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
 import { readUnplacedFields } from "../../../Utils/DataSecurity/UnplacedFields";
@@ -206,9 +207,10 @@ function readShadowDataType(value: unknown): ShadowDraft | null {
     return null;
   }
 
-  const { dataTypeId: _dataTypeId, ...rest } = definition;
-
-  return { key: draft["key"] as string, definition: rest };
+  return {
+    key: draft["key"] as string,
+    definition: toShadowDefinition(definition),
+  };
 }
 
 function readCustomDataType(value: unknown): CustomDataTypeDefinition | null {

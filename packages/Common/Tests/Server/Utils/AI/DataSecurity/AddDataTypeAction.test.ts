@@ -48,7 +48,9 @@ let findProps: Array<DatabaseCommonInteractionProps>;
 let deleted: Array<{ id: string; props: DatabaseCommonInteractionProps }>;
 let queued: number;
 
-function caller(permissions: Array<Permission>): DatabaseCommonInteractionProps {
+function caller(
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps {
   return customDomainCaller({ permissions, projectId: PROJECT_ID });
 }
 
@@ -90,7 +92,8 @@ beforeEach(() => {
         find.query._id.toString(),
       );
 
-      return row && row.projectId!.toString() === find.query.projectId.toString()
+      return row &&
+        row.projectId!.toString() === find.query.projectId.toString()
         ? row
         : null;
     }) as never);

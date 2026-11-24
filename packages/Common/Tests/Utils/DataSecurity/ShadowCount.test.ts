@@ -177,7 +177,12 @@ describe("countShadowField", () => {
           },
         },
       ]),
-      [{ location: "t.member_card", values: ["4111111111111111", "4111111111111112"] }],
+      [
+        {
+          location: "t.member_card",
+          values: ["4111111111111111", "4111111111111112"],
+        },
+      ],
     );
 
     expect(counts["luhn"]!.matched).toBe(1);
@@ -189,9 +194,7 @@ describe("countShadowField", () => {
     ]);
 
     expect(counts).toEqual({});
-    expect(counted([], [{ location: "t.x", values: policies(3) }])).toEqual(
-      {},
-    );
+    expect(counted([], [{ location: "t.x", values: policies(3) }])).toEqual({});
   });
 
   test(`names at most ${MAX_SHADOW_FIELDS_PER_DRAFT} fields, and counts all of them`, () => {

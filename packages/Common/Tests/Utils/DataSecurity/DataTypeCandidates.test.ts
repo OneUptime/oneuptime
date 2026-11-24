@@ -341,7 +341,12 @@ describe("findDataTypeCandidates", () => {
     const many: Array<CandidateInputField> = Array.from(
       { length: MAX_CANDIDATE_FIELDS + 10 },
       (_value: unknown, index: number): CandidateInputField => {
-        return field(`s${index % 7}`, `t${index}.policy_no`, undefined, index + 5);
+        return field(
+          `s${index % 7}`,
+          `t${index}.policy_no`,
+          undefined,
+          index + 5,
+        );
       },
     );
     const candidate: DataTypeCandidate = findDataTypeCandidates(many)[0]!;

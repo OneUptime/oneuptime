@@ -60,8 +60,6 @@ import {
   ScrubRuleEvalExpectation,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
-} from "./DataSecurityEvalCase";
-import {
   DescribeDataTypeEvalCase,
   DraftDataTypesEvalCase,
 } from "./DataSecurityEvalCase";

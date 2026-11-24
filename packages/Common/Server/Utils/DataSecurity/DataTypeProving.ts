@@ -33,6 +33,7 @@ import {
   getShadowStoreKey,
   ShadowDraft,
   ShadowScanDetector,
+  toShadowDefinition,
 } from "../../../Utils/DataSecurity/ShadowCount";
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
 import { UnplacedField } from "../../../Utils/DataSecurity/UnplacedFields";
@@ -97,10 +98,12 @@ export function getShadowDrafts(proving: ProvingDataType): Array<ShadowDraft> {
         variant === DataTypeDraftVariant.Narrowed
           ? proving.plan.narrowed
           : proving.plan.draft;
-      const { dataTypeId: _dataTypeId, ...definition } =
-        toCustomDataTypeDefinition(draft, "shadow");
-
-      return { key: getShadowKey(proving.id, variant), definition };
+      return {
+        key: getShadowKey(proving.id, variant),
+        definition: toShadowDefinition(
+          toCustomDataTypeDefinition(draft, "shadow"),
+        ),
+      };
     },
   );
 }
@@ -122,11 +125,11 @@ export function readScannedValues(
   result: ContentScanResult,
   location: string,
 ): number {
-  const unplaced: UnplacedField | undefined = (result.unplacedFields || []).find(
-    (field: UnplacedField): boolean => {
-      return field.location === location;
-    },
-  );
+  const unplaced: UnplacedField | undefined = (
+    result.unplacedFields || []
+  ).find((field: UnplacedField): boolean => {
+    return field.location === location;
+  });
 
   if (unplaced) {
     return unplaced.valueCount;
@@ -458,9 +461,7 @@ export default class DataTypeProving {
       }
 
       const result: JSONObject =
-        latest.result && typeof latest.result === "object"
-          ? latest.result
-          : {};
+        latest.result && typeof latest.result === "object" ? latest.result : {};
       const stores: JSONObject = {
         ...((result["stores"] as JSONObject | undefined) || {}),
         [data.dataStoreId]: data.count as unknown as JSONObject,

@@ -2985,12 +2985,15 @@ export function buildDraftDataTypePrompt(data: {
       fields: data.fields
         .slice(0, MAX_DATA_TYPE_GROUP_FIELDS)
         .map((entry: AiDataTypeGroupField, index: number): JSONObject => {
-          const { ref: _ref, ...facts } = unplacedFieldFacts(
+          const facts: JSONObject = unplacedFieldFacts(
             entry.field,
             "",
             index,
             marks,
           );
+
+          // A group's fields are told by place: there is no field to answer by.
+          delete facts["ref"];
 
           return {
             store: customerText(

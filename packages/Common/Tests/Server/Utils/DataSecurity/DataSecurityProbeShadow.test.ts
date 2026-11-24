@@ -45,7 +45,10 @@ describe("the work a probe is handed", () => {
         shadowDataTypes: [
           {
             key: DRAFT_KEY,
-            definition: { pattern: "\\b[A-Z]{2}-?\\d{7}\\b", nameHints: ["policy no"] },
+            definition: {
+              pattern: "\\b[A-Z]{2}-?\\d{7}\\b",
+              nameHints: ["policy no"],
+            },
           },
         ],
       }),
@@ -63,9 +66,11 @@ describe("the work a probe is handed", () => {
 
     const options: ContentScanOptions = buildProbeScanOptions(read);
 
-    expect(options.shadowDetectors!.map((detector: { key: string }) => {
-      return detector.key;
-    })).toEqual([DRAFT_KEY]);
+    expect(
+      options.shadowDetectors!.map((detector: { key: string }) => {
+        return detector.key;
+      }),
+    ).toEqual([DRAFT_KEY]);
     // Never one of the scan's own detectors: it finds nothing.
     expect(options.customDetectors).toEqual([]);
   });
@@ -77,14 +82,19 @@ describe("the work a probe is handed", () => {
           { key: "bad key", definition: { pattern: "x\\d" } },
           { key: "no-pattern", definition: {} },
           "not a draft",
-          ...Array.from({ length: MAX_SHADOW_DETECTORS + 5 }, (_value: unknown, index: number) => {
-            return { key: `d${index}`, definition: { pattern: "\\d{9}" } };
-          }),
+          ...Array.from(
+            { length: MAX_SHADOW_DETECTORS + 5 },
+            (_value: unknown, index: number) => {
+              return { key: `d${index}`, definition: { pattern: "\\d{9}" } };
+            },
+          ),
         ],
       }),
     )!;
 
-    expect(read.shadowDataTypes!.length).toBeLessThanOrEqual(MAX_SHADOW_DETECTORS);
+    expect(read.shadowDataTypes!.length).toBeLessThanOrEqual(
+      MAX_SHADOW_DETECTORS,
+    );
     expect(
       read.shadowDataTypes!.some((draft: { key: string }) => {
         return draft.key === "bad key" || draft.key === "no-pattern";
@@ -123,7 +133,9 @@ describe("what a probe reports", () => {
           fields: 2,
           values: 20,
           matched: 10,
-          matchedFields: { "public.policies.policy_no": { values: 10, matched: 10 } },
+          matchedFields: {
+            "public.policies.policy_no": { values: 10, matched: 10 },
+          },
         },
         "00000000-0000-4000-8000-000000000009:AsDrafted": {
           fields: 1,
@@ -147,7 +159,9 @@ describe("what a probe reports", () => {
   test("keeps none by default, nor from a report with none", () => {
     expect(
       readProbeScanResult(
-        report({ [DRAFT_KEY]: { fields: 1, values: 1, matched: 1, matchedFields: {} } }),
+        report({
+          [DRAFT_KEY]: { fields: 1, values: 1, matched: 1, matchedFields: {} },
+        }),
         (): boolean => {
           return true;
         },

@@ -56,7 +56,10 @@ import {
 } from "../../DataSecurity/FieldSuggestionState";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
-import { AiDataTypeDraftRetry, buildDraftDataTypePrompt } from "./DataSecurityAiInput";
+import {
+  AiDataTypeDraftRetry,
+  buildDraftDataTypePrompt,
+} from "./DataSecurityAiInput";
 import DataSecurityAiCall from "./DataSecurityAiCall";
 import {
   DataTypeDraftAnswer,
@@ -651,7 +654,9 @@ export default class DataTypeDiscovery {
     proposal.projectId = data.projectId;
     proposal.kind = DataSecurityAiProposalKind.AddDataType;
     proposal.work =
-      DATA_SECURITY_AI_PROPOSAL_KINDS[DataSecurityAiProposalKind.AddDataType].work;
+      DATA_SECURITY_AI_PROPOSAL_KINDS[
+        DataSecurityAiProposalKind.AddDataType
+      ].work;
     proposal.safety =
       DATA_SECURITY_AI_PROPOSAL_KINDS[
         DataSecurityAiProposalKind.AddDataType

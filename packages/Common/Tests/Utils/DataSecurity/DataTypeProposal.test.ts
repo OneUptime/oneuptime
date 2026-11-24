@@ -84,7 +84,8 @@ function plan(fields: Array<DataTypeGroupField>): DataTypeProposalPlan {
     shapes: [{ shape: "AA-9999999", share: 1 }],
     draft: DRAFT,
     narrowed: narrowDataTypeDraft(DRAFT, ["policy", "police"]),
-    reason: "Every field's name says policy, and every value is two capitals and seven digits.",
+    reason:
+      "Every field's name says policy, and every value is two capitals and seven digits.",
     provingSince: SINCE,
     provingUntil: UNTIL,
   };
@@ -419,9 +420,9 @@ describe("decideDataTypeProof", () => {
     });
 
     expect(decision.outcome).toBe("propose");
-    expect(
-      (decision as { proof: DataTypeProof }).proof.variant,
-    ).toBe(DataTypeDraftVariant.AsDrafted);
+    expect((decision as { proof: DataTypeProof }).proof.variant).toBe(
+      DataTypeDraftVariant.AsDrafted,
+    );
   });
 
   test("offers what was counted once the time is over, if some stores were scanned", () => {
@@ -448,7 +449,10 @@ describe("decideDataTypeProof", () => {
     const stores: Record<string, DataTypeStoreCount> = elevenColumnsCounted();
 
     for (const store of Object.keys(stores)) {
-      stores[store] = { ...stores[store]!, scannedAt: "2026-11-22T00:00:00.000Z" };
+      stores[store] = {
+        ...stores[store]!,
+        scannedAt: "2026-11-22T00:00:00.000Z",
+      };
     }
 
     expect(isEveryStoreCounted({ plan: elevenColumns(), stores })).toBe(false);
@@ -468,7 +472,9 @@ describe("decideDataTypeProof", () => {
     expect(
       decideDataTypeProof({
         plan: plan([groupField("s1", "t.policy_no")]),
-        stores: { s1: storeCount(variant({ "t.policy_no": [100, 79] }, [0, 0])) },
+        stores: {
+          s1: storeCount(variant({ "t.policy_no": [100, 79] }, [0, 0])),
+        },
         now: NOW,
       }),
     ).toMatchObject({
@@ -530,7 +536,10 @@ describe("decideDataTypeProof", () => {
         },
         now: NOW,
       }),
-    ).toMatchObject({ outcome: "drop", reason: DataTypeDropReason.ReachesTooFar });
+    ).toMatchObject({
+      outcome: "drop",
+      reason: DataTypeDropReason.ReachesTooFar,
+    });
   });
 });
 

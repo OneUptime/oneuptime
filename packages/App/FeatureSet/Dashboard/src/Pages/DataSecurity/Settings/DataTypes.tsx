@@ -1270,7 +1270,8 @@ const CustomDataTypesTable: FunctionComponent<CustomDataTypesTableProps> = (
 
 // A proposal a link asked for (ADD_DATA_TYPE_PARAM), or null.
 async function readAskedProposal(): Promise<DataTypeToReview | null> {
-  const asked: string = Navigation.getQueryStringByName(ADD_DATA_TYPE_PARAM) || "";
+  const asked: string =
+    Navigation.getQueryStringByName(ADD_DATA_TYPE_PARAM) || "";
 
   if (!ObjectID.isValidUUID(asked)) {
     return null;
@@ -1315,10 +1316,7 @@ const DataSecurityDataTypes: FunctionComponent<
 
   return (
     <Fragment>
-      <DataTypesToReview
-        onAdd={setAdding}
-        refreshToggle={refreshToggle}
-      />
+      <DataTypesToReview onAdd={setAdding} refreshToggle={refreshToggle} />
       <BuiltInDataTypesCard />
       <CustomDataTypesTable
         adding={adding}

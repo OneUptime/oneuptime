@@ -109,7 +109,10 @@ export function readExampleShapes(value: unknown): Array<string> {
       throw new BadDataException(DESCRIBE_EXAMPLES_NOT_SHAPES_MESSAGE);
     }
 
-    if (!shapes.includes(item) && shapes.length < MAX_DATA_TYPE_EXAMPLE_SHAPES) {
+    if (
+      !shapes.includes(item) &&
+      shapes.length < MAX_DATA_TYPE_EXAMPLE_SHAPES
+    ) {
       shapes.push(item);
     }
   }

@@ -89,6 +89,9 @@ export const MAX_PROOF_ALSO_IN: number = 10;
 const PLAIN_TEXT: string =
   "the quick brown fox jumps over the lazy dog while Kim and Lee ship orders on Monday, status active pending done, price 12.50 EUR, 2026-11-23 10:30";
 
+// A candidate of nothing but letters and spaces: words, not a value.
+const LETTERS_AND_SPACES: RegExp = /^[\p{L}\s]+$/u;
+
 export enum DataTypeDraftVariant {
   AsDrafted = "AsDrafted",
   Narrowed = "Narrowed",
@@ -256,7 +259,10 @@ export function readDataTypeDraft(value: unknown): DataTypeDraft | null {
 
   const raw: JSONObject = value as JSONObject;
   const name: string = readText(raw["name"], MAX_DRAFT_NAME_LENGTH);
-  const pattern: string = readText(raw["pattern"], MAX_DRAFT_PATTERN_LENGTH + 1);
+  const pattern: string = readText(
+    raw["pattern"],
+    MAX_DRAFT_PATTERN_LENGTH + 1,
+  );
   const validator: unknown = raw["validator"] ?? CustomDataTypeValidator.None;
 
   if (
@@ -357,7 +363,7 @@ export function checkDataTypeDraft(
   const plainWords: boolean = detector
     .findCandidates(PLAIN_TEXT)
     .some((candidate: { value: string }): boolean => {
-      return /^[\p{L}\s]+$/u.test(candidate.value);
+      return LETTERS_AND_SPACES.test(candidate.value);
     });
 
   if (plainWords) {
@@ -494,7 +500,10 @@ export function toStoreVariantCount(data: {
       );
     })
     .sort(
-      (a: [string, ShadowFieldCount], b: [string, ShadowFieldCount]): number => {
+      (
+        a: [string, ShadowFieldCount],
+        b: [string, ShadowFieldCount],
+      ): number => {
         return b[1].matched - a[1].matched;
       },
     )
@@ -688,7 +697,11 @@ export function isEveryStoreCounted(data: {
     const counted: DataTypeStoreCount | undefined = data.stores[storeId];
     const at: number = counted ? Date.parse(counted.scannedAt) : NaN;
 
-    if (!counted || !Number.isFinite(at) || (Number.isFinite(since) && at < since)) {
+    if (
+      !counted ||
+      !Number.isFinite(at) ||
+      (Number.isFinite(since) && at < since)
+    ) {
       return false;
     }
   }
@@ -828,9 +841,7 @@ function readProof(value: unknown): DataTypeProof | undefined {
   const raw: JSONObject = value as JSONObject;
   const variant: unknown = raw["variant"];
 
-  if (
-    !(DATA_TYPE_DRAFT_VARIANTS as ReadonlyArray<unknown>).includes(variant)
-  ) {
+  if (!(DATA_TYPE_DRAFT_VARIANTS as ReadonlyArray<unknown>).includes(variant)) {
     return undefined;
   }
 
@@ -985,7 +996,9 @@ export function readDataTypeStoreCounts(
     return stores;
   }
 
-  for (const [storeId, raw] of Object.entries(value as Record<string, unknown>)) {
+  for (const [storeId, raw] of Object.entries(
+    value as Record<string, unknown>,
+  )) {
     if (
       Object.keys(stores).length >= MAX_PLAN_FIELDS ||
       !raw ||

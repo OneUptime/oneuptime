@@ -232,11 +232,7 @@ const DataTypeRow: FunctionComponent<{
             >
               {getProofSentence(translator, proof)}
             </p>
-            {partly ? (
-              <p className="text-xs text-gray-500">{partly}</p>
-            ) : (
-              <></>
-            )}
+            {partly ? <p className="text-xs text-gray-500">{partly}</p> : <></>}
             {proof.variant === DataTypeDraftVariant.Narrowed ? (
               <p className="text-xs text-gray-500">
                 {translator.translateText(DataTypesToReviewCopy.narrowed)}

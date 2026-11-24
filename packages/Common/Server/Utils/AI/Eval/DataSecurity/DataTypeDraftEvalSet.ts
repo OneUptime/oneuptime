@@ -28,9 +28,7 @@ import {
   buildDraftDataTypePrompt,
   DataSecurityAiPrompt,
 } from "../../DataSecurity/DataSecurityAiInput";
-import {
-  DATA_TYPE_DRAFT_MAX_COMPLETION_TOKENS,
-} from "../../DataSecurity/DataTypeDiscovery";
+import { DATA_TYPE_DRAFT_MAX_COMPLETION_TOKENS } from "../../DataSecurity/DataTypeDiscovery";
 import {
   DataTypeDraftAnswer,
   DESCRIBE_DATA_TYPE_SYSTEM_PROMPT,
@@ -81,7 +79,9 @@ function described(data: {
   });
 
   if (!field) {
-    throw new Error(`The eval's field ${data.location} is not one a scan keeps.`);
+    throw new Error(
+      `The eval's field ${data.location} is not one a scan keeps.`,
+    );
   }
 
   return field;
@@ -151,12 +151,42 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
       feature: DataSecurityAiFeature.DraftDataTypes,
       storeCount: 6,
       fields: [
-        column(DataStoreKind.PostgreSql, "public.policies.policy_no", "@@-#######", 1),
-        column(DataStoreKind.PostgreSql, "public.claims.policy_no", "@@-#######", 2),
-        column(DataStoreKind.MySql, "sales.contracts.policyNumber", "@@-#######", 3),
-        column(DataStoreKind.MySql, "sales.renewals.policyNumber", "@@#######", 4),
-        column(DataStoreKind.SqlServer, "dbo.vertraege.police_nr", "@@-#######", 5),
-        column(DataStoreKind.SqlServer, "dbo.schaeden.police_nr", "@@-#######", 6),
+        column(
+          DataStoreKind.PostgreSql,
+          "public.policies.policy_no",
+          "@@-#######",
+          1,
+        ),
+        column(
+          DataStoreKind.PostgreSql,
+          "public.claims.policy_no",
+          "@@-#######",
+          2,
+        ),
+        column(
+          DataStoreKind.MySql,
+          "sales.contracts.policyNumber",
+          "@@-#######",
+          3,
+        ),
+        column(
+          DataStoreKind.MySql,
+          "sales.renewals.policyNumber",
+          "@@#######",
+          4,
+        ),
+        column(
+          DataStoreKind.SqlServer,
+          "dbo.vertraege.police_nr",
+          "@@-#######",
+          5,
+        ),
+        column(
+          DataStoreKind.SqlServer,
+          "dbo.schaeden.police_nr",
+          "@@-#######",
+          6,
+        ),
         column(DataStoreKind.AwsDynamoDbTable, "policy_ref", "@@-#######", 7),
       ],
       expect: POLICY_NUMBER_EXPECTATION,
@@ -205,10 +235,25 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
       feature: DataSecurityAiFeature.DraftDataTypes,
       storeCount: 3,
       fields: [
-        column(DataStoreKind.PostgreSql, "hr.people.personnel_no", "@@@-######", 21),
-        column(DataStoreKind.PostgreSql, "hr.payroll.personnel_no", "@@@######", 22),
+        column(
+          DataStoreKind.PostgreSql,
+          "hr.people.personnel_no",
+          "@@@-######",
+          21,
+        ),
+        column(
+          DataStoreKind.PostgreSql,
+          "hr.payroll.personnel_no",
+          "@@@######",
+          22,
+        ),
         column(DataStoreKind.MySql, "app.users.staffNumber", "@@@-######", 23),
-        column(DataStoreKind.GcpBigQueryDataset, "events.staff_number", "@@@-######", 24),
+        column(
+          DataStoreKind.GcpBigQueryDataset,
+          "events.staff_number",
+          "@@@-######",
+          24,
+        ),
       ],
       expect: {
         becomes: {
@@ -238,8 +283,18 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
       feature: DataSecurityAiFeature.DraftDataTypes,
       storeCount: 2,
       fields: [
-        column(DataStoreKind.PostgreSql, "clinic.visits.patient_ref", "@@######@", 31),
-        column(DataStoreKind.PostgreSql, "clinic.labs.pat_ref", "@@######@", 32),
+        column(
+          DataStoreKind.PostgreSql,
+          "clinic.visits.patient_ref",
+          "@@######@",
+          31,
+        ),
+        column(
+          DataStoreKind.PostgreSql,
+          "clinic.labs.pat_ref",
+          "@@######@",
+          32,
+        ),
         column(DataStoreKind.AwsS3Bucket, "patientRef", "@@######@", 33),
       ],
       expect: {
@@ -252,7 +307,10 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
         finds: ["PR482913X", "QA000042B"],
         keeps: ["PR48291X", "PR482913", "PRX482913X", "2026-11-23"],
         categories: [DataCategory.Health, DataCategory.ContactAndIdentity],
-        sensitivities: [DataSensitivity.Restricted, DataSensitivity.Confidential],
+        sensitivities: [
+          DataSensitivity.Restricted,
+          DataSensitivity.Confidential,
+        ],
       },
     },
     {
@@ -262,9 +320,24 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
       feature: DataSecurityAiFeature.DraftDataTypes,
       storeCount: 3,
       fields: [
-        column(DataStoreKind.PostgreSql, "crm.kunden.kundennummer", "1#######", 41),
-        column(DataStoreKind.MySql, "shop.bestellungen.kunden_nr", "1#######", 42),
-        column(DataStoreKind.SqlServer, "dbo.rechnungen.kundennr", "1#######", 43),
+        column(
+          DataStoreKind.PostgreSql,
+          "crm.kunden.kundennummer",
+          "1#######",
+          41,
+        ),
+        column(
+          DataStoreKind.MySql,
+          "shop.bestellungen.kunden_nr",
+          "1#######",
+          42,
+        ),
+        column(
+          DataStoreKind.SqlServer,
+          "dbo.rechnungen.kundennr",
+          "1#######",
+          43,
+        ),
       ],
       expect: {
         becomes: {
@@ -294,9 +367,24 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
       feature: DataSecurityAiFeature.DraftDataTypes,
       storeCount: 3,
       fields: [
-        column(DataStoreKind.PostgreSql, "shop.orders.order_number", "ORD-########", 51),
-        column(DataStoreKind.MySql, "fulfilment.shipments.orderNo", "ORD-########", 52),
-        column(DataStoreKind.PostgreSql, "billing.invoices.order_ref", "ORD-########", 53),
+        column(
+          DataStoreKind.PostgreSql,
+          "shop.orders.order_number",
+          "ORD-########",
+          51,
+        ),
+        column(
+          DataStoreKind.MySql,
+          "fulfilment.shipments.orderNo",
+          "ORD-########",
+          52,
+        ),
+        column(
+          DataStoreKind.PostgreSql,
+          "billing.invoices.order_ref",
+          "ORD-########",
+          53,
+        ),
       ],
       expect: { becomes: null, finds: [], keeps: [] },
     },
@@ -306,9 +394,24 @@ export const DRAFT_DATA_TYPE_EVAL_CASES: ReadonlyArray<DraftDataTypesEvalCase> =
       feature: DataSecurityAiFeature.DraftDataTypes,
       storeCount: 2,
       fields: [
-        column(DataStoreKind.PostgreSql, "catalog.products.product_code", "@@@-####", 61),
-        column(DataStoreKind.PostgreSql, "catalog.stock.productCode", "@@@-####", 62),
-        column(DataStoreKind.MySql, "shop.order_lines.product_code", "@@@-####", 63),
+        column(
+          DataStoreKind.PostgreSql,
+          "catalog.products.product_code",
+          "@@@-####",
+          61,
+        ),
+        column(
+          DataStoreKind.PostgreSql,
+          "catalog.stock.productCode",
+          "@@@-####",
+          62,
+        ),
+        column(
+          DataStoreKind.MySql,
+          "shop.order_lines.product_code",
+          "@@@-####",
+          63,
+        ),
       ],
       expect: { becomes: null, finds: [], keeps: [] },
     },
@@ -410,7 +513,10 @@ export const DESCRIBE_DATA_TYPE_EVAL_CASES: ReadonlyArray<DescribeDataTypeEvalCa
         finds: ["PAT-48291377", "PAT-00000042"],
         keeps: ["PAT-4829137", "PAX-48291377", "2026-11-23"],
         categories: [DataCategory.Health, DataCategory.ContactAndIdentity],
-        sensitivities: [DataSensitivity.Restricted, DataSensitivity.Confidential],
+        sensitivities: [
+          DataSensitivity.Restricted,
+          DataSensitivity.Confidential,
+        ],
       },
     },
     {

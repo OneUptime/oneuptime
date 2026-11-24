@@ -49,6 +49,23 @@ export const MAX_SHADOW_LOCATION_LENGTH: number = 500;
 // The most one count may say: a scan reads far fewer values.
 const MAX_SHADOW_COUNT: number = 1_000_000_000;
 
+/*
+ * A definition as a draft runs in shadow: how it is found, without the id
+ * a saved type has - a draft is counted under its key, never as a type.
+ */
+export function toShadowDefinition(
+  definition: CustomDataTypeDefinition,
+): Omit<CustomDataTypeDefinition, "dataTypeId"> {
+  return {
+    pattern: definition.pattern,
+    ignoreCase: definition.ignoreCase,
+    keywords: definition.keywords,
+    requiresKeyword: definition.requiresKeyword,
+    nameHints: definition.nameHints,
+    validator: definition.validator,
+  };
+}
+
 // A draft's key: what the scan's result counts it under.
 const SHADOW_KEY: RegExp = /^[A-Za-z0-9:_-]{1,100}$/;
 
@@ -215,7 +232,12 @@ export function countShadowField(data: {
           detectors: [shadow.detector],
           extraHints:
             shadow.hints.length > 0
-              ? [{ dataTypeId: shadow.detector.dataTypeId, hints: shadow.hints }]
+              ? [
+                  {
+                    dataTypeId: shadow.detector.dataTypeId,
+                    hints: shadow.hints,
+                  },
+                ]
               : [],
           allowedValues: data.allowedValues,
         },
@@ -323,7 +345,11 @@ export function readShadowCounts(
     };
     const rawFields: unknown = entry["matchedFields"];
 
-    if (rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)) {
+    if (
+      rawFields &&
+      typeof rawFields === "object" &&
+      !Array.isArray(rawFields)
+    ) {
       for (const [location, field] of Object.entries(
         rawFields as Record<string, unknown>,
       )) {
@@ -338,7 +364,11 @@ export function readShadowCounts(
           (field as Record<string, unknown>)["matched"],
         );
 
-        if (fieldValues === null || fieldMatched === null || fieldMatched === 0) {
+        if (
+          fieldValues === null ||
+          fieldMatched === null ||
+          fieldMatched === 0
+        ) {
           continue;
         }
 

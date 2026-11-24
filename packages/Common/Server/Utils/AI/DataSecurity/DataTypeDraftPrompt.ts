@@ -117,15 +117,16 @@ export const DESCRIBE_DATA_TYPE_SYSTEM_PROMPT: string = [
 ].join("\n");
 
 // What a pattern's problem is called, when the draft is asked for once more.
-export const DRAFT_PROBLEM_WORDS: Readonly<Record<DataTypeDraftProblem, string>> =
-  {
-    [DataTypeDraftProblem.PatternUnusable]:
-      "it does not compile, cannot run in linear time, uses a backreference or a lookaround, or matches empty text",
-    [DataTypeDraftProblem.FindsPlainWords]:
-      "it matches plain words, so it would match words everywhere",
-    [DataTypeDraftProblem.MissesItsShapes]:
-      "it matches none of the shapes of the values it was written for",
-  };
+export const DRAFT_PROBLEM_WORDS: Readonly<
+  Record<DataTypeDraftProblem, string>
+> = {
+  [DataTypeDraftProblem.PatternUnusable]:
+    "it does not compile, cannot run in linear time, uses a backreference or a lookaround, or matches empty text",
+  [DataTypeDraftProblem.FindsPlainWords]:
+    "it matches plain words, so it would match words everywhere",
+  [DataTypeDraftProblem.MissesItsShapes]:
+    "it matches none of the shapes of the values it was written for",
+};
 
 type DraftShape = StrictObject<{
   name: StrictText;
@@ -243,5 +244,7 @@ export function readDataTypeDraftAnswer(
     validator: answer.dataType.validator || "None",
   });
 
-  return draft ? { kind: "draft", draft, reason } : { kind: "unusable", reason };
+  return draft
+    ? { kind: "draft", draft, reason }
+    : { kind: "unusable", reason };
 }

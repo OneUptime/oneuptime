@@ -66,12 +66,14 @@ export default class DataSecurityCustomDataTypeAPI extends BaseAPI<
             req.body && typeof req.body === "object" && !Array.isArray(req.body)
               ? (req.body as JSONObject)
               : {};
-          const described: DescribedDataType = await DataTypeFromSentence.draft({
-            projectId,
-            userId: props.userId,
-            sentence: body["sentence"],
-            exampleShapes: body["exampleShapes"],
-          });
+          const described: DescribedDataType = await DataTypeFromSentence.draft(
+            {
+              projectId,
+              userId: props.userId,
+              sentence: body["sentence"],
+              exampleShapes: body["exampleShapes"],
+            },
+          );
 
           return Response.sendJsonObjectResponse(req, res, {
             dataType: toCustomDataTypeFormValues(described.draft),

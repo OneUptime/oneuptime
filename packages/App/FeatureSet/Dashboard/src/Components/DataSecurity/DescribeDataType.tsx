@@ -66,7 +66,9 @@ export function readExamples(text: string): Array<string> {
  * What is sent of the examples: their shapes, each once - EMP-123456 is
  * AAA-999999. Never an example.
  */
-export function toExampleShapes(examples: ReadonlyArray<string>): Array<string> {
+export function toExampleShapes(
+  examples: ReadonlyArray<string>,
+): Array<string> {
   const shapes: Array<string> = [];
 
   for (const example of examples) {

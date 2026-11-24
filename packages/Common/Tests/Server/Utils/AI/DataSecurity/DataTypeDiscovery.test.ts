@@ -123,29 +123,32 @@ function sixStores(): Array<FakeStore> {
     return [`Store ${index + 1}`, locations];
   });
 
-  return group.map(([name, locations]: [string, Array<string>], index: number) => {
-    const columns: Record<string, Array<string>> = {};
+  return group.map(
+    ([name, locations]: [string, Array<string>], index: number) => {
+      const columns: Record<string, Array<string>> = {};
 
-    locations.forEach((location: string, column: number): void => {
-      columns[location] = policyNumbers(40, index * 10 + column + 1);
-    });
+      locations.forEach((location: string, column: number): void => {
+        columns[location] = policyNumbers(40, index * 10 + column + 1);
+      });
 
-    // Beside them, what any store has: emails, and notes that seldom name a policy.
-    columns[`${locations[0]!.split(".").slice(0, -1).join(".")}.contact_email`] =
-      emails(40, index);
-    columns[`${locations[0]!.split(".").slice(0, -1).join(".")}.note`] = Array.from(
-      { length: 200 },
-      (_value: unknown, row: number): string => {
-        return row === 0 ? "renewal of policy AB-1234567 confirmed" : "called";
-      },
-    );
+      // Beside them, what any store has: emails, and notes that seldom name a policy.
+      columns[
+        `${locations[0]!.split(".").slice(0, -1).join(".")}.contact_email`
+      ] = emails(40, index);
+      columns[`${locations[0]!.split(".").slice(0, -1).join(".")}.note`] =
+        Array.from({ length: 200 }, (_value: unknown, row: number): string => {
+          return row === 0
+            ? "renewal of policy AB-1234567 confirmed"
+            : "called";
+        });
 
-    return {
-      id: ObjectID.generate(),
-      name,
-      columns,
-    };
-  });
+      return {
+        id: ObjectID.generate(),
+        name,
+        columns,
+      };
+    },
+  );
 }
 
 // What a store's last scan left: the fields it could not place, described.
@@ -204,7 +207,9 @@ function request(index: number = 0): AILogRequest {
 }
 
 function sentData(index: number = 0): JSONObject {
-  return JSON.parse(request(index).messages[1]!.content as string) as JSONObject;
+  return JSON.parse(
+    request(index).messages[1]!.content as string,
+  ) as JSONObject;
 }
 
 function proposalsOf(
@@ -247,7 +252,10 @@ function scanOptions(detectors: Array<ShadowScanDetector>): ContentScanOptions {
  * A store's next scan, as a database scan reads its columns: the drafts
  * being proven on it run in shadow, and its result is recorded.
  */
-async function scanStore(store: FakeStore, at: Date): Promise<ContentScanResult> {
+async function scanStore(
+  store: FakeStore,
+  at: Date,
+): Promise<ContentScanResult> {
   const detectors: Array<ShadowScanDetector> =
     await DataTypeProving.getShadowDetectorsForStore({
       projectId: PROJECT_ID,
@@ -301,7 +309,8 @@ beforeEach(() => {
   executeSpy = jest
     .spyOn(AIService, "executeWithLogging")
     .mockImplementation((async () => {
-      const content: string = answers.length > 1 ? answers.shift()! : answers[0]!;
+      const content: string =
+        answers.length > 1 ? answers.shift()! : answers[0]!;
       return { content };
     }) as never);
   jest
@@ -437,16 +446,20 @@ describe("eleven policy number columns in six stores", () => {
 
       // Counted, never found: no finding names it, and its fields stay unplaced.
       expect(
-        result.locations.some((location: { classifications: Array<{ dataTypeId: string }> }) => {
-          return location.classifications.some(
-            (classification: { dataTypeId: string }): boolean => {
-              return classification.dataTypeId.startsWith("shadow:");
-            },
-          );
-        }),
+        result.locations.some(
+          (location: { classifications: Array<{ dataTypeId: string }> }) => {
+            return location.classifications.some(
+              (classification: { dataTypeId: string }): boolean => {
+                return classification.dataTypeId.startsWith("shadow:");
+              },
+            );
+          },
+        ),
       ).toBe(false);
       expect(
-        result.shadowCounts![getShadowKey(proving!.id!, DataTypeDraftVariant.AsDrafted)],
+        result.shadowCounts![
+          getShadowKey(proving!.id!, DataTypeDraftVariant.AsDrafted)
+        ],
       ).toBeDefined();
 
       if (index < stores.length - 1) {
@@ -523,9 +536,11 @@ describe("what is drafted", () => {
   test("nothing with the project's AI off, though the proofs being run are still decided", async () => {
     await run();
     aiEnabled = false;
-    stores.push(...sixStores().map((store: FakeStore, index: number) => {
-      return { ...store, name: `Other ${index}` };
-    }));
+    stores.push(
+      ...sixStores().map((store: FakeStore, index: number) => {
+        return { ...store, name: `Other ${index}` };
+      }),
+    );
 
     const outcome: DataTypeDiscoveryOutcome = await run(
       new Date(NOW.getTime() + 3 * DAY_IN_MS),
@@ -537,9 +552,10 @@ describe("what is drafted", () => {
     expect(executeSpy).toHaveBeenCalledTimes(1);
     expect(proposalsOf(DataSecurityAiProposalStatus.Expired)).toHaveLength(1);
     expect(
-      (proposalsOf(DataSecurityAiProposalStatus.Expired)[0]!.result as JSONObject)[
-        "dropReason"
-      ],
+      (
+        proposalsOf(DataSecurityAiProposalStatus.Expired)[0]!
+          .result as JSONObject
+      )["dropReason"],
     ).toBe(DataTypeDropReason.NotScanned);
   });
 
@@ -569,9 +585,9 @@ describe("what is drafted", () => {
     await run();
 
     expect(proposalsOf(DataSecurityAiProposalStatus.Expired)).toHaveLength(1);
-    expect(
-      (proposals[0]!.result as JSONObject)["dropReason"],
-    ).toBe(DataTypeDropReason.NotADataType);
+    expect((proposals[0]!.result as JSONObject)["dropReason"]).toBe(
+      DataTypeDropReason.NotADataType,
+    );
 
     await run(new Date(NOW.getTime() + 2 * DAY_IN_MS));
 
@@ -579,7 +595,9 @@ describe("what is drafted", () => {
 
     answers = [draftAnswer()];
     await run(
-      new Date(NOW.getTime() + (DROPPED_DATA_TYPE_COOLDOWN_DAYS + 1) * DAY_IN_MS),
+      new Date(
+        NOW.getTime() + (DROPPED_DATA_TYPE_COOLDOWN_DAYS + 1) * DAY_IN_MS,
+      ),
     );
 
     expect(executeSpy).toHaveBeenCalledTimes(2);
@@ -690,7 +708,9 @@ describe("the proof", () => {
     stores[0]!.columns["public.policies.note"] = Array.from(
       { length: 200 },
       (_value: unknown, row: number): string => {
-        return row % 5 === 0 ? `ref ${policyNumbers(1, row + 300)[0]!}` : "called";
+        return row % 5 === 0
+          ? `ref ${policyNumbers(1, row + 300)[0]!}`
+          : "called";
       },
     );
 
@@ -712,11 +732,16 @@ describe("the proof", () => {
   });
 
   test("drops a draft that misses its own fields' values", async () => {
-    answers = [draftAnswer({ ...POLICY_DRAFT, pattern: "\\b[A-Z]{2}-\\d{7}\\b" })];
+    answers = [
+      draftAnswer({ ...POLICY_DRAFT, pattern: "\\b[A-Z]{2}-\\d{7}\\b" }),
+    ];
     // Most of a store's policy numbers have no dash: the draft asks for one.
     for (const store of stores) {
       for (const [location, values] of Object.entries(store.columns)) {
-        if (location.endsWith("policy_no") || location.endsWith("policyNumber")) {
+        if (
+          location.endsWith("policy_no") ||
+          location.endsWith("policyNumber")
+        ) {
           store.columns[location] = values.map((value: string): string => {
             return value.replace("-", "");
           });

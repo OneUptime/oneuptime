@@ -489,14 +489,12 @@ describe("a telemetry scan", () => {
       DataStoreKind.TelemetryTraces,
     );
 
-    expect(traces.result.shadowCounts!["proposal-1:AsDrafted"]).toMatchObject(
-      {
-        matched: 20,
-        matchedFields: {
-          "attributes.policy_ref": { values: 20, matched: 20 },
-        },
+    expect(traces.result.shadowCounts!["proposal-1:AsDrafted"]).toMatchObject({
+      matched: 20,
+      matchedFields: {
+        "attributes.policy_ref": { values: 20, matched: 20 },
       },
-    );
+    });
     // No finding of it, and policy_ref is still a field no detector placed.
     expect(
       traces.result.locations.some((location: { location: string }) => {
