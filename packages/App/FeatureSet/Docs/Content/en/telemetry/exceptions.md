@@ -219,6 +219,8 @@ Check the lens first: **Issues** hides user errors and expected denials, so pick
 
 :::details One error shows up as several exceptions
 The fingerprint includes the message and the stack trace. When they differ, for example when a message embeds a short number or a name that changes on every call, each variant is its own exception. New exceptions are grouped by the functions of your own code instead, or by a message without its card, Social Security and phone numbers, so this mostly concerns exceptions recorded before; merge two that are the same bug from **Similar exceptions**. A scrub rule doesn't split an exception: it is grouped by what it said before the rules ran. An exception found in logs that a rule split into two in an earlier version of OneUptime stays two. Once a new occurrence arrives, both are marked **Split** in the exceptions list, and each one's page names the other: **Merge Exceptions** there makes them one again, without OneUptime AI. The older of the two is kept, and **Unmerge** undoes it.
+
+To list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many, and saved views and links keep it.
 :::
 
 :::details An exception's fingerprint changed
