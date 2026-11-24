@@ -1,4 +1,7 @@
-import { CodeTaskRepositoryJSON } from "Common/Types/AI/CodeTask";
+import {
+  CodeRepositoryListGroup,
+  CodeTaskRepositoryJSON,
+} from "Common/Types/AI/CodeTask";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -6,12 +9,17 @@ import {
   MAX_ACTION_ITEM_INSTRUCTIONS_LENGTH,
 } from "Common/Utils/Incident/PostmortemActionItemCodeTask";
 import NamedSentence from "Common/UI/Components/DeleteConfirmation/NamedSentence";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import API from "Common/UI/Utils/API/API";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useState,
+} from "react";
+import CodeRepositorySearchField from "../../Code/CodeRepositorySearchField";
 import PostmortemActionItemsApi from "./PostmortemActionItemsApi";
 import {
   POSTMORTEM_ACTION_ITEMS_COPY,
@@ -22,8 +30,13 @@ export interface ComponentProps {
   actionItemId: ObjectID;
   actionItemTitle: string;
   kind: ActionItemCodeTaskKind;
-  // The repositories OneUptime AI can work in: connected ones, at least one.
-  repositories: Array<CodeTaskRepositoryJSON>;
+  /*
+   * The project's one repository OneUptime AI can work in, when it has only
+   * one: picked already. With several, the person picks one - the field
+   * searches every connected repository they may read on the server,
+   * however many the project has (#10764).
+   */
+  onlyRepository?: CodeTaskRepositoryJSON | null | undefined;
   onClose: () => void;
   // The task OneUptime AI started: the row shows it from now on.
   onStarted: (taskId: string) => void;
@@ -40,6 +53,11 @@ const INSTRUCTIONS_KEY: string = "instructions";
  * its incident (PostmortemActionItemCodeTask), so the dialog asks nothing it
  * can work out. A refusal - AI off, no Runner, the plan - is said under the
  * fields in the server's words, and the dialog stays open.
+ *
+ * The repository is picked from the repositories AI can work in, searched
+ * on the server as the person types (CodeRepositorySearchField): the
+ * dialog used to offer the connected ones among the project's first 500,
+ * so a repository past them could not be picked.
  */
 const ActionItemCodeTaskModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -48,17 +66,6 @@ const ActionItemCodeTaskModal: FunctionComponent<ComponentProps> = (
   const [error, setError] = useState<string>("");
 
   const isTest: boolean = props.kind === ActionItemCodeTaskKind.Test;
-
-  const options: Array<DropdownOption> = props.repositories.map(
-    (repository: CodeTaskRepositoryJSON): DropdownOption => {
-      return {
-        label: repository.name || repository.id,
-        value: repository.id,
-        // A repository's name, as its project named it.
-        isUserContent: true,
-      };
-    },
-  );
 
   return (
     <BasicFormModal<JSONObject>
@@ -90,18 +97,39 @@ const ActionItemCodeTaskModal: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       formProps={{
         name: "postmortem-action-item-code-task",
-        initialValues:
-          props.repositories.length === 1
-            ? { [REPOSITORY_KEY]: props.repositories[0]!.id }
-            : {},
+        initialValues: props.onlyRepository
+          ? { [REPOSITORY_KEY]: props.onlyRepository.id }
+          : {},
         fields: [
           {
             field: { [REPOSITORY_KEY]: true },
             title: POSTMORTEM_ACTION_ITEMS_COPY.repositoryField,
             description: POSTMORTEM_ACTION_ITEMS_COPY.repositoryHelp,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: options,
+            fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
+            getCustomElement: (
+              values: FormValues<JSONObject>,
+              customProps: CustomElementProps,
+            ): ReactElement => {
+              const value: unknown = (values as JSONObject)[REPOSITORY_KEY];
+
+              return (
+                <CodeRepositorySearchField
+                  value={typeof value === "string" && value ? value : null}
+                  knownRepository={props.onlyRepository}
+                  group={CodeRepositoryListGroup.Connected}
+                  isClearable={false}
+                  error={customProps.error}
+                  tabIndex={customProps.tabIndex}
+                  ariaLabelledby={customProps.ariaLabelledby}
+                  ariaDescribedby={customProps.ariaDescribedby}
+                  dataTestId={POSTMORTEM_ACTION_ITEMS_TEST_IDS.repositoryPicker}
+                  onChange={(repositoryId: string | null) => {
+                    customProps.onChange?.(repositoryId);
+                  }}
+                />
+              );
+            },
           },
           {
             field: { [INSTRUCTIONS_KEY]: true },

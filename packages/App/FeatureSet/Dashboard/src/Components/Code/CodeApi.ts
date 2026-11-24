@@ -1,5 +1,9 @@
 import {
   CodeRepositoryBranchesJSON,
+  CodeRepositoryListFactsJSON,
+  CodeRepositoryListGroup,
+  CodeRepositoryListMatchesJSON,
+  CodeRepositoryListOrder,
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskContextInput,
@@ -16,6 +20,8 @@ import {
   CodeTaskTurnsNotShownJSON,
   MAX_CODE_TASKS_PER_REQUEST,
 } from "Common/Types/AI/CodeTask";
+import { CodeHost } from "Common/Types/CodeRepository/CodeHost";
+import CodeRepositoryType from "Common/Types/CodeRepository/CodeRepositoryType";
 import { UNEXPLAINED_ERROR_MESSAGES } from "Common/Types/Exception/UnexplainedError";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -52,10 +58,98 @@ export interface CodeRepositoryListItem extends CodeTaskRepositoryJSON {
   stats: CodeRepositoryTaskStatsJSON;
 }
 
+/*
+ * A page of the reader's repositories (POST /code-task/repositories): the
+ * server searches, groups, orders and pages over every repository the
+ * reader may read, however many the project has (#10764).
+ */
 export interface CodeRepositoriesResponse {
+  // The page asked for, in its order.
   repositories: Array<CodeRepositoryListItem>;
+  // How many the search finds in the list asked for.
+  count: number;
+  // What is true of all the reader's repositories, whatever the search.
+  facts: CodeRepositoryListFactsJSON;
+  // How many repositories of each list the search finds.
+  matches: CodeRepositoryListMatchesJSON;
   tasksWithoutRepositoryCount: number;
 }
+
+// Which page of the reader's repositories to read.
+export interface CodeRepositoriesQuery {
+  search?: string | undefined;
+  // One of the two lists; both unless named (those AI can work in first).
+  group?: CodeRepositoryListGroup | undefined;
+  // By name unless named.
+  order?: CodeRepositoryListOrder | undefined;
+  skip?: number | undefined;
+  limit?: number | undefined;
+}
+
+// What a page says when the server says nothing of its repositories at all.
+export const NO_CODE_REPOSITORY_FACTS: CodeRepositoryListFactsJSON = {
+  total: 0,
+  connected: 0,
+  notConnected: 0,
+  areAllOnGitHub: true,
+  isAnyOnGitHub: false,
+  areAllNotConnectedOnGitHub: true,
+  isAnyNotConnectedOnGitHub: false,
+};
+
+// A count from the server: a whole number, or none.
+const readCount: (value: unknown) => number = (value: unknown): number => {
+  const count: number = Number(value);
+
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+};
+
+/*
+ * The facts of a page as the server sent them, each read on its own: a
+ * server that sent none (an older one) describes the repositories it sent.
+ */
+export const readRepositoryListFacts: (
+  value: unknown,
+  repositories: Array<CodeRepositoryListItem>,
+) => CodeRepositoryListFactsJSON = (
+  value: unknown,
+  repositories: Array<CodeRepositoryListItem>,
+): CodeRepositoryListFactsJSON => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const facts: JSONObject = value as JSONObject;
+
+    return {
+      total: readCount(facts["total"]),
+      connected: readCount(facts["connected"]),
+      notConnected: readCount(facts["notConnected"]),
+      areAllOnGitHub: facts["areAllOnGitHub"] !== false,
+      isAnyOnGitHub: facts["isAnyOnGitHub"] === true,
+      areAllNotConnectedOnGitHub: facts["areAllNotConnectedOnGitHub"] !== false,
+      isAnyNotConnectedOnGitHub: facts["isAnyNotConnectedOnGitHub"] === true,
+    };
+  }
+
+  const isOnGitHub: (repository: CodeRepositoryListItem) => boolean = (
+    repository: CodeRepositoryListItem,
+  ): boolean => {
+    return CodeHost.readType(repository.provider) === CodeRepositoryType.GitHub;
+  };
+  const notConnected: Array<CodeRepositoryListItem> = repositories.filter(
+    (repository: CodeRepositoryListItem): boolean => {
+      return !repository.isConnected;
+    },
+  );
+
+  return {
+    total: repositories.length,
+    connected: repositories.length - notConnected.length,
+    notConnected: notConnected.length,
+    areAllOnGitHub: repositories.every(isOnGitHub),
+    isAnyOnGitHub: repositories.some(isOnGitHub),
+    areAllNotConnectedOnGitHub: notConnected.every(isOnGitHub),
+    isAnyNotConnectedOnGitHub: notConnected.some(isOnGitHub),
+  };
+};
 
 export interface CodeRepositoryResponse {
   repository: CodeTaskRepositoryJSON;
@@ -249,17 +343,84 @@ export const getTaskListScopeBody: (scope: CodeTaskListScope) => JSONObject = (
 };
 
 export default class CodeApi {
-  public static async getRepositories(): Promise<CodeRepositoriesResponse> {
-    const data: JSONObject = await CodeApi.post("/repositories", {});
+  /*
+   * A page of the reader's repositories - searched, in one of the two
+   * lists or both, by name or by activity - over every repository the
+   * reader may read (#10764). Nothing named: the first page, by name.
+   */
+  public static async getRepositories(
+    query: CodeRepositoriesQuery = {},
+  ): Promise<CodeRepositoriesResponse> {
+    const data: JSONObject = await CodeApi.post("/repositories", {
+      ...(query.search && query.search.trim()
+        ? { search: query.search.trim() }
+        : {}),
+      ...(query.group ? { group: query.group } : {}),
+      ...(query.order ? { order: query.order } : {}),
+      ...(query.skip ? { skip: query.skip } : {}),
+      ...(query.limit ? { limit: query.limit } : {}),
+    });
+
+    const repositories: Array<CodeRepositoryListItem> = Array.isArray(
+      data["repositories"],
+    )
+      ? (data["repositories"] as unknown as Array<CodeRepositoryListItem>)
+      : [];
+    const matches: unknown = data["matches"];
 
     return {
-      repositories: ((data[
-        "repositories"
-      ] as unknown as Array<CodeRepositoryListItem>) ||
-        []) as Array<CodeRepositoryListItem>,
-      tasksWithoutRepositoryCount:
-        (data["tasksWithoutRepositoryCount"] as number) || 0,
+      repositories,
+      count:
+        typeof data["count"] === "number"
+          ? readCount(data["count"])
+          : repositories.length,
+      facts: readRepositoryListFacts(data["facts"], repositories),
+      matches:
+        matches && typeof matches === "object" && !Array.isArray(matches)
+          ? {
+              connected: readCount((matches as JSONObject)["connected"]),
+              notConnected: readCount((matches as JSONObject)["notConnected"]),
+            }
+          : {
+              connected: repositories.filter(
+                (repository: CodeRepositoryListItem): boolean => {
+                  return repository.isConnected;
+                },
+              ).length,
+              notConnected: repositories.filter(
+                (repository: CodeRepositoryListItem): boolean => {
+                  return !repository.isConnected;
+                },
+              ).length,
+            },
+      tasksWithoutRepositoryCount: readCount(
+        data["tasksWithoutRepositoryCount"],
+      ),
     };
+  }
+
+  /*
+   * Repositories by their ids - what a page holds, named however far past
+   * any first page it is (#10764). Only those the reader may read come
+   * back. The server reads so many ids a request
+   * (MAX_CODE_TASKS_PER_REQUEST), so a longer list goes in several.
+   */
+  public static async getRepositoriesById(
+    repositoryIds: Array<string>,
+  ): Promise<Array<CodeRepositoryListItem>> {
+    const answers: Array<JSONObject> = await Promise.all(
+      getIdBatches(repositoryIds).map((batch: Array<string>) => {
+        return CodeApi.post("/repositories-by-id", { repositoryIds: batch });
+      }),
+    );
+
+    return answers.flatMap(
+      (response: JSONObject): Array<CodeRepositoryListItem> => {
+        return Array.isArray(response["repositories"])
+          ? (response["repositories"] as unknown as Array<CodeRepositoryListItem>)
+          : [];
+      },
+    );
   }
 
   public static async getRepository(
