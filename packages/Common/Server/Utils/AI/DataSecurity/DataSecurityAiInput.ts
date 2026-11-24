@@ -3,6 +3,7 @@ import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import { MAX_DESCRIBE_SENTENCE_LENGTH } from "../../../../Types/DataSecurity/DataTypeDescribe";
 import {
   CheckRemediation,
   DataSecurityCheckInfo,
@@ -2911,7 +2912,8 @@ export const MAX_DATA_TYPE_GROUP_FIELDS: number = 30;
 export const MAX_KNOWN_DATA_TYPE_NAMES: number = 400;
 // The most example shapes, and the longest sentence, a person's draft is told.
 export const MAX_DATA_TYPE_EXAMPLE_SHAPES: number = 10;
-export const MAX_DATA_TYPE_SENTENCE_LENGTH: number = 1_000;
+export const MAX_DATA_TYPE_SENTENCE_LENGTH: number =
+  MAX_DESCRIBE_SENTENCE_LENGTH;
 // The longest pattern a draft asked for again is told it wrote.
 const MAX_PREVIOUS_PATTERN_LENGTH: number = 500;
 

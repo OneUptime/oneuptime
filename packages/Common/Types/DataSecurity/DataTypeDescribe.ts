@@ -13,6 +13,9 @@ import { JSONObject } from "../JSON";
 export const DESCRIBE_DATA_TYPE_ROUTE: string =
   "/data-security-custom-data-type/draft-with-ai";
 
+// The longest sentence a person's description may be.
+export const MAX_DESCRIBE_SENTENCE_LENGTH: number = 1_000;
+
 export interface DescribeDataTypeRequest extends JSONObject {
   sentence: string;
   // Each example's shape (UnplacedFields.valueShape): EMP-123456 is AAA-999999.

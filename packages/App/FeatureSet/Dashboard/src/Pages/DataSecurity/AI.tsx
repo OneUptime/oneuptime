@@ -22,6 +22,13 @@ import {
 } from "../../Components/DataSecurity/DataSecurityAiProposalActions";
 import DataSecurityAiRulesTable from "../../Components/DataSecurity/DataSecurityAiRulesTable";
 import OwnersToReview from "../../Components/DataSecurity/OwnersToReview";
+import DataTypesToReview, {
+  DataTypeToReview,
+} from "../../Components/DataSecurity/DataTypesToReview";
+import { ADD_DATA_TYPE_PARAM } from "./Settings/DataTypes";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Navigation from "Common/UI/Utils/Navigation";
 import { getDataSecurityIssueRoute } from "../../Components/DataSecurity/StoreIssuesTable";
 import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
@@ -30,6 +37,7 @@ import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS,
+  DataSecurityAiProposalKind,
   DataSecurityAiProposalStatus,
 } from "Common/Types/DataSecurity/DataSecurityAi";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -54,6 +62,10 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  *   - Owners to review (#10374), while any wait: owners for stores that
  *     have none, and the owner rules that keep them owned - approved all
  *     at once, some, or one changed first (OwnersToReview).
+ *   - Data types to review (#10371), while any wait: the data types
+ *     OneUptime AI found in the fields scans could not place, proven on
+ *     their stores. Add Data Type opens Settings > Data Types' form filled
+ *     in (DataTypesToReview).
  *   - Waiting for you: what it proposes, riskiest first. Approve opens the
  *     proposal - what will change, why, how it is proven and how to undo
  *     it - and makes the change with the reader's own permissions; Dismiss
@@ -132,6 +144,23 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
         }}
       />
 
+      <DataTypesToReview
+        refreshToggle={refreshToggle}
+        onChanged={() => {
+          setRefreshToggle(ObjectID.generate().toString());
+        }}
+        onAdd={(proposal: DataTypeToReview) => {
+          // The form lives with the data types: opened there, filled in.
+          Navigation.navigate(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DATA_SECURITY_SETTINGS_DATA_TYPES] as Route,
+            ).addQueryParams({
+              [ADD_DATA_TYPE_PARAM]: proposal.id.toString(),
+            }),
+          );
+        }}
+      />
+
       <ModelTable<DataSecurityAiProposal>
         modelType={DataSecurityAiProposal}
         id={DATA_SECURITY_AI_TABLE_IDS.waiting}
@@ -139,8 +168,11 @@ const DataSecurityAiPage: FunctionComponent<PageComponentProps> = (
         name="Data Security AI: Waiting for you"
         query={{
           status: DataSecurityAiProposalStatus.Proposed,
-          // Owners wait in Owners to review, above.
-          kind: new IncludesNone([...DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS]),
+          // Owners and data types wait in their own cards, above.
+          kind: new IncludesNone([
+            ...DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS,
+            DataSecurityAiProposalKind.AddDataType,
+          ]),
         }}
         refreshToggle={refreshToggle}
         isDeleteable={false}
