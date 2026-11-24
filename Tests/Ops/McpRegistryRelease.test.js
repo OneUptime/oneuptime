@@ -23,6 +23,7 @@ const yaml = require("js-yaml");
 const {
   needsOf,
   ancestorsOf,
+  afterEveryNeedSucceeded,
   stepCommand,
 } = require("./Utils/ReleaseWorkflow");
 
@@ -289,7 +290,8 @@ describe(`${RELEASE}: ${JOB}`, () => {
 
   test("runs once the GitHub release is published, and so only after the e2e jobs pass", () => {
     expect(needsOf(job)).toContain("finalize-github-release");
-    expect(job.if).toBeUndefined();
+    // Every job it needs succeeded, whatever became of the jobs before them.
+    expect(job.if).toBe(afterEveryNeedSucceeded(job));
 
     const waitsFor = ancestorsOf(jobs, JOB);
     for (const e2e of E2E_JOBS) {
