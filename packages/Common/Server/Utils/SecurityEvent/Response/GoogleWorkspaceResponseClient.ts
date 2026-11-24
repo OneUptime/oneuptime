@@ -26,7 +26,10 @@ import ResponseHttp, {
  * connection's domain-wide delegation lists them beside the audit scope it
  * reads with, and the administrator must be one who manages the user. A
  * token refused for a scope says which one is missing. A user already in
- * the state asked for is reported as such, not as a failure.
+ * the state asked for is reported as such, not as a failure. The
+ * account-changes check (#10603) reads, with the same scopes, whether a
+ * user is still an admin and whether an app still has a token of theirs
+ * (GET {directory}/users/{id}/tokens/{clientId}).
  */
 
 export const GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE: string =
@@ -49,6 +52,14 @@ export interface GoogleWorkspaceUser {
    * step "reset the password" cannot be read back here.
    */
   isEnrolledIn2Sv: boolean;
+  /*
+   * A super admin (isAdmin), and one who holds any other admin role
+   * (isDelegatedAdmin): the account-changes check reads them back for a
+   * role an attack gave the account (#10603). The Directory API names no
+   * role here, so a delegated admin's other roles cannot be told apart.
+   */
+  isAdmin: boolean;
+  isDelegatedAdmin: boolean;
 }
 
 export enum GoogleWorkspaceContainmentOutcome {
@@ -163,6 +174,8 @@ export default class GoogleWorkspaceResponseClient {
           : "",
       suspended: record["suspended"] === true,
       isEnrolledIn2Sv: record["isEnrolledIn2Sv"] === true,
+      isAdmin: record["isAdmin"] === true,
+      isDelegatedAdmin: record["isDelegatedAdmin"] === true,
     };
   }
 
@@ -242,6 +255,35 @@ export default class GoogleWorkspaceResponseClient {
     if (!ResponseHttp.isSuccess(result)) {
       throw this.failure(step, result);
     }
+  }
+
+  /*
+   * Whether an app still has access to the user's data: the OAuth token
+   * the user gave it (GET {directory}/users/{id}/tokens/{clientId}, the
+   * security scope sign-out takes). Google answers 404 once it is revoked
+   * (#10603).
+   */
+  public async hasToken(data: {
+    user: GoogleWorkspaceUser;
+    clientId: string;
+  }): Promise<boolean> {
+    const step: string = "Google Workspace app access lookup";
+    const result: ResponseHttpResult = await this.send({
+      step,
+      scope: GOOGLE_WORKSPACE_DIRECTORY_SECURITY_SCOPE,
+      method: "GET",
+      url: `${GOOGLE_WORKSPACE_DIRECTORY_USERS_URL}/${encodeURIComponent(data.user.id)}/tokens/${encodeURIComponent(data.clientId)}`,
+    });
+
+    if (result.statusCode === 404) {
+      return false;
+    }
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result);
+    }
+
+    return true;
   }
 
   // Signs the user out of every browser and device session.
