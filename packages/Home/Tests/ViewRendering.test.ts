@@ -2899,7 +2899,8 @@ describe("queues.ejs", () => {
     /*
      * The labels are translation keys, and a key is its English text:
      * translationKey() returns its argument, so English shows exactly
-     * these words.
+     * these words. The heading draws its words with their (i) after the
+     * last one (WordsWithInfoTooltip, #8044).
      */
     expect(section).toMatch(
       /BROKER_HEALTH_TITLE: string = translationKey\("Broker health"\);/,
@@ -2907,8 +2908,8 @@ describe("queues.ejs", () => {
     expect(section).toMatch(
       /BROKER_HEALTH_CREATE_MONITOR_LABEL: string =\s*translationKey\("Create monitor"\);/,
     );
-    expect(section).toContain(
-      "{translator.translateText(BROKER_HEALTH_TITLE)}",
+    expect(section).toMatch(
+      /<WordsWithInfoTooltip\s+text=\{\s*translator\.translateText\(BROKER_HEALTH_TITLE\)/,
     );
     expect(section).toMatch(
       /translator\.translateText\(\s*BROKER_HEALTH_CREATE_MONITOR_LABEL,?\s*\)/,
