@@ -223,26 +223,35 @@ export const AWS_READ_ONLY_ACTION_GROUPS: Array<AwsReadOnlyActionGroup> = [
   },
   /*
    * What the account costs and how to spend less: Cost Explorer's daily
-   * costs ($0.01 a request, a few requests twice a day) - each resource's
-   * too, for a connection that turns Costs per resource on - and how much
-   * of them its Savings Plans and Reserved Instances cover and how much of
-   * those is used (four requests a day), and Cost Optimization Hub's
-   * recommendations (free).
+   * costs, billed, amortized and net ($0.01 a request, a few requests
+   * twice a day) - each resource's too, for a connection that turns Costs
+   * per resource on - how much of them its Savings Plans and Reserved
+   * Instances cover and how much of those is used, and each plan and
+   * reservation with its own use (#11011: a few requests a day); the
+   * Savings Plans bought, queued ones included (free); and Cost
+   * Optimization Hub's recommendations with what each commitment it
+   * suggests would buy (free).
+   *
+   * Each Cost Explorer family is granted by its prefix - GetCostAndUsage*,
+   * GetSavingsPlans*, GetReservation* - all of them reads: the access
+   * key's user holds its inline policy to IAM's 2,048 characters, and the
+   * names written out one by one no longer fit beside the rest.
    */
   {
     purpose: "Read what the account costs, from Cost Explorer",
     actions: [
-      "ce:GetCostAndUsage",
-      "ce:GetCostAndUsageWithResources",
-      "ce:GetSavingsPlansCoverage",
-      "ce:GetSavingsPlansUtilization",
-      "ce:GetReservationCoverage",
-      "ce:GetReservationUtilization",
+      "ce:GetCostAndUsage*",
+      "ce:GetSavingsPlans*",
+      "ce:GetReservation*",
+      "savingsplans:DescribeSavingsPlans",
     ],
   },
   {
     purpose: "Read the ways to spend less, from Cost Optimization Hub",
-    actions: ["cost-optimization-hub:ListRecommendations"],
+    actions: [
+      "cost-optimization-hub:ListRecommendations",
+      "cost-optimization-hub:GetRecommendation",
+    ],
   },
   {
     purpose:
@@ -381,6 +390,34 @@ export const GCP_READ_ONLY_ROLES: Array<string> = [
  * Compute Viewer, for the machine type and idle resource recommendations.
  */
 export const AZURE_COST_ROLE: string = "Cost Management Reader";
+
+/*
+ * What lists a tenant's reservations and savings plans (#11011): each is a
+ * tenant resource that takes no role from a subscription, so the app is
+ * given its reader role at the tenant's provider scope. Only a Global
+ * Administrator with elevated access may grant one there, so the command
+ * tries and, when refused, says how to grant it later - the rest of the
+ * connection works without it, and Cloud > Spend > Commitments says what is
+ * missing.
+ */
+export const AZURE_COMMITMENT_READER_ROLES: ReadonlyArray<{
+  role: string;
+  scope: string;
+}> = [
+  { role: "Reservations Reader", scope: "/providers/Microsoft.Capacity" },
+  {
+    role: "Savings plan Reader",
+    scope: "/providers/Microsoft.BillingBenefits",
+  },
+];
+
+export function getAzureCommitmentRoleLines(): Array<string> {
+  return AZURE_COMMITMENT_READER_ROLES.map(
+    (entry: { role: string; scope: string }): string => {
+      return `az role assignment create --assignee "$APP" --role "${entry.role}" --scope "${entry.scope}" > /dev/null 2>&1 || echo "${entry.role} was not granted: a Global Administrator with elevated access can run this line again to list reservations and savings plans." >&2`;
+    },
+  );
+}
 export const GCP_COST_QUERY_ROLE: string = "roles/bigquery.jobUser";
 export const GCP_RECOMMENDER_ROLE: string = "roles/recommender.computeViewer";
 export const GCP_COST_ROLES: Array<string> = [
@@ -1456,6 +1493,7 @@ export function getAzureSetupCommand(
     `OUT=$(az ad sp create-for-rbac --name ${CLOUD_CONNECTION_READ_ONLY_NAME} --role "${AZURE_READ_ONLY_ROLE}" --scopes "$SCOPE")`,
     `APP=$(echo "$OUT" | jq -r .appId)`,
     `az role assignment create --assignee "$APP" --role "${AZURE_COST_ROLE}" --scope "$SCOPE" > /dev/null`,
+    ...getAzureCommitmentRoleLines(),
     ...(dataSecurity === "content"
       ? [
           `az role assignment create --assignee "$APP" --role "${AZURE_DATA_SECURITY_CONTENT_ROLE}" --scope "$SCOPE" > /dev/null`,

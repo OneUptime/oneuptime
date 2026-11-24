@@ -5,6 +5,11 @@ import {
   CloudSavingKind,
   toCloudCostDay,
 } from "../../../../Types/Cloud/CloudCost";
+import {
+  readCloudCommitmentPaymentOption,
+  readCloudCommitmentTermMonths,
+} from "../../../../Types/Cloud/CloudCommitmentInventory";
+import { CloudCommitmentRecommendationDetails } from "../../../../Types/Cloud/CloudCommitmentPlans";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
@@ -17,6 +22,7 @@ import {
   CloudConnectorCallOptions,
   CloudCostRecord,
   CloudReadBudget,
+  CloudReadBudgetSpent,
   CloudSavingRecord,
 } from "../CloudConnectorTypes";
 import {
@@ -69,6 +75,8 @@ import {
 const PROVIDER_TITLE: string = "AWS";
 const COST_TARGET: string = "AWSInsightsIndexService.GetCostAndUsage";
 const SAVINGS_TARGET: string = "CostOptimizationHubService.ListRecommendations";
+const RECOMMENDATION_TARGET: string =
+  "CostOptimizationHubService.GetRecommendation";
 // Pages of one window at most: each is $0.01.
 export const AWS_COST_MAX_PAGES: number = 10;
 export const AWS_SAVINGS_MAX_PAGES: number = 10;
@@ -485,7 +493,125 @@ export async function readAwsCostOptimizationHub(data: {
     token = next;
   }
 
+  /*
+   * What each "commit to use" recommendation would buy: its term, payment
+   * option, amount and fees (GetRecommendation, free) - what a purchase
+   * plan is drawn from. One that cannot be read keeps its saving alone.
+   */
+  let detailsRead: number = 0;
+
+  for (const recommendation of recommendations) {
+    if (
+      recommendation.kind !== CloudSavingKind.Commitment ||
+      detailsRead >= AWS_COMMITMENT_DETAILS_MAX
+    ) {
+      continue;
+    }
+
+    detailsRead++;
+
+    try {
+      const answer: { json: JSONObject } = await sendAwsRequest({
+        transport: data.options.transport,
+        credentials: data.credentials,
+        service: "cost-optimization-hub",
+        region: data.region,
+        target: RECOMMENDATION_TARGET,
+        jsonVersion: "1.0",
+        body: { recommendationId: recommendation.recommendationId },
+        step: "recommendation details request",
+        providerTitle: PROVIDER_TITLE,
+        now: data.options.now,
+        timeoutInMs: data.options.requestTimeoutInMs,
+        sleep: data.options.sleep,
+        budget: data.budget,
+      });
+      const details: CloudCommitmentRecommendationDetails | null =
+        readAwsCommitmentRecommendationDetails(answer.json);
+
+      if (details) {
+        recommendation.commitmentDetails = details;
+      }
+    } catch (error) {
+      if (
+        error instanceof LlmProviderError &&
+        error.kind === CloudConnectionFailureKind.Authentication
+      ) {
+        throw error;
+      }
+
+      if (error instanceof CloudReadBudgetSpent) {
+        break;
+      }
+    }
+  }
+
   return { recommendations, complete };
+}
+
+// The most commitment recommendations whose details one read asks for.
+export const AWS_COMMITMENT_DETAILS_MAX: number = 50;
+
+/*
+ * What a Savings Plans or Reserved Instances purchase recommendation would
+ * buy, from GetRecommendation's answer: recommendedResourceDetails holds
+ * one member - computeSavingsPlans, ec2ReservedInstances, ... - with its
+ * configuration (term in years, paymentOption, hourlyCommitment or
+ * numberOfInstancesToPurchase and instanceType, upfrontCost,
+ * monthlyRecurringCost) and costCalculation.pricing (estimatedMonthly-
+ * Commitment, or estimatedMonthlyAmortizedReservationCost). Null for any
+ * other answer.
+ */
+export function readAwsCommitmentRecommendationDetails(
+  json: JSONObject,
+): CloudCommitmentRecommendationDetails | null {
+  const members: JSONObject = readObject(json["recommendedResourceDetails"]);
+
+  for (const [memberName, rawMember] of Object.entries(members)) {
+    const member: JSONObject = readObject(rawMember);
+    const configuration: JSONObject = readObject(member["configuration"]);
+
+    if (Object.keys(configuration).length === 0) {
+      continue;
+    }
+
+    const pricing: JSONObject = readObject(
+      readObject(member["costCalculation"])["pricing"],
+    );
+    const number: (value: unknown) => number | null = (
+      value: unknown,
+    ): number | null => {
+      if (value === null || value === undefined || value === "") {
+        return null;
+      }
+
+      const amount: number = readAmount(value);
+      return Number.isFinite(amount) ? amount : null;
+    };
+    const monthlyCost: number | null =
+      number(pricing["estimatedMonthlyCommitment"]) ??
+      number(pricing["estimatedMonthlyAmortizedReservationCost"]);
+
+    return {
+      termMonths: readCloudCommitmentTermMonths(readText(configuration["term"])),
+      paymentOption: readCloudCommitmentPaymentOption(
+        readText(configuration["paymentOption"]),
+      ),
+      hourlyCommitment: number(configuration["hourlyCommitment"]),
+      quantity: number(configuration["numberOfInstancesToPurchase"]),
+      configuration:
+        readText(configuration["instanceType"]) ||
+        readText(configuration["instanceFamily"]) ||
+        describeAwsSavingResourceType(
+          memberName.charAt(0).toUpperCase() + memberName.slice(1),
+        ),
+      upfrontCost: number(configuration["upfrontCost"]),
+      monthlyRecurringCost: number(configuration["monthlyRecurringCost"]),
+      monthlyCost,
+    };
+  }
+
+  return null;
 }
 
 /*

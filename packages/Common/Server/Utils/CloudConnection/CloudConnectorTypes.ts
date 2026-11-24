@@ -3,7 +3,17 @@ import {
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
 import { CloudAddedMetric } from "../../../Types/Cloud/CloudAddedMetrics";
-import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
+import {
+  CloudCommitmentKind,
+  CloudCommitmentSummary,
+} from "../../../Types/Cloud/CloudCommitments";
+import {
+  CloudCommitmentFigures,
+  CloudCommitmentPaymentOption,
+  CloudCommitmentScope,
+  CloudCommitmentState,
+} from "../../../Types/Cloud/CloudCommitmentInventory";
+import { CloudCommitmentRecommendationDetails } from "../../../Types/Cloud/CloudCommitmentPlans";
 import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
@@ -801,6 +811,12 @@ export interface CloudSavingRecord {
   effort: string;
   // Which recommender said it (CLOUD_SAVINGS_SOURCE_*).
   source: string;
+  /*
+   * For a "commit to use" recommendation, what it would buy - term,
+   * payment option, amount and fees - where the recommender says
+   * (CloudCostRecommendation.commitmentDetails).
+   */
+  commitmentDetails?: CloudCommitmentRecommendationDetails | undefined;
 }
 
 export interface CloudSavingsOptions extends CloudConnectorCallOptions {
@@ -829,6 +845,58 @@ export interface CloudSavingsResult {
   commitments?:
     | Array<{ accountId: string; summary: CloudCommitmentSummary }>
     | undefined;
+  /*
+   * Every commitment the connection could list (CloudCommitmentInventory),
+   * kept as CloudCommitment rows by CloudCommitmentWriter - or why they
+   * could not be listed. Absent from a connector that lists none.
+   */
+  commitmentInventory?: CloudCommitmentInventoryRead | undefined;
+}
+
+/*
+ * One commitment of a connection's cloud, as its reader lists it: kept as
+ * a CloudCommitment row.
+ */
+export interface CloudCommitmentRecord {
+  // The account it is kept on: the one that bought it, else the one read.
+  accountId: string;
+  // The cloud's own id: kept from one read to the next.
+  commitmentId: string;
+  kind: CloudCommitmentKind;
+  name: string;
+  commitmentType: string;
+  covers: string;
+  region: string;
+  scope: CloudCommitmentScope | null;
+  appliesTo: string;
+  termMonths: number | null;
+  paymentOption: CloudCommitmentPaymentOption | null;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  state: CloudCommitmentState;
+  isAutoRenew: boolean | null;
+  hourlyCommitment: number | null;
+  quantity: number | null;
+  upfrontCost: number | null;
+  recurringHourlyCost: number | null;
+  currency: string;
+  utilizationPercent: number | null;
+  weekUtilizationPercent: number | null;
+  figures: CloudCommitmentFigures | null;
+  // The AWS service a reservation is for: where it is bought again.
+  service?: string | undefined;
+}
+
+export interface CloudCommitmentInventoryRead {
+  records: Array<CloudCommitmentRecord>;
+  /*
+   * Whether every commitment was listed: only then is one no longer listed
+   * removed (a list cut short at its page limit keeps what it had).
+   */
+  complete: boolean;
+  // Whether they could be listed, and why not - or what was left out.
+  state: CloudCostState;
+  message?: string | undefined;
 }
 
 export interface CloudConnector {

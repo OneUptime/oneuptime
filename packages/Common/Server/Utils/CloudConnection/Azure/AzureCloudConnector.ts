@@ -94,6 +94,7 @@ import {
   readAzureCosts,
 } from "./AzureCosts";
 import { readAzureCommitments } from "./AzureCommitments";
+import { readAzureCommitmentInventory } from "./AzureCommitmentInventory";
 import { AzureCostReader, AzureCostThrottled } from "./AzureCostManagement";
 import {
   CloudCostState,
@@ -2095,6 +2096,17 @@ export default class AzureCloudConnector implements CloudConnector {
         options,
         subscriptionIds,
       });
+
+      // The tenant's reservations and savings plans (AzureCommitmentInventory).
+      result.commitmentInventory = await readAzureCommitmentInventory({
+        arm,
+        subscriptions: subscriptionIds,
+        now: options.now ? options.now() : new Date(),
+      });
+
+      if (result.commitmentInventory.message) {
+        result.warnings.push(result.commitmentInventory.message);
+      }
 
       return result;
     } catch (error) {

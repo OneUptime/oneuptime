@@ -98,7 +98,9 @@ import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
 import CloudBudget from "./CloudBudget";
+import CloudCommitment from "./CloudCommitment";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudCostSetting from "./CloudCostSetting";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -1365,7 +1367,9 @@ const AllModelTypes: Array<{
   CloudAccount,
   CloudAccountFeed,
   CloudBudget,
+  CloudCommitment,
   CloudCostRecommendation,
+  CloudCostSetting,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

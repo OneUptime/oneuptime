@@ -2153,6 +2153,14 @@ import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
 import CloudBudgetService, {
   Service as CloudBudgetServiceType,
 } from "Common/Server/Services/CloudBudgetService";
+import CloudCommitment from "Common/Models/DatabaseModels/CloudCommitment";
+import CloudCommitmentService, {
+  Service as CloudCommitmentServiceType,
+} from "Common/Server/Services/CloudCommitmentService";
+import CloudCostSetting from "Common/Models/DatabaseModels/CloudCostSetting";
+import CloudCostSettingService, {
+  Service as CloudCostSettingServiceType,
+} from "Common/Server/Services/CloudCostSettingService";
 import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecommendation";
 import CloudCostRecommendationService, {
   Service as CloudCostRecommendationServiceType,
@@ -3926,6 +3934,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudBudget, CloudBudgetServiceType>(
         CloudBudget,
         CloudBudgetService,
+      ).getRouter(),
+    );
+
+    // The connected clouds' commitments and what they cover: read only.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCommitment, CloudCommitmentServiceType>(
+        CloudCommitment,
+        CloudCommitmentService,
+      ).getRouter(),
+    );
+
+    // How Cloud shows a project's costs, and when its commitments alert.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostSetting, CloudCostSettingServiceType>(
+        CloudCostSetting,
+        CloudCostSettingService,
       ).getRouter(),
     );
 

@@ -622,7 +622,9 @@ import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
+import CloudCommitmentService from "./CloudCommitmentService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
+import CloudCostSettingService from "./CloudCostSettingService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -1241,7 +1243,9 @@ const services: Array<BaseService> = [
   CloudAccountService,
   CloudAccountFeedService,
   CloudBudgetService,
+  CloudCommitmentService,
   CloudCostRecommendationService,
+  CloudCostSettingService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,

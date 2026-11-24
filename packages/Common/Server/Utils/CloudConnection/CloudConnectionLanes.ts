@@ -36,6 +36,10 @@ import CloudAuditSecurityEvents, {
 import LlmProviderError from "../LlmObservability/LlmProviderError";
 import logger from "../Logger";
 import CloudBudgetEvaluator from "./CloudBudgetEvaluator";
+import CloudCommitmentAlertEvaluator from "./CloudCommitmentAlertEvaluator";
+import CloudCommitmentWriter, {
+  CloudCommitmentWriteResult,
+} from "./CloudCommitmentWriter";
 import CloudCostWriter, { CloudCostWriteResult } from "./CloudCostWriter";
 import CloudSavingsWriter, {
   CloudSavingsWriteResult,
@@ -1306,7 +1310,21 @@ export default class CloudConnectionLanes {
       const commitments: Map<string, CloudCommitmentSummary> = new Map();
 
       for (const entry of read.commitments || []) {
-        commitments.set(entry.accountId.trim().toLowerCase(), entry.summary);
+        commitments.set(
+          entry.accountId.trim().toLowerCase(),
+          read.commitmentInventory
+            ? {
+                ...entry.summary,
+                // Whether the commitments themselves could be listed, and what was left out.
+                inventory: {
+                  state: read.commitmentInventory.state,
+                  ...(read.commitmentInventory.message
+                    ? { message: read.commitmentInventory.message }
+                    : {}),
+                },
+              }
+            : entry.summary,
+        );
       }
 
       for (const outcome of read.accounts) {
@@ -1348,6 +1366,38 @@ export default class CloudConnectionLanes {
           props: { isRoot: true, ignoreHooks: true },
         });
       }
+
+      /*
+       * Every commitment the read listed, kept in step (CloudCommitmentWriter),
+       * then the project's commitment alerts checked against them. A list
+       * that could not be read at all keeps what it had.
+       */
+      if (
+        read.commitmentInventory &&
+        (read.commitmentInventory.state === CloudCostState.Reading ||
+          read.commitmentInventory.records.length > 0)
+      ) {
+        const kept: CloudCommitmentWriteResult = await CloudCommitmentWriter.write(
+          {
+            projectId: data.projectId,
+            provider: data.provider,
+            inventory: read.commitmentInventory,
+            accountRows: CloudConnectionLanes.toRowIds(rows),
+            accountsRead: CloudConnectionLanes.readAccounts(read.accounts),
+            fallbackAccountId:
+              read.commitments?.[0]?.accountId || read.accounts[0]?.accountId,
+            now: data.now,
+          },
+        );
+
+        await CloudCommitmentAlertEvaluator.resolveGone({
+          projectId: data.projectId,
+          alertIds: kept.orphanedAlertIds,
+        });
+      }
+
+      // Never throws: a project's commitment alerts are checked hourly too.
+      await CloudCommitmentAlertEvaluator.evaluateProject(data.projectId);
 
       data.state.savingsReadAt = data.now.toISOString();
 
