@@ -35,11 +35,8 @@ import {
 } from "./PlaylistPlayerKeys";
 import { PlaylistPlayerStatus, PlaylistRound } from "./PlaylistPlayerState";
 import { readPlaylistRound } from "./PlaylistRead";
-import {
-  PageFullScreen,
-  usePageFullScreen,
-  useScreenWakeLock,
-} from "./PlaylistScreen";
+import { PageFullScreen, usePageFullScreen } from "../Utils/PageFullScreen";
+import { useScreenWakeLock } from "./PlaylistScreen";
 import usePlaylistPlayer, {
   PlaylistClock,
   PlaylistPlayer as PlaylistPlayerControls,
