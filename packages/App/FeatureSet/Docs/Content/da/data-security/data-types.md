@@ -74,11 +74,12 @@ Hver type, OneUptime AI nævner, er et fund med Lav, markeret **Foreslået af On
 
 Intet mønster skelner en persons navn fra ethvert andet ord. Derfor læses fritekst - en supportnote, en loglinje, en undtagelsesbesked, en prompt - også af en lille sprogmodel, der finder personers navne og gadeadresser. Modellen kører inde i scanneren, på OneUptimes workers og på dine sonder: teksten forlader aldrig scanneren, intet downloades, mens den kører, og der skrives ingen prompt. Den er ikke OneUptime AI, og OneUptime AI's kontakter slår den hverken til eller fra: det gør **Find navne og gadeadresser**.
 
-- **Hvad den læser.** Et felt, hvis værdier i gennemsnit er længere end 80 tegn, og i telemetri hver logbrødtekst, undtagelsesbesked, stack trace og AI-samtale, uanset hvor kort. Den læser op til 100 forskellige værdier af et felt, 32 KB tekst i alt og op til 16 KB af én værdi.
+- **Hvad den læser.** Et felt, hvis værdier i gennemsnit er længere end 80 tegn; et felt, hvis navn siger, at en person har skrevet fritekst i det, uanset hvor korte værdierne er, f.eks. `delivery_note`, `comentario`, `Lieferhinweis` eller `opmerking` (se [Korte værdier](#korte-værdier)); og i telemetri hver logbrødtekst, undtagelsesbesked, stack trace og AI-samtale, uanset hvor kort. Den læser op til 100 forskellige værdier af et felt, 32 KB tekst i alt og op til 16 KB af én værdi.
 - **Hvad den finder.** Et **Personnavn** (`person-name`) og en **Gadeadresse** (`postal-address`): et sted, som modellen læser ved siden af et husnummer, f.eks. `14 Calle Mayor`, sammen med det postnummer og den by, der følger efter. En by eller et land alene er ikke en gadeadresse.
 - **Hvor sikker den er.** Et navn eller en adresse, som modellen finder, er Middel alene. Det er Høj, når feltets navn siger, at feltet indeholder navne eller adresser, eller når ord tæt på siger det, f.eks. "customer", "Kunde" eller "dirección". Det er Lav, når modellen er usikker på det, med en score under 0,6. Hvert fund beholder den konfidens, det fik for sig selv, så ét navn blandt tusind loglinjer er stadig Middel.
 - **Testværdier.** Pladsholdere som `Jane Doe`, `John Smith`, `Max Mustermann` og `123 Main Street` tælles for sig, ligesom alle typers testværdier.
 - **Hvad den gemmer.** Dens prøver maskeres som et navn, der er fundet ud fra et felts navn: det første tegn og fire stjerner, `M****`. Der laves aldrig fingeraftryk af dem. På datalagerets side **Indhold** står der ved et sådant fund **Fundet i fritekst af scannerens model**.
+- **Dens poster og dens regler.** Et fund, den har gjort, viser de poster, det blev fundet i, med hver linje beskåret omkring navnet eller adressen og hvert navn og hver adresse i den maskeret, og Rens beviser en regel på disse poster, ligesom ved ethvert fund: de læses igen med modellen, med op til 20 sekunder af dens tid hver gang. En post, den ikke havde tid til, vises ikke, og listen siger, hvor mange værdier den ikke havde tid til. Hvor modellen ikke kan køre, siger listen det, og der bevises ingen regel for fundet.
 
 | Model | Licens | Størrelse | Revision | Målte sprog |
 | --- | --- | --- | --- | --- |
@@ -121,11 +122,36 @@ De fire målte modeller på det skrevne testsæt, efter hinanden på samme maski
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Korte værdier
+
+Et kort felt læses kun, når dets navn siger, at en person har skrevet fritekst i det. Reglen blev målt, før den blev valgt, på 49 kolonner i en database på de syv sprog, 588 værdier i alt: produktnavne, titler, etiketter, stillingsbetegnelser og butiksnavne, hvor et mærkes, en figurs eller en gades navn ikke er et fund, og korte leveringsbeskeder, supportkommentarer og kundebemærkninger med 91 navne og 28 gadeadresser. Den første regel, der blev overvejet - at læse hvert felt på fire eller flere ord - læste 108 af katalogets værdier og lavede 53 falske navne ud af dem, f.eks. `Ralph Lauren` i navnet på en poloshirt og `Tom Sawyer` i titlen på en bog:
+
+| Regel | Læste katalogværdier | Navne: præcision | Navne: recall | Adresser: præcision | Falske fund pr. 1.000 |
+| --- | --- | --- | --- | --- | --- |
+| Felter på fire eller flere ord (ikke valgt) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Felter, hvis navn peger på fritekst (valgt) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+Den valgte regel, efter sprog. En test fastholder disse scorer og de krav, modellen blev valgt efter:
+
+| Sprog | Navne: præcision | Navne: recall | Adresser: præcision | Adresser: recall |
+| --- | --- | --- | --- | --- |
+| Engelsk | 1,00 | 1,00 | 1,00 | 1,00 |
+| Spansk | 1,00 | 1,00 | 1,00 | 1,00 |
+| Tysk | 1,00 | 1,00 | 1,00 | 1,00 |
+| Fransk | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italiensk | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portugisisk | 0,86 | 0,92 | 1,00 | 1,00 |
+| Nederlandsk | 1,00 | 1,00 | 1,00 | 1,00 |
+| Alle syv | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Det er feltets eget navn, der tæller: `orders.delivery_note` læses, `notes.author` gør ikke, og det gør heller ikke et navn, der ender på et id, et antal, en type, en status eller et tidspunkt, f.eks. `message_id`. En beskrivelse læses ikke på grund af sit navn: et produkts beskrivelse er katalogtekst.
+
 ### Hvor den kører, og hvad den koster
 
 - **I alle images.** App-imaget, som kører workerne, og sonde-imaget indeholder modellen, dens ordforråd og runtimen, inklusive air-gapped- og Iron Bank-images: cirka 114 MB på disken. Filerne hentes, når imaget bygges, fra en fastlåst revision og kontrolleres mod deres SHA-256. Intet downloades, mens en scanning kører.
 - **Hukommelse.** Modellen indlæses første gang, en scanning har brug for den, én gang pr. proces: cirka 550 MB, som frigives igen efter 10 minutter uden en scanning.
 - **Tid.** På én kerne mellem 30 sekunder og et minut pr. 1.000 værdier på længde med en loglinje og cirka 9 minutter pr. 1.000 værdier på 1.200 tegn. En indholdsscanning af et datalager giver den op til 2 minutter. Den timevise telemetriscanning giver den op til 1 minut i alt og 6 sekunder pr. datalager og tager et nyt udvalg af datalagre hver time.
+- **På skift.** Hver indholdsscannings model begynder, hvor den forriges stoppede: ved den første tabel eller container, hvis fritekst den ikke læste, og med de objekter i en bucket, den ikke havde tid til, og som læses igen før alle andre. Det, den begyndte på og ikke kunne gøre færdig, tages ikke først igen, så intet optager modellens tid scanning efter scanning, og hver tabel og hvert objekt får sin tur, uanset hvor meget fritekst datalageret indeholder.
 - **Når dens tid løber ud**, afsluttes scanningen med det, modellen nåede at læse, og scanningens advarsler siger, hvor mange af fritekstværdierne modellen læste, aldrig hvad de indeholdt. En worker eller en sonde uden model scanner som før og siger hvorfor:
 
 ```text
@@ -133,7 +159,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Find navne og gadeadresser** er slået til for alle projekter: indholdsscanninger af buckets, databaser og BigQuery-datasæt læser fritekst med modellen, på workers og på sonder. Indstillingen under den, **Find navne og gadeadresser i telemetri**, er slået fra: at læse hver logbrødtekst, undtagelse og samtale i et travlt projekt med 200 tjenester én gang tager cirka 48 minutter på én kerne, og scanningens minut i timen læser cirka 4 % af det. Slå den til, så hver timevis scanning læser en del af dem. Begge findes på **Datasikkerhed → Indstillinger → Scanningsindstillinger** under **Hvad Datasikkerhed læser**. **Test det** kører i din browser uden modellen: det, modellen ville finde, vises ikke der.
+En scannings detaljer viser disse og alle andre advarsler fra en indholds- eller telemetriscanning på læserens sprog.
+
+**Find navne og gadeadresser** er slået til for alle projekter: indholdsscanninger af buckets, databaser og BigQuery-datasæt læser fritekst med modellen, på workers og på sonder. Indstillingen under den, **Find navne og gadeadresser i telemetri**, er slået fra: at læse hver logbrødtekst, undtagelse og samtale i et travlt projekt med 200 tjenester én gang tager cirka 48 minutter på én kerne, og scanningens minut i timen læser cirka 4 % af det. Slå den til, så hver timevis scanning læser en del af dem. Begge findes på **Datasikkerhed → Indstillinger → Scanningsindstillinger** under **Hvad Datasikkerhed læser**. **Test det** kører i din browser uden modellen: det, modellen ville finde, vises ikke der. Modellen ville lægge cirka 113 MB til downloaden, 67 MB komprimeret, og cirka 440 MB til fanens hukommelse, så den kører kun i scanneren.
 
 ## Følsomhed
 

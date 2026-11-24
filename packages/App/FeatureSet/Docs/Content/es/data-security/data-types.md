@@ -74,11 +74,12 @@ Cada tipo que nombra OneUptime AI es un hallazgo de confianza Baja, marcado como
 
 Ningún patrón distingue el nombre de una persona de cualquier otra palabra. Por eso el texto libre (una nota de soporte, una línea de registro, un mensaje de excepción, un prompt) también lo lee un pequeño modelo de lenguaje que encuentra nombres de personas y direcciones postales. El modelo se ejecuta dentro del escáner, en los workers de OneUptime y en tus sondas: el texto nunca sale del escáner, no se descarga nada mientras se ejecuta y no se escribe ningún prompt. No es OneUptime AI, y los interruptores de OneUptime AI no lo activan ni lo desactivan: eso lo hace **Detectar nombres y direcciones postales**.
 
-- **Qué lee.** Un campo cuyos valores tienen de media más de 80 caracteres y, en la telemetría, cada cuerpo de registro, mensaje de excepción, traza de pila y conversación de IA, por corto que sea. Lee hasta 100 valores distintos de un campo, 32 KB de texto en total, y hasta 16 KB de un mismo valor.
+- **Qué lee.** Un campo cuyos valores tienen de media más de 80 caracteres; un campo cuyo nombre dice que una persona escribe texto libre en él, por cortos que sean sus valores, como `delivery_note`, `comentario`, `Lieferhinweis` u `opmerking` (consulta [Valores cortos](#valores-cortos)); y, en la telemetría, cada cuerpo de registro, mensaje de excepción, traza de pila y conversación de IA, por corto que sea. Lee hasta 100 valores distintos de un campo, 32 KB de texto en total, y hasta 16 KB de un mismo valor.
 - **Qué encuentra.** Un **Nombre de persona** (`person-name`) y una **Dirección postal** (`postal-address`): un lugar que el modelo lee junto a un número de calle, como `14 Calle Mayor`, con el código postal y la ciudad que lo siguen. Una ciudad o un país por sí solos no son una dirección postal.
 - **Qué confianza tiene.** Un nombre o una dirección que encuentra el modelo tiene confianza Media por sí solo. Pasa a Alta cuando el nombre del campo dice que contiene nombres o direcciones, o cuando lo dicen palabras cercanas, como «customer», «Kunde» o «dirección». Es Baja cuando el modelo duda, con una puntuación inferior a 0,6. Cada uno conserva la confianza que obtuvo por sí solo, así que un único nombre entre mil líneas de registro sigue teniendo confianza Media.
 - **Valores de prueba.** Los marcadores de posición como `Jane Doe`, `John Smith`, `Max Mustermann` y `123 Main Street` se cuentan aparte, igual que los valores de prueba de cualquier tipo.
 - **Qué guarda.** Sus muestras se enmascaran igual que las de un nombre encontrado por el nombre de un campo: el primer carácter y cuatro asteriscos, `M****`. Nunca se calcula su huella. En la página **Contenido** del almacén, un hallazgo así indica **Encontrado en texto libre por el modelo del escáner**.
+- **Sus entradas y sus reglas.** Un hallazgo suyo lista las entradas en las que se encontró, con cada línea recortada alrededor del nombre o la dirección y cada nombre y dirección que contiene enmascarados, y **Depurar** prueba una regla sobre esas entradas, como con cualquier hallazgo: se vuelven a leer con el modelo, con hasta 20 segundos de su tiempo cada vez. Una entrada para la que no tuvo tiempo no aparece en la lista, y la lista dice cuántos valores no tuvo tiempo de leer. Donde el modelo no puede ejecutarse, la lista lo dice, y no se prueba ninguna regla para el hallazgo.
 
 | Modelo | Licencia | Tamaño | Revisión | Idiomas evaluados |
 | --- | --- | --- | --- | --- |
@@ -121,11 +122,36 @@ Estos son los cuatro modelos medidos con ese conjunto de prueba, uno tras otro e
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Valores cortos
+
+Un campo corto solo se lee cuando su nombre dice que una persona escribe texto libre en él. La regla se midió antes de elegirla, en 49 columnas de una base de datos en los siete idiomas, 588 valores en total: nombres de productos, títulos, etiquetas, puestos de trabajo y nombres de tiendas, donde el nombre de una marca, de un personaje o de una calle no es un hallazgo, y notas de entrega, comentarios de soporte y observaciones de clientes breves con 91 nombres y 28 direcciones postales. Leer cada campo de cuatro o más palabras, la primera regla considerada, leyó 108 de los valores del catálogo e hizo de ellos 53 nombres falsos, como `Ralph Lauren` en el nombre de un polo y `Tom Sawyer` en el título de un libro:
+
+| Regla | Valores del catálogo leídos | Nombres: precisión | Nombres: exhaustividad | Direcciones: precisión | Hallazgos falsos por cada 1.000 |
+| --- | --- | --- | --- | --- | --- |
+| Campos de cuatro o más palabras (no elegida) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Campos cuyo nombre indica texto libre (elegida) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+La regla elegida, por idioma. Una prueba fija estas puntuaciones y el listón con el que se eligió el modelo:
+
+| Idioma | Nombres: precisión | Nombres: exhaustividad | Direcciones: precisión | Direcciones: exhaustividad |
+| --- | --- | --- | --- | --- |
+| Inglés | 1,00 | 1,00 | 1,00 | 1,00 |
+| Español | 1,00 | 1,00 | 1,00 | 1,00 |
+| Alemán | 1,00 | 1,00 | 1,00 | 1,00 |
+| Francés | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italiano | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portugués | 0,86 | 0,92 | 1,00 | 1,00 |
+| Neerlandés | 1,00 | 1,00 | 1,00 | 1,00 |
+| Los siete | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Cuenta el nombre del propio campo: `orders.delivery_note` se lee, `notes.author` no, ni tampoco un nombre que termina en un identificador, un recuento, un tipo, un estado o una fecha, como `message_id`. Una descripción no se lee por su nombre: la de un producto es texto de catálogo.
+
 ### Dónde se ejecuta y cuánto cuesta
 
 - **En todas las imágenes.** La imagen App, que ejecuta los workers, y la imagen de la sonda llevan el modelo, su vocabulario y el entorno de ejecución, incluidas las imágenes para entornos aislados (air-gapped) y las de Iron Bank: unos 114 MB en disco. Se obtienen al construir la imagen, a partir de una revisión fijada, y se comprueban con su SHA-256. No se descarga nada mientras se ejecuta un escaneo.
 - **Memoria.** Se carga la primera vez que un escaneo lo necesita, una vez por proceso: unos 550 MB, que se liberan tras 10 minutos sin escaneos.
 - **Tiempo.** En un núcleo, entre 30 segundos y un minuto por cada 1.000 valores de la longitud de una línea de registro, y unos 9 minutos por cada 1.000 valores de 1.200 caracteres. Un escaneo de contenido de un almacén le da hasta 2 minutos. El escaneo horario de telemetría le da hasta 1 minuto en total y 6 segundos por almacén, a un grupo distinto de almacenes cada hora.
+- **Turnos.** El modelo de cada escaneo de contenido empieza donde se detuvo el del anterior: en la primera tabla o el primer contenedor cuyo texto libre no leyó, y con los objetos de un bucket para los que no tuvo tiempo, que se vuelven a leer antes que ningún otro. Lo que empezó y no pudo terminar no vuelve a ir primero, así que nada acapara su tiempo escaneo tras escaneo, y cada tabla y cada objeto tiene su turno, por mucho texto libre que tenga el almacén de datos.
 - **Cuando se le acaba el tiempo**, el escaneo termina con lo que el modelo leyó, y sus avisos dicen cuántos de los valores de texto libre leyó, nunca qué contienen. Un worker o una sonda que no tiene el modelo escanea como antes y dice por qué:
 
 ```text
@@ -133,7 +159,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Detectar nombres y direcciones postales** está activado en todos los proyectos: los escaneos de contenido de buckets, bases de datos y conjuntos de datos de BigQuery leen el texto libre con el modelo, tanto en los workers como en las sondas. **Detectar nombres y direcciones postales en la telemetría**, justo debajo, está desactivado: leer una sola vez cada cuerpo de registro, cada excepción y cada conversación de un proyecto de 200 servicios con mucha actividad lleva unos 48 minutos de un núcleo, y el minuto por hora del escaneo lee alrededor del 4% de todo ello. Actívalo para que cada escaneo horario lea una parte. Ambos están en **Seguridad de datos → Ajustes → Ajustes de escaneo**, en **Qué lee Seguridad de datos**. El cuadro **Probarlo** se ejecuta en tu navegador, sin el modelo: ahí no aparece lo que encontraría el modelo.
+Los detalles de un escaneo muestran estos avisos, y cualquier otro aviso de un escaneo de contenido o de telemetría, en el idioma de quien los lee.
+
+**Detectar nombres y direcciones postales** está activado en todos los proyectos: los escaneos de contenido de buckets, bases de datos y conjuntos de datos de BigQuery leen el texto libre con el modelo, tanto en los workers como en las sondas. **Detectar nombres y direcciones postales en la telemetría**, justo debajo, está desactivado: leer una sola vez cada cuerpo de registro, cada excepción y cada conversación de un proyecto de 200 servicios con mucha actividad lleva unos 48 minutos de un núcleo, y el minuto por hora del escaneo lee alrededor del 4% de todo ello. Actívalo para que cada escaneo horario lea una parte. Ambos están en **Seguridad de datos → Ajustes → Ajustes de escaneo**, en **Qué lee Seguridad de datos**. El cuadro **Probarlo** se ejecuta en tu navegador, sin el modelo: ahí no aparece lo que encontraría el modelo. El modelo añadiría unos 113 MB de descarga, 67 MB comprimidos, y unos 440 MB a la memoria de la pestaña, así que solo se ejecuta en el escáner.
 
 ## Sensibilidad
 

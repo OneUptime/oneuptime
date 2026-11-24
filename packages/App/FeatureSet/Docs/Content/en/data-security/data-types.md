@@ -74,11 +74,12 @@ Each type OneUptime AI names is a Low finding, marked **Suggested by OneUptime A
 
 No pattern tells a person's name from any other word. So free text - a support note, a log line, an exception message, a prompt - is also read by a small language model that finds people's names and street addresses. The model runs inside the scanner, on OneUptime's workers and on your probes: the text never leaves the scanner, nothing is downloaded while it runs, and no prompt is written. It is not OneUptime AI, and OneUptime AI's switches do not turn it on or off: **Find Names And Street Addresses** does.
 
-- **What it reads.** A field whose values average more than 80 characters, and in telemetry every log body, exception message, stack trace and AI conversation, however short. It reads up to 100 different values of a field, 32 KB of text in all, and up to 16 KB of one value.
+- **What it reads.** A field whose values average more than 80 characters; a field whose name says a person wrote free text in it, however short its values, such as `delivery_note`, `comentario`, `Lieferhinweis` or `opmerking` (see [Short values](#short-values)); and in telemetry every log body, exception message, stack trace and AI conversation, however short. It reads up to 100 different values of a field, 32 KB of text in all, and up to 16 KB of one value.
 - **What it finds.** A **Person name** (`person-name`), and a **Street address** (`postal-address`): a place the model reads beside a house number, such as `14 Calle Mayor`, with the postal code and the city that follow it. A city or a country on its own is not a street address.
 - **How sure it is.** A name or an address the model finds is Medium on its own. It is High when the field's name says the field holds names or addresses, or when words near it do, such as "customer", "Kunde" or "dirección". It is Low when the model is unsure of it, with a score under 0.6. Each keeps the confidence it earned on its own, so one name among a thousand log lines is still Medium.
 - **Test values.** Placeholders such as `Jane Doe`, `John Smith`, `Max Mustermann` and `123 Main Street` are counted apart, as every type's test values are.
 - **What it keeps.** Its samples are masked as a name found from a field's name is: the first character and four stars, `M****`. They are never fingerprinted. On the store's **What's Inside** page, such a finding says **Found in free text by the scanner's model**.
+- **Its records, and its rules.** A finding it made lists the records it was found in, with each line cut around the name or the address and every name and address in it masked, and Scrub It proves a rule on those records, as for any finding: they are read again with the model, up to 20 seconds of its time each time. A record it had no time for is not listed, and the list says how many values it had no time for. Where the model cannot run, the list says so, and no rule for the finding is proven.
 
 | Model | Licence | Size | Revision | Languages measured |
 | --- | --- | --- | --- | --- |
@@ -121,11 +122,36 @@ The four models measured, on the written test set, one after another on the same
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0.704 / 0.929 | 0.839 / 1.000 | 369 | 3.7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0.712 / 0.995 | 0.762 / 0.992 | 589 | 7.8 s / 159 s |
 
+### Short values
+
+A short field is read only when its name says a person wrote free text in it. The rule was measured before it was chosen, on 49 columns of a database in the seven languages, 588 values in all: product names, titles, labels, job titles and store names, where a brand's, a character's or a street's name is no finding, and short delivery notes, support comments and customer remarks holding 91 names and 28 street addresses. Reading every field of four or more words, the first rule considered, read 108 of the catalog's values and made 53 false names of them, such as `Ralph Lauren` in a polo shirt's name and `Tom Sawyer` in a book's title:
+
+| Rule | Catalog values read | Names: precision | Names: recall | Addresses: precision | False findings per 1,000 |
+| --- | --- | --- | --- | --- | --- |
+| Fields of four or more words (not chosen) | 108 | 0.62 | 0.99 | 1.00 | 222 |
+| Fields named for free text (chosen) | 0 | 0.98 | 0.99 | 1.00 | 14 |
+
+The rule chosen, by language. A test holds these scores, and the bar the model was chosen by:
+
+| Language | Names: precision | Names: recall | Addresses: precision | Addresses: recall |
+| --- | --- | --- | --- | --- |
+| English | 1.00 | 1.00 | 1.00 | 1.00 |
+| Spanish | 1.00 | 1.00 | 1.00 | 1.00 |
+| German | 1.00 | 1.00 | 1.00 | 1.00 |
+| French | 1.00 | 1.00 | 1.00 | 1.00 |
+| Italian | 1.00 | 1.00 | 1.00 | 1.00 |
+| Portuguese | 0.86 | 0.92 | 1.00 | 1.00 |
+| Dutch | 1.00 | 1.00 | 1.00 | 1.00 |
+| All seven | 0.98 | 0.99 | 1.00 | 1.00 |
+
+A field's own name counts: `orders.delivery_note` is read, `notes.author` is not, and neither is a name that ends with an id, a count, a type, a status or a time, such as `message_id`. A description is not read for its name: a product's is a catalog's text.
+
 ### Where it runs, and what it costs
 
 - **In every image.** The App image, which runs the workers, and the Probe image carry the model, its vocabulary and the runtime, air-gapped and Iron Bank images included: about 114 MB on disk. They are fetched when the image is built, from a pinned revision, and checked against their SHA-256. Nothing is downloaded while a scan runs.
 - **Memory.** It is loaded the first time a scan needs it, once per process: about 550 MB, given back after 10 minutes without a scan.
 - **Time.** On one core, between 30 seconds and a minute per 1,000 values the length of a log line, and about 9 minutes per 1,000 values of 1,200 characters. A content scan of a store gives it up to 2 minutes. The hourly telemetry scan gives it up to 1 minute in all and 6 seconds a store, to a different set of stores each hour.
+- **Turns.** Each content scan's model starts where the last one's stopped: at the first table or container whose free text it did not read, and with the objects of a bucket it had no time for, which are read again before any other. One it started on and could not finish is not taken first again, so none holds its time scan after scan, and every table and object takes its turn, however much free text the store holds.
 - **When its time runs out**, the scan finishes with what the model read, and its warnings say how many of the free-text values it read, never what. A worker or a probe that has no model scans as before and says why:
 
 ```text
@@ -133,7 +159,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Find Names And Street Addresses** is on for every project: content scans of buckets, databases and BigQuery datasets read free text with the model, on workers and on probes. **Find Names And Street Addresses In Telemetry**, under it, is off: reading every log body, exception and conversation of a busy project of 200 services once takes about 48 minutes of one core, and the scan's minute an hour reads about 4% of it. Turn it on to have each hourly scan read some of them. Both are on **Data Security → Settings → Scan Settings**, under **What Data Security Reads**. **Test It** runs in your browser, without the model: what the model would find is not shown there.
+A scan's details show these, and every other warning of a content or telemetry scan, in the reader's language.
+
+**Find Names And Street Addresses** is on for every project: content scans of buckets, databases and BigQuery datasets read free text with the model, on workers and on probes. **Find Names And Street Addresses In Telemetry**, under it, is off: reading every log body, exception and conversation of a busy project of 200 services once takes about 48 minutes of one core, and the scan's minute an hour reads about 4% of it. Turn it on to have each hourly scan read some of them. Both are on **Data Security → Settings → Scan Settings**, under **What Data Security Reads**. **Test It** runs in your browser, without the model: what the model would find is not shown there. The model would add about 113 MB to download, 67 MB compressed, and about 440 MB to the tab's memory, so it runs only in the scanner.
 
 ## Sensitivity
 

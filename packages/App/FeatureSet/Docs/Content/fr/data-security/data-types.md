@@ -74,11 +74,12 @@ Chaque type que nomme OneUptime AI est une détection de confiance Faible, marqu
 
 Aucun motif ne distingue le nom d'une personne de n'importe quel autre mot. Le texte libre - une note de support, une ligne de journal, un message d'exception, un prompt - est donc aussi lu par un petit modèle de langage, qui y trouve les noms de personnes et les adresses postales. Le modèle s'exécute dans le scanner, sur les workers de OneUptime et sur vos sondes : le texte ne quitte jamais le scanner, rien n'est téléchargé pendant son exécution, et aucun prompt n'est rédigé. Ce n'est pas OneUptime AI, et les interrupteurs de OneUptime AI ne l'activent ni ne le désactivent : c'est le rôle de **Repérer les noms et les adresses postales**.
 
-- **Ce qu'il lit.** Un champ dont les valeurs dépassent 80 caractères en moyenne et, dans la télémétrie, chaque corps de journal, message d'exception, trace de pile et conversation IA, si court soit-il. Il lit jusqu'à 100 valeurs différentes d'un champ, 32 Ko de texte au total, et jusqu'à 16 Ko d'une même valeur.
+- **Ce qu'il lit.** Un champ dont les valeurs dépassent 80 caractères en moyenne ; un champ dont le nom indique qu'une personne y écrit du texte libre, si courtes que soient ses valeurs, comme `delivery_note`, `comentario`, `Lieferhinweis` ou `opmerking` (voir [Valeurs courtes](#valeurs-courtes)) ; et, dans la télémétrie, chaque corps de journal, message d'exception, trace de pile et conversation IA, si court soit-il. Il lit jusqu'à 100 valeurs différentes d'un champ, 32 Ko de texte au total, et jusqu'à 16 Ko d'une même valeur.
 - **Ce qu'il trouve.** Un **Nom de personne** (`person-name`) et une **Adresse postale** (`postal-address`) : un lieu que le modèle lit à côté d'un numéro de rue, comme `14 Calle Mayor`, avec le code postal et la ville qui le suivent. Une ville ou un pays seul n'est pas une adresse postale.
 - **Son niveau de confiance.** Un nom ou une adresse que trouve le modèle a, à lui seul, une confiance Moyen. Il passe à Élevé quand le nom du champ indique que celui-ci contient des noms ou des adresses, ou quand des mots proches le disent, comme « customer », « Kunde » ou « dirección ». Il est Faible quand le modèle en est peu sûr, avec un score inférieur à 0,6. Chacun garde la confiance qu'il a obtenue seul : un nom isolé parmi mille lignes de journal reste donc Moyen.
 - **Valeurs de test.** Les valeurs fictives comme `Jane Doe`, `John Smith`, `Max Mustermann` et `123 Main Street` sont comptées à part, comme le sont les valeurs de test de chaque type.
 - **Ce qu'il conserve.** Ses échantillons sont masqués comme ceux d'un nom trouvé d'après le nom d'un champ : le premier caractère suivi de quatre astérisques, `M****`. Aucune empreinte n'en est jamais calculée. Sur la page **Contenu** du magasin de données, une telle détection porte la mention **Repéré dans du texte libre par le modèle du scanner**.
+- **Ses enregistrements, et ses règles.** Une détection qu'il a faite liste les enregistrements où elle a été trouvée, chaque ligne coupée autour du nom ou de l'adresse et chaque nom et chaque adresse qu'elle contient masqués, et **Nettoyer** prouve une règle sur ces enregistrements, comme pour toute détection : ils sont relus avec le modèle, avec jusqu'à 20 secondes de son temps à chaque fois. Un enregistrement pour lequel il n'a pas eu le temps n'est pas listé, et la liste indique combien de valeurs il n'a pas eu le temps de lire. Là où le modèle ne peut pas s'exécuter, la liste le dit, et aucune règle n'est prouvée pour la détection.
 
 | Modèle | Licence | Taille | Révision | Langues évaluées |
 | --- | --- | --- | --- | --- |
@@ -121,11 +122,36 @@ Voici les quatre modèles mesurés sur ce jeu de test, l'un après l'autre sur l
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 Mo | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 Mo | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Valeurs courtes
+
+Un champ court n'est lu que si son nom indique qu'une personne y écrit du texte libre. La règle a été mesurée avant d'être retenue, sur 49 colonnes d'une base de données dans les sept langues, 588 valeurs au total : des noms de produits, des titres, des libellés, des intitulés de poste et des noms de magasins, où le nom d'une marque, d'un personnage ou d'une rue n'est pas une détection, et de courtes notes de livraison, des commentaires de support et des remarques de clients contenant 91 noms et 28 adresses postales. Lire chaque champ de quatre mots ou plus, la première règle envisagée, a lu 108 valeurs du catalogue et en a tiré 53 faux noms, comme `Ralph Lauren` dans le nom d'un polo et `Tom Sawyer` dans le titre d'un livre :
+
+| Règle | Valeurs du catalogue lues | Noms : précision | Noms : rappel | Adresses : précision | Fausses détections pour 1 000 |
+| --- | --- | --- | --- | --- | --- |
+| Champs de quatre mots ou plus (non retenue) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Champs dont le nom indique du texte libre (retenue) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+La règle retenue, par langue. Un test verrouille ces scores, ainsi que la barre selon laquelle le modèle a été choisi :
+
+| Langue | Noms : précision | Noms : rappel | Adresses : précision | Adresses : rappel |
+| --- | --- | --- | --- | --- |
+| Anglais | 1,00 | 1,00 | 1,00 | 1,00 |
+| Espagnol | 1,00 | 1,00 | 1,00 | 1,00 |
+| Allemand | 1,00 | 1,00 | 1,00 | 1,00 |
+| Français | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italien | 1,00 | 1,00 | 1,00 | 1,00 |
+| Portugais | 0,86 | 0,92 | 1,00 | 1,00 |
+| Néerlandais | 1,00 | 1,00 | 1,00 | 1,00 |
+| Les sept | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Seul compte le nom du champ lui-même : `orders.delivery_note` est lu, `notes.author` ne l'est pas, pas plus qu'un nom qui se termine par un identifiant, un compteur, un type, un statut ou une date, comme `message_id`. Une description n'est pas lue pour son nom : celle d'un produit est un texte de catalogue.
+
 ### Où il s'exécute, et ce qu'il coûte
 
 - **Dans chaque image.** L'image App, qui exécute les workers, et l'image de la sonde embarquent le modèle, son vocabulaire et l'environnement d'exécution, y compris les images pour environnements isolés (air-gapped) et Iron Bank : environ 114 Mo sur disque. Ils sont récupérés à la construction de l'image, depuis une révision épinglée, et vérifiés par rapport à leur SHA-256. Rien n'est téléchargé pendant une analyse.
 - **Mémoire.** Il est chargé la première fois qu'une analyse en a besoin, une fois par processus : environ 550 Mo, libérés après 10 minutes sans analyse.
 - **Temps.** Sur un cœur, entre 30 secondes et une minute pour 1 000 valeurs de la longueur d'une ligne de journal, et environ 9 minutes pour 1 000 valeurs de 1 200 caractères. Une analyse du contenu d'un magasin de données lui accorde jusqu'à 2 minutes. L'analyse horaire de la télémétrie lui accorde jusqu'à 1 minute au total et 6 secondes par magasin de données, à un ensemble différent de magasins de données chaque heure.
+- **Chacun son tour.** Le modèle de chaque analyse du contenu reprend là où celui de la précédente s'est arrêté : à la première table ou au premier conteneur dont il n'a pas lu le texte libre, et avec les objets d'un bucket pour lesquels il n'a pas eu le temps, relus avant tous les autres. Ce qu'il a commencé sans pouvoir le terminer n'est pas repris en premier, si bien que rien ne garde son temps d'une analyse à l'autre, et chaque table et chaque objet a son tour, quelle que soit la quantité de texte libre du magasin de données.
 - **Quand son temps est écoulé**, l'analyse se termine avec ce que le modèle a lu, et ses avertissements indiquent combien de valeurs de texte libre il a lues, jamais ce qu'elles contiennent. Un worker ou une sonde qui n'a pas le modèle analyse comme avant et indique pourquoi :
 
 ```text
@@ -133,7 +159,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Repérer les noms et les adresses postales** est activé pour chaque projet : les analyses du contenu des buckets, des bases de données et des jeux de données BigQuery lisent le texte libre avec le modèle, sur les workers comme sur les sondes. **Repérer les noms et les adresses postales dans la télémétrie**, juste en dessous, est désactivé : lire une seule fois chaque corps de journal, chaque exception et chaque conversation d'un projet très actif de 200 services prend environ 48 minutes d'un cœur, et la minute par heure dont dispose l'analyse en lit environ 4 %. Activez-le pour que chaque analyse horaire en lise une partie. Les deux se trouvent sur **Sécurité des données → Paramètres → Paramètres d'analyse**, sous **Ce que lit Sécurité des données**. La zone **Tester** s'exécute dans votre navigateur, sans le modèle : ce que le modèle trouverait n'y apparaît pas.
+Les détails d'une analyse affichent ces avertissements, comme tous les autres avertissements d'une analyse du contenu ou de la télémétrie, dans la langue du lecteur.
+
+**Repérer les noms et les adresses postales** est activé pour chaque projet : les analyses du contenu des buckets, des bases de données et des jeux de données BigQuery lisent le texte libre avec le modèle, sur les workers comme sur les sondes. **Repérer les noms et les adresses postales dans la télémétrie**, juste en dessous, est désactivé : lire une seule fois chaque corps de journal, chaque exception et chaque conversation d'un projet très actif de 200 services prend environ 48 minutes d'un cœur, et la minute par heure dont dispose l'analyse en lit environ 4 %. Activez-le pour que chaque analyse horaire en lise une partie. Les deux se trouvent sur **Sécurité des données → Paramètres → Paramètres d'analyse**, sous **Ce que lit Sécurité des données**. La zone **Tester** s'exécute dans votre navigateur, sans le modèle : ce que le modèle trouverait n'y apparaît pas. Le modèle ajouterait environ 113 Mo à télécharger, 67 Mo compressés, et environ 440 Mo à la mémoire de l'onglet : il ne s'exécute donc que dans le scanner.
 
 ## Sensibilité
 

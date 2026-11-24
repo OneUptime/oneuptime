@@ -74,11 +74,12 @@ Cada tipo que o OneUptime AI nomeia é uma descoberta com confiança Baixo, marc
 
 Nenhum padrão distingue o nome de uma pessoa de qualquer outra palavra. Por isso o texto livre - uma nota de suporte, uma linha de log, uma mensagem de exceção, um prompt - também é lido por um pequeno modelo de linguagem que encontra nomes de pessoas e endereços. O modelo roda dentro do scanner, nos workers do OneUptime e nos seus probes: o texto nunca sai do scanner, nada é baixado enquanto ele roda e nenhum prompt é escrito. Ele não é o OneUptime AI, e os interruptores do OneUptime AI não o ligam nem desligam: quem faz isso é **Encontrar nomes e endereços**.
 
-- **O que ele lê.** Um campo cujos valores têm em média mais de 80 caracteres e, na telemetria, todo corpo de log, mensagem de exceção, stack trace e conversa de IA, por mais curtos que sejam. Ele lê até 100 valores diferentes de um campo, 32 KB de texto no total, e até 16 KB de um valor.
+- **O que ele lê.** Um campo cujos valores têm em média mais de 80 caracteres; um campo cujo nome diz que uma pessoa escreve texto livre nele, por mais curtos que sejam seus valores, como `delivery_note`, `comentario`, `Lieferhinweis` ou `opmerking` (veja [Valores curtos](#valores-curtos)); e, na telemetria, todo corpo de log, mensagem de exceção, stack trace e conversa de IA, por mais curtos que sejam. Ele lê até 100 valores diferentes de um campo, 32 KB de texto no total, e até 16 KB de um valor.
 - **O que ele encontra.** Um **Nome da pessoa** (`person-name`) e um **Endereço** (`postal-address`): um lugar que o modelo lê junto de um número, como `14 Calle Mayor`, com o código postal e a cidade que vêm depois. Uma cidade ou um país sozinho não é um endereço.
 - **Quão seguro ele está.** Um nome ou um endereço que o modelo encontra é Médio por si só. É Alto quando o nome do campo diz que o campo guarda nomes ou endereços, ou quando palavras próximas dizem isso, como "customer", "Kunde" ou "dirección". É Baixo quando o modelo não tem certeza, com uma pontuação abaixo de 0,6. Cada um mantém a confiança que ganhou sozinho, então um nome entre mil linhas de log continua Médio.
 - **Valores de teste.** Exemplos como `Jane Doe`, `John Smith`, `Max Mustermann` e `123 Main Street` são contados à parte, como os valores de teste de todo tipo.
 - **O que ele guarda.** As amostras são mascaradas como as de um nome encontrado pelo nome do campo: o primeiro caractere e quatro asteriscos, `M****`. Elas nunca recebem impressão digital. Na página **Conteúdo** do repositório, uma descoberta assim diz **Encontrado em texto livre pelo modelo do scanner**.
+- **As entradas dele, e as regras.** Uma descoberta feita por ele lista as entradas em que foi encontrada, com cada linha cortada em volta do nome ou do endereço e todo nome e endereço nela mascarados, e **Limpar** prova uma regra nessas entradas, como para qualquer descoberta: elas são lidas de novo com o modelo, com até 20 segundos do tempo dele a cada vez. Uma entrada para a qual ele não teve tempo não aparece na lista, e a lista diz quantos valores ele não teve tempo de ler. Onde o modelo não pode rodar, a lista diz isso, e nenhuma regra para a descoberta é provada.
 
 | Modelo | Licença | Tamanho | Revisão | Idiomas medidos |
 | --- | --- | --- | --- | --- |
@@ -121,11 +122,36 @@ Os quatro modelos medidos, no conjunto de testes escrito, um depois do outro na 
 | jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
 | balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
 
+### Valores curtos
+
+Um campo curto só é lido quando o nome dele diz que uma pessoa escreve texto livre nele. A regra foi medida antes de ser escolhida, em 49 colunas de um banco de dados nos sete idiomas, 588 valores no total: nomes de produtos, títulos, rótulos, cargos e nomes de lojas, em que o nome de uma marca, de um personagem ou de uma rua não é uma descoberta, e notas de entrega, comentários de suporte e observações de clientes curtos com 91 nomes e 28 endereços. Ler todo campo de quatro ou mais palavras, a primeira regra considerada, leu 108 dos valores do catálogo e fez deles 53 nomes falsos, como `Ralph Lauren` no nome de uma camisa polo e `Tom Sawyer` no título de um livro:
+
+| Regra | Valores do catálogo lidos | Nomes: precisão | Nomes: recall | Endereços: precisão | Descobertas falsas a cada 1.000 |
+| --- | --- | --- | --- | --- | --- |
+| Campos de quatro ou mais palavras (não escolhida) | 108 | 0,62 | 0,99 | 1,00 | 222 |
+| Campos cujo nome indica texto livre (escolhida) | 0 | 0,98 | 0,99 | 1,00 | 14 |
+
+A regra escolhida, por idioma. Um teste mantém estas pontuações, e a barra pela qual o modelo foi escolhido:
+
+| Idioma | Nomes: precisão | Nomes: recall | Endereços: precisão | Endereços: recall |
+| --- | --- | --- | --- | --- |
+| Inglês | 1,00 | 1,00 | 1,00 | 1,00 |
+| Espanhol | 1,00 | 1,00 | 1,00 | 1,00 |
+| Alemão | 1,00 | 1,00 | 1,00 | 1,00 |
+| Francês | 1,00 | 1,00 | 1,00 | 1,00 |
+| Italiano | 1,00 | 1,00 | 1,00 | 1,00 |
+| Português | 0,86 | 0,92 | 1,00 | 1,00 |
+| Holandês | 1,00 | 1,00 | 1,00 | 1,00 |
+| Os sete | 0,98 | 0,99 | 1,00 | 1,00 |
+
+Conta o nome do próprio campo: `orders.delivery_note` é lido, `notes.author` não, nem um nome que termina com um id, uma contagem, um tipo, um status ou uma data, como `message_id`. Uma descrição não é lida pelo nome: a de um produto é texto de catálogo.
+
 ### Onde ele roda, e quanto custa
 
 - **Em todas as imagens.** A imagem App, que roda os workers, e a imagem Probe levam o modelo, o vocabulário dele e o runtime, incluindo imagens air-gapped e Iron Bank: cerca de 114 MB em disco. Eles são baixados quando a imagem é construída, de uma revisão fixada, e conferidos com o SHA-256 deles. Nada é baixado enquanto uma varredura roda.
 - **Memória.** Ele é carregado na primeira vez que uma varredura precisa dele, uma vez por processo: cerca de 550 MB, devolvidos depois de 10 minutos sem varredura.
 - **Tempo.** Em um núcleo, entre 30 segundos e um minuto a cada 1.000 valores do tamanho de uma linha de log, e cerca de 9 minutos a cada 1.000 valores de 1.200 caracteres. Uma varredura de conteúdo de um repositório lhe dá até 2 minutos. A varredura de telemetria de hora em hora lhe dá até 1 minuto no total e 6 segundos por repositório, a um conjunto diferente de repositórios a cada hora.
+- **A vez de cada um.** O modelo de cada varredura de conteúdo começa onde o da anterior parou: na primeira tabela ou no primeiro contêiner cujo texto livre ele não leu, e com os objetos de um bucket para os quais não teve tempo, que são lidos de novo antes de qualquer outro. O que ele começou e não conseguiu terminar não vai primeiro de novo, então nada prende o tempo dele varredura após varredura, e toda tabela e todo objeto tem a sua vez, por mais texto livre que o repositório de dados tenha.
 - **Quando o tempo dele acaba**, a varredura termina com o que o modelo leu, e os avisos dela dizem quantos dos valores de texto livre ele leu, nunca o quê. Um worker ou um probe sem o modelo faz a varredura como antes e diz por quê:
 
 ```text
@@ -133,7 +159,9 @@ Names and street addresses were looked for in 120 of 500 free-text values: this 
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Encontrar nomes e endereços** vem ativado em todo projeto: as varreduras de conteúdo de buckets, bancos de dados e conjuntos de dados do BigQuery leem texto livre com o modelo, nos workers e nos probes. **Encontrar nomes e endereços na telemetria**, logo abaixo, vem desativado: ler uma vez todo corpo de log, exceção e conversa de um projeto movimentado de 200 serviços leva cerca de 48 minutos de um núcleo, e o minuto por hora da varredura lê cerca de 4% disso. Ative-o para que cada varredura de hora em hora leia uma parte deles. Os dois ficam em **Segurança de dados → Configurações → Configurações de varredura**, em **O que a Segurança de dados lê**. **Testar** roda no seu navegador, sem o modelo: o que o modelo encontraria não aparece ali.
+Os detalhes de uma varredura mostram estes avisos, e todos os outros avisos de uma varredura de conteúdo ou de telemetria, no idioma de quem lê.
+
+**Encontrar nomes e endereços** vem ativado em todo projeto: as varreduras de conteúdo de buckets, bancos de dados e conjuntos de dados do BigQuery leem texto livre com o modelo, nos workers e nos probes. **Encontrar nomes e endereços na telemetria**, logo abaixo, vem desativado: ler uma vez todo corpo de log, exceção e conversa de um projeto movimentado de 200 serviços leva cerca de 48 minutos de um núcleo, e o minuto por hora da varredura lê cerca de 4% disso. Ative-o para que cada varredura de hora em hora leia uma parte deles. Os dois ficam em **Segurança de dados → Configurações → Configurações de varredura**, em **O que a Segurança de dados lê**. **Testar** roda no seu navegador, sem o modelo: o que o modelo encontraria não aparece ali. O modelo acrescentaria cerca de 113 MB ao download, 67 MB compactados, e cerca de 440 MB à memória da aba, então ele roda só no scanner.
 
 ## Sensibilidade
 
