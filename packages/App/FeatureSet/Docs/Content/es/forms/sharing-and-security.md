@@ -140,7 +140,7 @@ Cada solicitud pasa estas comprobaciones, en este orden:
 5. Debe venir de uno de los usuarios privados del formulario, con la sesión iniciada, cuando el formulario está configurado como **Solo quienes inician sesión** — consulta [Solo quienes inician sesión](#solo-quienes-inician-sesión).
 6. Un envío debe superar el captcha, cuando la instancia tiene el captcha activado.
 7. Cada respuesta debe estar dentro de los límites de tamaño y encajar con su pregunta — consulta [Crear un formulario](/docs/forms/building#límites-de-tamaño).
-8. Lo que forman las respuestas y los ajustes debe poder crearse: un incidente necesita una gravedad, un evento un fin posterior a su inicio.
+8. Lo que forman las respuestas y los ajustes debe poder crearse: un incidente o una alerta necesita una gravedad, un evento un fin posterior a su inicio.
 9. Un envío debe caber en la cuota por hora del formulario — consulta [Límites de frecuencia](#límites-de-frecuencia).
 10. Sus archivos deben caber en la cuota por hora de archivos del formulario, justo antes de guardarse.
 
@@ -244,6 +244,10 @@ Abre la página **Dominios personalizados** del formulario y lee la columna **Es
 El formulario no pide una gravedad, sus ajustes no nombran ninguna — o la que nombraban se eliminó — y su plantilla de incidente tampoco fija ninguna. Elige una gravedad en la página **Al enviar** del formulario. Consulta [Sin gravedad no hay incidente](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-un-incidente).
 :::
 
+:::details Este formulario no puede crear una alerta porque no tiene gravedad
+El formulario de alertas no pide una gravedad, y sus ajustes no nombran ninguna — o la que nombraban se eliminó. Elige una gravedad en la página **Al enviar** del formulario. Consulta [Cómo un envío se convierte en una alerta](/docs/forms/on-submit#cómo-un-envío-se-convierte-en-una-alerta).
+:::
+
 :::details Se rechaza un envío
 El mensaje dice qué está mal: falta una respuesta obligatoria o solo tiene espacios, una respuesta es demasiado larga o no encaja con su pregunta, la dirección de correo no es una sola dirección normal, o una ventana de mantenimiento termina antes de empezar. "La verificación del captcha ha fallado. Vuelve a intentarlo." significa que no se superó el captcha, o que caducó: resuélvelo de nuevo. En una instalación autoalojada en la que todos los envíos fallan el captcha, comprueba que `CAPTCHA_SITE_KEY` y `CAPTCHA_SECRET_KEY` están ambos fijados.
 :::
@@ -261,7 +265,7 @@ Es así a propósito: los incidentes de un formulario se declaran ocultos, y los
 :::
 
 :::details No se avisó a nadie
-El incidente de un formulario ejecuta las políticas de guardia que nombran sus ajustes y su plantilla, y lo que añadan tus reglas de guardia, como cualquier otro incidente. Sin ninguna de ellas, no se avisa a nadie. Añade una política de guardia en la página **Al enviar** del formulario, o escribe una regla de guardia que coincida con sus incidentes — por una etiqueta que el formulario siempre añade, por ejemplo.
+El incidente de un formulario ejecuta las políticas de guardia que nombran sus ajustes y su plantilla, y lo que añadan tus reglas de guardia, como cualquier otro incidente; la alerta de un formulario, las políticas que nombran sus ajustes y lo que añadan tus reglas de guardia de alertas. Sin ninguna de ellas, no se avisa a nadie. Una alerta que empieza en un estado posterior, como **Reconocido**, no avisa a nadie, a propósito. Añade una política de guardia en la página **Al enviar** del formulario, o escribe una regla de guardia que coincida con sus incidentes o sus alertas — por una etiqueta que el formulario siempre añade, por ejemplo.
 :::
 
 ## Próximos pasos

@@ -1177,6 +1177,8 @@ import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-Ad
 import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "./1809187540373-AddDataSecurityNamesAndAddressesModel";
 import { AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618 } from "./1809187540618-AddTelemetryExceptionFormerFingerprintAndSplitFrom";
 import { AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628 } from "./1809187540628-AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys";
+import { AddFormSubmissionAlert1809187540760 } from "./1809187540760-AddFormSubmissionAlert";
+import { AddFormSubmissionAlertIndexAndKey1809187540770 } from "./1809187540770-AddFormSubmissionAlertIndexAndKey";
 import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "./1809187550746-AddSecurityAutomaticResponseHourlyLimit";
 import { AddSecurityCasePullRequest1809187560604 } from "./1809187560604-AddSecurityCasePullRequest";
 import { AddProbeMajorVersionBehindNotifiedFor1809187570000 } from "./1809187570000-AddProbeMajorVersionBehindNotifiedFor";
@@ -2362,6 +2364,8 @@ export default [
   AddDataSecurityNamesAndAddressesModel1809187540373,
   AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618,
   AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628,
+  AddFormSubmissionAlert1809187540760,
+  AddFormSubmissionAlertIndexAndKey1809187540770,
   AddSecurityAutomaticResponseHourlyLimit1809187550746,
   AddSecurityCasePullRequest1809187560604,
   AddProbeMajorVersionBehindNotifiedFor1809187570000,

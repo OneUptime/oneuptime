@@ -19448,7 +19448,7 @@ export class PermissionHelper {
         permission: Permission.CreateForm,
         title: "Create Form",
         description:
-          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a maintenance event.",
+          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident, an alert or a maintenance event. Setting up a form that creates alerts also takes permission to create alerts.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

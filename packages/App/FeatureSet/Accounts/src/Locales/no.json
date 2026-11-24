@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "Captcha-tokenet mangler. Fullfør verifiseringen.",
   "Captcha verification failed. Please try again.": "Captcha-verifiseringen mislyktes. Prøv igjen.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Dette skjemaet kan ikke opprette en hendelse fordi det ikke har noen alvorlighetsgrad. Gi beskjed til teamet som delte det.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "Dette skjemaet kan ikke opprette et varsel fordi det ikke har noen alvorlighetsgrad. Gi beskjed til teamet som delte det.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Innsendinger kan ikke tas imot akkurat nå. Prøv igjen om noen minutter.",
   "This form is receiving too many files right now. Please try again later.": "Dette skjemaet mottar for mange filer akkurat nå. Prøv igjen senere.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Filer kan ikke sjekkes for virus akkurat nå, så de ble ikke tatt imot. Prøv igjen om noen minutter.",

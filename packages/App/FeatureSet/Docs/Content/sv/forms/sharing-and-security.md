@@ -140,7 +140,7 @@ Varje begäran passerar de här kontrollerna, i den här ordningen:
 5. Den måste komma från en av formulärets privata användare, inloggad, när formuläret är inställt på **Bara personer som loggar in** — se [Bara personer som loggar in](#bara-personer-som-loggar-in).
 6. En inlämning måste klara captchan, när instansen har captcha påslaget.
 7. Varje svar måste ligga inom storleksgränserna och passa sin fråga — se [Bygga ett formulär](/docs/forms/building#storleksgränser).
-8. Det som svaren och inställningarna bildar måste kunna skapas: en incident behöver en allvarlighetsgrad, en händelse ett slut efter sin början.
+8. Det som svaren och inställningarna bildar måste kunna skapas: en incident eller ett larm behöver en allvarlighetsgrad, en händelse ett slut efter sin början.
 9. En inlämning måste rymmas inom formulärets timkvot — se [Frekvensgränser](#frekvensgränser).
 10. Dess filer måste rymmas inom formulärets timkvot för filer, precis innan de sparas.
 
@@ -244,6 +244,10 @@ Den ClamAV som följer med OneUptime hämtar sina signaturer från `database.cla
 Formuläret frågar inte efter en allvarlighetsgrad, dess inställningar anger ingen — eller den angivna har tagits bort — och dess incidentmall anger inte heller någon. Välj en allvarlighetsgrad på formulärets sida **Vid inlämning**. Se [Ingen allvarlighetsgrad, ingen incident](/docs/forms/on-submit#så-blir-en-inlämning-en-incident).
 :::
 
+:::details Det här formuläret kan inte skapa ett larm eftersom det saknar allvarlighetsgrad
+Larmformuläret frågar inte efter en allvarlighetsgrad, och dess inställningar anger ingen — eller den angivna har tagits bort. Välj en allvarlighetsgrad på formulärets sida **Vid inlämning**. Se [Så blir en inlämning ett larm](/docs/forms/on-submit#så-blir-en-inlämning-ett-larm).
+:::
+
 :::details En inlämning avvisas
 Meddelandet säger vad som är fel: ett obligatoriskt svar saknas eller består bara av mellanslag, ett svar är för långt eller passar inte sin fråga, e-postadressen är inte en enda vanlig adress, eller ett underhållsfönster slutar innan det börjar. "Captcha-verifieringen misslyckades. Försök igen." betyder att captchan inte klarades, eller har gått ut: lös den igen. På en egenvärdad installation där varje inlämning misslyckas med captchan kontrollerar du att `CAPTCHA_SITE_KEY` och `CAPTCHA_SECRET_KEY` båda är angivna.
 :::
@@ -261,7 +265,7 @@ Det är avsiktligt: incidenter från ett formulär deklareras dolda, och underh�
 :::
 
 :::details Ingen larmades
-Ett formulärs incident kör de jourpolicyer som dess inställningar och dess mall anger, och det som dina jourregler lägger till, precis som vilken annan incident som helst. Utan någon av dem larmas ingen. Lägg till en jourpolicy på formulärets sida **Vid inlämning**, eller skriv en jourregel som matchar dess incidenter — på en etikett som formuläret alltid lägger till, till exempel.
+Ett formulärs incident kör de jourpolicyer som dess inställningar och dess mall anger, och det som dina jourregler lägger till, precis som vilken annan incident som helst; ett formulärs larm de policyer som dess inställningar anger och det som dina jourregler för larm lägger till. Utan någon av dem larmas ingen. Ett larm som börjar i ett senare tillstånd, som **Bekräftad**, larmar avsiktligt ingen. Lägg till en jourpolicy på formulärets sida **Vid inlämning**, eller skriv en jourregel som matchar dess incidenter eller larm — på en etikett som formuläret alltid lägger till, till exempel.
 :::
 
 ## Nästa steg
