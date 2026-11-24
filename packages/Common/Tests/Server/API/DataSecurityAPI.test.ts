@@ -67,6 +67,7 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import RecordOfProcessingReader from "../../../Server/Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../../../Server/Utils/DataSecurity/RecordOfProcessingWriter";
+import { STORE_RECORD_CHANGE_REFUSED_MESSAGE } from "../../../Server/Utils/DataSecurity/StoreChangeAccess";
 import StoreTelemetryRetention from "../../../Server/Utils/DataSecurity/StoreTelemetryRetention";
 import RecordOfProcessingDrafter from "../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import ImpactAssessmentDrafter from "../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
@@ -5555,11 +5556,19 @@ describe("the compliance paperwork's routes", () => {
   ];
 
   let helperSpies: Array<jest.SpyInstance>;
+  // Whether the caller may change the store itself, by its own row (StoreChangeAccess).
+  let storeChangeSpy: jest.SpyInstance;
 
   beforeEach(() => {
     const row: DataSecurityRecordOfProcessingRow = {
       dataStoreId: STORE_ID.toString(),
     } as DataSecurityRecordOfProcessingRow;
+
+    storeChangeSpy = jest
+      .spyOn(DataStoreService, "findOneUpdatableById")
+      .mockImplementation((async () => {
+        return storeRow;
+      }) as never);
 
     helperSpies = [
       jest
@@ -5705,6 +5714,35 @@ describe("the compliance paperwork's routes", () => {
       userId: USER_ID,
       force: true,
     });
+
+    // ...and only once the caller is known to be able to change THIS store (#10805).
+    expect(storeChangeSpy.mock.calls[0]![0]).toMatchObject({
+      id: STORE_ID,
+      props: { userId: USER_ID },
+    });
+    expect(storeChangeSpy.mock.invocationCallOrder[0]!).toBeLessThan(
+      draftStore.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a store's drafts are refused to who may edit some store but not this one, drafting nothing", async () => {
+    asCaller([Permission.EditDataStore]);
+    // An edit of stores limited to labels this store does not carry.
+    storeChangeSpy.mockResolvedValue(null);
+
+    const result: RouteCall = await call(
+      DATA_SECURITY_API_ROUTES.draftRecord(":id"),
+      { id: STORE_ID.toString() },
+      { force: true },
+    );
+
+    expect(result.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((result.thrown as Exception).message).toBe(
+      STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+    );
+    expect(result.answer).toBeUndefined();
+    expect(helperSpies[2]!).not.toHaveBeenCalled();
+    expect(aiSpy).not.toHaveBeenCalled();
   });
 
   test.each([
