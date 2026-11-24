@@ -331,7 +331,16 @@ Un evento leído de una línea de log escrita dentro de una solicitud trazada se
 
 ### Campaigns
 
-**Campañas** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero.
+**Campañas** muestra cada dirección que envió solicitudes de ataque como una sola fila, con los tipos de ataque, las herramientas y las solicitudes que envió, y cuántas pasaron. Las direcciones cuyas solicitudes llegaron a tu app aparecen primero. Una fila que tu lista de bloqueo ya contiene dice hasta cuándo está bloqueada o sometida a desafío, y nombra el rango o la red que la contiene.
+
+Para bloquear a varios atacantes a la vez, selecciona sus filas y pulsa **Bloquear direcciones**. Un solo diálogo lista cada dirección que bloquea y cada una que deja fuera, con el motivo: ya bloqueada, una de las tuyas o una protegida, una que un usuario con sesión iniciada usó en los últimos 30 días, o una que OneUptime no pudo comprobar. Bloquea durante 24 horas salvo que elijas otra duración, o somete a desafío con **Desafío en su lugar**, y cada bloqueo pasa a tu [lista de bloqueo](/docs/telemetry/security-cases#lista-de-bloqueo) como tuyo.
+
+**Agrupar por red** pone las direcciones de una misma red en una sola fila: por su ASN cuando los eventos de tu conexión de [Cloudflare](/docs/integrations/cloudflare) nombran uno, y si no, por su /24 en IPv4 o su /48 en IPv6. La fila de un ASN lista los rangos desde los que enviaron sus direcciones. **Someter esta red a desafío** dice qué hará, dónde y durante cuánto tiempo antes de hacerlo: 24 horas salvo que elijas otra duración, y el siguiente peldaño de la escalera para una red ya sometida a desafío antes. Cloudflare guarda un rango en su lista de desafíos, y un ASN como una IP Access Rule, que tiene todo plan.
+
+- Una red que contiene una dirección que un usuario con sesión iniciada usó en los últimos 30 días, o una de las tuyas, nunca se somete a desafío, y el diálogo nombra quién o qué.
+- Un rango más amplio que un /24 (un /48 en IPv6), y un ASN entero, requieren un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto. La fila de un ASN también ofrece cada uno de sus rangos, que cualquiera que pueda bloquear puede someter a desafío.
+- Cuando OneUptime no puede saber quién usa una red, porque es un ASN entero o porque una regla de depuración oculta las direcciones de los clientes, solo un Administrador de seguridad, un Administrador del proyecto o un Propietario del proyecto puede someterla a desafío, después de marcar que lo sabe.
+- No se bloquea ni se somete a desafío nada mientras Eventos de seguridad esté desactivado en el servidor.
 
 ### Correlacionar
 

@@ -331,7 +331,16 @@ En händelse läst från en loggrad som skrevs inuti en spårad förfrågan föl
 
 ### Campaigns
 
-**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
+**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först. En rad som din blocklista redan håller säger till när den är blockerad eller utmanad, och nämner intervallet eller nätverket som håller den.
+
+För att blockera flera angripare på en gång markerar du deras rader och trycker på **Blockera adresser**. En enda dialog listar varje adress som den blockerar och varje adress som den utelämnar, med skälet: redan blockerad, en av dina egna eller en skyddad, en som en inloggad användare har använt de senaste 30 dagarna, eller en som OneUptime inte kunde kontrollera. Den blockerar i 24 timmar om du inte väljer en annan längd, eller utmanar med **Utmana i stället**, och varje blockering hamnar på din [blocklista](/docs/telemetry/security-cases#blocklista) som din.
+
+**Gruppera efter nätverk** samlar adresserna från ett nätverk på en rad: efter dess ASN där händelserna från din [Cloudflare](/docs/integrations/cloudflare)-anslutning anger ett, och annars efter dess /24 för IPv4 eller dess /48 för IPv6. Ett ASN:s rad listar intervallen som dess adresser skickade från. **Utmana det här nätverket** säger vad det kommer att göra, var och hur länge, innan det gör det: 24 timmar om du inte väljer en annan längd, och nästa steg på stegen för ett nätverk som har utmanats tidigare. Cloudflare håller ett intervall i sin utmaningslista, och ett ASN som en IP Access Rule, som alla planer har.
+
+- Ett nätverk som innehåller en adress som en inloggad användare har använt de senaste 30 dagarna, eller en av dina egna, utmanas aldrig, och dialogen nämner vem eller vad.
+- Ett intervall som är bredare än ett /24 (ett /48 för IPv6), och ett helt ASN, kräver en Säkerhetsadministratör, en Projektadministratör eller en Projektägare. Ett ASN:s rad erbjuder också vart och ett av dess intervall, som alla som får blockera kan utmana.
+- När OneUptime inte kan avgöra vem som använder ett nätverk, eftersom det är ett helt ASN eller eftersom en scrub-regel döljer klientadresser, kan bara en Säkerhetsadministratör, en Projektadministratör eller en Projektägare utmana det, efter att ha kryssat i att de vet det.
+- Inget blockeras eller utmanas så länge Säkerhetshändelser är avstängd på servern.
 
 ### Korrelera
 

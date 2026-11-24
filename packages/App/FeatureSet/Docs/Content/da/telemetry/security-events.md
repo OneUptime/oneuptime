@@ -331,7 +331,16 @@ En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel,
 
 ### Campaigns
 
-**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først.
+**Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først. En række, som din blokeringsliste allerede holder, siger, indtil hvornår den er blokeret eller udfordret, og nævner det interval eller netværk, der holder den.
+
+For at blokere flere angribere på én gang skal du vælge deres rækker og trykke på **Blokér adresser**. Én dialog viser hver adresse, den blokerer, og hver adresse, den udelader, med årsagen: allerede blokeret, en af dine egne eller en beskyttet, en, som en logget ind bruger har brugt i de seneste 30 dage, eller en, som OneUptime ikke kunne kontrollere. Den blokerer i 24 timer, medmindre du vælger en anden varighed, eller udfordrer med **Udfordr i stedet**, og hver blokering kommer på din [blokeringsliste](/docs/telemetry/security-cases#blokeringsliste) som din.
+
+**Gruppér efter netværk** samler adresserne fra ét netværk på én række: efter dets ASN, hvor hændelserne fra din [Cloudflare](/docs/integrations/cloudflare)-forbindelse nævner et, og ellers efter dets /24 for IPv4 eller dets /48 for IPv6. En ASN's række viser de intervaller, dens adresser sendte fra. **Udfordr dette netværk** siger, hvad det vil gøre, hvor og hvor længe, før det gør det: 24 timer, medmindre du vælger en anden varighed, og det næste trin på stigen for et netværk, der er blevet udfordret før. Cloudflare holder et interval i sin udfordringsliste og en ASN som en IP Access Rule, som alle planer har.
+
+- Et netværk, der rummer en adresse, som en logget ind bruger har brugt i de seneste 30 dage, eller en af dine egne, bliver aldrig udfordret, og dialogen nævner hvem eller hvad.
+- Et interval, der er bredere end et /24 (et /48 for IPv6), og en hel ASN kræver en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer. En ASN's række tilbyder også hvert af dens intervaller, som alle, der må blokere, kan udfordre.
+- Når OneUptime ikke kan se, hvem der bruger et netværk, fordi det er en hel ASN, eller fordi en scrub-regel skjuler klienternes adresser, kan kun en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer udfordre det, når de har markeret, at de ved det.
+- Intet bliver blokeret eller udfordret, så længe Sikkerhedsbegivenheder er slået fra på serveren.
 
 ### Korrelér
 
