@@ -1112,8 +1112,7 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
                       baseField.dropdownModal = dropdownModal;
                       baseField.dataTestId = `workflow-argument-${arg.id}`;
                     } else {
-                      baseField.dropdownOptions =
-                        recordChoices[arg.type] || [];
+                      baseField.dropdownOptions = recordChoices[arg.type] || [];
                     }
                   }
 

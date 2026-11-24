@@ -131,6 +131,11 @@ const VIEW: MetricViewData = {
 
 let server: CappedListServer;
 
+// What jest.spyOn makes of a generic method: the method at its constraint.
+type MethodOf<Method extends (...args: Array<never>) => unknown> = (
+  ...args: Parameters<Method>
+) => ReturnType<Method>;
+
 // The searches the list sent, in order.
 function listReads(): Array<CappedListCall> {
   return server.callsFor(Dashboard);
@@ -190,7 +195,7 @@ describe("Add to Dashboard's list of dashboards", () => {
   });
 
   test("a dashboard past them is found on the server by its name or description, picked, and the chart added to it", async () => {
-    const getItem: SpyInstance<typeof ModelAPI.getItem> = jest
+    const getItem: SpyInstance<MethodOf<typeof ModelAPI.getItem>> = jest
       .spyOn(ModelAPI, "getItem")
       .mockResolvedValue(
         Object.assign(new Dashboard(), {
@@ -198,7 +203,7 @@ describe("Add to Dashboard's list of dashboards", () => {
           dashboardViewConfig: undefined,
         }) as never,
       );
-    const updateById: SpyInstance<typeof ModelAPI.updateById> = jest
+    const updateById: SpyInstance<MethodOf<typeof ModelAPI.updateById>> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue({} as never);
 

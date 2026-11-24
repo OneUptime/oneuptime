@@ -751,9 +751,9 @@ describe("the one-click fixes on Setup Health", () => {
     fireEvent.click(await screen.findByTestId("setup-health-quick-fix"));
 
     fireEvent.change(
-      within(await screen.findByTestId("setup-health-quick-fix-policy")).getByRole(
-        "combobox",
-      ),
+      within(
+        await screen.findByTestId("setup-health-quick-fix-policy"),
+      ).getByRole("combobox"),
       { target: { value: "warehouse" } },
     );
 

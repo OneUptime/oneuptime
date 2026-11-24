@@ -206,9 +206,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
    * too, but a moment later, and only on the board. Their units are the
    * columns' when none is typed.
    */
-  const [readMetricTypes, setReadMetricTypes] = useState<Array<MetricType>>(
-    [],
-  );
+  const [readMetricTypes, setReadMetricTypes] = useState<Array<MetricType>>([]);
   const knownMetricTypes: Array<MetricType> = useMemo((): Array<MetricType> => {
     return readMetricTypes.length > 0
       ? [...props.metricTypes, ...readMetricTypes]

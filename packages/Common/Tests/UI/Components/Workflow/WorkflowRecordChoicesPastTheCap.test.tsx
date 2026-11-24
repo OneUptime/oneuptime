@@ -185,9 +185,9 @@ async function typeInto(testId: string, text: string): Promise<void> {
   });
 }
 
-function readsOf(modelType: { new (): Workflow | IncidentTemplate }): Array<
-  Record<string, unknown>
-> {
+function readsOf(modelType: {
+  new (): Workflow | IncidentTemplate;
+}): Array<Record<string, unknown>> {
   return server
     .callsFor(modelType)
     .map((call: CappedListCall): Record<string, unknown> => {

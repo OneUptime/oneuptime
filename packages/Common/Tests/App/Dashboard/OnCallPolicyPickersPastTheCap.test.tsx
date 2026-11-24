@@ -289,9 +289,7 @@ describe("the step's policy picker", () => {
   });
 
   // The step keeps the policy chosen, as OnCallGuidedSetup does.
-  function StepHarness(props: {
-    policies: Array<PolicyChoice>;
-  }): ReactElement {
+  function StepHarness(props: { policies: Array<PolicyChoice> }): ReactElement {
     const [chosen, setChosen] = useState<string>(props.policies[0]!.id);
 
     return (

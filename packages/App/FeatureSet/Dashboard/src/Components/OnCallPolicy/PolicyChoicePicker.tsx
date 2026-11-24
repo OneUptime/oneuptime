@@ -143,16 +143,13 @@ const PolicyChoicePicker: <TChoice extends PolicyPickerChoice>(
     }, POLICY_SEARCH_DELAY_MS);
   };
 
-  const options: Array<DropdownOption> = useMemo(
-    (): Array<DropdownOption> => {
-      return getPolicyChoiceOptions({
-        policies: props.policies,
-        found: found,
-        picked: chosen,
-      });
-    },
-    [props.policies, found, chosen],
-  );
+  const options: Array<DropdownOption> = useMemo((): Array<DropdownOption> => {
+    return getPolicyChoiceOptions({
+      policies: props.policies,
+      found: found,
+      picked: chosen,
+    });
+  }, [props.policies, found, chosen]);
 
   return (
     <Dropdown
