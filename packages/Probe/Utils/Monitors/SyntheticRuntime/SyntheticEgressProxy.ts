@@ -234,6 +234,9 @@ interface BrowserFailure {
 // A target whose answer the probe could not read (or relay) as HTTP.
 class UnreadableResponseError extends Error {}
 
+const PORT_ZERO_REFUSAL: string =
+  "The probe did not send this request: port 0 is not a port a request can be sent to.";
+
 /*
  * A request this proxy will not send as it was asked: one it cannot read,
  * or one whose Host header would point the outbound proxy elsewhere. Its
@@ -286,7 +289,16 @@ class EgressHttpProxyAgent extends HttpProxyAgent<string> {
     options: HttpProxyConnectOptions,
   ): void {
     const host: string = String(options.host || "");
-    const port: number = Number(options.port) || 80;
+    /*
+     * 80 only when no port was given. Port 0 is written as it is, for the
+     * egress proxy to refuse: read as 80, it went to another port.
+     */
+    const port: number =
+      options.port === undefined ||
+      options.port === null ||
+      String(options.port) === ""
+        ? 80
+        : Number(options.port);
     const authority: string = net.isIPv6(host) ? `[${host}]` : host;
     const path: string = request.path.startsWith("/")
       ? request.path
@@ -300,7 +312,8 @@ class EgressHttpProxyAgent extends HttpProxyAgent<string> {
 
 /*
  * The axios bridge's https agent: a CONNECT to the egress proxy, then TLS
- * with the target, its certificate checked against the target's own host.
+ * with the target, its certificate checked against the host the request
+ * names.
  *
  * Inside a tunnel tls.connect has no host of its own: with no servername it
  * checks the certificate against the name the socket was opened with - the
@@ -308,13 +321,22 @@ class EgressHttpProxyAgent extends HttpProxyAgent<string> {
  * never addresses), so https://93.184.215.14/ failed against a certificate
  * that names 93.184.215.14. As HttpMonitorRequest's PinnedHttpsProxyAgent
  * does, the certificate is checked against the target, name or address.
+ *
+ * The name is Node's servername, as Node's own agent uses it: the Host
+ * header's host when the script set one (https://93.184.215.34/ with Host:
+ * vhost.example sends SNI vhost.example and checks its certificate against
+ * it, as on main), else the URL's host. Node leaves it empty for an address,
+ * so an address without a Host header is checked against the address. The
+ * tunnel goes to the URL's address, checked by the egress proxy, either way.
  */
 class EgressHttpsProxyAgent extends HttpsProxyAgent<string> {
   public override connect(
     request: HttpsProxyRequest,
     options: HttpsProxyConnectOptions,
   ): ReturnType<HttpsProxyAgent<string>["connect"]> {
-    const targetHost: string = String(options.host || "");
+    const targetHost: string = String(
+      (options as { servername?: string }).servername || options.host || "",
+    );
 
     return super.connect(request, {
       ...options,
@@ -742,6 +764,21 @@ export default class SyntheticEgressProxy {
       request.url || "",
       ["http:"],
     );
+
+    if (SyntheticEgressProxy.namesPortZero(request.url)) {
+      SyntheticEgressProxy.respondWithRefusal(
+        response,
+        this.refuse({
+          tag,
+          kind: "request",
+          target: SyntheticEgressProxy.unreadableTarget(request.url),
+          hostname: "",
+          error: new RefusedRequestError(PORT_ZERO_REFUSAL),
+        }),
+      );
+      request.resume();
+      return;
+    }
 
     if (!target) {
       SyntheticEgressProxy.respondWithRefusal(
@@ -1703,6 +1740,15 @@ export default class SyntheticEgressProxy {
       !named.password &&
       named.pathname === "/"
     );
+  }
+
+  // Whether an absolute URL names port 0, which reaches nothing.
+  private static namesPortZero(value: string | undefined): boolean {
+    try {
+      return new URL(value || "").port === "0";
+    } catch {
+      return false;
+    }
   }
 
   // What a request this proxy could not read is filed under: its target as sent, cut short.

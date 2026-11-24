@@ -13,6 +13,7 @@ import dns from "dns";
 import http, { IncomingMessage, Server, ServerResponse } from "http";
 import https from "https";
 import net, { AddressInfo } from "net";
+import tls from "tls";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import SyntheticEgressProxy, {
@@ -1950,6 +1951,50 @@ describe("SyntheticEgressProxy", () => {
       },
     );
 
+    /*
+     * Port 0 reaches nothing. It was read as "no port", 80: directly, the
+     * request went to port 80, and behind the operator's proxy it was
+     * refused for a Host header that seemed to name another port.
+     */
+    test.each([
+      { label: "through the outbound proxy", upstream: true },
+      { label: "directly", upstream: false },
+    ])(
+      "refuses port 0 in its own words, $label",
+      async ({ upstream }: { label: string; upstream: boolean }) => {
+        approveOnLoopback({ "site.example.test": ["127.0.0.1"] });
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY, {
+          upstream,
+        });
+        fakeInternet.route(PUBLIC_IPV4, 80, siteServer.port);
+        const connect: ReturnType<typeof jest.spyOn> = jest.spyOn(
+          net,
+          "connect",
+        );
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          upstream
+            ? `http://${PUBLIC_IPV4}:0/zero-port`
+            : "http://site.example.test:0/zero-port",
+        );
+
+        expect(answer.failure).toBe(
+          "The probe did not send this request: port 0 is not a port a request can be sent to.",
+        );
+        expect(answer.status).toBe(400);
+        expect(fakeInternet.isUntouched).toBe(true);
+        expect(siteServer.seen).toEqual([]);
+        // Nothing was dialled but the egress proxy itself.
+        expect(
+          connect.mock.calls.filter((call: Array<unknown>) => {
+            const port: unknown = (call[0] as { port?: unknown }).port;
+            return port !== proxy.getPort();
+          }),
+        ).toEqual([]);
+      },
+    );
+
     test("sends a Host header the script set as a header, to the URL's own address, when it goes directly", async () => {
       approveOnLoopback({ "site.example.test": ["127.0.0.1"] });
       const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY, {
@@ -2039,6 +2084,9 @@ describe("SyntheticEgressProxy", () => {
         }
       });
 
+      // The server name each TLS connection asked for (SNI), "" for none.
+      const namesAsked: Array<string> = [];
+
       async function secureSite(certificate: {
         names?: Array<string>;
         addresses?: Array<string>;
@@ -2049,6 +2097,12 @@ describe("SyntheticEgressProxy", () => {
             response.end("tls-ok");
           },
         );
+        server.on("secureConnection", (socket: tls.TLSSocket): void => {
+          const servername: unknown = (
+            socket as unknown as { servername?: unknown }
+          ).servername;
+          namesAsked.push(typeof servername === "string" ? servername : "");
+        });
         servers.push(server);
         await new Promise<void>((resolve: () => void): void => {
           server.listen(0, "127.0.0.1", resolve);
@@ -2081,6 +2135,62 @@ describe("SyntheticEgressProxy", () => {
           seen: 1,
         });
       });
+
+      /*
+       * As Node's own agent does, and main did: a Host header names the
+       * server for SNI and for the certificate, while the tunnel still goes
+       * to the URL's address.
+       */
+      test("checks the certificate against a Host header's name, and still connects to the URL's address", async () => {
+        const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+        fakeInternet.route(
+          SECOND_PUBLIC_IPV4,
+          443,
+          await secureSite({ names: ["vhost.example.test"] }),
+        );
+        namesAsked.length = 0;
+
+        const answer: Awaited<ReturnType<typeof get>> = await get(
+          proxy,
+          `https://${SECOND_PUBLIC_IPV4}/`,
+          { Host: "vhost.example.test" },
+        );
+
+        expect(answer.status).toBe(200);
+        expect(answer.data).toBe("tls-ok");
+        expect(namesAsked).toEqual(["vhost.example.test"]);
+        expect(fakeInternet.connects).toEqual([`${SECOND_PUBLIC_IPV4}:443`]);
+      });
+
+      test.each([
+        {
+          label: "an IPv4 address",
+          host: PUBLIC_IPV4,
+          url: `https://${PUBLIC_IPV4}/`,
+        },
+        {
+          label: "an IPv6 address",
+          host: "2606:4700::1111",
+          url: "https://[2606:4700::1111]/",
+        },
+      ])(
+        "checks $label's certificate against the address, and sends no SNI, without a Host header",
+        async ({ host, url }: { label: string; host: string; url: string }) => {
+          const proxy: SyntheticEgressProxy = await startProxy(PUBLIC_ONLY);
+          fakeInternet.route(
+            host,
+            443,
+            await secureSite({ addresses: [host] }),
+          );
+          namesAsked.length = 0;
+
+          const answer: Awaited<ReturnType<typeof get>> = await get(proxy, url);
+
+          expect(answer.status).toBe(200);
+          expect(answer.data).toBe("tls-ok");
+          expect(namesAsked).toEqual([""]);
+        },
+      );
 
       test("checks a name's certificate against that name", async () => {
         answerDns({ "secure.example.test": [[SECOND_PUBLIC_IPV4]] });

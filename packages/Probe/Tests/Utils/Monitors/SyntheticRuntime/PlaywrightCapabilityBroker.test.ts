@@ -3,6 +3,7 @@ import dns from "dns";
 import fs from "fs";
 import http, { IncomingMessage, ServerResponse } from "http";
 import https from "https";
+import tls from "tls";
 import { AddressInfo } from "net";
 import os from "os";
 import path from "path";
@@ -1327,6 +1328,10 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
       let distrust: () => void;
       let secure: https.Server;
       let securePort: number;
+      // A virtual host's site: its certificate names vhost.example.test alone.
+      let vhost: https.Server;
+      let vhostPort: number;
+      const vhostNamesAsked: Array<string> = [];
       let savedEnvironment: Record<string, string | undefined>;
       const PROXY_VARIABLES: Array<string> = [
         "HTTP_PROXY",
@@ -1352,15 +1357,35 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           secure.listen(0, "127.0.0.1", resolve);
         });
         securePort = (secure.address() as AddressInfo).port;
+        vhost = https.createServer(
+          authority.issue({ names: ["vhost.example.test"] }),
+          (_request: IncomingMessage, response: ServerResponse): void => {
+            response.end("vhost-ok");
+          },
+        );
+        vhost.on("secureConnection", (socket: tls.TLSSocket): void => {
+          const servername: unknown = (
+            socket as unknown as { servername?: unknown }
+          ).servername;
+          vhostNamesAsked.push(
+            typeof servername === "string" ? servername : "",
+          );
+        });
+        await new Promise<void>((resolve: () => void): void => {
+          vhost.listen(0, "127.0.0.1", resolve);
+        });
+        vhostPort = (vhost.address() as AddressInfo).port;
       });
 
       afterAll(async () => {
-        secure.closeAllConnections();
-        await new Promise<void>((resolve: () => void): void => {
-          secure.close((): void => {
-            resolve();
+        for (const server of [secure, vhost]) {
+          server.closeAllConnections();
+          await new Promise<void>((resolve: () => void): void => {
+            server.close((): void => {
+              resolve();
+            });
           });
-        });
+        }
         distrust();
         authority.remove();
       });
@@ -1433,6 +1458,7 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
         path: string;
         headers: Record<string, string>;
         secure?: true;
+        vhost?: true;
       }> = [
         {
           label: "a path that starts with //host",
@@ -1450,6 +1476,14 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           headers: { Host: "93.184.215.34" },
         },
         { label: "https to an address", path: "/", headers: {}, secure: true },
+        {
+          label:
+            "https to an address, with a Host header naming its certificate's host",
+          path: "/",
+          headers: { Host: "vhost.example.test" },
+          secure: true,
+          vhost: true,
+        },
       ];
 
       test.each(cases)(
@@ -1458,13 +1492,20 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           path,
           headers,
           secure: isSecure,
+          vhost: isVhost,
         }: {
           label: string;
           path: string;
           headers: Record<string, string>;
           secure?: true;
+          vhost?: true;
         }) => {
-          fakeInternet.route("93.184.215.14", 443, securePort);
+          fakeInternet.route(
+            "93.184.215.14",
+            443,
+            isVhost ? vhostPort : securePort,
+          );
+          vhostNamesAsked.length = 0;
           const url: string = `${isSecure ? "https" : "http"}://93.184.215.14${path}`;
 
           process.env["HTTP_PROXY"] = fakeInternet.url();
@@ -1493,6 +1534,17 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           );
 
           expect(bridge).toEqual(main);
+          if (isVhost) {
+            // A Host header names the TLS server, through either: SNI and certificate.
+            expect(main).toEqual({ status: 200, data: "vhost-ok" });
+            expect(vhostNamesAsked).toEqual([
+              "vhost.example.test",
+              "vhost.example.test",
+            ]);
+            expect(mainTunnels).toEqual(["93.184.215.14:443"]);
+            expect(fakeInternet.connects).toEqual(["93.184.215.14:443"]);
+            return;
+          }
           if (headers["Host"]) {
             // Node's own proxy support refused it; so does the egress proxy.
             expect(main).toBe("refused");
@@ -1526,13 +1578,20 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           path,
           headers,
           secure: isSecure,
+          vhost: isVhost,
         }: {
           label: string;
           path: string;
           headers: Record<string, string>;
           secure?: true;
+          vhost?: true;
         }) => {
-          const port: number = isSecure ? securePort : sitePort;
+          const port: number = isVhost
+            ? vhostPort
+            : isSecure
+              ? securePort
+              : sitePort;
+          vhostNamesAsked.length = 0;
           const url: string = `${isSecure ? "https" : "http"}://127.0.0.1:${port}${path}`;
 
           const main: Outcome = await asMainSentIt(url, headers);
@@ -1545,6 +1604,14 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
           );
 
           expect(bridge).toEqual(main);
+          if (isVhost) {
+            expect(main).toEqual({ status: 200, data: "vhost-ok" });
+            expect(vhostNamesAsked).toEqual([
+              "vhost.example.test",
+              "vhost.example.test",
+            ]);
+            return;
+          }
           if (isSecure) {
             expect(main).toEqual({ status: 200, data: "tls-ok" });
             return;
