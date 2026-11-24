@@ -215,6 +215,7 @@ import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilest
 import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
+import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1621,6 +1622,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * only, idempotent; before the two slots kept last.
    */
   new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
+  /*
+   * Metrics monitors on a Container App's requests that read them with the
+   * average a minute at a time read the average status code category since
+   * the Azure connection reads Requests split by statusCodeCategory
+   * (#10837): each moves to the Sum the app's Metrics tab reads
+   * (CloudResourceMetricAggregation), so it reads the app's requests again,
+   * and says so in its feed. Postgres only, idempotent; no ordering
+   * requirement of its own; before the two slots kept last.
+   */
+  new RestoreContainerAppRequestMonitorTotals(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

@@ -37,6 +37,9 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import SecurityAddressVaultWriter, {
   SecurityAddressVaultBatch,
 } from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
+import SecurityUserVaultWriter, {
+  SecurityUserVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import {
   ParsedSyslogMessage,
@@ -256,6 +259,19 @@ export default class SyslogIngestService extends OtelIngestBaseService {
         });
 
       /*
+       * The users this batch's Hash rules hide where Security Events reads a
+       * user, kept for its user vault when Security Events reads the
+       * project's logs (#10632): null - and nothing kept - otherwise. Written
+       * after the batch's logs, never awaited, as the address vault is.
+       */
+      const userVault: SecurityUserVaultBatch | null =
+        await SecurityUserVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
+
+      /*
        * Handed back by the time the work took, not every so many messages:
        * a message's work grows with its scrub rules and what they read
        * (Common/Server/Utils/EventLoop.ts).
@@ -425,6 +441,7 @@ export default class SyslogIngestService extends OtelIngestBaseService {
                   row,
                   loadedScrubRules,
                   addressVault,
+                  { hashedUsers: userVault },
                 );
               },
             });
@@ -481,8 +498,9 @@ export default class SyslogIngestService extends OtelIngestBaseService {
        */
       await Promise.all(pendingAcks);
 
-      // The logs are stored: their hashed addresses go to the vault, on their own.
+      // The logs are stored: their hashed addresses and users go to the vaults, on their own.
       addressVault?.write();
+      userVault?.write();
 
       if (attribution && attribution.getDroppedResourceCount() > 0) {
         logger.debug(

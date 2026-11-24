@@ -57,6 +57,7 @@ jest.mock("../../../Server/Utils/Logger");
 import CommonAPI from "../../../Server/API/CommonAPI";
 import SecurityAttackCampaignAPI from "../../../Server/API/SecurityAttackCampaignAPI";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
+import SecurityBlockService from "../../../Server/Services/SecurityBlockService";
 import SecurityEventService from "../../../Server/Services/SecurityEventService";
 import OwnerTableRegistry from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
@@ -265,6 +266,9 @@ beforeEach(() => {
   jest
     .spyOn(SecurityEventService.database, "getDatasourceOptions")
     .mockReturnValue({ database: "oneuptime" } as never);
+
+  // The blocks beside the rows (#10354): the project blocks nothing here.
+  jest.spyOn(SecurityBlockService, "findActiveBlocks").mockResolvedValue([]);
 
   const result: Results = {
     json: (): Promise<unknown> => {

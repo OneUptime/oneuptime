@@ -77,6 +77,7 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import LlmCallsTable from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmCallsTable";
+import { LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmHiddenByScrubRule";
 import Span from "../../../Models/AnalyticsModels/Span";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import ObjectID from "../../../Types/ObjectID";
@@ -282,6 +283,170 @@ describe("LlmCallsTable — employee columns", () => {
     await renderTable();
 
     expect(capturedTableProps?.selectMoreFields?.["llmUserId"]).toBe(true);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A person or a team a scrub rule hid (#10631)
+ * ---------------------------------------------------------------------------
+ *
+ * A project that redacts emails stored "[REDACTED]" on every call, and the
+ * User column drew it as if it were a person - the same "person" for every
+ * call. The cell now reads the person as the Usage tab and Conversations
+ * do: an email a rule hid falls back to the id the rule left whole, and a
+ * call whose every name was hidden says "Hidden by a scrub rule", muted -
+ * never what the rule left. A call that names nobody stays the quiet dash:
+ * unknown and withheld must not look alike.
+ */
+describe("LlmCallsTable — a person or a team a scrub rule hid", () => {
+  beforeEach(() => {
+    capturedTableProps = null;
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  });
+
+  afterEach(() => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  const HIDDEN_EMAILS: Array<[string, string]> = [
+    ["redacted", "[REDACTED]"],
+    ["masked", "j***@***.com"],
+    ["hashed", "[HASHED:3f9a1c0e7b2d4a68]"],
+    ["hashed before tokens were keyed", "[HASHED:3f9a1c0e]"],
+    ["hidden inside the value", "auth0|[HASHED:3f9a1c0e7b2d4a68]"],
+  ];
+
+  test.each(HIDDEN_EMAILS)(
+    "the User cell shows the id when the email was %s and the id left whole",
+    async (_form: string, email: string) => {
+      await renderTable();
+
+      render(
+        columnByTitle("User").getElement!(
+          makeSpan({ llmUserEmail: email, llmUserId: "acct-9f2" }),
+        ),
+      );
+
+      expect(screen.getByText("acct-9f2")).toBeInTheDocument();
+      expect(screen.queryByText(email)).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test.each(HIDDEN_EMAILS)(
+    "the User cell says a scrub rule hid the person when the email was %s and so was the id",
+    async (_form: string, email: string) => {
+      await renderTable();
+
+      render(
+        columnByTitle("User").getElement!(
+          makeSpan({ llmUserEmail: email, llmUserId: "[REDACTED]" }),
+        ),
+      );
+
+      const hidden: HTMLElement = screen.getByTestId(
+        LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID,
+      );
+
+      expect(hidden).toHaveTextContent("Hidden by a scrub rule");
+      // Muted, as the Usage tab's hidden row: never read as a person's name.
+      expect(hidden.className).toContain("bg-gray-100");
+      expect(hidden.className).toContain("text-gray-700");
+      expect(document.body).not.toHaveTextContent("[REDACTED]");
+      expect(document.body).not.toHaveTextContent(email);
+      expect(screen.queryByText("—")).not.toBeInTheDocument();
+    },
+  );
+
+  test("the User cell says so for a hidden email and no id at all", async () => {
+    await renderTable();
+
+    render(
+      columnByTitle("User").getElement!(
+        makeSpan({ llmUserEmail: "[REDACTED]" }),
+      ),
+    );
+
+    expect(
+      screen.getByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).toHaveTextContent("Hidden by a scrub rule");
+  });
+
+  test("a call that names nobody is the quiet dash, never the hidden label", async () => {
+    await renderTable();
+
+    render(columnByTitle("User").getElement!(makeSpan({})));
+
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the export says what the cell shows: the id, or the words, never the placeholder", async () => {
+    await renderTable();
+
+    const column: CapturedColumn = columnByTitle("User");
+
+    expect(
+      column.getExportValue!(
+        makeSpan({ llmUserEmail: "[REDACTED]", llmUserId: "acct-9f2" }),
+      ),
+    ).toBe("acct-9f2");
+    expect(
+      column.getExportValue!(
+        makeSpan({ llmUserEmail: "[REDACTED]", llmUserId: "[REDACTED]" }),
+      ),
+    ).toBe("Hidden by a scrub rule");
+    expect(
+      column.getExportValue!(makeSpan({ llmUserEmail: "j***@***.com" })),
+    ).toBe("Hidden by a scrub rule");
+    expect(column.getExportValue!(makeSpan({ llmUserEmail: "  " }))).toBe("");
+  });
+
+  test("the Team cell shows the team, the hidden words for a team a rule hid, and the dash for none", async () => {
+    await renderTable();
+
+    const column: CapturedColumn = columnByTitle("Team");
+
+    expect(column.field).toEqual({ llmTeam: true });
+
+    render(column.getElement!(makeSpan({ llmTeam: "payments" })));
+    expect(screen.getByText("payments")).toBeInTheDocument();
+    cleanup();
+
+    for (const hiddenTeam of ["[REDACTED]", "p***s", "[HASHED:3f9a1c0e]"]) {
+      render(column.getElement!(makeSpan({ llmTeam: hiddenTeam })));
+      expect(
+        screen.getByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+      ).toHaveTextContent("Hidden by a scrub rule");
+      expect(document.body).not.toHaveTextContent(hiddenTeam);
+      cleanup();
+    }
+
+    render(column.getElement!(makeSpan({})));
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the Team export says what the cell shows", async () => {
+    await renderTable();
+
+    const column: CapturedColumn = columnByTitle("Team");
+
+    expect(column.getExportValue!(makeSpan({ llmTeam: "payments" }))).toBe(
+      "payments",
+    );
+    expect(column.getExportValue!(makeSpan({ llmTeam: "[REDACTED]" }))).toBe(
+      "Hidden by a scrub rule",
+    );
+    expect(column.getExportValue!(makeSpan({}))).toBe("");
   });
 });
 

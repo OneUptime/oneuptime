@@ -16,6 +16,9 @@ import {
 } from "../../../Types/Telemetry/LlmConversationApi";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "../../../Types/Telemetry/LlmCallKind";
+import { LLM_USAGE_HIDDEN_GROUP_KEY } from "../../../Types/Telemetry/LlmUsageApi";
+import { buildLlmPersonSql } from "../../../Server/Utils/Telemetry/LlmCallIdentitySql";
+import { SCRUB_HASH_TOKEN_SQL_PATTERN } from "../../../Server/Utils/Telemetry/ScrubPlaceholderSql";
 import { LlmConversationCall } from "../../../Utils/Telemetry/LlmConversationTranscript";
 
 /*
@@ -61,6 +64,11 @@ function detailQuery(
 
 function paramValues(statement: Statement): Array<unknown> {
   return Object.values(statement.query_params);
+}
+
+// A statement's text with its parameters' numbers left out: each statement numbers its own.
+function withoutParameterNumbers(sql: string): string {
+  return sql.replace(/\{p\d+:String\}/g, "{p}");
 }
 
 describe("the list statement", () => {
@@ -127,6 +135,52 @@ describe("the list statement", () => {
     expect(having).toContain("countIf(llmUserMessagePreview ILIKE ");
     expect(having).toContain("OR conversationKey ILIKE ");
     expect(having).toContain("countIf(has(llmIssues, 'refused')) > 0");
+  });
+
+  /*
+   * Who took part is read past what a scrub rule left, with the one
+   * expression the Usage tab groups its spend by (#10631): an email a rule
+   * hid falls back to the id, a call whose every name was hidden is the
+   * hidden key - once, however many there were - and never "[REDACTED]", a
+   * mask or a token as somebody.
+   */
+  test("each call's person is read as the Usage tab reads it, past what a scrub rule left", () => {
+    const person: string = withoutParameterNumbers(buildLlmPersonSql().query);
+
+    expect(withoutParameterNumbers(sql)).toContain(
+      `groupUniqArrayIf(5)(llmRequestModel, llmRequestModel != '') AS models, groupUniqArrayIf(5)(${person}, ${person} != '') AS people, groupUniqArray(5)(primaryEntityId) AS serviceIds, `,
+    );
+    expect(sql).not.toContain(
+      "if(llmUserEmail != '', llmUserEmail, llmUserId)",
+    );
+    expect(paramValues(statement)).toEqual(
+      expect.arrayContaining([
+        "[REDACTED]",
+        "***",
+        SCRUB_HASH_TOKEN_SQL_PATTERN,
+        LLM_USAGE_HIDDEN_GROUP_KEY,
+      ]),
+    );
+  });
+
+  test("the summary reads no person: a conversation's figures never depend on who it was with", () => {
+    expect(
+      LlmConversationService.buildSummaryStatement(listQuery()).query,
+    ).not.toContain("llmUserEmail");
+  });
+
+  // The person filter and the search still match what was stored, a hidden id's text included.
+  test("the person filter and the search read the stored email and id, as before", () => {
+    const having: string = withoutParameterNumbers(
+      sql.slice(sql.indexOf(" HAVING ")),
+    );
+
+    expect(having).toContain(
+      "countIf(llmUserEmail ILIKE {p} OR llmUserId ILIKE {p}) > 0",
+    );
+    expect(having).toContain(
+      "(countIf(llmUserMessagePreview ILIKE {p} OR llmUserEmail ILIKE {p} OR llmUserId ILIKE {p} OR llmRequestModel ILIKE {p} OR llmAgentName ILIKE {p}) > 0 OR conversationKey ILIKE {p})",
+    );
   });
 
   test("what a person typed is a parameter, never SQL", () => {
@@ -491,7 +545,69 @@ describe("reading rows back", () => {
     expect(call.kind).toBe(LlmCallKind.Tool);
     expect(call.content.input).toEqual([]);
     expect(call.issues).toEqual([]);
+    // A row with no email or id names nobody.
+    expect(call.userLabel).toBe("");
   });
+
+  /*
+   * A conversation's calls name their person as the list and the Usage tab
+   * do (#10631), so its header and transcript never call anyone
+   * "[REDACTED]": the id past an email a rule hid, the hidden key when a
+   * rule hid every name the call has, nobody when it named none.
+   */
+  test.each([
+    [
+      "its email, when no rule touched it",
+      "ada@example.com",
+      "user-7",
+      "ada@example.com",
+    ],
+    ["its id, past a redacted email", "[REDACTED]", "user-7", "user-7"],
+    ["its id, past a masked email", "a***@***.com", "user-7", "user-7"],
+    [
+      "its id, past a hashed email",
+      "[HASHED:3f9a1c0e7b2d4a68]",
+      "user-7",
+      "user-7",
+    ],
+    [
+      "its id, past an email a rule hid part of",
+      "ada.[REDACTED]",
+      "user-7",
+      "user-7",
+    ],
+    [
+      "the hidden key, when a rule redacted both",
+      "[REDACTED]",
+      "[REDACTED]",
+      LLM_USAGE_HIDDEN_GROUP_KEY,
+    ],
+    [
+      "the hidden key, for a masked email and no id",
+      "a***@***.com",
+      "",
+      LLM_USAGE_HIDDEN_GROUP_KEY,
+    ],
+    [
+      "the hidden key, for no email and a legacy token in the id",
+      "",
+      "auth0|[HASHED:3f9a1c0e]",
+      LLM_USAGE_HIDDEN_GROUP_KEY,
+    ],
+    ["nobody, when it named nobody", "", "", ""],
+    ["its id, past an email of whitespace", "   ", "user-7", "user-7"],
+  ])(
+    "a call's person is %s",
+    (_case: string, email: string, id: string, person: string) => {
+      const call: LlmConversationCall = LlmConversationService.toCall({
+        spanId: "s3",
+        llmUserEmail: email,
+        llmUserId: id,
+      } as unknown as JSONObject);
+
+      expect(call.userLabel).toBe(person);
+    },
+  );
 });
 
 /*

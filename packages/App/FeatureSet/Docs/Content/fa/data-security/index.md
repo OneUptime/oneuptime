@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | پایگاه‌های داده‌ای که خودتان اجرا می‌کنید | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی، متریک‌ها، رویدادهای امنیتی، جریان‌های شبکه، گاوصندوق نشانی‌های امنیتی | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی، متریک‌ها |
+| OneUptime | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی، متریک‌ها، رویدادهای امنیتی، جریان‌های شبکه، گاوصندوق نشانی‌های امنیتی، گاوصندوق کاربران امنیتی | لاگ‌ها، ترِیس‌ها، استثناها، بازپخش‌های نشست، گفتگوهای هوش مصنوعی، متریک‌ها |
 
 هر مخزن بررسی‌هایی را می‌گیرد که به گونهٔ آن مربوط‌اند. مخزنی که نمی‌توان از محتوایش نمونه برداشت همچنان بررسی می‌شود: یک باکت عمومی یا یک پایگاه دادهٔ رمزگذاری‌نشده، هر چه در خود داشته باشد، یک مشکل است. رویدادهای امنیتی، جریان‌های شبکه و گاوصندوق نشانی‌های امنیتی مخزن‌های خود OneUptime هستند که برای امنیت شما نگه داشته می‌شوند: اعلام‌شده‌اند و هرگز اسکن یا بررسی نمی‌شوند ([مخزن‌هایی که OneUptime برای امنیت شما نگه می‌دارد](/docs/data-security/compliance#مخزنهایی-که-oneuptime-برای-امنیت-شما-نگه-میدارد) را ببینید).
 

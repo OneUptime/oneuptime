@@ -469,6 +469,39 @@ describe("each row of the settings", () => {
     },
   );
 
+  /*
+   * #10632: a case about a hashed account holds the account once the scans
+   * named it from the user vault, and its plan's step to contain it is the
+   * account's: OneUptime AI contains it as any other, under the Accounts
+   * row and the project's protections (SecurityCaseResponseToolkit). A
+   * token the vault could not name makes no step (ResponsePlanBuilder), so
+   * there is nothing to act on.
+   */
+  test("a hashed user the scans named is contained by its name, under the Accounts row", () => {
+    const key: string = "contain:user:mallory@acme.example";
+    const plan: ResponderPlan = planSecurityCaseResponse(
+      input({
+        limits: limits({ Accounts: SecurityCaseAiMode.OnItsOwn }),
+        plan: planOf([
+          step(key, ResponsePhase.Contain, {
+            text: {
+              template: key,
+              values: { value: "mallory@acme.example" },
+            },
+          }),
+        ]),
+      }),
+    );
+
+    expect(intentOf(plan, SecurityCaseAiActionKind.ContainAccount)).toEqual(
+      expect.objectContaining({
+        stepKey: key,
+        decision: SecurityCaseAiDecisionKind.Do,
+        target: "mallory@acme.example",
+      }),
+    );
+  });
+
   test("a user or host no playbook can contain is left to a person", () => {
     const plan: ResponderPlan = planSecurityCaseResponse(
       input({

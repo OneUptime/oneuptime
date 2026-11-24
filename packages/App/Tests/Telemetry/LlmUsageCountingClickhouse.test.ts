@@ -26,6 +26,7 @@ import {
 } from "Common/Types/LlmObservability/LlmProviderUsageMetrics";
 import { LlmCallKind } from "Common/Types/Telemetry/LlmCallKind";
 import {
+  LlmConversationKeyKind,
   LlmConversationListItem,
   LlmConversationListResponse,
   LlmConversationSort,
@@ -37,7 +38,13 @@ import {
   LlmUsageResponse,
   LlmUsageService,
   LlmUsageSource,
+  isLlmUsageHiddenGroup,
 } from "Common/Types/Telemetry/LlmUsageApi";
+import { isScrubPlaceholder } from "Common/Types/Telemetry/ScrubRule";
+import {
+  readLlmCallPerson,
+  readLlmCallTeam,
+} from "Common/Utils/Telemetry/LlmCallIdentity";
 import {
   afterAll,
   beforeAll,
@@ -101,7 +108,13 @@ jest.mock("Common/Server/Utils/Logger", () => {
 
 import SpanService from "Common/Server/Services/SpanService";
 import MetricService from "Common/Server/Services/MetricService";
-import LlmConversationService from "Common/Server/Services/LlmConversationService";
+import LlmConversationService, {
+  LlmConversationDetail,
+} from "Common/Server/Services/LlmConversationService";
+import {
+  buildLlmPersonSql,
+  buildLlmTeamSql,
+} from "Common/Server/Utils/Telemetry/LlmCallIdentitySql";
 import LlmCostBudgetEvaluator from "Common/Server/Utils/Telemetry/LlmCostBudgetEvaluator";
 import LlmCountedCallsSql, {
   LlmCountedCallsScope,
@@ -329,6 +342,90 @@ const hiddenCalls: Array<CallFixture> = [
   hiddenCall("e103", 0.02, { email: "[HASHED:3f9a1c0e7b2d4a68]" }),
   hiddenCall("e104", 0.03, { email: "[REDACTED]", userId: "[REDACTED]" }),
   hiddenCall("e105", 0.02, { email: "ana@example.com", team: "payments" }),
+];
+
+/*
+ * A project whose conversations' people a scrub rule hid (#10631): the
+ * conversation list reads each call's person as the Usage tab does, and a
+ * conversation's calls (LlmCallIdentity) the same. $0.01 a call.
+ *
+ *   conv-ids:    emails redacted, ids left whole (u-7, u-8)
+ *   conv-masked: an email masked, its id whole (u-9)
+ *   conv-hashed: an email hashed (a keyed token) and one hashed inside the
+ *                value (a legacy token), ids whole (u-10, u-11)
+ *   conv-hidden: email and id both redacted, and the team
+ *   conv-forms:  every name hidden, each a different way - both masked,
+ *                both hashed, an email redacted and no id
+ *   conv-mixed:  Ana, and a call whose email and id were redacted
+ *   conv-nobody: a call that names nobody
+ *   conv-near:   names no rule writes - two stars, REDACTED with no
+ *                brackets, an uppercase token
+ */
+const PEOPLE_PROJECT: ObjectID = new ObjectID("8830000000000000000000a6");
+const PEOPLE_APP: ObjectID = new ObjectID("8830000000000000000000b9");
+
+function personCall(
+  id: string,
+  conversationId: string,
+  order: number,
+  who: Pick<CallFixture, "email" | "userId" | "team">,
+): CallFixture {
+  return {
+    projectId: PEOPLE_PROJECT,
+    serviceId: PEOPLE_APP,
+    traceId: traceOf(id),
+    spanId: spanOf(id),
+    at: now - 3 * HOUR + order * MINUTE,
+    inputTokens: 100,
+    outputTokens: 10,
+    cost: 0.01,
+    conversationId,
+    ...who,
+  };
+}
+
+const peopleCalls: Array<CallFixture> = [
+  personCall("f101", "conv-ids", 0, { email: "[REDACTED]", userId: "u-7" }),
+  personCall("f102", "conv-ids", 1, { email: "[REDACTED]", userId: "u-8" }),
+  personCall("f201", "conv-masked", 0, {
+    email: "j***@***.com",
+    userId: "u-9",
+  }),
+  personCall("f301", "conv-hashed", 0, {
+    email: "[HASHED:3f9a1c0e7b2d4a68]",
+    userId: "u-10",
+  }),
+  personCall("f302", "conv-hashed", 1, {
+    email: "auth0|[HASHED:3f9a1c0e]",
+    userId: "u-11",
+  }),
+  personCall("f401", "conv-hidden", 0, {
+    email: "[REDACTED]",
+    userId: "[REDACTED]",
+    team: "[REDACTED]",
+  }),
+  personCall("f501", "conv-forms", 0, {
+    email: "j***@***.com",
+    userId: "u***7",
+    team: "p***s",
+  }),
+  personCall("f502", "conv-forms", 1, {
+    email: "[HASHED:3f9a1c0e7b2d4a68]",
+    userId: "[HASHED:0a1b2c3d4e5f6071]",
+    team: "[HASHED:3f9a1c0e]",
+  }),
+  personCall("f503", "conv-forms", 2, { email: "[REDACTED]" }),
+  personCall("f601", "conv-mixed", 0, { email: ANA, team: "payments" }),
+  personCall("f602", "conv-mixed", 1, {
+    email: "[REDACTED]",
+    userId: "[REDACTED]",
+  }),
+  personCall("f701", "conv-nobody", 0, {}),
+  personCall("f801", "conv-near", 0, { email: "a**b@example.com" }),
+  personCall("f802", "conv-near", 1, { email: "REDACTED", userId: "u-12" }),
+  personCall("f803", "conv-near", 2, {
+    email: "[HASHED:3F9A1C0E7B2D4A68]",
+  }),
 ];
 
 const mixCalls: Array<CallFixture> = [
@@ -1000,9 +1097,13 @@ integration("AI usage counting against ClickHouse (#6349)", () => {
     }
 
     await SpanService.insertJsonRows(
-      [...mixCalls, ...agentCalls, ...wrapperCalls, ...hiddenCalls].map(
-        callRow,
-      ),
+      [
+        ...mixCalls,
+        ...agentCalls,
+        ...wrapperCalls,
+        ...hiddenCalls,
+        ...peopleCalls,
+      ].map(callRow),
       { clickhouseSettings: { wait_for_async_insert: 1 } },
     );
     await MetricService.insertJsonRows(
@@ -1185,6 +1286,203 @@ integration("AI usage counting against ClickHouse (#6349)", () => {
         [LLM_USAGE_HIDDEN_GROUP_KEY]: 0.01,
         "": 0.06,
       });
+    });
+
+    // Each conversation's people, sorted, by its conversation id.
+    async function peopleByConversation(): Promise<
+      Record<string, Array<string>>
+    > {
+      const response: LlmConversationListResponse =
+        await LlmConversationService.listConversations({
+          projectId: PEOPLE_PROJECT,
+          startTime: rangeStart,
+          endTime: rangeEnd,
+          sort: LlmConversationSort.Newest,
+          limit: 25,
+          skip: 0,
+          includeSummary: false,
+        });
+      const people: Record<string, Array<string>> = {};
+
+      response.conversations.forEach(
+        (conversation: LlmConversationListItem): void => {
+          people[conversation.conversationId] = [...conversation.people].sort();
+        },
+      );
+
+      return people;
+    }
+
+    test("a conversation whose calls' emails are redacted and whose ids are left whole lists the ids (#10631)", async () => {
+      const people: Record<
+        string,
+        Array<string>
+      > = await peopleByConversation();
+
+      expect(people["conv-ids"]).toEqual(["u-7", "u-8"]);
+      // Masked or hashed the same: the ids, never the mask or the token.
+      expect(people["conv-masked"]).toEqual(["u-9"]);
+      expect(people["conv-hashed"]).toEqual(["u-10", "u-11"]);
+    });
+
+    test("a call whose email and id are both redacted lists the hidden key, never [REDACTED] as a person (#10631)", async () => {
+      const people: Record<
+        string,
+        Array<string>
+      > = await peopleByConversation();
+
+      expect(people["conv-hidden"]).toEqual([LLM_USAGE_HIDDEN_GROUP_KEY]);
+      // Masked, hashed or redacted: everyone a rule hid is the one hidden key, once.
+      expect(people["conv-forms"]).toEqual([LLM_USAGE_HIDDEN_GROUP_KEY]);
+      expect(people["conv-mixed"]).toEqual(
+        [ANA, LLM_USAGE_HIDDEN_GROUP_KEY].sort(),
+      );
+      // A conversation that names nobody lists no one: unknown, not hidden.
+      expect(people["conv-nobody"]).toEqual([]);
+      // What no rule writes is a name, as the Usage tab reads it.
+      expect(people["conv-near"]).toEqual(
+        ["a**b@example.com", "REDACTED", "[HASHED:3F9A1C0E7B2D4A68]"].sort(),
+      );
+
+      // No list holds what a rule left, but as the hidden key.
+      for (const [conversationId, list] of Object.entries(people)) {
+        for (const person of list) {
+          expect({
+            conversationId,
+            person,
+            leftByARule:
+              !isLlmUsageHiddenGroup(person) && isScrubPlaceholder(person),
+          }).toEqual({ conversationId, person, leftByARule: false });
+        }
+      }
+    });
+
+    test("a conversation's calls name their people the same way (#10631)", async () => {
+      const users: (conversationId: string) => Promise<Array<string>> = async (
+        conversationId: string,
+      ): Promise<Array<string>> => {
+        const detail: LlmConversationDetail =
+          await LlmConversationService.getConversation({
+            projectId: PEOPLE_PROJECT,
+            key: {
+              kind: LlmConversationKeyKind.Conversation,
+              value: conversationId,
+            },
+            startTime: rangeStart,
+            endTime: rangeEnd,
+            logScope: null,
+          });
+
+        return detail.transcript.users;
+      };
+
+      expect(await users("conv-ids")).toEqual(["u-7", "u-8"]);
+      expect(await users("conv-hashed")).toEqual(["u-10", "u-11"]);
+      expect(await users("conv-hidden")).toEqual([LLM_USAGE_HIDDEN_GROUP_KEY]);
+      expect(await users("conv-forms")).toEqual([LLM_USAGE_HIDDEN_GROUP_KEY]);
+      // In the order they spoke.
+      expect(await users("conv-mixed")).toEqual([
+        ANA,
+        LLM_USAGE_HIDDEN_GROUP_KEY,
+      ]);
+      expect(await users("conv-nobody")).toEqual([]);
+    });
+
+    test("the Usage tab files the same calls under the same people (#10631)", async () => {
+      const byPerson: LlmUsageResponse = await LlmUsageReader.read(
+        usageQuery(PEOPLE_PROJECT, LlmUsageDimension.Employee),
+      );
+
+      expect(costsByKey(byPerson)).toEqual({
+        "u-7": 0.01,
+        "u-8": 0.01,
+        "u-9": 0.01,
+        "u-10": 0.01,
+        "u-11": 0.01,
+        [ANA]: 0.01,
+        [LLM_USAGE_HIDDEN_GROUP_KEY]: 0.05,
+        "a**b@example.com": 0.01,
+        REDACTED: 0.01,
+        "[HASHED:3F9A1C0E7B2D4A68]": 0.01,
+        "": 0.01,
+      });
+
+      // Everyone a conversation lists is a row of the Usage tab, and the other way round.
+      const listed: Array<string> = Object.values(
+        await peopleByConversation(),
+      ).flat();
+
+      expect(
+        byPerson.groups
+          .map((group: LlmUsageGroup): string => {
+            return group.key;
+          })
+          .filter((key: string): boolean => {
+            return key !== "";
+          })
+          .sort(),
+      ).toEqual(Array.from(new Set(listed)).sort());
+    });
+
+    /*
+     * The browser's reader (LlmCallIdentity: the Calls table, a
+     * conversation's calls) and ClickHouse's (LlmCallIdentitySql: the Usage
+     * tab, the conversation list) give every stored call the same person
+     * and team - the near misses no rule writes included.
+     */
+    test("the SQL and the browser's reader name every call's person and team alike (#10631)", async () => {
+      const statement: Statement = new Statement();
+
+      statement.append(
+        "SELECT spanId, ifNull(llmUserEmail, '') AS email, ifNull(llmUserId, '') AS userId, ifNull(llmTeam, '') AS team, ",
+      );
+      statement.append(buildLlmPersonSql());
+      statement.append(" AS person, ");
+      statement.append(buildLlmTeamSql());
+      statement.append(` AS teamRead FROM ${AnalyticsTableName.Span}`);
+      statement.append(
+        SQL` WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: PEOPLE_PROJECT,
+        }} ORDER BY spanId`,
+      );
+
+      const result: { json: () => Promise<unknown> } = await connections[
+        position
+      ]!.client.query({
+        query: statement.query,
+        query_params: statement.query_params,
+        format: "JSONEachRow",
+      });
+      const rows: Array<{
+        spanId: string;
+        email: string;
+        userId: string;
+        team: string;
+        person: string;
+        teamRead: string;
+      }> = (await result.json()) as Array<{
+        spanId: string;
+        email: string;
+        userId: string;
+        team: string;
+        person: string;
+        teamRead: string;
+      }>;
+
+      expect(rows).toHaveLength(peopleCalls.length);
+
+      for (const row of rows) {
+        expect({
+          spanId: row.spanId,
+          person: readLlmCallPerson({ email: row.email, id: row.userId }),
+          team: readLlmCallTeam(row.team),
+        }).toEqual({
+          spanId: row.spanId,
+          person: row.person,
+          team: row.teamRead,
+        });
+      }
     });
 
     test("leaves the usage metrics out for a reader who may not read metrics, and says so", async () => {

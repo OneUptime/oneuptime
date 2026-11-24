@@ -46,6 +46,8 @@ import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, { PermissionHelper } from "../../../../Types/Permission";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "../../../../Types/SecurityEvent/SecurityAddressVaultRetention";
+import { SECURITY_USER_VAULT_RETENTION_IN_DAYS } from "../../../../Types/SecurityEvent/SecurityUserVaultRetention";
+import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "../../../../Types/NetFlow/NetworkFlowRetention";
 import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -290,6 +292,7 @@ describe("a project with security events and network flows", () => {
       [DataStoreKind.SecurityEvents]: DeclaredStoreChange.Created,
       [DataStoreKind.NetworkFlows]: DeclaredStoreChange.Created,
       [DataStoreKind.SecurityAddressVault]: DeclaredStoreChange.Unchanged,
+      [DataStoreKind.SecurityUserVault]: DeclaredStoreChange.Unchanged,
     });
 
     const events: DataStore = rowOf(DataStoreKind.SecurityEvents)!;
@@ -439,6 +442,7 @@ describe("a project with neither", () => {
       [DataStoreKind.SecurityEvents]: DeclaredStoreChange.Unchanged,
       [DataStoreKind.NetworkFlows]: DeclaredStoreChange.Unchanged,
       [DataStoreKind.SecurityAddressVault]: DeclaredStoreChange.Unchanged,
+      [DataStoreKind.SecurityUserVault]: DeclaredStoreChange.Unchanged,
     });
     expect(createSpy).not.toHaveBeenCalled();
     expect(updateSpy).not.toHaveBeenCalled();
@@ -640,6 +644,113 @@ describe("the address vault", () => {
   });
 });
 
+/*
+ * #10632: Security Events' user vault, the address vault's twin, is
+ * declared on the same terms: never asked of the vault, but by the rule
+ * ingest keeps users by - an enabled rule that hashes by a pattern that
+ * can hide a user (any but IP Address), on logs or traces Security Events
+ * reads - and kept until every user written is past its 30 days.
+ */
+describe("the user vault", () => {
+  test("is declared while an enabled rule that hashes users runs on logs Security Events reads", async () => {
+    logHashRule = true;
+    readsSignals = new Set(["log"]);
+
+    const result: DeclaredStoresResult =
+      await DeclaredDataStores.declareProject(PROJECT_ID);
+
+    expect(result[DataStoreKind.SecurityUserVault]).toBe(
+      DeclaredStoreChange.Created,
+    );
+    expect(factsOf(rowOf(DataStoreKind.SecurityUserVault)!)).toMatchObject({
+      storeKey: "oneuptime:security-user-vault",
+      name: "Security User Vault",
+      dataTypeIds: ["username", "email-address"],
+      dataCategories: [DataCategory.ContactAndIdentity],
+      sensitivity: DataSensitivity.Confidential,
+      isContentScanEnabled: false,
+    });
+
+    // The writer's own rule: enabled, Hash, by any pattern but IP Address.
+    const userQueries: Array<unknown> = logRuleSpy.mock.calls
+      .map((call: Array<unknown>): unknown => {
+        return call[0];
+      })
+      .filter((findOneBy: unknown): boolean => {
+        return (
+          (findOneBy as { query: { patternType: unknown } }).query
+            .patternType instanceof NotEqual
+        );
+      });
+
+    expect(userQueries).toHaveLength(1);
+    expect(userQueries[0]).toEqual({
+      query: {
+        projectId: PROJECT_ID,
+        isEnabled: true,
+        patternType: new NotEqual(LogScrubPatternType.IPAddress),
+        scrubAction: LogScrubAction.Hash,
+      },
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+  });
+
+  test("is declared while such a rule runs on traces Security Events reads", async () => {
+    traceHashRule = true;
+    readsSignals = new Set(["trace"]);
+
+    expect(await DeclaredDataStores.isUserVaultWritten(PROJECT_ID)).toBe(true);
+    expect(
+      traceRuleSpy.mock.calls.some((call: Array<unknown>): boolean => {
+        return (
+          (call[0] as { query: { patternType: unknown } }).query
+            .patternType instanceof NotEqual
+        );
+      }),
+    ).toBe(true);
+  });
+
+  test("is not declared for a Hash rule on telemetry Security Events does not read, nor without one", async () => {
+    logHashRule = true;
+    readsSignals = new Set(["trace"]);
+
+    expect(await DeclaredDataStores.isUserVaultWritten(PROJECT_ID)).toBe(false);
+
+    logHashRule = false;
+    readsSignals = new Set(["log", "trace"]);
+
+    expect(await DeclaredDataStores.isUserVaultWritten(PROJECT_ID)).toBe(false);
+    expect(rowOf(DataStoreKind.SecurityUserVault)).toBeUndefined();
+  });
+
+  test("stays declared until every user written while it was is past the vault's 30 days", async () => {
+    const vault: DataStore = declaredRow(DataStoreKind.SecurityUserVault, {
+      lastSeenAt: NOW,
+    });
+    const keptForDays: number =
+      SECURITY_USER_VAULT_RETENTION_IN_DAYS + ADDRESS_VAULT_STORE_GRACE_IN_DAYS;
+
+    expect(
+      (
+        await DeclaredDataStores.declareProject(PROJECT_ID, {
+          now: new Date(NOW.getTime() + keptForDays * DAY_IN_MS - 1),
+        })
+      )[DataStoreKind.SecurityUserVault],
+    ).toBe(DeclaredStoreChange.Unchanged);
+    expect(vault.isArchived).toBe(false);
+
+    expect(
+      (
+        await DeclaredDataStores.declareProject(PROJECT_ID, {
+          now: new Date(NOW.getTime() + keptForDays * DAY_IN_MS),
+        })
+      )[DataStoreKind.SecurityUserVault],
+    ).toBe(DeclaredStoreChange.Archived);
+    expect(vault.isArchived).toBe(true);
+  });
+});
+
 describe("declared before the record is read", () => {
   test("at most once a minute a project", async () => {
     holdsEvents = true;
@@ -798,6 +909,27 @@ describe("what OneUptime declares of a store", () => {
     expect(SECURITY_EVENTS_SCANS_ONLY_TEXT).toBe(
       "Only Security Events' scans, inside OneUptime",
     );
+  });
+
+  test("Security User Vault: 30 days after a user was last seen, and only Security Events' scans read it", async () => {
+    const declared: DataSecurityDeclaredStore | null =
+      await DeclaredDataStores.describe({
+        projectId: PROJECT_ID,
+        store: storeOf(DataStoreKind.SecurityUserVault),
+      });
+
+    expect(declared).toMatchObject({
+      retentionInDays: SECURITY_USER_VAULT_RETENTION_IN_DAYS,
+      retentionText: `30${NO_BREAK_SPACE}days after a user was last seen`,
+      retentionBasis: DeclaredStoreRetentionBasis.UserVault,
+      readers: DeclaredStoreReaders.SecurityEventsScansOnly,
+      readPermissions: [],
+      readerNames: [],
+      dataTypeNames: ["Username", "Email address"],
+    });
+    expect(
+      DeclaredDataStores.getReadPermissions(DataStoreKind.SecurityUserVault),
+    ).toEqual([]);
   });
 
   test("a purpose or a retention the team wrote is theirs, and kept", async () => {

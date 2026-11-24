@@ -9,6 +9,7 @@ import {
   ECS_SERVICE_TYPE,
 } from "Common/Types/Cloud/CloudAppPlatformResourceMatch";
 import {
+  AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE,
   GCP_ALIGNMENT_PERIOD_SECONDS,
   getAwsStoredMetricName,
   getAzureStoredMetricName,
@@ -41,18 +42,22 @@ import {
  *   - App Service, a site or a slot (Azure Monitor): Requests, Http5xx,
  *     HttpResponseTime, CpuTime and MemoryWorkingSet - its section is
  *     CloudAppAzureMonitorCard, which reads APP_SERVICE_METRICS.
- *   - Container Apps (Azure Monitor): Requests, ResponseTime (ms),
- *     CpuPercentage, WorkingSetBytes and RestartCount. Its Requests are read
- *     whole, never split by status code, so it has no 5xx share.
+ *   - Container Apps (Azure Monitor): Requests - each minute's, per
+ *     statusCodeCategory, whose "5xx" series are its server errors (#10837)
+ *     - ResponseTime (ms), CpuPercentage, WorkingSetBytes and RestartCount.
+ *     Requests stored before the connection split them carry no category:
+ *     they count, and say nothing of the errors among them.
  *   - Cloud Run (Google Cloud Monitoring): request_count - each minute's
  *     rate, per response_code_class, whose "5xx" series are its server
  *     errors - request_latencies' 95th percentile, and its containers'
  *     CPU and memory utilizations' 95th percentile, a ratio of 1.
  *   - App Engine (Google Cloud Monitoring): response_count - each minute's
  *     rate, per response_code, whose 500 to 599 are its server errors -
- *     and response_latencies' 95th percentile. Its CPU and memory
- *     (system/cpu/utilization, system/memory/usage) are not key metrics of
- *     a gae_app yet, so the connection stores neither (#10838).
+ *     response_latencies' 95th percentile, and its running instances' CPU
+ *     utilization, a ratio of 1, and memory, in bytes (system/cpu/
+ *     utilization, system/memory/usage, #10838). A gae_app row is a
+ *     service, whose series are each of its versions': a service serving
+ *     from two versions at once reads the mean of their two.
  *   - App Runner (Amazon CloudWatch): Requests, 5xxStatusResponses,
  *     RequestLatency (ms), CPUUtilization and MemoryUtilization.
  *   - ECS (Amazon CloudWatch): the service's CPUUtilization and
@@ -81,6 +86,11 @@ export enum CloudAppPlatformFigure {
   // A share of the memory the app may use, 0 to 100.
   MemoryPercent = "memory-percent",
   Restarts = "restarts",
+  /*
+   * The requests whose response code a split read knew: what its share of
+   * server errors is a share of (readCloudAppPlatformSplit). No tile.
+   */
+  ClassifiedRequests = "classified-requests",
 }
 
 // The figures added up over a range; the others are averaged.
@@ -89,13 +99,17 @@ export const COUNTED_CLOUD_APP_PLATFORM_FIGURES: ReadonlySet<CloudAppPlatformFig
     CloudAppPlatformFigure.Requests,
     CloudAppPlatformFigure.ServerErrors,
     CloudAppPlatformFigure.Restarts,
+    CloudAppPlatformFigure.ClassifiedRequests,
   ]);
 
 /*
  * The requests of one read, by the label their response code is on: the
  * series the label calls a server error are its 5xx answers. Read so where
  * the provider counts errors only as a label of the request count (Cloud
- * Run's response_code_class, App Engine's response_code).
+ * Run's response_code_class, App Engine's response_code, a Container App's
+ * status code category). A series without the label - a Container App's
+ * Requests stored before they were split - counts as requests and says
+ * nothing of their errors.
  */
 export interface CloudAppPlatformErrorLabel {
   attribute: string;
@@ -179,6 +193,9 @@ export const CLOUD_APP_PLATFORM_DESCRIPTIONS: Readonly<Record<string, string>> =
     ),
     memory: translationKey(
       "Memory this app uses (its working set), averaged over the selected range, as {{service}} measures it.",
+    ),
+    instancesMemory: translationKey(
+      "Memory this app's running instances use, averaged over the selected range, as {{service}} measures it.",
     ),
     memoryPercent: translationKey(
       "The share of its memory this app used, averaged over the selected range, as {{service}} measures it.",
@@ -290,6 +307,20 @@ export const APP_ENGINE_ERROR_LABEL: CloudAppPlatformErrorLabel = {
   },
 };
 
+// A server error's class or code, however it is cased: "5xx", "503".
+const SERVER_ERROR_CATEGORY: RegExp = /^5(xx|\d\d)$/i;
+
+/*
+ * A Container App's statusCodeCategory, as the connection stores its split
+ * Requests (metadata_statuscodecategory): "2xx", "4xx", "5xx".
+ */
+export const CONTAINER_APP_ERROR_LABEL: CloudAppPlatformErrorLabel = {
+  attribute: AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE,
+  isServerError: (value: string): boolean => {
+    return SERVER_ERROR_CATEGORY.test(value.trim());
+  },
+};
+
 export const CLOUD_APP_PLATFORM_PROFILES: ReadonlyArray<CloudAppPlatformProfile> =
   [
     {
@@ -298,23 +329,27 @@ export const CLOUD_APP_PLATFORM_PROFILES: ReadonlyArray<CloudAppPlatformProfile>
       service: AZURE_MONITOR,
       tiles: [
         { figure: F.Requests, description: D["requests"]! },
+        { figure: F.ServerErrors, description: D["serverErrors"]! },
         { figure: F.ResponseTime, description: D["responseTime"]! },
         { figure: F.Cpu, description: D["cpu"]! },
         { figure: F.Memory, description: D["memory"]! },
         { figure: F.Restarts, description: D["restarts"]! },
       ],
       charts: ["requests", "latency"],
-      requestsChartDescription: D["requestsChart"]!,
+      requestsChartDescription: D["requestsAndErrorsChart"]!,
       latencyChartDescription: D["responseTimeChart"]!,
       reads: (readings: unknown): Array<CloudAppPlatformMetricRead> => {
         return [
-          azureRead({
-            readings,
-            figure: F.Requests,
-            metricName: "Requests",
-            aggregation: "total",
-            aggregationType: AggregationType.Sum,
-          }),
+          {
+            ...azureRead({
+              readings,
+              figure: F.Requests,
+              metricName: "Requests",
+              aggregation: "total",
+              aggregationType: AggregationType.Sum,
+            }),
+            errorLabel: CONTAINER_APP_ERROR_LABEL,
+          },
           azureRead({
             readings,
             figure: F.ResponseTime,
@@ -395,6 +430,8 @@ export const CLOUD_APP_PLATFORM_PROFILES: ReadonlyArray<CloudAppPlatformProfile>
         { figure: F.Requests, description: D["requests"]! },
         { figure: F.ServerErrors, description: D["serverErrors"]! },
         { figure: F.Latency, description: D["latency"]! },
+        { figure: F.Cpu, description: D["cpu"]! },
+        { figure: F.Memory, description: D["instancesMemory"]! },
       ],
       charts: ["requests", "latency"],
       requestsChartDescription: D["requestsAndErrorsChart"]!,
@@ -409,6 +446,18 @@ export const CLOUD_APP_PLATFORM_PROFILES: ReadonlyArray<CloudAppPlatformProfile>
             figure: F.Latency,
             storedName:
               "appengine.googleapis.com/http/server/response_latencies",
+            aggregationType: AggregationType.Avg,
+            scale: 1,
+          },
+          {
+            figure: F.Cpu,
+            storedName: "appengine.googleapis.com/system/cpu/utilization",
+            aggregationType: AggregationType.Avg,
+            scale: 100,
+          },
+          {
+            figure: F.Memory,
+            storedName: "appengine.googleapis.com/system/memory/usage",
             aggregationType: AggregationType.Avg,
             scale: 1,
           },
@@ -650,6 +699,13 @@ export function summarizeCloudAppPlatformSeries(
   const serverErrors: number | null = sumCloudAppPlatformPoints(
     series[F.ServerErrors],
   );
+  /*
+   * What the share is of: a split read's requests whose response code it
+   * knew (readCloudAppPlatformSplit), else every request.
+   */
+  const shareOf: number | null = series[F.ClassifiedRequests]
+    ? sumCloudAppPlatformPoints(series[F.ClassifiedRequests])
+    : requests;
 
   return {
     requests,
@@ -657,11 +713,12 @@ export function summarizeCloudAppPlatformSeries(
     /*
      * A range with requests and no 5xx point at all was not read - unknown,
      * not 0% - unless the 5xx came from the requests' own read, which
-     * writes a 0 for each interval with none (readCloudAppPlatformSplit).
+     * writes a 0 for each interval with none whose codes it knew
+     * (readCloudAppPlatformSplit).
      */
     serverErrorRatePercent:
-      requests !== null && requests > 0 && serverErrors !== null
-        ? (serverErrors / requests) * 100
+      shareOf !== null && shareOf > 0 && serverErrors !== null
+        ? (serverErrors / shareOf) * 100
         : null,
     responseTimeMs: meanCloudAppPlatformPoints(series[F.ResponseTime]),
     latencyMs: meanCloudAppPlatformPoints(series[F.Latency]),
@@ -680,11 +737,25 @@ export interface CloudAppPlatformSplitPoint {
   y: number;
 }
 
+// One interval of a split read, as it adds up.
+interface CloudAppPlatformSplitInterval {
+  requests: number;
+  // Of the requests whose code was read: the 5xx among them, and all.
+  serverErrors: number;
+  classified: number;
+  // Requests that carried no code: the interval's errors are unknown.
+  hasUnclassified: boolean;
+}
+
 /*
- * A request read by its response code, as two series - all requests in
- * each interval, and the server errors among them - each scaled. An
- * interval with requests and no server error reads 0 server errors: the
- * read is the request count itself, so it proves there were none.
+ * A request read by its response code, as three series, each scaled: all
+ * requests in each interval, the server errors among them, and the
+ * requests whose code it read (ClassifiedRequests), which the errors are a
+ * share of. An interval whose requests all carry their code and none a
+ * server error's reads 0 server errors: the read is the request count
+ * itself, so it proves there were none. An interval with requests that
+ * carry no code (a Container App's, stored before its Requests were split)
+ * has no server-error point: what failed then is not known, never 0.
  */
 export function readCloudAppPlatformSplit(data: {
   points: ReadonlyArray<CloudAppPlatformSplitPoint>;
@@ -693,9 +764,12 @@ export function readCloudAppPlatformSplit(data: {
 }): {
   requests: Array<CloudAppPlatformPoint>;
   serverErrors: Array<CloudAppPlatformPoint>;
+  classifiedRequests: Array<CloudAppPlatformPoint>;
 } {
-  const byTime: Map<number, { requests: number; serverErrors: number }> =
-    new Map<number, { requests: number; serverErrors: number }>();
+  const byTime: Map<number, CloudAppPlatformSplitInterval> = new Map<
+    number,
+    CloudAppPlatformSplitInterval
+  >();
 
   for (const point of data.points) {
     const time: number = point.x.getTime();
@@ -704,14 +778,25 @@ export function readCloudAppPlatformSplit(data: {
       continue;
     }
 
-    const interval: { requests: number; serverErrors: number } = byTime.get(
-      time,
-    ) || { requests: 0, serverErrors: 0 };
+    const interval: CloudAppPlatformSplitInterval = byTime.get(time) || {
+      requests: 0,
+      serverErrors: 0,
+      classified: 0,
+      hasUnclassified: false,
+    };
+    const value: number = point.y * data.scale;
+    const label: string = (point.label || "").trim();
 
-    interval.requests += point.y * data.scale;
+    interval.requests += value;
 
-    if (data.errorLabel.isServerError(point.label)) {
-      interval.serverErrors += point.y * data.scale;
+    if (!label) {
+      interval.hasUnclassified = true;
+    } else {
+      interval.classified += value;
+
+      if (data.errorLabel.isServerError(label)) {
+        interval.serverErrors += value;
+      }
     }
 
     byTime.set(time, interval);
@@ -722,13 +807,19 @@ export function readCloudAppPlatformSplit(data: {
       return a - b;
     },
   );
+  const known: Array<number> = times.filter((time: number): boolean => {
+    return !byTime.get(time)!.hasUnclassified;
+  });
 
   return {
     requests: times.map((time: number): CloudAppPlatformPoint => {
       return { x: new Date(time), y: byTime.get(time)!.requests };
     }),
-    serverErrors: times.map((time: number): CloudAppPlatformPoint => {
+    serverErrors: known.map((time: number): CloudAppPlatformPoint => {
       return { x: new Date(time), y: byTime.get(time)!.serverErrors };
+    }),
+    classifiedRequests: known.map((time: number): CloudAppPlatformPoint => {
+      return { x: new Date(time), y: byTime.get(time)!.classified };
     }),
   };
 }

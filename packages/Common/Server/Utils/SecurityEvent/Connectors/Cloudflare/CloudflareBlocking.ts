@@ -33,11 +33,13 @@ import {
   readCloudflareSkipRuleAddresses,
   toCloudflareAccessRuleConfiguration,
   CloudflareAccessRuleConfiguration,
+  isCloudflareAsnAccessRule,
 } from "../../../../../Types/SecurityBlocklist/CloudflareBlocking";
 import {
   SECURITY_BLOCK_ADDRESS_ACTIONS,
   SecurityBlockAction,
   SecurityBlockValue,
+  readSecurityBlockAsn,
   readSecurityBlockValue,
 } from "../../../../../Types/SecurityBlocklist/SecurityBlock";
 import {
@@ -193,7 +195,17 @@ function chunk<T>(items: ReadonlyArray<T>, size: number): Array<Array<T>> {
 function asBlockValue(value: string): string {
   const read: SecurityBlockValue | null = readSecurityBlockValue(value);
 
-  return read ? read.value : value.trim().toLowerCase();
+  if (read) {
+    return read.value;
+  }
+
+  // A network by its ASN (#10354), as blocks write it: "AS14061".
+  return readSecurityBlockAsn(value) || value.trim().toLowerCase();
+}
+
+// Whether a block is of a whole network by its ASN (#10354), which only an IP Access Rule holds.
+function isAsnValue(value: string): boolean {
+  return readSecurityBlockAsn(value) !== null;
 }
 
 export function getCloudflareRuleInput(
@@ -911,7 +923,27 @@ export default class CloudflareBlocking {
         action,
       );
 
-      if (!entry || !entry.isInPlace) {
+      if (!entry) {
+        continue;
+      }
+
+      /*
+       * A whole network by its ASN (#10354) is an IP Access Rule of the
+       * action's mode whatever the action's addresses use, read back
+       * whatever state its list is in. An action that uses IP Access Rules
+       * reads them all below.
+       */
+      if (entry.choice.mechanism === CloudflareBlockingMechanism.List) {
+        for (const rule of await this.readOneUptimeAsnAccessRules(action)) {
+          held.push({
+            value: asBlockValue(rule.value),
+            action,
+            providerRef: rule.id,
+          });
+        }
+      }
+
+      if (!entry.isInPlace) {
         continue;
       }
 
@@ -990,6 +1022,33 @@ export default class CloudflareBlocking {
   }
 
   /*
+   * OneUptime's IP Access Rules of one action that name a whole network by
+   * its ASN (#10354). A token without the IP Access Rules permission - an
+   * account whose actions use lists needs none - holds none, and could
+   * never have added one.
+   */
+  private async readOneUptimeAsnAccessRules(
+    action: SecurityBlockAction,
+  ): Promise<Array<CloudflareAccessRule>> {
+    try {
+      return (await this.readOneUptimeAccessRules(action)).filter(
+        (rule: CloudflareAccessRule): boolean => {
+          return isCloudflareAsnAccessRule(rule);
+        },
+      );
+    } catch (error) {
+      if (
+        error instanceof CloudflareApiError &&
+        error.kind === CloudflareFailureKind.MissingPermission
+      ) {
+        return [];
+      }
+
+      throw error;
+    }
+  }
+
+  /*
    * Adds blocks: to its action's list, a bulk operation of at most
    * CLOUDFLARE_ITEMS_PER_OPERATION items at a time, each polled until
    * Cloudflare says how it went; or one IP Access Rule a block. A list that
@@ -1004,20 +1063,50 @@ export default class CloudflareBlocking {
     const results: Array<SecurityBlockWriteResult> = [];
 
     for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
-      const ofAction: Array<SecurityBlockEntry> = entries.filter(
+      const ofActionAndKind: Array<SecurityBlockEntry> = entries.filter(
         (entry: SecurityBlockEntry): boolean => {
           return entry.action === action;
         },
       );
-
-      if (ofAction.length === 0) {
-        continue;
-      }
+      // A whole network by its ASN (#10354): an IP Access Rule, whatever the action's addresses use.
+      const networks: Array<SecurityBlockEntry> = ofActionAndKind.filter(
+        (entry: SecurityBlockEntry): boolean => {
+          return isAsnValue(entry.value);
+        },
+      );
+      const ofAction: Array<SecurityBlockEntry> = ofActionAndKind.filter(
+        (entry: SecurityBlockEntry): boolean => {
+          return !isAsnValue(entry.value);
+        },
+      );
 
       const entry: CloudflareActionStatus | null = getCloudflareActionStatus(
         status,
         action,
       );
+
+      if (networks.length > 0) {
+        results.push(
+          ...(entry
+            ? await this.addAccessRules(action, networks, {
+                isPermissionTheItems: true,
+              })
+            : networks.map(
+                (block: SecurityBlockEntry): SecurityBlockWriteResult => {
+                  return {
+                    value: block.value,
+                    action,
+                    isDone: false,
+                    error: "blocking at Cloudflare is not set up yet",
+                  };
+                },
+              )),
+        );
+      }
+
+      if (ofAction.length === 0) {
+        continue;
+      }
 
       if (!entry || !entry.isInPlace) {
         results.push(
@@ -1103,9 +1192,17 @@ export default class CloudflareBlocking {
     return `Cloudflare did not add it to ${CLOUDFLARE_BLOCK_LIST_NAMES[action]}: ${error || "the operation failed"}`;
   }
 
+  /*
+   * One IP Access Rule a block. A permission the token lacks is the
+   * account's, and thrown - unless the rules are for networks by their ASN
+   * (#10354, isPermissionTheItems): an account whose addresses use lists
+   * needs no IP Access Rules permission, so its networks say they need it
+   * and every address block goes on.
+   */
   private async addAccessRules(
     action: SecurityBlockAction,
     entries: Array<SecurityBlockEntry>,
+    options?: { isPermissionTheItems?: boolean | undefined },
   ): Promise<Array<SecurityBlockWriteResult>> {
     const results: Array<SecurityBlockWriteResult> = [];
 
@@ -1160,9 +1257,19 @@ export default class CloudflareBlocking {
           error instanceof CloudflareApiError &&
           error.kind === CloudflareFailureKind.MissingPermission
         ) {
-          throw new CloudflareBlockingError(
-            `The API token cannot add IP Access Rules: give it ${CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION}. ${errorText(error)}`,
-          );
+          const message: string = `The API token cannot add IP Access Rules: give it ${CLOUDFLARE_ACCESS_RULES_EDIT_PERMISSION}. ${errorText(error)}`;
+
+          if (options?.isPermissionTheItems) {
+            results.push({
+              value: entry.value,
+              action,
+              isDone: false,
+              error: message,
+            });
+            continue;
+          }
+
+          throw new CloudflareBlockingError(message);
         }
 
         throw error;
@@ -1183,9 +1290,34 @@ export default class CloudflareBlocking {
     const results: Array<SecurityBlockWriteResult> = [];
 
     for (const action of SECURITY_BLOCK_ADDRESS_ACTIONS) {
-      const ofAction: Array<SecurityBlockHeldItem> = items.filter(
+      const ofActionAndKind: Array<SecurityBlockHeldItem> = items.filter(
         (item: SecurityBlockHeldItem): boolean => {
           return item.action === action;
+        },
+      );
+
+      // A whole network by its ASN (#10354) is an IP Access Rule, whatever the action's addresses use.
+      for (const item of ofActionAndKind) {
+        if (!isAsnValue(item.value)) {
+          continue;
+        }
+
+        if (!item.providerRef) {
+          results.push({
+            value: item.value,
+            action,
+            isDone: false,
+            error: "Cloudflare's reference to it was not read",
+          });
+          continue;
+        }
+
+        results.push(await this.removeAccessRule(item, action));
+      }
+
+      const ofAction: Array<SecurityBlockHeldItem> = ofActionAndKind.filter(
+        (item: SecurityBlockHeldItem): boolean => {
+          return !isAsnValue(item.value);
         },
       );
 
@@ -1250,27 +1382,33 @@ export default class CloudflareBlocking {
       }
 
       for (const item of withRef) {
-        try {
-          await this.client.deleteAccessRule(
-            this.scope.accountId,
-            item.providerRef!,
-          );
-          results.push({ value: item.value, action, isDone: true });
-        } catch (error) {
-          if (
-            error instanceof CloudflareApiError &&
-            error.kind === CloudflareFailureKind.NotFound
-          ) {
-            results.push({ value: item.value, action, isDone: true });
-            continue;
-          }
-
-          throw error;
-        }
+        results.push(await this.removeAccessRule(item, action));
       }
     }
 
     return results;
+  }
+
+  // Takes one IP Access Rule away by its id: one already gone is done.
+  private async removeAccessRule(
+    item: SecurityBlockHeldItem,
+    action: SecurityBlockAction,
+  ): Promise<SecurityBlockWriteResult> {
+    try {
+      await this.client.deleteAccessRule(
+        this.scope.accountId,
+        item.providerRef!,
+      );
+    } catch (error) {
+      if (
+        !(error instanceof CloudflareApiError) ||
+        error.kind !== CloudflareFailureKind.NotFound
+      ) {
+        throw error;
+      }
+    }
+
+    return { value: item.value, action, isDone: true };
   }
 
   /*

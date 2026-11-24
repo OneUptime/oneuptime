@@ -31,10 +31,22 @@ import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import { INTERACTIVE_READ_TIME_LIMIT } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
-import { buildDetectionRuleExceptionMatch } from "Common/Server/Utils/SecurityEvent/DetectionRuleExceptions";
+import {
+  buildDetectionRuleExceptionMatch,
+  getApiKeyPrincipalsNamedBy,
+} from "Common/Server/Utils/SecurityEvent/DetectionRuleExceptions";
 import { resolveSigmaField } from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 import Permission from "Common/Types/Permission";
-import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  SecurityEntityType,
+  canActOnSecurityEntity,
+} from "Common/Types/SecurityCase/SecurityEntity";
+import UserType from "Common/Types/UserType";
+import {
+  AUDIT_ATTRIBUTES,
+  AuditActor,
+  getAuditActorPrincipal,
+} from "Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
 import {
   DETECTION_RETROHUNT_DEFAULT_PERIOD_IN_HOURS,
   DETECTION_RETROHUNT_MAX_GROUPS,
@@ -65,8 +77,9 @@ import path from "path";
  * Run on Past Events, held to the code that does it: the kinds and what each
  * matches, the wildcard and the address range, the limits, the statuses and
  * when an exception skips anything, who may change them, where the runs
- * leave skipped events out, and Run on Past Events' periods, list, noise
- * line and time limit. Every bold name is the Dashboard's own word (the
+ * leave skipped events out, how an exception for a project API key's name
+ * still skips the key now its events name it by its ID (#10630), and Run
+ * on Past Events' periods, list, noise line and time limit. Every bold name is the Dashboard's own word (the
  * copy modules), so a renamed label fails here until the page follows.
  *
  * Its other languages are held line for line to this page by
@@ -377,6 +390,79 @@ describe("the Security Events page on rule exceptions", () => {
     ]);
     expect(buildDetectionRuleExceptionMatch(exception({ value: "*" }))).toBe(
       null,
+    );
+  });
+
+  it("names a project API key by its ID, never as a user to act on, and an exception for its name still skips every key of that name (#10630)", () => {
+    const line: string = lineStarting(
+      page,
+      "Exceptions",
+      "- Events from OneUptime's own audit log",
+    );
+
+    expect(line).toBe(
+      "- Events from OneUptime's own audit log name a project API key in `principalUser` as `api-key:` followed by its ID, so two keys with one name are two actors, and no playbook offers a key as a user to suspend. The key's name stays in the event's message and in `audit.api_key_name`. An exception for a key's name, as a user or as a value of `principalUser`, still skips every key of that name, and one for `api-key:` followed by the key's ID skips that key alone.",
+    );
+
+    const firstKey: string = "6650a1d2-4c3b-4e8f-9a17-2b5c8d0e1f3a";
+    const secondKey: string = "6650b2e3-5d4c-4f90-8b28-3c6d9e1f2a4b";
+    const otherKey: string = "6650c3f4-6e5d-4a01-9c39-4d7e0f2a3b5c";
+
+    // A key's events: api-key: and its ID, so two keys of one name are two actors.
+    const terraform: Partial<AuditActor> = {
+      userType: UserType.API,
+      apiKeyId: firstKey,
+      apiKeyName: "terraform",
+    };
+    expect(getAuditActorPrincipal(terraform)).toBe(`api-key:${firstKey}`);
+    expect(getAuditActorPrincipal({ ...terraform, apiKeyId: secondKey })).toBe(
+      `api-key:${secondKey}`,
+    );
+    expect(AUDIT_ATTRIBUTES.apiKeyName).toBe("audit.api_key_name");
+
+    // Never a user a playbook acts on.
+    expect(
+      canActOnSecurityEntity({
+        type: SecurityEntityType.User,
+        value: `api-key:${firstKey}`,
+      }),
+    ).toBe(false);
+
+    // An exception for the name, as a user or as principalUser's value: every key of that name.
+    const keys: Array<{ id: string; name: string }> = [
+      { id: firstKey, name: "terraform" },
+      { id: secondKey, name: "Terraform" },
+      { id: otherKey, name: "deploy" },
+    ];
+    const byName: Array<string> = [
+      `api-key:${firstKey}`,
+      `api-key:${secondKey}`,
+    ];
+    expect(
+      getApiKeyPrincipalsNamedBy(exception({ value: "terraform" }), keys),
+    ).toEqual(byName);
+    expect(
+      getApiKeyPrincipalsNamedBy(
+        exception({
+          kind: DetectionRuleExceptionKind.Value,
+          fieldName: "principalUser",
+          value: "terraform",
+        }),
+        keys,
+      ),
+    ).toEqual(byName);
+
+    // ...skipped by their principals, on principalUser.
+    const named: Statement | null = buildDetectionRuleExceptionMatch({
+      ...exception({ value: "terraform" }),
+      apiKeyPrincipals: byName,
+    });
+    expect(named?.query).toContain("lowerUTF8(principalUser) IN");
+    expect(Object.values(named?.query_params || {})).toContainEqual(byName);
+
+    // One for api-key: and the key's ID skips that key alone, as any value.
+    expect(sqlOf(exception({ value: `api-key:${firstKey}` })).values).toContain(
+      `api-key:${firstKey}`,
     );
   });
 

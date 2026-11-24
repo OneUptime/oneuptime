@@ -214,17 +214,18 @@ La retención de la telemetría de un servicio, los destinatarios y las transfer
 
 ### Almacenes que OneUptime conserva para tu seguridad
 
-Tres almacenes contienen direcciones IP a propósito, para proteger tu red: **Eventos de seguridad**, **Flujos de red** y **Bóveda de direcciones de seguridad**. El registro incluye cada uno que tenga tu proyecto. OneUptime los declara en lugar de encontrarlos: lo que contienen se conoce por diseño, así que ningún escaneo los lee, ninguna comprobación se les aplica, y que contengan estas direcciones nunca es un problema, porque para eso existen. Llevan la marca **Declarado por OneUptime** en **Almacenes de datos**, y la **Vista general** y las puntuaciones de los marcos los dejan fuera.
+Cuatro almacenes contienen direcciones IP y nombres de usuario a propósito, para proteger tu red: **Eventos de seguridad**, **Flujos de red**, **Bóveda de direcciones de seguridad** y **Bóveda de usuarios de seguridad**. El registro incluye cada uno que tenga tu proyecto. OneUptime los declara en lugar de encontrarlos: lo que contienen se conoce por diseño, así que ningún escaneo los lee, ninguna comprobación se les aplica, y que contengan estas direcciones y nombres nunca es un problema, porque para eso existen. Llevan la marca **Declarado por OneUptime** en **Almacenes de datos**, y la **Vista general** y las puntuaciones de los marcos los dejan fuera.
 
 | Almacén | Qué contiene | Retención | Quién puede leerlo |
 | --- | --- | --- | --- |
 | Eventos de seguridad | Las direcciones IP, nombres de usuario y direcciones de correo de quién actuó y de lo que tocó | La [retención de telemetría](/docs/telemetry/data-retention) de tu proyecto, leída cada vez que se lee el registro, así que un cambio se aplica enseguida | Propietarios del proyecto, Administradores del proyecto, Administradores de seguridad, Miembros de seguridad, Visores de seguridad y cualquiera con Read Security Event |
 | Flujos de red | Las direcciones IP de quién se comunicó con quién | 30 días después de que llega un flujo | Quien pueda leer dispositivos de red |
 | Bóveda de direcciones de seguridad | La dirección IP detrás de cada token que una regla de dirección IP que aplica hash dejó en los registros y las trazas que lee [Eventos de seguridad](/docs/telemetry/security-events) | 30 días desde la última vez que se vio una dirección | Solo los escaneos de Eventos de seguridad, dentro de OneUptime: ninguna persona, página, exportación, API ni herramienta de IA |
+| Bóveda de usuarios de seguridad | El usuario detrás de cada token que una regla que aplica hash dejó donde [Eventos de seguridad](/docs/telemetry/security-events) lee un usuario en los registros y las trazas | 30 días desde la última vez que se vio a un usuario | Solo los escaneos de Eventos de seguridad, dentro de OneUptime: ninguna persona, página, exportación, API ni herramienta de IA |
 
 La finalidad de cada uno es «Seguridad de la red y de la información (considerando 49 del RGPD)». Para escribir tu propia finalidad o retención, usa **Editar registro** en los **Ajustes** del almacén: un campo que dejes vacío conserva la de OneUptime.
 
-Un almacén aparece mientras tu proyecto conserva sus datos: la bóveda, mientras una regla de dirección IP activada aplica hash a los registros o las trazas que lee Eventos de seguridad, y 31 días más (consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Cuando sus datos desaparecen, el almacén se archiva, y vuelve con tu finalidad y tu retención si vuelven los datos.
+Un almacén aparece mientras tu proyecto conserva sus datos: la bóveda de direcciones, mientras una regla de dirección IP activada aplica hash a los registros o las trazas que lee Eventos de seguridad, la bóveda de usuarios, mientras lo hace una regla activada de cualquier otro patrón, y cada una 31 días más (consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Cuando sus datos desaparecen, el almacén se archiva, y vuelve con tu finalidad y tu retención si vuelven los datos.
 
 ## Evaluaciones de impacto
 

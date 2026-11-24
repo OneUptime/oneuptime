@@ -176,6 +176,9 @@ import { countOtlpLogRecords } from "Common/Utils/Telemetry/OtlpRecordCount";
 import SecurityAddressVaultWriter, {
   SecurityAddressVaultBatch,
 } from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
+import SecurityUserVaultWriter, {
+  SecurityUserVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 
 /*
  * What stamping a Kubernetes event changed beside its attributes: the
@@ -517,6 +520,19 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
        */
       const addressVault: SecurityAddressVaultBatch | null =
         await SecurityAddressVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
+
+      /*
+       * The users this batch's Hash rules hide where Security Events reads a
+       * user, kept for its user vault when Security Events reads the
+       * project's logs (#10632): null - and nothing kept - otherwise. Written
+       * after the batch's logs, never awaited, as the address vault is.
+       */
+      const userVault: SecurityUserVaultBatch | null =
+        await SecurityUserVaultWriter.startBatch({
           projectId: projectId,
           signal: "log",
           scrubRules: loadedScrubRules,
@@ -1498,6 +1514,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                       logRow,
                       loadedScrubRules,
                       addressVault,
+                      { hashedUsers: userVault },
                     );
                   }
 
@@ -1630,8 +1647,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           : []),
       ]);
 
-      // The logs are stored: their hashed addresses go to the vault, on their own.
+      // The logs are stored: their hashed addresses and users go to the vaults, on their own.
       addressVault?.write();
+      userVault?.write();
 
       await this.flushProxmoxNotifications({
         projectId: projectId,
