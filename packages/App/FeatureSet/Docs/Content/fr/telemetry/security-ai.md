@@ -177,6 +177,7 @@ OneUptime AI ne se retire jamais en silence. Il confie le dossier à des personn
 - la cible de sa prochaine étape est protégée ;
 - il a agi en autonomie autant de fois qu'il le peut en une heure ;
 - l'IA est désactivée pour le projet ou pour les dossiers de sécurité, il n'y a pas de fournisseur LLM, ou le projet n'a plus de crédits IA ou a atteint sa limite quotidienne d'IA ;
+- le produit Événements de sécurité est désactivé sur le serveur ;
 - sa qualification n'a pas pu dire si le dossier est réel ;
 - une étape qu'il a effectuée ne tient pas, une étape qu'il a lancée n'a pas abouti, ou une personne a refusé ou annulé une étape qu'il a effectuée ;
 - il ne sait pas quoi faire ensuite, ou tout ce qui reste à faire sur le dossier revient à une personne.
@@ -184,6 +185,8 @@ OneUptime AI ne se retire jamais en silence. Il confie le dossier à des personn
 Les personnes qui s'occupent du dossier en sont averties tout de suite, ou, quand personne ne s'en occupe, les personnes averties des dossiers à sa priorité : **OneUptime AI a confié un dossier de sécurité à des personnes**, sous **Paramètres utilisateur → Paramètres de notification**. Une règle de notification d'espace de travail pour les dossiers de sécurité le publie dans son canal Slack ou Microsoft Teams sous **Dossiers confiés à des personnes par OneUptime AI**. **Reprendre la main** remet le dossier sans prévenir personne, puisque la personne qui a appuyé dessus l'a en main.
 
 **Répondre avec l'IA** demande à OneUptime AI de traiter à nouveau le dossier, là où il en est.
+
+Tant que le produit Événements de sécurité est désactivé sur le serveur, OneUptime AI ne lance aucune nouvelle étape sur aucun dossier et, en moins d'une minute, confie à des personnes chaque dossier qu'il traite. Une étape qu'il a déjà lancée se termine, ou peut être annulée, comme d'habitude. Une fois le produit réactivé, il ne reprend aucun de ces dossiers de lui-même : c'est **Répondre avec l'IA** qui le fait.
 
 Un dossier mis en attente pendant que OneUptime AI répond en premier n'atteint les personnes qu'une fois, avec la notification du nouveau dossier et la raison pour laquelle OneUptime AI s'est arrêté : voir [Laisser OneUptime AI répondre en premier](#laisser-oneuptime-ai-répondre-en-premier).
 

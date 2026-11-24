@@ -1566,8 +1566,16 @@ describe("the pull requests are the auto remediation rules', not the page's", ()
 });
 
 describe("Security Events → AI → Settings", () => {
-  test("one switch, Triage new cases, with what the project has", async () => {
-    stored = projectWith({ enableAutomaticSecurityCaseTriage: false });
+  /*
+   * Beside triaging each case a detection opens, working a case its triage
+   * reads as Likely Malicious end to end (#10352): each switch with what
+   * the project has.
+   */
+  test("two switches, Triage new cases and Work cases end to end, with what the project has", async () => {
+    stored = projectWith({
+      enableAutomaticSecurityCaseTriage: false,
+      enableAutomaticSecurityCaseResponse: true,
+    });
 
     openSecurityPage();
     await findSwitch(
@@ -1583,9 +1591,13 @@ describe("Security Events → AI → Settings", () => {
       switches.map((control: HTMLElement): string => {
         return nameOf(control);
       }),
-    ).toEqual(["Triage new cases"]);
-    expect(titlesOf(SECURITY_AI_SWITCHES)).toEqual(["Triage new cases"]);
+    ).toEqual(["Triage new cases", "Work cases end to end"]);
+    expect(titlesOf(SECURITY_AI_SWITCHES)).toEqual([
+      "Triage new cases",
+      "Work cases end to end",
+    ]);
     expect(switches[0]).toHaveAttribute("aria-checked", "false");
+    expect(switches[1]).toHaveAttribute("aria-checked", "true");
     /*
      * The card says what the Incidents' and Alerts' AI settings say: the
      * same title, and that it works on its own and can be turned off.
@@ -1603,6 +1615,9 @@ describe("Security Events → AI → Settings", () => {
     ).toBeVisible();
     expect(card).toHaveTextContent(
       "OneUptime AI reads each case a detection opens and says what happened, whether it looks real, and what to do next. It changes nothing.",
+    );
+    expect(card).toHaveTextContent(
+      "OneUptime AI takes each case its triage reads as Likely Malicious and works it, within what you allow below.",
     );
     // Nothing here belongs to the incidents' or alerts' AI.
     expect(

@@ -14,6 +14,7 @@ import MonitorTestService, {
 } from "Common/Server/Services/MonitorTestService";
 import MonitorTest from "Common/Models/DatabaseModels/MonitorTest";
 import MonitorRecordEvidence from "Common/Server/Utils/Monitor/MonitorRecordEvidence";
+import MonitorCheckSecretValues from "Common/Server/Utils/Monitor/MonitorCheckSecretValues";
 import MonitorTestEvaluation from "Common/Server/Utils/Monitor/MonitorTestEvaluation";
 import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import ProbeReportIdentity, {
@@ -278,6 +279,20 @@ export async function processProbeFromQueue(
       });
 
     /*
+     * The values of the monitor secrets the test ran with, hidden wherever
+     * the check says them back - a script's error and log lines, a response
+     * that echoes the request - before it is judged or kept
+     * (MonitorCheckSecretValues, #10825). A monitor's check is read so as
+     * MonitorResource reads its monitor.
+     */
+    const testedCheck: ProbeMonitorResponse = monitorTest
+      ? await MonitorCheckSecretValues.hideInMonitorTestCheck({
+          check: probeResponse,
+          monitorTest: monitorTest,
+        })
+      : probeResponse;
+
+    /*
      * Which criteria the answer matches, judged as the monitor's checks are
      * and kept with it, so the result can say what would follow (#7074).
      * Only a test handed to this probe is judged - any other is refused
@@ -288,18 +303,18 @@ export async function processProbeFromQueue(
       monitorTest?.probeId?.toString() === reportingProbeId.toString()
         ? await MonitorTestEvaluation.evaluate({
             monitorTest: monitorTest,
-            probeResponse: probeResponse,
+            probeResponse: testedCheck,
           })
         : undefined;
 
     if (evaluationSummary) {
-      probeResponse.evaluationSummary = evaluationSummary;
+      testedCheck.evaluationSummary = evaluationSummary;
     }
 
     const stepResponse: MonitorStepProbeResponse = {
-      [probeResponse.monitorStepId.toString()]: {
+      [testedCheck.monitorStepId.toString()]: {
         ...MonitorRecordEvidence.toStoredTestResult({
-          probeResponse: probeResponse,
+          probeResponse: testedCheck,
           monitorSteps: monitorTest?.monitorSteps,
         }),
         monitoredAt: OneUptimeDate.getCurrentDate(),

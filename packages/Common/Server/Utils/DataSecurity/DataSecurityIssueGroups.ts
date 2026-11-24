@@ -144,8 +144,9 @@ export default class DataSecurityIssueGroups {
               query: {
                 projectId: data.projectId,
                 openIssueCount: 0,
+                // A length of time, the same in every zone (#8473).
                 fixedAt: QueryHelper.greaterThanEqualTo(
-                  OneUptimeDate.addRemoveDays(
+                  OneUptimeDate.addRemoveDurationInDays(
                     now,
                     -FIXED_GROUP_SHOWN_FOR_IN_DAYS,
                   ),

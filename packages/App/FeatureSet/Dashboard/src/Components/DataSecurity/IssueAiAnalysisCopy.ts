@@ -203,6 +203,14 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
     "One approval for the stores made in the console",
   ),
+  // Its own confirmations of findings, and what decisions say of the scans (#10372).
+  [DataSecurityAiProposalKind.ConfirmFindings]:
+    translationKey("Confirmed findings"),
+  [DataSecurityAiProposalKind.TurnOffDataType]: translationKey(
+    "Data types turned off",
+  ),
+  [DataSecurityAiProposalKind.AddScanExclusion]:
+    translationKey("Scan exclusions"),
 };
 
 // Where a proposal stands, as a fact says it (DataSecurityAiProposalStatus).
