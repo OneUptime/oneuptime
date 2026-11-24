@@ -554,6 +554,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     leftAlone: {
       "`${new this.entityType().getCrudApiPath()?.toString()}/needs-attention`":
         READ,
+      // The cloud VM a host is, and the host a VM is (#11013).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/:id/${HOST_CLOUD_MACHINE_ROUTE}`":
+        READ,
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${HOST_OF_CLOUD_RESOURCE_ROUTE}/:cloudResourceId`":
+        READ,
     },
   },
   "packages/Common/Server/API/KubernetesResourceAPI.ts": {

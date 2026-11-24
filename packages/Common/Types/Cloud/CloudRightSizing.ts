@@ -1,5 +1,6 @@
 import { translationKey } from "../Translator";
 import { CloudSavingKind } from "./CloudCost";
+import { CLOUD_HOST_VM_TYPES } from "./CloudHostLink";
 import {
   getAwsStoredMetricName,
   getAzureStoredMetricName,
@@ -35,6 +36,16 @@ import { CloudProvider } from "./CloudPlatform";
  * readings: a quiet weekend or a nightly batch alone never sizes it. A
  * memory that is not read as a share (EC2 without the CloudWatch agent, a
  * database that reports the memory left) sizes by CPU only, and says so.
+ *
+ * A VM OneUptime's host collector runs on is that host (CloudHostLink), and
+ * the host reads its memory: used, without cache and buffers - the figure
+ * the Host page charts - every 30 seconds. Where its cloud reads none (EC2
+ * without the CloudWatch agent, an Azure VM, which reports the memory
+ * left), the host's is used; where both read it (a Compute Engine VM with
+ * the Ops Agent), the one with more readings over the window
+ * (chooseCloudMemoryReading). A host's memory sizes a VM only once it too
+ * has 6 days and 288 readings. CPU stays the cloud's own reading, the
+ * hypervisor's view. Each sizing says where its memory came from (#11013).
  *
  * What a change saves is its share of what the resource cost a day, over
  * the days its cloud billed it in the last 30, made a month: a size half as
@@ -362,6 +373,17 @@ export function getCloudRightSizingProfile(
       `${(provider || "").trim().toLowerCase()}|${(type || "").trim().toLowerCase()}`,
     ) || null
   );
+}
+
+/*
+ * Whether this profile's resources are VMs OneUptime's host collector can
+ * run on, and so read the memory of (CloudHostLink): EC2 instances,
+ * Compute Engine instances and Azure VMs.
+ */
+export function isCloudHostVmProfile(
+  profile: CloudRightSizingProfile,
+): boolean {
+  return CLOUD_HOST_VM_TYPES[profile.provider] === profile.type;
 }
 
 /*
@@ -830,6 +852,35 @@ export enum CloudRightSizingSkipReason {
   SizeNotOnLadder = "size-not-on-ladder",
 }
 
+/*
+ * Where a resource's memory reading came from (#11013): its cloud's own
+ * monitoring (a managed service's metric, an agent its cloud reads such as
+ * the Ops Agent), or the host OneUptime's collector runs on - the VM is
+ * that host. A wire value, kept in a right-sizing's evidence: never rename.
+ */
+export enum CloudMemorySource {
+  Cloud = "cloud",
+  Host = "host",
+}
+
+// The host a VM is, as a sizing names it: its row id and its name.
+export interface CloudMemoryHost {
+  id: string;
+  name: string;
+}
+
+/*
+ * How a host's memory is read: system.memory.utilization in its `used`
+ * state - in use, without cache and buffers, the figure the Host page
+ * charts, so a busy file cache never reads as a full machine - filed under
+ * the host's name, as a 0 to 1 share.
+ */
+export const CLOUD_HOST_MEMORY_METRIC: string = "system.memory.utilization";
+export const CLOUD_HOST_MEMORY_STATE_ATTRIBUTE: string = "state";
+export const CLOUD_HOST_MEMORY_STATE_USED: string = "used";
+export const CLOUD_HOST_NAME_ATTRIBUTE: string = "resource.host.name";
+export const CLOUD_HOST_MEMORY_TO_PERCENT: number = 100;
+
 // What OneUptime's readings say of a resource's use, over the window.
 export interface CloudUsageObservation {
   // The 95th percentile of its CPU readings, in percent.
@@ -842,6 +893,129 @@ export interface CloudUsageObservation {
   samples: number;
   // From its first reading in the window to the window's end.
   observedHours: number;
+  // How many memory readings there are, when counted.
+  memorySamples?: number | undefined;
+  /*
+   * Where its memory reading came from, when it has one; its cloud's when
+   * not said (every observation before #11013 was).
+   */
+  memorySource?: CloudMemorySource | undefined;
+  // The host it came from, when from a host.
+  memoryHost?: CloudMemoryHost | undefined;
+}
+
+/*
+ * One source's memory over the window: its highest reading, how many
+ * readings, and since when.
+ */
+export interface CloudMemoryReading {
+  source: CloudMemorySource;
+  // Its highest reading, as a percent used; null when none came in.
+  peakPercent: number | null;
+  samples: number;
+  // From its first reading in the window to the window's end.
+  observedHours: number;
+  host?: CloudMemoryHost | undefined;
+}
+
+/*
+ * Whether a source's memory can size a resource. Its cloud's own reading
+ * is taken as it comes, as it always was. A host's must have the history
+ * the CPU must (6 days, 288 readings): a collector installed yesterday has
+ * seen one day of a machine that may run a weekly batch.
+ */
+export function isCloudMemoryReadingUsable(
+  reading: CloudMemoryReading | null | undefined,
+): boolean {
+  if (!reading) {
+    return false;
+  }
+
+  const peak: number | null = finite(reading.peakPercent);
+
+  if (peak === null) {
+    return false;
+  }
+
+  if (reading.source === CloudMemorySource.Cloud) {
+    return true;
+  }
+
+  return (
+    Math.floor(Number(reading.samples) || 0) >=
+      CLOUD_RIGHT_SIZING_MIN_SAMPLES &&
+    (Number(reading.observedHours) || 0) >=
+      CLOUD_RIGHT_SIZING_MIN_OBSERVED_HOURS
+  );
+}
+
+/*
+ * The memory a resource is sized by: the one usable source, or, with two,
+ * the one with more readings over the window - its cloud's on a tie. Null
+ * when neither can size it.
+ */
+export function chooseCloudMemoryReading(data: {
+  cloud: CloudMemoryReading | null | undefined;
+  host: CloudMemoryReading | null | undefined;
+}): CloudMemoryReading | null {
+  const cloud: CloudMemoryReading | null = isCloudMemoryReadingUsable(
+    data.cloud,
+  )
+    ? data.cloud!
+    : null;
+  const host: CloudMemoryReading | null = isCloudMemoryReadingUsable(data.host)
+    ? data.host!
+    : null;
+
+  if (cloud && host) {
+    return (Number(host.samples) || 0) > (Number(cloud.samples) || 0)
+      ? host
+      : cloud;
+  }
+
+  return cloud || host;
+}
+
+/*
+ * An observation with the memory it is sized by: the cloud's reading
+ * already in it (counted as memorySamples), or its host's when that is the
+ * one to use.
+ */
+export function withCloudMemoryReading(data: {
+  observation: CloudUsageObservation;
+  host: CloudMemoryReading | null | undefined;
+}): CloudUsageObservation {
+  const cloud: CloudMemoryReading | null =
+    data.observation.memoryPeakPercent === null
+      ? null
+      : {
+          source: CloudMemorySource.Cloud,
+          peakPercent: data.observation.memoryPeakPercent,
+          samples: Math.max(0, Number(data.observation.memorySamples) || 0),
+          observedHours: data.observation.observedHours,
+        };
+  const chosen: CloudMemoryReading | null = chooseCloudMemoryReading({
+    cloud,
+    host: data.host,
+  });
+
+  if (!chosen) {
+    return {
+      ...data.observation,
+      memoryPeakPercent: null,
+      memorySource: undefined,
+      memoryHost: undefined,
+    };
+  }
+
+  return {
+    ...data.observation,
+    memoryPeakPercent: chosen.peakPercent,
+    memorySamples: chosen.samples,
+    memorySource: chosen.source,
+    memoryHost:
+      chosen.source === CloudMemorySource.Host ? chosen.host : undefined,
+  };
 }
 
 // What it cost a day, over the days its cloud billed it in the last 30.
@@ -870,6 +1044,15 @@ export interface CloudRightSizing {
   // Whether its memory was read: when not, it was sized by CPU only.
   isMemoryRead: boolean;
   memoryNotRead?: string | undefined;
+  // Where its memory came from, when read (#11013).
+  memorySource: CloudMemorySource | null;
+  // The host it came from, when from a host.
+  memoryHost?: CloudMemoryHost | undefined;
+  /*
+   * A VM OneUptime's host collector could read the memory of: said beside
+   * a sizing by CPU alone, with how to install the collector.
+   */
+  canHostReadMemory: boolean;
   observedDays: number;
   samples: number;
   // The readings at the recommended size.
@@ -936,9 +1119,23 @@ export function buildCloudRightSizing(data: {
 }): CloudRightSizing {
   const cpuP95: number | null = finite(data.observation.cpuP95Percent);
   const cpuMax: number | null = finite(data.observation.cpuMaxPercent);
-  const memoryPeak: number | null = data.profile.memory
-    ? finite(data.observation.memoryPeakPercent)
-    : null;
+  /*
+   * Its memory is read when its cloud reports a share of it, or when the
+   * host it is read it (a VM whose cloud reports none: #11013).
+   */
+  const isMemoryFromHost: boolean =
+    data.observation.memorySource === CloudMemorySource.Host &&
+    isCloudHostVmProfile(data.profile);
+  const memoryPeak: number | null =
+    data.profile.memory || isMemoryFromHost
+      ? finite(data.observation.memoryPeakPercent)
+      : null;
+  const memorySource: CloudMemorySource | null =
+    memoryPeak === null
+      ? null
+      : isMemoryFromHost
+        ? CloudMemorySource.Host
+        : CloudMemorySource.Cloud;
   const samples: number = Math.max(
     0,
     Math.floor(Number(data.observation.samples) || 0),
@@ -978,6 +1175,12 @@ export function buildCloudRightSizing(data: {
           ? data.profile.memoryNotRead || MEMORY_NOT_REPORTED
           : data.profile.memoryNotRead || MEMORY_REPORTED_AS_FREE
         : undefined,
+    memorySource,
+    memoryHost:
+      memorySource === CloudMemorySource.Host && data.observation.memoryHost
+        ? data.observation.memoryHost
+        : undefined,
+    canHostReadMemory: isCloudHostVmProfile(data.profile),
     observedDays: Math.floor(observedHours / 24),
     samples,
     projectedCpuP95Percent: null,
@@ -1138,7 +1341,17 @@ export interface CloudRightSizingEvidence {
   observedDays: number;
   factor: number;
   isSavingUpperBound: boolean;
+  /*
+   * Where its memory came from (#11013): absent for its cloud's, which is
+   * every right-sizing kept before.
+   */
+  memorySource?: CloudMemorySource | undefined;
+  // The host it came from: its name, as Savings says it.
+  memoryHostName?: string | undefined;
 }
+
+// The longest host name a right-sizing's evidence keeps.
+export const CLOUD_RIGHT_SIZING_HOST_NAME_MAX_LENGTH: number = 200;
 
 export function toCloudRightSizingEvidence(
   sizing: CloudRightSizing,
@@ -1149,7 +1362,7 @@ export function toCloudRightSizingEvidence(
     return value === null ? null : Math.round(value * 10) / 10;
   };
 
-  return {
+  const evidence: CloudRightSizingEvidence = {
     cpuP95Percent: round(sizing.cpuP95Percent),
     cpuMaxPercent: round(sizing.cpuMaxPercent),
     memoryPeakPercent: round(sizing.memoryPeakPercent),
@@ -1157,6 +1370,23 @@ export function toCloudRightSizingEvidence(
     factor: sizing.factor,
     isSavingUpperBound: sizing.isSavingUpperBound,
   };
+
+  if (
+    sizing.memoryPeakPercent !== null &&
+    sizing.memorySource === CloudMemorySource.Host
+  ) {
+    evidence.memorySource = CloudMemorySource.Host;
+
+    const hostName: string = (sizing.memoryHost?.name || "")
+      .trim()
+      .slice(0, CLOUD_RIGHT_SIZING_HOST_NAME_MAX_LENGTH);
+
+    if (hostName) {
+      evidence.memoryHostName = hostName;
+    }
+  }
+
+  return evidence;
 }
 
 function readPercent(value: unknown): number | null {
@@ -1187,15 +1417,38 @@ export function readCloudRightSizingEvidence(
   }
 
   const factor: number = Number(record["factor"]);
-
-  return {
+  const memoryPeakPercent: number | null = readPercent(
+    record["memoryPeakPercent"],
+  );
+  const evidence: CloudRightSizingEvidence = {
     cpuP95Percent,
     cpuMaxPercent: readPercent(record["cpuMaxPercent"]),
-    memoryPeakPercent: readPercent(record["memoryPeakPercent"]),
+    memoryPeakPercent,
     observedDays,
     factor: Number.isFinite(factor) && factor >= 1 ? factor : 1,
     isSavingUpperBound: record["isSavingUpperBound"] === true,
   };
+
+  // A host's memory, said only with the memory it is for.
+  if (
+    memoryPeakPercent !== null &&
+    record["memorySource"] === CloudMemorySource.Host
+  ) {
+    evidence.memorySource = CloudMemorySource.Host;
+
+    const hostName: string =
+      typeof record["memoryHostName"] === "string"
+        ? record["memoryHostName"]
+            .trim()
+            .slice(0, CLOUD_RIGHT_SIZING_HOST_NAME_MAX_LENGTH)
+        : "";
+
+    if (hostName) {
+      evidence.memoryHostName = hostName;
+    }
+  }
+
+  return evidence;
 }
 
 /*
