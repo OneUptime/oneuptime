@@ -8,9 +8,8 @@ import {
   routesAt,
 } from "../Helpers/PageRoutes";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
 
 /*
  * The Storage Arrays product is a lazy-loaded route group mirroring the Ceph
@@ -136,6 +135,8 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["HostDetail.tsx", "STORAGE_ARRAY_VIEW_HOST_DETAIL"],
   ["Replication.tsx", "STORAGE_ARRAY_VIEW_REPLICATION"],
   ["Hardware.tsx", "STORAGE_ARRAY_VIEW_HARDWARE"],
+  // A kind a platform has of its own (#11000): NetApp's aggregates, ...
+  ["Inventory.tsx", "STORAGE_ARRAY_VIEW_INVENTORY"],
   ["Directories.tsx", "STORAGE_ARRAY_VIEW_DIRECTORIES"],
   ["FileSystems.tsx", "STORAGE_ARRAY_VIEW_FILE_SYSTEMS"],
   ["FileSystemDetail.tsx", "STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL"],

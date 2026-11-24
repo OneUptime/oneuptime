@@ -64177,5 +64177,6 @@
   "View Alerts": "Ver alertas",
   "View Incidents": "Ver incidentes",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Había más solicitudes esperando a ser evaluadas que las {{limit}} que este monitor conserva, así que se omitieron las más antiguas. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Las solicitudes que esperaban a ser evaluadas ocupaban más de los {{size}} MB que este monitor conserva, así que se omitieron las más antiguas. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Las solicitudes que esperaban a ser evaluadas ocupaban más de los {{size}} MB que este monitor conserva, así que se omitieron las más antiguas. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto.",
+  "Inventory Counts": "Recuentos del inventario"
 }

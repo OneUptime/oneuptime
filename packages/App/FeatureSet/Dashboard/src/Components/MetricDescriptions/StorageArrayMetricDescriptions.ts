@@ -15,8 +15,9 @@
  *     per operation itself — and shows as a dash once it is older than the
  *     inventory cutoff: 15 minutes, 90 for directories, which the agent
  *     scrapes every 30 minutes (StorageArrayResourceUtils.freshMetricValue).
- *   - The Active Alerts card reads the purefa_alerts_open /
- *     purefb_alerts_open series of the last 10 minutes.
+ *   - The Active Alerts card reads the array's platform's open alert
+ *     series (StorageArrayPlatform.overview.alertMetricName) of the last
+ *     10 minutes.
  *
  * The texts never say "bucket" for a FlashBlade S3 bucket: they are read
  * side by side with every other family's

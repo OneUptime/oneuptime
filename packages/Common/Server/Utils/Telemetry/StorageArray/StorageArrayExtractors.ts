@@ -19,12 +19,12 @@ import FlashBladeExtractor from "./PureStorage/FlashBladeExtractor";
  *      platform whose exporter's names carry no vendor prefix (NetApp
  *      Harvest's volume_*, aggr_*) is read at all.
  *   2. Otherwise the platform whose metric prefix the name starts with
- *      (purefa_ is a FlashArray's), so an agent that stamps no
+ *      (StorageArrayPlatform.metricPrefix), so an agent that stamps no
  *      `storage.system` - every agent installed before it did - keeps
  *      working, and a declaration that is wrong cannot stop a platform's
- *      series from being read: a FlashBlade agent whose .env names no
- *      platform declares the compose default, purestorage.flasharray, and
- *      its purefb_* series are still read as a FlashBlade's.
+ *      series from being read: an agent whose .env names no platform
+ *      declares the compose default, the default platform's, and the
+ *      series of its own platform are still read as that platform's.
  *
  * The ingest only hands the scan metrics some platform reads
  * (isStorageArraySnapshotMetric); a metric past that gate whose prefix is a

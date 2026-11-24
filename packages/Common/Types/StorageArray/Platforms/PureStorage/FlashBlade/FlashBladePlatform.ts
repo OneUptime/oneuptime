@@ -224,6 +224,7 @@ const PureStorageFlashBladePlatform: StorageArrayPlatform = {
       kind: StorageArrayResourceKind.FileSystem,
       sublabelKind: StorageArrayResourceKind.Bucket,
     },
+    listCounts: [StorageArrayResourceKind.FileSystem],
     topKind: StorageArrayResourceKind.FileSystem,
     /*
      * The latency across every protocol, as the High Read Latency alert

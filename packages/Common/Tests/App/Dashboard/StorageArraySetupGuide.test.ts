@@ -1078,14 +1078,15 @@ describe("drift guards against agents/StorageArrayAgent", () => {
         new RegExp(`(if|while) \\[ -z "\\$${variable}" \\]`),
       );
     }
-    // The config decides the platform and the compose profile.
+    /*
+     * The config decides the platform and the compose profile: one line of
+     * install.sh's PLATFORMS table each (#11000), "-" for no profile.
+     */
     for (const platform of PLATFORMS) {
       const settings: (typeof STORAGE_ARRAY_PLATFORM_SETTINGS)[StorageArrayPlatform] =
         STORAGE_ARRAY_PLATFORM_SETTINGS[platform];
-      expect(install).toContain(`${settings.collectorConfigFile})`);
-      expect(install).toContain(`STORAGE_SYSTEM="${settings.storageSystem}"`);
       expect(install).toContain(
-        `COMPOSE_PROFILES="${settings.composeProfile}"`,
+        `\n${settings.collectorConfigFile}|${settings.storageSystem}|${settings.composeProfile || "-"}|${settings.endpointVariable}|${settings.tokenVariable}|`,
       );
     }
   });

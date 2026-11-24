@@ -33,11 +33,23 @@ import type StorageSystem from "./StorageSystem";
  *      state (StorageArrayExtractor). Add one line to
  *      StorageArray/StorageArrayExtractors.ts.
  *   3. agents/StorageArrayAgent/: its collector config, and one line in
- *      platforms.list (the install script, the .env it writes and the
- *      troubleshooting script read that list). A sidecar exporter is a
- *      service with its own compose profile in docker-compose.yml.
+ *      install.sh's PLATFORMS table, from which the script builds its menu,
+ *      the .env it writes, the files it downloads and the compose profiles
+ *      it stops. Its agentConfigs here say the same, for the setup guide
+ *      (StorageArrayAgentPlatforms.test.ts holds the two in step). A sidecar
+ *      exporter is a service with its own compose profile in
+ *      docker-compose.yml. Every OneUptime serves the config once it is in
+ *      the agent's files in Common/Types/InstallScripts/InstallScripts.ts.
  *   4. Its row in the supported platforms table of
  *      Docs/Content/<lang>/telemetry/storage-arrays.md.
+ *
+ * Still Pure Storage's alone, each a follow-up of #11000: the words and
+ * charts of the shared kinds' pages (VolumeDetail and the rest chart Pure's
+ * catalog ids, #11122), the Dashboard's setup guide steps
+ * (Pages/StorageArray/Utils/DocumentationMarkdown.ts offers an agent config
+ * once its steps and collector config are there, #11123), troubleshoot.sh's
+ * probes (#11124), the storage array dashboard template (#11125), and a
+ * platform's own kinds in Ask AI's page context and the topology (#11126).
  *
  * Everything that reads a platform - ingest, the metric catalog, alert
  * templates, Recommendations, the criteria evaluator, the pages, the setup
@@ -144,6 +156,9 @@ export interface StorageArrayKindDefinition {
   // How a count of them reads: { one: "{{count}} aggregate", other: ... }.
   countLabel: { one: string; other: string };
   icon: IconProp;
+  // What its tab's table lists, and what it says while it lists nothing.
+  description: string;
+  noItemsMessage: string;
 }
 
 /*
@@ -307,6 +322,8 @@ export interface StorageArrayOverview {
    * `sublabelKind` under it, and the Storage Arrays list's Inventory column.
    */
   inventoryTile?: { kind: string; sublabelKind?: string | undefined };
+  // The counts the Storage Arrays list's Inventory column shows, in order.
+  listCounts: Array<string>;
   // The kind the Slowest and Largest lists rank.
   topKind?: string | undefined;
   latency?: StorageArrayLatencyReading | undefined;

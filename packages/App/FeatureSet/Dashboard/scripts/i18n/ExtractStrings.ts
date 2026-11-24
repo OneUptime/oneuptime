@@ -1163,6 +1163,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
     kind: "keys",
   },
+  /*
+   * Each storage platform's catalog and the words its pages say (#11000):
+   * its metric names and descriptions, its Resource Usage cards, its
+   * hardware tables, its monitor filters, its setup guide options and the
+   * words of the kinds only it has. Only the text the files mark is read.
+   */
+  {
+    directory: "packages/Common/Types/StorageArray/Platforms",
+    kind: "keys",
+  },
   {
     directory: "packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
     kind: "keys",

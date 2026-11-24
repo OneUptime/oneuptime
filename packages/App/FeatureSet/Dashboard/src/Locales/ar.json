@@ -64177,5 +64177,6 @@
   "View Alerts": "عرض التنبيهات",
   "View Incidents": "عرض الحوادث",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "كانت الطلبات المنتظرة للتقييم أكثر من الحد الذي تحتفظ به هذه المراقبة، وهو {{limit}}، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "تجاوزت الطلبات المنتظرة للتقييم {{size}} MB، وهو ما تحتفظ به هذه المراقبة، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "تجاوزت الطلبات المنتظرة للتقييم {{size}} MB، وهو ما تحتفظ به هذه المراقبة، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
+  "Inventory Counts": "أعداد الجرد"
 }

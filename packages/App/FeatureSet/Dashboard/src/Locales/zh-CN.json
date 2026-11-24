@@ -64177,5 +64177,6 @@
   "View Alerts": "查看警报",
   "View Incidents": "查看事件",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{limit}} 个，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{size}} MB，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。"
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{size}} MB，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
+  "Inventory Counts": "资产清单计数"
 }

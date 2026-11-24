@@ -123,6 +123,52 @@ reject_dollar() {
     esac
 }
 
+# ----------------------------------------------------------------------------
+# The platforms this agent reads: one line each, one collector config each
+# ----------------------------------------------------------------------------
+# Everything that differs between platforms is here, so a new platform is its
+# collector config (and, when it needs one, its exporter's service in
+# docker-compose.yml) and one line in this table. Fields, separated by |:
+#
+#   1  the collector config, shipped next to this script
+#   2  the platform it stamps as storage.system
+#   3  the compose profile that starts the exporter it scrapes (- for none)
+#   4  the .env variable holding the array's management address
+#   5  the .env variable holding the read-only user's API token
+#   6  whether the collector itself talks TLS to the array (yes / no): only
+#      then is the certificate question asked
+#   7  what the array is called in a sentence
+#   8  the menu's line for it
+#   9  how the agent reads it, for the last message
+#
+# The Dashboard's setup guide offers the same platforms (each platform's
+# StorageArrayPlatform.agentConfigs); StorageArrayAgentPlatforms.test.ts
+# holds the two lists in step.
+PLATFORMS="
+otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|yes|FlashArray|Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)|directly (native OpenMetrics)
+otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)
+otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)
+"
+
+# The table's lines, without the blank ones.
+platform_lines() {
+    printf '%s\n' "$PLATFORMS" | grep -v '^[[:space:]]*$'
+}
+
+# platform_field <line> <n>: one field of a line of the table.
+platform_field() {
+    printf '%s' "$1" | cut -d '|' -f "$2"
+}
+
+# Every collector config, every address and token variable, and every
+# exporter's profile, each once, in the table's order.
+PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_CONFIGS="${PLATFORM_CONFIGS% }"
+PLATFORM_VARIABLES="$(platform_lines | cut -d '|' -f 4,5 | tr '|' '\n' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_VARIABLES="${PLATFORM_VARIABLES% }"
+PLATFORM_PROFILES="$(platform_lines | cut -d '|' -f 3 | grep -v '^-$' | awk '!seen[$0]++' | tr '\n' ' ')"
+PLATFORM_PROFILES="${PLATFORM_PROFILES% }"
+
 # Installation directory (decided first so an existing .env can be reused)
 INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-storage-array-agent}"
 ENV_FILE="$INSTALL_DIR/.env"
@@ -136,7 +182,7 @@ if [ -f "$ENV_FILE" ]; then
     echo "(Exported variables override it; edit or delete the file to change a value.)"
     for name in ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY STORAGE_ARRAY_NAME \
                 STORAGE_SYSTEM STORAGE_ARRAY_COLLECTOR_CONFIG \
-                PURE_FA_ENDPOINT PURE_FA_API_TOKEN PURE_FB_ENDPOINT PURE_FB_API_TOKEN \
+                $PLATFORM_VARIABLES \
                 STORAGE_ARRAY_INSECURE_SKIP_VERIFY; do
         if [ -z "${!name}" ]; then
             printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
@@ -159,88 +205,77 @@ fi
 # ----------------------------------------------------------------------------
 # Which array, and how the agent reads it
 # ----------------------------------------------------------------------------
-# Each choice is one shipped collector config; the platform stamped as
-# storage.system and the compose profile that starts Pure's exporter (when
-# one is needed) follow from it. STORAGE_SYSTEM=purestorage.flashblade in the
-# shell picks the FlashBlade config without asking.
-if [ -z "$STORAGE_ARRAY_COLLECTOR_CONFIG" ]; then
-    case "$(printf '%s' "$STORAGE_SYSTEM" | tr '[:upper:]' '[:lower:]')" in
-        purestorage.flashblade)
-            STORAGE_ARRAY_COLLECTOR_CONFIG="otel-collector-config.flashblade.yaml" ;;
-    esac
+# Each choice is one line of the PLATFORMS table: its collector config, and
+# from it the platform stamped as storage.system and the compose profile that
+# starts its exporter (when one is needed). A STORAGE_SYSTEM in the shell that
+# only one config reads picks it without asking
+# (STORAGE_SYSTEM=purestorage.flashblade picks the FlashBlade config).
+if [ -z "$STORAGE_ARRAY_COLLECTOR_CONFIG" ] && [ -n "$STORAGE_SYSTEM" ]; then
+    SYSTEM_LINES="$(platform_lines | awk -F '|' -v want="$(printf '%s' "$STORAGE_SYSTEM" | tr '[:upper:]' '[:lower:]')" '$2 == want')"
+    if [ -n "$SYSTEM_LINES" ] && [ "$(printf '%s\n' "$SYSTEM_LINES" | wc -l)" -eq 1 ]; then
+        STORAGE_ARRAY_COLLECTOR_CONFIG="$(platform_field "$SYSTEM_LINES" 1)"
+    fi
 fi
 
 if [ -z "$STORAGE_ARRAY_COLLECTOR_CONFIG" ]; then
     echo "Which array does this agent monitor?"
-    echo "  1) Pure Storage FlashArray serving OpenMetrics itself (Purity//FA 6.7 and later)"
-    echo "  2) Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)"
-    echo "  3) Pure Storage FlashBlade (through Pure's exporter)"
-    echo "Not sure about 1 or 2? Run the README's curl test against the array: native"
-    echo "metrics answer with purefa_info lines."
+    CHOICE_NUMBER=0
+    while IFS= read -r line; do
+        CHOICE_NUMBER=$((CHOICE_NUMBER + 1))
+        echo "  $CHOICE_NUMBER) $(platform_field "$line" 8)"
+    done <<PLATFORMS_EOF
+$(platform_lines)
+PLATFORMS_EOF
+    echo "Not sure which? README.md has a curl test that tells them apart."
     read -rp "Choice [1]: " ARRAY_CHOICE
     case "$ARRAY_CHOICE" in
-        2) STORAGE_ARRAY_COLLECTOR_CONFIG="otel-collector-config.flasharray-exporter.yaml" ;;
-        3) STORAGE_ARRAY_COLLECTOR_CONFIG="otel-collector-config.flashblade.yaml" ;;
-        *) STORAGE_ARRAY_COLLECTOR_CONFIG="otel-collector-config.yaml" ;;
+        '' | *[!0-9]*) ARRAY_CHOICE=1 ;;
     esac
+    STORAGE_ARRAY_COLLECTOR_CONFIG="$(platform_lines | sed -n "${ARRAY_CHOICE}p" | cut -d '|' -f 1)"
+    if [ -z "$STORAGE_ARRAY_COLLECTOR_CONFIG" ]; then
+        STORAGE_ARRAY_COLLECTOR_CONFIG="$(platform_lines | head -n 1 | cut -d '|' -f 1)"
+    fi
 fi
 
-case "$STORAGE_ARRAY_COLLECTOR_CONFIG" in
-    otel-collector-config.yaml)
-        STORAGE_SYSTEM="purestorage.flasharray"
-        COMPOSE_PROFILES=""
-        ;;
-    otel-collector-config.flasharray-exporter.yaml)
-        STORAGE_SYSTEM="purestorage.flasharray"
-        COMPOSE_PROFILES="flasharray-exporter"
-        ;;
-    otel-collector-config.flashblade.yaml)
-        STORAGE_SYSTEM="purestorage.flashblade"
-        COMPOSE_PROFILES="flashblade"
-        ;;
-    *)
-        echo "Error: STORAGE_ARRAY_COLLECTOR_CONFIG=\"$STORAGE_ARRAY_COLLECTOR_CONFIG\" is not one of the"
-        echo "shipped configs: otel-collector-config.yaml, otel-collector-config.flasharray-exporter.yaml"
-        echo "or otel-collector-config.flashblade.yaml."
-        exit 1
-        ;;
-esac
+PLATFORM_LINE="$(platform_lines | awk -F '|' -v want="$STORAGE_ARRAY_COLLECTOR_CONFIG" '$1 == want { print; exit }')"
+if [ -z "$PLATFORM_LINE" ]; then
+    echo "Error: STORAGE_ARRAY_COLLECTOR_CONFIG=\"$STORAGE_ARRAY_COLLECTOR_CONFIG\" is not one of the"
+    echo "shipped configs: $(printf '%s' "$PLATFORM_CONFIGS" | sed 's/ /, /g')."
+    exit 1
+fi
+STORAGE_SYSTEM="$(platform_field "$PLATFORM_LINE" 2)"
+COMPOSE_PROFILES="$(platform_field "$PLATFORM_LINE" 3)"
+if [ "$COMPOSE_PROFILES" = "-" ]; then
+    COMPOSE_PROFILES=""
+fi
+ENDPOINT_VARIABLE="$(platform_field "$PLATFORM_LINE" 4)"
+TOKEN_VARIABLE="$(platform_field "$PLATFORM_LINE" 5)"
+TLS_TO_ARRAY="$(platform_field "$PLATFORM_LINE" 6)"
+ARRAY_NOUN="$(platform_field "$PLATFORM_LINE" 7)"
+READ_HOW="$(platform_field "$PLATFORM_LINE" 9)"
 
 while [ -z "$STORAGE_ARRAY_NAME" ]; do
     read -rp "Array name (shown in OneUptime, keep it stable, e.g. fa-prod-01): " STORAGE_ARRAY_NAME
 done
 reject_dollar STORAGE_ARRAY_NAME "$STORAGE_ARRAY_NAME"
 
-if [ "$STORAGE_SYSTEM" = "purestorage.flashblade" ]; then
-    while [ -z "$PURE_FB_ENDPOINT" ]; do
-        read -rp "FlashBlade management address (host name or IP, no https://): " PURE_FB_ENDPOINT
-    done
-    PURE_FB_ENDPOINT="$(normalize_endpoint "$PURE_FB_ENDPOINT")"
-    reject_dollar PURE_FB_ENDPOINT "$PURE_FB_ENDPOINT"
-    while [ -z "$PURE_FB_API_TOKEN" ]; do
-        # -s: never echo the token to the terminal.
-        read -rsp "API token of the FlashBlade's read-only user: " PURE_FB_API_TOKEN
-        echo ""
-    done
-    reject_dollar PURE_FB_API_TOKEN "$PURE_FB_API_TOKEN"
-else
-    while [ -z "$PURE_FA_ENDPOINT" ]; do
-        read -rp "FlashArray management address (host name or IP, no https://): " PURE_FA_ENDPOINT
-    done
-    PURE_FA_ENDPOINT="$(normalize_endpoint "$PURE_FA_ENDPOINT")"
-    reject_dollar PURE_FA_ENDPOINT "$PURE_FA_ENDPOINT"
-    while [ -z "$PURE_FA_API_TOKEN" ]; do
-        # -s: never echo the token to the terminal.
-        read -rsp "API token of the FlashArray's read-only user: " PURE_FA_API_TOKEN
-        echo ""
-    done
-    reject_dollar PURE_FA_API_TOKEN "$PURE_FA_API_TOKEN"
-fi
+# The address and token go in the variables this platform's config reads.
+while [ -z "${!ENDPOINT_VARIABLE}" ]; do
+    read -rp "$ARRAY_NOUN management address (host name or IP, no https://): " "$ENDPOINT_VARIABLE"
+done
+printf -v "$ENDPOINT_VARIABLE" '%s' "$(normalize_endpoint "${!ENDPOINT_VARIABLE}")"
+reject_dollar "$ENDPOINT_VARIABLE" "${!ENDPOINT_VARIABLE}"
+while [ -z "${!TOKEN_VARIABLE}" ]; do
+    # -s: never echo the token to the terminal.
+    read -rsp "API token of the $ARRAY_NOUN's read-only user: " "$TOKEN_VARIABLE"
+    echo ""
+done
+reject_dollar "$TOKEN_VARIABLE" "${!TOKEN_VARIABLE}"
 
-# Only the native config talks TLS to the array itself (Pure's exporters do
-# not verify the array's certificate), so only it asks.
-if [ -z "$STORAGE_ARRAY_INSECURE_SKIP_VERIFY" ] && [ "$STORAGE_ARRAY_COLLECTOR_CONFIG" = "otel-collector-config.yaml" ]; then
-    echo "FlashArrays ship a self-signed certificate, which the collector cannot verify."
+# Only a config whose collector talks TLS to the array itself asks (an
+# exporter does not verify the array's certificate).
+if [ -z "$STORAGE_ARRAY_INSECURE_SKIP_VERIFY" ] && [ "$TLS_TO_ARRAY" = "yes" ]; then
+    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the collector cannot verify."
     read -rp "Verify the array's certificate anyway (it is signed by a CA you trust)? [y/N]: " VERIFY_TLS
     if [[ "$VERIFY_TLS" =~ ^[Yy] ]]; then
         STORAGE_ARRAY_INSECURE_SKIP_VERIFY="false"
@@ -258,17 +293,21 @@ echo ""
 echo "Installing to: $INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
 
-# Download the compose file and all three collector configs, so switching
-# the array type later is an .env edit. A re-run is the upgrade, so it must
+# Download the compose file and every collector config of the PLATFORMS
+# table, so switching the array type later is an .env edit. A re-run is the upgrade, so it must
 # not discard an edit (an added label, a changed interval) silently. What
 # was installed is recorded (a sha256 per file in .agent-files.sha256), so a
 # file that no longer matches its record was edited: it is kept as
 # <file>.bak.<timestamp> and named at the end. A file that still matches is
 # simply replaced, however much the new version changed (a collector pin
-# bump changes all three configs). Without a record — an agent installed
+# bump changes every config). Without a record — an agent installed
 # before it was kept, or no sha256 tool — any file that differs from the new
 # download is kept, and said to differ rather than to be edited.
-AGENT_FILES="docker-compose.yml otel-collector-config.yaml otel-collector-config.flasharray-exporter.yaml otel-collector-config.flashblade.yaml"
+# The compose file and every collector config of the PLATFORMS table. Every
+# OneUptime serves each of them for this script
+# (Common/Types/InstallScripts/InstallScripts.ts lists them, and
+# Tests/Ops/AgentInstallScriptsServed.test.js holds the two in step).
+AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS"
 AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 EDITED_FILES=()
 DIFFERING_FILES=()
@@ -370,6 +409,16 @@ else
     rm -f "$AGENT_FILES_RECORD"
 fi
 
+# Every platform's address and token variable, quoted for Compose: the ones
+# this platform does not read stay empty, so switching platforms later is an
+# .env edit.
+platform_env_lines() {
+    local name
+    for name in $PLATFORM_VARIABLES; do
+        printf '%s=%s\n' "$name" "$(compose_env_quote "${!name}")"
+    done
+}
+
 # Create .env file. It holds the array's API token, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
 # value is quoted for Compose (see compose_env_quote); the platform, the
@@ -383,10 +432,7 @@ STORAGE_ARRAY_NAME=$(compose_env_quote "$STORAGE_ARRAY_NAME")
 STORAGE_SYSTEM=$STORAGE_SYSTEM
 STORAGE_ARRAY_COLLECTOR_CONFIG=$STORAGE_ARRAY_COLLECTOR_CONFIG
 COMPOSE_PROFILES=$COMPOSE_PROFILES
-PURE_FA_ENDPOINT=$(compose_env_quote "$PURE_FA_ENDPOINT")
-PURE_FA_API_TOKEN=$(compose_env_quote "$PURE_FA_API_TOKEN")
-PURE_FB_ENDPOINT=$(compose_env_quote "$PURE_FB_ENDPOINT")
-PURE_FB_API_TOKEN=$(compose_env_quote "$PURE_FB_API_TOKEN")
+$(platform_env_lines)
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=$STORAGE_ARRAY_INSECURE_SKIP_VERIFY
 ENVEOF
 chmod 600 "$ENV_FILE"
@@ -405,7 +451,11 @@ chmod 600 "$ENV_FILE"
 echo ""
 echo "Starting OneUptime Storage Array Agent..."
 cd "$INSTALL_DIR"
-docker compose --profile flasharray-exporter --profile flashblade down --remove-orphans > /dev/null 2>&1 || true
+PROFILE_ARGS=()
+for profile in $PLATFORM_PROFILES; do
+    PROFILE_ARGS+=(--profile "$profile")
+done
+docker compose "${PROFILE_ARGS[@]}" down --remove-orphans > /dev/null 2>&1 || true
 if ! docker compose up -d --force-recreate; then
     echo ""
     echo "Error: the agent did not start. If Docker reports that the container name"
@@ -422,13 +472,7 @@ echo "=========================================="
 echo ""
 echo "The array '$STORAGE_ARRAY_NAME' appears under Storage Arrays in OneUptime after"
 echo "the first scrape (about a minute)."
-if [ "$STORAGE_SYSTEM" = "purestorage.flashblade" ]; then
-    echo "Reading the FlashBlade at $PURE_FB_ENDPOINT through Pure's exporter (pure-fb-exporter)."
-elif [ -n "$COMPOSE_PROFILES" ]; then
-    echo "Reading the FlashArray at $PURE_FA_ENDPOINT through Pure's exporter (pure-fa-exporter)."
-else
-    echo "Reading the FlashArray at $PURE_FA_ENDPOINT directly (native OpenMetrics)."
-fi
+echo "Reading the $ARRAY_NOUN at ${!ENDPOINT_VARIABLE} $READ_HOW."
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""
     echo "You had edited these files since install.sh installed them. They were replaced by"

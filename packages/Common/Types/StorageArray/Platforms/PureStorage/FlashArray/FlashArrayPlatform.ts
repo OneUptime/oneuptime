@@ -286,6 +286,10 @@ const PureStorageFlashArrayPlatform: StorageArrayPlatform = {
       kind: StorageArrayResourceKind.Volume,
       sublabelKind: StorageArrayResourceKind.Host,
     },
+    listCounts: [
+      StorageArrayResourceKind.Volume,
+      StorageArrayResourceKind.Host,
+    ],
     topKind: StorageArrayResourceKind.Volume,
     /*
      * The array's average latency, as the High Read and High Write Latency
