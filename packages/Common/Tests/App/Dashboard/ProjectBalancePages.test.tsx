@@ -22,8 +22,12 @@ import AICredits from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/A
 import {
   AUTO_RECHARGE_FAILED_DESCRIPTIONS,
   AUTO_RECHARGE_FAILED_TITLE,
+  NO_PAYMENT_METHOD_DESCRIPTIONS,
   PROJECT_BALANCE_CARD_DESCRIPTIONS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
+import ProjectPaymentMethods from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectPaymentMethods";
+import Navigation from "../../../UI/Utils/Navigation";
+import type { SpyInstance } from "jest-mock";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -239,6 +243,8 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   PermissionGate.clearPermissionPropsCache();
+  // Whether the project has a payment method: not counted yet (#11053).
+  ProjectPaymentMethods.reset();
 
   const project: Project = Object.assign(new Project(), {
     _id: PROJECT_ID,
@@ -681,6 +687,197 @@ describe.each(PAGES)(
       const balanceCard: HTMLElement = await cardOf("Current Balance");
 
       expect(balanceCard).not.toHaveTextContent("billed through");
+    });
+  },
+);
+
+/*
+ * A project known to have no payment method (#11053), and no cloud
+ * marketplace billing it: Add to Balance says a payment method is needed
+ * first, and where it is added, before it asks for any amount - the amount
+ * used to come first, and the missing card only once Add to Balance was
+ * pressed, in the server's refusal. Whether it has one is the count the
+ * Dashboard already made (Utils/ProjectPaymentMethods): the page asks the
+ * server nothing more. With a payment method, while the count is on its
+ * way, or with a marketplace billing the project, nothing changes.
+ */
+describe.each(PAGES)(
+  "$name on a project with no payment method",
+  (page: BalancePage) => {
+    // The dialog Add to Balance opened, once it is drawn.
+    async function openAddToBalance(): Promise<HTMLElement> {
+      const balanceCard: HTMLElement = await cardOf("Current Balance");
+
+      fireEvent.click(buttonIn(balanceCard, "Add to Balance")!);
+      await flush();
+
+      return await screen.findByRole("dialog", {}, { timeout: WAIT_TIMEOUT });
+    }
+
+    function countPaymentMethods(count: number): void {
+      ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: count });
+    }
+
+    test.each([
+      ["a Project Owner", Permission.ProjectOwner],
+      ["someone with Manage Billing", Permission.ManageProjectBilling],
+    ])(
+      "%s is told a payment method is needed first, and where, and asked no amount",
+      async (_who: string, permission: Permission) => {
+        countPaymentMethods(0);
+        grant([...BASE_PERMISSIONS, permission]);
+        page.open();
+
+        const dialog: HTMLElement = await openAddToBalance();
+
+        expect(dialog).toHaveTextContent(page.rechargeDialogTitle);
+        expect(dialog).toHaveTextContent(
+          NO_PAYMENT_METHOD_DESCRIPTIONS[page.balance],
+        );
+        expect(dialog).toHaveTextContent(
+          "Project Settings > Billing and Invoices > Billing",
+        );
+        // No amount is asked for, so nothing can be refused once it is in.
+        expect(dialog).not.toHaveTextContent("Amount (USD)");
+        expect(dialog).not.toHaveTextContent(page.amountDescription);
+        expect(
+          within(dialog).getByRole("button", { name: "Add Payment Method" }),
+        ).toBeInTheDocument();
+        expect(
+          within(dialog).queryByRole("button", { name: "Add to Balance" }),
+        ).toBeNull();
+      },
+    );
+
+    test("Add Payment Method opens Project Settings > Billing and Invoices > Billing, and charges nothing", async () => {
+      const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {});
+      countPaymentMethods(0);
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      await act(async () => {
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "Add Payment Method" }),
+        );
+      });
+
+      expect(navigateSpy).toHaveBeenCalledTimes(1);
+      expect(String(navigateSpy.mock.calls[0]![0])).toBe(
+        `/dashboard/${PROJECT_ID}/settings/billing`,
+      );
+      expect(API.post).not.toHaveBeenCalled();
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+
+    test("Cancel leaves the person where they were, and charges nothing", async () => {
+      const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation((): void => {});
+      countPaymentMethods(0);
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      await act(async () => {
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "Cancel" }),
+        );
+      });
+
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(navigateSpy).not.toHaveBeenCalled();
+      expect(API.post).not.toHaveBeenCalled();
+    });
+
+    test("with a payment method, the amount is asked for as before", async () => {
+      countPaymentMethods(2);
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      expect(dialog).toHaveTextContent("Amount (USD)");
+      expect(dialog).toHaveTextContent(page.amountDescription);
+      expect(dialog).not.toHaveTextContent(
+        NO_PAYMENT_METHOD_DESCRIPTIONS[page.balance],
+      );
+    });
+
+    test("before the count arrives, the amount is asked for as before", async () => {
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      expect(dialog).toHaveTextContent("Amount (USD)");
+      expect(dialog).not.toHaveTextContent(
+        NO_PAYMENT_METHOD_DESCRIPTIONS[page.balance],
+      );
+    });
+
+    test("a payment method added since the page was drawn: the amount is asked for at once", async () => {
+      countPaymentMethods(0);
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+      await cardOf("Current Balance");
+
+      // The Billing page counted again after a card was added there.
+      await act(async () => {
+        countPaymentMethods(1);
+      });
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      expect(dialog).toHaveTextContent("Amount (USD)");
+    });
+
+    test("another project's count is not this one's", async () => {
+      ProjectPaymentMethods.setCount({
+        projectId: "0f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6c",
+        count: 0,
+      });
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      expect(dialog).toHaveTextContent("Amount (USD)");
+    });
+
+    test("a cloud marketplace bills it, with no card: the amount is asked for, billed there, as before", async () => {
+      jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(
+        Object.assign(new Project(), {
+          _id: PROJECT_ID,
+          billingMarketplace: CloudMarketplace.AWS,
+        }),
+      );
+      countPaymentMethods(0);
+      grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
+      page.open();
+
+      const dialog: HTMLElement = await openAddToBalance();
+
+      expect(dialog).toHaveTextContent("Amount (USD)");
+      expect(dialog).toHaveTextContent("billed now through AWS Marketplace");
+      expect(dialog).not.toHaveTextContent("payment method");
+    });
+
+    test("someone who may not add to it is still told who can, and the button stays locked", async () => {
+      countPaymentMethods(0);
+      grant([...BASE_PERMISSIONS, Permission.ProjectMember]);
+      page.open();
+
+      const balanceCard: HTMLElement = await cardOf("Current Balance");
+
+      expect(buttonIn(balanceCard, "Add to Balance")).toBeDisabled();
+      expect(balanceCard).toHaveTextContent(
+        PROJECT_BALANCE_CARD_DESCRIPTIONS[page.balance].forEveryoneElse,
+      );
     });
   },
 );

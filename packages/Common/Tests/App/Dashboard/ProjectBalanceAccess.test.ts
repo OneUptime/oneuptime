@@ -6,16 +6,20 @@ import {
   getRechargeBalanceButtons,
   getRechargeBalanceLockedReason,
   isKnownNotToAddProjectBalance,
+  isPaymentMethodNeededFirst,
   ProjectBalanceAccess,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess";
 import {
   ADD_AI_CREDITS_STEP,
+  ADD_PAYMENT_METHOD_TITLE,
   ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS,
   ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES,
   ADD_TO_BALANCE_TITLE,
+  NO_PAYMENT_METHOD_DESCRIPTIONS,
   PROJECT_BALANCE_CARD_DESCRIPTIONS,
   WHO_CAN_ADD_AI_CREDITS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
+import { ProjectPaymentMethodsState } from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectPaymentMethods";
 import CloudMarketplace from "../../../Types/Marketplace/CloudMarketplace";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
 import {
@@ -371,6 +375,90 @@ describe("the Add to Balance dialog's words", () => {
         ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES,
       )) {
         expect(words[template]).toContain("{{marketplace}}");
+      }
+    },
+  );
+});
+
+/*
+ * On a project known to have no payment method, Add to Balance says one is
+ * needed first, and where it is added, before any amount (#11053) - only
+ * when that is known, and never for a project a cloud marketplace bills,
+ * which has no card and needs none.
+ */
+describe("whether Add to Balance says a payment method is needed first", () => {
+  const MARKETPLACES: Array<CloudMarketplace | null> = [
+    null,
+    ...Object.values(CloudMarketplace),
+  ];
+
+  test.each([
+    [ProjectPaymentMethodsState.None, null, true],
+    [ProjectPaymentMethodsState.Some, null, false],
+    [ProjectPaymentMethodsState.Unknown, null, false],
+  ])(
+    "payment methods %s, billed by marketplace %s: needed first is %s",
+    (
+      paymentMethods: ProjectPaymentMethodsState,
+      marketplace: CloudMarketplace | null,
+      isNeeded: boolean,
+    ) => {
+      expect(
+        isPaymentMethodNeededFirst({
+          paymentMethods: paymentMethods,
+          marketplace: marketplace,
+        }),
+      ).toBe(isNeeded);
+    },
+  );
+
+  test("a project a cloud marketplace bills never needs one, whatever was counted", () => {
+    for (const marketplace of MARKETPLACES) {
+      if (!marketplace) {
+        continue;
+      }
+
+      for (const paymentMethods of Object.values(
+        ProjectPaymentMethodsState,
+      )) {
+        expect(
+          isPaymentMethodNeededFirst({
+            paymentMethods: paymentMethods,
+            marketplace: marketplace,
+          }),
+        ).toBe(false);
+      }
+    }
+  });
+
+  test("the dialog's words say what is needed, where it is added, and what then", () => {
+    expect(NO_PAYMENT_METHOD_DESCRIPTIONS[ProjectBalanceType.SmsOrCall]).toBe(
+      "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add to the balance.",
+    );
+    expect(NO_PAYMENT_METHOD_DESCRIPTIONS[ProjectBalanceType.AI]).toBe(
+      "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add AI credits.",
+    );
+    // Its one action is the Billing page's own button.
+    expect(ADD_PAYMENT_METHOD_TITLE).toBe("Add Payment Method");
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words the dialog's sentences and its button",
+    (language: string) => {
+      const words: Record<string, string> = readDashboardLocale(language);
+
+      for (const key of [
+        ...Object.values(NO_PAYMENT_METHOD_DESCRIPTIONS),
+        ADD_PAYMENT_METHOD_TITLE,
+      ]) {
+        expect({ key, worded: Boolean(words[key]) }).toEqual({
+          key,
+          worded: true,
+        });
+        expect({ key, english: words[key] === key }).toEqual({
+          key,
+          english: false,
+        });
       }
     },
   );
