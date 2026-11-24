@@ -95,12 +95,13 @@ const SlackAlertThreadingCard: FunctionComponent = (): ReactElement => {
   };
 
   return (
-    <Card title={TITLE} description={DESCRIPTION}>
+    <Card title={TITLE}>
       <>
         {enabled === null && !error && <Loader />}
         {enabled !== null && (
           <Toggle
             title={TITLE}
+            description={DESCRIPTION}
             value={enabled}
             disabled={saving || !canEdit}
             tooltip={canEdit ? undefined : CAN_EDIT}

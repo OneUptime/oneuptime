@@ -385,6 +385,9 @@ test("project Slack threading saves immediately, survives a reload, and reverts 
   const toggle: HTMLElement = screen.getByRole("switch", {
     name: "Slack Alert Threads",
   });
+  expect(toggle).toHaveAccessibleDescription(
+    "Post updates for alerts and alert episodes in Slack threads and update the original message when their state changes.",
+  );
   expect(toggle).not.toBeChecked();
   await act(async () => {
     fireEvent.click(toggle);
