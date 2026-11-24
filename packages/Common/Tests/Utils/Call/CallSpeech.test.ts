@@ -249,7 +249,9 @@ describe("a title cut for speech, at about 100 characters", () => {
   test("no spaces at all: cut between two characters, so its first part is still said", () => {
     const title: string = "a".repeat(250);
 
-    expect(cutForSpeech(title)).toBe(`${"a".repeat(99)}${CALL_SPEECH_CUT_MARK}`);
+    expect(cutForSpeech(title)).toBe(
+      `${"a".repeat(99)}${CALL_SPEECH_CUT_MARK}`,
+    );
   });
 
   test("a word boundary only near the start is not used: it would leave almost nothing", () => {
@@ -299,7 +301,8 @@ describe("a title cut for speech, at about 100 characters", () => {
   });
 
   test("Chinese and Japanese, written without spaces, are cut between words", () => {
-    const chinese: string = "数据库连接失败，服务不可用，正在切换到备用节点。".repeat(6);
+    const chinese: string =
+      "数据库连接失败，服务不可用，正在切换到备用节点。".repeat(6);
     const cut: string = cutForSpeech(chinese);
     const said: string = cut.slice(0, -CALL_SPEECH_CUT_MARK.length);
 
@@ -309,12 +312,14 @@ describe("a title cut for speech, at about 100 characters", () => {
     expect(chinese.startsWith(said)).toBe(true);
     // Between words: what comes next starts a word Intl.Segmenter finds.
     const words: Array<string> = Array.from(
-      new (Intl as unknown as {
-        Segmenter: new (
-          locale: string,
-          options: { granularity: string },
-        ) => { segment: (text: string) => Iterable<{ index: number }> };
-      }).Segmenter("zh", { granularity: "word" }).segment(chinese),
+      new (
+        Intl as unknown as {
+          Segmenter: new (
+            locale: string,
+            options: { granularity: string },
+          ) => { segment: (text: string) => Iterable<{ index: number }> };
+        }
+      ).Segmenter("zh", { granularity: "word" }).segment(chinese),
       (segment: { index: number }): number => {
         return segment.index;
       },
@@ -338,9 +343,8 @@ describe("a title cut for speech, at about 100 characters", () => {
   });
 
   test("right-to-left titles are cut at a word boundary, the mark at their logical end", () => {
-    const arabic: string = "الخدمة متوقفة للعملاء في أوروبا بعد التحديث الأخير ".repeat(
-      4,
-    );
+    const arabic: string =
+      "الخدمة متوقفة للعملاء في أوروبا بعد التحديث الأخير ".repeat(4);
     const cut: string = cutForSpeech(arabic);
     const said: string = cut.slice(0, -CALL_SPEECH_CUT_MARK.length);
 
@@ -418,7 +422,9 @@ describe("a record's number, as the voice says it", () => {
       { characters: "INC" },
       { text: " 42" },
     ]);
-    expect(renderSpeechAsText(getRecordNumberSpeech("INC-42"))).toBe("I N C 42");
+    expect(renderSpeechAsText(getRecordNumberSpeech("INC-42"))).toBe(
+      "I N C 42",
+    );
   });
 
   test("every default prefix", () => {
@@ -468,7 +474,9 @@ describe("a record's number, as the voice says it", () => {
       { characters: "ИНЦ" },
       { text: " 42" },
     ]);
-    expect(renderSpeechAsText(getRecordNumberSpeech("事件-42"))).toBe("事 件 42");
+    expect(renderSpeechAsText(getRecordNumberSpeech("事件-42"))).toBe(
+      "事 件 42",
+    );
   });
 
   test("anything that does not end in a number is said as written", () => {

@@ -126,7 +126,9 @@ describe("how bad, and which one", () => {
       ),
     ).not.toContain("Incident incident");
     expect(
-      getOnCallPageCallRecordLabel(input({}, { severityName: "Critical" }).record),
+      getOnCallPageCallRecordLabel(
+        input({}, { severityName: "Critical" }).record,
+      ),
     ).toBe("Critical incident INC-42");
   });
 
@@ -150,8 +152,10 @@ describe("how bad, and which one", () => {
         ).record,
       ),
       "alert episode": getOnCallPageCallRecordLabel(
-        input({}, { noun: "alert episode", number: "AE-4", severityName: "Low" })
-          .record,
+        input(
+          {},
+          { noun: "alert episode", number: "AE-4", severityName: "Low" },
+        ).record,
       ),
     };
 
@@ -165,7 +169,9 @@ describe("how bad, and which one", () => {
 
   test("without a severity: the kind and the number", () => {
     expect(
-      getOnCallPageCallRecordLabel(input({}, { severityName: undefined }).record),
+      getOnCallPageCallRecordLabel(
+        input({}, { severityName: undefined }).record,
+      ),
     ).toBe("Incident INC-42");
     expect(
       getOnCallPageCallRecordLabel(
@@ -204,7 +210,10 @@ describe("the headline: what happened, how bad and which one", () => {
     ).toBe("A new High alert has been created: ALT-7.");
     expect(
       getOnCallPageCallHeadline(
-        input({}, { noun: "alert episode", number: "AE-4", severityName: "Low" }),
+        input(
+          {},
+          { noun: "alert episode", number: "AE-4", severityName: "Low" },
+        ),
       ),
     ).toBe("A new Low alert episode has been created: AE-4.");
     expect(
@@ -315,7 +324,9 @@ describe("what a responder's call says, and asks", () => {
       },
     ]);
     // Sentences first, the prompt last: as a Notification service of the release before says them.
-    expect(Boolean((data[data.length - 1] as GatherInput).numDigits)).toBe(true);
+    expect(Boolean((data[data.length - 1] as GatherInput).numDigits)).toBe(
+      true,
+    );
   });
 
   test("the prompt asks for 1 or 2 in one sentence, then the call waits 10 seconds", () => {
@@ -362,9 +373,8 @@ describe("what a responder's call says, and asks", () => {
   });
 
   test("a 500-character title is cut for speech at a word boundary, to about 100 characters", () => {
-    const title: string = "Checkout API latency above two seconds in Europe ".repeat(
-      10,
-    );
+    const title: string =
+      "Checkout API latency above two seconds in Europe ".repeat(10);
     const said: Say = sentencesOf(
       buildOnCallPageCallData(input({}, { title: title })),
     )[2]!;
@@ -399,7 +409,9 @@ describe("what a responder's call says, and asks", () => {
     )[1]!;
 
     expect(headline.recordNumber).toBeUndefined();
-    expect(headline.sayMessage).toBe("A new Critical Incident has been created.");
+    expect(headline.sayMessage).toBe(
+      "A new Critical Incident has been created.",
+    );
   });
 
   test("a person's message: said once, after the title", () => {

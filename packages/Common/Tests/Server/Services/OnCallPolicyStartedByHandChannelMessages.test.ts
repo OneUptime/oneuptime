@@ -437,7 +437,8 @@ const KINDS: Array<Kind> = [
     title: "Payments degraded",
     emoji: "🔥",
     smsRecord: "Critical incident episode EP-7",
-    firstCallSentence: "A new Critical incident episode has been created: EP-7.",
+    firstCallSentence:
+      "A new Critical incident episode has been created: EP-7.",
     callRecord: "Critical incident episode EP-7",
     firstHeadline: "New incident episode assigned to you",
     firstPushTitle: "New Incident Episode EP-7: Payments degraded",

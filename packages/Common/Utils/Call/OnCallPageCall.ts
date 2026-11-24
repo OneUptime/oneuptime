@@ -75,7 +75,8 @@ export const ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT: string = "1";
 export const ON_CALL_PAGE_CALL_PROMPT: string = `Press ${ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT} to acknowledge, or ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`;
 
 // What the call says to a key it does not know, before it ends.
-export const ON_CALL_PAGE_CALL_INVALID_INPUT: string = "Invalid input. Good bye";
+export const ON_CALL_PAGE_CALL_INVALID_INPUT: string =
+  "Invalid input. Good bye";
 
 // What an observer's call says when no key was pressed: there is nothing to acknowledge.
 export const ON_CALL_OBSERVER_PAGE_CALL_NO_INPUT: string =
@@ -124,9 +125,12 @@ const valueOf: (value: string | null | undefined) => string = (
   return typeof value === "string" ? value.trim() : "";
 };
 
+// How a sentence ends: a full stop, a question or exclamation mark, a cut's "…".
+const SENTENCE_END: RegExp = /[.!?…]$/;
+
 // A sentence ended once: "Acme Inc." stays as it is.
 const asSentence: (text: string) => string = (text: string): string => {
-  return /[.!?…]$/.test(text) ? text : `${text}.`;
+  return SENTENCE_END.test(text) ? text : `${text}.`;
 };
 
 /*

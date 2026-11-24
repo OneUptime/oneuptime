@@ -19,7 +19,11 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import { MAX_CALL_TWIML_LENGTH } from "Common/Utils/MessageFit";
-import { DOMParser, Element as XmlElement, Node as XmlNode } from "@xmldom/xmldom";
+import {
+  DOMParser,
+  Element as XmlElement,
+  Node as XmlNode,
+} from "@xmldom/xmldom";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -91,7 +95,8 @@ function pageCall(
       repeated: true,
     },
     {
-      sayMessage: options.title ?? "Checkout API is down for customers in Europe",
+      sayMessage:
+        options.title ?? "Checkout API is down for customers in Europe",
       afterPrompt: true,
       repeated: true,
     },
@@ -314,7 +319,14 @@ describe("a call from a worker of the release before, while an upgrade rolls out
     const twiml: string = twimlOf(earlierCall);
     const gather: XmlElement = gatherOf(twiml);
 
-    expect(tagsOf(gather)).toEqual(["Say", "Say", "Say", "Say", "Pause", "Say"]);
+    expect(tagsOf(gather)).toEqual([
+      "Say",
+      "Say",
+      "Say",
+      "Say",
+      "Pause",
+      "Say",
+    ]);
     expect(saidIn(gather)).toEqual([
       "This is a call from One Uptime",
       "A new incident has been created",
@@ -351,7 +363,9 @@ describe("a record's number is spelled, so INC is never read as Incorporated", (
   test("for the account's default voice - every call OneUptime places - with spaced letters, and no SSML", () => {
     const twiml: string = twimlOf(pageCall());
 
-    expect(twiml).toContain("A new Critical Incident has been created: I N C 42.");
+    expect(twiml).toContain(
+      "A new Critical Incident has been created: I N C 42.",
+    );
     expect(twiml).not.toContain("say-as");
     expect(twiml).not.toContain("INC-42");
     // No voice is named: Twilio's account default speaks.
@@ -607,7 +621,9 @@ describe("a call stays within the TwiML Twilio takes, asked twice", () => {
 
   test("text far beyond it is cut to fit, the same way each time it is said", () => {
     const twiml: string = twimlOf(
-      pageCall({ title: "The checkout service returned an error. ".repeat(400) }),
+      pageCall({
+        title: "The checkout service returned an error. ".repeat(400),
+      }),
     );
     const said: Array<string> = saidIn(gatherOf(twiml));
 

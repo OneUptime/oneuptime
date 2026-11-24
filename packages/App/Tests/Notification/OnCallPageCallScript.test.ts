@@ -35,7 +35,11 @@ import { OnCallPersonPageNotice } from "Common/Types/OnCallDutyPolicy/OnCallPers
 import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
-import { DOMParser, Element as XmlElement, Node as XmlNode } from "@xmldom/xmldom";
+import {
+  DOMParser,
+  Element as XmlElement,
+  Node as XmlNode,
+} from "@xmldom/xmldom";
 
 /*
  * WHAT EVERY KIND OF CALL SAYS, END TO END (#10762).
@@ -68,7 +72,11 @@ function project(name: string | null = "Acme Production"): Project {
 }
 
 function incident(
-  overrides: { title?: string; severity?: string | null; project?: Project } = {},
+  overrides: {
+    title?: string;
+    severity?: string | null;
+    project?: Project;
+  } = {},
 ): Incident {
   const model: Incident = new Incident();
   model.id = ObjectID.generate();
@@ -533,10 +541,9 @@ describe("a long or hostile title", () => {
 
 describe("calls that ask for no key", () => {
   test("a verification code names the product, said as two words, as its text does", async () => {
-    const makeCall: jest.SpiedFunction<typeof CommonCallService.makeCall> =
-      jest
-        .spyOn(CommonCallService, "makeCall")
-        .mockResolvedValue(undefined as never);
+    const makeCall: jest.SpiedFunction<typeof CommonCallService.makeCall> = jest
+      .spyOn(CommonCallService, "makeCall")
+      .mockResolvedValue(undefined as never);
     jest
       .spyOn(ProjectCallSMSConfigService, "getProjectDefaultTwilioConfig")
       .mockResolvedValue(undefined as never);
@@ -561,7 +568,9 @@ describe("calls that ask for no key", () => {
   });
 
   test("a server's test call", () => {
-    expect(scriptOf({ data: [{ sayMessage: SERVER_TEST_CALL_TEXT }] }).said).toEqual([
+    expect(
+      scriptOf({ data: [{ sayMessage: SERVER_TEST_CALL_TEXT }] }).said,
+    ).toEqual([
       "This is a test call from One Uptime. Calls from this server work.",
     ]);
   });

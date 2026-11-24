@@ -64,11 +64,15 @@ export interface SpokenSentence {
 
 /*
  * A terminal colour or cursor code - ESC, "[", its parameters, its final
- * character - which a title copied from a log line can carry.
+ * character - which a title copied from a log line can carry. Matching ESC
+ * is the point of it.
  */
+// eslint-disable-next-line no-control-regex
 const TERMINAL_CODE: RegExp = /\x1b\[[\x30-\x3f]*[\x20-\x2f]*[\x40-\x7e]/g;
 
 const WHITESPACE_RUN: RegExp = /\s+/g;
+
+const WHITESPACE: RegExp = /\s/;
 
 // A record number: a prefix, then the number - "INC-42", "#42", "42".
 const RECORD_NUMBER: RegExp = /^(.*?)([0-9]+)$/;
@@ -82,8 +86,7 @@ const ENDS_WITH_DIGIT: RegExp = /\p{Nd}$/u;
  * What a cut title does not end with before its "…": a space, or punctuation
  * that leads into what was cut - a comma, a colon, a dash, an opening bracket.
  */
-const DANGLING_END: RegExp =
-  /[\s,;:.!?、。，；：\-–—(\[{/\\]+$/u;
+const DANGLING_END: RegExp = /[\s,;:.!?、。，；：\-–—([{/\\]+$/u;
 
 // "OneUptime" as a word: "OneUptime's", "OneUptime." - never inside a longer word.
 const PRODUCT_NAME_WORD: RegExp = /\bOneUptime\b/g;
@@ -230,7 +233,7 @@ const getWordEnds: (text: string) => Array<number> = (
 
   if (!segmenter) {
     for (let index: number = 1; index < text.length; index++) {
-      if (/\s/.test(text[index]!) && !/\s/.test(text[index - 1]!)) {
+      if (WHITESPACE.test(text[index]!) && !WHITESPACE.test(text[index - 1]!)) {
         ends.push(index);
       }
     }
@@ -282,7 +285,8 @@ export const cutForSpeech: (text: unknown, maxLength?: number) => string = (
       return Math.max(last, end);
     }, 0);
 
-  const cutAt: number = lastWordEnd >= keptLength / 2 ? lastWordEnd : keptLength;
+  const cutAt: number =
+    lastWordEnd >= keptLength / 2 ? lastWordEnd : keptLength;
   const cut: string = oneLine.slice(0, cutAt).replace(DANGLING_END, "");
 
   return `${cut}${CALL_SPEECH_CUT_MARK}`;
