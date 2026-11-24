@@ -124,6 +124,7 @@ const database: string = `detection_arrivals_test_${process.pid}_${Date.now()}`;
 const SECOND: number = 1000;
 const MINUTE: number = 60 * SECOND;
 const HOUR: number = 60 * MINUTE;
+const DAY: number = 24 * HOUR;
 
 // Every test's minute 0: on the hour, a day back, so a day of history fits after it.
 const BASE: Date = new Date(Math.floor(Date.now() / HOUR) * HOUR - 26 * HOUR);
@@ -1700,10 +1701,29 @@ integration("a scheduled rule judges every event once (#10337)", () => {
     }
 
     beforeAll(async (): Promise<void> => {
-      start = new Date(
-        Math.floor(Date.now() / MINUTE) * MINUTE - SPAN_IN_MINUTES * MINUTE,
-      );
-      minute = new Date(start.getTime() + (SPAN_IN_MINUTES - 120) * MINUTE);
+      /*
+       * The 26 hours sit the same way on the clock on every run: the minute
+       * measured is 01:00 UTC yesterday (UTC is the test server's time zone,
+       * which toYYYYMMDD(time) splits the table's days by).
+       *
+       * Where midnight falls decides what the read without the index covers.
+       * The table keeps a part for each day the events happened, and
+       * ClickHouse 26.7 skips a part whose createdAt statistics show that none
+       * of its events arrived in the minute read, index or not. An hour after
+       * midnight, the day before's part still holds events arriving then (the
+       * six-hour tail), as a busy project's day before does while its late
+       * events come in, so without the index the read covers the whole day
+       * the run's events may come from. Laid out to end when the suite ran,
+       * a run between about 08:00 and 10:00 UTC found the day before's part
+       * had arrived wholly before the minute: the read skipped it and covered
+       * 8 hours of the day's part, 741,188 rows - 7 times what the index
+       * reads - and the comparisons below failed (the 17.2.0 release pull
+       * request, #10526).
+       */
+      const today: number = Math.floor(Date.now() / DAY) * DAY;
+
+      minute = new Date(today - DAY + HOUR);
+      start = new Date(minute.getTime() - (SPAN_IN_MINUTES - 120) * MINUTE);
 
       const knows: { json: () => Promise<unknown> } = await client.query({
         query:
