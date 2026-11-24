@@ -71,9 +71,11 @@ function idsWhere(
 
 describe("every exposure of the eval set lists the obligations it should", () => {
   test.each(
-    EXPOSURE_EVAL_EXPOSURES.map((exposure: ExposureEvalExposure) => {
-      return [exposure.id, exposure];
-    }),
+    EXPOSURE_EVAL_EXPOSURES.map(
+      (exposure: ExposureEvalExposure): [string, ExposureEvalExposure] => {
+        return [exposure.id, exposure];
+      },
+    ),
   )("%s", (_id: string, exposure: ExposureEvalExposure) => {
     const view: ExposureAssessmentView = getExposureEvalView(exposure);
     const expectation: ExposureEvalExposure["expect"] = exposure.expect;
@@ -296,9 +298,13 @@ describe("OneUptime AI's write-up of an exposure, asked and scored as the produc
   });
 
   test.each(
-    EXPOSURE_ASSESSMENT_CASES.map((testCase: ExposureAssessmentEvalCase) => {
-      return [testCase.id, testCase];
-    }),
+    EXPOSURE_ASSESSMENT_CASES.map(
+      (
+        testCase: ExposureAssessmentEvalCase,
+      ): [string, ExposureAssessmentEvalCase] => {
+        return [testCase.id, testCase];
+      },
+    ),
   )(
     "%s: a right answer passes",
     (_id: string, testCase: ExposureAssessmentEvalCase) => {

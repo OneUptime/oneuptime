@@ -282,15 +282,18 @@ describe("which exposures are assessed on their own", () => {
     expect(asked).not.toHaveBeenCalled();
   });
 
-  test.each([
+  test.each<[string, Parameters<typeof useExposureTables>[0]]>([
     ["an issue that is gone", { issues: [] }],
     ["an archived store", { stores: [storeRow({ isArchived: true })] }],
-  ])("%s is not assessed", async (_what: string, data: JSONObject) => {
-    tables = useExposureTables(data as never);
+  ])(
+    "%s is not assessed",
+    async (_what: string, data: Parameters<typeof useExposureTables>[0]) => {
+      tables = useExposureTables(data);
 
-    expect((await run()).skipped).toBe(ExposureRunSkip.IssueGone);
-    expect(kept()).toBeNull();
-  });
+      expect((await run()).skipped).toBe(ExposureRunSkip.IssueGone);
+      expect(kept()).toBeNull();
+    },
+  );
 
   test("a failure is caught and logged: it never throws", async () => {
     jest

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 4746
+    "keys": 63532,
+    "untranslated": 4741
   },
   "sameAsEnglish": [
     " incidents",
@@ -147,6 +147,7 @@
     "Code Challenge",
     "Code {{code}}",
     "Collection",
+    "Colorado",
     "Commit",
     "Community Edition",
     "Condition",
@@ -390,6 +391,7 @@
     "Nav",
     "Navigation",
     "NetFlow v5",
+    "New York",
     "Nicaragua",
     "Niger",
     "Nigeria",
@@ -550,6 +552,7 @@
     "TX",
     "Tables",
     "Tenant",
+    "Texas",
     "Threads",
     "Top",
     "Top P",
@@ -605,6 +608,7 @@
     "Volume {{name}}",
     "Volumes",
     "WAF",
+    "Washington",
     "Watts",
     "Web",
     "Web, iOS, Android, React Native",
@@ -817,6 +821,8 @@
     "{{count}} rotation",
     "{{count}} rotations",
     "{{count}} s",
+    "{{count}} secret",
+    "{{count}} secrets",
     "{{count}} service",
     "{{count}} services",
     "{{count}} session",

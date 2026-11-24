@@ -158,7 +158,7 @@ describe("every row of the table", () => {
   });
 
   test.each(
-    BREACH_LAW_RULES.map((rule: BreachLawRule) => {
+    BREACH_LAW_RULES.map((rule: BreachLawRule): [string, BreachLawRule] => {
       return [rule.id, rule];
     }),
   )(
@@ -180,7 +180,7 @@ describe("every row of the table", () => {
   });
 
   test.each(
-    BREACH_LAW_RULES.map((rule: BreachLawRule) => {
+    BREACH_LAW_RULES.map((rule: BreachLawRule): [string, BreachLawRule] => {
       return [rule.id, rule];
     }),
   )(

@@ -1,4 +1,6 @@
 import {
+  BreachDeadlineStart,
+  BreachDeadlineUnit,
   BreachLawFamily,
   BreachLawId,
   BreachPlace,
@@ -778,13 +780,13 @@ describe("deadlines, in their units, counted from when it was found", () => {
     expect(
       getBreachDueAt({
         rule: {
-          ...({} as never),
+          ...getBreachLawRule(BreachLawId.HipaaSecretarySmall)!,
           deadline: {
-            unit: "CalendarDays",
+            unit: BreachDeadlineUnit.CalendarDays,
             amount: 60,
-            start: "EndOfCalendarYear",
+            start: BreachDeadlineStart.EndOfCalendarYear,
           },
-        } as never,
+        },
         foundAt: new Date("2027-06-01T00:00:00Z"),
       })!.toISOString(),
     ).toBe(iso("2028-02-29T23:59:00Z"));
@@ -1490,7 +1492,9 @@ describe("the assessment a case keeps", () => {
   });
 
   test("a person's empty part is taken out, and a part too long is refused", () => {
-    const cleared: { isDone: boolean } = editExposureDraft({
+    const cleared:
+      | { isDone: true; assessment: StoredExposureAssessment }
+      | { isDone: false; refusal: string } = editExposureDraft({
       assessment: {
         ...started,
         sections: {
@@ -1509,9 +1513,7 @@ describe("the assessment a case keeps", () => {
     });
 
     expect(cleared.isDone).toBe(true);
-    expect(
-      (cleared as { assessment: StoredExposureAssessment }).assessment.sections,
-    ).toEqual({});
+    expect(cleared.isDone ? cleared.assessment.sections : null).toEqual({});
 
     const tooLong: { isDone: boolean; refusal?: string } = editExposureDraft({
       assessment: started,
@@ -1544,7 +1546,7 @@ describe("the assessment a case keeps", () => {
 
     const reopened: Array<ComplianceFact> = FACTS.map(
       (fact: ComplianceFact): ComplianceFact => {
-        return fact.key === "exposure:window"
+        return fact.kind === ComplianceFactKind.ExposureWindow
           ? { ...fact, isStillOpen: true, end: undefined }
           : fact;
       },
@@ -1557,7 +1559,8 @@ describe("the assessment a case keeps", () => {
     // A fact it does not cite changing leaves it alone.
     const otherChanged: Array<ComplianceFact> = FACTS.map(
       (fact: ComplianceFact): ComplianceFact => {
-        return fact.key === "obligation:gdpr-art-33"
+        return fact.kind === ComplianceFactKind.BreachObligation &&
+          fact.key === "obligation:gdpr-art-33"
           ? { ...fact, dueAt: "2026-11-06T09:00:00.000Z" }
           : fact;
       },

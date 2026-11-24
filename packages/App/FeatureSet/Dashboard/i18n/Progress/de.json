@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 2753
+    "keys": 63532,
+    "untranslated": 2749
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -165,6 +165,7 @@
     "Code Challenge",
     "Code {{code}}",
     "Collector",
+    "Colorado",
     "Commit",
     "Commits",
     "Common Name",
@@ -250,6 +251,7 @@
     "FlashBlade",
     "Flavor",
     "Flavors",
+    "Florida",
     "Flows",
     "Fluent Bit",
     "Forced down",
@@ -421,6 +423,7 @@
     "Navigation",
     "Nepal",
     "NetFlow v5",
+    "New York",
     "Nicaragua",
     "Niger",
     "Nigeria",
@@ -639,6 +642,7 @@
     "Telegram: ",
     "Tenant",
     "Tenant: {{tenant}}",
+    "Texas",
     "Text",
     "Thailand",
     "Threads",
@@ -722,6 +726,7 @@
     "WAF",
     "WAFs",
     "WARN",
+    "Washington",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",

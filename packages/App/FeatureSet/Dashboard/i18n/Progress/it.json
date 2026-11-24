@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 8235
+    "keys": 63532,
+    "untranslated": 8228
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -67,6 +67,7 @@
     "CPU per container",
     "CPU per pod",
     "Cache",
+    "California",
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",
@@ -83,6 +84,7 @@
     "Cluster",
     "Cluster {{cluster}}",
     "Collector",
+    "Colorado",
     "Commit",
     "Community Edition",
     "Console",
@@ -143,6 +145,7 @@
     "FlashBlade",
     "Flavor",
     "Floating IP",
+    "Florida",
     "Fluent Bit",
     "Formula",
     "Formula: {{formula}}",
@@ -242,6 +245,7 @@
     "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Namespace",
     "Nav",
+    "New York",
     "No",
     "OID Collection Template",
     "OK",
@@ -384,6 +388,7 @@
     "Tenant",
     "Tenant: {{tenant}}",
     "Test",
+    "Texas",
     "Threat Intel",
     "Throughput",
     "Timestamp",
@@ -422,6 +427,7 @@
     "Volume",
     "Volume {{name}}",
     "WAF",
+    "Washington",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",
