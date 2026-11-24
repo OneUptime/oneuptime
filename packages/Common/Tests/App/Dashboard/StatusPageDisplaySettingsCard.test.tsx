@@ -882,7 +882,9 @@ describe("flipping a switch", () => {
 
   test("a refused save moves the switch back, and says why under it", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -896,7 +898,7 @@ describe("flipping a switch", () => {
           "alert",
         ),
       ).toHaveTextContent(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(switchFor("showScheduledEventLabelsOnStatusPage")).toHaveAttribute(
@@ -1095,7 +1097,9 @@ describe("a list that is off", () => {
 
   test("a refused attempt to hide a list leaves its history and labels where they were", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -1626,7 +1630,9 @@ describe("how many days", () => {
 
   test("a refused number goes back to the one the page has, with the reason", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -1640,7 +1646,7 @@ describe("how many days", () => {
           `${getDisplayDaysTestId("showEpisodeHistoryInDays")}-error`,
         ),
       ).toHaveTextContent(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(daysFor("showEpisodeHistoryInDays")).toHaveValue(14);
@@ -1935,7 +1941,9 @@ describe("the overall uptime percentage", () => {
 
   test("a refused attempt to turn it on (it needs the Scale plan) offers no precision", async () => {
     updateByIdMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Scale to access this feature"),
+      new Error(
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     await renderCard();
@@ -1947,7 +1955,7 @@ describe("the overall uptime percentage", () => {
       expect(
         within(switchRowFor(OVERALL)).getByRole("alert"),
       ).toHaveTextContent(
-        "Please upgrade your plan to Scale to access this feature",
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     expect(switchFor(OVERALL)).toHaveAttribute("aria-checked", "false");

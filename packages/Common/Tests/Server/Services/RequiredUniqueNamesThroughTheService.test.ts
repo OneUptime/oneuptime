@@ -198,8 +198,12 @@ describe("with Require Unique Names off", () => {
 
   test("a monitor group may be renamed onto another's name", async () => {
     isRequired = false;
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000001", "Production"));
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000002", "Staging"));
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000001", "Production"),
+    );
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000002", "Staging"),
+    );
 
     await renameGroup("00000000-0000-4000-8000-000000000002", {
       name: "Production",
@@ -236,8 +240,12 @@ describe("with Require Unique Names on", () => {
   });
 
   test("a rename onto another monitor group's name is refused, and the group keeps its own", async () => {
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000001", "Production"));
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000002", "Staging"));
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000001", "Production"),
+    );
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000002", "Staging"),
+    );
 
     await refusalOf(
       renameGroup("00000000-0000-4000-8000-000000000002", {
@@ -249,21 +257,27 @@ describe("with Require Unique Names on", () => {
   });
 
   test("a group written with its own name again, in another case, goes through", async () => {
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000001", "Production"));
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000001", "Production"),
+    );
 
     await renameGroup("00000000-0000-4000-8000-000000000001", {
       name: "production",
       description: "Every production API",
     });
 
-    expect(groupTable.get("00000000-0000-4000-8000-000000000001")?.["name"]).toBe(
-      "production",
-    );
+    expect(
+      groupTable.get("00000000-0000-4000-8000-000000000001")?.["name"],
+    ).toBe("production");
   });
 
   test("groups that shared a name before the setting was on stay valid: each is edited, and renamed apart", async () => {
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000001", "Production"));
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000002", "Production"));
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000001", "Production"),
+    );
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000002", "Production"),
+    );
 
     // An edit that sends the name back, as every edit form does.
     await renameGroup("00000000-0000-4000-8000-000000000002", {
@@ -271,9 +285,9 @@ describe("with Require Unique Names on", () => {
       description: "The old one",
     });
 
-    expect(groupTable.get("00000000-0000-4000-8000-000000000002")?.["description"]).toBe(
-      "The old one",
-    );
+    expect(
+      groupTable.get("00000000-0000-4000-8000-000000000002")?.["description"],
+    ).toBe("The old one");
 
     // Renamed apart.
     await renameGroup("00000000-0000-4000-8000-000000000002", {
@@ -394,7 +408,9 @@ describe("two creates of one name at the same moment", () => {
   });
 
   test("a rename holds its new name until its row is written, then gives it back", async () => {
-    groupTable.rows.push(storedGroup("00000000-0000-4000-8000-000000000001", "Staging"));
+    groupTable.rows.push(
+      storedGroup("00000000-0000-4000-8000-000000000001", "Staging"),
+    );
 
     const lockKey: string = RequiredUniqueNames.getLockKey({
       tableName: "MonitorGroup",
@@ -402,7 +418,8 @@ describe("two creates of one name at the same moment", () => {
       name: "Production",
     });
     let heldWhileWriting: boolean | null = null;
-    const update: unknown = groupTable.repository.update.getMockImplementation();
+    const update: unknown =
+      groupTable.repository.update.getMockImplementation();
 
     groupTable.repository.update.mockImplementation((async (
       ...args: Array<unknown>

@@ -52,6 +52,7 @@ import {
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import IconProp from "Common/Types/Icon/IconProp";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import { VoidFunction } from "Common/Types/FunctionTypes";
@@ -103,6 +104,17 @@ import DetectionRuleRetentionWarning from "../../Components/SecurityEvents/Reten
 import DetectionRuleRetrohuntModal from "../../Components/SecurityEvents/Retrohunt/DetectionRuleRetrohuntModal";
 import { RUN_ON_PAST_EVENTS } from "../../Components/SecurityEvents/Retrohunt/RetrohuntCopy";
 import SecurityEventsLateArrivalsNotice from "../../Components/SecurityEvents/LateArrivals/LateArrivalsNotice";
+import DetectionRuleUncountedModal from "../../Components/SecurityEvents/Uncounted/DetectionRuleUncountedModal";
+import {
+  UncountedRowLine,
+  getUncountedRowLine,
+} from "../../Components/SecurityEvents/Uncounted/DetectionRuleUncountedModel";
+import { UNCOUNTED_TEST_IDS } from "../../Components/SecurityEvents/Uncounted/DetectionRuleUncountedCopy";
+import useDetectionRulesUncounted from "../../Components/SecurityEvents/Uncounted/useDetectionRulesUncounted";
+import {
+  DetectionRuleUncounted,
+  didRuleCountNothing,
+} from "Common/Types/SecurityEvent/DetectionRuleUncounted";
 import AddRuleExceptionModal from "../../Components/SecurityEvents/RuleExceptions/AddRuleExceptionModal";
 import {
   ACTIVE_EXCEPTION_COUNT,
@@ -221,6 +233,20 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   const exceptionCounts: ActiveRuleExceptionCounts =
     useActiveRuleExceptionCounts(ProjectUtil.getCurrentProjectId());
 
+  /*
+   * What each rule the table lists could not count in the last day
+   * (#10547): read for the rules on the page, once each page, so a rule
+   * that cannot count says so where its name is.
+   */
+  const [listedRuleIds, setListedRuleIds] = useState<Array<string>>([]);
+  const uncountedByRule: Map<string, DetectionRuleUncounted> =
+    useDetectionRulesUncounted(listedRuleIds);
+
+  // The rule whose line about what it could not count is open, from its row.
+  const [uncountedRule, setUncountedRule] = useState<DetectionRule | null>(
+    null,
+  );
+
   // The rule whose Run on Past Events or Add Exception is open, from its row.
   const [retrohuntRule, setRetrohuntRule] = useState<DetectionRule | null>(
     null,
@@ -313,11 +339,20 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           description: DetectionRulesGuide.guideDescription,
           markdown: guideToMarkdown(DetectionRulesGuide),
         }}
-        onFetchSuccess={(_rules: Array<DetectionRule>, total: number) => {
+        onFetchSuccess={(rules: Array<DetectionRule>, total: number) => {
           // The first read decides the card; a search or filter after it does not.
           setRuleCount((count: number | null): number => {
             return count === null ? total : count;
           });
+
+          // The rules on the page, for what each could not count (#10547).
+          setListedRuleIds(
+            rules
+              .map((rule: DetectionRule): string => {
+                return rule._id?.toString() || "";
+              })
+              .filter(Boolean),
+          );
         }}
         /*
          * A project with no rule is one click from the ready-made ones: the
@@ -858,29 +893,64 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             // Each of its lines already reads its own way.
             getLineText: drawsItsOwnLines,
             getElement: (item: DetectionRule): ReactElement => {
-              const count: number =
-                exceptionCounts.counts.get(item._id?.toString() || "") || 0;
+              const id: string = item._id?.toString() || "";
+              const count: number = exceptionCounts.counts.get(id) || 0;
+              const uncounted: DetectionRuleUncounted | undefined =
+                uncountedByRule.get(id);
+              const uncountedLine: UncountedRowLine | null = uncounted
+                ? getUncountedRowLine(uncounted)
+                : null;
+
+              /*
+               * The count opens what it counts: the list of the rule's
+               * exceptions, as View Exceptions in its menu does.
+               */
+              const exceptionsLink: ReactElement | null =
+                count > 0 ? (
+                  <Link
+                    to={getRuleExceptionsRoute(id || undefined)}
+                    className="rounded hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    {translator.translatePlural(ACTIVE_EXCEPTION_COUNT, count)}
+                  </Link>
+                ) : null;
+
+              /*
+               * What it could not count in the last day (#10547), opening
+               * why: in amber, as something to look at, never red - the
+               * rule runs.
+               */
+              const uncountedButton: ReactElement | null = uncountedLine ? (
+                <button
+                  type="button"
+                  className="inline-flex items-start gap-1 rounded text-start font-medium text-amber-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+                  data-testid={UNCOUNTED_TEST_IDS.rowLine}
+                  onClick={() => {
+                    setUncountedRule(item);
+                  }}
+                >
+                  <Icon
+                    icon={IconProp.Alert}
+                    className="mt-0.5 h-3.5 w-3.5 flex-shrink-0"
+                  />
+                  <span>
+                    {translator.translatePlural(
+                      uncountedLine.template,
+                      uncountedLine.count,
+                    )}
+                  </span>
+                </button>
+              ) : null;
 
               return (
                 <SecurityListNameCell
                   name={item.name || ""}
-                  /*
-                   * The count opens what it counts: the list of the
-                   * rule's exceptions, as View Exceptions in its menu does.
-                   */
                   detail={
-                    count > 0 ? (
-                      <Link
-                        to={getRuleExceptionsRoute(
-                          item._id?.toString() || undefined,
-                        )}
-                        className="rounded hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                      >
-                        {translator.translatePlural(
-                          ACTIVE_EXCEPTION_COUNT,
-                          count,
-                        )}
-                      </Link>
+                    exceptionsLink || uncountedButton ? (
+                      <span className="flex flex-col items-start gap-0.5">
+                        {exceptionsLink}
+                        {uncountedButton}
+                      </span>
                     ) : undefined
                   }
                   detailTestId={RULE_EXCEPTIONS_TEST_IDS.ruleCount}
@@ -923,8 +993,17 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
              * Last Error, which the table selects even while it is hidden.
              */
             getElement: (item: DetectionRule): ReactElement => {
-              const status: SecurityDetectionStatus =
-                getDetectionRuleStatus(item);
+              const uncounted: DetectionRuleUncounted | undefined =
+                uncountedByRule.get(item._id?.toString() || "");
+              const status: SecurityDetectionStatus = getDetectionRuleStatus(
+                item,
+                {
+                  // It could count none of what it matched: it cannot fire (#10547).
+                  countsNothing: uncounted
+                    ? didRuleCountNothing(uncounted)
+                    : false,
+                },
+              );
 
               return (
                 <Pill
@@ -1030,6 +1109,23 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           ruleName={retrohuntRule.name || ""}
           onClose={() => {
             setRetrohuntRule(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {uncountedRule &&
+      uncountedByRule.get(uncountedRule._id?.toString() || "") ? (
+        <DetectionRuleUncountedModal
+          ruleName={uncountedRule.name || ""}
+          uncounted={uncountedByRule.get(uncountedRule._id?.toString() || "")!}
+          onClose={() => {
+            setUncountedRule(null);
+          }}
+          onRunOnPastEvents={() => {
+            setRetrohuntRule(uncountedRule);
+            setUncountedRule(null);
           }}
         />
       ) : (

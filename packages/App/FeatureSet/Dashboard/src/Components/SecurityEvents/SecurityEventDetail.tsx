@@ -20,7 +20,12 @@ import HiddenClientAddressText, {
   HIDDEN_TARGET_ADDRESS_TEST_ID,
 } from "./HiddenClientAddressText";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenUserCopy";
-import { buildHiddenUserField } from "./SecurityEventDetailFields";
+import EventUserText from "./EventUserText";
+import {
+  SecurityEventDetailField,
+  buildEventUserField,
+  buildHiddenUserField,
+} from "./SecurityEventDetailFields";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
@@ -85,6 +90,39 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     readHiddenTargetAddress(event);
 
   /*
+   * An event's user of a role: that a scrub rule hid them (#10435), or the
+   * user with what the logs or traces hold in their place (#10909, #10908).
+   */
+  const readUserValue: (
+    role: ScrubbedUserRole,
+  ) => ReactElement | string | undefined = (
+    role: ScrubbedUserRole,
+  ): ReactElement | string | undefined => {
+    if (buildHiddenUserField(event, role)) {
+      return translator.translateText(HIDDEN_BY_A_SCRUB_RULE);
+    }
+
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event,
+      role,
+    );
+
+    if (!field) {
+      return undefined;
+    }
+
+    return field.hashedUser || field.isErasedUser ? (
+      <EventUserText
+        user={field.value}
+        hashedUser={field.hashedUser}
+        isErasedUser={field.isErasedUser}
+      />
+    ) : (
+      field.value
+    );
+  };
+
+  /*
    * Observables are the pivot points of the whole product — every one of
    * them is a valid Correlate query, so render them as chips that start
    * (or refocus) a correlation instead of a comma-joined string.
@@ -138,10 +176,11 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "MITRE Techniques", value: formatArray(event.mitreTechniques) },
     {
       label: "Principal User",
-      // A user a scrub rule hid says so, as the events list's drawer does.
-      value: buildHiddenUserField(event, ScrubbedUserRole.Principal)
-        ? translator.translateText(HIDDEN_BY_A_SCRUB_RULE)
-        : event.principalUser,
+      /*
+       * A user a scrub rule hid says so, and one the logs know only by a
+       * token says that too, as the events list's drawer does.
+       */
+      value: readUserValue(ScrubbedUserRole.Principal),
     },
     { label: "Principal Host", value: event.principalHost },
     {
@@ -162,9 +201,7 @@ const SecurityEventDetail: FunctionComponent<ComponentProps> = (
     { label: "Parent Command Line", value: event.parentProcessCommandLine },
     {
       label: "Target User",
-      value: buildHiddenUserField(event, ScrubbedUserRole.Target)
-        ? translator.translateText(HIDDEN_BY_A_SCRUB_RULE)
-        : event.targetUser,
+      value: readUserValue(ScrubbedUserRole.Target),
     },
     { label: "Target Host", value: event.targetHost },
     {

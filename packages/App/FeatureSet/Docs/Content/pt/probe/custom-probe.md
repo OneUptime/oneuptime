@@ -457,7 +457,7 @@ Uma sonda consulta até `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` dispositivos de 
 ### Outros problemas
 
 :::details A sonda para logo depois de iniciar
-O log dela diz o que falta: `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` ou `PROBE_ID or REGISTER_PROBE_KEY should be set`. Quando as três estão definidas mas o ID e a chave não correspondem a nenhuma sonda, a sonda tenta 10 vezes, com 30 segundos de intervalo, e então para com `Unable to register probe after 10 attempts`. Copie o ID e a chave de novo com **Mostrar ID e chave**.
+O log dela diz o que falta: `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` ou `PROBE_ID is not set`. Quando as três estão definidas mas o ID e a chave não correspondem a nenhuma sonda, a sonda tenta 10 vezes, com 30 segundos de intervalo, e então para com `Unable to register probe after 10 attempts`. Copie o ID e a chave de novo com **Mostrar ID e chave**.
 :::
 
 :::details A sonda funcionava até alguém redefinir a chave dela

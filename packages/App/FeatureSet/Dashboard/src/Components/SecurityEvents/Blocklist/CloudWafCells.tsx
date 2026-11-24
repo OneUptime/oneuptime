@@ -259,7 +259,8 @@ export const CloudWafWebAclCell: FunctionComponent<RowProps> = (
 
   return (
     <div data-testid={CLOUD_WAF_TEST_IDS.webAclCell}>
-      <span className="break-all text-sm font-medium text-gray-900">
+      {/* The web ACL's own name reads its own way, whatever the page's. */}
+      <span dir="auto" className="break-all text-sm font-medium text-gray-900">
         {props.row.name || ""}
       </span>
       {where ? (

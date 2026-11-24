@@ -192,7 +192,7 @@ const MISSING_ID: ObjectID = new ObjectID(
 );
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const NOT_THIS_PROJECTS: string =
   "You are not authorized to access this project's data.";

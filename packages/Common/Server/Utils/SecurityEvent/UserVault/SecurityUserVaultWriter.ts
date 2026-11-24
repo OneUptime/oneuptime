@@ -25,6 +25,10 @@ import {
   readHashedUsersOfLogLine,
   readLogRowHashTokens,
 } from "./HashedUserPairs";
+import SecurityUserErasedTokens, {
+  ErasedTokens,
+  isTokenErased,
+} from "./SecurityUserErasedTokens";
 
 /*
  * INGEST'S HALF OF SECURITY EVENTS' USER VAULT (#10632) - the address
@@ -76,6 +80,12 @@ import {
  * write does. A user this process wrote in the last
  * USER_VAULT_REWRITE_INTERVAL_MS is not written again, so a row's
  * lastSeenAt is at most that far behind.
+ *
+ * ERASED ON REQUEST (#10908): a token of a person erased from the vault -
+ * any token of the project's erasure requests (SecurityUserErasedTokens) -
+ * is never written again, from the moment the request is filed, and
+ * counted as refused. When the erased tokens cannot be read, the batch
+ * keeps nobody.
  */
 
 // The most users one batch keeps: past it, the rest are not kept.
@@ -104,6 +114,8 @@ export enum SecurityUserVaultWriteOutcome {
   Written = "written",
   Failed = "failed",
   Skipped = "skipped",
+  // A person erased from the vault on request (#10908): never kept again.
+  Refused = "refused",
 }
 
 // The scrub rules a batch runs, as far as the vault asks about them.
@@ -372,17 +384,11 @@ export default class SecurityUserVaultWriter {
         return;
       }
 
-      const rows: Array<JSONObject> = SecurityUserVaultServiceClass.toRows({
-        projectId: batch.projectId,
+      const writing: Promise<void> = this.insert({
+        batch,
         entries,
         seenAt: OneUptimeDate.getCurrentDate(),
       });
-
-      if (rows.length === 0) {
-        return;
-      }
-
-      const writing: Promise<void> = this.insert({ batch, entries, rows });
 
       inFlight.add(writing);
 
@@ -402,20 +408,71 @@ export default class SecurityUserVaultWriter {
     }
   }
 
+  /*
+   * The batch's users, as rows, but never a person erased from the vault on
+   * request (#10908): their tokens are refused, and counted as such. When
+   * the erased tokens cannot be read, every user is refused.
+   */
+  public static async keepRowsNotErased(data: {
+    batch: SecurityUserVaultBatch;
+    entries: Array<SecurityUserVaultEntry>;
+    seenAt: Date;
+  }): Promise<{
+    entries: Array<SecurityUserVaultEntry>;
+    rows: Array<JSONObject>;
+  }> {
+    const erased: ErasedTokens = await SecurityUserErasedTokens.getErasedTokens(
+      data.batch.projectId,
+    );
+    const kept: Array<SecurityUserVaultEntry> = data.entries.filter(
+      (entry: SecurityUserVaultEntry): boolean => {
+        return !isTokenErased(entry.token, erased);
+      },
+    );
+
+    count(
+      data.batch.signal,
+      SecurityUserVaultWriteOutcome.Refused,
+      data.entries.length - kept.length,
+    );
+
+    return {
+      entries: kept,
+      rows: SecurityUserVaultServiceClass.toRows({
+        projectId: data.batch.projectId,
+        entries: kept,
+        seenAt: data.seenAt,
+      }),
+    };
+  }
+
   private static async insert(data: {
     batch: SecurityUserVaultBatch;
     entries: Array<SecurityUserVaultEntry>;
-    rows: Array<JSONObject>;
+    seenAt: Date;
   }): Promise<void> {
+    let rows: Array<JSONObject> = [];
+
     try {
+      const kept: {
+        entries: Array<SecurityUserVaultEntry>;
+        rows: Array<JSONObject>;
+      } = await this.keepRowsNotErased(data);
+
+      rows = kept.rows;
+
+      if (rows.length === 0) {
+        return;
+      }
+
       const submission: FanInSubmitResult = await TelemetryFanInWriter.submit(
         SecurityUserVaultService,
-        data.rows,
+        rows,
       );
 
       await submission.flushed;
 
-      for (const entry of data.entries) {
+      for (const entry of kept.entries) {
         recentlyWritten.set(
           rememberedKey(data.batch.projectId, entry.token),
           true,
@@ -426,16 +483,16 @@ export default class SecurityUserVaultWriter {
       count(
         data.batch.signal,
         SecurityUserVaultWriteOutcome.Written,
-        data.rows.length,
+        rows.length,
       );
     } catch (error) {
       count(
         data.batch.signal,
         SecurityUserVaultWriteOutcome.Failed,
-        data.rows.length,
+        rows.length,
       );
       logger.error(
-        `SecurityUserVaultWriter: the vault did not take ${data.rows.length} hashed user(s) of project ${data.batch.projectId.toString()}; their records are stored with the tokens, and Security Events will say a scrub rule hid them.`,
+        `SecurityUserVaultWriter: the vault did not take ${rows.length} hashed user(s) of project ${data.batch.projectId.toString()}; their records are stored with the tokens, and Security Events will say a scrub rule hid them.`,
       );
       logger.error(error);
     }

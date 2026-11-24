@@ -2,10 +2,14 @@ import { SensitiveDataCandidate } from "../../../../../../Server/Utils/CodeRepos
 import { SensitiveNameMatcher } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataNames";
 import { readPatchLines } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataPatch";
 import {
+  findMetricInstruments,
   findTelemetryWrites,
   getSink,
+  isExceptionClassName,
+  readSink,
   withoutEntry,
 } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules";
+import { getCodeLanguage } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCode";
 import {
   SensitiveDataLeakKind,
   SensitiveDataSink,
@@ -474,5 +478,803 @@ describe("time in line with the change, whatever it holds", () => {
     });
 
     expect(run.inMs).toBeLessThan(3000);
+  });
+});
+
+/*
+ * AN EXCEPTION IS TELEMETRY TOO (#10778): the message an error is made
+ * with reaches the service's exceptions, as a log line does its logs - and
+ * so does what an error tracker or a span is handed to report one. Each
+ * language the section reads makes and throws its errors its own way.
+ */
+describe("an exception's message (#10778)", () => {
+  test("throw new Error(`no account for ${email}`): an email address in the message, its line, its fix", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/accounts.ts", [
+      "export function find(email: string): Account {",
+      "  throw new Error(`no account for ${email}`);",
+      "}",
+    ]);
+
+    expect(point).toMatchObject({
+      kind: SensitiveDataLeakKind.Telemetry,
+      checkId: "sensitive-data-in-telemetry",
+      sink: SensitiveDataSink.Exception,
+      path: "src/accounts.ts",
+      line: 2,
+      subject: "email",
+      where: "Error",
+      sensitivity: DataSensitivity.Confidential,
+      isBlocking: false,
+      location: "message",
+      text: "Writes an email address to an exception's message: `email`, in `Error`.",
+      fix: "Leave `email` out of the exception: name the field it is about, never what it holds.",
+    });
+    // A message's interpolation is no entry a line can lose whole.
+    expect(point.suggestion).toBeUndefined();
+  });
+
+  test('raise ValueError(f"bad card {card_number}"): a card number, Restricted, so it can fail the check', () => {
+    const point: SensitiveDataCandidate = onlyPoint("app/payments/cards.py", [
+      "def charge(card_number: str) -> None:",
+      '    raise ValueError(f"bad card {card_number}")',
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      subject: "card_number",
+      where: "ValueError",
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: true,
+      location: "message",
+      text: "Writes a card number to an exception's message: `card_number`, in `ValueError`.",
+    });
+  });
+
+  test("a secret in a message is a secret: its own check, and its own fix", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/payments.js", [
+      "throw new Error(`Payment provider refused the charge for key ${apiKey}`);",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      checkId: "secrets-in-telemetry",
+      subject: "apiKey",
+      isBlocking: true,
+      fix: "Leave `apiKey` out: everyone who reads the telemetry could read the secret.",
+    });
+  });
+
+  test.each([
+    [
+      "TypeScript, a template literal",
+      "src/accounts.ts",
+      ["throw new Error(`no account for ${email}`);"],
+      "Error",
+    ],
+    [
+      "JavaScript, Error without new",
+      "src/accounts.js",
+      ["throw Error('no account for ' + email);"],
+      "Error",
+    ],
+    [
+      "JavaScript, an error made by a factory and thrown",
+      "src/accounts.js",
+      ["throw createError(404, `no account for ${email}`);"],
+      "createError",
+    ],
+    [
+      "JavaScript, an error handed to a callback",
+      "src/accounts.js",
+      ["return next(new NotFoundError(`no account for ${email}`));"],
+      "NotFoundError",
+    ],
+    [
+      "Python, an f-string",
+      "app/accounts.py",
+      ['raise LookupError(f"no account for {email}")'],
+      "LookupError",
+    ],
+    [
+      "Python, a keyword argument",
+      "app/views.py",
+      [
+        'raise HTTPException(status_code=404, detail=f"no account for {email}")',
+      ],
+      "HTTPException",
+    ],
+    [
+      "Python, Flask's abort",
+      "app/views.py",
+      ['abort(404, description=f"no account for {email}")'],
+      "abort",
+    ],
+    [
+      "Go, fmt.Errorf",
+      "pkg/accounts/find.go",
+      ['return nil, fmt.Errorf("no account for %s", email)'],
+      "fmt.Errorf",
+    ],
+    [
+      "Go, errors.New",
+      "pkg/accounts/find.go",
+      ['return errors.New("no account for " + email)'],
+      "errors.New",
+    ],
+    [
+      "Go, a gRPC status",
+      "pkg/accounts/find.go",
+      ['return nil, status.Errorf(codes.NotFound, "no account for %s", email)'],
+      "status.Errorf",
+    ],
+    [
+      "Go, panic",
+      "pkg/accounts/find.go",
+      ['panic(fmt.Sprintf("no account for %s", email))'],
+      "panic",
+    ],
+    [
+      "Java",
+      "src/main/java/Accounts.java",
+      ['throw new IllegalArgumentException("No account for " + email);'],
+      "IllegalArgumentException",
+    ],
+    [
+      "Kotlin",
+      "src/main/kotlin/Accounts.kt",
+      ['throw IllegalStateException("No account for $email")'],
+      "IllegalStateException",
+    ],
+    [
+      "Scala",
+      "src/main/scala/Accounts.scala",
+      ['throw new IllegalArgumentException(s"No account for $email")'],
+      "IllegalArgumentException",
+    ],
+    [
+      "C#",
+      "src/Accounts.cs",
+      [
+        'throw new ArgumentException($"No account for {email}", nameof(email));',
+      ],
+      "ArgumentException",
+    ],
+    [
+      "PHP, the root namespace",
+      "src/Accounts.php",
+      ['throw new \\InvalidArgumentException("No account for {$email}");'],
+      "InvalidArgumentException",
+    ],
+    [
+      "Ruby, raise with no parentheses",
+      "app/models/account.rb",
+      ['raise ArgumentError, "no account for #{email}"'],
+      "raise ArgumentError",
+    ],
+    [
+      "Ruby, a message alone",
+      "app/models/account.rb",
+      ['raise "no account for #{email}"'],
+      "raise",
+    ],
+    [
+      "Ruby, fail",
+      "app/models/account.rb",
+      ['fail AccountMissing, "no account for #{email}"'],
+      "fail AccountMissing",
+    ],
+    [
+      "Elixir",
+      "lib/accounts.ex",
+      ['raise ArgumentError, message: "no account for #{email}"'],
+      "raise ArgumentError",
+    ],
+    [
+      "Rust, bail!",
+      "src/accounts.rs",
+      ['bail!("no account for {}", email);'],
+      "bail",
+    ],
+    [
+      "Rust, anyhow! with the value in the string",
+      "src/accounts.rs",
+      ['return Err(anyhow!("no account for {email}"));'],
+      "anyhow",
+    ],
+    [
+      "Swift",
+      "Sources/Accounts.swift",
+      ['throw AccountError.missing("no account for \\(email)")'],
+      "AccountError.missing",
+    ],
+    [
+      "Dart, a single-quoted string",
+      "lib/accounts.dart",
+      ["throw ArgumentError('no account for $email');"],
+      "ArgumentError",
+    ],
+  ])(
+    "%s",
+    (_language: string, path: string, lines: Array<string>, where: string) => {
+      const point: SensitiveDataCandidate = onlyPoint(path, lines);
+
+      expect({
+        sink: point.sink,
+        subject: point.subject,
+        where: point.where,
+        location: point.location,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Exception,
+        subject: "email",
+        where,
+        location: "message",
+        text: `Writes an email address to an exception's message: \`email\`, in \`${where}\`.`,
+      });
+    },
+  );
+
+  test("handed to the error under a key, it is in the exception, not only its message", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/accounts.ts", [
+      "throw new AccountError({ email: customer.email, code: 404 });",
+    ]);
+
+    expect(point).toMatchObject({
+      subject: "email",
+      location: "message",
+      text: "Writes an email address to an exception: `email`, in `AccountError`.",
+    });
+  });
+
+  test("an error made where it is thrown across lines is read to its end", () => {
+    expect(
+      subjectsIn("src/accounts.ts", [
+        "throw new HttpError(",
+        "  404,",
+        "  `no account for ${customer.email}`,",
+        ");",
+      ]),
+    ).toEqual(["customer.email"]);
+  });
+
+  test("Ruby's statement modifier ends a call with no parentheses: what follows is only asked about", () => {
+    expect(
+      subjectsIn("app/services/customer_lookup.rb", [
+        'raise ArgumentError, "unknown customer #{email}" unless customer',
+      ]),
+    ).toEqual(["email"]);
+    // A log call with none, the same: `current_user` is a whole record only when written.
+    expect(
+      subjectsIn("app/controllers/sessions_controller.rb", [
+        'logger.info "signed in #{email}" if current_user',
+      ]),
+    ).toEqual(["email"]);
+    // Inside the call's own brackets, a word like `if` is the call's.
+    expect(
+      subjectsIn("app/services/customer_lookup.rb", [
+        'raise ArgumentError, format("unknown %s", email) if strict',
+      ]),
+    ).toEqual(["email"]);
+  });
+
+  test("a log of an error made on the same line is the log's point, once", () => {
+    const points: Array<SensitiveDataCandidate> = writesIn("src/accounts.ts", [
+      "logger.error(new Error(`no account for ${email}`));",
+    ]);
+
+    expect(points).toHaveLength(1);
+    expect(points[0]!.sink).toBe(SensitiveDataSink.Log);
+  });
+});
+
+describe("an error tracker's report, and a span's recorded exception (#10778)", () => {
+  test("Sentry.captureException(error, { extra: { email } }): an email address in the report, under its key", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/checkout.ts", [
+      "Sentry.captureException(error, { extra: { email } });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      checkId: "sensitive-data-in-telemetry",
+      subject: "email",
+      where: "Sentry.captureException",
+      location: "attributes.email",
+      text: "Writes an email address to an error report: `email`, in `Sentry.captureException`.",
+      fix: "Leave `email` out of the error report, or send a hash of it when you need to tell values apart.",
+    });
+  });
+
+  test("Sentry.setUser({ email, id }): every report after it carries it, and the line can lose it", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/session.ts", [
+      "Sentry.setUser({ email, id: user.id });",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      subject: "email",
+      where: "Sentry.setUser",
+      suggestion: {
+        startLine: 1,
+        endLine: 1,
+        original: ["Sentry.setUser({ email, id: user.id });"],
+        replacement: ["Sentry.setUser({ id: user.id });"],
+        isByAi: false,
+      },
+    });
+  });
+
+  test('scope.setTag("ssn", ssn): its key is its first string, and Restricted data can fail the check', () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/applicants.ts", [
+      "Sentry.withScope((scope) => {",
+      '  scope.setTag("ssn", ssn);',
+      "});",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Exception,
+      subject: "ssn",
+      where: "scope.setTag",
+      sensitivity: DataSensitivity.Restricted,
+      isBlocking: true,
+      location: "attributes.ssn",
+    });
+  });
+
+  test.each([
+    [
+      "Python, sentry_sdk.set_user",
+      "app/session.py",
+      ['sentry_sdk.set_user({"email": email})'],
+      "email",
+      "sentry_sdk.set_user",
+    ],
+    [
+      "Python, set_user imported on its own",
+      "app/session.py",
+      ['set_user({"email": email})'],
+      "email",
+      "set_user",
+    ],
+    [
+      "Python, a scope's extra",
+      "app/session.py",
+      ['    scope.set_extra("email", email)'],
+      "email",
+      "scope.set_extra",
+    ],
+    [
+      "Python, a span's recorded exception and its attributes",
+      "app/session.py",
+      ['span.record_exception(error, attributes={"user.email": email})'],
+      "user.email",
+      "span.record_exception",
+    ],
+    [
+      "Ruby, Sentry with keywords",
+      "app/controllers/sessions_controller.rb",
+      ["Sentry.set_user(email: user.email)"],
+      "email",
+      "Sentry.set_user",
+    ],
+    [
+      "Go, a scope's user",
+      "pkg/session/session.go",
+      ["scope.SetUser(sentry.User{Email: email})"],
+      "Email",
+      "scope.SetUser",
+    ],
+    [
+      "Java, Sentry's extra",
+      "src/main/java/Session.java",
+      ['Sentry.setExtra("email", email);'],
+      "email",
+      "Sentry.setExtra",
+    ],
+    [
+      "C#, Application Insights",
+      "src/Session.cs",
+      [
+        'telemetryClient.TrackException(ex, new Dictionary<string, string> { { "email", email } });',
+      ],
+      "email",
+      "telemetryClient.TrackException",
+    ],
+    [
+      "PHP, a scope's user",
+      "src/Session.php",
+      ["$scope->setUser(['email' => $email]);"],
+      "email",
+      "scope.setUser",
+    ],
+    [
+      "Bugsnag's metadata on its event",
+      "src/session.ts",
+      [
+        'Bugsnag.notify(error, (event) => { event.addMetadata("user", { email }); });',
+      ],
+      "user.email",
+      "Bugsnag.notify",
+    ],
+    [
+      "Rollbar",
+      "src/session.ts",
+      ['rollbar.error("sign-in failed", { email });'],
+      "email",
+      "rollbar.error",
+    ],
+    [
+      "Honeybadger",
+      "src/session.ts",
+      ["Honeybadger.setContext({ email });"],
+      "email",
+      "Honeybadger.setContext",
+    ],
+    [
+      "New Relic",
+      "src/session.ts",
+      ["newrelic.noticeError(error, { email });"],
+      "email",
+      "newrelic.noticeError",
+    ],
+    [
+      "a span's recorded exception made on its line",
+      "src/session.ts",
+      ["span.recordException(new Error(`sign-in failed for ${email}`));"],
+      "email",
+      "span.recordException",
+    ],
+  ])(
+    "%s",
+    (
+      _what: string,
+      path: string,
+      lines: Array<string>,
+      subject: string,
+      where: string,
+    ) => {
+      const point: SensitiveDataCandidate = onlyPoint(path, lines);
+
+      expect({
+        sink: point.sink,
+        subject: point.subject,
+        where: point.where,
+        text: point.text,
+      }).toEqual({
+        sink: SensitiveDataSink.Exception,
+        subject,
+        where,
+        text: `Writes an email address to an error report: \`${subject}\`, in \`${where}\`.`,
+      });
+    },
+  );
+});
+
+describe("an exception that is no leak (#10778)", () => {
+  test.each([
+    [
+      "a message that names only a field",
+      ['throw new Error("email is required");'],
+    ],
+    [
+      "a message that names only a field, under a check of it",
+      ['if (!email) throw new Error("email is required");'],
+    ],
+    [
+      "a field's name and what is wrong with it",
+      ['throw new ValidationError("email", "is required");'],
+    ],
+    [
+      "a field's name as a value",
+      [
+        'throw new ValidationError({ field: "email", message: "is required" });',
+      ],
+    ],
+    [
+      "a password's rule, not the password",
+      ['throw new Error("password must be at least 8 characters");'],
+    ],
+    [
+      "something else in the message",
+      ["throw new Error(`no format ${format}`);"],
+    ],
+    ["an id", ["throw new Error(`no account ${user.id}`);"]],
+    ["a yes or no", ["throw new Error(`verified: ${user.emailVerified}`);"]],
+    [
+      "only asked about",
+      ['throw new Error(`${email ? "an" : "no"} address`);'],
+    ],
+    ["a hash of it", ["throw new Error(`no account for ${hash(email)}`);"]],
+    ["an error thrown again", ["throw error;"]],
+    [
+      "an error reported with nothing else",
+      ["Sentry.captureException(error);"],
+    ],
+    ["a span's recorded exception alone", ["span.recordException(error);"]],
+    ["a list of errors", ["errors.push(email);"]],
+    [
+      "a form's error, shown to the person",
+      ['setError("email", { message: "Invalid" });'],
+    ],
+    [
+      "a component's state named like a tracker's setter",
+      ["setUser({ email: value });"],
+    ],
+    ["a class's own setter", ["this.setUser({ email });"]],
+    ["a store's setter", ["store.setUser({ email });"]],
+    ["a scope that is no tracker's", ["scope.render({ email });"]],
+    ["an object that is no error", ["const customer = new Customer(email);"]],
+    ["a controller's abort", ["controller.abort(email);"]],
+    [
+      "a line marked not sensitive",
+      [
+        "throw new Error(`no account for ${email}`); // oneuptime:not-sensitive",
+      ],
+    ],
+  ])("%s", (_what: string, lines: Array<string>) => {
+    expect(writesIn("src/accounts.ts", lines)).toEqual([]);
+  });
+
+  test.each([
+    [
+      "Python, a password's rule",
+      "app/accounts.py",
+      ['raise ValueError("password must be at least 8 characters")'],
+    ],
+    ["Python, a bare raise", "app/accounts.py", ["raise"]],
+    ["Ruby, a bare raise", "app/models/account.rb", ["raise"]],
+    [
+      "Go, an id and the error it wraps",
+      "pkg/accounts/find.go",
+      ['return fmt.Errorf("decode account %s: %w", accountID, err)'],
+    ],
+    [
+      "Go, another package's New",
+      "pkg/accounts/find.go",
+      ["validationErrors.New(email)"],
+    ],
+    [
+      "C#, a model's validation error, shown to the person",
+      "src/Accounts.cs",
+      ['ModelState.AddModelError("Email", $"{email} is taken");'],
+    ],
+  ])("%s", (_what: string, path: string, lines: Array<string>) => {
+    expect(writesIn(path, lines)).toEqual([]);
+  });
+});
+
+describe("what a call writes to: exceptions (#10778)", () => {
+  test.each([
+    ["fmt.Errorf", SensitiveDataSink.Exception],
+    ["status.Errorf", SensitiveDataSink.Exception],
+    ["errors.New", SensitiveDataSink.Exception],
+    ["pkgerrors.Wrapf", SensitiveDataSink.Exception],
+    ["Sentry.captureException", SensitiveDataSink.Exception],
+    ["Sentry.captureMessage", SensitiveDataSink.Exception],
+    ["Sentry.setUser", SensitiveDataSink.Exception],
+    ["Sentry.Context.set_user_context", SensitiveDataSink.Exception],
+    ["sentry_sdk.set_tag", SensitiveDataSink.Exception],
+    ["scope.setTag", SensitiveDataSink.Exception],
+    ["hub.captureException", SensitiveDataSink.Exception],
+    ["Bugsnag.notify", SensitiveDataSink.Exception],
+    ["rollbar.error", SensitiveDataSink.Exception],
+    ["Honeybadger.notify", SensitiveDataSink.Exception],
+    ["newrelic.noticeError", SensitiveDataSink.Exception],
+    ["span.recordException", SensitiveDataSink.Exception],
+    ["activity.AddException", SensitiveDataSink.Exception],
+    ["telemetryClient.TrackException", SensitiveDataSink.Exception],
+    ["captureException", SensitiveDataSink.Exception],
+    ["set_user", SensitiveDataSink.Exception],
+    ["panic", SensitiveDataSink.Exception],
+    // A logger's own error methods are its logs.
+    ["log.Errorf", SensitiveDataSink.Log],
+    ["logger.Errorf", SensitiveDataSink.Log],
+    ["logger.error", SensitiveDataSink.Log],
+    // A tag on a span is the span's; a tracer's user is on its trace.
+    ["span.setTag", SensitiveDataSink.Span],
+    ["tracer.setUser", SensitiveDataSink.Span],
+  ])("%s writes to %s", (name: string, sink: SensitiveDataSink) => {
+    expect(getSink({ name, isMacro: false, isConstructor: false })).toBe(sink);
+  });
+
+  test.each([
+    "setUser",
+    "this.setUser",
+    "store.setContext",
+    "scope.render",
+    "errors.push",
+    "ModelState.AddModelError",
+    "handleError",
+    "controller.abort",
+  ])("%s writes to no telemetry", (name: string) => {
+    expect(getSink({ name, isMacro: false, isConstructor: false })).toBeNull();
+  });
+
+  test("an error made with new is an exception; another class is not", () => {
+    expect(
+      getSink({ name: "Error", isMacro: false, isConstructor: true }),
+    ).toBe(SensitiveDataSink.Exception);
+    expect(
+      getSink({
+        name: "errors.NotFoundException",
+        isMacro: false,
+        isConstructor: true,
+      }),
+    ).toBe(SensitiveDataSink.Exception);
+    expect(
+      getSink({ name: "Customer", isMacro: false, isConstructor: true }),
+    ).toBeNull();
+  });
+
+  test("whatever is thrown or raised where it is made is an exception", () => {
+    for (const name of ["createError", "Boom.notFound", "ValueError"]) {
+      expect(
+        getSink({ name, isMacro: false, isConstructor: false, isThrown: true }),
+      ).toBe(SensitiveDataSink.Exception);
+    }
+  });
+
+  test("Rust's error macros, beside its log macros", () => {
+    for (const name of ["bail", "anyhow", "panic", "ensure", "eyre"]) {
+      expect(getSink({ name, isMacro: true, isConstructor: false })).toBe(
+        SensitiveDataSink.Exception,
+      );
+    }
+
+    expect(
+      getSink({ name: "error", isMacro: true, isConstructor: false }),
+    ).toBe(SensitiveDataSink.Log);
+    expect(
+      getSink({ name: "vec", isMacro: true, isConstructor: false }),
+    ).toBeNull();
+  });
+
+  test("a report is told from a message: a tracker's or a span's, not an error made", () => {
+    expect(
+      readSink({
+        name: "Sentry.setUser",
+        isMacro: false,
+        isConstructor: false,
+      }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: true });
+    expect(
+      readSink({ name: "fmt.Errorf", isMacro: false, isConstructor: false }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: false });
+    expect(
+      readSink({ name: "Error", isMacro: false, isConstructor: true }),
+    ).toEqual({ sink: SensitiveDataSink.Exception, isErrorReport: false });
+  });
+
+  test.each([
+    ["Error", true],
+    ["TypeError", true],
+    ["IllegalArgumentException", true],
+    ["errors.NotFoundException", true],
+    ["handleError", false],
+    ["ErrorBoundary", false],
+    ["ValidationErrors", false],
+    ["error", false],
+  ])("%s is a class of error: %s", (name: string, isClass: boolean) => {
+    expect(isExceptionClassName(name)).toBe(isClass);
+  });
+});
+
+/*
+ * A metric's instrument named for what it counts, found by the cross-check
+ * with what Data Security locates after code ships (#10367's eval set):
+ * `const ordersPlaced = meter.createCounter(...)` makes
+ * `ordersPlaced.add(1, {...})` a metric's write, which its name alone
+ * does not say.
+ */
+describe("a metric's instrument, by where the file makes it", () => {
+  test("an OpenTelemetry counter named for what it counts", () => {
+    const point: SensitiveDataCandidate = onlyPoint("src/metrics.js", [
+      'const ordersPlaced = meter.createCounter("orders.placed");',
+      "",
+      "function countOrder(order) {",
+      '  ordersPlaced.add(1, { "order.channel": order.channel, "user.email": order.email });',
+      "}",
+    ]);
+
+    expect(point).toMatchObject({
+      sink: SensitiveDataSink.Metric,
+      subject: "user.email",
+      where: "ordersPlaced.add",
+      line: 4,
+    });
+  });
+
+  test("an instrument made above the hunk, shown as context, still names its writes", () => {
+    const points: Array<SensitiveDataCandidate> = findTelemetryWrites({
+      path: "src/metrics.js",
+      lines: readPatchLines(
+        [
+          "@@ -5,4 +5,5 @@",
+          ' const ordersPlaced = meter.createCounter("orders.placed");',
+          " ",
+          " function countOrder(order) {",
+          '+  ordersPlaced.add(1, { "user.email": order.email });',
+          " }",
+        ].join("\n"),
+      ),
+      matcher,
+    });
+
+    expect(
+      points.map((point: SensitiveDataCandidate): string | undefined => {
+        return point.sink;
+      }),
+    ).toEqual([SensitiveDataSink.Metric]);
+  });
+
+  test.each([
+    [
+      "JavaScript, OpenTelemetry",
+      "ts",
+      'const ordersPlaced = meter.createCounter("orders.placed");',
+      "ordersplaced",
+    ],
+    [
+      "Python, OpenTelemetry on self",
+      "py",
+      'self._orders_placed = meter.create_counter("orders.placed")',
+      "orders_placed",
+    ],
+    ["Go", "go", 'placed := meter.Int64Counter("orders.placed")', "placed"],
+    [
+      "Go, with its error",
+      "go",
+      'placed, err := meter.Int64Counter("orders.placed")',
+      "placed",
+    ],
+    [
+      "C#, a generic counter",
+      "cs",
+      'private readonly Counter<long> _placed = meter.CreateCounter<long>("orders.placed");',
+      "placed",
+    ],
+    [
+      "Python, Prometheus",
+      "py",
+      'ORDERS = Counter("orders_total", "Orders placed", ["channel"])',
+      "orders",
+    ],
+    [
+      "JavaScript, Prometheus",
+      "js",
+      "const orders = new client.Counter({ name: 'orders_total', help: 'Orders' });",
+      "orders",
+    ],
+  ])(
+    "%s",
+    (_language: string, extension: string, line: string, name: string) => {
+      expect(
+        Array.from(findMetricInstruments([line], getCodeLanguage(extension))),
+      ).toEqual([name]);
+    },
+  );
+
+  test("a set is no instrument, nor is a lower-case counter()", () => {
+    expect(
+      Array.from(
+        findMetricInstruments(
+          ["const seen = new Set();", "const count = counter(items);"],
+          getCodeLanguage("ts"),
+        ),
+      ),
+    ).toEqual([]);
+    expect(
+      writesIn("src/words.ts", ["const seen = new Set();", "seen.add(email);"]),
+    ).toEqual([]);
+  });
+});
+
+describe("Dart's single-quoted strings interpolate", () => {
+  test("a log's message, as a double-quoted one does", () => {
+    expect(
+      subjectsIn("lib/signup.dart", ["log.info('signup $email');"]),
+    ).toEqual(["email"]);
+    expect(
+      subjectsIn("lib/signup.dart", ['log.info("signup ${user.email}");']),
+    ).toEqual(["user.email"]);
   });
 });

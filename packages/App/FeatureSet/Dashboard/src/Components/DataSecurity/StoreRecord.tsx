@@ -47,6 +47,7 @@ import {
 } from "./ComplianceFacts";
 import DataSecurityApi from "./DataSecurityApi";
 import AppLink from "../AppLink/AppLink";
+import { PendingEdits } from "../UnsavedChanges/UsePendingEdits";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -215,6 +216,36 @@ function isSameValue(a: RecordFieldValue, b: RecordFieldValue): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+// A field's value as its Save writes it: an empty list or blank words clear the field.
+export function toWrittenRecordValue(
+  edited: RecordFieldValue,
+): RecordFieldValue | null {
+  if (Array.isArray(edited)) {
+    return edited.length === 0 ? null : edited;
+  }
+
+  return edited.trim() ? edited : null;
+}
+
+/*
+ * A field a person is mid-edit on, written as its own Save writes it - for
+ * the page's Save Changes before it is left (usePendingEdits).
+ */
+export async function writeRecordField(data: {
+  dataStoreId: string;
+  field: RecordField;
+  value: RecordFieldValue | null;
+}): Promise<DataSecurityRecordOfProcessingRow> {
+  return (
+    await DataSecurityApi.applyRecordField({
+      dataStoreId: data.dataStoreId,
+      field: data.field,
+      action: RecordFieldAction.Write,
+      value: data.value,
+    })
+  ).row;
+}
+
 // The editor of one field: a sentence, a phrase, a basis or the people.
 const RecordFieldEditor: FunctionComponent<{
   field: RecordField;
@@ -319,8 +350,14 @@ export interface RecordFieldRowProps {
   facts: ReadonlyArray<ComplianceFact>;
   canEdit: boolean;
   onRowChange: (row: DataSecurityRecordOfProcessingRow) => void;
-  // Whether a person is mid-edit here, for the page to ask before leaving.
-  onEditingChange?: ((isEditing: boolean) => void) | undefined;
+  /*
+   * Whether a person is mid-edit here, with the value its Save would write:
+   * for the page to ask before leaving, and to write it if the reader says
+   * so.
+   */
+  onEditingChange?:
+    | ((isEditing: boolean, written: RecordFieldValue | null) => void)
+    | undefined;
 }
 
 // What changed under a confirmed value: each fact as it was, and as it is now.
@@ -430,7 +467,10 @@ export const RecordFieldRow: FunctionComponent<RecordFieldRowProps> = (
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    props.onEditingChange?.(isEditing && !isSameValue(edited, view.value));
+    props.onEditingChange?.(
+      isEditing && !isSameValue(edited, view.value),
+      toWrittenRecordValue(edited),
+    );
   }, [isEditing, edited]);
 
   const press: (
@@ -510,12 +550,7 @@ export const RecordFieldRow: FunctionComponent<RecordFieldRowProps> = (
         dataTestId={`${testId}-save`}
         onClick={() => {
           void press(RecordFieldAction.Write, {
-            value:
-              Array.isArray(edited) && edited.length === 0
-                ? null
-                : !Array.isArray(edited) && !edited.trim()
-                  ? null
-                  : edited,
+            value: toWrittenRecordValue(edited),
           });
         }}
       />,
@@ -859,26 +894,22 @@ export const RecordRecipientsAndTransfers: FunctionComponent<{
 
 /*
  * A store's whole record: its four fields, then its recipients and
- * transfers. `onUnsavedChange` says whether a person is mid-edit, for the
- * page to ask before it is left.
+ * transfers. Each field a person is mid-edit on is kept in the page's
+ * `pending`, by its field, with the value its Save would write: for the
+ * page to ask before it is left, and to write them if the reader says so
+ * (writeRecordField).
  */
 export const StoreRecordFields: FunctionComponent<{
   row: DataSecurityRecordOfProcessingRow;
   canEdit: boolean;
   onRowChange: (row: DataSecurityRecordOfProcessingRow) => void;
-  onUnsavedChange?: ((hasUnsaved: boolean) => void) | undefined;
+  pending?: PendingEdits<RecordFieldValue | null> | undefined;
 }> = (props: {
   row: DataSecurityRecordOfProcessingRow;
   canEdit: boolean;
   onRowChange: (row: DataSecurityRecordOfProcessingRow) => void;
-  onUnsavedChange?: ((hasUnsaved: boolean) => void) | undefined;
+  pending?: PendingEdits<RecordFieldValue | null> | undefined;
 }): ReactElement => {
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    props.onUnsavedChange?.(Object.values(editing).some(Boolean));
-  }, [editing]);
-
   return (
     <div data-testid={STORE_RECORD_TEST_ID}>
       <div className="divide-y divide-gray-100">
@@ -891,12 +922,11 @@ export const StoreRecordFields: FunctionComponent<{
               facts={props.row.facts || []}
               canEdit={props.canEdit}
               onRowChange={props.onRowChange}
-              onEditingChange={(isEditing: boolean) => {
-                setEditing((current: Record<string, boolean>) => {
-                  return current[view.field] === isEditing
-                    ? current
-                    : { ...current, [view.field]: isEditing };
-                });
+              onEditingChange={(
+                isEditing: boolean,
+                written: RecordFieldValue | null,
+              ) => {
+                props.pending?.track(view.field, isEditing, written);
               }}
             />
           );

@@ -45,6 +45,9 @@ import {
 } from "../../Components/DataSecurity/DataSecurityPills";
 import { getIssueViewRoute } from "../../Components/DataSecurity/IssueListRoute";
 import LeaveWithoutSavingQuestion from "../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
+import usePendingEdits, {
+  PendingEdits,
+} from "../../Components/UnsavedChanges/UsePendingEdits";
 import OneUptimeDate from "Common/Types/Date";
 import {
   AUDIT_EVIDENCE_PERIODS,
@@ -268,8 +271,9 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-  const hasUnsaved: boolean = Object.values(editing).some(Boolean);
+  // The paragraphs a person is mid-edit on, by requirement, with their words not saved yet.
+  const pending: PendingEdits<string> = usePendingEdits<string>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -278,7 +282,7 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
     setEvidence(null);
     setError("");
     setDraftError("");
-    setEditing({});
+    pending.clear();
     Navigation.setQueryString({
       framework: framework,
       period: String(periodInDays),
@@ -300,6 +304,24 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
       isCurrent = false;
     };
   }, [framework, periodInDays, readCount]);
+
+  // A requirement's paragraph in a person's own words, as its Save and the leave question's Save Changes write it.
+  const saveParagraph: (
+    requirement: string,
+    text: string,
+  ) => Promise<void> = async (
+    requirement: string,
+    text: string,
+  ): Promise<void> => {
+    setEvidence(
+      await DataSecurityApi.editAuditEvidence({
+        framework,
+        periodInDays,
+        requirement,
+        text,
+      }),
+    );
+  };
 
   const draft: () => Promise<void> = async (): Promise<void> => {
     setIsDrafting(true);
@@ -599,24 +621,10 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
                     }
                     canEdit={evidence.canEdit}
                     onSave={async (text: string): Promise<void> => {
-                      setEvidence(
-                        await DataSecurityApi.editAuditEvidence({
-                          framework: evidence.framework,
-                          periodInDays: evidence.periodInDays,
-                          requirement: requirement.requirement,
-                          text,
-                        }),
-                      );
+                      await saveParagraph(requirement.requirement, text);
                     }}
-                    onEditingChange={(isEditing: boolean) => {
-                      setEditing((current: Record<string, boolean>) => {
-                        return current[requirement.requirement] === isEditing
-                          ? current
-                          : {
-                              ...current,
-                              [requirement.requirement]: isEditing,
-                            };
-                      });
+                    onEditingChange={(isEditing: boolean, words: string) => {
+                      pending.track(requirement.requirement, isEditing, words);
                     }}
                   />
                 );
@@ -657,6 +665,7 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_EVIDENCE}
+        onSaveChanges={pending.saveAllWith(saveParagraph)}
       />
     </Fragment>
   );

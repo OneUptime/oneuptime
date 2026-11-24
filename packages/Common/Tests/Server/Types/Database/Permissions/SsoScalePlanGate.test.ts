@@ -97,7 +97,7 @@ const PLAN_ENVIRONMENT: Record<string, string> = {
 };
 
 const SCALE_REFUSAL: string =
-  "Please upgrade your plan to Scale to access this feature";
+  "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const PLANS_BELOW_SCALE: ReadonlyArray<PlanType> = [
   PlanType.Free,

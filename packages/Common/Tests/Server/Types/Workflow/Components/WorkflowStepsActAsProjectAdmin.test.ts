@@ -426,7 +426,7 @@ describe("Create One and Create Many", () => {
 
     expect(step.result.executePort?.id).toBe("error");
     expect(refusedLine(component, step.lines)).toContain(
-      "because of this project's plan: Please upgrade your plan to Growth",
+      "because of this project's plan: This feature needs the Growth plan",
     );
     expect(refused.inserted()).toBeUndefined();
 
@@ -533,7 +533,7 @@ describe("Update One and Update Many", () => {
 
     expect(step.result.executePort?.id).toBe("error");
     expect(refusedLine(component, step.lines)).toContain(
-      "Please upgrade your plan to Growth",
+      "This feature needs the Growth plan",
     );
     expect(permitted()).toBeUndefined();
   });
@@ -676,7 +676,7 @@ describe("the model-event triggers", () => {
         options(lines),
       ),
     ).rejects.toThrow(
-      `"${title}" was refused because of this project's plan: Please upgrade your plan to Growth`,
+      `"${title}" was refused because of this project's plan: This feature needs the Growth plan`,
     );
 
     // ...and is not written to the log a second time beside it.

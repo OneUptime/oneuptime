@@ -1,5 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
-import GitLabApi from "../../../../../Server/Utils/CodeRepository/CodeHost/GitLabApi";
+import GitLabApi, {
+  GitLabDiscussion,
+} from "../../../../../Server/Utils/CodeRepository/CodeHost/GitLabApi";
 import {
   CodeHostHttpError,
   CodeHostHttpErrorKind,
@@ -644,5 +646,215 @@ describe("GitLabApi: the review's note on the merge request", () => {
       commentId: 3,
       htmlUrl: "",
     });
+  });
+});
+
+/*
+ * A SUGGESTED CHANGE ON ITS LINE (#10777): a merge request diff
+ * discussion, positioned on the line the change adds - the version of the
+ * diff it is of (`diff_refs`, from the merge request as the review read
+ * it) and the line in the file after the change - as GitLab's API (v4)
+ * documents it.
+ */
+describe("GitLabApi: a thread on one line of a merge request", () => {
+  const DIFF_REFS: {
+    base_sha: string;
+    start_sha: string;
+    head_sha: string;
+  } = {
+    base_sha: "1111111111111111111111111111111111111111",
+    start_sha: "2222222222222222222222222222222222222222",
+    head_sha: "0f1e2d3c4b5a69788796a5b4c3d2e1f009887766",
+  };
+
+  test("the merge request's diff_refs are what a line's position names", async () => {
+    const { api } = gitLab([
+      {
+        method: "GET",
+        path: "/projects/4217/merge_requests/12",
+        answer: () => {
+          return { json: mergeRequest({ diff_refs: DIFF_REFS }) };
+        },
+      },
+    ]);
+
+    const read: CodeHostPullRequestDetails = await api.getMergeRequest({
+      project: PROJECT,
+      iid: 12,
+    });
+
+    expect(read.diffRefs).toEqual({
+      baseSha: DIFF_REFS.base_sha,
+      startSha: DIFF_REFS.start_sha,
+      headSha: DIFF_REFS.head_sha,
+    });
+  });
+
+  test.each([
+    ["none at all", undefined],
+    [
+      "one missing",
+      { base_sha: DIFF_REFS.base_sha, head_sha: DIFF_REFS.head_sha },
+    ],
+    ["one that is no commit", { ...DIFF_REFS, start_sha: "main" }],
+    ["an array", [DIFF_REFS]],
+  ])("diff_refs with %s place nothing", (_what: string, refs: unknown) => {
+    expect(GitLabApi.readDiffRefs(refs)).toBeNull();
+    expect(
+      GitLabApi.readMergeRequest(mergeRequest({ diff_refs: refs }))!.diffRefs,
+    ).toBeUndefined();
+  });
+
+  test("a SHA-256 project's commits are read too", () => {
+    const sha256: string = "a".repeat(64);
+
+    expect(
+      GitLabApi.readDiffRefs({
+        base_sha: sha256,
+        start_sha: sha256,
+        head_sha: sha256,
+      }),
+    ).toEqual({ baseSha: sha256, startSha: sha256, headSha: sha256 });
+  });
+
+  test("a discussion positioned on the line the change adds: GitLab's text position, new line only", async () => {
+    const { api, host } = gitLab([
+      {
+        method: "POST",
+        path: "/projects/4217/merge_requests/12/discussions",
+        answer: () => {
+          return {
+            status: 201,
+            json: {
+              id: "6a9c1750b37d513a43987b574953fceb50b03ce7",
+              individual_note: false,
+              notes: [
+                {
+                  id: 1126,
+                  type: "DiffNote",
+                  body: "x",
+                  position: { new_line: 41, new_path: "src/signup.ts" },
+                },
+              ],
+            },
+          };
+        },
+      },
+    ]);
+
+    const started: GitLabDiscussion =
+      await api.createMergeRequestDiffDiscussion({
+        project: PROJECT,
+        iid: 12,
+        body: '```suggestion:-0+0\n  logger.info("signup");\n```',
+        diffRefs: {
+          baseSha: DIFF_REFS.base_sha,
+          startSha: DIFF_REFS.start_sha,
+          headSha: DIFF_REFS.head_sha,
+        },
+        comment: {
+          path: "src/signup.ts",
+          oldPath: "src/sign-up.ts",
+          line: 41,
+        },
+      });
+
+    expect(started).toEqual({
+      discussionId: "6a9c1750b37d513a43987b574953fceb50b03ce7",
+      isOnItsLine: true,
+    });
+    expect(host.requests[0]!.headers["PRIVATE-TOKEN"]).toBe(TOKEN);
+    expect(JSON.parse(host.requests[0]!.body!)).toEqual({
+      body: '```suggestion:-0+0\n  logger.info("signup");\n```',
+      position: {
+        position_type: "text",
+        base_sha: DIFF_REFS.base_sha,
+        start_sha: DIFF_REFS.start_sha,
+        head_sha: DIFF_REFS.head_sha,
+        old_path: "src/sign-up.ts",
+        new_path: "src/signup.ts",
+        new_line: 41,
+      },
+    });
+  });
+
+  test("a file the change did not rename: its old path is its path", async () => {
+    const { api, host } = gitLab([
+      {
+        method: "POST",
+        path: "/projects/4217/merge_requests/12/discussions",
+        answer: () => {
+          return {
+            status: 201,
+            json: {
+              id: "d1",
+              notes: [{ id: 1, type: "DiffNote", position: {} }],
+            },
+          };
+        },
+      },
+    ]);
+
+    await api.createMergeRequestDiffDiscussion({
+      project: PROJECT,
+      iid: 12,
+      body: "x",
+      diffRefs: {
+        baseSha: DIFF_REFS.base_sha,
+        startSha: DIFF_REFS.start_sha,
+        headSha: DIFF_REFS.head_sha,
+      },
+      comment: { path: "src/signup.ts", oldPath: "", line: 7 },
+    });
+
+    expect(JSON.parse(host.requests[0]!.body!).position).toMatchObject({
+      old_path: "src/signup.ts",
+      new_path: "src/signup.ts",
+      new_line: 7,
+    });
+  });
+
+  test("a line GitLab cannot place is refused (400), as GitLab says it", async () => {
+    const { api } = gitLab([
+      {
+        method: "POST",
+        path: "/projects/4217/merge_requests/12/discussions",
+        answer: () => {
+          return {
+            status: 400,
+            json: {
+              message:
+                '400 Bad request - Note {:line_code=>["can\'t be blank", "must be a valid line code"]}',
+            },
+          };
+        },
+      },
+    ]);
+
+    await expect(
+      api.createMergeRequestDiffDiscussion({
+        project: PROJECT,
+        iid: 12,
+        body: "x",
+        diffRefs: {
+          baseSha: DIFF_REFS.base_sha,
+          startSha: DIFF_REFS.start_sha,
+          headSha: DIFF_REFS.head_sha,
+        },
+        comment: { path: "src/signup.ts", oldPath: "src/signup.ts", line: 999 },
+      }),
+    ).rejects.toMatchObject({ kind: CodeHostHttpErrorKind.Rejected });
+  });
+
+  test("a thread GitLab started on the merge request instead is told apart", () => {
+    expect(
+      GitLabApi.readDiscussion({
+        id: "d2",
+        notes: [{ id: 2, type: "DiscussionNote", position: null }],
+      }),
+    ).toEqual({ discussionId: "d2", isOnItsLine: false });
+    expect(() => {
+      return GitLabApi.readDiscussion({ notes: [] });
+    }).toThrow(CodeHostHttpError);
   });
 });

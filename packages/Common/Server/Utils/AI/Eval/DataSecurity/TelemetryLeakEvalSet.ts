@@ -27,7 +27,6 @@ import {
 import { TelemetrySampleSource } from "../../../DataSecurity/Telemetry/TelemetrySampleSource";
 import { DataSecurityAiCodeRequest } from "../../DataSecurity/DataSecurityAiInput";
 import { buildTelemetryLeakFixRequest } from "../../DataSecurity/DataSecurityTelemetryFixPrompt";
-import escapeRegExp from "../../../../../Utils/RegExpEscape";
 import { FixEvalFileCheck } from "./DataSecurityEvalCase";
 
 /*
@@ -1190,16 +1189,26 @@ export function findPlaceInFiles(data: {
       .filter((part: string): boolean => {
         return CODE_WORD.test(part);
       });
-    const pattern: RegExp = new RegExp(
-      words
-        .map((word: string): string => {
-          return escapeRegExp(word);
-        })
-        .join(".*"),
-    );
 
+    // Each word found after the one before it, read once: no pattern is built from them.
     finders.push((line: string): boolean => {
-      return words.length > 0 && pattern.test(line);
+      if (words.length === 0) {
+        return false;
+      }
+
+      let from: number = 0;
+
+      for (const word of words) {
+        const at: number = line.indexOf(word, from);
+
+        if (at === -1) {
+          return false;
+        }
+
+        from = at + word.length;
+      }
+
+      return true;
     });
   }
 

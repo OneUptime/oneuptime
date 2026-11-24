@@ -394,6 +394,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
+  // Describe It (#10371): OneUptime AI drafts a data type for the form to save.
+  "packages/Common/Server/API/DataSecurityCustomDataTypeAPI.ts": {
+    products: [ProductKey.DataSecurity],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
     products: [ProductKey.Cloud],
     leftAlone: {},
@@ -738,6 +743,15 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.SecurityEvents],
     leftAlone: {},
   },
+  /*
+   * What Security Events trusts as a proxy without being listed (#10546):
+   * the edges and the project's own load balancers, named on Trusted
+   * Proxies.
+   */
+  "packages/Common/Server/API/SecurityTrustedProxiesAPI.ts": {
+    products: [ProductKey.SecurityEvents],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/AIInsightAPI.ts": {
     products: [ProductKey.AIInsights],
     leftAlone: {
@@ -830,6 +844,8 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     readHelpers: {
       read: {
         '"/code-task/repositories"': READ,
+        // The repositories a page holds, read by their ids (#10764).
+        '"/code-task/repositories-by-id"': READ,
         '"/code-task/repository/:repositoryId"': READ,
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,

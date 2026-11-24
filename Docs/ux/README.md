@@ -1409,10 +1409,14 @@ then `npm run i18n:validate` from the root.
   own startup probe keeps its name, in
   [`ProbeWords`](../../packages/App/Tests/Dashboard/ProbeWords.ts). And Persian names a port پورت:
   درگاه is a gateway's or a portal's, and the docs told a reader to free "gateway 443" (#7932).
-  Enforced by
+  The authenticator app has one word in each language too, the Dashboard's Authenticator apps
+  card's, on the sign-in page, in the setup key both draw, in the server's messages and the
+  docs: setting up two-factor authentication in Hindi offered "प्रमाणीकरण ऐप", asked for the
+  code from the "प्रमाणक ऐप" and listed it under "ऑथेंटिकेटर ऐप" (#10915). Enforced by
   [OneNamePerThingGuard](../../packages/App/Tests/Dashboard/OneNamePerThingGuard.test.ts),
   [OneWordInSentencesPerThing](../../packages/App/Tests/Dashboard/OneWordInSentencesPerThing.test.ts),
-  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts)
+  [ProbeWordPerLanguage](../../packages/App/Tests/FeatureSet/Docs/ProbeWordPerLanguage.test.ts),
+  [AuthenticatorAppWordPerLanguage](../../packages/App/Tests/Dashboard/AuthenticatorAppWordPerLanguage.test.ts)
   and
   [PersianPortWordDocs](../../packages/App/Tests/FeatureSet/Docs/PersianPortWordDocs.test.ts).
 - **Two things never share one name in a language.** Arabic called the collector an agent runs

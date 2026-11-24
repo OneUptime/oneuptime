@@ -10,8 +10,11 @@ import { NAME_WHITE_SPACE_RUN_PATTERN } from "../../../../Types/Database/UniqueN
 import { getUniqueNameWhenRequiredColumn } from "../../../../Types/Database/UniqueNameWhenRequired";
 import { getJestSpyOn } from "../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
-import { MigrationInterface, QueryRunner } from "typeorm";
-import { getMetadataArgsStorage } from "typeorm";
+import {
+  getMetadataArgsStorage,
+  MigrationInterface,
+  QueryRunner,
+} from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 
 /*
@@ -63,9 +66,10 @@ const HELD: Array<{ tableName: string; column: string }> = AllModelTypes.map(
   return held !== null;
 }) as Array<{ tableName: string; column: string }>;
 
-const expectedIndex: (held: { tableName: string; column: string }) => string = (
-  held: { tableName: string; column: string },
-): string => {
+const expectedIndex: (held: {
+  tableName: string;
+  column: string;
+}) => string = (held: { tableName: string; column: string }): string => {
   return `CREATE INDEX "IDX_${held.tableName.toUpperCase()}_PROJECT_NAME_KEY" ON "${held.tableName}" ("projectId", LOWER(BTRIM(REGEXP_REPLACE("${held.column}", '${NAME_WHITE_SPACE_RUN_PATTERN}', ' ', 'g')))) WHERE "deletedAt" IS NULL`;
 };
 

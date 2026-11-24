@@ -2,6 +2,7 @@ import APIException from "../../../../Types/Exception/ApiException";
 import { JSONObject } from "../../../../Types/JSON";
 import { ConnectorTransport } from "../Connectors/Types";
 import lookupTable from "../../../../Utils/LookupTable";
+import RetryAfter from "../../../../Utils/RetryAfter";
 import ResponseHttp, { ResponseHttpResult } from "./ResponseHttp";
 
 /*
@@ -156,18 +157,18 @@ function readText(record: JSONObject, key: string): string {
 
 /*
  * How long Defender asked OneUptime to wait, from a throttled answer's
- * Retry-After (seconds), in words: "30 seconds". Null without one.
+ * Retry-After, in words: "30 seconds". Null without one. Read as every
+ * client reads it (Common's RetryAfter): seconds or an HTTP date, the
+ * header's name in any case, held between a second and an hour.
  */
 export function readDefenderRetryAfter(
   headers: Record<string, string> | undefined,
 ): string | null {
-  const seconds: number = Number((headers || {})["retry-after"]);
+  const seconds: number | undefined = RetryAfter.parseSeconds(
+    RetryAfter.readHeader(headers),
+  );
 
-  if (!Number.isFinite(seconds) || seconds <= 0) {
-    return null;
-  }
-
-  return describeWait(seconds);
+  return seconds === undefined ? null : describeWait(seconds);
 }
 
 // A wait in seconds, in words: "1 second", "30 seconds", "5 minutes".

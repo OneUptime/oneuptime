@@ -46,6 +46,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -541,7 +542,10 @@ const IssueResolution: FunctionComponent<ComponentProps> = (
               {containmentError ? (
                 <p className="text-xs">
                   {translator.translateText(CONTAINMENT_NOT_LOADED)}{" "}
-                  {containmentError}
+                  <ErrorInSentence
+                    message={containmentError}
+                    showWhereToLook={true}
+                  />
                 </p>
               ) : !containment ? (
                 <InlineValueSkeleton widthClassName="w-64" />

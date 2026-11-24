@@ -103,7 +103,7 @@ const PLANS: ReadonlyArray<PlanType> = [
 ];
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",

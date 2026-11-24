@@ -108,10 +108,11 @@ interface ListScope<T> {
   byService: Map<string, Array<T>>;
 }
 
-const scopes: WeakMap<object, ListScope<unknown>> = new WeakMap<
-  object,
+// Each list's scope, by the list: kept as long as the list is.
+const scopes: WeakMap<
+  ReadonlyArray<ScopedCompiledScrubRule>,
   ListScope<unknown>
->();
+> = new WeakMap<ReadonlyArray<ScopedCompiledScrubRule>, ListScope<unknown>>();
 
 function scopeOf<T extends ScopedCompiledScrubRule>(
   rules: ReadonlyArray<T>,

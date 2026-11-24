@@ -447,7 +447,7 @@ let report: ScheduleReport = {
   leftWaiting: 0,
 };
 // The step at which the running attempt of a monitor's job fails, if it does.
-let failing: Map<string, "read" | "evaluate"> = new Map();
+const failing: Map<string, "read" | "evaluate"> = new Map();
 // Requests whose evaluation has failed once: none fails twice.
 let failedOnce: Set<string> = new Set();
 
@@ -746,7 +746,7 @@ async function runSchedule(
   points = [];
   model = new DeduplicatingQueueModel();
   lists = new Map();
-  failing = new Map();
+  failing.clear();
   failedOnce = new Set();
   report = {
     violations: [],

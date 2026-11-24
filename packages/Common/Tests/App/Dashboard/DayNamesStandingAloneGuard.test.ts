@@ -83,6 +83,9 @@ const IN_A_SENTENCE: Readonly<Record<string, string>> = {
     'The working hours\' days in a summary that fills a sentence: "Pages only Mon–Fri 09:00–17:00", "outside {{hours}}".',
   "packages/App/FeatureSet/Dashboard/src/Components/Runbook/Triggers/RunbookTriggersCopy.ts":
     'A schedule\'s days listed in its sentence: "Runs every Monday and Friday at 09:00".',
+  // #10850: its own English table of the days, not the locale's day keys.
+  "packages/Common/Utils/DeveloperDocs/TerraformMonitorSteps.ts":
+    'A schedule\'s days in a comment of the Terraform it writes, in English as the code is: "Monday to Friday".',
 };
 
 /*
