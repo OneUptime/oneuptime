@@ -76,7 +76,6 @@ import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import { DashboardClientUrl } from "../../EnvironmentConfig";
 import AIRunService from "../../Services/AIRunService";
 import CloudConnectionService from "../../Services/CloudConnectionService";
-import DataSecurityAiProposalService from "../../Services/DataSecurityAiProposalService";
 import DataSecurityIssueFeedService from "../../Services/DataSecurityIssueFeedService";
 import DataSecurityIssueGroupService from "../../Services/DataSecurityIssueGroupService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
@@ -91,6 +90,9 @@ import DataSecurityCodeTask, {
   getDataSecurityFixNoRepositoryMessage,
 } from "../AI/DataSecurity/DataSecurityCodeTask";
 import { buildIssueGroupFixRequest } from "../AI/DataSecurity/DataSecurityIssueGroupPrompt";
+import DataSecurityIssueGroupTimelines, {
+  GroupProposalExpiry,
+} from "../AI/DataSecurity/DataSecurityIssueGroupTimelines";
 import CodeTaskAccess from "../AI/CodeTask/CodeTaskAccess";
 import CodeTaskGate from "../AI/CodeTask/CodeTaskGate";
 import CodeTaskListRows, {
@@ -274,6 +276,11 @@ export function getIssuePageUrl(projectId: ObjectID, issueId: string): string {
 
 export function getIssuesPageUrl(projectId: ObjectID): string {
   return `${DashboardClientUrl.toString()}/${projectId.toString()}/data-security/issues`;
+}
+
+// The Dashboard's Data Security > AI, where OneUptime AI's proposals wait (#10741).
+export function getDataSecurityAiPageUrl(projectId: ObjectID): string {
+  return `${DashboardClientUrl.toString()}/${projectId.toString()}/data-security/ai`;
 }
 
 export default class DataSecurityIssueGroupFix {
@@ -1070,10 +1077,13 @@ export default class DataSecurityIssueGroupFix {
 
     /*
      * What OneUptime AI proposed for the parts just made, and still waits,
-     * is no longer needed (a proposal being approved is not waiting).
+     * is no longer needed (a proposal being approved is not waiting) - and
+     * each issue it was for says so, and that the fix was asked for another
+     * way (#10741).
      */
-    await DataSecurityAiProposalService.expireWaitingForGroup({
-      dataSecurityIssueGroupId: group.id!,
+    await DataSecurityIssueGroupTimelines.expireWaitingForGroup({
+      projectId: data.projectId,
+      groupId: group.id!,
       kinds: [
         ...(result.pullRequest?.aiRunId
           ? [DataSecurityAiProposalKind.FixIssueGroupInCode]
@@ -1083,6 +1093,9 @@ export default class DataSecurityIssueGroupFix {
           : []),
       ],
       at: OneUptimeDate.getCurrentDate(),
+      why: GroupProposalExpiry.FixAskedForAnotherWay,
+      userId: data.props.userId || undefined,
+      byPlaybook: Boolean(data.triggeredBySecurityCaseId),
     });
 
     return result;

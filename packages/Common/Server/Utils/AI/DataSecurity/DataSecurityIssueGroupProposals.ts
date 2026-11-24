@@ -55,6 +55,11 @@ import {
 import { DataSecurityAiPlannedChange } from "./DataSecurityAiAction";
 import DataSecurityAiEngine from "./DataSecurityAiEngine";
 import DataSecurityAiProposals from "./DataSecurityAiProposals";
+import DataSecurityIssueGroupTimelines from "./DataSecurityIssueGroupTimelines";
+import {
+  DataSecurityAiDecisionEntry,
+  DataSecurityAiDecisionReason,
+} from "../../../../Types/DataSecurity/DataSecurityAiDecision";
 
 /*
  * ONEUPTIME AI PROPOSES THE FIX OF EACH GROUP OF ISSUES ONE MISTAKE MADE
@@ -408,24 +413,32 @@ export default class DataSecurityIssueGroupProposals {
         isNamedByRule: false,
       };
 
-      await DataSecurityAiProposals.propose({
+      await DataSecurityIssueGroupProposals.proposeAndTell({
         projectId: data.projectId,
-        issue: null,
-        store: null,
         group: data.group,
-        action: FixIssueGroupInCodeAction,
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCode,
         change,
-        work,
-        verdict: getDataSecurityAiWithoutAskingVerdict({
-          work,
-          safety: DataSecurityAiChangeSafety.OpensPullRequest,
-          meetsDefaultConditions: false,
-          isNamedByRule: false,
-          requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
-          changesWithoutAskingThisHour,
-        }),
-        riskScore,
-        now: data.now,
+        propose: (): Promise<DataSecurityAiDecisionEntry> => {
+          return DataSecurityAiProposals.propose({
+            projectId: data.projectId,
+            issue: null,
+            store: null,
+            group: data.group,
+            action: FixIssueGroupInCodeAction,
+            change,
+            work,
+            verdict: getDataSecurityAiWithoutAskingVerdict({
+              work,
+              safety: DataSecurityAiChangeSafety.OpensPullRequest,
+              meetsDefaultConditions: false,
+              isNamedByRule: false,
+              requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
+              changesWithoutAskingThisHour,
+            }),
+            riskScore,
+            now: data.now,
+          });
+        },
       });
       proposed++;
     }
@@ -530,29 +543,74 @@ export default class DataSecurityIssueGroupProposals {
         isNamedByRule: false,
       };
 
-      await DataSecurityAiProposals.propose({
+      await DataSecurityIssueGroupProposals.proposeAndTell({
         projectId: data.projectId,
-        issue: null,
-        store: null,
         group: data.group,
-        action: FixIssueGroupInCloudAction,
+        kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
         change,
-        work,
-        verdict: getDataSecurityAiWithoutAskingVerdict({
-          work,
-          safety,
-          meetsDefaultConditions: false,
-          isNamedByRule: false,
-          requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
-          changesWithoutAskingThisHour,
-        }),
-        riskScore,
-        now: data.now,
+        propose: (): Promise<DataSecurityAiDecisionEntry> => {
+          return DataSecurityAiProposals.propose({
+            projectId: data.projectId,
+            issue: null,
+            store: null,
+            group: data.group,
+            action: FixIssueGroupInCloudAction,
+            change,
+            work,
+            verdict: getDataSecurityAiWithoutAskingVerdict({
+              work,
+              safety,
+              meetsDefaultConditions: false,
+              isNamedByRule: false,
+              requireTwoApprovalsForRiskierChanges: data.requireTwoApprovals,
+              changesWithoutAskingThisHour,
+            }),
+            riskScore,
+            now: data.now,
+          });
+        },
       });
       proposed++;
     }
 
     return proposed;
+  }
+
+  /*
+   * A part proposed - and, when it waits for a person, each open issue it
+   * is for told so on its timeline (#10741): all but those the waiting
+   * proposal it replaced (same kind) was for, which were told already.
+   */
+  private static async proposeAndTell(data: {
+    projectId: ObjectID;
+    group: DataSecurityIssueGroup;
+    kind: DataSecurityAiProposalKind;
+    change: DataSecurityAiPlannedChange;
+    propose: () => Promise<DataSecurityAiDecisionEntry>;
+  }): Promise<DataSecurityAiDecisionEntry> {
+    const toldAlready: Set<string> =
+      await DataSecurityIssueGroupTimelines.readWaitingIssueIds({
+        projectId: data.projectId,
+        groupId: data.group.id!,
+        kind: data.kind,
+      });
+    const entry: DataSecurityAiDecisionEntry = await data.propose();
+
+    if (
+      entry.reason === DataSecurityAiDecisionReason.Proposed &&
+      entry.proposalId
+    ) {
+      await DataSecurityIssueGroupTimelines.onProposed({
+        projectId: data.projectId,
+        proposalId: entry.proposalId,
+        kind: data.kind,
+        plan: data.change.plan,
+        groupId: data.group.id!,
+        toldAlready,
+      });
+    }
+
+    return entry;
   }
 
   /*

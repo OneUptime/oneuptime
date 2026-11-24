@@ -67,6 +67,7 @@ import {
   DataSecurityAiPlannedChange,
 } from "./DataSecurityAiAction";
 import DataSecurityAiActions from "./DataSecurityAiActions";
+import DataSecurityIssueGroupTimelines from "./DataSecurityIssueGroupTimelines";
 
 /*
  * WHERE A PROPOSAL OF ONEUPTIME AI'S CHANGES STATE (#10364): made by the
@@ -216,6 +217,8 @@ export default class DataSecurityAiProposals {
           projectId: true,
           dataSecurityIssueId: true,
           dataStoreId: true,
+          // A group's fix (#10370): its issues' timelines are told what becomes of it (#10741).
+          dataSecurityIssueGroupId: true,
           kind: true,
           work: true,
           safety: true,
@@ -1032,6 +1035,19 @@ export default class DataSecurityAiProposals {
         mdText`Dismissed OneUptime AI's proposal **${proposal.title || ""}**: ${reason.slice(0, MAX_DISMISS_REASON_LENGTH)}`.toString(),
       userId,
     });
+
+    /*
+     * A group's fix has no issue of its own: each issue it was for says it
+     * was dismissed, and by whom - never the reason, which is about the
+     * whole group (#10741).
+     */
+    if (proposal.dataSecurityIssueGroupId) {
+      await DataSecurityIssueGroupTimelines.onDismissed({
+        projectId: data.projectId,
+        proposal,
+        userId,
+      });
+    }
 
     return {
       proposalId: proposal.id!.toString(),
