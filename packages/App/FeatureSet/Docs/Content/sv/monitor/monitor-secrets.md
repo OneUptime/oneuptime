@@ -83,6 +83,8 @@ Hemligheter fylls i innan skriptet i en monitor av typen Syntetisk monitor eller
 
 Om en monitor hänvisar till en hemlighet som den inte får använda står hänvisningen kvar som den är och ersätts inte med värdet.
 
+När kontrollen av en monitor av typen API, Webbplats eller Extern statussida misslyckas nämner felet bara URL:ens schema, värd och port, som `https://api.example.com`, så en hemlighet i URL:en visas aldrig.
+
 När du testar en monitor innan du sparar den fylls bara hemligheter i som är tillgängliga för **Alla monitorer**, eftersom en ny monitor inte finns på någon lista och inte har några etiketter ännu. När du har sparat monitorn använder testerna varje hemlighet som monitorn får använda.
 
 ## Logga in med en engångskod
@@ -128,7 +130,7 @@ return {
 Sonden lämnar aldrig ut en kod som har mindre än fem sekunder kvar, eller en tredjedel av perioden när perioden är kortare: den väntar i stället på nästa kod, högst fem sekunder, och räknar inte in den väntan i kontrollens körtid. Varje kod som en kontroll genererar visas som asterisker, till exempel `******`, i dess loggmeddelanden, dess resultat, dess fel och namnen på dess skärmbilder. En skärmbild är en bild av sidan, så ta den innan koden skrivs in eller efter att sidan har gått vidare.
 
 > [!NOTE]
-> Det är sonden som genererar koderna, så en anpassad sond behöver OneUptime 17.0.1 eller senare. På en äldre körs inte en kontroll som behöver en kod, utan den misslyckas med en mening som säger att sonden ska uppdateras; monitorns formulär och sondens sida nämner en sond som är för gammal, och [Uppdatera en sond](/docs/probe/custom-probe#uppdatera-en-sond) förklarar hur. Sondens klocka måste också gå rätt, eftersom en sond som går en minut fel genererar koder som webbplatsen redan har gått vidare från.
+> Det är sonden som genererar koderna, så en anpassad sond behöver OneUptime 17.1.0 eller senare. På en äldre körs inte en kontroll som behöver en kod, utan den misslyckas med en mening som säger att sonden ska uppdateras; monitorns formulär och sondens sida nämner en sond som är för gammal, och [Uppdatera en sond](/docs/probe/custom-probe#uppdatera-en-sond) förklarar hur. Sondens klocka måste också gå rätt, eftersom en sond som går en minut fel genererar koder som webbplatsen redan har gått vidare från.
 
 ## Felsökning
 
@@ -149,7 +151,7 @@ Kontrollera att **Aktuell kod** stämde med din autentiseringsapp när du sparad
 :::
 
 :::details Kontrollen säger att sonden är för gammal för att generera engångskoder
-Sonden kör en version äldre än OneUptime 17.0.1, som inte kan generera engångskoder, så kontrollen kördes inte på den. Uppdatera sonden (se [Uppdatera en sond](/docs/probe/custom-probe#uppdatera-en-sond)), eller låt sonder med 17.0.1 eller senare kontrollera monitorn.
+Sonden kör en version äldre än OneUptime 17.1.0, som inte kan generera engångskoder, så kontrollen kördes inte på den. Uppdatera sonden (se [Uppdatera en sond](/docs/probe/custom-probe#uppdatera-en-sond)), eller låt sonder med 17.1.0 eller senare kontrollera monitorn.
 :::
 
 ## Nästa steg

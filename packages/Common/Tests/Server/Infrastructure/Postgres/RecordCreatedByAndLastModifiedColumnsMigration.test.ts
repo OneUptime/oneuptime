@@ -119,6 +119,15 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "DataSecurityIssueGroup",
     migration: "1809187470370-AddDataSecurityIssueGroups.ts",
   },
+  // Automatic response's policies, and what each did (#10350).
+  {
+    table: "SecurityAutomaticResponsePolicy",
+    migration: "1809187500000-AddSecurityAutomaticResponse.ts",
+  },
+  {
+    table: "SecurityAutomaticResponseAction",
+    migration: "1809187500000-AddSecurityAutomaticResponse.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

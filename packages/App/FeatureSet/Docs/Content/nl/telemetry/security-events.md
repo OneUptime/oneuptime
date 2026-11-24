@@ -51,6 +51,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Playbooks** | Playbooks | Stappen die op zaken draaien, vanzelf of met de hand |
 | **Goedkeuringen** | Playbooks | De playbookstappen die wachten tot iemand ze goedkeurt of afwijst |
 | **Uitvoeringen** | Playbooks | Wat elk playbook deed, stap voor stap |
+| **Automatische reactie** | Playbooks | De beleidsregels die een aanvallend adres een challenge geven of blokkeren zodra de detectie er is, elk met een proefperiode en vangrails |
 | **Blokkeerlijst** | Playbooks | De adressen die je project blokkeert, tot wanneer, en waar elke blokkering wordt toegepast |
 | **Blokkeerlijstfeeds** | Playbooks | De geheime URL's waarvan je firewalls en proxy's de blokkeerlijst lezen, en hun ophaalacties |
 | **Beschermde entiteiten** | Playbooks | De gebruikers, hosts en adressen die geen enkel playbook inperkt en geen blokkering raakt |

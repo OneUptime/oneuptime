@@ -492,6 +492,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/SecurityBlocklist", kind: "keys" },
   /*
+   * The ready automatic response policies' names and descriptions, and
+   * what is wrong with a project's own (#10350): the Automatic Response
+   * page says them in the reader's language, and the server answers an API
+   * client with the same words in English. Only the sentences the files
+   * mark are read: the rest is the policies' rules.
+   */
+  {
+    directory: "packages/Common/Types/SecurityAutomaticResponse",
+    kind: "keys",
+  },
+  /*
    * What each of the traces explorer's span types is: the (i) beside the
    * Span Type choice lists them, and each choice says its own. Only the
    * sentences the file marks are read: the choices' names are drawn as

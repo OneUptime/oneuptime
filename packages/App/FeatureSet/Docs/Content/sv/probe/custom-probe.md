@@ -146,10 +146,10 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Ersätt `<version>` med den version som ska köras, till exempel `17.0.1`, och skriv samma image i `oneuptime-probe.yaml`, så att den ligger kvar när du tillämpar filen igen.
+Ersätt `<version>` med den version som ska köras, till exempel `17.1.0`, och skriv samma image i `oneuptime-probe.yaml`, så att den ligger kvar när du tillämpar filen igen.
 :::
 
-Sondens sida visar versionen den kör, under **Sondstatus**. En sond äldre än 17.0.1 kan inte generera koderna för en [engångskodshemlighet](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod): dess sida säger det, och det gör också formuläret för en monitor som den kontrollerar.
+Sondens sida visar versionen den kör, under **Sondstatus**. En sond äldre än 17.1.0 kan inte generera koderna för en [engångskodshemlighet](/docs/monitor/monitor-secrets#logga-in-med-en-engångskod): dess sida säger det, och det gör också formuläret för en monitor som den kontrollerar. Detsamma gäller en sond som är för gammal för att skicka en API-monitors begärandetext när den är en JSON-array, ett enda värde eller text.
 
 ## Ansluta via en proxy
 

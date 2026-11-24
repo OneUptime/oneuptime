@@ -65,6 +65,13 @@ export interface AiOutcomesPullRequestFixes {
   unverifiable: number;
 }
 
+// One kind of fix pull request (FixProductionCheck) and its own counts (#10368).
+export interface AiOutcomesPullRequestFixKind
+  extends AiOutcomesPullRequestFixes {
+  // The check as stored: Exception, TelemetryLeak, or one a newer build knows.
+  check: string;
+}
+
 /*
  * The investigations people judged: graded against the root cause they
  * wrote when they resolved the incident (AIRun.autoGrade), or judged on the
@@ -303,6 +310,14 @@ export interface AiOutcomes {
   remediationFixes: AiOutcomesRemediationFixes | null;
   // Null: the caller may not read fix pull requests (or the plan has none).
   pullRequestFixes: AiOutcomesPullRequestFixes | null;
+  /*
+   * The same fix pull requests, by what production watched each for
+   * (FixProductionCheck, #10368): an exception's fix, a slow operation's,
+   * a telemetry leak fixed in code, a store fixed in its infrastructure
+   * code - each kind of fix counted apart. Absent from a server of the
+   * release before, and null when pullRequestFixes is.
+   */
+  pullRequestFixKinds?: Array<AiOutcomesPullRequestFixKind> | null | undefined;
   // Null: the caller may read neither incidents nor alerts.
   rootCauses: AiOutcomesRootCauses | null;
   // Null: the caller may not read OneUptime AI's Data Security proposals.

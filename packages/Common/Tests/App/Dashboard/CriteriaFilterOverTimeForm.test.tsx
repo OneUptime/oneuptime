@@ -89,7 +89,10 @@ function bodyOverTime(
   };
 }
 
-// The option labels a dropdown under the over-time box offers.
+/*
+ * The option labels a dropdown under the over-time box offers: each
+ * option's own words, without the line under it that says what it does.
+ */
 async function optionsOf(dropdownIndex: number): Promise<Array<string>> {
   const user: ReturnType<typeof userEvent.setup> = userEvent.setup();
   const options: HTMLElement = screen.getByTestId(OVER_TIME_OPTIONS);
@@ -97,7 +100,11 @@ async function optionsOf(dropdownIndex: number): Promise<Array<string>> {
   await user.click(within(options).getAllByRole("combobox")[dropdownIndex]!);
 
   return screen.getAllByRole("option").map((option: HTMLElement): string => {
-    return option.textContent || "";
+    const description: string =
+      within(option).queryByTestId("dropdown-option-description")
+        ?.textContent || "";
+
+    return (option.textContent || "").replace(description, "");
   });
 }
 
@@ -213,10 +220,16 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
   });
 
   describe("the window's settings", () => {
-    test("a body filter is offered All Values and Any Value only", async () => {
+    test("a body filter is offered All Values, Any Value and the counts of its checks, no aggregate", async () => {
       renderFilter(bodyOverTime(), MonitorType.Website);
 
-      expect(await optionsOf(0)).toEqual(["All Values", "Any Value"]);
+      expect(await optionsOf(0)).toEqual([
+        "All Values",
+        "Any Value",
+        "Count",
+        "Percentage",
+        "Status Changes",
+      ]);
     });
 
     test("Response Time keeps every aggregate", async () => {
@@ -239,8 +252,12 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
         "Sum",
         "Maximum Value",
         "Minimum Value",
+        "Percentile",
         "All Values",
         "Any Value",
+        "Count",
+        "Percentage",
+        "Status Changes",
       ]);
     });
 
@@ -377,7 +394,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
           .map((combobox: HTMLElement): string | null => {
             return combobox.getAttribute("aria-label");
           }),
-      ).toEqual(["Evaluate", "For the last (in minutes)", "If No Data"]);
+      ).toEqual(["Evaluate", "For the last", "If No Data"]);
     });
 
     test("offer no clear control, as no list a filter cannot be without does", () => {
@@ -413,7 +430,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
       );
 
       const minutes: HTMLElement = screen.getByRole("combobox", {
-        name: "For the last (in minutes)",
+        name: "For the last",
       });
 
       // Backspace is react-select's other way to clear a value.
@@ -467,7 +484,7 @@ describe("Evaluate this criteria over a period of time, on checks with a match h
       const boxAt: number = text.indexOf(
         "Evaluate this criteria over a period of time",
       );
-      const windowAt: number = text.indexOf("For the last (in minutes)");
+      const windowAt: number = text.indexOf("For the last");
 
       expect(conditionAt).toBeGreaterThan(-1);
       expect(valueAt).toBeGreaterThan(conditionAt);

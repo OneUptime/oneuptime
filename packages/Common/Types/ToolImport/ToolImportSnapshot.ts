@@ -4,6 +4,7 @@ import DayOfWeek from "../Day/DayOfWeek";
 import Dictionary from "../Dictionary";
 import EventInterval from "../Events/EventInterval";
 import DnsRecordType from "../Monitor/DnsMonitor/DnsRecordType";
+import MonitorRequestBodyFormat from "../Monitor/MonitorRequestBodyFormat";
 import MonitorType from "../Monitor/MonitorType";
 import { ToolImportNote } from "./ToolImportNote";
 import ToolImportSource from "./ToolImportSource";
@@ -260,8 +261,14 @@ export interface ImportedMonitor {
   httpMethod?: HTTPMethod | undefined;
   // Headers sent with each request; ones that may hold a secret are left out.
   requestHeaders?: Dictionary<string> | undefined;
-  // A JSON object, the only body OneUptime's API monitors send.
+  /*
+   * The body the tool sends: JSON - any JSON value - or, when
+   * requestBodyFormat says Text, the tool's text as it sends it, byte for
+   * byte: XML, form fields such as a=1&b=2, plain text (#10787).
+   */
   requestBody?: string | undefined;
+  // How the API monitor sends the body: JSON when unset, as it always was.
+  requestBodyFormat?: MonitorRequestBodyFormat | undefined;
   followRedirects?: boolean | undefined;
   // How long one check may take.
   timeoutSeconds?: number | undefined;

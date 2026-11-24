@@ -24,9 +24,9 @@ import TelemetryQueueService from "../Services/Queue/TelemetryQueueService";
  * #10737).
  *
  * Some steps need what only a newer probe does: a one-time code, which a
- * probe from before 17.0.1 drops and sends {{monitorSecrets.NAME}} as
+ * probe from before 17.1.0 drops and sends {{monitorSecrets.NAME}} as
  * written (TotpProbeGate), or a request body that is a JSON array, a single
- * value or text, which a probe from before 17.2.0 fails with "Expected
+ * value or text, which a probe from 17.2.0 or before fails with "Expected
  * JSONObject, but got JSONArray" (RequestBodyProbeGate). Either way the
  * check failed with an error that said nothing of why.
  *

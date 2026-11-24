@@ -6,7 +6,7 @@ Sécurité des données exécute 34 contrôles sur chaque magasin de données, e
 - [Comment un contrôle décide](#comment-un-contrôle-décide): Réussit, échoue ou ne peut pas trancher, et la gravité d'un échec.
 - [Chaque contrôle](#chaque-contrôle): Les 34, avec ce que chacun contrôle et comment corriger.
 - [Score de risque](#score-de-risque): Comment les problèmes sont ordonnés au sein d'une même gravité.
-- [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème.
+- [Ce qu'il advient d'un problème](#ce-quil-advient-dun-problème): Ouvert, résolu, accepté, pas un problème, comment chacun a été résolu, et les correctifs suivis jusqu'en production.
 - [L'analyse d'OneUptime AI](#lanalyse-doneuptime-ai): Si un problème est réel, ce qu'il met en danger, ce que la correction casserait et le chemin le plus court vers la correction.
 - [Corriger d'ici](#corriger-dici): Fermer une exposition, ou activer une protection manquante, en un clic.
 - [Problèmes d'une même cause](#problèmes-dune-même-cause): Les problèmes qu'une même erreur a causés, regroupés, et leur cause corrigée une seule fois.
@@ -154,13 +154,41 @@ OneUptime ouvre, met à jour et résout les problèmes au fil de l'exécution de
 | Statut | Comment il y arrive | Ce qui suit |
 | --- | --- | --- |
 | **Ouvert** | Son contrôle échoue actuellement sur le magasin de données. | Il compte dans la Vue d'ensemble, dans le résumé du magasin de données et dans la conformité, jusqu'à ce que le contrôle réussisse. |
-| **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé, ou son magasin de données a été archivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
+| **Résolu** | Son contrôle a réussi lors d'une exécution ultérieure, ne s'applique plus ou a été désactivé, ou son magasin de données a été archivé. Une personne peut aussi choisir **Marquer comme résolu** : le magasin de données est aussitôt contrôlé à nouveau. | Il indique comment il a été résolu (voir ci-dessous). Il s'ouvre à nouveau si le contrôle échoue de nouveau, et le problème compte combien de fois il a été rouvert. |
 | **Accepté** | Une personne a choisi **Accepter le risque**, avec un **Motif** et une date dans **Accepté jusqu'au**, au plus un an plus tard. | Il reste fermé jusqu'à cette date, puis s'ouvre à nouveau si le contrôle échoue toujours. Acceptez-le alors de nouveau si le motif tient toujours. |
 | **Pas un problème** | Une personne a choisi **Pas un problème** et a dit pourquoi dans **Motif** : la détection était erronée. | Il reste fermé, même tant que le contrôle échoue, et conserve le motif. **Rouvrir** le remet à Ouvert. |
 
 Les Membres de la sécurité, Administrateurs de la sécurité, Administrateurs du projet et Propriétaires du projet peuvent changer le statut d'un problème, et l'**Attribuer** à une personne ou à une équipe. Chaque modification est écrite dans la **Chronologie** du problème : quand il s'est ouvert, chaque changement de gravité, chaque changement de statut et qui l'a fait, les nouveaux contrôles demandés, et ce qu'ont fait les intégrations.
 
 Un problème qui s'ouvre à nouveau garde son historique. Les risques acceptés sont réexaminés chaque jour, donc une acceptation expire à temps même quand rien n'a été analysé.
+
+### Comment il a été résolu
+
+Un problème résolu indique comment il l'a été, en haut de sa page et dans la liste des problèmes, qui peut être filtrée selon ce critère sous **Résolution** :
+
+| Résolution | Ce que cela signifie |
+| --- | --- |
+| **Corrigé dans le code** | La pull request d'un correctif de code a été livrée, et la nouvelle version du service n'écrit plus les données. Le problème indique laquelle, « Corrigé dans la pull request #482, déployé dans la version 2.4.1, vérifié », et quand. |
+| **Corrigé dans le code d'infrastructure** | Une pull request vers le Terraform, le CloudFormation ou le Bicep qui déclare le magasin de données a été fusionnée, et le magasin a réussi son contrôle une fois la modification appliquée. |
+| **Corrigé depuis ici** | Une action de réponse ([Corriger d'ici](#corriger-dici)) a modifié le magasin de données, et son contrôle a réussi ensuite. |
+| **Confiné à l'ingestion** | Chaque détection d'un problème de télémétrie est masquée par une règle de nettoyage avant d'être stockée. Ce n'est pas une correction : le code écrit toujours les données, sur stdout et partout ailleurs où le service envoie sa télémétrie. Le problème le signale en orange, avec ce que la règle a modifié au cours de la dernière semaine, et propose **Corriger le code**. |
+| **Contrôle réussi** | Son contrôle réussit sans aucune modification de la part d'OneUptime. |
+| **Résolu par une personne** | Quelqu'un a choisi **Marquer comme résolu**. Le magasin de données est aussitôt contrôlé à nouveau, et le problème s'ouvre à nouveau si son contrôle échoue toujours. |
+| **Plus contrôlé** | Son contrôle a été désactivé, ou ne s'applique plus au magasin de données. |
+| **Magasin de données archivé** | Son magasin de données a disparu de sa source. |
+
+La Vue d'ensemble compte les problèmes corrigés à la source séparément des fuites seulement confinées à l'ingestion, et **Dans votre télémétrie** garde une détection confinée visible, marquée **Nettoyé**, jusqu'à ce que le code cesse de l'écrire.
+
+### Correctifs suivis jusqu'en production
+
+Une pull request qu'OneUptime AI a ouverte pour un problème (**Corriger avec l'IA**, ou une seule pull request pour un [groupe de problèmes](#problèmes-dune-même-cause)) n'a encore rien corrigé quand elle est fusionnée. OneUptime la suit jusqu'à ce que la production le prouve :
+
+- **Une fuite dans le code.** OneUptime attend un déploiement enregistré du service qui contient la fusion, puis surveille sa nouvelle version. Là où une règle de nettoyage masque les données, la règle ne doit modifier aucune valeur dans cette version ; là où aucune règle ne le fait, aucun enregistrement de cette version ne doit contenir les données aux endroits où elles ont été trouvées. La nouvelle version doit aussi tourner une journée et envoyer au moins autant de journaux ou de spans que l'ancienne dans l'heure où la fuite a été vue pour la dernière fois. Le problème est alors **Corrigé dans le code**. Une seule valeur modifiée, ou un seul enregistrement qui contient encore les données, signifie que le correctif n'a pas arrêté la fuite, et une version qui envoie trop peu en une semaine ne permet pas de conclure. Les déploiements sont rapprochés par leur commit : enregistrez-les avec `oneuptime deploy`, ou envoyez `vcs.ref.head.revision` (voir [Déploiements et changements](/docs/telemetry/change-events)).
+- **La configuration d'un magasin de données.** Quand la pull request est fusionnée, ses magasins de données sont aussitôt relus. Chaque problème dont le contrôle réussit ensuite est **Corrigé dans le code d'infrastructure**. Quand un magasin échoue encore à son contrôle lorsqu'il est relu un jour après la fusion, le correctif a été **fusionné, non appliqué** : les propriétaires du magasin et la personne qui a demandé la pull request reçoivent un e-mail, une seule fois, et les chronologies du problème et du magasin l'indiquent. C'est généralement un apply qui manque.
+- **La règle de nettoyage est conservée.** Après un correctif de code vérifié, la règle de nettoyage qui a confiné la fuite reste en place, si bien qu'une régression est masquée dès son arrivée. Le problème indique que la règle n'a rien modifié depuis le correctif, et propose **Supprimer la règle**.
+- **Une régression.** Un correctif vérifié reste surveillé ensuite : quand une règle conservée modifie de nouveau des valeurs, ou que l'analyse retrouve les données, le problème s'ouvre à nouveau et indique quelle version les a ramenées. Il reste ouvert jusqu'à ce qu'il soit de nouveau corrigé, même tant qu'une règle masque les données.
+
+Chaque étape figure dans la **Chronologie** du problème et dans celle du magasin de données, et Résultats IA compte les correctifs vérifiés par type (voir [Comment OneUptime AI s'en sort](/docs/ai/ai-sre#comment-oneuptime-ai-sen-sort)).
 
 ## L'analyse d'OneUptime AI
 

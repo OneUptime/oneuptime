@@ -7,8 +7,12 @@ import {
   isSecurityBlockInForce,
   readSecurityBlockValue,
 } from "./SecurityBlock";
+import { getSecurityBlockActionAt } from "./SecurityBlockChallenge";
 import { SECURITY_BLOCK_CONFIRMATION_MAX_AGE_IN_MS } from "./SecurityBlockEnforcement";
 import { SecurityAddressProtection } from "./SecurityProtectedAddress";
+
+// A firewall reading a feed cannot challenge (SecurityBlockChallenge): a policy's challenge is served as a block.
+const FEED_CHALLENGES: { canChallenge: boolean } = { canChallenge: false };
 
 /*
  * A BLOCKLIST FEED (#10345): a secret URL a firewall or a proxy reads the
@@ -325,6 +329,8 @@ export function isSecurityBlocklistFeedSourceAllowed(data: {
 export interface SecurityBlocklistFeedBlock {
   value?: string | undefined | null;
   action?: SecurityBlockAction | string | undefined | null;
+  // A challenge served as a block, where a firewall cannot challenge (#10350).
+  challengeFallsBackToBlock?: boolean | undefined | null;
   state?: string | undefined | null;
   expiresAt?: Date | string | undefined | null;
   // "OneUptime case CASE-123 until 2026-11-21 10:42 UTC", for the formats that keep comments.
@@ -420,8 +426,10 @@ export function selectSecurityBlocklistFeedEntries(data: {
   const entries: Map<string, SecurityBlocklistFeedEntry> = new Map();
 
   for (const block of data.blocks) {
+    // A block, or a policy's challenge a firewall holds as a block for the same time.
     if (
-      (block.action || SecurityBlockAction.Block) !== SecurityBlockAction.Block
+      getSecurityBlockActionAt(block, FEED_CHALLENGES) !==
+      SecurityBlockAction.Block
     ) {
       continue;
     }

@@ -119,7 +119,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide lo
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de cada filtro NTP. Actívala para juzgar una ventana de comprobaciones pasadas en lugar de la última: elige una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**. Solo las comprobaciones a las que el servidor respondió tienen estrato, desfase y dispersión raíz, así que una ventana sin respuestas no tiene datos para esos filtros, y **Si no hay datos** decide lo que pasa.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de cada filtro NTP. Actívala para juzgar una ventana de comprobaciones pasadas en lugar de la última: elige una agregación en **Evaluar** y una ventana, de 2 minutos a 24 horas, en **En el último período de**. Solo las comprobaciones a las que el servidor respondió tienen estrato, desfase y dispersión raíz, así que una ventana sin respuestas no tiene datos para esos filtros, y **Si no hay datos** decide lo que pasa.
 
 ### Criterios de ejemplo
 

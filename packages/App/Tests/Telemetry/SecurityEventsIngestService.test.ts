@@ -278,6 +278,21 @@ describe("SecurityEventsIngestService.extractEventsFromBody — accepted body sh
     expect(extractEvents("just a string")).toEqual([]);
     expect(extractEvents(42)).toEqual([]);
   });
+
+  /*
+   * #10795: the route hands on a gzip body of no JSON type, and protobuf,
+   * as their bytes. Their numbered keys made them one event of the bytes,
+   * stored as { type: "Buffer", data: [...] }, behind a 200.
+   */
+  test("bytes hold no events: a Buffer or a Uint8Array, as a gzip body of no JSON type and protobuf arrive", () => {
+    const lines: Buffer = Buffer.from(
+      `${JSON.stringify({ message: "one", src_ip: "192.0.2.1" })}\n`,
+    );
+
+    expect(extractEvents(lines)).toEqual([]);
+    expect(extractEvents(new Uint8Array(lines))).toEqual([]);
+    expect(extractEvents(Buffer.alloc(0))).toEqual([]);
+  });
 });
 
 describe("SecurityEventsIngestService.ingestSecurityEvents — HTTP handler", () => {
@@ -331,6 +346,37 @@ describe("SecurityEventsIngestService.ingestSecurityEvents — HTTP handler", ()
     expect((nextMock.mock.calls[0]![0] as BadRequestException).message).toMatch(
       /No security events found/,
     );
+    expect(getSendEmptySuccessMock()).not.toHaveBeenCalled();
+    expect(addJobSpy).not.toHaveBeenCalled();
+  });
+
+  test("a body of bytes fails with BadRequestException, as one with no events, before anything is sent or enqueued", async () => {
+    for (const body of [
+      Buffer.from("op=login acct=root res=failed\n"),
+      new Uint8Array([0x0a, 0x10, 0x01]),
+    ]) {
+      nextMock.mockClear();
+
+      const req: ExpressRequest = makeIngestRequest({
+        projectId: PROJECT_ID,
+        body: body,
+      });
+
+      await SecurityEventsIngestService.ingestSecurityEvents(
+        req,
+        res,
+        nextMock as unknown as NextFunction,
+      );
+
+      expect(nextMock).toHaveBeenCalledTimes(1);
+      expect(nextMock.mock.calls[0]![0]).toBeInstanceOf(BadRequestException);
+      expect(
+        (nextMock.mock.calls[0]![0] as BadRequestException).message,
+      ).toMatch(/No security events found/);
+      // Left as it arrived: nothing made of it.
+      expect(req.body).toBe(body);
+    }
+
     expect(getSendEmptySuccessMock()).not.toHaveBeenCalled();
     expect(addJobSpy).not.toHaveBeenCalled();
   });

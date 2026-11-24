@@ -738,6 +738,9 @@
   "/dashboard/:projectId/security-events/playbook-runs/all": [
     "security-events"
   ],
+  "/dashboard/:projectId/security-events/automatic-response": [
+    "security-events"
+  ],
   "/dashboard/:projectId/security-events/blocklist": [
     "security-events"
   ],

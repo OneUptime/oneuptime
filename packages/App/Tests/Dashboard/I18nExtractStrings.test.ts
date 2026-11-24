@@ -1738,6 +1738,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog.ts",
       // Why a block is refused, that an address is blocked already, and what protects one (#10338).
       "keys packages/Common/Types/SecurityBlocklist",
+      // The ready automatic response policies and what is wrong with a project's own (#10350) - not their rules.
+      "keys packages/Common/Types/SecurityAutomaticResponse",
       // What each span type is - its marked sentences, not its choices' names.
       "keys packages/Common/Types/Telemetry/TraceSpanType.ts",
       // What Give Feedback can be about (#8893) - not the rules for asking people.

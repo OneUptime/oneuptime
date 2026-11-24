@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["I nuovi log vengono mascherati<br/>prima di essere conservati"]
 ```
 
-Un risultato coperto da una regola di pulizia viene contrassegnato come ripulito: ciò che resta di quei dati sono dati vecchi in attesa della fine della loro conservazione, non una fuga ancora in corso. I due controlli della telemetria contano solo ciò che nessuna regola copre, quindi il loro problema si risolve quando ogni risultato è ripulito (vedi [Controlli della telemetria](/docs/data-security/checks-and-issues#telemetria)).
+Un risultato coperto da una regola di pulizia viene contrassegnato come ripulito: ciò che OneUptime conserva di quei dati sono dati vecchi in attesa della fine della loro conservazione. Il codice però li scrive ancora, quindi i due controlli della telemetria lo contano come contenuto, non corretto: il loro problema si risolve come **Contenuto in fase di acquisizione** quando ogni risultato è ripulito, e come **Corretto nel codice** solo quando la nuova versione di una correzione del codice smette di scrivere i dati (vedi [Cosa succede a un problema](/docs/data-security/checks-and-issues#cosa-succede-a-un-problema)).
 
 ## Cosa viene letto
 

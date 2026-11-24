@@ -359,7 +359,13 @@ describe("Esper Device Stopped Checking In, through monitorResource", () => {
     expect(alertedDevices()).toEqual([]);
   });
 
-  test("another Metrics monitor's silence keeps its old meaning: no criteria met is the default status", async () => {
+  /*
+   * Not a managed device's silence: an ordinary Metrics monitor's. Its
+   * problem criteria's status waits for its recovery criteria, as any
+   * ungrouped monitor's does inside the margin (#10743), and what is open
+   * still resolves.
+   */
+  test("another Metrics monitor's silence keeps the status its problem criteria set, and still resolves its alerts", async () => {
     useStep(
       MonitorType.Metrics,
       getHostAlertTemplateById("host-high-cpu")!.getMonitorStep({
@@ -375,7 +381,7 @@ describe("Esper Device Stopped Checking In, through monitorResource", () => {
     await MonitorResourceUtil.monitorResource(check({}));
 
     expect(closeAlerts).toHaveBeenCalled();
-    expect(timelineCreate).toHaveBeenCalled();
+    expect(timelineCreate).not.toHaveBeenCalled();
   });
 });
 

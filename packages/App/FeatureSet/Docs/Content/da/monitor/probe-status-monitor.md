@@ -71,7 +71,7 @@ Filteret **Forbundne sonder** passer til en monitor, der overvåger flere sonder
 
 ### Vent længere før en hændelse
 
-En sonde er først afbrudt efter tre minutters stilhed, så en hurtig genstart åbner intet. For at vente længere skal du sætte flueben i **Evaluér disse kriterier over en periode** under filteret, vælge **Alle værdier** under **Evaluér** og et vindue under **For de seneste (i minutter)**. Med fem minutter skal en sonde forblive afbrudt fem minutter mere, før hændelsen erklæres.
+En sonde er først afbrudt efter tre minutters stilhed, så en hurtig genstart åbner intet. For at vente længere skal du sætte flueben i **Evaluér disse kriterier over en periode** under filteret, vælge **Alle værdier** under **Evaluér** og et vindue under **For de seneste**. Med fem minutter skal en sonde forblive afbrudt fem minutter mere, før hændelsen erklæres.
 
 ## Metrikker
 

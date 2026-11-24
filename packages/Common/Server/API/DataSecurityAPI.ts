@@ -27,6 +27,10 @@ import DataSensitivity, {
   DATA_SENSITIVITY_RANK,
 } from "../../Types/DataSecurity/DataSensitivity";
 import DataSecurityIssueStatus from "../../Types/DataSecurity/DataSecurityIssueStatus";
+import DataSecurityIssueResolution, {
+  isFixedAtSource,
+  isVerifiedFixResolution,
+} from "../../Types/DataSecurity/DataSecurityIssueResolution";
 import {
   DATA_SECURITY_API_ROUTES,
   DataSecurityComplianceResponse,
@@ -35,9 +39,12 @@ import {
   DataSecurityExplainResult,
   DataSecurityFindingOccurrences,
   DataSecurityIssueAnalysisResult,
+  DataSecurityIssueContainment,
+  DataSecurityIssueContainmentResult,
   DataSecurityOccurrencesUnavailableReason,
   DataSecurityOverview,
   DataSecurityOverviewIssue,
+  DataSecurityOverviewResolutions,
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
   DataSecurityResourceComplianceResponse,
@@ -84,6 +91,7 @@ import PendingInviteeProfiles, {
 } from "../Utils/TeamMember/PendingInviteeProfiles";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
 import DataSecurityIssueGroups from "../Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueContainmentReader from "../Utils/DataSecurity/DataSecurityIssueContainment";
 import DataSecurityIssueGroupFix, {
   CLOUD_FIX_PERMISSIONS,
   GROUP_PULL_REQUEST_PERMISSIONS,
@@ -201,6 +209,13 @@ import ProductKey from "../../Types/Product/ProductKey";
  * Every route reads only the caller's project and answers 404-like errors
  * for another project's records.
  */
+
+// One day of the overview's trend: issues opened, resolved, and only contained.
+interface TrendCounts {
+  opened: number;
+  resolved: number;
+  contained: number;
+}
 
 const READ_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
@@ -804,6 +819,32 @@ export default class DataSecurityAPI extends BaseAPI<
               })
             : null,
         };
+
+        return result as unknown as JSONObject;
+      },
+    );
+
+    /*
+     * What hides a telemetry issue's data at ingest, and whether the code
+     * still writes it (#10368): each rule, and what it changed of the
+     * issue's service lately and since a verified code fix. For the
+     * issue's readers; an issue the caller may not read is not found.
+     */
+    this.post(
+      DATA_SECURITY_API_ROUTES.issueContainment(":id"),
+      EXPLAIN_ISSUE_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const containment: DataSecurityIssueContainment | null =
+          await DataSecurityIssueContainmentReader.read({
+            projectId,
+            issueId: DataSecurityAPI.readId(req),
+            props,
+          });
+        const result: DataSecurityIssueContainmentResult = { containment };
 
         return result as unknown as JSONObject;
       },
@@ -1493,6 +1534,8 @@ export default class DataSecurityAPI extends BaseAPI<
           checkId: true,
           firstDetectedAt: true,
           resolvedAt: true,
+          // How each resolved, so a leak only contained counts apart (#10368).
+          resolution: true,
           dataStoreId: true,
           dataStore: { name: true },
         },
@@ -1506,18 +1549,22 @@ export default class DataSecurityAPI extends BaseAPI<
       [SecuritySeverity.Medium]: 0,
       [SecuritySeverity.Low]: 0,
     };
-    const trend: Map<string, { opened: number; resolved: number }> = new Map();
+    const trend: Map<string, TrendCounts> = new Map();
+    const resolutions: DataSecurityOverviewResolutions = {
+      fixedAtSource: 0,
+      verifiedFixes: 0,
+      contained: 0,
+      other: 0,
+    };
 
     for (const { day } of trendDays) {
-      trend.set(day, { opened: 0, resolved: 0 });
+      trend.set(day, { opened: 0, resolved: 0, contained: 0 });
     }
 
     // The trend's entry for the day `date` falls on, if it is one of them.
-    const entryOn: (
+    const entryOn: (date: Date) => TrendCounts | undefined = (
       date: Date,
-    ) => { opened: number; resolved: number } | undefined = (
-      date: Date,
-    ): { opened: number; resolved: number } | undefined => {
+    ): TrendCounts | undefined => {
       const day: CalendarDay | undefined = findCalendarDay(trendDays, date);
 
       return day ? trend.get(day.day) : undefined;
@@ -1542,12 +1589,34 @@ export default class DataSecurityAPI extends BaseAPI<
       }
 
       if (issue.resolvedAt && issue.resolvedAt >= since) {
-        const entry: { opened: number; resolved: number } | undefined = entryOn(
-          issue.resolvedAt,
-        );
+        const entry: TrendCounts | undefined = entryOn(issue.resolvedAt);
+        const isStillResolved: boolean =
+          issue.status === DataSecurityIssueStatus.Resolved;
+        const isContained: boolean =
+          isStillResolved &&
+          issue.resolution === DataSecurityIssueResolution.ContainedAtIngest;
 
         if (entry) {
           entry.resolved++;
+
+          if (isContained) {
+            entry.contained++;
+          }
+        }
+
+        // How the ones still resolved were: fixed where they start, or only contained.
+        if (isStillResolved && entry) {
+          if (isContained) {
+            resolutions.contained++;
+          } else if (isFixedAtSource(issue.resolution)) {
+            resolutions.fixedAtSource++;
+
+            if (isVerifiedFixResolution(issue.resolution)) {
+              resolutions.verifiedFixes++;
+            }
+          } else {
+            resolutions.other++;
+          }
         }
       }
     }
@@ -1630,10 +1699,16 @@ export default class DataSecurityAPI extends BaseAPI<
       openIssuesBySeverity,
       topIssues,
       issueTrend: [...trend.entries()].map(
-        ([day, counts]: [string, { opened: number; resolved: number }]) => {
-          return { day, opened: counts.opened, resolved: counts.resolved };
+        ([day, counts]: [string, TrendCounts]) => {
+          return {
+            day,
+            opened: counts.opened,
+            resolved: counts.resolved,
+            contained: counts.contained,
+          };
         },
       ),
+      resolutions,
       telemetryFindingCount: telemetryFindings,
       unscrubbedTelemetryFindingCount: unscrubbed,
       connectionsWithoutContentAccess: connections.filter(

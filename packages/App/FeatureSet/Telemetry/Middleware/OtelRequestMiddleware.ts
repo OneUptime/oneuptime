@@ -14,6 +14,7 @@ import logger, {
 import OtelPayloadDecoder, {
   SUPPORTED_OTLP_CONTENT_ENCODINGS,
 } from "../Utils/OtelPayloadDecoder";
+import IngestRequestMetrics from "./IngestRequestMetrics";
 
 /*
  * Byte ceiling for one OTLP ingest request, measured on the wire (so on
@@ -173,6 +174,43 @@ export default class OpenTelemetryRequestMiddleware {
     } catch (err) {
       return next(err);
     }
+  }
+
+  /*
+   * THE BODY, READ ONCE THE INGEST KEY IS RIGHT (#10814): the reader an OTLP
+   * route gives its key check (TelemetryIngest.forSurface), which runs it
+   * after every check of the key and its rate, and before the ingestion
+   * budget, which measures the bytes it read. Every exporter sends its key
+   * in a header (x-oneuptime-token: an SDK's OTEL_EXPORTER_OTLP_HEADERS, the
+   * Collector's otlphttp headers), so a request without the right key has
+   * nothing of its body read: up to MAX_OTLP_REQUEST_BYTES of it, for
+   * anyone, before.
+   *
+   * It is parseBody, as it was: the bytes raw, held to the cap, a coding the
+   * worker cannot undo refused 415, each answered here, which ends the
+   * request. The size is recorded once the body is read, as a compatible
+   * endpoint's is: the ingest metrics are mounted before the key check, so
+   * a request refused for its key is counted too (IngestRequestMetrics).
+   */
+  public static async readBodyAfterKey(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    await OpenTelemetryRequestMiddleware.parseBody(req, res, ((
+      err?: unknown,
+    ): void => {
+      if (!err) {
+        const body: unknown = req.body;
+
+        IngestRequestMetrics.recordPayloadSize(
+          req,
+          body instanceof Uint8Array ? body.byteLength : 0,
+        );
+      }
+
+      next(err);
+    }) as NextFunction);
   }
 
   private static rejectTooLarge(res: ExpressResponse, bytes: number): void {

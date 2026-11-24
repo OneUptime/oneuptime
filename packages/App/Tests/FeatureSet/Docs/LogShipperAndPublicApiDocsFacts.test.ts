@@ -1039,7 +1039,7 @@ describe("the Serilog page", () => {
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/OTelIngest.ts")),
     ).toContain(
-      'router.post( "/otlp/v1/logs", TelemetryIngestionDisabled.middleware, OpenTelemetryRequestMiddleware.parseBody, ingestMetricsMiddleware("logs"), OpenTelemetryRequestMiddleware.getProductType, TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs),',
+      'router.post( "/otlp/v1/logs", TelemetryIngestionDisabled.middleware, ingestMetricsMiddleware("logs"), OpenTelemetryRequestMiddleware.getProductType, TelemetryIngest.forSurface(TelemetryIngestSurface.OtelLogs, readOtlpBody),',
     );
     expect(englishPage(SERILOG)).toContain(
       "the final URL it posts to is `https://oneuptime.com/otlp/v1/logs`",

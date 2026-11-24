@@ -461,6 +461,7 @@
     "Get Started with Security": "Kom igång med säkerhet",
     "Security Events (SIEM)": "Säkerhetshändelser (SIEM)",
     "Security Cases and Playbooks (SOAR)": "Säkerhetsärenden och playbooks (SOAR)",
+    "Automatic Response": "Automatisk respons",
     "Blocklist Feeds for Firewalls and Proxies": "Blocklistflöden för brandväggar och proxyer",
     "Entity Risk (Risk-Based Alerting)": "Entitetsrisk (riskbaserad larmning)",
     "Connected Signals": "Kopplade signaler",

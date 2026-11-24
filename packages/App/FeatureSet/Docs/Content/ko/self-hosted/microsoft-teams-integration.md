@@ -253,7 +253,7 @@ OneUptime의 [사설 네트워크 액세스 설정](/docs/self-hosted/private-ne
 
 ### 아웃바운드 액세스와 IP 제한
 
-OneUptime 앱에서 DNS 확인과 아웃바운드 HTTPS를 허용합니다. `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework의 인증 및 채널 엔드포인트, 그리고 대화마다 제공되는 커넥터 서비스 URL을 사용합니다. 상용 클라우드의 대체 커넥터는 `https://smba.trafficmanager.net/teams/`이며, 대화의 서비스 URL은 이와 다를 수 있습니다. [Microsoft의 방화벽 지침](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)을 적용하고 테스트 중에 차단된 트래픽을 살펴보세요. 이것은 호스트 이름의 전체 목록이 아닙니다. [미국 정부 클라우드](#미국-정부-클라우드)에서는 이들이 그 클라우드 자체의 호스트입니다.
+OneUptime 앱에서 DNS 확인과 아웃바운드 HTTPS를 허용합니다. `graph.microsoft.com`, `login.microsoftonline.com`, Bot Framework의 인증 및 채널 엔드포인트, 그리고 대화마다 제공되는 커넥터 서비스 URL을 사용합니다. 상용 클라우드의 대체 커넥터는 `https://smba.trafficmanager.net/teams/`이며, 대화의 서비스 URL은 이와 다를 수 있습니다. [Microsoft의 방화벽 지침](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-resources-faq-security?view=azure-bot-service-4.0)을 적용하고 테스트 중에 차단된 트래픽을 살펴보세요. 이것은 호스트 이름의 전체 목록이 아닙니다. [미국 정부 클라우드](#미국-정부-클라우드)에서는 이들이 그 클라우드 자체의 호스트입니다. 아웃바운드 프록시 뒤에서는 봇도 서버의 나머지와 마찬가지로 `NO_PROXY`에 있는 호스트를 빼고 이 모두에 프록시를 거쳐 연결합니다. 자세한 내용은 [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access)을 참고하세요.
 
 Microsoft는 Bot Framework 인바운드 트래픽에 대한 고정 IP 허용 목록을 지원하지 않습니다. 원본 주소가 바뀌기 때문입니다. Teams 클라이언트의 미디어 IP 범위는 봇 웹후크의 원본을 나타내지 않습니다. 원본 IP를 신원의 증거로 취급하지 말고 Bot Framework 인증을 켜 두세요.
 

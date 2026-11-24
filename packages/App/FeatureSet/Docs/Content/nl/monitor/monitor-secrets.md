@@ -83,6 +83,8 @@ Geheimen worden ingevuld voordat het script van een monitor van het type Synthet
 
 Verwijst een monitor naar een geheim dat hij niet mag gebruiken, dan blijft de verwijzing staan zoals ze is en wordt ze niet door de waarde vervangen.
 
+Wanneer de controle van een monitor van het type API, Website of Externe statuspagina mislukt, noemt de fout de URL alleen met schema, host en poort, zoals `https://api.example.com`, dus een geheim in de URL wordt nooit getoond.
+
 Wanneer u een monitor test voordat u hem opslaat, worden alleen geheimen ingevuld die beschikbaar zijn voor **Alle monitoren**, omdat een nieuwe monitor op geen enkele lijst staat en nog geen labels heeft. Nadat u de monitor hebt opgeslagen, gebruiken tests elk geheim dat de monitor mag gebruiken.
 
 ## Aanmelden met een eenmalige code
@@ -128,7 +130,7 @@ return {
 De sonde geeft nooit een code af met minder dan vijf seconden over, of minder dan een derde van de periode als de periode korter is: ze wacht dan op de volgende code, hoogstens vijf seconden, en telt die wachttijd niet mee in de uitvoeringstijd van de controle. Elke code die een controle maakt, wordt als sterretjes getoond, zoals `******`, in de logberichten, het resultaat, de fout en de namen van de schermafbeeldingen van die controle. Een schermafbeelding is een afbeelding van de pagina, dus maak die voordat de code wordt getypt of nadat de pagina verder is gegaan.
 
 > [!NOTE]
-> De sonde maakt de codes, dus een aangepaste sonde heeft OneUptime 17.0.1 of nieuwer nodig. Op een oudere draait een controle die een code nodig heeft niet, en mislukt ze met een zin die zegt dat u de sonde moet bijwerken; het formulier van de monitor en de pagina van de sonde noemen een sonde die te oud is, en [Een sonde bijwerken](/docs/probe/custom-probe#een-sonde-bijwerken) legt uit hoe. Ook de klok van de sonde moet kloppen, want een sonde die een minuut afwijkt, maakt codes waar de site al voorbij is.
+> De sonde maakt de codes, dus een aangepaste sonde heeft OneUptime 17.1.0 of nieuwer nodig. Op een oudere draait een controle die een code nodig heeft niet, en mislukt ze met een zin die zegt dat u de sonde moet bijwerken; het formulier van de monitor en de pagina van de sonde noemen een sonde die te oud is, en [Een sonde bijwerken](/docs/probe/custom-probe#een-sonde-bijwerken) legt uit hoe. Ook de klok van de sonde moet kloppen, want een sonde die een minuut afwijkt, maakt codes waar de site al voorbij is.
 
 ## Problemen oplossen
 
@@ -149,7 +151,7 @@ Controleer of de **Huidige code** overeenkwam met uw authenticator-app toen u he
 :::
 
 :::details De controle zegt dat de sonde te oud is om eenmalige codes te maken
-De sonde draait een versie ouder dan OneUptime 17.0.1, die geen eenmalige codes kan maken, dus de controle is er niet op uitgevoerd. Werk de sonde bij (zie [Een sonde bijwerken](/docs/probe/custom-probe#een-sonde-bijwerken)), of laat sondes met 17.0.1 of nieuwer de monitor controleren.
+De sonde draait een versie ouder dan OneUptime 17.1.0, die geen eenmalige codes kan maken, dus de controle is er niet op uitgevoerd. Werk de sonde bij (zie [Een sonde bijwerken](/docs/probe/custom-probe#een-sonde-bijwerken)), of laat sondes met 17.1.0 of nieuwer de monitor controleren.
 :::
 
 ## Volgende stappen

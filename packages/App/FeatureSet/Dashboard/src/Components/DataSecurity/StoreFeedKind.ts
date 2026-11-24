@@ -34,6 +34,13 @@ export const getDataStoreFeedKind: GetDataStoreFeedKindFunction = (
     case DataStoreFeedEventType.AiChangeUndone:
     case DataStoreFeedEventType.AiChangeFailed:
       return getAiFeedKind(eventType);
+    // A fix of one of its issues followed to production (#10368).
+    case DataStoreFeedEventType.IssueFixVerified:
+      return { icon: IconProp.CheckCircle, tone: FeedTone.Success };
+    case DataStoreFeedEventType.IssueFixNotApplied:
+      return { icon: IconProp.Clock, tone: FeedTone.Warning };
+    case DataStoreFeedEventType.IssueFixRegressed:
+      return { icon: IconProp.Refresh, tone: FeedTone.Danger };
     default:
       return undefined;
   }

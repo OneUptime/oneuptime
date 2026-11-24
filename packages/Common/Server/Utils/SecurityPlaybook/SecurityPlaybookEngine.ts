@@ -204,6 +204,7 @@ export default class SecurityPlaybookEngine {
         threatIntelMatched: true,
         startedAt: true,
         triggeredByUserId: true,
+        securityAutomaticResponsePolicyId: true,
         trigger: true,
         createdAt: true,
       },
@@ -645,6 +646,8 @@ export default class SecurityPlaybookEngine {
           triggeredByUserId: run.triggeredByUserId,
           targets: results[index]!.targets,
           isOneStepRun,
+          automaticResponsePolicyId:
+            run.securityAutomaticResponsePolicyId || undefined,
           isOneUptimeAi,
         });
       } catch (error) {

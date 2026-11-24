@@ -197,7 +197,7 @@ describe("the paths the App's own clients send large bodies to", () => {
       LARGE_REQUEST_BODY_LIMIT,
     ],
     [
-      "Security Events, which the StartServer parsers read",
+      "Security Events, read once its ingest key is checked (#10795)",
       [...under(TELEMETRY_ROUTE_PREFIXES, "/security-events/v1/ingest")],
       LARGE_REQUEST_BODY_LIMIT,
     ],
@@ -301,6 +301,10 @@ describe("the paths the App's own clients send large bodies to", () => {
         '"/incoming-request/:secretkey"',
       ],
       ["FeatureSet/Telemetry/API/Fluent.ts", '"/fluentd/v1/logs"'],
+      [
+        "FeatureSet/Telemetry/API/SecurityEventsIngest.ts",
+        '"/security-events/v1/ingest"',
+      ],
       ["FeatureSet/Telemetry/API/DbtArtifactsIngest.ts", '"/dbt/v1/artifacts"'],
       [
         "FeatureSet/Telemetry/API/SourceMapIngest.ts",
@@ -320,13 +324,16 @@ describe("the paths the App's own clients send large bodies to", () => {
   });
 
   /*
-   * A telemetry route a body comes in by - a collector's, an agent's, CI's -
-   * is mounted on TELEMETRY_PREFIXES. Each one StartServer reads the body of
-   * takes a large route's limit; the rest read their own (OTLP, session
-   * replay, the compatible endpoints, the Vercel log drain, the cloud
-   * streams). A route added there without either fails here.
+   * A telemetry route a body comes in by - a collector's, an agent's, CI's,
+   * a SIEM's - is mounted on TELEMETRY_PREFIXES. None has its body read by
+   * StartServer, before its key is checked (#10702, #10795): each reads its
+   * own (OTLP, session replay, the compatible endpoints, the Vercel log
+   * drain, the cloud streams), or reads it once its key is right
+   * (readsBodyAfterAuthentication). A route added there without either -
+   * whose body anyone could have read and parsed, up to its limit - fails
+   * here.
    */
-  test("every telemetry route that takes a body StartServer reads is a large one", () => {
+  test("no telemetry route has its body read by StartServer: each reads its own, or reads it once its key is right", () => {
     const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
     const mounted: Array<string> = Array.from(
       telemetryIndex.matchAll(/app\.use\(TELEMETRY_PREFIXES, (\w+)\);/g),
@@ -336,7 +343,8 @@ describe("the paths the App's own clients send large bodies to", () => {
 
     expect(mounted.length).toBeGreaterThan(20);
 
-    const checked: Array<string> = [];
+    const scanned: Array<string> = [];
+    const readByStartServer: Array<{ path: string; bytes: number }> = [];
 
     for (const name of mounted) {
       const imported: RegExpMatchArray | null = telemetryIndex.match(
@@ -367,26 +375,30 @@ describe("the paths the App's own clients send large bodies to", () => {
             isCompatibleIngestPath(path) ||
             readsBodyAfterAuthentication(path);
 
+          scanned.push(path);
+
           if (!readsItsOwnBody) {
-            expect({
+            readByStartServer.push({
               path,
               bytes: getRequestBodyLimit(path).bytes,
-            }).toEqual({ path, bytes: LARGE_REQUEST_BODY_LIMIT.bytes });
-            checked.push(path);
+            });
           }
         }
       }
     }
 
-    expect(checked).toEqual(
+    // The scan reads every router: OTLP, the batches, Security Events.
+    expect(scanned).toEqual(
       expect.arrayContaining([
+        "/otlp/v1/traces",
+        "/telemetry/fluentd/v1/logs",
+        "/pyroscope/push.v1.PusherService/Push",
         "/security-events/v1/ingest",
         "/telemetry/security-events/v1/ingest",
       ]),
     );
-    // Read once their key is right (#10702), so not by StartServer.
-    expect(checked).not.toContain("/telemetry/fluentd/v1/logs");
-    expect(checked).not.toContain("/pyroscope/push.v1.PusherService/Push");
+    // Security Events was the last (#10795).
+    expect(readByStartServer).toEqual([]);
   });
 
   /*
@@ -394,7 +406,9 @@ describe("the paths the App's own clients send large bodies to", () => {
    * itself once its key is right - the key check reads it, before the
    * ingestion budget (TelemetryIngest.forSurface's reader), or a reader
    * mounted after it (the uploads). One that read it nowhere would find no
-   * body at all, from every client.
+   * body at all, from every client. OTLP/HTTP and the Vercel log drain,
+   * which StartServer leaves to their own readers by their paths, read
+   * theirs in the key check too (#10814): they read it before the key.
    */
   test("every telemetry route whose body StartServer leaves unread reads it once the key is right", () => {
     const telemetryIndex: string = readSource("FeatureSet/Telemetry/Index.ts");
@@ -423,14 +437,15 @@ describe("the paths the App's own clients send large bodies to", () => {
       )) {
         const path: string = route[1]!;
         const chain: string = route[2]!;
+        const isOtlpOrVercelDrain: boolean =
+          path.includes("/otlp/v1/") || isVercelLogDrainPath(path);
 
         if (
-          path.includes("/otlp/v1/") ||
-          path.includes("/session-replay/v1/") ||
-          isVercelLogDrainPath(path) ||
-          isCloudStreamPath(path) ||
-          isCompatibleIngestPath(path) ||
-          !readsBodyAfterAuthentication(path)
+          !isOtlpOrVercelDrain &&
+          (path.includes("/session-replay/v1/") ||
+            isCloudStreamPath(path) ||
+            isCompatibleIngestPath(path) ||
+            !readsBodyAfterAuthentication(path))
         ) {
           continue;
         }
@@ -461,6 +476,12 @@ describe("the paths the App's own clients send large bodies to", () => {
         "/pyroscope/ingest",
         "/source-maps/v1/upload",
         "/dsyms/v1/upload",
+        "/security-events/v1/ingest",
+        "/otlp/v1/traces",
+        "/otlp/v1/metrics",
+        "/otlp/v1/logs",
+        "/otlp/v1/profiles",
+        "/vercel/v1/logs",
       ]),
     );
   });
