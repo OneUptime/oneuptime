@@ -262,8 +262,7 @@ export default class ServerMonitorCriteria {
        * otherwise.
        */
       return CompareCriteria.compareCriteriaNumbers({
-        value:
-          (overTimeValue as Array<number> | number | undefined) ?? days,
+        value: (overTimeValue as Array<number> | number | undefined) ?? days,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });

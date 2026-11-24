@@ -119,7 +119,10 @@ describe("an SSL certificate's days left (#10905)", () => {
         }),
       ).toBe(-2);
       expect(
-        SslCertificateExpiry.getDaysLeft({ sslResponse: {} as SslMonitorResponse, at: NOW }),
+        SslCertificateExpiry.getDaysLeft({
+          sslResponse: {} as SslMonitorResponse,
+          at: NOW,
+        }),
       ).toBeNull();
       expect(
         SslCertificateExpiry.getDaysLeft({ sslResponse: undefined, at: NOW }),
@@ -151,14 +154,16 @@ describe("an SSL certificate's days left (#10905)", () => {
         .mockResolvedValue(undefined as never);
       jest
         .spyOn(MetricService, "insertJsonRows")
-        .mockImplementation(async (written: Array<JSONObject>): Promise<void> => {
-          rows.push(...written);
-        });
+        .mockImplementation(
+          async (written: Array<JSONObject>): Promise<void> => {
+            rows.push(...written);
+          },
+        );
     });
 
-    async function save(sslResponse: SslMonitorResponse | undefined): Promise<
-      Array<JSONObject>
-    > {
+    async function save(
+      sslResponse: SslMonitorResponse | undefined,
+    ): Promise<Array<JSONObject>> {
       await MonitorMetricUtil.saveMonitorMetrics({
         monitorId: MONITOR_ID,
         projectId: PROJECT_ID,
@@ -243,7 +248,9 @@ describe("an SSL certificate's days left (#10905)", () => {
 
       // A DNS monitor's charts are unchanged.
       expect(
-        MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(MonitorType.DNS),
+        MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+          MonitorType.DNS,
+        ),
       ).toEqual([MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime]);
     });
 
@@ -303,16 +310,27 @@ describe("an SSL certificate's days left (#10905)", () => {
     }
 
     test("0 is a threshold: a certificate past its expiry is less than 0 days, one on its last day at least 0", async () => {
-      expect(await judge(daysLeft(FilterType.LessThan, 0), certificate(-2))).toBeTruthy();
-      expect(await judge(daysLeft(FilterType.LessThan, 0), certificate(5))).toBeNull();
       expect(
-        await judge(daysLeft(FilterType.GreaterThanOrEqualTo, 0), certificate(0, 5)),
+        await judge(daysLeft(FilterType.LessThan, 0), certificate(-2)),
+      ).toBeTruthy();
+      expect(
+        await judge(daysLeft(FilterType.LessThan, 0), certificate(5)),
+      ).toBeNull();
+      expect(
+        await judge(
+          daysLeft(FilterType.GreaterThanOrEqualTo, 0),
+          certificate(0, 5),
+        ),
       ).toBeTruthy();
 
       // Expires In Hours too.
       expect(
         await judge(
-          { checkOn: CheckOn.ExpiresInHours, filterType: FilterType.LessThan, value: 0 },
+          {
+            checkOn: CheckOn.ExpiresInHours,
+            filterType: FilterType.LessThan,
+            value: 0,
+          },
           certificate(-1),
         ),
       ).toBeTruthy();
@@ -321,11 +339,17 @@ describe("an SSL certificate's days left (#10905)", () => {
     test("a threshold that is no number, or a check with no expiry, matches nothing", async () => {
       expect(
         await judge(
-          { checkOn: CheckOn.ExpiresInDays, filterType: FilterType.LessThan, value: "soon" },
+          {
+            checkOn: CheckOn.ExpiresInDays,
+            filterType: FilterType.LessThan,
+            value: "soon",
+          },
           certificate(1),
         ),
       ).toBeNull();
-      expect(await judge(daysLeft(FilterType.LessThan, 14), undefined)).toBeNull();
+      expect(
+        await judge(daysLeft(FilterType.LessThan, 14), undefined),
+      ).toBeNull();
     });
 
     test("over a window, the window's days are judged, not this check's", async () => {
@@ -335,17 +359,28 @@ describe("an SSL certificate's days left (#10905)", () => {
 
       // The fewest days left over the last day: 5, though this check reads 30.
       overTime.mockResolvedValue({ earlyReturn: null, value: 5 });
-      expect(await judge(daysLeft(FilterType.LessThan, 7), certificate(30))).toBeTruthy();
+      expect(
+        await judge(daysLeft(FilterType.LessThan, 7), certificate(30)),
+      ).toBeTruthy();
 
       // Every check of the window: 10 and 12 are both under 14; 10 and 20 are not.
       overTime.mockResolvedValue({ earlyReturn: null, value: [10, 12] });
-      expect(await judge(daysLeft(FilterType.LessThan, 14), certificate(30))).toBeTruthy();
+      expect(
+        await judge(daysLeft(FilterType.LessThan, 14), certificate(30)),
+      ).toBeTruthy();
       overTime.mockResolvedValue({ earlyReturn: null, value: [10, 20] });
-      expect(await judge(daysLeft(FilterType.LessThan, 14), certificate(30))).toBeNull();
+      expect(
+        await judge(daysLeft(FilterType.LessThan, 14), certificate(30)),
+      ).toBeNull();
 
       // A window that cannot be judged yet decides, never this check alone.
-      overTime.mockResolvedValue({ earlyReturn: { result: null }, value: undefined });
-      expect(await judge(daysLeft(FilterType.GreaterThan, 7), certificate(30))).toBeNull();
+      overTime.mockResolvedValue({
+        earlyReturn: { result: null },
+        value: undefined,
+      });
+      expect(
+        await judge(daysLeft(FilterType.GreaterThan, 7), certificate(30)),
+      ).toBeNull();
     });
   });
 
@@ -379,19 +414,17 @@ describe("an SSL certificate's days left (#10905)", () => {
       previous: number | null;
       now: SslMonitorResponse;
     }): Promise<CheckWindowJudgement> {
-      jest
-        .spyOn(MetricService, "readPreviousMonitorChecks")
-        .mockResolvedValue(
-          (input.previous === null
-            ? []
-            : [
-                {
-                  group: { probeId: PROBE_ID.toString() },
-                  value: input.previous,
-                  at: new Date(NOW.getTime() - 5 * 60 * 1000),
-                },
-              ]) as Array<MonitorPreviousCheckRow>,
-        );
+      jest.spyOn(MetricService, "readPreviousMonitorChecks").mockResolvedValue(
+        (input.previous === null
+          ? []
+          : [
+              {
+                group: { probeId: PROBE_ID.toString() },
+                value: input.previous,
+                at: new Date(NOW.getTime() - 5 * 60 * 1000),
+              },
+            ]) as Array<MonitorPreviousCheckRow>,
+      );
 
       jest.spyOn(logger, "error").mockImplementation(() => {
         return undefined as never;

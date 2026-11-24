@@ -194,16 +194,24 @@ describe("every window of a step reads that step's rows", () => {
       });
     }
 
-    for (const [name, read] of [
+    describe.each([
       ["summarizeMonitorChecks", summarize],
       ["readPreviousMonitorChecks", readPrevious],
     ] as Array<
       [
         string,
-        (attributes: Record<string, string | Array<string>>) => Promise<unknown>,
+        (
+          attributes: Record<string, string | Array<string>>,
+        ) => Promise<unknown>,
       ]
-    >) {
-      describe(name, () => {
+    >)(
+      "%s",
+      (
+        _name: string,
+        read: (
+          attributes: Record<string, string | Array<string>>,
+        ) => Promise<unknown>,
+      ) => {
         test("a step and the rows that name none: one IN over the attribute, its values parameters", async () => {
           await read({ [MONITOR_STEP_ID_ATTRIBUTE]: [STEP_A, ""] });
 
@@ -249,8 +257,8 @@ describe("every window of a step reads that step's rows", () => {
             /WHERE projectId = \{p\d+:String\} AND name = \{p\d+:String\} AND primaryEntityId = \{p\d+:String\}/,
           );
         });
-      });
-    }
+      },
+    );
   });
 
   describe("the source a counted window and a previous check read from", () => {
@@ -373,7 +381,9 @@ describe("every window of a step reads that step's rows", () => {
     test("two steps' counted windows of one series are two reads, each with its step", async () => {
       const summarize: jest.SpiedFunction<
         typeof MetricService.summarizeMonitorChecks
-      > = jest.spyOn(MetricService, "summarizeMonitorChecks").mockResolvedValue([]);
+      > = jest
+        .spyOn(MetricService, "summarizeMonitorChecks")
+        .mockResolvedValue([]);
 
       const reads: CheckWindowCountReads = new CheckWindowCountReads(END);
 
@@ -884,11 +894,9 @@ describe("every window of a step reads that step's rows", () => {
 
     test("a disk named \"*\" reads each disk's window with the step's scope", async () => {
       const serverCase: (monitor: Monitor, step: MonitorStep) => DataToProcess =
-        CASES.find(
-          (testCase: { monitorType: MonitorType }): boolean => {
-            return testCase.monitorType === MonitorType.Server;
-          },
-        )!.check;
+        CASES.find((testCase: { monitorType: MonitorType }): boolean => {
+          return testCase.monitorType === MonitorType.Server;
+        })!.check;
 
       const { monitor, judged } = monitorOf({
         monitorType: MonitorType.Server,

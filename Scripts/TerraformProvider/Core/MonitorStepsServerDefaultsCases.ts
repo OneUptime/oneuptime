@@ -42,7 +42,8 @@ export interface MonitorStepsServerDefaultsCases {
 }
 
 // A default status, as MonitorService fills in for steps sent without one.
-const DEFAULT_MONITOR_STATUS_ID: string = "a1000000-0000-4000-8000-0000000109b1";
+const DEFAULT_MONITOR_STATUS_ID: string =
+  "a1000000-0000-4000-8000-0000000109b1";
 const OFFLINE_STATUS_ID: string = "a1000000-0000-4000-8000-0000000109b2";
 const SEVERITY_ID: string = "a1000000-0000-4000-8000-0000000109b3";
 const ON_CALL_POLICY_ID: string = "a1000000-0000-4000-8000-0000000109b4";
@@ -363,7 +364,10 @@ export function buildMonitorStepsServerDefaultsCases(): MonitorStepsServerDefaul
     about:
       "Written by Scripts/TerraformProvider/Core/MonitorStepsServerDefaultsCases.ts from the server's own MonitorSteps, MonitorStepsIdentityUtil and MetricQueryCloudAggregation (OneUptime/oneuptime#10907). Do not edit.",
     cases: SENT.map(
-      (sent: { name: string; sent: JSONObject }): MonitorStepsServerDefaultsCase => {
+      (sent: {
+        name: string;
+        sent: JSONObject;
+      }): MonitorStepsServerDefaultsCase => {
         return {
           name: sent.name,
           sent: clone(sent.sent),

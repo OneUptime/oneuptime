@@ -107,7 +107,10 @@ function everyProbeRow(): ProbeMonitorResponse {
           name: "queue_depth",
           value: 7,
           // A script cannot file its datapoints under another step.
-          attributes: { [MONITOR_STEP_ID_ATTRIBUTE]: OTHER_STEP_ID, queue: "a" },
+          attributes: {
+            [MONITOR_STEP_ID_ATTRIBUTE]: OTHER_STEP_ID,
+            queue: "a",
+          },
         },
       ],
     },
@@ -481,7 +484,10 @@ describe("MonitorMetricUtil: every row a check writes names its step", () => {
 
       expect(rows).toEqual([
         {
-          attributes: { zeta: "1", [MONITOR_STEP_ID_ATTRIBUTE]: STEP_ID.toString() },
+          attributes: {
+            zeta: "1",
+            [MONITOR_STEP_ID_ATTRIBUTE]: STEP_ID.toString(),
+          },
           attributeKeys: ["monitorStepId", "zeta"],
         },
         {
@@ -496,14 +502,20 @@ describe("MonitorMetricUtil: every row a check writes names its step", () => {
     });
 
     test("leaves every row as it is without a step", () => {
-      const row: JSONObject = { attributes: { probeId: "p" }, attributeKeys: ["probeId"] };
+      const row: JSONObject = {
+        attributes: { probeId: "p" },
+        attributeKeys: ["probeId"],
+      };
 
       MonitorMetricUtil.applyMonitorStepToMetricRows({
         metricRows: [row],
         monitorStepId: undefined,
       });
 
-      expect(row).toEqual({ attributes: { probeId: "p" }, attributeKeys: ["probeId"] });
+      expect(row).toEqual({
+        attributes: { probeId: "p" },
+        attributeKeys: ["probeId"],
+      });
     });
   });
 });

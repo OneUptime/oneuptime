@@ -2792,7 +2792,9 @@ describe("the complete guide", () => {
     ]) {
       expect(drift).toContain(serverDefault);
     }
-    expect(section(COMPLETE_GUIDE, "## Drift, and what does not cause it")).toContain(
+    expect(
+      section(COMPLETE_GUIDE, "## Drift, and what does not cause it"),
+    ).toContain(
       "- **Defaults the server adds** to a monitor's steps, or to a JSON value, are not a difference from what you wrote.",
     );
   });
@@ -2802,7 +2804,9 @@ describe("the complete guide", () => {
       "Scripts/TerraformProvider/StaticFiles/monitorstepsdrift.go",
     );
 
-    expect(section(COMPLETE_GUIDE, "## Drift, and what does not cause it")).toContain(
+    expect(
+      section(COMPLETE_GUIDE, "## Drift, and what does not cause it"),
+    ).toContain(
       "A setting someone adds in OneUptime to a monitor's steps, which your configuration does not write, is a difference, though: the next plan shows `monitor_steps` changing, and the apply that follows removes the setting, as the plan says.",
     );
 

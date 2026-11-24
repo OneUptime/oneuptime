@@ -81,7 +81,8 @@ const readerOf: (language: string) => Translator = (
   language: string,
 ): Translator => {
   const words: Record<string, string> = {
-    "Step {{number}}": language === "de" ? "Schritt {{number}}" : "گام {{number}}",
+    "Step {{number}}":
+      language === "de" ? "Schritt {{number}}" : "گام {{number}}",
   };
 
   return {

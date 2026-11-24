@@ -160,11 +160,7 @@ function added(sent: JSONObject, answered: JSONObject): Array<string> {
         ] || []) as Array<unknown>;
 
         heldCriteria.forEach((criteria: unknown, index: number) => {
-          walk(
-            "criteria",
-            unwrap(writtenCriteria[index]),
-            unwrap(criteria),
-          );
+          walk("criteria", unwrap(writtenCriteria[index]), unwrap(criteria));
         });
         continue;
       }
@@ -180,9 +176,17 @@ function added(sent: JSONObject, answered: JSONObject): Array<string> {
   return out;
 }
 
+// An id the server gives a step, a criteria or a template.
+const AN_ID: RegExp = /^(step|criteria|incident|alert)\.id = "[0-9a-f-]{36}"$/;
+
+// An empty text, list or map.
+const AN_EMPTY_VALUE: RegExp = / = (""|\[\]|\{\})$/;
+
+const A_WHOLE_NUMBER: RegExp = /^\d+$/;
+
 // What a key the answer adds may be: an id, the steps' default status, or a setting's unset value.
 function isLetPass(entry: string): boolean {
-  if (/^(step|criteria|incident|alert)\.id = "[0-9a-f-]{36}"$/.test(entry)) {
+  if (AN_ID.test(entry)) {
     return true;
   }
 
@@ -195,7 +199,7 @@ function isLetPass(entry: string): boolean {
    * (MonitorStepsFromAPI): a criteria's description written as "", its
    * incidents and alerts as [].
    */
-  if (/ = (""|\[\]|\{\})$/.test(entry)) {
+  if (AN_EMPTY_VALUE.test(entry)) {
     return true;
   }
 
@@ -303,7 +307,7 @@ describe("what OneUptime writes of its own into steps a configuration writes spa
   test("each unset value these tests let pass is the provider's own", () => {
     for (const entry of UNSET_VALUES) {
       const [, key, value] = entry.match(/^[a-z]+\.([A-Za-z]+) = (.+)$/)!;
-      const goValue: string = /^\d+$/.test(value!)
+      const goValue: string = A_WHOLE_NUMBER.test(value!)
         ? `float64(${value})`
         : value!;
 
@@ -320,9 +324,9 @@ describe("what OneUptime writes of its own into steps a configuration writes spa
       JSON.stringify(page.sent),
     ) as JSONObject;
     const step: JSONObject = (
-      (unwrap(withHours) as JSONObject)["monitorStepsInstanceArray"] as Array<
-        JSONObject
-      >
+      (unwrap(withHours) as JSONObject)[
+        "monitorStepsInstanceArray"
+      ] as Array<JSONObject>
     )[0]!["value"] as JSONObject;
     const criteria: JSONObject = (
       (unwrap(step["monitorCriteria"]) as JSONObject)[

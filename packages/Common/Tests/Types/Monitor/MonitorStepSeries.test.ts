@@ -95,7 +95,7 @@ describe("MonitorStepSeries", () => {
       readsRowsWithoutStep: false,
     };
 
-    test("the step's id, and \"\" - a row without the attribute - on a monitor with one step", () => {
+    test('the step\'s id, and "" - a row without the attribute - on a monitor with one step', () => {
       expect(MonitorStepSeries.getAttributeValues(ONE_STEP)).toEqual(["a", ""]);
       expect(MonitorStepSeries.getAttributeValues(SEVERAL_STEPS)).toEqual([
         "a",
@@ -119,9 +119,21 @@ describe("MonitorStepSeries", () => {
         oneStep: boolean;
         severalSteps: boolean;
       }> = [
-        { attributes: { monitorStepId: "a" }, oneStep: true, severalSteps: true },
-        { attributes: { monitorStepId: "b" }, oneStep: false, severalSteps: false },
-        { attributes: { monitorStepId: "" }, oneStep: true, severalSteps: false },
+        {
+          attributes: { monitorStepId: "a" },
+          oneStep: true,
+          severalSteps: true,
+        },
+        {
+          attributes: { monitorStepId: "b" },
+          oneStep: false,
+          severalSteps: false,
+        },
+        {
+          attributes: { monitorStepId: "" },
+          oneStep: true,
+          severalSteps: false,
+        },
         { attributes: { probeId: "p" }, oneStep: true, severalSteps: false },
         { attributes: undefined, oneStep: true, severalSteps: false },
       ];
