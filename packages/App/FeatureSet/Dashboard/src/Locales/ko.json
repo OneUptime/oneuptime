@@ -64051,5 +64051,6 @@
   "{{count}} secrets to rotate._one": "교체할 시크릿 {{count}}개.",
   "{{count}} secrets_one": "시크릿 {{count}}개",
   "{{law}} may apply first: {{due}}.": "{{law}}이(가) 가장 먼저 적용될 수 있습니다: {{due}}.",
-  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다."
+  "{{name}} said the people live in {{places}}.": "{{name}}님이 사람들이 {{places}}에 산다고 답했습니다.",
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "DNS 응답은 이전 검사의 응답과 전체로 비교됩니다. '같지 않음'은 레코드가 바뀌었을 때, '같음'은 바뀌지 않았을 때 일치합니다. 같은 레코드가 다른 순서로 와도 변화가 아닙니다."
 }

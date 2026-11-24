@@ -118,7 +118,7 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 
 ### Evaluating over a period of time
 
-**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **DNS Is Online** and **DNS Response Time (in ms)**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 minutes to 24 hours, under **For the last**.
+**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **DNS Is Online**, **DNS Response Time (in ms)** and **DNS Record Value**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 minutes to 24 hours, under **For the last**. For **DNS Record Value** the one choice is **Previous Check**: see [When the DNS answer changes](#when-the-dns-answer-changes).
 
 | Aggregate | Matches when |
 | --- | --- |
@@ -126,7 +126,7 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 | **All Values** | Every check in the window meets the condition. |
 | **Any Value** | At least one check in the window meets the condition. |
 | **Count**, **Percentage**, **Status Changes** | How many checks met the condition, their share, or how often they changed between meeting it and not, compares with the number set under it. |
-| **Previous Check** | This check compared with the probe's previous check, as set under **Change From the Previous Check**: a response time more than 50% above it, say. A filter that is true or false matches on the check that started to meet the condition. |
+| **Previous Check** | This check compared with the probe's previous check, as set under **Change From the Previous Check**: a response time more than 50% above it, say. A filter that is true or false matches on the check that started to meet the condition. **DNS Record Value** compares the whole answer: see below. |
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
 
@@ -138,11 +138,26 @@ Criteria are checked from top to bottom, and the first one that matches decides 
 | **Trigger** | The missing data counts as the problem. | Checks where silence is itself a failure. |
 | **Treat As Zero** | The window is compared as a single zero. | Counters where no events genuinely means zero. |
 
+### When the DNS answer changes
+
+To be told when a name's answer changes, such as an address that moved, a mail server replaced, or a record added or gone, compare **DNS Record Value** with the previous check:
+
+1. Add a filter with **DNS Record Value** and **Not Equal To**.
+2. Tick **Evaluate this criteria over a period of time**. **Previous Check** is the one choice under **Evaluate** for this filter, and it needs no value.
+3. Under **For the last**, pick how long ago the previous check may be: longer than the monitoring interval.
+
+The answer is compared as a whole: every record of the type, without its TTL. The same records in another order are the same answer, and so is a name in another case, since DNS names are not case-sensitive. A record added, removed or changed makes a different answer. **Equal To** matches the opposite, an answer that is the same as the previous check's, for a criteria that should hold while the answer is stable.
+
+Each probe's answer is compared with that probe's previous answer, and each step's with its own, so a name that answers differently in different regions is not a change. A check that gets no answer, because the name does not resolve or the query times out, is not compared: **DNS Is Online** is the filter for that. The next check that gets an answer is compared with the last answer before it, if that is within **For the last**. With no previous answer in the window, as on the monitor's first check, **If No Data** decides, as for any comparison with the previous check.
+
+The incident or alert says what the answer was and what it is now: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Example criteria
 
 | Goal | Filter | Condition | Value |
 | --- | --- | --- | --- |
 | Offline when the name stops resolving | **DNS Is Online** | **False** | — |
+| Alert when a name's answer changes | **DNS Record Value**, evaluated over **Previous Check** | **Not Equal To** | — |
 | Alert when a name's single `A` record changes | **DNS Record Value** | **Not Equal To** | `93.184.216.34` |
 | Alert when an `MX` record points outside your domain | **DNS Record Value** | **Not Contains** | `example.com` |
 | Mark DNS degraded when it is slow | **DNS Response Time (in ms)** | **Greater Than** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Keep the default offline criteria at the top: **DNS Is Online** / **False**.
 2. Below it, add a criteria with **DNS Record Value** / **Equal To** / the value you expect, that marks the monitor **Operational**.
 3. Below that, add a criteria with **DNS Is Online** / **True**, that marks the monitor **Offline** and declares an incident. It only matches answers that do not have the value.
+:::
+
+:::details A criteria that compares the answer with the previous check fires on every check
+The server returns a different part of a large pool of records on each query, as some load-balanced names do. Each of those answers is a different set of records. Ask a server that returns the whole pool in **DNS Server (Optional)**, or check for the value you expect with **DNS Record Value** / **Equal To** instead.
 :::
 
 :::details DNSSEC Is Valid never matches

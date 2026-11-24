@@ -64051,5 +64051,6 @@
   "{{count}} secrets to rotate._one": "ローテーションするシークレット: {{count}} 件。",
   "{{count}} secrets_one": "{{count}} 件のシークレット",
   "{{law}} may apply first: {{due}}.": "{{law}} が最初に適用される可能性があります: {{due}}。",
-  "{{name}} said the people live in {{places}}.": "{{name}} が、人々は {{places}} に住んでいると回答しました。"
+  "{{name}} said the people live in {{places}}.": "{{name}} が、人々は {{places}} に住んでいると回答しました。",
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "DNS の応答は、前回のチェックの応答と全体として比較されます。「等しくない」はレコードが変わったときに、「等しい」は変わっていないときに一致します。同じレコードが別の順序で返されても変化とはみなしません。"
 }
