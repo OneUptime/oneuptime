@@ -237,16 +237,24 @@ export function getPreviousCloudCostWindow(
       (window.lastDay.getUTCMonth() - window.start.getUTCMonth()) +
       1;
     const start: Date = addUtcMonths(window.start, -months);
-    // The last day, as many months back, kept within its month (31st -> 30th).
+    /*
+     * The last day, as many months back: a whole month's last day is its
+     * month's last (November's 30th -> October's 31st), any other day kept
+     * within its month (March's 31st -> February's 28th).
+     */
     const lastMonth: Date = addUtcMonths(
       startOfUtcMonth(window.lastDay),
       -months,
     );
+    const endsAMonth: boolean =
+      window.lastDay.getUTCDate() === daysInUtcMonth(window.lastDay);
     const lastDay: Date = new Date(
       Date.UTC(
         lastMonth.getUTCFullYear(),
         lastMonth.getUTCMonth(),
-        Math.min(window.lastDay.getUTCDate(), daysInUtcMonth(lastMonth)),
+        endsAMonth
+          ? daysInUtcMonth(lastMonth)
+          : Math.min(window.lastDay.getUTCDate(), daysInUtcMonth(lastMonth)),
       ),
     );
 

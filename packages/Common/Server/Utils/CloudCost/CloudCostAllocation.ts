@@ -282,16 +282,17 @@ export class CloudCostAllocationClass {
    */
   public static partition(
     ctx: CloudCostAllocationSqlContext,
+    limit: number = CLOUD_COST_FACTS_PER_READ,
   ): Array<PartitionedContext> {
     const count: number = ctx.facts.resourceHashes.length;
 
-    if (count <= CLOUD_COST_FACTS_PER_READ) {
+    if (count <= limit) {
       return [{ ctx }];
     }
 
     let parts: number = 2;
 
-    while (parts < 16 && count / parts > CLOUD_COST_FACTS_PER_READ) {
+    while (parts < 16 && count / parts > limit) {
       parts *= 2;
     }
 
