@@ -12,7 +12,10 @@ import {
   INTERACTIVE_READ_TIME_LIMIT,
   getQuerySettings,
 } from "Common/Server/Utils/AnalyticsDatabase/QuerySettingsHelper";
-import { SQL, Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+} from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import logger from "Common/Server/Utils/Logger";
 import TableColumnType from "Common/Types/AnalyticsDatabase/TableColumnType";
 import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
@@ -33,10 +36,11 @@ import { getAuditLogResourceTypesOfModel } from "Common/Utils/AuditLog/AuditLogR
  * ever since. #10983 ends a deleted policy's logs from then on; this ends
  * the ones already left open, once, as the server is upgraded.
  *
- * WHICH LOGS. A log with no end, not deleted, naming a policy no row of
- * "OnCallDutyPolicy" has - deleted (rows are deleted outright), soft deleted
- * rows counting as there. Never a log of a policy that exists, and never one
- * that names no policy at all: neither is a deleted policy's.
+ * WHICH LOGS. A log with no end, not itself deleted, naming a policy
+ * "OnCallDutyPolicy" has no row for: a policy is deleted outright, and a
+ * soft-deleted row (which only a write from outside OneUptime leaves) still
+ * counts as there. Never a log of a policy that exists, and never one that
+ * names no policy at all: neither is a deleted policy's.
  *
  * WHEN EACH ENDS. Postgres does not keep when a policy was deleted. What
  * the data does keep, from the best to the least:
@@ -53,8 +57,9 @@ import { getAuditLogResourceTypesOfModel } from "Common/Utils/AuditLog/AuditLogR
  *      nothing ended, still ran. So a log ends there, when that is after
  *      its own start: never later than its policy was deleted, so never
  *      more than the deletion itself would have counted. Not when a log of
- *      the policy ENDED: a team's, a schedule's or a person's leaving ends
- *      their logs on every policy, deleted ones too, after the deletion.
+ *      the policy ended: deleting a team or a schedule, or a person leaving
+ *      a team, ends their logs on every policy at once - a deleted one's
+ *      too, after it was gone.
  *   3. Otherwise - nothing on the policy started after this log - the log's
  *      own start: nothing is known of the policy after it, so its open
  *      stretch counts as nothing. Its updatedAt is no later: nothing writes
@@ -318,13 +323,12 @@ export default class EndOnCallTimeLogsOfDeletedPolicies extends DataMigrationBas
     let lastId: string = FIRST_ID;
 
     while (true) {
+      const rows: Array<JSONObject> = await repository.manager.query(
+        READ_OPEN_LOGS_OF_DELETED_POLICIES_SQL,
+        [lastId, PAGE_SIZE],
+      );
       const logs: Array<OpenLogOfDeletedPolicy> =
-        EndOnCallTimeLogsOfDeletedPolicies.readOpenLogRows(
-          await repository.manager.query(
-            READ_OPEN_LOGS_OF_DELETED_POLICIES_SQL,
-            [lastId, PAGE_SIZE],
-          ),
-        );
+        EndOnCallTimeLogsOfDeletedPolicies.readOpenLogRows(rows);
 
       if (logs.length === 0) {
         break;
@@ -417,11 +421,12 @@ export default class EndOnCallTimeLogsOfDeletedPolicies extends DataMigrationBas
         }
       });
 
-      if (logs.length < PAGE_SIZE) {
+      // Paged on what Postgres answered, every row of it read or not.
+      if (rows.length < PAGE_SIZE) {
         break;
       }
 
-      lastId = logs[logs.length - 1]!.id;
+      lastId = toText(rows[rows.length - 1]!["id"]);
     }
 
     return summary;
@@ -456,10 +461,7 @@ export default class EndOnCallTimeLogsOfDeletedPolicies extends DataMigrationBas
       };
     }
 
-    if (
-      data.lastStintStartedAt &&
-      data.lastStintStartedAt.getTime() > start
-    ) {
+    if (data.lastStintStartedAt && data.lastStintStartedAt.getTime() > start) {
       return {
         end: TimeLogEnd.LastStintStarted,
         endsAt: data.lastStintStartedAt,
@@ -528,10 +530,7 @@ export default class EndOnCallTimeLogsOfDeletedPolicies extends DataMigrationBas
   public static readDeletionRows(
     rows: ReadonlyArray<JSONObject>,
   ): Map<string, Array<Date>> {
-    const deletions: Map<string, Array<Date>> = new Map<
-      string,
-      Array<Date>
-    >();
+    const deletions: Map<string, Array<Date>> = new Map<string, Array<Date>>();
 
     for (const row of rows) {
       const projectId: string = toText(row["deletedPolicyProjectId"]);
