@@ -30,6 +30,8 @@ import {
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
 import { ContentScanResult } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
 import { getFingerprintKey } from "Common/Server/Utils/DataSecurity/DataSecurityRunner";
+import DataTypeProving from "Common/Server/Utils/DataSecurity/DataTypeProving";
+import { ShadowDraft } from "Common/Utils/DataSecurity/ShadowCount";
 import Express, {
   ExpressRequest,
   ExpressResponse,
@@ -194,6 +196,8 @@ export function buildStoreWork(data: {
   store: DataStore;
   settings: DataSecuritySetting;
   customDataTypes: Array<DataSecurityCustomDataType>;
+  // The data types being proven on the store, run in shadow (#10371).
+  shadowDataTypes?: Array<ShadowDraft> | undefined;
 }): DataSecurityProbeStoreWork | null {
   const engine: ReturnType<typeof getDatabaseEngineOfKind> =
     getDatabaseEngineOfKind(data.store.kind);
@@ -239,6 +243,7 @@ export function buildStoreWork(data: {
     allowedValues: data.settings.allowedValues || [],
     // The key a worker's scan of the project uses, so the two compare.
     fingerprintKey: getFingerprintKey(data.store.projectId),
+    shadowDataTypes: data.shadowDataTypes || [],
   };
 }
 
@@ -333,6 +338,10 @@ router.post(
           store,
           settings,
           customDataTypes: await getCustomDataTypes(store.projectId),
+          shadowDataTypes: await DataTypeProving.getShadowDrafts({
+            projectId: store.projectId,
+            dataStoreId: store.id,
+          }),
         });
 
         if (!storeWork) {
@@ -482,6 +491,17 @@ router.post(
 
       const customDataTypes: Map<string, CustomDataTypeSummary> =
         summarizeCustomDataTypes(await getCustomDataTypes(store.projectId));
+      // Only the counts of the drafts being proven on this store are kept (#10371).
+      const shadowKeys: Set<string> = new Set(
+        (
+          await DataTypeProving.getShadowDrafts({
+            projectId: store.projectId,
+            dataStoreId: store.id,
+          })
+        ).map((draft: ShadowDraft): string => {
+          return draft.key;
+        }),
+      );
       const result: ContentScanResult | null = readProbeScanResult(
         body["result"],
         (dataTypeId: string): boolean => {
@@ -489,6 +509,9 @@ router.post(
             Boolean(getBuiltInDataType(dataTypeId)) ||
             customDataTypes.has(dataTypeId)
           );
+        },
+        (key: string): boolean => {
+          return shadowKeys.has(key);
         },
       );
 

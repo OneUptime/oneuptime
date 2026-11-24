@@ -133,6 +133,14 @@ export interface SecurityBlockRequest {
   challengeFallsBackToBlock?: boolean | undefined;
   // The policy's name, for the case's timeline: "The Scanners policy challenged ...".
   securityAutomaticResponsePolicyName?: string | undefined;
+  /*
+   * A network by its ASN (#10354): OneUptime cannot tell whether it holds
+   * the project's own servers or its users, so it is blocked only when a
+   * person who may go past the largest range said they know that - the
+   * Campaigns page's Challenge This Network, after it said so. Ignored for
+   * any other value, and for OneUptime's own writes.
+   */
+  acknowledgesUncheckedNetwork?: boolean | undefined;
   props: DatabaseCommonInteractionProps;
 }
 
@@ -238,6 +246,14 @@ export class Service extends ProjectReferencesService<Model> {
     string
   >();
 
+  /*
+   * The records of a network by its ASN that block() was asked to make by a
+   * person who knows OneUptime cannot check what the network holds
+   * (acknowledgesUncheckedNetwork). Only this service adds to it, so a
+   * create of one through the API is refused (#10354).
+   */
+  private readonly acknowledgedNetworks: WeakSet<Model> = new WeakSet<Model>();
+
   public constructor() {
     super(Model);
   }
@@ -325,11 +341,21 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       await this.checkCallerMayCreate({ data: asked, props: data.props });
+
+      if (
+        data.acknowledgesUncheckedNetwork &&
+        this.mayGoPastLimits(data.props, data.projectId)
+      ) {
+        this.acknowledgedNetworks.add(record);
+      }
     }
 
     const refusal: SecurityBlockOutcome | null =
       this.normalize({ record, props: data.props, now }) ||
       (await this.checkTargets({ record, props: data.props, now }));
+
+    // Read once, by the checks just run: the create never asks again.
+    this.acknowledgedNetworks.delete(record);
 
     if (refusal) {
       return refusal;
@@ -747,6 +773,7 @@ export class Service extends ProjectReferencesService<Model> {
     const action: SecurityBlockAction =
       data.record.action || SecurityBlockAction.Block;
 
+    // An address or a range at the edge; never a network by its ASN, which only some edges hold (#10354).
     if (
       isSecurityBlockAddressType(data.read.indicatorType) &&
       reach === SecurityBlockReach.Edge
@@ -827,6 +854,22 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (covering) {
       return this.alreadyBlocked(read.value, covering);
+    }
+
+    /*
+     * A network by its ASN (#10354): no list says which addresses it holds,
+     * so OneUptime cannot tell whether the project's own servers or its
+     * users are among them. It fails toward a person: only one who said
+     * they know that (block()'s acknowledgesUncheckedNetwork) blocks it.
+     */
+    if (
+      read.indicatorType === SecurityBlockIndicatorType.Asn &&
+      !this.acknowledgedNetworks.has(record)
+    ) {
+      return {
+        status: SecurityBlockOutcomeStatus.Refused,
+        message: SECURITY_BLOCK_MESSAGES.asnUnchecked({ value: read.value }),
+      };
     }
 
     const check: SecurityProtectionCheck = await this.findProtection({

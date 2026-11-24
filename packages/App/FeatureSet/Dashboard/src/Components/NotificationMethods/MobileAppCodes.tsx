@@ -8,7 +8,7 @@ import { getMobileAppServerUrl } from "../../Utils/MobileAppServerUrl";
 import QRCode from "Common/UI/Components/QR/QR";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * GET THE MOBILE APP: a code for each store and the address to sign in to.
@@ -44,9 +44,14 @@ export interface ComponentProps {
   className?: string | undefined;
 }
 
-const StoreCode: FunctionComponent<{ name: string; url: string }> = (props: {
+const StoreCode: FunctionComponent<{
   name: string;
   url: string;
+  onCodeFailed: () => void;
+}> = (props: {
+  name: string;
+  url: string;
+  onCodeFailed: () => void;
 }): ReactElement => {
   return (
     <div className="flex flex-col items-center gap-2">
@@ -56,7 +61,11 @@ const StoreCode: FunctionComponent<{ name: string; url: string }> = (props: {
        * hide the code at every width.
        */}
       <div className="max-sm:hidden sm:block">
-        <QRCode text={props.url} alt={props.name} />
+        <QRCode
+          text={props.url}
+          alt={props.name}
+          onError={props.onCodeFailed}
+        />
       </div>
       <a
         href={props.url}
@@ -73,6 +82,18 @@ const StoreCode: FunctionComponent<{ name: string; url: string }> = (props: {
 const MobileAppCodes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * A code that could not be drawn - its library did not load - says so in
+   * its place, and is no code to scan (#6653): the laptop is then told what
+   * a phone is, to install the app from the stores, whose links are under
+   * each code either way.
+   */
+  const [hasACodeFailed, setHasACodeFailed] = useState<boolean>(false);
+
+  const onCodeFailed: () => void = (): void => {
+    setHasACodeFailed(true);
+  };
+
   /*
    * The address, read left to right on every page. It moves to a line of
    * its own before it is broken, and is broken only when it is longer than
@@ -100,13 +121,25 @@ const MobileAppCodes: FunctionComponent<ComponentProps> = (
       }`}
     >
       <div className="flex flex-shrink-0 justify-center gap-6">
-        <StoreCode name={APP_STORE_NAME} url={MOBILE_APP_IOS_URL} />
-        <StoreCode name={GOOGLE_PLAY_NAME} url={MOBILE_APP_ANDROID_URL} />
+        <StoreCode
+          name={APP_STORE_NAME}
+          url={MOBILE_APP_IOS_URL}
+          onCodeFailed={onCodeFailed}
+        />
+        <StoreCode
+          name={GOOGLE_PLAY_NAME}
+          url={MOBILE_APP_ANDROID_URL}
+          onCodeFailed={onCodeFailed}
+        />
       </div>
       {/* Beside the codes, from a laptop's width; a phone's sentence below it. */}
       <p className="min-w-0 text-sm leading-6 text-gray-700 max-sm:hidden">
         <TranslatedSentence
-          template={MOBILE_APP_INSTALL_SENTENCE}
+          template={
+            hasACodeFailed
+              ? MOBILE_APP_INSTALL_ON_PHONE_SENTENCE
+              : MOBILE_APP_INSTALL_SENTENCE
+          }
           slots={{
             serverUrl: getServerUrl(props.serverUrlDataTestId),
           }}

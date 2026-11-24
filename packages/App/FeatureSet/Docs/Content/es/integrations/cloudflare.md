@@ -162,7 +162,7 @@ El bloqueo necesita permisos de escritura en el token de API de la conexión:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Crea sus dos listas, y añade y quita sus direcciones. |
 | `Zone > Zone WAF > Edit`, en cada zona donde bloquear | Añade sus reglas personalizadas, y lee las de la zona. |
-| `Account > Account Firewall Access Rules > Edit` | Añade y quita IP Access Rules, en un plan sin una lista ni una regla personalizada libre. |
+| `Account > Account Firewall Access Rules > Edit` | Añade y quita IP Access Rules: en un plan sin una lista ni una regla personalizada libre, y para una red sometida a desafío por su ASN desde **Campañas**. |
 
 :::steps
 ### Dar permisos de escritura al token
@@ -183,6 +183,7 @@ Mientras el bloqueo está activado, **Probar conexión** ejecuta las mismas comp
 | Las listas `oneuptime_block` y `oneuptime_challenge` | Dos listas de IP en la cuenta, una para bloqueos y otra para desafíos. Su descripción nombra tu proyecto de OneUptime. |
 | Una regla personalizada por lista, en cada zona | `(ip.src in $oneuptime_block)` con la acción Block, y `(ip.src in $oneuptime_challenge)` con la acción Managed Challenge. Su descripción dice que OneUptime las gestiona. |
 | Un elemento de lista por bloqueo | Su comentario nombra el caso y cuándo termina el bloqueo, como `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Una IP Access Rule por red sometida a desafío por su ASN | Una red entera sometida a desafío desde **Campañas**, como una IP Access Rule cuyo destino es `asn`, que tiene todo plan. Su nota dice lo mismo que el comentario de un elemento de lista. Sin `Account > Account Firewall Access Rules > Edit` en el token, el desafío no se aplica, y la **Lista de bloqueo** dice qué permiso añadir. |
 
 Cada regla va primero entre las reglas personalizadas de la zona, así que se ejecuta antes que las tuyas: una regla Skip tuya no puede dejar pasar una dirección bloqueada. Cuando tus reglas Skip dejan pasar direcciones, como las de tus monitores o las de un socio, **Estado del bloqueo** las nombra. **Proteger estas direcciones** las añade a **Entidades protegidas**, que nadie puede bloquear.
 

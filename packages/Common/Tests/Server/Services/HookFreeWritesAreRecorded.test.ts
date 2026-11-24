@@ -243,6 +243,26 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts": {
     "DataSecurityIssueAnalysis.write DataSecurityIssue": Why.Automation,
   },
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372),
+   * kept on the finding: its own note, never the finding's decision - a
+   * person decides, and the audit log records them doing it.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts": {
+    "DataSecurityFindingVerdicts.judgeStore DataStoreFinding": Why.Automation,
+  },
+  /*
+   * OneUptime AI's own confirmation, where a rule allows it (#10372): the
+   * confirmation itself goes through the finding's hooks, and its
+   * proposal is on the store's timeline and in Done by AI with Undo; what
+   * follows it - High confidence, whose it is, when - is what the finding's
+   * service sets beside a person's own (Service.onUpdateSuccess).
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/ConfirmFindingsAction.ts":
+    {
+      "apply DataStoreFinding": Why.Derived,
+      "undo DataStoreFinding": Why.Derived,
+    },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
     "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
       Why.Automation,
@@ -825,6 +845,19 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
+  },
+  // An exception's former fingerprint deleted once no occurrence carries it (#10619).
+  "packages/Common/Server/Utils/Telemetry/FormerExceptionFingerprints.ts": {
+    "FormerExceptionFingerprints.retireUncarried TelemetryException":
+      Why.Bookkeeping,
+  },
+  /*
+   * An exception moved to a private fingerprint by its own next occurrence,
+   * its old one kept beside it (#10619): nobody made the change.
+   */
+  "packages/Common/Server/Utils/Telemetry/TelemetryExceptionRekey.ts": {
+    "TelemetryExceptionRekey.moveInTransaction TelemetryException":
+      Why.Automation,
   },
   "packages/Common/Server/Utils/Telemetry/ResourceHeartbeat.ts": {
     "ResourceHeartbeat.writeOnce *": Why.Reported,

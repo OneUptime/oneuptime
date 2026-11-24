@@ -18,6 +18,7 @@ import {
 } from "Common/Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "Common/Types/Telemetry/LlmCallKind";
 import { getLlmProviderTitle } from "Common/Types/Telemetry/LlmProviders";
+import { isLlmCallNameHidden } from "Common/Utils/Telemetry/LlmCallIdentity";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
@@ -68,7 +69,10 @@ export interface ComponentProps {
   step: LlmTranscriptStep;
   // The step the replay is on: drawn with a ring.
   isCurrent: boolean;
-  // The person who wrote the user messages ("" when unknown).
+  /*
+   * The person who wrote the user messages ("" when unknown). One a scrub
+   * rule hid is "User" too: never "[REDACTED]", a mask or a token (#10631).
+   */
   personLabel: string;
   // Where "Open this call in Traces" goes.
   traceRoute: Route;
@@ -611,7 +615,9 @@ const LlmTranscriptStepView: FunctionComponent<ComponentProps> = (
           <div className="flex min-w-0 max-w-[92%] flex-col items-end sm:max-w-[80%] lg:max-w-3xl">
             <div className="mb-1 flex items-center gap-2 text-xs text-gray-500">
               <span className="font-medium text-gray-700">
-                {props.personLabel || translator.translateText("User")}
+                {props.personLabel && !isLlmCallNameHidden(props.personLabel)
+                  ? props.personLabel
+                  : translator.translateText("User")}
               </span>
               <LlmStepTime
                 atMs={step.atMs}

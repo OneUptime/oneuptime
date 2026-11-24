@@ -36,6 +36,7 @@ import {
   TrustedProxies,
 } from "../../../../Utils/SecurityEvent/ClientAddressTrust";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
+import SecurityUserVaultLookup from "../UserVault/SecurityUserVaultLookup";
 import SecurityEventStoreOnce, {
   SharedRecordGroup,
 } from "../SecurityEventStoreOnce";
@@ -594,6 +595,17 @@ export default class SecurityLogScanner {
      * one lookup.
      */
     await SecurityAddressVaultLookup.nameHashedAddresses({
+      projectId: data.projectId,
+      events: data.events,
+    });
+
+    /*
+     * A user a Hash rule hid - where a format reads who acted or who was
+     * acted on, or the user of the trace a line was followed into - names
+     * the user behind its token, when Security Events' user vault holds it
+     * (#10632): every token of the page in one lookup.
+     */
+    await SecurityUserVaultLookup.nameHashedUsers({
       projectId: data.projectId,
       events: data.events,
     });

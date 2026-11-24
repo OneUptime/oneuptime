@@ -19,12 +19,12 @@ flowchart TB
     R --> P["Het voorbeeld: elk<br/>onderdeel en wat<br/>het wordt"]
     P --> A["OneUptime AI, als u het<br/>vraagt: één query<br/>tegelijk"]
     A --> P
-    P --> C["Een dashboard, of<br/>Metrics-monitors"]
+    P --> C["Een dashboard, of<br/>monitors"]
 ```
 
 ## Voordat u begint
 
-- De geïmporteerde widgets en monitors lezen de eigen metrics van dit project met PromQL. Stuur ze met Prometheus remote write, OpenTelemetry of de Datadog Agent, en ze houden de namen die ze daar hebben.
+- De geïmporteerde widgets en monitors lezen de eigen metrics en logs van dit project. Stuur ze met OpenTelemetry of de Datadog Agent, of met Prometheus remote write voor metrics en de push-API van Loki voor logs, en ze houden de namen die ze daar hebben.
 - Een dashboard importeren vraagt een rol die dashboards mag aanmaken, en waarschuwingsregels importeren een rol die monitors mag aanmaken.
 - Een bestand mag tot 10 MB groot zijn, en tot 500 van zijn panelen of regels worden gelezen.
 
@@ -44,7 +44,7 @@ Kopieer in Grafana het JSON-model uit de instellingen van het dashboard. Exporte
 Controleer wat elk paneel en elke variabele wordt, geef het dashboard een naam en kies **Dashboard aanmaken**. Het nieuwe dashboard gaat open.
 :::
 
-De PromQL van Grafana blijft zoals hij geschreven is: OneUptime vult `$__interval`, `$__rate_interval` en `$__range` in zoals Grafana dat doet, en een variabele op All past op elke waarde. Een Datadog-query wordt PromQL over de metrics die de Datadog Agent heeft gestuurd: `avg:system.cpu.user{host:web-1}` leest `system_cpu_user{host="web-1"}`.
+De PromQL van Grafana blijft zoals hij geschreven is: OneUptime vult `$__interval`, `$__rate_interval` en `$__range` in zoals Grafana dat doet, en een variabele op All past op elke waarde. Een Datadog-query wordt PromQL over de metrics die de Datadog Agent heeft gestuurd: `avg:system.cpu.user{host:web-1}` leest `system_cpu_user{resource_host_name="web-1"}`, en `.as_count()` maakt van een telling die de Agent als rate stuurde weer het aantal dat in elk interval is geteld. Een Datadog-widget die logs opsomt, wordt een **Logstroom**, en een tijdreeks die ze telt een **Logboekgrafiek**, allebei over de logs die de Datadog Agent heeft gestuurd en gefilterd met de zoekopdracht van Datadog.
 
 ## Waarschuwingsregels importeren
 
@@ -64,6 +64,8 @@ Vink elke regel uit die u niet wilt, kies onder **When a rule fires** wat een af
 
 Elke regel wordt een Metrics-monitor met één PromQL-query, de voorwaarde van de regel en zijn venster. Hij opent een waarschuwing, of een incident, voor elke reeks die de drempel overschrijdt, en lost die op als de reeks herstelt. Titel en beschrijving komen uit de samenvatting of het bericht van de regel, met de labels van de reeks ingevuld.
 
+Een anomalie- of voorspellingsmonitor van Datadog wordt een Metrics-monitor met de anomalie- of voorspellingsvoorwaarde van OneUptime, en een logmonitor van Datadog een Logs-monitor die de logs telt waarop zijn zoekopdracht past.
+
 ## Hoe elk onderdeel wordt omgezet
 
 | Status | Wat hij betekent |
@@ -72,7 +74,7 @@ Elke regel wordt een Metrics-monitor met één PromQL-query, de voorwaarde van d
 | **Converted approximately** | Het wordt aangemaakt, en de notities zeggen wat anders is. |
 | **Not converted** | Er wordt niets voor aangemaakt, en de notities zeggen waarom. |
 
-Opnameregels, waarschuwingsregels over logs, Datadog-widgets die logs, traces of gebeurtenissen lezen, en de anomalie-, uitschieter- en voorspellingsmonitors van Datadog worden niet omgezet.
+Opnameregels, waarschuwingsregels van Prometheus en Grafana over logs, Datadog-widgets die traces of gebeurtenissen lezen, de uitschieter- en wijzigingsmonitors van Datadog en zijn monitors van alles behalve metrics en logs worden niet omgezet.
 
 ## Een query omzetten met OneUptime AI
 

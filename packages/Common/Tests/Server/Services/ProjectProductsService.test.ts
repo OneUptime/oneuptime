@@ -373,7 +373,7 @@ describe("the products each product counts", () => {
 
   test("Data Security counts every data store, none archived, but the ones OneUptime declares", () => {
     expect(getUsageStatement()).toContain(
-      `(EXISTS (SELECT 1 FROM "DataStore" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false AND "kind" NOT IN ('Security Events', 'Network Flows', 'Security Address Vault')))) AS "${ProductKey.DataSecurity}"`,
+      `(EXISTS (SELECT 1 FROM "DataStore" WHERE "projectId" = $1 AND "deletedAt" IS NULL AND ("isArchived" = false AND "kind" NOT IN ('Security Events', 'Network Flows', 'Security Address Vault', 'Security User Vault')))) AS "${ProductKey.DataSecurity}"`,
     );
 
     // Every kind OneUptime declares (#10398) is left out, and only those.

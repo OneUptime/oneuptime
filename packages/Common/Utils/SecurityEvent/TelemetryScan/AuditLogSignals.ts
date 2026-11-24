@@ -5,6 +5,7 @@ import NormalizedSecurityEvent from "../../../Types/SecurityEvent/NormalizedSecu
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import {
   ONEUPTIME_PRINCIPAL,
+  getApiKeyPrincipal,
   getWorkflowPrincipal,
 } from "../../../Types/SecurityEvent/OneUptimeActorPrincipal";
 import {
@@ -18,6 +19,7 @@ import {
   describeWorkflowRunAsGiver,
   readWorkflowRunAs,
 } from "../../../Types/Workflow/WorkflowRunAs";
+import { readOwnValue } from "../../LookupTable";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -49,12 +51,14 @@ import {
  * (workflowId, and what it ran as, #9766), or OneUptime itself ("System",
  * when the project stores system events). Every actor is one of its own:
  * deletes are summed per kind and id, never across them, and each event
- * names its actor - a person by their email, a key by its name, "The
- * workflow "Nightly Cleanup"" with what it ran as and whose permissions
- * those were, "OneUptime" - with a principal a rule can group on
- * (Types/SecurityEvent/OneUptimeActorPrincipal: "workflow:<id>",
- * "oneuptime"). An entry that names no actor at all says "Someone" rather
- * than guess.
+ * names its actor - a person by their email, "The API key "terraform"",
+ * "The workflow "Nightly Cleanup"" with what it ran as and whose
+ * permissions those were, "OneUptime" - with a principal a rule can group
+ * on: the person's email, or for what is no person one of OneUptime's own
+ * (Types/SecurityEvent/OneUptimeActorPrincipal: "api-key:<id>",
+ * "workflow:<id>", "oneuptime"), so a key's name is never taken for a user
+ * a playbook could suspend (#10630). An entry that names no actor at all
+ * says "Someone" rather than guess.
  *
  * WHO READS THE RECORD'S NAME (#10663). An event is written once, for
  * every reader of security events - Project Owner and Admin, the Security
@@ -115,6 +119,7 @@ export const AUDIT_ATTRIBUTES: {
   actorType: string;
   userId: string;
   userEmail: string;
+  apiKeyId: string;
   apiKeyName: string;
   mcpClientName: string;
   workflowId: string;
@@ -133,6 +138,7 @@ export const AUDIT_ATTRIBUTES: {
   actorType: "audit.actor_type",
   userId: "audit.user_id",
   userEmail: "audit.user_email",
+  apiKeyId: "audit.api_key_id",
   apiKeyName: "audit.api_key_name",
   mcpClientName: "audit.mcp_client_name",
   workflowId: "audit.workflow_id",
@@ -464,11 +470,29 @@ export function describeAuditActor(actor: Partial<AuditActor>): string {
 }
 
 /*
+ * Whether a project API key made the change: an entry of its kind, or one
+ * that names a key and no person. The master key acts as the master admin,
+ * whom its entry names, so it is theirs.
+ */
+export function isApiKeyAuditActor(actor: Partial<AuditActor>): boolean {
+  if (textOf(actor.userEmail) || textOf(actor.userName)) {
+    return false;
+  }
+
+  return (
+    textOf(actor.userType) === UserType.API ||
+    textOf(actor.apiKeyId) !== "" ||
+    textOf(actor.apiKeyName) !== ""
+  );
+}
+
+/*
  * Who made a change, as an event's principal user: the person's email or
- * name, the API key's name, "workflow:" and the workflow's id, or
+ * name, "api-key:" and the key's id, "workflow:" and the workflow's id, or
  * "oneuptime" (OneUptimeActorPrincipal) - one for each actor, so a rule
- * that groups by principal never sums two of them. "" when the entry names
- * no actor, or a workflow but not which.
+ * that groups by principal never sums two of them, and never a key's name,
+ * which a case would hold as a user a playbook could suspend (#10630). ""
+ * when the entry names no actor, or a workflow or a key but not which.
  */
 export function getAuditActorPrincipal(actor: Partial<AuditActor>): string {
   const workflow: string = getWorkflowPrincipal(actor.workflowId);
@@ -481,13 +505,14 @@ export function getAuditActorPrincipal(actor: Partial<AuditActor>): string {
     return "";
   }
 
-  const named: string =
-    textOf(actor.userEmail) ||
-    textOf(actor.userName) ||
-    textOf(actor.apiKeyName);
+  const person: string = textOf(actor.userEmail) || textOf(actor.userName);
 
-  if (named) {
-    return named;
+  if (person) {
+    return person;
+  }
+
+  if (isApiKeyAuditActor(actor)) {
+    return getApiKeyPrincipal(actor.apiKeyId);
   }
 
   return isOneUptimeAuditActor(actor) ? ONEUPTIME_PRINCIPAL : "";
@@ -578,8 +603,11 @@ export function getAuditChangeWords(
     return { named: said, unnamed: said };
   }
 
-  const words: { the: string; a: string } | undefined =
-    RECORD_WORDS[resourceType];
+  // The record's type as the audit log stored it: only a type the table lists.
+  const words: { the: string; a: string } | undefined = readOwnValue(
+    RECORD_WORDS,
+    resourceType,
+  );
 
   if (!words) {
     return null;
@@ -625,8 +653,10 @@ export function describeAuditChange(record: AuditScanRecord): string {
 }
 
 /*
- * The actor as attributes a search and a rule read: its kind and ids, and
- * for a workflow what it ran as and whose permissions those were.
+ * The actor as attributes a search and a rule read: its kind and ids, a
+ * key's name beside its id (an exception that names the key by its name
+ * reads it, #10630), and for a workflow what it ran as and whose
+ * permissions those were.
  */
 function actorAttributes(actor: Partial<AuditActor>): JSONObject {
   const attributes: JSONObject = {};
@@ -636,6 +666,7 @@ function actorAttributes(actor: Partial<AuditActor>): JSONObject {
     [AUDIT_ATTRIBUTES.actorType, actor.userType],
     [AUDIT_ATTRIBUTES.userId, actor.userId],
     [AUDIT_ATTRIBUTES.userEmail, actor.userEmail],
+    [AUDIT_ATTRIBUTES.apiKeyId, actor.apiKeyId],
     [AUDIT_ATTRIBUTES.apiKeyName, actor.apiKeyName],
     [AUDIT_ATTRIBUTES.mcpClientName, actor.mcpClientName],
     [AUDIT_ATTRIBUTES.workflowId, actor.workflowId],

@@ -70,7 +70,7 @@ Under **Fler fält** ställer du in **Datasäkerhet** på **Endast konfiguration
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Databaser som du driver | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer, mätvärden, säkerhetshändelser, Network Flows, säkerhetsadressvalv | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer, mätvärden |
+| OneUptime | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer, mätvärden, säkerhetshändelser, Network Flows, säkerhetsadressvalv, säkerhetsanvändarvalv | Loggar, spår, undantag, sessionsuppspelningar, AI-konversationer, mätvärden |
 
 Varje datalager får de kontroller som gäller för dess sort. Ett datalager vars innehåll inte kan provtas kontrolleras ändå: en offentlig bucket eller en okrypterad databas är ett problem oavsett vad den innehåller. Säkerhetshändelser, Network Flows och säkerhetsadressvalvet är OneUptimes egna, sparade för din säkerhet: angivna, aldrig skannade eller kontrollerade (se [Datalager som OneUptime sparar för din säkerhet](/docs/data-security/compliance#datalager-som-oneuptime-sparar-för-din-säkerhet)).
 

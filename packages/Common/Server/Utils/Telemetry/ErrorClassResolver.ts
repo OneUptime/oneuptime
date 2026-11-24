@@ -44,9 +44,12 @@ import TelemetryContext from "./TelemetryContext";
  * Known limitation, documented rather than papered over: a request handler
  * that starts background work with `.catch()` after responding stays inside
  * the http-request scope, so an invariant violation in that async tail is
- * still labelled user-error. It still emits a `fault` span event, a WARN log
- * and an `oneuptime.fault.count` increment, so it remains findable — see the
- * standing review queries in the release notes.
+ * still labelled user-error. It still emits a `fault` span event and an
+ * `oneuptime.fault.count` increment, so it remains findable — see the
+ * standing review queries in the release notes. The @CaptureSpan recorder
+ * logs it at debug when it is a client's refusal (a 4xx in words), as the
+ * request's own answer logs one (#10797), and a WARN line otherwise; the
+ * `.catch()` that takes it still logs it as it chooses.
  */
 export default class ErrorClassResolver {
   public static resolve(
@@ -103,7 +106,12 @@ export default class ErrorClassResolver {
     return isNonActionableErrorClass(this.resolve(error, declaredOverride));
   }
 
-  private static isInsideHttpRequest(): boolean {
+  /*
+   * Whether this runs inside an HTTP request's unit of work (StartServer
+   * seeds it): where a user-error has a client to blame, and where the
+   * request's answer logs a client's refusal (ClientRefusalLog).
+   */
+  public static isInsideHttpRequest(): boolean {
     try {
       return (
         TelemetryContext.getAttributes()[UNIT_OF_WORK_ATTRIBUTE_KEY] ===

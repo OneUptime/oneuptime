@@ -203,6 +203,16 @@ export const PROPOSAL_KIND_TITLES: Readonly<
   [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
     "One approval for the stores made in the console",
   ),
+  // Its own confirmations of findings, and what decisions say of the scans (#10372).
+  [DataSecurityAiProposalKind.ConfirmFindings]:
+    translationKey("Confirmed findings"),
+  [DataSecurityAiProposalKind.TurnOffDataType]: translationKey(
+    "Data types turned off",
+  ),
+  [DataSecurityAiProposalKind.AddScanExclusion]:
+    translationKey("Scan exclusions"),
+  // A data type of the project's own, found in its stores (#10371).
+  [DataSecurityAiProposalKind.AddDataType]: translationKey("Data types added"),
 };
 
 // Where a proposal stands, as a fact says it (DataSecurityAiProposalStatus).
@@ -213,6 +223,7 @@ export const PROPOSAL_STATUS_TITLES: Readonly<Record<string, string>> = {
   AppliedWithoutAsking: translationKey("made without asking"),
   Dismissed: translationKey("dismissed"),
   Expired: translationKey("no longer needed"),
+  Proving: translationKey("being checked on your stores' next scans"),
   Undone: translationKey("undone"),
   Failed: translationKey("failed"),
 };

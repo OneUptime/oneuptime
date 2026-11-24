@@ -44,6 +44,10 @@ import DataSecurityAiInput, {
   DataSecurityAiPrompt,
 } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import DataSecurityFieldSuggestion from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
+import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
+import DataSecurityFindingVerdicts from "../../../../../Server/Utils/AI/DataSecurity/FindingVerdicts";
+import DataTypeDiscovery from "../../../../../Server/Utils/AI/DataSecurity/DataTypeDiscovery";
+import DataTypeFromSentence from "../../../../../Server/Utils/AI/DataSecurity/DataTypeFromSentence";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
@@ -109,6 +113,18 @@ import LLMService, {
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import DataSecurityIssueGroupService from "../../../../../Server/Services/DataSecurityIssueGroupService";
 import DataSecurityIssueGroupNaming from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming";
+import AuditEvidenceDrafter from "../../../../../Server/Utils/AI/DataSecurity/AuditEvidenceDrafter";
+import ImpactAssessmentDrafter from "../../../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import RecordOfProcessingDrafter from "../../../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
+import DataSecuritySettingService from "../../../../../Server/Services/DataSecuritySettingService";
+import DataSecurityComplianceSettingService from "../../../../../Server/Services/DataSecurityComplianceSettingService";
+import DeclaredDataStores from "../../../../../Server/Utils/DataSecurity/DeclaredDataStores";
+import ResourceDataSecurity from "../../../../../Server/Utils/DataSecurity/ResourceDataSecurity";
+import UserLanguage from "../../../../../Server/Utils/Notification/UserLanguage";
+import ComplianceFramework, {
+  COMPLIANCE_FRAMEWORK_INFO,
+} from "../../../../../Types/DataSecurity/ComplianceFramework";
+import { ComplianceRequirementStatus } from "../../../../../Types/DataSecurity/ComplianceRequirementCatalog";
 import SubjectCodeFixRun from "../../../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import { DeclaredCodeOwnerReason } from "../../../../../Utils/AiRemediation/DeclaredCodeChange";
 import BaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -167,6 +183,8 @@ import type { SpyInstance } from "jest-mock";
  *     permission layer, the reads for AI and the builder, to the model
  *     (LLMService) and to the Code task (CodeTaskRuns.start);
  *   - the field suggestions, from the store's scan state to the model;
+ *   - the verdicts on findings that wait for a person (#10372), from the
+ *     store's findings and the team's decisions on findings like them;
  *   - Ask AI's three Data Security tools, to the text the chat reads.
  *
  * Every byte each one sends is searched for every planted value. A
@@ -180,6 +198,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const STORE_ID: string = "10365000-0000-4000-8000-0000000000b1";
 const TELEMETRY_STORE_ID: string = "10365000-0000-4000-8000-0000000000b2";
+// A second store that keeps the same unknown kind of value (#10371).
+const DATABASE_STORE_ID: string = "10365000-0000-4000-8000-0000000000b3";
 const BUCKET_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a1";
 const TELEMETRY_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a2";
 const INFRA_ID: string = "10365000-0000-4000-8000-0000000000c1";
@@ -398,6 +418,49 @@ function findingRows(): Array<StoredRow> {
       isConfirmed: false,
       isSuppressed: false,
       maskedSamples: [PLANTED["maskedSample"]],
+    },
+  ];
+}
+
+/*
+ * The team's decision on a finding like the bucket's suggestion, on a third
+ * store (#10372): the one column of a finding a verdict is told as a person
+ * wrote it, the reason, with a value of its own typed into it. The verdict
+ * is told the words, never the values.
+ */
+const CRM_STORE_ID: string = "10372000-0000-4000-8000-0000000000b3";
+const REASON_WORDS: string = "Our support inbox, not a customer";
+const REASON_EMAIL: string = "support@acme-shop.com";
+const REASON_NUMBER: string = "48151623421";
+
+function precedentRows(): Array<StoredRow> {
+  return [
+    {
+      _id: "10372000-0000-4000-8000-0000000000d4",
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: CRM_STORE_ID,
+      dataTypeId: "email-address",
+      dataTypeName: "Email address",
+      location: "crm.customers.kontakt",
+      locationKind: "Column",
+      confidence: "Medium",
+      matchCount: 30,
+      valueCount: 40,
+      isSuppressed: true,
+      isConfirmed: false,
+      isAiSuggested: false,
+      suppressedReason: `${REASON_WORDS}: ${REASON_EMAIL}, ticket ${REASON_NUMBER}`,
+      decidedAt: new Date(),
+      lastSeenAt: new Date(),
+      maskedSamples: [PLANTED["maskedSample"]],
+      sampleRecords: [
+        {
+          time: new Date().toISOString(),
+          traceId: PLANTED["sampleRecordTrace"],
+          logId: PLANTED["sampleRecordLog"],
+        },
+      ],
+      body: PLANTED["logBody"],
     },
   ];
 }
@@ -756,7 +819,145 @@ const fixIssueGroupRun: () => Promise<string> = async (): Promise<string> => {
   return JSON.stringify(queued.mock.calls[0]![0]);
 };
 
+/*
+ * The compliance paperwork (#10375), over the planted rows: the bucket as a
+ * store of personal data about many people, its record drafted on its own
+ * and on request, its impact assessment, and SOC 2's evidence with the
+ * bucket's issue an accepted risk.
+ */
+function usePaperworkTables(): void {
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(STORE_ID, {
+      dataCategories: ["Contact and identity", "Financial"],
+      estimatedRecords: 2000000,
+    }),
+  ]);
+  useInMemoryTable(asService(ServiceService), []);
+  useInMemoryTable(asService(DataSecuritySettingService), []);
+  useInMemoryTable(asService(DataSecurityComplianceSettingService), []);
+  jest
+    .spyOn(DeclaredDataStores, "declareBeforeRead")
+    .mockResolvedValue(undefined);
+  jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+  jest
+    .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+    .mockResolvedValue(null);
+}
+
+const draftRecordRun: (
+  feature:
+    | DataSecurityAiFeature.DraftRecord
+    | DataSecurityAiFeature.DraftRecordOnRequest,
+) => Promise<string> = async (
+  feature:
+    | DataSecurityAiFeature.DraftRecord
+    | DataSecurityAiFeature.DraftRecordOnRequest,
+): Promise<string> => {
+  usePaperworkTables();
+
+  await RecordOfProcessingDrafter.draftStore({
+    projectId: PROJECT_ID,
+    dataStoreId: new ObjectID(STORE_ID),
+    feature,
+    ...(feature === DataSecurityAiFeature.DraftRecordOnRequest
+      ? { userId: OWNER.userId as ObjectID }
+      : {}),
+    dataTypeNamer: DataTypeNamer.withoutCustomTypes(),
+  });
+
+  expect(completion).toHaveBeenCalledTimes(1);
+
+  return sentToTheModel();
+};
+
 const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
+  [DataSecurityAiFeature.DraftRecord]: async (): Promise<string> => {
+    return await draftRecordRun(DataSecurityAiFeature.DraftRecord);
+  },
+  [DataSecurityAiFeature.DraftRecordOnRequest]: async (): Promise<string> => {
+    return await draftRecordRun(DataSecurityAiFeature.DraftRecordOnRequest);
+  },
+  [DataSecurityAiFeature.DraftImpactAssessment]: async (): Promise<string> => {
+    usePaperworkTables();
+
+    // An answer it cannot read is refused after the call: what was sent is the test.
+    await ImpactAssessmentDrafter.draftForPerson({
+      projectId: PROJECT_ID,
+      dataStoreId: new ObjectID(STORE_ID),
+      props: OWNER,
+    }).catch((): void => {
+      // Nothing drafted from '{"fields":[]}'.
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
+  [DataSecurityAiFeature.DraftAuditEvidence]: async (): Promise<string> => {
+    usePaperworkTables();
+    useInMemoryTable(
+      asService(DataSecurityIssueService),
+      issueRows().map((row: StoredRow): StoredRow => {
+        return row["_id"] === BUCKET_ISSUE_ID
+          ? {
+              ...row,
+              status: "Accepted",
+              acceptedUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            }
+          : row;
+      }),
+    );
+    jest
+      .spyOn(ResourceDataSecurity, "readProjectCompliance")
+      .mockResolvedValue([
+        {
+          framework: ComplianceFramework.SOC2,
+          fullName:
+            COMPLIANCE_FRAMEWORK_INFO[ComplianceFramework.SOC2].fullName,
+          scope: COMPLIANCE_FRAMEWORK_INFO[ComplianceFramework.SOC2].scope,
+          score: 0,
+          storesInScope: 1,
+          storesTurnedOff: 0,
+          requirements: [
+            {
+              requirement: "CC6.1",
+              title: "Logical access security",
+              status: ComplianceRequirementStatus.Failing,
+              checkIds: ["public-read"],
+              failingIssueCount: 1,
+            },
+          ],
+          turnedOff: [],
+        },
+      ] as never);
+    jest
+      .spyOn(ResourceDataSecurity, "readProjectSettings")
+      .mockResolvedValue([]);
+    jest.spyOn(ResourceDataSecurity, "toScopedStores").mockResolvedValue([
+      {
+        id: STORE_ID,
+        owner: null,
+        input: {
+          id: STORE_ID,
+          dataTypeIds: ["credit-card-number", "email-address"],
+          isEvaluated: true,
+        },
+      },
+    ]);
+
+    await AuditEvidenceDrafter.draftForPerson({
+      projectId: PROJECT_ID,
+      framework: ComplianceFramework.SOC2,
+      periodInDays: 90,
+      props: OWNER,
+    }).catch((): void => {
+      // Nothing drafted from '{"fields":[]}'.
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
   [DataSecurityAiFeature.ExplainIssue]: async (): Promise<string> => {
     completion.mockResolvedValue({
       content: ANALYSIS_ANSWER,
@@ -1089,10 +1290,190 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
   },
   [DataSecurityAiFeature.NameIssueGroup]: nameIssueGroupRun,
   [DataSecurityAiFeature.FixIssueGroup]: fixIssueGroupRun,
+  /*
+   * The verdicts (#10372): the bucket's suggestion waits for a person, and
+   * the team's decision on a field of the same name on another store is
+   * its precedent - read with every column planted, its own included.
+   */
+  [DataSecurityAiFeature.JudgeFindings]: async (): Promise<string> => {
+    jest.spyOn(ProjectService, "findOneById").mockResolvedValue({
+      id: PROJECT_ID,
+      enableAi: true,
+      enableAutomaticDataSecurityAi: true,
+    } as unknown as Project);
+    useInMemoryTable(asService(DataStoreFindingService), [
+      ...findingRows(),
+      ...precedentRows(),
+    ]);
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID),
+      storeRow(CRM_STORE_ID, {
+        name: "crm-eu",
+        kind: "PostgreSQL",
+        provider: "aws",
+      }),
+    ]);
+    // No AI rule: the project's defaults, which suggest.
+    jest.spyOn(DataSecurityAiEngine, "readRules").mockResolvedValue([]);
+    // Written as one statement the tables in memory do not run: what it saves is no input.
+    jest
+      .spyOn(DataStoreFindingService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined as never);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        findings: [
+          {
+            ref: "F1",
+            verdict: "NotSensitive",
+            reason: "Your team marked kontakt not sensitive on another store.",
+            precedent: ["P1"],
+            draft: "The support inbox, as on crm-eu.",
+          },
+        ],
+      }),
+      usage: { promptTokens: 300, completionTokens: 40, totalTokens: 340 },
+    });
+
+    await DataSecurityFindingVerdicts.judgeStore({
+      projectId: PROJECT_ID,
+      dataStoreId: new ObjectID(STORE_ID),
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
+  /*
+   * The company's own data types (#10371): three fields no detector placed,
+   * in two stores whose every column that holds a value is planted, grouped
+   * and drafted from their names and shapes.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: async (): Promise<string> => {
+    const unplaced: (location: string) => JSONObject = (
+      location: string,
+    ): JSONObject => {
+      return {
+        location,
+        locationKind: "Column",
+        neighbours: ["name", "email"],
+        shapes: [{ shape: "AA-999999", share: 1 }],
+        valueCount: 40,
+        averageLength: 9,
+      };
+    };
+
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID, {
+        fieldSuggestionState: toStoredFieldSuggestionState({
+          pending: [
+            unplaced("public.customers.kundennr"),
+            unplaced("public.orders.kundennr"),
+          ] as never,
+          answers: {},
+        }),
+      }),
+      storeRow(DATABASE_STORE_ID, {
+        name: "orders-db",
+        kind: "PostgreSQL",
+        fieldSuggestionState: toStoredFieldSuggestionState({
+          pending: [unplaced("crm.accounts.kundennr")] as never,
+          answers: {},
+        }),
+      }),
+    ]);
+    jest
+      .spyOn(DataSecuritySettingService, "getOrCreateForProject")
+      .mockResolvedValue({ contentScanIntervalInHours: 24 } as never);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        dataType: null,
+        reason: "A customer number of the company's own.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 20, totalTokens: 320 },
+    });
+
+    await DataTypeDiscovery.runForProject({
+      projectId: PROJECT_ID,
+      now: new Date(),
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
+  // Describe It on the data type form (#10371): a sentence and its examples' shapes.
+  [DataSecurityAiFeature.DescribeDataType]: async (): Promise<string> => {
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        dataType: {
+          name: "Customer number",
+          description: "A customer number, such as AA-999999.",
+          category: "Contact and identity",
+          sensitivity: "Confidential",
+          pattern: "\\b[A-Z]{2}-?\\d{6}\\b",
+          keywords: ["customer"],
+          nameHints: ["kundennr"],
+        },
+        reason: "As described.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 20, totalTokens: 320 },
+    });
+
+    await DataTypeFromSentence.draft({
+      projectId: PROJECT_ID,
+      userId: OWNER.userId,
+      sentence:
+        "Our customer numbers look like AB-123456, sometimes without the dash.",
+      exampleShapes: ["AA-999999", "AA999999"],
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
+};
+
+/*
+ * What a feature sends on purpose, though no other may (#10375): what a
+ * store is for, as its team described it, which the record of processing
+ * and the impact assessment are drafted from; and why a risk was accepted,
+ * as the person who accepted it wrote it for an auditor, which the audit
+ * evidence cites. Each is cleaned, held to a length and marked as data
+ * (customerText), as every text a person wrote is, and each feature's
+ * catalog entry says it is sent. Every other planted value stays out.
+ */
+const SENT_ON_PURPOSE: Partial<Record<DataSecurityAiFeature, Array<string>>> = {
+  [DataSecurityAiFeature.DraftRecord]: ["description"],
+  [DataSecurityAiFeature.DraftRecordOnRequest]: ["description"],
+  [DataSecurityAiFeature.DraftImpactAssessment]: ["description"],
+  [DataSecurityAiFeature.DraftAuditEvidence]: ["acceptedReason"],
 };
 
 // What each feature is for, which its input must still carry.
 const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
+  // The store, what it holds and how many: what its purpose is drafted from.
+  [DataSecurityAiFeature.DraftRecord]: [
+    "acme-card-exports",
+    "Card number",
+    "eu-north-1",
+  ],
+  [DataSecurityAiFeature.DraftRecordOnRequest]: [
+    "acme-card-exports",
+    "Card number",
+    "eu-north-1",
+  ],
+  // The record's and the store's open issues, which its risks are.
+  [DataSecurityAiFeature.DraftImpactAssessment]: [
+    "acme-card-exports",
+    "Anyone on the internet can read it",
+    "Card number",
+  ],
+  // The requirement, the store in its scope and the risk accepted under it.
+  [DataSecurityAiFeature.DraftAuditEvidence]: [
+    "CC6.1",
+    "acme-card-exports",
+    "Anyone on the internet can read it",
+  ],
   [DataSecurityAiFeature.ExplainIssue]: [
     "acme-card-exports",
     "attributes.user.email",
@@ -1143,6 +1524,20 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "acme-card-exports",
     "public-read",
   ],
+  // The finding that waits, and the decision on one like it, in the person's words.
+  [DataSecurityAiFeature.JudgeFindings]: [
+    "public.customers.kontakt",
+    "crm.customers.kontakt",
+    REASON_WORDS,
+  ],
+  // The group's fields, by where each is, and their shape - never a value.
+  [DataSecurityAiFeature.DraftDataTypes]: [
+    "public.customers.kundennr",
+    "crm.accounts.kundennr",
+    "AA-999999",
+  ],
+  // The person's sentence, and their examples' shapes.
+  [DataSecurityAiFeature.DescribeDataType]: ["customer numbers", "AA-999999"],
 };
 
 describe("no feature's input carries a value planted where a record keeps one", () => {
@@ -1159,7 +1554,14 @@ describe("no feature's input carries a value planted where a record keeps one", 
   test.each(Object.keys(RUNS))("%s", async (feature: string) => {
     const sent: string = await RUNS[feature as DataSecurityAiFeature]();
 
-    expect({ feature, planted: plantedIn(sent) }).toEqual({
+    expect({
+      feature,
+      planted: plantedIn(sent).filter((name: string): boolean => {
+        return !(
+          SENT_ON_PURPOSE[feature as DataSecurityAiFeature] || []
+        ).includes(name);
+      }),
+    }).toEqual({
       feature,
       planted: [],
     });
@@ -1205,6 +1607,16 @@ describe("no feature's input carries a value planted where a record keeps one", 
         selected: false,
       });
     }
+  });
+});
+
+describe("a person's reason reaches the verdicts without a value in it", () => {
+  test("the words go, the email address and the number typed into it do not", async () => {
+    const sent: string = await RUNS[DataSecurityAiFeature.JudgeFindings]();
+
+    expect(sent).toContain(REASON_WORDS);
+    expect(sent).not.toContain(REASON_EMAIL);
+    expect(sent).not.toContain(REASON_NUMBER);
   });
 });
 

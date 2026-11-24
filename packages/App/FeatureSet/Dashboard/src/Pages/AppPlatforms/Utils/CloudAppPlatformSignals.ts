@@ -50,8 +50,9 @@ import {
  *
  *   - an App Service site or slot: Requests, Http5xx and the mean
  *     HttpResponseTime;
- *   - a Container App: Requests and the mean ResponseTime - Azure Monitor's
- *     Requests are read whole, so its 5xx share is unknown, never 0;
+ *   - a Container App: Requests, read once by their status code category
+ *     (metadata_statuscodecategory, #10837), whose 5xx group is its server
+ *     errors, and the mean ResponseTime;
  *   - a Cloud Run or App Engine service: its request count, read once by
  *     its response code (response_code_class, response_code), whose 5xx
  *     groups are its server errors, and its latency's 95th percentile;
@@ -275,18 +276,26 @@ export function getCloudAppPlatformMetricReads(
   return Array.from(reads.values());
 }
 
-// One resource's value of a read over the hour; its 5xx when the read splits them.
+/*
+ * One resource's value of a read over the hour; when the read splits its
+ * requests by their response code, the 5xx among those whose code it read,
+ * and how many those were (classified) - the share is of them.
+ */
 export interface CloudAppPlatformGroupValue {
   value: number;
   serverErrors?: number | undefined;
+  classified?: number | undefined;
 }
 
 /*
  * One grouped read's values, by the signature of each group's resource
  * (its values of `keys`): each group's value over the hour, scaled, and -
- * for requests read by their response code - its 5xx among them. A
- * resource with no group sent nothing of the metric: unknown, never 0.
- * Exported for tests.
+ * for requests read by their response code - its 5xx among them, of the
+ * requests that carry their code. Requests that carry none (a Container
+ * App's, stored before its Requests were split) count, and say nothing of
+ * their errors: a resource whose requests carry no code at all has no 5xx
+ * value. A resource with no group sent nothing of the metric: unknown,
+ * never 0. Exported for tests.
  */
 export function readPlatformMetricGroups(data: {
   rows: ReadonlyArray<AggregatedModel>;
@@ -325,20 +334,23 @@ export function readPlatformMetricGroups(data: {
     const signature: string = signatureOf(parts);
     const group: CloudAppPlatformGroupValue = values.get(signature) || {
       value: 0,
-      ...(data.errorLabel ? { serverErrors: 0 } : {}),
     };
 
     // Two buckets of one resource (a split answer) add up, as a total does.
     group.value += value;
 
     if (data.errorLabel) {
-      const label: unknown = record[data.errorLabel.attribute];
+      const raw: unknown = record[data.errorLabel.attribute];
+      const label: string =
+        typeof raw === "string" || typeof raw === "number"
+          ? String(raw).trim()
+          : "";
 
-      if (
-        (typeof label === "string" || typeof label === "number") &&
-        data.errorLabel.isServerError(String(label))
-      ) {
-        group.serverErrors = (group.serverErrors || 0) + value;
+      if (label) {
+        group.classified = (group.classified || 0) + value;
+        group.serverErrors =
+          (group.serverErrors || 0) +
+          (data.errorLabel.isServerError(label) ? value : 0);
       }
     }
 
@@ -438,6 +450,10 @@ export function summarizePlatformSite(data: {
     : errorsRead?.value
       ? errorsRead.value.value
       : null;
+  // A split read's 5xx are a share of the requests whose code it read.
+  const shareOf: number | null = requestsRead?.read.errorLabel
+    ? requestsRead.value?.classified ?? null
+    : requests;
   const p95: FigureValue | null = figure(CloudAppPlatformFigure.Latency);
   const latency: FigureValue | null =
     p95 || figure(CloudAppPlatformFigure.ResponseTime);
@@ -446,13 +462,13 @@ export function summarizePlatformSite(data: {
     requests,
     serverErrors,
     /*
-     * A site's 5xx are counted 0 in an interval with none, and a Cloud
-     * Monitoring count's are read with its requests: a site with requests
-     * and no 5xx value at all was not read, its rate unknown, not 0%.
+     * A site's 5xx are counted 0 in an interval with none, and a split
+     * count's are read with its requests: a site with requests and no 5xx
+     * value at all was not read, its rate unknown, not 0%.
      */
     serverErrorRatePercent:
-      requests !== null && requests > 0 && serverErrors !== null
-        ? (serverErrors / requests) * 100
+      shareOf !== null && shareOf > 0 && serverErrors !== null
+        ? (serverErrors / shareOf) * 100
         : null,
     responseTimeMs: latency?.value ? latency.value.value : null,
     latency: p95 ? "p95" : "average",

@@ -486,6 +486,7 @@
   "Can't scan the QR code?": "QR コードをスキャンできない場合",
   "Enter this setup key in your authenticator app instead.": "代わりに、このセットアップキーを認証アプリに入力してください。",
   "If your app asks, choose a time-based key.": "アプリで尋ねられた場合は、時間ベースのキーを選択してください。",
+  "Add to Authenticator App": "認証アプリに追加",
   "Copy": "コピー",
   "Copied!": "コピーしました",
   "Copy failed": "コピーに失敗しました",

@@ -294,15 +294,17 @@ export default class logger {
       if (isNonActionableErrorClass(errorClass)) {
         /*
          * The platform correctly REFUSING a request is not an ERROR. This one
-         * guard reaches every logger.error call site in the product,
-         * including the @CaptureSpan recorder. The two choke points that
-         * answer a client - Response.sendErrorResponse (~720 call sites
-         * answer 4xx directly and never throw) and the Express error
-         * handler - no longer bring a client's 4xx here: they log it at
-         * debug and count it by route, with a warn line a minute
-         * (ClientRefusalLog, #10768), since it came from anyone. What they
-         * still log here is everything they do not take for a client's:
-         * every 5xx, and a 4xx whose Exception declares another class.
+         * guard reaches every logger.error call site in the product. The two
+         * choke points that answer a client - Response.sendErrorResponse
+         * (~720 call sites answer 4xx directly and never throw) and the
+         * Express error handler - no longer bring a client's 4xx here: they
+         * log it at debug and count it by route, with a warn line a minute
+         * (ClientRefusalLog, #10768), since it came from anyone. Nor does
+         * the @CaptureSpan recorder bring a client's refusal thrown inside a
+         * request, which that answer logs (#10797). What they still log here
+         * is everything they do not take for a client's: every 5xx, a 4xx
+         * whose Exception declares another class, and - from the recorder -
+         * a class a site declared a client's outside any request.
          *
          * Deliberately NOT this.warn(): Logger.warn is gated on
          * DEBUG/INFO/WARN and config.example.env ships LOG_LEVEL=ERROR, so

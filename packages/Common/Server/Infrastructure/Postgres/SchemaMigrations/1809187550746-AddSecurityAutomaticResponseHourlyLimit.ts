@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * column without rewriting the table, and holds its lock only for the
  * catalog change.
  */
-export class AddSecurityAutomaticResponseHourlyLimit1809187530746
+export class AddSecurityAutomaticResponseHourlyLimit1809187550746
   implements MigrationInterface
 {
-  public name: string = "AddSecurityAutomaticResponseHourlyLimit1809187530746";
+  public name: string = "AddSecurityAutomaticResponseHourlyLimit1809187550746";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

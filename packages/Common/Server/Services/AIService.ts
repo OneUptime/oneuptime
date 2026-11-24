@@ -197,6 +197,19 @@ export const AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE: string =
   "AI Data Security Field Suggestion";
 
 /*
+ * The LlmLog feature name for OneUptime AI's verdicts on the Data Security
+ * findings that wait for a person (DataSecurityFindingVerdicts, #10372):
+ * after a store's scan, at most two constrained calls judge its Low
+ * findings, the field suggestions and the findings with a sign of a wrong
+ * match, from their facts and the team's earlier decisions - with no human
+ * in the loop, and every store's scan can start one, so the daily budget
+ * covers it. Its AI Logs rows keep no previews, as every Data Security
+ * call's do not.
+ */
+export const AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE: string =
+  "AI Data Security Finding Verdicts";
+
+/*
  * The LlmLog feature name for Explain with AI on a Data Security issue
  * (DataSecurityAPI): one request, started by a person on the issue's page
  * and answered while they wait. Not autonomous. Written since Explain
@@ -268,6 +281,64 @@ export const AI_DATA_SECURITY_SCRUB_RULES_FEATURE: string =
  */
 export const AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE: string =
   "AI Data Security Pull Request Review";
+
+/*
+ * The LlmLog feature name for OneUptime AI's drafts of a store's record of
+ * processing (RecordOfProcessingDrafter, #10375) written on their own: one
+ * constrained call per store with personal data whose drafts' facts
+ * changed, in the daily run, with no one pressing it - a project can hold
+ * hundreds of such stores - so the daily budget covers it. Its AI Logs
+ * rows keep no previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_RECORD_DRAFT_FEATURE: string =
+  "AI Data Security Record Draft";
+
+/*
+ * The same drafts when a person asks for one store's on Review Drafts
+ * (#10375): one request, answered while they wait. Not autonomous - the
+ * project's daily limits cover it like any other request.
+ */
+export const AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE: string =
+  "AI Data Security Record Draft Request";
+
+/*
+ * The LlmLog feature name for a store's data protection impact assessment
+ * (ImpactAssessmentDrafter, #10375): one request, started by a person on
+ * the store's Impact Assessment and answered while they wait. Not
+ * autonomous.
+ */
+export const AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE: string =
+  "AI Data Security Impact Assessment";
+
+/*
+ * The LlmLog feature name for a framework's audit evidence
+ * (AuditEvidenceDrafter, #10375): one request for the framework's
+ * requirements, started by a person on its Audit Evidence and answered
+ * while they wait. Not autonomous.
+ */
+export const AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE: string =
+  "AI Data Security Audit Evidence";
+
+/*
+ * The LlmLog feature name for the data types OneUptime AI drafts from the
+ * fields scans could not place (DataTypeDiscovery, #10371): one constrained
+ * call per group of fields that share an unknown shape across stores, from
+ * their names and shapes - never a value - started by the scans that kept
+ * them, with no one pressing it, so the daily budget covers it. Its AI Logs
+ * rows keep no previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE: string =
+  "AI Data Security Data Type Draft";
+
+/*
+ * The LlmLog feature name for Describe It on the data type form
+ * (DataTypeFromSentence, #10371): one request, started by a person from a
+ * sentence and the shapes of their examples - never the examples - and
+ * answered while they wait. Not autonomous. Its AI Logs rows keep no
+ * previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE: string =
+  "AI Data Security Data Type Describe";
 
 /*
  * The LlmLog feature name for drafting a detection rule from a description
@@ -422,6 +493,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    */
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   /*
+   * OneUptime AI's verdicts on the findings that wait for a person
+   * (DataSecurityFindingVerdicts): at most two constrained calls per store
+   * scan, started by the scan.
+   */
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+  /*
    * OneUptime AI's analysis of a new Data Security issue
    * (DataSecurityIssueAnalysis): one constrained call per issue that opens,
    * and one scan can open many.
@@ -450,6 +527,18 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * whose rules found something, and every push can start one.
    */
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  /*
+   * OneUptime AI's drafts of a store's record of processing
+   * (RecordOfProcessingDrafter, #10375) in the daily run: one constrained
+   * call per store whose drafts' facts changed.
+   */
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  /*
+   * The data types OneUptime AI drafts from the fields scans could not
+   * place (DataTypeDiscovery, #10371): one constrained call per new group,
+   * started by the scans that kept its fields.
+   */
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

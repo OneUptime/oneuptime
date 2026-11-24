@@ -7,6 +7,8 @@ Sécurité des données connaît 143 sortes de données sensibles : numéros de 
 - [Champs et colonnes](#champs-et-colonnes): Comment une colonne ou un attribut est jugé dans son ensemble.
 - [Chaque type de données](#types-de-données-intégrés): Les 143, par catégorie.
 - [Vos propres types de données](#vos-propres-types-de-données): Identifiants d'employé, numéros de police, et la zone Tester.
+- [Les types de données que trouve OneUptime AI](#les-types-de-données-que-trouve-oneuptime-ai): Vos propres types de données, trouvés dans les champs qu'aucun détecteur n'a pu identifier.
+- [Les verdicts d'OneUptime AI](#les-verdicts-doneuptime-ai): Un verdict sur chaque détection qui vous attend, avec les décisions de votre équipe comme précédents.
 :::
 
 ## Comment une valeur est trouvée
@@ -63,7 +65,9 @@ Un champ dont le nom dit qu'il contient un mot de passe - `password`, `passwordH
 
 Une colonne ou un champ dont le nom n'évoque aucun type de données, et dont les valeurs ne correspondent à aucun détecteur, n'est pas connu comme sûr : ce peut être votre propre numéro de client, ou une colonne nommée dans une autre langue. Avec **Activer l'IA** activé pour le projet, une analyse du contenu conserve ces champs, 200 au plus par analyse, et OneUptime AI est interrogé sur le type de données du projet que contient chacun, 40 champs au plus d'un magasin de données à la fois. On lui donne le nom du champ, les noms des champs voisins et les formes de ses valeurs - chaque lettre écrite `a` ou `A` et chaque chiffre `9`, donc `AB-1234` devient `AA-9999` - jamais une valeur. Le texte libre, les champs de moins de 5 valeurs, les petits nombres entiers et les champs nommés comme un identifiant, une date ou un statut ne sont pas soumis.
 
-Chaque type que nomme OneUptime AI est une détection de confiance Faible, marquée **Suggéré par OneUptime AI**, avec sa raison. Comme toute détection de confiance Faible, elle ne compte pour rien tant qu'une personne ne choisit pas **Confirmer** sur la page **Contenu** du magasin de données ; **Marquer comme non sensible** la refuse. Un champ qui a reçu une réponse n'est pas soumis de nouveau pendant 30 jours, et un champ qu'une personne a jugé ne l'est plus jamais.
+Une analyse de télémétrie conserve de la même façon les attributs qu'aucun détecteur n'a identifiés, à partir des logs, des spans, des métriques et du reste de la télémétrie d'un service, au plus 50 par service et par analyse. Elle ne conserve jamais les attributs propres à OneUptime, ni ceux que les conventions d'OpenTelemetry écrivent sur chaque enregistrement pour dire d'où il vient, comme le service, l'hôte ou le pod, ni du texte libre, comme le corps d'un log.
+
+Chaque type que nomme OneUptime AI est une détection de confiance Faible, marquée **Suggéré par OneUptime AI**, avec sa raison, rédigée dans la langue de votre projet et affichée sur toute la largeur de la ligne de la détection. Comme toute détection de confiance Faible, elle ne compte pour rien tant qu'une personne ne choisit pas **Confirmer** sur la page **Contenu** du magasin de données ; **Marquer comme non sensible** la refuse. Un champ qui a reçu une réponse n'est pas soumis de nouveau pendant 30 jours, et un champ qu'une personne a jugé ne l'est plus jamais.
 
 ## Sensibilité
 
@@ -296,6 +300,32 @@ Un motif est vérifié à l'enregistrement : il doit compiler, ne correspondre �
 
 Une valeur de votre type a une confiance Moyen seule et Élevé avec un mot-clé proche quand elle passe une somme de contrôle, et Faible seule et Moyen avec un mot-clé quand il n'y en a pas. Dans une colonne, c'est la part des valeurs qui correspondent qui décide, comme pour chaque type.
 
+### Décrire
+
+En haut du formulaire d'un nouveau type de données, **Décrire** remplit le formulaire pour vous. Écrivez à quoi ressemblent les données, par exemple « nos matricules d'employés ressemblent à EMP-123456, parfois sans le tiret », ajoutez quelques exemples si vous le souhaitez, un par ligne, et choisissez **Remplir le formulaire**. OneUptime AI reçoit votre phrase et les formes de vos exemples, jamais les exemples eux-mêmes : ils restent dans votre navigateur, où **Tester** montre combien d'entre eux son motif trouve. Relisez ce qu'il a rempli, modifiez ce que vous voulez, puis enregistrez : rien n'est enregistré tant que vous ne le faites pas, et le motif est vérifié comme si vous l'aviez écrit vous-même. Décrire nécessite que **Activer l'IA** soit activé pour le projet.
+
+## Les types de données que trouve OneUptime AI
+
+Les champs qu'aucun détecteur n'a pu identifier contiennent souvent un type de données propre à votre entreprise, conservé à de nombreux endroits sous des noms qui disent la même chose : les numéros de police d'un assureur dans des colonnes nommées `policy_no`, `policyNumber` et `police_nr`, dans toutes ses bases de données. Avec **Activer l'IA** activé pour le projet, OneUptime AI trouve un tel type de données dans les champs que vos analyses ont conservés, et ne vous le soumet qu'une fois que vos propres analyses l'ont prouvé.
+
+:::steps
+### Il trouve un groupe de champs
+
+Trois champs ou plus dans deux magasins de données ou plus forment un groupe quand la plupart de leurs valeurs ont une même forme, avec ou sans les séparateurs entre ses parties, et que leurs noms partagent un mot qui dit ce qu'ils contiennent. Une forme sans chiffre, une date, une heure ou un nombre décimal ne forme jamais de groupe, et un mot comme `id`, `no` ou `number` ne dit rien à lui seul.
+
+### Il rédige un type de données
+
+OneUptime AI rédige un type de données pour chaque nouveau groupe, au plus 3 à la fois, à partir des noms des champs et des formes de leurs valeurs, jamais d'une valeur. Le brouillon doit passer les mêmes contrôles qu'un type enregistré et trouver les formes à partir desquelles il a été rédigé. Un brouillon qui n'y parvient pas est redemandé une fois, avec la raison.
+
+### Vos prochaines analyses le prouvent
+
+Le brouillon s'exécute lors de la prochaine analyse de chaque magasin de données de son groupe, pendant au plus 48 heures ou un intervalle d'analyse, selon ce qui est le plus long. Il ne crée aucune détection : chaque analyse compte combien de valeurs il trouverait, dans les champs du groupe et dans tous les autres champs des mêmes magasins de données. Il est proposé quand il trouve au moins 80 % des valeurs de ses champs et au plus 1 % des autres valeurs. Un champ ailleurs où il trouve presque toutes les valeurs contient les mêmes données sous un autre nom : il est nommé, et non compté contre lui.
+:::
+
+Chaque brouillon est aussi compté, en même temps, sous une forme restreinte : en dehors des champs de son groupe, un brouillon restreint ne trouve une valeur qu'à côté de l'un de ses mots-clés ou sous un nom de champ qui le nomme. Un brouillon qui trouve trop de valeurs ailleurs est proposé sous sa forme restreinte quand cela suffit. Un brouillon qui ne suffit sous aucune forme est abandonné, et son groupe n'est pas rédigé à nouveau pendant 30 jours.
+
+Chaque type de données qu'il propose attend sous **Types de données à examiner**, en haut de **Sécurité des données → Paramètres → Types de données** et sur **Sécurité des données → IA**, avec ce que vos analyses ont compté, par exemple « Correspond à 98 % des valeurs de ces 11 champs, et à 0,1 % des valeurs ailleurs dans les mêmes magasins de données. » **Ajouter le type de données** ouvre le formulaire d'un type de données rempli avec lui, à modifier et à tester ; l'enregistrer ajoute le type, que les analyses trouvent dès leur prochaine exécution. **Pas un type de données** le refuse : il n'est plus jamais proposé pour ces champs. L'ajouter nécessite un rôle qui peut créer des types de données.
+
 ## Non sensible, et jamais sensible
 
 Une analyse peut trouver quelque chose qui n'est pas ce qu'il paraît : une colonne de numéros de commande qui passent le contrôle de Luhn, votre propre adresse de support dans chaque ligne de journal. Dites-le à OneUptime, et il cesse de compter :
@@ -303,6 +333,42 @@ Une analyse peut trouver quelque chose qui n'est pas ce qu'il paraît : une colo
 - **Marquez la détection comme non sensible.** Sur la page **Contenu** du magasin de données, choisissez **Marquer comme non sensible** sur la détection et dites pourquoi. Elle ne compte plus pour la sensibilité du magasin de données ni pour ses contrôles, et le magasin de données est aussitôt contrôlé à nouveau. La détection reste sur le magasin de données, marquée, avec votre motif, pour que la personne suivante voie ce qui a été décidé.
 - **Ajoutez la valeur à Jamais sensible**, dans les paramètres de Sécurité des données, pour une valeur qui n'est jamais une détection, nulle part, comme `support@yourcompany.com`. Les valeurs sont comparées après que le scanner les a normalisées, sans tenir compte de la casse.
 - **Désactivez un type de données intégré.** Sous **Types de données intégrés**, sur **Sécurité des données → Paramètres → Types de données**, chaque type de données a un interrupteur, qui s'enregistre dès qu'il est basculé. Aucune analyse du projet ne recherche un type désactivé.
+
+## Les verdicts d'OneUptime AI
+
+Avec **Activer l'IA** activé pour le projet et **Travailler sur les nouveaux problèmes** activé sous **Sécurité des données → IA**, OneUptime AI donne son verdict sur chaque détection qui attend la décision d'une personne, après chaque analyse de son magasin de données. Une détection attend quand l'analyse n'en était pas sûre - une détection de confiance Faible, ou l'une des suggestions d'OneUptime AI - ou quand une détection de confiance Moyen ou Élevé montre un signe de fausse correspondance :
+
+- la plupart des correspondances étaient des valeurs de test connues ;
+- le nom du champ désigne un autre type de données, et pas celui-ci ;
+- un champ d'identifiant, comme `order_number`, `invoice_no` ou `ref_id`, contient un type vérifié par l'algorithme de Luhn, que passe une suite de chiffres quelconque sur dix, et son nom ne désigne pas ce type.
+
+Le verdict est **Confirmer**, **Non sensible** ou **Impossible à dire**, avec une raison dans la langue de votre projet. Il est affiché sur toute la largeur de la ligne de la détection, sur la page **Contenu** du magasin de données et sur la page **Dans votre télémétrie**, avec les décisions de votre équipe sur lesquelles il repose, comme « Votre équipe a marqué `order_number` comme non sensible dans 4 magasins de données ». **Afficher les décisions** liste chacune d'elles : son magasin de données, son champ et le motif donné par votre équipe.
+
+### Les décisions de votre équipe comme précédents
+
+On indique à OneUptime AI les décisions antérieures de votre équipe sur des détections du même type de données, dix au plus. D'abord viennent celles d'un champ du même nom, sur n'importe quel magasin de données : `order_number`, `orderNumber` et `public.orders.order_number` donnent tous « order number ». Le même emplacement vient en premier, puis la décision la plus récente. Viennent ensuite les champs dont les noms, ou les motifs donnés pour eux, disent la même chose, comme `order_ref` avec le motif « Shopify order numbers ». On lui indique où se trouvait chaque détection, ce qui a été décidé et le motif donné, sans aucune valeur citée dans un motif. On ne lui donne jamais une valeur, un échantillon masqué ou un enregistrement.
+
+Une détection dans du texte libre, comme un corps de log ou un message, n'a pas de nom de champ par lequel la rapprocher. Son précédent est le même emplacement sur un autre magasin de données, comme le corps de log d'un autre service.
+
+### Ce qu'OneUptime AI décide de lui-même
+
+- **Il ne marque jamais une détection comme non sensible**, quoi que dise une règle. C'est une personne qui le fait, avec son propre motif. Quand le verdict est **Non sensible**, **Marquer comme non sensible** part du motif rédigé par OneUptime AI, que vous pouvez modifier.
+- **Il ne confirme une détection de lui-même que là où une règle IA le prévoit** : une règle IA de Sécurité des données où **Juger** est sur **Automatiquement**, pour le magasin de données et le type de données. Il lui faut aussi la confirmation par votre équipe d'une détection semblable, ou un champ nommé d'après le type. La confirmation figure dans la **Chronologie** du magasin de données et sous **Fait par l'IA** dans **Sécurité des données → IA**, et **Annuler** la retire.
+
+Sinon, le verdict attend sur la ligne de la détection. Là où le projet a des règles IA, une détection ne reçoit un verdict que si une règle pour son magasin de données et son type de données a **Juger** activé ; une règle limitée à certains contrôles ou à certaines gravités porte sur les problèmes, et ne juge aucune détection. OneUptime AI juge au plus 40 des détections d'un magasin de données après une analyse, d'abord celles qu'il n'a jamais jugées, et le reste après l'analyse suivante. Après une analyse ultérieure, une détection n'est soumise à nouveau que si ce sur quoi repose son verdict a changé, comme une nouvelle décision sur une détection semblable.
+
+## Détections similaires
+
+Après que vous avez confirmé une détection ou l'avez marquée comme non sensible, **Appliquer aux détections similaires** liste les détections semblables que personne n'a encore tranchées : le même type de données, dans un champ du même nom, dans ce magasin de données et dans tout autre magasin que vous pouvez lire. Chacune est cochée. Décochez celles que vous voulez juger à part, et les autres reçoivent la même décision, avec votre motif, comme votre propre modification ; une détection que vous ne pouvez pas modifier est laissée telle quelle. **Pas maintenant** les laisse toutes telles qu'elles sont. Une détection dans du texte libre n'a jamais de détections similaires : ce que contient un texte ne dit rien d'un autre.
+
+## Ce que vos décisions disent des analyses
+
+Quand votre équipe marque des détections comme non sensibles, OneUptime AI propose des modifications des analyses sous **En attente de votre part** dans **Sécurité des données → IA** :
+
+- **Désactiver un type de données intégré** quand chacune de ses détections a été marquée comme non sensible : au moins 3 détections, dans au moins 2 magasins de données. Une détection qu'OneUptime AI n'a fait que suggérer ne compte pas.
+- **Exclure un emplacement des analyses d'un magasin de données** quand chaque détection qui s'y trouve a été marquée comme non sensible, au moins 2 d'entre elles. C'est proposé pour une colonne de base de données ou un attribut de télémétrie, qu'une analyse peut exclure individuellement.
+
+Chaque proposition attend toujours qu'une personne l'approuve : une analyse qui cesse de chercher manque les vraies données qui arrivent plus tard. **Jamais sensible** n'est jamais proposé, car il contient des valeurs, et OneUptime AI n'en voit jamais.
 
 ## Prochaines étapes
 

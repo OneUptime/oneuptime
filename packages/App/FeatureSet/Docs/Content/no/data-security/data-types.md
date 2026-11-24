@@ -7,6 +7,8 @@ Datasikkerhet kjenner 143 typer sensitive data: kortnumre, bankkontoer, nasjonal
 - [Felt og kolonner](#felt-og-kolonner): Hvordan en hel kolonne eller et helt attributt vurderes.
 - [Hver datatype](#innebygde-datatyper): Alle 143, etter kategori.
 - [Dine egne datatyper](#dine-egne-datatyper): Ansatt-ID-er, polisenumre og boksen Test det.
+- [Datatyper som OneUptime AI finner](#datatyper-som-oneuptime-ai-finner): Dine egne datatyper, funnet i feltene som ingen detektor kunne plassere.
+- [Vurderingene fra OneUptime AI](#vurderingene-fra-oneuptime-ai): En vurdering av hvert funn som venter på deg, med teamets beslutninger som presedens.
 :::
 
 ## Hvordan en verdi blir funnet
@@ -63,7 +65,9 @@ Et felt med et navn som sier at det inneholder et passord – `password`, `passw
 
 En kolonne eller et felt der navnet ikke peker på noen datatype og verdiene ikke treffer noen detektor, er ikke kjent som trygt: det kan være ditt eget kundenummer, eller en kolonne med navn på et annet språk. Med **Aktiver AI** slått på i prosjektet beholder en innholdsskanning slike felt, høyst 200 per skanning, og OneUptime AI blir spurt om hvilken av prosjektets datatyper hvert felt inneholder, høyst 40 felt fra et datalager om gangen. Den får feltets navn, navnene på feltene ved siden av og formene på verdiene - hver bokstav skrevet som `a` eller `A` og hvert siffer som `9`, så `AB-1234` blir `AA-9999` - aldri en verdi. Det spørres ikke om fritekst, felt med færre enn 5 verdier, små heltall og felt som er navngitt som en ID, et tidspunkt eller en status.
 
-Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått av OneUptime AI** med begrunnelsen. Som ethvert funn med Lav konfidens teller det ikke før et menneske velger **Bekreft** på datalagerets side **Innhold**; **Merk som ikke sensitivt** avviser det. Det spørres ikke på nytt om et felt som har fått svar, på 30 dager, og aldri igjen om et felt et menneske har vurdert.
+En telemetriskanning beholder på samme måte attributtene som ingen detektor plasserte, fra en tjenestes logger, spans, målinger og resten av telemetrien, høyst 50 per tjeneste i hver skanning. Den beholder aldri OneUptimes egne attributter, attributtene som OpenTelemetrys konvensjoner skriver på hver post for å si hvor den kommer fra, som tjenesten, verten eller poden, eller fritekst, som brødteksten i en logg.
+
+Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått av OneUptime AI** med begrunnelsen, skrevet på prosjektets språk og vist over hele funnets rad. Som ethvert funn med Lav konfidens teller det ikke før et menneske velger **Bekreft** på datalagerets side **Innhold**; **Merk som ikke sensitivt** avviser det. Det spørres ikke på nytt om et felt som har fått svar, på 30 dager, og aldri igjen om et felt et menneske har vurdert.
 
 ## Sensitivitet
 
@@ -296,6 +300,32 @@ Et mønster kontrolleres når du lagrer det: det må kompilere, ikke treffe tom 
 
 En verdi av typen din er Middels alene og Høy med et nøkkelord i nærheten når den består en kontrollsum, og Lav alene og Middels med et nøkkelord når den ikke har noen. I en kolonne avgjør andelen verdier som treffer, som for alle typer.
 
+### Beskriv det
+
+Øverst i skjemaet for en ny datatype fyller **Beskriv det** ut skjemaet for deg. Skriv hvordan dataene ser ut, for eksempel "ansattnumrene våre ser ut som EMP-123456, noen ganger uten bindestrek", legg til noen eksempler hvis du vil, ett per linje, og velg **Fyll ut skjemaet**. OneUptime AI får setningen din og formene på eksemplene dine, aldri selve eksemplene: de blir i nettleseren din, der **Test det** viser hvor mange av dem mønsteret finner. Les det den fylte ut, endre det du vil, og lagre: ingenting lagres før du gjør det, og mønsteret kontrolleres som et du har skrevet selv. Beskriv det krever at **Aktiver AI** er slått på for prosjektet.
+
+## Datatyper som OneUptime AI finner
+
+Feltene som ingen detektor kunne plassere, inneholder ofte en datatype som er bedriftens egen, lagret mange steder under navn som sier det samme: et forsikringsselskaps polisenumre i kolonner med navnene `policy_no`, `policyNumber` og `police_nr`, i alle databasene. Med **Aktiver AI** slått på for prosjektet finner OneUptime AI en slik datatype i feltene skanningene dine beholdt, og spør deg først når dine egne skanninger har bevist den.
+
+:::steps
+### Den finner en gruppe felt
+
+Tre eller flere felt i to eller flere datalagre danner en gruppe når de fleste verdiene deres har én form, med eller uten skilletegnene mellom delene, og navnene deler et ord som sier hva de inneholder. En form uten sifre, en dato, et klokkeslett eller et desimaltall danner aldri en gruppe, og et ord som `id`, `no` eller `number` sier ingenting alene.
+
+### Den lager utkast til en datatype
+
+OneUptime AI lager et utkast til en datatype for hver nye gruppe, høyst 3 om gangen, ut fra feltenes navn og formene på verdiene, aldri ut fra en verdi. Utkastet må bestå det en lagret type må bestå, og finne formene det ble laget ut fra. Et utkast som ikke gjør det, blir bedt om én gang til, med årsaken.
+
+### De neste skanningene dine beviser den
+
+Utkastet kjører i den neste skanningen av hvert datalager i gruppen, i opptil 48 timer eller ett skanneintervall, det som er lengst. Det lager ingen funn: hver skanning teller hvor mange verdier det ville funnet, i gruppens felt og i alle andre felt i de samme datalagrene. Det tilbys når det finner minst 80 % av verdiene i feltene sine og høyst 1 % av de andre verdiene. Et felt et annet sted der det finner nesten hver verdi, inneholder de samme dataene under et annet navn: det nevnes, ikke telles mot utkastet.
+:::
+
+Hvert utkast telles samtidig også i en innsnevret utgave: utenfor gruppens felt finner et innsnevret utkast en verdi bare ved siden av et av nøkkelordene sine eller under et feltnavn som nevner det. Et utkast som finner for mye andre steder, tilbys innsnevret når det holder. Et utkast som ikke holder på noen av de to måtene, forkastes, og gruppen lages ikke utkast for igjen på 30 dager.
+
+Hver datatype den tilbyr, venter under **Datatyper til gjennomgang**, øverst på **Datasikkerhet → Innstillinger → Datatyper** og på **Datasikkerhet → KI**, med det skanningene dine telte, for eksempel "Treffer 98 % av verdiene i disse 11 feltene, og 0,1 % av verdiene andre steder i de samme datalagrene." **Legg til datatype** åpner skjemaet for en datatype utfylt med den, så du kan endre og teste den; lagrer du, legges typen til, og skanninger finner den fra neste kjøring. **Ikke en datatype** avviser den: den tilbys aldri igjen for de feltene. Å legge til en krever en rolle som kan opprette datatyper.
+
 ## Ikke sensitivt, og aldri sensitivt
 
 En skanning kan finne noe som ikke er det det ser ut som: en kolonne med ordrenumre som består Luhn-kontrollen, din egen støtteadresse i hver logglinje. Si fra til OneUptime, så slutter den å telle det:
@@ -303,6 +333,42 @@ En skanning kan finne noe som ikke er det det ser ut som: en kolonne med ordrenu
 - **Merk funnet som ikke sensitivt.** På siden **Innhold** for datalageret velger du **Merk som ikke sensitivt** på funnet og sier hvorfor. Det teller ikke lenger mot datalagerets sensitivitet eller kontrollene, og datalageret kontrolleres på nytt med en gang. Funnet blir værende på datalageret, merket, med begrunnelsen din, så den neste personen ser hva som ble bestemt.
 - **Legg til verdien i Aldri sensitivt**, i innstillingene for Datasikkerhet, for en verdi som aldri er et funn noe sted, som `support@yourcompany.com`. Verdier sammenlignes etter at skanneren har normalisert dem, uten hensyn til store og små bokstaver.
 - **Slå av en innebygd datatype.** Under **Innebygde datatyper**, på **Datasikkerhet → Innstillinger → Datatyper**, har hver datatype en bryter, som lagres i det øyeblikket den slås om. Ingen skanning i prosjektet ser etter en type som er slått av.
+
+## Vurderingene fra OneUptime AI
+
+Med **Aktiver AI** slått på i prosjektet og **Jobb med nye problemer** slått på under **Datasikkerhet → KI** gir OneUptime AI sin vurdering av hvert funn som venter på en person, etter hver skanning av datalageret. Et funn venter når skanningen ikke var sikker på det – et funn med Lav konfidens, eller et av forslagene fra OneUptime AI – eller når et funn med Middels eller Høy konfidens viser tegn på feil treff:
+
+- det meste av det som traff, var kjente testverdier;
+- feltets navn peker på en annen datatype, og ikke på denne;
+- et ID-felt, som `order_number`, `invoice_no` eller `ref_id`, inneholder en type som kontrolleres med Luhn-algoritmen, som én av ti tilfeldige tallrekker består, og navnet peker ikke på den typen.
+
+Vurderingen er **Bekreft det**, **Ikke sensitivt** eller **Kan ikke avgjøres**, med en begrunnelse på prosjektets språk. Den vises over hele funnets rad på datalagerets side **Innhold** og på **I telemetrien din**, sammen med beslutningene fra teamet ditt som den bygger på, for eksempel «Teamet ditt merket `order_number` som ikke sensitivt i 4 datalagre». **Vis beslutningene** viser hver av dem: datalageret, feltet og begrunnelsen teamet ditt ga.
+
+### Teamets beslutninger som presedens
+
+OneUptime AI får teamets tidligere beslutninger om funn av samme datatype, høyst ti. Først kommer de i et felt med samme navn, i et hvilket som helst datalager: `order_number`, `orderNumber` og `public.orders.order_number` er alle «order number». Det samme stedet kommer først, deretter den nyeste beslutningen. Så kommer felt der navnene, eller begrunnelsene som ble gitt for dem, sier det samme, for eksempel `order_ref` med begrunnelsen «Shopify-ordrenumre». Den får vite hvor hvert funn var, hva som ble bestemt, og begrunnelsen som ble gitt, med eventuelle verdier i en begrunnelse utelatt. Den får aldri en verdi, en maskert prøve eller en post.
+
+Et funn i fritekst, som en loggtekst eller en melding, har ikke noe feltnavn å sammenligne etter. Presedensen er det samme stedet i et annet datalager, for eksempel loggteksten til en annen tjeneste.
+
+### Hva OneUptime AI bestemmer på egen hånd
+
+- **Den merker aldri et funn som ikke sensitivt**, uansett hva en regel sier. Det gjør en person, med sin egen begrunnelse. Der vurderingen er **Ikke sensitivt**, starter **Merk som ikke sensitivt** med begrunnelsen OneUptime AI skrev et utkast til, og den kan du endre.
+- **Den bekrefter bare et funn på egen hånd der en AI-regel sier det**: en AI-regel for Datasikkerhet der **Vurder** er **Automatisk**, for datalageret og datatypen. Det krever også at teamet ditt selv har bekreftet et lignende funn, eller et felt som er oppkalt etter typen. Bekreftelsen står på datalagerets **Tidslinje** og under **Gjort av AI** på **Datasikkerhet → KI**, og **Angre** tar den tilbake.
+
+Ellers venter vurderingen på funnets rad. Der prosjektet har AI-regler, får et funn bare en vurdering når en regel for datalageret og datatypen har **Vurder** slått på; en regel som er begrenset til enkelte kontroller eller alvorlighetsgrader, gjelder problemer og vurderer ingen funn. OneUptime AI vurderer høyst 40 av funnene i et datalager etter en skanning, først dem den aldri har vurdert, og resten etter neste skanning. Etter en senere skanning spørres det bare på nytt om et funn når det vurderingen bygger på, har endret seg, for eksempel ved en ny beslutning om et lignende funn.
+
+## Lignende funn
+
+Etter at du har bekreftet et funn eller merket det som ikke sensitivt, viser **Bruk på lignende funn** de lignende funnene som ingen har tatt stilling til ennå: samme datatype, i et felt med samme navn, i dette datalageret og i alle andre datalagre du har lov til å lese. Hvert av dem er avkrysset. Fjern krysset for dem du vil vurdere hver for seg, så får resten samme beslutning, med begrunnelsen din, som din egen endring; et funn du ikke har lov til å endre, blir stående som det var. **Ikke nå** lar dem alle være som de er. Et funn i fritekst har aldri lignende funn: det én tekst inneholder, sier ingenting om en annen.
+
+## Hva beslutningene dine sier om skanningene
+
+Når teamet ditt merker funn som ikke sensitive, foreslår OneUptime AI endringer i skanningene under **Venter på deg** på **Datasikkerhet → KI**:
+
+- **Slå av en innebygd datatype** når hvert eneste av funnene er merket som ikke sensitivt: minst 3 funn, i minst 2 datalagre. Et funn OneUptime AI bare foreslo, teller ikke.
+- **Hold et sted utenfor skanningene av et datalager** når hvert funn der er merket som ikke sensitivt, minst 2 av dem. Det foreslås for en databasekolonne eller et telemetriattributt, som en skanning kan holde utenfor alene.
+
+Hvert forslag venter alltid på at en person godkjenner det: en skanning som slutter å lete, går glipp av de ekte dataene som kommer senere. Det foreslås aldri noe til **Aldri sensitivt**, fordi den inneholder verdier, og OneUptime AI ser aldri en verdi.
 
 ## Neste steg
 

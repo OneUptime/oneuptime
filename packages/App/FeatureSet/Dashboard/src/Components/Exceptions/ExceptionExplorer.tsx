@@ -59,7 +59,11 @@ import ExceptionAIExplanation from "./ExceptionAIExplanation";
 import ExceptionSimilar from "./ExceptionSimilar";
 import ExceptionMergedPanel from "./ExceptionMergedPanel";
 import ExceptionActivity from "./ExceptionActivity";
-import { MERGED_EXCEPTION_SELECT } from "../../Utils/ExceptionMerge";
+import {
+  MERGED_EXCEPTION_SELECT,
+  SPLIT_FROM_EXCEPTION_SELECT,
+} from "../../Utils/ExceptionMerge";
+import ExceptionSplitNotice from "./ExceptionSplitNotice";
 import { getMergedFingerprints } from "../../Utils/ExceptionGroupFingerprints";
 import ExceptionAssignee from "./ExceptionAssignee";
 import { ExceptionAssignmentWrite } from "../../Utils/ExceptionAssignment";
@@ -163,6 +167,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     [],
   );
   const [mergedInto, setMergedInto] = useState<TelemetryException | null>(null);
+  // The exception a scrub rule split this one from, when ingest saw it (#10618).
+  const [splitFrom, setSplitFrom] = useState<TelemetryException | null>(null);
   // Bumped after a merge or an unmerge: the page reads itself again.
   const [reloadKey, setReloadKey] = useState<number>(0);
   // Bumped after a triage or an assignment: the activity reads itself again.
@@ -404,6 +410,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
             // Whether it was merged into another exception, and into which.
             mergedIntoTelemetryExceptionId: true,
             mergedAt: true,
+            // Which exception a scrub rule split it from, if any (#10618).
+            splitFromTelemetryExceptionId: true,
             ...(dataPlan.loadAiExplanation
               ? { aiExplanation: true, aiExplanationGeneratedAt: true }
               : {}),
@@ -432,6 +440,31 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
    * ones merged into it. Best effort: without it the page shows the
    * exception's own occurrences, as before any merge.
    */
+  /*
+   * The exception a scrub rule split this one from, which its note names
+   * and offers to merge it with. Best effort: without it there is no note.
+   */
+  const loadSplitFrom: (
+    exception: TelemetryException,
+  ) => Promise<void> = async (exception: TelemetryException): Promise<void> => {
+    if (!exception.splitFromTelemetryExceptionId) {
+      setSplitFrom(null);
+      return;
+    }
+
+    try {
+      setSplitFrom(
+        await ModelAPI.getItem<TelemetryException>({
+          id: exception.splitFromTelemetryExceptionId,
+          modelType: TelemetryException,
+          select: SPLIT_FROM_EXCEPTION_SELECT,
+        }),
+      );
+    } catch {
+      setSplitFrom(null);
+    }
+  };
+
   const loadMergeContext: (
     exception: TelemetryException,
   ) => Promise<Array<TelemetryException>> = async (
@@ -476,6 +509,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         const exception: TelemetryException = await loadException();
         const members: Array<TelemetryException> =
           await loadMergeContext(exception);
+        void loadSplitFrom(exception);
         loadSupplementaryData(
           exception,
           getMergedFingerprints({
@@ -659,7 +693,11 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           onChanged={reload}
         />
       ) : (
-        <></>
+        <ExceptionSplitNotice
+          exception={telemetryException}
+          splitFrom={splitFrom}
+          onMerged={reload}
+        />
       )}
       <ExceptionSummary
         exception={telemetryException}

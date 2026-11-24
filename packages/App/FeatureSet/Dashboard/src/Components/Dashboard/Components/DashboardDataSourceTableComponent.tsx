@@ -16,7 +16,7 @@ import DataSourceTableResult, {
 } from "Common/Types/DataSource/DataSourceTableResult";
 import DataSourceQueryConfig from "Common/Types/DataSource/DataSourceQueryConfig";
 import DataSourceQueryUtil from "../../../Utils/DataSourceQuery";
-import DataSourceQueryText from "Common/Utils/DataSource/DataSourceQueryText";
+import { fillDataSourceVariables } from "../../../Utils/DataSourceVariables";
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import {
@@ -236,6 +236,17 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
     }
 
     try {
+      /*
+       * The query with the dashboard's variables filled the way its source
+       * reads them; a public dashboard's route fills its own.
+       */
+      const filledQuery: string | Promise<string> = isPublicDashboard()
+        ? ""
+        : fillDataSourceVariables({
+            queryConfig: state.queryConfig,
+            variables: state.variables,
+          });
+
       // A public dashboard's stored query, by this widget, in its sort.
       const fetched: DataSourceTableResult = isPublicDashboard()
         ? await DataSourceQueryUtil.fetchPublicTable({
@@ -251,11 +262,11 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
         : await DataSourceQueryUtil.fetchTable({
             queryConfig: {
               ...state.queryConfig,
-              query: DataSourceQueryText.applyVariablesForSource({
-                dataSourceId: state.queryConfig.dataSourceId,
-                queryText: state.queryConfig.query,
-                variables: state.variables,
-              }),
+              // Sent at once unless the source's type must be read first.
+              query:
+                typeof filledQuery === "string"
+                  ? filledQuery
+                  : await filledQuery,
             },
             startDate: state.startDate,
             endDate: state.endDate,

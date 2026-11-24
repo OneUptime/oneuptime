@@ -1,9 +1,16 @@
 import AIService, {
+  AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
+  AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+  AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
   AI_DATA_SECURITY_SCRUB_RULES_FEATURE,
   AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
   AILogRequest,
@@ -273,6 +280,9 @@ describe("what every Data Security call keeps", () => {
         AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
       [DataSecurityAiFeature.SuggestFieldTypes]:
         AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+      // Its verdicts on the findings that wait for a person (#10372): autonomous, so budgeted.
+      [DataSecurityAiFeature.JudgeFindings]:
+        AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
       // OneUptime AI's owners for a store (#10374): autonomous, so budgeted.
       [DataSecurityAiFeature.ProposeStoreOwners]:
         AI_DATA_SECURITY_STORE_OWNERS_FEATURE,
@@ -285,6 +295,25 @@ describe("what every Data Security call keeps", () => {
       // Its read of a pull request's sensitive data (#10376): autonomous, so budgeted.
       [DataSecurityAiFeature.ReviewPullRequests]:
         AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+      /*
+       * The compliance paperwork (#10375): the daily record drafts are
+       * autonomous, so budgeted; the drafts a person asks for have labels
+       * of their own.
+       */
+      [DataSecurityAiFeature.DraftRecord]:
+        AI_DATA_SECURITY_RECORD_DRAFT_FEATURE,
+      [DataSecurityAiFeature.DraftRecordOnRequest]:
+        AI_DATA_SECURITY_RECORD_DRAFT_REQUEST_FEATURE,
+      [DataSecurityAiFeature.DraftImpactAssessment]:
+        AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
+      [DataSecurityAiFeature.DraftAuditEvidence]:
+        AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+      // A data type drafted from fields scans could not place (#10371): autonomous, so budgeted.
+      [DataSecurityAiFeature.DraftDataTypes]:
+        AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+      // ...and from a person's sentence, while they wait: not autonomous.
+      [DataSecurityAiFeature.DescribeDataType]:
+        AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
     });
   });
 
@@ -460,6 +489,8 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.CodeAgent,
       DataSecurityAiModelSource.ProjectProvider,
+      // Verdicts on findings (#10372): the one Data Security call, as the suggestions'.
+      DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.Chat,
       // Owners for data stores: the one Data Security call, as Explain's.
       DataSecurityAiModelSource.ProjectProvider,
@@ -471,6 +502,17 @@ describe("every call runs on the project's own model", () => {
       DataSecurityAiModelSource.ProjectProvider,
       // A pull request's sensitive data: the repository's pick for its reviews.
       DataSecurityAiModelSource.ProductionReview,
+      /*
+       * The compliance paperwork (#10375): a record's drafts, daily and on
+       * request, an impact assessment and audit evidence - the one call.
+       */
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      // The company's own data types (#10371), drafted and described: the one call.
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
     ]);
   });
 });

@@ -202,7 +202,8 @@ const LOOK_END_FROM_STATES: ReadonlyArray<SecurityCaseAiResponseState> = [
   SecurityCaseAiResponseState.Finished,
 ];
 
-const CASE_SELECT: {
+// The case's columns a look reads, as what follows a close reads them too.
+export const SECURITY_CASE_RESPONSE_CASE_SELECT: {
   _id: true;
   projectId: true;
   caseNumberWithPrefix: true;
@@ -251,7 +252,7 @@ const CASE_SELECT: {
 };
 
 // The project's columns a look reads: whether it may work, and within what.
-const PROJECT_SELECT: {
+export const SECURITY_CASE_RESPONSE_PROJECT_SELECT: {
   _id: true;
   enableAi: true;
   enableAutomaticSecurityCaseResponse: true;
@@ -327,7 +328,7 @@ export default class SecurityCaseResponseLook {
     const securityCase: SecurityCase | null =
       await SecurityCaseService.findOneBy({
         query: { _id: data.securityCaseId, projectId: data.projectId },
-        select: CASE_SELECT,
+        select: SECURITY_CASE_RESPONSE_CASE_SELECT,
         props: { isRoot: true },
       });
 
@@ -352,7 +353,7 @@ export default class SecurityCaseResponseLook {
       await Promise.all([
         ProjectService.findOneById({
           id: data.projectId,
-          select: PROJECT_SELECT,
+          select: SECURITY_CASE_RESPONSE_PROJECT_SELECT,
           props: { isRoot: true },
         }),
         SecurityCaseValues.getForProject(data.projectId),
@@ -421,7 +422,7 @@ export default class SecurityCaseResponseLook {
       aiGate: await this.getAiGate({ project, limits }),
       securityCase: this.toResponderCase({ securityCase, values, stage }),
       plan: reads.plan,
-      log: this.toCurrentEpoch(rows).map(toLogRow),
+      log: this.toLog(rows),
       hasBlockDestination: await this.hasBlockDestination(data.projectId),
       canContainUsers: Boolean(
         findPlaybookDoing({
@@ -834,6 +835,13 @@ export default class SecurityCaseResponseLook {
         ? new Date(securityCase.createdAt)
         : OneUptimeDate.getCurrentDate(),
     };
+  }
+
+  // The log as the planner reads it: since the last hand-off (toCurrentEpoch).
+  public static toLog(
+    rows: Array<SecurityCaseAiAction>,
+  ): Array<ResponderLogRow> {
+    return this.toCurrentEpoch(rows).map(toLogRow);
   }
 
   /*

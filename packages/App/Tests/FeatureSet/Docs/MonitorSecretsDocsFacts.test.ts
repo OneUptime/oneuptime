@@ -67,6 +67,9 @@ import path from "path";
 const PACKAGES_DIR: string = path.resolve(__dirname, "../../../..");
 
 const SECRET_FILLING_FILE: string = "App/FeatureSet/Telemetry/Utils/Monitor.ts";
+// Which secrets a Test Monitor run is filled in with, and hidden in its check by.
+const TEST_SECRETS_RULE_FILE: string =
+  "Common/Server/Utils/Monitor/MonitorCheckSecretValues.ts";
 const PROBE_INGEST_FILE: string =
   "App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts";
 const SECRETS_PAGE_FILE: string =
@@ -398,10 +401,24 @@ describe("the fields that take a secret", () => {
   });
 
   it("are filled in from All monitors secrets only while a monitor is not saved yet", () => {
-    const loading: string = sourceBetween(
+    /*
+     * The probe's fetch reads a test's secrets by the rule the server also
+     * hides them by in the test's check (#10825): one rule, in Common.
+     */
+    const delegating: string = sourceBetween(
       readRepoFile(SECRET_FILLING_FILE),
       "public static async loadMonitorSecretsForMonitorTest(",
-      "// True when any part",
+      "public static monitorStepsReferenceSecrets(",
+    );
+
+    expect(delegating).toContain(
+      "return await MonitorCheckSecretValues.loadSecretsForMonitorTest(data);",
+    );
+
+    const loading: string = sourceBetween(
+      readRepoFile(TEST_SECRETS_RULE_FILE),
+      "public static async loadSecretsForMonitorTest(",
+      "public static async hideInMonitorCheck(",
     );
 
     expect(loading).toContain(

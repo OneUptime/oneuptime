@@ -82,8 +82,7 @@ import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import SecurityPlaybookRunService, {
   UNFINISHED_SECURITY_PLAYBOOK_RUN_STATUSES,
 } from "../../Services/SecurityPlaybookRunService";
-import ProductKey from "../../../Types/Product/ProductKey";
-import ServerProducts from "../ServerProducts/ServerProducts";
+import SecurityEventsSwitch from "../SecurityCase/SecurityEventsSwitch";
 import ThreatIntelIndicatorService from "../../Services/ThreatIntelIndicatorService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -502,6 +501,15 @@ export default class SecurityAutomaticResponse {
     });
 
     try {
+      /*
+       * Switched off while the decision waited for the project's lock - up
+       * to a minute, behind the project's other decisions (#10848): nothing
+       * is decided, as above.
+       */
+      if (await this.isSecurityEventsOff()) {
+        return null;
+      }
+
       return await this.decideLocked(projectId, job);
     } finally {
       try {
@@ -519,12 +527,11 @@ export default class SecurityAutomaticResponse {
    * no policy acts - nothing is screened or decided, no block is made and
    * no trial run counts what it would have done - as OneUptime's other own
    * work stops for a product that is off (ServerProducts, #9489). What a
-   * policy blocked before keeps its end; undo on doubt keeps lifting.
+   * policy blocked before keeps its end; undo on doubt keeps lifting. Read
+   * as OneUptime AI's work on a case reads it (SecurityEventsSwitch).
    */
   private static async isSecurityEventsOff(): Promise<boolean> {
-    return Boolean(
-      await ServerProducts.getOffReasonOfServerWork(ProductKey.SecurityEvents),
-    );
+    return await SecurityEventsSwitch.isOff();
   }
 
   /*
@@ -923,6 +930,15 @@ export default class SecurityAutomaticResponse {
         securityAutomaticResponseActionId: action.id || null,
         securityPlaybookRunId: null,
       };
+    }
+
+    /*
+     * Switched off while the decision read the policy, the detection and
+     * the guardrails, under the lock (#10848): the block does not start,
+     * and a trial run counts nothing.
+     */
+    if (await this.isSecurityEventsOff()) {
+      return null;
     }
 
     const outcome: SecurityAutomaticResponseOutcome =

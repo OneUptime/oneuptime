@@ -23,7 +23,9 @@ import {
   getDeclaredDataStore,
   getDeclaredRetentionText,
   getFixedDeclaredRetentionInDays,
+  isVaultRetentionBasis,
 } from "../../../Types/DataSecurity/DeclaredDataStore";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import LogScrubAction from "../../../Types/Log/LogScrubAction";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../Types/ObjectID";
@@ -57,7 +59,12 @@ import logger from "../Logger";
  *     Address rule hashes the logs or traces Security Events reads
  *     (SecurityAddressVaultWriter.startBatch), so the store is declared
  *     while that holds, and kept until every address written then is past
- *     the vault's 30 days.
+ *     the vault's 30 days;
+ *   - Security User Vault (#10632): the same, never asked of the vault
+ *     (SecurityUserVaultGuard). Ingest writes it while an enabled rule
+ *     that hashes by a pattern that can hide a user - any but IP Address -
+ *     runs on the logs or traces Security Events reads
+ *     (SecurityUserVaultWriter.startBatch).
  *
  * A project that stops - turns its Security Events sources off, deletes
  * its devices, removes its Hash rule - keeps its store until its data is
@@ -253,6 +260,8 @@ export default class DeclaredDataStores {
           });
         case DataStoreKind.SecurityAddressVault:
           return await this.isAddressVaultWritten(projectId);
+        case DataStoreKind.SecurityUserVault:
+          return await this.isUserVaultWritten(projectId);
         default:
           return false;
       }
@@ -284,6 +293,62 @@ export default class DeclaredDataStores {
       projectId,
       isEnabled: true,
       patternType: LogScrubPatternType.IPAddress,
+      scrubAction: LogScrubAction.Hash,
+    };
+
+    const logRule: LogScrubRule | null = await LogScrubRuleService.findOneBy({
+      query: hashing,
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (
+      logRule &&
+      (await SecurityEventsReadTelemetry.readsProjectTelemetry({
+        projectId,
+        signal: "log",
+      }))
+    ) {
+      return true;
+    }
+
+    const traceRule: TraceScrubRule | null =
+      await TraceScrubRuleService.findOneBy({
+        query: hashing,
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+    return Boolean(
+      traceRule &&
+        (await SecurityEventsReadTelemetry.readsProjectTelemetry({
+          projectId,
+          signal: "trace",
+        })),
+    );
+  }
+
+  /*
+   * Whether ingest keeps the project's hashed users for Security Events'
+   * user vault, by the rule ingest keeps them by
+   * (SecurityUserVaultWriter.startBatch) - an enabled rule that hashes by
+   * any pattern but IP Address, on logs Security Events reads, or traces -
+   * and never by reading the vault.
+   */
+  public static async isUserVaultWritten(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const hashing: {
+      projectId: ObjectID;
+      isEnabled: true;
+      patternType: NotEqual<LogScrubPatternType>;
+      scrubAction: LogScrubAction;
+    } = {
+      projectId,
+      isEnabled: true,
+      patternType: new NotEqual<LogScrubPatternType>(
+        LogScrubPatternType.IPAddress,
+      ),
       scrubAction: LogScrubAction.Hash,
     };
 
@@ -464,7 +529,7 @@ export default class DeclaredDataStores {
 
   /*
    * Whether a store that holds nothing now has no data left: at once for
-   * the tables that were asked, and for the vault once every address
+   * the tables that were asked, and for a vault once every address or user
    * written while it was last declared is past the vault's retention.
    */
   private static isPastItsData(
@@ -472,7 +537,7 @@ export default class DeclaredDataStores {
     row: DataStore,
     now: Date,
   ): boolean {
-    if (info.retentionBasis !== DeclaredStoreRetentionBasis.AddressVault) {
+    if (!isVaultRetentionBasis(info.retentionBasis)) {
       return true;
     }
 

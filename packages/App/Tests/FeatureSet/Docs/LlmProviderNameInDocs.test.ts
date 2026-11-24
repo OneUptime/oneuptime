@@ -40,6 +40,11 @@ const VENDOR_MEANING_PAGES: Readonly<Record<string, string>> = {
   "data-security/checks-and-issues":
     "the check for sensitive data sent to an AI provider",
   "data-security/telemetry": "AI providers a service's spans call",
+  // The record of processing's recipients (#10375): the AI providers a store's data reaches.
+  "data-security/compliance":
+    "the AI providers a store's data is sent to, among its recipients",
+  "data-security/ai":
+    "the AI providers a store's services send to, which its record is drafted from",
   "telemetry/ai-provider-accounts":
     "the AI Provider Accounts page: a vendor account's usage and cost",
   "telemetry/ai-llm-observability":

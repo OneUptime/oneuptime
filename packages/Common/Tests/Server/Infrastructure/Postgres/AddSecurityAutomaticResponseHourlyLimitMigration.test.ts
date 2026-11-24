@@ -1,4 +1,4 @@
-import { AddSecurityAutomaticResponseHourlyLimit1809187530746 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187530746-AddSecurityAutomaticResponseHourlyLimit";
+import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187550746-AddSecurityAutomaticResponseHourlyLimit";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Project from "../../../../Models/DatabaseModels/Project";
 import { SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR } from "../../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
@@ -41,11 +41,11 @@ async function recordQueries(
   return statements;
 }
 
-describe("AddSecurityAutomaticResponseHourlyLimit1809187530746", () => {
+describe("AddSecurityAutomaticResponseHourlyLimit1809187550746", () => {
   test("adds the project's limit, 50 for every project, never null", async () => {
     expect(
       await recordQueries(
-        new AddSecurityAutomaticResponseHourlyLimit1809187530746(),
+        new AddSecurityAutomaticResponseHourlyLimit1809187550746(),
         "up",
       ),
     ).toEqual([
@@ -66,7 +66,7 @@ describe("AddSecurityAutomaticResponseHourlyLimit1809187530746", () => {
 
   test("builds no index and adds no key: nothing that scans the Project table", async () => {
     const up: Array<string> = await recordQueries(
-      new AddSecurityAutomaticResponseHourlyLimit1809187530746(),
+      new AddSecurityAutomaticResponseHourlyLimit1809187550746(),
       "up",
     );
 
@@ -78,7 +78,7 @@ describe("AddSecurityAutomaticResponseHourlyLimit1809187530746", () => {
   test("down() drops what up() added", async () => {
     expect(
       await recordQueries(
-        new AddSecurityAutomaticResponseHourlyLimit1809187530746(),
+        new AddSecurityAutomaticResponseHourlyLimit1809187550746(),
         "down",
       ),
     ).toEqual([
@@ -90,7 +90,7 @@ describe("AddSecurityAutomaticResponseHourlyLimit1809187530746", () => {
     const migrations: Array<MigrationClass> =
       SchemaMigrations as unknown as Array<MigrationClass>;
     const index: number = migrations.indexOf(
-      AddSecurityAutomaticResponseHourlyLimit1809187530746 as unknown as MigrationClass,
+      AddSecurityAutomaticResponseHourlyLimit1809187550746 as unknown as MigrationClass,
     );
 
     expect(index).toBeGreaterThan(-1);
@@ -101,7 +101,7 @@ describe("AddSecurityAutomaticResponseHourlyLimit1809187530746", () => {
       return Number(STAMP.exec(migration.name)?.[1] || 0);
     };
     const stamp: number = stampOf(
-      AddSecurityAutomaticResponseHourlyLimit1809187530746 as unknown as MigrationClass,
+      AddSecurityAutomaticResponseHourlyLimit1809187550746 as unknown as MigrationClass,
     );
 
     for (const earlier of migrations.slice(0, index)) {

@@ -15,6 +15,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -529,6 +530,29 @@ export default class DataSecuritySetting extends BaseModel {
     nullable: true,
   })
   public disabledDataTypeIds?: Array<string> = undefined;
+
+  /*
+   * The audit evidence of each framework, for each period it was drafted
+   * for (#10375): a paragraph per requirement, as OneUptime AI drafted it or
+   * a person edited it, and the facts the drafted ones rest on
+   * (Types/DataSecurity/AuditEvidence). Never read through the API: its
+   * route holds a reader to the project's issues too, which the evidence
+   * cites.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Audit Evidence",
+    description:
+      "The paragraph under each framework requirement an auditor reads, as OneUptime AI drafted it and people edited it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public auditEvidence?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
