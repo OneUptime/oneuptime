@@ -118,8 +118,9 @@ describe("ExceptionsViewer resource facets come from the shared catalog", () => 
     expect(EXCEPTIONS_VIEWER).toContain(
       'import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";',
     );
+    // Every value named by the server's facet displayName (#10921).
     expect(FACET_CONFIGS).toContain(
-      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+      "...buildResourceFacetConfigs({ basePriority: 2, }),",
     );
     for (const key of [
       "hostId",
@@ -185,7 +186,7 @@ describe("ExceptionsViewer names every entity chip", () => {
       "[...hostScope.chips, ...activeFilters]",
     );
     expect(EXCEPTIONS_VIEWER).toContain(
-      "collectExceptionEntityChipIds({ scopeEntityId, scopeEntityType: props.scopeEntityType, chips: entityChipRefs, knownIds: knownEntityChipIds, isKnownIdsPending: !areResourceListsLoaded, })",
+      "collectExceptionEntityChipIds({ scopeEntityId, scopeEntityType: props.scopeEntityType, chips: entityChipRefs, knownIds: knownEntityChipIds, isKnownIdsPending: !haveFacetsAnswered, })",
     );
   });
 
@@ -206,15 +207,21 @@ describe("ExceptionsViewer names every entity chip", () => {
     ).toBeLessThan(EXCEPTIONS_VIEWER.indexOf("buildExceptionKnownChipIds({"));
   });
 
-  test("chip ids are held until the resource lists settle, even when they fail", () => {
+  /*
+   * The facets name most chips, from Postgres by id: chip ids wait for
+   * their first answer, which settles whether it lands or fails. The page
+   * read the project's first 10,000 services, hosts and clusters instead,
+   * and named nothing past them (#10921).
+   */
+  test("chip ids are held until the facets first answer, even when they fail", () => {
     expect(EXCEPTIONS_VIEWER).toContain(
-      "const [areResourceListsLoaded, setAreResourceListsLoaded] = useState<boolean>(false);",
+      "const [haveFacetsAnswered, setHaveFacetsAnswered] = useState<boolean>(false);",
     );
     expect(EXCEPTIONS_VIEWER).toMatch(
-      /setKubernetesClusters\(clusterResult\.data \|\| \[\]\); \} catch \{ \} finally \{ setAreResourceListsLoaded\(true\); \}/,
+      /\} finally \{ setFacetLoading\(false\); setHaveFacetsAnswered\(true\); \}/,
     );
     const memoDeps: RegExpMatchArray | null = EXCEPTIONS_VIEWER.match(
-      /isKnownIdsPending: !areResourceListsLoaded, \}\); \}, \[([^\]]*)\]\);/,
+      /isKnownIdsPending: !haveFacetsAnswered, \}\); \}, \[([^\]]*)\]\);/,
     );
     expect(memoDeps).not.toBeNull();
     for (const dep of [
@@ -222,10 +229,34 @@ describe("ExceptionsViewer names every entity chip", () => {
       "props.scopeEntityType",
       "entityChipRefs",
       "knownEntityChipIds",
-      "areResourceListsLoaded",
+      "haveFacetsAnswered",
     ]) {
       expect(memoDeps![1]!).toContain(dep);
     }
+    expect(EXCEPTIONS_VIEWER).not.toContain("LIMIT_PER_PROJECT");
+    for (const model of [
+      "Host",
+      "DockerHost",
+      "PodmanHost",
+      "KubernetesCluster",
+    ]) {
+      expect(EXCEPTIONS_VIEWER).not.toContain(`modelType: ${model},`);
+    }
+  });
+
+  test("the rows' and the Service facet's services are read by their ids; a typed name is searched for", () => {
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "void servicesOnPage.readServicesOf(serviceIdsOnPage);",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "const serviceNameSearch: ServiceNameSearch = useServiceNameSearch( parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || NO_PREDICATES, );",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "(parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || []).length > 0 && serviceNameSearch.isSearching;",
+    );
   });
 
   test("the page's scope type is passed as the resolver hint", () => {
