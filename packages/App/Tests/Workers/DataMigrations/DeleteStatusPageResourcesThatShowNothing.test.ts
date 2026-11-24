@@ -154,7 +154,9 @@ describe("DeleteStatusPageResourcesThatShowNothing", () => {
 
     await new DeleteStatusPageResourcesThatShowNothing().migrate();
 
-    expect(infoLogs.join("\n")).toContain(": deleted 2 status page resource(s)");
+    expect(infoLogs.join("\n")).toContain(
+      ": deleted 2 status page resource(s)",
+    );
   });
 
   test.each([

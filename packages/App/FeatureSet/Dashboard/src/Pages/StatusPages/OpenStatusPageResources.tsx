@@ -67,7 +67,10 @@ export const findProjectOfStatusPage: (
 export const getStatusPageResourcesRoute: (data: {
   projectId: ObjectID;
   statusPageId: ObjectID;
-}) => Route = (data: { projectId: ObjectID; statusPageId: ObjectID }): Route => {
+}) => Route = (data: {
+  projectId: ObjectID;
+  statusPageId: ObjectID;
+}): Route => {
   return new Route(RouteMap[PageMap.STATUS_PAGE_VIEW_RESOURCES]!.toString())
     .addRouteParam(RouteParams.ProjectID, data.projectId.toString())
     .addRouteParam(RouteParams.ModelID, data.statusPageId.toString());

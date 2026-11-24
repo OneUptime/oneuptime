@@ -560,9 +560,7 @@ describe("the Status Pages Overview: previewing before you go live", () => {
     expect(visitorLocale["overview"]!["noResourcesPreviewLink"]).toBe(
       "Add resources in the Dashboard",
     );
-    expect(overview).toContain(
-      "getStatusPageResourcesByIdPath(statusPageId),",
-    );
+    expect(overview).toContain("getStatusPageResourcesByIdPath(statusPageId),");
     expect(overview).toContain("StatusPageUtil.isPreviewPage() ? (");
     expect(routeMap).toContain(
       "`/dashboard/status-pages/${RouteParams.ModelID}/resources`,",

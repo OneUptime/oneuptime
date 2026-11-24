@@ -236,7 +236,11 @@ beforeEach(() => {
     .mockImplementation((): void => {});
 
   resources = useInMemoryTable(StatusPageResourceService, [
-    storedResource({ id: MONITOR_RESOURCE_ID, monitorId: MONITOR_ID, order: 1 }),
+    storedResource({
+      id: MONITOR_RESOURCE_ID,
+      monitorId: MONITOR_ID,
+      order: 1,
+    }),
     storedResource({
       id: GROUP_RESOURCE_ID,
       monitorGroupId: MONITOR_GROUP_ID,
@@ -322,9 +326,7 @@ describe("POST /api/status-page-resource, as a script sends it", () => {
         refusal: "",
       });
       expect(resources.inserts).toHaveLength(1);
-      expect(String(resources.inserts[0]!["monitorId"])).toBe(
-        OTHER_MONITOR_ID,
-      );
+      expect(String(resources.inserts[0]!["monitorId"])).toBe(OTHER_MONITOR_ID);
     },
   );
 
@@ -707,9 +709,11 @@ describe("the Dashboard, through its own API client", () => {
       modelType: StatusPageResource,
     });
 
-    expect(server.requests.map((sent: SentRequest) => sent.status)).toEqual([
-      200,
-    ]);
+    expect(
+      server.requests.map((sent: SentRequest) => {
+        return sent.status;
+      }),
+    ).toEqual([200]);
     expect(String(resources.inserts[0]!["monitorId"])).toBe(OTHER_MONITOR_ID);
   });
 

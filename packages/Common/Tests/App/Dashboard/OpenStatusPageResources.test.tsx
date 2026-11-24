@@ -154,7 +154,10 @@ describe("the address the preview links to", () => {
 
   test("is a page of the Dashboard's", () => {
     const app: string = fs.readFileSync(
-      path.resolve(__dirname, "../../../../App/FeatureSet/Dashboard/src/App.tsx"),
+      path.resolve(
+        __dirname,
+        "../../../../App/FeatureSet/Dashboard/src/App.tsx",
+      ),
       "utf8",
     );
 
@@ -288,9 +291,10 @@ describe("its words", () => {
       expect({ file, type: typeof words }).toEqual({ file, type: "string" });
 
       if (file !== "en.json") {
-        expect({ file, same: words === STATUS_PAGE_NOT_IN_YOUR_PROJECTS }).toEqual(
-          { file, same: false },
-        );
+        expect({
+          file,
+          same: words === STATUS_PAGE_NOT_IN_YOUR_PROJECTS,
+        }).toEqual({ file, same: false });
       }
     }
   });
