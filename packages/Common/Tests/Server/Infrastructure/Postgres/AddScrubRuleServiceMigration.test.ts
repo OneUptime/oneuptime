@@ -140,9 +140,7 @@ describe("AddScrubRuleService1809187433000", () => {
 describe("AddScrubRuleServiceIndexesAndKeys1809187433010", () => {
   test("the indexes and keys are named as TypeORM names them: the drift check finds nothing", () => {
     expect(indexOf("LogScrubRule")).toBe("IDX_e21d8142d41e585ea419860bb5");
-    expect(foreignKeyOf("LogScrubRule")).toBe(
-      "FK_e21d8142d41e585ea419860bb56",
-    );
+    expect(foreignKeyOf("LogScrubRule")).toBe("FK_e21d8142d41e585ea419860bb56");
     expect(indexOf("TraceScrubRule")).toBe("IDX_d8851036215e003ce8d6a5a7f1");
     expect(foreignKeyOf("TraceScrubRule")).toBe(
       "FK_d8851036215e003ce8d6a5a7f1f",
