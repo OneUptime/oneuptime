@@ -586,9 +586,9 @@ const storageRepositorySlowTemplate: XcpNgAlertTemplate = {
   id: "xcp-ng-sr-slow",
   name: "Storage Repository Slow",
   summary:
-    "A host's I/O to a storage repository takes more than 50 ms for 15 minutes.",
+    "I/O to a storage repository takes more than 50 ms for 15 minutes.",
   description:
-    "Alert when a host's I/O to a storage repository takes more than 50 ms on average for 15 minutes (xcp_host_disk_latency_seconds > 0.05). Every VM with a disk on it feels it. One incident per host and storage repository.",
+    "Alert when I/O to a storage repository takes more than 50 ms on average for 15 minutes (xcp_host_disk_latency_seconds > 0.05, averaged over the hosts that reach it). Every VM with a disk on it feels it. One incident per storage repository.",
   category: "Storage",
   severity: "Warning",
   getMonitorStep: (args: XcpNgAlertTemplateArgs): MonitorStep => {
@@ -608,9 +608,11 @@ const storageRepositorySlowTemplate: XcpNgAlertTemplate = {
         rollingTime: RollingTime.Past15Minutes,
         aggregationType: MetricsAggregationType.Avg,
         /*
-         * Per host and storage repository: the `sr` label (Xen Orchestra's
-         * short id of the repository) rides every host disk series, where
-         * sr_uuid only does when Xen Orchestra could resolve it.
+         * Per storage repository: the `sr` label (Xen Orchestra's short id
+         * of the repository) rides every host disk series, where sr_uuid
+         * only does when Xen Orchestra could resolve it. The hosts that
+         * reach a shared repository are averaged into one series, so a slow
+         * NAS is one incident, not one per host.
          */
         groupByAttributeKey: "sr",
       }),
@@ -626,7 +628,7 @@ const storageRepositorySlowTemplate: XcpNgAlertTemplate = {
         incidentDescription: `A storage repository of this XCP-ng pool has answered its hosts' reads and writes in more than 50 ms on average for 15 minutes. Every VM with a disk on it is slowed. See the affected storage repository on this alert, then check the storage behind it (the array or NAS, its network, a rebuild or a scrub) and which VMs drive the most I/O on it.`,
         criteriaName: "Storage Repository Slow - latency > 50 ms",
         criteriaDescription:
-          "Triggers when a host's average latency to a storage repository is above 50 ms in every minute of the 15-minute window.",
+          "Triggers when the average latency of I/O to a storage repository, over the hosts that reach it, is above 50 ms in every minute of the 15-minute window.",
       }),
       onlineCriteriaInstance: buildXcpNgOnlineCriteriaInstance({
         onlineMonitorStatusId: args.onlineMonitorStatusId,
