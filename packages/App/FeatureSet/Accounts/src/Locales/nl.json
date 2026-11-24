@@ -663,6 +663,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "Het captcha-token ontbreekt. Voltooi de verificatie.",
   "Captcha verification failed. Please try again.": "Captcha-verificatie mislukt. Probeer het opnieuw.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Met dit formulier kan geen incident worden aangemaakt, omdat er geen ernst is ingesteld. Laat het team dat het formulier heeft gedeeld dit weten.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "Met dit formulier kan geen waarschuwing worden aangemaakt, omdat er geen ernst is ingesteld. Laat het team dat het formulier heeft gedeeld dit weten.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Inzendingen kunnen op dit moment niet worden geaccepteerd. Probeer het over een paar minuten opnieuw.",
   "This form is receiving too many files right now. Please try again later.": "Dit formulier ontvangt op dit moment te veel bestanden. Probeer het later opnieuw.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Bestanden kunnen op dit moment niet op virussen worden gecontroleerd, dus ze zijn niet aangenomen. Probeer het over een paar minuten opnieuw.",

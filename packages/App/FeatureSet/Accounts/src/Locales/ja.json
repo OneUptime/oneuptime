@@ -663,6 +663,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "キャプチャトークンがありません。認証を完了してください。",
   "Captcha verification failed. Please try again.": "キャプチャの認証に失敗しました。もう一度お試しください。",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "このフォームには重大度が設定されていないため、インシデントを作成できません。フォームを共有したチームにお知らせください。",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "このフォームには重大度が設定されていないため、アラートを作成できません。フォームを共有したチームにお知らせください。",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "現在、送信を受け付けることができません。数分後に再度お試しください。",
   "This form is receiving too many files right now. Please try again later.": "現在、このフォームにはファイルが集中しています。しばらくしてから再度お試しください。",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "現在ファイルのウイルスチェックができないため、ファイルは受け付けられませんでした。数分後にもう一度お試しください。",

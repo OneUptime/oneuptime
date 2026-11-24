@@ -663,6 +663,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "캡차 토큰이 없습니다. 인증을 완료해 주세요.",
   "Captcha verification failed. Please try again.": "캡차 인증에 실패했습니다. 다시 시도해 주세요.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "이 양식에는 심각도가 없어 인시던트를 만들 수 없습니다. 양식을 공유한 팀에 알려 주세요.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "이 양식에는 심각도가 없어 경고를 만들 수 없습니다. 양식을 공유한 팀에 알려 주세요.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "지금은 제출을 받을 수 없습니다. 몇 분 후에 다시 시도해 주세요.",
   "This form is receiving too many files right now. Please try again later.": "현재 이 양식에 파일이 너무 많이 접수되고 있습니다. 나중에 다시 시도해 주세요.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "지금은 파일의 바이러스 검사를 할 수 없어 파일이 접수되지 않았습니다. 몇 분 후에 다시 시도해 주세요.",

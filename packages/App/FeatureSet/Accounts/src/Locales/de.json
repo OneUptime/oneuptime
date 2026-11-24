@@ -663,6 +663,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "Das Captcha-Token fehlt. Bitte schließen Sie die Überprüfung ab.",
   "Captcha verification failed. Please try again.": "Die Captcha-Überprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "Über dieses Formular kann kein Vorfall erstellt werden, weil ihm kein Schweregrad zugewiesen ist. Bitte informieren Sie das Team, das es geteilt hat.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "Über dieses Formular kann keine Warnung erstellt werden, weil ihm kein Schweregrad zugewiesen ist. Bitte informieren Sie das Team, das es geteilt hat.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Einsendungen können derzeit nicht angenommen werden. Bitte versuchen Sie es in einigen Minuten erneut.",
   "This form is receiving too many files right now. Please try again later.": "Dieses Formular erhält gerade zu viele Dateien. Bitte versuchen Sie es später erneut.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Dateien können gerade nicht auf Viren geprüft werden, deshalb wurden sie nicht angenommen. Bitte versuchen Sie es in ein paar Minuten erneut.",

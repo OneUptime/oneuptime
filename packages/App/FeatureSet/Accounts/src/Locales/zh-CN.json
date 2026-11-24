@@ -663,6 +663,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "缺少验证码令牌。请完成验证。",
   "Captcha verification failed. Please try again.": "验证码验证失败。请重试。",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "此表单没有设置严重程度，因此无法创建事件。请告知分享此表单的团队。",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "此表单没有设置严重程度，因此无法创建警报。请告知分享此表单的团队。",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "目前无法接受提交。请几分钟后重试。",
   "This form is receiving too many files right now. Please try again later.": "此表单目前收到的文件过多。请稍后重试。",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "目前无法检查文件是否含有病毒，因此文件未被接受。请几分钟后重试。",
