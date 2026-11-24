@@ -612,6 +612,33 @@ describe("MonitorRecommendationCreateUtil", () => {
       }
     });
 
+    /*
+     * "web - High CPU" is OneUptime's name for the person: where the
+     * project requires unique names, a taken one is numbered ("web - High
+     * CPU 2") rather than refused, so two resources of one name each get
+     * their monitor (#10761).
+     */
+    it("says every plan item's name is OneUptime's, to be numbered rather than refused", () => {
+      const plan: Array<MonitorRecommendationCreatePlanItem> =
+        MonitorRecommendationCreateUtil.buildCreatePlan({
+          recommendations: KUBERNETES_RECOMMENDATIONS,
+          selectedRecommendationIds: KUBERNETES_RECOMMENDATIONS.slice(0, 2).map(
+            (recommendation: MonitorRecommendation) => {
+              return recommendation.recommendationId;
+            },
+          ),
+          args: buildArgs(),
+          resourceDisplayName: RESOURCE_DISPLAY_NAME,
+          defaultMonitorStatusId: DEFAULT_STATUS_ID,
+          notificationSettings: {},
+        });
+
+      expect(plan).toHaveLength(2);
+      for (const item of plan) {
+        expect(item.miscDataProps).toEqual({ numbersTakenName: true });
+      }
+    });
+
     it("gives each plan item its own distinct monitor", () => {
       const plan: Array<MonitorRecommendationCreatePlanItem> =
         MonitorRecommendationCreateUtil.buildCreatePlan({

@@ -268,6 +268,14 @@ Incident Severity with the same name already exists.
 
 以任意大小寫再次傳送記錄自身名稱的更新不算重新命名，因此先前同名的記錄仍然可以修改，也可以重新命名以區分開來，但絕不能改成其他記錄的名稱。對於團隊、標籤、待命策略和待命排程，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）會回答哪些記錄同名：`{"groups": [["<id>", "<id>"]]}`，每個群組是名稱讀起來相同的記錄中你的金鑰可以讀取的那些記錄的 ID。已封存的標籤和待命策略不計在內。
 
+要求名稱唯一的專案（新專案預設如此）會以相同的代碼對你命名的大多數其他類型執行同樣的規則，包括監測器、監測器群組、探測器、範本、API 金鑰和管道。專案的 `requireUniqueNames` 說明是否如此，專案擁有者或專案管理員可以在儀表板的專案設定中變更它：
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+這類拒絕還包含 `takenById`，即占用該名稱的記錄的 ID，前提是你的金鑰可以讀取該記錄。在專案要求名稱唯一之前就已同名的記錄會保留名稱，直到被重新命名；一次更新也不能為多筆同類記錄設定同一個名稱。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 會在你傳送之前回答名稱是否已被占用，`GET /api/unique-names/duplicates` 依類型列出專案中被多次使用的名稱。
+
 #### 其他記錄已在使用的值
 
 一些不是名稱的值也各自只屬於一筆記錄，其中包括狀態頁面、儀表板或表單的網域、專案網域、主機或 Kubernetes 叢集的識別碼、SSO 提供者的登入 URL 以及 API 金鑰的權限。建立記錄，或變更其中某個值的更新，如果使用了其他記錄已有的值，就會被拒絕，並傳回一個說明這一點的 `400`：

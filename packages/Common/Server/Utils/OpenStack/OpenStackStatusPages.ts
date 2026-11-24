@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -492,6 +493,8 @@ export default class OpenStackStatusPages {
           plan,
           defaults,
         }),
+        // A name OneUptime picked: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
         props: data.props,
       });
       const id: string = created.id!.toString();
@@ -543,6 +546,8 @@ export default class OpenStackStatusPages {
     monitorGroup.name = name;
     const created: MonitorGroup = await MonitorGroupService.create({
       data: monitorGroup,
+      // A name OneUptime picked: numbered, not refused, if it is taken.
+      miscDataProps: getNumbersTakenNameData(),
       props: data.props,
     });
 
@@ -752,6 +757,8 @@ export default class OpenStackStatusPages {
 
         await ServiceLevelObjectiveService.create({
           data: objective,
+          // A name OneUptime picked: numbered, not refused, if it is taken.
+          miscDataProps: getNumbersTakenNameData(),
           props: data.props,
         });
         objectivesMade += 1;
@@ -982,6 +989,8 @@ export default class OpenStackStatusPages {
 
     return await MonitorService.create({
       data: monitor,
+      // A name OneUptime picked: numbered, not refused, if it is taken.
+      miscDataProps: getNumbersTakenNameData(),
       props: data.props,
     });
   }

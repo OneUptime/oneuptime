@@ -33,7 +33,50 @@ export interface RefusalWithValues {
    * goes in as written.
    */
   terms: ReadonlyArray<string>;
+  /*
+   * The placeholders whose values name a kind of record as the middle of an
+   * English sentence writes it (toSentenceTerm: "monitor", "API key",
+   * "on-call policy"), for a refusal one sentence words for every kind
+   * (#10761). Each is read back as the label it was written from
+   * (getLabelOfSentenceTerm: "API Key") and said in the middle of the
+   * reader's sentence, in the reader's word for it.
+   */
+  kindTerms?: ReadonlyArray<string> | undefined;
 }
+
+// A word's first letter, when it is a lower-case one.
+const LOWER_CASE_FIRST_LETTER: RegExp = /^\p{Ll}/u;
+
+/*
+ * A kind's label as toSentenceTerm wrote it into an English sentence, back
+ * as the label: every word, and every part of a hyphenated word, starts with
+ * a capital - "monitor" is "Monitor", "API key" is "API Key", "on-call
+ * policy" is "On-Call Policy". A part that keeps its own case ("API",
+ * "OneUptime") is left as it is. The labels of the kinds a refusal words
+ * this way round-trip through it (RequiredUniqueNamesCoverage).
+ */
+export const getLabelOfSentenceTerm: (text: string) => string = (
+  text: string,
+): string => {
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word: string): string => {
+      return word
+        .split("-")
+        .map((part: string): string => {
+          const first: string | undefined =
+            LOWER_CASE_FIRST_LETTER.exec(part)?.[0];
+
+          return first
+            ? `${first.toUpperCase()}${part.slice(first.length)}`
+            : part;
+        })
+        .join("-");
+    })
+    .join(" ");
+};
 
 // A {{placeholder}}, read as Common/Types/Translator fills one.
 const PLACEHOLDER: RegExp = /\{\{\s*([\w.]+)\s*\}\}/g;
@@ -135,6 +178,13 @@ export const readRefusalValues: (
 
   for (const placeholder of Object.keys(read)) {
     const value: string = read[placeholder] || "";
+
+    if (refusal.kindTerms?.includes(placeholder)) {
+      values[placeholder] = translatableTerm(getLabelOfSentenceTerm(value), {
+        inSentence: true,
+      });
+      continue;
+    }
 
     values[placeholder] = refusal.terms.includes(placeholder)
       ? translatableTerm(value)

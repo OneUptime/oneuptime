@@ -268,6 +268,14 @@ Beside the message, every such refusal carries a `refusalCode` that says what ha
 
 An update that sends a record's own name again, in any case, is no rename, so records that shared a name before can still be changed, and renamed apart, but never onto another record's name. For teams, labels, on-call policies and on-call schedules, `GET /api/shared-names/team` (or `label`, `on-call-policy`, `on-call-schedule`) answers which share a name: `{"groups": [["<id>", "<id>"]]}`, each group the IDs your key may read of the records whose names read alike. Archived labels and on-call policies are left out.
 
+A project that requires unique names, as a new project does, holds most other kinds you name to the same rule, monitors, monitor groups, probes, templates, API keys and pipelines among them, with the same codes. The project's `requireUniqueNames` says whether it does, and a Project Owner or Project Admin changes it under Project Settings in the Dashboard:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Such a refusal also carries `takenById`, the ID of the record that has the name, when your key may read it. Records that shared a name before the project required unique names keep it until they are renamed, and one update cannot give several records of one kind the same name. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` answers whether a name is taken before you send it, and `GET /api/unique-names/duplicates` lists the names the project holds more than once, kind by kind.
+
 #### Values another record has
 
 Some values that are not a name belong to one record each too: a status page's, a dashboard's or a form's domain, a project domain, a host's or a Kubernetes cluster's identifier, an SSO provider's sign-on URL and an API key's permission among them. A create, or an update that changes one, onto a value another record has is refused with a `400` that says so:

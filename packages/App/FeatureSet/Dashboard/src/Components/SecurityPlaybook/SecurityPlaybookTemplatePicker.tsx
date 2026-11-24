@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import {
   SECURITY_PLAYBOOK_TEMPLATES,
   SecurityPlaybookTemplate,
@@ -194,6 +195,8 @@ const SecurityPlaybookTemplatePicker: FunctionComponent<ComponentProps> = (
         await ModelAPI.create<SecurityPlaybook>({
           model: playbook,
           modelType: SecurityPlaybook,
+          // The template's name: numbered, not refused, if it is taken.
+          miscDataProps: getNumbersTakenNameData(),
         });
 
       const created: { _id?: string } = response.data as { _id?: string };

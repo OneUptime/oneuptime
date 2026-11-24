@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import DataBiConnection from "../../../../Models/DatabaseModels/DataBiConnection";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
@@ -101,6 +102,8 @@ export default class DataBiRefreshAlerts {
         await MonitorService.updateOneById({
           id: liveMonitor.id,
           data: { name } as never,
+          // A name OneUptime picked: numbered, not refused, if it is taken.
+          miscDataProps: getNumbersTakenNameData(),
           props: data.props,
         });
       }
@@ -135,6 +138,8 @@ export default class DataBiRefreshAlerts {
 
     const created: Monitor = await MonitorService.create({
       data: monitor,
+      // A name OneUptime picked: numbered, not refused, if it is taken.
+      miscDataProps: getNumbersTakenNameData(),
       props: data.props,
     });
 

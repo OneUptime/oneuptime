@@ -268,6 +268,14 @@ Ao lado da mensagem, cada recusa desse tipo traz um `refusalCode` que diz o que 
 
 Uma atualização que envia de novo o próprio nome de um registro, em maiúsculas ou minúsculas, não é uma renomeação, então registros que compartilhavam um nome antes ainda podem ser alterados, e renomeados para se diferenciarem, mas nunca para o nome de outro registro. Para equipes, rótulos, políticas de plantão e agendamentos de plantão, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) responde quais compartilham um nome: `{"groups": [["<id>", "<id>"]]}`, cada grupo com os IDs, que a sua chave pode ler, dos registros cujos nomes se leem igual. Rótulos e políticas de plantão arquivados ficam de fora.
 
+Um projeto que exige nomes únicos, como faz um projeto novo, aplica a mesma regra à maioria dos outros tipos que você nomeia, entre eles monitores, grupos de monitores, sondas, modelos, chaves de API e pipelines, com os mesmos códigos. O `requireUniqueNames` do projeto diz se ele faz isso, e um Proprietário do projeto ou um Administrador do projeto o muda nas configurações do projeto, no painel:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Uma recusa assim também traz `takenById`, o ID do registro que tem o nome, quando sua chave pode lê-lo. Registros que compartilhavam um nome antes de o projeto exigir nomes únicos o mantêm até serem renomeados, e uma só atualização não pode dar o mesmo nome a vários registros do mesmo tipo. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` responde se um nome está em uso antes de você enviá-lo, e `GET /api/unique-names/duplicates` lista os nomes que o projeto tem mais de uma vez, tipo por tipo.
+
 #### Valores que outro registro já tem
 
 Alguns valores que não são um nome também pertencem a um só registro cada: o domínio de uma página de status, de um painel ou de um formulário, um domínio do projeto, o identificador de um host ou de um cluster Kubernetes, a URL de login de um provedor de SSO e a permissão de uma chave de API, entre outros. Uma criação, ou uma atualização que muda um deles, para um valor que outro registro já tem é recusada com um `400` que diz isso:
