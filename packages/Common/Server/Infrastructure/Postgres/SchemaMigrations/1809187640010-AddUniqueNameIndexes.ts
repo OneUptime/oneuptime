@@ -6,7 +6,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (#10761).
  *
  * While a project requires unique names (Project "requireUniqueNames",
- * 1809187550000-AddProjectRequireUniqueNames), every create and rename of a
+ * 1809187640000-AddProjectRequireUniqueNames), every create and rename of a
  * kind a model marks @UniqueNameWhenRequired looks for another record of the
  * kind in the project with the name as it reads: case and spacing aside
  * (Types/Database/UniqueName, QueryHelper.findWithSameName):
@@ -70,8 +70,8 @@ const NAME_WHITE_SPACE_RUN: string = `[${String.fromCharCode(
   0xfeff,
 )}${String.fromCharCode(0x2000)}-${String.fromCharCode(0x200a)}]+`;
 
-export class AddUniqueNameIndexes1809187560000 implements MigrationInterface {
-  public name: string = "AddUniqueNameIndexes1809187560000";
+export class AddUniqueNameIndexes1809187640010 implements MigrationInterface {
+  public name: string = "AddUniqueNameIndexes1809187640010";
 
   // CREATE INDEX CONCURRENTLY runs outside a transaction.
   public transaction: boolean = false;

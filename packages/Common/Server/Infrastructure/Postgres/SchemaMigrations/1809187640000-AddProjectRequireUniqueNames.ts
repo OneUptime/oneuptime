@@ -17,10 +17,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * (ProjectService.applyNewProjectNameDefaults), never by this default. The
  * column with a constant default is added without rewriting a row.
  */
-export class AddProjectRequireUniqueNames1809187550000
+export class AddProjectRequireUniqueNames1809187640000
   implements MigrationInterface
 {
-  public name: string = "AddProjectRequireUniqueNames1809187550000";
+  public name: string = "AddProjectRequireUniqueNames1809187640000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

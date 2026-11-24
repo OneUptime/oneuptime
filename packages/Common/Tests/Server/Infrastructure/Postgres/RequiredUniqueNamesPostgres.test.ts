@@ -14,8 +14,8 @@ import MonitorGroup from "../../../../Models/DatabaseModels/MonitorGroup";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TableView from "../../../../Models/DatabaseModels/TableView";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
-import { AddProjectRequireUniqueNames1809187550000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187550000-AddProjectRequireUniqueNames";
-import { AddUniqueNameIndexes1809187560000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187560000-AddUniqueNameIndexes";
+import { AddProjectRequireUniqueNames1809187640000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640000-AddProjectRequireUniqueNames";
+import { AddUniqueNameIndexes1809187640010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640010-AddUniqueNameIndexes";
 import MonitorGroupService from "../../../../Server/Services/MonitorGroupService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import TableViewService from "../../../../Server/Services/TableViewService";
@@ -269,8 +269,8 @@ describePostgres("Require Unique Names, on Postgres", () => {
     const queryRunner: QueryRunner = database.createQueryRunner();
 
     try {
-      await new AddProjectRequireUniqueNames1809187550000().up(queryRunner);
-      await new AddUniqueNameIndexes1809187560000().up(queryRunner);
+      await new AddProjectRequireUniqueNames1809187640000().up(queryRunner);
+      await new AddUniqueNameIndexes1809187640010().up(queryRunner);
     } finally {
       await queryRunner.release();
     }
@@ -365,7 +365,7 @@ describePostgres("Require Unique Names, on Postgres", () => {
       const queryRunner: QueryRunner = database.createQueryRunner();
 
       try {
-        await new AddUniqueNameIndexes1809187560000().up(queryRunner);
+        await new AddUniqueNameIndexes1809187640010().up(queryRunner);
       } finally {
         await queryRunner.release();
       }

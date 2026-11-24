@@ -1,6 +1,6 @@
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddProjectRequireUniqueNames1809187550000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187550000-AddProjectRequireUniqueNames";
-import { AddUniqueNameIndexes1809187560000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187560000-AddUniqueNameIndexes";
+import { AddProjectRequireUniqueNames1809187640000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640000-AddProjectRequireUniqueNames";
+import { AddUniqueNameIndexes1809187640010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187640010-AddUniqueNameIndexes";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -17,11 +17,11 @@ import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
 /*
  * THE MIGRATIONS BEHIND REQUIRE UNIQUE NAMES (#10761).
  *
- *   1809187550000-AddProjectRequireUniqueNames: Project
+ *   1809187640000-AddProjectRequireUniqueNames: Project
  *     "requireUniqueNames", NOT NULL DEFAULT false - every project that
  *     exists keeps letting names repeat after an upgrade; new projects are
  *     switched on by ProjectService, never by this default.
- *   1809187560000-AddUniqueNameIndexes: for every kind the setting holds,
+ *   1809187640010-AddUniqueNameIndexes: for every kind the setting holds,
  *     an index on its project and its name as Postgres reads it - the
  *     expression findWithSameName compares - of the records in service,
  *     built online, outside a transaction.
@@ -77,7 +77,7 @@ describe("Project requireUniqueNames", () => {
   test("is added off for every project that exists, without rewriting a row", async () => {
     const { queryRunner, statements } = recordingQueryRunner();
 
-    await new AddProjectRequireUniqueNames1809187550000().up(queryRunner);
+    await new AddProjectRequireUniqueNames1809187640000().up(queryRunner);
 
     expect(statements).toEqual([
       `ALTER TABLE "Project" ADD "requireUniqueNames" boolean NOT NULL DEFAULT false`,
@@ -87,7 +87,7 @@ describe("Project requireUniqueNames", () => {
   test("is taken away again by down()", async () => {
     const { queryRunner, statements } = recordingQueryRunner();
 
-    await new AddProjectRequireUniqueNames1809187550000().down(queryRunner);
+    await new AddProjectRequireUniqueNames1809187640000().down(queryRunner);
 
     expect(statements).toEqual([
       `ALTER TABLE "Project" DROP COLUMN "requireUniqueNames"`,
@@ -126,7 +126,7 @@ describe("the indexes of the names a project requires unique", () => {
 
     const { queryRunner, statements } = recordingQueryRunner();
 
-    await new AddUniqueNameIndexes1809187560000().up(queryRunner);
+    await new AddUniqueNameIndexes1809187640010().up(queryRunner);
 
     // Nothing but the online builds.
     expect(statements).toEqual([]);
@@ -144,7 +144,7 @@ describe("the indexes of the names a project requires unique", () => {
       built.push(statement);
     }) as never);
 
-    await new AddUniqueNameIndexes1809187560000().up(
+    await new AddUniqueNameIndexes1809187640010().up(
       recordingQueryRunner().queryRunner,
     );
 
@@ -154,7 +154,7 @@ describe("the indexes of the names a project requires unique", () => {
   });
 
   test("run outside a transaction, as an online build must", () => {
-    expect(new AddUniqueNameIndexes1809187560000().transaction).toBe(false);
+    expect(new AddUniqueNameIndexes1809187640010().transaction).toBe(false);
   });
 
   test("are dropped again by down(), online where they can be, last built first", async () => {
@@ -175,8 +175,8 @@ describe("the indexes of the names a project requires unique", () => {
       dropped.push(statement);
     }) as never);
 
-    const migration: AddUniqueNameIndexes1809187560000 =
-      new AddUniqueNameIndexes1809187560000();
+    const migration: AddUniqueNameIndexes1809187640010 =
+      new AddUniqueNameIndexes1809187640010();
 
     await migration.up(recordingQueryRunner().queryRunner);
     await migration.down(recordingQueryRunner().queryRunner);
@@ -201,10 +201,10 @@ describe("the order they run in", () => {
     );
 
     const column: number = names.indexOf(
-      AddProjectRequireUniqueNames1809187550000.name,
+      AddProjectRequireUniqueNames1809187640000.name,
     );
     const indexes: number = names.indexOf(
-      AddUniqueNameIndexes1809187560000.name,
+      AddUniqueNameIndexes1809187640010.name,
     );
 
     expect(column).toBeGreaterThan(-1);
@@ -212,8 +212,8 @@ describe("the order they run in", () => {
     expect(
       names.filter((name: string): boolean => {
         return (
-          name === AddProjectRequireUniqueNames1809187550000.name ||
-          name === AddUniqueNameIndexes1809187560000.name
+          name === AddProjectRequireUniqueNames1809187640000.name ||
+          name === AddUniqueNameIndexes1809187640010.name
         );
       }),
     ).toHaveLength(2);
@@ -224,17 +224,17 @@ describe("the order they run in", () => {
     };
 
     for (const name of names.slice(0, column)) {
-      expect({ name, before: numberOf(name) < 1809187550000 }).toEqual({
+      expect({ name, before: numberOf(name) < 1809187640000 }).toEqual({
         name,
         before: true,
       });
     }
 
-    expect(new AddProjectRequireUniqueNames1809187550000().name).toBe(
-      "AddProjectRequireUniqueNames1809187550000",
+    expect(new AddProjectRequireUniqueNames1809187640000().name).toBe(
+      "AddProjectRequireUniqueNames1809187640000",
     );
-    expect(new AddUniqueNameIndexes1809187560000().name).toBe(
-      "AddUniqueNameIndexes1809187560000",
+    expect(new AddUniqueNameIndexes1809187640010().name).toBe(
+      "AddUniqueNameIndexes1809187640010",
     );
   });
 });

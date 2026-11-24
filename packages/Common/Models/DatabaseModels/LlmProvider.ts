@@ -85,7 +85,7 @@ export const getHasAdditionalParamsSql: (tableAlias: string) => string = (
 /*
  * Serves the lookup of a name the project requires to be one of its kind
  * (RequiredUniqueNames, #10761): the project and the name as it reads, an
- * expression index built by migration 1809187560000-AddUniqueNameIndexes
+ * expression index built by migration 1809187640010-AddUniqueNameIndexes
  * that @Index() cannot express. Declared here only so the schema builder
  * leaves it alone (UNSYNCHRONIZED_INDEX).
  */

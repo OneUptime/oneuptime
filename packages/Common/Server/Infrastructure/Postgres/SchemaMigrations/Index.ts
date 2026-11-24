@@ -1176,8 +1176,8 @@ import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddD
 import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
 import { AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618 } from "./1809187540618-AddTelemetryExceptionFormerFingerprintAndSplitFrom";
 import { AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628 } from "./1809187540628-AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys";
-import { AddProjectRequireUniqueNames1809187550000 } from "./1809187550000-AddProjectRequireUniqueNames";
-import { AddUniqueNameIndexes1809187560000 } from "./1809187560000-AddUniqueNameIndexes";
+import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
+import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 
 export default [
   InitialMigration,
@@ -2358,6 +2358,6 @@ export default [
   AddDataSecurityComplianceDrafts1809187530375,
   AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618,
   AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628,
-  AddProjectRequireUniqueNames1809187550000,
-  AddUniqueNameIndexes1809187560000,
+  AddProjectRequireUniqueNames1809187640000,
+  AddUniqueNameIndexes1809187640010,
 ];

@@ -98,7 +98,7 @@ import crypto from "crypto";
  * change does (StateChangeLock).
  *
  * The lookup is one indexed read: each marked table has an index on its
- * project and its name as it reads (1809187560000-AddUniqueNameIndexes).
+ * project and its name as it reads (1809187640010-AddUniqueNameIndexes).
  * No unique index refuses a twin by itself: a project that existed before
  * may hold names twice, and the rule is the project's to switch on and off.
  */

@@ -349,7 +349,7 @@ const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
 
 const INDEX_MIGRATION: string = path.join(
   REPOSITORY_ROOT,
-  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187560000-AddUniqueNameIndexes.ts",
+  "packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187640010-AddUniqueNameIndexes.ts",
 );
 
 // Every model of a project with a name people read.
@@ -423,7 +423,7 @@ describe("every model of a project with a name people read is decided (#10761)",
     /*
      * A model listed here has a name nobody decided about: mark it
      * @UniqueNameWhenRequired (and add its index to a migration, as
-     * 1809187560000-AddUniqueNameIndexes does), or add it to LEFT_OUT with
+     * 1809187640010-AddUniqueNameIndexes does), or add it to LEFT_OUT with
      * its reason.
      */
     expect(undecided).toEqual([]);
