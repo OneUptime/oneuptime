@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-Eine Einstellung, die jemand in OneUptime in den Schritten eines Monitors ergänzt und die Ihre Konfiguration nicht schreibt, ist dagegen eine Abweichung: Der nächste Plan zeigt, dass sich `monitor_steps` ändert, und das folgende Apply entfernt die Einstellung, wie der Plan es sagt. Um sie zu behalten, schreiben Sie sie auch in Ihre Konfiguration.
+Eine Einstellung, die jemand in OneUptime in den Schritten eines Monitors ergänzt und die Ihre Konfiguration nicht schreibt, ist dagegen eine Abweichung: Der nächste Plan zeigt, dass sich `monitor_steps` ändert, und das folgende Apply entfernt die Einstellung, wie der Plan es sagt. Um sie zu behalten, schreiben Sie sie auch in Ihre Konfiguration. Eine Einstellung, für die der Provider kein Attribut hat, und ein Schlüssel, den OneUptime in einer Einstellung hält, die Sie mit `jsonencode()` schreiben, sind keine Abweichung, und ein Apply behält sie: siehe [Monitor-Schritte](/docs/terraform/monitor-steps).
 
 ## Beschriftungen und andere Listen, die OneUptime selbst ergänzt
 
