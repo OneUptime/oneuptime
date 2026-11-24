@@ -34,6 +34,17 @@ import CodeHostAccess, {
 } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
 import DeleteBy from "../Types/Database/DeleteBy";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import HeldPermissionsUtil from "../../Types/HeldPermissions";
+import Permission, { PermissionHelper } from "../../Types/Permission";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import {
+  getRunnerWorkRefusal,
+  picksRunner,
+  setsCommand,
+} from "../../Types/CodeRepository/CodeRepositoryRunnerAuthoring";
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -91,6 +102,96 @@ export class Service extends ProjectReferencesService<Model> {
     (created as unknown as Record<string, unknown>)["secretToken"] = undefined;
 
     return created;
+  }
+
+  /*
+   * Who may decide what a project's Runner runs for a repository - set its
+   * setup, build or test commands, or pick its Runner: the columns' own
+   * update list, which is Runbook.steps' (Project Owner, Project Admin,
+   * Runbook Admin, Edit Runbook), read as the column check reads it on an
+   * update, its blocks included. CodeRepository is no operational
+   * resource, so no wildcard opens it.
+   */
+  public static mayWriteWhatRunnersRun(
+    props: DatabaseCommonInteractionProps,
+  ): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    const model: Model = new Model();
+
+    return HeldPermissionsUtil.holdsColumnPermission(
+      TablePermission.getHeldPermissions(props),
+      {
+        isOperationalResource: model.isOperationalResource,
+        operation: DatabaseRequestType.Update,
+        tablePermissions: model.getUpdatePermissions(),
+        columnPermissions: Service.getRunnerWorkWriters(),
+      },
+    );
+  }
+
+  /*
+   * The update list of the columns that decide what a project's Runner runs
+   * for a repository (CODE_REPOSITORY_COMMAND_COLUMNS and
+   * CODE_REPOSITORY_RUNNER_COLUMNS share it): who may write them.
+   */
+  public static getRunnerWorkWriters(): Array<Permission> {
+    return new Model().getColumnAccessControlFor("setupCommand")?.update || [];
+  }
+
+  /*
+   * A NEW REPOSITORY'S COMMANDS AND RUNNER ARE WRITTEN BY THOSE WHO MAY
+   * DECIDE WHAT A PROJECT'S RUNNER RUNS
+   * (Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+   *
+   * The columns' create lists are the table's, so that whoever may connect
+   * a repository may create it with no commands and no Runner of its own -
+   * a client that sends every column it read sends them empty. A create
+   * that sets a command, or picks a Runner, is refused unless the caller may
+   * write those columns on an update (mayWriteWhatRunnersRun), as an update
+   * that writes them is by the columns' own update lists. Nothing is looked
+   * up first, so the refusal says the same whatever the write names.
+   * OneUptime itself and a master admin are not asked, as no column check
+   * asks them.
+   */
+  public static assertMayWriteWhatRunnersRun(
+    data: Model | Record<string, unknown> | undefined,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (!data || props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    const writesCommand: boolean = setsCommand(data);
+    const writesRunner: boolean = picksRunner(data);
+
+    if (!writesCommand && !writesRunner) {
+      return;
+    }
+
+    if (Service.mayWriteWhatRunnersRun(props)) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      getRunnerWorkRefusal({
+        setsCommand: writesCommand,
+        picksRunner: writesRunner,
+        permissionTitles: PermissionHelper.getPermissionTitles(
+          Service.getRunnerWorkWriters(),
+        ),
+      }),
+    );
+  }
+
+  // Before the project check (the base hooks run this first).
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    // Who may write what a Runner runs, before the Runner it names is read.
+    Service.assertMayWriteWhatRunnersRun(createBy.data, createBy.props);
   }
 
   /*
