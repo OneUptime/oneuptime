@@ -15,6 +15,7 @@ import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../Services/XcpNgPoolService";
 import { escapeLikePattern } from "../../Types/Database/JSONColumnQuery";
 import ColumnPermissions from "../../Types/Database/Permissions/ColumnPermission";
 import logger from "../Logger";
@@ -38,6 +39,7 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import {
   AffectedResourceKind,
   AffectedResourceSearchCount,
@@ -138,6 +140,10 @@ export const AFFECTED_RESOURCE_KIND_SEARCH_SPECS: Readonly<
     modelType: VMwareVCenter,
     searchFields: NAME_AND_DESCRIPTION,
   },
+  [AffectedResourceKind.XcpNgPool]: {
+    modelType: XcpNgPool,
+    searchFields: NAME_AND_DESCRIPTION,
+  },
   [AffectedResourceKind.CephCluster]: {
     modelType: CephCluster,
     searchFields: NAME_AND_DESCRIPTION,
@@ -186,6 +192,7 @@ export function getAffectedResourceKindService(
     [AffectedResourceKind.ProxmoxCluster]: ProxmoxClusterService,
     [AffectedResourceKind.OpenStackCloud]: OpenStackCloudService,
     [AffectedResourceKind.VMwareVCenter]: VMwareVCenterService,
+    [AffectedResourceKind.XcpNgPool]: XcpNgPoolService,
     [AffectedResourceKind.CephCluster]: CephClusterService,
     [AffectedResourceKind.StorageArray]: StorageArrayService,
     [AffectedResourceKind.DockerSwarmCluster]: DockerSwarmClusterService,

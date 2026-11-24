@@ -139,6 +139,10 @@ export const WORKSPACE_AFFECTED_RESOURCE_KIND_LABELS: Readonly<
     label: "vCenter",
     pluralLabel: "vCenters",
   },
+  [AiAffectedResourceKind.XcpNgPool]: {
+    label: "XCP-ng Pool",
+    pluralLabel: "XCP-ng Pools",
+  },
   [AiAffectedResourceKind.CephCluster]: {
     label: "Ceph Cluster",
     pluralLabel: "Ceph Clusters",

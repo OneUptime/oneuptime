@@ -267,6 +267,10 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
   Permission.CreateWorkflowOwnerTeam,
   Permission.CreateWorkflowOwnerUser,
   Permission.CreateWorkflowVariable,
+  Permission.CreateXcpNgPool,
+  Permission.CreateXcpNgPoolFeed,
+  Permission.CreateXcpNgPoolOwnerTeam,
+  Permission.CreateXcpNgPoolOwnerUser,
   Permission.DashboardAdmin,
   Permission.DashboardMember,
   Permission.DashboardViewer,
@@ -457,6 +461,9 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
   Permission.DeleteWorkflowOwnerTeam,
   Permission.DeleteWorkflowOwnerUser,
   Permission.DeleteWorkflowVariable,
+  Permission.DeleteXcpNgPool,
+  Permission.DeleteXcpNgPoolOwnerTeam,
+  Permission.DeleteXcpNgPoolOwnerUser,
   Permission.DockerAdmin,
   Permission.DockerMember,
   Permission.DockerSwarmAdmin,
@@ -640,6 +647,9 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
   Permission.EditWorkflowOwnerTeam,
   Permission.EditWorkflowOwnerUser,
   Permission.EditWorkflowVariable,
+  Permission.EditXcpNgPool,
+  Permission.EditXcpNgPoolOwnerTeam,
+  Permission.EditXcpNgPoolOwnerUser,
   Permission.FormAdmin,
   Permission.HostAdmin,
   Permission.HostMember,
@@ -803,6 +813,8 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
   Permission.ReadWorkflow,
   Permission.ReadWorkflowLog,
   Permission.ReadWorkflowVariable,
+  Permission.ReadXcpNgPool,
+  Permission.ReadXcpNgPoolFeed,
   Permission.RumAdmin,
   Permission.RumMember,
   Permission.RumViewer,
@@ -840,6 +852,9 @@ const NARROWED_BY_LABELS_AND_OWNERS: ReadonlyArray<Permission> = [
   Permission.WorkflowAdmin,
   Permission.WorkflowMember,
   Permission.WorkflowViewer,
+  Permission.XcpNgAdmin,
+  Permission.XcpNgMember,
+  Permission.XcpNgViewer,
 ];
 
 // Narrowed by labels; owners narrow nothing of them.
@@ -1066,6 +1081,8 @@ const NARROWED_BY_LABELS: ReadonlyArray<Permission> = [
   Permission.ReadWorkflowOwnerTeam,
   Permission.ReadWorkflowOwnerUser,
   Permission.ReadWorkspaceNotificationLog,
+  Permission.ReadXcpNgPoolOwnerTeam,
+  Permission.ReadXcpNgPoolOwnerUser,
 ];
 
 // Narrowed by owners; labels narrow nothing of them.

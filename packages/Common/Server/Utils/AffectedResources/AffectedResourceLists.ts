@@ -16,6 +16,7 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import {
   AI_AFFECTED_RESOURCE_KINDS,
   AiAffectedResourceKind,
@@ -56,6 +57,7 @@ export const AFFECTED_RESOURCE_MODELS: Readonly<
   [AiAffectedResourceKind.ProxmoxCluster]: ProxmoxCluster,
   [AiAffectedResourceKind.OpenStackCloud]: OpenStackCloud,
   [AiAffectedResourceKind.VMwareVCenter]: VMwareVCenter,
+  [AiAffectedResourceKind.XcpNgPool]: XcpNgPool,
   [AiAffectedResourceKind.CephCluster]: CephCluster,
   [AiAffectedResourceKind.StorageArray]: StorageArray,
   [AiAffectedResourceKind.IoTFleet]: IoTFleet,
