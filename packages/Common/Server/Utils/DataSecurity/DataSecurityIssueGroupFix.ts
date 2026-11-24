@@ -42,13 +42,16 @@ import {
   readDataSecurityIssueGroupFacts,
 } from "../../../Types/DataSecurity/DataSecurityIssueGroup";
 import {
+  DataSecurityIssueGroupCloudOutcomeJSON,
   DataSecurityIssueGroupFixPart,
   DataSecurityIssueGroupFixPlanJSON,
   DataSecurityIssueGroupFixResultJSON,
   DataSecurityIssueGroupFixStoreJSON,
   DataSecurityIssueGroupLeftOutJSON,
   DataSecurityIssueGroupLeftOutReason,
+  getIssueGroupCloudActions,
   getIssueGroupFixPlanFingerprint,
+  getIssueGroupMainAction,
   isDataSecurityIssueGroupFixPart,
 } from "../../../Types/DataSecurity/DataSecurityIssueGroupFix";
 import DataSecurityIssueStatus from "../../../Types/DataSecurity/DataSecurityIssueStatus";
@@ -125,10 +128,13 @@ import { DataSecurityResponseOutcome } from "./Cloud/DataSecurityCloudTypes";
  *     in Code - and the person confirms the repository, as for an
  *     incident's fix: the repositories are ranked as DeclaredCodeOwner
  *     ranks them, the one the grouping found first.
- *   - Made in the console: the response action that fixes the check (Fix it
- *     from here, DataSecurityResponse), run on every store through its cloud
- *     connection, as one approval that lists each store and what changes.
- *     It takes what running a response action takes (CLOUD_FIX_PERMISSIONS).
+ *   - Made in the console: on each store, the response action its own kind
+ *     takes to fix the check (Fix it from here, DataSecurityResponse) -
+ *     Turn On Versioning on the S3 buckets, Turn On Point-in-Time Recovery
+ *     on the DynamoDB tables, each kind's own (#10742) - through its cloud
+ *     connection, as one approval that lists each kind's action and stores
+ *     and what changes. It takes what running a response action takes
+ *     (CLOUD_FIX_PERMISSIONS).
  *
  * What each part leaves out is said store by store, and why
  * (DataSecurityIssueGroupLeftOutReason): a store marked Public By Design is
@@ -479,7 +485,7 @@ export default class DataSecurityIssueGroupFix {
     if (madeInConsole.length > 0) {
       const cloud: {
         action: DataSecurityResponseAction | null;
-        included: Array<GroupFixMember>;
+        included: Array<DataSecurityIssueGroupFixStoreJSON>;
       } = await DataSecurityIssueGroupFix.planCloud({
         projectId: data.projectId,
         checkId,
@@ -490,7 +496,8 @@ export default class DataSecurityIssueGroupFix {
       if (cloud.action) {
         plan.cloud = {
           action: cloud.action,
-          stores: cloud.included.map(storeJson),
+          actions: getIssueGroupCloudActions(cloud.included),
+          stores: cloud.included,
           ...(holds(data.props, CLOUD_FIX_PERMISSIONS)
             ? {}
             : { refusal: CLOUD_FIX_REFUSED_MESSAGE }),
@@ -715,9 +722,12 @@ export default class DataSecurityIssueGroupFix {
   }
 
   /*
-   * The one approval's part: the response action that fixes the check on
-   * the stores' kind, and each store it runs on - every store it leaves
-   * out goes in `leftOut`, with why. Reads each connection once.
+   * The one approval's part: each store it runs on, with the response
+   * action that fixes the check on that store's kind (#10742) - a group of
+   * S3 buckets and DynamoDB tables runs each kind's own - and every store
+   * it leaves out goes in `leftOut`, with why. Reads each connection once.
+   * `action` is the one most of the stores take, or null when no store's
+   * kind takes one.
    */
   private static async planCloud(data: {
     projectId: ObjectID;
@@ -726,7 +736,7 @@ export default class DataSecurityIssueGroupFix {
     leftOut: Array<DataSecurityIssueGroupLeftOutJSON>;
   }): Promise<{
     action: DataSecurityResponseAction | null;
-    included: Array<GroupFixMember>;
+    included: Array<DataSecurityIssueGroupFixStoreJSON>;
   }> {
     const connectionIds: Array<string> = Array.from(
       new Set(
@@ -759,8 +769,9 @@ export default class DataSecurityIssueGroupFix {
         },
       ),
     );
-    const included: Array<GroupFixMember> = [];
-    let action: DataSecurityResponseAction | null = null;
+    const included: Array<DataSecurityIssueGroupFixStoreJSON> = [];
+    // Every store whose kind takes an action, in or left out: what `action` is of.
+    const withAction: Array<DataSecurityIssueGroupFixStoreJSON> = [];
 
     const leave: (
       member: GroupFixMember,
@@ -781,22 +792,29 @@ export default class DataSecurityIssueGroupFix {
     };
 
     for (const member of data.members) {
+      // Each kind's own action (#10742): a store whose kind takes none is fixed by hand.
       const memberAction: DataSecurityResponseAction | undefined =
         getDataSecurityResponseActionForIssue(data.checkId, member.store.kind);
 
-      // One action for the group: a store whose kind takes another is fixed by hand.
-      if (!memberAction || (action && memberAction !== action)) {
+      if (!memberAction) {
         leave(member, DataSecurityIssueGroupLeftOutReason.NothingToRun);
         continue;
       }
 
-      action = memberAction;
+      const store: DataSecurityIssueGroupFixStoreJSON = {
+        ...storeJson(member),
+        action: memberAction,
+      };
+
+      withAction.push(store);
 
       const closesExposure: boolean =
         EXPOSURE_RESPONSE_ACTIONS.includes(memberAction);
 
       if (closesExposure && member.store.isPublicByDesign) {
-        leave(member, DataSecurityIssueGroupLeftOutReason.PublicByDesign);
+        leave(member, DataSecurityIssueGroupLeftOutReason.PublicByDesign, {
+          action: memberAction,
+        });
         continue;
       }
 
@@ -806,12 +824,16 @@ export default class DataSecurityIssueGroupFix {
         connectionById.get(connectionId);
 
       if (!connectionId) {
-        leave(member, DataSecurityIssueGroupLeftOutReason.NotThroughACloud);
+        leave(member, DataSecurityIssueGroupLeftOutReason.NotThroughACloud, {
+          action: memberAction,
+        });
         continue;
       }
 
       if (!connection || connection.isEnabled === false) {
-        leave(member, DataSecurityIssueGroupLeftOutReason.ConnectionGone);
+        leave(member, DataSecurityIssueGroupLeftOutReason.ConnectionGone, {
+          action: memberAction,
+        });
         continue;
       }
 
@@ -824,6 +846,7 @@ export default class DataSecurityIssueGroupFix {
       ) {
         leave(member, DataSecurityIssueGroupLeftOutReason.ResponseOff, {
           cloudConnectionId: connectionId,
+          action: memberAction,
         });
         continue;
       }
@@ -832,14 +855,20 @@ export default class DataSecurityIssueGroupFix {
         leave(member, DataSecurityIssueGroupLeftOutReason.FixWouldBreak, {
           canInclude: true,
           breaks: member.breaks,
+          action: memberAction,
         });
         continue;
       }
 
-      included.push(member);
+      included.push(store);
     }
 
-    return { action, included };
+    return {
+      action: getIssueGroupMainAction(
+        included.length > 0 ? included : withAction,
+      ),
+      included,
+    };
   }
 
   /*
@@ -865,6 +894,11 @@ export default class DataSecurityIssueGroupFix {
      * group since.
      */
     onlyDataStoreIds?: ReadonlyArray<string> | undefined;
+    /*
+     * The action the proposal said each store takes, by store id (#10742):
+     * a store whose action is not the one approved is not changed.
+     */
+    onlyStoreActions?: Readonly<Record<string, string>> | undefined;
     triggeredBySecurityCaseId?: ObjectID | undefined;
   }): Promise<DataSecurityIssueGroupFixResultJSON> {
     const group: DataSecurityIssueGroup =
@@ -938,6 +972,7 @@ export default class DataSecurityIssueGroupFix {
     ) {
       result.cloud = {
         action: plan.cloud.action,
+        actions: [],
         changed: 0,
         unchanged: 0,
         failed: [],
@@ -966,6 +1001,14 @@ export default class DataSecurityIssueGroupFix {
             }),
           )
         : null;
+      const approvedActions: Map<string, string> = new Map(
+        Object.entries(data.onlyStoreActions || {}).map(
+          ([id, action]: [string, string]): [string, string] => {
+            return [id.toLowerCase(), action];
+          },
+        ),
+      );
+      const cloudAction: DataSecurityResponseAction = plan.cloud.action;
       const stores: Array<DataSecurityIssueGroupFixStoreJSON> = [
         ...plan.cloud.stores,
         ...plan.leftOut.filter(
@@ -977,15 +1020,36 @@ export default class DataSecurityIssueGroupFix {
             );
           },
         ),
-      ].filter((store: DataSecurityIssueGroupFixStoreJSON): boolean => {
-        return !approved || approved.has(store.dataStoreId.toLowerCase());
-      });
+      ]
+        .map(
+          (
+            store: DataSecurityIssueGroupFixStoreJSON,
+          ): DataSecurityIssueGroupFixStoreJSON => {
+            return {
+              issueId: store.issueId,
+              dataStoreId: store.dataStoreId,
+              name: store.name,
+              ...(store.kind ? { kind: store.kind } : {}),
+              ...(store.region ? { region: store.region } : {}),
+              action: store.action || cloudAction,
+            };
+          },
+        )
+        .filter((store: DataSecurityIssueGroupFixStoreJSON): boolean => {
+          const id: string = store.dataStoreId.toLowerCase();
+          const approvedAction: string | undefined = approvedActions.get(id);
+
+          return (
+            (!approved || approved.has(id)) &&
+            (!approvedAction || approvedAction === store.action)
+          );
+        });
 
       result.leftOut =
         plan.leftOut.length + plan.cloud.stores.length - stores.length;
       result.cloud = await DataSecurityIssueGroupFix.runCloud({
         projectId: data.projectId,
-        action: plan.cloud.action,
+        action: cloudAction,
         stores,
         userId: data.props.userId || undefined,
       });
@@ -1152,22 +1216,46 @@ export default class DataSecurityIssueGroupFix {
   }
 
   /*
-   * The one approval, made: the response action on every store, as the
-   * person - each store's own timeline, and its issue's, say what was done
-   * (DataSecurityResponse.run). A store that fails says why and stops no
-   * other; a few run at once.
+   * The one approval, made: on every store the response action its kind
+   * takes (#10742), as the person - each store's own timeline, and its
+   * issue's, say what was done (DataSecurityResponse.run). A store that
+   * fails says why and stops no other; a few run at once. What each action
+   * did is counted on its own, and the issues whose store changed are
+   * kept: their checks passing is what proves the fix (#10738).
    */
   private static async runCloud(data: {
     projectId: ObjectID;
+    // The plan's action: what a store that names none runs.
     action: DataSecurityResponseAction;
     stores: Array<DataSecurityIssueGroupFixStoreJSON>;
     userId?: ObjectID | undefined;
   }): Promise<NonNullable<DataSecurityIssueGroupFixResultJSON["cloud"]>> {
     const outcome: NonNullable<DataSecurityIssueGroupFixResultJSON["cloud"]> = {
       action: data.action,
+      actions: [],
       changed: 0,
       unchanged: 0,
       failed: [],
+      changedIssueIds: [],
+    };
+    const outcomeOf: (
+      action: DataSecurityResponseAction,
+    ) => DataSecurityIssueGroupCloudOutcomeJSON = (
+      action: DataSecurityResponseAction,
+    ): DataSecurityIssueGroupCloudOutcomeJSON => {
+      let entry: DataSecurityIssueGroupCloudOutcomeJSON | undefined =
+        outcome.actions.find(
+          (candidate: DataSecurityIssueGroupCloudOutcomeJSON): boolean => {
+            return candidate.action === action;
+          },
+        );
+
+      if (!entry) {
+        entry = { action, changed: 0, unchanged: 0, failed: 0 };
+        outcome.actions.push(entry);
+      }
+
+      return entry;
     };
 
     for (
@@ -1186,7 +1274,7 @@ export default class DataSecurityIssueGroupFix {
               return DataSecurityResponse.run({
                 projectId: data.projectId,
                 dataStoreId: new ObjectID(store.dataStoreId),
-                action: data.action,
+                action: store.action || data.action,
                 userId: data.userId,
                 dataSecurityIssueId: new ObjectID(store.issueId),
               });
@@ -1200,8 +1288,12 @@ export default class DataSecurityIssueGroupFix {
           index: number,
         ): void => {
           const store: DataSecurityIssueGroupFixStoreJSON = batch[index]!;
+          const ofAction: DataSecurityIssueGroupCloudOutcomeJSON = outcomeOf(
+            store.action || data.action,
+          );
 
           if (result.status === "rejected") {
+            ofAction.failed++;
             outcome.failed.push({
               dataStoreId: store.dataStoreId,
               name: store.name,
@@ -1211,8 +1303,11 @@ export default class DataSecurityIssueGroupFix {
                   : String(result.reason).slice(0, 500),
             });
           } else if (result.value.changed) {
+            ofAction.changed++;
             outcome.changed++;
+            outcome.changedIssueIds!.push(store.issueId.toLowerCase());
           } else {
+            ofAction.unchanged++;
             outcome.unchanged++;
           }
         },
