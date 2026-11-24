@@ -32,8 +32,8 @@ Each pool registers itself with its first data, under the UUID the agent stamps 
 ## Before you begin
 
 - Xen Orchestra 6.9 or later, connected to the pools you want to monitor, with its OpenMetrics plugin. On a Xen Orchestra Appliance (XOA) the plugin needs a Premium licence; Xen Orchestra built from sources includes it.
-- Docker Engine 20.10 or later with the Docker Compose v2 plugin, on a machine that can reach Xen Orchestra over HTTPS.
-- A certificate on Xen Orchestra that names the address the agent connects to. The self-signed certificate Xen Orchestra makes for itself names none, so no current TLS client can check it: see [Xen Orchestra's certificate](#xen-orchestras-certificate).
+- Docker Engine 20.10 or later with the Docker Compose v2 plugin, `curl` and `openssl`, on a machine that can reach Xen Orchestra over HTTPS.
+- A certificate on Xen Orchestra that names the address the agent connects to. The self-signed certificate Xen Orchestra makes for itself names none, so no current TLS client can check it, and Xen Orchestra built from sources serves plain HTTP until you give it one: see [Xen Orchestra's certificate](#xen-orchestras-certificate).
 - An ingestion key. Create one under **Project Settings → Telemetry & APM → Ingestion Keys** and copy its value.
 - Outbound HTTPS from that machine to your OneUptime URL.
 
@@ -41,7 +41,7 @@ Each pool registers itself with its first data, under the UUID the agent stamps 
 
 | | Supported | Why |
 | --- | --- | --- |
-| Xen Orchestra | 6.9 or later, with the OpenMetrics plugin `xo-server-openmetrics` 1.9 | The first plugin that keeps its secret when Xen Orchestra restarts, and serves every series the pool's pages read: the host and VM status, storage repositories and virtual disks. An older one made a new secret at every restart, which locked the agent out until someone copied it again. |
+| Xen Orchestra | 6.9 or later, with the OpenMetrics plugin `xo-server-openmetrics` 1.9 | Its plugin keeps its secret when Xen Orchestra restarts, has the fixes for the scrape's memory leaks, and serves every series the pool's pages read: the host and VM status, storage repositories and virtual disks. An older plugin could make a new secret at a restart, which locked the agent out until someone copied it again. |
 | XCP-ng | 8.3 LTS | Supported by Vates until 30 November 2028. XCP-ng 8.2 reached its end of life on 16 September 2025. |
 | XenServer | Not tried yet | Xen Orchestra reports a XenServer pool it manages with the same series, so it should work, but nobody has tried one with OneUptime yet. |
 
@@ -158,26 +158,26 @@ Either way, the certificate must name the address the agent connects to. The age
 
 ### Give Xen Orchestra a certificate that names its address
 
-Use a certificate from your own CA or a public one, or make a self-signed one that names Xen Orchestra's address, on Xen Orchestra's machine. This one is valid for two years, for both a name and an address:
+Use a certificate from your own CA or a public one, or make a self-signed one that names Xen Orchestra's address, as root on Xen Orchestra's machine, with its name and its address in its subject alternative names:
 
 ```bash
-sudo mkdir -p /etc/ssl/xo
-sudo openssl req -x509 -newkey rsa:2048 -nodes -days 730 \
-  -keyout /etc/ssl/xo/key.pem -out /etc/ssl/xo/cert.pem \
+mkdir -p /etc/ssl/xo
+openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
   -subj "/CN=xo.example.com" \
-  -addext "subjectAltName=DNS:xo.example.com,IP:10.0.0.5"
+  -addext "subjectAltName=DNS:xo.example.com,IP:10.0.0.5" \
+  -keyout /etc/ssl/xo/key.pem -out /etc/ssl/xo/cert.pem
 ```
 
-Point xo-server's HTTPS listener at the two files, in a file of its own such as `/etc/xo-server/config.https.toml`:
+Point xo-server's HTTPS listener at the two files, in a configuration file of its own: `/etc/xo-server/config.httpscert.toml` on an XOA, or next to xo-server's `config.toml` for Xen Orchestra built from sources. Xen Orchestra's listeners are numbered, and the second, `http.listen.1`, is its HTTPS one:
 
-```toml title="/etc/xo-server/config.https.toml"
-[[http.listen]]
+```toml
+[http.listen.1]
 port = 443
 cert = '/etc/ssl/xo/cert.pem'
 key = '/etc/ssl/xo/key.pem'
 ```
 
-Then restart Xen Orchestra with `sudo systemctl restart xo-server`, and install the agent, or run the install script again: it reads the new certificate and shows its fingerprint to check. With a certificate that names Xen Orchestra by a name other than the address in `XO_ADDRESS`, set `XO_TLS_SERVER_NAME` to that name; the install script fills it in from the certificate when it can.
+Then restart xo-server with `systemctl restart xo-server`, and install the agent, or run the install script again: it reads the new certificate and shows its fingerprint to check. Or let Xen Orchestra request a Let's Encrypt certificate itself, as an XOA can (see Xen Orchestra's documentation): it is publicly trusted, so the agent needs nothing set. With a certificate that names Xen Orchestra by a name other than the address in `XO_ADDRESS`, set `XO_TLS_SERVER_NAME` to that name; the install script fills it in from the certificate when it can.
 
 When a pinned certificate is renewed, its fingerprint changes and the agent stops reading Xen Orchestra until it trusts the new one: run the install script again, which shows the new fingerprint and changes nothing until you answer **y**. Installed with Docker Compose, write `xo-ca.pem` again and run `docker compose up -d --force-recreate`.
 
@@ -240,7 +240,7 @@ Open a pool from **Products → Infrastructure → XCP-ng → All Pools**. Its m
 
 | Page | What it shows |
 | --- | --- |
-| **Overview** | The pool's health, its hosts, running VMs and storage capacity, and what needs attention. |
+| **Overview** | The pool's health and what needs attention, its hosts, VMs and storage, its busiest VMs and hosts, and the Xen Orchestra it is read from, with the agent's version. |
 | **Hosts**, **VMs**, **Storage** | Every host, VM and storage repository, each with a page of its own and its charts. **VMs** hides control domains unless you ask for them, and a storage repository's page lists its virtual disks. |
 | **Topology** | The pool, its hosts, the VMs on each and the storage repositories they use, as one map. |
 | **Resource Usage** | Charts of the pool's hosts, VMs, storage, disks and network over time, one line per host, VM or storage repository. |
@@ -298,7 +298,7 @@ sudo systemctl enable --now oneuptime-xcp-ng-agent
 
 ## Upgrading the agent
 
-The agent reports the collector version its files pin as its **Agent Version**, on each pool's **Settings**. When that is older than the version this OneUptime release pins, a warning sign appears beside it. Select it to see these commands.
+The agent reports the collector version its files pin as its **Agent Version**, on each pool's **Overview** and **Settings**. When that is older than the version this OneUptime release pins, a warning sign appears beside it. Select it to see these commands.
 
 The collector image is pinned in `docker-compose.yml` and its config is a file next to it, so pulling alone does not move the agent forward. Run `install.sh` again: it reuses every value in your existing `.env` (nothing is asked again), checks Xen Orchestra's certificate the same way, refreshes `docker-compose.yml` and `otel-collector-config.yaml` (a file you edited is kept as `<file>.bak.<timestamp>`), pulls the image and recreates the agent so the collector reads its new config. An agent installed outside `/opt/oneuptime-xcp-ng-agent` needs its folder: `INSTALL_DIR=<folder> bash install.sh`.
 
@@ -339,7 +339,7 @@ It ends with a verdict naming the most likely cause.
 :::
 
 :::details Xen Orchestra refuses the secret (401)
-The collector logs `server returned HTTP status 401 Unauthorized`. Copy the secret again from *Settings → Plugins → openmetrics*, set `XO_OPENMETRICS_SECRET` to it in `.env`, between single quotes and with every `$` written as `$$`, and run `docker compose up -d` in the agent's folder. Xen Orchestra older than 6.9 made a new secret each time it restarted: upgrade it.
+The collector logs `server returned HTTP status 401 Unauthorized`. Copy the secret again from *Settings → Plugins → openmetrics*, set `XO_OPENMETRICS_SECRET` to it in `.env`, between single quotes and with every `$` written as `$$`, and run `docker compose up -d` in the agent's folder. Before 6.9, Xen Orchestra could make a new secret when it restarted: upgrade it.
 :::
 
 :::details The plugin does not answer (404, 500, 502 or 503)
@@ -349,7 +349,13 @@ Xen Orchestra answers, but its OpenMetrics plugin does not. Turn the plugin on u
 :::details Certificate errors
 - `x509: certificate is not valid for any names`: the certificate names no address, as Xen Orchestra's own self-signed one does. [Give Xen Orchestra a certificate that names its address](#give-xen-orchestra-a-certificate-that-names-its-address).
 - `x509: certificate is valid for <names>, not <address>`: connect to one of those names, or set `XO_TLS_SERVER_NAME` to one.
+- `x509: cannot validate certificate for <IP> because it doesn't contain any IP SANs`: `XO_ADDRESS` is an IP address the certificate does not list. Set `XO_TLS_SERVER_NAME` to a name it lists, or run the install script again, which does.
 - `x509: certificate signed by unknown authority`: `xo-ca.pem` holds neither this certificate nor the CA that issued it. The certificate was renewed, or the file holds another one: run the install script again, or write the file again.
+- `unable to read CA cert`: `xo-ca.pem` is missing or cannot be read. Run the install script again.
+:::
+
+:::details The scrape times out (context deadline exceeded)
+Xen Orchestra took longer than 50 seconds, the agent's limit, to gather the metrics, so that read sends nothing: usually a host of one of its pools does not answer it. Check the pools' hosts in Xen Orchestra; the agent reads again a minute later.
 :::
 
 :::details A pool shows as Disconnected
