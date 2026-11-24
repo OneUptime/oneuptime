@@ -500,6 +500,7 @@
     "{{count}} appliance",
     "{{count}} bucket",
     "{{count}} buckets",
+    "{{count}} byte",
     "{{count}} commit",
     "{{count}} commits",
     "{{count}} datacenter",

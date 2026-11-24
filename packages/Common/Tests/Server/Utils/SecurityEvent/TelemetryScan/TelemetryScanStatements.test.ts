@@ -27,6 +27,7 @@ import {
 import {
   PROMPT_INJECTION_PHRASES,
   TRACE_SCAN_ATTRIBUTE_KEYS,
+  getTraceScanSecretFileWords,
   getTraceScanSensitiveFileWords,
   getTraceScanUrlMarkers,
 } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
@@ -135,12 +136,13 @@ describe("the trace read", () => {
     expect(boundIncludes(statement)).toContainEqual(
       getTraceScanSensitiveFileWords(),
     );
+    // An attack's, a refused sensitive path's, and a served secret file's (#10912).
     expect(
       statement.query.split("AND multiSearchAnyCaseInsensitive(concat(")
         .length - 1,
-    ).toBe(2);
+    ).toBe(3);
     expect(statement.query).toMatch(
-      /\) AND \(startsWith\(attributes\[\{p\d+:String\}\], '4'\) OR startsWith\(attributes\[\{p\d+:String\}\], '4'\)\)\) OR \(isLlmSpan = 1 AND /,
+      /\) AND \(startsWith\(attributes\[\{p\d+:String\}\], '4'\) OR startsWith\(attributes\[\{p\d+:String\}\], '4'\)\)\) OR \(kind = /,
     );
 
     for (const key of TRACE_SCAN_ATTRIBUTE_KEYS.statusCode) {
@@ -151,6 +153,41 @@ describe("the trace read", () => {
     expect(statement.query.split("(").length).toBe(
       statement.query.split(")").length,
     );
+  });
+
+  /*
+   * #10912: a server span whose URL holds the words of a file that holds
+   * secrets leaves the database when it was answered with a 2xx too, to be
+   * read for what the app sent - and an admin page's words are none of
+   * those, so a WordPress site's own pages, which it serves, still stay.
+   */
+  test("a server span asking for a file that holds secrets leaves the database when it was answered with a 2xx", () => {
+    expect(boundIncludes(statement)).toContainEqual(
+      getTraceScanSecretFileWords(),
+    );
+    expect(statement.query).toMatch(
+      /\) AND \(startsWith\(attributes\[\{p\d+:String\}\], '2'\) OR startsWith\(attributes\[\{p\d+:String\}\], '2'\)\)\) OR \(isLlmSpan = 1 AND /,
+    );
+
+    for (const adminWord of [
+      "/wp-admin",
+      "/wp-login.php",
+      "/phpmyadmin",
+      "/server-status",
+      "/phpinfo.php",
+    ]) {
+      expect(getTraceScanSecretFileWords()).not.toContain(adminWord);
+    }
+
+    // Every word of a file that holds secrets is a sensitive path's too.
+    for (const word of getTraceScanSecretFileWords()) {
+      expect(getTraceScanSensitiveFileWords()).toContain(word);
+    }
+
+    // Its words are sent hex encoded, as the scan's others are (#6419).
+    for (const word of getTraceScanSecretFileWords()) {
+      expect(statement.query.toLowerCase()).not.toContain(word);
+    }
   });
 
   test("pages in a fixed order", () => {

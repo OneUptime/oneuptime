@@ -465,6 +465,7 @@
     "{{count}} appliance",
     "{{count}} binding",
     "{{count}} bucket",
+    "{{count}} byte",
     "{{count}} commit",
     "{{count}} commits",
     "{{count}} container",

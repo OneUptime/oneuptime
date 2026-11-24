@@ -70,9 +70,11 @@ Die Karte **Ihre Protokolle** oben auf **Verbindungen** braucht keine Installati
 | Fortinet FortiGate | IPS- und Antivirenfunde, abgelehnter Datenverkehr, VPN- und Administratoranmeldungen sowie Konfigurationsänderungen aus dem eigenen Syslog von FortiGate |
 | Cisco ASA | Abgelehnte Verbindungen, Funde der Bedrohungserkennung und des IPS, VPN- und Administratoranmeldungen sowie Befehle von Cisco ASA und Firepower Threat Defense |
 | Kubernetes-Audit-Logs | Änderungen am Cluster, in Pods geöffnete Shells, gelesene Secrets und abgelehnte Anfragen |
-| Webangriffe | Anfragen im Zugriffslog eines Webservers, die SQL-Injection, Path Traversal oder Log4Shell versuchen, sowie Anfragen nach sensiblen Dateien wie `/.env` oder `/.git/config`, die Ihre Website abgelehnt hat oder gar nicht hat |
+| Webangriffe | Anfragen im Zugriffslog eines Webservers, die SQL-Injection, Path Traversal oder Log4Shell versuchen, Anfragen nach sensiblen Dateien wie `/.env` oder `/.git/config`, die Ihre Website abgelehnt hat oder gar nicht hat, sowie eine Datei mit Geheimnissen, die Ihre Website ausgeliefert hat |
 
 Ihre Logs bleiben, wie sie sind. Nur die Zeilen, die für die Sicherheit zählen, werden zu Ereignissen: nie jede Seite, die ein Webserver ausgeliefert hat, oder jeder Lesezugriff auf eine API.
+
+Eine Datei mit Geheimnissen, die Ihre Website ausgeliefert hat, etwa `/.env`, ist ein Leck, und die Regel **Sensitive file served** der Regelbibliothek eröffnet dazu einen kritischen Fall. Die eigene Seite einer Single-Page-App für einen Pfad, den sie nicht hat, ist nie ein Leck. Siehe [Eine sensible Datei, die Ihre Website ausgeliefert hat](/docs/telemetry/security-events#eine-sensible-datei-die-ihre-website-ausgeliefert-hat).
 
 Eine Bedrohung, die ein Sicherheitsprodukt in Ihre Logs schreibt, etwa ein CEF- oder LEEF-Fund oder ein IPS-Fund einer FortiGate, eröffnet einen Fall, wie es die Warnung eines verbundenen Produkts tut. **Fälle eröffnen ab** auf **Ihre Protokolle** legt fest, ab welchem Schweregrad: **Hoch und höher**, sofern Sie keinen anderen wählen, oder **Nie**.
 
