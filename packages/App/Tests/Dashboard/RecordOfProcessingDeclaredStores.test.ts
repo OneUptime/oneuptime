@@ -12,6 +12,7 @@ import {
   DeclaredStoreRetentionBasis,
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import Permission, { PermissionHelper } from "Common/Types/Permission";
+import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import { Translator, createTranslator } from "Common/Types/Translator";
 import * as DownloadFile from "Common/UI/Utils/DownloadFile";
 import TableColumnsToCsv from "Common/UI/Utils/TableColumnsToCsv";
@@ -395,10 +396,9 @@ describe("the user vault's words", () => {
     ).toBe("1 day after a user was last seen");
     // The count keeps its word on its line (a no-break space): read past it.
     expect(
-      getDeclaredRetentionText(
-        { retention: "", declared: USER_VAULT },
-        GERMAN,
-      ).replace(/ /g, " "),
+      getDeclaredRetentionText({ retention: "", declared: USER_VAULT }, GERMAN)
+        .split(NO_BREAK_SPACE)
+        .join(" "),
     ).toBe(
       GERMAN_WORDS[RETENTION_AFTER_USER_LAST_SEEN.other]!.replace(
         "{{count}}",
