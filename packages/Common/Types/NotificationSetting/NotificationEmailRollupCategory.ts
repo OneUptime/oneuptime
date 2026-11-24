@@ -183,6 +183,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Probes,
   [NotificationSettingEventType.SEND_PROBE_OWNER_ADDED_NOTIFICATION]:
     RollupCategory.Probes,
+  // A probe a major release behind (#9977): told once, filed with its other notices.
+  [NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION]:
+    RollupCategory.Probes,
 
   // AI Agent Status change Notification
   [NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION]:

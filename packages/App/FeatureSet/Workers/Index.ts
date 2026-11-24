@@ -277,6 +277,7 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 import "./Jobs/Probe/UpdateBehind";
+import "./Jobs/Probe/NotifyMajorReleaseBehind";
 
 // Probe Status monitors: one incident when a probe a project watches goes offline.
 import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
