@@ -2702,6 +2702,11 @@ export const JOINED_ON_PURPOSE: ReadonlyArray<{
     text: '{uncounted.lines .map((sentence: RetrohuntSentence): string => { return writeRetrohuntSentence(translator, sentence); }) .join(" ")}',
     why: "Why Run on Past Events could not count some events (#10415): whole sentences, each a plural template translated whole (\"1,204 matching events had no IP address, so this rule couldn't count them.\", then how many of them a scrub rule hid), read through the panel's writeRetrohuntSentence, then the link to Scrub Rules, an action of its own.",
   },
+  {
+    file: "packages/App/FeatureSet/Dashboard/src/Components/SecurityEvents/Uncounted/DetectionRuleUncountedModal.tsx",
+    text: '{detail.lines .map((sentence: RetrohuntSentence): string => { return writeRetrohuntSentence(translator, sentence); }) .join(" ")}',
+    why: "What a detection rule could not count in the last day (#10547), in Run on Past Events' own words: the same whole sentences, each a plural template translated whole, read through writeRetrohuntSentence, then the link to Scrub Rules, an action of its own.",
+  },
   /*
    * A thing named by its kind, or a figure by its label, and its value:
    * names and facts, not sentences (#8483).

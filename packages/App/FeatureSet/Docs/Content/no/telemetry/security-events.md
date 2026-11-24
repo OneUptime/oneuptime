@@ -288,6 +288,55 @@ Hver hendelse lagres med typede felt og kildens nyttelast:
 
 Hendelser som ble lagret før OneUptime 14.0.84, lar prosessfeltene stå tomme og nevner bare prosessen sin som `principalProcess`, prosessen som handlet. De fylles ikke ut i etterkant: de beholder det de ble lagret med, til oppbevaringen deres går ut.
 
+### Hvilken adresse en hendelse nevner
+
+En hendelse nevner adressen en forespørsel kom fra, bare når avsenderen av forespørselen ikke selv kunne ha skrevet den. Den adressen er verifisert, og den blir hendelsens **Kilde-IP**: Deteksjonsregler teller den, trusseletterretning matcher den, og en saks **Responsplan** tilbyr å blokkere den. Enhver annen adresse en forespørsel nevner, er bare oppgitt: Hendelsen beholder den som **Oppgitt IP**, og ingenting teller eller blokkerer den.
+
+- Tilkoblingens egen adresse er verifisert: `network.peer.address` i et serverspenn, eller det første feltet i en linje i tilgangsloggen til en webserver. Ingen kan skrive den inn i en forespørsel.
+- Bak en proxy du stoler på, er tilkoblingens adresse proxyens, og klienten er adressen proxyen videresendte i `X-Forwarded-For`. Hver proxy legger til adressen den tok imot tilkoblingen fra, så OneUptime leser headeren fra høyre og tar den første adressen som ikke er en proxy du stoler på. Det en avsender skriver i headeren, havner til venstre for den og forblir en påstand.
+- En adresse en forespørsel nevner om seg selv, er oppgitt: `client.address`, som instrumenteringen fyller ut fra venstre side av headeren, resten av `X-Forwarded-For` og `Forwarded`.
+
+En oppgitt adresse blokkeres aldri fra en sak: Hvem som helst kan sende `X-Forwarded-For: 192.0.2.44`, og en blokkering ville stenge ute den som enn har 192.0.2.44. En hendelse med bare en oppgitt adresse har en **Responsplan** som ber deg finne den ekte adressen i loggene til lastbalansereren eller brannmuren din.
+
+Registrer to ting på serverspennene til appen din, så adressene er verifisert: tilkoblingens egen adresse, `network.peer.address`, som HTTP-instrumenteringene i OpenTelemetry setter, og bak en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for` når du oppgir den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-tilgangslogg leses på samme måte: Klientfeltet, for eksempel `remote_addr`, er tilkoblingens adresse, og feltet `http_x_forwarded_for` er headeren.
+
+#### Klarerte proxyer
+
+Sikkerhetshendelser tror en proxy på hvem klienten var, når adressen dens er:
+
+| Klarert | Hvorfor |
+| --- | --- |
+| Privat, loopback eller link-local, for eksempel `10.0.0.5` | Alltid: Ingen har den på internett, så den er en lastbalanserer eller en ingress i nettverket ditt |
+| Oppført under **Klarerte proxyer** | Du har oppført den |
+| I de publiserte områdene til en kant du har koblet til, for eksempel [Cloudflare](/docs/integrations/cloudflare) | Så lenge tilkoblingen finnes |
+| En av dine egne applikasjonslastbalanserere | Med mindre du slår det av |
+
+**Sikkerhetshendelser → Tilkoblinger → Flere innstillinger** inneholder **Klarerte proxyer**, listen du skriver, og **Klarert automatisk**, som viser resten og hvorfor. Før opp en proxy under **Klarerte proxyer**, én adresse eller ett område på hver linje, når adressen dens er offentlig og ingenting annet stoler på den: et CDN du ikke har koblet til, en lastbalanserer som når appen din over internett, eller en omvendt proxy som nginx på en server med offentlig adresse foran appen din. Inntil du gjør det, tilskrives hvert angrep gjennom den selve proxyen. Bak en global ekstern Application Load Balancer i Google Cloud kommer appens tilkoblinger fra Googles front-ends: Før opp `35.191.0.0/16` og `130.211.0.0/22`.
+
+Dine egne applikasjonslastbalanserere er de som de [tilkoblede skykontoene](/docs/telemetry/cloud-accounts) dine viser: AWS Application Load Balancers, AWS Classic Load Balancers der hver lytter er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med de offentlige adressene sine. Hver av dem legger klienten den videresender, til i `X-Forwarded-For`. En lastbalanserer i Google Cloud legger til sin egen adresse etter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uten dem ville hvert angrep gjennom en av dem blitt tilskrevet lastbalansereren. **Lastbalansererne dine** på **Klarert automatisk** viser dem, og en Prosjekteier, Prosjektadministrator eller Sikkerhetsadministrator kan slå det av.
+
+Ingenting annet av ditt er klarert automatisk: ikke vertene, Kubernetes-nodene, sondene eller de virtuelle maskinene dine, en NAT-gateway eller en Network-, Gateway- eller Azure-lastbalanserer. De videresender ingen, eller de sender en forespørsel videre slik den kom, så det som kjører på dem, kunne oppgi hvilken som helst klient: en forespørsel en monitor sender med egne headere, en pod, en bærbar PC bak gatewayen. Hvis en av dem er proxyen din, legger du den til i **Klarerte proxyer**. En Kubernetes-ingress er klarert som den lastbalansereren den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress for Application Gateway en Application Gateway, og en EKS-ingress av klassen `alb` en AWS Application Load Balancer. En ingress-kontroller i klyngen din videresender fra en privat adresse, som alltid er klarert.
+
+En endring i noen av disse trer i kraft innen ett minutt, og en ny lastbalanserer blir klarert innen fem.
+
+#### Tilgangslogger som slutter med X-Forwarded-For
+
+Bak en lastbalanserer logger mange webservere den videresendte adressen sist, slik nginx' eget format `main` gjør:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+En linje sier aldri hva feltene er, så det siste feltet leses som `X-Forwarded-For` først når du slår på **Logger slutter med X-Forwarded-For** på **Tilgangslogger** under **Flere innstillinger**, og da bare:
+
+- når linjens første felt er en proxy du stoler på: En linje fra en klient som nådde webserveren din direkte, tilhører den klienten;
+- i formatet combined, med nøyaktig ett felt i anførselstegn etter user agent og ingenting etter det;
+- når det feltet er `-` eller en liste over adresser der den siste ikke har port.
+
+La den være av når formatet ditt slutter med en annen header som inneholder en adresse, for eksempel `X-Real-IP`, eller når webserveren din skriver headere uten å escape anførselstegnene deres, slik `morgan` for Express gjør: En forespørsels egen user agent kunne da legge til et felt. En JSON-tilgangslogg trenger ingen bryter, siden feltene har navn.
+
 ### Skjult av en rensingsregel
 
 En IP-adresseregel som sletter eller maskerer loggene eller trasene dine, skjuler adressen et angrep kom fra før Sikkerhetshendelser leser dem. Hendelsen lagres likevel, uten adresse, og overalt der den ville navngitt adressen, sier den at en scrub-regel skjulte den:
@@ -547,6 +596,8 @@ Group By og Distinct Count tar de samme feltnavnene som regelen. Med dem sier te
 | Brute force: 5 mislykkede pålogginger fra én IP | `principalIp` | Tomt | 5 |
 | Password spraying: én IP som feiler mot 5 ulike kontoer | `principalIp` | `principalUser` | 5 |
 | Portskanning: én IP som når 20 ulike porter | `principalIp` | `targetPort` | 20 |
+
+En regel med et **Grupperingsfelt** som trenger mer enn én hendelse i en gruppe, gjennom en terskel over 1 eller et **Felt for unik telling**, utelater hendelsene som ikke har noen verdi for feltet: Talt med ville de alle lagt seg sammen som én verdi, hver mislykkede pålogging uten adresse som én IP-adresse. En regel som utløses av hver hendelse, fortsetter å utløses for dem. **Deteksjonsregler** viser under navnet på en regel hvor mange av det siste døgnets samsvarende hendelser den ikke kunne telle, og linjen åpner hvorfor: hvor mange som ikke hadde noen verdi, og hvor mange av dem en scrub-regel skjulte, med **Åpne scrub-regler**. En regel som ikke kunne telle noe av det den samsvarte med, kan ikke utløses, og **Status** sier **Krever oppmerksomhet**. **Kjør på tidligere hendelser** sier det samme for perioden den leser.
 
 ### Når en regel kjører
 
