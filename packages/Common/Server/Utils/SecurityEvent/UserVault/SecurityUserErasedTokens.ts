@@ -49,6 +49,12 @@ const cache: InMemoryTTLCache<{ tokens: ErasedTokens }> = new InMemoryTTLCache<{
   tokens: ErasedTokens;
 }>(MAX_PROJECTS_WITH_ERASED_TOKENS);
 
+// The reads of a project's refused tokens on their way, by project.
+const reads: Map<string, Promise<ErasedTokens>> = new Map<
+  string,
+  Promise<ErasedTokens>
+>();
+
 // Whether a token is refused: always, when the refused tokens could not be read.
 export function isTokenErased(token: string, erased: ErasedTokens): boolean {
   return erased === null || erased.has(token);
@@ -68,6 +74,31 @@ export default class SecurityUserErasedTokens {
     if (cached) {
       return cached.tokens;
     }
+
+    /*
+     * One read a project at a time: the batches of a busy project that
+     * miss the cache together wait for the same read, rather than each
+     * asking Postgres the same question.
+     */
+    const reading: Promise<ErasedTokens> | undefined = reads.get(key);
+
+    if (reading) {
+      return await reading;
+    }
+
+    const read: Promise<ErasedTokens> = this.read(projectId).finally(
+      (): void => {
+        reads.delete(key);
+      },
+    );
+
+    reads.set(key, read);
+
+    return await read;
+  }
+
+  private static async read(projectId: ObjectID): Promise<ErasedTokens> {
+    const key: string = projectId.toString();
 
     try {
       const tokens: Set<string> =
@@ -98,5 +129,6 @@ export default class SecurityUserErasedTokens {
   // Forget every project's, so a test reads the requests it set up.
   public static clearCache(): void {
     cache.clear();
+    reads.clear();
   }
 }

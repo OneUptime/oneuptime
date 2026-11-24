@@ -94,11 +94,18 @@ const WORKER_COLUMNS: Array<string> = [
   "proposalsWithdrawn",
 ];
 
+/*
+ * The audit log keeps who filed a request and when, never whom it erases:
+ * what was typed is encrypted (redacted from every entry without being
+ * listed), and the tokens are redacted too - the audit log is read by
+ * roles that read no security data, and exported out of OneUptime.
+ */
 @EnableAuditLog({
   create: true,
   update: true,
   delete: true,
   ignoreColumns: WORKER_COLUMNS,
+  redactColumns: ["tokens"],
   resourceNameColumns: ["reference"],
 })
 @TenantColumn("projectId")
