@@ -20,6 +20,15 @@ import {
   LocationFindings,
 } from "../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
+import { ModelBudget } from "../../../../Server/Utils/DataSecurity/Model/ModelBudget";
+import {
+  CONTENT_STORE_KEY,
+  ModelScanContext,
+} from "../../../../Server/Utils/DataSecurity/Model/ModelScan";
+import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
+import FakeEntityRecognizer, {
+  ISSUE_SENTENCE,
+} from "./Model/FakeEntityRecognizer";
 
 jest.mock("pg", () => {
   return { __esModule: true, Client: jest.fn() };
@@ -815,5 +824,154 @@ describe("connection strings", () => {
     expect(() => {
       return quoteSqlServerIdentifier("x".repeat(129));
     }).toThrow();
+  });
+});
+
+/*
+ * The names-and-addresses model on a database's free text (#10373), with a
+ * recogniser behind the model's interface: a support note's name and street
+ * address are found in the column, masked, and the model is handed only the
+ * free-text columns' values - never an email column's, an id's or a
+ * password's.
+ */
+describe("the names-and-addresses model on a database's free text", () => {
+  // Notes long enough to be free text, the issue's sentence among them.
+  function supportNotes(): Array<Record<string, string | null>> {
+    return [
+      {
+        id: "1",
+        email: "member1.lee@acme-corp.com",
+        notes:
+          "The customer asked about the delivery window for their order and was told it would arrive tomorrow morning.",
+      },
+      { id: "2", email: "member2.lee@acme-corp.com", notes: ISSUE_SENTENCE },
+      {
+        id: "3",
+        email: "member3.lee@acme-corp.com",
+        notes:
+          "Called back about the damaged parcel; a replacement was sent by express and the original need not be returned.",
+      },
+    ];
+  }
+
+  function ticketsTable(table: string = "tickets"): FakeTable {
+    return {
+      schema: "public",
+      table,
+      estimatedRows: 3,
+      columns: [
+        ["id", "integer"],
+        ["email", "character varying"],
+        ["notes", "text"],
+      ],
+      rows: supportNotes(),
+    };
+  }
+
+  function classificationAt(
+    result: ContentScanResult,
+    location: string,
+    dataTypeId: string,
+  ): FieldClassification | undefined {
+    return (locationOf(result, location)?.classifications || []).find(
+      (classification: FieldClassification) => {
+        return classification.dataTypeId === dataTypeId;
+      },
+    );
+  }
+
+  test("the issue's sentence in a notes column is a person's name and a street address, Medium, masked, found by the model", async () => {
+    database.tables = [ticketsTable()];
+
+    const recognizer: FakeEntityRecognizer = new FakeEntityRecognizer();
+    const model: ModelScanContext = {
+      recognizer,
+      budget: ModelBudget.forScope("content"),
+    };
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options({}, { model }),
+    );
+
+    expect(
+      classificationAt(result, "public.tickets.notes", "person-name"),
+    ).toEqual(
+      expect.objectContaining({
+        matchCount: 1,
+        confidence: DataConfidence.Medium,
+        maskedSamples: ["M****"],
+        foundByModel: true,
+        isFreeText: true,
+      }),
+    );
+    expect(
+      classificationAt(result, "public.tickets.notes", "postal-address"),
+    ).toEqual(
+      expect.objectContaining({
+        matchCount: 1,
+        maskedSamples: ["1****"],
+        foundByModel: true,
+      }),
+    );
+    // Only the notes went to the model: never the emails or the ids.
+    expect(recognizer.given).toContain(ISSUE_SENTENCE);
+    expect(
+      recognizer.given.some((text: string): boolean => {
+        return text.includes("@acme-corp.com") || text === "1";
+      }),
+    ).toBe(false);
+    // And the value itself is nowhere in what the scan returns.
+    expect(JSON.stringify(result)).not.toContain("Maria Gonzalez");
+    expect(JSON.stringify(result)).not.toContain("Calle Mayor");
+  });
+
+  test("without the model, the same column holds no name or street address", async () => {
+    database.tables = [ticketsTable()];
+
+    const result: ContentScanResult = await sampleDatabase(POSTGRES, options());
+
+    expect(dataTypesAt(result, "public.tickets.notes")).not.toContain(
+      "person-name",
+    );
+    expect(dataTypesAt(result, "public.tickets.notes")).not.toContain(
+      "postal-address",
+    );
+  });
+
+  test("the store's model time running out part-way leaves the next table to its detectors, and the scan finishes", async () => {
+    database.tables = [ticketsTable("tickets_a"), ticketsTable("tickets_b")];
+
+    // Time for the first table's three notes, none for the second's.
+    const budget: ModelBudget = new ModelBudget({
+      scanLimitInMs: 30,
+      storeLimitInMs: 30,
+    });
+    const model: ModelScanContext = {
+      recognizer: new FakeEntityRecognizer({ millisecondsPerText: 10 }),
+      budget,
+    };
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options({}, { model }),
+    );
+    const found: Array<string> = ["tickets_a", "tickets_b"].filter(
+      (table: string): boolean => {
+        return Boolean(
+          classificationAt(result, `public.${table}.notes`, "person-name"),
+        );
+      },
+    );
+
+    expect(found).toHaveLength(1);
+    // Both tables were still read and classified by their detectors.
+    expect(dataTypesAt(result, "public.tickets_a.email")).toContain(
+      "email-address",
+    );
+    expect(dataTypesAt(result, "public.tickets_b.email")).toContain(
+      "email-address",
+    );
+    expect(budget.forStore(CONTENT_STORE_KEY).getWarnings()).toEqual([
+      "Names and street addresses were looked for in 3 of 6 free-text values: the scan's 1 second of model time ran out.",
+    ]);
   });
 });

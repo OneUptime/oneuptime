@@ -1174,6 +1174,7 @@ import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./18091
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
 import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
 import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
+import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "./1809187540373-AddDataSecurityNamesAndAddressesModel";
 import { AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618 } from "./1809187540618-AddTelemetryExceptionFormerFingerprintAndSplitFrom";
 import { AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628 } from "./1809187540628-AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys";
 import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "./1809187550746-AddSecurityAutomaticResponseHourlyLimit";
@@ -2358,6 +2359,7 @@ export default [
   AddDataSecurityIssueResolution1809187510368,
   AddDataStoreFindingAiVerdicts1809187520372,
   AddDataSecurityComplianceDrafts1809187530375,
+  AddDataSecurityNamesAndAddressesModel1809187540373,
   AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618,
   AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628,
   AddSecurityAutomaticResponseHourlyLimit1809187550746,

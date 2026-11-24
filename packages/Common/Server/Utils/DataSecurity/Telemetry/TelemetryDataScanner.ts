@@ -72,6 +72,12 @@ import {
   MAX_READ_LOG_ENTRIES,
 } from "../DataSecurityScanTypes";
 import {
+  FieldForModel,
+  getModelWarnings,
+  recognizeFields,
+} from "../Model/ModelScan";
+import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
+import {
   describeUnplacedAttribute,
   shareUnplacedAttributes,
 } from "./TelemetryUnplacedAttributes";
@@ -3031,6 +3037,97 @@ function describeOwner(sample: StoreSample, name: string | undefined): string {
     : `${noun} ${sample.ownerId}`;
 }
 
+/*
+ * Where a sample's place is a log body, an exception message or stack trace,
+ * or a prompt: free text whatever its length, which the names-and-addresses
+ * model reads (FieldClassifier readWithModel).
+ */
+function isBodyLocation(sample: StoreSample, path: string): boolean {
+  return sample.locationKinds.get(path) === DataStoreLocationKind.Body;
+}
+
+// The key of a sample's store in the scan's model budget.
+export function modelStoreKey(sample: {
+  kind: DataStoreKind;
+  ownerId: string;
+}): string {
+  return storeKey(sample.kind, sample.ownerId);
+}
+
+// FNV-1a: a store's place in an hour's order for the model.
+function rankOf(text: string): number {
+  let hash: number = 0x811c9dc5;
+
+  for (let index: number = 0; index < text.length; index++) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return hash;
+}
+
+const HOUR_IN_MS: number = 60 * 60 * 1000;
+
+/*
+ * The order the model reads a scan's stores in. Its minute covers a few
+ * dozen stores of a busy project, and the stores come in the order they
+ * were sampled - the same every hour - so the same services would be read
+ * every hour and the rest never. Each hour orders them anew, the same way
+ * for the same hour, so every store's turn comes as often as any other's.
+ */
+export function orderStoresForModel<
+  T extends { kind: DataStoreKind; ownerId: string },
+>(samples: ReadonlyArray<T>, scanEnd: Date): Array<T> {
+  const hour: number = Math.floor(scanEnd.getTime() / HOUR_IN_MS);
+
+  return samples
+    .map((sample: T, index: number) => {
+      return {
+        sample,
+        index,
+        rank: rankOf(`${hour}:${modelStoreKey(sample)}`),
+      };
+    })
+    .sort(
+      (
+        first: { rank: number; index: number },
+        second: { rank: number; index: number },
+      ): number => {
+        return first.rank - second.rank || first.index - second.index;
+      },
+    )
+    .map((entry: { sample: T }): T => {
+      return entry.sample;
+    });
+}
+
+/*
+ * What the names-and-addresses model finds in a sample's free text - its
+ * bodies, messages and prompts, and attributes long enough to be free text
+ * - within the store's share of the scan's model time. Only when the
+ * project turned the model on for telemetry (options.model).
+ */
+async function recognizeSample(
+  sample: StoreSample,
+  options: ContentScanOptions,
+): Promise<ModelRecognitions | undefined> {
+  if (!options.model) {
+    return undefined;
+  }
+
+  const fields: Array<FieldForModel> = sample.collector
+    .getFields()
+    .map((field: { path: string; values: Array<unknown> }): FieldForModel => {
+      return {
+        path: field.path,
+        values: field.values,
+        readWithModel: isBodyLocation(sample, field.path),
+      };
+    });
+
+  return await recognizeFields(options.model, modelStoreKey(sample), fields);
+}
+
 function toResult(data: {
   sample: StoreSample;
   name: string | undefined;
@@ -3038,6 +3135,9 @@ function toResult(data: {
   isDeletedOwner: boolean;
   window: TelemetryReadWindow;
   classifierOptions: FieldClassifierOptions;
+  // What the names-and-addresses model found in the sample's free text.
+  recognitions?: ModelRecognitions | undefined;
+  modelWarnings?: Array<string> | undefined;
   // The data types being proven on this store, counted in shadow (#10371).
   shadowDetectors: ReadonlyArray<ShadowScanDetector>;
 }): ContentScanResult {
@@ -3047,6 +3147,10 @@ function toResult(data: {
   // The attributes no detector placed, before the service's share (#10371).
   const unplacedFields: Array<UnplacedField> = [];
   const names: Array<string> = Array.from(sample.locationKinds.keys());
+
+  for (const warning of data.modelWarnings || []) {
+    sample.warn(warning);
+  }
 
   for (const field of sample.collector.getFields()) {
     let classifications: Array<FieldClassification>;
@@ -3064,7 +3168,13 @@ function toResult(data: {
       classifications = classifyField(
         field.path,
         field.values,
-        data.classifierOptions,
+        data.recognitions
+          ? {
+              ...data.classifierOptions,
+              recognitions: data.recognitions,
+              readWithModel: isBodyLocation(sample, field.path),
+            }
+          : data.classifierOptions,
       );
     } catch (error) {
       logger.warn(
@@ -3330,6 +3440,19 @@ export async function scanProjectTelemetry(data: {
     data.options,
   );
 
+  /*
+   * The model reads the stores first, in this hour's order, so that the
+   * time it has goes to different services each hour; the results keep the
+   * order the stores were sampled in.
+   */
+  const recognized: Map<StoreSample, ModelRecognitions | undefined> = new Map();
+
+  if (data.options.model) {
+    for (const sample of orderStoresForModel(samples, context.window.until)) {
+      recognized.set(sample, await recognizeSample(sample, data.options));
+    }
+  }
+
   const scans: Array<TelemetryStoreScan> = samples.map(
     (sample: StoreSample): TelemetryStoreScan => {
       const name: string | undefined = owners.names.get(
@@ -3348,6 +3471,11 @@ export async function scanProjectTelemetry(data: {
               : owners.servicesRead),
           window: context.window,
           classifierOptions,
+          recognitions: recognized.get(sample),
+          modelWarnings: getModelWarnings(
+            data.options.model,
+            modelStoreKey(sample),
+          ),
           shadowDetectors:
             data.shadowDetectorsByStore?.get(
               getShadowStoreKey(sample.kind, sample.ownerId),

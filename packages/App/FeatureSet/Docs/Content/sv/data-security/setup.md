@@ -222,6 +222,8 @@ Inställningarna för Datasäkerhet är en uppsättning per projekt, i avsnittet
 | **Kontrollera konfiguration** | På | Kör kontrollerna på varje datalager. När den är av öppnas, ändras eller stängs inga problem. |
 | **Skanna innehåll** | På | Tar prover på datalagrens innehåll där innehållsbehörigheten har beviljats. |
 | **Skanna telemetri** | På | Tar prover på projektets loggar, spår, mätvärden, undantag, uppspelningar och AI-konversationer. |
+| **Hitta namn och gatuadresser** | På | Läser fritext efter personnamn och gatuadresser med en liten modell inne i skannern. Det är inte OneUptime AI, och texten lämnar aldrig skannern. Se [Namn och gatuadresser i fritext](/docs/data-security/data-types#namn-och-gatuadresser-i-fritext). |
+| **Hitta namn och gatuadresser i telemetri** | Av | Telemetriskanningen varje timme läser också loggtexter, undantagsmeddelanden och AI-konversationer med modellen, upp till en minut i timmen. Bara medan inställningen ovan är på. |
 | **Spara maskerade prov** | På | Sparar upp till tre maskerade prov med varje fynd. När den är av sparas bara antal. |
 | **Öppna säkerhetsärenden** | På | Öppnar ett säkerhetsärende, grupperat per datalager, när ett kritiskt problem öppnas. |
 | **Skapa larm** | Av | Skapar ett larm, som når den som har jour, när ett kritiskt problem öppnas. |

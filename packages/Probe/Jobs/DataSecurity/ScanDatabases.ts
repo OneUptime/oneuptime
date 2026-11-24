@@ -34,6 +34,12 @@ import {
   ContentScanOptions,
   ContentScanResult,
 } from "Common/Server/Utils/DataSecurity/DataSecurityScanTypes";
+import {
+  CONTENT_STORE_KEY,
+  createModelScanContext,
+  getModelWarnings,
+  ModelScanContext,
+} from "Common/Server/Utils/DataSecurity/Model/ModelScan";
 
 /*
  * THE PROBE'S HALF OF SCANNING DATABASES FOR DATA SECURITY, EVERY FIVE
@@ -47,6 +53,12 @@ import {
  *      is refused - and sample the database read-only (DatabaseSampler);
  *   3. report what was found: findings by column, never a value, never the
  *      connection string.
+ *
+ * When the project has names and addresses on, the probe reads free-text
+ * columns with the model in its own image (Common/Server/Utils/
+ * DataSecurity/Model), in its own process: no value leaves the probe for
+ * it, and nothing is downloaded. A probe whose image has no model scans
+ * without it, and its report's warnings say so.
  *
  * Every store handed out is answered: a variable the probe does not have,
  * a database it cannot reach, become a report of the error, so the store
@@ -67,6 +79,10 @@ export interface ScanDatabasesDependencies {
     options: ContentScanOptions,
   ) => Promise<ContentScanResult>;
   environment: Record<string, string | undefined>;
+  // The names-and-addresses model for one scan, when the project has it on.
+  createModelContext?:
+    | ((isEnabled: boolean) => Promise<ModelScanContext | undefined>)
+    | undefined;
 }
 
 const DEFAULT_DEPENDENCIES: ScanDatabasesDependencies = {
@@ -77,7 +93,19 @@ const DEFAULT_DEPENDENCIES: ScanDatabasesDependencies = {
     return sampleDatabase(connection, options);
   },
   environment: process.env,
+  createModelContext: (
+    isEnabled: boolean,
+  ): Promise<ModelScanContext | undefined> => {
+    return createModelScanContext({
+      isEnabled,
+      scope: "content",
+      place: "probe",
+    });
+  },
 };
+
+// The most warnings a report carries, as the sampler bounds its own.
+const MAX_REPORT_WARNINGS: number = 50;
 
 let isTickInProgress: boolean = false;
 
@@ -232,10 +260,25 @@ export async function scanStore(
   }
 
   try {
+    const options: ContentScanOptions = buildProbeScanOptions(work);
+
+    options.model = dependencies.createModelContext
+      ? await dependencies.createModelContext(work.findNamesAndAddresses)
+      : undefined;
+
     const result: ContentScanResult = await dependencies.sample(
       { engine: work.engine, connectionString: connectionString.trim() },
-      buildProbeScanOptions(work),
+      options,
     );
+
+    for (const warning of getModelWarnings(options.model, CONTENT_STORE_KEY)) {
+      if (
+        result.warnings.length < MAX_REPORT_WARNINGS &&
+        !result.warnings.includes(warning)
+      ) {
+        result.warnings.push(warning);
+      }
+    }
 
     return { dataStoreId: work.dataStoreId, startedAt, result };
   } catch (err) {

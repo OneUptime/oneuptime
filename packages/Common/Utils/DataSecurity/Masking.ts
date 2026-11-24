@@ -140,6 +140,15 @@ export function maskCredentialsInText(value: string): string {
 // The longest a masked sample may be, so one sample cannot carry a document.
 export const MAX_MASKED_SAMPLE_LENGTH: number = 96;
 
+/*
+ * A value the names-and-addresses model found, of whichever type: masked as
+ * a name-found value is, its first character and a fixed mask, so a sample
+ * never shows more of a name or a street address than "M****" or "1****".
+ */
+export function maskModelFoundValue(value: string): string {
+  return maskWord(value.trim().slice(0, 512));
+}
+
 export function maskValue(dataTypeId: string, value: string): string {
   const info: DataTypeInfo | undefined = getBuiltInDataType(dataTypeId);
   const bounded: string = value.slice(0, 512);

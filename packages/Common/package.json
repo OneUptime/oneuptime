@@ -135,6 +135,7 @@
     "mysql2": "^3.22.6",
     "node-cron": "^4.0.0",
     "nodemailer": "^10.0.3",
+    "onnxruntime-web": "1.31.1",
     "oracledb": "6.10.0",
     "otpauth": "^9.3.1",
     "pg": "^8.16.3",

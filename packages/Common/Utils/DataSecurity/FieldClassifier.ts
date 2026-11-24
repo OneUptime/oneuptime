@@ -1,4 +1,6 @@
-import DataConfidence from "../../Types/DataSecurity/DataConfidence";
+import DataConfidence, {
+  higherConfidence,
+} from "../../Types/DataSecurity/DataConfidence";
 import {
   DataTypeInfo,
   getBuiltInDataType,
@@ -8,6 +10,7 @@ import { getBuiltInDetectorsOf } from "./Detectors/Index";
 import { getHintedDataTypeIds } from "./FieldNameHints";
 import { DataTypeTally, DataTypeTallyJSON } from "./FindingTally";
 import { maskValue } from "./Masking";
+import { ModelRecognitions, RecognizedEntity } from "./Model/RecognizedEntity";
 import {
   findSensitiveValues,
   ScanDetector,
@@ -34,6 +37,13 @@ import {
  * A type found only from names - a person's name, religion - is reported
  * when the name matches and the field has values; its values are checked
  * only for plausibility (NAME_VALUE_SHAPES), which lifts it to High.
+ *
+ * The values of a free-text field - and of a log body, an exception message
+ * or a prompt, which a scan marks `readWithModel` - are also what the
+ * names-and-addresses model reads (Server/Utils/DataSecurity/Model): its
+ * findings, handed in as `recognitions`, are matches like any other, and
+ * keep the confidence each earned on its own, as in free text, however few
+ * of the field's values hold one.
  */
 
 // The most values of one field read, and the most of one value.
@@ -41,7 +51,16 @@ export const MAX_FIELD_VALUES: number = 1_000;
 export const MAX_FIELD_VALUE_LENGTH: number = 16_384;
 
 // A field whose values average more than this many characters is free text.
-const FREE_TEXT_AVERAGE_LENGTH: number = 80;
+export const FREE_TEXT_AVERAGE_LENGTH: number = 80;
+
+/*
+ * How much of one field the names-and-addresses model reads in a scan: at
+ * most this many different values, and this many characters of them, so
+ * every free-text field of a store gets its share of the scan's model time
+ * rather than the first one using it up.
+ */
+export const MODEL_MAX_VALUES_PER_FIELD: number = 100;
+export const MODEL_MAX_CHARACTERS_PER_FIELD: number = 32_768;
 
 // Plausible values of a name-found type, checked whole.
 const NAME_VALUE_SHAPES: Readonly<Record<string, RegExp>> = {
@@ -73,6 +92,11 @@ export interface FieldClassification extends DataTypeTallyJSON {
   // Why OneUptime AI suggested it, in a sentence.
   aiReason?: string | undefined;
   /*
+   * Some of its matches were found by the names-and-addresses model that
+   * runs inside the scanner, not by a pattern.
+   */
+  foundByModel?: boolean | undefined;
+  /*
    * Where the first values that held this type are among the values the
    * field was classified from - indexes into them as given, empty ones
    * counted - at most maxMatchedValueIndexes, in the order given. A test
@@ -92,6 +116,105 @@ export interface FieldClassifierOptions extends TextScanOptions {
    * matchedValueIndexes. None are named when absent or 0.
    */
   maxMatchedValueIndexes?: number | undefined;
+  /*
+   * What the names-and-addresses model found in the values it read, by
+   * value. Looked up only for a field the model reads (isReadByModel).
+   */
+  recognitions?: ModelRecognitions | undefined;
+  /*
+   * The model reads this field's values even when they are short: a log
+   * body, an exception message or stack trace, a prompt - free text
+   * whatever its length.
+   */
+  readWithModel?: boolean | undefined;
+}
+
+// The field's values that hold anything, and where each sits among the raw ones.
+export function readScannableValues(rawValues: ReadonlyArray<unknown>): {
+  values: Array<string>;
+  rawIndexes: Array<number>;
+} {
+  const values: Array<string> = [];
+  // Where each value read sits among the raw values: empty ones are skipped.
+  const rawIndexes: Array<number> = [];
+
+  for (let rawIndex: number = 0; rawIndex < rawValues.length; rawIndex++) {
+    if (values.length >= MAX_FIELD_VALUES) {
+      break;
+    }
+
+    const value: string | null = toScannableValue(rawValues[rawIndex]);
+
+    if (value !== null) {
+      values.push(value);
+      rawIndexes.push(rawIndex);
+    }
+  }
+
+  return { values, rawIndexes };
+}
+
+// Whether values are free text: on average longer than a field of one thing.
+export function isFreeTextValues(values: ReadonlyArray<string>): boolean {
+  if (values.length === 0) {
+    return false;
+  }
+
+  const totalLength: number = values.reduce((sum: number, value: string) => {
+    return sum + value.length;
+  }, 0);
+
+  return totalLength / values.length > FREE_TEXT_AVERAGE_LENGTH;
+}
+
+// Whether the names-and-addresses model reads a field of these values.
+export function isReadByModel(
+  values: ReadonlyArray<string>,
+  options: Pick<FieldClassifierOptions, "readWithModel">,
+): boolean {
+  return options.readWithModel === true || isFreeTextValues(values);
+}
+
+/*
+ * The values of a field the names-and-addresses model reads, when it reads
+ * the field at all: its different values, in order, within
+ * MODEL_MAX_VALUES_PER_FIELD and MODEL_MAX_CHARACTERS_PER_FIELD. What it
+ * finds in them is handed back to classifyField as `recognitions`.
+ */
+export function getValuesForModel(
+  rawValues: ReadonlyArray<unknown>,
+  options: Pick<FieldClassifierOptions, "readWithModel"> = {},
+): Array<string> {
+  const values: Array<string> = readScannableValues(rawValues).values;
+
+  return isReadByModel(values, options) ? chooseValuesForModel(values) : [];
+}
+
+// Of a field's values the model reads, the ones it reads: different, in order, capped.
+function chooseValuesForModel(values: ReadonlyArray<string>): Array<string> {
+  const chosen: Array<string> = [];
+  const seen: Set<string> = new Set();
+  let characters: number = 0;
+
+  for (const value of values) {
+    if (seen.has(value)) {
+      continue;
+    }
+
+    if (
+      chosen.length >= MODEL_MAX_VALUES_PER_FIELD ||
+      (chosen.length > 0 &&
+        characters + value.length > MODEL_MAX_CHARACTERS_PER_FIELD)
+    ) {
+      break;
+    }
+
+    seen.add(value);
+    chosen.push(value);
+    characters += value.length;
+  }
+
+  return chosen;
 }
 
 // A value as text, or null when it holds nothing to classify.
@@ -168,26 +291,27 @@ export function classifyField(
   rawValues: ReadonlyArray<unknown>,
   options: FieldClassifierOptions = {},
 ): Array<FieldClassification> {
-  const values: Array<string> = [];
+  const read: { values: Array<string>; rawIndexes: Array<number> } =
+    readScannableValues(rawValues);
+  const values: Array<string> = read.values;
   // Where each value read sits among the raw values: empty ones are skipped.
-  const rawIndexes: Array<number> = [];
-
-  for (let rawIndex: number = 0; rawIndex < rawValues.length; rawIndex++) {
-    if (values.length >= MAX_FIELD_VALUES) {
-      break;
-    }
-
-    const value: string | null = toScannableValue(rawValues[rawIndex]);
-
-    if (value !== null) {
-      values.push(value);
-      rawIndexes.push(rawIndex);
-    }
-  }
+  const rawIndexes: Array<number> = read.rawIndexes;
 
   if (values.length === 0) {
     return [];
   }
+
+  // What the model found in this field's values, when it reads the field.
+  const recognitions: ModelRecognitions | undefined =
+    options.recognitions && isReadByModel(values, options)
+      ? options.recognitions
+      : undefined;
+  // The values it reads: no others are looked up.
+  const valuesForModel: Set<string> = recognitions
+    ? new Set(chooseValuesForModel(values))
+    : new Set();
+  // By type, the highest confidence a match the model found earned alone.
+  const modelConfidences: Map<string, DataConfidence> = new Map();
 
   const maxMatchedValueIndexes: number = Math.max(
     0,
@@ -236,11 +360,7 @@ export function classifyField(
     hinted.delete(disabled);
   }
 
-  const totalLength: number = values.reduce((sum: number, value: string) => {
-    return sum + value.length;
-  }, 0);
-  const isFreeText: boolean =
-    totalLength / values.length > FREE_TEXT_AVERAGE_LENGTH;
+  const isFreeText: boolean = isFreeTextValues(values);
 
   const tallies: Map<string, DataTypeTally> = new Map();
   const valuesWithMatch: Map<string, number> = new Map();
@@ -287,7 +407,15 @@ export function classifyField(
 
   for (let valueIndex: number = 0; valueIndex < values.length; valueIndex++) {
     const value: string = values[valueIndex]!;
-    const matches: Array<TextMatch> = findSensitiveValues(value, scanOptions);
+    const recognized: ReadonlyArray<RecognizedEntity> | undefined =
+      recognitions && valuesForModel.has(value)
+        ? recognitions.get(value)
+        : undefined;
+    const matches: Array<TextMatch> = findSensitiveValues(
+      value,
+      scanOptions,
+      recognized,
+    );
     // Types with a real match in the value, which its ratio counts.
     const typesInValue: Set<string> = new Set();
     // Types the value was counted for at all, test values too: once is enough.
@@ -299,8 +427,20 @@ export function classifyField(
         confidence: match.confidence,
         isTestValue: match.isTestValue,
         raw: value.slice(match.start, match.end),
+        fromModel: match.fromModel,
       });
       typesCounted.add(match.dataTypeId);
+
+      if (match.fromModel && !match.isTestValue) {
+        const known: DataConfidence | undefined = modelConfidences.get(
+          match.dataTypeId,
+        );
+
+        modelConfidences.set(
+          match.dataTypeId,
+          known ? higherConfidence(known, match.confidence) : match.confidence,
+        );
+      }
 
       if (!match.isTestValue) {
         typesInValue.add(match.dataTypeId);
@@ -354,21 +494,39 @@ export function classifyField(
     const ratio: number = withMatch / values.length;
     const nameHinted: boolean = hinted.has(tally.dataTypeId);
 
-    results.push(
-      withMatchedValueIndexes({
-        ...json,
-        confidence:
-          isFreeText || json.matchCount === 0
-            ? json.confidence
-            : confidenceForRatio(ratio, nameHinted),
-        matchRatio: ratio,
-        valueCount: values.length,
-        valuesWithMatch: withMatch,
-        isFreeText,
-        nameHinted,
-        foundByName: false,
-      }),
+    let confidence: DataConfidence =
+      isFreeText || json.matchCount === 0
+        ? json.confidence
+        : confidenceForRatio(ratio, nameHinted);
+    const modelConfidence: DataConfidence | undefined = modelConfidences.get(
+      tally.dataTypeId,
     );
+
+    /*
+     * A name or an address the model found in a log body keeps what it
+     * earned on its own, as in free text: one in five hundred short log
+     * lines is still a person's name.
+     */
+    if (modelConfidence) {
+      confidence = higherConfidence(confidence, modelConfidence);
+    }
+
+    const classification: FieldClassification = {
+      ...json,
+      confidence,
+      matchRatio: ratio,
+      valueCount: values.length,
+      valuesWithMatch: withMatch,
+      isFreeText,
+      nameHinted,
+      foundByName: false,
+    };
+
+    if (tally.modelMatchCount > 0) {
+      classification.foundByModel = true;
+    }
+
+    results.push(withMatchedValueIndexes(classification));
   }
 
   // Types found from names only.

@@ -178,6 +178,8 @@ L'écran **Vue d'ensemble** de chaque page de statut porte une carte **Lien de l
 
 En coulisses, chaque route publique a un jumeau d'aperçu sous `/status-page/{statusPageId}/...` — un aperçu de la vue d'ensemble, un aperçu de la liste des incidents, un aperçu de la page d'abonnement, et ainsi de suite. Une URL ou une capture d'écran prise depuis l'aperçu du tableau de bord ne correspondra donc pas à ce que voit un client une fois un domaine personnalisé rattaché : vérifiez tout lien que vous collez dans un runbook ou un e-mail.
 
+Tant qu'une page n'a rien à montrer, ses visiteurs lisent **Rien à afficher pour l'instant**. Dans l'aperçu, une note en dessous dit « Les visiteurs voient ce message tant que vous n'avez pas ajouté de ressources. », avec **Ajouter des ressources dans le tableau de bord**, qui ouvre les **Ressources** de la page dans le tableau de bord, quel que soit celui de vos projets où se trouve la page.
+
 ## Restreindre qui peut voir la page
 
 Toutes les pages de statut ne sont pas destinées au public. Qui peut voir une page est un seul choix, la première carte de **Pages de statut → votre page → Sécurité → Accès**, **Qui peut voir cette page de statut** :
