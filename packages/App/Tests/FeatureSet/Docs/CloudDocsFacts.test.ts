@@ -1196,7 +1196,51 @@ describe("a namespace's totals", () => {
       return descriptor.label;
     });
 
-    expect(summed).toEqual(["Service Bus Namespace", "Event Hubs Namespace"]);
+    expect(summed).toEqual([
+      "Container App",
+      "Service Bus Namespace",
+      "Event Hubs Namespace",
+    ]);
+  });
+
+  /*
+   * A Container App's requests add up too (#10837): the connection reads
+   * them once per status code category, and the paragraph after the
+   * namespaces' says so, in every language, with its 5xx.
+   */
+  it("says a Container App's requests add up across their status code categories, after the namespaces', in every language", () => {
+    expect(
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.App/containerApps",
+      })?.each,
+    ).toBe("status code category");
+    expect(
+      getCloudResourceMetricAggregation({
+        provider: CloudProvider.Azure,
+        type: "Microsoft.App/containerApps",
+        metricName: getAzureStoredMetricName("Requests", "total"),
+        aggregationInterval: intervalOver(24),
+      }),
+    ).toBe(AggregationType.Sum);
+
+    for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
+      const lines: Array<string> = readPage(language, RESOURCES).split("\n");
+      const at: number = lines.findIndex((line: string): boolean => {
+        return /Service.?Bus/.test(line) && /Event.?Hubs/.test(line);
+      });
+      const next: string = lines[at + 2] || "";
+
+      expect(`${language}: ${lines[at + 1]}`).toBe(`${language}: `);
+      expect(`${language}: ${next.includes("Container App")}`).toBe(
+        `${language}: true`,
+      );
+      expect(`${language}: ${next.includes("5xx")}`).toBe(`${language}: true`);
+    }
+
+    expect(englishPage(RESOURCES)).toContain(
+      "The connection reads a Container App's requests once per status code category, to tell its 5xx responses apart, and the row of its requests adds them up the same way: it shows their total, and so does a monitor created from that row.",
+    );
   });
 
   it("totals a count over any range, an amount held up to 3 hours, and never a latency", () => {

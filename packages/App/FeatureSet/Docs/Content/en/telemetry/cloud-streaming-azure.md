@@ -88,6 +88,8 @@ The stream carries the key metrics the connection reads a minute at a time. The 
 
 A Service Bus or Event Hubs namespace streams no metrics. The reads read its key metrics for each queue, topic and event hub, and the namespace's own totals add those up, while a diagnostic setting sends only the namespace's totals, and not 4 of a Service Bus namespace's 6 key metrics, or 2 of an Event Hubs namespace's 4. So the reads write all of them, streaming or not, and no message is counted twice.
 
+A Container App's `Requests` stay with the reads too: they read them once per status code category, so that its 5xx responses can be told apart, while a diagnostic setting sends only their total.
+
 A log is filed under its resource by the resource's ARM ID, carried as `cloud.resource_id`, and keeps its category, operation, result and properties as attributes, such as `azure.category`.
 
 An Activity Log record of the `Administrative`, `Security` or `Policy` category, and a Microsoft Entra ID sign-in, audit or risk record, arrives whole, as its log's body, even one about a resource group, a subscription or the tenant rather than a resource. With [Find security events in your logs](/docs/telemetry/security-events#find-security-events-in-your-logs) on, each is read as a security event, as one from a log pipeline is, and stored once however many ways it reaches OneUptime. With **Each subscription's Activity Log** on, the command gives each subscription a diagnostic setting that sends its Activity Log to the first region's event hub, and Microsoft Entra ID's command gives the tenant one.
