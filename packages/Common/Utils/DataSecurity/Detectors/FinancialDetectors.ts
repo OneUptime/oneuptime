@@ -223,6 +223,15 @@ const groupedCardDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.High,
   specificity: 3,
   isTestValue: isTestCardNumber,
+  /*
+   * A card in another script's digits, as Japanese text writes one in
+   * fullwidth digits (４１１１ １１１１ １１１１ １１１１) and Arabic and Persian
+   * text in their own (#10960): each script's digits read alone, then all
+   * of them together, each by its value (DigitReadings), as the Android
+   * agent's redactor reads a card. The Luhn check, the brand and its length
+   * then read the ASCII digits the values make.
+   */
+  readsDigitsOfEveryScript: true,
 };
 
 const grouped19DigitCardDetector: DataTypeDetector = {
@@ -255,7 +264,22 @@ const contiguousCardDetector: DataTypeDetector = {
   specificity: 3,
   isTestValue: isTestCardNumber,
   fieldValuePattern: /^[0-9][0-9 -]{10,22}[0-9]$/,
+  // In another script's digits too (#10960), as groupedCardDetector.
+  readsDigitsOfEveryScript: true,
 };
+
+/*
+ * WHAT DATA SECURITY CALLS A CARD NUMBER: grouped as its brand writes it,
+ * in 19 digits as 4-4-4-4-3, or as one run, in any script's digits. A
+ * Credit Card scrub rule hides what these find, as well as what its own
+ * pattern does (Utils/Telemetry/ScrubBuiltInPatterns.ts), so a finding and
+ * the rule that covers it never disagree on what a card is.
+ */
+export const CARD_NUMBER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  groupedCardDetector,
+  grouped19DigitCardDetector,
+  contiguousCardDetector,
+];
 
 /*
  * A card security code, only where it is labelled: three or four digits

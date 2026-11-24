@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "脚本超时时的页面 {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "匹配模式类型",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "此项目中已有名为 {{name}} 的已归档 {{kind}}，且项目要求名称唯一。请取消归档，或换一个名称。",
   "An archived {{kind}} is already called {{name}}.": "已有名为 {{name}} 的已归档 {{kind}}。",
   "And {{count}} more name.": "还有 {{count}} 个名称。",

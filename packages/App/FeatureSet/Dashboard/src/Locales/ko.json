@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "패턴 유형과 일치",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "이 프로젝트에 이름이 {{name}}인 보관된 항목({{kind}})이 이미 있으며, 이 프로젝트는 고유한 이름을 요구합니다. 보관을 취소하거나 다른 이름을 붙이세요.",
   "An archived {{kind}} is already called {{name}}.": "이름이 {{name}}인 보관된 항목({{kind}})이 이미 있습니다.",
   "And {{count}} more name.": "이름 {{count}}개가 더 있습니다.",

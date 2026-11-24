@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "पैटर्न प्रकार से मेल खाता है",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "इस प्रोजेक्ट में {{name}} नाम वाला एक संग्रहीत रिकॉर्ड ({{kind}}) पहले से है, और प्रोजेक्ट में नाम अलग-अलग होने चाहिए। उसे संग्रह से निकालें, या कोई दूसरा नाम चुनें।",
   "An archived {{kind}} is already called {{name}}.": "{{name}} नाम वाला एक संग्रहीत रिकॉर्ड ({{kind}}) पहले से है।",
   "And {{count}} more name.": "और {{count}} नाम।",

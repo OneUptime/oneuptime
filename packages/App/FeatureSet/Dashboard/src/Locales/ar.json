@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 ذات معرّف المستأجر {{tenantId}}. سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
+  "Matches Pattern Type": "يطابق نوع النمط",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "يوجد بالفعل في هذا المشروع سجل مؤرشف ({{kind}}) اسمه {{name}}، ويشترط المشروع أسماء فريدة. ألغِ أرشفته أو اختر اسمًا آخر.",
   "An archived {{kind}} is already called {{name}}.": "يوجد بالفعل سجل مؤرشف ({{kind}}) اسمه {{name}}.",
   "And {{count}} more name.": "و{{count}} اسم آخر.",

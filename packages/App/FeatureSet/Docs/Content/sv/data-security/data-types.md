@@ -42,6 +42,8 @@ Bara fynd med konfidens Hög och Medel räknas: de gör ett datalager känsligt 
 
 När två datatyper gör anspråk på samma tecken vinner det säkrare fyndet: den högre konfidensen, sedan detektorn vars egna regler bevisar mer, sedan den längre matchningen.
 
+Ett värde läses också som människor skriver det. En URL:s procentkodade tecken läses, så att en IP-adress eller en e-postadress i en frågesträng, till exempel `jane%40example.com`, hittas. Ett kortnummers siffror läses i alla skriftsystem, till exempel siffror med full bredd (`４１１１ １１１１ １１１１ １１１１`) eller arabisk-indiska siffror, först varje skriftsystem för sig och sedan tillsammans. En e-postadress hittas i alla skriftsystem, till exempel `张伟@example.com` eller `почта@пример.рф`, och en IPv6-adress direkt efter en nyckels kolon, till exempel `ip:2001:db8::1`. Varje fynd är värdet som det är skrivet, så att en rensningsregel döljer det där.
+
 Ett långt värde läses i fönster på 64 KB som överlappar med 4 KB, så att ett värde hittas helt var det än står, och högst 4 MB av ett värde läses.
 
 ## Fält och kolumner

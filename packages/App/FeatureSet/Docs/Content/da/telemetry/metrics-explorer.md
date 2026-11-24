@@ -194,6 +194,8 @@ Genstart collectoren. Hver tjeneste, hvis traces går gennem den, sender derefte
 | Redigér attribut bort | Erstatter en attributs værdi med en pladsholder. |
 | Stikprøve | Beholder en procentdel af de datapunkter, der passer. |
 
+En regel virker på hvert datapunkt, eller kun på dem, dens filtre matcher. Et filter sammenligner metrikkens navn eller én attribut med en værdi eller et regulært udtryk, eller spørger med **Matcher mønstertype**, om den indeholder en e-mailadresse, et kreditkortnummer, et personnummer, et telefonnummer eller en IP-adresse, fundet sådan som en rensningsregel for logs eller traces med den **Mønstertype** finder den. Reglen **Redigér attribut bort**, som [Datasikkerhed](/docs/data-security/telemetry) opretter for en IP-adresse, en e-mailadresse eller et kortnummer i en attribut, bruger den.
+
 **Metrikker → Indstillinger → Optagelsesregler** beregner hvert minut nye metrikker ud fra andre metrikker. Se [Optagelsesregler for logs](/docs/telemetry/log-recording-rules) om, hvordan optagelsesregler virker.
 
 ## Fejlfinding

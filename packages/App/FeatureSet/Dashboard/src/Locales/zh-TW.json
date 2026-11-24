@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "符合模式類型",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "此專案中已有名為 {{name}} 的已封存 {{kind}}，且專案要求名稱唯一。請取消封存，或換一個名稱。",
   "An archived {{kind}} is already called {{name}}.": "已有名為 {{name}} 的已封存 {{kind}}。",
   "And {{count}} more name.": "還有 {{count}} 個名稱。",

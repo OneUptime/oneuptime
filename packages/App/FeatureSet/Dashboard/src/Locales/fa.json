@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با شناسه مستأجر {{tenantId}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با نام {{organization}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید.",
+  "Matches Pattern Type": "با نوع الگو مطابقت دارد",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "در این پروژه از قبل یک {{kind}} بایگانی‌شده به نام {{name}} وجود دارد و این پروژه نام‌های یکتا می‌خواهد. آن را از بایگانی خارج کنید، یا نام دیگری انتخاب کنید.",
   "An archived {{kind}} is already called {{name}}.": "از قبل یک {{kind}} بایگانی‌شده به نام {{name}} وجود دارد.",
   "And {{count}} more name.": "و {{count}} نام دیگر.",

@@ -3,6 +3,9 @@ import LogScrubAction from "../../../Types/Log/LogScrubAction";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../Types/ObjectID";
 import { SCRUB_HASH_TOKEN_PATTERN } from "../../../Types/Telemetry/ScrubHashTokenFormat";
+import { digitsOnly } from "../../../Utils/DataSecurity/Detector";
+import { foldDigits } from "../../../Utils/DataSecurity/DigitReadings";
+import PercentDecodedText from "../../../Utils/DataSecurity/PercentDecodedText";
 import ScrubIpAddress from "../../../Utils/Telemetry/ScrubIpAddress";
 import { maskKeepingEnds } from "../../../Utils/Telemetry/ScrubMask";
 import ScrubHashToken from "./ScrubHashToken";
@@ -24,7 +27,10 @@ import ScrubHashToken from "./ScrubHashToken";
  *    address's shape and none of its digits (an IPv6 address has its own,
  *    #10393), anything else its first and last characters;
  *  - Hash: the project's token for it ("[HASHED:" and 16 hex characters),
- *    an IP address in one spelling for every way it is written. An IP
+ *    an IP address in one spelling for every way it is written, and an
+ *    email address percent-encoded or a card in another script's digits as
+ *    the value it reads as (asItReads), so each has the token of the value
+ *    written plainly; Mask reads them so too. An IP
  *    Address rule's token and address are also told to the recorder a
  *    batch of logs or traces Security Events reads passes in
  *    (applyAndRecord), for Security Events' address vault (#10395).
@@ -158,21 +164,44 @@ export default class ScrubAction {
 
     return ScrubHashToken.ofValue({
       projectId: data.projectId,
-      value: data.match,
+      value: ScrubAction.asItReads(data.match, data.patternType),
     });
+  }
+
+  /*
+   * A match as the value it reads as, for its token and its mask: an email
+   * address written in a percent-encoded URL with its escapes read
+   * (jane.doe%40acmecorp.io is jane.doe@acmecorp.io, #10935), and a card
+   * in another script's digits in ASCII ones (４１１１ １１１１ … is
+   * 4111 1111 …, #10960) - so it makes the token the value written plainly
+   * makes. Anything else, and a value written plainly, as it is.
+   */
+  public static asItReads(match: string, patternType: string): string {
+    switch (patternType) {
+      case LogScrubPatternType.Email:
+        return PercentDecodedText.readableOf(match);
+      case LogScrubPatternType.CreditCard:
+        return foldDigits(match);
+      default:
+        return match;
+    }
   }
 
   // What Mask leaves of a match of a pattern type.
   public static mask(value: string, patternType: string): string {
     switch (patternType) {
       case LogScrubPatternType.Email: {
-        const atIndex: number = value.indexOf("@");
+        const address: string = ScrubAction.asItReads(value, patternType);
+        const atIndex: number = address.indexOf("@");
 
         if (atIndex > 0) {
-          const dotIndex: number = value.lastIndexOf(".");
+          const dotIndex: number = address.lastIndexOf(".");
 
           if (dotIndex > atIndex) {
-            return value[0] + "***@***" + value.substring(dotIndex);
+            // The first character whole: one beyond U+FFFF is two code units.
+            const first: string = String.fromCodePoint(address.codePointAt(0)!);
+
+            return first + "***@***" + address.substring(dotIndex);
           }
         }
 
@@ -180,8 +209,8 @@ export default class ScrubAction {
       }
 
       case LogScrubPatternType.CreditCard: {
-        // The last 4 digits only.
-        const digits: string = value.replace(/[-\s]/g, "");
+        // The last 4 digits only, each read by its value whatever its script.
+        const digits: string = digitsOnly(value);
 
         if (digits.length >= 4) {
           return "****-****-****-" + digits.substring(digits.length - 4);

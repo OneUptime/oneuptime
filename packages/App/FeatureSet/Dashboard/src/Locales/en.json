@@ -64073,6 +64073,7 @@
   "Page {{number}} when the script timed out": "Page {{number}} when the script timed out",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "Matches Pattern Type",
   "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.": "An archived {{kind}} in this project is already called {{name}}, and the project requires unique names. Unarchive it, or pick another name.",
   "An archived {{kind}} is already called {{name}}.": "An archived {{kind}} is already called {{name}}.",
   "And {{count}} more name.": "And {{count}} more name.",
