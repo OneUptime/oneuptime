@@ -133,6 +133,7 @@ Endpointet svarer `200`, når begivenhederne står i kø. En begivenhed uden tid
 Angiv formatet med `?format=`, med headeren `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste niveau. Udelader du det, bestemmes hver begivenheds format for sig, så én webhook kan blande detektioner med rå begivenheder.
 
 - Brødteksten kan være én begivenhed, et array af begivenheder eller `{ "events": [...] }`.
+- En batch kan være gzip-komprimeret og sendes med `Content-Encoding: gzip`: den læses som den samme batch ukomprimeret. I Fluent Bit komprimerer `http`-outputtet med `compress gzip`, i Vector `http`-sinken med `compression = "gzip"` og i Logstash `http`-outputtet med `http_compression => true`. Kun JSON læses komprimeret: en komprimeret brødtekst af enhver anden type afvises med `400`.
 - Headeren `x-oneuptime-service-name` angiver den telemetritjeneste, begivenhederne hører til. Uden den hører de til den tjeneste, der er opkaldt efter den første begivenheds produkt eller leverandør, eller til `Security Events`.
 - Intet kasseres, fordi det ikke kunne tilknyttes: hvert felt fra kilden havner i begivenhedens attributter.
 
@@ -174,6 +175,7 @@ For at sende sikkerhedslogs, du allerede indsamler, f.eks. auditd, syslog eller 
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ Siden **Opsætningsvejledning**, under **Forbindelser**, har disse kodestykker m
 
 ### Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost og hvert webangreb i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
+Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost, hvert webangreb og hver afvist forespørgsel om en følsom fil i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
 
 Hver slags når OneUptime som almindelige logs:
 
@@ -297,6 +299,8 @@ En IP-adresseregel, der sletter eller maskerer dine logs eller traces, skjuler d
 - **Oversigt** navngiver den regel, der skjuler de adresser, Sikkerhedsbegivenheder læser, også med **Åbn scrub-regler**.
 
 En regel, der hasher, gemmer adressen til Sikkerhedsbegivenheder, så begivenheden navngiver den, medmindre dens token er ældre end 30 dage eller blev lavet, før tokens havde en nøgle: se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data). Søg efter `@oneuptime.request.client_address_hidden:scrub-rule` for at finde disse begivenheder. Det, reglen efterlod i adressens sted, såsom `[REDACTED]`, står i `oneuptime.request.client_address_scrubbed`. Søg efter `@oneuptime.target_address_hidden:scrub-rule` for en destination.
+
+En detektionsregel, der tæller pr. adresse, bør tælle pr. `principalIp` eller `targetIp`, som navngiver adressen bag tokenet fra en regel, der hasher, sådan som regelbibliotekets regler gør. Et formats eget adressefelt, såsom `openstack.audit.initiator_address` eller `asa.src_ip`, indeholder kun en adresse, der stod i loggen, så det forbliver tomt, overalt hvor en scrub-regel skjulte en.
 
 ## Udforsk sikkerhedsbegivenheder
 

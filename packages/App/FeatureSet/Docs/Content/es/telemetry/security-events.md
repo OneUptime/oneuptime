@@ -133,6 +133,7 @@ Abre **Productos → Eventos de seguridad → Eventos**. Los eventos aparecen en
 Indica el formato con `?format=`, con la cabecera `x-oneuptime-security-event-format` o con un campo `"format"` de primer nivel. Si lo omites, el formato de cada evento se deduce por separado, así que un mismo webhook puede mezclar detecciones con eventos en bruto.
 
 - El cuerpo puede ser un evento, un array de eventos o `{ "events": [...] }`.
+- Un lote puede comprimirse con gzip y enviarse con `Content-Encoding: gzip`: se lee igual que el mismo lote sin comprimir. La salida `http` de Fluent Bit comprime con `compress gzip`, el sink `http` de Vector con `compression = "gzip"` y la salida `http` de Logstash con `http_compression => true`. Solo el JSON se lee comprimido: un cuerpo comprimido de cualquier otro tipo se rechaza con `400`.
 - La cabecera `x-oneuptime-service-name` nombra el servicio de telemetría al que pertenecen los eventos. Sin ella, pertenecen al servicio con el nombre del producto o del proveedor del primer evento, o a `Security Events`.
 - No se descarta nada por no poder mapearlo: cada campo del origen llega a los atributos del evento.
 
@@ -174,6 +175,7 @@ Para enviar registros de seguridad que ya recopilas, como los de auditd, syslog 
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ La página **Guía de configuración**, en **Conexiones**, tiene estos fragmento
 
 ### Encontrar eventos de seguridad en sus registros
 
-La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, registro de un firewall de Palo Alto Networks, FortiGate o Cisco ASA, entrada de auditoría de Kubernetes y ataque web que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
+La tarjeta **Tus registros**, en la parte superior de **Conexiones**, convierte en un origen los registros que ya envía a OneUptime. Con **Encontrar eventos de seguridad en tus registros** activado, los registros nuevos del proyecto se leen cada minuto, y cada inicio de sesión SSH o de Windows, comando sudo, registro de auditoría de una nube, registro CEF o LEEF de un producto de seguridad, registro de un firewall de Palo Alto Networks, FortiGate o Cisco ASA, entrada de auditoría de Kubernetes, ataque web y solicitud rechazada de un archivo sensible que contengan se guarda como evento de seguridad. Consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started#encontrar-eventos-de-seguridad-en-sus-registros) para saber qué cubre cada tipo.
 
 Cada tipo llega a OneUptime como registros normales:
 
@@ -297,6 +299,8 @@ Una regla de dirección IP que borra o enmascara tus registros o trazas oculta l
 - **Vista general** nombra la regla que oculta las direcciones que lee Eventos de seguridad, también con **Abrir reglas de depuración**.
 
 Una regla que aplica hash guarda la dirección para Eventos de seguridad, así que el evento la nombra, salvo que su token tenga más de 30 días o se creara antes de que los tokens tuvieran una clave: consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles). Para encontrar estos eventos, busca `@oneuptime.request.client_address_hidden:scrub-rule`. Lo que la regla dejó en lugar de la dirección, como `[REDACTED]`, está en `oneuptime.request.client_address_scrubbed`. Para un destino, busca `@oneuptime.target_address_hidden:scrub-rule`.
+
+Una regla de detección que cuenta por dirección debería contar por `principalIp` o `targetIp`, como hacen las reglas de la Biblioteca de reglas, porque esos campos nombran la dirección que hay detrás del token de una regla que aplica hash. El campo de dirección propio de un formato, como `openstack.audit.initiator_address` o `asa.src_ip`, solo contiene una dirección que escribió el registro, así que queda vacío allí donde una regla de depuración ocultó una.
 
 ## Explorar los eventos de seguridad
 

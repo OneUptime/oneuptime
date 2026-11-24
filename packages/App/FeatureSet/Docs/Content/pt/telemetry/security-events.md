@@ -133,6 +133,7 @@ Abra **Produtos → Eventos de segurança → Eventos**. Os eventos aparecem em 
 Informe o formato com `?format=`, com o cabeçalho `x-oneuptime-security-event-format` ou com um campo `"format"` de nível superior. Se você o omitir, o formato de cada evento é descoberto separadamente, então um mesmo webhook pode misturar detecções com eventos brutos.
 
 - O corpo pode ser um evento, um array de eventos ou `{ "events": [...] }`.
+- Um lote pode ser comprimido com gzip e enviado com `Content-Encoding: gzip`: ele é lido como o mesmo lote sem compressão. A saída `http` do Fluent Bit comprime com `compress gzip`, o sink `http` do Vector com `compression = "gzip"`, e a saída `http` do Logstash com `http_compression => true`. Só JSON é lido quando comprimido: um corpo comprimido de qualquer outro tipo é recusado com `400`.
 - O cabeçalho `x-oneuptime-service-name` nomeia o serviço de telemetria ao qual os eventos pertencem. Sem ele, pertencem ao serviço com o nome do produto ou do fornecedor do primeiro evento, ou a `Security Events`.
 - Nada é descartado por não ter sido mapeado: cada campo da origem chega aos atributos do evento.
 
@@ -174,6 +175,7 @@ Para enviar logs de segurança que você já coleta, como os do auditd, do syslo
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ A página **Guia de configuração**, em **Conexões**, tem esses trechos com o 
 
 ### Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes e ataque web que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
+O cartão **Seus logs**, no topo de **Conexões**, transforma em uma origem os logs que você já envia ao OneUptime. Com **Encontrar eventos de segurança nos seus logs** ativado, os logs novos do projeto são lidos a cada minuto, e cada login SSH ou do Windows, comando sudo, registro de auditoria de uma nuvem, registro CEF ou LEEF de um produto de segurança, registro de um firewall Palo Alto Networks, FortiGate ou Cisco ASA, registro de auditoria do Kubernetes, ataque web e requisição de arquivo sensível recusada que eles contêm é salvo como evento de segurança. Consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started#encontrar-eventos-de-segurança-nos-seus-logs) para saber o que cada tipo cobre.
 
 Cada tipo chega ao OneUptime como logs comuns:
 
@@ -297,6 +299,8 @@ Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o ende
 - **Visão geral** nomeia a regra que oculta os endereços que Eventos de segurança lê, também com **Abrir regras de mascaramento**.
 
 Uma regra que aplica hash guarda o endereço para Eventos de segurança, então o evento o nomeia, a menos que seu token tenha mais de 30 dias ou tenha sido criado antes de os tokens terem uma chave: veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis). Para encontrar esses eventos, pesquise `@oneuptime.request.client_address_hidden:scrub-rule`. O que a regra deixou no lugar do endereço, como `[REDACTED]`, fica em `oneuptime.request.client_address_scrubbed`. Para um destino, pesquise `@oneuptime.target_address_hidden:scrub-rule`.
+
+Uma regra de detecção que conta por endereço deve contar por `principalIp` ou `targetIp`, que nomeiam o endereço por trás do token de uma regra que aplica hash, como fazem as regras da biblioteca de regras. O campo de endereço próprio de um formato, como `openstack.audit.initiator_address` ou `asa.src_ip`, só guarda um endereço escrito no log, então fica vazio onde quer que uma regra de mascaramento tenha ocultado um.
 
 ## Explorar os eventos de segurança
 
