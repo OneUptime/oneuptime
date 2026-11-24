@@ -625,6 +625,7 @@ describe("POST /security-block/destinations", () => {
             SecurityBlockIndicatorType.FileSha256,
             SecurityBlockIndicatorType.FileSha1,
             SecurityBlockIndicatorType.FileMd5,
+            SecurityBlockIndicatorType.Asn,
           ],
           enforcesOnEveryMachine: false,
           quarantinesFiles: false,

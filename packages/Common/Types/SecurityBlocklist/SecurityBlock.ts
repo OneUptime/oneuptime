@@ -797,6 +797,7 @@ export const SECURITY_BLOCK_MESSAGES: {
   notDeletable: string;
   checkFailed: (data: { value: string }) => string;
   checkFailedValue: (data: { value: string }) => string;
+  asnTakesAdmin: (data: { value: string }) => string;
   asnUnchecked: (data: { value: string }) => string;
 } = {
   enterAddress: SECURITY_BLOCK_SENTENCES.enterAddress,
@@ -867,6 +868,13 @@ export const SECURITY_BLOCK_MESSAGES: {
   checkFailedValue: (data: { value: string }): string => {
     return fillSecurityBlockSentence({
       template: SECURITY_BLOCK_SENTENCES.checkFailedValue,
+      values: data,
+    });
+  },
+  // A whole network by its ASN, for a person who may not block past the largest range.
+  asnTakesAdmin: (data: { value: string }): string => {
+    return fillSecurityBlockSentence({
+      template: SECURITY_BLOCK_SENTENCES.asnTakesAdmin,
       values: data,
     });
   },
