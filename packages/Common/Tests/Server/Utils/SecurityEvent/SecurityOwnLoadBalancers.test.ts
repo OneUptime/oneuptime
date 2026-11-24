@@ -215,9 +215,10 @@ function useDns(answers: Record<string, Array<string> | "fail">): {
 let findResources: SpyInstance;
 
 function useInventory(rows: Array<CloudResource>): void {
-  findResources = getJestSpyOn(CloudResourceService, "findBy").mockResolvedValue(
-    rows as never,
-  );
+  findResources = getJestSpyOn(
+    CloudResourceService,
+    "findBy",
+  ).mockResolvedValue(rows as never);
 }
 
 function useProject(columns: Partial<Project>): void {
@@ -587,7 +588,10 @@ describe("what the scans trust", () => {
 
   test("the project's hosts, nodes and probes are never read for it", async () => {
     const hosts: SpyInstance = getJestSpyOn(HostService, "findBy");
-    const nodes: SpyInstance = getJestSpyOn(KubernetesResourceService, "findBy");
+    const nodes: SpyInstance = getJestSpyOn(
+      KubernetesResourceService,
+      "findBy",
+    );
     const probes: SpyInstance = getJestSpyOn(ProbeService, "findBy");
 
     await SecurityTrustedProxies.getForProject(PROJECT_ID);
@@ -708,26 +712,23 @@ describe("a header forged through the project's own addresses that must not be t
     ["an Azure Load Balancer", AZURE_LOAD_BALANCER_ADDRESS],
   ];
 
-  test.each(notProxies)(
-    "%s",
-    async (_what: string, address: string) => {
-      for (const forged of [
-        SENDERS_CLAIM,
-        `${SENDERS_CLAIM}, ${CLIENT}`,
-        `${SENDERS_CLAIM}, ${GATEWAY_ADDRESS}`,
-        `${SENDERS_CLAIM}, 10.0.0.9`,
-      ]) {
-        SecurityTrustedProxies.clearCache();
+  test.each(notProxies)("%s", async (_what: string, address: string) => {
+    for (const forged of [
+      SENDERS_CLAIM,
+      `${SENDERS_CLAIM}, ${CLIENT}`,
+      `${SENDERS_CLAIM}, ${GATEWAY_ADDRESS}`,
+      `${SENDERS_CLAIM}, 10.0.0.9`,
+    ]) {
+      SecurityTrustedProxies.clearCache();
 
-        const event: NormalizedSecurityEvent = await readSpan(address, forged);
+      const event: NormalizedSecurityEvent = await readSpan(address, forged);
 
-        expect(event.principalIp).toBe(address);
-        expect(readClientAddressTrust(event)).toBe(ClientAddressTrust.Peer);
-        expect(readClaimedClientAddress(event)?.address).toBe(SENDERS_CLAIM);
-        expect(event.observables).not.toContain(SENDERS_CLAIM);
-      }
-    },
-  );
+      expect(event.principalIp).toBe(address);
+      expect(readClientAddressTrust(event)).toBe(ClientAddressTrust.Peer);
+      expect(readClaimedClientAddress(event)?.address).toBe(SENDERS_CLAIM);
+      expect(event.observables).not.toContain(SENDERS_CLAIM);
+    }
+  });
 
   test("none of them is among the proxies the scans trust", async () => {
     const proxies: TrustedProxies =

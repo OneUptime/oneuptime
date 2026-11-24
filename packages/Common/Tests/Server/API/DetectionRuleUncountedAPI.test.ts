@@ -109,7 +109,9 @@ function route(): { uri: string; handlers: Array<Handler> } {
   return found!;
 }
 
-async function ask(body: unknown = { detectionRuleIds: [RULE_ID] }): Promise<void> {
+async function ask(
+  body: unknown = { detectionRuleIds: [RULE_ID] },
+): Promise<void> {
   const handlers: Array<Handler> = route().handlers;
   await handlers[handlers.length - 1]!(
     { params: {}, body } as unknown as ExpressRequest,
@@ -273,7 +275,9 @@ describe("the rule ids an ask names", () => {
   test("anything else says what to send", () => {
     expect(() => {
       return readRuleIds(undefined);
-    }).toThrow("Send the ids of the detection rules to read, as detectionRuleIds.");
+    }).toThrow(
+      "Send the ids of the detection rules to read, as detectionRuleIds.",
+    );
     expect(() => {
       return readRuleIds(["", "x"]);
     }).toThrow("Each detection rule id must be the id of a detection rule.");

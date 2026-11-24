@@ -207,8 +207,14 @@ const AutomaticTrustedProxiesDetails: FunctionComponent<ComponentProps> = (
       <ul className="mt-2 divide-y divide-gray-100 border-t border-gray-100">
         <DetailRow
           icon={IconProp.Lock}
-          title={translator.translateText(ALWAYS_TRUSTED_TITLE) || ALWAYS_TRUSTED_TITLE}
-          description={translator.translateText(ALWAYS_TRUSTED_DESCRIPTION) || ALWAYS_TRUSTED_DESCRIPTION}
+          title={
+            translator.translateText(ALWAYS_TRUSTED_TITLE) ||
+            ALWAYS_TRUSTED_TITLE
+          }
+          description={
+            translator.translateText(ALWAYS_TRUSTED_DESCRIPTION) ||
+            ALWAYS_TRUSTED_DESCRIPTION
+          }
           dataTestId={TRUSTED_PROXIES_TEST_IDS.alwaysTrusted}
         >
           <p className="flex flex-wrap gap-x-3 gap-y-1 font-mono text-xs text-gray-700">
@@ -235,8 +241,13 @@ const AutomaticTrustedProxiesDetails: FunctionComponent<ComponentProps> = (
 
         <DetailRow
           icon={IconProp.NoSymbol}
-          title={translator.translateText(NEVER_TRUSTED_TITLE) || NEVER_TRUSTED_TITLE}
-          description={translator.translateText(NEVER_TRUSTED_DESCRIPTION) || NEVER_TRUSTED_DESCRIPTION}
+          title={
+            translator.translateText(NEVER_TRUSTED_TITLE) || NEVER_TRUSTED_TITLE
+          }
+          description={
+            translator.translateText(NEVER_TRUSTED_DESCRIPTION) ||
+            NEVER_TRUSTED_DESCRIPTION
+          }
           dataTestId={TRUSTED_PROXIES_TEST_IDS.neverTrusted}
         />
       </ul>

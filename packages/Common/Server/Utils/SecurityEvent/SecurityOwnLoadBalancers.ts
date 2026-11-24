@@ -136,8 +136,10 @@ export default class SecurityOwnLoadBalancers {
 
     let isComplete: boolean = rows.length <= OWN_LOAD_BALANCER_ROWS_READ;
 
-    const found: Array<{ row: CloudResource; reading: OwnLoadBalancerReading }> =
-      [];
+    const found: Array<{
+      row: CloudResource;
+      reading: OwnLoadBalancerReading;
+    }> = [];
 
     for (const row of rows.slice(0, OWN_LOAD_BALANCER_ROWS_READ)) {
       const reading: OwnLoadBalancerReading | null = readOwnLoadBalancer(row);
@@ -161,23 +163,22 @@ export default class SecurityOwnLoadBalancers {
       }> = found.slice(index, index + NAMES_RESOLVED_AT_ONCE);
 
       // Each load balancer's names, up to what one read looks up.
-      const names: Array<Array<string>> = batch.map(
-        (item: { reading: OwnLoadBalancerReading }): Array<string> => {
-          const allowed: number = Math.max(
-            0,
-            OWN_LOAD_BALANCER_NAMES_RESOLVED - namesLookedUp,
-          );
-          const kept: Array<string> = item.reading.hostNames.slice(0, allowed);
+      const names: Array<Array<string>> = [];
 
-          if (kept.length < item.reading.hostNames.length) {
-            isComplete = false;
-          }
+      for (const item of batch) {
+        const allowed: number = Math.max(
+          0,
+          OWN_LOAD_BALANCER_NAMES_RESOLVED - namesLookedUp,
+        );
+        const kept: Array<string> = item.reading.hostNames.slice(0, allowed);
 
-          namesLookedUp += kept.length;
+        if (kept.length < item.reading.hostNames.length) {
+          isComplete = false;
+        }
 
-          return kept;
-        },
-      );
+        namesLookedUp += kept.length;
+        names.push(kept);
+      }
 
       const resolutions: Array<Array<DnsResolution>> = await Promise.all(
         names.map((list: Array<string>): Promise<Array<DnsResolution>> => {
@@ -189,36 +190,33 @@ export default class SecurityOwnLoadBalancers {
         }),
       );
 
-      batch.forEach(
-        (
-          item: { row: CloudResource; reading: OwnLoadBalancerReading },
-          position: number,
-        ): void => {
-          const resolved: Array<string> = [];
+      for (let position: number = 0; position < batch.length; position++) {
+        const item: { row: CloudResource; reading: OwnLoadBalancerReading } =
+          batch[position]!;
+        const resolved: Array<string> = [];
 
-          for (const resolution of resolutions[position] || []) {
-            isComplete = isComplete && resolution.isResolved;
-            resolved.push(...resolution.addresses);
-          }
+        for (const resolution of resolutions[position] || []) {
+          isComplete = isComplete && resolution.isResolved;
+          resolved.push(...resolution.addresses);
+        }
 
-          const addresses: Array<string> = addResolvedAddresses(
-            item.reading,
-            resolved,
-          );
+        const addresses: Array<string> = addResolvedAddresses(
+          item.reading,
+          resolved,
+        );
 
-          if (addresses.length === 0) {
-            return;
-          }
+        if (addresses.length === 0) {
+          continue;
+        }
 
-          loadBalancers.push({
-            kind: item.reading.kind,
-            name: item.reading.name,
-            recordId: item.row.id?.toString() || "",
-            where: item.row.cloudConnection?.name || "",
-            addresses,
-          });
-        },
-      );
+        loadBalancers.push({
+          kind: item.reading.kind,
+          name: item.reading.name,
+          recordId: item.row.id?.toString() || "",
+          where: item.row.cloudConnection?.name || "",
+          addresses,
+        });
+      }
     }
 
     return { loadBalancers, isComplete };
@@ -235,7 +233,8 @@ export default class SecurityOwnLoadBalancers {
     projectId: ObjectID,
   ): Promise<Array<NetworkAddressBlock>> {
     const key: string = projectId.toString();
-    const cached: Array<NetworkAddressBlock> | undefined = trustedCache.get(key);
+    const cached: Array<NetworkAddressBlock> | undefined =
+      trustedCache.get(key);
 
     if (cached) {
       return cached;

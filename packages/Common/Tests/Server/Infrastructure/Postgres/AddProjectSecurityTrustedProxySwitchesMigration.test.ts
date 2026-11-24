@@ -101,7 +101,9 @@ describe("AddProjectSecurityTrustedProxySwitches1809187580546", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddProjectSecurityTrustedProxySwitches1809187580546;
+        return (
+          candidate === AddProjectSecurityTrustedProxySwitches1809187580546
+        );
       }),
     ).toHaveLength(1);
 

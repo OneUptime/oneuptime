@@ -455,16 +455,18 @@ export default class DetectionRuleUncountedReader {
       -DETECTION_RULE_UNCOUNTED_PERIOD_IN_HOURS,
     );
 
-    const exceptions: Map<string, Array<LoadedDetectionRuleException>> =
-      await DetectionRuleExceptions.loadForProject({
-        projectId: data.projectId,
-        ruleIds: counting.map((rule: CountingRule): ObjectID => {
-          return new ObjectID(rule.id);
-        }),
-        from: startTime,
-        until: endTime,
-        now: endTime,
-      });
+    const exceptions: Map<
+      string,
+      Array<LoadedDetectionRuleException>
+    > = await DetectionRuleExceptions.loadForProject({
+      projectId: data.projectId,
+      ruleIds: counting.map((rule: CountingRule): ObjectID => {
+        return new ObjectID(rule.id);
+      }),
+      from: startTime,
+      until: endTime,
+      now: endTime,
+    });
 
     const watchlists: SecurityWatchlistReader = SecurityWatchlists.readerFor(
       data.projectId,
@@ -520,7 +522,8 @@ export default class DetectionRuleUncountedReader {
 
       assertDetectionReadFits(statement);
 
-      const result: Results = await SecurityEventService.executeQuery(statement);
+      const result: Results =
+        await SecurityEventService.executeQuery(statement);
       const response: DbJSONResponse = await result.json<{
         data?: Array<JSONObject>;
       }>();

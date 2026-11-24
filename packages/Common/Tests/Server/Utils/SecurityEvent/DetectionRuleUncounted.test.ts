@@ -1,6 +1,9 @@
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
-import { SQL, Statement } from "../../../../Server/Utils/AnalyticsDatabase/Statement";
+import {
+  SQL,
+  Statement,
+} from "../../../../Server/Utils/AnalyticsDatabase/Statement";
 import logger from "../../../../Server/Utils/Logger";
 import DetectionRuleExceptions, {
   LoadedDetectionRuleException,
@@ -219,10 +222,7 @@ describe("the read", () => {
   });
 
   test("only the events still kept, stopped at the interactive time limit", () => {
-    const query: string = statementFor(
-      [read("principalIp", 0)],
-      NOW,
-    ).query;
+    const query: string = statementFor([read("principalIp", 0)], NOW).query;
 
     expect(query).toContain("AND retentionDate >=");
     expect(query).toContain("SETTINGS");
@@ -248,7 +248,10 @@ describe("packing rules into reads", () => {
       },
     );
 
-    const packs: Array<Array<UncountedRuleRead>> = packUncountedRules(rules, 12);
+    const packs: Array<Array<UncountedRuleRead>> = packUncountedRules(
+      rules,
+      12,
+    );
 
     expect(packs.length).toBeGreaterThan(1);
     expect(packs.flat()).toEqual(rules);
@@ -299,7 +302,10 @@ describe("what a read's row says", () => {
 
   test("no row is nothing left out", () => {
     expect(
-      readUncountedRulesRow({ row: undefined, rules: [read("principalIp", 0)] }),
+      readUncountedRulesRow({
+        row: undefined,
+        rules: [read("principalIp", 0)],
+      }),
     ).toEqual([]);
   });
 });
@@ -375,13 +381,14 @@ describe("asking for a page of rules", () => {
   let query: SpyInstance;
 
   function answerWith(row: JSONObject): void {
-    query = getJestSpyOn(SecurityEventService, "executeQuery").mockResolvedValue(
-      {
-        json: async (): Promise<JSONObject> => {
-          return { data: [row] };
-        },
-      } as never,
-    );
+    query = getJestSpyOn(
+      SecurityEventService,
+      "executeQuery",
+    ).mockResolvedValue({
+      json: async (): Promise<JSONObject> => {
+        return { data: [row] };
+      },
+    } as never);
   }
 
   async function ask(

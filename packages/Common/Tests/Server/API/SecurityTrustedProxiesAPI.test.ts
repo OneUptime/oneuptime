@@ -1,5 +1,12 @@
 import { mockRouter } from "./Helpers";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * POST /security-trusted-proxies/automatic (#10546): what Security Events
@@ -191,7 +198,9 @@ describe("POST /security-trusted-proxies/automatic", () => {
 
   test("a reader who may not read cloud resources is told none, only that they could not be listed", async () => {
     readLoadBalancers.mockRejectedValue(
-      new NotAuthorizedException("You do not have permission to read cloud resources."),
+      new NotAuthorizedException(
+        "You do not have permission to read cloud resources.",
+      ),
     );
 
     const { thrown, sent } = await ask();
@@ -213,9 +222,9 @@ describe("POST /security-trusted-proxies/automatic", () => {
 
     const { sent } = await ask();
 
-    expect(readAutomaticTrustedProxies(sent as never).areLoadBalancersComplete).toBe(
-      false,
-    );
+    expect(
+      readAutomaticTrustedProxies(sent as never).areLoadBalancersComplete,
+    ).toBe(false);
   });
 
   test("edges that cannot be read are none, and the rest is still answered", async () => {
@@ -245,7 +254,10 @@ describe("POST /security-trusted-proxies/automatic", () => {
     jest
       .spyOn(SecurityEdgeRanges, "findConnectedEdges")
       .mockResolvedValue([] as never);
-    readLoadBalancers.mockResolvedValue({ loadBalancers: [], isComplete: true });
+    readLoadBalancers.mockResolvedValue({
+      loadBalancers: [],
+      isComplete: true,
+    });
 
     const { sent } = await ask();
 

@@ -333,7 +333,10 @@ export function getAzureApplicationGatewayOf(
       relationship.target,
     );
 
-    if (parsed && parsed.type.toLowerCase() === AZURE_APPLICATION_GATEWAY_TYPE) {
+    if (
+      parsed &&
+      parsed.type.toLowerCase() === AZURE_APPLICATION_GATEWAY_TYPE
+    ) {
       return parsed;
     }
   }
@@ -352,7 +355,10 @@ export function readOwnLoadBalancer(
 ): OwnLoadBalancerReading | null {
   const name: string = readText(record.name);
 
-  if (isAwsApplicationLoadBalancer(record) || isAwsHttpClassicLoadBalancer(record)) {
+  if (
+    isAwsApplicationLoadBalancer(record) ||
+    isAwsHttpClassicLoadBalancer(record)
+  ) {
     const endpoints: { addresses: Array<string>; hostNames: Array<string> } =
       splitEndpoints(record.cloudEndpoints);
     const addresses: Array<string> = keepPublic(endpoints.addresses);

@@ -7,7 +7,10 @@ import {
   UNCOUNTED_DIALOG_DESCRIPTION,
   UNCOUNTED_TEST_IDS,
 } from "./DetectionRuleUncountedCopy";
-import { UncountedDetail, getUncountedDetail } from "./DetectionRuleUncountedModel";
+import {
+  UncountedDetail,
+  getUncountedDetail,
+} from "./DetectionRuleUncountedModel";
 import AppLink from "../../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -76,7 +79,8 @@ const DetectionRuleUncountedModal: FunctionComponent<ComponentProps> = (
                   to={scrubRulesRoute}
                   dataTestId={UNCOUNTED_TEST_IDS.scrubRulesLink}
                 >
-                  {translator.translateText(OPEN_SCRUB_RULES) || OPEN_SCRUB_RULES}
+                  {translator.translateText(OPEN_SCRUB_RULES) ||
+                    OPEN_SCRUB_RULES}
                 </AppLink>
               </>
             ) : (

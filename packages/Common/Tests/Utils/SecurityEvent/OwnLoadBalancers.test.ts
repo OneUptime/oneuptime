@@ -31,7 +31,9 @@ import {
 
 const ALB_DNS: string = "web-1234567890.us-east-1.elb.amazonaws.com";
 
-function albRecord(overrides: Partial<OwnLoadBalancerRecord> = {}): OwnLoadBalancerRecord {
+function albRecord(
+  overrides: Partial<OwnLoadBalancerRecord> = {},
+): OwnLoadBalancerRecord {
   return {
     cloudResourceType: AWS_ELBV2_LOAD_BALANCER_TYPE,
     providerResourceId:
@@ -122,9 +124,9 @@ describe("an AWS ELBv2 load balancer", () => {
   });
 
   test("with no Type recorded, its ARN says which it is", () => {
-    expect(
-      readOwnLoadBalancer(albRecord({ cloudProperties: {} }))?.kind,
-    ).toBe(OwnLoadBalancerKind.AwsApplicationLoadBalancer);
+    expect(readOwnLoadBalancer(albRecord({ cloudProperties: {} }))?.kind).toBe(
+      OwnLoadBalancerKind.AwsApplicationLoadBalancer,
+    );
     expect(
       readOwnLoadBalancer(
         albRecord({
@@ -262,7 +264,9 @@ describe("a Google Cloud forwarding rule", () => {
       },
     ]) {
       expect(
-        readOwnLoadBalancer(forwardingRule({ ipAddress: "34.120.1.2", routesTo })),
+        readOwnLoadBalancer(
+          forwardingRule({ ipAddress: "34.120.1.2", routesTo }),
+        ),
       ).toBeNull();
     }
   });
@@ -317,7 +321,9 @@ describe("an Azure public IP address", () => {
   test("the gateway's id is matched whatever its case", () => {
     expect(
       readOwnLoadBalancer(
-        azurePublicIp(GATEWAY.replace("applicationGateways", "APPLICATIONGATEWAYS")),
+        azurePublicIp(
+          GATEWAY.replace("applicationGateways", "APPLICATIONGATEWAYS"),
+        ),
       )?.kind,
     ).toBe(OwnLoadBalancerKind.AzureApplicationGateway);
   });
@@ -427,7 +433,8 @@ describe("the kinds", () => {
       [OwnLoadBalancerKind.AwsClassicLoadBalancer]: "AWS Classic Load Balancer",
       [OwnLoadBalancerKind.GoogleCloudApplicationLoadBalancer]:
         "Google Cloud Application Load Balancer",
-      [OwnLoadBalancerKind.AzureApplicationGateway]: "Azure Application Gateway",
+      [OwnLoadBalancerKind.AzureApplicationGateway]:
+        "Azure Application Gateway",
     });
   });
 

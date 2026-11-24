@@ -268,205 +268,208 @@ function savedRule(data: {
   return rule;
 }
 
-integration("what a detection rule could not count, on ClickHouse (#10547)", () => {
-  let clickhouse: ClickhouseDatabase;
-  let original: ConnectableService | null = null;
+integration(
+  "what a detection rule could not count, on ClickHouse (#10547)",
+  () => {
+    let clickhouse: ClickhouseDatabase;
+    let original: ConnectableService | null = null;
 
-  beforeAll(async (): Promise<void> => {
-    const url: URL = new URL(endpoint!);
+    beforeAll(async (): Promise<void> => {
+      const url: URL = new URL(endpoint!);
 
-    if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
-      throw new Error(
-        "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+      if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
+        throw new Error(
+          "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+        );
+      }
+
+      const bootstrap: ClickHouseClientConfigOptions = {
+        url: `${url.protocol}//${url.host}`,
+        username: decodeURIComponent(url.username) || "default",
+        password: decodeURIComponent(url.password),
+        request_timeout: 300000,
+      };
+
+      const setup: ClickhouseDatabase = new ClickhouseDatabase(bootstrap);
+      const setupClient: ClickhouseClient = await setup.connect(bootstrap);
+      await setupClient.command({ query: `CREATE DATABASE ${database}` });
+      await setup.disconnect();
+
+      const options: ClickHouseClientConfigOptions = {
+        ...bootstrap,
+        database,
+      };
+
+      clickhouse = new ClickhouseDatabase(options);
+      client = await clickhouse.connect(options);
+
+      await createTable(clickhouse);
+
+      original = {
+        database: service.database,
+        databaseClient: service.databaseClient,
+      };
+
+      service.database = clickhouse;
+      service.databaseClient = client;
+
+      await write(
+        // Brute force: 5 failed sign-ins with an address, 12 with none, 9 of those hidden.
+        ...times(5, { principalIp: "203.0.113.7" }),
+        ...times(3, {}),
+        ...times(7, {
+          attributes: {
+            "oneuptime.request.client_address_hidden": "scrub-rule",
+            "oneuptime.request.client_address_scrubbed_in": "log-body",
+          },
+        }),
+        ...times(2, {
+          attributes: {
+            "oneuptime.request.client_address_hidden": "scrub-rule",
+            "oneuptime.request.client_address_scrubbed_in": "span-attributes",
+          },
+        }),
+        // A user that Redact left as "[REDACTED]" in the user column, with no marker.
+        ...times(4, {
+          principalIp: "203.0.113.9",
+          principalUser: "[REDACTED]",
+        }),
+        // Successful sign-ins and sudo commands: not the rules' matches.
+        ...times(6, { statusName: "Success" }),
+        ...times(3, { className: "Process Activity", principalUser: "root" }),
+        // Never counted: past the period, past retention, another project's.
+        ...times(5, { hoursAgo: 30 }),
+        ...times(5, { retentionDate: new Date(NOW.getTime() - HOUR) }),
+        ...times(5, { projectId: OTHER_PROJECT_ID }),
       );
-    }
+    });
 
-    const bootstrap: ClickHouseClientConfigOptions = {
-      url: `${url.protocol}//${url.host}`,
-      username: decodeURIComponent(url.username) || "default",
-      password: decodeURIComponent(url.password),
-      request_timeout: 300000,
-    };
+    afterAll(async (): Promise<void> => {
+      if (original) {
+        Object.assign(service, original);
+      }
 
-    const setup: ClickhouseDatabase = new ClickhouseDatabase(bootstrap);
-    const setupClient: ClickhouseClient = await setup.connect(bootstrap);
-    await setupClient.command({ query: `CREATE DATABASE ${database}` });
-    await setup.disconnect();
+      if (client) {
+        await client.command({ query: `DROP DATABASE IF EXISTS ${database}` });
+      }
 
-    const options: ClickHouseClientConfigOptions = {
-      ...bootstrap,
-      database,
-    };
+      if (clickhouse) {
+        await clickhouse.disconnect();
+      }
+    });
 
-    clickhouse = new ClickhouseDatabase(options);
-    client = await clickhouse.connect(options);
+    beforeEach((): void => {
+      DetectionRuleUncountedReader.clearCache();
+    });
 
-    await createTable(clickhouse);
+    afterEach((): void => {
+      jest.restoreAllMocks();
+    });
 
-    original = {
-      database: service.database,
-      databaseClient: service.databaseClient,
-    };
-
-    service.database = clickhouse;
-    service.databaseClient = client;
-
-    await write(
-      // Brute force: 5 failed sign-ins with an address, 12 with none, 9 of those hidden.
-      ...times(5, { principalIp: "203.0.113.7" }),
-      ...times(3, {}),
-      ...times(7, {
-        attributes: {
-          "oneuptime.request.client_address_hidden": "scrub-rule",
-          "oneuptime.request.client_address_scrubbed_in": "log-body",
+    test("an address rule says how many of the day's matches had no address, and how many a scrub rule hid, in logs and in traces", async () => {
+      expect(
+        await readStatement([
+          {
+            detectionRuleId: BRUTE_FORCE_ID,
+            groupByField: "principalIp",
+            ruleWhere: compiled(FAILED_SIGN_INS),
+            skipped: null,
+          },
+        ]),
+      ).toEqual([
+        {
+          detectionRuleId: BRUTE_FORCE_ID,
+          field: "principalIp",
+          matchedCount: 21,
+          uncountedCount: 12,
+          hiddenInLogsCount: 7,
+          hiddenInTracesCount: 2,
         },
-      }),
-      ...times(2, {
-        attributes: {
-          "oneuptime.request.client_address_hidden": "scrub-rule",
-          "oneuptime.request.client_address_scrubbed_in": "span-attributes",
-        },
-      }),
-      // A user that Redact left as "[REDACTED]" in the user column, with no marker.
-      ...times(4, { principalIp: "203.0.113.9", principalUser: "[REDACTED]" }),
-      // Successful sign-ins and sudo commands: not the rules' matches.
-      ...times(6, { statusName: "Success" }),
-      ...times(3, { className: "Process Activity", principalUser: "root" }),
-      // Never counted: past the period, past retention, another project's.
-      ...times(5, { hoursAgo: 30 }),
-      ...times(5, { retentionDate: new Date(NOW.getTime() - HOUR) }),
-      ...times(5, { projectId: OTHER_PROJECT_ID }),
-    );
-  });
+      ]);
+    });
 
-  afterAll(async (): Promise<void> => {
-    if (original) {
-      Object.assign(service, original);
-    }
-
-    if (client) {
-      await client.command({ query: `DROP DATABASE IF EXISTS ${database}` });
-    }
-
-    if (clickhouse) {
-      await clickhouse.disconnect();
-    }
-  });
-
-  beforeEach((): void => {
-    DetectionRuleUncountedReader.clearCache();
-  });
-
-  afterEach((): void => {
-    jest.restoreAllMocks();
-  });
-
-  test("an address rule says how many of the day's matches had no address, and how many a scrub rule hid, in logs and in traces", async () => {
-    expect(
-      await readStatement([
+    test("several rules in the one statement, each with its own field's counts", async () => {
+      const counts: Array<DetectionRuleUncounted> = await readStatement([
         {
           detectionRuleId: BRUTE_FORCE_ID,
           groupByField: "principalIp",
           ruleWhere: compiled(FAILED_SIGN_INS),
           skipped: null,
         },
-      ]),
-    ).toEqual([
-      {
-        detectionRuleId: BRUTE_FORCE_ID,
-        field: "principalIp",
-        matchedCount: 21,
-        uncountedCount: 12,
-        hiddenInLogsCount: 7,
-        hiddenInTracesCount: 2,
-      },
-    ]);
-  });
+        {
+          detectionRuleId: ACCOUNT_ID,
+          groupByField: "principalUser",
+          ruleWhere: compiled(FAILED_SIGN_INS),
+          skipped: null,
+        },
+        {
+          detectionRuleId: SUDO_ID,
+          groupByField: "principalIp",
+          ruleWhere: compiled(SUDO_COMMANDS),
+          skipped: null,
+        },
+      ]);
 
-  test("several rules in the one statement, each with its own field's counts", async () => {
-    const counts: Array<DetectionRuleUncounted> = await readStatement([
-      {
-        detectionRuleId: BRUTE_FORCE_ID,
-        groupByField: "principalIp",
-        ruleWhere: compiled(FAILED_SIGN_INS),
-        skipped: null,
-      },
-      {
-        detectionRuleId: ACCOUNT_ID,
-        groupByField: "principalUser",
-        ruleWhere: compiled(FAILED_SIGN_INS),
-        skipped: null,
-      },
-      {
-        detectionRuleId: SUDO_ID,
-        groupByField: "principalIp",
-        ruleWhere: compiled(SUDO_COMMANDS),
-        skipped: null,
-      },
-    ]);
+      expect(counts).toEqual([
+        {
+          detectionRuleId: BRUTE_FORCE_ID,
+          field: "principalIp",
+          matchedCount: 21,
+          uncountedCount: 12,
+          hiddenInLogsCount: 7,
+          hiddenInTracesCount: 2,
+        },
+        // Every failed sign-in had no user: 17 empty, 4 Redact's "[REDACTED]".
+        {
+          detectionRuleId: ACCOUNT_ID,
+          field: "principalUser",
+          matchedCount: 21,
+          uncountedCount: 21,
+          hiddenInLogsCount: 4,
+          hiddenInTracesCount: 0,
+        },
+        // The sudo commands all had no address, and none was hidden.
+        {
+          detectionRuleId: SUDO_ID,
+          field: "principalIp",
+          matchedCount: 3,
+          uncountedCount: 3,
+          hiddenInLogsCount: 0,
+          hiddenInTracesCount: 0,
+        },
+      ]);
+    });
 
-    expect(counts).toEqual([
-      {
-        detectionRuleId: BRUTE_FORCE_ID,
-        field: "principalIp",
-        matchedCount: 21,
-        uncountedCount: 12,
-        hiddenInLogsCount: 7,
-        hiddenInTracesCount: 2,
-      },
-      // Every failed sign-in had no user: 17 empty, 4 Redact's "[REDACTED]".
-      {
-        detectionRuleId: ACCOUNT_ID,
-        field: "principalUser",
-        matchedCount: 21,
-        uncountedCount: 21,
-        hiddenInLogsCount: 4,
-        hiddenInTracesCount: 0,
-      },
-      // The sudo commands all had no address, and none was hidden.
-      {
-        detectionRuleId: SUDO_ID,
-        field: "principalIp",
-        matchedCount: 3,
-        uncountedCount: 3,
-        hiddenInLogsCount: 0,
-        hiddenInTracesCount: 0,
-      },
-    ]);
-  });
+    test("a rule's exceptions skip in its own counts only", async () => {
+      const counts: Array<DetectionRuleUncounted> = await readStatement([
+        {
+          detectionRuleId: BRUTE_FORCE_ID,
+          groupByField: "principalIp",
+          ruleWhere: compiled(FAILED_SIGN_INS),
+          skipped: buildDetectionRuleExceptionsMatch([
+            {
+              kind: DetectionRuleExceptionKind.Entity,
+              entityType: SecurityEntityType.IpAddress,
+              value: "203.0.113.9",
+            } as never,
+          ]),
+        },
+        {
+          detectionRuleId: ACCOUNT_ID,
+          groupByField: "principalUser",
+          ruleWhere: compiled(FAILED_SIGN_INS),
+          skipped: null,
+        },
+      ]);
 
-  test("a rule's exceptions skip in its own counts only", async () => {
-    const counts: Array<DetectionRuleUncounted> = await readStatement([
-      {
-        detectionRuleId: BRUTE_FORCE_ID,
-        groupByField: "principalIp",
-        ruleWhere: compiled(FAILED_SIGN_INS),
-        skipped: buildDetectionRuleExceptionsMatch([
-          {
-            kind: DetectionRuleExceptionKind.Entity,
-            entityType: SecurityEntityType.IpAddress,
-            value: "203.0.113.9",
-          } as never,
-        ]),
-      },
-      {
-        detectionRuleId: ACCOUNT_ID,
-        groupByField: "principalUser",
-        ruleWhere: compiled(FAILED_SIGN_INS),
-        skipped: null,
-      },
-    ]);
+      // The four sign-ins from the excepted address are no match of the first rule.
+      expect(counts[0]!.matchedCount).toBe(17);
+      expect(counts[0]!.uncountedCount).toBe(12);
+      expect(counts[1]!.matchedCount).toBe(21);
+    });
 
-    // The four sign-ins from the excepted address are no match of the first rule.
-    expect(counts[0]!.matchedCount).toBe(17);
-    expect(counts[0]!.uncountedCount).toBe(12);
-    expect(counts[1]!.matchedCount).toBe(21);
-  });
-
-  test("the reader, as Detection Rules asks it: the page's counting rules in one read", async () => {
-    jest
-      .spyOn(DetectionRuleService, "findBy")
-      .mockResolvedValue([
+    test("the reader, as Detection Rules asks it: the page's counting rules in one read", async () => {
+      jest.spyOn(DetectionRuleService, "findBy").mockResolvedValue([
         savedRule({
           id: BRUTE_FORCE_ID,
           yaml: FAILED_SIGN_INS,
@@ -488,73 +491,74 @@ integration("what a detection rule could not count, on ClickHouse (#10547)", () 
           matchCountThreshold: 1,
         }),
       ] as never);
-    jest
-      .spyOn(DetectionRuleExceptions, "loadForProject")
-      .mockResolvedValue(
-        new Map<string, Array<LoadedDetectionRuleException>>() as never,
+      jest
+        .spyOn(DetectionRuleExceptions, "loadForProject")
+        .mockResolvedValue(
+          new Map<string, Array<LoadedDetectionRuleException>>() as never,
+        );
+      const query: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        SecurityEventService,
+        "executeQuery",
       );
-    const query: ReturnType<typeof jest.spyOn> = jest.spyOn(
-      SecurityEventService,
-      "executeQuery",
-    );
 
-    const answer: DetectionRulesUncounted =
-      await DetectionRuleUncountedReader.read({
-        projectId: PROJECT_ID,
-        detectionRuleIds: [BRUTE_FORCE_ID, SPRAYING_ID, SUDO_ID].map(
-          (id: string): ObjectID => {
-            return new ObjectID(id);
-          },
-        ),
-        props: { isRoot: true },
-        serviceFilter: {},
-        now: NOW,
-      });
+      const answer: DetectionRulesUncounted =
+        await DetectionRuleUncountedReader.read({
+          projectId: PROJECT_ID,
+          detectionRuleIds: [BRUTE_FORCE_ID, SPRAYING_ID, SUDO_ID].map(
+            (id: string): ObjectID => {
+              return new ObjectID(id);
+            },
+          ),
+          props: { isRoot: true },
+          serviceFilter: {},
+          now: NOW,
+        });
 
-    expect(query).toHaveBeenCalledTimes(1);
-    expect(answer.rules).toEqual([
-      {
-        detectionRuleId: BRUTE_FORCE_ID,
-        field: "principalIp",
-        matchedCount: 21,
-        uncountedCount: 12,
-        hiddenInLogsCount: 7,
-        hiddenInTracesCount: 2,
-      },
-      {
-        detectionRuleId: SPRAYING_ID,
-        field: "principalIp",
-        matchedCount: 21,
-        uncountedCount: 12,
-        hiddenInLogsCount: 7,
-        hiddenInTracesCount: 2,
-      },
-    ]);
-  });
-
-  test("a rule whose every match had no address counted nothing", async () => {
-    const counts: Array<DetectionRuleUncounted> = await readStatement([
-      {
-        detectionRuleId: SUDO_ID,
-        groupByField: "principalIp",
-        ruleWhere: compiled(SUDO_COMMANDS),
-        skipped: null,
-      },
-    ]);
-
-    expect(counts[0]!.uncountedCount).toBe(counts[0]!.matchedCount);
-  });
-
-  test("a rule that left nothing out says nothing", async () => {
-    expect(
-      await readStatement([
+      expect(query).toHaveBeenCalledTimes(1);
+      expect(answer.rules).toEqual([
         {
           detectionRuleId: BRUTE_FORCE_ID,
-          groupByField: "statusName",
-          ruleWhere: compiled(FAILED_SIGN_INS),
+          field: "principalIp",
+          matchedCount: 21,
+          uncountedCount: 12,
+          hiddenInLogsCount: 7,
+          hiddenInTracesCount: 2,
+        },
+        {
+          detectionRuleId: SPRAYING_ID,
+          field: "principalIp",
+          matchedCount: 21,
+          uncountedCount: 12,
+          hiddenInLogsCount: 7,
+          hiddenInTracesCount: 2,
+        },
+      ]);
+    });
+
+    test("a rule whose every match had no address counted nothing", async () => {
+      const counts: Array<DetectionRuleUncounted> = await readStatement([
+        {
+          detectionRuleId: SUDO_ID,
+          groupByField: "principalIp",
+          ruleWhere: compiled(SUDO_COMMANDS),
           skipped: null,
         },
-      ]),
-    ).toEqual([]);
-  });
-});
+      ]);
+
+      expect(counts[0]!.uncountedCount).toBe(counts[0]!.matchedCount);
+    });
+
+    test("a rule that left nothing out says nothing", async () => {
+      expect(
+        await readStatement([
+          {
+            detectionRuleId: BRUTE_FORCE_ID,
+            groupByField: "statusName",
+            ruleWhere: compiled(FAILED_SIGN_INS),
+            skipped: null,
+          },
+        ]),
+      ).toEqual([]);
+    });
+  },
+);

@@ -17,7 +17,8 @@ import { JSONObject, JSONValue } from "../JSON";
  * and read here, so the server and the page agree on it.
  */
 
-export const DETECTION_RULE_UNCOUNTED_PATH: string = "/detection-rule/uncounted";
+export const DETECTION_RULE_UNCOUNTED_PATH: string =
+  "/detection-rule/uncounted";
 
 // The period a rule's row speaks of: the last day.
 export const DETECTION_RULE_UNCOUNTED_PERIOD_IN_HOURS: number = 24;
@@ -48,7 +49,9 @@ export interface DetectionRulesUncounted {
  * Whether a rule could count none of what it matched: every event had no
  * value for its field. Such a rule cannot fire, so its row says so plainly.
  */
-export function didRuleCountNothing(uncounted: DetectionRuleUncounted): boolean {
+export function didRuleCountNothing(
+  uncounted: DetectionRuleUncounted,
+): boolean {
   return (
     uncounted.uncountedCount > 0 &&
     uncounted.uncountedCount >= uncounted.matchedCount

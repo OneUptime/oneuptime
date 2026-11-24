@@ -265,7 +265,10 @@ describe("only a proxy the project trusts in the first field makes the field wor
   test("a public proxy the project lists under Trusted Proxies: read", () => {
     const event: NormalizedSecurityEvent = parseOne(
       combinedLine({ first: "198.18.0.7" }),
-      { ...toTrustedProxies("198.18.0.0/15"), readsAccessLogForwardedFor: true },
+      {
+        ...toTrustedProxies("198.18.0.0/15"),
+        readsAccessLogForwardedFor: true,
+      },
     );
 
     expect(event.principalIp).toBe(CLIENT);
@@ -337,7 +340,11 @@ describe("the rightmost hop no trusted proxy wrote is the client", () => {
   test("trusted hops on the right are walked past, a private one and a listed edge alike", () => {
     const event: NormalizedSecurityEvent = parseOne(
       combinedLine({
-        fields: ["-", "curl/8.4.0", `${INNOCENT}, ${CLIENT}, 10.0.0.9, 104.16.1.1`],
+        fields: [
+          "-",
+          "curl/8.4.0",
+          `${INNOCENT}, ${CLIENT}, 10.0.0.9, 104.16.1.1`,
+        ],
       }),
       { blocks: blocks("104.16.0.0/13"), readsAccessLogForwardedFor: true },
     );
@@ -417,7 +424,9 @@ describe("IPv6", () => {
     expect(bracketed.principalIp).toBe("2001:db8::7");
 
     expectFirstFieldIsTheClient(
-      parseOne(combinedLine({ fields: ["-", "curl/8.4.0", "[2001:db8::7]:443"] })),
+      parseOne(
+        combinedLine({ fields: ["-", "curl/8.4.0", "[2001:db8::7]:443"] }),
+      ),
     );
   });
 
@@ -458,10 +467,16 @@ describe("a custom format whose last quoted field is no X-Forwarded-For is never
     { name: "$ssl_protocol", field: "TLSv1.3" },
     { name: "$upstream_cache_status", field: "MISS" },
     { name: "a URL", field: "https://shop.example.com/cart" },
-    { name: "Azure Application Gateway's hop and port", field: "203.0.113.7:51234" },
+    {
+      name: "Azure Application Gateway's hop and port",
+      field: "203.0.113.7:51234",
+    },
     { name: "a list whose last hop names nobody", field: `${CLIENT}, unknown` },
     { name: "a list that ends with a comma", field: `${CLIENT},` },
-    { name: "addresses apart by spaces, no commas", field: `${SENDERS_CLAIM} ${CLIENT}` },
+    {
+      name: "addresses apart by spaces, no commas",
+      field: `${SENDERS_CLAIM} ${CLIENT}`,
+    },
     { name: "an empty field", field: "" },
   ];
 
@@ -486,9 +501,7 @@ describe("a custom format whose last quoted field is no X-Forwarded-For is never
   });
 
   test("X-Forwarded-For followed by unquoted fields: not the line's end, nothing read", () => {
-    expectFirstFieldIsTheClient(
-      parseOne(`${combinedLine({})} 0.123 0.002`),
-    );
+    expectFirstFieldIsTheClient(parseOne(`${combinedLine({})} 0.123 0.002`));
   });
 
   test("ingress-nginx's own format: its user agent read as before, no client from its upstream", () => {
