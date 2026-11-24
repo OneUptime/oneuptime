@@ -294,8 +294,9 @@ describe("a held-back block's reason, in English", () => {
     expect(range.parts!["overlap"]!.template).toBe(
       SECURITY_PROTECTED_RANGE_HOLDS,
     );
+    // An entry of the list with no name to show is said to be one of the project's own, as before.
     expect(fillSecurityBlockReason(range)).toBe(
-      "Held back: 35.205.11.0/24 is protected now, so OneUptime took the block off. 35.205.11.0/24 holds 35.205.11.131. 35.205.11.131 is on your Protected Entities list.",
+      "Held back: 35.205.11.0/24 is protected now, so OneUptime took the block off. 35.205.11.0/24 holds 35.205.11.131. 35.205.11.131 is one of your project's own addresses.",
     );
   });
 

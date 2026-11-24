@@ -1,6 +1,7 @@
 import Project from "../../../Models/DatabaseModels/Project";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import Dictionary from "../../../Types/Dictionary";
+import { ALWAYS_SELECTABLE_COLUMNS } from "../../../Types/HeldPermissions";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import Permission from "../../../Types/Permission";
 import {
@@ -143,9 +144,13 @@ describe("the project's column", () => {
     const columns: Dictionary<ColumnAccessControl> =
       project.getColumnAccessControlForAllColumns();
 
+    // The record's own columns (its id, when it was created) are never written by a caller.
     const named: Array<string> = Object.keys(columns).filter(
       (key: string): boolean => {
-        return (columns[key]?.update || []).includes(Permission.SecurityAdmin);
+        return (
+          !ALWAYS_SELECTABLE_COLUMNS.includes(key) &&
+          (columns[key]?.update || []).includes(Permission.SecurityAdmin)
+        );
       },
     );
 
@@ -153,6 +158,10 @@ describe("the project's column", () => {
 
     // Nor does any column let in a permission every member holds, now a Security Admin passes the table.
     for (const key of Object.keys(columns)) {
+      if (ALWAYS_SELECTABLE_COLUMNS.includes(key)) {
+        continue;
+      }
+
       const update: Array<Permission> = columns[key]?.update || [];
 
       expect({ key, broad: update.includes(Permission.ProjectUser) }).toEqual({
