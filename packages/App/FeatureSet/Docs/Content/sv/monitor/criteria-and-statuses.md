@@ -202,7 +202,7 @@ Hemligheter och personuppgifter maskeras innan något sparas: headers som `Autho
 
 ## Hur lång tid varje kontroll tar
 
-Utvärderingssammanfattningen för varje kontroll, under **Visa sammanfattning** i monitorns **Övervakningsloggar** och för den senaste kontrollen på dess **Översikt**, berättar när kontrollen utvärderades, hur lång tid utvärderingen tog och, för en monitor som bedömer varje värd, container eller grupp för sig, hur många serier den bedömde. Tiden räknas från att OneUptime började läsa de data som kontrollen bedömer tills den skrev kontrollens logg: läsningen av data, bedömningen av kriterierna och öppnandet av incidenter och aviseringar.
+Utvärderingssammanfattningen för varje kontroll, under **Visa sammanfattning** i monitorns **Övervakningsloggar** och för den senaste kontrollen på dess **Översikt**, berättar när kontrollen utvärderades, hur lång tid utvärderingen tog och, för en monitor som bedömer varje värd, container eller grupp för sig, hur många serier den bedömde. Tiden räknas från att OneUptime började läsa de data som kontrollen bedömer tills den skrev kontrollens logg: läsningen av data, bedömningen av kriterierna och öppnandet av incidenter och larm.
 
 När en utvärdering tar för lång tid för sin monitor varnar sammanfattningen dig. För lång tid är mer än en tiondel av tiden mellan monitorns kontroller, aldrig under 5 sekunder och aldrig över en minut:
 
