@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime leest nog geen ECS-service in cluster {{cluster}} die taakdefinitie {{name}} draait.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Het 95e percentiel van de reactietijd van deze app per minuut, gemiddeld over het geselecteerde bereik, zoals {{service}} het meet.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server, dus OneUptime AI is gestopt met het behandelen van de zaak.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server. Een serverbeheerder kan het inschakelen via Beheerdashboard > Instellingen > Producten."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server. Een serverbeheerder kan het inschakelen via Beheerdashboard > Instellingen > Producten.",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "De voornaam, achternaam of volledige naam van een persoon, gevonden op basis van de veldnaam of door het model van de scanner in vrije tekst.",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "Een klein model in de scanner, niet OneUptime AI, doorzoekt vrije tekst op namen en straatadressen van personen. De tekst verlaat de scanner nooit.",
+  "Also in telemetry": "Ook in telemetrie",
+  "Find Names And Street Addresses": "Namen en straatadressen vinden",
+  "Find Names And Street Addresses In Telemetry": "Namen en straatadressen in telemetrie vinden",
+  "Find names and street addresses": "Namen en straatadressen vinden",
+  "Found By Model": "Gevonden door het model",
+  "Found by the Scanner's Model": "Gevonden door het model van de scanner",
+  "Found in free text by the scanner's model": "Gevonden in vrije tekst door het model van de scanner",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "Vrije tekst wordt niet doorzocht op namen en straatadressen. Velden met een naam die daarop wijst, worden nog steeds gevonden.",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "Scans vinden met een klein model ook namen en straatadressen in vrije tekst. Het draait alleen in de scanner, dus wat het vindt, wordt hier niet getoond.",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "De telemetriescan van elk uur doorzoekt ook logteksten, uitzonderingsberichten en AI-gesprekken op namen en straatadressen, tot een minuut per uur."
 }

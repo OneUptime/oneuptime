@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime todavía no lee ningún servicio de ECS del clúster {{cluster}} que ejecute la definición de tarea {{name}}.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "El percentil 95 del tiempo de respuesta de esta aplicación en cada minuto, de media en el intervalo seleccionado, según lo mide {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "El producto Eventos de seguridad está desactivado en este servidor, así que OneUptime AI dejó de gestionar el caso.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "El producto Eventos de seguridad está desactivado en este servidor. Un administrador del servidor puede activarlo en Panel de administración > Ajustes > Productos."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "El producto Eventos de seguridad está desactivado en este servidor. Un administrador del servidor puede activarlo en Panel de administración > Ajustes > Productos.",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "El nombre, el apellido o el nombre completo de una persona, detectado a partir del nombre del campo o por el modelo del escáner en texto libre.",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "Un pequeño modelo dentro del escáner, que no es OneUptime AI, lee el texto libre en busca de nombres de personas y direcciones postales. El texto nunca sale del escáner.",
+  "Also in telemetry": "También en la telemetría",
+  "Find Names And Street Addresses": "Detectar nombres y direcciones postales",
+  "Find Names And Street Addresses In Telemetry": "Detectar nombres y direcciones postales en la telemetría",
+  "Find names and street addresses": "Detectar nombres y direcciones postales",
+  "Found By Model": "Encontrado por el modelo",
+  "Found by the Scanner's Model": "Encontrado por el modelo del escáner",
+  "Found in free text by the scanner's model": "Encontrado en texto libre por el modelo del escáner",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "El texto libre no se lee en busca de nombres ni direcciones postales. Los campos cuyo nombre apunta a ellos se siguen detectando.",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "Los escaneos también encuentran nombres y direcciones postales en texto libre con un pequeño modelo. Solo se ejecuta en el escáner, así que lo que encuentra no se muestra aquí.",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "El escaneo horario de telemetría también lee los cuerpos de los registros, los mensajes de excepción y las conversaciones de IA en busca de nombres y direcciones postales, hasta un minuto cada hora."
 }

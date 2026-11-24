@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.",
+  "Also in telemetry": "Also in telemetry",
+  "Find Names And Street Addresses": "Find Names And Street Addresses",
+  "Find Names And Street Addresses In Telemetry": "Find Names And Street Addresses In Telemetry",
+  "Find names and street addresses": "Find names and street addresses",
+  "Found By Model": "Found By Model",
+  "Found by the Scanner's Model": "Found by the Scanner's Model",
+  "Found in free text by the scanner's model": "Found in free text by the scanner's model",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "Free text is not read for names and street addresses. Fields named for them are still found.",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour."
 }

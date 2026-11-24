@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime이 아직 클러스터 {{cluster}}에서 작업 정의 {{name}}을(를) 실행하는 ECS 서비스를 읽지 않습니다.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "분마다 이 앱 응답 시간의 95번째 백분위수를 선택한 기간에 걸쳐 평균한 값으로, {{service}}이(가) 측정한 값입니다.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "보안 이벤트가 이 서버에서 꺼져 있어 OneUptime AI가 케이스 처리를 멈췄습니다.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "보안 이벤트가 이 서버에서 꺼져 있습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "보안 이벤트가 이 서버에서 꺼져 있습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다.",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "사람의 이름, 성 또는 전체 이름으로, 필드 이름이나 자유 텍스트에서는 스캐너의 모델로 찾습니다.",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "OneUptime AI가 아닌, 스캐너 안의 작은 모델이 자유 텍스트에서 사람 이름과 거리 주소를 찾습니다. 텍스트는 스캐너 밖으로 나가지 않습니다.",
+  "Also in telemetry": "텔레메트리에서도",
+  "Find Names And Street Addresses": "이름과 거리 주소 찾기",
+  "Find Names And Street Addresses In Telemetry": "텔레메트리에서 이름과 거리 주소 찾기",
+  "Find names and street addresses": "이름과 거리 주소 찾기",
+  "Found By Model": "모델이 찾음",
+  "Found by the Scanner's Model": "스캐너의 모델이 찾음",
+  "Found in free text by the scanner's model": "스캐너의 모델이 자유 텍스트에서 찾음",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "자유 텍스트에서 이름과 거리 주소를 찾지 않습니다. 이름이 이를 가리키는 필드는 여전히 찾습니다.",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "스캔은 작은 모델로 자유 텍스트 속 이름과 거리 주소도 찾습니다. 이 모델은 스캐너에서만 실행되므로, 찾은 내용은 여기에 표시되지 않습니다.",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "매시간 텔레메트리 스캔도 로그 본문, 예외 메시지, AI 대화에서 이름과 거리 주소를 찾으며, 시간당 최대 1분입니다."
 }

@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime non legge ancora alcun servizio ECS del cluster {{cluster}} che esegua la task definition {{name}}.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Il 95° percentile del tempo di risposta di questa app in ogni minuto, in media nell'intervallo selezionato, come lo misura {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Il prodotto Eventi di sicurezza è disattivato su questo server, quindi OneUptime AI ha smesso di gestire il caso.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Il prodotto Eventi di sicurezza è disattivato su questo server. Un amministratore del server può attivarlo in Dashboard amministratore > Impostazioni > Prodotti."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Il prodotto Eventi di sicurezza è disattivato su questo server. Un amministratore del server può attivarlo in Dashboard amministratore > Impostazioni > Prodotti.",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "Il nome, il cognome o il nome completo di una persona, individuato dal nome del campo o dal modello dello scanner nel testo libero.",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "Un piccolo modello all'interno dello scanner, non OneUptime AI, cerca nel testo libero nomi di persone e indirizzi stradali. Il testo non lascia mai lo scanner.",
+  "Also in telemetry": "Anche nella telemetria",
+  "Find Names And Street Addresses": "Individua nomi e indirizzi stradali",
+  "Find Names And Street Addresses In Telemetry": "Individua nomi e indirizzi stradali nella telemetria",
+  "Find names and street addresses": "Individua nomi e indirizzi stradali",
+  "Found By Model": "Trovato dal modello",
+  "Found by the Scanner's Model": "Trovato dal modello dello scanner",
+  "Found in free text by the scanner's model": "Trovato nel testo libero dal modello dello scanner",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "Il testo libero non viene letto alla ricerca di nomi e indirizzi stradali. I campi il cui nome li indica vengono comunque individuati.",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "Le scansioni trovano anche nomi e indirizzi stradali nel testo libero con un piccolo modello. Gira solo nello scanner, quindi ciò che trova non viene mostrato qui.",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "La scansione oraria della telemetria cerca nomi e indirizzi stradali anche nei corpi dei log, nei messaggi di eccezione e nelle conversazioni con l'IA, fino a un minuto ogni ora."
 }

@@ -222,7 +222,7 @@ export default class DataSecuritySetting extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     canReadOnRelationQuery: true,
-    title: "Find Names And Addresses",
+    title: "Find Names And Street Addresses",
     description:
       "Content scans read free text for people's names and street addresses with a small model that runs inside the scanner. No value leaves the scanner.",
     defaultValue: true,
@@ -240,9 +240,9 @@ export default class DataSecuritySetting extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     canReadOnRelationQuery: true,
-    title: "Find Names And Addresses In Telemetry",
+    title: "Find Names And Street Addresses In Telemetry",
     description:
-      "The hourly telemetry scan also reads log bodies, exception messages and AI prompts for names and street addresses, within a minute of model time.",
+      "With Find Names And Street Addresses on, the hourly telemetry scan also reads log bodies, exception messages and AI conversations with the model.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

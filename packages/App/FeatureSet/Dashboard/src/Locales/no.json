@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime leser ennå ingen ECS-tjeneste i klyngen {{cluster}} som kjører oppgavedefinisjonen {{name}}.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Den 95. persentilen av svartiden til denne appen i hvert minutt, i gjennomsnitt over valgt periode, slik {{service}} måler den.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produktet Sikkerhetshendelser er slått av på denne serveren, så OneUptime AI sluttet å arbeide med saken.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhetshendelser er slått av på denne serveren. En serveradministrator kan slå det på under Admin-dashbord > Innstillinger > Produkter."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhetshendelser er slått av på denne serveren. En serveradministrator kan slå det på under Admin-dashbord > Innstillinger > Produkter.",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "En persons fornavn, etternavn eller fulle navn, funnet ut fra feltets navn, eller av skannerens modell i fritekst.",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "En liten modell inne i skanneren, ikke OneUptime AI, leser fritekst etter personnavn og gateadresser. Teksten forlater aldri skanneren.",
+  "Also in telemetry": "Også i telemetri",
+  "Find Names And Street Addresses": "Finn navn og gateadresser",
+  "Find Names And Street Addresses In Telemetry": "Finn navn og gateadresser i telemetri",
+  "Find names and street addresses": "Finn navn og gateadresser",
+  "Found By Model": "Funnet av modellen",
+  "Found by the Scanner's Model": "Funnet av skannerens modell",
+  "Found in free text by the scanner's model": "Funnet i fritekst av skannerens modell",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "Fritekst leses ikke etter navn og gateadresser. Felt med navn som viser at de inneholder slike, finnes fortsatt.",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "Skanninger finner også navn og gateadresser i fritekst med en liten modell. Den kjører bare i skanneren, så det den finner, vises ikke her.",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "Telemetriskanningen hver time leser også loggtekster, unntaksmeldinger og AI-samtaler etter navn og gateadresser, opptil ett minutt i timen."
 }

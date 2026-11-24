@@ -3095,7 +3095,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
             title: "Scan Settings",
             icon: IconProp.Clock,
-            keywords: ["scan schedule", "scanning", "sampling"],
+            keywords: [
+              "scan schedule",
+              "scanning",
+              "sampling",
+              "names and street addresses",
+            ],
           },
           {
             page: PageMap.DATA_SECURITY_SETTINGS_AI,

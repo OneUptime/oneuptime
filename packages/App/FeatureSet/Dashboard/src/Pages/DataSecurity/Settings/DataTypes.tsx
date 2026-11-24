@@ -103,7 +103,9 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
  *   - Your Data Types: the project's own (DataSecurityCustomDataType) - an
  *     employee ID, a policy number - with a form that asks what the type is,
  *     then how it is found, and a Test It panel that runs the scanner on
- *     text pasted into it, in the browser (CustomDataTypeTest).
+ *     text pasted into it, in the browser (CustomDataTypeTest). The
+ *     names-and-addresses model is not in the browser, and the panel says
+ *     its findings are not shown there.
  */
 
 export const BUILT_IN_DATA_TYPES_TEST_ID: string =
@@ -114,6 +116,14 @@ export const CUSTOM_DATA_TYPES_TABLE_ID: string =
 
 export const CUSTOM_DATA_TYPE_TEST_PANEL_TEST_ID: string =
   "data-security-custom-data-type-test";
+
+export const CUSTOM_DATA_TYPE_TEST_PANEL_MODEL_NOTE_TEST_ID: string =
+  "data-security-custom-data-type-test-model-note";
+
+// Test It's last line: what scans find with their model is not shown here.
+export const TEST_PANEL_MODEL_NOTE: string = translationKey(
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.",
+);
 
 // The most keywords or field names one type keeps (the server's limit).
 const MAX_WORDS: number = 50;
@@ -732,6 +742,20 @@ export const CustomDataTypeTestPanel: FunctionComponent<TestPanelProps> = (
       ) : (
         <></>
       )}
+      {/*
+       * The names-and-addresses model runs in scans, inside the scanner,
+       * never in the browser (#10373): what it would find is not here.
+       */}
+      <p
+        className="flex items-start gap-1.5 text-xs text-gray-500"
+        data-testid={CUSTOM_DATA_TYPE_TEST_PANEL_MODEL_NOTE_TEST_ID}
+      >
+        <Icon
+          icon={IconProp.InformationCircle}
+          className="mt-px h-3.5 w-3.5 shrink-0 text-gray-400"
+        />
+        <span>{translator.translateText(TEST_PANEL_MODEL_NOTE)}</span>
+      </p>
     </div>
   );
 };

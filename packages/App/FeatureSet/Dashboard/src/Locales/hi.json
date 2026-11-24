@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime अभी क्लस्टर {{cluster}} की ऐसी कोई ECS सेवा नहीं पढ़ता है जो task definition {{name}} चलाती हो।",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "हर मिनट इस ऐप के प्रतिक्रिया समय का 95वाँ पर्सेंटाइल, चुनी गई सीमा पर औसत, जैसा {{service}} उसे मापता है।",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।"
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "किसी व्यक्ति का पहला, अंतिम या पूरा नाम, जो फ़ील्ड के नाम से, या मुक्त टेक्स्ट में स्कैनर के मॉडल से मिलता है।",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "स्कैनर के अंदर चलने वाला एक छोटा मॉडल, OneUptime AI नहीं, मुक्त टेक्स्ट में लोगों के नाम और सड़क के पते ढूंढता है। टेक्स्ट कभी स्कैनर से बाहर नहीं जाता।",
+  "Also in telemetry": "टेलीमेट्री में भी",
+  "Find Names And Street Addresses": "नाम और सड़क के पते ढूंढें",
+  "Find Names And Street Addresses In Telemetry": "टेलीमेट्री में नाम और सड़क के पते ढूंढें",
+  "Find names and street addresses": "नाम और सड़क के पते ढूंढें",
+  "Found By Model": "मॉडल ने पाया",
+  "Found by the Scanner's Model": "स्कैनर के मॉडल ने पाया",
+  "Found in free text by the scanner's model": "स्कैनर के मॉडल ने मुक्त टेक्स्ट में पाया",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "मुक्त टेक्स्ट में नाम और सड़क के पते नहीं ढूंढे जाते। जिन फ़ील्ड के नाम उनकी ओर इशारा करते हैं, वे अब भी मिलते हैं।",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "स्कैन एक छोटे मॉडल से मुक्त टेक्स्ट में नाम और सड़क के पते भी ढूंढते हैं। यह केवल स्कैनर में चलता है, इसलिए इसे जो मिलता है वह यहां नहीं दिखता।",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "हर घंटे का टेलीमेट्री स्कैन भी लॉग बॉडी, एक्सेप्शन संदेशों और AI बातचीत में नाम और सड़क के पते ढूंढता है, हर घंटे एक मिनट तक।"
 }

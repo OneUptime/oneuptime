@@ -71,6 +71,11 @@ import React, {
  * at a space in a laptop's column ("Von OneUptime AI / vorgeschlagen"),
  * where a pill broke inside its words. Being OneUptime AI's says it is not
  * sure, so it carries no Low confidence pill beside it.
+ *
+ * A person's name or a street address the names-and-addresses model found
+ * in free text (#10373) says so on a line of its own, in grey: it was read
+ * by the small model inside the scanner, not matched by a pattern, and
+ * keeps the confidence it earned like any other finding.
  */
 
 const CONFIDENCE_OPTIONS: Array<DropdownOption> = [
@@ -99,6 +104,16 @@ export const CONFIRMED: string = translationKey("Confirmed");
 export const FINDING_AI_SUGGESTION_TEST_ID: string =
   "data-store-finding-ai-suggestion";
 export const FINDING_AI_REASON_TEST_ID: string = "data-store-finding-ai-reason";
+
+/*
+ * A finding the names-and-addresses model made in free text (#10373): the
+ * small model inside the scanner, not OneUptime AI, so it wears no AI mark.
+ */
+export const FOUND_BY_MODEL: string = translationKey(
+  "Found in free text by the scanner's model",
+);
+export const FINDING_FOUND_BY_MODEL_TEST_ID: string =
+  "data-store-finding-found-by-model";
 
 // Whether a person can confirm a finding: one the scan, or OneUptime AI, was not sure of.
 export function canConfirmFinding(item: DataStoreFinding): boolean {
@@ -196,6 +211,7 @@ const DataStoreInside: FunctionComponent<
           suppressedReason: true,
           isAiSuggested: true,
           aiReason: true,
+          isFoundByModel: true,
           isConfirmed: true,
         }}
         actionButtons={[
@@ -353,6 +369,11 @@ const DataStoreInside: FunctionComponent<
             type: FieldType.Boolean,
           },
           {
+            field: { isFoundByModel: true },
+            title: "Found by the Scanner's Model",
+            type: FieldType.Boolean,
+          },
+          {
             field: { isConfirmed: true },
             title: "Confirmed",
             type: FieldType.Boolean,
@@ -425,6 +446,26 @@ const DataStoreInside: FunctionComponent<
                       <></>
                     )}
                   </div>
+                  {/*
+                   * Found by the model reading free text, not by a
+                   * pattern: why a name turns up in a notes column.
+                   */}
+                  {item.isFoundByModel && !item.isAiSuggested ? (
+                    <div
+                      className="flex max-w-xs items-start gap-1 text-xs text-gray-500"
+                      data-testid={FINDING_FOUND_BY_MODEL_TEST_ID}
+                    >
+                      <Icon
+                        icon={IconProp.DocumentMagnifyingGlass}
+                        className="mt-px h-3.5 w-3.5 shrink-0 text-gray-400"
+                      />
+                      <span className="whitespace-normal">
+                        {translator.translateText(FOUND_BY_MODEL)}
+                      </span>
+                    </div>
+                  ) : (
+                    <></>
+                  )}
                   {/*
                    * Whose suggestion it is, and OneUptime AI's own words,
                    * in the language it wrote them: why it suggests this

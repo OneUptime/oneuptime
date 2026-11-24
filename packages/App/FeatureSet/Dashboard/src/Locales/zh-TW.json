@@ -63015,5 +63015,17 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime 尚未讀取叢集 {{cluster}} 中執行工作定義 {{name}} 的 ECS 服務。",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "此應用程式每分鐘回應時間的第 95 百分位數，在所選範圍內取平均值，由 {{service}} 測量。",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "安全事件已在此伺服器上關閉，因此 OneUptime AI 已停止處理此案例。",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "安全事件已在此伺服器上關閉。伺服器管理員可以在「管理員儀表板 > 設定 > 產品」中將其開啟。"
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "安全事件已在此伺服器上關閉。伺服器管理員可以在「管理員儀表板 > 設定 > 產品」中將其開啟。",
+  "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.": "個人的名、姓或全名，透過欄位名稱找到，或在自由文字中由掃描器的模型找到。",
+  "A small model inside the scanner, not OneUptime AI, reads free text for people's names and street addresses. The text never leaves the scanner.": "掃描器內的一個小模型（不是 OneUptime AI）讀取自由文字，尋找人名和街道地址。文字從不離開掃描器。",
+  "Also in telemetry": "也在遙測中尋找",
+  "Find Names And Street Addresses": "尋找姓名和街道地址",
+  "Find Names And Street Addresses In Telemetry": "在遙測中尋找姓名和街道地址",
+  "Find names and street addresses": "尋找姓名和街道地址",
+  "Found By Model": "由模型找到",
+  "Found by the Scanner's Model": "由掃描器的模型找到",
+  "Found in free text by the scanner's model": "由掃描器的模型在自由文字中找到",
+  "Free text is not read for names and street addresses. Fields named for them are still found.": "不在自由文字中尋找姓名和街道地址。名稱指向它們的欄位仍會被找到。",
+  "Scans also find names and street addresses in free text with a small model. It runs only in the scanner, so what it finds is not shown here.": "掃描還會用一個小模型在自由文字中尋找姓名和街道地址。它只在掃描器中執行，所以它找到的內容不會顯示在這裡。",
+  "The hourly telemetry scan also reads log bodies, exception messages and AI conversations for names and street addresses, up to a minute each hour.": "每小時的遙測掃描也會在記錄內文、例外訊息和 AI 對話中尋找姓名和街道地址，每小時最多一分鐘。"
 }
