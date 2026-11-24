@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "傳送的內容太大，伺服器無法接受，因此操作未完成。請一次傳送較少的內容（例如較小的檔案）後再試一次。",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "傳送的內容超過了 OneUptime 單次請求可接受的 50 MB，因此操作未完成。請一次傳送較少的內容（例如較小的檔案）後再試一次。",
   "This did not finish.": "操作未完成。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未刪除。",
+  "“{{action}}” did not finish.": "「{{action}}」操作未完成。",
   "The server ran into a problem it could not explain.": "伺服器遇到了無法解釋的問題。",
   "The OneUptime server did not answer.": "OneUptime 伺服器沒有回應。",
   "OneUptime could not be reached.": "無法連線到 OneUptime。",

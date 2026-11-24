@@ -493,7 +493,13 @@ if (RECORD) {
       }
     });
 
-    test("kept when the exceptions cannot be read: v1, as before, unless v1 hashes what a rule hid", () => {
+    /*
+     * An occurrence's `fingerprint`: what it was filed under when the
+     * exceptions could not be read until #11027, which is how a duplicate
+     * that made is told apart now (TelemetryExceptionSplitHeal). Byte for
+     * byte as recorded.
+     */
+    test("an occurrence's own fingerprint: v1, as before, unless v1 hashes what a rule hid", () => {
       for (const [index, entry] of now.entries()) {
         const before: RecordedEntry = recorded.entries[index]!;
 

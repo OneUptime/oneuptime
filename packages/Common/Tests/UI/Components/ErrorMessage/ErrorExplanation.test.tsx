@@ -564,7 +564,11 @@ describe("the shared places an error is drawn", () => {
       expect(screen.getAllByTestId("error-explanation")).toHaveLength(1);
     });
 
-    test("a dialog that does not say it says 'This did not finish.'", () => {
+    /*
+     * It said "This did not finish." (#7680): a dialog that says nothing
+     * more names itself by its title, the action the person chose.
+     */
+    test("a dialog that does not say it is named by its title", () => {
       render(
         <ConfirmModal
           title="Approve note"
@@ -576,6 +580,9 @@ describe("the shared places an error is drawn", () => {
       );
 
       expect(whatFailedLine()).toHaveTextContent(
+        /^“Approve note” did not finish\.$/,
+      );
+      expect(whatFailedLine()).not.toHaveTextContent(
         UnexplainedErrorWords.didNotFinish,
       );
     });

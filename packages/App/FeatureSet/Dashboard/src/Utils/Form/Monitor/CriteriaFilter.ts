@@ -780,6 +780,15 @@ export default class CriteriaFilterUtil {
     // Whether the check is a yes or no one, which takes no change, depends on it.
     monitorType?: MonitorType | undefined;
   }): CriteriaFilter {
+    // A DNS answer's one window: the previous check (#10905).
+    if (
+      CommonCriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        data.criteriaFilter.checkOn,
+      )
+    ) {
+      return CriteriaFilterUtil.toPreviousCheckOnly(data.criteriaFilter);
+    }
+
     const options: EvaluateOverTimeOptions = {
       ...(data.criteriaFilter.evaluateOverTimeOptions ||
         CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
@@ -910,6 +919,15 @@ export default class CriteriaFilterUtil {
       };
     }
 
+    // A DNS answer's one window: the previous check (#10905).
+    if (
+      CommonCriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        data.criteriaFilter.checkOn,
+      )
+    ) {
+      return CriteriaFilterUtil.toPreviousCheckOnly(data.criteriaFilter);
+    }
+
     return {
       ...data.criteriaFilter,
       evaluateOverTime: true,
@@ -950,6 +968,17 @@ export default class CriteriaFilterUtil {
     criteriaFilter: CriteriaFilter | undefined,
     monitorType?: MonitorType | undefined,
   ): string {
+    // A DNS answer's one window: the previous check's answer (#10905).
+    if (
+      CommonCriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        criteriaFilter?.checkOn,
+      )
+    ) {
+      return translationKey(
+        "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.",
+      );
+    }
+
     if (
       CommonCriteriaFilterUtil.isJudgedCheckByCheck(
         criteriaFilter?.checkOn,
@@ -2042,6 +2071,92 @@ export default class CriteriaFilterUtil {
     }
 
     return options;
+  }
+
+  /*
+   * The conditions the Filter Condition dropdown offers for a filter: its
+   * check's own, and - for a DNS Record Value compared with the previous
+   * check (#10905) - Not Equal To and Equal To alone: the whole answer is
+   * different from the previous one, or the same.
+   */
+  public static getFilterTypeOptions(data: {
+    criteriaFilter: CriteriaFilter | undefined;
+    monitorType?: MonitorType | undefined;
+  }): Array<DropdownOption> {
+    const checkOn: CheckOn | undefined = data.criteriaFilter?.checkOn;
+
+    if (!checkOn) {
+      return [];
+    }
+
+    const options: Array<DropdownOption> =
+      CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn);
+    const previousCheckFilterTypes: Array<FilterType> | null =
+      CommonCriteriaFilterUtil.getPreviousCheckFilterTypes(checkOn);
+
+    if (
+      !previousCheckFilterTypes ||
+      !CommonCriteriaFilterUtil.isComparedWithPreviousCheck(
+        data.criteriaFilter,
+        data.monitorType,
+      )
+    ) {
+      return options;
+    }
+
+    return previousCheckFilterTypes
+      .map((filterType: FilterType): DropdownOption | undefined => {
+        return options.find((option: DropdownOption): boolean => {
+          return option.value === filterType;
+        });
+      })
+      .filter(
+        (option: DropdownOption | undefined): option is DropdownOption => {
+          return Boolean(option);
+        },
+      );
+  }
+
+  /*
+   * A DNS Record Value whose window is ticked (#10905): compared with the
+   * previous check, the only window a DNS answer has, by one of the two
+   * conditions it takes there - Not Equal To unless it holds Equal To - and
+   * no change from it, count or percentile. Any other filter as it is.
+   */
+  public static toPreviousCheckOnly(
+    criteriaFilter: CriteriaFilter,
+  ): CriteriaFilter {
+    const filterTypes: Array<FilterType> | null =
+      CommonCriteriaFilterUtil.getPreviousCheckFilterTypes(
+        criteriaFilter.checkOn,
+      );
+
+    if (!filterTypes) {
+      return criteriaFilter;
+    }
+
+    const options: EvaluateOverTimeOptions = {
+      ...(criteriaFilter.evaluateOverTimeOptions ||
+        CriteriaFilterUtil.DEFAULT_EVALUATE_OVER_TIME_OPTIONS),
+      evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
+    };
+
+    delete options.countFilterType;
+    delete options.countValue;
+    delete options.percentile;
+    delete options.changeType;
+    delete options.changeValue;
+
+    return {
+      ...criteriaFilter,
+      filterType:
+        criteriaFilter.filterType &&
+        filterTypes.includes(criteriaFilter.filterType)
+          ? criteriaFilter.filterType
+          : filterTypes[0],
+      evaluateOverTime: true,
+      evaluateOverTimeOptions: options,
+    };
   }
 
   public static getFilterTypeOptionsByCheckOn(

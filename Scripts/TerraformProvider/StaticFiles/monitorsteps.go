@@ -36,10 +36,12 @@ package provider
 //     Server-generated ids are never sent — the server owns them.
 //   - MonitorStepsFromAPI: wire envelope (or bare value map) -> typed list.
 //     Only schema-known fields are mapped; server-generated ids, the
-//     server-hydrated snmpMonitor carrier and any unknown keys are dropped
-//     so server-side extras never cause drift. Empty strings and empty
-//     containers normalize to null (the schema forbids them in config, so
-//     absent-or-empty always means "unset").
+//     server-hydrated snmpMonitor carrier and any unknown keys are not read,
+//     so server-side extras never cause drift - and an update that writes
+//     the steps keeps them as OneUptime holds them rather than removing
+//     them (MonitorStepsKeepUnmanaged, monitorstepsunmanaged.go). Empty
+//     strings and empty containers normalize to null (the schema forbids
+//     them in config, so absent-or-empty always means "unset").
 //
 // Round-trip guarantee: for any list L produced from valid user config,
 // MonitorStepsFromAPI(MonitorStepsToAPI(L)) == L.
@@ -336,6 +338,9 @@ type monitorStepsSubConfig struct {
 
 var monitorStepsSubConfigs = []monitorStepsSubConfig{
 	{"log_monitor", "logMonitor"},
+	// A Security Events monitor's step (#10984): without it Terraform could
+	// not write one at all.
+	{"security_events_monitor", "securityEventsMonitor"},
 	{"trace_monitor", "traceMonitor"},
 	{"llm_monitor", "llmMonitor"},
 	{"metric_monitor", "metricMonitor"},
@@ -399,8 +404,17 @@ func monitorStepsIncidentAttrTypes() map[string]attr.Type {
 		"label_ids":                    types.ListType{ElemType: types.StringType},
 		"owner_team_ids":               types.ListType{ElemType: types.StringType},
 		"owner_user_ids":               types.ListType{ElemType: types.StringType},
+		"incident_member_roles":        types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsIncidentMemberRoleAttrTypes()}},
 		"show_incident_on_status_page": types.BoolType,
 		"is_private":                   types.BoolType,
+	}
+}
+
+// A person given a role on each incident a criteria opens (#10984).
+func monitorStepsIncidentMemberRoleAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"role_id": types.StringType,
+		"user_id": types.StringType,
 	}
 }
 
@@ -471,6 +485,7 @@ func monitorStepsStepAttrTypes() map[string]attr.Type {
 		"retry_count_on_error":           types.Int64Type,
 		"request_timeout_in_ms":          types.Int64Type,
 		"retry_count":                    types.Int64Type,
+		"do_not_sync_fields":             types.ListType{ElemType: types.StringType},
 		"criteria":                       types.ListType{ElemType: types.ObjectType{AttrTypes: monitorStepsCriteriaAttrTypes()}},
 	}
 	for _, sub := range monitorStepsSubConfigs {
@@ -816,6 +831,25 @@ func monitorStepsIncidentSchema() schema.NestedAttributeObject {
 				ElementType:         types.StringType,
 				Validators:          []validator.List{listvalidator.SizeAtLeast(1)},
 			},
+			"incident_member_roles": schema.ListNestedAttribute{
+				MarkdownDescription: "People given a role on each incident this criteria opens, such as an incident commander: one `{ role_id, user_id }` per person and role. A user who has left the project gets no role. Omit instead of passing an empty list.",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"role_id": schema.StringAttribute{
+							MarkdownDescription: "ID of the incident role.",
+							Required:            true,
+							Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+						},
+						"user_id": schema.StringAttribute{
+							MarkdownDescription: "ID of the user given the role.",
+							Required:            true,
+							Validators:          []validator.String{stringvalidator.LengthAtLeast(1)},
+						},
+					},
+				},
+				Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+			},
 			"show_incident_on_status_page": schema.BoolAttribute{
 				MarkdownDescription: "Show the incident on status pages this monitor is attached to.",
 				Optional:            true,
@@ -1106,6 +1140,17 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 			Optional:            true,
 			Validators:          []validator.Int64{int64validator.AtLeast(0)},
 		},
+		"do_not_sync_fields": schema.ListAttribute{
+			MarkdownDescription: "Monitor templates only: the fields each monitor linked to the template keeps as its own when the template syncs its steps onto them, such as `monitorDestination` or `dnsMonitor.queryName`. The fields a monitor type offers are the ones the template's **Template sync settings** card lists. On a monitor it is kept but does nothing. Omit instead of passing an empty list.",
+			Optional:            true,
+			ElementType:         types.StringType,
+			Validators: []validator.List{
+				listvalidator.SizeAtLeast(1),
+				// OneUptime keeps each once: a field twice would read back as another list.
+				listvalidator.UniqueValues(),
+				listvalidator.ValueStringsAre(stringvalidator.OneOf(monitorStepsDoNotSyncFieldValues...)),
+			},
+		},
 		"criteria": schema.ListNestedAttribute{
 			MarkdownDescription: "Ordered criteria evaluated after each check. The first matching criteria decides the monitor status and incident/alert actions.",
 			Required:            true,
@@ -1116,6 +1161,7 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 
 	subDescriptions := map[string]string{
 		"log_monitor":                  "Raw JSON escape hatch for the Logs monitor query config (attributes, body, severityTexts, telemetryServiceIds, lastXSecondsOfLogs).",
+		"security_events_monitor":      "Raw JSON escape hatch for the Security Events monitor config (attributes, messageContains, severityNames, classNames, telemetryServiceIds, lastXSecondsOfEvents, watchlistFilters).",
 		"trace_monitor":                "Raw JSON escape hatch for the Traces monitor query config.",
 		"llm_monitor":                  "Raw JSON escape hatch for the AI / LLM monitor config (issues, slowAnswerSeconds, model, telemetryServiceIds, lastXSecondsOfCalls).",
 		"metric_monitor":               "Raw JSON escape hatch for the Metrics monitor query config (metricViewConfig, rollingTime). The server normalizes this object, so provide the full shape to avoid drift. rollingTime is how far back each check reads: one of `Past 1 Minute`, `Past 5 Minutes`, `Past 10 Minutes`, `Past 15 Minutes`, `Past 30 Minutes`, `Past 1 Hour`, `Past 2 Hours`, `Past 3 Hours`, `Past 6 Hours`, `Past 12 Hours`, `Past 1 Day`, `Past 2 Days`, `Past 3 Days`, `Past 7 Days`, `Past 14 Days`, `Past 30 Days`, `Past 60 Days`, `Past 90 Days`, `Past 180 Days` or `Past 365 Days`. A length written another way that is exactly as long as one of them (`15 minutes`, `1h`, `PT15M`) is stored as that one and plans no change; on a Metrics monitor any other value is refused at plan time.",
@@ -1478,6 +1524,20 @@ func monitorStepsIncidentToAPI(attrs map[string]attr.Value) map[string]interface
 	if v, ok := monitorStepsAttrStringList(attrs, "owner_user_ids"); ok {
 		out["ownerUserIds"] = v
 	}
+	if roleObjs, ok := monitorStepsObjectListElements(attrs, "incident_member_roles"); ok {
+		roles := make([]interface{}, 0, len(roleObjs))
+		for _, obj := range roleObjs {
+			role := map[string]interface{}{}
+			if v, ok := monitorStepsAttrString(obj.Attributes(), "role_id"); ok {
+				role["roleId"] = v
+			}
+			if v, ok := monitorStepsAttrString(obj.Attributes(), "user_id"); ok {
+				role["userId"] = v
+			}
+			roles = append(roles, role)
+		}
+		out["incidentMemberRoles"] = roles
+	}
 	if v, ok := monitorStepsAttrBool(attrs, "show_incident_on_status_page"); ok {
 		out["showIncidentOnStatusPage"] = v
 	}
@@ -1694,6 +1754,9 @@ func monitorStepsStepToAPI(attrs map[string]attr.Value, attrPath string, diags *
 	}
 	if v, ok := monitorStepsAttrInt64(attrs, "retry_count"); ok {
 		value["retryCount"] = v
+	}
+	if v, ok := monitorStepsAttrStringList(attrs, "do_not_sync_fields"); ok {
+		value["doNotSyncFields"] = v
 	}
 
 	for _, sub := range monitorStepsSubConfigs {
@@ -2031,17 +2094,59 @@ func monitorStepsIncidentFromAPI(v interface{}, diags *diag.Diagnostics) (types.
 			attrs[tfName] = l
 		}
 	}
+	if roles, ok := monitorStepsIncidentMemberRolesFromAPI(m["incidentMemberRoles"], diags); ok {
+		attrs["incident_member_roles"] = roles
+	}
 	if b, ok := monitorStepsAPIBool(m["showIncidentOnStatusPage"]); ok {
 		attrs["show_incident_on_status_page"] = types.BoolValue(b)
 	}
 	if b, ok := monitorStepsAPIBool(m["isPrivate"]); ok {
 		attrs["is_private"] = types.BoolValue(b)
 	}
-	// id and incidentMemberRoles are intentionally dropped.
+	// id is the server's (MonitorStepsIdentityUtil) and is dropped.
 
 	obj, d := types.ObjectValue(monitorStepsIncidentAttrTypes(), attrs)
 	diags.Append(d...)
 	return obj, !d.HasError()
+}
+
+// monitorStepsIncidentMemberRolesFromAPI reads an incident template's member
+// roles: each {roleId, userId}, written as the provider sends them (plain
+// strings) or as the Dashboard does (ObjectID wrappers). A pair missing
+// either id gives no one a role (MonitorIncident) and is not read; none at
+// all is unset.
+func monitorStepsIncidentMemberRolesFromAPI(v interface{}, diags *diag.Diagnostics) (types.List, bool) {
+	raw, ok := v.([]interface{})
+	if !ok || len(raw) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: monitorStepsIncidentMemberRoleAttrTypes()}), false
+	}
+	els := make([]attr.Value, 0, len(raw))
+	for _, el := range raw {
+		m, ok := el.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		roleID, hasRole := monitorStepsAPIString(m["roleId"])
+		userID, hasUser := monitorStepsAPIString(m["userId"])
+		if !hasRole || !hasUser {
+			continue
+		}
+		obj, d := types.ObjectValue(monitorStepsIncidentMemberRoleAttrTypes(), map[string]attr.Value{
+			"role_id": types.StringValue(roleID),
+			"user_id": types.StringValue(userID),
+		})
+		diags.Append(d...)
+		if d.HasError() {
+			continue
+		}
+		els = append(els, obj)
+	}
+	if len(els) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: monitorStepsIncidentMemberRoleAttrTypes()}), false
+	}
+	l, d := types.ListValue(types.ObjectType{AttrTypes: monitorStepsIncidentMemberRoleAttrTypes()}, els)
+	diags.Append(d...)
+	return l, !d.HasError()
 }
 
 func monitorStepsAlertFromAPI(v interface{}, diags *diag.Diagnostics) (types.Object, bool) {
@@ -2298,6 +2403,11 @@ func monitorStepsStepFromAPI(v interface{}, diags *diag.Diagnostics) (types.Obje
 	if n, ok := monitorStepsAPIInt64(m["retryCount"]); ok {
 		attrs["retry_count"] = types.Int64Value(n)
 	}
+	if els, ok := monitorStepsAPIStringList(m["doNotSyncFields"]); ok {
+		l, d := types.ListValue(types.StringType, els)
+		diags.Append(d...)
+		attrs["do_not_sync_fields"] = l
+	}
 
 	for _, sub := range monitorStepsSubConfigs {
 		if s, ok := monitorStepsAPIJSONString(m[sub.apiKey]); ok {
@@ -2321,8 +2431,10 @@ func monitorStepsStepFromAPI(v interface{}, diags *diag.Diagnostics) (types.Obje
 			}
 		}
 	}
-	// id and the server-hydrated snmpMonitor carrier are intentionally
-	// dropped, as is any key not modeled by the schema.
+	// id is the server's, and the snmpMonitor carrier is filled in by the
+	// server: neither is read. Neither, nor any key this provider has no
+	// attribute for, is removed by an apply that changes the steps
+	// (MonitorStepsKeepUnmanaged, monitorstepsunmanaged.go, #10984).
 
 	obj, d := types.ObjectValue(monitorStepsStepAttrTypes(), attrs)
 	diags.Append(d...)

@@ -642,6 +642,8 @@
   "The {{itemName}} was not created.": "{{itemName}}は作成されませんでした。",
   "The {{itemName}} was not saved.": "{{itemName}}は保存されませんでした。",
   "This did not finish.": "処理は完了しませんでした。",
+  "The {{itemName}} was not deleted.": "{{itemName}}は削除されませんでした。",
+  "“{{action}}” did not finish.": "「{{action}}」の処理は完了しませんでした。",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "このページで問題が発生したため、処理は完了しませんでした。ページを再読み込みしてから、もう一度お試しください。",
   "This page ran into a problem.": "このページで問題が発生しました。",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "何が失敗したかを確認するには、サーバーの oneuptime フォルダーで npm run doctor -- --logs を実行し、この参照番号を探してください。",

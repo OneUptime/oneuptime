@@ -215,11 +215,65 @@ describe("a match as the value it reads as", () => {
     for (const patternType of [
       LogScrubPatternType.Custom,
       LogScrubPatternType.SensitiveKeys,
-      LogScrubPatternType.SSN,
-      LogScrubPatternType.PhoneNumber,
     ]) {
       expect(ScrubAction.asItReads("a%40b ４", patternType)).toBe("a%40b ４");
     }
+  });
+
+  test.each([
+    // A phone number reads with its escapes read and its digits in ASCII (#11030).
+    [
+      LogScrubPatternType.PhoneNumber,
+      "%2B44%2020%207946%200958",
+      "+44 20 7946 0958",
+    ],
+    [LogScrubPatternType.PhoneNumber, "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨", "+44 20 7946 0958"],
+    [LogScrubPatternType.PhoneNumber, "+۴۹ ۳۰ ۱۲۳۴۵۶", "+49 30 123456"],
+    [LogScrubPatternType.PhoneNumber, "％2B44", "％2B44"],
+    // A Social Security number with its digits in ASCII; escapes are no part of one.
+    [LogScrubPatternType.SSN, "١٢٣-٤٥-٦٧٨٩", "123-45-6789"],
+    [LogScrubPatternType.SSN, "１２３ ４５ ６７８９", "123 45 6789"],
+    [LogScrubPatternType.SSN, "123%2D45%2D6789", "123%2D45%2D6789"],
+  ])(
+    "a %s match %s reads as %s",
+    (patternType: string, match: string, reads: string) => {
+      expect(ScrubAction.asItReads(match, patternType)).toBe(reads);
+    },
+  );
+
+  test("a phone number or a Social Security number written plainly reads as it is, so its token is what it was before #11030", () => {
+    for (const [patternType, match] of [
+      [LogScrubPatternType.PhoneNumber, "555-123-4567"],
+      [LogScrubPatternType.PhoneNumber, "+1 (415) 555-2671"],
+      [LogScrubPatternType.PhoneNumber, "+44 20 7946 0958"],
+      [LogScrubPatternType.SSN, "123-45-6789"],
+    ] as Array<[string, string]>) {
+      expect(ScrubAction.asItReads(match, patternType)).toBe(match);
+      expect(apply(match, LogScrubAction.Hash, patternType)).toBe(
+        ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: match }),
+      );
+    }
+  });
+
+  test.each([
+    ["%2B44%2020%207946%200958", "+44 20 7946 0958"],
+    ["+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨", "+44 20 7946 0958"],
+    ["+４４ ２０ ７９４６ ０９５８", "+44 20 7946 0958"],
+  ])(
+    "a phone number %s hashes as %s written plainly does",
+    (match: string, plain: string) => {
+      expect(
+        apply(match, LogScrubAction.Hash, LogScrubPatternType.PhoneNumber),
+      ).toBe(ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: plain }));
+    },
+  );
+
+  test("a Social Security number in another script's digits hashes as the one in ASCII does", () => {
+    expect(
+      apply("١٢٣-٤٥-٦٧٨٩", LogScrubAction.Hash, LogScrubPatternType.SSN),
+    ).toBe(
+      ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: "123-45-6789" }),
+    );
   });
 
   test.each([
@@ -244,6 +298,38 @@ describe("a match as the value it reads as", () => {
     ],
   ])(
     "a %s match %s masks as %s",
+    (patternType: string, match: string, masked: string) => {
+      expect(apply(match, LogScrubAction.Mask, patternType)).toBe(masked);
+    },
+  );
+
+  // #11030: the last four digits of the number as it reads, in ASCII.
+  test.each([
+    [LogScrubPatternType.PhoneNumber, "555-123-4567", "***-***-4567"],
+    [LogScrubPatternType.PhoneNumber, "+44 20 7946 0958", "***-***-0958"],
+    [LogScrubPatternType.PhoneNumber, "+44 (0)20 7946 0123", "***-***-0123"],
+    [
+      LogScrubPatternType.PhoneNumber,
+      "%2B44%2020%207946%200958",
+      "***-***-0958",
+    ],
+    [LogScrubPatternType.PhoneNumber, "%2B49%2030%20123456", "***-***-3456"],
+    [LogScrubPatternType.PhoneNumber, "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨", "***-***-0958"],
+    [LogScrubPatternType.PhoneNumber, "+۴۹ ۳۰ ۱۲۳۴۵۶", "***-***-3456"],
+    [
+      LogScrubPatternType.PhoneNumber,
+      "+４４ ２０ ７９４６ ０９５８",
+      "***-***-0958",
+    ],
+    [LogScrubPatternType.PhoneNumber, "12", "***-***-****"],
+    [LogScrubPatternType.SSN, "123-45-6789", "***-**-6789"],
+    [LogScrubPatternType.SSN, "123.45.6789", "***-**-6789"],
+    [LogScrubPatternType.SSN, "123 45 6789", "***-**-6789"],
+    [LogScrubPatternType.SSN, "١٢٣-٤٥-٦٧٨٩", "***-**-6789"],
+    [LogScrubPatternType.SSN, "１２３ ４５ ６７８９", "***-**-6789"],
+    [LogScrubPatternType.SSN, "12", "***-**-****"],
+  ])(
+    "a %s match %s masks as %s, whatever its writing",
     (patternType: string, match: string, masked: string) => {
       expect(apply(match, LogScrubAction.Mask, patternType)).toBe(masked);
     },

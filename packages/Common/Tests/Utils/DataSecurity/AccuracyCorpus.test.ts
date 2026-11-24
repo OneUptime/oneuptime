@@ -1158,10 +1158,15 @@ const CORPUS: Record<string, CorpusEntry> = buildCorpus(CORPUS_SEED);
  * email address in a percent-encoded URL (jane.doe%40acmecorp.io, #10935),
  * an email address in another script (张伟@acmecorp.io, почта@пример.рф,
  * #10960) and a card number in fullwidth, Arabic-Indic or Persian digits,
- * or two scripts at once (#10960) - each with near misses of the same
- * writing that are no value: a clock or a link-local address after a key,
- * an image asset's name encoded, an address with no top-level domain, a
- * card a check digit off. Labelled apart from the corpus, which draws two
+ * or two scripts at once (#10960); a phone number in a percent-encoded URL
+ * or in another script's digits, and an international one in parentheses,
+ * after its trunk prefix or typeset with no-break spaces, and a Social
+ * Security number in another script's digits (#11025, #11030) - each with
+ * near misses of the same writing that are no value: a clock or a
+ * link-local address after a key, an image asset's name encoded, an
+ * address with no top-level domain, a card a check digit off, a decimal, a
+ * count, a time zone beside a date, an SSN's area no one is issued or a
+ * longer chain of groups. Labelled apart from the corpus, which draws two
  * values of each type from its detectors' shapes, and held to a precision
  * and a recall of 1: every value found as its type, and nothing else found.
  * Each case draws from a stream of its own, so the corpus draws as before.
@@ -1221,7 +1226,189 @@ function drawnDomain(): string {
   return `${fake(LOWER, 5 + random(5))}.${["io", "com", "net", "de"][random(4)]}`;
 }
 
+/*
+ * A national number of `digits` digits that is no placeholder (no digit run
+ * all alike, no counting up or down) and no number set aside for fiction.
+ */
+function drawnDigitsOf(digits: number, first: string = ""): string {
+  for (;;) {
+    const drawn: string = first + fake(DIGITS, digits - first.length);
+
+    if (
+      drawn.split("").some((digit: string): boolean => {
+        return digit !== drawn[0];
+      }) &&
+      !"01234567890".includes(drawn) &&
+      !"98765432109".includes(drawn) &&
+      !drawn.startsWith("555")
+    ) {
+      return drawn;
+    }
+  }
+}
+
+// A North American exchange: 200 to 999, no N11 service code, no 555.
+function drawnExchange(): string {
+  for (;;) {
+    const exchange: string = String(200 + random(800));
+
+    if (!exchange.endsWith("11") && exchange !== "555") {
+      return exchange;
+    }
+  }
+}
+
+// A Social Security number by the SSA's rules: area, group and serial.
+function drawnSsn(): string {
+  const area: number = 1 + random(665);
+  const group: number = 1 + random(99);
+  const serial: number = 1 + random(9999);
+
+  return `${String(area).padStart(3, "0")}-${String(group).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
+}
+
 const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
+  // #11030
+  "phone-number: in a percent-encoded URL": (): CorpusEntry => {
+    const berlin: string = `%2B49%2030%20${drawnDigitsOf(8, "2")}`;
+    const paris: string = `%2B33%206%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /callback?phone=${berlin} HTTP/1.1 200`,
+          berlin,
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/notify?mobile=${paris}&step=2", "batch": "nightly"}`,
+          paris,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /assets/${fake(LOWER, 6)}%2B2x.png HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/search?delta=%2B${10 + random(80)}.${drawnDigitsOf(6)}&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11030
+  "phone-number: in another script's digits": (): CorpusEntry => {
+    const berlin: string = inScript(
+      `+49 30 ${drawnDigitsOf(8, "2")}`,
+      ARABIC_INDIC_ZERO,
+    );
+    const london: string = inScript(
+      `+44 161 ${drawnDigitsOf(3, "3")} ${drawnDigitsOf(4)}`,
+      PERSIAN_ZERO,
+    );
+    const sanFrancisco: string = inScript(
+      `(415) ${drawnExchange()}-${drawnDigitsOf(4)}`,
+      FULLWIDTH_ZERO,
+    );
+
+    return {
+      positives: [
+        labelled("phone-number", `رقم الهاتف ${berlin}`, berlin),
+        labelled("phone-number", `شماره تلفن ${london}`, london),
+        labelled("phone-number", `電話番号：${sanFrancisco}`, sanFrancisco),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `دلتا ${inScript(`+${10 + random(80)}.${drawnDigitsOf(6)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `العدد ${inScript("+1 2 3 4 5 6 7 8", ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11025
+  "phone-number: international, as people write them": (): CorpusEntry => {
+    const inParentheses: string = `(+44) 20 ${drawnDigitsOf(4, "8")} ${drawnDigitsOf(4)}`;
+    const withTrunk: string = `+44 (0)20 ${drawnDigitsOf(4, "8")} ${drawnDigitsOf(4)}`;
+    const typeset: string = `+33\u00A06\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO sms sent to ${inParentheses} ok`,
+          inParentheses.slice(1),
+        ),
+        labelled(
+          "phone-number",
+          `{"contact": "${withTrunk}", "batch": "nightly"}`,
+          withTrunk,
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO call forwarded to ${typeset} ok`,
+          typeset,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO tick at UTC +1 2026-11-${10 + random(18)} ${10 + random(13)}:${10 + random(50)}:00 ok`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO delta +${10 + random(80)}.${drawnDigitsOf(6)} out of range`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO counted +1 2 3 4 5 6 7 8 ok`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11030
+  "us-ssn: in another script's digits": (): CorpusEntry => {
+    const arabic: string = inScript(drawnSsn(), ARABIC_INDIC_ZERO);
+    const fullwidth: string = inScript(
+      drawnSsn().split("-").join(" "),
+      FULLWIDTH_ZERO,
+    );
+
+    return {
+      positives: [
+        labelled("us-ssn", `SSN: ${arabic}`, arabic),
+        labelled(
+          "us-ssn",
+          `{"ssn": "${fullwidth}", "batch": "nightly"}`,
+          fullwidth,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `SSN: ${inScript(`666-${drawnSsn().slice(4)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `SSN: ${inScript(`${drawnSsn()}-${drawnDigitsOf(2)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
   // #10936
   "ip-address: right after a key's colon": (): CorpusEntry => {
     const first: string = drawnIpv6();
@@ -1649,7 +1836,7 @@ describe("values written the ways the detectors now read them too", () => {
    * A precision and a recall of 1: every labelled value found as its type,
    * and nothing else - no near miss, no other type - found in any of them.
    */
-  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960)", () => {
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030)", () => {
     const readingScores: Scores = score(READING_CASES);
     const wrong: Array<string> = [];
 
