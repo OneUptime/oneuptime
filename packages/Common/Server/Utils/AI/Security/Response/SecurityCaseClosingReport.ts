@@ -169,11 +169,11 @@ export function buildSecurityCaseClosingReport(
 
   if (input.mitreTactics.length > 0) {
     happened.push(
-      mdText`ATT&CK: ${input.mitreTactics
-        .map((tactic: string): string => {
+      mdText`ATT&CK: ${FeedMarkdown.join(
+        input.mitreTactics.map((tactic: string): string => {
           return describeMitreId(tactic);
-        })
-        .join(", ")}.`,
+        }),
+      )}.`,
     );
   }
 

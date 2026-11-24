@@ -208,6 +208,13 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     reason:
       "The evaluation summary's message, shown as plain text; the root cause beside it places each finding with mdText.",
   },
+  // A recovery condition's findings (#10355), held, met or still holding series.
+  {
+    file: "packages/Common/Server/Utils/Monitor/CriteriaRecovery.ts",
+    text: "`- Recovery condition: ${finding}`",
+    reason:
+      "A criteria's message in the evaluation summary, shown as plain text; the root cause beside it places each finding with mdText (describeHeld).",
+  },
   /*
    * The one place a title's suffix is written: buildTitleSuffix's for a
    * template's {{seriesResourceSuffix}}, and SeriesContextEnricher's for the
@@ -228,6 +235,19 @@ const ALLOWED_UNTAGGED: Array<AllowedUntagged> = [
     file: "packages/Common/Server/Services/MonitorStatusTimelineService.ts",
     inFunction: "getDailyUptimeAggregateSql",
     reason: "A Postgres statement, not Markdown.",
+  },
+  /*
+   * A Production Review point's suggested change (#10376): its lines,
+   * minus as the change has them and plus as they would be, inside the
+   * diff block it fences with fenceFor, which no backtick run in them can
+   * close. Code, not Markdown: tagged mdText, each line would be escaped,
+   * and the fence would show the backslashes.
+   */
+  {
+    file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts",
+    inFunction: "suggestionDiff",
+    reason:
+      "A suggested change's lines inside the diff block fenceFor fences: code shown as written, where nothing is read as Markdown, a mention or a link.",
   },
 ];
 

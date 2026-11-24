@@ -609,9 +609,10 @@ export function describeScrubPlanRule(
 
   if (rule.waitReasons.length > 0) {
     lines.push(
-      mdText`It waits for you because ${rule.waitReasons
-        .map(describeScrubWaitReason)
-        .join("; ")}.`,
+      mdText`It waits for you because ${FeedMarkdown.join(
+        rule.waitReasons.map(describeScrubWaitReason),
+        "; ",
+      )}.`,
     );
   }
 
