@@ -119,10 +119,9 @@ function decision(
   row.isSuppressed = kind === DataStoreFindingDecision.NotSensitive;
   row.isConfirmed = kind === DataStoreFindingDecision.Confirmed;
   row.isConfirmedByAi = false;
-  row.suppressedReason =
-    kind === DataStoreFindingDecision.NotSensitive
-      ? "Shopify order numbers, not card numbers."
-      : undefined;
+  if (kind === DataStoreFindingDecision.NotSensitive) {
+    row.suppressedReason = "Shopify order numbers, not card numbers.";
+  }
   row.decidedAt = new Date(NOW.getTime() - storeIndex * 60 * 1000);
   decided.push(row);
   return row;

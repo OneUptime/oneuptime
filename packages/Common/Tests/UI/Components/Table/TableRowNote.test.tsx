@@ -17,6 +17,8 @@ import TableBody from "../../../../UI/Components/Table/TableBody";
 import TableRow from "../../../../UI/Components/Table/TableRow";
 import Columns from "../../../../UI/Components/Table/Types/Columns";
 import FieldType from "../../../../UI/Components/Types/FieldType";
+import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
+import IconProp from "../../../../Types/Icon/IconProp";
 
 /*
  * A LINE ABOUT A ROW ACROSS ITS WHOLE WIDTH (Table's getRowNote, #10372,
@@ -80,6 +82,8 @@ function renderRows(data: {
         actionButtons={[
           {
             title: "Confirm",
+            icon: IconProp.Check,
+            buttonStyleType: ButtonStyleType.NORMAL,
             onClick: (): void => {
               return undefined;
             },

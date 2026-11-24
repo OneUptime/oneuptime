@@ -133,7 +133,7 @@ function waitingFinding(
   finding.isAiSuggested = false;
 
   if (record) {
-    finding.aiVerdict = record["verdict"] as string;
+    finding.aiVerdict = record["verdict"] as DataStoreFindingVerdict;
     finding.aiVerdictAnalysis = record;
   }
 
@@ -176,7 +176,7 @@ function renderNote(finding: DataStoreFinding): HTMLElement {
   return container;
 }
 
-let storeReads: SpyInstance<typeof ModelAPI.getList>;
+let storeReads: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   // The stores a reader may read: all but one.
@@ -594,7 +594,7 @@ function Decisions(props: {
 describe("a person's decision, then the findings like it", () => {
   test("Mark as Not Sensitive starts from OneUptime AI's draft, then offers the findings like it, and says what it applied", async () => {
     const changed: Array<string> = [];
-    const saved: SpyInstance<typeof ModelAPI.updateById> = jest
+    const saved: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ModelAPI, "updateById")
       .mockResolvedValue(undefined as never);
 

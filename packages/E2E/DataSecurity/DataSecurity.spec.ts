@@ -1074,6 +1074,56 @@ test.describe("OneUptime AI's verdicts on What's Inside (#10372)", () => {
     await screenshot(page, "inside-verdicts-390");
   });
 
+  for (const [lang, width] of [
+    ["de", 1280],
+    ["fa", 1280],
+    ["fa", 390],
+  ] as ReadonlyArray<["de" | "fa", number]>) {
+    test(`in ${lang} at ${width} pixels, the verdict's words are the reader's and OneUptime AI's own stay as written`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, PATHS["ordersInside"]!, { lang, width });
+
+      const verdict: Locator = page
+        .getByTestId("data-store-finding-ai-verdict")
+        .filter({ hasText: "These are shop order numbers" });
+
+      await expect(verdict).toBeVisible();
+      // The chip is the reader's language, never the English.
+      await expect(verdict).not.toContainText("Not sensitive");
+      await page.waitForLoadState("networkidle");
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `inside-verdicts-${lang}-${width}`);
+    });
+  }
+
+  for (const width of [1280, 390]) {
+    test(`In Your Telemetry reads a finding's verdict across its row, at ${width} pixels`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, `${BASE}/telemetry`, { data: "busy", width });
+
+      const verdict: Locator = page
+        .getByTestId("data-store-finding-ai-verdict")
+        .filter({ hasText: "Order numbers the checkout service logs" });
+
+      await expect(verdict).toBeVisible();
+      await expect(verdict).toContainText("Not sensitive");
+      await expect(
+        page
+          .getByTestId("data-store-finding-ai-precedent")
+          .filter({ hasText: "Your team marked order_number" }),
+      ).toContainText("Your team marked order_number not sensitive on 1 store.");
+      await page.waitForLoadState("networkidle");
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `telemetry-verdicts-${width}`);
+    });
+  }
+
   test("on the dark theme", async ({ page }: { page: Page }) => {
     await open(page, PATHS["ordersInside"]!, { theme: "dark" });
 

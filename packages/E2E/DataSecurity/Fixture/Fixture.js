@@ -2070,8 +2070,69 @@ function emptyData() {
   }
 }
 
+/*
+ * A busy project's logs also carry order numbers in an attribute, which the
+ * card number detector found and OneUptime AI judged (#10372): what In Your
+ * Telemetry draws across the finding's row.
+ */
+function addTelemetryVerdict() {
+  table(DataStoreFinding).push({
+    _id: ID.finding(23),
+    projectId,
+    dataStoreId: new ObjectID(ID.store(4)),
+    findingKey: "credit-card-number:attributes.order.number",
+    dataTypeId: "credit-card-number",
+    dataTypeName: "Card number",
+    dataCategory: DataCategory.Financial,
+    sensitivity: DataSensitivity.Restricted,
+    location: "attributes.order.number",
+    locationKind: "Attribute",
+    confidence: "Low",
+    matchCount: 7,
+    valueCount: 50,
+    matchPercent: 14,
+    distinctValues: 7,
+    testValueCount: 0,
+    maskedSamples: ["4532 **** **** 0366"],
+    isFreeText: false,
+    isNameHinted: false,
+    isFoundByName: false,
+    isScrubbed: false,
+    isSuppressed: false,
+    isConfirmed: false,
+    isAiSuggested: false,
+    isConfirmedByAi: false,
+    aiVerdict: "NotSensitive",
+    aiVerdictAt: ago(2 * HOUR),
+    aiVerdictAnalysis: {
+      version: 1,
+      verdict: "NotSensitive",
+      reason:
+        "Order numbers the checkout service logs with each request; they pass the Luhn check by chance, like the order_number columns your team marked.",
+      draft: "Order numbers in the request logs, not cards.",
+      precedent: [
+        {
+          findingId: ID.finding(90),
+          dataStoreId: ID.store(3),
+          location: "shop.orders.order_number",
+          decision: "NotSensitive",
+          reason: "Shopify order numbers. They pass Luhn by chance.",
+          isSameName: true,
+          decidedAt: ago(9 * DAY).toISOString(),
+        },
+      ],
+      signs: ["IdFieldWithLuhnNumbers"],
+      language: "en",
+      writtenAt: ago(2 * HOUR).toISOString(),
+    },
+    firstSeenAt: ago(1 * DAY),
+    lastSeenAt: ago(40 * MINUTE),
+  });
+}
+
 if (dataSet === "busy") {
   addBusyData();
+  addTelemetryVerdict();
 }
 
 if (dataSet === "empty") {
