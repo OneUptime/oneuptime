@@ -390,6 +390,16 @@ export enum DataSecurityAiProposalKind {
    * left out of its scans (#10372). For the store.
    */
   AddScanExclusion = "AddScanExclusion",
+  /*
+   * A service's telemetry leaks, fixed in its code (#10367): one pull
+   * request for every open telemetry leak of the service in one
+   * repository, across its logs, spans, exceptions, AI calls and metrics,
+   * starting from the places the leaks' records name. It is planned for
+   * the service, not for one issue, and kept on the riskiest of the issues
+   * it fixes; a rule whose Fix is Without asking opens it on its own,
+   * under the repository's cap on open AI pull requests.
+   */
+  FixTelemetryLeaksInCode = "FixTelemetryLeaksInCode",
 }
 
 // The kinds of change that fix a group of issues' cause, for the group alone (#10370).
@@ -508,6 +518,12 @@ export const DATA_SECURITY_AI_PROPOSAL_KINDS: Readonly<
     kind: DataSecurityAiProposalKind.AddScanExclusion,
     work: DataSecurityAiWork.Judge,
     safety: DataSecurityAiChangeSafety.ChangesWhatScansLookFor,
+  },
+  // A pull request merges nothing on its own: a rule may open it without asking.
+  [DataSecurityAiProposalKind.FixTelemetryLeaksInCode]: {
+    kind: DataSecurityAiProposalKind.FixTelemetryLeaksInCode,
+    work: DataSecurityAiWork.Fix,
+    safety: DataSecurityAiChangeSafety.OpensPullRequest,
   },
 };
 
@@ -861,6 +877,12 @@ export enum DataSecurityAiAskReason {
   TwoApprovals = "TwoApprovals",
   // OneUptime AI already made the most changes it may make in an hour.
   CircuitBreaker = "CircuitBreaker",
+  /*
+   * The repository already holds as many open AI pull requests as its "Max
+   * Open Fix Pull Requests" allows (#10367): a pull request a rule would
+   * open on its own waits until one is merged or closed.
+   */
+  AtPullRequestCap = "AtPullRequestCap",
 }
 
 export interface DataSecurityAiWithoutAskingVerdict {

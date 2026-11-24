@@ -126,6 +126,10 @@ export const CODE_TASK_RECIPE_LABELS: Record<string, string> = {
   [CodeFixTaskType.FixInfrastructureCode]: translationKey(
     "Fix Infrastructure Code",
   ),
+  // A service's telemetry leaks, fixed in its code (#10367).
+  [CodeFixTaskType.FixSensitiveDataInTelemetry]: translationKey(
+    "Fix Sensitive Data in Telemetry",
+  ),
 };
 
 export function getRecipeLabel(recipe: string | undefined): string {
@@ -186,6 +190,10 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.DataSecurityIssueGroup]: translationKey(
     "Started to fix the cause of Data Security issues: {{label}}",
   ),
+  // A service's telemetry leaks, fixed in its code (#10367): the service.
+  [CodeTaskOriginType.DataSecurityTelemetryLeaks]: translationKey(
+    "Started to stop {{label}} writing sensitive data to its telemetry",
+  ),
   [CodeTaskOriginType.Unknown]: translationKey("OneUptime started this task"),
 };
 
@@ -211,6 +219,9 @@ export const CODE_TASK_ORIGIN_KINDS: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.CodeHostPullRequest]: translationKey("Pull Request"),
   [CodeTaskOriginType.SecurityCase]: translationKey("Security Case"),
   [CodeTaskOriginType.DataSecurityIssueGroup]: translationKey(
+    "Data Security Issues",
+  ),
+  [CodeTaskOriginType.DataSecurityTelemetryLeaks]: translationKey(
     "Data Security Issues",
   ),
   [CodeTaskOriginType.Unknown]: "",

@@ -1173,6 +1173,8 @@ import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSe
 import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
 import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
+import { AddDataSecurityIssueCodeFixTask1809187530367 } from "./1809187530367-AddDataSecurityIssueCodeFixTask";
+import { AddDataSecurityIssueCodeFixTaskIndex1809187530377 } from "./1809187530377-AddDataSecurityIssueCodeFixTaskIndex";
 
 export default [
   InitialMigration,
@@ -2350,4 +2352,6 @@ export default [
   AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
   AddDataSecurityIssueResolution1809187510368,
   AddDataStoreFindingAiVerdicts1809187520372,
+  AddDataSecurityIssueCodeFixTask1809187530367,
+  AddDataSecurityIssueCodeFixTaskIndex1809187530377,
 ];

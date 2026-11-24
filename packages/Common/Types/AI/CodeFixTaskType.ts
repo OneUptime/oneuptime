@@ -140,6 +140,27 @@ enum CodeFixTaskType {
    * AIRun.taskContext.infrastructureFix at trigger time.
    */
   FixInfrastructureCode = "FixInfrastructureCode",
+  /*
+   * Stop a SERVICE's code writing sensitive data to its telemetry (#10367):
+   * one pull request for every open telemetry leak of the service in one
+   * repository, across its logs, spans, exceptions, AI calls and metrics.
+   * Data Security finds where each leak is written before the agent starts
+   * - from the records the leak was seen in, read inside OneUptime: a
+   * span's code location, an exception's own top frames, a log line's code
+   * attributes and its masked template ("User <Email address> signed up"),
+   * a metric's instrument - and decides how it is fixed: at the call site
+   * where it is written in at most three places, else one redaction step
+   * where the service sets up its telemetry, always for the keys the
+   * project's scrub rules already mask. Started by a person (Fix with AI on
+   * a telemetry issue, or approving OneUptime AI's proposal) or, as an AI
+   * rule allows, on its own, always in one repository
+   * (AIRun.codeRepositoryId). Its whole context - the request as Data
+   * Security's input builder wrote it, the places, keys, data types and
+   * templates, never a value or a record - is captured into
+   * AIRun.taskContext.telemetryLeakFix at trigger time. It reads nothing
+   * of production while it works (CodeAgentTelemetryScope).
+   */
+  FixSensitiveDataInTelemetry = "FixSensitiveDataInTelemetry",
 }
 
 export default CodeFixTaskType;
@@ -209,6 +230,7 @@ export class CodeFixTaskTypeHelper {
       case CodeFixTaskType.GitHubPullRequestProductionReview:
       case CodeFixTaskType.CodeRequest:
       case CodeFixTaskType.FixInfrastructureCode:
+      case CodeFixTaskType.FixSensitiveDataInTelemetry:
         return CodeFixContextKind.TaskContext;
       default:
         return CodeFixContextKind.TelemetryException;
@@ -337,6 +359,7 @@ export class CodeFixTaskTypeHelper {
       CodeFixTaskType.ImproveTracing,
       CodeFixTaskType.FixFromIncident,
       CodeFixTaskType.FixInfrastructureCode,
+      CodeFixTaskType.FixSensitiveDataInTelemetry,
     ];
   }
 
@@ -373,16 +396,18 @@ export class CodeFixTaskTypeHelper {
    * still be online, and handed a recipe it has no handler for it fails the
    * run at once ("No handler registered"). So such a Runner is only given
    * the recipes every Runner has had - every recipe but the ones added since.
-   * A request from Code, and the fix of a group of Data Security issues'
-   * cause (#10370), wait for a Runner that can do them instead. The recipes
-   * the server runs itself are never a Runner's (isRunByServer).
+   * A request from Code, the fix of a group of Data Security issues' cause
+   * (#10370) and the fix of a service's telemetry leaks (#10367) wait for a
+   * Runner that can do them instead. The recipes the server runs itself are
+   * never a Runner's (isRunByServer).
    */
   public static getTaskTypesForRunnersThatDoNotSay(): Array<CodeFixTaskType> {
     return CodeFixTaskTypeHelper.getRunnerTaskTypes().filter(
       (taskType: CodeFixTaskType): boolean => {
         return (
           taskType !== CodeFixTaskType.CodeRequest &&
-          taskType !== CodeFixTaskType.FixInfrastructureCode
+          taskType !== CodeFixTaskType.FixInfrastructureCode &&
+          taskType !== CodeFixTaskType.FixSensitiveDataInTelemetry
         );
       },
     );

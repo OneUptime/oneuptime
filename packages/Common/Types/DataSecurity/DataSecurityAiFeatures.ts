@@ -78,6 +78,12 @@ export enum DataSecurityAiFeature {
    * change writes to telemetry, does to a store or adds a column for.
    */
   ReviewPullRequests = "ReviewPullRequests",
+  /*
+   * The pull request that stops a service writing sensitive data to its
+   * telemetry (#10367): every open telemetry leak of the service in one
+   * repository, from the places its records name - a task in Code.
+   */
+  FixTelemetryLeaks = "FixTelemetryLeaks",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -437,6 +443,42 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProductionReview,
+    },
+    {
+      feature: DataSecurityAiFeature.FixTelemetryLeaks,
+      title: translationKey("Fix leaks in the code"),
+      startedBy: translationKey(
+        "A person, with Fix with AI on a telemetry issue or by approving OneUptime AI's proposal, in a repository they may change in Code; or, on its own, an AI rule whose Fix is Without asking.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey(
+          "Where the service's code writes each kind of data, as the records it was seen in name it: a file and line, a function, a span's or a logger's name, an exception's own frames and a metric's name",
+        ),
+        translationKey(
+          "Each log line as a template, its values replaced by their types' names, such as User <Email address> signed up",
+        ),
+        translationKey(
+          "Each attribute key and data type, how it should be fixed, and the issues the pull request fixes",
+        ),
+        translationKey(
+          "The repository's own code, which the coding agent reads to make the change",
+        ),
+      ],
+      neverSends: [
+        translationKey("A value of your data, nor a masked one"),
+        translationKey(
+          "A record the data was seen in: a log line as it was logged, a span's attributes, an exception's message",
+        ),
+        translationKey(
+          "What the service sent since: the coding agent reads none of your telemetry while it works",
+        ),
+      ],
+      keeps: translationKey(
+        "The task and its one pull request, under Code, which each issue it fixes keeps.",
+      ),
+      keepsProviderErrors: true,
+      modelSource: DataSecurityAiModelSource.CodeAgent,
     },
   ];
 
