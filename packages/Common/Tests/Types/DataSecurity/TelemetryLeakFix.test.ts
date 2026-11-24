@@ -83,7 +83,7 @@ describe("the signals a service's leaks are found in", () => {
     expect(
       getTelemetryLeakSignal(DataStoreKind.TelemetrySessionReplays),
     ).toBeNull();
-    expect(getTelemetryLeakSignal(DataStoreKind.Postgres)).toBeNull();
+    expect(getTelemetryLeakSignal(DataStoreKind.PostgreSql)).toBeNull();
     expect(getTelemetryLeakSignal(undefined)).toBeNull();
   });
 });

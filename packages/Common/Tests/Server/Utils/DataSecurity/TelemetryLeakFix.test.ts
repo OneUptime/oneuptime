@@ -63,6 +63,9 @@ import {
   TelemetryLeakSignal,
 } from "../../../../Types/DataSecurity/TelemetryLeakFix";
 import ObjectID from "../../../../Types/ObjectID";
+import Permission from "../../../../Types/Permission";
+import { customDomainCaller } from "../../API/CustomDomainCallers";
+import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
 import {
   StoredRow,
   useInMemoryTable,
@@ -121,9 +124,13 @@ const PLATFORM_REPOSITORY: ResolvableRepository = {
   repositoryName: "platform",
 };
 
+// A project owner: one who may read and change the issues.
 const PERSON: DatabaseCommonInteractionProps = {
-  tenantId: PROJECT_ID,
-  userId: new ObjectID("10367000-0000-4000-8000-0000000000aa"),
+  ...customDomainCaller({
+    permissions: [Permission.ProjectOwner],
+    projectId: PROJECT_ID,
+  }),
+  ...ON_HIGHEST_PLAN,
 };
 
 const asService: <T extends BaseModel>(

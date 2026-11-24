@@ -219,7 +219,9 @@ describe("a person asks", () => {
     expect(kept).toHaveBeenCalledTimes(1);
     expect(
       (
-        kept.mock.calls[0]![0] as { data: { codeFixTaskId: ObjectID } }
+        kept.mock.calls[0]![0] as unknown as {
+          data: { codeFixTaskId: ObjectID };
+        }
       ).data.codeFixTaskId.toString(),
     ).toBe(RUN_ID.toString());
   });

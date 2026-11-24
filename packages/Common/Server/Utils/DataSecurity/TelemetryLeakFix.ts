@@ -53,6 +53,7 @@ import {
 import { getScrubTarget } from "../../../Types/DataSecurity/TelemetryScrubTarget";
 import { DataSecurityAiProposalKind } from "../../../Types/DataSecurity/DataSecurityAi";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import ObjectID from "../../../Types/ObjectID";
 import { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import AIRunService from "../../Services/AIRunService";
@@ -795,6 +796,20 @@ export default class TelemetryLeakFix {
     result: DataSecurityTelemetryFixPlanResult;
     plan: TelemetryLeakFixPlan | null;
   }> {
+    // Only an issue the person may read: one held from them by its labels is not found.
+    if (!data.props.isRoot) {
+      const readable: DataSecurityIssue | null =
+        await DataSecurityIssueService.findOneBy({
+          query: { _id: data.issueId, projectId: data.projectId },
+          select: { _id: true },
+          props: data.props,
+        });
+
+      if (!readable?.id) {
+        throw new NotFoundException("Issue not found.");
+      }
+    }
+
     const issue: DataSecurityIssue | null =
       await DataSecurityIssueService.findOneBy({
         query: { _id: data.issueId, projectId: data.projectId },

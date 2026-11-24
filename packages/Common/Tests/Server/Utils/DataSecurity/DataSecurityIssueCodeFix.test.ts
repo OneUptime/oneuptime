@@ -57,6 +57,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHERE AN ISSUE'S FIX IN CODE STANDS, FOR THE READER (#10367): THE ISSUE
@@ -418,13 +419,12 @@ describe("a secret's issue", () => {
   });
 
   test("lists where the secret was seen - its secrets only - read with the reader's own permissions", async () => {
-    const findings: jest.SpiedFunction<typeof DataStoreFindingService.findBy> =
-      jest
-        .spyOn(DataStoreFindingService, "findBy")
-        .mockResolvedValue([
-          finding("aws-access-key-id", "message"),
-          finding("email-address", "attributes.user.email"),
-        ]);
+    const findings: SpyInstance<typeof DataStoreFindingService.findBy> = jest
+      .spyOn(DataStoreFindingService, "findBy")
+      .mockResolvedValue([
+        finding("aws-access-key-id", "message"),
+        finding("email-address", "attributes.user.email"),
+      ]);
 
     const shown: DataSecurityIssueCodeFixResult = await read();
 
