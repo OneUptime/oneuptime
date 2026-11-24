@@ -1383,6 +1383,15 @@ describe("StatusPageResourceService, never neither (#6558)", () => {
     } as unknown as UpdateBy<StatusPageResource>;
   }
 
+  type AnySpy = SpyInstance<(...args: Array<unknown>) => unknown>;
+
+  // The project check of a write's references (ProjectReferencesService), watched.
+  function watchProjectCheck(
+    check: "validateCreate" | "validateUpdate",
+  ): AnySpy {
+    return jest.spyOn(ProjectReferenceCheck, check) as unknown as AnySpy;
+  }
+
   // The reads of the rows an update clears: the ones asking what each shows.
   function clearReads(findBy: {
     mock: { calls: Array<Array<unknown>> };
@@ -1403,9 +1412,7 @@ describe("StatusPageResourceService, never neither (#6558)", () => {
   describe("on create", () => {
     it("refuses a resource naming neither, before the project check or any lookup", async () => {
       const mocks: ReturnType<typeof mockService> = mockService([]);
-      const projectCheck: SpyInstance<
-        typeof ProjectReferenceCheck.validateCreate
-      > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+      const projectCheck: AnySpy = watchProjectCheck("validateCreate");
 
       await expect(onBeforeCreate(rawCreateBy({}))).rejects.toThrow(
         new BadDataException(NO_TARGET_MESSAGE),
@@ -1476,9 +1483,7 @@ describe("StatusPageResourceService, never neither (#6558)", () => {
       "adds one naming %s, and checks its references first",
       async (_shape: string, values: Record<string, unknown>) => {
         mockService([]);
-        const projectCheck: SpyInstance<
-          typeof ProjectReferenceCheck.validateCreate
-        > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+        const projectCheck: AnySpy = watchProjectCheck("validateCreate");
 
         await expect(
           onBeforeCreate(rawCreateBy(values)),
@@ -1490,9 +1495,7 @@ describe("StatusPageResourceService, never neither (#6558)", () => {
 
     it("still refuses one naming both, before the project check", async () => {
       mockService([]);
-      const projectCheck: SpyInstance<
-        typeof ProjectReferenceCheck.validateCreate
-      > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+      const projectCheck: AnySpy = watchProjectCheck("validateCreate");
 
       await expect(
         onBeforeCreate(
@@ -1512,9 +1515,7 @@ describe("StatusPageResourceService, never neither (#6558)", () => {
       const mocks: ReturnType<typeof mockService> = mockService([
         makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
       ]);
-      const projectCheck: SpyInstance<
-        typeof ProjectReferenceCheck.validateUpdate
-      > = jest.spyOn(ProjectReferenceCheck, "validateUpdate");
+      const projectCheck: AnySpy = watchProjectCheck("validateUpdate");
 
       await expect(
         onBeforeUpdate(
