@@ -4907,6 +4907,29 @@ jobs:
           Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistoryPostgres.test.ts
           --forceExit
 
+      # #11023: the on-call time logs that policies deleted before #10983
+      # left open, which User On-Call Time counted as on call around the
+      # clock. EndOnCallTimeLogsOfDeletedPolicies ends exactly the open,
+      # undeleted logs of a policy no row has: when the audit log says it
+      # was deleted, else at the last stint started on it, else at their
+      # own start, never past the deletion; more than a page of them; a
+      # second run, or two at once, changes nothing more; and the report's
+      # own query and totals, before and after. Clones the migrated
+      # OnCallDutyPolicy and OnCallDutyPolicyTimeLog tables into an
+      # isolated schema. An App suite, so in shard 3, which installs App.
+      - name: Test ending the time logs deleted on-call policies left open on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_ORPHANED_ON_CALL_TIME_LOGS_TESTS: "true"
+          ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/EndOnCallTimeLogsOfDeletedPoliciesPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when
