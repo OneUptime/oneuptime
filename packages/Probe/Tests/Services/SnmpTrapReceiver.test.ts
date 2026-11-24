@@ -3,9 +3,12 @@ process.env["ONEUPTIME_URL"] = "https://oneuptime.com";
 process.env["PROBE_KEY"] = "test-probe-key";
 
 import SnmpTrapReceiver from "../../Services/SnmpTrapReceiver";
+import { SnmpV3Notification } from "../../Utils/Snmp/V3/SnmpV3NotificationProcessor";
 import { JSONObject } from "Common/Types/JSON";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
+import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
 import { describe, expect, it } from "@jest/globals";
+import snmp from "net-snmp";
 
 /*
  * Turning a net-snmp notification into the trap row the ingest endpoint
@@ -305,5 +308,198 @@ describe("SnmpTrapReceiver.parseNotification", () => {
     it("returns null for an empty notification", () => {
       expect(SnmpTrapReceiver.parseNotification({})).toBeNull();
     });
+  });
+});
+
+/*
+ * Varbind values as net-snmp really hands them over: each with its type. A
+ * Counter64, an Opaque and every OCTET STRING arrive as octets, which were
+ * printed as UTF-8 - a 64-bit counter or a MAC address came out as garbage.
+ * They read now as an SNMP walk shows them (SnmpWalkRowFormatter).
+ */
+describe("SnmpTrapReceiver.parseNotification, with net-snmp's types", () => {
+  function typedValueOf(type: number, value: unknown): string {
+    const trap: SnmpTrap | null = SnmpTrapReceiver.parseNotification(
+      v2Notification([
+        {
+          oid: SNMP_TRAP_OID_VARBIND,
+          type: snmp.ObjectType.OID,
+          value: "1.3.6.1.6.3.1.1.5.3",
+        },
+        { oid: "1.3.6.1.2.1.2.2.1.2", type: type, value: value as never },
+      ]),
+    );
+
+    return trap!.varbinds[1]!.value;
+  }
+
+  it("a Counter64 is its decimal value, in full", () => {
+    expect(
+      typedValueOf(
+        snmp.ObjectType.Counter64,
+        Buffer.from("ffffffffffffffff", "hex"),
+      ),
+    ).toBe("18446744073709551615");
+    expect(
+      typedValueOf(snmp.ObjectType.Counter64, Buffer.from("00002710", "hex")),
+    ).toBe("10000");
+  });
+
+  it("a binary OCTET STRING (a MAC address) is its octets in hex, not mojibake", () => {
+    expect(
+      typedValueOf(
+        snmp.ObjectType.OctetString,
+        Buffer.from("001b21aabbcc", "hex"),
+      ),
+    ).toBe("00 1B 21 AA BB CC");
+  });
+
+  it("a text OCTET STRING is its text, the NULs agents pad with dropped", () => {
+    expect(
+      typedValueOf(
+        snmp.ObjectType.OctetString,
+        Buffer.from("Gi0/1\u0000\u0000", "utf8"),
+      ),
+    ).toBe("Gi0/1");
+  });
+
+  it("an Opaque is hex, always", () => {
+    expect(
+      typedValueOf(snmp.ObjectType.Opaque, Buffer.from("9f780441200000", "hex")),
+    ).toBe("9F 78 04 41 20 00 00");
+  });
+
+  it("numbers, time ticks, OIDs, IP addresses and nulls", () => {
+    expect(typedValueOf(snmp.ObjectType.Integer, -5)).toBe("-5");
+    expect(typedValueOf(snmp.ObjectType.Counter32, 4294967295)).toBe(
+      "4294967295",
+    );
+    expect(typedValueOf(snmp.ObjectType.TimeTicks, 123456)).toBe("123456");
+    expect(typedValueOf(snmp.ObjectType.OID, "1.3.6.1.4.1.9")).toBe(
+      "1.3.6.1.4.1.9",
+    );
+    expect(typedValueOf(snmp.ObjectType.IpAddress, "10.0.0.1")).toBe(
+      "10.0.0.1",
+    );
+    expect(typedValueOf(snmp.ObjectType.Null, null)).toBe("");
+    expect(typedValueOf(snmp.ObjectType.NoSuchInstance, null)).toBe("");
+  });
+
+  it("a value of a type it does not know is printed as before", () => {
+    expect(typedValueOf(999, "kept")).toBe("kept");
+  });
+});
+
+describe("SnmpTrapReceiver.parseNotification, informs", () => {
+  it("a v2c inform says it is one: the probe acknowledged it", () => {
+    const trap: SnmpTrap | null = SnmpTrapReceiver.parseNotification(
+      v2Notification(
+        [{ oid: SNMP_TRAP_OID_VARBIND, value: "1.3.6.1.6.3.1.1.5.4" }],
+        { pdu: { type: snmp.PduType.InformRequest } },
+      ),
+    );
+
+    expect(trap!.isInform).toBe(true);
+  });
+
+  it("a trap does not carry isInform at all, so its stored row is what it always was", () => {
+    const trap: SnmpTrap | null = SnmpTrapReceiver.parseNotification(
+      v2Notification(
+        [{ oid: SNMP_TRAP_OID_VARBIND, value: "1.3.6.1.6.3.1.1.5.4" }],
+        { pdu: { type: snmp.PduType.TrapV2 } },
+      ),
+    );
+
+    expect(trap!).not.toHaveProperty("isInform");
+  });
+});
+
+describe("SnmpTrapReceiver.toSnmpV3Trap", () => {
+  function notification(
+    overrides?: Partial<SnmpV3Notification>,
+  ): SnmpV3Notification {
+    return {
+      isInform: false,
+      userName: "san-monitor",
+      securityLevel: SnmpSecurityLevel.AuthPriv,
+      contextEngineId: Buffer.from("80001F8880D5E4C3B2A1", "hex"),
+      contextName: "",
+      requestId: 9,
+      varbinds: [
+        {
+          oid: "1.3.6.1.2.1.1.3.0",
+          type: snmp.ObjectType.TimeTicks,
+          value: 77,
+        },
+        {
+          oid: SNMP_TRAP_OID_VARBIND,
+          type: snmp.ObjectType.OID,
+          value: "1.3.6.1.6.3.1.1.5.3",
+        },
+        {
+          oid: "1.3.6.1.2.1.31.1.1.1.6.3",
+          type: snmp.ObjectType.Counter64,
+          value: Buffer.from("0100000000", "hex"),
+        },
+      ],
+      senderEngineId: Buffer.from("80001F8880D5E4C3B2A1", "hex"),
+      ...overrides,
+    };
+  }
+
+  it("is the trap a v2c one would be, with the user and level instead of a community", () => {
+    const trap: SnmpTrap | null = SnmpTrapReceiver.toSnmpV3Trap(
+      notification(),
+      "10.20.0.5",
+    );
+
+    expect(trap).toEqual({
+      sourceIpAddress: "10.20.0.5",
+      trapOid: "1.3.6.1.6.3.1.1.5.3",
+      snmpVersion: "3",
+      receivedAt: expect.any(Date),
+      varbinds: [
+        { oid: "1.3.6.1.2.1.1.3.0", value: "77" },
+        { oid: SNMP_TRAP_OID_VARBIND, value: "1.3.6.1.6.3.1.1.5.3" },
+        { oid: "1.3.6.1.2.1.31.1.1.1.6.3", value: "4294967296" },
+      ],
+      isInform: false,
+      securityName: "san-monitor",
+      securityLevel: SnmpSecurityLevel.AuthPriv,
+      engineId: "80001F8880D5E4C3B2A1",
+    });
+    expect(trap).not.toHaveProperty("community");
+  });
+
+  it("an inform, a context name, and no engine when none was named", () => {
+    const trap: SnmpTrap | null = SnmpTrapReceiver.toSnmpV3Trap(
+      notification({
+        isInform: true,
+        contextName: "vf-128",
+        senderEngineId: Buffer.alloc(0),
+      }),
+      "10.20.0.5",
+    );
+
+    expect(trap!.isInform).toBe(true);
+    expect(trap!.contextName).toBe("vf-128");
+    expect(trap!).not.toHaveProperty("engineId");
+  });
+
+  it("nothing naming the trap (no snmpTrapOID.0) is no trap", () => {
+    expect(
+      SnmpTrapReceiver.toSnmpV3Trap(
+        notification({
+          varbinds: [
+            {
+              oid: "1.3.6.1.2.1.1.3.0",
+              type: snmp.ObjectType.TimeTicks,
+              value: 77,
+            },
+          ],
+        }),
+        "10.20.0.5",
+      ),
+    ).toBeNull();
   });
 });
