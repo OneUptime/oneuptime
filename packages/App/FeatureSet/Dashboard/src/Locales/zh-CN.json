@@ -64152,5 +64152,7 @@
   "View Alerts": "查看警报",
   "View Incidents": "查看事件",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{limit}} 个，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{size}} MB，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。"
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{size}} MB，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
+  "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add AI credits.": "此项目还没有支付方式。请在 项目设置 > 账单和发票 > 账单 中添加一个，然后添加 AI 积分。",
+  "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add to the balance.": "此项目还没有支付方式。请在 项目设置 > 账单和发票 > 账单 中添加一个，然后为余额充值。"
 }

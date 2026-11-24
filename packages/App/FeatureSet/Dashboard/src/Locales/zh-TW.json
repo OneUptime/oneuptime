@@ -64152,5 +64152,7 @@
   "View Alerts": "檢視警示",
   "View Incidents": "檢視事件",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待評估的請求超過了此監測器保留的 {{limit}} 個，因此略過了其中最早的請求。被略過的請求原本會開啟或解決的事件或警示可能不存在，或仍處於開啟狀態。",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待評估的請求超過了此監測器保留的 {{size}} MB，因此略過了其中最早的請求。被略過的請求原本會開啟或解決的事件或警示可能不存在，或仍處於開啟狀態。"
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待評估的請求超過了此監測器保留的 {{size}} MB，因此略過了其中最早的請求。被略過的請求原本會開啟或解決的事件或警示可能不存在，或仍處於開啟狀態。",
+  "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add AI credits.": "此專案尚無付款方式。請在「專案設定」>「帳單與發票」>「帳單」中新增一個，然後新增 AI 點數。",
+  "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add to the balance.": "此專案尚無付款方式。請在「專案設定」>「帳單與發票」>「帳單」中新增一個，然後為餘額儲值。"
 }

@@ -29,6 +29,7 @@ import {
   RECHARGE_BALANCE_LOCKED_TEMPLATE,
 } from "./ProjectBalanceCopy";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { ProjectPaymentMethodsState } from "../../Utils/ProjectPaymentMethods";
 
 /*
  * Whether the signed-in person may add to one of the project's prepaid
@@ -160,6 +161,28 @@ export const getCurrentProjectBillingMarketplace: () => CloudMarketplace | null 
       ? (marketplace as CloudMarketplace)
       : null;
   };
+
+/*
+ * Whether Add to Balance says first that the project has no payment method,
+ * and where to add one, in place of asking for an amount (#11053): only
+ * when that is known - the project's payment methods were counted, and
+ * there are none (Utils/ProjectPaymentMethods) - and no cloud marketplace
+ * bills the project, which has no card and needs none. While the count is
+ * on its way, or with a payment method, the amount is asked for as it
+ * always was.
+ */
+export const isPaymentMethodNeededFirst: (data: {
+  paymentMethods: ProjectPaymentMethodsState;
+  marketplace: CloudMarketplace | null;
+}) => boolean = (data: {
+  paymentMethods: ProjectPaymentMethodsState;
+  marketplace: CloudMarketplace | null;
+}): boolean => {
+  return (
+    !data.marketplace &&
+    data.paymentMethods === ProjectPaymentMethodsState.None
+  );
+};
 
 /*
  * The Current Balance card's description for a project a marketplace bills,
