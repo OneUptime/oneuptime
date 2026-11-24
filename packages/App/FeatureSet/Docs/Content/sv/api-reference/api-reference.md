@@ -268,6 +268,14 @@ Utöver meddelandet innehåller varje sådant avslag en `refusalCode` som säger
 
 En uppdatering som skickar en posts eget namn igen, oavsett skiftläge, är inget namnbyte, så poster som tidigare delade ett namn kan fortfarande ändras och få var sitt namn, men aldrig en annan posts namn. För team, etiketter, jourpolicyer och jourscheman svarar `GET /api/shared-names/team` (eller `label`, `on-call-policy`, `on-call-schedule`) på vilka som delar ett namn: `{"groups": [["<id>", "<id>"]]}`, där varje grupp är de ID:n som din nyckel får läsa, för de poster vars namn läses likadant. Arkiverade etiketter och jourpolicyer räknas inte med.
 
+Ett projekt som kräver unika namn, som ett nytt projekt gör, håller de flesta andra slag som du namnger till samma regel, bland dem monitorer, monitorgrupper, sonder, mallar, API-nycklar och pipelines, med samma koder. Projektets `requireUniqueNames` säger om det gör det, och en Projektägare eller Projektadministratör ändrar det under projektinställningarna i instrumentpanelen:
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+En sådan avvisning har också `takenById`, ID:t för posten som har namnet, när din nyckel får läsa den. Poster som delade ett namn innan projektet krävde unika namn behåller det tills de byter namn, och en uppdatering kan inte ge flera poster av samma slag samma namn. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` svarar på om ett namn är upptaget innan du skickar det, och `GET /api/unique-names/duplicates` listar de namn som projektet har mer än en gång, slag för slag.
+
 #### Värden som en annan post redan har
 
 Även vissa värden som inte är ett namn hör till en post var: domänen för en statussida, en instrumentpanel eller ett formulär, en projektdomän, identifieraren för en värd eller ett Kubernetes-kluster, inloggnings-URL:en för en SSO-leverantör och behörigheten för en API-nyckel, bland andra. Ett skapande, eller en uppdatering som ändrar ett av dem, till ett värde som en annan post har avvisas med en `400` som säger det:

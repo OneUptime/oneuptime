@@ -58,13 +58,13 @@ Na etapa **Critérios**, abra o primeiro critério, o que marca o monitor como o
 
 ### Abrir um incidente por alerta
 
-No mesmo critério, abra **Configurações** e ative **Group incidents and alerts by a payload field**. Preencha como abaixo, para que cada alerta tenha o próprio incidente e a recuperação dele o resolva:
+No mesmo critério, abra **Configurações** e ative **Agrupar incidentes e alertas por um campo da carga útil**. Preencha como abaixo, para que cada alerta tenha o próprio incidente e a recuperação dele o resolva:
 
 | Campo | Valor |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Abrir um incidente separado para cada…** | `requestBody.alerts[*].fingerprint` |
+| **Campo que sinaliza a recuperação** | `requestBody.alerts[*].status` |
+| **Valor que significa recuperado** | `resolved` |
 
 ### Colocar o monitor online de novo
 
@@ -81,7 +81,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Uma instalação auto-hospedada tem o próprio host no lugar de `oneuptime.com`.
 :::
 
-`[*]` lê cada alerta de uma notificação, então uma notificação de três alertas pode abrir três incidentes, até o limite de **Max incidents per request** (`100`, a menos que você o mude). O `status` de cada alerta decide o que acontece com o incidente dele: quando um alerta de uma notificação é resolvido e dois continuam disparando, só o incidente do alerta resolvido é fechado. Veja [Receber alertas de outro sistema](/docs/monitor/incoming-request-monitor#receber-alertas-de-outro-sistema) para o que cada configuração faz.
+`[*]` lê cada alerta de uma notificação, então uma notificação de três alertas pode abrir três incidentes, até o limite de **Máximo de incidentes por requisição** (`100`, a menos que você o mude). O `status` de cada alerta decide o que acontece com o incidente dele: quando um alerta de uma notificação é resolvido e dois continuam disparando, só o incidente do alerta resolvido é fechado. Veja [Receber alertas de outro sistema](/docs/monitor/incoming-request-monitor#receber-alertas-de-outro-sistema) para o que cada configuração faz.
 
 > [!WARNING]
 > Agrupe por um valor que muda de um alerta para outro dentro de uma notificação. O `fingerprint` do Alertmanager é um hash do conjunto inteiro de rótulos de um alerta, então ele sempre muda. Um rótulo do `group_by` da sua rota nunca muda: é ele que põe os alertas em uma mesma notificação. Agrupar por `requestBody.alerts[*].labels.alertname` com a rota abaixo junta todos os alertas de uma notificação em um incidente, que assume o status do primeiro alerta.
@@ -264,8 +264,8 @@ Quando o alerta watchdog fica dez minutos sem chegar, o monitor watchdog fica of
 :::details Os incidentes abrem mas nunca são resolvidos
 - Verifique que nenhum receptor defina `send_resolved: false`: nesse caso o Alertmanager nunca envia uma recuperação.
 - O incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**.
-- **Field that signals recovery** deve ser `requestBody.alerts[*].status`, e **Value that means recovered** exatamente `resolved`. A comparação diferencia maiúsculas de minúsculas.
-- Os alertas de uma notificação acima de **Max incidents per request** nem são lidos, então as recuperações deles também se perdem.
+- **Campo que sinaliza a recuperação** deve ser `requestBody.alerts[*].status`, e **Valor que significa recuperado** exatamente `resolved`. A comparação diferencia maiúsculas de minúsculas.
+- Os alertas de uma notificação acima de **Máximo de incidentes por requisição** nem são lidos, então as recuperações deles também se perdem.
 - Uma recuperação pulada porque notificações demais estavam esperando (veja abaixo) deixa o incidente dela aberto para sempre: o Alertmanager repete os alertas disparados, mas nunca uma recuperação. Resolva esse incidente manualmente.
 :::
 
@@ -282,7 +282,7 @@ Uma referência a um campo que a notificação não tem fica como está escrita,
 :::
 
 :::details Incidentes demais
-Agrupe a sua rota por menos rótulos, ou aumente o `group_interval`, para que o Alertmanager envie juntos os alertas relacionados. Baixar **Max incidents per request** limita os incidentes de uma notificação, mas os alertas acima do limite não são lidos, então as recuperações deles também se perdem.
+Agrupe a sua rota por menos rótulos, ou aumente o `group_interval`, para que o Alertmanager envie juntos os alertas relacionados. Baixar **Máximo de incidentes por requisição** limita os incidentes de uma notificação, mas os alertas acima do limite não são lidos, então as recuperações deles também se perdem.
 :::
 
 :::details Uma rajada de notificações

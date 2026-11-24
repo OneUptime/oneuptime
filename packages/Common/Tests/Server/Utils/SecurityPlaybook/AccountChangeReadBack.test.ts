@@ -1,5 +1,6 @@
 import SecurityCaseEvidence from "../../../../Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityEventConnection from "../../../../Models/DatabaseModels/SecurityEventConnection";
+import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import SecurityCaseEvidenceService from "../../../../Server/Services/SecurityCaseEvidenceService";
 import SecurityEventConnectionService from "../../../../Server/Services/SecurityEventConnectionService";
 import {
@@ -10,6 +11,7 @@ import AccountChangesState, {
   AccountChangesReading,
 } from "../../../../Server/Utils/SecurityCase/StepChecks/Evidence/AccountChangesState";
 import { SecurityConnectorSettings } from "../../../../Server/Utils/SecurityEvent/Connectors/Types";
+import { GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE } from "../../../../Server/Utils/SecurityEvent/Response/GoogleWorkspaceResponseClient";
 import AccountChangeReadBack, {
   ACCOUNT_CHANGE_CONNECTION_PROVIDERS,
   AccountChangeFacts,
@@ -93,6 +95,8 @@ function change(data: Partial<AccountChange>): AccountChange {
     objectName: "",
     detailId: "",
     ownerType: "",
+    cloudAccountId: "",
+    cloudConnectionId: "",
     eventName: "",
     eventUid: "event-1",
     time: "2026-11-17T19:30:00.000Z",
@@ -912,19 +916,211 @@ describe("Google Workspace", () => {
     ).toBe(AccountChangeState.Unknown);
   });
 
-  test("a group is not read back: the connection holds no scope to read one", async () => {
-    expect(
+  /*
+   * A group an attack added the account to (#10901): one membership, read
+   * with the group member scope a connection set up before it was asked
+   * for may not have.
+   */
+  describe("a group", () => {
+    const group: Partial<AccountChange> = google({
+      kind: AccountChangeKind.Group,
+      objectName: "finance@acme.com",
+    });
+
+    // The scope each token is minted for, from the assertion it is asked with.
+    function scopeOf(request: DataSourceHttpRequest): string {
+      const assertion: string = String(
+        (request.body as Record<string, string> | undefined)?.["assertion"] ||
+          "",
+      );
+      const payload: string = assertion.split(".")[1] || "";
+
+      return String(
+        (
+          JSON.parse(
+            Buffer.from(payload, "base64url").toString("utf8") || "{}",
+          ) as Record<string, unknown>
+        )["scope"] || "",
+      );
+    }
+
+    /*
+     * Workspace with groups, each by its address and the ids of its own
+     * members; a delegation that may refuse the group member scope, and a
+     * members read that may answer otherwise.
+     */
+    function withGroups(data: {
+      groups?: Record<string, Array<string>>;
+      refusesGroupScope?: boolean;
+      membersStatus?: number;
+      requests?: Array<DataSourceHttpRequest>;
+    }): Transport {
+      const users: Transport = workspace({});
+
+      return async (
+        request: DataSourceHttpRequest,
+      ): Promise<DataSourceHttpResponse> => {
+        data.requests?.push(request);
+
+        if (request.url === FAKE_TOKEN_URI) {
+          return data.refusesGroupScope &&
+            scopeOf(request) === GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE
+            ? respond(401, {
+                error: "unauthorized_client",
+                error_description:
+                  "Client is unauthorized to retrieve access tokens using this method, or client not authorized for any of the scopes requested.",
+              })
+            : respond(200, { access_token: "token", expires_in: 3599 });
+        }
+
+        const match: RegExpMatchArray | null = new URL(
+          request.url,
+        ).pathname.match(
+          /\/admin\/directory\/v1\/groups\/([^/]+)\/members\/([^/]+)$/,
+        );
+
+        if (!match) {
+          return await users(request);
+        }
+
+        if (request.method !== "GET") {
+          throw new Error(`a read-back must not ${request.method} a group`);
+        }
+
+        if (data.membersStatus) {
+          return respond(data.membersStatus, {
+            error: {
+              code: data.membersStatus,
+              message: "Not Authorized to access this resource/api",
+            },
+          });
+        }
+
+        const members: Array<string> | undefined = (data.groups || {})[
+          decodeURIComponent(match[1]!)
+        ];
+
+        return members && members.includes(decodeURIComponent(match[2]!))
+          ? respond(200, {
+              kind: "admin#directory#member",
+              id: match[2],
+              role: "MEMBER",
+              type: "USER",
+              status: "ACTIVE",
+            })
+          : respond(404, {
+              error: {
+                code: 404,
+                message: members
+                  ? "Resource Not Found: memberKey"
+                  : "Resource Not Found: groupKey",
+              },
+            });
+      };
+    }
+
+    test("still there while the group names the account a member of its own", async () => {
+      expect(
+        await read(
+          GOOGLE_SETTINGS,
+          group,
+          withGroups({
+            groups: { "finance@acme.com": [String(ALICE["id"])] },
+          }),
+        ),
+      ).toEqual({
+        provider: "Google Workspace",
+        state: AccountChangeState.StillThere,
+        url: `https://admin.google.com/ac/users/${String(ALICE["id"])}`,
+      });
+    });
+
+    test("undone once the account is removed, or the group with it", async () => {
+      expect(
+        (
+          await read(
+            GOOGLE_SETTINGS,
+            group,
+            withGroups({ groups: { "finance@acme.com": ["someone-else"] } }),
+          )
+        )?.state,
+      ).toBe(AccountChangeState.Undone);
+      expect(
+        (await read(GOOGLE_SETTINGS, group, withGroups({ groups: {} })))?.state,
+      ).toBe(AccountChangeState.Undone);
+    });
+
+    test("reads the one membership, by the account's id, with a token of the group member scope alone", async () => {
+      const requests: Array<DataSourceHttpRequest> = [];
+
       await read(
         GOOGLE_SETTINGS,
-        google({
-          kind: AccountChangeKind.Group,
-          objectName: "finance@acme.com",
+        group,
+        withGroups({
+          groups: { "finance@acme.com": [String(ALICE["id"])] },
+          requests,
         }),
-        workspace({}),
-      ),
-    ).toMatchObject({
-      state: AccountChangeState.Unknown,
-      reason: AccountChangeUnknownReason.NotReadBack,
+      );
+
+      const membership: DataSourceHttpRequest | undefined = requests.find(
+        (request: DataSourceHttpRequest): boolean => {
+          return request.url.includes("/groups/");
+        },
+      );
+
+      expect(membership?.url).toBe(
+        `https://admin.googleapis.com/admin/directory/v1/groups/finance%40acme.com/members/${String(ALICE["id"])}`,
+      );
+      expect(
+        requests
+          .filter((request: DataSourceHttpRequest): boolean => {
+            return request.url === FAKE_TOKEN_URI;
+          })
+          .map(scopeOf),
+      ).toContain(GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE);
+    });
+
+    test("a delegation without the scope keeps working: the change is a person's to confirm, saying what to grant", async () => {
+      expect(
+        await read(
+          GOOGLE_SETTINGS,
+          group,
+          withGroups({ refusesGroupScope: true }),
+        ),
+      ).toEqual({
+        provider: "Google Workspace",
+        state: AccountChangeState.Unknown,
+        reason: AccountChangeUnknownReason.NotGranted,
+        url: `https://admin.google.com/ac/users/${String(ALICE["id"])}`,
+      });
+    });
+
+    test("an administrator Google will not show the group to is not given the read either", async () => {
+      expect(
+        await read(GOOGLE_SETTINGS, group, withGroups({ membersStatus: 403 })),
+      ).toMatchObject({
+        state: AccountChangeState.Unknown,
+        reason: AccountChangeUnknownReason.NotGranted,
+      });
+    });
+
+    test("a members read Google fails at is thrown, never taken as undone", async () => {
+      await expect(
+        read(GOOGLE_SETTINGS, group, withGroups({ membersStatus: 500 })),
+      ).rejects.toThrow();
+    });
+
+    test("an event that names no group is not looked for", async () => {
+      expect(
+        await read(
+          GOOGLE_SETTINGS,
+          { ...group, objectName: "" },
+          withGroups({}),
+        ),
+      ).toMatchObject({
+        state: AccountChangeState.Unknown,
+        reason: AccountChangeUnknownReason.NotNamed,
+      });
     });
   });
 
@@ -964,13 +1160,15 @@ describe("each change is read in every connection of its product", () => {
     return row;
   }
 
-  test("AWS has no connection that reads it back; a product with none says so", () => {
+  test("AWS is read through the cloud connections, never a security event connection", () => {
     expect(ACCOUNT_CHANGE_CONNECTION_PROVIDERS[AccountChangeProvider.Aws]).toBe(
       null,
     );
   });
 
   test("still there in one connection wins; a failure is said; no connection is said", async () => {
+    // The project has no AWS cloud connection.
+    jest.spyOn(CloudConnectionService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(SecurityEventConnectionService, "findBy")
       .mockResolvedValue([
@@ -1001,7 +1199,11 @@ describe("each change is read in every connection of its product", () => {
           provider: AccountChangeProvider.GoogleWorkspace,
           objectName: "finance@acme.com",
         }),
-        change({ provider: AccountChangeProvider.Aws, objectName: "AKIA" }),
+        change({
+          provider: AccountChangeProvider.Aws,
+          objectName: "AKIA",
+          cloudAccountId: "123456789012",
+        }),
       ],
     });
 

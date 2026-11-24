@@ -68,8 +68,11 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @CrudApiEndpoint(new Route("/docker-swarm-cluster-owner-user"))
 @TableMetadata({
   tableName: "DockerSwarmClusterOwnerUser",
-  singularName: "DockerSwarm Cluster User Owner",
-  pluralName: "DockerSwarm Cluster User Owners",
+  singularName: "Docker Swarm Cluster User Owner",
+  pluralName: "Docker Swarm Cluster User Owners",
+  // Was "DockerSwarm Cluster User Owner" (#7474): its API names stay.
+  apiSingularName: "DockerSwarm Cluster User Owner",
+  apiPluralName: "DockerSwarm Cluster User Owners",
   icon: IconProp.Cube,
   tableDescription: "Add users as owners to your Docker Swarm clusters.",
 })
@@ -264,9 +267,9 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     manyToOneRelationColumn: "dockerSwarmClusterId",
     type: TableColumnType.Entity,
     modelType: DockerSwarmCluster,
-    title: "DockerSwarm Cluster",
+    title: "Docker Swarm Cluster",
     description:
-      "Relation to DockerSwarm Cluster Resource in which this object belongs",
+      "Relation to Docker Swarm Cluster Resource in which this object belongs",
   })
   @ManyToOne(
     () => {
@@ -308,7 +311,7 @@ export default class DockerSwarmClusterOwnerUser extends BaseModel {
     type: TableColumnType.ObjectID,
     required: true,
     canReadOnRelationQuery: true,
-    title: "DockerSwarm Cluster ID",
+    title: "Docker Swarm Cluster ID",
     description: "ID of the Docker Swarm cluster the user owns",
   })
   @Column({

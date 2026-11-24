@@ -23,15 +23,18 @@ import Logo, {
   getLogoDestination,
   HEADER_LOGO_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Header/Logo";
+import { GiveFeedbackOpenedFrom } from "../../../../App/FeatureSet/Dashboard/src/Components/Feedback/GiveFeedbackDialog";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import {
   PHONE_MENU_HELP_ASK_TEST_ID,
+  PHONE_MENU_HELP_CLASS_NAME,
   PHONE_MENU_HELP_LEARN_TEST_ID,
   PHONE_MENU_HELP_TEST_ID,
   PHONE_MENU_SEARCH_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/PhoneMenuEntries";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import arabicLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Route from "../../../Types/API/Route";
@@ -43,6 +46,7 @@ import {
 import { RECENT_PRODUCTS_STORAGE_KEY } from "../../../UI/Components/Navbar/NavBarRecentProducts";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import Navigation from "../../../UI/Utils/Navigation";
+import ProductFeedback from "../../../UI/Utils/ProductFeedback";
 import {
   DESKTOP_WIDTH,
   MOBILE_WIDTH,
@@ -52,6 +56,11 @@ import {
   setViewportWidth,
 } from "./SideMenuHarness";
 import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 /*
  * The frame of every page, on a phone and at its top left (#6816).
@@ -61,10 +70,13 @@ import { refuseRequestsTo } from "../../Helpers/RealNetworkRequests";
  *  - Below 768 pixels the header leaves out Search and Help to keep its
  *    width, and the products menu is the phone's menu: there was no way to
  *    Search, the docs or support on a phone. The phone's menu now starts
- *    with Search and ends with Help (the header's own entries, the ways to
+ *    with Search and then Help (the header's own entries, the ways to
  *    learn first), and lists the products visited last, as the desktop
  *    products menu does. From 768 up the header draws Search and Help
  *    itself (#7037, DashboardHelpAtTabletWidths).
+ *  - Help, with Give feedback in it, ended the menu, under User Settings
+ *    and every product, and people scrolled looking for it (#7473). It is
+ *    the row right under Search now, above Home, whatever the project uses.
  */
 
 /*
@@ -143,6 +155,7 @@ beforeAll(async () => {
     resources: {
       en: { translation: englishLocale },
       de: { translation: germanLocale },
+      ar: { translation: arabicLocale },
     },
     interpolation: { escapeValue: false },
   });
@@ -209,7 +222,7 @@ describe("the logo goes Home", () => {
 });
 
 describe("Search and Help in the phone's menu", () => {
-  test("the menu starts with Search, above Home, and ends with Help, below User Settings", () => {
+  test("the menu starts with Search, then Help, both above Home, every product and User Settings", () => {
     render(navbar());
     openPhoneMenu();
 
@@ -221,10 +234,15 @@ describe("Search and Help in the phone's menu", () => {
     const userSettings: HTMLElement = screen.getByRole("link", {
       name: "User Settings",
     });
+    const firstCategory: HTMLElement = screen.getByRole("button", {
+      name: /Essentials/,
+    });
 
     expect(searchRow).toHaveTextContent("Search");
-    expect(follows(searchRow, home)).toBe(true);
-    expect(follows(userSettings, help)).toBe(true);
+    expect(follows(searchRow, help)).toBe(true);
+    expect(follows(help, home)).toBe(true);
+    expect(follows(help, firstCategory)).toBe(true);
+    expect(follows(help, userSettings)).toBe(true);
     expect(within(help).getByRole("button", { name: "Help" })).toBeVisible();
   });
 
@@ -331,7 +349,9 @@ describe("Search and Help in the phone's menu", () => {
       );
       fireEvent.click(screen.getByText("How OneUptime works"));
 
-      expect(opened.calls).toHaveBeenCalledWith({ from: "phone-menu" });
+      expect(opened.calls).toHaveBeenCalledWith({
+        from: "phone-menu",
+      });
       expect(isMenuOpen()).toBe(false);
     } finally {
       opened.stop();
@@ -380,6 +400,175 @@ describe("Search and Help in the phone's menu", () => {
   });
 });
 
+describe("Help is found at the top of the phone's menu (#7473)", () => {
+  // Every control of the open menu, in the order a finger or Tab meets them.
+  function menuControls(): Array<HTMLElement> {
+    return Array.from(
+      screen
+        .getByTestId("mobile-nav-menu")
+        .querySelectorAll<HTMLElement>("a, button"),
+    );
+  }
+
+  function helpToggle(): HTMLElement {
+    return within(screen.getByTestId(PHONE_MENU_HELP_TEST_ID)).getByRole(
+      "button",
+      { name: "Help" },
+    );
+  }
+
+  test("Help is the menu's second control: Search alone comes before it", () => {
+    render(navbar());
+    openPhoneMenu();
+
+    const controls: Array<HTMLElement> = menuControls();
+
+    expect(controls[0]).toBe(screen.getByTestId(PHONE_MENU_SEARCH_TEST_ID));
+    expect(controls[1]).toBe(helpToggle());
+    expect(controls.indexOf(screen.getByRole("link", { name: "Home" }))).toBe(
+      2,
+    );
+  });
+
+  test.each([1, 2, 3, 4, 5, 6])(
+    "seed %i: whatever products were visited last, Help stays second, above them and Home",
+    (seed: number) => {
+      const random: SeededRandom = seededRandom(seed);
+      const visited: Array<string> = shuffled(
+        [
+          ...OPENED,
+          PageMap.STATUS_PAGES,
+          PageMap.WORKFLOWS,
+          PageMap.DASHBOARDS,
+          PageMap.HOSTS,
+        ],
+        random,
+      ).slice(0, 1 + random(8));
+
+      window.localStorage.setItem(
+        RECENT_PRODUCTS_STORAGE_KEY,
+        JSON.stringify(
+          visited.map((key: string): string => {
+            return routeFor(key);
+          }),
+        ),
+      );
+      render(navbar());
+      openPhoneMenu();
+
+      const controls: Array<HTMLElement> = menuControls();
+      const recent: HTMLElement = screen.getByTestId(
+        MOBILE_MENU_RECENT_TEST_ID,
+      );
+
+      expect(controls.indexOf(helpToggle())).toBe(1);
+      expect(follows(helpToggle(), recent)).toBe(true);
+      expect(
+        follows(helpToggle(), screen.getByRole("link", { name: "Home" })),
+      ).toBe(true);
+    },
+  );
+
+  test("Help starts folded, so the products are still in view under it", () => {
+    render(navbar());
+    openPhoneMenu();
+
+    expect(helpToggle()).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByTestId(PHONE_MENU_HELP_LEARN_TEST_ID)).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Essentials/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("opened, its entries sit right under it, above Home: Give feedback first among the ways to ask", () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: false });
+
+    try {
+      render(navbar());
+      openPhoneMenu();
+      fireEvent.click(helpToggle());
+
+      const ask: HTMLElement = screen.getByTestId(PHONE_MENU_HELP_ASK_TEST_ID);
+      const home: HTMLElement = screen.getByRole("link", { name: "Home" });
+
+      expect(rowTitles(ask)).toEqual([
+        "Give feedback",
+        "Support Email",
+        "Chat on Slack",
+        "Request Demo",
+      ]);
+      expect(follows(ask, home)).toBe(true);
+      expect(screen.getByTestId(PHONE_MENU_HELP_TEST_ID).contains(ask)).toBe(
+        true,
+      );
+    } finally {
+      ProductFeedback.setSettings(null);
+    }
+  });
+
+  test("Give feedback, two taps from the menu's top, closes the menu and opens its dialog from the phone's menu", () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: false });
+    const opened: { calls: MockFunction; stop: () => void } = listenTo(
+      EventName.GIVE_FEEDBACK_OPEN,
+    );
+
+    try {
+      render(navbar());
+      openPhoneMenu();
+      fireEvent.click(helpToggle());
+      fireEvent.click(screen.getByText("Give feedback"));
+
+      expect(opened.calls).toHaveBeenCalledWith({
+        from: GiveFeedbackOpenedFrom.PhoneMenu,
+      });
+      expect(isMenuOpen()).toBe(false);
+    } finally {
+      opened.stop();
+      ProductFeedback.setSettings(null);
+    }
+  });
+
+  test("a rule under Help sets Search and Help apart from Home and the products", () => {
+    render(navbar());
+    openPhoneMenu();
+
+    const help: HTMLElement = screen.getByTestId(PHONE_MENU_HELP_TEST_ID);
+
+    expect(help.className).toBe(PHONE_MENU_HELP_CLASS_NAME);
+    expect(PHONE_MENU_HELP_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["border-b", "border-gray-100"]),
+    );
+    // Not the rule over it that set it apart at the menu's foot.
+    expect(PHONE_MENU_HELP_CLASS_NAME.split(" ")).not.toContain("border-t");
+  });
+
+  test.each(["de", "ar"])(
+    "in %s, Search and then Help open the menu, in that language's words",
+    async (language: string) => {
+      await translation.changeLanguage(language);
+      render(navbar());
+      openPhoneMenu();
+
+      const words: { header: { search: string }; help: { label: string } } =
+        (language === "de" ? germanLocale : arabicLocale) as unknown as {
+          header: { search: string };
+          help: { label: string };
+        };
+      const controls: Array<HTMLElement> = menuControls();
+
+      expect(words.help.label).not.toBe("Help");
+      expect(controls[0]).toHaveTextContent(words.header.search);
+      expect(controls[1]).toHaveTextContent(words.help.label);
+      expect(
+        within(screen.getByTestId(PHONE_MENU_HELP_TEST_ID)).getByRole(
+          "button",
+          { name: words.help.label },
+        ),
+      ).toBe(controls[1]);
+    },
+  );
+});
+
 describe("the products visited last, in the phone's menu", () => {
   function remember(pageMapKeys: Array<string>): void {
     window.localStorage.setItem(
@@ -425,7 +614,9 @@ describe("the products visited last, in the phone's menu", () => {
 
     const recent: HTMLElement = screen.getByTestId(MOBILE_MENU_RECENT_TEST_ID);
     const home: HTMLElement = screen.getByRole("link", { name: "Home" });
-    const firstCategory: HTMLElement = screen.getAllByRole("group")[1]!;
+    const firstCategory: HTMLElement = screen.getByRole("button", {
+      name: /Essentials/,
+    });
 
     expect(follows(home, recent)).toBe(true);
     expect(follows(recent, firstCategory)).toBe(true);

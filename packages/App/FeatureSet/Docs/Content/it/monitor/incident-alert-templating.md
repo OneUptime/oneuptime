@@ -196,7 +196,7 @@ Queste variabili descrivono la serie per cui un monitor raggruppato ha aperto l'
 | `requestMethod` | Il metodo HTTP, come `POST`. | `string` |
 | `incomingRequestReceivedAt` | Quando è stata ricevuta la richiesta, come timestamp ISO 8601. | `string` |
 
-Quando il criterio ha **Group incidents and alerts by a payload field** attivato, anche la chiave di raggruppamento è una variabile, con il nome dell'**ultimo segmento** del percorso di raggruppamento: raggruppare per `requestBody.alerts[*].labels.alertname` dà `{{alertname}}`, e raggruppare per `requestBody.alerts[*].fingerprint` dà `{{fingerprint}}`. L'intero `requestBody` resta disponibile accanto.
+Quando il criterio ha **Raggruppa incidenti e avvisi per un campo del payload** attivato, anche la chiave di raggruppamento è una variabile, con il nome dell'**ultimo segmento** del percorso di raggruppamento: raggruppare per `requestBody.alerts[*].labels.alertname` dà `{{alertname}}`, e raggruppare per `requestBody.alerts[*].fingerprint` dà `{{fingerprint}}`. L'intero `requestBody` resta disponibile accanto.
 
 > [!NOTE]
 > `[*]` funziona solo nei campi del percorso di raggruppamento. In un modello non legge nulla, quindi il segnaposto resta come scritto. `{{requestBody.alerts[0].annotations.summary}}` legge sempre il primo avviso del payload, non quello per cui è stato aperto l'incidente: usa la variabile di raggruppamento e i campi condivisi del payload, come `commonLabels` e `commonAnnotations`. Vedi [Monitor richieste in arrivo](/docs/monitor/incoming-request-monitor).

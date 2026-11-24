@@ -894,6 +894,17 @@ what was further down.
   ([`introduction/glossary.md`](../../packages/App/FeatureSet/Docs/Content/en/introduction/glossary.md))
   and the name the menu uses. A renamed thing is still found by its old name in Search. Not enforced:
   use judgement.
+- **A menu entry says the name of the page it opens.** A person learns a name from the menu and
+  looks for it on the page: the products menu's Chat opened the Ask AI panel over Home, its Insights
+  a page titled AI Insights, the profile menu's Admin Settings the Admin Dashboard, whose own
+  Settings pages were titled Admin Settings, and Inventory's Topology Map the page the products menu
+  calls Topology (#7474). A product's entry is its step in the trail of the page it opens and the
+  title its layout gives that page; Ask AI, which opens a panel, is the panel's name; the profile
+  menu says User Profile and the Admin Dashboard as those pages call themselves, and the Admin
+  Dashboard's menu its pages' titles and trails, in every language. A layout that titles each page
+  by the page within it (On-Call's policies and schedules) is listed in the guard with why. Enforced
+  by
+  [MenuEntriesNameTheirPagesGuard](../../packages/Common/Tests/App/Dashboard/MenuEntriesNameTheirPagesGuard.test.tsx).
 - **Signing in is "Sign in" and signing out is "Sign out", never "log in", "login" or "log out".**
   One flow once said "Log Out" in the status page's nav, "Log out" and "Sign Out" in the Dashboard,
   and "Please login again" from the server (#9212). Now it is **Sign Out** in every menu, and

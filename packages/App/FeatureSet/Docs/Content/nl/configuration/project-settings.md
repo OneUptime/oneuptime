@@ -5,6 +5,7 @@ Projectinstellingen bevat wat voor het hele project geldt: de naam, de tools waa
 :::cards
 - [Een instelling vinden](#een-instelling-vinden): Wat elke sectie van het zijmenu bevat.
 - [De details van het project](#de-details-van-het-project): De naam, de ID en toegang voor ondersteuning.
+- [Unieke namen](#unieke-namen): Of twee records van hetzelfde soort een naam mogen delen.
 - [Producten](#producten): De producten die dit project toont, en de producten die het verbergt.
 - [Labels](#labels): Markeringen voor resources, machtigingen en regels.
 - [Het project verwijderen](#het-project-verwijderen): Wat het vraagt, en wat er meegaat.
@@ -31,7 +32,7 @@ flowchart LR
 
 | Sectie | Pagina's | Waar u meer leest |
 | --- | --- | --- |
-| **Basis** | **Project**, **Producten**, **Labels** | [De details van het project](#de-details-van-het-project), [Producten](#producten), [Labels](#labels) |
+| **Basis** | **Project**, **Producten**, **Labels** | [De details van het project](#de-details-van-het-project), [Unieke namen](#unieke-namen), [Producten](#producten), [Labels](#labels) |
 | **Werkruimte** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videogesprekken** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videogesprekken](/docs/workspace-connections/video-calls) |
 | **Telemetrie & APM** | **Ingestiesleutels**, **Gegevensbewaring**, **Gebruik** | [Ingestiesleutels](/docs/telemetry/ingestion-keys), [Gegevensbewaring](/docs/telemetry/data-retention), [Telemetriegebruik](/docs/telemetry/usage) |
 | **Meldingen** | **Meldingskanalen**, **Meldingslogboeken**, **Mobiele apps** | [Meldingen](#meldingen) |
@@ -46,7 +47,7 @@ flowchart LR
 
 ## De details van het project
 
-**Projectinstellingen → Basis → Project** bevat twee kaarten.
+**Projectinstellingen → Basis → Project** bevat de kaarten van het project: **Projectdetails**, **Unieke namen** en, in OneUptime Cloud, **Toegang voor klantenondersteuning**.
 
 **Projectdetails** toont de naam van het project en de ID:
 
@@ -55,6 +56,20 @@ flowchart LR
 - **Data Residency**: in OneUptime Cloud, waar de gegevens van uw project horen te staan, als OneUptime dat heeft vastgelegd. Alleen OneUptime stelt dit in.
 
 **Toegang voor klantenondersteuning** bepaalt in OneUptime Cloud of het ondersteuningsteam van OneUptime het project mag openen. Zet **OneUptime-ondersteuning toegang geven tot dit project** aan als u hulp wilt: OneUptime vraagt het eerst, omdat ondersteuning dan alles in het project kan zien en wijzigen, en u klikt op **Ondersteuning toelaten**. Zet het uit zodra ze klaar zijn: dat wordt meteen opgeslagen. Projecteigenaren en Projectbeheerders wijzigen het.
+
+## Unieke namen
+
+**Unieke namen**, onder **Projectinstellingen → Basis → Project**, bepaalt of twee records van hetzelfde soort in het project een naam mogen delen. Zolang **Unieke namen vereisen** aan staat, weigert OneUptime een naam die een ander record van hetzelfde soort al heeft, of die nu hier wordt getypt, via de API wordt verstuurd of in Terraform wordt ingesteld, en ongeacht hoofdletters en spaties: `API Health Check` en `api health check` zijn één naam. De schakelaar slaat op zodra u hem omzet. Projecteigenaren en Projectbeheerders wijzigen het.
+
+In een nieuw project staat hij aan. Een project dat al bestond, houdt hem uit, omdat de API-clients en Terraform-configuraties van het project kunnen rekenen op namen die terugkomen: zet hem aan wanneer u er klaar voor bent.
+
+Onder de schakelaar toont de kaart elke naam die het project al meer dan eens heeft, soort voor soort, met een link naar elk record en de dag waarop het is gemaakt. De schakelaar aanzetten weigert niets wat al bestaat: die records blijven werken tot iemand ze hernoemt, en alleen een nieuw record of een hernoeming heeft een eigen naam nodig. Een record opnieuw opslaan met zijn eigen naam, in welke schrijfwijze ook, is geen hernoeming.
+
+Wat de schakelaar ook zegt, een formulier waarschuwt terwijl u een naam typt die een ander record van dat soort al heeft, en linkt naar dat record. Zolang de schakelaar aan staat, zegt de waarschuwing ook dat opslaan zou worden geweigerd.
+
+De schakelaar geldt voor de soorten die u een naam geeft en op naam kiest: monitoren, monitorgroepen, sondes, SLO's, de sjablonen voor incidenten, alerts, onderhoud en statuspagina's, API-sleutels, ingestiesleutels, aangepaste rollen, LLM-providers, pipelines, budgetten en verbindingen. Gebeurtenissen en vastleggingen van wat er gebeurde herhalen hun namen bewust en vallen erbuiten: incidenten, alerts, episodes, onderhoudsgebeurtenissen en aankondigingen op statuspagina's, net als wat OneUptime ontdekt, zoals hosts en pods. Teams, labels, dienstbeleid, dienstroosters, statuspagina's, workflows en enkele andere soorten hebben in elk project een eigen naam, wat de schakelaar ook zegt.
+
+Wanneer OneUptime een record voor u een naam geeft, zoals een monitor uit een aanbeveling of een geïmporteerde, en de naam al bezet is, voegt het een nummer toe in plaats van hem te weigeren: `API Health Check 2`.
 
 ## Producten
 
@@ -145,6 +160,10 @@ Hernoemen vraagt een Projecteigenaar, of de machtiging om het project te bewerke
 
 :::details Project verwijderen blijft vergrendeld in het dialoogvenster
 Typ de naam van het project precies zoals het dialoogvenster die toont: hoofdletters en kleine letters tellen mee.
+:::
+
+:::details Een naam wordt geweigerd omdat het project unieke namen vereist
+Een ander record van hetzelfde soort heeft de naam, ongeacht hoofdletters en spaties. Kies een andere naam, of hernoem eerst het andere record: **Unieke namen**, onder **Projectinstellingen → Basis → Project**, toont de namen die het project meer dan eens heeft, met een link naar elk record. Heeft alleen een gearchiveerd record de naam, haal dat record dan uit het archief of kies een andere naam.
 :::
 
 ## Volgende stappen

@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import {
   FirstCheckAnswer,
   WEBSITE_DOWN_POLICY_NAME,
@@ -286,6 +287,11 @@ export default class WebsiteDownApi {
         translator: data.translator,
       }),
       modelType: Monitor,
+      /*
+       * Named after its address: where the project requires unique names
+       * and another monitor has that name, it is numbered, not refused.
+       */
+      miscDataProps: getNumbersTakenNameData(),
     })) as HTTPResponse<Monitor>;
 
     const id: string | undefined = response.data?.id?.toString();

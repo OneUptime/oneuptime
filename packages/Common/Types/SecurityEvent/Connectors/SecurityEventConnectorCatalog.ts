@@ -843,8 +843,14 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         {
           key: "serviceAccountJson",
           title: translationKey("Service account JSON"),
+          /*
+           * The scopes its client ID is delegated: the audit scope polling
+           * reads with, and the group member scope a security case reads
+           * a group's member back with (#10901) - optional, and asked for
+           * here, where the delegation is set up.
+           */
           description: translationKey(
-            "A Google Cloud service-account key (JSON) whose client ID has domain-wide delegation for the admin.reports.audit.readonly scope.",
+            "A service-account key (JSON) delegated admin.reports.audit.readonly. Add admin.directory.group.member.readonly so security cases can read groups.",
           ),
           type: "json",
           required: true,

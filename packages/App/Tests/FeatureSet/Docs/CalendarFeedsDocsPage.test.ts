@@ -1014,7 +1014,8 @@ describe("Calendar Feeds docs page", () => {
       expect(english).not.toContain("**User Settings** > **Calendar Feed**");
     });
 
-    it("says where both time zones are set: your Profile, and the schedule's Layers page", () => {
+    // Your User Profile, as the user menu's entry and the page's title name it (#7474).
+    it("says where both time zones are set: your User Profile, and the schedule's Layers page", () => {
       const profile: string = readRepoFile(
         "App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index.tsx",
       );
@@ -1024,7 +1025,7 @@ describe("Calendar Feeds docs page", () => {
 
       expect(profile).toContain('title: "Timezone"');
       expect(layers).toContain('title="Schedule timezone"');
-      expect(english).toContain("**Timezone** on your **Profile**");
+      expect(english).toContain("**Timezone** on your **User Profile**");
       expect(english).toContain(
         "**Schedule timezone** card on its **Layers** page",
       );

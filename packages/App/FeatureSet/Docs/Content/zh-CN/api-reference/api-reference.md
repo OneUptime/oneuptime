@@ -268,6 +268,14 @@ Incident Severity with the same name already exists.
 
 以任意大小写再次发送记录自身名称的更新不算重命名，因此此前同名的记录仍然可以修改，也可以重命名以区分开来，但绝不能改成其他记录的名称。对于团队、标签、值班策略和值班计划，`GET /api/shared-names/team`（或 `label`、`on-call-policy`、`on-call-schedule`）会回答哪些记录同名：`{"groups": [["<id>", "<id>"]]}`，每个分组是名称读起来相同的记录中你的密钥可以读取的那些记录的 ID。已归档的标签和值班策略不计在内。
 
+要求名称唯一的项目（新项目默认如此）会以相同的代码对你命名的大多数其他类型执行同样的规则，包括监视器、监视器组、探测器、模板、API 密钥和管道。项目的 `requireUniqueNames` 说明是否如此，项目所有者或项目管理员可以在仪表板的项目设置中更改它：
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+这类拒绝还包含 `takenById`，即占用该名称的记录的 ID，前提是你的密钥可以读取该记录。在项目要求名称唯一之前就已同名的记录会保留名称，直到被重命名；一次更新也不能为多条同类记录设置同一个名称。`GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` 会在你发送之前回答名称是否已被占用，`GET /api/unique-names/duplicates` 按类型列出项目中被多次使用的名称。
+
 #### 其他记录已在使用的值
 
 一些不是名称的值也各自只属于一条记录，其中包括状态页面、仪表板或表单的域名、项目域名、主机或 Kubernetes 集群的标识符、SSO 提供商的登录 URL 以及 API 密钥的权限。创建记录，或更改其中某个值的更新，如果使用了其他记录已有的值，就会被拒绝，并返回一个说明这一点的 `400`：

@@ -275,7 +275,7 @@
       "SMS está desligado neste projeto, então os acionamentos que o usam não são enviados.",
       "Chamada telefônica está desligado neste projeto, então os acionamentos que o usam não são enviados.",
       "SMS e chamadas são pagos com o saldo deste projeto, que é de 0.00 USD. Adicionar um número envia um SMS, então o saldo precisa ser maior que 1.00 USD.",
-      "Adicionar saldo",
+      "Adicionar ao saldo",
       "Ativar SMS e chamadas",
       "App móvel ou navegador",
       "Não configurado.",
@@ -286,15 +286,15 @@
       "Verificar de novo"
     ],
     "outline": [
-      "button: Adicionar saldo",
+      "button: Adicionar ao saldo",
       "button: Ativar SMS e chamadas",
       "button: Usar este navegador",
       "button: Baixar o app",
       "button: Continuar",
       "button: Verificar de novo"
     ],
-    "width": 768,
-    "height": 678
+    "width": 784,
+    "height": 707
   },
   "paging-phone": {
     "text": [

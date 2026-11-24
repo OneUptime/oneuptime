@@ -41,15 +41,23 @@ import IncomingRequestPendingStore, {
   SkippedIncomingRequests,
 } from "../../Utils/IncomingRequestPendingStore";
 import { isNonActionableIngestError } from "Common/Server/Utils/Monitor/NonActionableIngestError";
+import {
+  INCOMING_REQUEST_MAX_REQUESTS_PER_JOB,
+  INCOMING_REQUEST_MAX_REQUESTS_PER_JOB_SETTING,
+} from "../../Config";
 
 /*
  * The most requests one job evaluates in turn. A monitor with more waiting
  * gets its job queued once more for the rest, behind every job already
  * waiting, so one sender takes its turn with everyone else's: a sender
  * flooding one monitor holds one worker slot at a time, for at most this
- * many evaluations.
+ * many evaluations. 100 unless a self-hosted install sets its own
+ * (INCOMING_REQUEST_MAX_REQUESTS_PER_JOB, Telemetry/Config, #10652).
  */
-export const MAX_REQUESTS_PER_JOB: number = 100;
+export const DEFAULT_MAX_REQUESTS_PER_JOB: number =
+  INCOMING_REQUEST_MAX_REQUESTS_PER_JOB_SETTING.defaultValue;
+export const MAX_REQUESTS_PER_JOB: number =
+  INCOMING_REQUEST_MAX_REQUESTS_PER_JOB;
 
 /*
  * How many times a request is tried before it is skipped: as often as a job
@@ -100,6 +108,8 @@ export async function processPendingIncomingRequestsFromQueue(
   options: {
     // This job's last attempt: on a failure, it queues the next job itself.
     isFinalAttempt: boolean;
+    // The most requests it evaluates: this server's limit unless given.
+    maxRequestsPerJob?: number | undefined;
   },
 ): Promise<void> {
   const secretKeyHash: string | undefined = jobData?.secretKeyHash;
@@ -111,7 +121,10 @@ export async function processPendingIncomingRequestsFromQueue(
   }
 
   try {
-    await workThroughPendingRequests(secretKeyHash);
+    await workThroughPendingRequests(
+      secretKeyHash,
+      options.maxRequestsPerJob || MAX_REQUESTS_PER_JOB,
+    );
   } catch (err) {
     /*
      * The job fails, for BullMQ to retry it after a backoff - whatever
@@ -129,11 +142,12 @@ export async function processPendingIncomingRequestsFromQueue(
 
 async function workThroughPendingRequests(
   secretKeyHash: string,
+  maxRequestsPerJob: number,
 ): Promise<void> {
   let evaluatesEveryRequest: boolean | undefined = undefined;
   let tried: number = 0;
 
-  while (tried < MAX_REQUESTS_PER_JOB) {
+  while (tried < maxRequestsPerJob) {
     const oldest: PendingIncomingRequest | null =
       await IncomingRequestPendingStore.peekOldest(secretKeyHash);
 
@@ -256,6 +270,32 @@ function hasSkipped(skipped: SkippedIncomingRequests): boolean {
 }
 
 /*
+ * What the evaluation's log says of them: how many, why, and which limit -
+ * as it was when it skipped them - for those skipped over one (#10652).
+ */
+export function toSkippedIncomingRequestsNote(
+  skipped: SkippedIncomingRequests,
+): SkippedIncomingRequestsNote {
+  return {
+    overLimit: skipped.overLimit,
+    ...(skipped.overRequestLimit && skipped.requestLimit
+      ? {
+          overRequestLimit: skipped.overRequestLimit,
+          requestLimit: skipped.requestLimit,
+        }
+      : {}),
+    ...(skipped.overByteLimit && skipped.byteLimit
+      ? {
+          overByteLimit: skipped.overByteLimit,
+          byteLimit: skipped.byteLimit,
+        }
+      : {}),
+    afterFailures: skipped.afterFailures,
+    attempts: MAX_ATTEMPTS_PER_REQUEST,
+  };
+}
+
+/*
  * One request of a monitor that evaluates every request: evaluated, then
  * removed. A refusal of the monitor (deleted, archived, disabled, paused)
  * refuses every request waiting for it, so they are all removed. A failure
@@ -276,7 +316,7 @@ async function evaluateRequestInTurn(data: {
 
   if (hasSkipped(skipped)) {
     logger.warn(
-      `Incoming requests skipped before request ${request.requestId}: ${skipped.overLimit} because more were waiting than a monitor keeps, ${skipped.afterFailures} after failing ${MAX_ATTEMPTS_PER_REQUEST} times. The monitor's log says so.`,
+      `Incoming requests skipped before request ${request.requestId}: ${skipped.overLimit} because more were waiting than a monitor keeps (${skipped.overRequestLimit || 0} past the limit of ${skipped.requestLimit ?? "-"} requests, ${skipped.overByteLimit || 0} past the limit of ${skipped.byteLimit ?? "-"} bytes), ${skipped.afterFailures} after failing ${MAX_ATTEMPTS_PER_REQUEST} times. The monitor's log says so.`,
     );
   }
 
@@ -285,11 +325,7 @@ async function evaluateRequestInTurn(data: {
   try {
     isEvaluated = await processIncomingRequestFromQueue(request.payload, {
       skippedIncomingRequests: hasSkipped(skipped)
-        ? {
-            overLimit: skipped.overLimit,
-            afterFailures: skipped.afterFailures,
-            attempts: MAX_ATTEMPTS_PER_REQUEST,
-          }
+        ? toSkippedIncomingRequestsNote(skipped)
         : undefined,
     });
   } catch (err) {

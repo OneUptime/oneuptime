@@ -275,7 +275,7 @@
       "SMS is off in this project, so pages that use it are not sent.",
       "Phone call is off in this project, so pages that use it are not sent.",
       "Texts and calls are paid from this project's balance, which is 0.00 USD. Adding a number sends a text, so the balance must be more than 1.00 USD.",
-      "Add balance",
+      "Add to Balance",
       "Turn on SMS and phone calls",
       "Mobile app or browser",
       "Not set up.",
@@ -286,15 +286,15 @@
       "Recheck"
     ],
     "outline": [
-      "button: Add balance",
+      "button: Add to Balance",
       "button: Turn on SMS and phone calls",
       "button: Use this browser",
       "button: Get the app",
       "button: Continue",
       "button: Recheck"
     ],
-    "width": 768,
-    "height": 618
+    "width": 784,
+    "height": 647
   },
   "paging-phone": {
     "text": [

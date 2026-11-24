@@ -8,7 +8,10 @@ import {
 } from "../../../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import SecurityCaseEvidenceKind from "../../../../../Types/SecurityCase/SecurityCaseEvidenceKind";
 import SecurityEventConnectorProvider from "../../../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
-import { AccountChange } from "../../../../../Utils/SecurityCase/AttackAccountChanges";
+import {
+  AccountChange,
+  AccountChangeProvider,
+} from "../../../../../Utils/SecurityCase/AttackAccountChanges";
 import SecurityCaseEvidenceService from "../../../../Services/SecurityCaseEvidenceService";
 import SecurityEventConnectionService from "../../../../Services/SecurityEventConnectionService";
 import QueryHelper from "../../../../Types/Database/QueryHelper";
@@ -21,13 +24,18 @@ import AccountChangeReadBack, {
   AccountChangeFacts,
   AccountChangeState,
 } from "../../../SecurityPlaybook/AccountChangeReadBack";
+import AwsAccountChanges, {
+  AwsAccountChangesOptions,
+} from "./AwsAccountChanges";
 
 /*
  * WHAT THE FIX STEP "UNDO WHAT CHANGED ON THE ACCOUNT" READS (#10603): the
  * events kept on the case beside the ones its detections matched, and
  * whether each change those events record is still there, asked of every
  * connection the project has switched on to the product it was made in -
- * Okta, Microsoft Entra ID, Google Workspace (AccountChangeReadBack).
+ * Okta, Microsoft Entra ID, Google Workspace (AccountChangeReadBack) - and,
+ * for AWS IAM, of the AWS cloud connection that reaches the account it was
+ * made in (AwsAccountChanges, #10900).
  *
  * A product that cannot be read says why, and is never taken to mean the
  * change was undone.
@@ -101,12 +109,25 @@ export default class AccountChangesState {
       );
   }
 
-  // Each change, read back in every connection of its product.
+  /*
+   * Each change, read back in every connection of its product: AWS's
+   * through the AWS cloud connection that reaches its account
+   * (AwsAccountChanges).
+   */
   public static async read(data: {
     projectId: ObjectID;
     changes: Array<AccountChange>;
     transport?: ConnectorTransport | undefined;
+    aws?: AwsAccountChangesOptions | undefined;
   }): Promise<AccountChangesReading> {
+    const awsAnswers: Array<AccountChangeAnswer> = await AwsAccountChanges.read(
+      {
+        projectId: data.projectId,
+        changes: data.changes,
+        options: data.aws,
+      },
+    );
+    let nextAwsAnswer: number = 0;
     const providers: Array<SecurityEventConnectorProvider> = Array.from(
       new Set(
         data.changes
@@ -149,6 +170,17 @@ export default class AccountChangesState {
     const answers: Array<AccountChangeAnswer> = [];
 
     for (const change of data.changes) {
+      if (change.provider === AccountChangeProvider.Aws) {
+        answers.push(
+          awsAnswers[nextAwsAnswer++] || {
+            change,
+            facts: null,
+            hasConnection: false,
+          },
+        );
+        continue;
+      }
+
       const provider: SecurityEventConnectorProvider | null =
         ACCOUNT_CHANGE_CONNECTION_PROVIDERS[change.provider];
       const ofProduct: Array<SecurityEventConnection> = provider

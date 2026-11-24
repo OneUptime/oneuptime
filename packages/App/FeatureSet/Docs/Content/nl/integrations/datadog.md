@@ -105,13 +105,13 @@ Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor 
 
 ### Eén incident per waarschuwing openen
 
-Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
+Open in hetzelfde criterium **Instellingen** en zet **Incidenten en waarschuwingen groeperen op een veld uit de payload** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
 
 | Veld | Waarde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Een apart incident openen voor elke…** | `requestBody.alert_key` |
+| **Veld dat herstel aangeeft** | `requestBody.transition` |
+| **Waarde die hersteld betekent** | `Recovered` |
 
 ### De monitor weer online brengen
 
@@ -227,7 +227,7 @@ Open de uitvoering in **Uitvoeringen**. De vermelding `read-event-1` in de **Sta
 - De Datadog-monitor moet de webhook ook van zijn herstel op de hoogte brengen. Een bericht dat de webhook alleen voor waarschuwingen noemt, binnen een voorwaarde, stuurt geen herstel.
 - Open met het sjabloon de uitvoering van het herstel in **Uitvoeringen**: de laatste stap zegt waarom. De `alert_cycle_key` van het herstel moet die van de waarschuwing zijn, dus laat `$ALERT_CYCLE_KEY` in de payload zoals het is.
 - Bij de monitor heeft het incident van het criterium **Incident automatisch oplossen** nodig, onder **Meer velden**.
-- **Value that means recovered** moet precies `Recovered` zijn. De vergelijking is hoofdlettergevoelig.
+- **Waarde die hersteld betekent** moet precies `Recovered` zijn. De vergelijking is hoofdlettergevoelig.
 - De `alert_key` van het herstel moet die van de waarschuwing zijn: laat `$ALERT_ID $ALERT_SCOPE` staan zoals in de payload.
 :::
 

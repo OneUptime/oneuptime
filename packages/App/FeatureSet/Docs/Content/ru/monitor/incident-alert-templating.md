@@ -196,7 +196,7 @@ Alerts for payments:
 | `requestMethod` | Метод HTTP, например `POST`. | `string` |
 | `incomingRequestReceivedAt` | Когда запрос был получен, в виде метки времени ISO 8601. | `string` |
 
-Когда в критерии включено **Group incidents and alerts by a payload field**, ключ группировки тоже становится переменной, названной по **последнему сегменту** пути группировки: группировка по `requestBody.alerts[*].labels.alertname` даёт `{{alertname}}`, а группировка по `requestBody.alerts[*].fingerprint` даёт `{{fingerprint}}`. Весь `requestBody` по-прежнему доступен рядом с ней.
+Когда в критерии включено **Группировать инциденты и оповещения по полю полезной нагрузки**, ключ группировки тоже становится переменной, названной по **последнему сегменту** пути группировки: группировка по `requestBody.alerts[*].labels.alertname` даёт `{{alertname}}`, а группировка по `requestBody.alerts[*].fingerprint` даёт `{{fingerprint}}`. Весь `requestBody` по-прежнему доступен рядом с ней.
 
 > [!NOTE]
 > `[*]` работает только в полях пути группировки. В шаблоне он ничего не читает, поэтому заполнитель остаётся таким, как написан. `{{requestBody.alerts[0].annotations.summary}}` всегда читает первое оповещение из полезной нагрузки, а не то, для которого открыт инцидент: используйте переменную группировки и общие поля полезной нагрузки, например `commonLabels` и `commonAnnotations`. См. [Монитор входящих запросов](/docs/monitor/incoming-request-monitor).

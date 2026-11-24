@@ -59,13 +59,13 @@ Na etapa **Critérios**, abra o primeiro critério, o que marca o monitor como o
 
 ### Abrir um incidente por alerta
 
-No mesmo critério, abra **Configurações** e ative **Group incidents and alerts by a payload field**. Preencha como abaixo, para que cada alerta tenha o próprio incidente e a recuperação dele o resolva:
+No mesmo critério, abra **Configurações** e ative **Agrupar incidentes e alertas por um campo da carga útil**. Preencha como abaixo, para que cada alerta tenha o próprio incidente e a recuperação dele o resolva:
 
 | Campo | Valor |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Abrir um incidente separado para cada…** | `requestBody.alerts[*].fingerprint` |
+| **Campo que sinaliza a recuperação** | `requestBody.alerts[*].status` |
+| **Valor que significa recuperado** | `resolved` |
 
 ### Colocar o monitor online de novo
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Uma instalação auto-hospedada tem o próprio host no lugar de `oneuptime.com`.
 :::
 
-Cada alerta de uma notificação abre o próprio incidente, até o limite de **Max incidents per request** (`100`, a menos que você o mude), e o `status` de cada alerta decide quando o incidente dele é resolvido. O `fingerprint` do Grafana identifica um alerta pelos rótulos dele, então é o valor pelo qual agrupar. Veja [Receber alertas de outro sistema](/docs/monitor/incoming-request-monitor#receber-alertas-de-outro-sistema) para o que cada configuração faz.
+Cada alerta de uma notificação abre o próprio incidente, até o limite de **Máximo de incidentes por requisição** (`100`, a menos que você o mude), e o `status` de cada alerta decide quando o incidente dele é resolvido. O `fingerprint` do Grafana identifica um alerta pelos rótulos dele, então é o valor pelo qual agrupar. Veja [Receber alertas de outro sistema](/docs/monitor/incoming-request-monitor#receber-alertas-de-outro-sistema) para o que cada configuração faz.
 
 > [!WARNING]
 > Não agrupe por um rótulo que todos os alertas de uma notificação compartilham. A política de notificação padrão do Grafana agrupa os alertas por `grafana_folder` e `alertname`, então todos os alertas de uma notificação têm o mesmo `alertname`: agrupar por `requestBody.alerts[*].labels.alertname` junta a notificação inteira em um incidente.
@@ -103,7 +103,7 @@ Dê ao ponto de contato o nome `OneUptime`, escolha **Webhook** em **Integration
 Vá em **Alerting → Notification policies**. Defina `OneUptime` como ponto de contato da política padrão, ou adicione uma política filha que corresponda aos alertas que o OneUptime deve receber, com `OneUptime` como ponto de contato.
 :::
 
-O Grafana envia `Content-Type: application/json`, de que o monitor precisa para ler os campos de uma notificação. A configuração **Max Alerts** do ponto de contato limita os alertas de uma notificação: deixe-a em `0`, sem limite, ou no máximo no **Max incidents per request** do monitor.
+O Grafana envia `Content-Type: application/json`, de que o monitor precisa para ler os campos de uma notificação. A configuração **Max Alerts** do ponto de contato limita os alertas de uma notificação: deixe-a em `0`, sem limite, ou no máximo no **Máximo de incidentes por requisição** do monitor.
 
 ## Testar
 
@@ -157,7 +157,7 @@ Uma execução trata uma notificação, então declara um único incidente, não
 
 :::details Os incidentes abrem mas nunca são resolvidos
 - O incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**.
-- **Field that signals recovery** deve ser `requestBody.alerts[*].status`, e **Value that means recovered** exatamente `resolved`. A comparação diferencia maiúsculas de minúsculas.
+- **Campo que sinaliza a recuperação** deve ser `requestBody.alerts[*].status`, e **Valor que significa recuperado** exatamente `resolved`. A comparação diferencia maiúsculas de minúsculas.
 - Os caminhos de agrupamento devem começar com `requestBody.`, e só o primeiro `[*]` de um caminho lê uma lista. Um caminho que quebra qualquer uma das regras não corresponde a nada, sem nenhum erro.
 :::
 

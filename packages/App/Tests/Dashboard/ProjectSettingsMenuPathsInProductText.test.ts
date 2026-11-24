@@ -806,7 +806,7 @@ describe("every translation names the path as its language's Dashboard draws it"
     "Project Settings → Notifications → Notification Channels",
     "SMS is off in this project. A Project Owner, a Billing Admin or someone with Manage Billing can turn it on in Project Settings → Notifications → Notification Channels.",
     "If it does not come, Project Settings > Notifications > Notification Logs shows what happened to it.",
-    "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or recharge the balance now.",
+    "It tries again within an hour. Check the payment method in Project Settings > Billing and Invoices > Billing, or add to the balance now.",
     "Project Settings > Telemetry & APM > Ingestion Keys",
     "Invite or remove users from your identity provider or disable Push Groups in Project Settings > Security > SCIM to manage them here.",
     "The SMTP server this page sends subscriber email from. Add one in Project Settings > Notifications.",

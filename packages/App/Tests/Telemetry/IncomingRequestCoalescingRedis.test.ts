@@ -862,6 +862,9 @@ describe("a flood from one sender", () => {
     expect(evaluationsOf(secretKey)).toEqual([1, ...range(extra + 2, total)]);
     expect(skippedBefore.get(`${secretKey}:1`)).toEqual({
       overLimit: extra,
+      // By the request limit, which the note names as it was (#10652).
+      overRequestLimit: extra,
+      requestLimit: MAX_PENDING_REQUESTS_PER_MONITOR,
       afterFailures: 0,
       attempts: MAX_ATTEMPTS_PER_REQUEST,
     });

@@ -22,7 +22,7 @@ flowchart TB
     T["Din<br/>telemetri"] -->|"Discovered"| I["Inventar: ét element<br/>pr. ting, med en<br/>stabil identitetsnøgle"]
     R["OneUptimes<br/>pollere"] -->|"Spejlet hvert<br/>15. minut"| I
     Y["Ting uden<br/>telemetri"] -->|"Tilføjet af dig"| I
-    I --> L["All Items, topologi-<br/>kortet og elementsiderne"]
+    I --> L["All Items, Topologi<br/>og elementsiderne"]
     I --> X["Brugerdefinerede felter,<br/>CSV-eksporten og API'et"]
 ```
 
@@ -63,7 +63,7 @@ En relation, som OneUptime har fundet, fjernes, når den ikke er set igen i 30 d
 | **Oversigt** | Hvor mange elementer du har, hvad de er, hvor mange der er blevet stille, og hvad der senest er tilføjet. |
 | **Alle elementer** | Alle elementer. Søg efter navn, beskrivelse eller identitetsnøgle, afgræns listen efter type, kilde, status eller brugerdefineret felt, og tilføj et element manuelt. |
 | **Administrerede enheder** | Dine MDM-forbindelser – Esper, Microsoft Intune, Workspace ONE UEM og SOTI MobiControl – og alle de enheder, de importerer, med deres status, gruppe, model og operativsystem. |
-| **Topologikort** | Hvordan elementerne hænger sammen: tjenester, hvad de kalder, og de værter, pods og enheder, de kører på. |
+| **Topologi** | Hvordan elementerne hænger sammen: tjenester, hvad de kalder, og de værter, pods og enheder, de kører på. |
 | **Blevet stille** | De elementer, der ikke er hørt fra i mere end et døgn: fundne elementer, der ikke har sendt telemetri, og enheder, der er holdt op med at tjekke ind hos deres MDM. |
 | **Efter kilde** | Elementerne fra én kilde: **Opdaget**, **Spejlet** eller **Tilføjet af dig**. |
 | **Indstillinger → Brugerdefinerede felter** | De felter, dit projekt fører på hvert element. |
@@ -271,7 +271,7 @@ For at arkivere elementer markerer du dem i **Alle elementer** og arkiverer dem 
 
 ## Relationer og topologi
 
-OneUptime forbinder elementer med rettede relationer, efterhånden som det observerer dem. **Inventar → Topologikort** tegner dem, og et elements side **Forbindelser** viser dets egne. Se [Topologi](/docs/telemetry/topology).
+OneUptime forbinder elementer med rettede relationer, efterhånden som det observerer dem. **Inventar → Topologi** tegner dem, og et elements side **Forbindelser** viser dets egne. Se [Topologi](/docs/telemetry/topology).
 
 | Relation | For eksempel |
 | --- | --- |

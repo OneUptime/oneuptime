@@ -540,6 +540,12 @@ export const CHECK_ACCOUNT_CHANGES_NONE_FOUND: string = translationKey(
 export const CHECK_ACCOUNT_CHANGE_ROLE_STILL: string = translationKey(
   "{{account}} still holds the admin role {{object}} in {{provider}}.",
 );
+export const CHECK_ACCOUNT_CHANGE_POLICY_STILL: string = translationKey(
+  "{{account}} still has the policy {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_PASSWORD_STILL: string = translationKey(
+  "The password the attack set for {{account}} still works in {{provider}}.",
+);
 export const CHECK_ACCOUNT_CHANGE_GROUP_STILL: string = translationKey(
   "{{account}} is still in the group {{object}} in {{provider}}.",
 );
@@ -559,6 +565,12 @@ export const CHECK_ACCOUNT_CHANGE_ACCOUNT_STILL: string = translationKey(
 // Undone.
 export const CHECK_ACCOUNT_CHANGE_ROLE_UNDONE: string = translationKey(
   "{{account}} no longer holds the admin role {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_POLICY_UNDONE: string = translationKey(
+  "{{account}} no longer has the policy {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_PASSWORD_UNDONE: string = translationKey(
+  "The password the attack set for {{account}} no longer works in {{provider}}.",
 );
 export const CHECK_ACCOUNT_CHANGE_GROUP_UNDONE: string = translationKey(
   "{{account}} is no longer in the group {{object}} in {{provider}}.",
@@ -583,6 +595,12 @@ export const CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE: string = translationKey(
 export const CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM: string = translationKey(
   "Confirm {{account}} no longer holds the admin role {{object}} in {{provider}}.",
 );
+export const CHECK_ACCOUNT_CHANGE_POLICY_CONFIRM: string = translationKey(
+  "Confirm {{account}} no longer has the policy {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_PASSWORD_CONFIRM: string = translationKey(
+  "Confirm the password the attack set for {{account}} no longer works in {{provider}}.",
+);
 export const CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM: string = translationKey(
   "Confirm {{account}} is no longer in the group {{object}} in {{provider}}.",
 );
@@ -603,8 +621,26 @@ export const CHECK_ACCOUNT_CHANGE_ACCOUNT_CONFIRM: string = translationKey(
 export const CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION: string = translationKey(
   "OneUptime has no connection to {{provider}}, so it cannot read the changes there back.",
 );
+/*
+ * What a step checked before #10900 said of AWS: kept, so a case closed
+ * since still reads it in its reader's language. No check writes it now.
+ */
 export const CHECK_ACCOUNT_CHANGES_FACT_AWS: string = translationKey(
   "OneUptime does not read changes in AWS IAM back yet.",
+);
+// AWS: no AWS cloud connection of the project reads the account the change was made in (#10900).
+export const CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION: string =
+  translationKey(
+    "No AWS connection reads the account {{cloudAccount}}, so OneUptime cannot read its IAM back. Connect it under Cloud → Connect, with Security case checks on.",
+  );
+// AWS: a connection reaches the account, but may not read its IAM: Security case checks are off (#10900).
+export const CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED: string =
+  translationKey(
+    "To read IAM back in the account {{cloudAccount}}, edit its AWS connection under Cloud → Connect, turn on Security case checks, and run the command it shows.",
+  );
+// Google Workspace: the connection may not read groups: its delegation lacks the group member scope (#10901).
+export const CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS: string = translationKey(
+  "To read Google Workspace groups back, add the scope {{scope}} to the connection's domain-wide delegation, for an administrator who may read groups.",
 );
 export const CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH: string =
   translationKey(
