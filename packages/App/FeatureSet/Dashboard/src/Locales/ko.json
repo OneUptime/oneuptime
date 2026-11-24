@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
-  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙"
+  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "스크럽 규칙이 이 예외들을 이 예외에서 분리했습니다. 규칙이 내용 일부를 숨긴 뒤로 발생이 이곳이 아닌 그곳에서 집계되었습니다.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "스크럽 규칙이 이 예외와 다른 예외를 분리했습니다. 열어서 병합하세요.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "스크럽 규칙이 {{exception}}을(를) 이 예외에서 분리했습니다. 규칙이 내용 일부를 숨긴 뒤로 발생이 이곳이 아닌 그곳에서 집계되었습니다.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "병합하면 모든 발생을 다시 하나의 예외로 집계합니다. 가장 오래된 예외가 유지되며, 나중에 병합을 해제할 수 있습니다.",
+  "Split": "분리됨"
 }

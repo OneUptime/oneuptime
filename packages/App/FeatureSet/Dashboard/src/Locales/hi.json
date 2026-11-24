@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "इस प्रोब के नेटवर्क इंटरफ़ेस के पते, और बताए जाने पर इसके होस्ट के पते, जैसे प्रोब हर बार चेक-इन करते समय उन्हें सूचीबद्ध करता है। सुरक्षा इवेंट इन पतों से आने वाली प्रोब की अपनी पोलिंग, डिस्कवरी और मॉनिटर जाँचों को अलग रख देते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI के स्क्रब नियमों के इनपुट का हैश",
-  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम"
+  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "एक स्क्रब नियम ने इन अपवादों को इस अपवाद से अलग कर दिया। जब से नियम ने इसके पाठ का कुछ हिस्सा छिपाया, इसकी घटनाएं यहां के बजाय वहां गिनी गईं।",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "एक स्क्रब नियम ने इस अपवाद और एक दूसरे अपवाद को अलग कर दिया। इन्हें मिलाने के लिए इसे खोलें।",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "एक स्क्रब नियम ने {{exception}} को इस अपवाद से अलग कर दिया। जब से नियम ने इसके पाठ का कुछ हिस्सा छिपाया, इसकी घटनाएं यहां के बजाय वहां गिनी गईं।",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "हर घटना को फिर से एक अपवाद के रूप में गिनने के लिए इन्हें मिलाएं। सबसे पुराना अपवाद रखा जाता है, और आप इन्हें बाद में अलग कर सकते हैं।",
+  "Split": "अलग हुआ"
 }

@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Адреса сетевых интерфейсов этого зонда и, если они ему переданы, адреса его хоста — в том виде, в каком зонд перечисляет их при каждом выходе на связь. События безопасности откладывают в сторону собственные опросы, обнаружение и проверки мониторов зонда с этих адресов, а список блокировки никогда их не блокирует.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует.",
   "OneUptime AI's Scrub Rule Input Hash": "Хеш входных данных правил очистки OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Правило очистки отделило эти исключения от этого. С тех пор как правило скрыло часть текста, появления учитываются там, а не здесь.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "Правило очистки разделило это исключение и ещё одно. Откройте его, чтобы объединить их.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Правило очистки отделило {{exception}} от этого исключения. С тех пор как правило скрыло часть текста, появления учитываются там, а не здесь.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "Объедините их, чтобы снова учитывать каждое появление как одно исключение. Сохраняется самое старое, а разъединить их можно позже.",
+  "Split": "Отделено"
 }

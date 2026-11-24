@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adressene på nettverksgrensesnittene til denne sonden, og vertens når den får dem oppgitt, slik sonden lister dem hver gang den sender livstegn. Sikkerhetshendelser legger sondens egne avspørringer, oppdagelser og monitorsjekker fra disse adressene til side, og blokkeringslisten blokkerer dem aldri.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen OneUptime ser at denne sonden sender livstegn fra. Blokkeringslisten blokkerer den aldri.",
   "OneUptime AI's Scrub Rule Input Hash": "Input-hash for OneUptime AI-scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI-scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI-scrub-regler",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "En scrub-regel delte disse unntakene fra dette. Siden regelen skjulte en del av teksten, har forekomstene blitt telt der i stedet for her.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "En scrub-regel delte dette unntaket og et annet fra hverandre. Åpne det for å slå dem sammen.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "En scrub-regel delte {{exception}} fra dette unntaket. Siden regelen skjulte en del av teksten, har forekomstene blitt telt der i stedet for her.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "Slå dem sammen for å telle hver forekomst som ett unntak igjen. Det eldste av dem beholdes, og du kan dele dem opp senere.",
+  "Split": "Delt"
 }

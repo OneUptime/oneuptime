@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Os endereços das interfaces de rede desta sonda, e os do seu host quando lhe são informados, como a sonda os lista cada vez que se comunica. Eventos de segurança deixa de lado as consultas, descobertas e verificações de monitores da própria sonda que saem deles, e a lista de bloqueio nunca os bloqueia.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "O endereço a partir do qual o OneUptime vê esta sonda se comunicar. A lista de bloqueio nunca o bloqueia.",
   "OneUptime AI's Scrub Rule Input Hash": "Hash da entrada das regras de mascaramento do OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Regras de mascaramento do OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Regras de mascaramento do OneUptime AI",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Uma regra de mascaramento separou estas exceções desta. Desde que a regra ocultou parte do texto, suas ocorrências passaram a ser contadas lá em vez de aqui.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "Uma regra de mascaramento separou esta exceção de outra. Abra-a para mesclá-las.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Uma regra de mascaramento separou {{exception}} desta exceção. Desde que a regra ocultou parte do texto, suas ocorrências passaram a ser contadas lá em vez de aqui.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "Mescle-as para contar novamente cada ocorrência como uma única exceção. A mais antiga de todas é mantida, e você pode desfazer a mesclagem depois.",
+  "Split": "Separada"
 }

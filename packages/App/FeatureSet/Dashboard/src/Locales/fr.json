@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Les adresses des interfaces réseau de cette sonde, et celles de son hôte lorsqu'elles lui sont indiquées, telles que la sonde les liste chaque fois qu'elle se signale. Événements de sécurité met de côté les interrogations, découvertes et vérifications de moniteurs de la sonde qui partent de ces adresses, et la liste de blocage ne les bloque jamais.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "L'adresse depuis laquelle OneUptime voit cette sonde se signaler. La liste de blocage ne la bloque jamais.",
   "OneUptime AI's Scrub Rule Input Hash": "Empreinte des entrées des règles de masquage d'OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Règles de masquage d'OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Règles de masquage d'OneUptime AI",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Une règle de masquage a séparé ces exceptions de celle-ci. Dès que la règle a masqué une partie de son texte, ses occurrences ont été comptées là-bas plutôt qu'ici.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "Une règle de masquage a séparé cette exception d'une autre. Ouvrez-la pour les fusionner.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Une règle de masquage a séparé {{exception}} de cette exception. Dès que la règle a masqué une partie de son texte, ses occurrences ont été comptées là-bas plutôt qu'ici.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "Fusionnez-les pour compter de nouveau chaque occurrence comme une seule exception. La plus ancienne de toutes est conservée, et vous pourrez les défusionner plus tard.",
+  "Split": "Séparée"
 }

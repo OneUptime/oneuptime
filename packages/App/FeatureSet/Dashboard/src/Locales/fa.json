@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند.",
   "OneUptime AI's Scrub Rule Input Hash": "هش ورودی قواعد پالایش OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "یک قاعدهٔ پالایش این استثناها را از این استثنا جدا کرد. از وقتی قاعده بخشی از متن آن را پنهان کرد، رخدادهایش به‌جای اینجا آنجا شمرده شده است.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "یک قاعدهٔ پالایش این استثنا و استثنای دیگری را از هم جدا کرد. آن را باز کنید تا ادغامشان کنید.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "یک قاعدهٔ پالایش {{exception}} را از این استثنا جدا کرد. از وقتی قاعده بخشی از متن آن را پنهان کرد، رخدادهایش به‌جای اینجا آنجا شمرده شده است.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "آن‌ها را ادغام کنید تا هر رخداد دوباره یک استثنا شمرده شود. قدیمی‌ترین استثنا نگه داشته می‌شود و بعداً می‌توانید آن‌ها را جدا کنید.",
+  "Split": "جداشده"
 }

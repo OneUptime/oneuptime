@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探测器网络接口上的地址，以及在告知它时其主机的地址，即探测器每次上报时列出的地址。安全事件会将探测器自身从这些地址发出的轮询、发现和监控检查单独搁置，封禁列表也从不封禁它们。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探测器上报时所用的地址。封禁列表从不封禁它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理规则输入哈希",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "一条清理规则将以下异常从此异常中拆分出来。自该规则隐藏了部分内容起，出现便计入那些异常，而不是这里。",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "一条清理规则将此异常与另一个异常拆分开来。打开它即可将二者合并。",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "一条清理规则将 {{exception}} 从此异常中拆分出来。自该规则隐藏了部分内容起，出现便计入那里，而不是这里。",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "合并后，所有出现将重新计为一个异常。保留最早的那个，之后可以取消合并。",
+  "Split": "已拆分"
 }

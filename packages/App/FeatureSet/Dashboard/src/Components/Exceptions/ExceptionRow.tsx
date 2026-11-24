@@ -7,7 +7,9 @@ import { formatCompactDurationAgo } from "../../Utils/Milliseconds";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import RowActions from "Common/UI/Components/ActionButton/RowActions";
-import ExceptionIssueBadges from "./ExceptionIssueBadges";
+import ExceptionIssueBadges, {
+  ExceptionSplitPill,
+} from "./ExceptionIssueBadges";
 import {
   getLineDirection,
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
@@ -52,6 +54,12 @@ export interface ExceptionRowProps {
    * does. Shown unless set to false.
    */
   showStatus?: boolean | undefined;
+  /*
+   * Whether it is one of a pair a scrub rule split - the split one, or the
+   * one it was split from (ExceptionSplitPairs, #10897): the row says
+   * Split, beside its other badges.
+   */
+  isSplitPair?: boolean | undefined;
 }
 
 // "5m ago", in the reader's language.
@@ -206,6 +214,8 @@ const ExceptionRow: FunctionComponent<ExceptionRowProps> = (
               )}
               {/* Regressed or New, and Unhandled: what to look at first. */}
               <ExceptionIssueBadges exception={exception} />
+              {/* One of a pair a scrub rule split, to merge (#10897). */}
+              {props.isSplitPair ? <ExceptionSplitPill /> : <></>}
               {/* Who owns it, when someone does. */}
               {assignee && (
                 <span

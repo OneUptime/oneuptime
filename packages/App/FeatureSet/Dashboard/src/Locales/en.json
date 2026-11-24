@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "A scrub rule split this exception and another one apart. Open it to merge them.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.",
+  "Split": "Split"
 }

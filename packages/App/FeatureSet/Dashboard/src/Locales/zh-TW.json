@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探測器網路介面上的位址，以及在告知它時其主機的位址，即探測器每次回報時列出的位址。安全事件會將探測器自身從這些位址發出的輪詢、探索與監控檢查另行擱置，封鎖清單也從不封鎖它們。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探測器回報時所用的位址。封鎖清單從不封鎖它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理規則輸入雜湊",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "一條清理規則將以下例外從此例外中拆分出來。自該規則隱藏了部分內容起，出現便計入那些例外，而不是這裡。",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "一條清理規則將此例外與另一個例外拆分開來。打開它即可將二者合併。",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "一條清理規則將 {{exception}} 從此例外中拆分出來。自該規則隱藏了部分內容起，出現便計入那裡，而不是這裡。",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "合併後，所有出現將重新計為一個例外。保留最早的那個，之後可以取消合併。",
+  "Split": "已拆分"
 }

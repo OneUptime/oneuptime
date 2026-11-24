@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie.",
   "OneUptime AI's Scrub Rule Input Hash": "Eingabe-Hash der Scrub-Regeln von OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Eine Scrub-Regel hat diese Ausnahmen von dieser abgespalten. Seit die Regel einen Teil ihres Textes verbirgt, werden ihre Vorkommen dort statt hier gezählt.",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "Eine Scrub-Regel hat diese Ausnahme und eine andere voneinander abgespalten. Öffnen Sie sie, um beide zusammenzuführen.",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "Eine Scrub-Regel hat {{exception}} von dieser Ausnahme abgespalten. Seit die Regel einen Teil ihres Textes verbirgt, werden ihre Vorkommen dort statt hier gezählt.",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "Führen Sie sie zusammen, um jedes Vorkommen wieder als eine Ausnahme zu zählen. Die älteste bleibt erhalten, und Sie können sie später wieder trennen.",
+  "Split": "Abgespalten"
 }

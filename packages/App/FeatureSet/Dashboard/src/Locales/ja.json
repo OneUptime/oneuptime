@@ -63683,5 +63683,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
-  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール"
+  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
+  "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "スクラブルールにより、これらの例外はこの例外から分割されました。ルールが内容の一部を隠して以降、発生はこちらではなくそちらで数えられています。",
+  "A scrub rule split this exception and another one apart. Open it to merge them.": "スクラブルールにより、この例外と別の例外が分割されました。開くと統合できます。",
+  "A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.": "スクラブルールにより、{{exception}} はこの例外から分割されました。ルールが内容の一部を隠して以降、発生はこちらではなくそちらで数えられています。",
+  "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.": "統合すると、すべての発生を再び 1 つの例外として数えます。最も古いものが残り、後で統合を解除できます。",
+  "Split": "分割"
 }
