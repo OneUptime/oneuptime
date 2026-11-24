@@ -126,7 +126,8 @@ const span: (entityId: string, index: number) => Span = (
   index: number,
 ): Span => {
   const row: Span = new Span();
-  row._id = ObjectID.generate().toString();
+  // A ClickHouse row's id is an ObjectID, not a database row's string.
+  row._id = ObjectID.generate();
   row.traceId = `trace-${entityId.slice(-4)}-${index}`;
   row.spanId = `span-${entityId.slice(-4)}-${index}`;
   row.name = `GET /${entityId.slice(-4)}`;
@@ -146,7 +147,7 @@ const profile: (
   index: number,
 ): Profile => {
   const row: Profile = new Profile();
-  row._id = ObjectID.generate().toString();
+  row._id = ObjectID.generate();
   row.profileId = `profile-${entityId.slice(-4)}-${index}`;
   row.profileType = "cpu";
   row.primaryEntityId = new ObjectID(entityId);

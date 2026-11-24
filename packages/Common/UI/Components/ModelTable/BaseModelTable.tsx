@@ -3083,13 +3083,10 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * read the first 10,000 records unsorted - the newest kept - so an
            * older one could not be picked, a filter restored from a link
            * that named one showed blank, and the Admin Dashboard's Project
-           * filter listed every project on the instance.
-           */
-          /*
-           * The options the filter is handed stay its own (they are not
-           * read back): they are offered beside the search, always, and
-           * name a value of theirs the filter holds (getOfferedFilterOptions,
-           * #10764).
+           * filter listed every project on the instance. The options the
+           * filter is handed stay its own: they are offered beside the
+           * search, always, and name a value of theirs the filter holds
+           * (getOfferedFilterOptions, #10764).
            */
           if (filter.filterEntityType.prototype instanceof BaseModel) {
             entitySearchByKey.set(key.toString(), {
