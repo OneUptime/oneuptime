@@ -1,5 +1,16 @@
+import AIRun from "../../../../Models/DatabaseModels/AIRun";
+import DataSecurityAiProposal from "../../../../Models/DatabaseModels/DataSecurityAiProposal";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import AIService from "../../../../Server/Services/AIService";
+import DataSecurityAiProposalService from "../../../../Server/Services/DataSecurityAiProposalService";
+import DataSecurityFixTarget from "../../../../Server/Utils/AI/CodeFix/DataSecurityFixTarget";
+import DataSecurityIssueGroupFixProof from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupFixProof";
+import {
+  DataSecurityAiProposalKind,
+  DataSecurityAiProposalStatus,
+} from "../../../../Types/DataSecurity/DataSecurityAi";
+import DataSecurityIssueResolution from "../../../../Types/DataSecurity/DataSecurityIssueResolution";
+import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import DataSecurityIssueGrouper from "../../../../Server/Utils/DataSecurity/DataSecurityIssueGrouper";
 import DataSecurityIssueGroupFix from "../../../../Server/Utils/DataSecurity/DataSecurityIssueGroupFix";
 import DataSecurityIssueGroups from "../../../../Server/Utils/DataSecurity/DataSecurityIssueGroups";
@@ -384,6 +395,182 @@ describe("a group that follows its issues to the end", () => {
     expect(calls.expired).toContainEqual({
       groupId: made.id,
       kinds: undefined,
+    });
+  });
+
+  /*
+   * #10738: what OneUptime AI fixed for the group is proven - and counted
+   * among the changes that worked - once every issue it fixed passed its
+   * check by the fix itself, as #10368's resolutions say.
+   */
+  describe("and proves the fix OneUptime AI made", () => {
+    let proposal: DataSecurityAiProposal;
+    let proven: Array<string>;
+
+    // The group's pull request, opened as an approved proposal of OneUptime AI's.
+    async function fixedByProposal(count: number): Promise<{
+      buckets: Array<{ store: WorldStore; issue: WorldIssue }>;
+      made: WorldGroup;
+    }> {
+      const buckets: Array<{ store: WorldStore; issue: WorldIssue }> =
+        moduleBuckets(count);
+
+      await group();
+
+      const made: WorldGroup = onlyGroup();
+
+      await DataSecurityIssueGroupFix.run({
+        projectId: new ObjectID(world.projectId),
+        groupId: made.id,
+        props: ADMIN(),
+        codeRepositoryId: REPOSITORY_ID,
+      });
+
+      const queued: (typeof calls.queued)[number] = calls.queued[0]!;
+      const task: AIRun = new AIRun();
+
+      task.id = new ObjectID(made.codeTaskId!);
+      task.projectId = new ObjectID(world.projectId);
+      task.codeFixTaskType = queued.taskType;
+      task.taskContext = queued.taskContext as never;
+      jest
+        .spyOn(DataSecurityFixTarget, "readTask")
+        .mockResolvedValue(task as never);
+
+      proposal = new DataSecurityAiProposal();
+      proposal.id = new ObjectID(makeId());
+      proposal.kind = DataSecurityAiProposalKind.FixIssueGroupInCode;
+      proposal.status = DataSecurityAiProposalStatus.Applied;
+      proposal.appliedAt = new Date();
+      proposal.result = { aiRunId: made.codeTaskId! };
+      proposal.dataSecurityIssueGroupId = new ObjectID(made.id);
+
+      return { buckets, made };
+    }
+
+    // An issue whose production check found the pull request applied (StoreConfigurationFixWatch).
+    function fixedInCode(issue: WorldIssue, taskId: string): void {
+      const row: WorldIssue = world.issueById(issue.id)!;
+
+      row.status = DataSecurityIssueStatus.Resolved;
+      row.resolution = DataSecurityIssueResolution.FixedInInfrastructureCode;
+      row.resolvedAt = new Date().toISOString();
+      row.resolutionDetails = {
+        at: row.resolvedAt,
+        fix: { pullRequestId: makeId(), taskId },
+      };
+    }
+
+    beforeEach(() => {
+      proven = [];
+      proposal = undefined as unknown as DataSecurityAiProposal;
+      (
+        DataSecurityIssueGroupFixProof.proveForProject as unknown as {
+          mockRestore: () => void;
+        }
+      ).mockRestore();
+      jest
+        .spyOn(DataSecurityAiProposalService, "findBy")
+        .mockImplementation((async () => {
+          return proposal && !proven.includes(proposal.id!.toString())
+            ? [proposal]
+            : [];
+        }) as never);
+      jest
+        .spyOn(DataSecurityAiProposalService, "markGroupFixProven")
+        .mockImplementation((async (data: { proposalId: ObjectID }) => {
+          proven.push(data.proposalId.toString());
+
+          return 1;
+        }) as never);
+    });
+
+    test("once every issue it fixed resolved by its pull request: not while one is open, nor while one only passed its check", async () => {
+      const { buckets, made } = await fixedByProposal(6);
+      const taskId: string = made.codeTaskId!;
+
+      // Three applied and verified.
+      for (const bucket of buckets.slice(0, 3)) {
+        fixedInCode(bucket.issue, taskId);
+      }
+
+      await group();
+      expect(proven).toEqual([]);
+
+      // The rest pass their check before the production check reads them again.
+      for (const bucket of buckets.slice(3)) {
+        const row: WorldIssue = world.issueById(bucket.issue.id)!;
+
+        row.status = DataSecurityIssueStatus.Resolved;
+        row.resolution = DataSecurityIssueResolution.CheckPassed;
+        row.resolvedAt = new Date().toISOString();
+      }
+
+      await group();
+      // The group is fixed, but nothing says yet that its pull request did it.
+      expect(made.openIssueCount).toBe(0);
+      expect(proven).toEqual([]);
+
+      // The production check upgrades them: the pull request did it.
+      for (const bucket of buckets.slice(3)) {
+        fixedInCode(bucket.issue, taskId);
+      }
+
+      await group();
+      expect(proven).toEqual([proposal.id!.toString()]);
+
+      // Proven once: a later grouping reads it as proven already.
+      await group();
+      expect(proven).toHaveLength(1);
+    });
+
+    test("never when an issue was accepted, or marked not an issue, instead of fixed", async () => {
+      for (const status of [
+        DataSecurityIssueStatus.Accepted,
+        DataSecurityIssueStatus.NotAnIssue,
+      ]) {
+        jest.restoreAllMocks();
+        world = new IssueGroupsWorld();
+        world.install();
+        calls = installGroupFixStubs({
+          connections: [{ id: CONNECTION_ID }],
+        });
+        jest
+          .spyOn(AIService, "isProjectAIEnabled")
+          .mockResolvedValue(true as never);
+        proven = [];
+        proposal = undefined as unknown as DataSecurityAiProposal;
+        (
+          DataSecurityIssueGroupFixProof.proveForProject as unknown as {
+            mockRestore: () => void;
+          }
+        ).mockRestore();
+        jest
+          .spyOn(DataSecurityAiProposalService, "findBy")
+          .mockImplementation((async () => {
+            return proposal ? [proposal] : [];
+          }) as never);
+        jest
+          .spyOn(DataSecurityAiProposalService, "markGroupFixProven")
+          .mockImplementation((async (data: { proposalId: ObjectID }) => {
+            proven.push(data.proposalId.toString());
+
+            return 1;
+          }) as never);
+
+        const { buckets, made } = await fixedByProposal(4);
+
+        for (const bucket of buckets.slice(1)) {
+          fixedInCode(bucket.issue, made.codeTaskId!);
+        }
+
+        world.issueById(buckets[0]!.issue.id)!.status = status;
+
+        await group();
+
+        expect(made.openIssueCount).toBe(0);
+        expect(proven).toEqual([]);
+      }
     });
   });
 });
