@@ -654,7 +654,7 @@ describe("a case's repeat-offender line", () => {
 
   test("reads like the issue's example", () => {
     const line: string | null = Model.writeRepeatOffenderLine({
-      summary: { offenceCount: 2, last },
+      summary: { value: "35.205.11.131", offenceCount: 2, last },
       translator: ENGLISH,
     });
 
@@ -667,19 +667,20 @@ describe("a case's repeat-offender line", () => {
   test("once, three times, and a block made for no case", () => {
     expect(
       Model.writeRepeatOffenderLine({
-        summary: { offenceCount: 1, last },
+        summary: { value: "35.205.11.131", offenceCount: 1, last },
         translator: ENGLISH,
       }),
     ).toMatch(/^Blocked once before, last on .+ \(case CASE-812\)\.$/);
     expect(
       Model.writeRepeatOffenderLine({
-        summary: { offenceCount: 3, last },
+        summary: { value: "35.205.11.131", offenceCount: 3, last },
         translator: ENGLISH,
       }),
     ).toMatch(/^Blocked 3 times before, last on .+ \(case CASE-812\)\.$/);
     expect(
       Model.writeRepeatOffenderLine({
         summary: {
+          value: "35.205.11.131",
           offenceCount: 2,
           last: { ...last, caseNumber: null, securityCaseId: null },
         },
@@ -691,10 +692,151 @@ describe("a case's repeat-offender line", () => {
   test("an address never blocked before has no line", () => {
     expect(
       Model.writeRepeatOffenderLine({
-        summary: { offenceCount: 0, last: null },
+        summary: { value: "35.205.11.131", offenceCount: 0, last: null },
         translator: ENGLISH,
       }),
     ).toBeNull();
+  });
+
+  // ---------- Held as part of a network (#10895) ----------
+
+  const challengedAsn: typeof last = {
+    ...last,
+    action: SecurityBlockAction.Challenge,
+    value: "AS14061",
+  };
+
+  test("challenged once before as part of its whole network: reads like the issue's suggestion", () => {
+    const line: string | null = Model.writeRepeatOffenderLine({
+      summary: { value: "35.205.11.131", offenceCount: 1, last: challengedAsn },
+      translator: ENGLISH,
+    });
+
+    expect(line).toMatch(
+      /^Challenged once before as part of AS14061, on .+ \(case CASE-812\)\.$/,
+    );
+    expect(line).toContain("Nov");
+  });
+
+  test("challenged once as part of its network, by no case", () => {
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 1,
+          last: { ...challengedAsn, caseNumber: null, securityCaseId: null },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(/^Challenged once before as part of AS14061, on [^(]+\.$/);
+  });
+
+  test("a network blocked rather than challenged says blocked", () => {
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 1,
+          last: { ...challengedAsn, action: SecurityBlockAction.Block },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(
+      /^Blocked once before as part of AS14061, on .+ \(case CASE-812\)\.$/,
+    );
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 1,
+          last: {
+            ...challengedAsn,
+            action: SecurityBlockAction.Block,
+            caseNumber: null,
+            securityCaseId: null,
+          },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(/^Blocked once before as part of AS14061, on [^(]+\.$/);
+  });
+
+  test("more than once, the count stays the line's own, and the last is said as it was", () => {
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 2,
+          last: challengedAsn,
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(
+      /^Blocked 2 times before, last challenged as part of AS14061 on .+ \(case CASE-812\)\.$/,
+    );
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 4,
+          last: { ...challengedAsn, caseNumber: null, securityCaseId: null },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(
+      /^Blocked 4 times before, last challenged as part of AS14061 on [^(]+\.$/,
+    );
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 3,
+          last: { ...challengedAsn, action: SecurityBlockAction.Block },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(
+      /^Blocked 3 times before, last as part of AS14061 on .+ \(case CASE-812\)\.$/,
+    );
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 3,
+          last: {
+            ...challengedAsn,
+            action: SecurityBlockAction.Block,
+            caseNumber: null,
+            securityCaseId: null,
+          },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(/^Blocked 3 times before, last as part of AS14061 on [^(]+\.$/);
+  });
+
+  test("a range around the address that held it is named too", () => {
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: {
+          value: "35.205.11.131",
+          offenceCount: 1,
+          last: { ...challengedAsn, value: "35.205.11.0/24" },
+        },
+        translator: ENGLISH,
+      }),
+    ).toMatch(
+      /^Challenged once before as part of 35\.205\.11\.0\/24, on .+ \(case CASE-812\)\.$/,
+    );
+  });
+
+  test("a network's own record - Challenge This Network asking about AS14061 - names no network: it was the network itself", () => {
+    expect(
+      Model.writeRepeatOffenderLine({
+        summary: { value: "AS14061", offenceCount: 1, last: challengedAsn },
+        translator: ENGLISH,
+      }),
+    ).toMatch(/^Blocked once before, last on .+ \(case CASE-812\)\.$/);
   });
 
   test("Block the Whole Campaign's line says how many more addresses, and over how long", () => {
