@@ -270,7 +270,7 @@ Alleen de container die aanvragen ontvangt (`app`) declareert `ports`; een sidec
 
 ## Wat je krijgt
 
-- **Overzicht**: aanvragen, foutpercentage en p95-latentie uit je traces.
+- **Overzicht**: aanvragen, foutpercentage en p95-latentie uit je traces. Koppel het project onder **Cloud → Koppelen**, en dit tabblad krijgt een sectie **Google Cloud Monitoring**: de aanvragen van de service, het aandeel dat met een 5xx-status werd beantwoord, de p95-latentie en de CPU en het geheugen van zijn containers, zoals Cloud Run ze meet, wat de app ook stuurt. De rij **Google Cloud Monitoring-koppeling** van de **Configuratiecontrole** noemt de gezochte service zolang er geen wordt gelezen.
 - **Instanties**: één rij per Cloud Run-instantie, met `faas.instance` als naam. Cloud Run toont het resourcegebruik van een container niet aan een sidecar, dus de tegels **CPU** en **Geheugen** blijven leeg, tenzij je zelf metrieken `container.cpu.utilization` en `container.memory.usage` met dezelfde `faas.instance` stuurt. Lees hier de tegels voor aanvragen, en laat CPU en geheugen van instanties over aan Cloud Monitoring.
 - **Logboeken**, **Traces** en **Metrieken**, gefilterd op de omgeving.
 - Dezelfde service onder **Serverless functies** (op `faas.name`) en onder **Services** (op `service.name`).

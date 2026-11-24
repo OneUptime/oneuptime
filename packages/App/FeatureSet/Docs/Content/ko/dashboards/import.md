@@ -19,12 +19,12 @@ flowchart TB
     R --> P["미리 보기: 각 항목과<br/>무엇이 되는지"]
     P --> A["OneUptime AI, 요청할<br/>때: 한 번에<br/>쿼리 하나"]
     A --> P
-    P --> C["대시보드 또는<br/>Metrics 모니터"]
+    P --> C["대시보드 또는<br/>모니터"]
 ```
 
 ## 시작하기 전에
 
-- 가져온 위젯과 모니터는 이 프로젝트 자체의 메트릭을 PromQL로 읽습니다. Prometheus remote write, OpenTelemetry 또는 Datadog Agent로 보내면 그곳에서 쓰던 이름이 그대로 유지됩니다.
+- 가져온 위젯과 모니터는 이 프로젝트 자체의 메트릭과 로그를 읽습니다. OpenTelemetry나 Datadog Agent로, 또는 메트릭은 Prometheus remote write로, 로그는 Loki의 push API로 보내면 그곳에서 쓰던 이름이 그대로 유지됩니다.
 - 대시보드를 가져오려면 대시보드를 만들 수 있는 역할이, 경고 규칙을 가져오려면 모니터를 만들 수 있는 역할이 필요합니다.
 - 파일은 최대 10 MB이며, 그 안의 패널이나 규칙은 최대 500개까지 읽습니다.
 
@@ -44,7 +44,7 @@ Grafana에서는 대시보드 설정에서 JSON 모델을 복사합니다. Datad
 각 패널과 각 변수가 무엇이 되는지 확인하고, 대시보드에 이름을 붙인 뒤 **대시보드 만들기** 를 선택합니다. 새 대시보드가 열립니다.
 :::
 
-Grafana의 PromQL은 작성된 그대로 유지됩니다. OneUptime은 `$__interval`, `$__rate_interval`, `$__range` 를 Grafana와 같은 방식으로 채우며, All로 둔 변수는 모든 값과 일치합니다. Datadog 쿼리는 Datadog Agent가 보낸 메트릭에 대한 PromQL이 됩니다. `avg:system.cpu.user{host:web-1}` 은 `system_cpu_user{host="web-1"}` 을 읽습니다.
+Grafana의 PromQL은 작성된 그대로 유지됩니다. OneUptime은 `$__interval`, `$__rate_interval`, `$__range` 를 Grafana와 같은 방식으로 채우며, All로 둔 변수는 모든 값과 일치합니다. Datadog 쿼리는 Datadog Agent가 보낸 메트릭에 대한 PromQL이 됩니다. `avg:system.cpu.user{host:web-1}` 은 `system_cpu_user{resource_host_name="web-1"}` 을 읽고, `.as_count()` 는 Agent가 비율로 보낸 카운트를 각 간격에 센 수로 되돌립니다. 로그를 나열하는 Datadog 위젯은 **로그 스트림**이 되고, 로그를 세는 시계열은 **로그 차트**가 되며, 둘 다 Datadog Agent가 보낸 로그를 Datadog의 검색으로 걸러 읽습니다.
 
 ## 경고 규칙 가져오기
 
@@ -64,6 +64,8 @@ Prometheus 규칙 파일이나 PrometheusRule 리소스, Grafana의 경고 규�
 
 각 규칙은 PromQL 쿼리 하나, 규칙의 조건과 그 시간 창을 가진 Metrics 모니터가 됩니다. 임계값을 넘는 시리즈마다 경고나 인시던트를 열고, 시리즈가 회복되면 해결합니다. 제목과 설명은 규칙의 요약이나 메시지에서 가져오며, 시리즈의 레이블이 채워집니다.
 
+Datadog의 이상 탐지 모니터나 예측 모니터는 OneUptime의 이상 탐지 또는 예측 조건을 가진 Metrics 모니터가 되고, Datadog의 로그 모니터는 검색과 일치하는 로그를 세는 Logs 모니터가 됩니다.
+
 ## 각 항목이 변환되는 방식
 
 | 상태 | 의미 |
@@ -72,7 +74,7 @@ Prometheus 규칙 파일이나 PrometheusRule 리소스, Grafana의 경고 규�
 | **Converted approximately** | 만들어지며, 메모에 무엇이 다른지 나옵니다. |
 | **Not converted** | 아무것도 만들어지지 않으며, 메모에 이유가 나옵니다. |
 
-레코딩 규칙, 로그에 대한 경고 규칙, 로그·트레이스·이벤트를 읽는 Datadog 위젯, 그리고 Datadog의 이상 탐지·이상값·예측 모니터는 변환되지 않습니다.
+레코딩 규칙, 로그에 대한 Prometheus와 Grafana의 경고 규칙, 트레이스나 이벤트를 읽는 Datadog 위젯, Datadog의 이상값·변화 모니터, 그리고 메트릭과 로그 외의 것을 읽는 Datadog 모니터는 변환되지 않습니다.
 
 ## OneUptime AI로 쿼리 변환하기
 

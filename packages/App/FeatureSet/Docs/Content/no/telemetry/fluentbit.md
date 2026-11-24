@@ -184,7 +184,7 @@ pipeline:
 
 ## Send med HTTP-outputen
 
-[HTTP-outputen](https://docs.fluentbit.io/manual/pipeline/outputs/http) i Fluent Bit kan også sende til Fluentd-endepunktet i OneUptime, som leser hver post slik [Fluentd-siden](/docs/telemetry/fluentd) beskriver. Sett `format` til `json_lines`, som nedenfor, eller til `json`: OneUptime leser begge, komprimert med `compress: gzip` eller ikke. Standardformatet til Fluent Bit, `msgpack`, blir avvist.
+[HTTP-outputen](https://docs.fluentbit.io/manual/pipeline/outputs/http) i Fluent Bit kan også sende til Fluentd-endepunktet i OneUptime, som leser hver post slik [Fluentd-siden](/docs/telemetry/fluentd) beskriver. Sett `format` til `json_lines`, som nedenfor, eller til `json` eller `json_stream`: OneUptime leser alle tre, komprimert med `compress: gzip` eller ikke. Standardformatet til Fluent Bit, `msgpack`, blir avvist.
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

@@ -270,7 +270,7 @@ Solo el contenedor que recibe solicitudes (`app`) declara `ports`; un sidecar no
 
 ## Qué obtiene
 
-- **Vista general**: solicitudes, tasa de errores y latencia p95 de sus trazas.
+- **Vista general**: solicitudes, tasa de errores y latencia p95 de sus trazas. Conecte el proyecto en **Nube → Conectar**, y esta pestaña añade una sección **Google Cloud Monitoring**: las solicitudes del servicio, la proporción respondida con un estado 5xx, la latencia p95 y la CPU y la memoria de sus contenedores, tal como los mide Cloud Run, envíe lo que envíe la aplicación. La fila **Conexión de Google Cloud Monitoring** de la **Comprobación de la configuración** nombra el servicio que busca mientras no se lea ninguno.
 - **Instancias**: una fila por instancia de Cloud Run, nombrada por `faas.instance`. Cloud Run no muestra a un sidecar el uso de recursos de un contenedor, así que los mosaicos **CPU** y **Memoria** quedan vacíos salvo que usted envíe métricas `container.cpu.utilization` y `container.memory.usage` con el mismo `faas.instance`. Lea aquí los mosaicos de solicitudes, y deje la CPU y la memoria de las instancias a Cloud Monitoring.
 - **Registros**, **Trazas** y **Métricas**, filtrados al entorno.
 - El mismo servicio en **Funciones serverless** (por `faas.name`) y en **Servicios** (por `service.name`).

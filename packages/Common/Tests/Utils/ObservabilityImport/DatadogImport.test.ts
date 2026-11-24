@@ -16,7 +16,6 @@ import {
 } from "../../../Types/ObservabilityImport/ObservabilityImport";
 import GridLayoutUtil from "../../../Utils/Dashboard/GridLayout";
 import {
-  DATADOG_AS_COUNT_ON_GAUGE,
   DATADOG_AS_RATE,
   DATADOG_CONVERTED_BY_AI,
   DATADOG_DIFF,
@@ -203,11 +202,11 @@ describe("a Datadog query as PromQL", () => {
     ],
     [
       "avg:system.cpu.user{host:web-*,!env:dev} by {host}",
-      'avg by (host) (avg_over_time(system_cpu_user{host=~"web-.*",env!="dev"}[$__interval]))',
+      'avg by (resource_host_name) (avg_over_time(system_cpu_user{resource_host_name=~"web-.*",env!="dev"}[$__interval]))',
     ],
     [
       "avg:system.cpu.user{host:$host.value}",
-      'avg (avg_over_time(system_cpu_user{host="{{host}}"}[$__interval]))',
+      'avg (avg_over_time(system_cpu_user{resource_host_name="{{host}}"}[$__interval]))',
     ],
     [
       "sum:nginx.requests{*}",
@@ -291,16 +290,16 @@ describe("a Datadog query as PromQL", () => {
     expect(texts(converted.notes)).toEqual([DATADOG_READ_AS_COUNT]);
   });
 
-  test(".as_count() on what the project has as a gauge leaves it a gauge, as Datadog does, and says what a DogStatsD count reads", () => {
+  test(".as_count() on what the project has as a gauge, not a rate, leaves it a gauge, exactly, as Datadog does", () => {
     const converted: ConvertedQuery = convert(
       "sum:system.cpu.user{*}.as_count()",
     );
 
-    expect(converted.status).toBe(ImportItemStatus.Approximate);
+    expect(converted.status).toBe(ImportItemStatus.Exact);
     expect(converted.promQL).toBe(
       "sum (avg_over_time(system_cpu_user[$__interval]))",
     );
-    expect(texts(converted.notes)).toEqual([DATADOG_AS_COUNT_ON_GAUGE]);
+    expect(converted.notes).toEqual([]);
   });
 
   test(".as_rate() on a metric with no data yet is read per second, and said", () => {
@@ -330,7 +329,7 @@ describe("a Datadog query as PromQL", () => {
     );
 
     expect(top.promQL).toBe(
-      "topk(10, avg by (host) (avg_over_time(system_cpu_user[$__interval])))",
+      "topk(10, avg by (resource_host_name) (avg_over_time(system_cpu_user[$__interval])))",
     );
     expect(texts(top.notes)).toEqual([DATADOG_TOP_PER_STEP]);
 
@@ -365,13 +364,13 @@ describe("a Datadog query as PromQL", () => {
         "avg:system.cpu.user{*} by {host} / avg:system.cpu.idle{*} by {host}",
       ).promQL,
     ).toBe(
-      "(avg by (host) (avg_over_time(system_cpu_user[$__interval]))) / (avg by (host) (avg_over_time(system_cpu_idle[$__interval])))",
+      "(avg by (resource_host_name) (avg_over_time(system_cpu_user[$__interval]))) / (avg by (resource_host_name) (avg_over_time(system_cpu_idle[$__interval])))",
     );
     expect(
       convert("avg:system.cpu.user{*} by {host} / avg:system.cpu.idle{*}")
         .promQL,
     ).toBe(
-      "(avg by (host) (avg_over_time(system_cpu_user[$__interval]))) / scalar(avg (avg_over_time(system_cpu_idle[$__interval])))",
+      "(avg by (resource_host_name) (avg_over_time(system_cpu_user[$__interval]))) / scalar(avg (avg_over_time(system_cpu_idle[$__interval])))",
     );
 
     const unmatched: ConvertedQuery = convert(
@@ -574,9 +573,15 @@ describe("Datadog's NGINX overview dashboard", () => {
       }
     }
 
-    expect(itemNamed(nginx, "NGINX Error logs").notes[0]?.text).toBe(
-      WIDGET_READS_OTHER_DATA,
+    // Its stream of error logs is a Log Stream (issue #10324).
+    expect(itemNamed(nginx, "NGINX Error logs").component?.componentType).toBe(
+      DashboardComponentType.LogStream,
     );
+    expect(itemNamed(nginx, "Nginx Watchdog alerts").notes[0]).toEqual({
+      kind: ImportNoteKind.Reason,
+      text: WIDGET_READS_OTHER_DATA,
+      values: { source: "events" },
+    });
     expect(itemNamed(nginx, "Requests per second by host").notes[0]).toEqual({
       kind: ImportNoteKind.Reason,
       text: WIDGET_TYPE_NOT_SUPPORTED,
@@ -601,9 +606,9 @@ describe("Datadog's NGINX overview dashboard", () => {
         return query.query;
       }),
     ).toEqual([
-      'sum (avg_over_time(nginx_net_reading{host="{{Host}}"}[$__interval]))',
-      'sum (avg_over_time(nginx_net_writing{host="{{Host}}"}[$__interval]))',
-      'sum (avg_over_time(nginx_net_waiting{host="{{Host}}"}[$__interval]))',
+      'sum (avg_over_time(nginx_net_reading{resource_host_name="{{Host}}"}[$__interval]))',
+      'sum (avg_over_time(nginx_net_writing{resource_host_name="{{Host}}"}[$__interval]))',
+      'sum (avg_over_time(nginx_net_waiting{resource_host_name="{{Host}}"}[$__interval]))',
     ]);
 
     for (const query of queriesOf(chart)) {
@@ -611,12 +616,14 @@ describe("Datadog's NGINX overview dashboard", () => {
     }
   });
 
-  test("its host variable filters on host", () => {
+  test("its host variable filters on the host the Agent sends: the resource's host.name", () => {
     expect(nginx.variables).toHaveLength(1);
     expect(nginx.variables[0]?.variable?.type).toBe(
       DashboardVariableType.TelemetryAttribute,
     );
-    expect(nginx.variables[0]?.variable?.attributeKey).toBe("host");
+    expect(nginx.variables[0]?.variable?.attributeKey).toBe(
+      "resource.host.name",
+    );
   });
 
   test("with the project's data saying what each metric is, nothing is assumed", () => {
@@ -689,11 +696,16 @@ describe("Datadog's Redis and Postgres dashboards", () => {
 
     expect(scope?.status).toBe(ImportItemStatus.NotConverted);
     expect(texts(scope?.notes || [])).toEqual([VARIABLE_WITHOUT_PREFIX]);
+    // Its two streams of logs are Log Streams now (issue #10324).
     expect(
-      redis.items.filter((item: DashboardImportItem): boolean => {
-        return item.status === ImportItemStatus.NotConverted;
-      }),
-    ).toHaveLength(3);
+      redis.items
+        .filter((item: DashboardImportItem): boolean => {
+          return item.status === ImportItemStatus.NotConverted;
+        })
+        .map((item: DashboardImportItem): string => {
+          return item.sourceType;
+        }),
+    ).toEqual(["distribution"]);
   });
 
   test("every Postgres widget converts", () => {

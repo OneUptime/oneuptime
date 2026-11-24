@@ -3,6 +3,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
+  AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
   AI_DATA_SECURITY_ISSUE_GROUP_NAME_FEATURE,
@@ -71,6 +72,9 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   },
   get [DataSecurityAiFeature.SuggestFieldTypes](): string {
     return AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE;
+  },
+  get [DataSecurityAiFeature.JudgeFindings](): string {
+    return AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE;
   },
   get [DataSecurityAiFeature.ProposeStoreOwners](): string {
     return AI_DATA_SECURITY_STORE_OWNERS_FEATURE;

@@ -7,6 +7,7 @@ Data Security knows 143 kinds of sensitive data: card numbers, bank accounts, na
 - [Fields and columns](#fields-and-columns): How a whole column or attribute is judged.
 - [Every data type](#built-in-data-types): All 143, by category.
 - [Your own data types](#your-own-data-types): Employee IDs, policy numbers, and the Test It box.
+- [OneUptime AI's verdicts](#oneuptime-ais-verdicts): A verdict on every finding that waits for you, with your team's decisions as precedent.
 :::
 
 ## How a value is found
@@ -63,7 +64,7 @@ A field whose name says it holds a password - `password`, `passwordHash`, `pwd`,
 
 A column or a field whose name points at no data type, and whose values match no detector, is not known to be safe: it can be your own customer number, or a column named in another language. With the project's **Enable AI** on, a content scan keeps such fields, at most 200 a scan, and OneUptime AI is asked which of the project's data types each holds, at most 40 fields of a store at a time. It is told the field's name, the names of the fields beside it, and the shapes of its values - every letter written as `a` or `A` and every digit as `9`, so `AB-1234` is `AA-9999` - never a value. Free text, fields with fewer than 5 values, small whole numbers and fields named as an id, a time or a status are not asked about.
 
-Each type OneUptime AI names is a Low finding, marked **Suggested by OneUptime AI** with its reason. Like any Low finding it counts toward nothing until a person chooses **Confirm** on the store's **What's Inside** page; **Mark as Not Sensitive** turns it down. A field that was answered is not asked about again for 30 days, and a field a person judged is not asked about again.
+Each type OneUptime AI names is a Low finding, marked **Suggested by OneUptime AI** with its reason, written in your project's language and shown across the finding's row. Like any Low finding it counts toward nothing until a person chooses **Confirm** on the store's **What's Inside** page; **Mark as Not Sensitive** turns it down. A field that was answered is not asked about again for 30 days, and a field a person judged is not asked about again.
 
 ## Sensitivity
 
@@ -303,6 +304,42 @@ A scan can find something that is not what it looks like: a column of order numb
 - **Mark the finding as not sensitive.** On the store's **What's Inside** page, choose **Mark as Not Sensitive** on the finding and say why. It no longer counts toward the store's sensitivity or its checks, and the store is checked again at once. The finding stays on the store, marked, with your reason, so the next person sees what was decided.
 - **Add the value to Never Sensitive**, in Data Security's settings, for a value that is never a finding anywhere, such as `support@yourcompany.com`. Values are compared after the scanner has normalized them, ignoring case.
 - **Turn a built-in data type off.** Under **Built-in Data Types**, on **Data Security → Settings → Data Types**, every data type has a switch, which saves the moment it is flipped. No scan of the project looks for a type that is off.
+
+## OneUptime AI's verdicts
+
+With the project's **Enable AI** on and **Work on new issues** on under **Data Security → AI**, OneUptime AI gives its verdict on every finding that waits for a person, after each scan of its store. A finding waits when the scan was not sure of it - a Low finding, or one of OneUptime AI's suggestions - or when a Medium or High finding shows a sign of a wrong match:
+
+- most of what matched were known test values;
+- the field's name points at another data type, and not at this one;
+- an id field, such as `order_number`, `invoice_no` or `ref_id`, holds a type checked by the Luhn algorithm, which one in ten of any digits passes, and its name does not point at that type.
+
+The verdict is **Confirm it**, **Not sensitive** or **Cannot tell**, with a reason in your project's language. It is shown across the finding's row on the store's **What's Inside** page and on **In Your Telemetry**, with the decisions of your team it rests on, such as "Your team marked `order_number` not sensitive on 4 stores". **Show the decisions** lists each one: its store, its field and the reason your team gave.
+
+### Your team's decisions as precedent
+
+OneUptime AI is told your team's earlier decisions on findings of the same data type, at most ten. First come those in a field of the same name, on any store: `order_number`, `orderNumber` and `public.orders.order_number` are all "order number". The same place comes first, then the newest decision. Then come fields whose names, or the reasons given for them, say the same thing, such as `order_ref` with the reason "Shopify order numbers". It is told where each finding was, what was decided and the reason given, with any value in a reason left out. It is never told a value, a masked sample or a record.
+
+A finding in free text, such as a log body or a message, has no field name to match by. Its precedent is the same place on another store, such as another service's log body.
+
+### What OneUptime AI decides on its own
+
+- **It never marks a finding as not sensitive**, under any rule. A person does, with their own reason. Where the verdict is **Not sensitive**, **Mark as Not Sensitive** starts from the reason OneUptime AI drafted, which you can change.
+- **It confirms a finding on its own only where an AI rule says so**: a Data Security AI rule whose **Judge** is **Automatically**, for the store and the data type. It also needs your team's own confirmation of a finding like it, or a field named for the type. The confirmation is on the store's **Timeline** and in **Done by AI** on **Data Security → AI**, and **Undo** takes it back.
+
+Otherwise the verdict waits on the finding's row. Where the project has AI rules, a finding gets a verdict only when a rule for its store and data type has **Judge** on; a rule limited to some checks or severities is about issues, and judges no finding. OneUptime AI judges at most 40 of a store's findings after a scan, those it never judged first, and the rest after the next scan. After a later scan, a finding is asked about again only when what its verdict rests on changed, such as a new decision on a finding like it.
+
+## Similar findings
+
+After you confirm a finding or mark it as not sensitive, **Apply to Similar Findings** lists the findings like it that nobody decided yet: the same data type, in a field of the same name, on this store and on every other store you may read. Each one is ticked. Untick any you want to judge on its own, and the rest get the same decision, with your reason, as your own change; a finding you may not change is left as it was. **Not Now** leaves them all as they are. A finding in free text never has similar findings: what one text holds says nothing about another.
+
+## What your decisions say of the scans
+
+When your team marks findings as not sensitive, OneUptime AI proposes changes to the scans under **Waiting for you** on **Data Security → AI**:
+
+- **Turn off a built-in data type** when every one of its findings was marked not sensitive: at least 3 findings, on at least 2 stores. A finding OneUptime AI only suggested does not count.
+- **Leave a location out of a store's scans** when every finding there was marked not sensitive, at least 2 of them. It is proposed for a database column or a telemetry attribute, which a scan can leave out on its own.
+
+Each always waits for a person to approve it: a scan that stops looking misses the real data that comes later. **Never Sensitive** is never proposed, because it holds values, and OneUptime AI never sees one.
 
 ## Next steps
 

@@ -790,6 +790,22 @@ describe("with OneUptime AI responding first", () => {
     expect(posts).toHaveLength(1);
     expect(feed.join("\n")).toContain("Security Events is off on this server");
     expect(everythingSent()).not.toContain(REPORT_SECRET);
+
+    /*
+     * OneUptime AI stops working the case too (#10816): it is handed to
+     * people, saying why, and that hand-off ended the hold - so the one
+     * notice above is all anyone gets.
+     */
+    expect(caseRow["aiResponseState"]).toBe(
+      SecurityCaseAiResponseState.HandedToPeople,
+    );
+    expect(caseRow["aiHandOffReason"]).toBe(
+      SecurityCaseHandOffReason.ProductOff,
+    );
+    expect(caseRow["aiHoldOutcome"]).toBe(SecurityCaseAiHoldOutcome.ProductOff);
+    expect(feed.join("\n")).toContain(
+      "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+    );
   });
 
   test("while Security Events is switched off no new case is held: people are told as always", async () => {

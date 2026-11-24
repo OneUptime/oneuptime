@@ -635,7 +635,8 @@ export default class DataStoreOwnerEvidenceReader {
         projectId: data.projectId,
         cloudResourceId,
         providerResourceId,
-        since: OneUptimeDate.addRemoveDays(
+        // A length of time, the same in every zone (#8473).
+        since: OneUptimeDate.addRemoveDurationInDays(
           OneUptimeDate.getCurrentDate(),
           -OWNER_CHANGE_LOOKBACK_IN_DAYS,
         ),

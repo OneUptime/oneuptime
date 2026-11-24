@@ -1,0 +1,36 @@
+{
+	"version": 2,
+	"created_at": "2025-09-03",
+	"last_updated_at": "2025-09-03",
+	"title": "App connector high cpu utilization",
+	"description": "This monitor alerts when the App connector's CPU utilization reaches or exceeds 80%, indicating potential resource saturation. High CPU usage may lead to performance degradation, delayed user connections, or disruptions in application access.",
+	"definition": {
+		"id": 186315896,
+		"name": "App connector high cpu utilization",
+		"type": "log alert",
+		"query": "logs(\"source:zscaler-private-access service:app-connector-status @CPUUtilization:>=80\").index(\"*\").rollup(\"count\").by(\"@Connector\").last(\"5m\") >= 1",
+		"message": "{{#is_alert}} \nConnector: `{{@Connector}}` with high CPU Utilization(>=80) detected. This may indicate resource saturation, which can degrade performance, delay user connections, or disrupt application access.\n{{/is_alert}}\n\n\n@example@example.com",
+		"tags": [
+			"source:zscaler-private-access"
+		],
+		"options": {
+			"thresholds": {
+				"critical": 1
+			},
+			"enable_logs_sample": true,
+			"notify_audit": false,
+			"on_missing_data": "default",
+			"include_tags": true,
+			"new_group_delay": 60,
+			"groupby_simple_monitor": false,
+			"silenced": {}
+		},
+		"priority": null,
+		"restriction_policy": {
+			"bindings": []
+		}
+	},
+	"tags": [
+		"integration:zscaler-private-access"
+	]
+}

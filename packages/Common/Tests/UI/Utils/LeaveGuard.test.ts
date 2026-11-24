@@ -652,6 +652,28 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
     }
   };
 
+  /*
+   * Waits, a task at a time, until a history step has landed on `pathname`:
+   * jsdom moves the location and fires popstate in one task, so the guard
+   * has had the step by then. For a test whose order of steps and frames is
+   * the point, so a busy runner cannot draw the frame before the step lands.
+   * (The guard keeps popstate from the listeners after it, so the step is
+   * read off the location.)
+   */
+  const landsOn: (pathname: string) => Promise<void> = async (
+    pathname: string,
+  ): Promise<void> => {
+    for (
+      let task: number = 0;
+      task < 500 && window.location.pathname !== pathname;
+      task++
+    ) {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
+  };
+
   // jsdom's history steps land a couple of tasks later.
   const tasks: () => Promise<void> = async (): Promise<void> => {
     for (let task: number = 0; task < 8; task++) {
@@ -1011,10 +1033,13 @@ describe("LeaveGuard keeps the page where the reader had it, across Back and For
     LeaveGuard.hold(asks.askToLeave);
     readerScrollsTo(1000);
 
+    // Both steps land before the frame they race: Forward undoes Back first.
     window.history.back();
+    await landsOn(LIST);
     await tasks();
     browserRestores(300);
     window.history.forward();
+    await landsOn(BOARD);
     await tasks();
     browserRestores(1000);
     drawNextFrame();

@@ -7,6 +7,7 @@ Datasäkerhet känner till 143 sorters känsliga data: kortnummer, bankkonton, n
 - [Fält och kolumner](#fält-och-kolumner): Hur en hel kolumn eller ett helt attribut bedöms.
 - [Varje datatyp](#inbyggda-datatyper): Alla 143, efter kategori.
 - [Dina egna datatyper](#dina-egna-datatyper): Anställnings-ID:n, försäkringsnummer och rutan Testa.
+- [OneUptime AI:s bedömningar](#oneuptime-ais-bedömningar): En bedömning av varje fynd som väntar på dig, med ditt teams beslut som prejudikat.
 :::
 
 ## Hur ett värde hittas
@@ -63,7 +64,7 @@ Ett fält vars namn säger att det innehåller ett lösenord - `password`, `pass
 
 En kolumn eller ett fält vars namn inte pekar på någon datatyp, och vars värden inte matchar någon detektor, är inte känt som säkert: det kan vara ditt eget kundnummer, eller en kolumn som har ett namn på ett annat språk. Med projektets **Aktivera AI** påslaget sparar en innehållsskanning sådana fält, högst 200 per skanning, och OneUptime AI tillfrågas vilken av projektets datatyper varje fält innehåller, högst 40 fält från ett datalager åt gången. Den får fältets namn, namnen på fälten bredvid och formerna på dess värden - varje bokstav skriven som `a` eller `A` och varje siffra som `9`, så `AB-1234` blir `AA-9999` - aldrig ett värde. Fritext, fält med färre än 5 värden, små heltal och fält som heter som ett id, en tidpunkt eller en status frågas det inte om.
 
-Varje typ som OneUptime AI nämner är ett fynd med Låg, markerat **Föreslagen av OneUptime AI** med sin motivering. Som varje fynd med Låg räknas det inte förrän en person väljer **Bekräfta** på datalagrets sida **Innehåll**; **Markera som inte känsligt** avvisar det. Ett fält som har fått svar frågas det inte om igen på 30 dagar, och ett fält som en person har bedömt aldrig igen.
+Varje typ som OneUptime AI nämner är ett fynd med Låg, markerat **Föreslagen av OneUptime AI** med sin motivering, skriven på ditt projekts språk och visad över hela fyndets rad. Som varje fynd med Låg räknas det inte förrän en person väljer **Bekräfta** på datalagrets sida **Innehåll**; **Markera som inte känsligt** avvisar det. Ett fält som har fått svar frågas det inte om igen på 30 dagar, och ett fält som en person har bedömt aldrig igen.
 
 ## Känslighet
 
@@ -303,6 +304,42 @@ En skanning kan hitta något som inte är vad det ser ut att vara: en kolumn med
 - **Markera fyndet som inte känsligt.** På datalagrets sida **Innehåll** väljer du **Markera som inte känsligt** på fyndet och anger varför. Det räknas inte längre till datalagrets känslighet eller dess kontroller, och datalagret kontrolleras igen direkt. Fyndet finns kvar på datalagret, markerat, med din orsak, så att nästa person ser vad som har beslutats.
 - **Lägg till värdet i Aldrig känsligt**, i inställningarna för Datasäkerhet, för ett värde som aldrig är ett fynd någonstans, som `support@yourcompany.com`. Värden jämförs efter att skannern har normaliserat dem, utan hänsyn till skiftläge.
 - **Stäng av en inbyggd datatyp.** Under **Inbyggda datatyper**, på **Datasäkerhet → Inställningar → Datatyper**, har varje datatyp ett reglage, som sparas i samma ögonblick som det slås om. Ingen skanning i projektet letar efter en typ som är avstängd.
+
+## OneUptime AI:s bedömningar
+
+Med projektets **Aktivera AI** påslaget och **Arbeta med nya problem** påslaget under **Datasäkerhet → AI** ger OneUptime AI sin bedömning av varje fynd som väntar på en person, efter varje skanning av dess datalager. Ett fynd väntar när skanningen inte var säker på det - ett fynd med Låg, eller ett av OneUptime AI:s förslag - eller när ett fynd med Medel eller Hög visar tecken på en felaktig matchning:
+
+- det mesta av det som matchade var kända testvärden;
+- fältets namn pekar på en annan datatyp, och inte på den här;
+- ett id-fält, som `order_number`, `invoice_no` eller `ref_id`, innehåller en typ som kontrolleras med Luhn-algoritmen, som var tionde slumpmässig sifferföljd klarar, och fältets namn pekar inte på den typen.
+
+Bedömningen är **Bekräfta det**, **Inte känsligt** eller **Går inte att avgöra**, med en motivering på ditt projekts språk. Den visas över hela fyndets rad på datalagrets sida **Innehåll** och på **I din telemetri**, tillsammans med de beslut från ditt team som den bygger på, till exempel "Ditt team markerade `order_number` som inte känsligt i 4 datalager". **Visa besluten** listar vart och ett: dess datalager, dess fält och motiveringen som ditt team gav.
+
+### Ditt teams beslut som prejudikat
+
+OneUptime AI får ditt teams tidigare beslut om fynd av samma datatyp, högst tio. Först kommer de i ett fält med samma namn, i vilket datalager som helst: `order_number`, `orderNumber` och `public.orders.order_number` blir alla "order number". Samma plats kommer först, sedan det senaste beslutet. Sedan kommer fält vars namn, eller motiveringarna som gavs för dem, säger samma sak, till exempel `order_ref` med motiveringen "Shopify-ordernummer". Den får veta var varje fynd fanns, vad som beslutades och motiveringen som gavs, med eventuella värden i en motivering utelämnade. Den får aldrig ett värde, ett maskerat prov eller en post.
+
+Ett fynd i fritext, som en loggtext eller ett meddelande, har inget fältnamn att matcha mot. Dess prejudikat är samma plats i ett annat datalager, till exempel en annan tjänsts loggtext.
+
+### Vad OneUptime AI beslutar på egen hand
+
+- **Den markerar aldrig ett fynd som inte känsligt**, vad en regel än säger. Det gör en person, med sin egen motivering. Där bedömningen är **Inte känsligt** börjar **Markera som inte känsligt** från den motivering som OneUptime AI har skrivit ett utkast till, och som du kan ändra.
+- **Den bekräftar bara ett fynd på egen hand där en AI-regel säger det**: en AI-regel för Datasäkerhet vars **Bedöm** är **Automatiskt**, för datalagret och datatypen. Det krävs också att ditt team självt har bekräftat ett liknande fynd, eller ett fält som är namngivet efter typen. Bekräftelsen finns på datalagrets **Tidslinje** och under **Gjort av AI** på **Datasäkerhet → AI**, och **Ångra** tar tillbaka den.
+
+Annars väntar bedömningen på fyndets rad. Där projektet har AI-regler får ett fynd bara en bedömning när en regel för dess datalager och datatyp har **Bedöm** påslaget; en regel som är begränsad till vissa kontroller eller allvarlighetsgrader gäller problem och bedömer inga fynd. OneUptime AI bedömer högst 40 av ett datalagers fynd efter en skanning, först de som den aldrig har bedömt, och resten efter nästa skanning. Efter en senare skanning frågas det om ett fynd igen bara när det som dess bedömning bygger på har ändrats, till exempel genom ett nytt beslut om ett liknande fynd.
+
+## Liknande fynd
+
+När du har bekräftat ett fynd eller markerat det som inte känsligt listar **Tillämpa på liknande fynd** de liknande fynd som ingen har tagit ställning till än: samma datatyp, i ett fält med samma namn, i det här datalagret och i alla andra datalager som du får läsa. Vart och ett är markerat. Avmarkera dem som du vill bedöma var för sig, så får resten samma beslut, med din motivering, som din egen ändring; ett fynd som du inte får ändra lämnas som det var. **Inte nu** låter dem alla vara som de är. Ett fynd i fritext har aldrig liknande fynd: det som en text innehåller säger ingenting om en annan.
+
+## Vad dina beslut säger om skanningarna
+
+När ditt team markerar fynd som inte känsliga föreslår OneUptime AI ändringar av skanningarna under **Väntar på dig** på **Datasäkerhet → AI**:
+
+- **Stäng av en inbyggd datatyp** när vartenda ett av dess fynd har markerats som inte känsligt: minst 3 fynd, i minst 2 datalager. Ett fynd som OneUptime AI bara föreslog räknas inte.
+- **Uteslut en plats från ett datalagers skanningar** när varje fynd där har markerats som inte känsligt, minst 2 av dem. Det föreslås för en databaskolumn eller ett telemetriattribut, som en skanning kan utesluta för sig.
+
+Varje förslag väntar alltid på att en person godkänner det: en skanning som slutar leta missar de verkliga data som kommer senare. Inget föreslås någonsin till **Aldrig känsligt**, eftersom den innehåller värden, och OneUptime AI ser aldrig ett värde.
 
 ## Nästa steg
 

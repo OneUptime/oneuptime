@@ -143,7 +143,7 @@ SQL-makroer skrives i UTC, så kør dine databasesessioner i UTC, eller omregn i
 
 ### Dashboard-variabler
 
-Skriv `{{name}}` hvor som helst i en forespørgsel, så sætter widgetten variablens værdi ind der, før den sender forespørgslen. Flere værdier af en flervalgsvariabel sættes sammen med `|`, hvilket er det, en matcher med regulære udtryk i PromQL eller LogQL har brug for: `job=~"{{job}}"`. En variabel uden noget valgt lader pladsholderen stå, som den er skrevet, så fejlen nævner den. [Dashboard-variabler & filtre](/docs/dashboards/variables) viser, hvordan du tilføjer en.
+Skriv `{{name}}` hvor som helst i en forespørgsel, så sætter widgetten variablens værdi ind der, før den sender forespørgslen. En forespørgsel på dette projekts metrikker eller på en Prometheus udfyldes, som Grafanas Prometheus-datakilde udfylder den: i `job=~"{{job}}"` matcher flere værdier af en flervalgsvariabel en hvilken som helst af dem, hver som den er skrevet, og en variabel uden noget valgt matcher alle værdier. I enhver anden forespørgsel sættes flere værdier sammen med `|`, hvilket er det, en matcher med regulære udtryk i LogQL har brug for, og en variabel uden noget valgt lader pladsholderen stå, som den er skrevet, så fejlen nævner den. [Dashboard-variabler & filtre](/docs/dashboards/variables) viser, hvordan du tilføjer en.
 
 ## Grænser
 

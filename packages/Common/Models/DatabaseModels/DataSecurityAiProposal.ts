@@ -884,7 +884,7 @@ export default class DataSecurityAiProposal extends BaseModel {
     required: false,
     computed: true,
     canReadOnRelationQuery: true,
-    title: "Failed At",
+    title: "Change Failed At",
     description: "When making the change failed.",
   })
   @Column({
