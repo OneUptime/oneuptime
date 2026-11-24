@@ -2,12 +2,12 @@
 
 A form is a page that anyone with its link can fill in, without a OneUptime account. Each submission creates something in your project: an **incident**, for problem reports, an **alert**, for warnings and things to check, or a **maintenance event**, for change and maintenance requests. You build the form's questions in a drag-and-drop builder, decide how the answers become the record, and share the link with the people who should use it.
 
-Use a form when the people who notice a problem — or who need a change — are not the people who run your incidents and maintenance: support agents, colleagues in another department, a store manager, a customer's operations team. They open the link, answer your questions and press **Submit**. Your team gets an ordinary incident, alert or event, with the answers in its fields and a private note that records who sent it.
+Use a form when the people who notice a problem — or who need a change — are not the people who run your incidents and maintenance: support agents, colleagues in another department, a store manager, a customer's operations team. They open the link, answer your questions and press **Submit**. Your team gets an ordinary incident or event, with the answers in its fields and a private note that records who sent it.
 
 :::cards
 - [Create your first form](#create-your-first-form): From a blank form to a link you can share.
 - [Building a Form](/docs/forms/building): Questions, answer types, hidden questions, templates and branding.
-- [What a Submission Creates](/docs/forms/on-submit): How the answers and the settings become an incident, an alert or a maintenance event.
+- [What a Submission Creates](/docs/forms/on-submit): How the answers and the settings become an incident or a maintenance event.
 - [Sharing & Security](/docs/forms/sharing-and-security): The link, the IP allowlist, rate limits and troubleshooting.
 :::
 
@@ -36,8 +36,8 @@ Every request passes the form's protections first: its own page, rate limits, th
 - **A product of its own** — **Forms** sits in the products menu, at `/dashboard/{projectId}/forms`. Each form has a link of its own, such as `https://oneuptime.com/accounts/form/<share-key>` on OneUptime Cloud.
 - **No account needed** — anyone with the link can open the form and submit it, without signing in.
 - **A builder, not a settings page** — add your own questions (short answers, paragraphs, dropdowns, dates, checkboxes and more), the fields of what the form creates (title, description, severity, monitors, labels, start and end), your custom fields, and the submitter's name and email. Drag them into order, preview the form, save.
-- **You decide where every value comes from** — the **On Submit** page lists every field of the new incident, alert or event next to its source: an answer, a default, a setting that always applies, or the incident template.
-- **Hidden until someone publishes it** — incidents from a form are never shown on status pages or sent to subscribers when they are declared; maintenance events are not, unless the form says so; and alerts never show on a status page.
+- **You decide where every value comes from** — the **On Submit** page lists every field of the new incident or event next to its source: an answer, a default, a setting that always applies, or the incident template.
+- **Hidden until someone publishes it** — incidents from a form are never shown on status pages or sent to subscribers when they are declared; maintenance events are not, unless the form says so.
 - **Protected in layers** — an **Accepting Submissions** switch, an optional **IP Allowlist**, a refusal of requests from other websites, rate limits, the instance's captcha, and size limits on every answer.
 - **Every submission kept** — each form's **Submissions** page, and **Forms → Submissions** for all of them, list the answers and link to what each submission created.
 - **Your own branding** — upload a logo for the top of the form's page and a favicon for the browser tab, in the **Branding** section of the **Build** page. Until you do, the form shows OneUptime's.
@@ -60,7 +60,7 @@ Setting up a form that creates alerts takes permission to create alerts as well:
 ## Before you begin
 
 - **A plan that includes forms.** On OneUptime Cloud, forms need the **Growth** plan or above. See [Plan](#plan).
-- **Permission to create forms.** **Create Form** belongs to Project Owners and Project Admins, and to the roles you give it. A form that creates alerts also takes permission to create alerts. See [Permissions](#permissions).
+- **Permission to create forms.** **Create Form** belongs to Project Owners and Project Admins, and to the roles you give it. See [Permissions](#permissions).
 - **For an incident form, a severity.** Every incident needs one: from a question, from the form's settings or from its incident template. Without one, every submission is refused. See [What a Submission Creates](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
 - **For an alert form, a severity.** Every alert needs one too: from a question or from the form's settings. See [How a submission becomes an alert](/docs/forms/on-submit#how-a-submission-becomes-an-alert).
 
@@ -77,7 +77,7 @@ The form opens on its **Build** page, already asking for a title, a description 
 
 ### Decide what a submission creates
 
-On **On Submit**, check how a submission becomes an incident, alert or event, and click **Edit Settings** to give it defaults — a severity, an incident template or the state an alert starts in, monitors and labels to always attach, owners to tell. See [What a Submission Creates](/docs/forms/on-submit).
+On **On Submit**, check how a submission becomes an incident or event, and click **Edit Settings** to give it defaults — a severity, an incident template, monitors and labels to always attach, owners to tell. See [What a Submission Creates](/docs/forms/on-submit).
 
 ### Add templates, if people report the same cases
 
@@ -105,7 +105,7 @@ On **Share**, copy the link and send it to the people who should use the form. S
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created. |
 | **Duplicate Form** | Under **Advanced**: a copy of the form, named for you, with its questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. The copy starts turned off, and opens on its builder. |
 | **Audit Logs** | Under **Advanced**: every change made to the form, its custom domains and its submissions, who made it and when. |
-| **Delete Form** | Deleting the form, under **Advanced**. Its submissions are deleted with it; the incidents, alerts and events it created are not. |
+| **Delete Form** | Deleting the form, under **Advanced**. Its submissions are deleted with it; the incidents and events it created are not. |
 
 The **Developer** section of the form's menu holds its Terraform, API and AI assistant pages, like every other resource.
 
@@ -125,16 +125,16 @@ They work together. Give an incident form an **Incident Template** on its **On S
 
 ## Submissions
 
-A form's **Submissions** page lists every submission made through it, newest first, with **Submitted At**, **Submitted By** — the name and email the submitter gave, or **Anonymous** — and **Created**, a link to the incident, alert or event it created. **View Answers** shows every answer as the submitter gave it. **Forms → Submissions** lists the submissions of every form in the project.
+A form's **Submissions** page lists every submission made through it, newest first, with **Submitted At**, **Submitted By** — the name and email the submitter gave, or **Anonymous** — and **Created**, a link to the incident or event it created. **View Answers** shows every answer as the submitter gave it. **Forms → Submissions** lists the submissions of every form in the project.
 
-Submissions are written by the form, never by hand, and cannot be edited. Deleting one removes its answers and the submitter's name and email from the list; the incident, alert or event it created stays, and so does the private note on it, which repeats the submitter's details and the answers. When the incident, alert or event is deleted, its submission stays, and its **Created** column reads **Deleted since**. A private incident or alert you may not see reads **Private Incident** or **Private Alert**, with no link.
+Submissions are written by the form, never by hand, and cannot be edited. Deleting one removes its answers and the submitter's name and email from the list; the incident or event it created stays, and so does the private note on it, which repeats the submitter's details and the answers. When the incident or event is deleted, its submission stays, and its **Created** column reads **Deleted since**.
 
 > [!WARNING]
-> When you remove somebody's personal data, deleting the submission is not enough: edit or delete the private note on the incident, alert or event it created too.
+> When you remove somebody's personal data, deleting the submission is not enough: edit or delete the private note on the incident or event it created too.
 
 ## Permissions
 
-Forms let people outside your team create incidents, alerts and maintenance events in your project, so they are managed by Project Owners and Project Admins, and by the roles you give the **Form** permissions. They are in the **Form** group of the [Permission Reference](/docs/permissions/reference):
+Forms let people outside your team create incidents and maintenance events in your project, so they are managed by Project Owners and Project Admins, and by the roles you give the **Form** permissions. They are in the **Form** group of the [Permission Reference](/docs/permissions/reference):
 
 | Permission | What it allows | Who has it by default |
 | --- | --- | --- |
@@ -289,7 +289,7 @@ The old dashboard pages redirect to the new ones.
 
 :::cards
 - [Building a Form](/docs/forms/building): Questions, answer types, linked fields, custom fields and the preview.
-- [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident, an alert or a maintenance event.
+- [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident or a maintenance event.
 - [Sharing & Security](/docs/forms/sharing-and-security): The link, the IP allowlist, rate limits, captcha and troubleshooting.
 - [Declaring an Incident](/docs/incidents/declaring-incidents): The other ways incidents are declared.
 :::

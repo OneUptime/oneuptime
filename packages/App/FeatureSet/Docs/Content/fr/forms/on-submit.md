@@ -1,9 +1,10 @@
 # Ce que crée une soumission
 
-Chaque soumission via un formulaire crée un enregistrement dans votre projet : un **incident** ou un **événement de maintenance**. La page **À la soumission** d'un formulaire montre lequel, et comment chaque champ du nouvel enregistrement est rempli — à partir d'une réponse, d'une valeur par défaut, d'un paramètre qui s'applique toujours, ou du modèle d'incident. **Modifier les paramètres** modifie les valeurs par défaut et ce qui s'applique toujours.
+Chaque soumission via un formulaire crée un enregistrement dans votre projet : un **incident**, une **alerte** ou un **événement de maintenance**. La page **À la soumission** d'un formulaire montre lequel, et comment chaque champ du nouvel enregistrement est rempli — à partir d'une réponse, d'une valeur par défaut, d'un paramètre qui s'applique toujours, ou du modèle d'incident. **Modifier les paramètres** modifie les valeurs par défaut et ce qui s'applique toujours.
 
 :::cards
 - [Comment une soumission devient un incident](#comment-une-soumission-devient-un-incident): Chaque champ du nouvel incident, et d'où vient sa valeur.
+- [Comment une soumission devient une alerte](#comment-une-soumission-devient-une-alerte): La même chose, pour un avertissement ou un point à vérifier.
 - [Comment une soumission devient un événement de maintenance](#comment-une-soumission-devient-un-événement-de-maintenance): La même chose, pour une demande de maintenance.
 - [Les paramètres À la soumission](#les-paramètres-à-la-soumission): Valeurs par défaut, ce qui est toujours joint, propriétaires et publication.
 - [La note privée](#la-note-privée): Qui l'a envoyée, et les réponses qu'aucun champ ne contient.
@@ -27,13 +28,14 @@ Une soumission qui échoue à une vérification ne crée rien. Voir [Ce qui prot
 La carte **Ce que crée chaque soumission** contient le choix que vous avez fait en créant le formulaire :
 
 - **Incident** — chaque soumission déclare un incident, pour que votre équipe d'astreinte soit prévenue tout de suite. Utilisez-le pour les signalements de problèmes.
+- **Alerte** — chaque soumission crée une alerte, pour que ses propriétaires soient prévenus sans qu'un incident soit déclaré. Utilisez-le pour les avertissements et les points à vérifier.
 - **Maintenance planifiée** — chaque soumission planifie un événement de maintenance. Utilisez-le pour les demandes de changement et de maintenance.
 
-Choisir l'autre demande une confirmation, car le formulaire change avec lui :
+L'option **Alerte** n'est proposée qu'aux personnes qui peuvent créer des alertes : voir [Autorisations](/docs/forms/index#autorisations). Choisir une autre option demande une confirmation, car le formulaire change avec elle :
 
-- Le titre, la description, les moniteurs et les étiquettes restent liés : les deux types d'enregistrement les ont.
-- Toute autre question liée — une gravité, un choix de page de statut, un champ personnalisé de l'ancien type — devient une question propre au formulaire, avec le même libellé, dont la réponse est listée sur la note privée.
-- Les paramètres À la soumission recommencent à zéro, puisque les paramètres d'un incident et d'un événement sont différents.
+- Le titre, la description et les étiquettes restent liés : chaque type d'enregistrement les a. Entre un incident et un événement de maintenance, les moniteurs restent liés aussi. Une alerte a ses propres gravités et un seul moniteur ; une question de gravité ou de moniteurs ne garde donc pas son lien vers ou depuis une alerte.
+- Toute autre question liée — une gravité, un choix de moniteur ou de page de statut, un champ personnalisé de l'ancien type — devient une question propre au formulaire, avec le même libellé, dont la réponse est listée sur la note privée.
+- Les paramètres À la soumission recommencent à zéro, puisque chaque type d'enregistrement a ses propres paramètres.
 - Un formulaire qui crée désormais des événements de maintenance demande quand la maintenance commence et finit.
 
 Les questions sont enregistrées immédiatement, avec le changement. Vérifiez-les sur la page **Construire**.
@@ -92,6 +94,36 @@ Activez **Visible sur la page de statut** depuis la page **Paramètres** de l'in
 Comme l'incident a été déclaré avec **Notifier les abonnés de la page de statut** désactivé, le publier n'envoie pas la notification « incident créé ». Pour informer les abonnés, publiez une note publique avec **Notifier les abonnés de la page de statut** coché — voir [Publier une note publique](/docs/incidents/notes-owners-and-feed#publier-une-note-publique).
 :::
 
+## Comment une soumission devient une alerte
+
+| Champ | Vient de |
+| --- | --- |
+| **Titre** | La réponse à la question **Titre**. Quand le formulaire ne la pose pas, ou qu'elle est laissée vide : le **Titre par défaut**, sinon le nom du formulaire. |
+| **Description** | La réponse à la question **Description**. |
+| **Gravité** | Le choix de la personne qui soumet, quand le formulaire le demande. Sinon le paramètre **Gravité** du formulaire. |
+| **Moniteur** | Le moniteur choisi par la personne qui soumet, quand le formulaire le demande. Sinon le paramètre **Moniteur** du formulaire. Une alerte porte sur un seul moniteur. |
+| **Étiquettes** | Les étiquettes choisies par la personne qui soumet, avec celles que les paramètres ajoutent toujours. |
+| **Début de l'impact** | La réponse à **Début de l'impact**, quand le formulaire la pose. |
+| **État initial** | Le paramètre **État initial** du formulaire, sinon l'état de départ habituel, dans lequel démarre chaque nouvelle alerte. Un état ultérieur, comme **Pris en compte**, n'alerte personne. |
+| **Politiques d'astreinte** | Les politiques que nomment les paramètres, exécutées pour chaque alerte que le formulaire crée. |
+| **Propriétaires** | Les personnes et équipes que nomment les paramètres. Elles sont propriétaires de chaque alerte que le formulaire crée, et en sont informées. |
+| **Champs personnalisés** | La réponse à chaque question de champ personnalisé — sauf si le champ copie sa valeur d'un champ personnalisé de moniteur et que le moniteur de l'alerte en a une. |
+| **Autres réponses** | Listées sur une note privée de l'alerte, avec la personne qui a soumis. |
+
+> [!IMPORTANT]
+> **Pas de gravité, pas d'alerte.** Une alerte a besoin d'une gravité. Quand le formulaire n'en demande pas et que ses paramètres n'en nomment aucune — ou que celle nommée a été supprimée —, la ligne **Gravité** vous avertit, et chaque soumission est refusée avec "Ce formulaire ne peut pas créer d'alerte, car aucune gravité ne lui est associée. Veuillez prévenir l'équipe qui l'a partagé." Choisissez une gravité dans **Modifier les paramètres**.
+
+### À quoi ressemble l'alerte
+
+Une alerte créée via un formulaire est une alerte ordinaire, produite de la même façon qu'une alerte créée à la main avec **Créer une alerte** :
+
+- **Ses propriétaires sont informés, une seule fois.** Les propriétaires que nomment les paramètres sont ajoutés dès que les canaux Slack et Microsoft Teams de l'alerte existent, et la notification **Alerte créée** de l'alerte attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux Propriétaires du projet — et c'est le seul avis qu'ils en reçoivent.
+- **Elle démarre là où vous le dites.** Dans l'état de départ habituel, sauf si le paramètre **État initial** en nomme un ultérieur. Une alerte qui démarre prise en compte ou résolue n'alerte personne : un formulaire pour des signalements qui ne demandent qu'un coup d'œil peut le prévoir.
+- **Créée par personne, et pas privée.** La personne qui soumet n'est pas un utilisateur de OneUptime, donc aucun utilisateur n'est enregistré comme l'ayant créée. Une règle de confidentialité peut tout de même la rendre privée.
+- **Une note privée consigne la soumission** — voir [La note privée](#la-note-privée).
+
+Tout ce qui s'exécute pour une nouvelle alerte s'exécute aussi pour celles-ci : les règles de confidentialité, de propriétaires, d'étiquettes, d'astreinte, de regroupement, de runbooks et d'incident, les politiques d'astreinte, et les flux de travail **À la création : Alerte**. Une règle d'incident des alertes qui lui correspond en déclare un incident, comme pour toute alerte. Les alertes n'apparaissent jamais sur les pages de statut.
+
 ## Comment une soumission devient un événement de maintenance
 
 | Champ | Vient de |
@@ -116,14 +148,14 @@ Une soumission est la demande de quelqu'un, et une demande est examinée avant d
 
 **Modifier les paramètres** ouvre les paramètres par étapes : **Suivant** avance, et **Enregistrer les modifications** est à la dernière étape. Chaque étape est déjà remplie, donc la liste des étapes à côté du formulaire ouvre n'importe laquelle, la dernière comprise : changez un paramètre à son étape, puis ouvrez la dernière étape et enregistrez.
 
-| Étape | Formulaire d'incident | Formulaire de maintenance |
-| --- | --- | --- |
-| **Valeurs par défaut** | **Titre par défaut**, **Gravité**, **Modèle d'incident** | **Titre par défaut** |
-| **Toujours associer** | **Moniteurs**, **Étiquettes**, **Politiques d'astreinte** | **Moniteurs**, **Pages de statut**, **Étiquettes** |
-| **Propriétaires** | **Propriétaires** | **Propriétaires** |
-| **Publication** | — | **Afficher sur les pages de statut**, **Notifier les abonnés** |
+| Étape | Formulaire d'incident | Formulaire d'alerte | Formulaire de maintenance |
+| --- | --- | --- | --- |
+| **Valeurs par défaut** | **Titre par défaut**, **Gravité**, **Modèle d'incident** | **Titre par défaut**, **Gravité**, **État initial**, **Moniteur** | **Titre par défaut** |
+| **Toujours associer** | **Moniteurs**, **Étiquettes**, **Politiques d'astreinte** | **Étiquettes**, **Politiques d'astreinte** | **Moniteurs**, **Pages de statut**, **Étiquettes** |
+| **Propriétaires** | **Propriétaires** | **Propriétaires** | **Propriétaires** |
+| **Publication** | — | — | **Afficher sur les pages de statut**, **Notifier les abonnés** |
 
-**Propriétaires** est un seul sélecteur pour les personnes et les équipes : **Ajouter un propriétaire** ouvre une seule liste de recherche des deux, et chaque choix apparaît comme une puce que vous pouvez retirer. Tout ce que nomment les paramètres doit appartenir au projet du formulaire, et les propriétaires doivent en être membres. Un enregistrement supprimé après avoir été choisi est ignoré quand une soumission est créée, et le reste s'applique toujours.
+**Propriétaires** est un seul sélecteur pour les personnes et les équipes : **Ajouter un propriétaire** ouvre une seule liste de recherche des deux, et chaque choix apparaît comme une puce que vous pouvez retirer. Tout ce que nomment les paramètres doit appartenir au projet du formulaire, et les propriétaires doivent en être membres. Un enregistrement supprimé après avoir été choisi est ignoré quand une soumission est créée, et le reste s'applique toujours. Dans un formulaire d'alerte, **Modifier les paramètres** est verrouillé pour une personne qui ne peut pas créer d'alertes.
 
 ## La note privée
 

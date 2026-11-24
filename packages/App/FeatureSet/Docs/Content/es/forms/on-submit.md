@@ -1,9 +1,10 @@
 # Lo que crea un envío
 
-Cada envío a través de un formulario crea un registro en tu proyecto: un **incidente** o un **evento de mantenimiento**. La página **Al enviar** de un formulario muestra cuál, y cómo se rellena cada campo del registro nuevo — a partir de una respuesta, de un valor predeterminado, de un ajuste que siempre se aplica, o de la plantilla de incidente. **Editar configuración** cambia los valores predeterminados y lo que siempre se aplica.
+Cada envío a través de un formulario crea un registro en tu proyecto: un **incidente**, una **alerta** o un **evento de mantenimiento**. La página **Al enviar** de un formulario muestra cuál, y cómo se rellena cada campo del registro nuevo — a partir de una respuesta, de un valor predeterminado, de un ajuste que siempre se aplica, o de la plantilla de incidente. **Editar configuración** cambia los valores predeterminados y lo que siempre se aplica.
 
 :::cards
 - [Cómo un envío se convierte en un incidente](#cómo-un-envío-se-convierte-en-un-incidente): Cada campo del incidente nuevo, y de dónde sale su valor.
+- [Cómo un envío se convierte en una alerta](#cómo-un-envío-se-convierte-en-una-alerta): Lo mismo, para una advertencia o algo que revisar.
 - [Cómo un envío se convierte en un evento de mantenimiento](#cómo-un-envío-se-convierte-en-un-evento-de-mantenimiento): Lo mismo, para una solicitud de mantenimiento.
 - [Los ajustes Al enviar](#los-ajustes-al-enviar): Valores predeterminados, lo que siempre se adjunta, propietarios y publicación.
 - [La nota privada](#la-nota-privada): Quién lo envió, y las respuestas que no guarda ningún campo.
@@ -27,13 +28,14 @@ Un envío que no supera una comprobación no crea nada. Consulta [Qué protege u
 La tarjeta **Lo que crea cada envío** guarda la elección que hiciste al crear el formulario:
 
 - **Incidente** — cada envío declara un incidente, así que tu equipo de guardia se entera al momento. Úsalo para notificar problemas.
+- **Alerta** — cada envío crea una alerta, así que se avisa a sus propietarios sin declarar un incidente. Úsalo para advertencias y cosas que revisar.
 - **Mantenimiento programado** — cada envío programa un evento de mantenimiento. Úsalo para solicitudes de cambio y de mantenimiento.
 
-Elegir la otra opción te pide confirmación, porque el formulario cambia con ella:
+**Alerta** solo se ofrece a quien puede crear alertas: consulta [Permisos](/docs/forms/index#permisos). Elegir otra opción te pide confirmación, porque el formulario cambia con ella:
 
-- El título, la descripción, los monitores y las etiquetas siguen vinculados: los dos tipos de registro los tienen.
-- Cualquier otra pregunta vinculada — una gravedad, una elección de página de estado, un campo personalizado del tipo anterior — se convierte en una pregunta propia del formulario, con el mismo texto, cuya respuesta se lista en la nota privada.
-- Los ajustes Al enviar vuelven a empezar, ya que los ajustes de un incidente y los de un evento son distintos.
+- El título, la descripción y las etiquetas siguen vinculados: todos los tipos de registro los tienen. Entre un incidente y un evento de mantenimiento, también siguen vinculados los monitores. Una alerta tiene sus propias gravedades y un solo monitor, así que una pregunta de gravedad o de monitores no conserva su vínculo al cambiar a una alerta o desde ella.
+- Cualquier otra pregunta vinculada — una gravedad, una elección de monitor o de página de estado, un campo personalizado del tipo anterior — se convierte en una pregunta propia del formulario, con el mismo texto, cuya respuesta se lista en la nota privada.
+- Los ajustes Al enviar vuelven a empezar, ya que cada tipo de registro tiene sus propios ajustes.
 - Un formulario que ahora crea eventos de mantenimiento pregunta cuándo empieza y termina el mantenimiento.
 
 Las preguntas se guardan al momento, junto con el cambio. Revísalas en la página **Construir**.
@@ -92,6 +94,36 @@ Activa **Visible en la página de estado** desde la página **Ajustes** del inci
 Como el incidente se declaró con **Notificar a suscriptores de la página de estado** desactivado, publicarlo no envía la notificación «incidente creado». Para avisar a los suscriptores, publica una nota pública con **Notificar a suscriptores de la página de estado** marcado — consulta [Publicar una nota pública](/docs/incidents/notes-owners-and-feed#publicar-una-nota-pública).
 :::
 
+## Cómo un envío se convierte en una alerta
+
+| Campo | Sale de |
+| --- | --- |
+| **Título** | La respuesta a la pregunta **Título**. Cuando el formulario no la hace, o se deja vacía: el **Título predeterminado**, o si no el nombre del formulario. |
+| **Descripción** | La respuesta a la pregunta **Descripción**. |
+| **Gravedad** | La elección del remitente, cuando el formulario la pide. Si no, el ajuste **Gravedad** del formulario. |
+| **Monitor** | El monitor que eligió el remitente, cuando el formulario lo pide. Si no, el ajuste **Monitor** del formulario. Una alerta se refiere a un solo monitor. |
+| **Etiquetas** | Las etiquetas que eligió el remitente, junto con las que los ajustes añaden siempre. |
+| **Inicio del impacto** | La respuesta a **Inicio del impacto**, cuando el formulario la hace. |
+| **Estado inicial** | El ajuste **Estado inicial** del formulario, o si no el estado inicial habitual, en el que empieza toda alerta nueva. Un estado posterior, como **Reconocido**, no avisa a nadie. |
+| **Políticas de guardia** | Las políticas que nombran los ajustes, ejecutadas para cada alerta que crea el formulario. |
+| **Propietarios** | Las personas y los equipos que nombran los ajustes. Son propietarios de cada alerta que crea el formulario, y se les avisa de ella. |
+| **Campos personalizados** | La respuesta de cada pregunta de campo personalizado — salvo que el campo copie su valor de un campo personalizado de monitor y el monitor de la alerta tenga uno. |
+| **Otras respuestas** | Se listan en una nota privada de la alerta, con quién lo envió. |
+
+> [!IMPORTANT]
+> **Sin gravedad no hay alerta.** Una alerta necesita una gravedad. Cuando el formulario no pide ninguna y sus ajustes no nombran ninguna — o la que nombraban se eliminó —, la fila **Gravedad** te avisa, y cada envío se rechaza con "Este formulario no puede crear una alerta porque no tiene gravedad. Avisa al equipo que lo compartió." Elige una gravedad en **Editar configuración**.
+
+### Cómo es la alerta
+
+Una alerta creada a través de un formulario es una alerta normal, creada igual que una que se crea a mano con **Crear alerta**:
+
+- **Se avisa a sus propietarios, una sola vez.** Los propietarios que nombran los ajustes se añaden en cuanto existen los canales de Slack y Microsoft Teams de la alerta, y la notificación **Alerta creada** de la alerta espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto — y es el único aviso que reciben de ella.
+- **Empieza donde tú digas.** En el estado inicial habitual, salvo que el ajuste **Estado inicial** nombre uno posterior. Una alerta que empieza reconocida o resuelta no avisa a nadie: un formulario para avisos que solo necesitan un vistazo puede indicarlo así.
+- **No la crea nadie, y no es privada.** El remitente no es un usuario de OneUptime, así que no queda registrado ningún usuario como quien la creó. Una regla de privacidad puede hacerla privada de todos modos.
+- **Una nota privada registra el envío** — consulta [La nota privada](#la-nota-privada).
+
+Todo lo que se ejecuta para una alerta nueva se ejecuta también para estas: las reglas de privacidad, de propietarios, de etiquetas, de guardia, de agrupación, de runbooks y de incidentes, las políticas de guardia y los flujos de trabajo **Al crear Alerta**. Una regla de incidentes de alertas que coincide con ella declara un incidente a partir de ella, como a partir de cualquier alerta. Las alertas nunca se muestran en las páginas de estado.
+
 ## Cómo un envío se convierte en un evento de mantenimiento
 
 | Campo | Sale de |
@@ -116,14 +148,14 @@ Un envío es la solicitud de alguien, y una solicitud se revisa antes de publica
 
 **Editar configuración** abre los ajustes por pasos: **Siguiente** avanza, y **Guardar cambios** está en el último paso. Cada paso ya está relleno, así que la lista de pasos junto al formulario abre cualquiera de ellos, incluido el último: cambia un ajuste en su paso, luego abre el último paso y guarda.
 
-| Paso | Formulario de incidente | Formulario de mantenimiento |
-| --- | --- | --- |
-| **Valores predeterminados** | **Título predeterminado**, **Gravedad**, **Plantilla de incidente** | **Título predeterminado** |
-| **Asociar siempre** | **Monitores**, **Etiquetas**, **Políticas de guardia** | **Monitores**, **Páginas de estado**, **Etiquetas** |
-| **Propietarios** | **Propietarios** | **Propietarios** |
-| **Publicación** | — | **Mostrar en las páginas de estado**, **Notificar a los suscriptores** |
+| Paso | Formulario de incidente | Formulario de alerta | Formulario de mantenimiento |
+| --- | --- | --- | --- |
+| **Valores predeterminados** | **Título predeterminado**, **Gravedad**, **Plantilla de incidente** | **Título predeterminado**, **Gravedad**, **Estado inicial**, **Monitor** | **Título predeterminado** |
+| **Asociar siempre** | **Monitores**, **Etiquetas**, **Políticas de guardia** | **Etiquetas**, **Políticas de guardia** | **Monitores**, **Páginas de estado**, **Etiquetas** |
+| **Propietarios** | **Propietarios** | **Propietarios** | **Propietarios** |
+| **Publicación** | — | — | **Mostrar en las páginas de estado**, **Notificar a los suscriptores** |
 
-**Propietarios** es un solo selector para personas y equipos: **Añadir propietario** abre una sola lista de búsqueda con ambos, y cada elección aparece como una etiqueta que puedes quitar. Todo lo que nombran los ajustes debe pertenecer al proyecto del formulario, y los propietarios deben ser miembros de él. Un registro eliminado después de elegirse se omite cuando se crea un envío, y el resto se sigue aplicando.
+**Propietarios** es un solo selector para personas y equipos: **Añadir propietario** abre una sola lista de búsqueda con ambos, y cada elección aparece como una etiqueta que puedes quitar. Todo lo que nombran los ajustes debe pertenecer al proyecto del formulario, y los propietarios deben ser miembros de él. Un registro eliminado después de elegirse se omite cuando se crea un envío, y el resto se sigue aplicando. En un formulario de alertas, **Editar configuración** está bloqueado para quien no puede crear alertas.
 
 ## La nota privada
 

@@ -12,11 +12,11 @@ Every submission through a form creates one record in your project: an **inciden
 
 ## What happens on Submit
 
-```mermaid title="From a submission to an incident, an alert or a maintenance event"
+```mermaid title="From a submission to an incident or a maintenance event"
 flowchart TB
     submit["Submit"] --> checks["Protections and<br/>answer checks"]
     checks --> fields["Each field: the answer,<br/>else the On Submit settings,<br/>else the incident template"]
-    fields --> record["The incident, alert or<br/>maintenance event"]
+    fields --> record["The incident or<br/>maintenance event"]
     record --> note["A private note: who sent it,<br/>and the other answers"]
     record --> runs["Rules, on-call policies<br/>and workflows run"]
 ```
@@ -115,7 +115,7 @@ Because the incident was declared with **Notify Status Page Subscribers** off, p
 
 ### What the alert looks like
 
-An alert created through a form is an ordinary alert, made as one created by hand on **Alerts → Create Alert** is:
+An alert created through a form is an ordinary alert, made as one created by hand with **Create Alert** is:
 
 - **Its owners are told, once.** The owners the settings name are added once the alert's Slack and Microsoft Teams channels exist, and the alert's **Alert created** notification waits until they are its owners, so it goes to them rather than to the Project Owners — and it is the only notice they get of it.
 - **It starts where you say.** In the usual starting state, unless the **Initial State** setting names a later one. An alert that starts acknowledged or resolved pages nobody: a form for reports that only need a look can say so.

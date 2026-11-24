@@ -1,9 +1,10 @@
 # Wat een inzending aanmaakt
 
-Elke inzending via een formulier maakt één record aan in je project: een **incident** of een **onderhoudsgebeurtenis**. De pagina **Bij verzenden** van een formulier toont welke, en hoe elk veld van het nieuwe record wordt ingevuld — uit een antwoord, uit een standaardwaarde, uit een instelling die altijd geldt, of uit het incidentsjabloon. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt.
+Elke inzending via een formulier maakt één record aan in je project: een **incident**, een **waarschuwing** of een **onderhoudsgebeurtenis**. De pagina **Bij verzenden** van een formulier toont welke, en hoe elk veld van het nieuwe record wordt ingevuld — uit een antwoord, uit een standaardwaarde, uit een instelling die altijd geldt, of uit het incidentsjabloon. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt.
 
 :::cards
 - [Hoe een inzending een incident wordt](#hoe-een-inzending-een-incident-wordt): Elk veld van het nieuwe incident, en waar de waarde ervan vandaan komt.
+- [Hoe een inzending een waarschuwing wordt](#hoe-een-inzending-een-waarschuwing-wordt): Hetzelfde, voor een signaal of iets om na te kijken.
 - [Hoe een inzending een onderhoudsgebeurtenis wordt](#hoe-een-inzending-een-onderhoudsgebeurtenis-wordt): Hetzelfde, voor een onderhoudsverzoek.
 - [De instellingen Bij verzenden](#de-instellingen-bij-verzenden): Standaardwaarden, wat altijd wordt gekoppeld, eigenaren en publicatie.
 - [De privénotitie](#de-privénotitie): Wie het inzond, en de antwoorden die in geen veld staan.
@@ -27,13 +28,14 @@ Een inzending die een controle niet doorstaat, maakt niets aan. Zie [Wat een for
 De kaart **Wat elke inzending aanmaakt** bevat de keuze die je maakte toen je het formulier aanmaakte:
 
 - **Incident** — elke inzending meldt een incident, zodat je bereikbaarheidsdienst meteen wordt ingelicht. Gebruik het voor probleemmeldingen.
+- **Waarschuwing** — elke inzending maakt een waarschuwing aan, zodat haar eigenaren worden ingelicht zonder dat er een incident wordt gemeld. Gebruik het voor signalen en zaken om na te kijken.
 - **Gepland onderhoud** — elke inzending plant een onderhoudsgebeurtenis. Gebruik het voor wijzigings- en onderhoudsverzoeken.
 
-De andere kiezen vraagt je om bevestiging, omdat het formulier ermee verandert:
+**Waarschuwing** wordt alleen aangeboden aan iemand die waarschuwingen mag aanmaken: zie [Machtigingen](/docs/forms/index#machtigingen). Een andere keuze vraagt je om bevestiging, omdat het formulier ermee verandert:
 
-- De titel, de beschrijving, de monitoren en de labels blijven gekoppeld: beide soorten records hebben ze.
-- Elke andere gekoppelde vraag — een ernstniveau, een keuze van statuspagina, een aangepast veld van het oude soort — wordt een eigen vraag van het formulier, met dezelfde tekst, waarvan het antwoord in de privénotitie wordt getoond.
-- De instellingen Bij verzenden beginnen opnieuw, omdat de instellingen van een incident en van een gebeurtenis verschillen.
+- De titel, de beschrijving en de labels blijven gekoppeld: elke soort record heeft ze. Tussen een incident en een onderhoudsgebeurtenis blijven ook de monitoren gekoppeld. Een waarschuwing heeft haar eigen ernstniveaus en één monitor, dus een vraag naar ernst of monitoren houdt haar koppeling naar of vanuit een waarschuwing niet.
+- Elke andere gekoppelde vraag — een ernstniveau, een keuze van monitor of statuspagina, een aangepast veld van het oude soort — wordt een eigen vraag van het formulier, met dezelfde tekst, waarvan het antwoord in de privénotitie wordt getoond.
+- De instellingen Bij verzenden beginnen opnieuw, omdat elke soort record zijn eigen instellingen heeft.
 - Een formulier dat nu onderhoudsgebeurtenissen aanmaakt, vraagt wanneer het onderhoud begint en eindigt.
 
 De vragen worden meteen opgeslagen, samen met de wijziging. Controleer ze op de pagina **Bouwen**.
@@ -92,6 +94,36 @@ Zet **Zichtbaar op statuspagina** aan op de pagina **Instellingen** van het inci
 Omdat het incident werd gemeld met **Statuspagina-abonnees op de hoogte stellen** uit, verstuurt publiceren niet de melding "incident aangemaakt". Plaats om abonnees in te lichten een openbare notitie met **Statuspagina-abonnees op de hoogte stellen** aangevinkt — zie [Een openbare notitie plaatsen](/docs/incidents/notes-owners-and-feed#een-openbare-notitie-plaatsen).
 :::
 
+## Hoe een inzending een waarschuwing wordt
+
+| Veld | Komt uit |
+| --- | --- |
+| **Titel** | Het antwoord op de vraag **Titel**. Als het formulier hem niet vraagt, of hij leeg blijft: de **Standaardtitel**, of anders de naam van het formulier. |
+| **Beschrijving** | Het antwoord op de vraag **Beschrijving**. |
+| **Ernst** | De keuze van de inzender, als het formulier ernaar vraagt. Anders de instelling **Ernst** van het formulier. |
+| **Monitor** | De monitor die de inzender koos, als het formulier ernaar vraagt. Anders de instelling **Monitor** van het formulier. Een waarschuwing gaat over één monitor. |
+| **Labels** | De labels die de inzender koos, samen met de labels die de instellingen altijd toevoegen. |
+| **Begin van de impact** | Het antwoord op **Begin van de impact**, als het formulier ernaar vraagt. |
+| **Initiële status** | De instelling **Initiële status** van het formulier, of anders de gebruikelijke beginstatus, waarin elke nieuwe waarschuwing begint. Een latere status, zoals **Bevestigd**, roept niemand op. |
+| **Bereikbaarheidsbeleid** | Het beleid dat de instellingen noemen, uitgevoerd voor elke waarschuwing die het formulier aanmaakt. |
+| **Eigenaren** | De mensen en teams die de instellingen noemen. Zij zijn eigenaar van elke waarschuwing die het formulier aanmaakt, en worden erover ingelicht. |
+| **Aangepaste velden** | Het antwoord op elke vraag van een aangepast veld — tenzij het veld zijn waarde overneemt van een aangepast monitorveld en de monitor van de waarschuwing er een heeft. |
+| **Overige antwoorden** | Getoond in een privénotitie bij de waarschuwing, met wie het inzond. |
+
+> [!IMPORTANT]
+> **Geen ernstniveau, geen waarschuwing.** Een waarschuwing heeft een ernstniveau nodig. Als het formulier er niet naar vraagt en de instellingen er geen noemen — of het genoemde is verwijderd —, waarschuwt de rij **Ernst** je, en wordt elke inzending geweigerd met "Met dit formulier kan geen waarschuwing worden aangemaakt, omdat er geen ernst is ingesteld. Laat het team dat het formulier heeft gedeeld dit weten." Kies een ernstniveau in **Instellingen bewerken**.
+
+### Hoe de waarschuwing eruitziet
+
+Een waarschuwing die via een formulier is aangemaakt, is een gewone waarschuwing, op dezelfde manier gemaakt als een waarschuwing die je met de hand maakt met **Waarschuwing maken**:
+
+- **De eigenaren worden één keer ingelicht.** De eigenaren die de instellingen noemen, worden toegevoegd zodra de Slack- en Microsoft Teams-kanalen van de waarschuwing bestaan, en de melding **Waarschuwing aangemaakt** van de waarschuwing wacht tot zij de eigenaren ervan zijn, zodat ze naar hen gaat in plaats van naar de Projecteigenaren — en het is het enige bericht dat ze erover krijgen.
+- **Ze begint waar jij het zegt.** In de gebruikelijke beginstatus, tenzij de instelling **Initiële status** een latere noemt. Een waarschuwing die bevestigd of opgelost begint, roept niemand op: een formulier voor meldingen die alleen even bekeken hoeven te worden, kan dat zo instellen.
+- **Door niemand aangemaakt, en niet privé.** De inzender is geen OneUptime-gebruiker, dus er staat geen gebruiker geregistreerd als maker ervan. Een privacyregel kan haar toch privé maken.
+- **Een privénotitie legt de inzending vast** — zie [De privénotitie](#de-privénotitie).
+
+Alles wat voor een nieuwe waarschuwing wordt uitgevoerd, wordt ook voor deze uitgevoerd: privacy-, eigenaar-, label-, bereikbaarheids-, groeperings-, runbook- en incidentregels, bereikbaarheidsbeleid en workflows met **Bij aanmaken: Waarschuwing**. Een incidentregel voor waarschuwingen die erop past, meldt er een incident uit, zoals bij elke waarschuwing. Waarschuwingen verschijnen nooit op statuspagina's.
+
 ## Hoe een inzending een onderhoudsgebeurtenis wordt
 
 | Veld | Komt uit |
@@ -116,14 +148,14 @@ Een inzending is iemands verzoek, en een verzoek wordt beoordeeld voordat het wo
 
 **Instellingen bewerken** opent de instellingen in stappen: **Volgende** gaat verder, en **Wijzigingen opslaan** staat in de laatste stap. Elke stap is al ingevuld, dus de stappenlijst naast het formulier opent elke stap, ook de laatste: wijzig een instelling in haar stap, open dan de laatste stap en sla op.
 
-| Stap | Incidentformulier | Onderhoudsformulier |
-| --- | --- | --- |
-| **Standaardwaarden** | **Standaardtitel**, **Ernst**, **Incidentsjabloon** | **Standaardtitel** |
-| **Altijd koppelen** | **Monitoren**, **Labels**, **Bereikbaarheidsbeleid** | **Monitoren**, **Statuspagina's**, **Labels** |
-| **Eigenaren** | **Eigenaren** | **Eigenaren** |
-| **Publicatie** | — | **Tonen op statuspagina's**, **Abonnees op de hoogte stellen** |
+| Stap | Incidentformulier | Waarschuwingsformulier | Onderhoudsformulier |
+| --- | --- | --- | --- |
+| **Standaardwaarden** | **Standaardtitel**, **Ernst**, **Incidentsjabloon** | **Standaardtitel**, **Ernst**, **Initiële status**, **Monitor** | **Standaardtitel** |
+| **Altijd koppelen** | **Monitoren**, **Labels**, **Bereikbaarheidsbeleid** | **Labels**, **Bereikbaarheidsbeleid** | **Monitoren**, **Statuspagina's**, **Labels** |
+| **Eigenaren** | **Eigenaren** | **Eigenaren** | **Eigenaren** |
+| **Publicatie** | — | — | **Tonen op statuspagina's**, **Abonnees op de hoogte stellen** |
 
-**Eigenaren** is één kiezer voor mensen en teams: **Eigenaar toevoegen** opent één zoeklijst met beide, en elke keuze verschijnt als een chip die je kunt verwijderen. Alles wat de instellingen noemen, moet bij het project van het formulier horen, en eigenaren moeten er lid van zijn. Een record dat is verwijderd nadat het werd gekozen, wordt overgeslagen als een inzending wordt aangemaakt, en de rest geldt nog steeds.
+**Eigenaren** is één kiezer voor mensen en teams: **Eigenaar toevoegen** opent één zoeklijst met beide, en elke keuze verschijnt als een chip die je kunt verwijderen. Alles wat de instellingen noemen, moet bij het project van het formulier horen, en eigenaren moeten er lid van zijn. Een record dat is verwijderd nadat het werd gekozen, wordt overgeslagen als een inzending wordt aangemaakt, en de rest geldt nog steeds. In een waarschuwingsformulier is **Instellingen bewerken** vergrendeld voor iemand die geen waarschuwingen mag aanmaken.
 
 ## De privénotitie
 

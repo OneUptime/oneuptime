@@ -1,9 +1,10 @@
 # Cosa crea un invio
 
-Ogni invio tramite un modulo crea un record nel tuo progetto: un **incidente** o un **evento di manutenzione**. La pagina **All'invio** di un modulo mostra quale, e come viene compilato ogni campo del nuovo record — da una risposta, da un valore predefinito, da un'impostazione che si applica sempre, o dal modello di incidente. **Modifica impostazioni** cambia i valori predefiniti e ciò che si applica sempre.
+Ogni invio tramite un modulo crea un record nel tuo progetto: un **incidente**, un **avviso** o un **evento di manutenzione**. La pagina **All'invio** di un modulo mostra quale, e come viene compilato ogni campo del nuovo record — da una risposta, da un valore predefinito, da un'impostazione che si applica sempre, o dal modello di incidente. **Modifica impostazioni** cambia i valori predefiniti e ciò che si applica sempre.
 
 :::cards
 - [Come un invio diventa un incidente](#come-un-invio-diventa-un-incidente): Ogni campo del nuovo incidente, e da dove viene il suo valore.
+- [Come un invio diventa un avviso](#come-un-invio-diventa-un-avviso): Lo stesso, per un avvertimento o qualcosa da controllare.
 - [Come un invio diventa un evento di manutenzione](#come-un-invio-diventa-un-evento-di-manutenzione): Lo stesso, per una richiesta di manutenzione.
 - [Le impostazioni All'invio](#le-impostazioni-allinvio): Valori predefiniti, ciò che viene sempre allegato, proprietari e pubblicazione.
 - [La nota privata](#la-nota-privata): Chi l'ha inviato, e le risposte che nessun campo contiene.
@@ -27,13 +28,14 @@ Un invio che non supera un controllo non crea nulla. Vedi [Cosa protegge un modu
 La scheda **Cosa crea ogni invio** contiene la scelta che hai fatto quando hai creato il modulo:
 
 - **Incidente** — ogni invio dichiara un incidente, così il tuo team di reperibilità viene avvisato subito. Usalo per le segnalazioni di problemi.
+- **Avviso** — ogni invio crea un avviso, così i suoi proprietari vengono informati senza dichiarare un incidente. Usalo per gli avvertimenti e le cose da controllare.
 - **Manutenzione programmata** — ogni invio programma un evento di manutenzione. Usalo per le richieste di modifica e di manutenzione.
 
-Scegliere l'altra opzione ti chiede una conferma, perché il modulo cambia con essa:
+**Avviso** viene offerto solo a chi può creare avvisi: vedi [Autorizzazioni](/docs/forms/index#autorizzazioni). Scegliere un'altra opzione ti chiede una conferma, perché il modulo cambia con essa:
 
-- Il titolo, la descrizione, i monitor e le etichette restano collegati: entrambi i tipi di record li hanno.
-- Ogni altra domanda collegata — una gravità, una scelta di pagina di stato, un campo personalizzato del tipo precedente — diventa una domanda propria del modulo, con lo stesso testo, la cui risposta viene elencata nella nota privata.
-- Le impostazioni All'invio ripartono da zero, perché le impostazioni di un incidente e quelle di un evento sono diverse.
+- Il titolo, la descrizione e le etichette restano collegati: ogni tipo di record li ha. Tra un incidente e un evento di manutenzione restano collegati anche i monitor. Un avviso ha le sue gravità e un solo monitor, quindi una domanda sulla gravità o sui monitor non mantiene il suo collegamento passando a un avviso o da un avviso.
+- Ogni altra domanda collegata — una gravità, una scelta di monitor o di pagina di stato, un campo personalizzato del tipo precedente — diventa una domanda propria del modulo, con lo stesso testo, la cui risposta viene elencata nella nota privata.
+- Le impostazioni All'invio ripartono da zero, perché ogni tipo di record ha le sue impostazioni.
 - Un modulo che ora crea eventi di manutenzione chiede quando la manutenzione inizia e finisce.
 
 Le domande vengono salvate subito, insieme alla modifica. Controllale nella pagina **Costruisci**.
@@ -92,6 +94,36 @@ Attiva **Visibile sulla pagina di stato** dalla pagina **Impostazioni** dell'inc
 Poiché l'incidente è stato dichiarato con **Notifica gli iscritti alla pagina di stato** disattivato, pubblicarlo non invia la notifica «incidente creato». Per avvisare gli iscritti, pubblica una nota pubblica con **Notifica gli iscritti alla pagina di stato** spuntato — vedi [Pubblicare una nota pubblica](/docs/incidents/notes-owners-and-feed#pubblicare-una-nota-pubblica).
 :::
 
+## Come un invio diventa un avviso
+
+| Campo | Viene da |
+| --- | --- |
+| **Titolo** | La risposta alla domanda **Titolo**. Quando il modulo non la chiede, o resta vuota: il **Titolo predefinito**, altrimenti il nome del modulo. |
+| **Descrizione** | La risposta alla domanda **Descrizione**. |
+| **Gravità** | La scelta del mittente, quando il modulo la chiede. Altrimenti l'impostazione **Gravità** del modulo. |
+| **Monitor** | Il monitor scelto dal mittente, quando il modulo lo chiede. Altrimenti l'impostazione **Monitor** del modulo. Un avviso riguarda un solo monitor. |
+| **Etichette** | Le etichette scelte dal mittente, insieme a quelle che le impostazioni aggiungono sempre. |
+| **Inizio dell'impatto** | La risposta a **Inizio dell'impatto**, quando il modulo la chiede. |
+| **Stato iniziale** | L'impostazione **Stato iniziale** del modulo, altrimenti lo stato iniziale abituale, in cui parte ogni nuovo avviso. Uno stato successivo, come **Riconosciuto**, non chiama nessuno. |
+| **Policy di reperibilità** | Le policy indicate dalle impostazioni, eseguite per ogni avviso che il modulo crea. |
+| **Proprietari** | Le persone e i team indicati dalle impostazioni. Sono proprietari di ogni avviso che il modulo crea, e ne vengono informati. |
+| **Campi personalizzati** | La risposta di ogni domanda di campo personalizzato — a meno che il campo copi il suo valore da un campo personalizzato del monitor e il monitor dell'avviso ne abbia uno. |
+| **Altre risposte** | Elencate in una nota privata sull'avviso, con chi l'ha inviato. |
+
+> [!IMPORTANT]
+> **Senza gravità, niente avviso.** Un avviso ha bisogno di una gravità. Quando il modulo non ne chiede una e le sue impostazioni non ne indicano nessuna — o quella indicata è stata eliminata —, la riga **Gravità** ti avvisa, e ogni invio viene rifiutato con "Questo modulo non può creare un avviso perché non ha una gravità. Avvisa il team che lo ha condiviso." Scegli una gravità in **Modifica impostazioni**.
+
+### Com'è l'avviso
+
+Un avviso creato tramite un modulo è un avviso normale, creato allo stesso modo di uno creato a mano con **Crea avviso**:
+
+- **I suoi proprietari vengono informati, una volta.** I proprietari indicati dalle impostazioni vengono aggiunti non appena esistono i canali Slack e Microsoft Teams dell'avviso, e la notifica **Avviso creato** dell'avviso aspetta che siano i suoi proprietari, così arriva a loro invece che ai Proprietari del progetto — ed è l'unico messaggio che ne ricevono.
+- **Parte da dove dici tu.** Nello stato iniziale abituale, a meno che l'impostazione **Stato iniziale** non ne indichi uno successivo. Un avviso che parte riconosciuto o risolto non chiama nessuno: un modulo per segnalazioni che richiedono solo un'occhiata può impostarlo così.
+- **Creato da nessuno, e non privato.** Il mittente non è un utente di OneUptime, quindi nessun utente risulta come chi l'ha creato. Una regola di privacy può comunque renderlo privato.
+- **Una nota privata registra l'invio** — vedi [La nota privata](#la-nota-privata).
+
+Tutto ciò che viene eseguito per un nuovo avviso viene eseguito anche per questi: le regole di privacy, di proprietari, di etichette, di reperibilità, di raggruppamento, di runbook e degli incidenti, le policy di reperibilità e i flussi di lavoro **Alla creazione: Avviso**. Una regola degli incidenti per gli avvisi che vi corrisponde ne dichiara un incidente, come da qualsiasi avviso. Gli avvisi non compaiono mai sulle pagine di stato.
+
 ## Come un invio diventa un evento di manutenzione
 
 | Campo | Viene da |
@@ -116,14 +148,14 @@ Un invio è la richiesta di qualcuno, e una richiesta viene esaminata prima di e
 
 **Modifica impostazioni** apre le impostazioni a passaggi: **Avanti** va avanti, e **Salva modifiche** è nell'ultimo passaggio. Ogni passaggio è già compilato, quindi l'elenco dei passaggi accanto al modulo apre uno qualsiasi di essi, compreso l'ultimo: cambia un'impostazione nel suo passaggio, poi apri l'ultimo passaggio e salva.
 
-| Passaggio | Modulo di incidente | Modulo di manutenzione |
-| --- | --- | --- |
-| **Valori predefiniti** | **Titolo predefinito**, **Gravità**, **Modello di incidente** | **Titolo predefinito** |
-| **Associa sempre** | **Monitor**, **Etichette**, **Policy di reperibilità** | **Monitor**, **Pagine di stato**, **Etichette** |
-| **Proprietari** | **Proprietari** | **Proprietari** |
-| **Pubblicazione** | — | **Mostra nelle pagine di stato**, **Notifica agli iscritti** |
+| Passaggio | Modulo di incidente | Modulo di avviso | Modulo di manutenzione |
+| --- | --- | --- | --- |
+| **Valori predefiniti** | **Titolo predefinito**, **Gravità**, **Modello di incidente** | **Titolo predefinito**, **Gravità**, **Stato iniziale**, **Monitor** | **Titolo predefinito** |
+| **Associa sempre** | **Monitor**, **Etichette**, **Policy di reperibilità** | **Etichette**, **Policy di reperibilità** | **Monitor**, **Pagine di stato**, **Etichette** |
+| **Proprietari** | **Proprietari** | **Proprietari** | **Proprietari** |
+| **Pubblicazione** | — | — | **Mostra nelle pagine di stato**, **Notifica agli iscritti** |
 
-**Proprietari** è un unico selettore per persone e team: **Aggiungi proprietario** apre un unico elenco di ricerca di entrambi, e ogni scelta appare come un chip che puoi rimuovere. Tutto ciò che le impostazioni indicano deve appartenere al progetto del modulo, e i proprietari devono esserne membri. Un record eliminato dopo essere stato scelto viene saltato quando viene creato un invio, e il resto si applica comunque.
+**Proprietari** è un unico selettore per persone e team: **Aggiungi proprietario** apre un unico elenco di ricerca di entrambi, e ogni scelta appare come un chip che puoi rimuovere. Tutto ciò che le impostazioni indicano deve appartenere al progetto del modulo, e i proprietari devono esserne membri. Un record eliminato dopo essere stato scelto viene saltato quando viene creato un invio, e il resto si applica comunque. In un modulo di avvisi, **Modifica impostazioni** è bloccato per chi non può creare avvisi.
 
 ## La nota privata
 

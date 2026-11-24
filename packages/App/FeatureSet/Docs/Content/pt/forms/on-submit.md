@@ -1,9 +1,10 @@
 # O que um envio cria
 
-Cada envio por um formulário cria um registro no seu projeto: um **incidente** ou um **evento de manutenção**. A página **Ao enviar** de um formulário mostra qual, e como cada campo do novo registro é preenchido — por uma resposta, por um valor padrão, por uma configuração que sempre se aplica, ou pelo modelo de incidente. **Editar definições** altera os valores padrão e o que sempre se aplica.
+Cada envio por um formulário cria um registro no seu projeto: um **incidente**, um **alerta** ou um **evento de manutenção**. A página **Ao enviar** de um formulário mostra qual, e como cada campo do novo registro é preenchido — por uma resposta, por um valor padrão, por uma configuração que sempre se aplica, ou pelo modelo de incidente. **Editar definições** altera os valores padrão e o que sempre se aplica.
 
 :::cards
 - [Como um envio se torna um incidente](#como-um-envio-se-torna-um-incidente): Cada campo do novo incidente, e de onde vem o valor dele.
+- [Como um envio se torna um alerta](#como-um-envio-se-torna-um-alerta): O mesmo, para um aviso ou algo a verificar.
 - [Como um envio se torna um evento de manutenção](#como-um-envio-se-torna-um-evento-de-manutenção): O mesmo, para uma solicitação de manutenção.
 - [As configurações Ao enviar](#as-configurações-ao-enviar): Valores padrão, o que é sempre anexado, proprietários e publicação.
 - [A nota privada](#a-nota-privada): Quem enviou, e as respostas que nenhum campo guarda.
@@ -27,13 +28,14 @@ Um envio que falha em uma verificação não cria nada. Consulte [O que protege 
 O cartão **O que cada envio cria** guarda a escolha que você fez quando criou o formulário:
 
 - **Incidente** — cada envio declara um incidente, então a sua equipe de plantão é avisada na hora. Use-o para relatos de problemas.
+- **Alerta** — cada envio cria um alerta, então os proprietários dele são avisados sem declarar um incidente. Use-o para avisos e coisas a verificar.
 - **Manutenção programada** — cada envio programa um evento de manutenção. Use-o para solicitações de mudança e de manutenção.
 
-Escolher a outra opção pede a sua confirmação, porque o formulário muda com ela:
+**Alerta** só é oferecido a quem pode criar alertas: consulte [Permissões](/docs/forms/index#permissões). Escolher outra opção pede a sua confirmação, porque o formulário muda com ela:
 
-- O título, a descrição, os monitores e os rótulos continuam vinculados: os dois tipos de registro os têm.
-- Qualquer outra pergunta vinculada — uma gravidade, uma escolha de página de status, um campo personalizado do tipo anterior — se torna uma pergunta própria do formulário, com o mesmo texto, cuja resposta é listada na nota privada.
-- As configurações Ao enviar recomeçam do zero, já que as configurações de um incidente e as de um evento são diferentes.
+- O título, a descrição e os rótulos continuam vinculados: todo tipo de registro os tem. Entre um incidente e um evento de manutenção, os monitores também continuam vinculados. Um alerta tem as suas próprias gravidades e um único monitor, então uma pergunta de gravidade ou de monitores não mantém o vínculo ao mudar para um alerta ou a partir de um alerta.
+- Qualquer outra pergunta vinculada — uma gravidade, uma escolha de monitor ou de página de status, um campo personalizado do tipo anterior — se torna uma pergunta própria do formulário, com o mesmo texto, cuja resposta é listada na nota privada.
+- As configurações Ao enviar recomeçam do zero, já que cada tipo de registro tem as suas próprias configurações.
 - Um formulário que agora cria eventos de manutenção pergunta quando a manutenção começa e termina.
 
 As perguntas são salvas na hora, junto com a mudança. Confira-as na página **Construir**.
@@ -92,6 +94,36 @@ Ative **Visível na página de status** na página **Configurações** do incide
 Como o incidente foi declarado com **Notificar assinantes da página de status** desativado, publicá-lo não envia a notificação "incidente criado". Para avisar os assinantes, publique uma nota pública com **Notificar assinantes da página de status** marcado — consulte [Publicar uma nota pública](/docs/incidents/notes-owners-and-feed#publicar-uma-nota-pública).
 :::
 
+## Como um envio se torna um alerta
+
+| Campo | Vem de |
+| --- | --- |
+| **Título** | A resposta à pergunta **Título**. Quando o formulário não a faz, ou ela fica vazia: o **Título predefinido**, ou então o nome do formulário. |
+| **Descrição** | A resposta à pergunta **Descrição**. |
+| **Gravidade** | A escolha do remetente, quando o formulário a pede. Senão, a configuração **Gravidade** do formulário. |
+| **Monitor** | O monitor que o remetente escolheu, quando o formulário o pede. Senão, a configuração **Monitor** do formulário. Um alerta é sobre um único monitor. |
+| **Rótulos** | Os rótulos que o remetente escolheu, junto com os que as configurações sempre adicionam. |
+| **Início do impacto** | A resposta a **Início do impacto**, quando o formulário a faz. |
+| **Estado Inicial** | A configuração **Estado Inicial** do formulário, ou então o estado inicial habitual, em que todo alerta novo começa. Um estado posterior, como **Confirmado**, não aciona ninguém. |
+| **Políticas de plantão** | As políticas que as configurações indicam, executadas para cada alerta que o formulário cria. |
+| **Proprietários** | As pessoas e equipes que as configurações indicam. Elas são proprietárias de cada alerta que o formulário cria, e são avisadas dele. |
+| **Campos personalizados** | A resposta de cada pergunta de campo personalizado — a menos que o campo copie o seu valor de um campo personalizado de monitor e o monitor do alerta tenha um. |
+| **Outras respostas** | Listadas em uma nota privada no alerta, com quem enviou. |
+
+> [!IMPORTANT]
+> **Sem gravidade, sem alerta.** Um alerta precisa de uma gravidade. Quando o formulário não pede uma e as configurações dele não indicam nenhuma — ou a que indicavam foi excluída —, a linha **Gravidade** avisa você, e cada envio é recusado com "Este formulário não pode criar um alerta porque não tem uma gravidade. Avise a equipe que o compartilhou." Escolha uma gravidade em **Editar definições**.
+
+### Como o alerta fica
+
+Um alerta criado por meio de um formulário é um alerta comum, feito do mesmo jeito que um criado manualmente com **Criar alerta**:
+
+- **Os proprietários dele são avisados, uma vez.** Os proprietários que as configurações indicam são adicionados assim que os canais do Slack e do Microsoft Teams do alerta existem, e a notificação **Alerta criado** do alerta espera até que eles sejam os proprietários dele, para chegar a eles e não aos Proprietários do projeto — e é o único aviso que eles recebem sobre ele.
+- **Ele começa onde você disser.** No estado inicial habitual, a menos que a configuração **Estado Inicial** indique um posterior. Um alerta que começa confirmado ou resolvido não aciona ninguém: um formulário para relatos que só precisam de uma olhada pode definir isso.
+- **Criado por ninguém, e não privado.** O remetente não é um usuário do OneUptime, então nenhum usuário fica registrado como quem o criou. Uma regra de privacidade ainda pode torná-lo privado.
+- **Uma nota privada registra o envio** — consulte [A nota privada](#a-nota-privada).
+
+Tudo o que é executado para um novo alerta também é executado para estes: as regras de privacidade, de proprietários, de rótulos, de plantão, de agrupamento, de runbooks e de incidentes, as políticas de plantão e os fluxos de trabalho **Ao criar: Alerta**. Uma regra de incidentes de alertas que corresponda a ele declara um incidente a partir dele, como a partir de qualquer alerta. Alertas nunca aparecem nas páginas de status.
+
 ## Como um envio se torna um evento de manutenção
 
 | Campo | Vem de |
@@ -116,14 +148,14 @@ Um envio é a solicitação de alguém, e uma solicitação é revisada antes de
 
 **Editar definições** abre as configurações em etapas: **Próximo** avança, e **Salvar alterações** fica na última etapa. Cada etapa já vem preenchida, então a lista de etapas ao lado do formulário abre qualquer uma delas, inclusive a última: altere uma configuração na etapa dela, depois abra a última etapa e salve.
 
-| Etapa | Formulário de incidente | Formulário de manutenção |
-| --- | --- | --- |
-| **Valores predefinidos** | **Título predefinido**, **Gravidade**, **Modelo de incidente** | **Título predefinido** |
-| **Associar sempre** | **Monitores**, **Rótulos**, **Políticas de plantão** | **Monitores**, **Páginas de status**, **Rótulos** |
-| **Proprietários** | **Proprietários** | **Proprietários** |
-| **Publicação** | — | **Mostrar nas páginas de status**, **Notificar assinantes** |
+| Etapa | Formulário de incidente | Formulário de alerta | Formulário de manutenção |
+| --- | --- | --- | --- |
+| **Valores predefinidos** | **Título predefinido**, **Gravidade**, **Modelo de incidente** | **Título predefinido**, **Gravidade**, **Estado Inicial**, **Monitor** | **Título predefinido** |
+| **Associar sempre** | **Monitores**, **Rótulos**, **Políticas de plantão** | **Rótulos**, **Políticas de plantão** | **Monitores**, **Páginas de status**, **Rótulos** |
+| **Proprietários** | **Proprietários** | **Proprietários** | **Proprietários** |
+| **Publicação** | — | — | **Mostrar nas páginas de status**, **Notificar assinantes** |
 
-**Proprietários** é um único seletor para pessoas e equipes: **Adicionar proprietário** abre uma única lista de busca com ambos, e cada escolha aparece como um chip que você pode remover. Tudo o que as configurações indicam precisa pertencer ao projeto do formulário, e os proprietários precisam ser membros dele. Um registro excluído depois de ter sido escolhido é ignorado quando um envio é criado, e o resto continua valendo.
+**Proprietários** é um único seletor para pessoas e equipes: **Adicionar proprietário** abre uma única lista de busca com ambos, e cada escolha aparece como um chip que você pode remover. Tudo o que as configurações indicam precisa pertencer ao projeto do formulário, e os proprietários precisam ser membros dele. Um registro excluído depois de ter sido escolhido é ignorado quando um envio é criado, e o resto continua valendo. Em um formulário de alertas, **Editar definições** fica bloqueado para quem não pode criar alertas.
 
 ## A nota privada
 

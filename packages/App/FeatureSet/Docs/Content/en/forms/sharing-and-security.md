@@ -1,6 +1,6 @@
 # Sharing & Security
 
-A form is open to anyone who has its link, and each submission can page your on-call team, alert the owners of what it reports, or put a maintenance window on your calendar. This page covers the form's **Share** page — the link, turning the form off, the message after submitting and the IP allowlist — and every other check a request passes on the way. It also covers serving the form on your own domain.
+A form is open to anyone who has its link, and each submission can page your on-call team or put a maintenance window on your calendar. This page covers the form's **Share** page — the link, turning the form off, the message after submitting and the IP allowlist — and every other check a request passes on the way. It also covers serving the form on your own domain.
 
 :::cards
 - [Sharing the link](#sharing-the-link): Copy it, open it, and reset it when it spreads too far.
@@ -261,7 +261,7 @@ A template's answer is used only while it still fits its question: an option the
 :::
 
 :::details The incident or event is not on the status page
-That is by design: incidents from a form are declared hidden, and maintenance events stay hidden unless the form's **Publishing** settings say otherwise. An alert never shows on a status page. See [What a Submission Creates](/docs/forms/on-submit).
+That is by design: incidents from a form are declared hidden, and maintenance events stay hidden unless the form's **Publishing** settings say otherwise. See [What a Submission Creates](/docs/forms/on-submit).
 :::
 
 :::details Nobody was paged
@@ -273,5 +273,5 @@ A form's incident executes the on-call policies its settings and its template na
 :::cards
 - [Forms Overview](/docs/forms/index): What forms are for, permissions and the API.
 - [Building a Form](/docs/forms/building): The questions, hidden questions and templates.
-- [What a Submission Creates](/docs/forms/on-submit): The incident, alert or event each submission creates.
+- [What a Submission Creates](/docs/forms/on-submit): The incident or event each submission creates.
 :::

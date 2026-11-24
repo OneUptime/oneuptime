@@ -1,9 +1,10 @@
 # Was eine Einreichung erstellt
 
-Jede Einreichung über ein Formular erstellt einen Datensatz in Ihrem Projekt: einen **Vorfall** oder ein **Wartungsereignis**. Die Seite **Beim Absenden** eines Formulars zeigt, welches, und wie jedes Feld des neuen Datensatzes gefüllt wird — aus einer Antwort, aus einem Standardwert, aus einer Einstellung, die immer gilt, oder aus der Vorfallsvorlage. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt.
+Jede Einreichung über ein Formular erstellt einen Datensatz in Ihrem Projekt: einen **Vorfall**, eine **Warnung** oder ein **Wartungsereignis**. Die Seite **Beim Absenden** eines Formulars zeigt, welches, und wie jedes Feld des neuen Datensatzes gefüllt wird — aus einer Antwort, aus einem Standardwert, aus einer Einstellung, die immer gilt, oder aus der Vorfallsvorlage. **Einstellungen bearbeiten** ändert die Standardwerte und das, was immer gilt.
 
 :::cards
 - [Wie aus einer Einreichung ein Vorfall wird](#wie-aus-einer-einreichung-ein-vorfall-wird): Jedes Feld des neuen Vorfalls und woher sein Wert kommt.
+- [Wie aus einer Einreichung eine Warnung wird](#wie-aus-einer-einreichung-eine-warnung-wird): Dasselbe für einen Warnhinweis oder etwas, das jemand prüfen sollte.
 - [Wie aus einer Einreichung ein Wartungsereignis wird](#wie-aus-einer-einreichung-ein-wartungsereignis-wird): Dasselbe für eine Wartungsanfrage.
 - [Die Einstellungen Beim Absenden](#die-einstellungen-beim-absenden): Standardwerte, was immer angehängt wird, Eigentümer und Veröffentlichung.
 - [Die private Notiz](#die-private-notiz): Wer eingereicht hat, und die Antworten, die kein Feld aufnimmt.
@@ -27,13 +28,14 @@ Eine Einreichung, die eine Prüfung nicht besteht, erstellt nichts. Siehe [Was e
 Die Karte **Was jede Einreichung erstellt** enthält die Wahl, die Sie beim Anlegen des Formulars getroffen haben:
 
 - **Vorfall** — jede Einreichung meldet einen Vorfall, sodass Ihr Bereitschaftsteam sofort Bescheid bekommt. Nutzen Sie es für Problemmeldungen.
+- **Warnung** — jede Einreichung erstellt eine Warnung, sodass ihre Eigentümer Bescheid bekommen, ohne dass ein Vorfall gemeldet wird. Nutzen Sie es für Warnhinweise und Dinge, die jemand prüfen sollte.
 - **Geplante Wartung** — jede Einreichung plant ein Wartungsereignis. Nutzen Sie es für Änderungs- und Wartungsanfragen.
 
-Die andere zu wählen verlangt eine Bestätigung, weil sich das Formular damit ändert:
+**Warnung** wird nur jemandem angeboten, der Warnungen erstellen darf: siehe [Berechtigungen](/docs/forms/index#berechtigungen). Eine andere Wahl verlangt eine Bestätigung, weil sich das Formular damit ändert:
 
-- Titel, Beschreibung, Monitore und Beschriftungen bleiben verknüpft: Beide Arten von Datensätzen haben sie.
-- Jede andere verknüpfte Frage — ein Schweregrad, eine Statusseiten-Auswahl, ein benutzerdefiniertes Feld der alten Art — wird zu einer eigenen Frage des Formulars, mit demselben Wortlaut, deren Antwort auf der privaten Notiz steht.
-- Die Einstellungen Beim Absenden beginnen von vorn, denn die Einstellungen eines Vorfalls und eines Ereignisses sind verschieden.
+- Titel, Beschreibung und Beschriftungen bleiben verknüpft: Jede Art von Datensatz hat sie. Zwischen einem Vorfall und einem Wartungsereignis bleiben auch die Monitore verknüpft. Eine Warnung hat ihre eigenen Schweregrade und einen einzigen Monitor, daher behält eine Frage nach Schweregrad oder Monitoren ihre Verknüpfung zu oder von einer Warnung nicht.
+- Jede andere verknüpfte Frage — ein Schweregrad, eine Monitor- oder Statusseiten-Auswahl, ein benutzerdefiniertes Feld der alten Art — wird zu einer eigenen Frage des Formulars, mit demselben Wortlaut, deren Antwort auf der privaten Notiz steht.
+- Die Einstellungen Beim Absenden beginnen von vorn, denn jede Art von Datensatz hat ihre eigenen Einstellungen.
 - Ein Formular, das nun Wartungsereignisse erstellt, fragt, wann die Wartung beginnt und endet.
 
 Die Fragen werden sofort gespeichert, zusammen mit der Änderung. Prüfen Sie sie auf der Seite **Erstellen**.
@@ -92,6 +94,36 @@ Schalten Sie auf der Seite **Einstellungen** des Vorfalls **Auf Statusseite sich
 Weil der Vorfall mit ausgeschaltetem **Statusseiten-Abonnenten benachrichtigen** gemeldet wurde, sendet seine Veröffentlichung nicht die Benachrichtigung "Vorfall erstellt". Um Abonnenten zu informieren, posten Sie eine öffentliche Notiz mit angehaktem **Statusseiten-Abonnenten benachrichtigen** — siehe [Eine öffentliche Notiz posten](/docs/incidents/notes-owners-and-feed#eine-öffentliche-notiz-posten).
 :::
 
+## Wie aus einer Einreichung eine Warnung wird
+
+| Feld | Kommt aus |
+| --- | --- |
+| **Titel** | Der Antwort auf die Frage **Titel**. Fragt das Formular sie nicht oder bleibt sie leer: dem **Standardtitel**, sonst dem Namen des Formulars. |
+| **Beschreibung** | Der Antwort auf die Frage **Beschreibung**. |
+| **Schweregrad** | Der Wahl der einreichenden Person, wenn das Formular danach fragt. Sonst der Einstellung **Schweregrad** des Formulars. |
+| **Monitor** | Dem Monitor, den die einreichende Person gewählt hat, wenn das Formular danach fragt. Sonst der Einstellung **Monitor** des Formulars. Eine Warnung betrifft genau einen Monitor. |
+| **Beschriftungen** | Den Beschriftungen, die die einreichende Person gewählt hat, zusammen mit denen, die die Einstellungen immer hinzufügen. |
+| **Beginn der Auswirkung** | Der Antwort auf **Beginn der Auswirkung**, wenn das Formular sie fragt. |
+| **Anfangsstatus** | Der Einstellung **Anfangsstatus** des Formulars, sonst dem üblichen Anfangsstatus, in dem jede neue Warnung beginnt. Ein späterer Status, etwa **Bestätigt**, alarmiert niemanden. |
+| **Bereitschaftsrichtlinien** | Den Richtlinien, die die Einstellungen nennen, ausgeführt für jede Warnung, die das Formular erstellt. |
+| **Eigentümer** | Den Personen und Teams, die die Einstellungen nennen. Ihnen gehört jede Warnung, die das Formular erstellt, und sie erfahren davon. |
+| **Benutzerdefinierte Felder** | Der Antwort jeder Frage eines benutzerdefinierten Felds — außer das Feld übernimmt seinen Wert aus einem benutzerdefinierten Monitorfeld und der Monitor der Warnung hat einen. |
+| **Weitere Antworten** | Auf einer privaten Notiz an der Warnung aufgeführt, mit der Person, die eingereicht hat. |
+
+> [!IMPORTANT]
+> **Kein Schweregrad, keine Warnung.** Eine Warnung braucht einen Schweregrad. Fragt das Formular nach keinem und nennen seine Einstellungen keinen — oder wurde der genannte gelöscht —, warnt Sie die Zeile **Schweregrad**, und jede Einreichung wird mit "Über dieses Formular kann keine Warnung erstellt werden, weil ihm kein Schweregrad zugewiesen ist. Bitte informieren Sie das Team, das es geteilt hat." abgelehnt. Wählen Sie unter **Einstellungen bearbeiten** einen Schweregrad.
+
+### Wie die Warnung aussieht
+
+Eine über ein Formular erstellte Warnung ist eine gewöhnliche Warnung, erstellt wie eine, die von Hand mit **Warnung erstellen** angelegt wird:
+
+- **Ihre Eigentümer erfahren einmal davon.** Die Eigentümer, die die Einstellungen nennen, werden hinzugefügt, sobald die Slack- und Microsoft-Teams-Kanäle der Warnung existieren, und die Benachrichtigung **Warnung erstellt** der Warnung wartet, bis sie ihre Eigentümer sind, und geht so an sie statt an die Projektinhaber — sie ist die einzige Nachricht, die sie darüber bekommen.
+- **Sie beginnt, wo Sie es sagen.** Im üblichen Anfangsstatus, außer die Einstellung **Anfangsstatus** nennt einen späteren. Eine Warnung, die bestätigt oder behoben beginnt, alarmiert niemanden: Ein Formular für Meldungen, die nur einen Blick brauchen, kann das so festlegen.
+- **Von niemandem erstellt, und nicht privat.** Die einreichende Person ist kein OneUptime-Benutzer, daher wird kein Benutzer als erstellende Person festgehalten. Eine Datenschutzregel kann sie trotzdem privat machen.
+- **Eine private Notiz hält die Einreichung fest** — siehe [Die private Notiz](#die-private-notiz).
+
+Alles, was für eine neue Warnung läuft, läuft auch für diese: Datenschutz-, Eigentümer-, Beschriftungs-, Bereitschafts-, Gruppierungs-, Runbook- und Vorfallsregeln, Bereitschaftsrichtlinien und Workflows **Bei Erstellung: Warnung**. Eine Vorfallsregel für Warnungen, die auf sie zutrifft, meldet aus ihr einen Vorfall, wie aus jeder Warnung. Warnungen erscheinen nie auf Statusseiten.
+
 ## Wie aus einer Einreichung ein Wartungsereignis wird
 
 | Feld | Kommt aus |
@@ -116,14 +148,14 @@ Eine Einreichung ist die Anfrage von jemandem, und eine Anfrage wird geprüft, b
 
 **Einstellungen bearbeiten** öffnet die Einstellungen in Schritten: **Weiter** geht weiter, und **Änderungen speichern** ist im letzten Schritt. Jeder Schritt ist schon ausgefüllt, daher öffnet die Schrittliste neben dem Formular jeden davon, auch den letzten: Ändern Sie eine Einstellung in ihrem Schritt, öffnen Sie dann den letzten Schritt und speichern Sie.
 
-| Schritt | Vorfallsformular | Wartungsformular |
-| --- | --- | --- |
-| **Standardwerte** | **Standardtitel**, **Schweregrad**, **Vorfallsvorlage** | **Standardtitel** |
-| **Immer zuordnen** | **Monitore**, **Beschriftungen**, **Bereitschaftsrichtlinien** | **Monitore**, **Statusseiten**, **Beschriftungen** |
-| **Eigentümer** | **Eigentümer** | **Eigentümer** |
-| **Veröffentlichung** | — | **Auf Statusseiten anzeigen**, **Abonnenten benachrichtigen** |
+| Schritt | Vorfallsformular | Warnungsformular | Wartungsformular |
+| --- | --- | --- | --- |
+| **Standardwerte** | **Standardtitel**, **Schweregrad**, **Vorfallsvorlage** | **Standardtitel**, **Schweregrad**, **Anfangsstatus**, **Monitor** | **Standardtitel** |
+| **Immer zuordnen** | **Monitore**, **Beschriftungen**, **Bereitschaftsrichtlinien** | **Beschriftungen**, **Bereitschaftsrichtlinien** | **Monitore**, **Statusseiten**, **Beschriftungen** |
+| **Eigentümer** | **Eigentümer** | **Eigentümer** | **Eigentümer** |
+| **Veröffentlichung** | — | — | **Auf Statusseiten anzeigen**, **Abonnenten benachrichtigen** |
 
-**Eigentümer** ist eine Auswahl für Personen und Teams: **Eigentümer hinzufügen** öffnet eine Suchliste mit beiden, und jede Wahl erscheint als Chip, den Sie entfernen können. Alles, was die Einstellungen nennen, muss zum Projekt des Formulars gehören, und Eigentümer müssen Mitglieder davon sein. Ein Datensatz, der nach seiner Wahl gelöscht wurde, wird beim Erstellen einer Einreichung übersprungen, und der Rest gilt weiter.
+**Eigentümer** ist eine Auswahl für Personen und Teams: **Eigentümer hinzufügen** öffnet eine Suchliste mit beiden, und jede Wahl erscheint als Chip, den Sie entfernen können. Alles, was die Einstellungen nennen, muss zum Projekt des Formulars gehören, und Eigentümer müssen Mitglieder davon sein. Ein Datensatz, der nach seiner Wahl gelöscht wurde, wird beim Erstellen einer Einreichung übersprungen, und der Rest gilt weiter. In einem Warnungsformular ist **Einstellungen bearbeiten** für jemanden gesperrt, der keine Warnungen erstellen darf.
 
 ## Die private Notiz
 

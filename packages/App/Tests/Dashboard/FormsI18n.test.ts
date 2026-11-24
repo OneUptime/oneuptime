@@ -200,16 +200,17 @@ const ALL_STRINGS: Array<string> = unique([
 const SAME_EVERYWHERE: Array<string> = ["name@example.com"];
 
 const SAME_AS_ENGLISH: Record<string, Array<string>> = {
-  de: ["Name", "Optional", "Status"],
+  // An alert form's Monitor (#10760) is "Monitor" in these languages too.
+  de: ["Name", "Optional", "Status", "Monitor"],
   fr: ["Date", "Description", "Incident", "Options", "Question", "Questions"],
-  es: ["No"],
+  es: ["No", "Monitor"],
   // Italian says "file" too.
-  it: ["No", "File"],
-  pt: ["Status"],
-  nl: ["Incident", "Labels", "Status"],
-  da: ["Status"],
-  no: ["Status"],
-  sv: ["Incident", "Status"],
+  it: ["No", "File", "Monitor"],
+  pt: ["Status", "Monitor"],
+  nl: ["Incident", "Labels", "Status", "Monitor"],
+  da: ["Status", "Monitor"],
+  no: ["Status", "Monitor"],
+  sv: ["Incident", "Status", "Monitor"],
 };
 
 /*

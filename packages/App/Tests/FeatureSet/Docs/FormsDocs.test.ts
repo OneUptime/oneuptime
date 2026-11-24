@@ -1673,7 +1673,7 @@ describe("Forms docs", () => {
         "that value replaces the answer",
       );
       expect(sectionOf(readPage(BUILDING_PAGE), 3, "Custom fields")).toContain(
-        "A custom field that copies its value from a monitor custom field says so on its card: when the incident, alert or event has monitors that agree on a value for it, that value replaces the submitter's answer.",
+        "A custom field that copies its value from a monitor custom field says so on its card: when the incident or event has monitors that agree on a value for it, that value replaces the submitter's answer.",
       );
 
       for (const heading of [
