@@ -359,7 +359,7 @@ describe("how the plan says the code is changed", () => {
       }),
     ).toEqual({
       sentence: REDACTION_STEP_SENTENCE,
-      why: { sentence: REDACTION_WHY_MANY_PLACES, count: 20 },
+      why: { sentence: REDACTION_WHY_MANY_PLACES },
     });
   });
 
@@ -563,7 +563,7 @@ describe("Fix with AI's plan for a service's telemetry leaks", () => {
       TelemetryLeakFixStrategy.RedactionStep,
     );
     expect(shown(strategy)).toContain(
-      "OneUptime AI adds one redaction step, with a test, that removes the data before the service sends it. It is written in 20 places, so one step fixes it everywhere.",
+      "OneUptime AI adds one redaction step, with a test, that removes the data before the service sends it. It is written in more than three places, so one step fixes it everywhere.",
     );
     expect(shown(strategy)).toContain("What the redaction step removes");
     expect(shown(strategy)).toContain("customer.email");

@@ -99,10 +99,13 @@ export const CALL_SITES_SENTENCE: PluralTemplate = {
 export const REDACTION_STEP_SENTENCE: string = translationKey(
   "OneUptime AI adds one redaction step, with a test, that removes the data before the service sends it.",
 );
-export const REDACTION_WHY_MANY_PLACES: PluralTemplate = {
-  one: "It is written in {{count}} place, so one step fixes it everywhere.",
-  other: "It is written in {{count}} places, so one step fixes it everywhere.",
-};
+/*
+ * Said without a count: the places are those the records read name, each
+ * leak's first few, so past MAX_CALL_SITE_PLACES the count is "more".
+ */
+export const REDACTION_WHY_MANY_PLACES: string = translationKey(
+  "It is written in more than three places, so one step fixes it everywhere.",
+);
 export const REDACTION_WHY_SCRUB_RULES: string = translationKey(
   "Your scrub rules hide this data at ingest already: the step makes the code do the same.",
 );
@@ -137,7 +140,7 @@ export function getTelemetryFixStrategyWords(
     sentence: REDACTION_STEP_SENTENCE,
     why:
       plan.placeCount > MAX_CALL_SITE_PLACES
-        ? { sentence: REDACTION_WHY_MANY_PLACES, count: plan.placeCount }
+        ? { sentence: REDACTION_WHY_MANY_PLACES }
         : { sentence: REDACTION_WHY_SCRUB_RULES },
   };
 }
