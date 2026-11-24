@@ -26,7 +26,7 @@ Where buyers find each listing, as its marketplace links it:
 | ------------ | --------------------------------------------------------------------------------------------------------------- | ----------- |
 | AWS          | Not public yet: product `prod-5ijwaqpun3coo` is Limited (the seller account and its allowlist only)             |             |
 | Microsoft    | `https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise` (offer `oneuptime-enterprise`) | 2026-10-21  |
-| Google Cloud | Not public yet                                                                                                  |             |
+| Google Cloud | Not public yet: `oneuptime-enterprise` is published but not visible until Google makes it public                |             |
 
 The website names the public ones (the Resellers page's "Buy through your
 cloud marketplace" section, and a line under the self-hosted page's
@@ -359,16 +359,17 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (20 November 2026): all three reviews are approved:
+1). **Where it stands** (24 November 2026): all three reviews are approved:
 the listing (step 7) on 18 November, the pricing (step 6) and release `15.0`
 on the Container images page (step 8) on 20 November, the last after three
-validations (step 8 says what the first two found). Producer Portal marks
-the product **Ready to publish**, and the payments profile is done. Before
-it is published, Google's Partner Support Desk (case 77498377) verifies the
-usage reporting (step 9): a test deployment from the preview has reported
-since 20 November, and Google gets the evidence once its reports hold a day
-of it. **Left**: that verification, then **Publish**, the public launch (the
-maintainer's go-ahead).
+validations (step 8 says what the first two found). The usage
+verification's evidence (step 9) went to Google's Partner Support Desk (case
+77498377) on 24 November, and the product was published the same day with
+the maintainer's go-ahead (step 10): Producer Portal shows it **Published
+but not visible**, and only Google makes it public. **Left**: Google's
+answer on the evidence and the listing made public (both asked on the case
+on 24 November); then the test cluster deleted and the test order cancelled
+(step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
@@ -612,10 +613,13 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
 
      The preview's deployer then could not start: the preview has it pull
      from `gcr.io/oneuptime-marketplace/oneuptime/oneuptime-enterprise`,
-     where we have no images ([Known gaps](#known-gaps)). The test was
-     pointed at ours: `__image_repo_prefix__` in the Secret
-     `oneuptime-deployer-config` set to step 4's path, and the deployer Job
-     created again with `.../deployer:15.0.0`.
+     where we have no images. The test was pointed at ours:
+     `__image_repo_prefix__` in the Secret `oneuptime-deployer-config` set
+     to step 4's path, and the deployer Job created again with
+     `.../deployer:15.0.0`. That path is the preview's alone (Google, 23
+     November 2026): published deployments pull from the repository
+     Producer Portal names, which **Publish** copies into Marketplace's own
+     registry (step 10), so nothing goes under `gcr.io`.
    - **Hours to bill**: a new installation has no users, so it reports 0
      user-hours until the first one signs up. The test's admin signed up
      with `POST /identity/signup`, through `kubectl port-forward` to the
@@ -626,7 +630,37 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
      was pushed); the billing export's rows for the order's consumer project
      (the reporting secret's `consumer-id`, without `project:`), from the
      guide's query on the `gcp_billing_export_v1_*` table; and the
-     Incremental Insights rows.
+     Incremental Insights rows. The pushed lines come from Cloud Logging,
+     which keeps them after the pod's own log has rotated:
+
+     ```bash
+     gcloud logging read 'resource.type="k8s_container" AND resource.labels.cluster_name="oneuptime-marketplace-test" AND "OneUptime Enterprise marketplace billing"' \
+       --project=oneuptime-marketplace --order=asc --limit=1000 --format=json
+     ```
+
+     Sent on 24 November 2026 as CSV files, with a table of the three side
+     by side per day: 85 hourly reports from 22:00 UTC on 20 November, all
+     accepted, with no gap or repeat, 84 user-hours in all. The reports lag
+     the hours: the billing export by about 6 hours, Incremental Insights by
+     about 2 days. Incremental Insights' `date` is a Pacific day (its first,
+     20 November, held 9 hours, from 23:00 UTC), so compare per Pacific day:
+     on each day both reports held, the hours pushed, billed and reported
+     matched. The billing export counts a user-hour as 3600 seconds
+     (`usage.amount`; 1 hour in `usage.amount_in_pricing_units`) at USD 0.10,
+     with a credit of the same amount; Incremental Insights puts the same
+     charges under `trial_use`, with nothing in `due_vendor`.
+
+10. **Publish** (the maintainer's go-ahead; done on 24 November 2026): the
+    **Publish** button at the foot of the product's **Overview**. Google's
+    dialog says the product is published, that its visibility is its service
+    configuration's, which Google sets, and to ask Google to make it public:
+    asked on case 77498377 the same day. Until then the product page reads
+    **Published (11/21/26) but not visible** (a date before the click), and
+    the products list still says **Ready to publish**. The click copied
+    release `15.0` into `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`
+    (the app, tagged `15.0` and `15.0.0`, with `deployer`, `nginx`, `probe`,
+    `runner`, `postgres`, `clickhouse-server` and `valkey` under it) within
+    a minute, at the digests in Artifact Registry.
 
 ### The release workflow: one-time setup
 
@@ -1349,20 +1383,9 @@ cost a review round.
   written on 17 November 2026, with every section it asks for and its
   commands checked against the edition built from 15.0.0, but not run on a
   GKE cluster. Its image path,
-  `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, follows the
-  listing's address as Google's docs describe; confirm it once Google
-  publishes the first version (`TODO(identifiers)`). Google's validation
-  copied the images to
-  `gcr.io/cloud-launcher-images-prd/oneuptime-marketplace/oneuptime/oneuptime-enterprise/...`,
-  with our repository's name, so the published path may have `/oneuptime`
-  in it too.
-- **Where Google's deployments pull the images from.** The preview's
-  deployment (step 9 of the Google setup) tells the deployer to pull from
-  `gcr.io/oneuptime-marketplace/oneuptime/oneuptime-enterprise`, where we
-  have no images: ours are in Artifact Registry, and Google's validation
-  pulls its own copy. Asked on case 77498377 (20 November 2026) where
-  published deployments pull from, and whether to push the images under
-  `gcr.io` as well.
+  `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, is where
+  **Publish** put release `15.0` on 24 November 2026 (step 10 of the Google
+  setup).
 - **The Google Cloud app's deploy-info IDs are inferred.** The `Application`
   names partner `oneuptime-marketplace` and product `oneuptime-enterprise`
   (`google-cloud/application.yaml`): the project and product of the
@@ -1508,6 +1531,10 @@ rejection, go-live and price change.
 | 2026-11-20 | Google      | Test install up; first hourly report accepted (0 user-hours, before its admin signed up)            | Agent      |
 | 2026-11-20 | Google      | Billing export to BigQuery and Producer Portal's reports export turned on                           | Agent      |
 | 2026-11-20 | Google      | Answered case 77498377: the test reports; logs, billing rows and Insights follow in a day           | Agent      |
+| 2026-11-23 | Google      | Google: published deployments pull from Producer Portal's repository, copied on Publish             | Google     |
+| 2026-11-24 | Google      | Evidence sent on case 77498377 as CSV: pushed, billed and Insights hours match per day              | Agent      |
+| 2026-11-24 | Google      | Published, with the maintainer's go-ahead: Published but not visible; images copied                 | Agent      |
+| 2026-11-24 | Google      | Asked on case 77498377 to make the listing public                                                   | Agent      |
 
 ## Notes for agents driving the browser
 
