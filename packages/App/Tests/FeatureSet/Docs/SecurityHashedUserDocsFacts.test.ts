@@ -205,7 +205,7 @@ describe("the scrub rules page on Security Events' user vault", () => {
 
   it("says it as the code does", () => {
     expect(line).toBe(
-      "- **Security Events can still name a hashed user.** Where [Security Events](/docs/telemetry/security-events) reads a user in your logs or traces, such as a request's `enduser.id`, an AI call's user or a cloud audit log's principal, a rule that hashes the user also keeps it beside its token, in a store only Security Events' scans read: no page, search, export, API or AI tool can. So a case about an account your logs show only as a token names the account, and a playbook can act on it. Each user is kept until 30 days after it was last seen. A value hashed where Security Events reads no user, such as an email address in an error message, is never kept, and a rule that redacts or masks keeps nothing.",
+      "- **Security Events can still name a hashed user.** Where [Security Events](/docs/telemetry/security-events) reads a user in your logs or traces, such as a request's `enduser.id`, an AI call's user or a cloud audit log's principal, a rule that hashes the user also keeps it beside its token, in a store only Security Events' scans read: no page, search, export, API or AI tool can. So a case about an account your logs show only as a token names the account, and a playbook can act on it. Each user is kept until 30 days after it was last seen. A value hashed where Security Events reads no user, such as an email address in an error message, is never kept, and a rule that redacts or masks keeps nothing. To take one person out of it for good, file an erasure request: see [Erase a person](/docs/telemetry/security-events#erase-a-person).",
     );
   });
 

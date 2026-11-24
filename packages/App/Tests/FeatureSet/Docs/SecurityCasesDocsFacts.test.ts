@@ -1202,6 +1202,8 @@ describe("Security Cases and Playbooks docs", () => {
       "Numbering",
       // When an entity's risk opens a case (Entity Risk's docs page).
       "Risk Scoring",
+      // A person erased on request (Security Events' Erase a person, #10908).
+      "Erasure Requests",
     ]);
     expect(settings?.startsCollapsed).toBe(true);
     expect(flat(section(page, "Case priorities and statuses"))).toContain(

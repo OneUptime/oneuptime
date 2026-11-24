@@ -65,6 +65,7 @@ Open **Products → Security Events**, under **Security**. Its menu has a sectio
 | **Note Templates** | Settings | Ready-made text for the notes your team writes on its cases |
 | **Numbering** | Settings | The text in front of case numbers, and the number the next case gets |
 | **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
+| **Erasure Requests** | Settings | People erased from Security Events on request, and what each erasure changed |
 
 **Detections**, **AI**, **Connections** and **Settings**, set up once, stay folded until you open them. New to Security? [Get Started with Security](/docs/telemetry/security-getting-started) sets it up in two clicks.
 
@@ -710,7 +711,7 @@ What it leaves:
 
 The request keeps who filed it and when, your reference and the person's tokens, which is how the vault goes on refusing them. The user ID or email address is stored encrypted, where no page, export or API can read it, and is wiped once the erasure is done; ClickHouse is only ever sent the tokens. Requests can't be edited or deleted: they are your record of the erasure.
 
-Project Owners, Project Admins, Security Admins and anyone with **Create Security Erasure Request**, such as your privacy officer, can file a request, from the page or through the API's `/security-user-erasure-request`. Every Security role can read them.
+Project Owners, Project Admins, Security Admins and anyone with Create Security Erasure Request, such as your privacy officer, can file a request, from the page or through the API's `/security-user-erasure-request`. Every Security role can read them.
 
 ## Troubleshooting
 

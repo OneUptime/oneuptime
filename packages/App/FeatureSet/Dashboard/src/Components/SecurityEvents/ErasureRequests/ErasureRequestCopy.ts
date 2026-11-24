@@ -163,7 +163,10 @@ export function getErasureChanges(request: SecurityUserErasureRequest): Array<{
   count: number;
 }> {
   return [
-    { template: VAULT_ENTRIES_DELETED, count: request.vaultEntriesDeleted || 0 },
+    {
+      template: VAULT_ENTRIES_DELETED,
+      count: request.vaultEntriesDeleted || 0,
+    },
     { template: EVENTS_UNNAMED, count: request.eventsUnnamed || 0 },
     { template: CASES_UNNAMED, count: request.casesUnnamed || 0 },
     { template: PROPOSALS_WITHDRAWN, count: request.proposalsWithdrawn || 0 },

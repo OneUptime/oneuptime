@@ -15,7 +15,10 @@ import {
 } from "Common/Utils/Telemetry/CrossSignalScope";
 import { SECURITY_LOG_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
-import { HashedUserSignal, getSecurityEventSignal } from "./SecurityEventSignal";
+import {
+  HashedUserSignal,
+  getSecurityEventSignal,
+} from "./SecurityEventSignal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { buildTraceViewRoute } from "../../Utils/LogsCrossSignalPivot";

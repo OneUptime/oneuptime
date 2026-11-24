@@ -65,6 +65,7 @@ flowchart TB
 | **Notiz-Vorlagen** | Einstellungen | Fertige Texte für die Notizen, die Ihr Team zu seinen Fällen schreibt |
 | **Nummerierung** | Einstellungen | Der Text vor den Fallnummern und die Nummer, die der nächste Fall erhält |
 | **Risikobewertung** | Einstellungen | Ob das Risiko einer Entität einen Fall eröffnet, ab welchem Risiko, und wie wichtig jede Entität ist |
+| **Löschanfragen** | Einstellungen | Personen, die auf Anfrage gelöscht wurden, und was jede Löschung geändert hat |
 
 **Erkennungen**, **KI**, **Verbindungen** und **Einstellungen**, die man einmal einrichtet, bleiben eingeklappt, bis Sie sie öffnen. Neu bei Sicherheit? [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started) richtet sie mit zwei Klicks ein.
 
@@ -710,7 +711,7 @@ Was sie belässt:
 
 Die Anfrage bewahrt auf, wer sie wann gestellt hat, Ihren Verweis und die Token der Person, mit denen der Tresor sie weiterhin verweigert. Die Benutzer-ID oder E-Mail-Adresse wird verschlüsselt gespeichert, wo keine Seite, kein Export und keine API sie lesen kann, und gelöscht, sobald die Löschung abgeschlossen ist; ClickHouse erhält immer nur die Token. Anfragen lassen sich weder bearbeiten noch löschen: Sie sind Ihr Nachweis der Löschung.
 
-Projektinhaber, Projektadministratoren, Sicherheitsadministratoren und alle mit **Create Security Erasure Request**, etwa Ihr Datenschutzbeauftragter, können eine Anfrage stellen, auf der Seite oder über `/security-user-erasure-request` der API. Jede Sicherheitsrolle kann sie lesen.
+Projektinhaber, Projektadministratoren, Sicherheits-Administratoren und alle mit Create Security Erasure Request, etwa Ihr Datenschutzbeauftragter, können eine Anfrage stellen, auf der Seite oder über `/security-user-erasure-request` der API. Jede Sicherheitsrolle kann sie lesen.
 
 ## Fehlerbehebung
 

@@ -65,6 +65,7 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Modelos de notas** | Configurações | Texto pronto para as notas que sua equipe escreve em seus casos |
 | **Numeração** | Configurações | O texto antes dos números de caso e o número que o próximo caso recebe |
 | **Pontuação de risco** | Configurações | Se o risco de uma entidade abre um caso, com que risco, e quanto importa cada entidade |
+| **Solicitações de apagamento** | Configurações | As pessoas apagadas a pedido, e o que cada apagamento mudou |
 
 **Detecções**, **IA**, **Conexões** e **Configurações**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
 
@@ -710,7 +711,7 @@ O que deixa:
 
 A solicitação guarda quem a registrou e quando, sua referência e os tokens da pessoa, com os quais o cofre continua a recusá-la. O ID de usuário ou endereço de e-mail é armazenado criptografado, onde nenhuma página, exportação ou API pode lê-lo, e é apagado quando o apagamento termina; o ClickHouse só recebe os tokens. As solicitações não podem ser editadas nem excluídas: são o seu registro do apagamento.
 
-Proprietários e administradores do projeto, administradores de segurança e qualquer pessoa com **Create Security Erasure Request**, como seu encarregado de proteção de dados, podem registrar uma solicitação, pela página ou por `/security-user-erasure-request` da API. Todas as funções de segurança podem lê-las.
+Proprietários do projeto, Administradores do projeto, Administradores de segurança e qualquer pessoa com Create Security Erasure Request, como seu encarregado de proteção de dados, podem registrar uma solicitação, pela página ou por `/security-user-erasure-request` da API. Todas as funções de segurança podem lê-las.
 
 ## Solução de problemas
 

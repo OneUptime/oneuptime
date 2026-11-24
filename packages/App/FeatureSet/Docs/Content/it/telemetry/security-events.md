@@ -65,6 +65,7 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Modelli di note** | Impostazioni | Testo pronto per le note che il tuo team scrive sui suoi casi |
 | **Numerazione** | Impostazioni | Il testo davanti ai numeri dei casi e il numero che riceve il prossimo caso |
 | **Valutazione del rischio** | Impostazioni | Se il rischio di un'entità apre un caso, a quale rischio, e quanto conta ogni entità |
+| **Richieste di cancellazione** | Impostazioni | Le persone cancellate su richiesta, e cosa ha cambiato ogni cancellazione |
 
 **Rilevamenti**, **IA**, **Connessioni** e **Impostazioni**, che si configurano una volta, restano chiuse finché non le apri. Nuovo alla sicurezza? [Primi passi con la sicurezza](/docs/telemetry/security-getting-started) la configura in due clic.
 
@@ -710,7 +711,7 @@ Cosa lascia:
 
 La richiesta conserva chi l'ha inviata e quando, il tuo riferimento e i token della persona, con cui il vault continua a rifiutarla. L'ID utente o l'indirizzo email è salvato cifrato, dove nessuna pagina, esportazione o API può leggerlo, e viene eliminato una volta completata la cancellazione; a ClickHouse vengono inviati solo i token. Le richieste non si possono modificare né eliminare: sono la tua traccia della cancellazione.
 
-I proprietari e gli amministratori del progetto, gli amministratori della sicurezza e chiunque abbia **Create Security Erasure Request**, come il tuo responsabile della protezione dei dati, possono inviare una richiesta, dalla pagina o tramite `/security-user-erasure-request` dell'API. Ogni ruolo di sicurezza può leggerle.
+I Proprietari del progetto, gli Amministratori del progetto, gli Amministratori della sicurezza e chiunque abbia Create Security Erasure Request, come il tuo responsabile della protezione dei dati, possono inviare una richiesta, dalla pagina o tramite `/security-user-erasure-request` dell'API. Ogni ruolo di sicurezza può leggerle.
 
 ## Risoluzione dei problemi
 

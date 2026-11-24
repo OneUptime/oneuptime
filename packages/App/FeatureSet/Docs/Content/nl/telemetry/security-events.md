@@ -65,6 +65,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Notitie-sjablonen** | Instellingen | Kant-en-klare tekst voor de notities die je team bij zijn zaken schrijft |
 | **Nummering** | Instellingen | De tekst voor de zaaknummers, en het nummer dat de volgende zaak krijgt |
 | **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
+| **Wisverzoeken** | Instellingen | Personen die op verzoek zijn gewist, en wat elke wissing veranderde |
 
 **Detecties**, **AI**, **Verbindingen** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
@@ -710,7 +711,7 @@ Wat het laat staan:
 
 Het verzoek bewaart wie het indiende en wanneer, uw referentie en de tokens van de persoon, waarmee de kluis hen blijft weigeren. Het gebruikers-ID of e-mailadres wordt versleuteld opgeslagen, waar geen pagina, export of API het kan lezen, en gewist zodra het wissen klaar is; ClickHouse krijgt alleen ooit de tokens. Verzoeken kunnen niet worden bewerkt of verwijderd: ze zijn uw vastlegging van het wissen.
 
-Projecteigenaren, projectbeheerders, beveiligingsbeheerders en iedereen met **Create Security Erasure Request**, zoals uw functionaris voor gegevensbescherming, kunnen een verzoek indienen, op de pagina of via `/security-user-erasure-request` van de API. Elke beveiligingsrol kan ze lezen.
+Projecteigenaren, Projectbeheerders, Beveiligingsbeheerders en iedereen met Create Security Erasure Request, zoals uw functionaris voor gegevensbescherming, kunnen een verzoek indienen, op de pagina of via `/security-user-erasure-request` van de API. Elke beveiligingsrol kan ze lezen.
 
 ## Probleemoplossing
 

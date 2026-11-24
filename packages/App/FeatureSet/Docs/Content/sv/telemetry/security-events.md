@@ -65,6 +65,7 @@ flowchart TB
 | **Anteckningsmallar** | Inställningar | Färdig text för anteckningarna ditt team skriver i sina ärenden |
 | **Numrering** | Inställningar | Texten framför ärendenumren och numret som nästa ärende får |
 | **Riskbedömning** | Inställningar | Om en entitets risk öppnar ett ärende, vid vilken risk, och hur mycket varje entitet betyder |
+| **Raderingsbegäranden** | Inställningar | Personer som raderats på begäran, och vad varje radering ändrade |
 
 **Detektioner**, **AI**, **Anslutningar** och **Inställningar**, som sätts upp en gång, förblir hopfällda tills du öppnar dem. Ny inom säkerhet? [Kom igång med säkerhet](/docs/telemetry/security-getting-started) sätter upp det med två klick.
 
@@ -710,7 +711,7 @@ Vad den lämnar kvar:
 
 Begäran sparar vem som skickade in den och när, din referens och personens token, som valvet fortsätter att neka dem med. Användar-id:t eller e-postadressen lagras krypterad, där ingen sida, export eller API kan läsa den, och raderas när raderingen är klar; ClickHouse får bara någonsin token. Begäranden kan inte redigeras eller tas bort: de är ditt underlag för raderingen.
 
-Projektägare, projektadministratörer, säkerhetsadministratörer och alla med **Create Security Erasure Request**, till exempel ditt dataskyddsombud, kan skicka in en begäran, från sidan eller via API:ets `/security-user-erasure-request`. Alla säkerhetsroller kan läsa dem.
+Projektägare, Projektadministratörer, Säkerhetsadministratörer och alla med Create Security Erasure Request, till exempel ditt dataskyddsombud, kan skicka in en begäran, från sidan eller via API:ets `/security-user-erasure-request`. Alla säkerhetsroller kan läsa dem.
 
 ## Felsökning
 

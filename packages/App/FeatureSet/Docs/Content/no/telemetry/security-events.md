@@ -65,6 +65,7 @@ flowchart TB
 | **Notatmaler** | Innstillinger | Ferdig tekst til notatene teamet ditt skriver på sakene sine |
 | **Nummerering** | Innstillinger | Teksten foran saksnumrene, og nummeret den neste saken får |
 | **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
+| **Sletteforespørsler** | Innstillinger | Personer som er slettet på forespørsel, og hva hver sletting endret |
 
 **Deteksjoner**, **KI**, **Tilkoblinger** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 
@@ -710,7 +711,7 @@ Hva den lar være:
 
 Forespørselen lagrer hvem som sendte den inn og når, referansen din og personens tokener, som hvelvet fortsetter å avvise dem med. Bruker-ID-en eller e-postadressen lagres kryptert, der ingen side, eksport eller API kan lese den, og slettes når slettingen er ferdig; ClickHouse får bare tokenene. Forespørsler kan ikke redigeres eller slettes: de er din dokumentasjon på slettingen.
 
-Prosjekteiere, prosjektadministratorer, sikkerhetsadministratorer og alle med **Create Security Erasure Request**, for eksempel personvernombudet ditt, kan sende inn en forespørsel, fra siden eller via API-ets `/security-user-erasure-request`. Alle sikkerhetsroller kan lese dem.
+Prosjekteiere, Prosjektadministratorer, Sikkerhetsadministratorer og alle med Create Security Erasure Request, for eksempel personvernombudet ditt, kan sende inn en forespørsel, fra siden eller via API-ets `/security-user-erasure-request`. Alle sikkerhetsroller kan lese dem.
 
 ## Feilsøking
 

@@ -65,6 +65,7 @@ flowchart TB
 | **Noteskabeloner** | Indstillinger | Færdig tekst til de noter, dit team skriver på sine sager |
 | **Nummerering** | Indstillinger | Teksten foran sagsnumrene og det nummer, den næste sag får |
 | **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
+| **Sletteanmodninger** | Indstillinger | Personer, der er slettet efter anmodning, og hvad hver sletning ændrede |
 
 **Detektioner**, **AI**, **Forbindelser** og **Indstillinger**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.
 
@@ -710,7 +711,7 @@ Hvad den lader være:
 
 Anmodningen gemmer, hvem der indsendte den og hvornår, din reference og personens tokens, som boksen bliver ved med at afvise dem med. Bruger-id'et eller e-mailadressen gemmes krypteret, hvor ingen side, eksport eller API kan læse det, og slettes, når sletningen er færdig; ClickHouse får kun nogensinde tokens. Anmodninger kan ikke redigeres eller slettes: de er din dokumentation for sletningen.
 
-Projektejere, projektadministratorer, sikkerhedsadministratorer og alle med **Create Security Erasure Request**, for eksempel din databeskyttelsesrådgiver, kan indsende en anmodning, fra siden eller via API'ets `/security-user-erasure-request`. Alle sikkerhedsroller kan læse dem.
+Projektejere, Projektadministratorer, Sikkerhedsadministratorer og alle med Create Security Erasure Request, for eksempel din databeskyttelsesrådgiver, kan indsende en anmodning, fra siden eller via API'ets `/security-user-erasure-request`. Alle sikkerhedsroller kan læse dem.
 
 ## Fejlfinding
 

@@ -65,6 +65,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Sécurité**. Son men
 | **Modèles de notes** | Paramètres | Du texte prêt à l'emploi pour les notes que votre équipe rédige sur ses dossiers |
 | **Numérotation** | Paramètres | Le texte placé devant les numéros de dossier, et le numéro que reçoit le prochain dossier |
 | **Notation du risque** | Paramètres | Si le risque d'une entité ouvre un dossier, à quel risque, et l'importance de chaque entité |
+| **Demandes d'effacement** | Paramètres | Les personnes effacées sur demande, et ce que chaque effacement a changé |
 
 **Détections**, **IA**, **Connexions** et **Paramètres**, qu'on configure une fois, restent repliées jusqu'à ce que vous les ouvriez. Nouveau dans la sécurité ? [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started) la met en place en deux clics.
 
@@ -710,7 +711,7 @@ Ce qu'elle laisse :
 
 La demande conserve qui l'a déposée et quand, votre référence et les jetons de la personne, grâce auxquels le coffre continue de les refuser. L'ID utilisateur ou l'adresse e-mail est stocké chiffré, là où aucune page, aucun export ni aucune API ne peut le lire, et effacé une fois l'effacement terminé ; ClickHouse ne reçoit jamais que les jetons. Les demandes ne peuvent être ni modifiées ni supprimées : elles sont votre trace de l'effacement.
 
-Les propriétaires et administrateurs du projet, les administrateurs de la sécurité et toute personne disposant de **Create Security Erasure Request**, comme votre délégué à la protection des données, peuvent déposer une demande, depuis la page ou via `/security-user-erasure-request` de l'API. Chaque rôle de sécurité peut les lire.
+Les Propriétaires du projet, les Administrateurs du projet, les Administrateurs de la sécurité et toute personne disposant de Create Security Erasure Request, comme votre délégué à la protection des données, peuvent déposer une demande, depuis la page ou via `/security-user-erasure-request` de l'API. Chaque rôle de sécurité peut les lire.
 
 ## Dépannage
 

@@ -65,6 +65,7 @@ Abre **Productos → Eventos de seguridad**, en **Seguridad**. Su menú tiene un
 | **Plantillas de notas** | Ajustes | Texto listo para usar en las notas que tu equipo escribe en sus casos |
 | **Numeración** | Ajustes | El texto delante de los números de caso y el número que recibe el próximo caso |
 | **Puntuación de riesgo** | Ajustes | Si el riesgo de una entidad abre un caso, con qué riesgo, y cuánto importa cada entidad |
+| **Solicitudes de borrado** | Ajustes | Las personas borradas a petición, y lo que cambió cada borrado |
 
 **Detecciones**, **IA**, **Conexiones** y **Ajustes**, que se configuran una vez, quedan plegadas hasta que las abres. ¿Empieza con la seguridad? [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started) la configura en dos clics.
 
@@ -710,7 +711,7 @@ Qué deja:
 
 La solicitud conserva quién la presentó y cuándo, su referencia y los tokens de la persona, con los que la bóveda sigue rechazándola. El ID de usuario o la dirección de correo electrónico se guarda cifrado, donde ninguna página, exportación ni API puede leerlo, y se borra cuando termina el borrado; ClickHouse solo recibe los tokens. Las solicitudes no se pueden editar ni eliminar: son su registro del borrado.
 
-Los propietarios y administradores del proyecto, los administradores de seguridad y cualquiera con **Create Security Erasure Request**, como su delegado de protección de datos, pueden presentar una solicitud, desde la página o mediante `/security-user-erasure-request` de la API. Todos los roles de seguridad pueden leerlas.
+Los Propietarios del proyecto, los Administradores del proyecto, los Administradores de seguridad y cualquiera con Create Security Erasure Request, como su delegado de protección de datos, pueden presentar una solicitud, desde la página o mediante `/security-user-erasure-request` de la API. Todos los roles de seguridad pueden leerlas.
 
 ## Solución de problemas
 

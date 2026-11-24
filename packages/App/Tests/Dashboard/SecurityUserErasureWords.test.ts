@@ -235,7 +235,9 @@ describe("what one request shows", () => {
   });
 
   test("the dialog never asks for the person's name, and says it can't be undone", () => {
-    expect(Copy.REFERENCE_FIELD_DESCRIPTION).toContain("Never the person's name");
+    expect(Copy.REFERENCE_FIELD_DESCRIPTION).toContain(
+      "Never the person's name",
+    );
     expect(Copy.ERASE_DIALOG_DESCRIPTION).toContain("can't be undone");
   });
 });

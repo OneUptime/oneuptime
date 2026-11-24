@@ -123,9 +123,7 @@ const SecurityErasureRequestsPage: FunctionComponent<
             values: FormValues<SecurityUserErasureRequest>,
           ): string | null => {
             const problem: string | null = getErasureUserProblem(
-              String(
-                (values as Record<string, unknown>)["userToErase"] || "",
-              ),
+              String((values as Record<string, unknown>)["userToErase"] || ""),
             );
 
             return problem
