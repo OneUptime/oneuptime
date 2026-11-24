@@ -21,6 +21,7 @@ import TelemetryExceptionRekey, {
   ExceptionRekeyResult,
 } from "Common/Server/Utils/Telemetry/TelemetryExceptionRekey";
 import { JSONObject } from "Common/Types/JSON";
+import { writeOwnValue } from "Common/Utils/LookupTable";
 
 export interface ExceptionFingerprintInput {
   message?: string;
@@ -317,7 +318,7 @@ function readRekeys(value: unknown): Record<string, string> | undefined {
 
   for (const [from, to] of Object.entries(value as Record<string, unknown>)) {
     if (from && typeof to === "string" && to.length > 0 && to !== from) {
-      rekeys[from] = to;
+      writeOwnValue(rekeys, from, to);
     }
   }
 
