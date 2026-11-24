@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "حُظر مرة واحدة من قبل، آخرها في {{date}}.",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "حُظر مرتين من قبل، آخرهما في {{date}} (الحالة {{caseNumber}}).",
   "Blocked twice before, last on {{date}}.": "حُظر مرتين من قبل، آخرهما في {{date}}.",
-  "Blocked until {{time}}": "محظور حتى {{time}}",
   "Blocked {{count}} address.": "حُظر {{count}} عنوان.",
   "Blocked {{count}} addresses.": "العناوين المحظورة: {{count}}.",
   "Blocked {{count}} addresses._one": "حُظر {{count}} عنوان.",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "يشمله {{value}}",
   "Challenge This Network": "إخضاع هذه الشبكة للتحدي",
   "Challenge {{network}}": "إخضاع {{network}} للتحدي",
-  "Challenged until {{time}}": "خاضع للتحدي حتى {{time}}",
   "Challenged {{count}} address.": "أُخضع {{count}} عنوان للتحدي.",
   "Challenged {{count}} addresses.": "العناوين الخاضعة للتحدي: {{count}}.",
   "Challenged {{count}} addresses._one": "أُخضع {{count}} عنوان للتحدي.",
-  "Challenged {{network}} until {{time}}.": "تم إخضاع {{network}} للتحدي حتى {{time}}.",
   "Challenges {{count}} address for {{duration}}.": "يُخضع {{count}} عنوان للتحدي لمدة {{duration}}.",
   "Challenges {{count}} addresses for {{duration}}.": "يُخضع العناوين (العدد: {{count}}) للتحدي لمدة {{duration}}.",
   "Challenges {{count}} addresses for {{duration}}._one": "يُخضع {{count}} عنوان للتحدي لمدة {{duration}}.",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "حتى الساعة {{clock}}",
   "until {{day}} at {{clock}}_one": "حتى {{day}} الساعة {{clock}}",
   "until {{vowelDay}} at {{clock}}": "حتى {{vowelDay}} الساعة {{clock}}",
-  "until {{vowelDay}} at {{clock}}_one": "حتى {{vowelDay}} الساعة {{clock}}"
+  "until {{vowelDay}} at {{clock}}_one": "حتى {{vowelDay}} الساعة {{clock}}",
+  "Blocked {{until}}": "محظور {{until}}",
+  "Challenged {{network}} {{until}}.": "تم إخضاع {{network}} للتحدي {{until}}.",
+  "Challenged {{network}}.": "تم إخضاع {{network}} للتحدي.",
+  "Challenged {{until}}": "خاضع للتحدي {{until}}"
 }

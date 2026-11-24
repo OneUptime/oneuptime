@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import * as SecurityCaseResponseCopy from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Response/SecurityCaseResponseCopy";
+import * as CampaignContainmentCopy from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Campaigns/CampaignContainmentCopy";
 import * as RefusedTelemetryCopy from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RefusedTelemetry/RefusedTelemetryCopy";
 import {
   PluralTemplate,
@@ -29,20 +30,23 @@ import {
 /*
  * A MOMENT READS RIGHT IN EVERY LANGUAGE (#10622).
  *
- * The step checks' sentences, a block's line and the refused telemetry's
- * lines once wrote their own preposition before a moment - "got through
- * again at {{time}}" - and a moment holds its day whenever it is not
- * today, so Spanish read "a las 27 nov, 14:25", Italian "alle 27 nov,
- * 14:25", French "à 27 nov., 14:25". A moment now brings its own words
+ * The step checks' sentences, a block's line, the refused telemetry's
+ * lines and the campaigns' rows and toast (#10932) once wrote their own
+ * preposition before a moment - "got through again at {{time}}", "Blocked
+ * until {{time}}" - and a moment holds its day whenever it is not today,
+ * so Spanish read "a las 27 nov, 14:25", Italian "alle 27 nov, 14:25",
+ * French "à 27 nov., 14:25". A moment now brings its own words
  * (Utils/MomentPhrases): "a las 14:25" today, "el 27 nov a las 14:25" on
  * another day. So, in every language the Dashboard speaks:
  *
  *   - a sentence writes none of the words a moment's phrase brings beside
  *     the moment, and never starts with one where letters have a case: the
  *     phrase is worded for the middle of a sentence;
- *   - each phrase's time alone and its day with a time end alike after the
- *     clock, so the sentence reads on the same way after either;
- *   - French, Spanish and Italian read the day as they should.
+ *   - every form of a phrase - its time alone, its day, a day read with a
+ *     vowel first, each at one o'clock (#10902) - ends alike after the
+ *     clock, so the sentence reads on the same way after any;
+ *   - French, Spanish and Italian read the day as they should, and Spanish,
+ *     Portuguese and Italian one o'clock and Italian's vowel days.
  */
 
 // A moment's placeholders: {{since}} since when, {{until}} until when, every other when.
@@ -163,6 +167,8 @@ const MOMENT_SENTENCES: Array<MomentSentence> = Array.from(
         },
       ),
       ...momentSentencesOf(RefusedTelemetryCopy as Record<string, unknown>),
+      // The campaigns' rows and Challenge This Network's toast (#10932).
+      ...momentSentencesOf(CampaignContainmentCopy as Record<string, unknown>),
     ].map((sentence: MomentSentence): [string, MomentSentence] => {
       return [sentence.key, sentence];
     }),
@@ -354,7 +360,7 @@ function render(data: {
 }
 
 describe("the sentences that name a moment", () => {
-  test("are the step checks', a block's line and the refused telemetry's, each in en.json as written", () => {
+  test("are the step checks', a block's line, the refused telemetry's and the campaigns', each in en.json as written", () => {
     const english: Record<string, string> = readDashboardLocale("en");
 
     expect(MOMENT_SENTENCES.length).toBeGreaterThan(60);

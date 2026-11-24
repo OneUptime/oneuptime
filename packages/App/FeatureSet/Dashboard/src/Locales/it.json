@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "Già bloccato una volta, il {{date}}.",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "Già bloccato due volte, l'ultima il {{date}} (caso {{caseNumber}}).",
   "Blocked twice before, last on {{date}}.": "Già bloccato due volte, l'ultima il {{date}}.",
-  "Blocked until {{time}}": "Bloccato fino a {{time}}",
   "Blocked {{count}} address.": "{{count}} indirizzo bloccato.",
   "Blocked {{count}} addresses.": "{{count}} indirizzi bloccati.",
   "Blocked {{count}} addresses._one": "{{count}} indirizzo bloccato.",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "Tramite {{value}}",
   "Challenge This Network": "Sottoponi questa rete a verifica",
   "Challenge {{network}}": "Sottoponi {{network}} a verifica",
-  "Challenged until {{time}}": "Sottoposto a verifica fino a {{time}}",
   "Challenged {{count}} address.": "{{count}} indirizzo sottoposto a verifica.",
   "Challenged {{count}} addresses.": "{{count}} indirizzi sottoposti a verifica.",
   "Challenged {{count}} addresses._one": "{{count}} indirizzo sottoposto a verifica.",
-  "Challenged {{network}} until {{time}}.": "{{network}} sottoposto a verifica fino a {{time}}.",
   "Challenges {{count}} address for {{duration}}.": "Sottopone a verifica {{count}} indirizzo per {{duration}}.",
   "Challenges {{count}} addresses for {{duration}}.": "Sottopone a verifica {{count}} indirizzi per {{duration}}.",
   "Challenges {{count}} addresses for {{duration}}._one": "Sottopone a verifica {{count}} indirizzo per {{duration}}.",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "fino all'{{clock}}",
   "until {{day}} at {{clock}}_one": "fino al {{day}} all'{{clock}}",
   "until {{vowelDay}} at {{clock}}": "fino all'{{vowelDay}} alle {{clock}}",
-  "until {{vowelDay}} at {{clock}}_one": "fino all'{{vowelDay}} all'{{clock}}"
+  "until {{vowelDay}} at {{clock}}_one": "fino all'{{vowelDay}} all'{{clock}}",
+  "Blocked {{until}}": "Bloccato {{until}}",
+  "Challenged {{network}} {{until}}.": "{{network}} sottoposto a verifica {{until}}.",
+  "Challenged {{network}}.": "{{network}} sottoposto a verifica.",
+  "Challenged {{until}}": "Sottoposto a verifica {{until}}"
 }

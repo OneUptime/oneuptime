@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "이전에 한 번 차단되었습니다(마지막: {{date}}).",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "이전에 두 번 차단되었습니다(마지막: {{date}}, 케이스 {{caseNumber}}).",
   "Blocked twice before, last on {{date}}.": "이전에 두 번 차단되었습니다(마지막: {{date}}).",
-  "Blocked until {{time}}": "{{time}}까지 차단됨",
   "Blocked {{count}} address.": "주소 {{count}}개를 차단했습니다.",
   "Blocked {{count}} addresses.": "주소 {{count}}개를 차단했습니다.",
   "Blocked {{count}} addresses._one": "주소 {{count}}개를 차단했습니다.",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "{{value}}에 포함",
   "Challenge This Network": "이 네트워크에 챌린지 적용",
   "Challenge {{network}}": "{{network}}에 챌린지 적용",
-  "Challenged until {{time}}": "{{time}}까지 챌린지 적용됨",
   "Challenged {{count}} address.": "주소 {{count}}개에 챌린지를 적용했습니다.",
   "Challenged {{count}} addresses.": "주소 {{count}}개에 챌린지를 적용했습니다.",
   "Challenged {{count}} addresses._one": "주소 {{count}}개에 챌린지를 적용했습니다.",
-  "Challenged {{network}} until {{time}}.": "{{network}}에 {{time}}까지 챌린지를 적용했습니다.",
   "Challenges {{count}} address for {{duration}}.": "주소 {{count}}개에 {{duration}} 동안 챌린지를 적용합니다.",
   "Challenges {{count}} addresses for {{duration}}.": "주소 {{count}}개에 {{duration}} 동안 챌린지를 적용합니다.",
   "Challenges {{count}} addresses for {{duration}}._one": "주소 {{count}}개에 {{duration}} 동안 챌린지를 적용합니다.",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "{{clock}}까지",
   "until {{day}} at {{clock}}_one": "{{day}} {{clock}}까지",
   "until {{vowelDay}} at {{clock}}": "{{vowelDay}} {{clock}}까지",
-  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}}까지"
+  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}}까지",
+  "Blocked {{until}}": "{{until}} 차단됨",
+  "Challenged {{network}} {{until}}.": "{{network}}에 {{until}} 챌린지를 적용했습니다.",
+  "Challenged {{network}}.": "{{network}}에 챌린지를 적용했습니다.",
+  "Challenged {{until}}": "{{until}} 챌린지 적용됨"
 }

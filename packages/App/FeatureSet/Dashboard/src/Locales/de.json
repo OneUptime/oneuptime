@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "Bereits einmal gesperrt, zuletzt am {{date}}.",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "Bereits zweimal gesperrt, zuletzt am {{date}} (Fall {{caseNumber}}).",
   "Blocked twice before, last on {{date}}.": "Bereits zweimal gesperrt, zuletzt am {{date}}.",
-  "Blocked until {{time}}": "Gesperrt bis {{time}}",
   "Blocked {{count}} address.": "{{count}} Adresse gesperrt.",
   "Blocked {{count}} addresses.": "{{count}} Adressen gesperrt.",
   "Blocked {{count}} addresses._one": "{{count}} Adresse gesperrt.",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "Durch {{value}}",
   "Challenge This Network": "Challenge für dieses Netzwerk",
   "Challenge {{network}}": "Challenge für {{network}}",
-  "Challenged until {{time}}": "Mit Challenge bis {{time}}",
   "Challenged {{count}} address.": "{{count}} Adresse mit einer Challenge belegt.",
   "Challenged {{count}} addresses.": "{{count}} Adressen mit einer Challenge belegt.",
   "Challenged {{count}} addresses._one": "{{count}} Adresse mit einer Challenge belegt.",
-  "Challenged {{network}} until {{time}}.": "{{network}} bis {{time}} mit einer Challenge belegt.",
   "Challenges {{count}} address for {{duration}}.": "Belegt {{count}} Adresse für {{duration}} mit einer Challenge.",
   "Challenges {{count}} addresses for {{duration}}.": "Belegt {{count}} Adressen für {{duration}} mit einer Challenge.",
   "Challenges {{count}} addresses for {{duration}}._one": "Belegt {{count}} Adresse für {{duration}} mit einer Challenge.",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "bis {{clock}}",
   "until {{day}} at {{clock}}_one": "bis zum {{day}} um {{clock}}",
   "until {{vowelDay}} at {{clock}}": "bis zum {{vowelDay}} um {{clock}}",
-  "until {{vowelDay}} at {{clock}}_one": "bis zum {{vowelDay}} um {{clock}}"
+  "until {{vowelDay}} at {{clock}}_one": "bis zum {{vowelDay}} um {{clock}}",
+  "Blocked {{until}}": "Gesperrt {{until}}",
+  "Challenged {{network}} {{until}}.": "{{network}} {{until}} mit einer Challenge belegt.",
+  "Challenged {{network}}.": "{{network}} mit einer Challenge belegt.",
+  "Challenged {{until}}": "Mit Challenge {{until}}"
 }

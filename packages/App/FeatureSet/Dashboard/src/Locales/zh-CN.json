@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "此前被封禁过一次，最近一次在 {{date}}。",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "此前被封禁过两次，最近一次在 {{date}}（案例 {{caseNumber}}）。",
   "Blocked twice before, last on {{date}}.": "此前被封禁过两次，最近一次在 {{date}}。",
-  "Blocked until {{time}}": "封禁至 {{time}}",
   "Blocked {{count}} address.": "已封禁 {{count}} 个地址。",
   "Blocked {{count}} addresses.": "已封禁 {{count}} 个地址。",
   "Blocked {{count}} addresses._one": "已封禁 {{count}} 个地址。",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "由 {{value}} 覆盖",
   "Challenge This Network": "质询此网络",
   "Challenge {{network}}": "质询 {{network}}",
-  "Challenged until {{time}}": "质询至 {{time}}",
   "Challenged {{count}} address.": "已质询 {{count}} 个地址。",
   "Challenged {{count}} addresses.": "已质询 {{count}} 个地址。",
   "Challenged {{count}} addresses._one": "已质询 {{count}} 个地址。",
-  "Challenged {{network}} until {{time}}.": "已质询 {{network}}，直到 {{time}}。",
   "Challenges {{count}} address for {{duration}}.": "质询 {{count}} 个地址，持续 {{duration}}。",
   "Challenges {{count}} addresses for {{duration}}.": "质询 {{count}} 个地址，持续 {{duration}}。",
   "Challenges {{count}} addresses for {{duration}}._one": "质询 {{count}} 个地址，持续 {{duration}}。",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "直到 {{clock}}",
   "until {{day}} at {{clock}}_one": "直到 {{day}} {{clock}}",
   "until {{vowelDay}} at {{clock}}": "直到 {{vowelDay}} {{clock}}",
-  "until {{vowelDay}} at {{clock}}_one": "直到 {{vowelDay}} {{clock}}"
+  "until {{vowelDay}} at {{clock}}_one": "直到 {{vowelDay}} {{clock}}",
+  "Blocked {{until}}": "封禁{{until}}",
+  "Challenged {{network}} {{until}}.": "已质询 {{network}}，{{until}}。",
+  "Challenged {{network}}.": "已质询 {{network}}。",
+  "Challenged {{until}}": "质询{{until}}"
 }

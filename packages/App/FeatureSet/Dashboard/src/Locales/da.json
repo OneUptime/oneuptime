@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "Blokeret én gang før, den {{date}}.",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "Blokeret to gange før, senest den {{date}} (sag {{caseNumber}}).",
   "Blocked twice before, last on {{date}}.": "Blokeret to gange før, senest den {{date}}.",
-  "Blocked until {{time}}": "Blokeret indtil {{time}}",
   "Blocked {{count}} address.": "Blokerede {{count}} adresse.",
   "Blocked {{count}} addresses.": "Blokerede {{count}} adresser.",
   "Blocked {{count}} addresses._one": "Blokerede {{count}} adresse.",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "Via {{value}}",
   "Challenge This Network": "Udfordr dette netværk",
   "Challenge {{network}}": "Udfordr {{network}}",
-  "Challenged until {{time}}": "Udfordret indtil {{time}}",
   "Challenged {{count}} address.": "Udfordrede {{count}} adresse.",
   "Challenged {{count}} addresses.": "Udfordrede {{count}} adresser.",
   "Challenged {{count}} addresses._one": "Udfordrede {{count}} adresse.",
-  "Challenged {{network}} until {{time}}.": "Udfordrede {{network}} indtil {{time}}.",
   "Challenges {{count}} address for {{duration}}.": "Udfordrer {{count}} adresse i {{duration}}.",
   "Challenges {{count}} addresses for {{duration}}.": "Udfordrer {{count}} adresser i {{duration}}.",
   "Challenges {{count}} addresses for {{duration}}._one": "Udfordrer {{count}} adresse i {{duration}}.",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "indtil kl. {{clock}}",
   "until {{day}} at {{clock}}_one": "indtil den {{day}} kl. {{clock}}",
   "until {{vowelDay}} at {{clock}}": "indtil den {{vowelDay}} kl. {{clock}}",
-  "until {{vowelDay}} at {{clock}}_one": "indtil den {{vowelDay}} kl. {{clock}}"
+  "until {{vowelDay}} at {{clock}}_one": "indtil den {{vowelDay}} kl. {{clock}}",
+  "Blocked {{until}}": "Blokeret {{until}}",
+  "Challenged {{network}} {{until}}.": "Udfordrede {{network}} {{until}}.",
+  "Challenged {{network}}.": "Udfordrede {{network}}.",
+  "Challenged {{until}}": "Udfordret {{until}}"
 }

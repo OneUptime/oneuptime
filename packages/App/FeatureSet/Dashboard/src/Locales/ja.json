@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "過去に一度ブロックされ、最後は {{date}} でした。",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "過去に二度ブロックされ、最後は {{date}} でした（ケース {{caseNumber}}）。",
   "Blocked twice before, last on {{date}}.": "過去に二度ブロックされ、最後は {{date}} でした。",
-  "Blocked until {{time}}": "{{time}} までブロック",
   "Blocked {{count}} address.": "{{count}} 個のアドレスをブロックしました。",
   "Blocked {{count}} addresses.": "{{count}} 個のアドレスをブロックしました。",
   "Blocked {{count}} addresses._one": "{{count}} 個のアドレスをブロックしました。",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "{{value}} による",
   "Challenge This Network": "このネットワークにチャレンジ",
   "Challenge {{network}}": "{{network}} にチャレンジ",
-  "Challenged until {{time}}": "{{time}} までチャレンジ",
   "Challenged {{count}} address.": "{{count}} 個のアドレスにチャレンジを適用しました。",
   "Challenged {{count}} addresses.": "{{count}} 個のアドレスにチャレンジを適用しました。",
   "Challenged {{count}} addresses._one": "{{count}} 個のアドレスにチャレンジを適用しました。",
-  "Challenged {{network}} until {{time}}.": "{{network}} に {{time}} までチャレンジを適用しました。",
   "Challenges {{count}} address for {{duration}}.": "{{count}} 個のアドレスに {{duration}} チャレンジを適用します。",
   "Challenges {{count}} addresses for {{duration}}.": "{{count}} 個のアドレスに {{duration}} チャレンジを適用します。",
   "Challenges {{count}} addresses for {{duration}}._one": "{{count}} 個のアドレスに {{duration}} チャレンジを適用します。",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "{{clock}} まで",
   "until {{day}} at {{clock}}_one": "{{day}} {{clock}} まで",
   "until {{vowelDay}} at {{clock}}": "{{vowelDay}} {{clock}} まで",
-  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}} まで"
+  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} {{clock}} まで",
+  "Blocked {{until}}": "{{until}}ブロック",
+  "Challenged {{network}} {{until}}.": "{{network}} に {{until}}チャレンジを適用しました。",
+  "Challenged {{network}}.": "{{network}} にチャレンジを適用しました。",
+  "Challenged {{until}}": "{{until}}チャレンジ"
 }

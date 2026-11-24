@@ -120,16 +120,6 @@ export function writeCheckMoment(
   return writeReaderMoment(time, now);
 }
 
-/*
- * The same moment as one text, "14:25" today and "27 Nov, 14:25" on another
- * day, for a sentence that still writes its own preposition before it: the
- * campaigns' "Blocked until {{time}}" (#10932). A step check's sentence takes
- * the moment's phrase instead (writeCheckMoment).
- */
-export function writeCheckTime(time: Date, now: Date = new Date()): string {
-  return writeCheckMoment(time, now).whole;
-}
-
 // A sentence of the evidence in the reader's words, its moments on their clock.
 export function readCheckSentence(
   sentence: SecurityCaseStepCheckSentence,

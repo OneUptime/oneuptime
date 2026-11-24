@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "پیش‌تر یک بار مسدود شده است، آخرین بار {{date}}.",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "پیش‌تر دو بار مسدود شده است، آخرین بار {{date}} (پرونده {{caseNumber}}).",
   "Blocked twice before, last on {{date}}.": "پیش‌تر دو بار مسدود شده است، آخرین بار {{date}}.",
-  "Blocked until {{time}}": "مسدود تا {{time}}",
   "Blocked {{count}} address.": "{{count}} نشانی مسدود شد.",
   "Blocked {{count}} addresses.": "{{count}} نشانی مسدود شد.",
   "Blocked {{count}} addresses._one": "{{count}} نشانی مسدود شد.",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "از طریق {{value}}",
   "Challenge This Network": "به چالش کشیدن این شبکه",
   "Challenge {{network}}": "به چالش کشیدن {{network}}",
-  "Challenged until {{time}}": "با چالش تا {{time}}",
   "Challenged {{count}} address.": "{{count}} نشانی با چالش روبه‌رو شد.",
   "Challenged {{count}} addresses.": "{{count}} نشانی با چالش روبه‌رو شد.",
   "Challenged {{count}} addresses._one": "{{count}} نشانی با چالش روبه‌رو شد.",
-  "Challenged {{network}} until {{time}}.": "{{network}} تا {{time}} با چالش روبه‌رو شد.",
   "Challenges {{count}} address for {{duration}}.": "{{count}} نشانی را به مدت {{duration}} با چالش روبه‌رو می‌کند.",
   "Challenges {{count}} addresses for {{duration}}.": "{{count}} نشانی را به مدت {{duration}} با چالش روبه‌رو می‌کند.",
   "Challenges {{count}} addresses for {{duration}}._one": "{{count}} نشانی را به مدت {{duration}} با چالش روبه‌رو می‌کند.",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "تا ساعت {{clock}}",
   "until {{day}} at {{clock}}_one": "تا {{day}} ساعت {{clock}}",
   "until {{vowelDay}} at {{clock}}": "تا {{vowelDay}} ساعت {{clock}}",
-  "until {{vowelDay}} at {{clock}}_one": "تا {{vowelDay}} ساعت {{clock}}"
+  "until {{vowelDay}} at {{clock}}_one": "تا {{vowelDay}} ساعت {{clock}}",
+  "Blocked {{until}}": "مسدود {{until}}",
+  "Challenged {{network}} {{until}}.": "{{network}} {{until}} با چالش روبه‌رو شد.",
+  "Challenged {{network}}.": "{{network}} با چالش روبه‌رو شد.",
+  "Challenged {{until}}": "با چالش {{until}}"
 }

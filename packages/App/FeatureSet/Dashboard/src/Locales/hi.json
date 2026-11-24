@@ -62979,7 +62979,6 @@
   "Blocked once before, last on {{date}}.": "पहले एक बार ब्लॉक हुआ, {{date}} को।",
   "Blocked twice before, last on {{date}} (case {{caseNumber}}).": "पहले दो बार ब्लॉक हुआ, आख़िरी बार {{date}} को (केस {{caseNumber}})।",
   "Blocked twice before, last on {{date}}.": "पहले दो बार ब्लॉक हुआ, आख़िरी बार {{date}} को।",
-  "Blocked until {{time}}": "{{time}} तक ब्लॉक",
   "Blocked {{count}} address.": "{{count}} पता ब्लॉक किया गया।",
   "Blocked {{count}} addresses.": "{{count}} पते ब्लॉक किए गए।",
   "Blocked {{count}} addresses._one": "{{count}} पता ब्लॉक किया गया।",
@@ -62999,11 +62998,9 @@
   "By {{value}}": "{{value}} द्वारा",
   "Challenge This Network": "इस नेटवर्क पर चैलेंज लगाएं",
   "Challenge {{network}}": "{{network}} पर चैलेंज लगाएं",
-  "Challenged until {{time}}": "{{time}} तक चैलेंज",
   "Challenged {{count}} address.": "{{count}} पते पर चैलेंज लगाया गया।",
   "Challenged {{count}} addresses.": "{{count}} पतों पर चैलेंज लगाया गया।",
   "Challenged {{count}} addresses._one": "{{count}} पते पर चैलेंज लगाया गया।",
-  "Challenged {{network}} until {{time}}.": "{{network}} पर {{time}} तक चैलेंज लगाया गया।",
   "Challenges {{count}} address for {{duration}}.": "{{count}} पते पर {{duration}} के लिए चैलेंज लगाता है।",
   "Challenges {{count}} addresses for {{duration}}.": "{{count}} पतों पर {{duration}} के लिए चैलेंज लगाता है।",
   "Challenges {{count}} addresses for {{duration}}._one": "{{count}} पते पर {{duration}} के लिए चैलेंज लगाता है।",
@@ -63695,5 +63692,9 @@
   "until {{clock}}_one": "{{clock}} तक",
   "until {{day}} at {{clock}}_one": "{{day}} को {{clock}} तक",
   "until {{vowelDay}} at {{clock}}": "{{vowelDay}} को {{clock}} तक",
-  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} को {{clock}} तक"
+  "until {{vowelDay}} at {{clock}}_one": "{{vowelDay}} को {{clock}} तक",
+  "Blocked {{until}}": "{{until}} ब्लॉक",
+  "Challenged {{network}} {{until}}.": "{{network}} पर {{until}} चैलेंज लगाया गया।",
+  "Challenged {{network}}.": "{{network}} पर चैलेंज लगाया गया।",
+  "Challenged {{until}}": "{{until}} चैलेंज"
 }
