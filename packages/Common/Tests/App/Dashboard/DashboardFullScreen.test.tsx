@@ -27,6 +27,7 @@ import DashboardVariable, {
 import DashboardTextComponentUtil from "../../../Utils/Dashboard/Components/DashboardTextComponent";
 import RememberedChoice from "../../../UI/Utils/RememberedChoice";
 import { resetPageScrollLockForTesting } from "../../../UI/Utils/PageScrollLock";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A dashboard shown full screen (issue #10409): the real DashboardViewer and
@@ -1205,10 +1206,13 @@ describe("everything still works full screen", () => {
     await renderBoard();
     await goFullScreen();
 
-    const setIntervalSpy: jest.SpyInstance<any, any> = jest.spyOn(
-      window,
-      "setInterval",
-    );
+    const setIntervalSpy: SpyInstance<
+      (
+        callback: (...args: Array<any>) => void,
+        delay?: number,
+        ...args: Array<any>
+      ) => NodeJS.Timeout
+    > = jest.spyOn(window, "setInterval");
 
     await press(screen.getByTitle("Auto-refresh settings"));
 

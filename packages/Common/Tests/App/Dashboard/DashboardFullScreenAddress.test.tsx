@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import IconProp from "../../../Types/Icon/IconProp";
 import { ActionButtonPlacement } from "../../../UI/Components/ActionButton/ActionButtonSchema";
 import Navigation from "../../../UI/Utils/Navigation";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Where a dashboard shown full screen is (issue #10409): its own page, with
@@ -212,10 +213,8 @@ describe("reading and writing the tab's address", () => {
   test("writing what the address already says writes nothing", () => {
     openAt(`${PAGE_PATH}?view=full-screen`);
 
-    const replaceState: jest.SpyInstance<any, any> = jest.spyOn(
-      window.history,
-      "replaceState",
-    );
+    const replaceState: SpyInstance<typeof window.history.replaceState> =
+      jest.spyOn(window.history, "replaceState");
 
     writeAddressFullScreen(true);
 
