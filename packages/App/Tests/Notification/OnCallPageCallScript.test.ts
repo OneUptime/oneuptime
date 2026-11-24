@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import CallService from "../../FeatureSet/Notification/Services/CallService";
 import { SERVER_TEST_CALL_TEXT } from "../../FeatureSet/Notification/Services/ServerTestSendService";
 import {
@@ -541,7 +542,7 @@ describe("a long or hostile title", () => {
 
 describe("calls that ask for no key", () => {
   test("a verification code names the product, said as two words, as its text does", async () => {
-    const makeCall: jest.SpiedFunction<typeof CommonCallService.makeCall> = jest
+    const makeCall: SpyInstance<typeof CommonCallService.makeCall> = jest
       .spyOn(CommonCallService, "makeCall")
       .mockResolvedValue(undefined as never);
     jest
