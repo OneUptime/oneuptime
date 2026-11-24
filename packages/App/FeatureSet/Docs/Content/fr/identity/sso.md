@@ -259,6 +259,41 @@ Un projet peut aussi se connecter via un fournisseur OpenID Connect, comme Googl
 6. Ouvrez le lien de la carte **Lien de connexion SSO** et choisissez le fournisseur, pour vous connecter avec lui avant d'exiger le SSO pour le projet.
 :::
 
+## Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées
+
+Une connexion OpenID Connect trouve le compte OneUptime de la personne grâce à l'adresse e-mail que votre fournisseur d'identité envoie, et peut créer un compte avec cette adresse. Certains fournisseurs laissent les personnes mettre une adresse sur leur propre compte sans prouver qu'elle leur appartient, et l'indiquent dans la revendication standard `email_verified`. OneUptime ne connecte donc personne avec une adresse que votre fournisseur dit ne pas avoir vérifiée : quelqu'un aurait pu mettre l'adresse d'une autre personne sur son compte pour se connecter à sa place.
+
+| `email_verified` | La connexion |
+| --- | --- |
+| `true`, ou `"true"` et `1` | Se poursuit |
+| Non envoyé, comme avec Microsoft Entra ID et AD FS | Se poursuit |
+| `false`, ou `"false"` et `0` | Est refusée |
+| Toute autre valeur, comme `"yes"` | Est refusée : OneUptime ne peut pas trancher |
+
+- La règle vaut pour chaque compte, sur le web et dans l'application mobile : un compte existant, y compris celui d'un administrateur, et celui que la connexion créerait. Une connexion refusée ne crée aucun compte, n'ajoute personne à une équipe, n'accepte aucune invitation et n'envoie aucun e-mail.
+- OneUptime lit `email_verified` là d'où vient l'adresse, le jeton d'ID ou le point de terminaison userinfo, et seulement lorsque l'adresse est la revendication `email`. Un fournisseur configuré pour envoyer l'adresse dans une autre revendication, comme `preferred_username` ou `upn`, connecte les personnes comme avant : utilisez donc une revendication que vos utilisateurs ne peuvent pas modifier eux-mêmes.
+- La personne voit "Your identity provider did not confirm your email address.", et on lui demande de vérifier son adresse auprès de votre fournisseur d'identité, ou de vous demander de la marquer comme vérifiée chez lui, puis de se reconnecter. L'application mobile affiche `provider_email_not_verified` avec le même conseil. Lorsqu'un compte a cette adresse, les journaux d'audit de ses projets enregistrent la tentative comme une connexion échouée.
+- Les fournisseurs SAML ne lisent pas `email_verified`, pas plus que les fournisseurs OpenID Connect des pages de statut, des tableaux de bord et des formulaires, qui connectent les personnes comme leurs propres utilisateurs privés.
+
+Les fournisseurs qui vérifient les adresses qu'ils envoient, comme Google et Okta, connectent les personnes comme avant. authentik et Keycloak peuvent demander une modification :
+
+:::tabs
+@tab authentik
+authentik 2025.10 et versions ultérieures envoie `email_verified` à `false` pour tout le monde avec son mappage de portée `email` par défaut : personne ne se connecte donc par lui tant que vous n'avez pas remplacé ce mappage, comme le décrit le guide d'authentik [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/) :
+
+1. Dans **Customization** > **Property Mappings**, cliquez sur **New Property Mapping**, sélectionnez **Scope Mapping** et cliquez sur **Next**.
+2. Nommez le mappage, réglez **Scope name** sur `email`, saisissez l'**Expression** du guide qui correspond à la façon dont les adresses de vos utilisateurs sont vérifiées, et cliquez sur **Finish**.
+3. Ouvrez le fournisseur de votre application, remplacez le mappage `email` par défaut par le vôtre dans **Scopes**, et enregistrez le fournisseur.
+
+N'envoyez pas `true` pour chaque adresse tant que les personnes peuvent modifier leur propre adresse dans authentik : le mappage se porterait garant de n'importe quelle adresse que quelqu'un met sur son compte. Les versions antérieures à 2025.10 envoient `true` pour chaque adresse : n'y laissez donc pas les personnes modifier leur propre adresse.
+@tab Keycloak
+Keycloak envoie `email_verified` à `false` pour les personnes dont il n'a pas vérifié l'adresse : celles qu'un administrateur a créées avec **Email verified** désactivé, et celles qui se sont inscrites ou ont changé d'adresse pendant que **Verify email** était désactivé.
+
+- Pour qu'elles la vérifient, activez **Verify email** dans **Realm settings** > **Login** > **Email settings**. Keycloak demande alors à chacune de vérifier son adresse par un e-mail lors de sa prochaine connexion : le realm a donc besoin d'un serveur de messagerie configuré.
+- Pour vous porter vous-même garant de l'adresse d'une personne, activez **Email verified** sur sa page dans Keycloak et cliquez sur **Save**.
+- Pour les personnes issues de LDAP ou d'Active Directory, activez **Trust Email** dans les **Advanced settings** du fournisseur, dans **User federation**. Keycloak marque alors une adresse comme vérifiée lorsqu'il importe la personne : activez **Email verified** pour les personnes qu'il a importées avant.
+:::
+
 ## Se déconnecter aussi du fournisseur d'identité
 
 Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, comme un écran de NOC ou une borne, la personne suivante qui choisit le fournisseur sur la page de connexion entre donc à la place de celle qui est partie. Sur un fournisseur SAML ou OIDC, activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** pour qu'une déconnexion de OneUptime mette aussi fin à la session chez le fournisseur. C'est désactivé par défaut : sur un ordinateur portable personnel, cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur. Cela s'applique aux personnes qui se connectent dans un navigateur après l'activation ; l'application mobile se déconnecte de OneUptime seulement.
@@ -456,6 +491,10 @@ Chaque réponse de votre IdP ne connecte qu'une seule fois. Revenir en arrière 
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID a connecté quelqu'un avec l'adresse e-mail d'un compte lié, via ce fournisseur, à un autre ID d'objet : une autre personne détient désormais cette adresse dans Entra ID, ou le compte Entra ID de la personne a été recréé. OneUptime refuse la connexion, pour que la personne qui détiendra ensuite l'adresse ne puisse pas utiliser le compte. Si le compte est bien celui de cette personne, retirez-la du projet puis ajoutez-la de nouveau : sa prochaine connexion liera le compte à son nouvel ID d'objet.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Votre fournisseur OpenID Connect a envoyé `email_verified` à `false`, ou à une valeur qui n'est ni true ni false, donc OneUptime n'a connecté personne. Faites vérifier l'adresse chez votre fournisseur d'identité, ou marquez-la comme vérifiée chez lui, puis reconnectez-vous. [Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées](#adresses-e-mail-que-votre-fournisseur-didentité-na-pas-vérifiées) indique ce qu'il faut changer dans authentik et Keycloak.
 :::
 
 :::details La connexion échoue avec une erreur de signature ou de certificat
