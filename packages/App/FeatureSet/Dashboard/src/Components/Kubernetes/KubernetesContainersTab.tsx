@@ -15,7 +15,7 @@ import LocalTable from "Common/UI/Components/Table/LocalTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import type Columns from "Common/UI/Components/Table/Types/Columns";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/KubernetesResourceMetricDescriptions";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -389,14 +389,15 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {Object.keys(props.container.resources.requests).length > 0 && (
               <div>
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <span>{translator.translateText("Requests")}</span>
-                  <InfoTooltip
+                <div className="mb-2 flex text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <WordsWithInfoTooltip
+                    className="min-w-0"
+                    text={translator.translateText("Requests") || "Requests"}
                     label="Requests"
-                    text={
+                    description={
                       KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerRequests
                     }
-                    className="normal-case tracking-normal"
+                    infoClassName="normal-case tracking-normal"
                   />
                 </div>
                 <DictionaryOfStringsViewer
@@ -407,14 +408,15 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             )}
             {Object.keys(props.container.resources.limits).length > 0 && (
               <div>
-                <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <span>{translator.translateText("Limits")}</span>
-                  <InfoTooltip
+                <div className="mb-2 flex text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <WordsWithInfoTooltip
+                    className="min-w-0"
+                    text={translator.translateText("Limits") || "Limits"}
                     label="Limits"
-                    text={
+                    description={
                       KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerLimits
                     }
-                    className="normal-case tracking-normal"
+                    infoClassName="normal-case tracking-normal"
                   />
                 </div>
                 <DictionaryOfStringsViewer

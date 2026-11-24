@@ -11,9 +11,9 @@ import java.util.TimeZone
  * without java.time, which Android has only from 8.0 (the agent runs on 7).
  */
 object IsoTime {
-    // 2026-11-19T14:02:00, an optional fraction, then Z or an offset.
+    // 2026-11-19T14:02:00, an optional fraction, then Z or an offset, in ASCII digits (Android's \d would take any script's).
     private val PATTERN: Regex =
-        Regex("""^(\d{4})-(\d{2})-(\d{2})[Tt ](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|z|[+-]\d{2}:?\d{2})?$""")
+        Regex("""^([0-9]{4})-([0-9]{2})-([0-9]{2})[Tt ]([0-9]{2}):([0-9]{2}):([0-9]{2})(?:\.([0-9]{1,9}))?(Z|z|[+-][0-9]{2}:?[0-9]{2})?$""")
 
     fun format(millis: Long): String {
         val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)

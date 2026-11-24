@@ -47,6 +47,18 @@ export const PASSWORD_MANAGER_IGNORE_ATTRIBUTES: Readonly<
   "data-form-type": "other",
 };
 
+/*
+ * How a refused value's box looks: a red border, red words and a red focus
+ * ring. A field the Input explains itself (`error`) adds its icon and its
+ * message (FieldError). A field that says why elsewhere (`ariaInvalid`
+ * alone) draws the box only: a number setting with its unit beside it
+ * placed its message under both, and its box stayed grey, so a reader of
+ * three numbers side by side had to read the line under them to find the
+ * one that was refused (#6520).
+ */
+export const INPUT_REFUSED_CLASS_NAME: string =
+  "border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
+
 export interface ComponentProps {
   initialValue?: undefined | string | Date;
   id?: string | undefined;
@@ -72,6 +84,12 @@ export interface ComponentProps {
    * than below this input.
    */
   ariaDescribedby?: string | undefined;
+  /*
+   * The value is refused, and the field says why itself, somewhere else: a
+   * number whose unit sits beside it, its message under both. The box is
+   * drawn refused (INPUT_REFUSED_CLASS_NAME) and a screen reader hears it,
+   * without the error's own icon and line, which `error` adds.
+   */
   ariaInvalid?: boolean | undefined;
   onClick?: undefined | (() => void);
   onKeyDown?:
@@ -255,9 +273,8 @@ const Input: FunctionComponent<ComponentProps> = (
     className = props.error ? `${props.className} pr-10` : props.className;
   }
 
-  if (props.error) {
-    className +=
-      " border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
+  if (props.error || props.ariaInvalid) {
+    className += ` ${INPUT_REFUSED_CLASS_NAME}`;
   }
 
   if (props.disabled) {

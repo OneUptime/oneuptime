@@ -69,8 +69,20 @@ import {
   BLOCK_STARTED_TOAST,
   LIFTED_FROM_PLAN_REASON,
   RESPONSE_BLOCKED,
+  UNLINKED_PULL_REQUEST_TOAST,
 } from "./SecurityCaseResponseCopy";
 import { readCaseBlocklist } from "../../SecurityEvents/Blocklist/BlocklistApi";
+import {
+  FixPullRequestList,
+  LinkPullRequestButton,
+  LinkPullRequestModal,
+} from "./SecurityCaseFixPullRequests";
+import {
+  FIX_PULL_REQUEST_SELECT,
+  canLinkPullRequest,
+  getFixPullRequestName,
+  isRouteFixStep,
+} from "./SecurityCaseFixPullRequestsModel";
 import {
   StepCheckLinkTarget,
   canConfirmStep,
@@ -115,6 +127,8 @@ import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import { isSecurityCaseTaken } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanInputs";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import { SECURITY_CASE_PULL_REQUESTS_MAX } from "Common/Types/SecurityCase/SecurityCasePullRequestLink";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
@@ -242,6 +256,11 @@ export interface ComponentProps {
 interface PlanData {
   tasks: Array<SecurityCaseTask>;
   playbooks: Array<SecurityPlaybook>;
+  /*
+   * The pull requests people linked to the case's Fix step (#10604); none
+   * when they could not be read, which leaves the step as it is.
+   */
+  pullRequests: Array<SecurityCasePullRequest>;
   // What OneUptime found of the steps; none when they could not be read.
   checks: Array<SecurityCaseStepCheck>;
   isChecksUnread: boolean;
@@ -335,6 +354,11 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const [exceptionFor, setExceptionFor] = useState<ResponseAction | null>(null);
   // The steps whose How We Know is open.
   const [openHowWeKnow, setOpenHowWeKnow] = useState<Array<string>>([]);
+  // Link Pull Request's dialog, and the link being taken off (#10604).
+  const [isLinkingPullRequest, setIsLinkingPullRequest] =
+    useState<boolean>(false);
+  const [removingPullRequestId, setRemovingPullRequestId] =
+    useState<string>("");
 
   const caseUpdateGate: PermissionGateResult = PermissionGate.check(
     new SecurityCase(),
@@ -351,6 +375,15 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const runGate: PermissionGateResult = PermissionGate.check(
     new SecurityPlaybookRun(),
     ModelAction.Create,
+  );
+  // A person's own fix, linked to the Fix step and taken off it (#10604).
+  const pullRequestLinkGate: PermissionGateResult = PermissionGate.check(
+    new SecurityCasePullRequest(),
+    ModelAction.Create,
+  );
+  const pullRequestUnlinkGate: PermissionGateResult = PermissionGate.check(
+    new SecurityCasePullRequest(),
+    ModelAction.Delete,
   );
   // A block from the plan is a one-step run that writes the blocklist (#10342): it takes both.
   const blockCreateGate: PermissionGateResult = PermissionGate.check(
@@ -407,12 +440,13 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     latestReadRef.current = readNumber;
 
     try {
-      const [tasks, playbooks, runs, checks, blocklist]: [
+      const [tasks, playbooks, runs, checks, blocklist, pullRequests]: [
         ListResult<SecurityCaseTask>,
         ListResult<SecurityPlaybook>,
         ListResult<SecurityPlaybookRun>,
         { rows: Array<SecurityCaseStepCheck>; isUnread: boolean },
         ResponseBlocklist | null,
+        Array<SecurityCasePullRequest>,
       ] = await Promise.all([
         ModelAPI.getList<SecurityCaseTask>({
           modelType: SecurityCaseTask,
@@ -473,6 +507,24 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         ).catch((): null => {
           return null;
         }),
+        // Links that cannot be read - or a reader who may not read them - leave the Fix step as it is.
+        ModelAPI.getList<SecurityCasePullRequest>({
+          modelType: SecurityCasePullRequest,
+          query: { securityCaseId: new ObjectID(caseIdText) },
+          select: FIX_PULL_REQUEST_SELECT,
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: SECURITY_CASE_PULL_REQUESTS_MAX,
+        }).then(
+          (
+            result: ListResult<SecurityCasePullRequest>,
+          ): Array<SecurityCasePullRequest> => {
+            return result.data || [];
+          },
+          (): Array<SecurityCasePullRequest> => {
+            return [];
+          },
+        ),
       ]);
 
       // The blocklist that cannot be read leaves the block step as one done by hand.
@@ -518,6 +570,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         setData({
           tasks: tasks.data,
           playbooks: playbooks.data,
+          pullRequests,
           checks: checks.rows,
           isChecksUnread: checks.isUnread,
           addressBlocking,
@@ -673,6 +726,19 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           },
         );
       }),
+      // A colleague's linked pull request, or OneUptime seeing it merge or ship (#10604).
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCasePullRequest>(
+          {
+            eventType,
+            modelType: SecurityCasePullRequest,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
     ];
 
     return () => {
@@ -745,6 +811,38 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   });
 
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
+
+  // Takes a linked pull request off the case: the Fix step reads the rest (#10604).
+  const removePullRequest: (
+    row: SecurityCasePullRequest,
+  ) => Promise<void> = async (row: SecurityCasePullRequest): Promise<void> => {
+    const id: string = row._id?.toString() || row.id?.toString() || "";
+
+    if (!id || removingPullRequestId) {
+      return;
+    }
+
+    setRemovingPullRequestId(id);
+    setActionError("");
+
+    try {
+      await ModelAPI.deleteItem<SecurityCasePullRequest>({
+        modelType: SecurityCasePullRequest,
+        id: new ObjectID(id),
+      });
+
+      Toast.success(
+        translator.translateTemplate(UNLINKED_PULL_REQUEST_TOAST, {
+          pullRequest: getFixPullRequestName(row),
+        }),
+      );
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    } finally {
+      setRemovingPullRequestId("");
+    }
+  };
 
   /*
    * Blocks the step's address through the playbook engine (#10342): at
@@ -1029,7 +1127,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     step: ResponseStep,
   ): ReactElement => {
     const check: NonNullable<ResponseStep["check"]> = step.check!;
-    const isInline: boolean = isCheckExplainedInline(check.state);
+    const isInline: boolean = isCheckExplainedInline(check);
     const isOpen: boolean = openHowWeKnow.includes(step.key);
     const docsUrl: URL | null = getStepCheckDocsUrl(check.evidence.docsPath);
     const facts: ReactElement =
@@ -1186,6 +1284,15 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const actionLock: string | undefined = step.action
       ? getActionLock(step.action)
       : undefined;
+    // The route's Fix step takes a person's own pull request (#10604).
+    const isRouteFix: boolean = isRouteFixStep(step);
+    const canLink: boolean = canLinkPullRequest({
+      step,
+      isClosed,
+      isAllowed: pullRequestLinkGate.isAllowed,
+      linkedCount: data.pullRequests.length,
+      max: SECURITY_CASE_PULL_REQUESTS_MAX,
+    });
     /*
      * A block step's address (#10354): blocked before the case opened -
      * the line says when and from which case, and its Block offers the
@@ -1342,6 +1449,18 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               <></>
             )}
             {step.check ? renderCheck(step) : <></>}
+            {isRouteFix ? (
+              <FixPullRequestList
+                rows={data.pullRequests}
+                canRemove={!isClosed && pullRequestUnlinkGate.isAllowed}
+                removingId={removingPullRequestId}
+                onRemove={(row: SecurityCasePullRequest) => {
+                  void removePullRequest(row);
+                }}
+              />
+            ) : (
+              <></>
+            )}
             {isHighlighted ? (
               <p
                 className="text-xs text-indigo-700"
@@ -1406,9 +1525,22 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
-          {(step.action || canConfirm || (step.copyValue && !step.isDone)) &&
+          {(step.action ||
+            canConfirm ||
+            canLink ||
+            (step.copyValue && !step.isDone)) &&
           !isClosed ? (
             <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+              {canLink ? (
+                <LinkPullRequestButton
+                  isDisabled={Boolean(workingStepKey) || props.isWorking}
+                  onClick={() => {
+                    setIsLinkingPullRequest(true);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               {canConfirm ? (
                 <Button
                   title={STEP_CHECK_CONFIRM}
@@ -1644,6 +1776,21 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           })}
         </div>
       </Card>
+
+      {isLinkingPullRequest ? (
+        <LinkPullRequestModal
+          securityCaseId={props.caseId}
+          onClose={() => {
+            setIsLinkingPullRequest(false);
+          }}
+          onLinked={() => {
+            setIsLinkingPullRequest(false);
+            void load();
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {exceptionFor ? (
         <AddRuleExceptionModal

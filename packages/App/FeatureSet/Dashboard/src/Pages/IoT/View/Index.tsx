@@ -63,6 +63,7 @@ import RangeStartAndEndDateTime, {
 import TimeRange from "Common/Types/Time/TimeRange";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
 import {
   fetchIoTInventoryRows,
@@ -927,13 +928,11 @@ const IoTFleetOverview: FunctionComponent<
     return (
       <Card
         title={
-          <span className="inline-flex items-center gap-1.5">
-            {translator.translateText(ATTENTION_TITLE)}
-            <InfoTooltip
-              label={ATTENTION_TITLE}
-              text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention}
-            />
-          </span>
+          <WordsWithInfoTooltip
+            text={translator.translateText(ATTENTION_TITLE) || ATTENTION_TITLE}
+            label={ATTENTION_TITLE}
+            description={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention}
+          />
         }
         description="Devices that are offline, low on battery, or have a weak signal. Click through to investigate."
       >

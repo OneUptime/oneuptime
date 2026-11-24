@@ -158,9 +158,6 @@ export function getDataSecurityFixPickRepositoryMessage(
   return `This project has several repositories: choose the one that holds ${CODE_NAMES[code]}.`;
 }
 
-// At most this many repositories are asked about at once (canAskInRepository).
-const ASK_CHECKS_AT_ONCE: number = 10;
-
 export default class DataSecurityCodeTask {
   @CaptureSpan()
   public static async requestFix(data: {
@@ -590,7 +587,9 @@ export default class DataSecurityCodeTask {
 
   /*
    * Of the repositories the person may read, those they may ask OneUptime AI
-   * to work in (CodeTaskAccess.canAskInRepository), in the order given.
+   * to work in, in the order given - every one they may read, however many
+   * (#10764), asked of in one read a batch
+   * (CodeTaskAccess.keepAskableRepositories).
    */
   @CaptureSpan()
   public static async getAskableRepositories(data: {
@@ -598,35 +597,14 @@ export default class DataSecurityCodeTask {
     projectId: ObjectID;
     readable: ReadonlyArray<CodeRepository>;
   }): Promise<Array<CodeRepository>> {
-    const askable: Array<CodeRepository> = [];
-
-    for (
-      let start: number = 0;
-      start < data.readable.length;
-      start += ASK_CHECKS_AT_ONCE
-    ) {
-      const batch: ReadonlyArray<CodeRepository> = data.readable.slice(
-        start,
-        start + ASK_CHECKS_AT_ONCE,
-      );
-      const canAsk: Array<boolean> = await Promise.all(
-        batch.map((repository: CodeRepository): Promise<boolean> => {
-          return CodeTaskAccess.canAskInRepository({
-            props: data.props,
-            projectId: data.projectId,
-            repositoryId: repository.id!,
-          });
-        }),
-      );
-
-      batch.forEach((repository: CodeRepository, index: number): void => {
-        if (canAsk[index]) {
-          askable.push(repository);
-        }
-      });
-    }
-
-    return askable;
+    return await CodeTaskAccess.keepAskableRepositories<CodeRepository>({
+      props: data.props,
+      projectId: data.projectId,
+      repositories: data.readable,
+      getId: (repository: CodeRepository): string => {
+        return repository.id?.toString() || "";
+      },
+    });
   }
 
   /*

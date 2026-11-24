@@ -1,13 +1,21 @@
 import { describe, expect, test } from "@jest/globals";
 import { ContentScanOptions } from "../../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
+import MetricPipelineRule from "../../../../../Models/DatabaseModels/MetricPipelineRule";
 import {
   combineScrubRuleProofs,
+  proveMetricScrubRule,
   proveScrubRule,
   ScrubProofFailure,
   ScrubProofOutcome,
   ScrubProofRowReader,
   ScrubProofRule,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubProof";
+import FilterCondition from "../../../../../Types/Filter/FilterCondition";
+import {
+  MetricPipelineRuleFilterCheckOn,
+  MetricPipelineRuleFilterConditionType,
+} from "../../../../../Types/Metrics/MetricPipelineRuleFilterCondition";
+import MetricPipelineRuleType from "../../../../../Types/Metrics/MetricPipelineRuleType";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
 import { JSONObject } from "../../../../../Types/JSON";
 import LogScrubAction from "../../../../../Types/Log/LogScrubAction";
@@ -15,6 +23,11 @@ import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
+  buildMetricScrubRule,
+  getScrubTarget,
+} from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  getMetricScrubRuleFingerprint,
   getScrubRuleFingerprint,
   ScrubRuleProof,
 } from "../../../../../Types/Telemetry/ScrubRuleProof";
@@ -292,12 +305,25 @@ describe("what cannot be proven", () => {
     expect(outcome.covers).toBe(false);
   });
 
-  test("an exception's place: no rule is proven on exceptions", async () => {
+  // #10753: an exception is proven now; with no exception left, there is nothing to prove on.
+  test("an exception's place with no exception left that holds the data", async () => {
     const outcome: ScrubProofOutcome = await prove({
       rule: rule({ signal: "trace", fieldsToScrub: TraceScrubField.Events }),
       dataTypeId: "email-address",
       location: "message",
       kind: DataStoreKind.TelemetryExceptions,
+      readRows: reader([]),
+    });
+
+    expect(outcome.failure).toBe(ScrubProofFailure.NothingToProveOn);
+  });
+
+  test("a session replay's place: no rule is proven on recordings", async () => {
+    const outcome: ScrubProofOutcome = await prove({
+      rule: rule({}),
+      dataTypeId: "email-address",
+      location: "sessions.identifiedUserLabel",
+      kind: DataStoreKind.TelemetrySessionReplays,
       readRows: reader([]),
     });
 
@@ -352,6 +378,493 @@ describe("records read twice, spans and their events", () => {
 
     expect(outcome.covers).toBe(true);
     expect(outcome.proof.valuesWithData).toBe(1);
+  });
+});
+
+/*
+ * #10753: an exception's rule and a metric attribute's rule are proven
+ * too - an exception read from the exceptions it was seen in and scrubbed
+ * as ingest scrubs a span's exception event, a metric rule run on the
+ * finding's data points through the engine ingest runs metric rules with.
+ */
+describe("an exception's rule, proven on its exceptions", () => {
+  const TOKEN: string = ["ghp", "_R8sK2mQ9vX4tL7wN1pZ6cB3yH5jD0fG2aE8u"].join(
+    "",
+  );
+
+  function exceptionRow(data: {
+    message?: string;
+    stackTrace?: string;
+    attributes?: Array<[string, string]>;
+  }): JSONObject {
+    rowCount++;
+
+    return {
+      ownerId: CHECKOUT,
+      recordTime: 1795000000000 + rowCount,
+      readTraceId: `trace-${rowCount}`,
+      readSpanId: `span-${rowCount}`,
+      readFingerprint: "f",
+      readName: "Error",
+      ...(data.message !== undefined ? { readMessage: data.message } : {}),
+      ...(data.stackTrace !== undefined
+        ? { readStackTrace: data.stackTrace }
+        : {}),
+      ...(data.attributes ? { readAttributes: data.attributes } : {}),
+    };
+  }
+
+  test("a secret in an exception's message: covers, and changes no other message", async () => {
+    const outcome: ScrubProofOutcome = await prove({
+      rule: rule({
+        signal: "trace",
+        patternType: LogScrubPatternType.Custom,
+        customRegex: "ghp_[A-Za-z0-9]{36}",
+        fieldsToScrub: TraceScrubField.Events,
+      }),
+      dataTypeId: "github-token",
+      location: "message",
+      kind: DataStoreKind.TelemetryExceptions,
+      readRows: reader(
+        [exceptionRow({ message: `push refused for token ${TOKEN}` })],
+        [
+          exceptionRow({ message: `push refused for token ${TOKEN}` }),
+          exceptionRow({ message: "connection reset by peer" }),
+          exceptionRow({ message: "timeout after 30s" }),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome.covers).toBe(true);
+    expect(outcome.overreach).toBe(0);
+    expect(outcome.proof).toMatchObject({
+      findingRecordsRead: 1,
+      recordsRead: 4,
+      valuesWithData: 2,
+      valuesStillWithData: 0,
+      otherValues: 2,
+      otherValuesChanged: 0,
+    });
+    expect(outcome.proof.places[0]!.kind).toBe(
+      DataStoreKind.TelemetryExceptions,
+    );
+  });
+
+  test("an email in a stack trace, and one in an exception's attribute", async () => {
+    const inStack: ScrubProofOutcome = await prove({
+      rule: rule({ signal: "trace", fieldsToScrub: TraceScrubField.All }),
+      dataTypeId: "email-address",
+      location: "stackTrace",
+      kind: DataStoreKind.TelemetryExceptions,
+      readRows: reader([
+        exceptionRow({
+          stackTrace:
+            "Error: no account for jane.doe@acmecorp.io\n    at find (users.js:4:9)",
+        }),
+      ]),
+    });
+    const inAttribute: ScrubProofOutcome = await prove({
+      rule: rule({ signal: "trace", fieldsToScrub: TraceScrubField.Events }),
+      dataTypeId: "email-address",
+      location: "attributes.user.email",
+      kind: DataStoreKind.TelemetryExceptions,
+      readRows: reader([
+        exceptionRow({
+          attributes: [["user.email", "jane.doe@acmecorp.io"]],
+        }),
+      ]),
+    });
+
+    expect(inStack.covers).toBe(true);
+    expect(inStack.proof.valuesWithData).toBe(1);
+    expect(inAttribute.covers).toBe(true);
+    expect(inAttribute.proof.valuesWithData).toBe(1);
+  });
+
+  test("a rule that does not reach exceptions - span names only - does not cover", async () => {
+    const outcome: ScrubProofOutcome = await prove({
+      rule: rule({ signal: "trace", fieldsToScrub: TraceScrubField.Name }),
+      dataTypeId: "email-address",
+      location: "message",
+      kind: DataStoreKind.TelemetryExceptions,
+      readRows: reader([
+        exceptionRow({ message: "no account for jane.doe@acmecorp.io" }),
+      ]),
+    });
+
+    expect(outcome.covers).toBe(false);
+    expect(outcome.proof.valuesStillWithData).toBe(1);
+  });
+
+  test("a pattern too broad for the place says how many other messages it changed", async () => {
+    const outcome: ScrubProofOutcome = await prove({
+      rule: rule({
+        signal: "trace",
+        patternType: LogScrubPatternType.Custom,
+        customRegex: "[a-z]+",
+        fieldsToScrub: TraceScrubField.Events,
+      }),
+      dataTypeId: "github-token",
+      location: "message",
+      kind: DataStoreKind.TelemetryExceptions,
+      readRows: reader([
+        exceptionRow({ message: `token ${TOKEN}` }),
+        exceptionRow({ message: "connection reset by peer" }),
+      ]),
+    });
+
+    expect(outcome.proof.otherValues).toBe(1);
+    expect(outcome.proof.otherValuesChanged).toBe(1);
+    expect(outcome.overreach).toBe(1);
+  });
+});
+
+describe("a metric attribute's rule, proven on its data points", () => {
+  const SERVICE_ID: string = CHECKOUT;
+
+  function metricRow(
+    attributes: Array<[string, string]>,
+    metricName: string = "http.server.requests",
+  ): JSONObject {
+    rowCount++;
+
+    return {
+      ownerId: SERVICE_ID,
+      recordTime: 1795000000000 + rowCount,
+      readMetricName: metricName,
+      readAttributes: attributes,
+    };
+  }
+
+  function metricRule(data: {
+    key: string;
+    pattern?: string | undefined;
+    serviceId?: string | undefined;
+  }): MetricPipelineRule {
+    const made: MetricPipelineRule = new MetricPipelineRule();
+
+    made.serviceId = new ObjectID(data.serviceId || SERVICE_ID);
+    made.ruleType = MetricPipelineRuleType.RedactAttribute;
+    made.addAttributeKey = data.key;
+    made.redactReplacement = "[REDACTED]";
+    made.filterCondition = FilterCondition.All;
+    made.filters = data.pattern
+      ? [
+          {
+            checkOn: MetricPipelineRuleFilterCheckOn.Attribute,
+            attributeKey: data.key,
+            conditionType: MetricPipelineRuleFilterConditionType.MatchesRegex,
+            value: data.pattern,
+          },
+        ]
+      : [];
+
+    return made;
+  }
+
+  async function proveMetric(data: {
+    rule: MetricPipelineRule;
+    location: string;
+    dataTypeId: string;
+    readRows: ScrubProofRowReader;
+  }): Promise<ScrubProofOutcome> {
+    return await proveMetricScrubRule({
+      projectId: PROJECT_ID,
+      rule: data.rule,
+      finding: {
+        findingId: "0192f1a0-0000-7000-8000-0000001036be",
+        kind: DataStoreKind.TelemetryMetrics,
+        dataTypeId: data.dataTypeId,
+        location: data.location,
+        sampleRecords: KEPT_RECORD,
+      },
+      options: OPTIONS,
+      now: NOW,
+      readRows: data.readRows,
+    });
+  }
+
+  test("an email in a metric's label, redacted where it has the email's shape: covers, and changes no other value", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: metricRule({ key: "user", pattern: "[^@\\s]+@[^@\\s]+\\.[a-z]+" }),
+      location: "attributes.user",
+      dataTypeId: "email-address",
+      readRows: reader(
+        [metricRow([["user", "jane.doe@acmecorp.io"]])],
+        [
+          metricRow(
+            [["user", "max.mustermann@acmecorp.io"]],
+            "http.server.duration",
+          ),
+          metricRow([["user", "anonymous"]]),
+          metricRow([["user", "service-account"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome.covers).toBe(true);
+    expect(outcome.overreach).toBe(0);
+    expect(outcome.proof).toMatchObject({
+      findingRecordsRead: 1,
+      recordsRead: 4,
+      valuesWithData: 2,
+      valuesStillWithData: 0,
+      otherValues: 2,
+      otherValuesChanged: 0,
+    });
+  });
+
+  test("a rule with no pattern, hiding every value of the attribute, says how many other values it changed", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: metricRule({ key: "user" }),
+      location: "attributes.user",
+      dataTypeId: "email-address",
+      readRows: reader([
+        metricRow([["user", "jane.doe@acmecorp.io"]]),
+        metricRow([["user", "anonymous"]]),
+      ]),
+    });
+
+    expect(outcome.covers).toBe(true);
+    expect(outcome.proof.otherValues).toBe(1);
+    expect(outcome.proof.otherValuesChanged).toBe(1);
+    expect(outcome.overreach).toBe(1);
+  });
+
+  // The very rule Scrub It makes for the finding (TelemetryScrubCoverage.buildMetricScrubRule).
+  function scrubItRule(
+    location: string,
+    dataTypeId: string,
+  ): MetricPipelineRule {
+    return buildMetricScrubRule({
+      projectId: PROJECT_ID,
+      serviceId: SERVICE_ID,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId,
+      location,
+      target: getScrubTarget(DataStoreKind.TelemetryMetrics, location)!,
+    });
+  }
+
+  test("the very rule Scrub It makes for an email in a route: proven, the route's other values kept", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.http.route", "email-address"),
+      location: "attributes.http.route",
+      dataTypeId: "email-address",
+      readRows: reader(
+        [metricRow([["http.route", "/users/jane.doe@acme-corp.com/orders"]])],
+        [
+          metricRow([["http.route", "/orders/:id"]]),
+          metricRow([["http.route", "/users/max.mustermann@acme-corp.com"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome).toMatchObject({ covers: true, overreach: 0 });
+    expect(outcome.proof).toMatchObject({
+      valuesWithData: 2,
+      valuesStillWithData: 0,
+      otherValues: 1,
+      otherValuesChanged: 0,
+    });
+  });
+
+  /*
+   * A metric rule tells the values it hides by the type's pattern alone,
+   * and Scrub It's pattern for an IP address holds its IPv4 detector only:
+   * the IPv6 one does not fit the 500 characters a scrub pattern is made
+   * in beside it (TelemetryScrubCoverage.buildScrubPatternForDataType), on
+   * main before #10466 as since. So the rule leaves every IPv6 address -
+   * and the proof says so: a rule that leaves data at its place is never
+   * proven, and never made without a person.
+   */
+  test("the rule Scrub It makes for an IP address, proven where the attribute holds IPv4 addresses alone", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.peer", "ip-address"),
+      location: "attributes.peer",
+      dataTypeId: "ip-address",
+      readRows: reader(
+        [metricRow([["peer", "81.2.69.160"]])],
+        [
+          metricRow([["peer", "185.199.108.153"]]),
+          metricRow([["peer", "unknown"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome).toMatchObject({ covers: true, overreach: 0 });
+    expect(outcome.proof).toMatchObject({
+      valuesWithData: 2,
+      valuesStillWithData: 0,
+      otherValues: 1,
+      otherValuesChanged: 0,
+    });
+  });
+
+  test("not proven where the attribute holds IPv6 addresses - of the shapes #10466 finds too - which its pattern leaves", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.peer", "ip-address"),
+      location: "attributes.peer",
+      dataTypeId: "ip-address",
+      readRows: reader(
+        [metricRow([["peer", "2001::1"]])],
+        [
+          metricRow([["peer", "81.2.69.160"]]),
+          metricRow([["peer", "2a00:1450:4001:82a::200e"]]),
+          // A clock and a scope of hex digits: no address, as the scan reads them.
+          metricRow([["peer", "12::30"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome.proof).toMatchObject({
+      valuesWithData: 3,
+      // The IPv4 address hidden; both IPv6 ones left.
+      valuesStillWithData: 2,
+      otherValues: 1,
+      otherValuesChanged: 0,
+    });
+    expect(outcome.covers).toBe(false);
+  });
+
+  /*
+   * And a metric rule reads the value as written: an address written only
+   * percent-encoded (#10467) is found by the scan, which reads such text
+   * decoded too, but not by the pattern. Not proven either.
+   */
+  test("not proven where the address is written only percent-encoded, which its pattern cannot read", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.url.full", "ip-address"),
+      location: "attributes.url.full",
+      dataTypeId: "ip-address",
+      readRows: reader([
+        metricRow([
+          [
+            "url.full",
+            "https://checkout.example.com/geo?client=81%2E2%2E69%2E160",
+          ],
+        ]),
+      ]),
+    });
+
+    expect(outcome.proof.valuesWithData).toBe(1);
+    expect(outcome.proof.valuesStillWithData).toBe(1);
+    expect(outcome.covers).toBe(false);
+  });
+
+  test("a label that is the data by its name: Scrub It's rule hides every value, and the proof counts the others it changes", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.customer.full_name", "person-name"),
+      location: "attributes.customer.full_name",
+      dataTypeId: "person-name",
+      readRows: reader(
+        [metricRow([["customer.full_name", "Jane Doe"]])],
+        [metricRow([["customer.full_name", "n/a"]])],
+      ),
+    });
+
+    expect(outcome.proof.valuesStillWithData).toBe(0);
+    expect(outcome.proof.otherValuesChanged).toBe(outcome.proof.otherValues);
+  });
+
+  test("a rule for another attribute does not cover", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: metricRule({ key: "account" }),
+      location: "attributes.user",
+      dataTypeId: "email-address",
+      readRows: reader([metricRow([["user", "jane.doe@acmecorp.io"]])]),
+    });
+
+    expect(outcome.covers).toBe(false);
+    expect(outcome.proof.valuesStillWithData).toBe(1);
+  });
+
+  test("its fingerprint is the rule's: its service, key, filters and replacement", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: metricRule({ key: "user", pattern: "x" }),
+      location: "attributes.user",
+      dataTypeId: "email-address",
+      readRows: reader([metricRow([["user", "jane.doe@acmecorp.io"]])]),
+    });
+    const fingerprint: string = getMetricScrubRuleFingerprint({
+      serviceId: SERVICE_ID,
+      attributeKey: "user",
+      filters: metricRule({ key: "user", pattern: "x" }).filters,
+      filterCondition: FilterCondition.All,
+      redactReplacement: "[REDACTED]",
+    });
+
+    expect(outcome.proof.fingerprint).toBe(fingerprint);
+    expect(fingerprint).toMatch(/^[0-9a-f]{16}$/);
+    expect(
+      getMetricScrubRuleFingerprint({
+        serviceId: SERVICE_ID,
+        attributeKey: "user",
+        filters: metricRule({ key: "user", pattern: "y" }).filters,
+        filterCondition: FilterCondition.All,
+        redactReplacement: "[REDACTED]",
+      }),
+    ).not.toBe(fingerprint);
+  });
+
+  test("a metric's name, or a place of another kind, is no place a metric rule is proven on", async () => {
+    for (const [location, kind] of [
+      ["name", DataStoreKind.TelemetryMetrics],
+      ["attributes.user", DataStoreKind.TelemetryLogs],
+    ] as Array<[string, DataStoreKind]>) {
+      const outcome: ScrubProofOutcome = await proveMetricScrubRule({
+        projectId: PROJECT_ID,
+        rule: metricRule({ key: "user" }),
+        finding: {
+          kind,
+          dataTypeId: "email-address",
+          location,
+        },
+        options: OPTIONS,
+        now: NOW,
+        readRows: reader([]),
+      });
+
+      expect([location, outcome.failure]).toEqual([
+        location,
+        ScrubProofFailure.NotProvable,
+      ]);
+    }
+  });
+
+  test("a rule that names no attribute, or no service, scrubs nothing", async () => {
+    const noKey: MetricPipelineRule = metricRule({ key: "user" });
+
+    noKey.addAttributeKey = "";
+
+    expect(
+      (
+        await proveMetric({
+          rule: noKey,
+          location: "attributes.user",
+          dataTypeId: "email-address",
+          readRows: reader([]),
+        })
+      ).failure,
+    ).toBe(ScrubProofFailure.RuleScrubsNothing);
+  });
+
+  test("data points that cannot be read prove nothing", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: metricRule({ key: "user" }),
+      location: "attributes.user",
+      dataTypeId: "email-address",
+      readRows: async (): Promise<Array<JSONObject>> => {
+        throw new Error("ClickHouse is down");
+      },
+    });
+
+    expect(outcome.failure).toBe(ScrubProofFailure.CouldNotRead);
   });
 });
 

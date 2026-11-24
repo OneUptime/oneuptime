@@ -52,6 +52,9 @@ const COMPONENT_RECORD_IMPORT: RegExp =
   /import \{ PROXMOX_METRIC_DESCRIPTIONS \} from "(\.\.\/)+MetricDescriptions\/ProxmoxMetricDescriptions";/;
 const TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
+// A title's words with its (i) after the last of them (#7348, #8044).
+const WORDS_IMPORT: string =
+  'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";';
 
 /*
  * A tile as the parts and the Overview write it: its English title, which
@@ -114,12 +117,21 @@ function tooltipPattern(
 }
 
 /*
- * A heading as the page draws it: its English text, looked up in the
- * reader's language. The (i) beside it keeps the English text as its label,
- * which InfoTooltip translates for the screen reader itself.
+ * A title's words and its (i) after the last of them (WordsWithInfoTooltip,
+ * #8044): `<WordsWithInfoTooltip [className="..."] text={translator.
+ * translateText("X") || "X"} label="X" description={PROXMOX_METRIC_
+ * DESCRIPTIONS.key} />`, with `before` right in front of it and `after`
+ * right behind it. Prettier sets a long attribute's braces apart.
  */
-function shown(text: string): string {
-  return `{translator.translateText("${text}")}`;
+function wordsPattern(
+  label: string,
+  key: ProxmoxMetric,
+  before: string = "",
+  after: string = "",
+): RegExp {
+  return new RegExp(
+    `${escapeRegExp(before)}<WordsWithInfoTooltip (?:className="[^"]*" )?text=\\{ ?translator\\.translateText\\("${escapeRegExp(label)}"\\) \\|\\| "${escapeRegExp(label)}" ?\\} label="${escapeRegExp(label)}" description=\\{ ?PROXMOX_METRIC_DESCRIPTIONS\\.${key} ?\\} />${escapeRegExp(after)}`,
+  );
 }
 
 function referencedKeys(source: string): Array<string> {
@@ -328,10 +340,11 @@ describe("cluster overview: chart cards", () => {
     expect(count(definition, "description?: string | undefined;")).toBe(2);
   });
 
-  test("its (i) sits in one header, beside the title", () => {
+  test("its (i) sits in one header, after the title's last word", () => {
     expect(definition).toContain(
-      "<InfoTooltip label={params.title} text={params.description} />",
+      '<WordsWithInfoTooltip className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider" text={translator.translateText(params.title) || params.title} label={params.title} description={params.description} />',
     );
+    expect(definition).not.toContain("<InfoTooltip");
     /*
      * The title is rendered once, in the header, in the reader's language,
      * and nowhere else. The (i) is named after the English title, which it
@@ -340,7 +353,7 @@ describe("cluster overview: chart cards", () => {
     expect(
       count(
         definition,
-        "> {translator.translateText(params.title) || params.title} <",
+        "text={translator.translateText(params.title) || params.title}",
       ),
     ).toBe(1);
     expect(count(definition, "> {params.title} <")).toBe(0);
@@ -539,26 +552,29 @@ describe("cluster overview: hero, cards and tables", () => {
       "const renderTopGuestList:",
     );
 
-    expect(ceph).toMatch(
-      tooltipPattern(
-        "Capacity used",
-        "cephCapacityUsed",
-        `${shown("Capacity used")} `,
-      ),
-    );
+    expect(ceph).toMatch(wordsPattern("Capacity used", "cephCapacityUsed"));
   });
 
   test.each([
     ["CPU Usage", "topGuestsByCpu"],
     ["Memory Usage", "topGuestsByMemory"],
   ] as Array<[string, ProxmoxMetric]>)(
-    "the top consumers heading %s carries %s",
+    "the top consumers heading %s carries %s after its last word",
     (heading: string, key: ProxmoxMetric) => {
       expect(OVERVIEW).toMatch(
-        tooltipPattern(heading, key, `${shown(heading)} </h4> `),
+        wordsPattern(
+          heading,
+          key,
+          '<h4 className="text-sm font-semibold text-gray-900"> ',
+          " </h4>",
+        ),
       );
     },
   );
+
+  test("the overview imports the (i) after words", () => {
+    expect(OVERVIEW).toContain(WORDS_IMPORT);
+  });
 });
 
 /*
@@ -575,14 +591,16 @@ function expectThroughputHeaders(
   const extra: string = between(source, "renderExtraCharts={", "</div> ); }}");
 
   expect(count(extra, "<ProxmoxRateChart")).toBe(headers.length);
-  expect(count(extra, "<InfoTooltip")).toBe(headers.length);
+  // Each header's (i) after its title's last word (#8044).
+  expect(count(extra, "<WordsWithInfoTooltip")).toBe(headers.length);
+  expect(count(extra, "<InfoTooltip")).toBe(0);
 
   for (const [header, key] of headers) {
     expect(extra).toMatch(
-      tooltipPattern(
+      wordsPattern(
         header,
         key,
-        `${shown(header)} `,
+        "",
         ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
       ),
     );
@@ -624,7 +642,7 @@ describe("a node's page", () => {
       ["Network Throughput", "nodeNetworkThroughput"],
       ["Disk Throughput", "nodeDiskThroughput"],
     ]);
-    expect(NODE_DETAIL).toContain(TOOLTIP_IMPORT);
+    expect(NODE_DETAIL).toContain(WORDS_IMPORT);
   });
 
   test("its Guests and Storage tabs explain their columns as the lists do", () => {
@@ -663,7 +681,7 @@ describe("a guest's page", () => {
       ["Network Throughput", "guestNetworkThroughput"],
       ["Disk Throughput", "guestDiskThroughput"],
     ]);
-    expect(GUEST_DETAIL).toContain(TOOLTIP_IMPORT);
+    expect(GUEST_DETAIL).toContain(WORDS_IMPORT);
   });
 });
 
@@ -755,14 +773,14 @@ describe("insights", () => {
     );
 
     expect(extra).toMatch(
-      tooltipPattern(
+      wordsPattern(
         "Disk Throughput",
         "insightsDiskThroughput",
-        `${shown("Disk Throughput")} `,
+        "",
         ` ${RATE_CHART_HINT} </div> <ProxmoxRateChart`,
       ),
     );
-    expect(INSIGHTS).toContain(TOOLTIP_IMPORT);
+    expect(INSIGHTS).toContain(WORDS_IMPORT);
   });
 
   test("the network rate chart is explained by its card's visible description instead", () => {

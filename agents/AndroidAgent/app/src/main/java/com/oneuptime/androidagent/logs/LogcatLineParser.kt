@@ -43,12 +43,24 @@ sealed interface LogcatParse {
  * spaces), and the message everything after it.
  */
 object LogcatLineParser {
+    /*
+     * Logcat writes a line's header in ASCII, its fields between spaces: a
+     * digit is [0-9] and a space a space or a tab, not \d and \s, which
+     * Android's regular expressions read with every script's digits and
+     * spaces and the JVM's, where the tests run, as ASCII's (#10876). The
+     * message is whatever the app wrote, which (?s) takes whole: a "." took
+     * no vertical tab or form feed on a device where the JVM's took both,
+     * and none of U+0085, U+2028 and U+2029 on either, so such a line was
+     * dropped.
+     */
     private val EPOCH_WITH_UID: Regex =
-        Regex("""^\s*(\d{1,12})\.(\d{1,9})\s+(\S+)\s+(\d+)\s+(\d+)\s+([VDIWEFA])\s(.*)$""")
-    private val EPOCH: Regex = Regex("""^\s*(\d{1,12})\.(\d{1,9})\s+(\d+)\s+(\d+)\s+([VDIWEFA])\s(.*)$""")
+        Regex("""(?s)^[ \t]*([0-9]{1,12})\.([0-9]{1,9})[ \t]+([^ \t]+)[ \t]+([0-9]+)[ \t]+([0-9]+)[ \t]+([VDIWEFA])[ \t](.*)$""")
+    private val EPOCH: Regex = Regex("""(?s)^[ \t]*([0-9]{1,12})\.([0-9]{1,9})[ \t]+([0-9]+)[ \t]+([0-9]+)[ \t]+([VDIWEFA])[ \t](.*)$""")
     private val LOCAL_TIME: Regex =
-        Regex("""^\s*(\d\d)-(\d\d)\s+(\d\d):(\d\d):(\d\d)\.(\d{1,9})\s+(?:(\S+)\s+)??(\d+)\s+(\d+)\s+([VDIWEFA])\s(.*)$""")
-    private val DIVIDER: Regex = Regex("""^-+ (?:beginning of|switch to) (\w+)""")
+        Regex(
+            """(?s)^[ \t]*([0-9]{2})-([0-9]{2})[ \t]+([0-9]{2}):([0-9]{2}):([0-9]{2})\.([0-9]{1,9})[ \t]+(?:([^ \t]+)[ \t]+)??([0-9]+)[ \t]+([0-9]+)[ \t]+([VDIWEFA])[ \t](.*)$""",
+        )
+    private val DIVIDER: Regex = Regex("""^-+ (?:beginning of|switch to) ([A-Za-z0-9_]+)""")
 
     fun parse(raw: String, nowMillis: Long, zone: TimeZone = TimeZone.getDefault()): LogcatParse {
         val line: String = raw.trimEnd('\r', '\n')
@@ -165,7 +177,7 @@ object LogcatLineParser {
 
 /** The app a Logcat line came from, by its writer's user id. */
 object LogcatUid {
-    private val APP_NAME: Regex = Regex("""^u(\d+)_a(\d+)$""")
+    private val APP_NAME: Regex = Regex("""^u([0-9]+)_a([0-9]+)$""")
 
     /** The numeric uid of an app's line, or null for the system's own (root, system, shell, ...). */
     fun appUid(uid: String?): Int? = numeric(uid)?.takeIf { it % 100_000 >= 10_000 }

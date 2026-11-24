@@ -32,6 +32,7 @@ import {
   getNewMetricSlots,
   isLargeMetric,
   isMetricNameAKey,
+  orderStoresForModel,
   METRIC_ROTATION_CURSOR_STATE_KEY,
   MetricScanPlan,
   MetricToRead,
@@ -72,6 +73,12 @@ import { compileCustomDataType } from "../../../../../Utils/DataSecurity/CustomD
 import { FieldClassification } from "../../../../../Utils/DataSecurity/FieldClassifier";
 import { ScanDetector } from "../../../../../Utils/DataSecurity/TextScanner";
 import { SeededRandom, seededRandom } from "../../../../Helpers/SeededRandom";
+import { ModelBudget } from "../../../../../Server/Utils/DataSecurity/Model/ModelBudget";
+import { ModelScanContext } from "../../../../../Server/Utils/DataSecurity/Model/ModelScan";
+import DataConfidence from "../../../../../Types/DataSecurity/DataConfidence";
+import FakeEntityRecognizer, {
+  ISSUE_SENTENCE,
+} from "../Model/FakeEntityRecognizer";
 
 /*
  * A sample of a project's telemetry, read without a database: every
@@ -3635,5 +3642,250 @@ describe("a service's metrics", () => {
       );
       expect(isMetricNameAKey("orders.LOY-123456.total")).toBe(true);
     });
+  });
+});
+
+/*
+ * The names-and-addresses model in the hourly telemetry scan (#10373), with
+ * a recogniser behind the model's interface: a log body's names and street
+ * addresses are found when the project turned the model on for telemetry,
+ * never when it did not, and a scan whose model time runs out says how much
+ * it read - never what - and still finishes every store.
+ */
+describe("the names-and-addresses model in the telemetry scan", () => {
+  function modelOptions(
+    recognizer: FakeEntityRecognizer,
+    budget: ModelBudget = ModelBudget.forScope("telemetry"),
+  ): ContentScanOptions {
+    const model: ModelScanContext = { recognizer, budget };
+
+    return options({ model });
+  }
+
+  function issueLogs(): void {
+    sampleRows[TelemetrySampleSource.Logs] = [
+      {
+        ownerId: CHECKOUT,
+        readBody: ISSUE_SENTENCE,
+        readAttributes: [["http.status_code", "200"]],
+      },
+      {
+        ownerId: CHECKOUT,
+        readBody: "GET /health 200 3ms",
+        readAttributes: [],
+      },
+    ];
+  }
+
+  function bodyFinding(
+    scans: Array<TelemetryStoreScan>,
+    dataTypeId: string,
+  ): FieldClassification | undefined {
+    const logs: TelemetryStoreScan = storeOf(
+      scans,
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    return logs.result.locations
+      .find((entry: LocationFindings): boolean => {
+        return entry.location === "body";
+      })
+      ?.classifications.find((classification: FieldClassification) => {
+        return classification.dataTypeId === dataTypeId;
+      });
+  }
+
+  test("the issue's sentence in a log body is a person's name and a street address, Medium, masked, found by the model", async () => {
+    issueLogs();
+
+    const recognizer: FakeEntityRecognizer = new FakeEntityRecognizer();
+    const scans: Array<TelemetryStoreScan> = await scan(
+      modelOptions(recognizer),
+    );
+
+    expect(bodyFinding(scans, "person-name")).toEqual(
+      expect.objectContaining({
+        matchCount: 1,
+        confidence: DataConfidence.Medium,
+        maskedSamples: ["M****"],
+        foundByModel: true,
+      }),
+    );
+    expect(bodyFinding(scans, "postal-address")).toEqual(
+      expect.objectContaining({
+        matchCount: 1,
+        confidence: DataConfidence.Medium,
+        maskedSamples: ["1****"],
+        foundByModel: true,
+      }),
+    );
+    // The model read the bodies, short as they are, and the record's other text too.
+    expect(recognizer.given).toContain(ISSUE_SENTENCE);
+    expect(recognizer.given).toContain("GET /health 200 3ms");
+    // Never a value in what a store says of its scan.
+    const logs: TelemetryStoreScan = storeOf(
+      scans,
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(JSON.stringify(logs.result.warnings)).not.toContain("Maria");
+    expect(JSON.stringify(logs.result.readLog)).not.toContain("Maria");
+  });
+
+  test("with the model off for telemetry, the same body holds no name, and nothing is handed to a model", async () => {
+    issueLogs();
+
+    const scans: Array<TelemetryStoreScan> = await scan(options());
+
+    expect(bodyFinding(scans, "person-name")).toBeUndefined();
+    expect(bodyFinding(scans, "postal-address")).toBeUndefined();
+  });
+
+  test("the model's minute running out part-way says how much it read in the warnings, and the scan still finishes every store", async () => {
+    issueLogs();
+
+    // Time for one text: the first store read spends it all.
+    const recognizer: FakeEntityRecognizer = new FakeEntityRecognizer({
+      millisecondsPerText: 50,
+    });
+    const budget: ModelBudget = new ModelBudget({
+      scanLimitInMs: 50,
+      storeLimitInMs: 50,
+    });
+    const scans: Array<TelemetryStoreScan> = await scan(
+      modelOptions(recognizer, budget),
+    );
+    const warnings: Array<string> = scans.flatMap(
+      (item: TelemetryStoreScan): Array<string> => {
+        return item.result.warnings.filter((warning: string): boolean => {
+          return warning.startsWith("Names and street addresses");
+        });
+      },
+    );
+
+    expect(warnings.length).toBeGreaterThan(0);
+
+    for (const warning of warnings) {
+      expect(warning).toMatch(
+        /^Names and street addresses were looked for in \d+ of \d+ free-text values: (this store's|the scan's) 1 second of model time ran out\.$/,
+      );
+      expect(warning).not.toContain("Maria");
+      expect(warning).not.toContain("Calle");
+    }
+
+    // Every store is still scanned, with what its detectors found.
+    const logs: TelemetryStoreScan = storeOf(
+      scans,
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(logs.result.isComplete).toBe(true);
+    expect(
+      storeOf(scans, DataStoreKind.TelemetryTraces, CHECKOUT).result.locations
+        .length,
+    ).toBeGreaterThan(0);
+    expect(budget.spentInMs).toBe(50);
+  });
+
+  test("a model that stops part-way leaves the scan to its detectors, saying the model stopped", async () => {
+    issueLogs();
+
+    const recognizer: FakeEntityRecognizer = new FakeEntityRecognizer({
+      failWith: new Error("Maria Gonzalez"),
+    });
+    const logged: Array<string> = [];
+
+    jest.spyOn(logger, "error").mockImplementation((message: unknown) => {
+      logged.push(String(message));
+    });
+
+    const scans: Array<TelemetryStoreScan> = await scan(
+      modelOptions(recognizer),
+    );
+
+    // The log says the model stopped, never what it was reading.
+    expect(logged.join(" ")).toContain("names-and-addresses model stopped");
+    expect(logged.join(" ")).not.toContain("Maria");
+    const logs: TelemetryStoreScan = storeOf(
+      scans,
+      DataStoreKind.TelemetryLogs,
+      CHECKOUT,
+    );
+
+    expect(bodyFinding(scans, "person-name")).toBeUndefined();
+    expect(logs.result.warnings).toContain(
+      "Names and street addresses in free text were not looked for: the model stopped part-way through this scan.",
+    );
+    expect(JSON.stringify(logs.result.warnings)).not.toContain("Maria");
+  });
+});
+
+describe("orderStoresForModel", () => {
+  type Store = { kind: DataStoreKind; ownerId: string };
+
+  const stores: Array<Store> = Array.from(
+    { length: 40 },
+    (_: unknown, index: number): Store => {
+      return {
+        kind:
+          index % 2 === 0
+            ? DataStoreKind.TelemetryLogs
+            : DataStoreKind.TelemetryExceptions,
+        ownerId: `0192f1a0-0000-7000-8000-${String(index).padStart(12, "0")}`,
+      };
+    },
+  );
+
+  const hour: (index: number) => Date = (index: number): Date => {
+    return new Date(Date.UTC(2026, 10, 24, 0, 0, 0) + index * 3_600_000);
+  };
+
+  test("orders every store once, the same way all hour long", () => {
+    const ordered: Array<Store> = orderStoresForModel(stores, hour(0));
+
+    expect(ordered).toHaveLength(stores.length);
+    expect(new Set(ordered)).toEqual(new Set(stores));
+    expect(
+      orderStoresForModel(stores, new Date(hour(0).getTime() + 59 * 60_000)),
+    ).toEqual(ordered);
+  });
+
+  test("orders them anew the next hour", () => {
+    expect(orderStoresForModel(stores, hour(1))).not.toEqual(
+      orderStoresForModel(stores, hour(0)),
+    );
+  });
+
+  test("over a month of hours, the first few places go to every store about as often", () => {
+    const firstPlaces: Map<Store, number> = new Map();
+    const hours: number = 24 * 30;
+    const readEachHour: number = 4;
+
+    for (let index: number = 0; index < hours; index++) {
+      for (const store of orderStoresForModel(stores, hour(index)).slice(
+        0,
+        readEachHour,
+      )) {
+        firstPlaces.set(store, (firstPlaces.get(store) || 0) + 1);
+      }
+    }
+
+    // 720 hours x 4 places / 40 stores: 72 turns each, give or take.
+    const expected: number = (hours * readEachHour) / stores.length;
+
+    expect(firstPlaces.size).toBe(stores.length);
+
+    for (const turns of firstPlaces.values()) {
+      expect(turns).toBeGreaterThan(expected * 0.5);
+      expect(turns).toBeLessThan(expected * 1.5);
+    }
+  });
+
+  test("no store and one store come back as they are", () => {
+    expect(orderStoresForModel([], hour(0))).toEqual([]);
+    expect(orderStoresForModel([stores[0]!], hour(0))).toEqual([stores[0]]);
   });
 });

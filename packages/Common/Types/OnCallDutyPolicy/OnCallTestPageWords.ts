@@ -171,22 +171,43 @@ export const getOnCallTestPageEmailSubject: (
 };
 
 /*
- * THE CALL, in English, as every call is: what it is, that nothing is
- * wrong, what it tests, and to press 1 to acknowledge it.
+ * THE CALL, in English, as every call is, and said as a real page's call
+ * is (Utils/Call/OnCallPageCall): who calls, that it is a test and nothing
+ * is wrong, to press 1 to acknowledge it, then what it tests - and all but
+ * who calls said again with the prompt while no key is pressed.
  */
 export const ON_CALL_TEST_PAGE_CALL_GREETING: string =
-  "This is a test page from OneUptime. Nothing is wrong.";
+  "This is a test page. Nothing is wrong.";
 
+/*
+ * What the test is for: "This tests how Acme pages you for an incident of
+ * severity Critical." - or, for a test that stands in for no severity, "for
+ * an incident".
+ */
 export const getOnCallTestPageCallWhatItTests: (data: {
   recordKind: OnCallTestPageRecordKind;
   projectName: string;
-  severityName: string;
+  severityName?: string | null | undefined;
 }) => string = (data: {
   recordKind: OnCallTestPageRecordKind;
   projectName: string;
-  severityName: string;
+  severityName?: string | null | undefined;
 }): string => {
-  return getOnCallTestPageWhatItTests(getEnglishPageTranslator(), data)
+  const severityName: string = (data.severityName || "").trim();
+
+  if (!severityName) {
+    return `This tests how ${data.projectName} pages you for ${
+      data.recordKind === OnCallTestPageRecordKind.Alert
+        ? "an alert"
+        : "an incident"
+    }.`;
+  }
+
+  return getOnCallTestPageWhatItTests(getEnglishPageTranslator(), {
+    recordKind: data.recordKind,
+    projectName: data.projectName,
+    severityName: severityName,
+  })
     .replace(/^Nothing is wrong\. /, "")
     .trim();
 };
@@ -198,7 +219,7 @@ export const ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED: string =
   "You have acknowledged this test page. It works. Good bye";
 
 export const ON_CALL_TEST_PAGE_CALL_NO_INPUT: string =
-  "You have not entered any input. Good bye";
+  "You did not press a key, so this test page is not acknowledged. Good bye.";
 
 export const ON_CALL_TEST_PAGE_CALL_INVALID_INPUT: string =
   "Invalid input. Good bye";

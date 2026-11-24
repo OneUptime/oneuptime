@@ -65,6 +65,14 @@ enum NotificationSettingEventType {
   // Probe Status change Notification
   SEND_PROBE_STATUS_CHANGED_OWNER_NOTIFICATION = "Send probe status changed notification when I am the owner of the probe",
   SEND_PROBE_OWNER_ADDED_NOTIFICATION = "Send notification when I am added as a owner to the probe",
+  /*
+   * A custom probe the person owns runs a release a major release or more
+   * behind the OneUptime it reports to (#9977; Workers
+   * Probe:NotifyMajorReleaseBehind): told once for each major release of
+   * OneUptime, with what the probe misses until it is updated. Its own
+   * event, so switching off a probe's status changes never silences it.
+   */
+  SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION = "Send notification when a custom probe I own falls a major release behind OneUptime",
 
   // AI Agent Status change Notification
   SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION = "Send AI agent status changed notification when I am the owner of the AI agent",

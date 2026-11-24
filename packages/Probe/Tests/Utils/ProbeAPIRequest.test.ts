@@ -69,6 +69,12 @@ describe("getDefaultRequestBody", () => {
          * (#10737).
          */
         "anyRequestBody",
+        /*
+         * Only a probe that declares "hideSecretValuesInLogs" is handed the
+         * values of the secrets filled into a step, which it hides in every
+         * line it logs while it runs the step (#10875).
+         */
+        "hideSecretValuesInLogs",
       ],
       /*
        * The release this probe runs, from APP_VERSION: kept with its
@@ -117,6 +123,12 @@ describe("getDefaultRequestBody", () => {
     expect(
       ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
     ).toContain(ProbeCapability.AnyRequestBody);
+  });
+
+  test("declares it hides secret values in its log, so the server hands this probe the values to hide", () => {
+    expect(
+      ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
+    ).toContain(ProbeCapability.HideSecretValuesInLogs);
   });
 
   /*

@@ -19,6 +19,7 @@ import {
   getTwilioWebhookUrls,
   isSignedWithAuthToken,
 } from "Common/Server/Utils/TwilioWebhookSignature";
+import { toTwimlText } from "Common/Utils/Call/CallSpeech";
 
 export default class TwilioCallProvider implements ICallProvider {
   private client: Twilio.Twilio;
@@ -185,7 +186,7 @@ export default class TwilioCallProvider implements ICallProvider {
   public generateGreetingResponse(message: string): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
-    response.say({ voice: "alice" }, message);
+    response.say({ voice: "alice" }, toTwimlText(message));
     return response.toString();
   }
 
@@ -206,7 +207,7 @@ export default class TwilioCallProvider implements ICallProvider {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
     if (message) {
-      response.say({ voice: "alice" }, message);
+      response.say({ voice: "alice" }, toTwimlText(message));
     }
     response.hangup();
     return response.toString();
@@ -218,7 +219,7 @@ export default class TwilioCallProvider implements ICallProvider {
   ): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
-    response.say({ voice: "alice" }, message);
+    response.say({ voice: "alice" }, toTwimlText(message));
     const dial: ReturnType<Twilio.twiml.VoiceResponse["dial"]> = response.dial({
       action: nextDialOptions.statusCallbackUrl,
       method: "POST",

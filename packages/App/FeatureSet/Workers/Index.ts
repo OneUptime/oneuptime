@@ -280,6 +280,7 @@ import "./Jobs/ToolImport/SweepStaleToolImports";
 import "./Jobs/Probe/SendOwnerAddedNotification";
 import "./Jobs/Probe/UpdateConnectionStatus";
 import "./Jobs/Probe/UpdateBehind";
+import "./Jobs/Probe/NotifyMajorReleaseBehind";
 
 // Probe Status monitors: one incident when a probe a project watches goes offline.
 import "./Jobs/ProbeStatusMonitor/CheckProbeStatus";
@@ -340,6 +341,7 @@ import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
 import "./Jobs/SecurityCases/CheckResponseSteps";
+import "./Jobs/SecurityCases/FollowLinkedPullRequests";
 import "./Jobs/SecurityCases/WorkCasesWithAi";
 import "./Jobs/SecurityCases/ReviewAiHolds";
 import "./Jobs/SecurityCases/SendAiWeeklyDigest";

@@ -12,6 +12,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   composedValue,
@@ -563,12 +564,12 @@ function CounterList(props: {
   return (
     <div data-testid={props.dataTestId} data-kind={breakdown.kind}>
       <div className="flex items-baseline justify-between gap-3">
-        <h4 className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-          {translator.translateText(props.title)}
-          <InfoTooltip
+        <h4 className="min-w-0 text-sm font-medium text-gray-900">
+          <WordsWithInfoTooltip
+            text={translator.translateText(props.title) || props.title}
             label={props.title}
-            text={props.tooltip}
-            dataTestId={`${props.dataTestId}-info`}
+            description={props.tooltip}
+            infoDataTestId={`${props.dataTestId}-info`}
           />
         </h4>
         {breakdown.kind === "list" && (
@@ -665,14 +666,13 @@ function UsageMeterRow(props: {
       data-tone={meter.kind === "limited" ? meter.tone : undefined}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
-          {translator.translateText(props.label)}
-          <InfoTooltip
-            label={props.label}
-            text={props.tooltip}
-            dataTestId={`${props.dataTestId}-info`}
-          />
-        </span>
+        <WordsWithInfoTooltip
+          className="min-w-0 text-sm font-medium text-gray-900"
+          text={translator.translateText(props.label) || props.label}
+          label={props.label}
+          description={props.tooltip}
+          infoDataTestId={`${props.dataTestId}-info`}
+        />
         {meter.kind === "limited" && (
           <span
             className={`text-sm font-semibold tabular-nums ${TONE_STYLES[meter.tone].valueClassName}`}

@@ -138,6 +138,9 @@ export function stubScheduleRoster(): void {
   ).mockResolvedValue(undefined);
 }
 
+// The status page resources made so far, each showing a monitor of its own.
+let resourceMonitorCount: number = 0;
+
 export const ORDER_CASES: Array<OrderCase> = [
   {
     label: "OnCallDutyPolicyEscalationRuleService",
@@ -212,7 +215,20 @@ export const ORDER_CASES: Array<OrderCase> = [
     listColumn: "statusPageId",
     listExtras: { statusPageGroupId: null },
     newRowData: (): StoredRow => {
-      return { displayName: "Checkout" };
+      /*
+       * A resource shows a monitor (#6558), and a page lists a monitor
+       * once: each new resource shows one of its own.
+       */
+      resourceMonitorCount += 1;
+
+      return {
+        displayName: "Checkout",
+        monitorId: new ObjectID(
+          `1c000000-0000-4000-8000-${resourceMonitorCount
+            .toString()
+            .padStart(12, "0")}`,
+        ),
+      };
     },
     creatorProps: adminProps,
     stubCollaborators: (): void => {},

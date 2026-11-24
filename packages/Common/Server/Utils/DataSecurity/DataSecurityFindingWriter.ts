@@ -404,6 +404,7 @@ export default class DataSecurityFindingWriter {
         isFreeText: classification.isFreeText,
         isNameHinted: classification.nameHinted,
         isFoundByName: classification.foundByName,
+        isFoundByModel: classification.foundByModel === true,
         locationKind: location.locationKind,
         lastSeenAt: data.now,
         isAiSuggested: classification.isAiSuggested === true,

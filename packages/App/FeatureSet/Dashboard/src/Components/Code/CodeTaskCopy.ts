@@ -728,6 +728,7 @@ export const CODE_PICKER_COPY: {
   branchesUnreadableAnyHost: string;
   branchesNotRead: string;
   branchesSearchToFindMore: string;
+  repositoriesSearchToFindMore: string;
 } = {
   repositoryLabel: translationKey("Repository"),
   repositoryNone: translationKey("Pick a repository"),
@@ -756,6 +757,13 @@ export const CODE_PICKER_COPY: {
   ),
   branchesSearchToFindMore: translationKey(
     "Type a branch's name to find one that is not listed.",
+  ),
+  /*
+   * Under a picker's first repositories, when the project has more than it
+   * lists: the server finds the rest by name (#10764).
+   */
+  repositoriesSearchToFindMore: translationKey(
+    "Type a repository's name to find one that is not listed.",
   ),
 };
 

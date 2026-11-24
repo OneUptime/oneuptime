@@ -677,7 +677,7 @@ test.describe("a monitor's row", () => {
     const dialog: Locator = await choose(monitor, "Disable");
 
     await expect(dialog.getByTestId("modal-title")).toHaveText(
-      "Turn off monitoring?",
+      "Turn monitoring off?",
     );
     // Turning monitoring off resolves what the monitor would have resolved.
     await expect(dialog).toContainText(
@@ -687,7 +687,7 @@ test.describe("a monitor's row", () => {
       "Checkout API",
     );
     await expect(dialog.getByTestId("modal-footer-submit-button")).toHaveText(
-      "Turn off monitoring",
+      "Turn monitoring off",
     );
     await screenshot(dialog, "monitor-disable-1280-light");
 

@@ -16,6 +16,7 @@ import {
   redactLogString,
   redactLogValue,
 } from "./LogRedaction";
+import LogSecretValues from "./LogSecretValues";
 
 export type LogBody = string | JSONObject | Exception | Error | unknown;
 
@@ -156,8 +157,17 @@ export default class logger {
    * Errors are special-cased: when nothing in the message or the stack needed
    * redacting -- the overwhelmingly common case -- the original Error is
    * returned untouched, so console still renders a real stack trace.
+   *
+   * While a probe runs a monitor's check, the values of the monitor secrets
+   * filled into it are hidden too, in any form (LogSecretValues, #10875):
+   * the logger cannot tell them by a field's name or a shape.
    */
   private static redactBody(body: LogBody): LogBody {
+    return LogSecretValues.hideInBody(this.redactCredentials(body)) as LogBody;
+  }
+
+  // What a credential looks like, by the field that holds it or its shape.
+  private static redactCredentials(body: LogBody): LogBody {
     try {
       if (typeof body === "string") {
         return redactLogString(body);
@@ -243,7 +253,7 @@ export default class logger {
         if (isSensitiveLogKey(key, value)) {
           sanitized[key] = REDACTED;
         } else if (typeof value === "string") {
-          sanitized[key] = redactLogString(value);
+          sanitized[key] = LogSecretValues.hideInText(redactLogString(value));
         } else {
           sanitized[key] = value;
         }

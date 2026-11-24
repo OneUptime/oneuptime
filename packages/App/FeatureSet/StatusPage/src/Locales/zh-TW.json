@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} 個群組",
     "noResourcesTitle": "尚無可顯示的內容",
     "noResourcesDescription": "此頁面尚未顯示任何服務。",
-    "noResourcesPreviewDescription": "在你新增資源之前，訪客看到的就是這則提示。請在儀表板的「資源」中為此狀態頁新增監測器或群組。"
+    "noResourcesPreviewDescription": "在你新增資源之前，訪客看到的就是這則提示。",
+    "noResourcesPreviewLink": "在儀表板中新增資源"
   },
   "eventItem": {
     "affectedResources": "受影響的資源",

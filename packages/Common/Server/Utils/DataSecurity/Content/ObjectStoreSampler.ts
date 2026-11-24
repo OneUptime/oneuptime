@@ -32,7 +32,10 @@ import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
-import { classifyContent, ContentClassification } from "./ContentClassifier";
+import {
+  classifyContentWithModel,
+  ContentClassification,
+} from "./ContentClassifier";
 
 /*
  * A BUCKET, SAMPLED BY KIND.
@@ -685,7 +688,7 @@ export async function sampleObjectStore(
     let classification: ContentClassification;
 
     try {
-      classification = classifyContent({
+      classification = await classifyContentWithModel({
         name: key,
         bytes,
         options,

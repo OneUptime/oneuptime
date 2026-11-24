@@ -125,6 +125,8 @@ Fate clic su **Aggiungi monitor**. Sotto il menu a discesa dei monitor, fate cli
 Scegliete il gruppo. **Nome visualizzato**, il nome che leggono i visitatori, prende il nome del gruppo finché non ne digitate uno vostro. Fate clic su **Aggiungi monitor**: la riga compare sulla pagina con lo stato del gruppo.
 :::
 
+Una riga che mostra un monitor può mostrare invece un gruppo: aprite il suo **Modifica risorsa**, la matita della riga, e fate clic su **Mostra invece un gruppo di monitor.** sotto l'elenco a discesa. Sulla riga di un gruppo, **Modifica risorsa** si apre con il gruppo scelto, e **Mostra invece un monitor.** punta la riga su un monitor. Salvando si svuota ciò che la riga mostrava prima: una riga mostra un monitor o un gruppo di monitor, mai entrambi.
+
 Sulla pagina di stato, la riga rappresenta ogni monitor del gruppo:
 
 - **Il suo stato.** È quello del gruppo: il peggiore dei suoi monitor con il monitoraggio attivo. Quando il monitoraggio è disattivato per tutti, la riga mostra **Non monitorato** e non conta né per l'intestazione sopra di essa né per lo stato complessivo della pagina.

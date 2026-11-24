@@ -4,6 +4,8 @@ import {
   ScrubRuleWriterRule,
   ScrubRuleWriterRuleKind,
 } from "../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import { sha256Hex } from "../../../../Types/AutoRemediation/RemediationPlanFingerprint";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   checkScrubRuleCustomRegex,
@@ -157,6 +159,74 @@ export function buildScrubRuleWriterPrompt(
   });
 }
 
+// One rule of an answer, or of an answer kept from before: its kind and what it holds.
+interface WrittenRule {
+  kind: string;
+  pattern?: string | null | undefined;
+  keys?: ReadonlyArray<string> | null | undefined;
+}
+
+/*
+ * The rules a place keeps of what OneUptime AI wrote for it: a pattern a
+ * scrub rule can run, or the place's own key and no other - OneUptime AI
+ * never widens a rule - and one rule of each kind at most.
+ */
+function keepRulesOfPlace(
+  place: ScrubRuleWriterPlace,
+  written: ReadonlyArray<WrittenRule>,
+): Array<ScrubRuleWriterRule> {
+  const rules: Array<ScrubRuleWriterRule> = [];
+  const seen: Set<string> = new Set<string>();
+
+  for (const rule of written) {
+    if (seen.has(rule.kind)) {
+      continue;
+    }
+
+    if (rule.kind === ScrubRuleWriterRuleKind.Pattern) {
+      const pattern: string = (rule.pattern || "").trim();
+
+      if (!pattern || checkScrubRuleCustomRegex(pattern) !== null) {
+        continue;
+      }
+
+      seen.add(rule.kind);
+      rules.push({
+        ref: place.ref,
+        kind: ScrubRuleWriterRuleKind.Pattern,
+        pattern,
+      });
+      continue;
+    }
+
+    if (rule.kind !== ScrubRuleWriterRuleKind.Keys) {
+      continue;
+    }
+
+    const own: string = place.attributeKey
+      ? toComparedScrubRuleKey(place.attributeKey)
+      : "";
+
+    if (
+      !own ||
+      !(rule.keys || []).some((key: string): boolean => {
+        return typeof key === "string" && toComparedScrubRuleKey(key) === own;
+      })
+    ) {
+      continue;
+    }
+
+    seen.add(rule.kind);
+    rules.push({
+      ref: place.ref,
+      kind: ScrubRuleWriterRuleKind.Keys,
+      keys: [place.attributeKey!],
+    });
+  }
+
+  return rules;
+}
+
 /*
  * OneUptime AI's answer, held to the places it was asked about: a rule
  * for a place it was not asked about, a pattern no scrub rule can run, or
@@ -176,65 +246,139 @@ export function readScrubRuleWriterAnswer(data: {
     return null;
   }
 
-  const placeOf: Map<string, ScrubRuleWriterPlace> = new Map<
-    string,
-    ScrubRuleWriterPlace
-  >();
+  const rules: Array<ScrubRuleWriterRule> = [];
 
   for (const place of data.places) {
-    placeOf.set(place.ref, place);
-  }
-
-  const rules: Array<ScrubRuleWriterRule> = [];
-  const seen: Set<string> = new Set<string>();
-
-  for (const rule of answer.rules) {
-    const place: ScrubRuleWriterPlace | undefined = placeOf.get(rule.ref);
-    const seenKey: string = `${rule.ref}|${rule.kind}`;
-
-    if (!place || seen.has(seenKey)) {
-      continue;
-    }
-
-    if (rule.kind === ScrubRuleWriterRuleKind.Pattern) {
-      const pattern: string = (rule.pattern || "").trim();
-
-      if (!pattern || checkScrubRuleCustomRegex(pattern) !== null) {
-        continue;
-      }
-
-      seen.add(seenKey);
-      rules.push({
-        ref: rule.ref,
-        kind: ScrubRuleWriterRuleKind.Pattern,
-        pattern,
-      });
-      continue;
-    }
-
-    // The place's own key, and no other: OneUptime AI never widens a rule.
-    const own: string = place.attributeKey
-      ? toComparedScrubRuleKey(place.attributeKey)
-      : "";
-
-    if (
-      !own ||
-      !(rule.keys || []).some((key: string): boolean => {
-        return toComparedScrubRuleKey(key) === own;
-      })
-    ) {
-      continue;
-    }
-
-    seen.add(seenKey);
-    rules.push({
-      ref: rule.ref,
-      kind: ScrubRuleWriterRuleKind.Keys,
-      keys: [place.attributeKey!],
-    });
+    rules.push(
+      ...keepRulesOfPlace(
+        place,
+        answer.rules.filter((rule: { ref: string }): boolean => {
+          return rule.ref === place.ref;
+        }),
+      ),
+    );
   }
 
   return rules;
+}
+
+/*
+ * WHAT ONEUPTIME AI WAS TOLD OF A PLACE, AND WHAT IT WROTE: ASKED ONCE
+ * (#10752).
+ *
+ * The issue is evaluated again whenever the hourly scan writes new
+ * findings into it, and each evaluation planned every place again: a
+ * place only OneUptime AI could write a rule for went back to the model
+ * with the same data type, location, names and shapes, and the answer was
+ * proven again and, nothing having changed, ended in the same proposal -
+ * spending the project's AI credits for no new rule. So a place keeps,
+ * on its finding, what OneUptime AI was told of it, hashed, and what it
+ * wrote: its rules, or none (DataStoreFinding.aiScrubRuleInputHash and
+ * aiScrubRules, written by the scrub action). A place told the same again
+ * reuses that answer, proven again on the newest records, and makes no
+ * model call; a place whose data type, location, neighbours or shapes
+ * changed - or whose instructions did - is asked again. A call that
+ * failed keeps nothing, so the place is asked next time.
+ */
+
+/*
+ * What OneUptime AI is told of a place, as one hash: the instructions it
+ * is given, the data type (its id, the name the project gives it, its
+ * category, whether names or values find it), where it sits, the names
+ * beside it and the shapes of its values. Never its reference in a prompt,
+ * how many values there were, how long they are or what share each shape
+ * has, which change with every read; and the names and shapes as sets, so
+ * an order that changed with the counts changes nothing.
+ */
+export function getScrubRuleWriterInputHash(
+  place: ScrubRuleWriterPlace,
+): string {
+  const uniqueSorted: (items: ReadonlyArray<string>) => Array<string> = (
+    items: ReadonlyArray<string>,
+  ): Array<string> => {
+    return Array.from(new Set(items)).sort();
+  };
+
+  return sha256Hex(
+    JSON.stringify([
+      SCRUB_RULE_WRITER_INSTRUCTIONS,
+      place.dataTypeId,
+      place.dataTypeName,
+      place.category,
+      place.foundBy,
+      place.signal,
+      place.location,
+      place.attributeKey || "",
+      place.locationKind,
+      uniqueSorted(place.neighbours),
+      uniqueSorted(
+        place.shapes.map((shape: { shape: string }): string => {
+          return shape.shape;
+        }),
+      ),
+    ]),
+  );
+}
+
+// What a finding keeps of OneUptime AI's answer for its place: its rules, none being an answer too.
+export function toKeptScrubRuleWriterRules(
+  rules: ReadonlyArray<ScrubRuleWriterRule>,
+): JSONObject {
+  return {
+    rules: rules.map((rule: ScrubRuleWriterRule): JSONObject => {
+      return rule.kind === ScrubRuleWriterRuleKind.Keys
+        ? { kind: rule.kind, keys: [...(rule.keys || [])] }
+        : { kind: rule.kind, pattern: rule.pattern || "" };
+    }),
+  };
+}
+
+/*
+ * The answer a finding kept for its place, held to the place as a fresh
+ * answer is (keepRulesOfPlace) - or null when it kept none, or what it
+ * kept is no answer: then OneUptime AI is asked.
+ */
+export function readKeptScrubRuleWriterRules(
+  kept: unknown,
+  place: ScrubRuleWriterPlace,
+): Array<ScrubRuleWriterRule> | null {
+  if (!kept || typeof kept !== "object" || Array.isArray(kept)) {
+    return null;
+  }
+
+  const rules: unknown = (kept as JSONObject)["rules"];
+
+  if (!Array.isArray(rules)) {
+    return null;
+  }
+
+  const written: Array<WrittenRule> = [];
+
+  for (const item of rules) {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      return null;
+    }
+
+    const rule: JSONObject = item as JSONObject;
+
+    if (typeof rule["kind"] !== "string") {
+      return null;
+    }
+
+    written.push({
+      kind: rule["kind"],
+      pattern: typeof rule["pattern"] === "string" ? rule["pattern"] : null,
+      keys: Array.isArray(rule["keys"])
+        ? (rule["keys"] as Array<unknown>).filter(
+            (key: unknown): key is string => {
+              return typeof key === "string";
+            },
+          )
+        : null,
+    });
+  }
+
+  return keepRulesOfPlace(place, written);
 }
 
 /*

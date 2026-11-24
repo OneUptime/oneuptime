@@ -166,6 +166,21 @@ export function isFirstCheckOfTheHour(now: Date): boolean {
   return now.getUTCMinutes() < CHECK_EVERY_MINUTES;
 }
 
+/*
+ * What a fix's deploy is found by: its project, the commit it merged as and
+ * its repository. A fix pull request OneUptime AI opened has them, and so
+ * does one a person linked to a security case (SecurityCasePullRequest,
+ * #10604), which is matched to its deploy the same way.
+ */
+export type FixCommitSource = Pick<
+  AIAgentTaskPullRequest,
+  | "projectId"
+  | "mergeCommitSha"
+  | "repoOrganizationName"
+  | "repoName"
+  | "codeRepository"
+>;
+
 // A recorded deploy that contains the fix.
 export interface FixDeploy {
   changeId: string;
@@ -593,7 +608,7 @@ export default class FixProductionVerifier {
    * project) recorded since the merge that contains the fix's commit.
    */
   public static async findDeployContainingFix(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FixCommitSource;
     // None reads every change of the project.
     serviceId?: ObjectID | undefined;
     mergedAt: Date;
@@ -885,7 +900,7 @@ export default class FixProductionVerifier {
   }
 
   public static repositoryOf(
-    fix: AIAgentTaskPullRequest,
+    fix: FixCommitSource,
   ): GitHubRepositoryName | null {
     const owner: string | undefined =
       fix.repoOrganizationName || fix.codeRepository?.organizationName;
@@ -919,7 +934,7 @@ export default class FixProductionVerifier {
 
   // The fix's own project, repository and commits: never shared between projects.
   private static compareKey(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FixCommitSource;
     repository: GitHubRepositoryName;
     fixCommitSha: string;
     deployCommitSha: string;
@@ -934,7 +949,7 @@ export default class FixProductionVerifier {
    * the server down) is asked again next run.
    */
   private static async compare(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FixCommitSource;
     repository: GitHubRepositoryName;
     fixCommitSha: string;
     deployCommitSha: string;
@@ -996,7 +1011,7 @@ export default class FixProductionVerifier {
    * only a deploy of the fix's own commit counts there (deployContainsFix).
    */
   private static async compareOnCodeHost(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FixCommitSource;
     fixCommitSha: string;
     deployCommitSha: string;
     key: string;
@@ -1039,7 +1054,7 @@ export default class FixProductionVerifier {
 
   // The fix's repository's reader, read once a run.
   private static async readerFor(
-    fix: AIAgentTaskPullRequest,
+    fix: FixCommitSource,
     run: VerifierRun,
   ): Promise<CodeHostReader | null> {
     const repository: CodeRepository | undefined = fix.codeRepository;
@@ -1077,7 +1092,7 @@ export default class FixProductionVerifier {
    * commits (compares) and pull requests (a fix's diff).
    */
   public static async tokenFor(
-    fix: AIAgentTaskPullRequest,
+    fix: FixCommitSource,
     run: VerifierRun,
   ): Promise<string | null> {
     const installationId: string | undefined =

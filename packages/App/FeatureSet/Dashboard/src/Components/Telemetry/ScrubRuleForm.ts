@@ -19,6 +19,7 @@ import {
   checkScrubRuleKeys,
   MAX_SCRUB_RULE_KEY_LENGTH,
   MAX_SCRUB_RULE_KEYS,
+  readScrubRuleKeys,
   SCRUB_RULE_NAMED_KEYS_PATTERN_TYPE,
   ScrubRuleKeysProblem,
 } from "Common/Types/Telemetry/ScrubRuleKeys";
@@ -79,6 +80,16 @@ import {
  *     rule hides, whatever it holds - a person's name under customer_name,
  *     a password under db.password. One a line; a key names the
  *     attributes nested under it too.
+ *   - Only in These Attributes, folded, for every other pattern rule
+ *     (#10751): the attributes it reads, or every one when empty. A rule
+ *     Data Security made for a finding reads only the attribute the data
+ *     was found in; a person can widen it to db.password_old, or empty it
+ *     to read every attribute, without deleting it. The same column as
+ *     Attributes to Hide, which only a Named Attributes rule shows: the
+ *     form shows one of the two at a time (ModelForm keeps two fields for
+ *     one column when each is shown on a condition that never holds with
+ *     the other's). Changing it changes the rule's proof fingerprint, so
+ *     Proven goes away, as for any other change of what the rule hides.
  *
  * Three rows, the third only for a custom pattern or named attributes,
  * right under the choice it belongs to - so one page (LongFormStepsGuard:
@@ -124,6 +135,19 @@ export const SCRUB_RULE_ATTRIBUTE_KEYS_TOO_MANY: string = translationKey(
 
 export const SCRUB_RULE_ATTRIBUTE_KEYS_TOO_LONG: string = translationKey(
   "An attribute key is at most {{length}} characters.",
+);
+
+/*
+ * Only in These Attributes (#10751): what a pattern rule reads, on each
+ * signal - its attributes, and the rest of the record as Fields to Scrub
+ * says (Server/Utils/Telemetry/ScrubEngine/LogScrubEngine, TraceScrubEngine).
+ */
+export const LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP: string = translationKey(
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.",
+);
+
+export const TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP: string = translationKey(
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.",
 );
 
 export const SCRUB_RULE_NAME_HELP: string = translationKey(
@@ -396,6 +420,61 @@ const isNamedKeysPattern: IsPatternTypeFunction = (
   );
 };
 
+/*
+ * A rule that finds a pattern in values (#10751): every pattern type but
+ * the two that read keys, once one is picked. It can be narrowed to the
+ * attributes it names.
+ */
+const isPatternReadingValues: IsPatternTypeFunction = (
+  values: FormValues<LogScrubRule>,
+): boolean => {
+  const patternType: unknown = normalizeFormValue(values.patternType);
+
+  return (
+    typeof patternType === "string" &&
+    patternType.length > 0 &&
+    !isNamedKeysPattern(values) &&
+    !isSensitiveKeysPattern(values)
+  );
+};
+
+/*
+ * The attributes a pattern rule reads, as its folded line names them: the
+ * keys between commas - code, read the same in every language - or none
+ * while it reads every attribute.
+ */
+export const getOnlyInAttributesFoldedValue: (
+  values: FormValues<LogScrubRule>,
+) => string | null = (values: FormValues<LogScrubRule>): string | null => {
+  const keys: Array<string> = readScrubRuleKeys(
+    ((values || {}) as Record<string, unknown>)["attributeKeys"],
+  );
+
+  return keys.length > 0 ? keys.join(", ") : null;
+};
+
+/*
+ * A saved rule as its Edit form opens on it (#10751): the attributes it
+ * names one a line, as both fields of them take them and say to write
+ * them. The server keeps them as a list, which a text box shows between
+ * commas; saved again unchanged, the same list is stored, and the rule
+ * keeps its proof. A rule that names none is left as it is.
+ */
+export function withAttributeKeysOneALine<T>(rule: T): T {
+  const record: Record<string, unknown> = rule as unknown as Record<
+    string,
+    unknown
+  >;
+
+  if (record && Array.isArray(record["attributeKeys"])) {
+    record["attributeKeys"] = readScrubRuleKeys(record["attributeKeys"]).join(
+      "\n",
+    );
+  }
+
+  return rule;
+}
+
 type IsLeftAtFunction = (value: unknown, defaultValue: unknown) => boolean;
 
 // Never touched, or still the value it starts with.
@@ -421,6 +500,8 @@ export interface ScrubRuleFormOptions {
   defaultsSummary: string;
   // What it says for a sensitive-keys rule, which has no scope to choose.
   sensitiveKeysSummary: string;
+  // What Only in These Attributes says: what else of the record a narrowed rule reads (#10751).
+  onlyInAttributesHelp: string;
 }
 
 /**
@@ -444,9 +525,14 @@ export const getScrubRuleAdvancedSummary: (
   );
   const description: unknown = formValues["description"];
   const service: unknown = normalizeFormValue(formValues["service"]);
+  // A pattern rule that reads only some attributes reads less than its line would say (#10751).
+  const isNarrowed: boolean =
+    isPatternReadingValues(formValues as FormValues<LogScrubRule>) &&
+    readScrubRuleKeys(formValues["attributeKeys"]).length > 0;
 
   const isAtDefaults: boolean =
     (typeof description !== "string" || description.trim().length === 0) &&
+    !isNarrowed &&
     // Every service, as a rule saved before a rule could name one (#10433).
     (service === undefined || service === null || service === "") &&
     isLeftAt(formValues["scrubAction"], options.defaults.scrubAction) &&
@@ -490,6 +576,7 @@ export const LOG_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
   ),
   defaultsSummary: LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
   sensitiveKeysSummary: LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
+  onlyInAttributesHelp: LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
 };
 
 export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
@@ -511,6 +598,7 @@ export const TRACE_SCRUB_RULE_FORM_OPTIONS: ScrubRuleFormOptions = {
   ),
   defaultsSummary: TRACE_SCRUB_RULE_DEFAULTS_SUMMARY,
   sensitiveKeysSummary: SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
+  onlyInAttributesHelp: TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
 };
 
 /*
@@ -790,6 +878,33 @@ const getScrubRuleFormFields: (
       defaultValue: options.defaults.fieldsToScrub,
       showIf: (values: FormValues<LogScrubRule>): boolean => {
         return !isSensitiveKeysPattern(values);
+      },
+      collapsibleSection: advanced,
+    },
+    /*
+     * The attributes a pattern rule reads (#10751): empty for every one.
+     * The column Attributes to Hide writes for a Named Attributes rule,
+     * and never shown with it (isNamedKeysPattern is never true here).
+     * The same checks as those keys: at most MAX_SCRUB_RULE_KEYS, none too
+     * long; the server keeps them as a list (normalizeScrubRuleKeys).
+     */
+    {
+      field: {
+        attributeKeys: true,
+      },
+      title: "Only in These Attributes",
+      description: options.onlyInAttributesHelp,
+      fieldType: FormFieldSchemaType.LongText,
+      required: false,
+      placeholder: "e.g. db.password",
+      showIf: isPatternReadingValues,
+      dataTestId: "scrub-rule-only-in-attributes",
+      getFoldedValue: getOnlyInAttributesFoldedValue,
+      customValidation: (values: FormValues<LogScrubRule>): string | null => {
+        return getScrubRuleAttributeKeysError({
+          patternType: values.patternType,
+          attributeKeys: values.attributeKeys,
+        });
       },
       collapsibleSection: advanced,
     },

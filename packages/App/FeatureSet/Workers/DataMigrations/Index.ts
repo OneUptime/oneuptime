@@ -218,6 +218,7 @@ import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabili
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
 import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
+import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1649,6 +1650,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * last.
    */
   new AddSensitiveFileRuleToScannersPolicies(),
+  /*
+   * A status page resource shows a monitor or a monitor group, never
+   * neither (#6558): the rows the API took that named neither - shown to
+   * nobody, reached by no incident or subscriber - are deleted, and the
+   * worker's log says how many and on which status pages. Postgres only,
+   * one statement, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new DeleteStatusPageResourcesThatShowNothing(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

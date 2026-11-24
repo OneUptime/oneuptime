@@ -90,8 +90,26 @@ jest.mock(
     return {
       __esModule: true,
       default: {
-        getRepositories: (...args: Array<unknown>) => {
-          return getRepositoriesMock(...args);
+        /*
+         * The reader's repositories as a test gives them - whole - each read
+         * answered from them as the server answers it (#10764).
+         */
+        getRepositories: async (...args: Array<unknown>) => {
+          return asServerAnswer(
+            await getRepositoriesMock(...args),
+            args[0] as CodeRepositoriesQuery | undefined,
+          );
+        },
+        getRepositoriesById: async (...args: Array<unknown>) => {
+          const all: { repositories?: Array<CodeRepositoryListItem> } =
+            ((await getRepositoriesMock({})) as {
+              repositories?: Array<CodeRepositoryListItem>;
+            }) || {};
+
+          return answerRepositoriesById({
+            repositories: all.repositories || [],
+            ids: (args[0] as Array<string>) || [],
+          });
         },
         getTaskSummaries: (...args: Array<unknown>) => {
           return getTaskSummariesMock(...args);
@@ -112,6 +130,15 @@ jest.mock("../../../../App/FeatureSet/Dashboard/src/Utils/UseAiOffered", () => {
 
 import PostmortemActionItems from "../../../../App/FeatureSet/Dashboard/src/Components/Postmortem/ActionItems/PostmortemActionItems";
 import { POSTMORTEM_ACTION_ITEMS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/Postmortem/ActionItems/PostmortemActionItemsCopy";
+import {
+  CodeRepositoriesQuery,
+  CodeRepositoryListItem,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import {
+  answerRepositoriesById,
+  asServerAnswer,
+  repositoriesSortingFirst,
+} from "./CodeRepositoriesServer";
 import { POSTMORTEM_ACTION_ITEM_SELECT } from "../../../../App/FeatureSet/Dashboard/src/Components/Postmortem/ActionItems/PostmortemActionItemsModel";
 import IncidentPostmortemActionItem from "../../../Models/DatabaseModels/IncidentPostmortemActionItem";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -668,6 +695,185 @@ describe("a pull request or a test from OneUptime AI", () => {
     });
 
     expect(navigatedTo[0]).toMatch(/\/code$/);
+  });
+
+  /*
+   * #10764: the dialog offered the connected repositories among the
+   * project's first 500, so one past them could not be picked. Its field
+   * searches every connected repository the reader may read on the server.
+   */
+  describe("past the project's first 10,000 repositories", () => {
+    const WAREHOUSE_ID: string = "0000000a-0000-4000-8000-0000000c0de1";
+    const WHARF_ID: string = "0000000a-0000-4000-8000-0000000c0de2";
+
+    function manyRepositories(): Array<CodeRepositoryListItem> {
+      return [
+        ...repositoriesSortingFirst(10050),
+        {
+          id: WAREHOUSE_ID,
+          name: "warehouse-api",
+          organizationName: "harbour",
+          repositoryName: "warehouse-api",
+          isConnected: true,
+          provider: "GitHub",
+          stats: {
+            working: 0,
+            waitingForYou: 0,
+            openPullRequests: 0,
+            taskCount: 0,
+          },
+        },
+        {
+          id: WHARF_ID,
+          name: "wharf-legacy",
+          organizationName: "harbour",
+          repositoryName: "wharf-legacy",
+          isConnected: false,
+          provider: "GitHub",
+          stats: {
+            working: 0,
+            waitingForYou: 0,
+            openPullRequests: 0,
+            taskCount: 0,
+          },
+        },
+      ];
+    }
+
+    async function openDialog(): Promise<void> {
+      await drawn();
+      await waitFor(() => {
+        expect(getRepositoriesMock).toHaveBeenCalled();
+      });
+
+      const menu: HTMLElement = await openMore("Alert on pool usage");
+
+      await act(async () => {
+        fireEvent.click(within(menu).getByText("Open Pull Request with AI"));
+      });
+    }
+
+    async function searchRepositories(text: string): Promise<void> {
+      const field: HTMLElement = screen.getByTestId(
+        POSTMORTEM_ACTION_ITEMS_TEST_IDS.repositoryPicker,
+      );
+
+      await act(async () => {
+        fireEvent.focus(field);
+        fireEvent.change(field, { target: { value: text } });
+      });
+    }
+
+    test("whether to offer it is asked of the server: how many it can work in, never a list of 500", async () => {
+      getRepositoriesMock.mockResolvedValue({
+        repositories: manyRepositories(),
+      } as never);
+
+      await openDialog();
+
+      expect(getRepositoriesMock).toHaveBeenCalledWith({
+        group: "connected",
+        order: "name",
+        limit: 1,
+      });
+      // Several to choose from: none is picked for the person.
+      expect(
+        screen.getByTestId(POSTMORTEM_ACTION_ITEMS_TEST_IDS.repositoryPicker),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("entity-dropdown-value"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a connected repository past them is found on the server, picked and asked in", async () => {
+      getRepositoriesMock.mockResolvedValue({
+        repositories: manyRepositories(),
+      } as never);
+
+      await openDialog();
+      await searchRepositories("warehouse");
+
+      const option: HTMLElement = await screen.findByRole("option", {
+        name: /warehouse-api/,
+      });
+
+      // Searched among the connected ones, for what was typed.
+      expect(getRepositoriesMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          search: "warehouse",
+          group: "connected",
+        }),
+      );
+      // Its host's organization/name under it.
+      expect(option).toHaveTextContent("harbour/warehouse-api");
+
+      await act(async () => {
+        fireEvent.click(option);
+      });
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Ask OneUptime AI" }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(posted).toHaveLength(1);
+      });
+      expect(posted[0]!.data).toEqual({
+        actionItemId: ITEM_B,
+        kind: "PullRequest",
+        repositoryId: WAREHOUSE_ID,
+      });
+    });
+
+    test("one OneUptime cannot reach is never offered, however it is searched for", async () => {
+      getRepositoriesMock.mockResolvedValue({
+        repositories: manyRepositories(),
+      } as never);
+
+      await openDialog();
+      await searchRepositories("wharf");
+
+      await waitFor(() => {
+        expect(getRepositoriesMock).toHaveBeenCalledWith(
+          expect.objectContaining({ search: "wharf", group: "connected" }),
+        );
+      });
+      expect(
+        screen.queryByRole("option", { name: /wharf-legacy/ }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the only one it can work in - past thousands it cannot - is picked already, by its name", async () => {
+      getRepositoriesMock.mockResolvedValue({
+        repositories: manyRepositories().map(
+          (repository: CodeRepositoryListItem): CodeRepositoryListItem => {
+            return repository.id === WAREHOUSE_ID
+              ? repository
+              : { ...repository, isConnected: false };
+          },
+        ),
+      } as never);
+
+      await openDialog();
+
+      await waitFor(() => {
+        expect(
+          screen.getAllByTestId("entity-dropdown-value")[0],
+        ).toHaveTextContent("warehouse-api");
+      });
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Ask OneUptime AI" }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(posted).toHaveLength(1);
+      });
+      expect(posted[0]!.data).toMatchObject({ repositoryId: WAREHOUSE_ID });
+    });
   });
 
   test("an item whose pull request is open shows its stage and its pull request, and asks for none again", async () => {

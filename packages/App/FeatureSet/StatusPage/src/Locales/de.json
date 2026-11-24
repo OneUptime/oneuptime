@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} Gruppen",
     "noResourcesTitle": "Noch nichts zu sehen",
     "noResourcesDescription": "Diese Seite zeigt noch keine Dienste.",
-    "noResourcesPreviewDescription": "Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen. Fügen Sie dieser Statusseite im Dashboard unter Ressourcen Monitore oder Gruppen hinzu."
+    "noResourcesPreviewDescription": "Besucher sehen diesen Hinweis, bis Sie Ressourcen hinzufügen.",
+    "noResourcesPreviewLink": "Ressourcen im Dashboard hinzufügen"
   },
   "eventItem": {
     "affectedResources": "Betroffene Ressourcen",

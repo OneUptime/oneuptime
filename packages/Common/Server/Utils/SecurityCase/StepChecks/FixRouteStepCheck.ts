@@ -22,6 +22,7 @@ import {
   CHECK_FIX_FACT_WATCHING,
   CHECK_FIX_FACT_WATCHING_DATABASE,
   CHECK_FIX_FACT_WATCH_ENDED,
+  CHECK_FIX_LINKED_PULL_REQUEST_OPEN,
   CHECK_FIX_NOTHING_SHIPPED,
   CHECK_FIX_PULL_REQUEST_NOT_SHIPPED,
   CHECK_FIX_PULL_REQUEST_OPEN,
@@ -66,8 +67,9 @@ import {
  * shipped, where before it got through.
  *
  *   Verified    a change shipped to the service behind the route after the
- *               case opened - a fix OneUptime AI opened for the case
- *               (FixChanges) or any deploy or new version of the service -
+ *               case opened - a fix OneUptime AI opened for the case, one a
+ *               person linked to it (FixChanges, #10604), or any deploy or
+ *               new version of the service -
  *               and since it shipped every attack request to the route was
  *               turned away, or kept out of the database where before they
  *               reached it, and enough of them to prove it (getNeededProof);
@@ -418,9 +420,13 @@ export function decideNothingShipped(data: {
     return {
       state: SecurityCaseStepCheckState.NotDone,
       evidence: evidenceOf({
-        sentence: sentence(CHECK_FIX_PULL_REQUEST_OPEN, {
-          pullRequest: getPullRequestLabel(open),
-        }),
+        // A person's own pull request is theirs to merge, not a review OneUptime AI waits on.
+        sentence: sentence(
+          open.isLinked
+            ? CHECK_FIX_LINKED_PULL_REQUEST_OPEN
+            : CHECK_FIX_PULL_REQUEST_OPEN,
+          { pullRequest: getPullRequestLabel(open) },
+        ),
         links: [pullRequestLink(open)],
         data: { route: data.scope.route },
       }),

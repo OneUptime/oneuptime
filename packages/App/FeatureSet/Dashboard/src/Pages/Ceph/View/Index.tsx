@@ -118,6 +118,7 @@ import {
 } from "../Utils/CephReadings";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -385,10 +386,11 @@ export const CephMetricTitle: FunctionComponent<CephMetricTitleProps> = (
   // A Card translates a title it is given as text, not one inside an element.
   const translator: Translator = useTranslator();
   return (
-    <span className="inline-flex items-center gap-1.5">
-      {translator.translateText(props.title) || props.title}
-      <InfoTooltip label={props.title} text={props.description} />
-    </span>
+    <WordsWithInfoTooltip
+      text={translator.translateText(props.title) || props.title}
+      label={props.title}
+      description={props.description}
+    />
   );
 };
 
@@ -499,11 +501,13 @@ export const OsdStateCellView: FunctionComponent<{
       <div className="text-2xl font-semibold leading-none">
         {props.cell.count}
       </div>
-      <div className="mt-1 flex items-center gap-1 text-sm font-medium">
-        <span>
-          {translator.translateText(props.cell.label) || props.cell.label}
-        </span>
-        <InfoTooltip label={props.cell.label} text={props.cell.description} />
+      <div className="mt-1 flex text-sm font-medium">
+        <WordsWithInfoTooltip
+          className="min-w-0"
+          text={translator.translateText(props.cell.label) || props.cell.label}
+          label={props.cell.label}
+          description={props.cell.description}
+        />
       </div>
       <div className="text-xs opacity-75">
         {translator.translateText(props.cell.sublabel) || props.cell.sublabel}
@@ -1769,10 +1773,13 @@ const CephClusterOverview: FunctionComponent<
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                {translator.translateText("Client IOPS")}
-                <InfoTooltip
+                <WordsWithInfoTooltip
+                  className="min-w-0"
+                  text={
+                    translator.translateText("Client IOPS") || "Client IOPS"
+                  }
                   label="Client IOPS"
-                  text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+                  description={CEPH_METRIC_DESCRIPTIONS.clientIops}
                 />
                 <TimeRangeZoomHint
                   revealOnHover={true}
@@ -1795,10 +1802,14 @@ const CephClusterOverview: FunctionComponent<
             </div>
             <div className="group/zoomhint">
               <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                {translator.translateText("Client Throughput")}
-                <InfoTooltip
+                <WordsWithInfoTooltip
+                  className="min-w-0"
+                  text={
+                    translator.translateText("Client Throughput") ||
+                    "Client Throughput"
+                  }
                   label="Client Throughput"
-                  text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+                  description={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
                 />
                 <TimeRangeZoomHint
                   revealOnHover={true}

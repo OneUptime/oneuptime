@@ -753,6 +753,34 @@ export default class GitHubUtil extends HostedCodeRepository {
     return GitHubUtil.mapGitHubPullRequestToState(result.data);
   }
 
+  /*
+   * A pull request's state, and once merged its merge commit and time,
+   * through the GitHub App installation: what OneUptime follows a pull
+   * request a person linked to a security case by (#10604).
+   */
+  @CaptureSpan()
+  public static async getPullRequestMerge(data: {
+    installationId: string;
+    organizationName: string;
+    repositoryName: string;
+    pullRequestNumber: number;
+  }): Promise<GitHubPullRequestMerge> {
+    const tokenData: GitHubInstallationToken =
+      await GitHubUtil.getInstallationAccessToken(data.installationId, {
+        permissions: {
+          pull_requests: "read",
+          metadata: "read",
+        },
+      });
+
+    return GitHubUtil.getPullRequestMergeWithToken({
+      token: tokenData.token,
+      organizationName: data.organizationName,
+      repositoryName: data.repositoryName,
+      pullRequestNumber: data.pullRequestNumber,
+    });
+  }
+
   // getPullRequestStateWithToken, with the merge commit and time once merged.
   @CaptureSpan()
   public static async getPullRequestMergeWithToken(data: {

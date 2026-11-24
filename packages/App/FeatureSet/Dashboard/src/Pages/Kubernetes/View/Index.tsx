@@ -163,6 +163,7 @@ import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import KubernetesAiAgentOverviewCard from "../Utils/KubernetesAiAgentOverviewCard";
 import KubernetesAiAgentStatusSummaryCard from "../Utils/KubernetesAiAgentStatusSummaryCard";
@@ -350,11 +351,13 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   const header: ReactElement = (
     <div className="relative flex items-center justify-between mb-3">
       <div className="flex min-w-0 items-center gap-2">
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {translator.translateText(props.title) || props.title}
-          </span>
-          <InfoTooltip label={props.title} text={props.description} />
+        <div className="flex min-w-0">
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+            text={translator.translateText(props.title) || props.title}
+            label={props.title}
+            description={props.description}
+          />
         </div>
         {props.headerExtra ?? null}
       </div>
@@ -445,10 +448,11 @@ export function titleWithTooltip(
   description: string,
 ): ReactElement {
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span>{translateText(title)}</span>
-      <InfoTooltip label={title} text={description} />
-    </span>
+    <WordsWithInfoTooltip
+      text={translateText(title) || title}
+      label={title}
+      description={description}
+    />
   );
 }
 

@@ -11,6 +11,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import GitHubUtil, {
   GitHubBranchInfo,
   GitHubFileContent,
+  GitHubPullRequestMerge,
 } from "../GitHub/GitHub";
 import GitHubInstallationBinding from "../GitHub/GitHubInstallationBinding";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -20,7 +21,6 @@ import {
   CodeHost,
   CodeHostCapability,
 } from "../../../../Types/CodeRepository/CodeHost";
-import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
 import CodeHostHttp, {
   CodeHostHttpError,
@@ -112,6 +112,9 @@ const CONNECTION_SELECT: {
   refusedAt: true,
   isReachableFromServer: true,
 };
+
+// How many repositories one read of their connections names at once.
+export const CONNECTION_SUMMARIES_READ_AT_ONCE: number = 500;
 
 // A repository's tree is kept this long, as GitHub's is.
 const TREE_CACHE_SECONDS: number = 60 * 60;
@@ -271,17 +274,36 @@ export default class CodeHostAccess {
       return summaries;
     }
 
-    const repositories: Array<CodeRepository> =
-      await CodeRepositoryService.findBy({
-        query: {
-          _id: QueryHelper.any(data.repositoryIds),
-          projectId: data.projectId,
-        },
-        select: CODE_HOST_REPOSITORY_SELECT,
-        limit: data.repositoryIds.length,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    /*
+     * In batches: Code's Repositories page asks this of every repository the
+     * reader may read (#10764), and one statement naming thousands of ids
+     * would outgrow what Postgres binds.
+     */
+    const repositories: Array<CodeRepository> = [];
+
+    for (
+      let start: number = 0;
+      start < data.repositoryIds.length;
+      start += CONNECTION_SUMMARIES_READ_AT_ONCE
+    ) {
+      const batch: Array<ObjectID> = data.repositoryIds.slice(
+        start,
+        start + CONNECTION_SUMMARIES_READ_AT_ONCE,
+      );
+
+      repositories.push(
+        ...(await CodeRepositoryService.findBy({
+          query: {
+            _id: QueryHelper.any(batch),
+            projectId: data.projectId,
+          },
+          select: CODE_HOST_REPOSITORY_SELECT,
+          limit: batch.length,
+          skip: 0,
+          props: { isRoot: true },
+        })),
+      );
+    }
 
     const needsGitHub: boolean = repositories.some(
       (repository: CodeRepository): boolean => {
@@ -769,17 +791,19 @@ export default class CodeHostAccess {
 
         return file;
       },
+      // Its state, and once merged the commit it merged as (a linked pull request's deploy, #10604).
       getPullRequestState: async (data: {
         number: number;
       }): Promise<CodeHostPullRequestState & { ci: null }> => {
-        const state: PullRequestState = await GitHubUtil.getPullRequestState({
-          installationId,
-          organizationName,
-          repositoryName,
-          pullRequestNumber: data.number,
-        });
+        const merge: GitHubPullRequestMerge =
+          await GitHubUtil.getPullRequestMerge({
+            installationId,
+            organizationName,
+            repositoryName,
+            pullRequestNumber: data.number,
+          });
 
-        return { state, ci: null };
+        return { ...merge, ci: null };
       },
       getFileWebUrl: (data: {
         path: string;
