@@ -46,7 +46,9 @@ import CloudAccountRecommendations from "../Pages/Cloud/Accounts/View/Recommenda
 import CloudOverview from "../Pages/Cloud/Overview";
 import CloudCosts from "../Pages/Cloud/Costs";
 import CloudSavings from "../Pages/Cloud/Savings";
+import CloudCommitments from "../Pages/Cloud/Commitments";
 import CloudBudgets from "../Pages/Cloud/Budgets";
+import CloudCostSettings from "../Pages/Cloud/Settings/Costs";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -121,11 +123,29 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COMMITMENTS] || ""}
+          element={
+            <CloudCommitments
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COMMITMENTS] as Route}
+            />
+          }
+        />
+        <PageRoute
           path={CloudRoutePath[PageMap.CLOUD_BUDGETS] || ""}
           element={
             <CloudBudgets
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_BUDGETS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_SETTINGS_COSTS] || ""}
+          element={
+            <CloudCostSettings
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_COSTS] as Route}
             />
           }
         />

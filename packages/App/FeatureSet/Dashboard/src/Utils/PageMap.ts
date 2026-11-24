@@ -1257,7 +1257,11 @@ enum PageMap {
   // What the accounts cost, the ways to spend less, and the budgets that watch it.
   CLOUD_COSTS = "CLOUD_COSTS",
   CLOUD_SAVINGS = "CLOUD_SAVINGS",
+  // The commitments: what they cover, when they end, and what to renew or buy.
+  CLOUD_COMMITMENTS = "CLOUD_COMMITMENTS",
   CLOUD_BUDGETS = "CLOUD_BUDGETS",
+  // The project's cost basis and when its commitments alert.
+  CLOUD_SETTINGS_COSTS = "CLOUD_SETTINGS_COSTS",
   CLOUD_MONITORED_RESOURCES = "CLOUD_MONITORED_RESOURCES",
   CLOUD_CONNECT = "CLOUD_CONNECT",
   CLOUD_RESOURCE_VIEW = "CLOUD_RESOURCE_VIEW",

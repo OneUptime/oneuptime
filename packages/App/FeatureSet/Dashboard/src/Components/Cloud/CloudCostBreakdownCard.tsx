@@ -60,6 +60,7 @@ import {
   formatCloudMoney,
 } from "./CloudCostWords";
 import { cloudConnectionDocsUrl } from "./Connect/CloudConnectApi";
+import { CloudCostBasisPill } from "./CloudCostBasis";
 import { CloudAccountRow } from "./UseCloudAccounts";
 
 /*
@@ -510,6 +511,11 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
         props.isOneAccount
           ? BREAKDOWN_DESCRIPTION_ONE_ACCOUNT
           : BREAKDOWN_DESCRIPTION
+      }
+      rightElement={
+        props.scope.basis ? (
+          <CloudCostBasisPill basis={props.scope.basis} />
+        ) : undefined
       }
     >
       <div data-testid="cloud-cost-breakdown" data-dimension={dimension}>

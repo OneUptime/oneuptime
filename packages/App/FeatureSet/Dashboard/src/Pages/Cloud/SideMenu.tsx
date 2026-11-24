@@ -105,6 +105,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.ArrowTrendingDown,
         },
+        /*
+         * The Savings Plans, reservations and committed use discounts:
+         * when each ends, what it covers, and what to renew or buy.
+         */
+        {
+          link: {
+            title: "Commitments",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_COMMITMENTS] as Route,
+            ),
+          },
+          icon: IconProp.Calendar,
+        },
         {
           link: {
             title: "Budgets",
@@ -137,6 +150,16 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Tag,
+        },
+        // The cost basis the pages open on, and when commitments alert.
+        {
+          link: {
+            title: "Cost Settings",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_SETTINGS_COSTS] as Route,
+            ),
+          },
+          icon: IconProp.Settings,
         },
       ],
     },

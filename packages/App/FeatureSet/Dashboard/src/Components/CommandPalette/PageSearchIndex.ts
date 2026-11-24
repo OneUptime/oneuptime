@@ -3975,6 +3975,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.CLOUD_COMMITMENTS,
+            title: "Commitments",
+            icon: IconProp.Calendar,
+            keywords: [
+              "commitments",
+              "savings plans",
+              "reserved instances",
+              "reservations",
+              "committed use discounts",
+              "expiring commitments",
+              "commitment renewal",
+              "commitment utilization",
+              "commitment coverage",
+            ],
+          },
+          {
             page: PageMap.CLOUD_BUDGETS,
             title: "Budgets",
             icon: IconProp.Wallet,
@@ -3992,6 +4008,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         ownerRules: PageMap.CLOUD_SETTINGS_OWNER_RULES,
         labelRules: PageMap.CLOUD_SETTINGS_LABEL_RULES,
         archived: PageMap.CLOUD_ARCHIVED,
+        more: [
+          {
+            page: PageMap.CLOUD_SETTINGS_COSTS,
+            title: "Cost Settings",
+            icon: IconProp.Settings,
+            keywords: [
+              "cost basis",
+              "amortized costs",
+              "net costs",
+              "billed costs",
+              "commitment alerts",
+            ],
+          },
+        ],
       }),
     ],
   },

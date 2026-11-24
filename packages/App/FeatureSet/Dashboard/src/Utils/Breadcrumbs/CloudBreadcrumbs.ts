@@ -28,10 +28,20 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Cloud",
       "Savings",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_COMMITMENTS, [
+      "Project",
+      "Cloud",
+      "Commitments",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_BUDGETS, [
       "Project",
       "Cloud",
       "Budgets",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_COSTS, [
+      "Project",
+      "Cloud",
+      "Cost Settings",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_MONITORED_RESOURCES, [
       "Project",
