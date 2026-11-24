@@ -59,13 +59,13 @@ Grafana 的通知策略对触发的警报分组，Webhook 联系点把每个组�
 
 ### 每个警报一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **按负载字段对事件和警报分组**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **为以下每个值分别打开一个事件…** | `requestBody.alerts[*].fingerprint` |
+| **表示恢复的字段** | `requestBody.alerts[*].status` |
+| **表示已恢复的值** | `resolved` |
 
 ### 让监视器恢复在线
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 自托管安装使用自己的主机来代替 `oneuptime.com`。
 :::
 
-通知中的每个警报都会打开自己的事件，数量最多为 **Max incidents per request**（不修改则为 `100`），每个警报自己的 `status` 决定它的事件何时被解决。Grafana 的 `fingerprint` 通过标签来标识警报，所以它正是用来分组的值。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
+通知中的每个警报都会打开自己的事件，数量最多为 **每个请求的最大事件数**（不修改则为 `100`），每个警报自己的 `status` 决定它的事件何时被解决。Grafana 的 `fingerprint` 通过标签来标识警报，所以它正是用来分组的值。每项设置的作用请参见 [接收来自其他系统的警报](/docs/monitor/incoming-request-monitor#接收来自其他系统的警报)。
 
 > [!WARNING]
 > 不要按通知中所有警报共有的标签分组。Grafana 的默认通知策略按 `grafana_folder` 和 `alertname` 对警报分组，所以同一个通知中的每个警报都有相同的 `alertname`：按 `requestBody.alerts[*].labels.alertname` 分组会把整个通知合并成一个事件。
@@ -103,7 +103,7 @@ https://oneuptime.com/heartbeat/<secret key>
 前往 **Alerting → Notification policies**。把默认策略的联系点设为 `OneUptime`，或者添加一个匹配 OneUptime 应收到的警报的子策略，并把 `OneUptime` 设为它的联系点。
 :::
 
-Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。联系点的 **Max Alerts** 设置会限制一个通知中的警报数：请保持为 `0`（不限制），或者不超过监视器的 **Max incidents per request**。
+Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取通知中的字段。联系点的 **Max Alerts** 设置会限制一个通知中的警报数：请保持为 `0`（不限制），或者不超过监视器的 **每个请求的最大事件数**。
 
 ## 测试
 
@@ -157,7 +157,7 @@ Grafana 发送 `Content-Type: application/json`，监视器需要它才能读取
 
 :::details 事件被创建但从未被解决
 - 条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
-- **Field that signals recovery** 必须是 `requestBody.alerts[*].status`，**Value that means recovered** 必须恰好是 `resolved`。比较区分大小写。
+- **表示恢复的字段** 必须是 `requestBody.alerts[*].status`，**表示已恢复的值** 必须恰好是 `resolved`。比较区分大小写。
 - 分组路径必须以 `requestBody.` 开头，并且路径中只有第一个 `[*]` 会读取列表。违反任一规则的路径不会匹配任何内容，也不会报错。
 :::
 

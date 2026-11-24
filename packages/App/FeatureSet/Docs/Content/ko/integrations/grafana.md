@@ -59,13 +59,13 @@ Grafana의 알림 정책은 발생한 알림을 그룹화하고, 웹훅 연락 �
 
 ### 경고마다 인시던트 하나 열기
 
-같은 기준에서 **설정**을 열고 **Group incidents and alerts by a payload field**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
+같은 기준에서 **설정**을 열고 **페이로드 필드로 인시던트와 경고 그룹화**를 켭니다. 아래와 같이 채우면 경고마다 별도의 인시던트가 생기고, 그 복구가 인시던트를 해결합니다:
 
 | 필드 | 값 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **다음 값마다 별도의 인시던트 열기…** | `requestBody.alerts[*].fingerprint` |
+| **복구를 나타내는 필드** | `requestBody.alerts[*].status` |
+| **복구를 의미하는 값** | `resolved` |
 
 ### 모니터를 다시 온라인으로
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 자체 호스팅 설치에서는 `oneuptime.com` 대신 자체 호스트를 사용합니다.
 :::
 
-통지의 각 알림은 **Max incidents per request**(바꾸지 않으면 `100`)까지 자체 인시던트를 열고, 각 알림의 `status`가 그 인시던트가 언제 해결될지를 결정합니다. Grafana의 `fingerprint`는 레이블로 알림을 식별하므로 그룹화에 쓸 값이 바로 이것입니다. 각 설정이 하는 일은 [다른 시스템의 경고 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
+통지의 각 알림은 **요청당 최대 인시던트 수**(바꾸지 않으면 `100`)까지 자체 인시던트를 열고, 각 알림의 `status`가 그 인시던트가 언제 해결될지를 결정합니다. Grafana의 `fingerprint`는 레이블로 알림을 식별하므로 그룹화에 쓸 값이 바로 이것입니다. 각 설정이 하는 일은 [다른 시스템의 경고 수신](/docs/monitor/incoming-request-monitor#다른-시스템의-경고-수신)을 참고하세요.
 
 > [!WARNING]
 > 통지의 모든 알림이 공유하는 레이블로 그룹화하지 마세요. Grafana의 기본 알림 정책은 알림을 `grafana_folder`와 `alertname`으로 그룹화하므로, 한 통지의 모든 알림은 같은 `alertname`을 가집니다. `requestBody.alerts[*].labels.alertname`으로 그룹화하면 통지 전체가 인시던트 하나로 합쳐집니다.
@@ -103,7 +103,7 @@ Grafana에서 **Alerting → Contact points**로 이동해 **+ Add contact point
 **Alerting → Notification policies**로 이동합니다. 기본 정책의 연락 지점을 `OneUptime`으로 설정하거나, OneUptime이 받아야 할 알림과 일치하는 하위 정책을 추가하고 그 연락 지점을 `OneUptime`으로 지정합니다.
 :::
 
-Grafana는 `Content-Type: application/json`을 보내며, 모니터는 이를 사용해 통지의 필드를 읽습니다. 연락 지점의 **Max Alerts** 설정은 한 통지에 담기는 알림 수를 제한합니다. `0`(제한 없음)으로 두거나 모니터의 **Max incidents per request** 이하로 설정하세요.
+Grafana는 `Content-Type: application/json`을 보내며, 모니터는 이를 사용해 통지의 필드를 읽습니다. 연락 지점의 **Max Alerts** 설정은 한 통지에 담기는 알림 수를 제한합니다. `0`(제한 없음)으로 두거나 모니터의 **요청당 최대 인시던트 수** 이하로 설정하세요.
 
 ## 테스트하기
 
@@ -157,7 +157,7 @@ Grafana와 인시던트 사이에 직접 만든 단계가 필요하면 [워크�
 
 :::details 인시던트가 열리지만 해결되지 않음
 - 기준의 인시던트에는 **추가 필드** 아래의 **인시던트 자동 해결**이 필요합니다.
-- **Field that signals recovery**는 `requestBody.alerts[*].status`여야 하고, **Value that means recovered**는 정확히 `resolved`여야 합니다. 비교는 대소문자를 구분합니다.
+- **복구를 나타내는 필드**는 `requestBody.alerts[*].status`여야 하고, **복구를 의미하는 값**은 정확히 `resolved`여야 합니다. 비교는 대소문자를 구분합니다.
 - 그룹화 경로는 `requestBody.`로 시작해야 하며, 경로에서 목록을 읽는 것은 첫 번째 `[*]`뿐입니다. 두 규칙 중 하나라도 어기는 경로는 오류 없이 아무것과도 일치하지 않습니다.
 :::
 

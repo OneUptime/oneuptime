@@ -348,7 +348,7 @@ flowchart TB
 :::steps
 1. Abra el criterio y despliegue **Ajustes**.
 2. Active **Agrupa incidentes y alertas por un campo de la carga útil**.
-3. Rellene **Abrir un incidente separado para cada…**. Para que cada incidente se resuelva solo, rellene también el campo y el valor de **Auto-resolve each incident when…** (más abajo). Después, guarde el monitor.
+3. Rellene **Abrir un incidente separado para cada…**. Para que cada incidente se resuelva solo, rellene también el campo y el valor de **Resolver automáticamente cada incidente cuando…** (más abajo). Después, guarde el monitor.
 :::
 
 | Campo | Ejemplo | Qué hace |
@@ -386,7 +386,7 @@ Un webhook solo describe lo que hay en esa carga útil, así que OneUptime nunca
 1. **Campo que indica la recuperación** y **Valor que significa recuperado** están definidos y coinciden con la carga útil. La comparación es exacta y distingue mayúsculas y minúsculas: `Resolved` no coincide con `resolved`.
 2. El incidente del criterio tiene activado **Resolver incidente automáticamente**, en **Más campos** del formulario del incidente. Sin ello, los eventos de recuperación que coinciden se ignoran y los incidentes siguen abiertos. (Lo mismo vale para las alertas y **Resolver alerta automáticamente**.) El criterio predeterminado de sin conexión lo tiene activado desde el principio; un incidente que añade usted mismo a un criterio empieza con la opción desactivada.
 
-Una alerta que añade usted mismo a un criterio también empieza con **Resolver alerta automáticamente** desactivado, así que una recuperación deja la alerta abierta hasta que se active. **Auto-resolve each incident when…** indica qué incidentes y alertas del criterio resuelve una recuperación, y nombra cada uno que dejaría abierto, con un botón que activa su opción. La tarjeta **Resumen del monitor** de la **Vista general** del monitor nombra cada incidente y alerta que una recuperación dejó abiertos, y por qué.
+Una alerta que añade usted mismo a un criterio también empieza con **Resolver alerta automáticamente** desactivado, así que una recuperación deja la alerta abierta hasta que se active. **Resolver automáticamente cada incidente cuando…** indica qué incidentes y alertas del criterio resuelve una recuperación, y nombra cada uno que dejaría abierto, con un botón que activa su opción. La tarjeta **Resumen del monitor** de la **Vista general** del monitor nombra cada incidente y alerta que una recuperación dejó abiertos, y por qué.
 
 Una recuperación resuelve solo los incidentes y las alertas del criterio que la lee: aquel cuyo **Campo que indica la recuperación** y **Valor que significa recuperado** coinciden con la carga útil. Los incidentes y las alertas de otro criterio para el mismo valor siguen abiertos, y los de un criterio que deja esos campos vacíos se resuelven a mano.
 

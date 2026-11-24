@@ -348,7 +348,7 @@ flowchart TB
 :::steps
 1. Öffnen Sie das Kriterium und klappen Sie **Einstellungen** auf.
 2. Schalten Sie **Vorfälle und Warnungen nach einem Payload-Feld gruppieren** ein.
-3. Füllen Sie **Einen eigenen Vorfall eröffnen pro…** aus. Damit sich jeder Vorfall selbst behebt, füllen Sie auch Feld und Wert unter **Auto-resolve each incident when…** aus (siehe unten). Speichern Sie dann den Monitor.
+3. Füllen Sie **Einen eigenen Vorfall eröffnen pro…** aus. Damit sich jeder Vorfall selbst behebt, füllen Sie auch Feld und Wert unter **Jeden Vorfall automatisch beheben, wenn…** aus (siehe unten). Speichern Sie dann den Monitor.
 :::
 
 | Feld | Beispiel | Was es bewirkt |
@@ -386,7 +386,7 @@ Ein Webhook beschreibt nur, was in dieser Nutzlast steht, deshalb behebt OneUpti
 1. **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** sind gesetzt und passen zur Nutzlast. Der Vergleich ist exakt und beachtet Groß- und Kleinschreibung — `Resolved` passt nicht auf `resolved`.
 2. Beim Vorfall des Kriteriums ist **Vorfall automatisch beheben** eingeschaltet, unter **Weitere Felder** im Vorfallformular. Ohne das werden passende Erholungsereignisse ignoriert und die Vorfälle bleiben offen. (Dasselbe gilt für Warnungen und **Warnung automatisch beheben**.) Beim Offline-Standardkriterium ist es von Anfang an eingeschaltet; bei einem Vorfall, den Sie einem Kriterium selbst hinzufügen, ist es zunächst ausgeschaltet.
 
-Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Auto-resolve each incident when…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
+Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Jeden Vorfall automatisch beheben, wenn…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
 
 Eine Erholung behebt nur die Vorfälle und Warnungen des Kriteriums, das sie liest: des Kriteriums, dessen **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** zur Nutzlast passen. Die Vorfälle und Warnungen eines anderen Kriteriums für denselben Wert bleiben offen, und die eines Kriteriums, das diese Felder leer lässt, werden von Hand behoben.
 

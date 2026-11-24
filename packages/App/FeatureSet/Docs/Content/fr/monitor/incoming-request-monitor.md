@@ -348,14 +348,14 @@ flowchart TB
 :::steps
 1. Ouvrez le critère et dépliez **Paramètres**.
 2. Activez **Regrouper les incidents et alertes par un champ de la charge utile**.
-3. Renseignez **Ouvrir un incident distinct pour chaque…**. Pour que chaque incident se résolve de lui-même, renseignez aussi le champ et la valeur sous **Auto-resolve each incident when…** (ci-dessous). Enregistrez ensuite le moniteur.
+3. Renseignez **Ouvrir un incident distinct pour chaque…**. Pour que chaque incident se résolve de lui-même, renseignez aussi le champ et la valeur sous **Résoudre automatiquement chaque incident quand…** (ci-dessous). Enregistrez ensuite le moniteur.
 :::
 
 | Champ | Exemple | Ce qu'il fait |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
 | Ouvrir un incident distinct pour chaque… | `requestBody.alerts[*].labels.alertname` | Le chemin dont les valeurs différentes séparent les incidents |
 | Champ qui signale le rétablissement | `requestBody.alerts[*].status` | Le chemin vérifié pour décider qu'une alerte s'est rétablie |
-| Value that means recovered | `resolved` | La valeur exacte qui marque le rétablissement |
+| Valeur qui signifie rétabli | `resolved` | La valeur exacte qui marque le rétablissement |
 | Incidents max par requête | `100` (par défaut) | Plafond de sécurité, pour qu'un champ à forte cardinalité ne puisse pas ouvrir des incidents sans limite |
 
 Le regroupement appartient au critère dans lequel il est activé. Les autres critères du moniteur ne regroupent pas : quand l'un d'eux correspond à une requête, il ouvre son incident et son alerte comme il le ferait sur un moniteur dont aucun critère ne regroupe.
@@ -383,12 +383,12 @@ La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur montre ce
 
 Un webhook ne décrit que ce que contient cette charge utile : OneUptime ne résout donc jamais un incident parce que sa clé n'apparaît plus. Un incident n'est résolu que quand une charge utile indique explicitement que cette clé s'est rétablie. Deux conditions doivent être réunies :
 
-1. **Champ qui signale le rétablissement** et **Value that means recovered** sont définis et correspondent à la charge utile. La comparaison est exacte et sensible à la casse — `Resolved` ne correspond pas à `resolved`.
+1. **Champ qui signale le rétablissement** et **Valeur qui signifie rétabli** sont définis et correspondent à la charge utile. La comparaison est exacte et sensible à la casse — `Resolved` ne correspond pas à `resolved`.
 2. L'incident du critère a **Résoudre automatiquement l'incident** activé, sous **Plus de champs** dans le formulaire d'incident. Sans cela, les événements de rétablissement correspondants sont ignorés et les incidents restent ouverts. (Il en va de même pour les alertes et **Résoudre automatiquement l'alerte**.) Le critère hors ligne par défaut l'a activé dès le départ ; un incident que vous ajoutez vous-même à un critère commence avec l'option désactivée.
 
-Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Auto-resolve each incident when…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
+Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Résoudre automatiquement chaque incident quand…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
 
-Un rétablissement ne résout que les incidents et les alertes du critère qui le lit : celui dont **Champ qui signale le rétablissement** et **Value that means recovered** correspondent à la charge utile. Les incidents et les alertes d'un autre critère pour la même valeur restent ouverts, et ceux d'un critère qui laisse ces champs vides se résolvent à la main.
+Un rétablissement ne résout que les incidents et les alertes du critère qui le lit : celui dont **Champ qui signale le rétablissement** et **Valeur qui signifie rétabli** correspondent à la charge utile. Les incidents et les alertes d'un autre critère pour la même valeur restent ouverts, et ceux d'un critère qui laisse ces champs vides se résolvent à la main.
 
 **Incidents max par requête** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont aussi invisibles pour le rétablissement : dans une charge utile portant plus de clés différentes que le plafond, une alerte qui signale `resolved` au-delà de celui-ci ne fermera pas son incident.
 

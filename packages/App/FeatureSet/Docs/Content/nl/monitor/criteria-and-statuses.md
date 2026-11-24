@@ -44,7 +44,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 | **Criterianaam** | De naam in de lijst met criteria, en in de oorzaak van elk incident en elke waarschuwing die het criterium opent. **Criteria toevoegen** noemt een nieuw criterium naar zijn filters, en de naam volgt ze tot u er zelf een typt. |
 | **Filters** | Wat de controle moet laten zien, als een of meer filters. Kubernetes- en metriekmonitoren noemen ze **Waarschuwingsregels**. |
 | **Acties** | Wat er gebeurt als de filters overeenkomen: de status wijzigen, een waarschuwing maken, een incident melden, of een combinatie daarvan. |
-| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Group incidents and alerts by a payload field**. |
+| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Incidenten en waarschuwingen groeperen op een veld uit de payload**. |
 
 ### Filters
 
@@ -70,7 +70,7 @@ Een incident of waarschuwing vraagt om een titel, een **Ernst** en, ingeklapt, e
 
 **Schakel dit criterium in** staat aan bij elk nieuw criterium. Zet het uit om een criterium te bewaren zonder het te gebruiken: het wordt bij elke controle overgeslagen, wijzigt geen status, opent niets, en zijn kop toont **Uitgeschakeld**.
 
-**Group incidents and alerts by a payload field** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
+**Incidenten en waarschuwingen groeperen op een veld uit de payload** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
 
 **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** en **Dit criterium alleen op bepaalde dagen en tijden beoordelen** staan uit voor een nieuw criterium. Zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt) en [Alleen op bepaalde dagen en tijden](#alleen-op-bepaalde-dagen-en-tijden).
 

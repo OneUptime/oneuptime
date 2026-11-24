@@ -148,13 +148,13 @@ Na etapa **Critérios**, abra o primeiro critério, o que marca o monitor como o
 
 ### Abrir um incidente por problema
 
-No mesmo critério, abra **Configurações** e ative **Group incidents and alerts by a payload field**. Preencha como abaixo, para que cada problema tenha o seu próprio incidente e a recuperação dele o resolva:
+No mesmo critério, abra **Configurações** e ative **Agrupar incidentes e alertas por um campo da carga útil**. Preencha como abaixo, para que cada problema tenha o seu próprio incidente e a recuperação dele o resolva:
 
 | Campo | Valor |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Abrir um incidente separado para cada…** | `requestBody.event_id` |
+| **Campo que sinaliza a recuperação** | `requestBody.status` |
+| **Valor que significa recuperado** | `0` |
 
 ### Colocar o monitor online de novo
 
@@ -321,7 +321,7 @@ Abra o tipo de mídia e use **Test**: o Zabbix mostra o resultado do script ou o
 :::details Os incidentes abrem, mas nunca são resolvidos
 - A ação precisa de **Recovery operations**, ou o Zabbix nunca envia a recuperação.
 - Com o modelo, abra **Execuções** do workflow e a execução da recuperação: a última etapa dela diz por quê. Uma recuperação de um problema que não abriu nenhum incidente não muda nada.
-- Com o monitor, o incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**. **Field that signals recovery** deve ser `requestBody.status`, e **Value that means recovered** exatamente `0`.
+- Com o monitor, o incidente do critério precisa de **Resolver incidente automaticamente**, em **Mais campos**. **Campo que sinaliza a recuperação** deve ser `requestBody.status`, e **Valor que significa recuperado** exatamente `0`.
 :::
 
 :::details O problema do Zabbix não é confirmado nem fechado

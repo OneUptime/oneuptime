@@ -196,7 +196,7 @@ Deze variabelen beschrijven de reeks waarvoor een gegroepeerde monitor het incid
 | `requestMethod` | De HTTP-methode, zoals `POST`. | `string` |
 | `incomingRequestReceivedAt` | Wanneer het verzoek werd ontvangen, als ISO 8601-tijdstempel. | `string` |
 
-Als bij het criterium **Group incidents and alerts by a payload field** is ingeschakeld, is de groeperingssleutel ook een variabele, genoemd naar het **laatste segment** van het groeperingspad: groeperen op `requestBody.alerts[*].labels.alertname` geeft `{{alertname}}`, en groeperen op `requestBody.alerts[*].fingerprint` geeft `{{fingerprint}}`. De hele `requestBody` staat er nog steeds naast.
+Als bij het criterium **Incidenten en waarschuwingen groeperen op een veld uit de payload** is ingeschakeld, is de groeperingssleutel ook een variabele, genoemd naar het **laatste segment** van het groeperingspad: groeperen op `requestBody.alerts[*].labels.alertname` geeft `{{alertname}}`, en groeperen op `requestBody.alerts[*].fingerprint` geeft `{{fingerprint}}`. De hele `requestBody` staat er nog steeds naast.
 
 > [!NOTE]
 > `[*]` werkt alleen in de velden van het groeperingspad. In een template leest het niets, dus blijft de placeholder staan zoals hij geschreven is. `{{requestBody.alerts[0].annotations.summary}}` leest altijd de eerste waarschuwing van de payload, niet die waarvoor het incident werd geopend: gebruik de groeperingsvariabele en de gedeelde velden van de payload, zoals `commonLabels` en `commonAnnotations`. Zie [Inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor).

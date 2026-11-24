@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. Öppna kriteriet och fäll ut **Inställningar**.
-2. Slå på **Group incidents and alerts by a payload field**.
-3. Fyll i **Open a separate incident for each…**. Om varje incident ska lösa sig själv fyller du också i fältet och värdet under **Auto-resolve each incident when…** (se nedan). Spara sedan monitorn.
+2. Slå på **Gruppera incidenter och larm efter ett fält i nyttolasten**.
+3. Fyll i **Öppna en separat incident för varje…**. Om varje incident ska lösa sig själv fyller du också i fältet och värdet under **Lös varje incident automatiskt när…** (se nedan). Spara sedan monitorn.
 :::
 
 | Fält | Exempel | Vad det gör |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Sökvägen vars distinkta värden delar upp incidenterna |
-| Field that signals recovery | `requestBody.alerts[*].status` | Sökvägen som kontrolleras för att avgöra att ett larm är över |
-| Value that means recovered | `resolved` | Det exakta värde som markerar att problemet är över |
-| Max incidents per request | `100` (standard) | Säkerhetstak så att ett fält med många värden inte kan öppna ett obegränsat antal incidenter |
+| Öppna en separat incident för varje… | `requestBody.alerts[*].labels.alertname` | Sökvägen vars distinkta värden delar upp incidenterna |
+| Fält som signalerar återhämtning | `requestBody.alerts[*].status` | Sökvägen som kontrolleras för att avgöra att ett larm är över |
+| Värde som betyder återhämtad | `resolved` | Det exakta värde som markerar att problemet är över |
+| Max antal incidenter per förfrågan | `100` (standard) | Säkerhetstak så att ett fält med många värden inte kan öppna ett obegränsat antal incidenter |
 
 Grupperingen hör till det kriterium där den är påslagen. Monitorns andra kriterier grupperar inte: när ett av dem matchar en förfrågan öppnar det sin incident och sitt larm som det skulle göra på en monitor där inget kriterium grupperar.
 
@@ -383,20 +383,20 @@ Kortet **Monitor-sammanfattning** på monitorns **Översikt** visar vad varje f�
 
 En webhook beskriver bara det som finns i den nyttolasten, så OneUptime löser aldrig en incident för att dess nyckel slutade dyka upp. En incident löses bara när en nyttolast uttryckligen säger att den nyckeln är över. Två saker måste båda vara sanna:
 
-1. **Field that signals recovery** och **Value that means recovered** är ifyllda och matchar nyttolasten. Jämförelsen är exakt och skiljer på versaler och gemener — `Resolved` matchar inte `resolved`.
+1. **Fält som signalerar återhämtning** och **Värde som betyder återhämtad** är ifyllda och matchar nyttolasten. Jämförelsen är exakt och skiljer på versaler och gemener — `Resolved` matchar inte `resolved`.
 2. Kriteriets incident har **Lös incident automatiskt** påslaget, under **Fler fält** i incidentformuläret. Utan det ignoreras matchande meddelanden om att problemet är över, och incidenterna förblir öppna. (Detsamma gäller larm och **Lös larm automatiskt**.) Standardkriteriet för offline börjar med det påslaget; en incident som du själv lägger till i ett kriterium börjar med det avslaget.
 
-Ett larm som du själv lägger till i ett kriterium börjar också med **Lös larm automatiskt** avslaget, så en återhämtning lämnar larmet öppet tills det är påslaget. **Auto-resolve each incident when…** visar vilka av kriteriets incidenter och larm en återhämtning löser, och namnger var och en som den skulle lämna öppen, med en knapp som slår på den tillhörande inställningen. Kortet **Monitor-sammanfattning** på monitorns **Översikt** namnger varje incident och larm som en återhämtning lämnade öppet, och varför.
+Ett larm som du själv lägger till i ett kriterium börjar också med **Lös larm automatiskt** avslaget, så en återhämtning lämnar larmet öppet tills det är påslaget. **Lös varje incident automatiskt när…** visar vilka av kriteriets incidenter och larm en återhämtning löser, och namnger var och en som den skulle lämna öppen, med en knapp som slår på den tillhörande inställningen. Kortet **Monitor-sammanfattning** på monitorns **Översikt** namnger varje incident och larm som en återhämtning lämnade öppet, och varför.
 
-En återhämtning löser bara incidenterna och larmen för det kriterium som läser den: det vars **Field that signals recovery** och **Value that means recovered** matchar nyttolasten. Ett annat kriteriums incidenter och larm för samma värde förblir öppna, och de för ett kriterium som lämnar fälten tomma löses manuellt.
+En återhämtning löser bara incidenterna och larmen för det kriterium som läser den: det vars **Fält som signalerar återhämtning** och **Värde som betyder återhämtad** matchar nyttolasten. Ett annat kriteriums incidenter och larm för samma värde förblir öppna, och de för ett kriterium som lämnar fälten tomma löses manuellt.
 
-**Max incidents per request** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
+**Max antal incidenter per förfrågan** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
 
 > [!NOTE]
 > En monitor med ett kriterium som grupperar efter ett fält i innehållet utvärderar varje förfrågan den tar emot, en i taget och i den ordning de kom, så en skur av larm och återhämtningar öppnar och löser varje värdes incident och larm. Upp till 1 000 förfrågningar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. En monitor utan gruppering utvärderar bara den nyaste av förfrågningarna som väntar på den.
 
 > [!NOTE]
-> Om **Field that signals recovery** innehåller `[*]` men **Open a separate incident for each…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.
+> Om **Fält som signalerar återhämtning** innehåller `[*]` men **Öppna en separat incident för varje…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.
 
 > [!WARNING]
 > En sökväg för lösning utan `[*]` utvärderas mot hela nyttolasten, så en `status: resolved` på nyttolastens nivå löser varje nyckel i den nyttolasten — även larm vars egen status fortfarande är aktiv.

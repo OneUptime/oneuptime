@@ -105,13 +105,13 @@ Datadog 監測器在狀態改變時，也就是觸發、警告、恢復或沒有
 
 ### 每個警示一個事件
 
-在同一個條件中，開啟 **設定** 並開啟 **Group incidents and alerts by a payload field**。按下表填寫，讓每個警示都有自己的事件，並由它的恢復來解決：
+在同一個條件中，開啟 **設定** 並開啟 **依酬載欄位將事件和警示分組**。按下表填寫，讓每個警示都有自己的事件，並由它的恢復來解決：
 
 | 欄位 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **為以下每個值分別開啟一個事件…** | `requestBody.alert_key` |
+| **表示恢復的欄位** | `requestBody.transition` |
+| **表示已恢復的值** | `Recovered` |
 
 ### 讓監測器恢復線上
 
@@ -227,7 +227,7 @@ curl -X POST "<url>" \
 - Datadog 監測器也必須把恢復通知給該 Webhook。如果訊息只在條件區塊中針對警示提到該 Webhook，就不會發送恢復。
 - 使用範本時，在 **執行記錄** 中開啟恢復的那次執行：它的最後一個步驟會說明原因。恢復的 `alert_cycle_key` 必須與警示的相同，所以請保持酬載中的 `$ALERT_CYCLE_KEY` 不變。
 - 使用監測器時，條件中的事件需要開啟 **更多欄位** 下的 **自動解決事件**。
-- **Value that means recovered** 必須恰好是 `Recovered`。比較區分大小寫。
+- **表示已恢復的值** 必須恰好是 `Recovered`。比較區分大小寫。
 - 恢復的 `alert_key` 必須與警示的相同：保持酬載中的 `$ALERT_ID $ALERT_SCOPE` 不變。
 :::
 

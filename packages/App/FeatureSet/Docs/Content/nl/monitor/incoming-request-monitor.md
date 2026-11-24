@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. Open het criterium en klap **Instellingen** uit.
-2. Zet **Group incidents and alerts by a payload field** aan.
-3. Vul **Open a separate incident for each…** in. Wilt u dat elk incident zichzelf oplost, vul dan ook het veld en de waarde onder **Auto-resolve each incident when…** in (zie hieronder). Sla daarna de monitor op.
+2. Zet **Incidenten en waarschuwingen groeperen op een veld uit de payload** aan.
+3. Vul **Een apart incident openen voor elke…** in. Wilt u dat elk incident zichzelf oplost, vul dan ook het veld en de waarde onder **Elk incident automatisch oplossen wanneer…** in (zie hieronder). Sla daarna de monitor op.
 :::
 
 | Veld | Voorbeeld | Wat het doet |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Het pad waarvan de verschillende waarden de incidenten uit elkaar halen |
-| Field that signals recovery | `requestBody.alerts[*].status` | Het pad dat wordt gecontroleerd om te besluiten dat een waarschuwing hersteld is |
-| Value that means recovered | `resolved` | De exacte waarde die het herstel markeert |
-| Max incidents per request | `100` (standaard) | Veiligheidsgrens, zodat een veld met veel waarden geen onbegrensd aantal incidenten kan openen |
+| Een apart incident openen voor elke… | `requestBody.alerts[*].labels.alertname` | Het pad waarvan de verschillende waarden de incidenten uit elkaar halen |
+| Veld dat herstel aangeeft | `requestBody.alerts[*].status` | Het pad dat wordt gecontroleerd om te besluiten dat een waarschuwing hersteld is |
+| Waarde die hersteld betekent | `resolved` | De exacte waarde die het herstel markeert |
+| Max. incidenten per verzoek | `100` (standaard) | Veiligheidsgrens, zodat een veld met veel waarden geen onbegrensd aantal incidenten kan openen |
 
 Groepering hoort bij het criterium waarin ze is ingeschakeld. De andere criteria van de monitor groeperen niet: als een ervan overeenkomt met een verzoek, opent het zijn incident en waarschuwing zoals op een monitor waarop geen enkel criterium groepeert.
 
@@ -383,20 +383,20 @@ De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor toont wat e
 
 Een webhook beschrijft alleen wat in die payload staat, dus OneUptime lost een incident nooit op omdat de sleutel ervan niet meer opduikt. Een incident wordt alleen opgelost als een payload uitdrukkelijk zegt dat die sleutel hersteld is. Twee dingen moeten allebei waar zijn:
 
-1. **Field that signals recovery** en **Value that means recovered** zijn ingevuld en komen overeen met de payload. De vergelijking is exact en hoofdlettergevoelig: `Resolved` komt niet overeen met `resolved`.
+1. **Veld dat herstel aangeeft** en **Waarde die hersteld betekent** zijn ingevuld en komen overeen met de payload. De vergelijking is exact en hoofdlettergevoelig: `Resolved` komt niet overeen met `resolved`.
 2. Bij het incident van het criterium staat **Incident automatisch oplossen** aan, onder **Meer velden** in het incidentformulier. Zonder die optie worden overeenkomende herstelgebeurtenissen genegeerd en blijven de incidenten open. (Hetzelfde geldt voor waarschuwingen en **Waarschuwing automatisch oplossen**.) Bij het standaard offline-criterium staat het al aan; bij een incident dat u zelf aan een criterium toevoegt, staat het eerst uit.
 
-Ook bij een waarschuwing die u zelf aan een criterium toevoegt, staat **Waarschuwing automatisch oplossen** eerst uit, dus een herstel laat de waarschuwing open tot die optie aan staat. **Auto-resolve each incident when…** laat zien welke incidenten en waarschuwingen van het criterium een herstel oplost, en noemt elk incident en elke waarschuwing die het open zou laten, met een knop die de bijbehorende optie aanzet. De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor noemt elk incident en elke waarschuwing die een herstel open liet, en waarom.
+Ook bij een waarschuwing die u zelf aan een criterium toevoegt, staat **Waarschuwing automatisch oplossen** eerst uit, dus een herstel laat de waarschuwing open tot die optie aan staat. **Elk incident automatisch oplossen wanneer…** laat zien welke incidenten en waarschuwingen van het criterium een herstel oplost, en noemt elk incident en elke waarschuwing die het open zou laten, met een knop die de bijbehorende optie aanzet. De kaart **Monitorsamenvatting** op het **Overzicht** van de monitor noemt elk incident en elke waarschuwing die een herstel open liet, en waarom.
 
-Een herstel lost alleen de incidenten en waarschuwingen op van het criterium dat het leest: het criterium waarvan **Field that signals recovery** en **Value that means recovered** overeenkomen met de payload. De incidenten en waarschuwingen van een ander criterium voor dezelfde waarde blijven open, en die van een criterium dat deze velden leeg laat, los je met de hand op.
+Een herstel lost alleen de incidenten en waarschuwingen op van het criterium dat het leest: het criterium waarvan **Veld dat herstel aangeeft** en **Waarde die hersteld betekent** overeenkomen met de payload. De incidenten en waarschuwingen van een ander criterium voor dezelfde waarde blijven open, en die van een criterium dat deze velden leeg laat, los je met de hand op.
 
-**Max incidents per request** begrenst het uitlezen, niet alleen het aanmaken. Sleutels voorbij de grens zijn ook onzichtbaar voor het herstel, dus in een payload met meer verschillende sleutels dan de grens sluit een waarschuwing die voorbij die grens `resolved` meldt, haar incident niet.
+**Max. incidenten per verzoek** begrenst het uitlezen, niet alleen het aanmaken. Sleutels voorbij de grens zijn ook onzichtbaar voor het herstel, dus in een payload met meer verschillende sleutels dan de grens sluit een waarschuwing die voorbij die grens `resolved` meldt, haar incident niet.
 
 > [!NOTE]
 > Een monitor met een criterium dat groepeert op een veld van de payload toetst elk verzoek dat hij krijgt, één tegelijk en in de volgorde van binnenkomst, dus een vlaag waarschuwingen en herstellen opent en lost het incident en de waarschuwing van elke waarde op. Tot 1.000 verzoeken, of 16 MB ervan, wachten op hun toetsing; daarboven worden de oudste wachtende overgeslagen, en de kaart **Monitorsamenvatting** zegt hoeveel. Een monitor zonder groepering toetst alleen het nieuwste van de verzoeken die op hem wachten.
 
 > [!NOTE]
-> Bevat **Field that signals recovery** een `[*]` maar **Open a separate incident for each…** niet, dan is een verzoek pas hersteld als elk element van die array dat zegt. Met `requestBody.alerts[*].status` en `resolved` wordt een incident dat gegroepeerd is op `requestBody.groupLabels.alertname` opgelost zodra elke waarschuwing van een verzoek is opgelost, en blijft het open zolang er nog een actief is.
+> Bevat **Veld dat herstel aangeeft** een `[*]` maar **Een apart incident openen voor elke…** niet, dan is een verzoek pas hersteld als elk element van die array dat zegt. Met `requestBody.alerts[*].status` en `resolved` wordt een incident dat gegroepeerd is op `requestBody.groupLabels.alertname` opgelost zodra elke waarschuwing van een verzoek is opgelost, en blijft het open zolang er nog een actief is.
 
 > [!WARNING]
 > Een herstelpad zonder `[*]` wordt getoetst aan de hele payload, dus een `status: resolved` op het niveau van de payload lost elke sleutel in die payload op, ook waarschuwingen waarvan de eigen status nog actief is.

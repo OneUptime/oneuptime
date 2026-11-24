@@ -347,16 +347,16 @@ flowchart TB
 
 :::steps
 1. Abra o critério e expanda **Configurações**.
-2. Ligue **Group incidents and alerts by a payload field**.
-3. Preencha **Open a separate incident for each…**. Para que cada incidente se resolva sozinho, preencha também o campo e o valor em **Auto-resolve each incident when…** (abaixo). Depois, salve o monitor.
+2. Ligue **Agrupar incidentes e alertas por um campo da carga útil**.
+3. Preencha **Abrir um incidente separado para cada…**. Para que cada incidente se resolva sozinho, preencha também o campo e o valor em **Resolver automaticamente cada incidente quando…** (abaixo). Depois, salve o monitor.
 :::
 
 | Campo | Exemplo | O que faz |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | O caminho cujos valores distintos separam os incidentes |
-| Field that signals recovery | `requestBody.alerts[*].status` | O caminho verificado para decidir que um alerta se recuperou |
-| Value that means recovered | `resolved` | O valor exato que marca a recuperação |
-| Max incidents per request | `100` (padrão) | Limite de segurança para que um campo com muitos valores não abra incidentes sem limite |
+| Abrir um incidente separado para cada… | `requestBody.alerts[*].labels.alertname` | O caminho cujos valores distintos separam os incidentes |
+| Campo que sinaliza a recuperação | `requestBody.alerts[*].status` | O caminho verificado para decidir que um alerta se recuperou |
+| Valor que significa recuperado | `resolved` | O valor exato que marca a recuperação |
+| Máximo de incidentes por requisição | `100` (padrão) | Limite de segurança para que um campo com muitos valores não abra incidentes sem limite |
 
 O agrupamento pertence ao critério em que está ligado. Os outros critérios do monitor não agrupam: quando um deles corresponde a uma solicitação, abre o seu incidente e o seu alerta como faria em um monitor em que nenhum critério agrupa.
 
@@ -383,20 +383,20 @@ O cartão **Resumo do monitor** na **Visão geral** do monitor mostra o que cada
 
 Um webhook descreve apenas o que está naquele payload, então o OneUptime nunca resolve um incidente porque a chave dele deixou de aparecer. Um incidente só é resolvido quando um payload diz explicitamente que aquela chave se recuperou. As duas coisas precisam ser verdadeiras:
 
-1. **Field that signals recovery** e **Value that means recovered** estão definidos e correspondem ao payload. A comparação é exata e diferencia maiúsculas de minúsculas: `Resolved` não corresponde a `resolved`.
+1. **Campo que sinaliza a recuperação** e **Valor que significa recuperado** estão definidos e correspondem ao payload. A comparação é exata e diferencia maiúsculas de minúsculas: `Resolved` não corresponde a `resolved`.
 2. O incidente do critério tem **Resolver incidente automaticamente** ligado, em **Mais campos** no formulário do incidente. Sem isso, os eventos de recuperação correspondentes são ignorados e os incidentes ficam abertos. (O mesmo vale para alertas e **Resolver alerta automaticamente**.) O critério offline padrão já começa com isso ligado; um incidente que você mesmo adiciona a um critério começa com a opção desligada.
 
-Um alerta que você mesmo adiciona a um critério também começa com **Resolver alerta automaticamente** desligado, então uma recuperação deixa o alerta aberto até que a opção seja ligada. **Auto-resolve each incident when…** mostra quais incidentes e alertas do critério uma recuperação resolve e nomeia cada um que ela deixaria aberto, com um botão que liga a opção correspondente. O cartão **Resumo do monitor** na **Visão geral** do monitor nomeia cada incidente e alerta que uma recuperação deixou aberto, e o motivo.
+Um alerta que você mesmo adiciona a um critério também começa com **Resolver alerta automaticamente** desligado, então uma recuperação deixa o alerta aberto até que a opção seja ligada. **Resolver automaticamente cada incidente quando…** mostra quais incidentes e alertas do critério uma recuperação resolve e nomeia cada um que ela deixaria aberto, com um botão que liga a opção correspondente. O cartão **Resumo do monitor** na **Visão geral** do monitor nomeia cada incidente e alerta que uma recuperação deixou aberto, e o motivo.
 
-Uma recuperação resolve apenas os incidentes e alertas do critério que a lê: aquele cujos **Field that signals recovery** e **Value that means recovered** correspondem ao payload. Os incidentes e alertas de outro critério para o mesmo valor continuam abertos, e os de um critério que deixa esses campos em branco são resolvidos manualmente.
+Uma recuperação resolve apenas os incidentes e alertas do critério que a lê: aquele cujos **Campo que sinaliza a recuperação** e **Valor que significa recuperado** correspondem ao payload. Os incidentes e alertas de outro critério para o mesmo valor continuam abertos, e os de um critério que deixa esses campos em branco são resolvidos manualmente.
 
-**Max incidents per request** limita a extração, não só a criação. As chaves além do limite também ficam invisíveis para a recuperação, então, em um payload com mais chaves distintas que o limite, um alerta que informe `resolved` além dele não vai fechar o incidente dele.
+**Máximo de incidentes por requisição** limita a extração, não só a criação. As chaves além do limite também ficam invisíveis para a recuperação, então, em um payload com mais chaves distintas que o limite, um alerta que informe `resolved` além dele não vai fechar o incidente dele.
 
 > [!NOTE]
 > Um monitor com um critério que agrupa por um campo do payload avalia cada requisição que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas e recuperações abre e resolve o incidente e o alerta de cada valor. Até 1.000 requisições, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Um monitor sem agrupamento avalia apenas a mais recente das requisições que o esperam.
 
 > [!NOTE]
-> Se **Field that signals recovery** contém `[*]` mas **Open a separate incident for each…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.
+> Se **Campo que sinaliza a recuperação** contém `[*]` mas **Abrir um incidente separado para cada…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.
 
 > [!WARNING]
 > Um caminho de recuperação sem `[*]` é avaliado no payload inteiro, então um `status: resolved` no nível do payload resolve todas as chaves daquele payload, inclusive alertas cujo próprio status ainda está disparado.
