@@ -1006,7 +1006,7 @@ test.describe("a hunt's Run History", () => {
       new Date(NOW.getTime() - 122 * HOUR - 2 * MINUTE).toISOString(),
     );
     expect(address.searchParams.get("end")).toBe(
-      new Date(NOW.getTime() - 49 * HOUR - 1 * MINUTE).toISOString(),
+      new Date(NOW.getTime() - 49 * HOUR - MINUTE).toISOString(),
     );
     await expect(eventRows(page)).toHaveCount(1);
     await expect(eventRows(page)).toHaveAttribute(
