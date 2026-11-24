@@ -35,11 +35,38 @@ import {
  * What a probe reports is its own word: anyone holding its key can say any
  * address. That is why Security Events never sets aside traffic only for
  * its address: the traffic must also be what the probe is set to do.
+ *
+ * THE HOST'S ADDRESSES, FOR A PROBE WITHOUT HOST NETWORKING (#10633).
+ *
+ * A probe in a container on a network of its own - a Kubernetes pod, or a
+ * Docker bridge network - holds an address of that network (a pod address,
+ * 172.17.0.2), and its polls leave the host source-NATed to the host's own
+ * address: the flows the project's routers export show the host's address,
+ * which no interface of the probe holds. So whoever runs such a probe tells
+ * it its host's addresses (PROBE_HOST_IP_ADDRESSES; in Kubernetes from the
+ * Downward API's status.hostIPs, which no person types), and it lists them
+ * beside its interfaces' in the same field, kept by the same rules. They
+ * are the probe's word, as its interfaces' are, and are read the same way:
+ * an address, never a range, so a claim names at most
+ * MAX_PROBE_INTERFACE_ADDRESSES single machines, and sets aside nothing on
+ * its own (TelemetryScan/ProbeOwnTraffic says what does).
  */
 
 // The field of the probe's check-in that lists them.
 export const PROBE_INTERFACE_ADDRESSES_FIELD: string =
   "probeInterfaceAddresses";
+
+// The setting that tells a probe its host's addresses.
+export const PROBE_HOST_IP_ADDRESSES_SETTING: string =
+  "PROBE_HOST_IP_ADDRESSES";
+
+// What a probe makes of PROBE_HOST_IP_ADDRESSES.
+export interface ProbeHostAddressesSetting {
+  // The addresses kept, written the one way, each once, in the setting's order.
+  addresses: Array<string>;
+  // The entries that name no address kept, as written: the probe warns of them.
+  invalid: Array<string>;
+}
 
 // The most addresses one probe's report keeps.
 export const MAX_PROBE_INTERFACE_ADDRESSES: number = 64;
@@ -154,6 +181,59 @@ export default class ProbeInterfaceAddressesUtil {
     return Array.from(kept)
       .sort(compareAddresses)
       .slice(0, MAX_PROBE_INTERFACE_ADDRESSES);
+  }
+
+  /*
+   * PROBE_HOST_IP_ADDRESSES as the probe reads it: entries separated by
+   * commas or white space (status.hostIPs is "10.0.0.4,fd00::4"), each read
+   * as an interface's address is - so "10.0.0.4/24" is 10.0.0.4, and a
+   * name, a range's end, loopback or link-local is no address kept. Nothing
+   * when it is unset or blank.
+   */
+  public static readHostAddressesSetting(
+    text: string | null | undefined,
+  ): ProbeHostAddressesSetting {
+    const addresses: Array<string> = [];
+    const invalid: Array<string> = [];
+
+    const entries: Array<string> = (text || "")
+      .split(/[\s,]+/)
+      .filter((entry: string): boolean => {
+        return entry.length > 0;
+      })
+      .slice(0, MAX_PROBE_INTERFACE_ADDRESS_ENTRIES_READ);
+
+    for (const entry of entries) {
+      const address: string | null = readEntry(entry);
+
+      if (!address) {
+        invalid.push(entry);
+      } else if (!addresses.includes(address)) {
+        addresses.push(address);
+      }
+    }
+
+    return {
+      addresses: addresses.slice(0, MAX_PROBE_INTERFACE_ADDRESSES),
+      invalid,
+    };
+  }
+
+  /*
+   * What a check-in lists: the addresses on the probe's interfaces and
+   * those it is told are its host's, as OneUptime keeps them. The host's
+   * come first, so the entries a report is read for never cut them.
+   */
+  public static forCheckIn(data: {
+    interfaceAddresses: ReadonlyArray<string>;
+    hostAddresses: ReadonlyArray<string>;
+  }): Array<string> {
+    return (
+      ProbeInterfaceAddressesUtil.read([
+        ...data.hostAddresses,
+        ...data.interfaceAddresses,
+      ]) || []
+    );
   }
 
   // The kept addresses as the column holds them.

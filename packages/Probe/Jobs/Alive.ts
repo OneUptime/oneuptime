@@ -1,4 +1,4 @@
-import { PROBE_INGEST_URL } from "../Config";
+import { PROBE_HOST_IP_ADDRESSES, PROBE_INGEST_URL } from "../Config";
 import Register from "../Services/Register";
 import ProbeAPIRequest from "../Utils/ProbeAPIRequest";
 import { listInterfaceAddresses } from "../Utils/PacketCapture/NetworkInterfaces";
@@ -30,18 +30,26 @@ export function resetAliveCheckInProgress(): void {
 
 /*
  * What the heartbeat says of this probe's own addresses (#10429): the
- * addresses on its network interfaces, as OneUptime keeps them
- * (Types/Probe/ProbeInterfaceAddresses). OneUptime keeps them on the probe,
- * so Security Events knows the probe's device polls, discovery sweeps and
- * port checks for its own work and does not report them as scans. Nothing
- * when the interfaces cannot be read: the heartbeat goes out regardless, and
- * OneUptime keeps what it had.
+ * addresses on its network interfaces and, for a probe without host
+ * networking, those it is told are its host's (PROBE_HOST_IP_ADDRESSES,
+ * #10633), as OneUptime keeps them (Types/Probe/ProbeInterfaceAddresses).
+ * OneUptime keeps them on the probe, so Security Events knows the probe's
+ * device polls, discovery sweeps and port checks for its own work and does
+ * not report them as scans. Nothing when the interfaces cannot be read: the
+ * heartbeat goes out regardless, and OneUptime keeps what it had - the
+ * host's addresses alone would replace the interfaces' it kept.
  */
-export function readInterfaceAddressesForCheckIn(): JSONObject {
+export function readInterfaceAddressesForCheckIn(
+  hostAddresses: ReadonlyArray<string> = PROBE_HOST_IP_ADDRESSES,
+): JSONObject {
   try {
     return {
-      [PROBE_INTERFACE_ADDRESSES_FIELD]:
-        ProbeInterfaceAddressesUtil.read(listInterfaceAddresses()) || [],
+      [PROBE_INTERFACE_ADDRESSES_FIELD]: ProbeInterfaceAddressesUtil.forCheckIn(
+        {
+          interfaceAddresses: listInterfaceAddresses(),
+          hostAddresses,
+        },
+      ),
     };
   } catch (err) {
     logger.debug("Could not list this probe's network interface addresses.");
