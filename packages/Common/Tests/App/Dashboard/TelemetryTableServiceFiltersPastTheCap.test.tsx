@@ -62,6 +62,8 @@ import CappedListServer, {
 } from "./CappedListServer";
 import TraceTable from "../../../../App/FeatureSet/Dashboard/src/Components/Traces/TraceTable";
 import ProfileTable from "../../../../App/FeatureSet/Dashboard/src/Components/Profiles/ProfileTable";
+import LlmCallsTable from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmCallsTable";
+import { LLM_CALLS_TABLE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/LlmCallsRoute";
 import Profile from "../../../Models/AnalyticsModels/Profile";
 import Span, { SpanStatus } from "../../../Models/AnalyticsModels/Span";
 import Service from "../../../Models/DatabaseModels/Service";
@@ -71,16 +73,18 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import AnalyticsModelAPI from "../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import API from "../../../UI/Utils/API/API";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import ProjectUtil from "../../../UI/Utils/Project";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import TelemetryEntityNameResolver from "../../../UI/Utils/Telemetry/TelemetryEntityNames";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * THE TRACES AND PROFILES TABLES' SERVICE FILTERS AND SERVICE COLUMNS, PAST
- * THE PROJECT'S FIRST 10,000 SERVICES (#10764).
+ * THE TRACES, PROFILES AND AI CALLS TABLES' SERVICE FILTERS AND SERVICE
+ * COLUMNS, PAST THE PROJECT'S FIRST 10,000 SERVICES (#10764).
  *
- * Both tables read the project's first 10,000 services by name: their
+ * The tables read the project's first 10,000 services by name: their
  * Service filter offered only those (and "Unknown Service"), a filter
  * restored from a link that named a service past them showed nothing for
  * it - while still narrowing the list - and a row whose service sorted past
@@ -179,6 +183,24 @@ const CASES: Array<TableCase> = [
       ];
     },
   },
+  // AI / LLM > Calls: the same spans, its own Service filter and column.
+  {
+    name: "AI calls",
+    urlStateKey: LLM_CALLS_TABLE_ID,
+    element: () => {
+      return <LlmCallsTable />;
+    },
+    rowsModel: Span,
+    rows: () => {
+      return [span(LATE_ID, 1), span(EARLY_ID, 2), span(PROJECT_ID, 3)].map(
+        (row: Span): Span => {
+          row.isLlmSpan = true;
+          row.llmRequestModel = "gpt-4o";
+          return row;
+        },
+      );
+    },
+  },
 ];
 
 beforeEach(() => {
@@ -204,6 +226,14 @@ beforeEach(() => {
 
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
     new ObjectID(PROJECT_ID),
+  );
+
+  /*
+   * The AI calls list asks the AI setup check why it is empty, once a
+   * filter leaves it so: unanswered here, it falls back to its own words.
+   */
+  getJestSpyOn(API, "post").mockResolvedValue(
+    new HTTPErrorResponse(500, { error: "Not answered here." }, {}) as never,
   );
 
   window.history.replaceState(window.history.state, "", "/dashboard/traces");
