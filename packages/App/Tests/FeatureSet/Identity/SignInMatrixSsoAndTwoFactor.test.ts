@@ -6,6 +6,8 @@ import {
   RouteHandler,
 } from "./IdentityRouterTestUtil";
 import User from "Common/Models/DatabaseModels/User";
+import UserTotpAuth from "Common/Models/DatabaseModels/UserTotpAuth";
+import UserWebAuthn from "Common/Models/DatabaseModels/UserWebAuthn";
 import Email from "Common/Types/Email";
 import Exception from "Common/Types/Exception/Exception";
 import { JSONObject } from "Common/Types/JSON";
@@ -887,4 +889,127 @@ describe("POST /passkey-login: a passkey, for every account", () => {
       expect(teamMemberFindBy).not.toHaveBeenCalled();
     },
   );
+});
+
+/*
+ * THE SECOND STEP A REMOVAL LEAVES IS THE ONE A SIGN-IN ASKS FOR (#6652).
+ *
+ * While two-factor authentication is on, removing an authenticator app, a
+ * security key or a passkey is refused when it is the last finished one,
+ * and let through while another stays
+ * (UserService.assertTwoFactorAuthKeepsASecondStep, held over HTTP by
+ * Common's TwoFactorLastSecondStepOverHttp.test.ts). That keeps nobody out
+ * only while a sign-in asks for whatever stayed: every finished
+ * authenticator app, and every finished key whatever it was registered for
+ * - a security key, a passkey, or a key from before purposes were recorded
+ * - exactly the rows UserService.countVerifiedTwoFactorAuthMethods counts.
+ * A sign-in that left one kind out would find nothing to ask for behind
+ * the requirement, and hand the password's holder an enrolment instead.
+ */
+enum SecondStepLeft {
+  AuthenticatorApp = "an authenticator app",
+  SecurityKey = "a security key",
+  Passkey = "a passkey",
+  KeyOfOld = "a key with no recorded purpose",
+}
+
+const SECOND_STEPS_LEFT: Array<SecondStepLeft> = [
+  SecondStepLeft.AuthenticatorApp,
+  SecondStepLeft.SecurityKey,
+  SecondStepLeft.Passkey,
+  SecondStepLeft.KeyOfOld,
+];
+
+// The finished rows the sign-in reads, as the account's tables hold them.
+function storeOnlySecondStepLeft(left: SecondStepLeft): string {
+  const id: string = ObjectID.generate().toString();
+
+  if (left === SecondStepLeft.AuthenticatorApp) {
+    const app: UserTotpAuth = new UserTotpAuth();
+    app._id = id;
+    app.name = "Phone";
+    totpFindBy.mockResolvedValue([app]);
+    webAuthnFindBy.mockResolvedValue([]);
+    return id;
+  }
+
+  const key: UserWebAuthn = new UserWebAuthn();
+  key._id = id;
+  key.name = "Work key";
+
+  if (left !== SecondStepLeft.KeyOfOld) {
+    key.isPasskey = left === SecondStepLeft.Passkey;
+  }
+
+  totpFindBy.mockResolvedValue([]);
+  webAuthnFindBy.mockResolvedValue([key]);
+  return id;
+}
+
+function idsIn(list: unknown): Array<string> {
+  return (Array.isArray(list) ? list : []).map((row: unknown): string => {
+    return String((row as JSONObject)["_id"]);
+  });
+}
+
+describe("the second step a removal leaves is the one a sign-in asks for (#6652)", () => {
+  it.each(SECOND_STEPS_LEFT)(
+    "with only %s left, a password signs in to a challenge for it, never to an enrolment",
+    async (left: SecondStepLeft) => {
+      getRequireSsoForLogin.mockResolvedValue(false);
+      storeAccount({
+        isMasterAdmin: false,
+        twoFactor: TwoFactor.OnWithNothingSetUp,
+      });
+      const id: string = storeOnlySecondStepLeft(left);
+
+      const answer: Answer = await invoke("/login", {
+        data: {
+          email: USER_EMAIL,
+          password: { _type: "HashedString", value: PASSWORD },
+        },
+      });
+
+      expect(outcome(answer)).toBe(Outcome.AskedForTheSecondStep);
+      expectSessionIf(false);
+      // Nothing for the password's holder to scan.
+      expect(totpCreate).not.toHaveBeenCalled();
+
+      const miscData: JSONObject = (
+        sendEntityResponse.mock.calls[0]![4] as JSONObject
+      )["miscData"] as JSONObject;
+
+      expect([
+        ...idsIn(miscData["totpAuthList"]),
+        ...idsIn(miscData["webAuthnList"]),
+      ]).toEqual([id]);
+    },
+  );
+
+  it("reads every finished second step of the account, and keys whatever they were registered for", async () => {
+    getRequireSsoForLogin.mockResolvedValue(false);
+    storeAccount({
+      isMasterAdmin: false,
+      twoFactor: TwoFactor.OnWithNothingSetUp,
+    });
+    storeOnlySecondStepLeft(SecondStepLeft.Passkey);
+
+    await invoke("/login", {
+      data: {
+        email: USER_EMAIL,
+        password: { _type: "HashedString", value: PASSWORD },
+      },
+    });
+
+    for (const read of [totpFindBy, webAuthnFindBy]) {
+      const query: Record<string, unknown> = (
+        read.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+
+      // The account's finished rows, and no other condition: no purpose.
+      expect(Object.keys(query).sort()).toEqual(["isVerified", "userId"]);
+      expect(query["isVerified"]).toBe(true);
+      expect(String(query["userId"])).toBe(USER_ID);
+    }
+  });
 });
