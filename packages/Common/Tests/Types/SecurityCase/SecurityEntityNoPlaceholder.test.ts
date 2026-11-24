@@ -13,6 +13,7 @@ import {
 } from "../../../Types/SecurityCase/SecurityEntity";
 import {
   ONEUPTIME_PRINCIPAL,
+  getApiKeyPrincipal,
   getWorkflowPrincipal,
 } from "../../../Types/SecurityEvent/OneUptimeActorPrincipal";
 
@@ -22,8 +23,8 @@ import {
  * blocked - so what a scrub rule left of one is none: "[REDACTED]" and a
  * mask stand for everybody a rule hid at once, and are dropped; a Hash
  * token stands for one value no identity provider knows, and stays as
- * Other. A workflow and OneUptime itself are no person, so as a user they
- * are Other too. Every list of entities is merged through this
+ * Other. A workflow, a project API key (#10630) and OneUptime itself are
+ * no person, so as a user they are Other too. Every list of entities is merged through this
  * (mergeSecurityEntities), and every target is checked against it once
  * more (canActOnSecurityEntity).
  */
@@ -31,6 +32,9 @@ import {
 const PROJECT_ID: string = "0192f1a0-0000-7000-8000-00000000e0a1";
 const WORKFLOW: string = getWorkflowPrincipal(
   "0192f1a0-0000-7000-8000-00000000e0a2",
+);
+const API_KEY: string = getApiKeyPrincipal(
+  "0192f1a0-0000-7000-8000-00000000e0a3",
 );
 
 function left(
@@ -156,17 +160,20 @@ describe("what a scrub rule left of a user, a host or an address", () => {
 });
 
 describe("OneUptime's own actors as a user", () => {
-  test.each([WORKFLOW, ONEUPTIME_PRINCIPAL, "OneUptime"])(
-    "%s is Other: no person to suspend",
-    (value: string) => {
-      expect(
-        getEntityAsActionable({ type: SecurityEntityType.User, value }),
-      ).toEqual({ type: SecurityEntityType.Other, value });
-      expect(
-        canActOnSecurityEntity({ type: SecurityEntityType.User, value }),
-      ).toBe(false);
-    },
-  );
+  test.each([
+    WORKFLOW,
+    API_KEY,
+    API_KEY.toUpperCase(),
+    ONEUPTIME_PRINCIPAL,
+    "OneUptime",
+  ])("%s is Other: no person to suspend", (value: string) => {
+    expect(
+      getEntityAsActionable({ type: SecurityEntityType.User, value }),
+    ).toEqual({ type: SecurityEntityType.Other, value });
+    expect(
+      canActOnSecurityEntity({ type: SecurityEntityType.User, value }),
+    ).toBe(false);
+  });
 
   test("merged after the user it was typed as, it stays Other", () => {
     expect(
@@ -175,6 +182,25 @@ describe("OneUptime's own actors as a user", () => {
         [{ type: SecurityEntityType.User, value: WORKFLOW }],
       ),
     ).toEqual([{ type: SecurityEntityType.Other, value: WORKFLOW }]);
+    expect(
+      mergeSecurityEntities(
+        [{ type: SecurityEntityType.User, value: API_KEY }],
+        [{ type: SecurityEntityType.User, value: API_KEY }],
+      ),
+    ).toEqual([{ type: SecurityEntityType.Other, value: API_KEY }]);
+  });
+
+  test("a key's name or a near miss is no principal: a user named so is a user", () => {
+    for (const value of [
+      "terraform",
+      "api-key:terraform",
+      "api-key:",
+      "api-keys:0192f1a0-0000-7000-8000-00000000e0a3",
+    ]) {
+      expect(
+        getEntityAsActionable({ type: SecurityEntityType.User, value }),
+      ).toEqual({ type: SecurityEntityType.User, value });
+    }
   });
 
   test("a host named oneuptime is a host: only a user can be one of OneUptime's actors", () => {

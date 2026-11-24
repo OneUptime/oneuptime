@@ -19,6 +19,7 @@ import {
   AZURE_KEY_METRICS,
   AzureTypeKeyMetrics,
   getAzureKeyMetricNames,
+  getAzureKeyMetricSplit,
   getAzureKeyMetrics,
   isAzureStreamedKeyMetric,
 } from "Common/Types/Cloud/CloudKeyMetrics";
@@ -516,6 +517,33 @@ describe("Stream Azure Monitor Metrics and Logs", () => {
     expect(paragraph).toContain(
       "So the reads write all of them, streaming or not, and no message is counted twice.",
     );
+  });
+
+  /*
+   * A Container App's Requests are read once per status code category
+   * (#10837), while a diagnostic setting sends their total: the reads keep
+   * writing them while the type streams, and the page says so after the
+   * namespaces'.
+   */
+  it("says a Container App's Requests stay with the reads, read once per status code category", () => {
+    const paragraph: string = paragraphStarting(
+      page,
+      "A Container App's `Requests` stay with the reads too:",
+    );
+    const type: string = "Microsoft.App/containerApps";
+
+    expect(codeSpans(paragraph)).toEqual(["Requests"]);
+    expect(paragraph).toContain("once per status code category");
+    expect(getAzureKeyMetricSplit(type, "Requests")).toBe("statusCodeCategory");
+    expect(isAzureStreamedKeyMetric(type, "Requests")).toBe(false);
+
+    // Its other key metrics are the stream's, as the list above says by leaving them out.
+    for (const metric of getAzureKeyMetricNames(type)) {
+      expect({
+        metric,
+        streamed: isAzureStreamedKeyMetric(type, metric),
+      }).toEqual({ metric, streamed: metric !== "Requests" });
+    }
   });
 
   it("names the kinds of resource with no Logs tab, every kind CloudLogGroups names", () => {

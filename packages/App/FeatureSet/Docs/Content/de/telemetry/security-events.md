@@ -133,6 +133,7 @@ Der Endpunkt antwortet mit `200`, sobald die Ereignisse in der Warteschlange ste
 Nennen Sie das Format mit `?format=`, mit dem Header `x-oneuptime-security-event-format` oder mit einem Feld `"format"` auf oberster Ebene. Lassen Sie es weg, wird das Format jedes Ereignisses einzeln ermittelt, sodass ein Webhook Erkennungen und rohe Ereignisse mischen kann.
 
 - Der Body kann ein Ereignis sein, ein Array von Ereignissen oder `{ "events": [...] }`.
+- Ein Batch kann mit gzip komprimiert und mit `Content-Encoding: gzip` gesendet werden: Er wird genauso gelesen wie derselbe Batch unkomprimiert. Die Ausgabe `http` von Fluent Bit komprimiert mit `compress gzip`, der Sink `http` von Vector mit `compression = "gzip"` und die Ausgabe `http` von Logstash mit `http_compression => true`. Komprimiert wird nur JSON gelesen: Ein komprimierter Body jedes anderen Typs wird mit `400` abgelehnt.
 - Der Header `x-oneuptime-service-name` nennt den Telemetrie-Dienst, zu dem die Ereignisse gehören. Ohne ihn gehören sie zu dem Dienst, der nach Produkt oder Anbieter des ersten Ereignisses benannt ist, oder zu `Security Events`.
 - Nichts geht verloren, weil es sich nicht zuordnen ließ: Jedes Feld der Quelle landet in den Attributen des Ereignisses.
 
@@ -174,6 +175,7 @@ Um Sicherheitslogs zu senden, die Sie schon sammeln, etwa von auditd, syslog ode
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ Die Seite **Einrichtungsanleitung**, unter **Verbindungen**, hat diese Snippets 
 
 ### Sicherheitsereignisse in Ihren Logs finden
 
-Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag und jeder Webangriff darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
+Die Karte **Ihre Protokolle** oben auf **Verbindungen** macht die Logs, die Sie bereits an OneUptime senden, zu einer Quelle. Ist **Sicherheitsereignisse in Ihren Protokollen finden** eingeschaltet, werden die neuen Logs des Projekts jede Minute gelesen, und jede SSH- oder Windows-Anmeldung, jeder sudo-Befehl, jeder Audit-Eintrag einer Cloud, jeder CEF- oder LEEF-Datensatz eines Sicherheitsprodukts, jeder Datensatz einer Firewall von Palo Alto Networks, FortiGate oder Cisco ASA, jeder Kubernetes-Audit-Eintrag, jeder Webangriff und jede abgelehnte Anfrage nach einer sensiblen Datei darin wird als Sicherheitsereignis gespeichert. Was jede Art abdeckt, steht unter [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started#sicherheitsereignisse-in-ihren-logs-finden).
 
 Jede Art erreicht OneUptime als gewöhnliche Logs:
 
@@ -298,6 +300,10 @@ Eine IP-Adressen-Regel, die Ihre Logs oder Traces schwärzt oder maskiert, verbi
 
 Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodass das Ereignis sie nennt, es sei denn, ihr Token ist älter als 30 Tage oder entstand, bevor Token einen Schlüssel hatten: siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen). Um diese Ereignisse zu finden, suchen Sie nach `@oneuptime.request.client_address_hidden:scrub-rule`. Was die Regel an der Stelle der Adresse hinterlassen hat, etwa `[REDACTED]`, steht in `oneuptime.request.client_address_scrubbed`. Für ein Ziel suchen Sie nach `@oneuptime.target_address_hidden:scrub-rule`.
 
+Eine Erkennungsregel, die pro Adresse zählt, sollte wie die Regeln der Regelbibliothek pro `principalIp` oder `targetIp` zählen, denn diese Felder nennen die Adresse hinter dem Token einer Regel, die hasht. Das eigene Adressfeld eines Formats, etwa `openstack.audit.initiator_address` oder `asa.src_ip`, enthält nur eine Adresse, die das Log geschrieben hat, und bleibt daher überall leer, wo eine Scrub-Regel eine verborgen hat.
+
+Eine Regel, die einen Benutzer schwärzt oder maskiert, verbirgt ihn genauso: Wo das Ereignis den Benutzer nennen würde, sagt **Quellbenutzer** oder **Zielbenutzer**, dass eine Scrub-Regel ihn verborgen hat. Wo Sicherheitsereignisse einen Benutzer liest, bewahrt eine Regel, die hasht, den Benutzer dafür auf: die `enduser.id` oder `user.id` einer Anfrage, den Benutzer eines KI-Aufrufs und einen Benutzer, den eine Logzeile nennt, etwa den Principal eines Cloud-Audit-Logs. So nennt das Ereignis den Benutzer hinter dem Token, ein Fall über ihn nennt das Konto, und ein Playbook kann darauf handeln wie bei jedem anderen Benutzer. Was die Regel hinterlassen hat, steht in `oneuptime.principal_user_hashed_as` oder `oneuptime.target_user_hashed_as`, damit Sie den Benutzer in Ihren Logs und Traces finden, die nur das Token enthalten. Ein Token, zu dem kein Benutzer aufbewahrt ist, etwa eines, das entstand, bevor Token einen Schlüssel hatten, bleibt der Benutzer des Ereignisses: Regeln zählen es als ein Konto, und kein Playbook handelt darauf.
+
 ## Sicherheitsereignisse erkunden
 
 **Ereignisse** ist ein Telemetrie-Explorer wie die Explorer für Logs und Traces: ein Diagramm der Ereignisse des Zeitfensters nach Schweregrad, eine Seitenleiste mit Facetten, die Liste und ein Panel mit jedem Feld und Attribut des Ereignisses, das Sie öffnen. Zeitfenster, Filter und Suche stehen alle in der URL, sodass sich eine gefilterte Ansicht teilen lässt und ein Neuladen übersteht.
@@ -331,7 +337,16 @@ Ein Ereignis aus einer Logzeile, die innerhalb einer getracten Anfrage geschrieb
 
 ### Campaigns
 
-**Kampagnen** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst.
+**Kampagnen** listet jede Adresse, die Angriffsanfragen gesendet hat, als eine Zeile, mit den Angriffsarten, den Werkzeugen und den Anfragen, die sie gesendet hat, und wie viele durchkamen. Die Adressen, deren Anfragen Ihre App erreicht haben, stehen zuerst. Eine Zeile, deren Adresse Ihre Sperrliste bereits enthält, sagt, bis wann sie gesperrt oder mit einer Challenge belegt ist, und nennt den Bereich oder das Netzwerk, das sie erfasst.
+
+Um mehrere Angreifer auf einmal zu sperren, wählen Sie ihre Zeilen aus und klicken Sie auf **Adressen sperren**. Ein Dialog listet jede Adresse, die er sperrt, und jede, die er auslässt, mit dem Grund: bereits gesperrt, eine Ihrer eigenen oder eine geschützte, eine, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat, oder eine, die OneUptime nicht prüfen konnte. Er sperrt für 24 Stunden, sofern Sie keine andere Dauer wählen, oder belegt die Adressen mit **Stattdessen Challenge** mit einer Challenge, und jede Sperre kommt als Ihre auf Ihre [Sperrliste](/docs/telemetry/security-cases#sperrliste).
+
+**Nach Netzwerk gruppieren** fasst die Adressen eines Netzwerks in einer Zeile zusammen: nach seiner ASN, wo die Ereignisse Ihrer [Cloudflare](/docs/integrations/cloudflare)-Verbindung eine nennen, sonst nach seinem /24 bei IPv4 oder seinem /48 bei IPv6. Die Zeile einer ASN listet die Bereiche, aus denen ihre Adressen gesendet haben. **Challenge für dieses Netzwerk** sagt, was es tun wird, wo und wie lange, bevor es das tut: 24 Stunden, sofern Sie keine andere Dauer wählen, und die nächste Stufe der Leiter für ein Netzwerk, das schon einmal eine Challenge erhalten hat. Cloudflare hält einen Bereich in seiner Challenge-Liste und eine ASN als IP Access Rule, die jeder Tarif hat.
+
+- Ein Netzwerk, das eine Adresse enthält, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat, oder eine Ihrer eigenen, erhält nie eine Challenge, und der Dialog nennt, wer oder was es ist.
+- Ein Bereich, der größer als ein /24 ist (ein /48 bei IPv6), und eine ganze ASN erfordern einen Sicherheits-Administrator, einen Projektadministrator oder einen Projektinhaber. Die Zeile einer ASN bietet auch jeden ihrer Bereiche an, den jeder, der sperren darf, mit einer Challenge belegen kann.
+- Wenn OneUptime nicht feststellen kann, wer ein Netzwerk nutzt, weil es eine ganze ASN ist oder eine Scrub-Regel Client-Adressen verbirgt, kann nur ein Sicherheits-Administrator, ein Projektadministrator oder ein Projektinhaber es mit einer Challenge belegen, nachdem er angehakt hat, dass ihm das bewusst ist.
+- Solange Sicherheitsereignisse auf dem Server ausgeschaltet ist, wird nichts gesperrt oder mit einer Challenge belegt.
 
 ### Korrelieren
 
@@ -583,6 +598,7 @@ Eine Ausnahme ist etwas, das eine Regel auslässt, weil Sie es erwarten, etwa ei
 | **Ein Zeitfenster** | Jedes Ereignis von **Beginnt am** bis **Endet am**, höchstens 30 Tage auseinander |
 
 - Werte passen unabhängig von Groß- und Kleinschreibung, und `*` steht für eine beliebige Zeichenfolge: `svc-*` lässt jedes Dienstkonto aus und `*.lab.example.com` jeden Host einer Domain. Eine IP-Adresse kann ein Bereich sein, etwa `10.20.0.0/16`. Ein Wert, der nur aus `*` besteht, wird abgelehnt: Um eine Regel zu stoppen, schalten Sie sie aus.
+- Ereignisse aus dem eigenen Audit-Log von OneUptime nennen einen Projekt-API-Schlüssel in `principalUser` als `api-key:` gefolgt von seiner ID, sodass zwei Schlüssel mit demselben Namen zwei Handelnde sind und kein Playbook einen Schlüssel als Benutzer zum Sperren anbietet. Der Name des Schlüssels steht weiterhin in der Nachricht des Ereignisses und in `audit.api_key_name`. Eine Ausnahme für den Namen eines Schlüssels, als Benutzer oder als Wert von `principalUser`, lässt weiterhin jeden Schlüssel dieses Namens aus, und eine für `api-key:` gefolgt von der ID des Schlüssels lässt nur diesen Schlüssel aus.
 - Jede Ausnahme sagt unter **Grund**, warum sie gilt, was jeder sieht, der die Liste liest, und hält fest, wer sie wann hinzugefügt hat. Für eine Entität oder einen Wert lässt sich **Läuft ab am** setzen, danach sieht die Regel sie wieder; ein Zeitfenster endet von selbst.
 - **Status** zeigt, wo jede steht: **Aktiv**, **Bevorstehend** für ein Zeitfenster, das noch nicht begonnen hat, **Abgelaufen** oder **Beendet**. Unter dem Namen einer Regel in **Erkennungsregeln** zählt eine Zeile ihre aktiven Ausnahmen, und **Ausnahmen anzeigen** in der Zeile der Regel öffnet die Liste, auf sie gefiltert.
 - Ausgelassene Ereignisse werden entfernt, bevor die Regel irgendetwas zählt, sodass sie nie zu ihrem **Schwellenwert der Trefferanzahl** zählen und keinen Fall, keine Warnung, keinen Vorfall und keinen Befund eröffnen. Ausnahmen gelten für jeden Lauf der Regel, Korrelationen eingeschlossen, und für **Auf vergangene Ereignisse anwenden**, aber nie für einen Testangriff, der prüft, dass Ereignisse ankommen.

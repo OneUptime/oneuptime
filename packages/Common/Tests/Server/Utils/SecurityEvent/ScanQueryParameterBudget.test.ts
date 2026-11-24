@@ -198,6 +198,7 @@ function prefilterWords(): Array<string> {
       (group: SecurityLogPrefilterGroup): Array<string> => {
         return [
           group.requires,
+          ...(group.requiresAnyOf || []),
           ...group.anyOf,
           ...(group.noneOf || []),
           ...(group.unlessAnyOf || []),

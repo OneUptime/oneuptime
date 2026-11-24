@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 可以用 `?format=`、`x-oneuptime-security-event-format` 标头，或顶层的 `"format"` 字段指定格式。不指定时，每个事件的格式会单独判断，所以一个 Webhook 可以混合发送检测和原始事件。
 
 - 正文可以是一个事件、一个事件数组，或 `{ "events": [...] }`。
+- 一个批次可以用 gzip 压缩，并带上 `Content-Encoding: gzip` 发送：它会被当作未压缩的同一批次读取。Fluent Bit 的 `http` 输出用 `compress gzip` 压缩，Vector 的 `http` 接收器用 `compression = "gzip"`，Logstash 的 `http` 输出用 `http_compression => true`。只有 JSON 会以压缩形式读取：其他类型的压缩正文会以 `400` 被拒绝。
 - `x-oneuptime-service-name` 标头指定事件所属的遥测服务。没有它时，事件属于以第一个事件的产品或供应商命名的服务，或属于 `Security Events`。
 - 不会因为无法映射而丢弃任何内容：来源的每个字段都会进入事件的属性。
 
@@ -174,6 +175,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日志中查找安全事件
 
-**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Palo Alto Networks、FortiGate 或 Cisco ASA 防火墙的记录、Kubernetes 审计记录和 Web 攻击都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
+**连接** 顶部的 **你的日志** 会把您已经发送到 OneUptime 的日志变成一个来源。开启 **在日志中查找安全事件** 后，项目的新日志每分钟都会被读取，其中的每次 SSH 或 Windows 登录、sudo 命令、云审计记录、安全产品的 CEF 或 LEEF 记录、Palo Alto Networks、FortiGate 或 Cisco ASA 防火墙的记录、Kubernetes 审计记录、Web 攻击和被拒绝的敏感文件请求都会存储为安全事件。各类内容的范围请参阅 [安全入门](/docs/telemetry/security-getting-started#在日志中查找安全事件)。
 
 每一类都以普通日志的形式到达 OneUptime：
 
@@ -298,6 +300,10 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 
 执行哈希的规则会为安全事件保存地址，因此事件会指出该地址，除非其令牌已超过 30 天，或是在令牌有密钥之前生成的：请参阅[清理敏感数据](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感数据)。要找到这些事件，请搜索 `@oneuptime.request.client_address_hidden:scrub-rule`。规则在地址处留下的内容（例如 `[REDACTED]`）保存在 `oneuptime.request.client_address_scrubbed` 中。对于目标地址，请搜索 `@oneuptime.target_address_hidden:scrub-rule`。
 
+按地址计数的检测规则应按 `principalIp` 或 `targetIp` 计数，就像规则库中的规则那样：它们会指出执行哈希的规则所生成令牌背后的地址。某种格式自身的地址字段，例如 `openstack.audit.initiator_address` 或 `asa.src_ip`，只保存日志写下的地址，因此在清理规则隐藏了地址的地方，它会保持为空。
+
+清除或遮盖用户的规则也会以同样的方式隐藏用户：凡是事件本应指出用户的地方，**源用户** 或 **目标用户** 都会说明是某条清理规则隐藏了该用户。在安全事件读取用户的位置，执行哈希的规则会为安全事件保存该用户：请求的 `enduser.id` 或 `user.id` 、AI 调用的用户，以及日志行指出的用户，例如云审计日志的主体。因此，事件会指出令牌背后的用户，关于该用户的案例会指出该账号，剧本也可以像对待其他任何用户一样对该账号采取行动。规则留下的内容保存在 `oneuptime.principal_user_hashed_as` 或 `oneuptime.target_user_hashed_as` 中，方便你在只包含令牌的日志和追踪中找到该用户。没有保存用户的令牌，例如在令牌有密钥之前生成的令牌，仍是事件的用户：规则会把它算作一个账号，任何剧本都不会对它采取行动。
+
 ## 浏览安全事件
 
 **事件** 是一个与日志和追踪浏览器类似的遥测浏览器：一个按严重程度显示时间窗口内事件的图表、一个分面侧栏、事件列表，以及一个显示所打开事件的每个字段和属性的面板。时间窗口、过滤器和搜索都保存在 URL 中，所以过滤后的视图可以分享，刷新后也不会丢失。
@@ -331,7 +337,16 @@ Key Vault、存储账户和 Azure SQL 数据库各自保留一份自己的审计
 
 ### Campaigns
 
-**攻击活动** 把每个发送过攻击请求的地址列为一行，包括攻击类型、工具、发送的请求，以及有多少请求通过。请求到达了你的应用的地址排在最前面。
+**攻击活动** 把每个发送过攻击请求的地址列为一行，包括攻击类型、工具、发送的请求，以及有多少请求通过。请求到达了你的应用的地址排在最前面。你的封禁列表已覆盖的行会显示封禁或质询持续到何时，并写明覆盖它的范围或网络。
+
+要一次封禁多个攻击者，请选择它们所在的行并点击 **封禁地址**。一个对话框会列出它封禁的每个地址和排除的每个地址，并说明原因：已被封禁、你自己的地址或受保护的地址、已登录用户在最近 30 天内用过的地址，或 OneUptime 无法检查的地址。除非你选择其他时长，否则封禁 24 小时，也可以用 **改为质询** 改为质询；每个封禁都会以你的名义进入你的[封禁列表](/docs/telemetry/security-cases#封禁列表)。
+
+**按网络分组** 把同一网络的地址放在一行：如果你的 [Cloudflare](/docs/integrations/cloudflare) 连接的事件给出 ASN，就按 ASN 分组，否则 IPv4 按 /24、IPv6 按 /48 分组。ASN 的行会列出其地址发送请求时所用的范围。**质询此网络** 会在执行前说明它将做什么、在哪里以及持续多久：除非你选择其他时长，否则为 24 小时；对之前质询过的网络，则使用阶梯中的下一级。Cloudflare 把范围放进它的质询列表，把 ASN 作为 IP Access Rule 保存，每个套餐都有这项功能。
+
+- 包含已登录用户在最近 30 天内用过的地址或你自己地址的网络永远不会被质询，对话框会写明是谁或什么。
+- 比 /24 更宽的范围（IPv6 为 /48）和整个 ASN 需要安全管理员、项目管理员或项目所有者。ASN 的行也会列出它的每个范围，任何可以封禁的人都可以质询这些范围。
+- 当 OneUptime 无法判断谁在使用某个网络时（因为它是整个 ASN，或清理规则隐藏了客户端地址），只有安全管理员、项目管理员或项目所有者在勾选表示知情后才能质询它。
+- 当服务器上关闭了安全事件时，不会封禁或质询任何内容。
 
 ### 关联分析
 
@@ -583,6 +598,7 @@ Detection Finding 是来自产品 `OneUptime Detections`、类别为 `Detection 
 | **一个时间窗口** | 从 **开始** 到 **结束** 之间的每个事件，两者最多相隔 30 天 |
 
 - 值的匹配不区分大小写， `*` 代表任意一串字符： `svc-*` 会跳过每个服务账号， `*.lab.example.com` 会跳过某个域的每台主机。IP 地址可以是一个范围，例如 `10.20.0.0/16` 。只有 `*` 的值会被拒绝：要停止一条规则，请关闭它。
+- OneUptime 自身审计日志中的事件会在 `principalUser` 中以 `api-key:` 加上 ID 来指代项目 API 密钥，因此两个同名的密钥是两个不同的操作者，任何剧本都不会把密钥当作可停用的用户提供。密钥的名称仍保留在事件的消息和 `audit.api_key_name` 中。针对密钥名称的例外，无论是作为用户还是作为 `principalUser` 的值，仍会跳过所有同名密钥；针对 `api-key:` 加上密钥 ID 的例外只跳过那一个密钥。
 - 每个例外都在 **原因** 中说明原因，读这个列表的每个人都能看到，并且会记录是谁在什么时候添加的。实体或值可以设置 **过期时间** ，过期之后规则会重新看到它；时间窗口会自行结束。
 - **状态** 说明每个例外所处的状态： **活动** 、尚未开始的时间窗口为 **即将开始** 、 **已过期** 或 **已结束** 。在 **检测规则** 中，规则名称下方的一行会统计它的生效中例外，规则所在行的 **查看例外** 会打开按该规则筛选的列表。
 - 被跳过的事件会在规则计数之前被排除，因此它们永远不会计入 **匹配次数阈值** ，也不会打开任何案例、警报、事件或检测结果。例外适用于规则的每一次运行，包括关联规则，也适用于 **在过去的事件上运行** ，但绝不适用于测试攻击，因为测试攻击用来检查事件能否送达。

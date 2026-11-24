@@ -90,6 +90,12 @@ export type LocatableRepositoryWithTree = LocatableRepository & {
 // The most repositories whose trees one request reads.
 export const MAX_REPOSITORIES_PROBED: number = 10;
 
+/*
+ * How many of the person's repositories are read at a time while looking
+ * for those whose trees can be probed.
+ */
+export const LOCATABLE_READ_PAGE_SIZE: number = 500;
+
 // The most frames one request locates.
 export const MAX_FRAMES_LOCATED: number = 50;
 
@@ -266,18 +272,59 @@ export default class SourceLocator {
 
   /*
    * The repositories a person may read whose files OneUptime reads in this
-   * project (CodeHostAccess): the only ones whose trees are read for them.
+   * project (CodeHostAccess): the only ones whose trees are read for them,
+   * and the ones Fix with AI offers on a finding - by name, every one of
+   * them, however many the project has (#10764). This read the first 500
+   * repositories by name and looked among those only, so a repository past
+   * them was never offered, a fix asked in it was refused as not available,
+   * and a project whose reachable repositories were all past them got no
+   * link at all. Read a page of the person's repositories at a time; with
+   * `limit`, only until that many are found - a request probes at most
+   * MAX_REPOSITORIES_PROBED trees, and a readiness check needs one.
    */
   @CaptureSpan()
   public static async getLocatableRepositories(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    limit?: number | undefined;
   }): Promise<Array<LocatableRepositoryWithTree>> {
-    const readable: Array<CodeRepository> =
-      await CodeTaskAccess.listReadableRepositories({
-        props: data.props,
-        projectId: data.projectId,
-      });
+    const locatable: Array<LocatableRepositoryWithTree> = [];
+
+    for (let skip: number = 0; ; skip += LOCATABLE_READ_PAGE_SIZE) {
+      const readable: Array<CodeRepository> =
+        await CodeTaskAccess.readReadableRepositoriesPage({
+          props: data.props,
+          projectId: data.projectId,
+          skip,
+          limit: LOCATABLE_READ_PAGE_SIZE,
+        });
+
+      locatable.push(
+        ...(await SourceLocator.getLocatableAmong({
+          projectId: data.projectId,
+          readable,
+        })),
+      );
+
+      if (
+        (data.limit !== undefined && locatable.length >= data.limit) ||
+        readable.length < LOCATABLE_READ_PAGE_SIZE
+      ) {
+        break;
+      }
+    }
+
+    return data.limit !== undefined
+      ? locatable.slice(0, Math.max(0, data.limit))
+      : locatable;
+  }
+
+  // Of some repositories the person may read, those whose files OneUptime reads, by name.
+  private static async getLocatableAmong(data: {
+    projectId: ObjectID;
+    readable: Array<CodeRepository>;
+  }): Promise<Array<LocatableRepositoryWithTree>> {
+    const readable: Array<CodeRepository> = data.readable;
 
     if (readable.length === 0) {
       return [];
@@ -307,7 +354,22 @@ export default class SourceLocator {
       props: { isRoot: true },
     });
 
-    return rows
+    // In the person's order, by name.
+    const place: Map<string, number> = new Map<string, number>(
+      readableIds.map((id: ObjectID, index: number): [string, number] => {
+        return [id.toString().toLowerCase(), index];
+      }),
+    );
+    const placeOf: (repository: CodeRepository) => number = (
+      repository: CodeRepository,
+    ): number => {
+      return place.get(repository.id?.toString().toLowerCase() || "") ?? 0;
+    };
+
+    return [...rows]
+      .sort((left: CodeRepository, right: CodeRepository): number => {
+        return placeOf(left) - placeOf(right);
+      })
       .filter((repository: CodeRepository): boolean => {
         const summary: CodeHostConnectionSummary | undefined = repository.id
           ? summaries.get(repository.id.toString())
@@ -398,10 +460,12 @@ export default class SourceLocator {
     props: DatabaseCommonInteractionProps;
     frames: Array<SourceFrame>;
   }): Promise<Array<SourceLink>> {
+    // As many as matchFrames probes.
     const repositories: Array<LocatableRepositoryWithTree> =
       await SourceLocator.getLocatableRepositories({
         projectId: data.projectId,
         props: data.props,
+        limit: MAX_REPOSITORIES_PROBED,
       });
 
     return await SourceLocator.matchFrames({

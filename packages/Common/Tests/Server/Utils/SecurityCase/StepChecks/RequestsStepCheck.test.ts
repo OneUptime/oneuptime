@@ -93,7 +93,7 @@ describe("how far the address's requests got", () => {
       {
         template: CHECK_REQUESTS_SINCE,
         values: {},
-        times: { time: WINDOW_START },
+        times: { since: WINDOW_START },
       },
     ]);
     expect(result.evidence.data).toMatchObject({

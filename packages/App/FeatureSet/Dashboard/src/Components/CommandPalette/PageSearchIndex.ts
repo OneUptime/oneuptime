@@ -2768,6 +2768,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "fail2ban",
               "challenge bots",
             ],
+            settings: [
+              /*
+               * Folded under the page's More settings (#10746): the result
+               * opens the fold at its card (HOURLY_LIMIT_CARD_KEY).
+               */
+              { name: "Hourly Limit", anchor: "hourly-limit" },
+            ],
           },
           {
             page: PageMap.SECURITY_BLOCKLIST,
@@ -3117,7 +3124,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DATA_SECURITY_SETTINGS_SCANNING,
             title: "Scan Settings",
             icon: IconProp.Clock,
-            keywords: ["scan schedule", "scanning", "sampling"],
+            keywords: [
+              "scan schedule",
+              "scanning",
+              "sampling",
+              "names and street addresses",
+            ],
           },
           {
             page: PageMap.DATA_SECURITY_SETTINGS_AI,

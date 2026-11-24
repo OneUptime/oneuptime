@@ -36,7 +36,7 @@ import {
  * No mocks: both modules under test are pure and import nothing but the enum.
  */
 describe("NotificationEmailRollupPolicy - the two sets partition the enum", () => {
-  test("the enum still has exactly 72 members, split 10 / 62", () => {
+  test("the enum still has exactly 73 members, split 10 / 63", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );
@@ -68,14 +68,16 @@ describe("NotificationEmailRollupPolicy - the two sets partition the enum", () =
      * and the runbooks' emails. 71 with a step of a security case that
      * stopped holding (#10340), never rolled up: the attacker is back. 72
      * with a security case OneUptime AI handed to people (#10352), never
-     * rolled up: a case nobody is working has to be picked up now.
+     * rolled up: a case nobody is working has to be picked up now. 73 with
+     * a custom probe a major release behind (#9977), which rolls up with the
+     * probes' other emails: it is told once, and waits well.
      */
-    expect(allEventTypes.length).toBe(72);
+    expect(allEventTypes.length).toBe(73);
     expect(NEVER_ROLLED_UP_EVENT_TYPES.size).toBe(10);
-    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(62);
+    expect(ROLLUP_ELIGIBLE_EVENT_TYPES.size).toBe(63);
   });
 
-  test("their union is exactly the enum, so a 73rd member fails CI until classified", () => {
+  test("their union is exactly the enum, so a 74th member fails CI until classified", () => {
     const allEventTypes: Array<NotificationSettingEventType> = Object.values(
       NotificationSettingEventType,
     );

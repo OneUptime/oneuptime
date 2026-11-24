@@ -22,7 +22,9 @@ import { I18nextProvider } from "react-i18next";
 import AuthenticatorAppSetupCode, {
   copySelectedKeyWhole,
 } from "../../../../UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode";
+import AuthenticatorAppHandOff from "../../../../UI/Utils/AuthenticatorAppHandOff";
 import { Logger } from "../../../../UI/Utils/Logger";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 
 /*
  * What a person adds an authenticator app with: its QR code, and the setup
@@ -93,6 +95,7 @@ const GERMAN: Record<string, string> = {
     "Falls Ihre App danach fragt, wählen Sie einen zeitbasierten Schlüssel.",
   Copy: "Kopieren",
   "Copied!": "Kopiert!",
+  "Add to Authenticator App": "Zur Authenticator-App hinzufügen",
 };
 
 const german: i18n = createInstance();
@@ -143,9 +146,53 @@ const shownKey: () => string = (): string => {
 const originalClipboard: PropertyDescriptor | undefined =
   Object.getOwnPropertyDescriptor(navigator, "clipboard");
 
+const originalMatchMedia: PropertyDescriptor | undefined =
+  Object.getOwnPropertyDescriptor(window, "matchMedia");
+
+const ADD_TO_APP: string = "Add to Authenticator App";
+
+/*
+ * What the reader's main pointer is, as the browser answers "(pointer:
+ * coarse)": a finger on a phone or a tablet, a mouse on a desktop, or a
+ * browser with no matchMedia at all.
+ */
+const pointerIs: (pointer: "finger" | "mouse" | "unknown") => void = (
+  pointer: "finger" | "mouse" | "unknown",
+): void => {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value:
+      pointer === "unknown"
+        ? undefined
+        : (query: string): MediaQueryList => {
+            return {
+              matches: pointer === "finger" && query === "(pointer: coarse)",
+              media: query,
+              onchange: null,
+              addListener: () => {},
+              removeListener: () => {},
+              addEventListener: () => {},
+              removeEventListener: () => {},
+              dispatchEvent: () => {
+                return false;
+              },
+            } as MediaQueryList;
+          },
+  });
+};
+
+const addToApp: () => HTMLElement = (): HTMLElement => {
+  return screen.getByRole("button", { name: ADD_TO_APP });
+};
+
+type HandOffSpy = ReturnType<typeof jest.spyOn>;
+
 beforeEach(() => {
   mockQRCodeImage.pending = [];
   jest.spyOn(Logger, "error").mockImplementation(() => {});
+  // A desktop's mouse, unless a test says otherwise.
+  pointerIs("mouse");
 });
 
 afterEach(() => {
@@ -158,6 +205,16 @@ afterEach(() => {
     Object.defineProperty(navigator, "clipboard", {
       value: undefined,
       configurable: true,
+    });
+  }
+
+  if (originalMatchMedia) {
+    Object.defineProperty(window, "matchMedia", originalMatchMedia);
+  } else {
+    Object.defineProperty(window, "matchMedia", {
+      value: undefined,
+      configurable: true,
+      writable: true,
     });
   }
 });
@@ -419,6 +476,208 @@ describe("AuthenticatorAppSetupCode", () => {
       screen.getByRole("button", { name: "Kopieren" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "QR-Code" })).toBeInTheDocument();
+  });
+});
+
+/*
+ * ADD TO AUTHENTICATOR APP, ON A PHONE (issue #6651).
+ *
+ * A phone cannot scan its own screen: someone signing in on their phone,
+ * whose administrator requires two-factor authentication, was shown a QR
+ * code they could not scan, and had to unfold the setup key and copy it
+ * over. On a touch screen the enrolment is now handed straight to the
+ * authenticator app on the device - the otpauth:// URL the code holds - and
+ * the code and the key stay beside it.
+ */
+describe("Add to Authenticator App, on a touch screen", () => {
+  // An authenticator app's enrolment, with a secret drawn from the stream.
+  const enrolmentUrl: (random: SeededRandom) => string = (
+    random: SeededRandom,
+  ): string => {
+    const base32: string = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    let secret: string = "";
+
+    for (let place: number = 0; place < 16 + random(17); place++) {
+      secret += base32[random(base32.length)];
+    }
+
+    return `otpauth://totp/OneUptime:person.${random(100000)}%40example.com?issuer=OneUptime&secret=${secret}&algorithm=SHA1&digits=6&period=30`;
+  };
+
+  const handOff: () => HandOffSpy = (): HandOffSpy => {
+    return jest
+      .spyOn(AuthenticatorAppHandOff, "open")
+      .mockImplementation(() => {});
+  };
+
+  test("is offered under the code, and hands the authenticator app exactly the URL the code holds", async () => {
+    pointerIs("finger");
+    const open: HandOffSpy = handOff();
+
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+
+    expect(addToApp()).toHaveAttribute("type", "button");
+
+    fireEvent.click(addToApp());
+
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(open).toHaveBeenCalledWith(OTP_URL);
+    // The same URL the QR code was drawn from.
+    expect(mockQRCodeImage.pending[0]!.text).toBe(OTP_URL);
+  });
+
+  test("hands over exactly the enrolment it draws, whatever its secret and account", async () => {
+    pointerIs("finger");
+    const open: HandOffSpy = handOff();
+    const random: SeededRandom = seededRandom(6651);
+
+    for (let index: number = 0; index < 25; index++) {
+      const url: string = enrolmentUrl(random);
+
+      render(<AuthenticatorAppSetupCode otpUrl={url} />);
+      await drawCode();
+
+      fireEvent.click(addToApp());
+
+      expect({ index, handedOver: open.mock.calls[index]![0] }).toEqual({
+        index,
+        handedOver: url,
+      });
+      expect({ index, drawn: mockQRCodeImage.pending[index]!.text }).toEqual({
+        index,
+        drawn: url,
+      });
+
+      cleanup();
+    }
+  });
+
+  test("keeps the code and the key beside it: the authenticator may be on another device, or no app may answer", async () => {
+    pointerIs("finger");
+    handOff();
+
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+
+    expect(screen.getByTestId("qr-code")).toHaveAttribute("src", IMAGE);
+
+    fireEvent.click(toggle());
+
+    expect(shownKey()).toBe(KEY);
+    expect(addToApp()).toBeInTheDocument();
+  });
+
+  test("puts the secret nowhere new: no link, and no attribute of the page holds the URL or its key", async () => {
+    pointerIs("finger");
+    handOff();
+
+    const { container } = render(
+      <AuthenticatorAppSetupCode otpUrl={OTP_URL} />,
+    );
+    await drawCode();
+    fireEvent.click(toggle());
+
+    expect(container.querySelector("a")).toBeNull();
+
+    const attributes: Array<string> = Array.from(
+      container.querySelectorAll("*"),
+    ).flatMap((element: Element): Array<string> => {
+      return Array.from(element.attributes).map((attribute: Attr): string => {
+        return `${attribute.name}=${attribute.value}`;
+      });
+    });
+
+    expect(
+      attributes.filter((attribute: string): boolean => {
+        return attribute.includes(KEY) || attribute.includes("otpauth");
+      }),
+    ).toEqual([]);
+  });
+
+  test("is offered in place of a code that cannot be drawn too, above the key", async () => {
+    pointerIs("finger");
+    const open: HandOffSpy = handOff();
+
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await failCode();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(QR_FAILED);
+    expect(shownKey()).toBe(KEY);
+
+    fireEvent.click(addToApp());
+
+    expect(open).toHaveBeenCalledWith(OTP_URL);
+  });
+
+  test.each([
+    ["a desktop, where the scheme usually opens nothing", "mouse"],
+    ["a browser that cannot say what its pointer is", "unknown"],
+  ])("is not offered on %s", async (_name: string, pointer: string) => {
+    pointerIs(pointer as "mouse" | "unknown");
+
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+
+    expect(
+      screen.queryByRole("button", { name: ADD_TO_APP }),
+    ).not.toBeInTheDocument();
+    // The code and the key are as they were.
+    expect(toggle()).toBeInTheDocument();
+  });
+
+  test("is not offered for an enrolment no authenticator app could take", async () => {
+    pointerIs("finger");
+
+    render(
+      <AuthenticatorAppSetupCode otpUrl="otpauth://totp/OneUptime?issuer=OneUptime" />,
+    );
+    await drawCode();
+
+    expect(
+      screen.queryByRole("button", { name: ADD_TO_APP }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("hands over the enrolment it is given now", async () => {
+    pointerIs("finger");
+    const open: HandOffSpy = handOff();
+    const next: string = "otpauth://totp/OneUptime:ada?secret=ABCDEFGHIJKLMNOP";
+
+    const { rerender } = render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+
+    rerender(<AuthenticatorAppSetupCode otpUrl={next} />);
+    fireEvent.click(addToApp());
+
+    expect(open).toHaveBeenCalledWith(next);
+  });
+
+  test("is big enough for a finger to press", async () => {
+    pointerIs("finger");
+
+    render(<AuthenticatorAppSetupCode otpUrl={OTP_URL} />);
+    await drawCode();
+
+    expect(addToApp().className).toContain("[@media(pointer:coarse)]:min-h-11");
+  });
+
+  test("speaks the reader's language", async () => {
+    pointerIs("finger");
+    const open: HandOffSpy = handOff();
+
+    render(
+      <I18nextProvider i18n={german}>
+        <AuthenticatorAppSetupCode otpUrl={OTP_URL} />
+      </I18nextProvider>,
+    );
+    await drawCode();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Zur Authenticator-App hinzufügen" }),
+    );
+
+    expect(open).toHaveBeenCalledWith(OTP_URL);
   });
 });
 

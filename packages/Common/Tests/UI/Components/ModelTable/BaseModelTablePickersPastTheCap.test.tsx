@@ -440,3 +440,186 @@ describe("an entity filter restored from a link", () => {
     });
   });
 });
+
+/*
+ * A FILTER THAT SEARCHES THE SERVER, WITH CHOICES OF ITS OWN BESIDE ITS
+ * SEARCH (#10764).
+ *
+ * A telemetry list's Service filter is a list of values (any of several,
+ * no operator), its choices records of the project's database searched on
+ * the server, and one choice no record holds: "Unknown Service", the
+ * telemetry that named no service. The options a filter is handed are
+ * offered beside its search, always, and name a value of theirs the filter
+ * holds - never read by its id (it would read as gone). A filter that
+ * marks archived records reads each one's archive switch.
+ */
+describe("a filter that searches the server, with choices of its own", () => {
+  const STAND_IN_ID: string = "f0000000-0000-4000-8000-0000000000ee";
+  const ARCHIVED_TEAM_ID: string = "f0000000-0000-4000-8000-0000000000ac";
+
+  const STAND_IN_OPTION: {
+    value: string;
+    label: string;
+    isUserContent: boolean;
+  } = {
+    value: STAND_IN_ID,
+    label: "Unknown Service",
+    isUserContent: false,
+  };
+
+  const TEAM_PICK_FILTER: Filter<Monitor> = {
+    title: "Owner Team",
+    type: FieldType.MultiSelectDropdown,
+    field: { ownerTeams: { name: true } },
+    filterEntityType: Team,
+    filterQuery: {},
+    filterDropdownField: { label: "name", value: "_id" },
+    filterDropdownOptions: [STAND_IN_OPTION],
+    marksArchivedRecords: true,
+  } as unknown as Filter<Monitor>;
+
+  beforeEach(() => {
+    server.add(Team, [
+      { _id: ARCHIVED_TEAM_ID, name: "WB1500KSK retired", isArchived: true },
+    ]);
+  });
+
+  async function openFilterForm(): Promise<HTMLElement> {
+    fireEvent.click(
+      await screen.findByRole("button", { name: "More options" }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: "Filter" }));
+
+    return await screen.findByRole("combobox", {
+      name: "Filter by Owner Team",
+    });
+  }
+
+  function hasOperatorPicker(picker: HTMLElement): boolean {
+    return Boolean(
+      (picker.closest("div.grid") as HTMLElement).querySelector(
+        '[id^="operator-selector-trigger-"]',
+      ),
+    );
+  }
+
+  test("restored from a link: a record past the 10,000th named by its id, its own choice by itself, and both applied", async () => {
+    TableFilterUrlState.write("monitors-table", "filter", {
+      ownerTeams: [LATE_TEAM_ID, STAND_IN_ID],
+    });
+
+    renderTable([TEAM_PICK_FILTER]);
+
+    await waitFor(() => {
+      expect(appliedChips()).toMatch(
+        /Owner Team is any of: WB1500KSK on-site, Unknown Service/,
+      );
+    });
+
+    // Read by their ids, its own choice never; with the archive switch.
+    const reads: Array<CappedListCall> = server
+      .callsFor(Team)
+      .filter((call: CappedListCall): boolean => {
+        return call.query["_id"] instanceof Includes;
+      });
+
+    expect(reads).toHaveLength(1);
+    expect(
+      (reads[0]!.query["_id"] as Includes).values.map(
+        (value: unknown): string => {
+          return String(value).toLowerCase();
+        },
+      ),
+    ).toEqual([LATE_TEAM_ID]);
+    expect(reads[0]!.select["isArchived"]).toBe(true);
+
+    expect((lastRowQuery()["ownerTeams"] as Includes).values).toEqual([
+      LATE_TEAM_ID,
+      STAND_IN_ID,
+    ]);
+  });
+
+  test("its picker has no operator, offers its own choice beside the search, marks an archived record, and holds what is picked as a list of values", async () => {
+    renderTable([TEAM_PICK_FILTER]);
+
+    const picker: HTMLElement = await openFilterForm();
+
+    expect(hasOperatorPicker(picker)).toBe(false);
+
+    await act(async () => {
+      fireEvent.focus(picker);
+    });
+
+    expect((await screen.findAllByRole("option"))[0]!).toHaveTextContent(
+      "Unknown Service",
+    );
+
+    await act(async () => {
+      fireEvent.change(picker, { target: { value: "WB1500KSK" } });
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.queryAllByRole("option").map((option: HTMLElement): string => {
+          return option.textContent || "";
+        }),
+      ).toEqual([
+        "WB1500KSK on-site",
+        "WB1500KSK remote",
+        "WB1500KSK retiredArchived",
+      ]);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("option", { name: /WB1500KSK remote/ }));
+    });
+
+    await act(async () => {
+      fireEvent.focus(picker);
+      fireEvent.change(picker, { target: { value: "Unknown" } });
+    });
+
+    const standIn: HTMLElement = await screen.findByRole("option", {
+      name: /Unknown Service/,
+    });
+
+    await act(async () => {
+      fireEvent.click(standIn);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    await waitFor(() => {
+      expect((lastRowQuery()["ownerTeams"] as Includes).values).toEqual([
+        OTHER_LATE_TEAM_ID,
+        STAND_IN_ID,
+      ]);
+    });
+    expect(TableFilterUrlState.read("monitors-table", "filter")).toEqual({
+      ownerTeams: [OTHER_LATE_TEAM_ID, STAND_IN_ID],
+    });
+  });
+
+  test("an entity filter handed choices of its own keeps its operators and offers them too", async () => {
+    renderTable([
+      {
+        ...OWNER_TEAMS_FILTER,
+        filterDropdownOptions: [STAND_IN_OPTION],
+      } as unknown as Filter<Monitor>,
+    ]);
+
+    const picker: HTMLElement = await openFilterForm();
+
+    expect(hasOperatorPicker(picker)).toBe(true);
+
+    await act(async () => {
+      fireEvent.focus(picker);
+    });
+
+    expect((await screen.findAllByRole("option"))[0]!).toHaveTextContent(
+      "Unknown Service",
+    );
+  });
+});

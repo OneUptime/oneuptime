@@ -162,7 +162,7 @@ Cloudflare 的 Logpush 也能发送防火墙事件，自 2026 年 9 月 30 日�
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | 创建它的两个列表，并添加和移除其中的地址。 |
 | `Zone > Zone WAF > Edit`，在每个要封禁的区域上 | 添加它的自定义规则，并读取该区域自己的规则。 |
-| `Account > Account Firewall Access Rules > Edit` | 在没有空余列表或自定义规则的套餐上，添加和移除 IP Access Rules。 |
+| `Account > Account Firewall Access Rules > Edit` | 添加和移除 IP Access Rules：用于没有空余列表或自定义规则的套餐，以及从 **攻击活动** 按 ASN 质询的网络。 |
 
 :::steps
 ### 为令牌授予写入权限
@@ -183,6 +183,7 @@ Cloudflare 的 Logpush 也能发送防火墙事件，自 2026 年 9 月 30 日�
 | 列表 `oneuptime_block` 和 `oneuptime_challenge` | 账户中的两个 IP 列表，一个用于封禁，一个用于质询。它们的描述写明你的 OneUptime 项目。 |
 | 每个区域中，每个列表一条自定义规则 | 操作为 Block 的 `(ip.src in $oneuptime_block)`，以及操作为 Managed Challenge 的 `(ip.src in $oneuptime_challenge)`。它们的描述说明由 OneUptime 管理。 |
 | 每个封禁一个列表项 | 其注释写明案例以及封禁的结束时间，例如 `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`。 |
+| 每个按 ASN 质询的网络一条 IP Access Rule | 从 **攻击活动** 质询的整个网络，以目标为 `asn` 的 IP Access Rule 保存，每个套餐都有这项功能。其备注与列表项的注释相同。如果令牌没有 `Account > Account Firewall Access Rules > Edit`，质询不会生效，**封禁列表** 会说明需要添加哪项权限。 |
 
 每条规则都排在该区域自定义规则的首位，因此会先于你的规则运行：你的 Skip 规则无法让被封禁的地址通过。当你的 Skip 规则放行某些地址时，例如你的监视器或合作伙伴的地址，**封禁状态** 会列出它们。**保护这些地址** 会把它们添加到 **受保护的实体**，任何人都无法封禁其中的地址。
 

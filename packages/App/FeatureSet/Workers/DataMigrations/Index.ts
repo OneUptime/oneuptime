@@ -160,6 +160,8 @@ import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGi
 import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExplanationLogs";
 import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
 import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
+import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
+import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -215,6 +217,7 @@ import BackfillTelemetryMilestonesFromClickhouse from "./BackfillTelemetryMilest
 import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabilityAttentionColumns";
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
+import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1621,6 +1624,31 @@ const DataMigrations: Array<DataMigrationBase> = [
    * only, idempotent; before the two slots kept last.
    */
   new AddSecurityCaseAiHandOffNotificationSettingsForUsers(),
+  /*
+   * Metrics monitors on a Container App's requests that read them with the
+   * average a minute at a time read the average status code category since
+   * the Azure connection reads Requests split by statusCodeCategory
+   * (#10837): each moves to the Sum the app's Metrics tab reads
+   * (CloudResourceMetricAggregation), so it reads the app's requests again,
+   * and says so in its feed. Postgres only, idempotent; no ordering
+   * requirement of its own; before the two slots kept last.
+   */
+  new RestoreContainerAppRequestMonitorTotals(),
+  /*
+   * The Rule Library's OpenStack rules that count per address count per
+   * principalIp, which names an address a Hash scrub rule hid (#10773):
+   * each project's copy still the library's is given that fix. Postgres
+   * only, idempotent; before the two slots kept last.
+   */
+  new UpgradeLibraryRuleCopiesForHashedAddresses(),
+  /*
+   * Scanning for sensitive files, the Scanners policy's new rule (#10745),
+   * for each project whose Scanners policy is in its trial run or on
+   * already, as turning it on would have added it - and nothing else of
+   * the policy's. Postgres only, idempotent; before the two slots kept
+   * last.
+   */
+  new AddSensitiveFileRuleToScannersPolicies(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

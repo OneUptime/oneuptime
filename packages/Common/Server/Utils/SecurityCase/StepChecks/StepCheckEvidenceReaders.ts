@@ -1,6 +1,11 @@
 import ObjectID from "../../../../Types/ObjectID";
 import { RouteAttackScope } from "../../../../Utils/SecurityCase/RouteAttackScope";
 import AccountFixState, { AccountFixReading } from "./Evidence/AccountFixState";
+import AccountChangesState, {
+  AccountChangesReading,
+} from "./Evidence/AccountChangesState";
+import { AccountChange } from "../../../../Utils/SecurityCase/AttackAccountChanges";
+import { SecurityCaseEventSnapshot } from "../../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import AddressBlocks, { AddressBlockEvidence } from "./Evidence/AddressBlocks";
 import AddressFacts, { AddressFactsReading } from "./Evidence/AddressFacts";
 import AddressRequests, {
@@ -179,6 +184,19 @@ export function createStepCheckEvidence(data: {
       return once(`mfa:${user.toLowerCase()}`, () => {
         return AccountFixState.readMfa({ projectId, value: user });
       });
+    },
+    readKeptEvents: (): Promise<Array<SecurityCaseEventSnapshot>> => {
+      return once("kept-events", () => {
+        return AccountChangesState.readKeptEvents({
+          projectId,
+          securityCaseId: data.securityCase.securityCaseId,
+        });
+      });
+    },
+    readAccountChanges: (
+      changes: Array<AccountChange>,
+    ): Promise<AccountChangesReading> => {
+      return AccountChangesState.read({ projectId, changes });
     },
   };
 }

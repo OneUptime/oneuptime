@@ -36,10 +36,12 @@ import React, {
 
 export interface ComponentProps {
   /*
-   * Code's first page: every repository a request can go to, picked in the
-   * box. A repository's own page passes `repository` instead.
+   * Code's first page: the repository the box starts on, as the page read
+   * it (pickStartingRepository) - the picker in the box finds every other
+   * on the server, however many the project has (#10764). Null while the
+   * reader has none. A repository's own page passes `repository` instead.
    */
-  repositories?: Array<CodeRepositoryListItem> | undefined;
+  startingRepository?: CodeRepositoryListItem | null | undefined;
   /*
    * A repository's page: the repository, as the page read it - with whether
    * the reader may ask AI in it, and what stops AI there.
@@ -67,7 +69,9 @@ export const getRememberedRepositoryKey: (projectId: string) => string = (
   return `oneuptime.code.repository.${projectId}`;
 };
 
-const readRememberedRepositoryId: () => string | null = (): string | null => {
+export const readRememberedRepositoryId: () => string | null = ():
+  | string
+  | null => {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   if (!projectId) {
@@ -171,14 +175,15 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const repositories: Array<CodeRepositoryListItem> = props.repositories || [];
   const isPicking: boolean = !props.repository;
 
-  const [pickedId, setPickedId] = useState<string | null>(() => {
-    return props.repository
-      ? props.repository.repository.id
-      : pickStartingRepository(repositories, readRememberedRepositoryId());
+  // The repository picked in the box, as the list read it.
+  const [picked, setPicked] = useState<CodeRepositoryListItem | null>(() => {
+    return props.startingRepository || null;
   });
+  const pickedId: string | null = props.repository
+    ? props.repository.repository.id
+    : picked?.id || null;
   const [branch, setBranch] = useState<string | null>(null);
   const [access, setAccess] = useState<CodeRepositoryResponse | null>(null);
   // The repository whose read failed: the box stops waiting for it.
@@ -192,23 +197,28 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
     Map<string, CodeRepositoryResponse>
   > = useRef<Map<string, CodeRepositoryResponse>>(new Map());
 
-  // A repository list that no longer holds the pick starts over.
+  /*
+   * The page read the repository to start on again (a repository just
+   * connected): the box starts there while nothing is picked, or while the
+   * pick was the one the page started it on.
+   */
+  const startingIdRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(props.startingRepository?.id || null);
+
   useEffect(() => {
     if (!isPicking) {
       return;
     }
 
-    if (
-      !pickedId ||
-      !repositories.some((repository: CodeRepositoryListItem): boolean => {
-        return repository.id === pickedId;
-      })
-    ) {
-      setPickedId(
-        pickStartingRepository(repositories, readRememberedRepositoryId()),
-      );
+    const startingId: string | null = props.startingRepository?.id || null;
+
+    if (!picked || picked.id === startingIdRef.current) {
+      setPicked(props.startingRepository || null);
     }
-  }, [repositories]);
+
+    startingIdRef.current = startingId;
+  }, [props.startingRepository]);
 
   /*
    * Whether the reader may ask AI in the repository picked, and what stops
@@ -252,11 +262,9 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
     };
   }, [pickedId, isPicking]);
 
-  const pickedListItem: CodeRepositoryListItem | undefined = repositories.find(
-    (repository: CodeRepositoryListItem): boolean => {
-      return repository.id === pickedId;
-    },
-  );
+  const pickedListItem: CodeRepositoryListItem | undefined = isPicking
+    ? picked || undefined
+    : undefined;
 
   const current: CodeRepositoryResponse | null = props.repository || access;
   const blocker: CodeTaskBlocker | null = current?.blocker || null;
@@ -317,13 +325,12 @@ const CodeAskBox: FunctionComponent<ComponentProps> = (
     <>
       {isPicking ? (
         <CodeRepositoryPicker
-          repositories={repositories}
-          value={pickedId}
-          onChange={(repositoryId: string) => {
-            if (repositoryId !== pickedId) {
-              setPickedId(repositoryId);
+          value={picked}
+          onChange={(repository: CodeRepositoryListItem) => {
+            if (repository.id !== pickedId) {
+              setPicked(repository);
               setBranch(null);
-              rememberRepositoryId(repositoryId);
+              rememberRepositoryId(repository.id);
             }
           }}
         />

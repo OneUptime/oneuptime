@@ -60,6 +60,11 @@ import API from "Common/Utils/API";
 import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger from "Common/Server/Utils/Logger";
+import LogSecretValues from "Common/Server/Utils/LogSecretValues";
+import MonitorSecretValueRedaction, {
+  HiddenSecretValues,
+} from "Common/Server/Utils/Monitor/MonitorSecretValueRedaction";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
 import TelemetryContext from "Common/Server/Utils/Telemetry/TelemetryContext";
 import {
@@ -164,7 +169,17 @@ export default class MonitorUtil {
         [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
-        return this.probeMonitorTestInternal(monitorTest);
+        /*
+         * Every line logged while the test runs - its check, its report and
+         * the debug line of its result - hides the values of the secrets
+         * filled into its steps (#10875).
+         */
+        return LogSecretValues.run(
+          MonitorUtil.getSecretValuesToHide(monitorTest.monitorSteps),
+          () => {
+            return this.probeMonitorTestInternal(monitorTest);
+          },
+        );
       },
     );
   }
@@ -217,29 +232,81 @@ export default class MonitorUtil {
 
       if (result) {
         // report this back to Probe API.
-        const monitorTestIngestUrl: URL = URL.fromString(
-          PROBE_INGEST_URL.toString(),
-        ).addRoute(
-          "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
-        );
-
-        await API.fetch<JSONObject>({
-          method: HTTPMethod.POST,
-          url: monitorTestIngestUrl,
-          data: {
-            ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
-          },
-          headers: {},
-          options:
-            ProbeAPIRequest.getDefaultRequestOptions(monitorTestIngestUrl),
+        await MonitorUtil.reportResult({
+          url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+            "/probe/response/monitor-test-ingest/" + monitorTest.id?.toString(),
+          ),
+          result: result,
+          what: `monitor test ${monitorTest.id?.toString()}`,
         });
       }
+
+      /*
+       * Its result as the debug log writes it, as a monitor's is: the
+       * values of the secrets filled into the step hidden.
+       */
+      logger.debug("Probed monitor test step:");
+      logger.debug(this.writeResultForLog(result, monitorStep));
 
       results.push(result);
     }
 
     return results;
+  }
+
+  /*
+   * Posts a step's result to OneUptime. A post that fails is thrown on, as
+   * it always was, so the steps after it wait for the next check - but as
+   * an error that says why, never as the client's own error: that holds
+   * the request it sent, the result itself, which can say a secret's value
+   * back, and the probe's key, and the line that logs it would write them
+   * all (#10875).
+   */
+  private static async reportResult(data: {
+    url: URL;
+    result: ProbeMonitorResponse;
+    // Whose result: "monitor <id>" or "monitor test <id>".
+    what: string;
+  }): Promise<void> {
+    try {
+      await API.fetch<JSONObject>({
+        method: HTTPMethod.POST,
+        url: data.url,
+        data: {
+          ...ProbeAPIRequest.getDefaultRequestBody(),
+          probeMonitorResponse: data.result as any,
+        },
+        headers: {},
+        options: ProbeAPIRequest.getDefaultRequestOptions(data.url),
+      });
+    } catch (err) {
+      throw new Error(
+        `Reporting the check of ${data.what} step ${data.result.monitorStepId?.toString()} to OneUptime failed: ${API.getFriendlyErrorMessage(err as Error)}`,
+      );
+    }
+  }
+
+  /*
+   * The values of the Text secrets the server filled into a monitor's
+   * steps, which it hands a probe that hides them in its log
+   * (MonitorStep.secretValuesToHide, #10875): every step's, since a line
+   * logged between two steps is logged during the check too.
+   */
+  public static getSecretValuesToHide(
+    monitorSteps: MonitorSteps | undefined | null,
+  ): Array<string> {
+    const values: Array<string> = [];
+
+    for (const monitorStep of monitorSteps?.data?.monitorStepsInstanceArray ||
+      []) {
+      for (const value of monitorStep?.data?.secretValuesToHide || []) {
+        if (!values.includes(value)) {
+          values.push(value);
+        }
+      }
+    }
+
+    return values;
   }
 
   public static async probeMonitor(monitor: Monitor): Promise<void> {
@@ -262,7 +329,17 @@ export default class MonitorUtil {
         [COMPONENT_ATTRIBUTE_KEY]: TelemetryComponent.Probe,
       },
       () => {
-        return this.probeMonitorInternal(monitor);
+        /*
+         * Every line logged while the monitor is checked - its steps'
+         * checks, their reports and the debug line of each result - hides
+         * the values of the secrets filled into its steps (#10875).
+         */
+        return LogSecretValues.run(
+          MonitorUtil.getSecretValuesToHide(monitor.monitorSteps),
+          () => {
+            return this.probeMonitorInternal(monitor);
+          },
+        );
       },
     );
   }
@@ -315,19 +392,12 @@ export default class MonitorUtil {
 
       if (result) {
         // report this back to Probe API.
-        const monitorIngestUrl: URL = URL.fromString(
-          PROBE_INGEST_URL.toString(),
-        ).addRoute("/probe/response/ingest");
-
-        await API.fetch<JSONObject>({
-          method: HTTPMethod.POST,
-          url: monitorIngestUrl,
-          data: {
-            ...ProbeAPIRequest.getDefaultRequestBody(),
-            probeMonitorResponse: result as any,
-          },
-          headers: {},
-          options: ProbeAPIRequest.getDefaultRequestOptions(monitorIngestUrl),
+        await MonitorUtil.reportResult({
+          url: URL.fromString(PROBE_INGEST_URL.toString()).addRoute(
+            "/probe/response/ingest",
+          ),
+          result: result,
+          what: `monitor ${monitor.id?.toString()}`,
         });
       }
 
@@ -364,9 +434,13 @@ export default class MonitorUtil {
   }
 
   /*
-   * A step's result as the debug log writes it (#10782, #10785): its
-   * destination, when that is a URL, by its scheme, host and port - the
-   * server filled the monitor's secrets into it - and every URL in what it
+   * A step's result as the debug log writes it (#10782, #10785, #10875):
+   * whole - a response's body and headers, a script's error, log lines and
+   * result, the timings, each attempt - with the values of the secrets the
+   * server filled into the step (MonitorStep.secretValuesToHide) hidden
+   * wherever they stand, in any form, as the server hides them in what it
+   * takes in (MonitorSecretValueRedaction). Its destination, when that is a
+   * URL, is named by its scheme, host and port, and every URL in what it
    * reports the same way. The result reported is not changed.
    */
   public static writeResultForLog(
@@ -377,19 +451,33 @@ export default class MonitorUtil {
       return result;
     }
 
+    const values: HiddenSecretValues | null =
+      MonitorSecretValueRedaction.compile(
+        monitorStep.data?.secretValuesToHide || [],
+      );
+
     const written: ProbeMonitorResponse = MonitorUrlInText.writeProbeResponse(
       result,
       this.getStepUrls(monitorStep),
     );
 
-    if (!(written.monitorDestination instanceof URL)) {
-      return written;
-    }
+    const destination: unknown = written.monitorDestination;
 
-    return {
-      ...written,
-      monitorDestination: MonitorLogUrl.write(written.monitorDestination),
-    } as unknown as JSONObject;
+    // A host or an address that is a secret's value is hidden too.
+    const forLog: ProbeMonitorResponse =
+      destination instanceof URL || (values && destination)
+        ? ({
+            ...written,
+            monitorDestination: MonitorSecretValueRedaction.redactText(
+              destination instanceof URL
+                ? MonitorLogUrl.write(destination)
+                : String(destination),
+              values,
+            ),
+          } as unknown as ProbeMonitorResponse)
+        : written;
+
+    return MonitorSecretValueRedaction.redactCheck(forLog, values);
   }
 
   /*

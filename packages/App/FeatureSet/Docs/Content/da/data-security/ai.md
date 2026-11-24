@@ -58,6 +58,8 @@ Datasikkerhed læser selv dine data, i sine scanninger, og gemmer intet af dem. 
 | **Kladder til fortegnelsen over behandlingsaktiviteter efter anmodning** | Datalagerets navn, type, udbyder, region, miljø og beskrivelse, navnene og kategorierne på dets datatyper og omtrent hvor mange poster det indeholder; de tjenester, der er set bruge det, og hvad deres teams har skrevet, at de er til, de værter og AI-udbydere, de sender til, og kopier af dets data i andre datalagre; hvor dets data er: landet for dets region, hvor clouden kopierer dem hen, og de lande, dets datatyper angiver, at de registrerede befinder sig i; dets cloudmærker, dets backupindstillinger, den opbevaring, der er sat for et telemetrilager, og det repository og de filer, der erklærer det | Nej: en person beder om det under **Gennemse kladder** eller et datalagers **Indstillinger** |
 | **Konsekvensanalyser** | Datalagerets navn, type, udbyder, region, miljø og beskrivelse, navnene og kategorierne på dets datatyper og omtrent hvor mange poster det indeholder; de tjenester, der er set bruge det, og hvad deres teams har skrevet, at de er til, de værter og AI-udbydere, de sender til, og kopier af dets data i andre datalagre; hvor dets data er: landet for dets region, hvor clouden kopierer dem hen, og de lande, dets datatyper angiver, at de registrerede befinder sig i; dets cloudmærker, dets backupindstillinger, den opbevaring, der er sat for et telemetrilager, og det repository og de filer, der erklærer det; dets fortegnelse over behandlingsaktiviteter, dets åbne problemer og dem, der er rettet for nylig, hvor eksponeret det er, hvem der kan nå det, talt op, og dets kryptering | Nej: en person beder om det under **Konsekvensanalyse** for et datalager, der har brug for en |
 | **Revisionsbevis** | Hvert krav i rammen, datalagrene inden for dens omfang ved navn, de kontroller, der er bevis for kravet, og hvor mange af dem der fejler; hvor mange af kravets problemer der blev åbnet og rettet i perioden, og hvor hurtigt; de risici, der er accepteret under kravet, med deres begrundelser og udløb, og de ressourcer, der har slået det fra, med deres. Aldrig hvem der accepterede en risiko eller slog et krav fra | Nej: en person beder om det under en rammes **Revisionsbevis** for den periode, vedkommende valgte |
+| **Datatyper fundet i dine datalagre** | Felter, som ingen detektor placerede, og som deler en form og et navn på tværs af dine datalagre: navnene på disse felter og på felterne ved siden af dem, og hvilken slags datalager hvert felt ligger i; formerne af deres værdier, som `AA-9999` for værdien `AB-1234`, og hvor mange værdier der blev læst; navnene på de datatyper, OneUptime allerede kender. Aldrig en værdi, heller ikke en maskeret | Ja: en indholdsscanning, der gemte sådanne felter, starter den, når tre eller flere felter i to eller flere datalagre deler en form og et navn, som ingen detektor kender |
+| **Beskriv det** | Den sætning, personen skrev i formularen for en datatype, og formerne af deres eksempler, som `AA-9999` for eksemplet `AB-1234`; aldrig selve eksemplerne, som Test det kører i din browser | Nej: en person beder om den, med **Beskriv det** i formularen for en datatype |
 
 **Forklar med AI** og **Spørg AI** læser også først dit teams [AI-kontekst](/docs/ai/ai-context), når der er en: de noter, dit team har skrevet til OneUptime AI om jeres systemer. **Analyse af nye problemer** læser den også.
 
@@ -91,6 +93,7 @@ Ejerforslagene gemmer det samme som Forklar med AI: Deres kalds rækker nævner 
 Hver AI-funktion i Datasikkerhed kører på den model, dit projekt valgte:
 
 - **Forklar med AI**, feltforslagene og vurderingerne af fund kører på den udbyder, en AI-regel vælger til opgaven, ellers på dit projekts standard-LLM-udbyder, ellers på serverens egen.
+- Datatyperne fundet i dine datalagre og **Beskriv det** kører på dit projekts standard-LLM-udbyder, ellers på serverens egen.
 - Kodeagenten i **Ret med AI** kører på den udbyder, en AI-regel vælger, ellers på en af dit projekts egne udbydere, ellers på serverens egen.
 - **Spørg AI** kører på den udbyder, der er valgt i chatten, ellers på dit projekts standard.
 - Læsningen af en pull requests følsomme data kører på den udbyder, repositoriet vælger til sine produktionsgennemgange, ellers på dit projekts standard-LLM-udbyder, ellers på serverens egen.
@@ -99,7 +102,7 @@ En selvhostet model kører dem alle: Ollama, vLLM eller ethvert OpenAI-kompatibe
 
 ### Med AI slået fra
 
-Med **Aktivér AI** slået fra under **Projektindstillinger → AI → AI-funktioner** sender OneUptime AI intet, og Datasikkerhed virker som før: hver side, kontrol, scanning og integration. Der vises ingen AI-knap på et problem, der spørges ikke om noget felt efter en scanning, og intet fund får en vurdering.
+Med **Aktivér AI** slået fra under **Projektindstillinger → AI → AI-funktioner** sender OneUptime AI intet, og Datasikkerhed virker som før: hver side, kontrol, scanning og integration. Der vises ingen AI-knap på et problem, der spørges ikke om noget felt efter en scanning, og intet fund får en vurdering. Der udkastes heller ingen datatype ud fra dine felter.
 
 ## Sådan måles det
 

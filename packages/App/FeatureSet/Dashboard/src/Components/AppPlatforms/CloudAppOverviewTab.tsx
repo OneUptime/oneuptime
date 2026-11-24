@@ -486,9 +486,10 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   /*
    * Once the platform's section below shows the CPU and memory its provider
    * measures - an App Service site's, a Container App's, a Cloud Run, App
-   * Runner or ECS service's - while the app reports neither, the two tiles
-   * that would only say "Not on Azure App Service" or "Not reported" above
-   * those numbers give way, and the other four fill one row.
+   * Engine, App Runner or ECS service's - while the app reports neither,
+   * the two tiles that would only say "Not on Azure App Service" or "Not
+   * reported" above those numbers give way, and the other four fill one
+   * row.
    */
   const showsUsageTiles: boolean = showsCloudAppUsageTiles({
     hasCpuReading: avgCpu !== null,

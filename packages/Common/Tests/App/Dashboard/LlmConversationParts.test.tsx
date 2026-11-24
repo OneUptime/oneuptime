@@ -26,11 +26,13 @@ import {
   LLM_HEALTHY_DOT_CLASS_NAME,
   LLM_ISSUE_STYLES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationCopy";
+import { LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmHiddenByScrubRule";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 import {
   LlmConversationKeyKind,
   emptyIssueCounts,
 } from "../../../Types/Telemetry/LlmConversationApi";
+import { LLM_USAGE_HIDDEN_GROUP_KEY } from "../../../Types/Telemetry/LlmUsageApi";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -146,7 +148,9 @@ describe("LlmConversationRow", () => {
         <LlmConversationRow
           conversation={listItem(data)}
           route={ROUTE}
-          serviceNames={names}
+          serviceName={(serviceId: string): string => {
+            return names.get(serviceId) || "";
+          }}
         />
       </MemoryRouter>,
     );
@@ -288,6 +292,75 @@ describe("LlmConversationRow", () => {
         .getByTestId("llm-conversation-row")
         .querySelectorAll("button, a, input, select"),
     ).toHaveLength(0);
+  });
+
+  /*
+   * Who asked, once a scrub rule hid it (#10631): the server reads each
+   * call's person past what the rule left - the id when the rule left it
+   * whole - and lists everyone a rule hid as the one hidden key. The row
+   * says "Hidden by a scrub rule" for it, muted, never "[REDACTED]".
+   */
+  function personFact(): HTMLElement | null {
+    return screen
+      .getByTestId("llm-conversation-row-facts")
+      .querySelector('[data-fact="person"]');
+  }
+
+  test("a conversation whose every person a scrub rule hid says so, never [REDACTED]", () => {
+    renderRow({ people: [LLM_USAGE_HIDDEN_GROUP_KEY] });
+
+    expect(personFact()).toHaveTextContent("Hidden by a scrub rule");
+    expect(
+      within(personFact()!).getByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).toHaveClass("bg-gray-100");
+    expect(screen.getByTestId("llm-conversation-row")).not.toHaveTextContent(
+      "[REDACTED]",
+    );
+  });
+
+  test("the ids a scrub rule left whole are named as the people they are", () => {
+    renderRow({ people: ["u-7", "u-8"] });
+
+    expect(personFact()).toHaveTextContent("u-7");
+    expect(
+      screen.queryByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  // The list's people come in no order: someone named is who the row says asked.
+  test("someone named leads, ahead of anyone a scrub rule hid", () => {
+    renderRow({ people: [LLM_USAGE_HIDDEN_GROUP_KEY, "ada@example.com"] });
+
+    expect(personFact()?.textContent).toBe("ada@example.com");
+    expect(
+      screen.queryByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).not.toBeInTheDocument();
+  });
+
+  // What a server that read the person before #10631 answered.
+  test.each([
+    ["j***@***.com"],
+    ["[HASHED:3f9a1c0e7b2d4a68]"],
+    ["auth0|[REDACTED]"],
+  ])(
+    "what a rule left, %s, is never drawn as a name",
+    (placeholder: string) => {
+      renderRow({ people: [placeholder] });
+
+      expect(personFact()).toHaveTextContent("Hidden by a scrub rule");
+      expect(screen.getByTestId("llm-conversation-row")).not.toHaveTextContent(
+        placeholder,
+      );
+    },
+  );
+
+  test("a conversation that names nobody says no one, apart from one a rule hid", () => {
+    renderRow({ people: [] });
+
+    expect(personFact()).toBeNull();
+    expect(
+      screen.queryByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID),
+    ).not.toBeInTheDocument();
   });
 });
 

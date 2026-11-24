@@ -40,6 +40,7 @@ import CallStatus from "Common/Types/Call/CallStatus";
 import CallLogService from "Common/Server/Services/CallLogService";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import CallRequest from "Common/Types/Call/CallRequest";
+import { ONEUPTIME_PRODUCT_NAME } from "Common/Types/Branding/ProductBranding";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioConfigJSON from "Common/Types/CallAndSMS/TwilioConfigJSON";
 import TwilioPhoneNumbers, {
@@ -805,10 +806,14 @@ router.post(
           throw new BadDataException("twilioConfig is undefined");
         }
 
+        /*
+         * "OneUptime", which an installation that goes by its own name says
+         * instead (ProductBrandingText), said as two words (CallSpeech).
+         */
         const testCallRequest: CallRequest = {
           data: [
             {
-              sayMessage: "This is a test call from One Uptime.",
+              sayMessage: `This is a test call from ${ONEUPTIME_PRODUCT_NAME}.`,
             },
           ],
           to: toPhone,

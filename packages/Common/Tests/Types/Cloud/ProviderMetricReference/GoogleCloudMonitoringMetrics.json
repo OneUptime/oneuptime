@@ -1,6 +1,6 @@
 {
   "source": "https://docs.cloud.google.com/monitoring/api/metrics_gcp (metrics_gcp_a_b, _c, _d_h, _i_o, _p_z), and https://docs.cloud.google.com/monitoring/api/metrics_agent for the Ops Agent's",
-  "readOn": "2026-11-19",
+  "readOn": "2026-11-24",
   "metrics": {
     "compute.googleapis.com/instance/cpu/utilization": {"displayName": "CPU utilization", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "10^2.%", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
     "compute.googleapis.com/instance/network/received_bytes_count": {"displayName": "Received bytes", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["gce_instance"], "page": "metrics_gcp_c"},
@@ -76,6 +76,8 @@
     "appengine.googleapis.com/http/server/response_count": {"displayName": "Response count", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "1", "monitoredResources": ["gae_app"], "page": "metrics_gcp_a_b", "labels": ["loading", "response_code"]},
     "appengine.googleapis.com/http/server/response_latencies": {"displayName": "Response latency", "launchStage": "GA", "kind": "DELTA", "valueType": "DISTRIBUTION", "unit": "ms", "monitoredResources": ["gae_app"], "page": "metrics_gcp_a_b"},
     "appengine.googleapis.com/system/instance_count": {"displayName": "Instance count", "launchStage": "GA", "kind": "GAUGE", "valueType": "INT64", "unit": "1", "monitoredResources": ["gae_app"], "page": "metrics_gcp_a_b"},
+    "appengine.googleapis.com/system/cpu/utilization": {"displayName": "CPU utilization", "launchStage": "GA", "kind": "GAUGE", "valueType": "DOUBLE", "unit": "10^2.%", "monitoredResources": ["gae_app"], "page": "metrics_gcp_a_b"},
+    "appengine.googleapis.com/system/memory/usage": {"displayName": "Memory usage", "launchStage": "GA", "kind": "GAUGE", "valueType": "INT64", "unit": "By", "monitoredResources": ["gae_app"], "page": "metrics_gcp_a_b"},
     "router.googleapis.com/nat/sent_bytes_count": {"displayName": "Sent bytes count", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["nat_gateway"], "page": "metrics_gcp_p_z"},
     "router.googleapis.com/nat/received_bytes_count": {"displayName": "Received bytes count", "launchStage": "GA", "kind": "DELTA", "valueType": "INT64", "unit": "By", "monitoredResources": ["nat_gateway"], "page": "metrics_gcp_p_z"},
     "router.googleapis.com/nat/open_connections": {"displayName": "Open connections", "launchStage": "GA", "kind": "GAUGE", "valueType": "INT64", "unit": "{connection}", "monitoredResources": ["nat_gateway"], "page": "metrics_gcp_p_z"},

@@ -41,6 +41,8 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 import LlmConversationView, {
   getLlmConversationTitle,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmConversationView";
+import { LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/LlmConversations/LlmHiddenByScrubRule";
+import { LLM_USAGE_HIDDEN_GROUP_KEY } from "../../../Types/Telemetry/LlmUsageApi";
 import LlmConversationTranscriptUtil, {
   LlmTranscript,
 } from "../../../Utils/Telemetry/LlmConversationTranscript";
@@ -226,7 +228,10 @@ describe("reading a conversation", () => {
       "Where should I go in May?",
     );
     expect(fact("person")).toBe("ada@example.com");
-    expect(fact("app")).toBe("Support bot");
+    // The app, read by its id as the conversation draws it (#10764).
+    await waitFor(() => {
+      expect(fact("app")).toBe("Support bot");
+    });
     expect(fact("models")).toBe("gpt-4o");
     expect(fact("duration")).toBe("1.0\u00A0s");
     expect(fact("answers")).toBe("1 answer");
@@ -306,6 +311,121 @@ describe("reading a conversation", () => {
     expect(
       screen.queryByTestId("llm-conversation-log-events-note"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * Who a conversation was with, once a scrub rule hid them (#10631). The
+ * server reads each call's person past what the rule left - the id, when
+ * the rule left it whole - and names everyone a rule hid with the one
+ * hidden key. The header says "Hidden by a scrub rule" for them, muted, and
+ * their messages are spoken by the generic "User": never "[REDACTED]", a
+ * mask or a token as if it were somebody. A conversation that names nobody
+ * says no one, which reads otherwise.
+ */
+describe("a person a scrub rule hid", () => {
+  // A call per person, each with a question and its answer.
+  function chatWith(people: Array<string>): LlmTranscript {
+    return LlmConversationTranscriptUtil.build(
+      people.map((userLabel: string, index: number) => {
+        return call({
+          spanId: `p${index}`,
+          startMs: T0 + index * 60_000,
+          endMs: T0 + index * 60_000 + 2000,
+          userLabel: userLabel,
+          content: content({
+            input: [msg("user", text(`Question ${index}`))],
+            output: [msg("assistant", text(`Answer ${index}`))],
+          }),
+        });
+      }),
+    );
+  }
+
+  // Who each of the person's messages is spoken by.
+  function speakers(): Array<string> {
+    return screen
+      .getAllByTestId("llm-step")
+      .filter((step: HTMLElement): boolean => {
+        return step.getAttribute("data-step-type") === "user";
+      })
+      .map((step: HTMLElement): string => {
+        return step.querySelector("span.font-medium")?.textContent || "";
+      });
+  }
+
+  function hiddenLabels(): Array<HTMLElement> {
+    return within(
+      screen.getByTestId("llm-conversation-header"),
+    ).queryAllByTestId(LLM_HIDDEN_BY_A_SCRUB_RULE_TEST_ID);
+  }
+
+  test("everyone a rule hid is 'Hidden by a scrub rule', and speaks as 'User'", async () => {
+    respondWith(
+      conversationResponse(
+        chatWith([LLM_USAGE_HIDDEN_GROUP_KEY, LLM_USAGE_HIDDEN_GROUP_KEY]),
+      ),
+    );
+
+    await openConversation();
+
+    expect(fact("person")).toBe("Hidden by a scrub rule");
+    expect(hiddenLabels()).toHaveLength(1);
+    expect(hiddenLabels()[0]).toHaveClass("bg-gray-100");
+    expect(speakers()).toEqual(["User", "User"]);
+    expect(document.body).not.toHaveTextContent("[REDACTED]");
+  });
+
+  test("the ids a rule left whole name the person, and speak for them", async () => {
+    respondWith(conversationResponse(chatWith(["u-7", "u-7"])));
+
+    await openConversation();
+
+    expect(fact("person")).toBe("u-7");
+    expect(hiddenLabels()).toHaveLength(0);
+    expect(speakers()).toEqual(["u-7", "u-7"]);
+  });
+
+  /*
+   * A message is not tied to the call that sent it, so once a rule hid
+   * anyone in a conversation, any message could be theirs: none is put to
+   * a name.
+   */
+  test("someone named beside someone a rule hid: both said, and every message is 'User'", async () => {
+    respondWith(
+      conversationResponse(
+        chatWith(["ada@example.com", LLM_USAGE_HIDDEN_GROUP_KEY]),
+      ),
+    );
+
+    await openConversation();
+
+    expect(fact("person")).toBe("ada@example.com, Hidden by a scrub rule");
+    expect(hiddenLabels()).toHaveLength(1);
+    expect(speakers()).toEqual(["User", "User"]);
+  });
+
+  // What a server that read the person before #10631 answered.
+  test("what a rule left is never drawn as a person", async () => {
+    respondWith(
+      conversationResponse(chatWith(["j***@***.com", "ada@example.com"])),
+    );
+
+    await openConversation();
+
+    expect(fact("person")).toBe("ada@example.com, Hidden by a scrub rule");
+    expect(document.body).not.toHaveTextContent("j***@***.com");
+    expect(speakers()).toEqual(["User", "User"]);
+  });
+
+  test("a conversation that names nobody says no one, and no rule", async () => {
+    respondWith(conversationResponse(chatWith(["", ""])));
+
+    await openConversation();
+
+    expect(fact("person")).toBeNull();
+    expect(hiddenLabels()).toHaveLength(0);
+    expect(speakers()).toEqual(["User", "User"]);
   });
 });
 

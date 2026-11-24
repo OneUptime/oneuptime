@@ -24,6 +24,7 @@ import MonitorCriteriaIncidentForm from "../../../../App/FeatureSet/Dashboard/sr
 import Label from "../../../Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import Color from "../../../Types/Color";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
@@ -52,6 +53,7 @@ const OTHER_LATE_POLICY_ID: string = "e0000000-0000-4000-8000-0000000000ab";
 const LATE_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000aa";
 const ARCHIVED_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000ee";
 const DELETED_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000dd";
+const KIOSK_COLOR: string = "#d97706";
 
 const BEFORE_WB: number = LIMIT_PER_PROJECT + 50;
 
@@ -74,7 +76,12 @@ beforeEach(() => {
     { _id: OTHER_LATE_POLICY_ID, name: "WB Search Escalation" },
   ]);
   server.add(Label, [
-    { _id: LATE_LABEL_ID, name: "WB-kiosk", isArchived: false },
+    {
+      _id: LATE_LABEL_ID,
+      name: "WB-kiosk",
+      isArchived: false,
+      color: new Color(KIOSK_COLOR),
+    },
     { _id: ARCHIVED_LABEL_ID, name: "WB-retired", isArchived: true },
   ]);
   server.install();
@@ -246,6 +253,37 @@ describe("the incident's labels", () => {
       ARCHIVED_LABEL_ID,
       LATE_LABEL_ID,
     ]);
+  });
+
+  /*
+   * A saved label is read by its id, and that read asks for its colour: the
+   * chip draws the dot a label picked from the search has. It went missing
+   * when the pickers stopped reading the project's labels (#10690).
+   */
+  test("a saved label keeps its colour", async () => {
+    await renderIncidentForm({ labelIds: [new ObjectID(LATE_LABEL_ID)] });
+
+    await waitFor(() => {
+      expect(chipsIn("monitor-criteria-incident-labelIds")).toEqual([
+        "WB-kiosk",
+      ]);
+    });
+
+    const chip: HTMLElement = screen.getByTestId("entity-dropdown-chip");
+    const dot: HTMLElement | null = chip.querySelector(
+      "span[aria-hidden='true']",
+    );
+
+    expect(dot).not.toBeNull();
+    expect(dot!.style.backgroundColor).toBe("rgb(217, 119, 6)");
+
+    const heldRead: Record<string, unknown> | undefined = server
+      .callsFor(Label)
+      .map((call: { select: Record<string, unknown> }) => {
+        return call.select;
+      })[0];
+
+    expect(heldRead).toMatchObject({ name: true, color: true });
   });
 
   test("an archived label is never offered for a new pick", async () => {

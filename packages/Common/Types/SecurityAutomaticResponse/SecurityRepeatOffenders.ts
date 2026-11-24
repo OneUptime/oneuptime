@@ -1,3 +1,4 @@
+import { JSONObject, JSONValue } from "../JSON";
 import {
   SecurityBlockAction,
   SecurityBlockDuration,
@@ -100,4 +101,167 @@ export function getSecurityRepeatOffenderRung(
   duration: SecurityBlockDuration,
 ): number {
   return SECURITY_REPEAT_OFFENDER_LADDER.indexOf(duration) + 1;
+}
+
+/*
+ * What a person is offered to block a repeat offender for (#10354): the
+ * ladder's next step from its foot - 1 hour, then 24 hours, then 7 days -
+ * and never less than the 24 hours a person's block lasts by default. So
+ * an address blocked once before is offered 24 hours, as any address is,
+ * and one blocked twice or more, 7 days.
+ */
+export function getSecurityRepeatOffenderSuggestedDuration(
+  offenceCount: number,
+): SecurityBlockDuration {
+  const climbed: SecurityBlockDuration = getSecurityRepeatOffenderDuration({
+    firstDuration: SecurityBlockDuration.OneHour,
+    offenceCount,
+  });
+
+  return getSecurityRepeatOffenderRung(climbed) <
+    getSecurityRepeatOffenderRung(SecurityBlockDuration.OneDay)
+    ? SecurityBlockDuration.OneDay
+    : climbed;
+}
+
+/*
+ * The record as it stood when something began - a case opened (#10354):
+ * only the blocks made before it, and none made for that case itself, so a
+ * case never reads its own block as the address coming back.
+ */
+export function getSecurityRepeatOffenderRecordBefore(data: {
+  record: SecurityRepeatOffenderRecord;
+  before: Date;
+  excludingCaseId?: string | null | undefined;
+}): SecurityRepeatOffenderRecord {
+  const blocks: Array<SecurityRepeatOffenderBlock> = data.record.blocks.filter(
+    (block: SecurityRepeatOffenderBlock): boolean => {
+      return (
+        block.createdAt.getTime() < data.before.getTime() &&
+        (!data.excludingCaseId || block.securityCaseId !== data.excludingCaseId)
+      );
+    },
+  );
+  const offences: Array<SecurityRepeatOffenderBlock> = blocks.filter(
+    isSecurityRepeatOffence,
+  );
+
+  return {
+    ...data.record,
+    blocks,
+    offenceCount: offences.length,
+    last: offences[0] || null,
+  };
+}
+
+/*
+ * What the Dashboard is told of a repeat offender: how many times, the
+ * latest, and how long its next block lasts. ISO dates on the wire.
+ */
+export interface SecurityRepeatOffenderSummary {
+  value: string;
+  offenceCount: number;
+  last: {
+    createdAt: Date;
+    action: SecurityBlockAction;
+    // The block's own value: the address, or a range around it.
+    value: string;
+    securityCaseId: string | null;
+    caseNumber: string | null;
+  } | null;
+  suggestedDuration: SecurityBlockDuration;
+}
+
+export function summarizeSecurityRepeatOffender(
+  record: SecurityRepeatOffenderRecord,
+): SecurityRepeatOffenderSummary {
+  return {
+    value: record.value,
+    offenceCount: record.offenceCount,
+    last: record.last
+      ? {
+          createdAt: record.last.createdAt,
+          action: record.last.action,
+          value: record.last.value,
+          securityCaseId: record.last.securityCaseId,
+          caseNumber: record.last.caseNumber,
+        }
+      : null,
+    suggestedDuration: getSecurityRepeatOffenderSuggestedDuration(
+      record.offenceCount,
+    ),
+  };
+}
+
+export function writeSecurityRepeatOffenderSummary(
+  summary: SecurityRepeatOffenderSummary,
+): JSONObject {
+  return {
+    value: summary.value,
+    offenceCount: summary.offenceCount,
+    suggestedDuration: summary.suggestedDuration,
+    last: summary.last
+      ? {
+          createdAt: summary.last.createdAt.toISOString(),
+          action: summary.last.action,
+          value: summary.last.value,
+          securityCaseId: summary.last.securityCaseId,
+          caseNumber: summary.last.caseNumber,
+        }
+      : null,
+  };
+}
+
+function readOptionalText(value: JSONValue | undefined): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+// A summary from the wire; null for one that names nothing.
+export function readSecurityRepeatOffenderSummary(
+  value: JSONValue | undefined,
+): SecurityRepeatOffenderSummary | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const asked: string | null = readOptionalText(json["value"]);
+  const count: number = Number(json["offenceCount"]);
+
+  if (!asked) {
+    return null;
+  }
+
+  const offenceCount: number =
+    Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+  const lastJson: JSONValue | undefined = json["last"];
+  let last: SecurityRepeatOffenderSummary["last"] = null;
+
+  if (lastJson && typeof lastJson === "object" && !Array.isArray(lastJson)) {
+    const createdAt: Date = new Date(
+      String((lastJson as JSONObject)["createdAt"] || ""),
+    );
+
+    if (Number.isFinite(createdAt.getTime())) {
+      last = {
+        createdAt,
+        action:
+          (lastJson as JSONObject)["action"] === SecurityBlockAction.Challenge
+            ? SecurityBlockAction.Challenge
+            : SecurityBlockAction.Block,
+        value: readOptionalText((lastJson as JSONObject)["value"]) || asked,
+        securityCaseId: readOptionalText(
+          (lastJson as JSONObject)["securityCaseId"],
+        ),
+        caseNumber: readOptionalText((lastJson as JSONObject)["caseNumber"]),
+      };
+    }
+  }
+
+  return {
+    value: asked,
+    offenceCount,
+    last,
+    suggestedDuration: getSecurityRepeatOffenderSuggestedDuration(offenceCount),
+  };
 }

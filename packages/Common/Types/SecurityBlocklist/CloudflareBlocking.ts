@@ -6,6 +6,7 @@ import {
   SECURITY_BLOCK_ADDRESS_ACTIONS,
   SecurityBlockAction,
   SecurityBlockValue,
+  readSecurityBlockAsn,
   readSecurityBlockValue,
 } from "./SecurityBlock";
 
@@ -435,14 +436,26 @@ export function getCloudflareAccessRuleValueProblem(
 }
 
 export interface CloudflareAccessRuleConfiguration {
-  target: "ip" | "ip6" | "ip_range";
+  target: "ip" | "ip6" | "ip_range" | "asn";
   value: string;
 }
 
-// How an IP Access Rule names a value: an address by its family, a range as a range.
+/*
+ * How an IP Access Rule names a value: an address by its family, a range
+ * as a range, and a whole network by its ASN (#10354) - "AS14061", target
+ * asn, which every plan has; Cloudflare's lists of ASNs are Enterprise's
+ * alone (https://developers.cloudflare.com/waf/tools/ip-access-rules/
+ * parameters/).
+ */
 export function toCloudflareAccessRuleConfiguration(
   value: string,
 ): CloudflareAccessRuleConfiguration | null {
+  const asn: string | null = readSecurityBlockAsn(value);
+
+  if (asn) {
+    return { target: "asn", value: asn };
+  }
+
   const read: SecurityBlockValue | null = readSecurityBlockValue(value);
 
   if (!read || getCloudflareAccessRuleValueProblem(value)) {
@@ -460,6 +473,13 @@ export function toCloudflareAccessRuleConfiguration(
   }
 
   return { target: "ip_range", value: read.value };
+}
+
+// Whether an IP Access Rule names a whole network by its ASN (#10354).
+export function isCloudflareAsnAccessRule(rule: {
+  target?: string | null | undefined;
+}): boolean {
+  return (rule.target || "").trim().toLowerCase() === "asn";
 }
 
 // ---------- The customer's skip rules ----------

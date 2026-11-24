@@ -486,6 +486,7 @@
   "Can't scan the QR code?": "¿No puede escanear el código QR?",
   "Enter this setup key in your authenticator app instead.": "En su lugar, introduzca esta clave de configuración en su aplicación de autenticación.",
   "If your app asks, choose a time-based key.": "Si su aplicación lo solicita, elija una clave basada en el tiempo.",
+  "Add to Authenticator App": "Añadir a la aplicación de autenticación",
   "Copy": "Copiar",
   "Copied!": "¡Copiado!",
   "Copy failed": "Error al copiar",

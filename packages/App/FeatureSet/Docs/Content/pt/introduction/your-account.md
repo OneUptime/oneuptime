@@ -114,7 +114,7 @@ Abra **Segurança → Autenticação de dois fatores** e clique em **Ativar a au
 
 ### Configurá-la
 
-Para um aplicativo autenticador, escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
+Para um aplicativo autenticador, escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Em um celular, toque em **Adicionar à aplicação de autenticação** em vez de escanear: o aplicativo abre com sua conta já preenchida. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
 
 ### Guardar seus códigos de backup
 
@@ -127,7 +127,7 @@ Se você já tem um aplicativo em **Apps autenticadores** ou uma chave em **Chav
 
 Quando um administrador exige a autenticação de dois fatores e você ainda não configurou nada, seu próximo login com uma senha ou um link enviado por e-mail pede que você a configure antes de deixar você entrar. Escolha **Aplicativo autenticador** ou **Chave de segurança** e clique em **Continuar**:
 
-- **Aplicativo autenticador**: escaneie o código QR, digite o código de 6 dígitos que seu aplicativo mostra e clique em **Verificar e iniciar sessão**.
+- **Aplicativo autenticador**: escaneie o código QR, digite o código de 6 dígitos que seu aplicativo mostra e clique em **Verificar e iniciar sessão**. Em um celular, toque em **Adicionar à aplicação de autenticação** em vez de escanear.
 - **Chave de segurança**: clique em **Registrar chave de segurança** e siga as instruções do navegador. Toque em uma chave USB ou NFC, ou use a impressão digital, o rosto ou o bloqueio de tela do seu celular ou computador.
 
 Se você ainda não tem códigos de backup, o OneUptime os mostra então uma única vez, e você está conectado. **Escolher outra forma** volta à escolha. Um navegador que não consegue registrar uma chave de segurança, como um em uma página sem HTTPS, oferece só o aplicativo autenticador.
