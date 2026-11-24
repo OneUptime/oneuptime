@@ -58,7 +58,9 @@ import {
  * (#6794): a Container App's (Azure Monitor), a Cloud Run or App Engine
  * service's (Google Cloud Monitoring), an App Runner or ECS service's
  * (Amazon CloudWatch) - over the range picked above, whatever the app
- * itself sends. Each platform's figures, and how each is read and added up,
+ * itself sends. A Container App's, a Cloud Run and an App Engine service's
+ * server errors are read from their request count by its response code
+ * (#10837 for a Container App's). Each platform's figures, and how each is read and added up,
  * are its profile's (CloudAppPlatformMetrics); the section reads them with
  * the resource row's own filter, as the resource's own page does, under
  * the names its cloud connection stores them by.
@@ -78,6 +80,16 @@ export const PLATFORM_MONITOR_CPU_AND_MEMORY: string =
 // The tiles: two to a row, three once the section is 40rem wide, five from 64rem.
 const TILES_GRID_CLASS_NAME: string =
   "grid grid-cols-2 gap-4 [@container(min-width:40rem)]:grid-cols-3 [@container(min-width:64rem)]:grid-cols-5";
+/*
+ * Six tiles (a Container App's): two rows of three, until there is room for
+ * all six on one row - never five and one.
+ */
+const SIX_TILES_GRID_CLASS_NAME: string =
+  "grid grid-cols-2 gap-4 [@container(min-width:40rem)]:grid-cols-3 [@container(min-width:80rem)]:grid-cols-6";
+
+export function getCloudAppPlatformTilesGridClassName(count: number): string {
+  return count === 6 ? SIX_TILES_GRID_CLASS_NAME : TILES_GRID_CLASS_NAME;
+}
 
 export interface ComponentProps {
   // The Cloud Resource the app runs as (CloudAppPlatformLink).
@@ -95,8 +107,9 @@ export interface ComponentProps {
 
 /*
  * One read's series, by the figure each gives: a request count read by its
- * response code gives its requests and its server errors. A read that
- * fails gives nothing: unknown, never 0.
+ * response code gives its requests, its server errors and the requests
+ * whose code it knew, which those are a share of. A read that fails gives
+ * nothing: unknown, never 0.
  */
 export async function readCloudAppPlatformFigures(data: {
   read: CloudAppPlatformMetricRead;
@@ -119,6 +132,7 @@ export async function readCloudAppPlatformFigures(data: {
       const split: {
         requests: Array<CloudAppPlatformPoint>;
         serverErrors: Array<CloudAppPlatformPoint>;
+        classifiedRequests: Array<CloudAppPlatformPoint>;
       } = readCloudAppPlatformSplit({
         points: points.map(
           (point: GroupedTimePoint): { x: Date; label: string; y: number } => {
@@ -132,6 +146,7 @@ export async function readCloudAppPlatformFigures(data: {
       return {
         [CloudAppPlatformFigure.Requests]: split.requests,
         [CloudAppPlatformFigure.ServerErrors]: split.serverErrors,
+        [CloudAppPlatformFigure.ClassifiedRequests]: split.classifiedRequests,
       };
     } catch {
       return {};
@@ -519,7 +534,7 @@ const CloudAppPlatformMonitorCard: FunctionComponent<ComponentProps> = (
 
       <div className={RESOURCE_OVERVIEW_TILES_FRAME_CLASS_NAME}>
         <div
-          className={TILES_GRID_CLASS_NAME}
+          className={getCloudAppPlatformTilesGridClassName(tiles.length)}
           data-testid="cloud-app-platform-monitor-tiles"
         >
           {tiles.map((tile: ResourceOverviewTile): ReactElement => {
