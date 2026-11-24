@@ -704,6 +704,7 @@ export default class MonitorStepResourceIdentity {
       stepData.proxmoxMonitor?.metricViewConfig,
       stepData.openstackMonitor?.metricViewConfig,
       stepData.vmwareMonitor?.metricViewConfig,
+      stepData.xcpNgMonitor?.metricViewConfig,
       stepData.cephMonitor?.metricViewConfig,
       stepData.storageArrayMonitor?.metricViewConfig,
       stepData.dockerSwarmMonitor?.metricViewConfig,
