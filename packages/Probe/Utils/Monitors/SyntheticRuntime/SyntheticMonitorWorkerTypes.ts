@@ -13,6 +13,7 @@ import {
   isRecord,
 } from "./RpcProtocol";
 import { MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS } from "./Limits";
+import { MonitorEgressPolicy } from "../MonitorEgressGuardOptions";
 import {
   MAX_TOTP_SECRETS_PER_STEP,
   MAX_TOTP_SECRET_NAME_LENGTH,
@@ -26,6 +27,7 @@ const MAX_SCREENSHOT_NAME_LENGTH: number = 200;
 const BASE64_PATTERN: RegExp =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const HTTP_PROXY_URL_PATTERN: RegExp = /^https?:\/\//i;
+const MAX_PRIVATE_NETWORK_HINT_LENGTH: number = 2_000;
 
 export interface SyntheticMonitorWorkerProxy {
   server: string;
@@ -45,7 +47,20 @@ export interface SyntheticMonitorWorkerConfig {
   };
   timeoutInMs: number;
   chromiumSandboxEnabled: boolean;
+  /*
+   * The operator's outbound proxy. The browser is never pointed at it
+   * directly: the check's egress proxy (SyntheticEgressProxy) goes through
+   * it, apart from the hosts `bypass` (NO_PROXY) names.
+   */
   proxy?: SyntheticMonitorWorkerProxy | undefined;
+  /*
+   * Where the check's requests may go - the browser's and its script's
+   * axios - as this probe resolved PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+   * the policy API and Website monitors on it are held to. The worker
+   * cannot read the probe's environment, so the supervisor hands it over.
+   * Absent: public addresses only.
+   */
+  egressPolicy?: MonitorEgressPolicy | undefined;
   args?: Record<string, unknown> | undefined;
   /*
    * The one-time code (TOTP) secrets the script references, by name
@@ -113,6 +128,7 @@ export function isSyntheticMonitorWorkerConfig(
         "timeoutInMs",
         "chromiumSandboxEnabled",
         "proxy",
+        "egressPolicy",
         "args",
         "totpSecrets",
       ].includes(key);
@@ -123,6 +139,7 @@ export function isSyntheticMonitorWorkerConfig(
 
   const viewport: unknown = value["viewport"];
   const proxy: unknown = value["proxy"];
+  const egressPolicy: unknown = value["egressPolicy"];
   const args: unknown = value["args"];
   const totpSecrets: unknown = value["totpSecrets"];
   return (
@@ -152,6 +169,7 @@ export function isSyntheticMonitorWorkerConfig(
       MAX_SYNTHETIC_MONITOR_SCRIPT_TIMEOUT_IN_MS &&
     typeof value["chromiumSandboxEnabled"] === "boolean" &&
     (proxy === undefined || isSyntheticMonitorWorkerProxy(proxy)) &&
+    (egressPolicy === undefined || isMonitorEgressPolicy(egressPolicy)) &&
     (args === undefined ||
       (isRecord(args) && byteLengthOfJson(args) <= MAX_RPC_RESULT_BYTES)) &&
     (totpSecrets === undefined || isWorkerTotpSecrets(totpSecrets))
@@ -270,6 +288,20 @@ function hasValidScreenshots(value: Record<string, unknown>): boolean {
   }
 
   return true;
+}
+
+function isMonitorEgressPolicy(value: unknown): value is MonitorEgressPolicy {
+  return (
+    isRecord(value) &&
+    Object.keys(value).every((key: string): boolean => {
+      return ["allowPrivateNetworkAddresses", "privateNetworkHint"].includes(
+        key,
+      );
+    }) &&
+    typeof value["allowPrivateNetworkAddresses"] === "boolean" &&
+    typeof value["privateNetworkHint"] === "string" &&
+    value["privateNetworkHint"].length <= MAX_PRIVATE_NETWORK_HINT_LENGTH
+  );
 }
 
 function isSyntheticMonitorWorkerProxy(
