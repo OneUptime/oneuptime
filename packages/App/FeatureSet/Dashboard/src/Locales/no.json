@@ -64069,5 +64069,6 @@
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
   "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" ble ikke lastet opp. {{error}}",
+  "Can't use the link? Open Telegram manually:": "Kan du ikke bruke lenken? Åpne Telegram manuelt:",
   "Uploading {{fileName}}…": "Laster opp {{fileName}}…"
 }

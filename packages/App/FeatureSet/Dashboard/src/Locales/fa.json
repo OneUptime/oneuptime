@@ -64069,5 +64069,6 @@
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با شناسه مستأجر {{tenantId}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با نام {{organization}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید.",
   "\"{{fileName}}\" was not uploaded. {{error}}": "«{{fileName}}» بارگذاری نشد. {{error}}",
+  "Can't use the link? Open Telegram manually:": "نمی‌توانید از پیوند استفاده کنید؟ Telegram را دستی باز کنید:",
   "Uploading {{fileName}}…": "در حال بارگذاری {{fileName}}…"
 }
