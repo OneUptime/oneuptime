@@ -286,6 +286,15 @@ const STATUS_PAGE_APP: Record<string, Array<StatusPageAppLabel>> = {
       key: "accounts.login.emailSignInLink",
     },
     { english: "Sign In", key: "accounts.magicLinkLogin.submit" },
+    /*
+     * A page with nothing on it, and the preview's note under it, whose
+     * link opens the page's Resources in the Dashboard (#9180).
+     */
+    { english: "Nothing to show yet", key: "overview.noResourcesTitle" },
+    {
+      english: "Add resources in the Dashboard",
+      key: "overview.noResourcesPreviewLink",
+    },
   ],
   [SUBSCRIBERS]: [
     { english: "Subscribe", key: "nav.subscribe" },
@@ -378,6 +387,8 @@ const ALSO_ON_THE_DASHBOARD: Record<string, Array<string>> = {
  * every language quotes them as its visitors read them.
  */
 const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
+  // The preview's note for a page with nothing on it (#9180).
+  [OVERVIEW]: ["overview.noResourcesPreviewDescription"],
   [SUBSCRIBERS]: [
     "subscribe.subscribedSuccessfully",
     "subscribe.sms.confirmationSent",

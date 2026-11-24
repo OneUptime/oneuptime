@@ -1,5 +1,11 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import AlertBanner, {
+  ALERT_BANNER_ACTION_PLACE_CLASS_NAME,
+  ALERT_BANNER_ACTION_TEST_ID,
+  ALERT_BANNER_BODY_PLACE_CLASS_NAME,
+  ALERT_BANNER_CONTENT_CLASS_NAME,
+  ALERT_BANNER_LAYOUT_CLASS_NAME,
+  ALERT_BANNER_TITLE_PLACE_CLASS_NAME,
   AlertBannerType,
   ComponentProps,
 } from "../../../UI/Components/AlertBanner/AlertBanner";
@@ -229,7 +235,7 @@ describe("AlertBanner", () => {
     ).toBeNull();
   });
 
-  test("passes rightElement through beside the title", () => {
+  test("passes rightElement through", () => {
     renderBanner({
       type: AlertBannerType.Info,
       rightElement: <button type="button">Open Settings</button>,
@@ -240,6 +246,172 @@ describe("AlertBanner", () => {
         name: "Open Settings",
       }),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The action acts on what the sentence says (#8034): on a 390px phone,
+   * or beside a long Danish title, it wrapped under the title and sat
+   * between the title and the sentence it acts on. It comes after the
+   * sentence now - in the page's order, which a screen reader and Tab
+   * follow, and on screen while the banner is narrow - and stays at the
+   * end of the title's line where the banner has room for both.
+   */
+  describe("its action", () => {
+    const TITLE: string = "Denne arbejdsgang er arkiveret";
+    const SENTENCE: string =
+      'Den køres ikke af nogen trigger og er skjult på listen "Arbejdsgange". Fjern den fra arkivet for at få den tilbage.';
+
+    function renderArchivedBanner(): {
+      title: HTMLElement;
+      body: HTMLElement;
+      action: HTMLElement;
+      button: HTMLElement;
+    } {
+      renderBanner({
+        type: AlertBannerType.Warning,
+        title: TITLE,
+        children: <span>{SENTENCE}</span>,
+        rightElement: <button type="button">Fjern fra arkivet</button>,
+      });
+
+      const button: HTMLElement = screen.getByRole("button", {
+        name: "Fjern fra arkivet",
+      });
+
+      return {
+        title: screen.getByText(TITLE),
+        body: screen.getByText(SENTENCE).parentElement as HTMLElement,
+        action: screen.getByTestId(ALERT_BANNER_ACTION_TEST_ID),
+        button: button,
+      };
+    }
+
+    function follows(first: Node, second: Node): boolean {
+      return Boolean(
+        first.compareDocumentPosition(second) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    }
+
+    test("comes after the sentence it acts on, which comes after the title", () => {
+      const { title, body, action, button } = renderArchivedBanner();
+
+      expect(action).toContainElement(button);
+      expect(follows(title, body)).toBe(true);
+      expect(follows(body, action)).toBe(true);
+      // The title, the sentence and the action, in that order, in one box.
+      expect(Array.from(title.parentElement!.children)).toEqual([
+        title,
+        body,
+        action,
+      ]);
+    });
+
+    test("is reached by Tab after the sentence: nothing focusable comes before it", () => {
+      const { title, body, button } = renderArchivedBanner();
+      const banner: HTMLElement = screen.getByTestId("banner");
+      const focusable: Array<Element> = Array.from(
+        banner.querySelectorAll("button, a[href], input, [tabindex]"),
+      );
+
+      expect(focusable).toEqual([button]);
+      expect(follows(title, button)).toBe(true);
+      expect(follows(body, button)).toBe(true);
+    });
+
+    test("is laid out by the banner's own width, not the window's", () => {
+      const { title } = renderArchivedBanner();
+      const layout: HTMLElement = title.parentElement as HTMLElement;
+      const content: HTMLElement = layout.parentElement as HTMLElement;
+
+      expect(content.className).toBe(ALERT_BANNER_CONTENT_CLASS_NAME);
+      expect(content).toHaveClass("[container-type:inline-size]");
+      expect(layout.className).toBe(ALERT_BANNER_LAYOUT_CLASS_NAME);
+      // No window breakpoint decides it: a banner sits in narrow cards too.
+      for (const element of [
+        content,
+        ...Array.from(content.querySelectorAll("*")),
+      ]) {
+        expect(element.getAttribute("class") || "").not.toMatch(
+          /(^|\s)(sm|md|lg|xl|2xl):/,
+        );
+      }
+    });
+
+    test("narrow, it starts under the sentence; wide, it ends the title's line, beside the sentence", () => {
+      const { title, body, action } = renderArchivedBanner();
+
+      // One column: title, sentence, action - the action at its start.
+      expect(ALERT_BANNER_LAYOUT_CLASS_NAME).toContain(
+        "grid-cols-[minmax(0,1fr)]",
+      );
+      expect(action).toHaveClass("justify-self-start", "mt-3");
+      // From 32rem, the title and the action share the first line.
+      expect(ALERT_BANNER_LAYOUT_CLASS_NAME).toContain(
+        "[@container(min-width:32rem)]:grid-cols-[minmax(0,1fr)_auto]",
+      );
+      expect(title).toHaveClass(
+        "[@container(min-width:32rem)]:col-start-1",
+        "[@container(min-width:32rem)]:row-start-1",
+      );
+      expect(action).toHaveClass(
+        "[@container(min-width:32rem)]:col-start-2",
+        "[@container(min-width:32rem)]:row-start-1",
+        "[@container(min-width:32rem)]:justify-self-end",
+        "[@container(min-width:32rem)]:mt-0",
+      );
+      /*
+       * ...and the sentence runs on under the title, beside the action
+       * (which spans both lines), not under the button's height.
+       */
+      expect(body).toHaveClass(
+        "[@container(min-width:32rem)]:col-start-1",
+        "[@container(min-width:32rem)]:row-start-2",
+      );
+      expect(action).toHaveClass("[@container(min-width:32rem)]:row-span-2");
+    });
+
+    test("is placed by start and end, so it mirrors on a page read from the right", () => {
+      const { action } = renderArchivedBanner();
+      const placement: string = [
+        ALERT_BANNER_LAYOUT_CLASS_NAME,
+        ALERT_BANNER_TITLE_PLACE_CLASS_NAME,
+        ALERT_BANNER_BODY_PLACE_CLASS_NAME,
+        ALERT_BANNER_ACTION_PLACE_CLASS_NAME,
+      ].join(" ");
+
+      expect(action.className).toBe(ALERT_BANNER_ACTION_PLACE_CLASS_NAME);
+      expect(placement).not.toMatch(
+        /\b(left|right)\b|\b[mp][lr]-|text-(left|right)/,
+      );
+    });
+
+    test("a banner with an action and no sentence keeps the title first", () => {
+      renderBanner({
+        type: AlertBannerType.Info,
+        title: "Monitoring is turned off",
+        rightElement: <button type="button">Turn monitoring on</button>,
+      });
+
+      const title: HTMLElement = screen.getByText("Monitoring is turned off");
+      const action: HTMLElement = screen.getByTestId(
+        ALERT_BANNER_ACTION_TEST_ID,
+      );
+
+      expect(Array.from(title.parentElement!.children)).toEqual([
+        title,
+        action,
+      ]);
+    });
+
+    test("a banner with no action draws no box for one", () => {
+      renderBanner({
+        type: AlertBannerType.Info,
+        children: <span>Only words.</span>,
+      });
+
+      expect(screen.queryByTestId(ALERT_BANNER_ACTION_TEST_ID)).toBeNull();
+    });
   });
 
   test("appends the caller's className to its own", () => {

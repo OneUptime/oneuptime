@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} گروه",
     "noResourcesTitle": "هنوز چیزی برای نمایش نیست",
     "noResourcesDescription": "این صفحه هنوز هیچ سرویسی را نشان نمی‌دهد.",
-    "noResourcesPreviewDescription": "تا وقتی منابع را اضافه نکنید، بازدیدکنندگان همین را می‌بینند. در داشبورد، در بخش منابع، مانیتورها یا گروه‌هایی به این صفحه وضعیت اضافه کنید."
+    "noResourcesPreviewDescription": "تا وقتی منابع را اضافه نکنید، بازدیدکنندگان همین را می‌بینند.",
+    "noResourcesPreviewLink": "افزودن منابع در داشبورد"
   },
   "eventItem": {
     "affectedResources": "منابع تحت تأثیر",

@@ -12,6 +12,7 @@ import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
 import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
 import ReauthenticationPrompt from "Common/UI/Components/Reauthentication/ReauthenticationPrompt";
 import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
+import HelpAndSupportInit from "./Components/HelpAndSupport/HelpAndSupportInit";
 import DashboardRecording from "./Components/DashboardRecording/DashboardRecording";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
@@ -162,6 +163,12 @@ const ConnectReturn: React.LazyExoticComponent<
   React.FunctionComponent<RoutesProps>
 > = lazy(() => {
   return import("./Pages/ConnectReturn/ConnectReturn");
+});
+
+const OpenStatusPageResources: React.LazyExoticComponent<
+  React.FunctionComponent<PageComponentProps>
+> = lazy(() => {
+  return import("./Pages/StatusPages/OpenStatusPageResources");
 });
 
 const LogsRoutes: LazyRoutes = lazy(() => {
@@ -662,6 +669,8 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <UserLanguageInit />
       <ProductFeedbackInit />
+      {/* Where the server sends its people for help (#10864-#10866). */}
+      <HelpAndSupportInit />
       {/*
        * On OneUptime Cloud only, and only with the person's consent: a
        * recording of the first-run pages, to see where people get stuck
@@ -1260,6 +1269,26 @@ const App: () => JSX.Element = () => {
                     pageRoute={RouteMap[PageMap.CONNECT_RETURN] as Route}
                     projects={projects}
                     isLoading={isLoading}
+                  />
+                }
+              />
+
+              {/*
+               * A status page's Resources by the page's id alone, from its
+               * preview's note for a page with nothing on it: opened in the
+               * project the page is in (#9180).
+               */}
+              <PageRoute
+                path={
+                  RouteMap[PageMap.STATUS_PAGE_RESOURCES_BY_ID]?.toString() ||
+                  ""
+                }
+                element={
+                  <OpenStatusPageResources
+                    {...commonPageProps}
+                    pageRoute={
+                      RouteMap[PageMap.STATUS_PAGE_RESOURCES_BY_ID] as Route
+                    }
                   />
                 }
               />

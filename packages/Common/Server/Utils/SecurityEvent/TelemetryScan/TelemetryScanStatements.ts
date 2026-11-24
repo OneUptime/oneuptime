@@ -12,7 +12,9 @@ import { AUDIT_SECURITY_RESOURCE_TYPES } from "../../../../Utils/SecurityEvent/T
 import {
   PROMPT_INJECTION_PHRASES,
   TRACE_SCAN_ATTRIBUTES_READ,
+  TRACE_SCAN_ATTRIBUTE_KEYS,
   TRACE_SCAN_URL_ATTRIBUTES,
+  getTraceScanSensitiveFileWords,
   getTraceScanUrlMarkers,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
 import { getClickhouseDatabaseName } from "../../AnalyticsDatabase/ClusterConfig";
@@ -74,12 +76,33 @@ function spanUrlText(statement: Statement): void {
   statement.append(")");
 }
 
+// Whether a span's answer was a 4xx: refused or not found, by any of its status attributes.
+function spanRefusedStatus(statement: Statement): void {
+  statement.append("(");
+
+  TRACE_SCAN_ATTRIBUTE_KEYS.statusCode.forEach(
+    (key: string, index: number): void => {
+      if (index > 0) {
+        statement.append(" OR ");
+      }
+
+      statement.append(
+        SQL`startsWith(attributes[${{ type: TableColumnType.Text, value: key }}], '4')`,
+      );
+    },
+  );
+
+  statement.append(")");
+}
+
 /*
  * The spans the trace scan reads for an attack, as a condition: a server
- * span whose URL holds an attack string or a cloud metadata address, or an
- * LLM span whose prompt holds a prompt-injection phrase. The scan's page
- * reads by it, and so does the count of what a drop filter would take from
- * Security Events (Telemetry/DropFilterRecordCount, #10436).
+ * span whose URL holds an attack string or a cloud metadata address, one
+ * whose URL holds a sensitive path's words and that was answered with a
+ * 4xx (#10745), or an LLM span whose prompt holds a prompt-injection
+ * phrase. The scan's page reads by it, and so does the count of what a drop
+ * filter would take from Security Events (Telemetry/DropFilterRecordCount,
+ * #10436).
  */
 export function appendTraceScanCandidateCondition(statement: Statement): void {
   statement.append(
@@ -93,7 +116,26 @@ export function appendTraceScanCandidateCondition(statement: Statement): void {
     SQL`, ${{
       type: TableColumnType.ArrayText,
       value: getTraceScanUrlMarkers(),
-    }})) OR (isLlmSpan = 1 AND multiSearchAnyCaseInsensitive(llmUserMessagePreview, ${{
+    }})) OR (kind = ${{
+      type: TableColumnType.Text,
+      value: SpanKind.Server,
+    }} AND multiSearchAnyCaseInsensitive(`,
+  );
+  spanUrlText(statement);
+  /*
+   * Sent hex encoded, as the scan's other words are (#6419): a query of
+   * ClickHouse's that it writes down never names /.env or /wp-admin.
+   */
+  statement.append(
+    SQL`, ${{
+      type: TableColumnType.ArrayText,
+      value: getTraceScanSensitiveFileWords(),
+      sendAsHex: true,
+    }}) AND `,
+  );
+  spanRefusedStatus(statement);
+  statement.append(
+    SQL`) OR (isLlmSpan = 1 AND multiSearchAnyCaseInsensitive(llmUserMessagePreview, ${{
       type: TableColumnType.ArrayText,
       value: [...PROMPT_INJECTION_PHRASES],
     }})))`,

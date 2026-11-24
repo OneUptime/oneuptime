@@ -1,6 +1,8 @@
 import BaseModel, {
   DatabaseBaseModelType,
 } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AlertCustomField from "Common/Models/DatabaseModels/AlertCustomField";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import IncidentCustomField from "Common/Models/DatabaseModels/IncidentCustomField";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -27,8 +29,8 @@ import RecordsById from "Common/UI/Utils/RecordsById";
 /*
  * What the form builder, the preview and the On Submit page read besides
  * the form itself: the target's custom fields in the project, and the
- * project's records a choice question can offer (severities, monitors,
- * labels, status pages). The same shapes the server builds the public form
+ * project's records a choice question can offer (incident or alert
+ * severities, monitors, labels, status pages). The same shapes the server builds the public form
  * from (FormService.buildPublicFormFor), so the builder's preview is drawn
  * from what the public page will be.
  */
@@ -69,6 +71,28 @@ export const loadFormCustomFields: LoadFormCustomFieldsFunction = async (
     return toDefinitions(result.data);
   }
 
+  if (targetType === FormTargetType.Alert) {
+    const result: ListResult<AlertCustomField> =
+      await ModelAPI.getList<AlertCustomField>({
+        modelType: AlertCustomField,
+        query: { projectId: projectId },
+        select: {
+          _id: true,
+          name: true,
+          description: true,
+          customFieldType: true,
+          dropdownOptions: true,
+          mapFromResourceType: true,
+          mapFromCustomFieldName: true,
+        },
+        sort: { name: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+      });
+
+    return toDefinitions(result.data);
+  }
+
   const result: ListResult<IncidentCustomField> =
     await ModelAPI.getList<IncidentCustomField>({
       modelType: IncidentCustomField,
@@ -91,11 +115,15 @@ export const loadFormCustomFields: LoadFormCustomFieldsFunction = async (
 };
 
 type ToDefinitionsFunction = (
-  rows: Array<IncidentCustomField | ScheduledMaintenanceCustomField>,
+  rows: Array<
+    IncidentCustomField | ScheduledMaintenanceCustomField | AlertCustomField
+  >,
 ) => Array<FormCustomFieldDefinition>;
 
 const toDefinitions: ToDefinitionsFunction = (
-  rows: Array<IncidentCustomField | ScheduledMaintenanceCustomField>,
+  rows: Array<
+    IncidentCustomField | ScheduledMaintenanceCustomField | AlertCustomField
+  >,
 ): Array<FormCustomFieldDefinition> => {
   const definitions: Array<FormCustomFieldDefinition> = [];
 
@@ -114,7 +142,7 @@ const toDefinitions: ToDefinitionsFunction = (
       dropdownOptions: row.dropdownOptions,
     };
 
-    // Monitors are the only source either target can copy a value from.
+    // Monitors are the only source any target can copy a value from.
     if (
       row.mapFromResourceType === CustomFieldMappingSourceResource.Monitor &&
       row.mapFromCustomFieldName
@@ -149,6 +177,12 @@ export const FORM_RECORD_OPTIONS_SOURCES: Record<
 > = {
   [FormTargetOptionsSource.IncidentSeverity]: {
     modelType: IncidentSeverity,
+    query: { isArchived: false },
+    select: { _id: true, name: true, color: true, order: true },
+    sortBy: "order",
+  },
+  [FormTargetOptionsSource.AlertSeverity]: {
+    modelType: AlertSeverity,
     query: { isArchived: false },
     select: { _id: true, name: true, color: true, order: true },
     sortBy: "order",

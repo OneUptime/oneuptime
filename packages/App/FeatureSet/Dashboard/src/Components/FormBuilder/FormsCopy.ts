@@ -1,4 +1,6 @@
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
+import { FORM_FILE_QUESTION_MAX_FILES } from "Common/Types/Form/FormFileAnswer";
+import { PluralTemplate } from "Common/Types/Translator";
 
 /*
  * The text of the Forms product's pages: the list of forms, the form
@@ -14,7 +16,9 @@ import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
  *
  * No string here may contain "{{": the lookup would read it as one of its
  * own placeholders. Every string is a whole sentence or a whole name, so a
- * translation never has to be put together from pieces.
+ * translation never has to be put together from pieces. The one sentence
+ * with a value in it, the Multiple Files question type's count, is a plural
+ * the builder fills in (getFormQuestionTypeDescription).
  */
 export const FormsCopy: {
   // The product.
@@ -48,12 +52,14 @@ export const FormsCopy: {
   addQuestionDescription: string;
   paletteQuestions: string;
   paletteIncidentFields: string;
+  paletteAlertFields: string;
   paletteScheduledMaintenanceFields: string;
   paletteCustomFields: string;
   paletteSubmitter: string;
   paletteAdded: string;
   paletteFull: string;
   noCustomFieldsIncident: string;
+  noCustomFieldsAlert: string;
   noCustomFieldsScheduledMaintenance: string;
   manageCustomFields: string;
   newQuestionLabel: string;
@@ -153,10 +159,15 @@ export const FormsCopy: {
   changeTargetTitle: string;
   changeTargetToIncident: string;
   changeTargetToScheduledMaintenance: string;
+  changeTargetToAlert: string;
+  changeTargetFromAlertToIncident: string;
+  changeTargetFromAlertToScheduledMaintenance: string;
   changeTargetConfirm: string;
   mappingIncidentTitle: string;
+  mappingAlertTitle: string;
   mappingScheduledMaintenanceTitle: string;
   mappingIncidentDescription: string;
+  mappingAlertDescription: string;
   mappingScheduledMaintenanceDescription: string;
   editOnSubmitSettings: string;
   mappingFieldColumn: string;
@@ -171,6 +182,7 @@ export const FormsCopy: {
   defaultSeverity: string;
   defaultSeverityDescription: string;
   noSeverityWarning: string;
+  noAlertSeverityWarning: string;
   severityFromTemplate: string;
   incidentTemplate: string;
   incidentTemplateDescription: string;
@@ -183,6 +195,12 @@ export const FormsCopy: {
   alwaysStatusPagesDescription: string;
   onCallPolicies: string;
   onCallPoliciesDescription: string;
+  alertOnCallPoliciesDescription: string;
+  initialState: string;
+  initialStateDescription: string;
+  usualStartingState: string;
+  defaultMonitor: string;
+  defaultMonitorDescription: string;
   owners: string;
   ownersDescription: string;
   showOnStatusPages: string;
@@ -192,6 +210,7 @@ export const FormsCopy: {
   customFieldsRow: string;
   otherAnswersRow: string;
   otherAnswersIncident: string;
+  otherAnswersAlert: string;
   otherAnswersScheduledMaintenance: string;
   statusPagesIncident: string;
   yes: string;
@@ -257,6 +276,8 @@ export const FormsCopy: {
   createdDeleted: string;
   // A private incident the reader may not see: named, never linked (#9102).
   createdPrivate: string;
+  // The same for an alert a privacy rule made private.
+  createdPrivateAlert: string;
   viewAnswers: string;
   answersTitle: string;
   noAnswers: string;
@@ -273,7 +294,7 @@ export const FormsCopy: {
   productTitle: "Forms",
 
   listDescription:
-    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident or a maintenance event.",
+    "Forms anyone with the link can fill in, without a OneUptime account. Each submission creates an incident, an alert or a maintenance event.",
   listEmpty:
     "No forms yet. Create one, choose its questions, then share its link with the people who should use it.",
   nameDescription:
@@ -299,12 +320,13 @@ export const FormsCopy: {
   noDescription: "No description. Add one to tell people what the form is for.",
   emptyCanvasTitle: "This form asks nothing yet",
   emptyCanvasDescription:
-    "Add a question from the list. A submission with no answers still creates its incident or event, from the On Submit settings.",
+    "Add a question from the list. A submission with no answers still creates its incident, alert or event, from the On Submit settings.",
   addQuestionTitle: "Add a Question",
   addQuestionDescription:
     "Questions of your own, fields of what the form creates, and who is submitting.",
   paletteQuestions: "Questions",
   paletteIncidentFields: "Incident Fields",
+  paletteAlertFields: "Alert Fields",
   paletteScheduledMaintenanceFields: "Scheduled Maintenance Fields",
   paletteCustomFields: "Custom Fields",
   paletteSubmitter: "Submitter",
@@ -312,6 +334,8 @@ export const FormsCopy: {
   paletteFull: "This form has as many questions as a form can have.",
   noCustomFieldsIncident:
     "No incident custom fields yet. Create them in Incidents > Settings > Custom Fields.",
+  noCustomFieldsAlert:
+    "No alert custom fields yet. Create them in Alerts > Settings > Custom Fields.",
   noCustomFieldsScheduledMaintenance:
     "No scheduled maintenance custom fields yet. Create them in Scheduled Maintenance > Settings > Custom Fields.",
   manageCustomFields: "Manage Custom Fields",
@@ -367,7 +391,7 @@ export const FormsCopy: {
   linkedCustomFieldNote:
     "The answer fills in this custom field. Its type and options come from the custom field.",
   submitterNote:
-    "Kept with the submission and named on the private note. Never shown on the incident or event itself.",
+    "Kept with the submission and named on the private note. Never shown on the incident, alert or event itself.",
   questionNote:
     "The answer is kept with the submission and listed on the private note of what the form creates.",
   issueCustomFieldDeleted:
@@ -439,12 +463,27 @@ export const FormsCopy: {
     "Each submission will declare an incident. Title, description, monitors and labels stay linked; On Submit settings start over.",
   changeTargetToScheduledMaintenance:
     "Each submission will schedule a maintenance event. Title, description, monitors and labels stay linked; On Submit settings start over.",
+  /*
+   * An alert has its own severities and one monitor, so only the title,
+   * the description and the labels keep their link, to or from an alert
+   * (convertFormFieldsForTarget): the other linked questions become the
+   * form's own.
+   */
+  changeTargetToAlert:
+    "Each submission will create an alert. Title, description and labels stay linked; On Submit settings start over.",
+  changeTargetFromAlertToIncident:
+    "Each submission will declare an incident. Title, description and labels stay linked; On Submit settings start over.",
+  changeTargetFromAlertToScheduledMaintenance:
+    "Each submission will schedule a maintenance event. Title, description and labels stay linked; On Submit settings start over.",
   changeTargetConfirm: "Change",
   mappingIncidentTitle: "How a Submission Becomes an Incident",
+  mappingAlertTitle: "How a Submission Becomes an Alert",
   mappingScheduledMaintenanceTitle:
     "How a Submission Becomes a Maintenance Event",
   mappingIncidentDescription:
     "Where each field of the new incident comes from: an answer or a setting of this form. The incident template fills the rest.",
+  mappingAlertDescription:
+    "Each field of the new alert, and where its value comes from: an answer, or a setting of this form.",
   mappingScheduledMaintenanceDescription:
     "Each field of the new maintenance event, and where its value comes from: an answer, or a setting of this form.",
   editOnSubmitSettings: "Edit Settings",
@@ -463,6 +502,8 @@ export const FormsCopy: {
     "The severity when the form does not ask for one, or it is left empty.",
   noSeverityWarning:
     "No severity: submissions are refused until you choose one here, or an incident template that sets one.",
+  noAlertSeverityWarning:
+    "No severity: submissions are refused until you choose one here.",
   severityFromTemplate: "The incident template's severity",
   incidentTemplate: "Incident Template",
   incidentTemplateDescription:
@@ -479,6 +520,14 @@ export const FormsCopy: {
     "The status pages the event belongs to, together with any the submitter chooses.",
   onCallPolicies: "On-Call Policies",
   onCallPoliciesDescription: "Executed for every incident the form declares.",
+  alertOnCallPoliciesDescription: "Executed for every alert the form creates.",
+  initialState: "Initial State",
+  initialStateDescription:
+    "Leave empty for the usual starting state. A later state, such as Acknowledged, pages nobody.",
+  usualStartingState: "The usual starting state.",
+  defaultMonitor: "Monitor",
+  defaultMonitorDescription:
+    "The alert's monitor when the form does not ask for one, or it is left empty.",
   owners: "Owners",
   ownersDescription: "Own every submission, and are told about it.",
   showOnStatusPages: "Show on Status Pages",
@@ -491,6 +540,8 @@ export const FormsCopy: {
   otherAnswersRow: "Other Answers",
   otherAnswersIncident:
     "Listed on a private note on the incident, with who submitted it.",
+  otherAnswersAlert:
+    "Listed on a private note on the alert, with who submitted it.",
   otherAnswersScheduledMaintenance:
     "Listed on a private note on the event, with who submitted it.",
   statusPagesIncident:
@@ -568,6 +619,7 @@ export const FormsCopy: {
   created: "Created",
   createdDeleted: "Deleted since",
   createdPrivate: "Private Incident",
+  createdPrivateAlert: "Private Alert",
   viewAnswers: "View Answers",
   answersTitle: "Answers",
   noAnswers: "This submission has no answers.",
@@ -588,10 +640,22 @@ export const FormsCopy: {
   inputFiles: "Drop files here or choose them",
 };
 
+/*
+ * What the builder's list of question types says a type takes: a sentence,
+ * or - for a type that takes a number of things - a plural whose {{count}}
+ * is that number (getFormQuestionTypeDescription).
+ */
+export type FormQuestionTypeDescription = string | PluralTemplate;
+
+export interface FormQuestionTypeText {
+  title: string;
+  description: FormQuestionTypeDescription;
+}
+
 // How each kind of question of the form's own is named in the builder.
 export const FORM_QUESTION_TYPE_TEXT: Record<
   CustomFieldType,
-  { title: string; description: string }
+  FormQuestionTypeText
 > = {
   [CustomFieldType.Text]: {
     title: "Short Answer",
@@ -633,10 +697,52 @@ export const FORM_QUESTION_TYPE_TEXT: Record<
     title: "File",
     description: "One file, such as a screenshot or a signed document.",
   },
+  /*
+   * How many files every Multiple Files question takes is the plural's
+   * count (FORM_FILE_QUESTION_MAX_FILES). Written into the words, "Up to 10
+   * files" would go on saying 10 the day that number changed, beside a
+   * picker saying its own (#8039), as the picker's hint once did (#7421).
+   */
   [CustomFieldType.MultipleFiles]: {
     title: "Multiple Files",
-    description: "Up to 10 files, such as screenshots and logs.",
+    description: {
+      one: "One file, such as a screenshot or a log.",
+      other: "Up to {{count}} files, such as screenshots and logs.",
+    },
   },
+};
+
+export interface GetFormQuestionTypeDescriptionData {
+  type: CustomFieldType;
+  // A sentence in the reader's language (the page's lookup).
+  translateText: (text: string) => string;
+  // A plural in the reader's language, its count in the reader's digits.
+  translatePlural: (template: PluralTemplate, count: number) => string;
+  /*
+   * How many files a Multiple Files question takes: every such question's
+   * (FORM_FILE_QUESTION_MAX_FILES) unless said.
+   */
+  maxFiles?: number | undefined;
+}
+
+/*
+ * What the list of question types says a type takes, in the reader's
+ * words: its sentence looked up, or its plural filled with its count.
+ */
+export const getFormQuestionTypeDescription: (
+  data: GetFormQuestionTypeDescriptionData,
+) => string = (data: GetFormQuestionTypeDescriptionData): string => {
+  const description: FormQuestionTypeDescription =
+    FORM_QUESTION_TYPE_TEXT[data.type].description;
+
+  if (typeof description === "string") {
+    return data.translateText(description);
+  }
+
+  return data.translatePlural(
+    description,
+    data.maxFiles ?? FORM_FILE_QUESTION_MAX_FILES,
+  );
 };
 
 export default FormsCopy;

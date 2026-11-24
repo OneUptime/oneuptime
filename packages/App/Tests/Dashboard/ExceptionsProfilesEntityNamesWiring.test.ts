@@ -305,10 +305,18 @@ describe("ProfileTable names every source", () => {
 
   test("captures the loaded page's sources from the table's own fetch", () => {
     expect(PROFILE_TABLE).toContain(
-      "onFetchSuccess={(profiles: Array<Profile>) => { handleProfilesFetched(profiles); }}",
+      "onFetchSuccess={(profiles: Array<Profile>) => { void handleProfilesFetched(profiles); }}",
+    );
+    /*
+     * The page's services are read by their ids first (#10764), and only
+     * what neither they nor the Host list name goes to the resolver.
+     */
+    expect(PROFILE_TABLE).toContain("await servicesOnPage.readServicesOf(");
+    expect(PROFILE_TABLE).toContain(
+      "const knownIds: Set<string> = new Set<string>(knownEntityIds);",
     );
     expect(PROFILE_TABLE).toContain(
-      "collectProfileEntityRefs({ profiles, knownIds: knownEntityIds, })",
+      "collectProfileEntityRefs({ profiles, knownIds: knownIds, })",
     );
   });
 

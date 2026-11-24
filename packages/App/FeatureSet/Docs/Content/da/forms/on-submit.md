@@ -1,9 +1,10 @@
 # Hvad en indsendelse opretter
 
-Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse** eller en **vedligeholdelseshændelse**. En formulars side **Ved indsendelse** viser hvilken, og hvordan hvert felt på den nye post udfyldes — fra et svar, fra en standardværdi, fra en indstilling, der altid gælder, eller fra hændelsesskabelonen. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder.
+Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse**, en **advarsel** eller en **vedligeholdelseshændelse**. En formulars side **Ved indsendelse** viser hvilken, og hvordan hvert felt på den nye post udfyldes — fra et svar, fra en standardværdi, fra en indstilling, der altid gælder, eller fra hændelsesskabelonen. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder.
 
 :::cards
 - [Sådan bliver en indsendelse til en hændelse](#sådan-bliver-en-indsendelse-til-en-hændelse): Hvert felt på den nye hændelse, og hvor dets værdi kommer fra.
+- [Sådan bliver en indsendelse til en advarsel](#sådan-bliver-en-indsendelse-til-en-advarsel): Det samme, for et advarselstegn eller noget, der skal tjekkes.
 - [Sådan bliver en indsendelse til en vedligeholdelseshændelse](#sådan-bliver-en-indsendelse-til-en-vedligeholdelseshændelse): Det samme, for en anmodning om vedligeholdelse.
 - [Indstillingerne Ved indsendelse](#indstillingerne-ved-indsendelse): Standardværdier, hvad der altid tilknyttes, ejere og offentliggørelse.
 - [Den private note](#den-private-note): Hvem der sendte den, og de svar, intet felt indeholder.
@@ -11,11 +12,11 @@ Hver indsendelse via en formular opretter én post i dit projekt: en **hændelse
 
 ## Hvad der sker ved indsendelse
 
-```mermaid title="Fra en indsendelse til en hændelse eller en vedligeholdelseshændelse"
+```mermaid title="Fra en indsendelse til en hændelse, en advarsel eller en vedligeholdelseshændelse"
 flowchart TB
     submit["Indsend"] --> checks["Beskyttelser og<br/>tjek af svarene"]
     checks --> fields["Hvert felt: svaret,<br/>ellers indstillingerne Ved indsendelse,<br/>ellers hændelsesskabelonen"]
-    fields --> record["Hændelsen eller<br/>vedligeholdelseshændelsen"]
+    fields --> record["Hændelsen, advarslen eller<br/>vedligeholdelseshændelsen"]
     record --> note["En privat note: hvem der sendte den,<br/>og de andre svar"]
     record --> runs["Regler, vagtpolitikker<br/>og arbejdsgange kører"]
 ```
@@ -27,13 +28,14 @@ En indsendelse, der ikke består et tjek, opretter intet. Se [Hvad der beskytter
 Kortet **Hvad hver indsendelse opretter** indeholder det valg, du traf, da du oprettede formularen:
 
 - **Hændelse** — hver indsendelse opretter en hændelse, så dit vagthold får besked med det samme. Brug det til problemrapporter.
+- **Advarsel** — hver indsendelse opretter en advarsel, så dens ejere får besked, uden at der erklæres en hændelse. Brug det til advarselstegn og ting, der skal tjekkes.
 - **Planlagt vedligeholdelse** — hver indsendelse planlægger en vedligeholdelseshændelse. Brug det til anmodninger om ændringer og vedligeholdelse.
 
-At vælge den anden beder dig bekræfte, fordi formularen ændrer sig med den:
+**Advarsel** tilbydes kun til en, der må oprette advarsler: se [Tilladelser](/docs/forms/index#tilladelser). At vælge en anden beder dig bekræfte, fordi formularen ændrer sig med den:
 
-- Titlen, beskrivelsen, monitorerne og etiketterne forbliver knyttet: begge slags poster har dem.
-- Hvert andet tilknyttet spørgsmål — en alvorlighed, et valg af statusside, et brugerdefineret felt af den gamle slags — bliver et af formularens egne spørgsmål, med samme ordlyd, hvis svar vises i den private note.
-- Indstillingerne Ved indsendelse starter forfra, da en hændelses og en begivenheds indstillinger er forskellige.
+- Titlen, beskrivelsen og etiketterne forbliver knyttet: alle slags poster har dem. Mellem en hændelse og en vedligeholdelseshændelse forbliver monitorerne også knyttet. En advarsel har sine egne alvorligheder og én monitor, så et spørgsmål om alvorlighed eller monitorer beholder ikke sin tilknytning til eller fra en advarsel.
+- Hvert andet tilknyttet spørgsmål — en alvorlighed, et valg af monitor eller statusside, et brugerdefineret felt af den gamle slags — bliver et af formularens egne spørgsmål, med samme ordlyd, hvis svar vises i den private note.
+- Indstillingerne Ved indsendelse starter forfra, da hver slags post har sine egne indstillinger.
 - En formular, der nu opretter vedligeholdelseshændelser, spørger, hvornår vedligeholdelsen starter og slutter.
 
 Spørgsmålene gemmes med det samme, sammen med ændringen. Tjek dem på siden **Byg**.
@@ -92,6 +94,36 @@ Slå **Synlig på statussiden** til fra hændelsens side **Indstillinger**.
 Fordi hændelsen blev oprettet med **Underret statussideabonnenter** slået fra, sender det ikke notifikationen "hændelse oprettet" at offentliggøre den. For at give abonnenterne besked skal du slå en offentlig note op med **Underret statussideabonnenter** markeret — se [Slå en offentlig note op](/docs/incidents/notes-owners-and-feed#slå-en-offentlig-note-op).
 :::
 
+## Sådan bliver en indsendelse til en advarsel
+
+| Felt | Kommer fra |
+| --- | --- |
+| **Titel** | Svaret på spørgsmålet **Titel**. Når formularen ikke spørger om det, eller det efterlades tomt: **Standardtitel**, eller ellers formularens navn. |
+| **Beskrivelse** | Svaret på spørgsmålet **Beskrivelse**. |
+| **Alvorlighed** | Indsenderens valg, når formularen spørger om det. Ellers formularens indstilling **Alvorlighed**. |
+| **Monitor** | Den monitor, indsenderen valgte, når formularen spørger om den. Ellers formularens indstilling **Monitor**. En advarsel handler om én monitor. |
+| **Etiketter** | De etiketter, indsenderen valgte, sammen med dem, indstillingerne altid tilføjer. |
+| **Påvirkning startede** | Svaret på **Påvirkning startede**, når formularen spørger om det. |
+| **Indledende tilstand** | Formularens indstilling **Indledende tilstand**, eller ellers den sædvanlige starttilstand, hvor hver ny advarsel starter. En senere tilstand, som **Bekræftet**, tilkalder ingen. |
+| **Vagtpolitikker** | De politikker, indstillingerne nævner, kørt for hver advarsel, formularen opretter. |
+| **Ejere** | De personer og teams, indstillingerne nævner. De ejer hver advarsel, formularen opretter, og får besked om den. |
+| **Brugerdefinerede felter** | Hvert spørgsmål om et brugerdefineret felt får sit svar — medmindre feltet kopierer sin værdi fra et brugerdefineret monitorfelt, og advarslens monitor har en. |
+| **Øvrige svar** | Vises i en privat note på advarslen, med hvem der indsendte. |
+
+> [!IMPORTANT]
+> **Ingen alvorlighed, ingen advarsel.** En advarsel skal have en alvorlighed. Når formularen ikke spørger om en, og dens indstillinger ikke nævner nogen — eller den nævnte blev slettet — advarer rækken **Alvorlighed** dig, og hver indsendelse afvises med "Denne formular kan ikke oprette en advarsel, fordi den ikke har nogen alvorlighed. Giv besked til det team, der delte den." Vælg en alvorlighed i **Rediger indstillinger**.
+
+### Sådan ser advarslen ud
+
+En advarsel, der er oprettet via en formular, er en almindelig advarsel, oprettet på samme måde som en, der oprettes manuelt med **Opret advarsel**:
+
+- **Dens ejere får besked, én gang.** De ejere, indstillingerne nævner, tilføjes, så snart advarslens Slack- og Microsoft Teams-kanaler findes, og advarslens notifikation **Advarsel oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere — og det er den eneste besked, de får om advarslen.
+- **Den starter, hvor du bestemmer.** I den sædvanlige starttilstand, medmindre indstillingen **Indledende tilstand** nævner en senere. En advarsel, der starter bekræftet eller løst, tilkalder ingen: en formular til meldinger, der kun skal ses på, kan angive det.
+- **Oprettet af ingen, og ikke privat.** Indsenderen er ikke en OneUptime-bruger, så ingen bruger registreres som den, der oprettede advarslen. En privatlivsregel kan stadig gøre den privat.
+- **En privat note registrerer indsendelsen** — se [Den private note](#den-private-note).
+
+Alt, der kører for en ny advarsel, kører også for disse: privatlivs-, ejer-, etiket-, vagt-, grupperings-, runbook- og hændelsesregler, vagtpolitikker og arbejdsgange med **Ved oprettelse: Advarsel**. En hændelsesregel for advarsler, der matcher den, erklærer en hændelse ud fra den, som ud fra enhver advarsel. Advarsler vises aldrig på statussider.
+
 ## Sådan bliver en indsendelse til en vedligeholdelseshændelse
 
 | Felt | Kommer fra |
@@ -116,14 +148,14 @@ En indsendelse er nogens anmodning, og en anmodning gennemgås, før den offentl
 
 **Rediger indstillinger** åbner indstillingerne i trin: **Næste** går videre, og **Gem ændringer** er på sidste trin. Hvert trin er allerede udfyldt, så trinlisten ved siden af formularen åbner ethvert af dem, også det sidste: ændr en indstilling på dens trin, åbn derefter sidste trin, og gem.
 
-| Trin | Hændelsesformular | Vedligeholdelsesformular |
-| --- | --- | --- |
-| **Standardværdier** | **Standardtitel**, **Alvorlighed**, **Hændelsesskabelon** | **Standardtitel** |
-| **Knyt altid til** | **Monitorer**, **Etiketter**, **Vagtpolitikker** | **Monitorer**, **Statussider**, **Etiketter** |
-| **Ejere** | **Ejere** | **Ejere** |
-| **Offentliggørelse** | — | **Vis på statussider**, **Underret abonnenter** |
+| Trin | Hændelsesformular | Advarselsformular | Vedligeholdelsesformular |
+| --- | --- | --- | --- |
+| **Standardværdier** | **Standardtitel**, **Alvorlighed**, **Hændelsesskabelon** | **Standardtitel**, **Alvorlighed**, **Indledende tilstand**, **Monitor** | **Standardtitel** |
+| **Knyt altid til** | **Monitorer**, **Etiketter**, **Vagtpolitikker** | **Etiketter**, **Vagtpolitikker** | **Monitorer**, **Statussider**, **Etiketter** |
+| **Ejere** | **Ejere** | **Ejere** | **Ejere** |
+| **Offentliggørelse** | — | — | **Vis på statussider**, **Underret abonnenter** |
 
-**Ejere** er én vælger for personer og teams: **Tilføj ejer** åbner én søgeliste med begge, og hvert valg vises som en chip, du kan fjerne. Alt, hvad indstillingerne nævner, skal høre til formularens projekt, og ejere skal være medlemmer af det. En post, der slettes, efter at den blev valgt, springes over, når en indsendelse oprettes, og resten gælder stadig.
+**Ejere** er én vælger for personer og teams: **Tilføj ejer** åbner én søgeliste med begge, og hvert valg vises som en chip, du kan fjerne. Alt, hvad indstillingerne nævner, skal høre til formularens projekt, og ejere skal være medlemmer af det. En post, der slettes, efter at den blev valgt, springes over, når en indsendelse oprettes, og resten gælder stadig. På en advarselsformular er **Rediger indstillinger** låst for en, der ikke må oprette advarsler.
 
 ## Den private note
 

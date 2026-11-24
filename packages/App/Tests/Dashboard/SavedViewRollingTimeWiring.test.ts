@@ -154,9 +154,18 @@ describe("the logs explorer saves and restores the selection", () => {
   });
 
   test("the saved-views fetch selects the column", () => {
+    /*
+     * One select for every read of the views - the first ones, any held
+     * past them and a search (#10646) - which holds the column.
+     */
     expect(LOGS_CODE).toContain(
-      squash("select: { name: true, query: true, timeRange: true,"),
+      squash(
+        "const LOG_SAVED_VIEW_SELECT: Select<LogSavedView> = { name: true, query: true, timeRange: true,",
+      ),
     );
+    expect(
+      LOGS_CODE.split("select: LOG_SAVED_VIEW_SELECT,").length - 1,
+    ).toBeGreaterThanOrEqual(3);
   });
 
   test("applying a view resolves the selection rather than reading query.time", () => {

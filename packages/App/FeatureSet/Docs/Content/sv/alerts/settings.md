@@ -99,7 +99,7 @@ En regel kan tillhöra team. **Ansvariga team** under **Fler fält** förbehåll
 
 ## Incidentregler
 
-**Larm → Regler → Incidentregler** gör själv om larm till incidenter. Den första regeln som matchar ett nytt larm, uppifrån och ned i listan, deklarerar en incident från det, som **Deklarera incident** på larmets sida skulle göra, och kopplar larmet till den.
+**Larm → Regler → Incidentregler** gör själv om larm till incidenter. Den första regeln som matchar ett nytt larm, uppifrån och ned i listan, deklarerar en incident från det, som **Deklarera incident** på larmets sida skulle göra, och kopplar larmet till den. Incidenten börjar med larmets ägare som sina ägare, och de får veta det en gång, genom dess avisering **Incident skapad**.
 
 :::steps
 ### Välj ut larmen

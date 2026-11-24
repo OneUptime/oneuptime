@@ -216,7 +216,17 @@ const EntityFilterControls: EntityFilterControlsFunction = <
   const translator: Translator = useTranslator();
   const filter: Filter<T> = props.filter;
 
-  const isArray: boolean = filter.type === FieldType.EntityArray;
+  /*
+   * An entity filter picks how its values match (any of, none of, empty);
+   * a dropdown filter whose choices are searched on the server holds its
+   * values as a dropdown does - one, or any of several - with no such
+   * choice (#10764).
+   */
+  const hasOperators: boolean =
+    filter.type === FieldType.Entity || filter.type === FieldType.EntityArray;
+  const isArray: boolean =
+    filter.type === FieldType.EntityArray ||
+    filter.type === FieldType.MultiSelectDropdown;
   const detectedState: EntityState = isArray
     ? detectArrayState(props.filterData[filter.key])
     : detectSingleState(props.filterData[filter.key]);
@@ -297,13 +307,15 @@ const EntityFilterControls: EntityFilterControlsFunction = <
 
   return (
     <div className="flex gap-2 items-start">
-      <OperatorSelector
-        value={operator}
-        options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
-        onChange={(nextOperator: FilterOperator) => {
-          apply({ ...state, operator: nextOperator });
-        }}
-      />
+      {hasOperators && (
+        <OperatorSelector
+          value={operator}
+          options={isArray ? ENTITY_ARRAY_OPERATORS : ENTITY_OPERATORS}
+          onChange={(nextOperator: FilterOperator) => {
+            apply({ ...state, operator: nextOperator });
+          }}
+        />
+      )}
       {!valuelessOperator && search && (
         <div className="flex-1 min-w-0" data-testid="entity-filter-search">
           <EntityDropdown
@@ -318,6 +330,7 @@ const EntityFilterControls: EntityFilterControlsFunction = <
              * one stay findable by it (ArchivedValuePicker).
              */
             listsArchivedValues={true}
+            marksArchivedRecords={search.marksArchivedRecords}
             options={props.options}
             value={heldValues as EntityDropdownValue}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
@@ -364,9 +377,20 @@ const EntityFilterControls: EntityFilterControlsFunction = <
 const EntityFilter: EntityFilterFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  /*
+   * A dropdown filter whose choices are records searched on the server (a
+   * telemetry list's Service filter, #10764) is drawn here too, and never
+   * by DropdownFilter, which offers only the options it is handed.
+   */
+  const isSearchedDropdown: boolean =
+    (props.filter.type === FieldType.Dropdown ||
+      props.filter.type === FieldType.MultiSelectDropdown) &&
+    Boolean(props.filter.entitySearch);
+
   if (
     props.filter.type !== FieldType.Entity &&
-    props.filter.type !== FieldType.EntityArray
+    props.filter.type !== FieldType.EntityArray &&
+    !isSearchedDropdown
   ) {
     return <></>;
   }

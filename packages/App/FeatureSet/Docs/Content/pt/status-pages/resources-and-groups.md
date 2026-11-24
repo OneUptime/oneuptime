@@ -82,6 +82,8 @@ Em um grupo em grade, a caixa de diálogo também pede a linha e a coluna em que
 > [!TIP]
 > Para mostrar várias verificações como uma única linha, adicione um [grupo de monitores](/docs/monitor/monitor-groups). Com a chave **Grupos de monitores** ativada (**Configurações do projeto** > **Básico** > **Produtos**, que salva assim que você a aciona), um link abaixo da lista suspensa diz **Adicione um grupo de monitores em vez disso.** Clique nele e **Monitor** vira **Grupo de monitores** (**Selecionar Grupo de Monitores**); **Adicione um monitor em vez disso.** volta atrás.
 
+**Editar recurso**, o lápis de uma linha, abre no que a linha mostra: a linha de um grupo de monitores em **Grupo de monitores**, com o grupo escolhido, e a de um monitor em **Monitor**. Com a chave **Grupos de monitores** ativada, o link abaixo da lista suspensa diz **Mostre um monitor em vez disso.** na linha de um grupo e **Mostre um grupo de monitores em vez disso.** na de um monitor. Ele troca a lista suspensa só nessa caixa de diálogo, e salvar faz a linha mostrar o que você escolheu no lugar. **Nome de exibição** acompanha a nova escolha enquanto ainda for o nome do que a linha mostrava, e fica como está quando você renomeou a linha. Na lista, a linha de um grupo cujo nome de exibição é o do próprio grupo diz **Igual ao nome do grupo de monitores**.
+
 ### Adicionar vários de uma vez
 
 **Adicionar vários** (também **Adicionar vários monitores** no menu **Mais ações**) abre **Adicionar vários monitores**. Ela também tem uma só página: uma seleção múltipla **Monitores**, depois o mesmo **Mais campos** recolhido, cujas opções de exibição valem para cada monitor que você escolher. Cada recurso recebe o nome de exibição e a descrição do seu monitor, e **Adicionar monitores** adiciona todos. É a forma mais rápida de preencher uma página nova.
@@ -97,6 +99,8 @@ Uma página de status lista cada monitor uma só vez. A adição é idempotente,
 O resumo ao final da adição em lote diz isso: os monitores adicionados aparecem em **Adicionado**, e os que já estavam lá em **Já adicionados**. Nada é informado como falha, e nada é gravado para eles.
 
 A mesma regra vale em todo lugar onde um recurso é criado. Adicionar pelo formulário de adição individual um monitor que já está na página, ou apontar para ele um recurso existente pelo formulário de edição, é recusado com *"This monitor is already added to this status page"*, inclusive quando o recurso existente está em outro grupo, porque um visitante ainda veria o monitor duas vezes. Para mostrar um monitor em outro grupo, exclua o recurso que ele já tem e adicione-o onde você quiser.
+
+Um recurso mostra um monitor ou um grupo de monitores, nunca os dois e nunca nenhum. Apontar um recurso para um esvazia o outro, então mudar uma linha de um monitor para um grupo de monitores é uma única alteração. Pela API, um recurso que nomeia os dois é recusado com *"A status page resource shows a monitor or a monitor group, not both. Send one of them."*, e um que não nomeia nenhum, ou uma alteração que o deixaria sem nenhum, com *"A status page resource needs a monitor or a monitor group to show"*.
 
 ## Opções de exibição de um recurso
 
@@ -280,6 +284,10 @@ A importação cria grupos, não recursos: depois, adicione os monitores com **A
 
 :::details "This monitor is already added to this status page"
 Uma página lista cada monitor uma só vez, mesmo entre grupos diferentes. O monitor já tem um recurso, talvez em outro grupo ou adicionado por uma regra de monitores. Procure-o no navegador, exclua esse recurso e adicione o monitor onde você quiser.
+:::
+
+:::details "A status page resource needs a monitor or a monitor group to show"
+A API, o Terraform ou um script enviou um recurso sem monitor e sem grupo de monitores, ou uma alteração que esvazia o que ele mostra. Envie `monitorId` ou `monitorGroupId`, um dos dois. Para apontar um recurso para o outro tipo, envie o novo na mesma alteração: o antigo é esvaziado. Recursos que não mostravam nenhum dos dois antes desta regra nunca foram mostrados aos visitantes, e uma atualização os exclui.
 :::
 
 :::details Um monitor que adicionei não aparece na página de status

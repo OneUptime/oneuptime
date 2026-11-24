@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 Pas hem daarna toe met `kubectl apply -f oneuptime-probe.yaml`.
 :::
 
 Met hostnetwerk (`--network host`, `network_mode: host`) gebruikt de sonde het eigen netwerk van de host, IPv6 inbegrepen. Lees [IPv6-bestemmingen bewaken](#ipv6-bestemmingen-bewaken) voordat u hem zonder hostnetwerk start.
+
+Zonder hostnetwerk, zoals in de Kubernetes-Deployment hierboven of met Docker op een bridgenetwerk, verlaten de controles van de sonde de machine vanaf het eigen adres van de host, dat de sonde vanuit haar container niet kan zien. `PROBE_HOST_IP_ADDRESSES` geeft haar dat adres door, zodat [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) de polls, detecties en monitorcontroles van de sonde herkent als haar eigen werk. De Kubernetes-Deployment zet het vanuit `status.hostIPs`, dat beide adressen van een dual-stack-node bevat; gebruik op Kubernetes ouder dan 1.29 `status.hostIP`. Geef op een Docker-bridgenetwerk zelf het adres van de host op, bijvoorbeeld `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`.
 
 ### Controleren of hij verbinding maakt
 
@@ -150,6 +156,22 @@ Vervang `<version>` door de versie die moet draaien, zoals `17.1.0`, en zet deze
 :::
 
 De pagina van de sonde toont onder **Sondestatus** de versie die hij draait. Een sonde ouder dan 17.1.0 kan de codes van een [geheim voor eenmalige codes](/docs/monitor/monitor-secrets#aanmelden-met-een-eenmalige-code) niet maken: zijn pagina zegt dat, en ook het formulier van een monitor die hij controleert. Hetzelfde geldt voor een sonde die te oud is om de body van het verzoek van een API-monitor te versturen die een JSON-array, één waarde of tekst is.
+
+Raakt een sonde een hoofdversie of meer achter op OneUptime, dan worden haar eigenaren één keer gewaarschuwd, met wat ze mist en een link naar deze sectie; een sonde zonder eigenaren waarschuwt de Projecteigenaren. Ze worden pas opnieuw gewaarschuwd wanneer ze achterraakt op een latere hoofdversie, of opnieuw achterraakt nadat ze is bijgewerkt. Iedereen kiest hoe hij het hoort met **Sonde een hoofdversie achter**, onder **Gebruikersinstellingen → Meldingsinstellingen**: in het begin per e-mail. Een sonde die alleen subversies achterloopt, zegt dat op haar pagina, en niemand wordt gewaarschuwd.
+
+## Wat een sonde stuurt wanneer ze zich meldt
+
+Elk verzoek van de sonde bevat haar ID en sleutel, de versie die ze draait en wat ze kan, en eens per minuut meldt ze zich met de adressen waaronder ze zichzelf kent. Verder wordt er niets over je netwerk verzonden, behalve de resultaten van haar controles.
+
+| Veld | Verzonden | Wat OneUptime ermee doet |
+| --- | --- | --- |
+| `probeVersion` | Bij elk verzoek | Bewaart de versie die de sonde draait. Haar pagina en **Aangepaste sondes** laten zien wanneer ze ouder is dan OneUptime, en haar eigenaren worden één keer gewaarschuwd wanneer ze een hoofdversie achterraakt. |
+| `probeCapabilities` | Bij elk verzoek | Geeft de sonde alleen het werk dat ze kan doen. Een controle die een nieuwere sonde nodig heeft, mislukt, met een zin die zegt dat ze moet worden bijgewerkt. |
+| `probeInterfaceAddresses` | Eens per minuut | Bewaart de adressen op de netwerkinterfaces van de sonde, en die die `PROBE_HOST_IP_ADDRESSES` haar doorgeeft. [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) herkent daaraan de eigen polls, detecties en monitorcontroles van de sonde in je netwerkflows, en de blokkeerlijst blokkeert ze nooit. Loopback-, link-local- en multicastadressen worden weggelaten. |
+
+OneUptime bewaart ook het adres van waaruit de sonde zich meldt, zoals OneUptime het ziet: de NAT van je netwerk, als het er een heeft. De pagina van de sonde toont beide onder **Sondestatus**, als **Meldadres** en **Interface-adressen**, aan iedereen die de sonde mag lezen, en geen van beide voor een sonde die zich nog niet heeft gemeld.
+
+Wat een sonde over haar eigen adressen zegt, is haar woord, en iedereen met haar sleutel zou elk adres kunnen opgeven. Daarom zet Beveiligingsgebeurtenissen verkeer nooit apart om alleen het adres: elke bereikte host en poort moet ook een zijn die de sonde moet bereiken, en alles daarbuiten wordt gemeld, met de naam van de sonde.
 
 ## Verbinden via een proxy
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ De limieten waarbinnen een synthetische monitor draait (hoeveel tegelijk, hun ge
 | `HTTP_PROXY_URL`, `HTTPS_PROXY_URL`, `NO_PROXY` | geen | De proxy-instellingen: zie [Verbinden via een proxy](#verbinden-via-een-proxy). |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | Termijn voor elk verzoek dat de sonde naar OneUptime stuurt. |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | Een waarschuwing loggen voor verzoeken aan OneUptime die langzamer zijn dan dit. |
+| `PROBE_HOST_IP_ADDRESSES` | geen | De IP-adressen van de host, gescheiden door komma's, voor een sonde zonder hostnetwerk: bij elke melding naast die van de sonde opgesomd. Zie [De sonde starten](#de-sonde-starten). |
 
 ### Netwerk-discovery
 

@@ -527,15 +527,20 @@ describe("VMware overview: an (i) beside every number", () => {
       });
     });
 
-    // A chart card's or a top-5 section's (i) is in its title's row, which holds the title and nothing else.
+    /*
+     * A chart card's or a top-5 section's (i) follows its title's last word
+     * too (#8044): the words hold the title and nothing else.
+     */
     labelsOf([...CHARTS, ...TOP]).forEach(
       (label: string, index: number): void => {
-        const button: HTMLElement = buttons[TILES.length + index]!;
+        const words: HTMLElement = wordsHoldingInfo(
+          buttons[TILES.length + index]!,
+        );
 
-        expect({
+        expect({ label, words: words.textContent?.trim() }).toEqual({
           label,
-          row: button.parentElement?.textContent?.trim(),
-        }).toEqual({ label, row: label });
+          words: label,
+        });
       },
     );
   });

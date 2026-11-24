@@ -1,8 +1,29 @@
 import URL from "../API/URL";
 import Phone from "../Phone";
 
+/*
+ * A sentence a call says. Its words are text people read too - the call's
+ * log, a gateway, a Notification service of the release before, which
+ * speaks them as they are - and the fields after sayMessage say how a voice
+ * says them, and where a call that asks for a key says them (CallService).
+ * A Notification service of the release before leaves them out.
+ */
 export interface Say {
   sayMessage: string;
+  /*
+   * A record's number the sentence names - "INC-42" - whose prefix the voice
+   * says letter by letter: read as written, "INC" is "Incorporated"
+   * (Utils/Call/CallSpeech).
+   */
+  recordNumber?: string | undefined;
+  /*
+   * In a call that asks for a key (GatherInput), said after the prompt the
+   * first time: the details, after "Press 1 to acknowledge ...". Said before
+   * it without this.
+   */
+  afterPrompt?: boolean | undefined;
+  // In a call that asks for a key, said again each time the prompt repeats.
+  repeated?: boolean | undefined;
 }
 
 export interface OnCallInputRequest {
@@ -10,10 +31,19 @@ export interface OnCallInputRequest {
   default: Say; // what if there is no input or invalid input.
 }
 
+/*
+ * A call's prompt for a key, and what it does with the key pressed. The call
+ * says its sentences before it, with the prompt - and a key pressed while it
+ * speaks stops it - says them again while no key is pressed, then waits
+ * `timeoutInSeconds` and says `noInputMessage` (CallService).
+ */
 export interface GatherInput {
+  // The prompt: "Press 1 to acknowledge, or 2 to escalate."
   introMessage: string;
   numDigits: number;
+  // How long the call waits for a key once it has said everything.
   timeoutInSeconds: number;
+  // What the call says when no key was pressed, before it ends.
   noInputMessage: string;
   onInputCallRequest: OnCallInputRequest;
   responseUrl: URL;

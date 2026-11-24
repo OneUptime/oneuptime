@@ -5,6 +5,7 @@ import OnCallSetupApi, {
   ProjectPhoneFacts,
   maySecondEscalationLevel,
 } from "./OnCallSetupApi";
+import PolicyChoicePicker from "../../OnCallPolicy/PolicyChoicePicker";
 import {
   CALL_METHOD_TYPE,
   DEFAULT_ESCALATE_AFTER_IN_MINUTES,
@@ -91,6 +92,11 @@ import {
   BrowserPushProblem,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
+import {
+  MobileAppOffer,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import { PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE } from "../../NotificationMethods/PushNotificationsTurnedOff";
 import { usePushNotificationsTurnedOff } from "../../../Utils/PushNotificationsTurnedOff";
 import Toast from "Common/UI/Utils/Toast";
@@ -155,10 +161,6 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import ButtonType from "Common/UI/Components/Button/ButtonTypes";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import LazyPeoplePicker from "Common/UI/Components/PeoplePicker/LazyPeoplePicker";
@@ -254,6 +256,13 @@ const pickedIds: (
 
 const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * How the server offers the mobile app (Admin Dashboard > Settings > Help
+   * and Support, #10866): OneUptime's stores, a page of its own, or not at
+   * all - then the push step offers this browser only.
+   */
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
   const serverEmail: ServerEmail = useServerEmail();
   const sendingStatus: ServerSendingStatusAnswer | null =
     useServerSendingStatus();
@@ -330,6 +339,12 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   });
   const [peopleError, setPeopleError] = useState<string>("");
   const [chosenPolicyId, setChosenPolicyId] = useState<string>("");
+  /*
+   * The policy picked, as the picker had it: one its search found past the
+   * project's first policies is named by it (#10764).
+   */
+  const [chosenPolicyChoice, setChosenPolicyChoice] =
+    useState<PolicyChoice | null>(null);
   /*
    * Save and continue found a policy another tab or device made since the
    * step opened, and made none (#7252): said first in the step, for this
@@ -1102,7 +1117,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ) : (
         <>
           <p className="text-sm text-gray-500">
-            {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
+            {translator.translateText(
+              mobileAppOffer
+                ? ON_CALL_SETUP_COPY.pushHelp
+                : ON_CALL_SETUP_COPY.pushHelpWithoutApp,
+            )}
           </p>
           {browserPushProblem ? (
             <p
@@ -1132,17 +1151,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 }}
               />
             )}
-            <Button
-              title={ON_CALL_SETUP_COPY.getTheApp}
-              icon={IconProp.DevicePhoneMobile}
-              buttonStyle={ButtonStyleType.NORMAL}
-              ariaExpanded={isAppCodesOpen}
-              ariaControls="on-call-setup-app-codes"
-              dataTestId="on-call-setup-get-the-app"
-              onClick={() => {
-                setIsAppCodesOpen(!isAppCodesOpen);
-              }}
-            />
+            {mobileAppOffer ? (
+              <Button
+                title={ON_CALL_SETUP_COPY.getTheApp}
+                icon={IconProp.DevicePhoneMobile}
+                buttonStyle={ButtonStyleType.NORMAL}
+                ariaExpanded={isAppCodesOpen}
+                ariaControls="on-call-setup-app-codes"
+                dataTestId="on-call-setup-get-the-app"
+                onClick={() => {
+                  setIsAppCodesOpen(!isAppCodesOpen);
+                }}
+              />
+            ) : (
+              <></>
+            )}
           </div>
           {browserPushError ? (
             <p
@@ -1164,7 +1187,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           ) : (
             <></>
           )}
-          {isAppCodesOpen ? (
+          {isAppCodesOpen && mobileAppOffer ? (
             <div id="on-call-setup-app-codes" className="space-y-2">
               <MobileAppCodes
                 dataTestId="on-call-setup-app-codes"
@@ -1934,21 +1957,6 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     </div>
   );
 
-  /*
-   * Two policies of one name are told apart in the picker, by what sets each
-   * apart (SharedNameOptions, #10314).
-   */
-  const policyChoiceOptions: Array<DropdownOption> = policies.map(
-    (entry: PolicyChoice): DropdownOption => {
-      return {
-        value: entry.id,
-        label: entry.name,
-        isUserContent: true,
-        ...(entry.sharedName ? { sharedName: entry.sharedName } : {}),
-      };
-    },
-  );
-
   const whoDoneLine: string = policy
     ? translator.translateTemplate('"{{policy}}" pages {{people}}.', {
         policy: policy.name,
@@ -2089,22 +2097,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             >
               {translator.translateText(ON_CALL_SETUP_COPY.whoPolicyLabel)}
             </p>
-            <Dropdown
-              options={policyChoiceOptions}
-              value={policyChoiceOptions.find(
-                (option: DropdownOption): boolean => {
-                  return option.value === chosenPolicyId;
-                },
-              )}
-              isClearable={false}
+            {/*
+             * The project's first policies, and the rest searched on the
+             * server as the person types (#10764).
+             */}
+            <PolicyChoicePicker<PolicyChoice>
+              policies={policies}
+              value={chosenPolicyId}
+              search={(text: string): Promise<Array<PolicyChoice>> => {
+                return OnCallSetupApi.searchPolicyChoices(text);
+              }}
               ariaLabelledby="on-call-setup-policy-label"
               dataTestId="on-call-setup-policy-choice"
-              onChange={(
-                value: DropdownValue | Array<DropdownValue> | null,
-              ) => {
-                if (typeof value === "string") {
-                  setChosenPolicyId(value);
-                }
+              onChange={(choice: PolicyChoice) => {
+                setChosenPolicyId(choice.id);
+                setChosenPolicyChoice(choice);
               }}
             />
           </div>
@@ -2798,7 +2805,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         policy?.name ||
         resources[OnCallResource.OnCallPolicy]?.name ||
         (isExistingMode
-          ? choices?.policies.find((entry: { id: string }): boolean => {
+          ? [
+              ...(choices?.policies || []),
+              ...(chosenPolicyChoice ? [chosenPolicyChoice] : []),
+            ].find((entry: { id: string }): boolean => {
               return entry.id === chosenPolicyId;
             })?.name
           : getFirstOnCallPolicyName(translator)),

@@ -199,6 +199,54 @@ describe("reading the page's answer", () => {
       destinationsCannotTell: false,
       blocksThisHour: 0,
       maxBlocksPerHour: SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+      pagedThisHour: false,
     });
+  });
+
+  /*
+   * #10746: the limit is the project's own, as the server answers it, and
+   * the page says the owners were paged only once a stop paged them.
+   */
+  test("reads the project's own hourly limit, and whether the owners were paged this hour", () => {
+    const read: SecurityAutomaticResponseOverviewData =
+      readSecurityAutomaticResponseOverview({
+        blocksThisHour: 12,
+        maxBlocksPerHour: 120,
+        pagedThisHour: true,
+      });
+
+    expect(read.maxBlocksPerHour).toBe(120);
+    expect(read.blocksThisHour).toBe(12);
+    expect(read.pagedThisHour).toBe(true);
+  });
+
+  test.each([
+    [1, 1],
+    [500, 500],
+    [0, SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR],
+    [501, SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR],
+    [2.5, SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR],
+    [-10, SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR],
+    ["120", 120],
+    [null, SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR],
+  ])(
+    "a limit of %p reads as %p: never none, never one a project cannot set",
+    (answered: unknown, limit: number) => {
+      expect(
+        readSecurityAutomaticResponseOverview({
+          maxBlocksPerHour: answered as never,
+        }).maxBlocksPerHour,
+      ).toBe(limit);
+    },
+  );
+
+  test("only a true says the owners were paged", () => {
+    for (const answered of [false, "true", 1, null, undefined]) {
+      expect(
+        readSecurityAutomaticResponseOverview({
+          pagedThisHour: answered as never,
+        }).pagedThisHour,
+      ).toBe(false);
+    }
   });
 });

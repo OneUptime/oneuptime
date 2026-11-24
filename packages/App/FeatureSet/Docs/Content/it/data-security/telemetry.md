@@ -9,6 +9,7 @@ Non c'è nulla da configurare: la telemetria di ogni servizio viene scansionata 
 - [Come campiona una scansione](#come-campiona-una-scansione): I record più recenti di ogni servizio, ogni ora.
 - [Ripulisci](#ripulisci): Nascondi un risultato all'ingestione, nel servizio in cui è stato trovato.
 - [Contenuto in autonomia](#contenuto-in-autonomia): Un segreto nascosto senza che nessuno prema nulla, dove è dimostrato che è sicuro.
+- [Correggerlo nel codice](#correggerlo-nel-codice): Una sola pull request che impedisce a un servizio di scrivere tutte le sue fughe.
 - [Scarta questa metrica](#scarta-questa-metrica): Smetti di memorizzare le metriche il cui nome contiene dati sensibili.
 - [Cosa conta come ripulito](#cosa-conta-come-ripulito): Quando una regola di pulizia copre già un risultato.
 :::
@@ -99,7 +100,7 @@ Fai clic su **Ripulisci**. Una finestra di dialogo dice cosa farebbe la regola p
 
 ### Correggi anche il codice
 
-La regola nasconde i nuovi dati prima che vengano conservati. I dati già conservati restano fino alla fine della loro conservazione, quindi correggi il codice che li scrive: il risultato indica il servizio e l'attributo.
+La regola nasconde i nuovi dati prima che vengano conservati. I dati già conservati restano fino alla fine della loro conservazione, quindi correggi il codice che li scrive: il risultato indica il servizio e l'attributo. **Correggi con l'IA** sul problema apre una sola pull request per tutte le fughe del servizio: vedi [Correggerlo nel codice](#correggerlo-nel-codice).
 :::
 
 La regola prende il nome da ciò che nasconde, come «Data Security: Email address in log attributes of checkout», o «Data Security: Password or secret in db.password of checkout» per una regola che indica il suo attributo, ed è elencata con le altre tue regole di pulizia (vedi [Filtri di scarto e regole di pulizia](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). È la regola più ristretta che nasconde i dati del risultato, la prima di queste che si adatta:
@@ -118,7 +119,7 @@ La regola prende il nome da ciò che nasconde, come «Data Security: Email addre
 
 Prima che la finestra di dialogo dica cosa farebbe la regola, OneUptime esegue ogni regola che potrebbe creare sui record in cui è stato visto il risultato, e sui record più recenti del suo servizio con un valore in quella posizione, con lo stesso codice che esegue l'ingestione, e chiede allo scanner cosa resta. La prima regola che nasconde i dati in ogni valore che li conteneva, e che modifica al massimo 5 su 100 degli altri valori in quel punto, è quella giusta. La finestra di dialogo dice su quanti record è stata eseguita, quanti valori contenevano i dati e quanti altri ne ha modificati. Un pattern che ne modificherebbe di più non viene mai offerto: viene offerta la regola che indica l'attributo, dicendo cos'altro modifica.
 
-La prova viene conservata con la regola, e l'elenco delle regole di pulizia mostra **Dimostrato** nella sua riga finché la regola non viene modificata. Dove non resta alcun record su cui eseguire una regola, come per un'eccezione o un replay di sessione, o per record oltre la loro conservazione, la regola viene creata così come è pianificata, e la finestra di dialogo lo dice.
+La prova viene conservata con la regola, e l'elenco delle regole di pulizia mostra **Dimostrato** nella sua riga finché la regola non viene modificata. La regola di un'eccezione viene eseguita sulle eccezioni in cui sono stati visti i dati, così come l'ingestione ripulisce l'eccezione che uno span registra. Dove non resta alcun record su cui eseguire una regola, come per un replay di sessione, o per record oltre la loro conservazione, la regola viene creata così come è pianificata, e la finestra di dialogo lo dice.
 
 Una regola di log o di tracce vale per il servizio in cui è stato trovato il risultato: ripulisce i log o gli span di quel servizio, e quelli degli altri servizi restano come sono, così nulla di ciò che legge i loro cambia. La colonna **Ambito** dell'elenco delle regole di pulizia dice per quale servizio vale una regola. Un risultato nelle registrazioni di sessione di un'applicazione RUM crea una regola per tutti i servizi e le app del progetto, poiché le regole di log ripuliscono anche le registrazioni, e la finestra di dialogo lo dice. Se il servizio non esiste più, **Ripulisci** lo dice e non crea alcuna regola.
 
@@ -144,9 +145,11 @@ Mentre OneUptime AI lavora sui problemi di Sicurezza dei dati (vedi [OneUptime A
 - **Nulla legge ciò che nasconde**: nessun monitor, dashboard, vista salvata, regola di registrazione o SLO, e nulla di cui ha bisogno Eventi di sicurezza.
 - **Vale per il servizio** in cui sono stati visti i dati.
 
-Tutto il resto viene invece proposto, in **Sicurezza dei dati → IA** e nella pagina del problema, dicendo come è stata dimostrata la regola e cosa legge ciò che nasconderebbe: dati personali, una regola i cui valori sono letti da qualcosa, una che modifica altri valori, una per cui non restava alcun record su cui eseguirla, una per tutti i servizi, la regola della pipeline di una metrica, e qualsiasi posizione la cui regola precedente una persona ha annullato o ignorato. Una regola IA di Sicurezza dei dati che imposta **Contenimento** su **Automaticamente** per un problema permette di nascondere in autonomia anche i dati personali dimostrati. Nessuna regola permette di eseguire in autonomia una modifica che non è dimostrata sicura.
+Tutto il resto viene invece proposto, in **Sicurezza dei dati → IA** e nella pagina del problema, dicendo come è stata dimostrata la regola e cosa legge ciò che nasconderebbe: dati personali, una regola i cui valori sono letti da qualcosa, una che modifica altri valori, una per cui non restava alcun record su cui eseguirla, una per tutti i servizi, e qualsiasi posizione la cui regola precedente una persona ha annullato o ignorato. Una regola IA di Sicurezza dei dati che imposta **Contenimento** su **Automaticamente** per un problema permette di nascondere in autonomia anche i dati personali dimostrati. Nessuna regola permette di eseguire in autonomia una modifica che non è dimostrata sicura.
 
-Dove nessuna delle regole di **Ripulisci** può nascondere i dati, come per uno dei tuoi tipi di dati senza pattern, OneUptime AI ne scrive una: un pattern per i dati, o l'attributo da nascondere per intero. Le vengono indicati il tipo di dati, dove si trova, i nomi degli attributi accanto e le forme dei valori, come `AA-9999` per `AB-1234`, mai un valore, e ciò che scrive viene dimostrato sui record come qualsiasi altra regola prima di essere proposto o creato.
+L'attributo di una metrica è soggetto alle stesse condizioni. La sua regola viene eseguita sui punti dati in cui è stato visto il risultato, e sui più recenti del suo servizio con un valore in quell'attributo, attraverso la pipeline delle metriche eseguita dall'ingestione, e ciò che lo legge è ogni monitor, dashboard, regola di registrazione e SLO che legge una delle metriche del servizio che hanno avuto l'attributo nell'ultimo giorno.
+
+Dove nessuna delle regole di **Ripulisci** può nascondere i dati, come per uno dei tuoi tipi di dati senza pattern, OneUptime AI ne scrive una: un pattern per i dati, o l'attributo da nascondere per intero. Le vengono indicati il tipo di dati, dove si trova, i nomi degli attributi accanto e le forme dei valori, come `AA-9999` per `AB-1234`, mai un valore, e ciò che scrive viene dimostrato sui record come qualsiasi altra regola prima di essere proposto o creato. Viene interpellata una volta per ogni posizione: ciò che ha scritto, o il fatto che non è riuscita a scrivere nulla, viene conservato con il risultato, così quando si torna a lavorare sul problema, ciò che ha scritto viene dimostrato di nuovo sui record più recenti e non si spendono crediti IA. Viene interpellata di nuovo quando cambia ciò che le verrebbe indicato: il tipo di dati, dove si trovano i dati, i nomi accanto o le forme dei loro valori. Una chiamata che non riesce non conserva nulla, così la volta successiva viene interpellata di nuovo per quella posizione.
 
 Una modifica che OneUptime AI ha fatto in autonomia:
 
@@ -155,6 +158,48 @@ Una modifica che OneUptime AI ha fatto in autonomia:
 - **Dice di ruotare un segreto.** Nascondere un segreto ferma solo le nuove copie: il segreto funziona ancora, e i record memorizzati prima della regola lo mantengono fino alla fine della loro conservazione. La cronologia e l'email dicono dove è stato visto.
 
 I nuovi risultati in un servizio il cui problema è già aperto vengono contenuti allo stesso modo, appena la scansione oraria li trova.
+
+## Correggerlo nel codice
+
+Una regola di mascheramento nasconde i nuovi dati in fase di acquisizione, ma il codice continua a scriverli. **Correggi con l'IA** su un problema di telemetria chiede a OneUptime AI una sola pull request che impedisce al servizio di scrivere tutte le fughe che OneUptime vede ancora nella sua telemetria: quella di questo problema e le altre del servizio, comprese quelle contenute in fase di acquisizione. Una finestra di dialogo mostra cosa farà la pull request prima che parta qualsiasi cosa, e **Apri pull request** chiede esattamente quello.
+
+:::steps
+### Trovare dove viene scritta ogni fuga
+
+Prima che OneUptime AI inizi, Sicurezza dei dati rilegge, dentro OneUptime, i record in cui è stata vista ogni fuga, e conserva solo il punto in cui il codice li ha scritti:
+
+- **Uno span o una chiamata di IA**: il file, la riga e la funzione che nominano i suoi attributi `code.*`, e il nome dello span.
+- **Un'eccezione**: i suoi frame più alti, quelli nel codice del servizio.
+- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`.
+- **Una metrica**: il nome della metrica.
+- **Qualsiasi fuga**: la sua chiave di attributo, ad esempio `user.email`, che il codice di solito scrive così com'è.
+
+### Scegliere il repository
+
+La pull request va al repository che contiene i file nominati dai record, cercati come i file di uno stack trace. Una fuga i cui record non nominano alcun file va dove sono le altre fughe del servizio, altrimenti al repository che si chiama come il servizio, o all'unico del progetto. In un repository con più servizi, OneUptime AI lavora nella cartella del servizio: quella che quei file condividono, altrimenti quella usata dalle revisioni di produzione del servizio. Quando niente decide, scegli tu, tra i repository in cui puoi chiedere a OneUptime AI di lavorare.
+
+### Aprire la pull request
+
+La finestra di dialogo dice come cambierà il codice, elenca ogni fuga con il punto in cui viene scritta, e nomina il repository, perché è quello, e i file da cui parte OneUptime AI. **Apri pull request** chiede esattamente quel piano: se una fuga è stata trovata o corretta da quando l'hai aperta, non parte niente e il piano viene mostrato di nuovo.
+:::
+
+Come cambia il codice dipende da quanti punti scrivono i dati:
+
+| Dove vengono scritti i dati | Cosa fa la pull request |
+| --- | --- |
+| In tre punti o meno | Modifica il codice in ogni punto: omette il valore, oppure lo maschera o ne calcola l'hash prima che venga inviato |
+| In più di tre punti | Aggiunge un passaggio di oscuramento, con un test, dove il servizio configura la sua telemetria, invece di modificare ogni punto |
+| Dove le tue regole di mascheramento li nascondono già in fase di acquisizione | Aggiunge quel passaggio di oscuramento anche per quelle chiavi, così che il codice faccia ciò che fa l'acquisizione |
+
+Una pull request corregge un servizio in un repository: un servizio le cui fughe vengono scritte in due repository ne riceve una in ciascuno. Mentre viene scritta, **Correggi con l'IA** su qualsiasi problema del servizio rimanda a essa, e non ne viene avviata una seconda.
+
+OneUptime AI riceve i punti, le chiavi, i tipi di dati e i modelli, mai un valore dei tuoi dati, un campione mascherato o un record, e l'agente di codice non legge nulla della tua telemetria mentre lavora. La descrizione della pull request elenca le fughe e collega i problemi che corregge, e non cita mai un record.
+
+Ogni problema che la pull request corregge la conserva: la sua scheda **Come correggere** dice se è in scrittura, aperta, unita o chiusa, con i link alla pull request e all'attività, e una volta unita, cosa ha mostrato la produzione. La cronologia del problema dice quando è stata aperta. Il problema viene risolto come **Corretto nel codice** non appena la nuova versione del servizio smette di scrivere i dati (vedi [Cosa succede a un problema](/docs/data-security/checks-and-issues#cosa-succede-a-un-problema)).
+
+Un segreto richiede più di una correzione nel codice: il codice ferma solo le nuove copie, e il segreto funziona ancora. La pull request, la cronologia del problema e la sua scheda **Come correggere** dicono di ruotarlo, e la scheda elenca dove è stato visto.
+
+Con **Lavora sui nuovi problemi** attivo, OneUptime AI propone anche da sola la correzione di ogni servizio, prima il servizio più a rischio, in **Sicurezza dei dati → IA** e sul problema più a rischio del servizio. Per impostazione predefinita ti aspetta. Una regola di IA di Sicurezza dei dati che imposta **Correzione** su **Automaticamente** per il problema più a rischio del servizio apre la pull request senza chiedere, in un repository che qualcosa ha deciso. **Numero massimo di pull request di correzione aperte** del repository limita entrambe: al limite, una pull request che una regola aprirebbe ti aspetta, e non si apre nessuna nuova pull request di correzione finché una non viene unita o chiusa.
 
 ## Scarta questa metrica
 

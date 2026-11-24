@@ -243,6 +243,8 @@ export function buildStoreWork(data: {
     allowedValues: data.settings.allowedValues || [],
     // The key a worker's scan of the project uses, so the two compare.
     fingerprintKey: getFingerprintKey(data.store.projectId),
+    // The project's names-and-addresses switch: the probe runs its own model.
+    findNamesAndAddresses: data.settings.isModelScanEnabled !== false,
     shadowDataTypes: data.shadowDataTypes || [],
   };
 }

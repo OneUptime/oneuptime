@@ -1,4 +1,5 @@
 import { FormTargetHandler } from "./FormTargetHandler";
+import AlertFormTarget from "./AlertFormTarget";
 import IncidentFormTarget from "./IncidentFormTarget";
 import ScheduledMaintenanceFormTarget from "./ScheduledMaintenanceFormTarget";
 import FormTargetType from "../../../Types/Form/FormTargetType";
@@ -21,6 +22,8 @@ export const getFormTargetHandler: GetFormTargetHandlerFunction = (
   switch (targetType) {
     case FormTargetType.ScheduledMaintenance:
       return new ScheduledMaintenanceFormTarget() as AnyFormTargetHandler;
+    case FormTargetType.Alert:
+      return new AlertFormTarget() as AnyFormTargetHandler;
     case FormTargetType.Incident:
     default:
       return new IncidentFormTarget() as AnyFormTargetHandler;

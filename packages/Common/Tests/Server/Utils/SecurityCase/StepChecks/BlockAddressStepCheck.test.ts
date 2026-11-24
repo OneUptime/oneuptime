@@ -479,7 +479,7 @@ describe("a block that stops holding", () => {
       {
         template: CHECK_BLOCK_SINCE_AGAIN,
         values: { address: ADDRESS },
-        times: { time: at(70).toISOString() },
+        times: { since: at(70).toISOString() },
         count: 6,
       },
     ]);

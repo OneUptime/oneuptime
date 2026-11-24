@@ -1,4 +1,11 @@
 import { AskAiSourceCount } from "../AI/AskAiRatings";
+import {
+  HelpChoice,
+  HelpItemSetting,
+  ONEUPTIME_SUPPORT_EMAIL as HELP_ONEUPTIME_SUPPORT_EMAIL,
+  getHelpEmailProblem,
+  isSafeHelpLink,
+} from "../HelpAndSupport/HelpAndSupport";
 import { JSONObject, JSONValue } from "../JSON";
 
 /*
@@ -289,17 +296,52 @@ export enum GiveFeedbackDestination {
    * Feedback), with no name and no address, and nothing leaves the server.
    */
   ServerAdmins = "server_admins",
+  /*
+   * A server whose admins sent Give feedback to an address of their own
+   * (Admin Dashboard > Settings > Help and Support, #10865): emailed there
+   * in the same way, through the server's own mail settings, and kept for
+   * its admins too. Offered only while the server can send email
+   * (isGiveFeedbackOffered): a message that cannot reach its team is not
+   * asked for.
+   */
+  SupportTeamByEmail = "support_team_by_email",
+  /*
+   * A server whose admins sent Give feedback to a page of their own - a help
+   * desk form, a feedback board: Give feedback opens it in a new tab, and
+   * nothing is written here or sent from here.
+   */
+  SupportPage = "support_page",
 }
 
-export const ONEUPTIME_SUPPORT_EMAIL: string = "support@oneuptime.com";
+/*
+ * OneUptime's support address, where Give feedback goes on OneUptime Cloud.
+ * The same address Help offers by default (Types/HelpAndSupport).
+ */
+export const ONEUPTIME_SUPPORT_EMAIL: string = HELP_ONEUPTIME_SUPPORT_EMAIL;
 
+/*
+ * Where Give feedback goes, as the server decides it: where a master admin
+ * sent it (Help and Support's Give feedback: an address or a page of the
+ * server's own), and otherwise as it always went - the OneUptime team on
+ * OneUptime Cloud, a self-hosted server's admins elsewhere.
+ */
 export const getGiveFeedbackDestination: (data: {
   isOneUptimeCloud: boolean;
   adminNotificationEmail: string | null | undefined;
+  giveFeedback?: HelpItemSetting | undefined;
 }) => GiveFeedbackDestination = (data: {
   isOneUptimeCloud: boolean;
   adminNotificationEmail: string | null | undefined;
+  giveFeedback?: HelpItemSetting | undefined;
 }): GiveFeedbackDestination => {
+  if (data.giveFeedback?.choice === HelpChoice.Email) {
+    return GiveFeedbackDestination.SupportTeamByEmail;
+  }
+
+  if (data.giveFeedback?.choice === HelpChoice.Link) {
+    return GiveFeedbackDestination.SupportPage;
+  }
+
   if (data.isOneUptimeCloud) {
     return GiveFeedbackDestination.OneUptimeTeam;
   }
@@ -309,11 +351,44 @@ export const getGiveFeedbackDestination: (data: {
     : GiveFeedbackDestination.ServerAdmins;
 };
 
+/*
+ * Whether Give feedback is offered at all (Help, Search, the first-week
+ * check-in): not where a master admin hid it, and not where it would go to
+ * an address of the server's own that the server cannot send email to - a
+ * message that cannot reach the team it names is not asked for. A server
+ * that asks nothing at all (disableProductFeedback) offers nothing either,
+ * which ProductFeedbackSettings.isOn says.
+ */
+export const isGiveFeedbackOffered: (data: {
+  giveFeedback?: HelpItemSetting | undefined;
+  canSendEmail: boolean;
+}) => boolean = (data: {
+  giveFeedback?: HelpItemSetting | undefined;
+  canSendEmail: boolean;
+}): boolean => {
+  if (data.giveFeedback?.choice === HelpChoice.Hidden) {
+    return false;
+  }
+
+  if (data.giveFeedback?.choice === HelpChoice.Email) {
+    return data.canSendEmail;
+  }
+
+  return true;
+};
+
 export const isGiveFeedbackEmailed: (
   destination: GiveFeedbackDestination,
 ) => boolean = (destination: GiveFeedbackDestination): boolean => {
-  return destination !== GiveFeedbackDestination.ServerAdmins;
+  return (
+    destination !== GiveFeedbackDestination.ServerAdmins &&
+    destination !== GiveFeedbackDestination.SupportPage
+  );
 };
+
+// What a Give feedback posted where the server does not take one is told.
+export const GIVE_FEEDBACK_NOT_TAKEN_MESSAGE: string =
+  "This server does not take Give feedback here. Open Help to see where to send it.";
 
 /*
  * What POST /product-feedback answers for Give feedback besides the
@@ -1003,6 +1078,16 @@ export interface ProductFeedbackSettings {
   isOn: boolean;
   isAskingMe: boolean;
   giveFeedbackGoesTo?: GiveFeedbackDestination | undefined;
+  /*
+   * Whether Give feedback is offered (isGiveFeedbackOffered): false where a
+   * master admin hid it, or sent it to an address the server cannot email
+   * yet. Unsaid by an older server: offered wherever the server asks.
+   */
+  isGiveFeedbackOffered?: boolean | undefined;
+  // The address Give feedback is emailed to, said in the dialog (SupportTeamByEmail).
+  giveFeedbackTo?: string | undefined;
+  // The page Give feedback opens instead of the dialog (SupportPage).
+  giveFeedbackUrl?: string | undefined;
 }
 
 const GIVE_FEEDBACK_DESTINATIONS: ReadonlyArray<string> = Object.values(
@@ -1028,6 +1113,9 @@ export const readProductFeedbackSettings: (
   }
 
   const giveFeedbackGoesTo: unknown = data["giveFeedbackGoesTo"];
+  const isGiveFeedbackOffered: unknown = data["isGiveFeedbackOffered"];
+  const giveFeedbackTo: unknown = data["giveFeedbackTo"];
+  const giveFeedbackUrl: unknown = data["giveFeedbackUrl"];
 
   return {
     isOn: data["isOn"],
@@ -1035,6 +1123,17 @@ export const readProductFeedbackSettings: (
     ...(typeof giveFeedbackGoesTo === "string" &&
     GIVE_FEEDBACK_DESTINATIONS.includes(giveFeedbackGoesTo)
       ? { giveFeedbackGoesTo: giveFeedbackGoesTo as GiveFeedbackDestination }
+      : {}),
+    ...(typeof isGiveFeedbackOffered === "boolean"
+      ? { isGiveFeedbackOffered: isGiveFeedbackOffered }
+      : {}),
+    // Only an address, and only a link Help and Support would keep.
+    ...(typeof giveFeedbackTo === "string" &&
+    getHelpEmailProblem(giveFeedbackTo) === null
+      ? { giveFeedbackTo: giveFeedbackTo.trim() }
+      : {}),
+    ...(isSafeHelpLink(giveFeedbackUrl)
+      ? { giveFeedbackUrl: giveFeedbackUrl.trim() }
       : {}),
   };
 };

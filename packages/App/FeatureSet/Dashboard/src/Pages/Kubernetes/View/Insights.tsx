@@ -31,13 +31,13 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
 import { chartWordsInReadersLanguage } from "../../../Components/Metrics/Utils/ChartWordsInReadersLanguage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 interface MetricSpec {
   variable: string;
@@ -96,8 +96,13 @@ function getSectionTitle(
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
-      <span>{title}</span>
-      <InfoTooltip label={title} text={description} />
+      {/* The (i) after the title's last word (#7348, #8044). */}
+      <WordsWithInfoTooltip
+        className="min-w-0"
+        text={translateText(title) || title}
+        label={title}
+        description={description}
+      />
     </div>
   );
 }

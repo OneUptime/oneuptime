@@ -5,7 +5,11 @@ import Section from "../../Components/Section/Section";
 import IncidentGroup from "../../Types/IncidentGroup";
 import ScheduledMaintenanceGroup from "../../Types/ScheduledMaintenanceGroup";
 import API from "../../Utils/API";
-import { STATUS_PAGE_API_URL } from "../../Utils/Config";
+import {
+  DASHBOARD_URL_OF_PREVIEW,
+  STATUS_PAGE_API_URL,
+} from "../../Utils/Config";
+import { getStatusPageResourcesByIdPath } from "Common/Types/StatusPage/StatusPageResourcesLink";
 import StatusPageUtil from "../../Utils/StatusPage";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -2557,7 +2561,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                * A page with nothing on it says so, without a check mark: it
                * told every visitor "Everything looks great" over an
                * instruction meant for its owner (#9122). The owner reads
-               * what to do in the Dashboard's preview, and only there.
+               * what to do in the Dashboard's preview, and only there,
+               * with a link to the page's Resources in the Dashboard
+               * (#9180): by the page's id alone, since the preview knows no
+               * project, and the Dashboard opens the page in its own.
                */
               <EmptyState
                 id="overview-empty-state"
@@ -2571,6 +2578,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
                       className="mx-auto max-w-xl rounded-md border border-dashed border-gray-300 px-4 py-3 text-balance text-sm leading-6 text-gray-600"
                     >
                       {t("overview.noResourcesPreviewDescription")}
+                      {statusPageId ? (
+                        <>
+                          {" "}
+                          <a
+                            id="overview-empty-state-resources-link"
+                            href={URL.fromURL(DASHBOARD_URL_OF_PREVIEW)
+                              .addRoute(
+                                getStatusPageResourcesByIdPath(statusPageId),
+                              )
+                              .toString()}
+                            className="rounded-sm font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                          >
+                            {t("overview.noResourcesPreviewLink")}
+                          </a>
+                        </>
+                      ) : (
+                        <></>
+                      )}
                     </p>
                   ) : undefined
                 }

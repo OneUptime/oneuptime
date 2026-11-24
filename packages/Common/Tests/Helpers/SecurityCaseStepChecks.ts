@@ -1,4 +1,7 @@
+import { AccountChangesReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AccountChangesState";
 import { AccountFixReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AccountFixState";
+import { SecurityCaseEventSnapshot } from "../../Types/SecurityCase/SecurityCaseEventEvidence";
+import { AccountChange } from "../../Utils/SecurityCase/AttackAccountChanges";
 import { AddressBlockEvidence } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/AddressBlocks";
 import { FixChangesReading } from "../../Server/Utils/SecurityCase/StepChecks/Evidence/FixChanges";
 import {
@@ -381,6 +384,9 @@ export interface FakeEvidence {
   credentials?: AccountFixReading;
   // Each account's MFA, by its name.
   mfa?: Record<string, AccountFixReading>;
+  // The events kept on the case, and each account change read back (#10603).
+  keptEvents?: Array<SecurityCaseEventSnapshot>;
+  accountChanges?: AccountChangesReading;
   failing?: Array<keyof StepCheckEvidence>;
 }
 
@@ -498,6 +504,16 @@ export function fakeEvidence(fake: FakeEvidence = {}): RecordingEvidence {
     readAccountMfa: async (user: string): Promise<AccountFixReading> => {
       read("readAccountMfa", user);
       return fake.mfa?.[user] || { answers: [] };
+    },
+    readKeptEvents: async (): Promise<Array<SecurityCaseEventSnapshot>> => {
+      read("readKeptEvents", null);
+      return fake.keptEvents || [];
+    },
+    readAccountChanges: async (
+      changes: Array<AccountChange>,
+    ): Promise<AccountChangesReading> => {
+      read("readAccountChanges", changes);
+      return fake.accountChanges || { answers: [] };
     },
   };
 

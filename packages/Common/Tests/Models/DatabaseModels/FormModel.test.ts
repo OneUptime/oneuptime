@@ -1,5 +1,6 @@
 import Models from "../../../Models/DatabaseModels/Index";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Alert from "../../../Models/DatabaseModels/Alert";
 import Dashboard from "../../../Models/DatabaseModels/Dashboard";
 import Form from "../../../Models/DatabaseModels/Form";
 import FormSubmission from "../../../Models/DatabaseModels/FormSubmission";
@@ -245,6 +246,9 @@ const SUBMISSION_COLUMNS: Array<string> = [
   "targetType",
   "incident",
   "incidentId",
+  // What an alert form's submission created (#10760).
+  "alert",
+  "alertId",
   "scheduledMaintenance",
   "scheduledMaintenanceId",
 ];
@@ -1301,15 +1305,21 @@ describe("FormSubmission: written by the submit route alone", () => {
 describe("FormSubmission columns", () => {
   const model: FormSubmission = new FormSubmission();
 
-  test("has exactly the columns the migration creates - no created-by or deleted-by user", () => {
+  test("has exactly the columns its migrations create - no created-by or deleted-by user", () => {
     expect([...model.getTableColumns().columns].sort()).toEqual(
       [...BASE_COLUMNS, ...SUBMISSION_COLUMNS].sort(),
     );
   });
 
-  test("the project, form, incident and event ids are indexed", () => {
+  test("the project, form, incident, alert and event ids are indexed", () => {
     expect(indexedColumns(FormSubmission)).toEqual(
-      ["formId", "incidentId", "projectId", "scheduledMaintenanceId"].sort(),
+      [
+        "alertId",
+        "formId",
+        "incidentId",
+        "projectId",
+        "scheduledMaintenanceId",
+      ].sort(),
     );
   });
 
@@ -1370,6 +1380,13 @@ describe("FormSubmission columns", () => {
       nullable: true,
     },
     {
+      relation: "alert",
+      idColumn: "alertId",
+      modelType: Alert,
+      onDelete: "SET NULL",
+      nullable: true,
+    },
+    {
       relation: "scheduledMaintenance",
       idColumn: "scheduledMaintenanceId",
       modelType: ScheduledMaintenance,
@@ -1397,6 +1414,9 @@ describe("FormSubmission columns", () => {
       "CASCADE",
     );
     expect(relationArgs(FormSubmission, "incident").options.onDelete).toBe(
+      "SET NULL",
+    );
+    expect(relationArgs(FormSubmission, "alert").options.onDelete).toBe(
       "SET NULL",
     );
     expect(

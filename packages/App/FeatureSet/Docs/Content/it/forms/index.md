@@ -1,6 +1,6 @@
 # Panoramica dei moduli
 
-Un modulo è una pagina che chiunque abbia il suo link può compilare, senza un account OneUptime. Ogni invio crea qualcosa nel tuo progetto: un **incidente**, per le segnalazioni di problemi, oppure un **evento di manutenzione**, per le richieste di modifica e di manutenzione. Costruisci le domande del modulo in un editor drag-and-drop, decidi come le risposte diventano il record e condividi il link con le persone che devono usarlo.
+Un modulo è una pagina che chiunque abbia il suo link può compilare, senza un account OneUptime. Ogni invio crea qualcosa nel tuo progetto: un **incidente**, per le segnalazioni di problemi, un **avviso**, per gli avvertimenti e le cose da controllare, oppure un **evento di manutenzione**, per le richieste di modifica e di manutenzione. Costruisci le domande del modulo in un editor drag-and-drop, decidi come le risposte diventano il record e condividi il link con le persone che devono usarlo.
 
 Usa un modulo quando chi nota un problema, o ha bisogno di una modifica, non è chi gestisce i tuoi incidenti e le tue manutenzioni: addetti al supporto, colleghi di un altro reparto, il responsabile di un negozio, il team operativo di un cliente. Aprono il link, rispondono alle tue domande e premono **Invia**. Il tuo team riceve un normale incidente o evento, con le risposte nei suoi campi e una nota privata che registra chi l'ha inviato.
 
@@ -13,16 +13,19 @@ Usa un modulo quando chi nota un problema, o ha bisogno di una modifica, non è 
 
 ## Come funziona un modulo
 
-```mermaid title="Da un modulo compilato a un incidente o un evento di manutenzione"
+```mermaid title="Da un modulo compilato a un incidente, un avviso o un evento di manutenzione"
 flowchart TB
     submitter["Qualcuno con il link,<br/>senza account"] --> page["La pagina del modulo"]
     page -->|Invia| checks["Protezioni e<br/>controllo delle risposte"]
     checks --> submission["Invio, conservato<br/>con il modulo"]
     submission --> target{"Ogni invio crea"}
     target -->|Incidente| incident["Incidente, nascosto<br/>dalle pagine di stato"]
+    target -->|Avviso| alert["Avviso, che i suoi<br/>proprietari controllano"]
     target -->|Manutenzione programmata| event["Evento di manutenzione,<br/>nascosto salvo impostazione"]
     incident --> response["Si eseguono le policy di<br/>reperibilità e le regole"]
+    alert --> response
     incident --> note["Nota privata: chi l'ha inviato,<br/>altre risposte"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ Quando crei un modulo scegli cosa **Ogni invio crea**. Puoi cambiarlo in seguito
 | Ogni invio crea | Da usare per | Cosa succede |
 | --- | --- | --- |
 | **Incidente** | Segnalazioni di problemi | Un incidente viene dichiarato subito, così le tue policy di reperibilità e le tue regole vengono eseguite e le persone reperibili vengono avvisate. Resta fuori dalle pagine di stato finché qualcuno che interviene non lo pubblica. |
+| **Avviso** | Avvertimenti e cose da controllare | Viene creato un avviso, così i suoi proprietari vengono informati e le sue policy di reperibilità e le sue regole vengono eseguite, senza dichiarare un incidente. Uno che parte in uno stato successivo, come **Riconosciuto**, non chiama nessuno. |
 | **Manutenzione programmata** | Richieste di modifica e di manutenzione | Un evento di manutenzione viene programmato per la finestra richiesta da chi invia. Salvo diversa indicazione del modulo, resta fuori dalle sue pagine di stato e non avvisa alcun iscritto. |
 
-I moduli partono con questi due, e seguiranno altri tipi di record.
+Configurare un modulo che crea avvisi richiede anche l'autorizzazione a creare avvisi: vedi [Autorizzazioni](#autorizzazioni).
 
 ## Prima di iniziare
 
 - **Un piano che includa i moduli.** Su OneUptime Cloud, i moduli richiedono il piano **Growth** o superiore. Vedi [Piano](#piano).
 - **L'autorizzazione a creare moduli.** **Create Form** spetta ai Proprietari del progetto e agli Amministratori del progetto, e ai ruoli a cui la assegni. Vedi [Autorizzazioni](#autorizzazioni).
 - **Per un modulo di incidenti, una gravità.** Ogni incidente ne richiede una: da una domanda, dalle impostazioni del modulo o dal suo modello di incidente. Senza, ogni invio viene rifiutato. Vedi [Cosa crea un invio](/docs/forms/on-submit#come-un-invio-diventa-un-incidente).
+- **Per un modulo di avvisi, una gravità.** Anche ogni avviso ne richiede una: da una domanda o dalle impostazioni del modulo. Vedi [Come un invio diventa un avviso](/docs/forms/on-submit#come-un-invio-diventa-un-avviso).
 
 ## Creare il primo modulo
 
@@ -144,6 +149,8 @@ I moduli permettono a persone esterne al tuo team di creare incidenti ed eventi 
 | **Delete Form Domain** | Rimuovere i domini personalizzati di un modulo. | Proprietario del progetto, Amministratore del progetto e **Edit Form** |
 | **Read Form Domain** | Vedere i domini personalizzati di un modulo, i loro record DNS e a che punto è ciascuno sulla strada verso HTTPS. | Chiunque abbia **Read Form** |
 
+**Un modulo che crea avvisi richiede l'autorizzazione a creare avvisi.** Chiunque abbia il suo link può creare avvisi, informarne i proprietari e chiamare le persone reperibili, quindi creare un modulo che crea avvisi, trasformare un modulo in uno di questi e cambiare le domande, i modelli o le impostazioni **All'invio** di un modulo di avvisi richiedono ciascuno anche un'autorizzazione che possa creare avvisi: Proprietario del progetto, Amministratore del progetto, Membro del progetto, Amministratore degli avvisi, Membro degli avvisi o **Create Alert**. Il suo nome, il link, **Accetta invii**, il branding e la **Lista IP consentiti** richiedono solo le autorizzazioni **Form**. Senza quell'autorizzazione, **Avviso** non viene offerto quando crei un modulo, ed è bloccato nella sua pagina **All'invio**, con un tooltip che nomina l'autorizzazione; una richiesta che ci prova comunque viene rifiutata con "Only people who may create alerts can set up a form that creates them." I moduli di incidenti e di manutenzione richiedono solo le autorizzazioni **Form**, come sempre.
+
 Gli invii contengono ciò che hanno scritto degli sconosciuti (nomi, indirizzi e-mail e risposte che forse non arrivano mai al record), quindi li vedono solo i Proprietari del progetto e gli Amministratori del progetto, a meno che tu non conceda **Read Form Submission**. Chi può leggere un modulo può vederne e condividerne il link. Inviare un modulo non richiede alcuna autorizzazione. Per come si combinano ruoli e autorizzazioni granulari, vedi [Utenti, team e autorizzazioni](/docs/permissions/index).
 
 ## Piano
@@ -156,7 +163,7 @@ I moduli sono una normale risorsa API in `/api/form`, e i loro invii in `/api/fo
 
 ### Domande e impostazioni
 
-Le domande di un modulo sono la sua colonna `fields`, un elenco JSON nell'ordine in cui il modulo le pone, e le sue impostazioni All'invio sono i suoi `targetSettings`:
+Il `targetType` di un modulo è ciò che crea ogni invio: `Incident`, `Alert` o `ScheduledMaintenance`. Le sue domande sono la sua colonna `fields`, un elenco JSON nell'ordine in cui il modulo le pone, e le sue impostazioni All'invio sono i suoi `targetSettings` — per un modulo di avvisi, `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` e `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Ogni domanda ha un proprio `id` (lettere, cifre, `-` e `_`), una `source`, un `l
 | `source` | Cosa chiede |
 | --- | --- |
 | `Question` | Una domanda propria del modulo, a cui si risponde secondo il `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` o `MultipleFiles`. Un menu a discesa elenca le sue `dropdownOptions`, una per riga. |
-| `TargetField` | Un campo di ciò che il modulo crea, indicato da `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` per un incidente; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` e `labels` per un evento di manutenzione. Un campo a cui si risponde scegliendo elenca i record che offre in `allowedOptionIds`. |
-| `TargetCustomField` | Uno dei campi personalizzati dell'incidente o dell'evento, indicato da `customFieldId`. |
+| `TargetField` | Un campo di ciò che il modulo crea, indicato da `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` e `impactStartedAt` per un incidente; `title`, `description`, `alertSeverityId`, `monitor`, `labels` e `impactStartedAt` per un avviso; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` e `labels` per un evento di manutenzione. Un campo a cui si risponde scegliendo elenca i record che offre in `allowedOptionIds`. |
+| `TargetCustomField` | Uno dei campi personalizzati dell'incidente, dell'avviso o dell'evento, indicato da `customFieldId`. |
 | `Submitter` | Il `Name` o l'`Email` di chi invia, indicato da `submitterField`. |
 
 Una domanda con `isHidden` impostato su `true` non viene mostrata nella pagina pubblica, non è mai obbligatoria e riceve risposta solo dal modello indicato da un invio, a meno che quel modello non la ponga. `isRequired` e `isHidden` sono il valore predefinito del modulo; ogni modello può porre una domanda a modo suo.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ La risposta a una domanda di file sono i file così come sono stati salvati, cia
 
 ### Flussi di lavoro
 
-I moduli hanno i componenti dei flussi di lavoro generati: **Alla creazione: Modulo**, **All'aggiornamento: Modulo** e così via. Per agire su ciò che un modulo ha creato, usa **Alla creazione: Incidente** o **Alla creazione: Evento di manutenzione**.
+I moduli hanno i componenti dei flussi di lavoro generati: **Alla creazione: Modulo**, **All'aggiornamento: Modulo** e così via. Per agire su ciò che un modulo ha creato, usa **Alla creazione: Incidente**, **Alla creazione: Avviso** o **Alla creazione: Evento di manutenzione**.
 
 ### Gli endpoint propri della pagina pubblica
 

@@ -19,7 +19,9 @@ import UserMiddleware from "../../../../../Server/Middleware/UserAuthorization";
 import AIService, {
   ProjectAiDailyLimitStatus,
 } from "../../../../../Server/Services/AIService";
-import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
+import CodeRepositoryService, {
+  Service as CodeRepositoryServiceClass,
+} from "../../../../../Server/Services/CodeRepositoryService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityCustomDataTypeService from "../../../../../Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityFlowService from "../../../../../Server/Services/DataSecurityFlowService";
@@ -32,6 +34,9 @@ import DataStoreOwnerUserService from "../../../../../Server/Services/DataStoreO
 import DataStoreService from "../../../../../Server/Services/DataStoreService";
 import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import LlmLogService from "../../../../../Server/Services/LlmLogService";
+import LogService from "../../../../../Server/Services/LogService";
+import CodeFixOnItsWay from "../../../../../Server/Utils/AI/CodeFix/CodeFixOnItsWay";
+import ProductionReviewScope from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewScope";
 import LlmProviderService from "../../../../../Server/Services/LlmProviderService";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import AiContextReader from "../../../../../Server/Utils/AI/AiContext/AiContextReader";
@@ -115,6 +120,17 @@ import DataSecurityIssueGroupService from "../../../../../Server/Services/DataSe
 import DataSecurityIssueGroupNaming from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming";
 import AuditEvidenceDrafter from "../../../../../Server/Utils/AI/DataSecurity/AuditEvidenceDrafter";
 import ImpactAssessmentDrafter from "../../../../../Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter";
+import ExposureAssessmentDrafter from "../../../../../Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter";
+import SecurityCaseService from "../../../../../Server/Services/SecurityCaseService";
+import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCaseFeedService";
+import SecurityCaseTaskService from "../../../../../Server/Services/SecurityCaseTaskService";
+import DataStoreFeedService from "../../../../../Server/Services/DataStoreFeedService";
+import {
+  ExposureAssessmentStarter,
+  startExposureAssessment,
+  toStoredExposureAssessmentJson,
+} from "../../../../../Types/DataSecurity/ExposureAssessment";
+import { getDataStoreEntityValue } from "../../../../../Types/SecurityCase/SecurityEntity";
 import RecordOfProcessingDrafter from "../../../../../Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import DataSecuritySettingService from "../../../../../Server/Services/DataSecuritySettingService";
 import DataSecurityComplianceSettingService from "../../../../../Server/Services/DataSecurityComplianceSettingService";
@@ -150,7 +166,9 @@ import DashboardRequestsOverHttp, {
   SentRequest,
 } from "../../../TestingUtils/DashboardRequestsOverHttp";
 import {
+  InMemoryTable,
   StoredRow,
+  useInMemoryHookFreeWrites,
   useInMemoryTable,
 } from "../../../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../../../TestingUtils/RequestPlan";
@@ -820,6 +838,114 @@ const fixIssueGroupRun: () => Promise<string> = async (): Promise<string> => {
 };
 
 /*
+ * A service's telemetry leaks, fixed in its code (#10367): Fix with AI on
+ * the service's telemetry issue, over HTTP - its leaks read from the
+ * finding, located from the records it was seen in (planted with values
+ * where a record keeps them: the line it logged, its ids), placed in the
+ * repository and planned - to the Code task it queues. The records name
+ * one line of code read with two different values: only its template, the
+ * values masked, may go.
+ */
+function plantedLeakRows(): Array<JSONObject> {
+  return [
+    {
+      recordTime: 1795000000000,
+      readLogId: PLANTED["sampleRecordLog"],
+      readFile1: "/usr/src/app/src/signup.js",
+      readLine1: "12",
+      readFunction1: "signUp",
+      readScope: "checkout",
+      readBody: `Signed up ${PLANTED["maskedSample"]} from ${PLANTED["sampleRecordTrace"]}`,
+    },
+    {
+      recordTime: 1795000000001,
+      readLogId: "10367000-0000-4000-8000-000000000701",
+      readFile1: "/usr/src/app/src/signup.js",
+      readLine1: "12",
+      readFunction1: "signUp",
+      readScope: "checkout",
+      readBody: `Signed up ${PLANTED["cloudSecret"]} from ${PLANTED["scanCursor"]}`,
+    },
+  ];
+}
+
+const fixTelemetryLeaksRun: () => Promise<string> =
+  async (): Promise<string> => {
+    useInMemoryTable(asService(ServiceService), [
+      {
+        _id: CHECKOUT_SERVICE_ID,
+        projectId: PROJECT_ID.toString(),
+        name: "checkout",
+      },
+    ]);
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID),
+      storeRow(TELEMETRY_STORE_ID, {
+        name: "checkout · Logs",
+        // DataStoreKind.TelemetryLogs: the service's own logs.
+        kind: "Logs",
+        provider: "oneuptime",
+        serviceId: CHECKOUT_SERVICE_ID,
+      }),
+    ]);
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    // The records the finding was seen in, as the locator's read returns them.
+    const recordReads: SpyInstance<typeof LogService.executeQuery> = jest
+      .spyOn(LogService, "executeQuery")
+      .mockResolvedValue({
+        json: async (): Promise<{ data: Array<JSONObject> }> => {
+          return { data: plantedLeakRows() };
+        },
+      } as never);
+    // The project's one repository, whose tree holds the file the records name.
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "infra",
+          organizationName: "acme",
+          repositoryName: "infra",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/signup.js", "src/telemetry.js"]);
+    jest
+      .spyOn(ProductionReviewScope, "get")
+      .mockResolvedValue({ services: [] } as never);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const sent: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(sent.status).toBe(200);
+    expect(recordReads).toHaveBeenCalled();
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    // One line of code, read with two values: only its words are left.
+    expect(asked).toContain("Signed up <value> from <value>");
+
+    return asked;
+  };
+
+/*
  * The compliance paperwork (#10375), over the planted rows: the bucket as a
  * store of personal data about many people, its record drafted on its own
  * and on request, its impact assessment, and SOC 2's evidence with the
@@ -838,6 +964,101 @@ function usePaperworkTables(): void {
   jest
     .spyOn(DeclaredDataStores, "declareBeforeRead")
     .mockResolvedValue(undefined);
+  jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
+  jest
+    .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
+    .mockResolvedValue(null);
+}
+
+/*
+ * A security case Data Security opened for the bucket's exposure, assessed
+ * (#10377): its store holds a secret whose finding keeps a planted sample,
+ * and the case keeps the assessment's start.
+ */
+const EXPOSURE_CASE_ID: string = "10377000-0000-4000-8000-0000000000c1";
+const EXPOSURE_STORE_KEY: string = "aws:s3:acme-card-exports";
+
+function useExposureTables(): void {
+  useInMemoryTable(asService(DataStoreService), [
+    storeRow(STORE_ID, {
+      storeKey: EXPOSURE_STORE_KEY,
+      dataCategories: ["Contact and identity", "Financial"],
+      estimatedRecords: 2000000,
+      subjectCountries: ["DE"],
+      posture: { accessLogging: false },
+    }),
+  ]);
+
+  const cases: InMemoryTable = useInMemoryTable(
+    asService(SecurityCaseService),
+    [
+      {
+        _id: EXPOSURE_CASE_ID,
+        projectId: PROJECT_ID.toString(),
+        entities: [
+          {
+            type: "Data Store",
+            value: getDataStoreEntityValue(EXPOSURE_STORE_KEY),
+          },
+        ],
+        exposureAssessment: toStoredExposureAssessmentJson(
+          startExposureAssessment({
+            dataStoreId: STORE_ID,
+            startedBy: ExposureAssessmentStarter.DataSecurity,
+            language: "en",
+            now: new Date(),
+          }),
+        ),
+      },
+    ],
+  );
+
+  useInMemoryHookFreeWrites(asService(SecurityCaseService), cases);
+  useInMemoryTable(
+    asService(DataSecurityIssueService),
+    issueRows().map((row: StoredRow): StoredRow => {
+      return row["_id"] === BUCKET_ISSUE_ID
+        ? {
+            ...row,
+            securityCaseId: EXPOSURE_CASE_ID,
+            firstDetectedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          }
+        : row;
+    }),
+  );
+  useInMemoryTable(asService(DataStoreFindingService), [
+    ...findingRows(),
+    {
+      _id: "10377000-0000-4000-8000-0000000000d5",
+      projectId: PROJECT_ID.toString(),
+      dataStoreId: STORE_ID,
+      dataTypeId: "aws-secret-access-key",
+      dataTypeName: "AWS secret access key",
+      dataCategory: "Secrets and credentials",
+      location: "deploy/env.sh",
+      locationKind: "Object path",
+      confidence: "High",
+      isSuppressed: false,
+      lastSeenAt: new Date(),
+      maskedSamples: [PLANTED["cloudSecret"]],
+      sampleRecords: [
+        {
+          time: new Date().toISOString(),
+          traceId: PLANTED["sampleRecordTrace"],
+          logId: PLANTED["sampleRecordLog"],
+        },
+      ],
+    },
+  ]);
+  useInMemoryTable(asService(DataSecurityIssueFeedService), []);
+  useInMemoryTable(asService(DataStoreFeedService), []);
+  useInMemoryTable(asService(SecurityCaseTaskService), []);
+  jest
+    .spyOn(SecurityCaseFeedService, "createSecurityCaseFeedItem")
+    .mockResolvedValue(undefined);
+  jest
+    .spyOn(ChangeEventService, "executeQuery")
+    .mockRejectedValue(new Error("No change log in this test."));
   jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en" as never);
   jest
     .spyOn(AIInvestigationEngine, "getProviderOrBalanceReason")
@@ -871,6 +1092,38 @@ const draftRecordRun: (
 };
 
 const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
+  // An exposure's write-up on its own, as its case opens (#10377).
+  [DataSecurityAiFeature.DraftExposureAssessment]:
+    async (): Promise<string> => {
+      useExposureTables();
+
+      await ExposureAssessmentDrafter.draftOnItsOwn({
+        projectId: PROJECT_ID,
+        securityCaseId: new ObjectID(EXPOSURE_CASE_ID),
+      });
+
+      expect(completion).toHaveBeenCalledTimes(1);
+
+      return sentToTheModel();
+    },
+  // ...and when a person asks on the case's card.
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]:
+    async (): Promise<string> => {
+      useExposureTables();
+
+      // An answer it cannot hold is refused after the call: what was sent is the test.
+      await ExposureAssessmentDrafter.draftForPerson({
+        projectId: PROJECT_ID,
+        securityCaseId: new ObjectID(EXPOSURE_CASE_ID),
+        props: OWNER,
+      }).catch((): void => {
+        // Nothing held from '{"fields":[]}'.
+      });
+
+      expect(completion).toHaveBeenCalledTimes(1);
+
+      return sentToTheModel();
+    },
   [DataSecurityAiFeature.DraftRecord]: async (): Promise<string> => {
     return await draftRecordRun(DataSecurityAiFeature.DraftRecord);
   },
@@ -1290,6 +1543,7 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
   },
   [DataSecurityAiFeature.NameIssueGroup]: nameIssueGroupRun,
   [DataSecurityAiFeature.FixIssueGroup]: fixIssueGroupRun,
+  [DataSecurityAiFeature.FixTelemetryLeaks]: fixTelemetryLeaksRun,
   /*
    * The verdicts (#10372): the bucket's suggestion waits for a person, and
    * the team's decision on a field of the same name on another store is
@@ -1451,6 +1705,19 @@ const SENT_ON_PURPOSE: Partial<Record<DataSecurityAiFeature, Array<string>>> = {
 
 // What each feature is for, which its input must still carry.
 const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
+  // The store, its exposure and the secret to rotate, by type and where (#10377).
+  [DataSecurityAiFeature.DraftExposureAssessment]: [
+    "acme-card-exports",
+    "Anyone on the internet can read it",
+    "deploy/env.sh",
+    "GDPR Article 33",
+  ],
+  [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]: [
+    "acme-card-exports",
+    "Anyone on the internet can read it",
+    "deploy/env.sh",
+    "GDPR Article 33",
+  ],
   // The store, what it holds and how many: what its purpose is drafted from.
   [DataSecurityAiFeature.DraftRecord]: [
     "acme-card-exports",
@@ -1517,6 +1784,13 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "Email address",
     "http.route",
     "aaaaa@aaaaaaa.aaa",
+  ],
+  // Where the service's code writes the data, its key and its type (#10367).
+  [DataSecurityAiFeature.FixTelemetryLeaks]: [
+    "src/signup.js",
+    "user.email",
+    "Email address",
+    "FixSensitiveDataInTelemetry",
   ],
   // The diff's own words: the line it writes, the bucket it opens.
   [DataSecurityAiFeature.ReviewPullRequests]: [

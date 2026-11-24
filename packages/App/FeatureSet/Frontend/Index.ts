@@ -64,6 +64,11 @@ import {
   shouldSkipStatusPageDomainFallbackRoute,
 } from "./RouteReservations";
 import { sendFrontendEnvironmentResponse } from "Common/Server/Utils/FrontendEnvironment";
+import HelpAndSupportServerSettings from "Common/Server/Utils/HelpAndSupport/HelpAndSupportServerSettings";
+import {
+  HelpAndSupportSettings,
+  shouldCarryHelpAndSupport,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
 import { getProductBrandingViewVariables } from "Common/Server/Utils/ProductBrandingViewVariables";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
@@ -355,17 +360,34 @@ const isPrimaryHostRequest: (req: ExpressRequest) => boolean = (
   return PrimaryHosts.has(requestHost);
 };
 
+/*
+ * A frontend's env.js. The Dashboard's and the sign-in pages' also say where
+ * this server sends its people for help (Types/HelpAndSupport/
+ * HelpAndSupport, #10864-#10866), read here, where the database is, from the
+ * copy every env.js is served from (HelpAndSupportServerSettings); the other
+ * frontends never ask for it.
+ */
 const sendFrontendEnvScript: (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
+  frontend: string,
 ) => Promise<void> = async (
   req: ExpressRequest,
   res: ExpressResponse,
   next: NextFunction,
+  frontend: string,
 ): Promise<void> => {
   try {
-    sendFrontendEnvironmentResponse(req, res);
+    const helpAndSupport: HelpAndSupportSettings | null =
+      shouldCarryHelpAndSupport(frontend)
+        ? await HelpAndSupportServerSettings.getSettings()
+        : null;
+
+    sendFrontendEnvironmentResponse(req, res, {
+      frontend: frontend,
+      helpAndSupport: helpAndSupport,
+    });
   } catch (err) {
     next(err);
   }
@@ -461,7 +483,7 @@ const registerFrontendApp: (frontendConfig: FrontendConfig) => void = (
         return next();
       }
 
-      return sendFrontendEnvScript(req, res, next);
+      return sendFrontendEnvScript(req, res, next, frontendConfig.routePrefix);
     },
   );
 

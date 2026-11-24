@@ -19,7 +19,8 @@ import path from "path";
  *   zh-TW 健康, fa سلامت.
  * - Every translated string whose English names health says the word. A
  *   string a language has not translated yet is the i18n ratchet's business;
- *   health in its medical sense (health records, health insurance), the
+ *   health in its medical sense (health records, health insurance, the US
+ *   Department of Health and Human Services a breach law names), the
  *   literal command and path (ceph health detail, /health) and the clouds'
  *   own services by name, which a health event's title starts with (AWS
  *   Health, Azure Service Health, Azure Resource Health, Google Cloud
@@ -65,7 +66,7 @@ const NAMES_HEALTH: RegExp = /\bhealth\b/i;
  * cloud's health service by its name at the start of a health event's title.
  */
 const NOT_THE_WORD: RegExp =
-  /health (insurance|records?|information|plan|data|identifiers|details)|National Health Service|^Health information$|^Health, Government|health detail|\/health|^(AWS|Azure Service|Azure Resource|Google Cloud Service) Health:/i;
+  /health (insurance|records?|information|plan|data|identifiers|details)|National Health Service|Health and Human Services|^Health information$|^Health, Government|health detail|\/health|^(AWS|Azure Service|Azure Resource|Google Cloud Service) Health:/i;
 
 // A template's placeholder: "{{health}}" is filled by the code, not said.
 const PLACEHOLDER: RegExp = /\{\{[^{}]*\}\}/g;

@@ -16,7 +16,6 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS,
-  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
   SecurityAutomaticResponseMode,
   SecurityAutomaticResponsePolicyDefinition,
   readSecurityAutomaticResponsePolicyDefinition,
@@ -68,6 +67,7 @@ import OldestKeyMap from "../../../Utils/OldestKeyMap";
 import {
   automaticResponseLimitMarkdown,
   automaticResponseSparedMarkdown,
+  describeAutomaticBlockCount,
   automaticResponseTrialMarkdown,
   describeSignedInUserNames,
 } from "../../../Utils/SecurityAutomaticResponse/SecurityAutomaticResponseMarkdown";
@@ -86,6 +86,7 @@ import SecurityEventsSwitch from "../SecurityCase/SecurityEventsSwitch";
 import ThreatIntelIndicatorService from "../../Services/ThreatIntelIndicatorService";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityAutomaticResponseLimit from "./SecurityAutomaticResponseLimit";
 import SecurityAutomaticResponseOwners from "./SecurityAutomaticResponseOwners";
 import SecurityRepeatOffenders from "./SecurityRepeatOffenders";
 import SecuritySignedInAddresses, {
@@ -125,8 +126,10 @@ import SecuritySignedInAddresses, {
  *      cannot tell about is left for a person;
  *   5. the repeat-offender ladder: the policy's first length, longer for an
  *      address blocked before in the last 30 days (SecurityRepeatOffenders);
- *   6. at most 50 automatic blocks an hour per project: past it the policy
- *      stops, and pages the project's security owners, once an hour.
+ *   6. at most the project's hourly limit of automatic blocks - 50, or
+ *      the limit a Security Admin set (SecurityAutomaticResponseLimit,
+ *      #10746): past it the policy stops, and pages the project's
+ *      security owners, once an hour.
  *
  * Then a policy in its trial run records what it would have done, on its
  * record and the case; a policy that is on blocks through the playbook
@@ -870,14 +873,20 @@ export default class SecurityAutomaticResponse {
       offenceCount: priorBlockCount,
     });
 
-    // At most 50 automatic blocks an hour per project.
+    /*
+     * At most the project's hourly limit of automatic blocks (#10746), read
+     * as this decision is made, under the lock: a limit changed in the
+     * middle of the hour holds from here on.
+     */
+    const limit: number = await SecurityAutomaticResponseLimit.read(projectId);
+
     if (
       (await this.countBlocksThisHour({
         projectId,
         policyId: policy.id,
         isTrialRun,
         now,
-      })) >= SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR
+      })) >= limit
     ) {
       const wasPaged: boolean = isTrialRun
         ? false
@@ -886,15 +895,14 @@ export default class SecurityAutomaticResponse {
             policyName,
             address,
             securityCaseId: detection.securityCaseId,
+            limit,
             now,
           });
       const action: SecurityAutomaticResponseAction = await record({
         outcome: SecurityAutomaticResponseOutcome.StoppedAtLimit,
         duration,
         priorBlockCount,
-        detail: isTrialRun
-          ? `The project's policies would have made ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} automatic blocks in the last hour, the most they make in an hour.`
-          : `The project's policies made ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} automatic blocks in the last hour, the most they make in an hour.`,
+        detail: describeAutomaticResponseLimit({ limit, isTrialRun }),
         ...(wasPaged ? { pagedAt: now } : {}),
       });
 
@@ -905,7 +913,7 @@ export default class SecurityAutomaticResponse {
           action: definition.blockAction,
           address,
           policyName,
-          limit: SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+          limit,
           wasPaged:
             wasPaged || (await this.wasPagedThisHour({ projectId, now })),
           isTrialRun,
@@ -1132,7 +1140,9 @@ export default class SecurityAutomaticResponse {
   /*
    * The automatic blocks of the last hour the limit counts: the project's
    * policies' blocks, and - for a policy in its trial run - the blocks it
-   * would have made too, as if it were on.
+   * would have made too, as if it were on. A decision holds it to the
+   * project's own limit (SecurityAutomaticResponseLimit, #10746), read
+   * beside it.
    */
   public static async countBlocksThisHour(data: {
     projectId: ObjectID;
@@ -1213,6 +1223,8 @@ export default class SecurityAutomaticResponse {
     policyName: string;
     address: string;
     securityCaseId: ObjectID;
+    // The project's hourly limit (#10746).
+    limit: number;
     now: Date;
   }): Promise<boolean> {
     if (await this.wasPagedThisHour(data)) {
@@ -1221,11 +1233,11 @@ export default class SecurityAutomaticResponse {
 
     return await SecurityAutomaticResponseOwners.page({
       projectId: data.projectId,
-      title: `Automatic response stopped: ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} blocks in the last hour`,
+      title: `Automatic response stopped at its limit of ${describeAutomaticBlockCount(data.limit)} an hour`,
       descriptionInMarkdown: [
-        `Your automatic response policies made ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} blocks in the last hour, the most they make in an hour, so they stopped blocking. An attack this large needs a person.`,
+        `Your automatic response policies reached your project's limit of ${describeAutomaticBlockCount(data.limit)} an hour, so they stopped blocking. An attack this large needs a person.`,
         ``,
-        `The ${data.policyName} policy did not act on \`${data.address}\`. Open Security Events -> Playbooks -> Automatic Response to see what the policies did, and the case to block addresses by hand.`,
+        `The ${data.policyName} policy did not act on \`${data.address}\`. Open Security Events -> Playbooks -> Automatic Response to see what the policies did, or to change the limit under More settings, and the case to block addresses by hand.`,
       ].join("\n"),
     });
   }
@@ -1245,6 +1257,20 @@ export default class SecurityAutomaticResponse {
       displayColor: data.color,
     });
   }
+}
+
+/*
+ * What a decision stopped at the project's hourly limit says on its record
+ * (#10746): the limit it was held to, whatever the hour had made already -
+ * a limit lowered in the middle of the hour can be below that.
+ */
+export function describeAutomaticResponseLimit(data: {
+  limit: number;
+  isTrialRun: boolean;
+}): string {
+  return data.isTrialRun
+    ? `The project's policies would have reached its limit of ${describeAutomaticBlockCount(data.limit)} an hour.`
+    : `The project's policies reached its limit of ${describeAutomaticBlockCount(data.limit)} an hour.`;
 }
 
 /*

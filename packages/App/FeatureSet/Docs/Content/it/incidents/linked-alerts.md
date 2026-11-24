@@ -2,7 +2,7 @@
 
 Un disservizio raramente solleva un solo avviso. Quando il database principale cade, scatta il monitor del ritardo di replica, scatta il monitor del tasso di errori dell'API, e lo SLO della latenza del checkout inizia a consumare il suo budget — tre avvisi, un problema. Collegare quegli avvisi all'incidente lo dice: l'incidente è il luogo in cui avviene la risposta, e ogni avviso mostra quale incidente lo spiega.
 
-Un collegamento è solo un collegamento. L'avviso mantiene il proprio stato, i propri proprietari, le proprie policy di reperibilità, le proprie note e il proprio feed; l'incidente mantiene i suoi. Collegare non unisce e non copia nulla, e da solo non riconosce, non risolve e non mette mai a tacere un avviso. (Dichiarare un nuovo incidente dagli avvisi è diverso: il nuovo incidente viene precompilato da essi, come [descritto più sotto](#dichiarare-un-incidente-dagli-avvisi), e a meno che non togliate la spunta alla casella del modulo, gli avvisi vengono riconosciuti mentre lo dichiarate, il che ne ferma l'inoltro — vedete [Riconoscere gli avvisi mentre dichiarate](#riconoscere-gli-avvisi-mentre-dichiarate).) Due interruttori del progetto, attivi nei nuovi progetti, fanno seguire agli avvisi collegati l'incidente quando viene riconosciuto e risolto — vedete [più avanti](#mantenere-gli-stati-degli-avvisi-allineati-con-lincidente).
+Un collegamento è solo un collegamento. L'avviso mantiene il proprio stato, i propri proprietari, le proprie policy di reperibilità, le proprie note e il proprio feed; l'incidente mantiene i suoi. Collegare non unisce e non copia nulla, e da solo non riconosce, non risolve e non mette mai a tacere un avviso. (Dichiarare un nuovo incidente dagli avvisi è diverso: il nuovo incidente viene precompilato da essi e parte con i loro proprietari, come [descritto più sotto](#dichiarare-un-incidente-dagli-avvisi), e a meno che non togliate la spunta alla casella del modulo, gli avvisi vengono riconosciuti mentre lo dichiarate, il che ne ferma l'inoltro — vedete [Riconoscere gli avvisi mentre dichiarate](#riconoscere-gli-avvisi-mentre-dichiarate).) Due interruttori del progetto, attivi nei nuovi progetti, fanno seguire agli avvisi collegati l'incidente quando viene riconosciuto e risolto — vedete [più avanti](#mantenere-gli-stati-degli-avvisi-allineati-con-lincidente).
 
 :::cards
 - [Collegare avvisi a un incidente](#collegare-avvisi-da-un-incidente): Dall'incidente, da un avviso, o molti in una volta.
@@ -119,11 +119,12 @@ In qualunque modo lo facciate, arrivate al consueto modulo **Dichiara nuovo inci
 | **Gravità incidente**      | La gravità dell'avviso più grave, tradotta in una gravità dell'incidente. Vince una gravità dell'incidente con lo stesso nome, senza distinzione tra maiuscole e minuscole. Altrimenti OneUptime prende la gravità dell'incidente nella stessa posizione dell'ordine delle gravità, o l'ultima se avete meno gravità dell'incidente. |
 | **Risorse interessate**    | Tutti i monitor, gli host, i cluster Kubernetes, gli host Docker, gli host Podman e i servizi degli avvisi selezionati, riuniti. I monitor vanno sotto **Monitor**, il resto sotto **Altre risorse interessate**. Le altre risorse, come gli SLO o i cluster VMware, Proxmox e Ceph, non vengono copiate — aggiungetele voi se l'incidente le riguarda. |
 | **Etichette**              | Ogni etichetta di ogni avviso selezionato.                                                                                                                                                                                                                                             |
-| **Incidente privato**      | Attivo se uno qualsiasi degli avvisi è privato. Il modulo lo dice, e i proprietari degli avvisi diventano proprietari dell'incidente — vedete più sotto.                                                                                                                               |
+| **Proprietari**            | Ogni persona e ogni team proprietario di uno degli avvisi, una volta sola — ma non una persona che ha lasciato il progetto. Il riquadro li nomina. Vedete [I proprietari degli avvisi sono proprietari dell'incidente](#i-proprietari-degli-avvisi-sono-proprietari-dellincidente).    |
+| **Incidente privato**      | Attivo se uno qualsiasi degli avvisi è privato. Il modulo lo dice — vedete più sotto.                                                                                                                                                                                                  |
 
 «Più grave» segue l'ordine delle vostre gravità degli avvisi: la prima gravità di avviso dell'elenco è la più grave. Con le gravità con cui parte ogni progetto, un avviso **Alto** diventa un **Incidente critico** e un avviso **Basso** un **Incidente grave**.
 
-Tutto è modificabile prima dell'invio. **Etichette** e **Incidente privato** si trovano sotto **Altri campi** nel primo passaggio del modulo, la cui intestazione ripiegata mostra ciascuno dei due finché è impostato.
+Tutto è modificabile prima dell'invio. **Etichette**, **Incidente privato** e **Proprietari** si trovano sotto **Altri campi** nel primo passaggio del modulo, la cui intestazione ripiegata mostra ciascuno di essi finché è impostato.
 
 **Un avviso che ha già un incidente viene segnalato.** Con **Dichiara incidente** sulla pagina di ogni avviso, due responder avvisati dallo stesso disservizio potrebbero dichiararlo ciascuno per conto proprio. Per questo il riquadro che elenca gli avvisi contrassegna ogni avviso già collegato a un incidente — «(already linked to Incident INC-42)», con un link a quell'incidente — e aggiunge una nota, formulata in base a quanti avvisi sono collegati:
 
@@ -137,7 +138,7 @@ I link agli incidenti si aprono in una nuova scheda, così potete controllare l'
 
 **I monitor degli avvisi vengono precompilati come monitor interessati.** Come per qualsiasi incidente dichiarato a mano, il monitoraggio attivo dei monitor dell'incidente si sospende finché l'incidente non viene risolto. Togliete un monitor da **Monitor** nel passaggio **Risorse interessate** prima dell'invio se deve continuare a essere controllato.
 
-**Un avviso privato produce un incidente privato.** Se uno qualsiasi degli avvisi è privato, **Incidente privato** parte attivo, e il riquadro che elenca gli avvisi lo dice. Un incidente privato è visibile solo ai suoi proprietari, ai Proprietari del progetto e agli Amministratori del progetto, quindi OneUptime si assicura che chi poteva vedere gli avvisi possa vedere l'incidente: una volta dichiarato, i proprietari di ogni avviso dichiarato — utenti e team allo stesso modo — vengono aggiunti come proprietari dell'incidente, senza essere avvisati. Vengono aggiunti subito dopo la creazione dei canali Slack e Microsoft Teams dell'incidente, così vengono invitati in quei canali come qualsiasi altro proprietario. Anche voi siete proprietari, come per ogni incidente che dichiarate. Lo stesso accade quando una regola di privacy degli incidenti rende privato il nuovo incidente. Se disattivate **Incidente privato** prima dell'invio e non si applica alcuna regola di privacy, l'incidente non è privato e non viene copiato alcun proprietario.
+**Un avviso privato produce un incidente privato.** Se uno qualsiasi degli avvisi è privato, **Incidente privato** parte attivo, e il riquadro che elenca gli avvisi lo dice. Un incidente privato è visibile solo ai suoi proprietari, ai Proprietari del progetto e agli Amministratori del progetto — e i proprietari degli avvisi partono come suoi proprietari, così chi poteva vedere gli avvisi può vedere l'incidente, a meno che non li togliate. Anche voi siete proprietari, come per ogni incidente che dichiarate.
 
 ```mermaid title="Che cosa succede quando dichiarate dagli avvisi"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 Quando inviate, il server controlla gli avvisi prima di creare qualsiasi cosa: al massimo 50, ciascuno un avviso di questo progetto che avete il permesso di vedere, e dovete avere il permesso di collegare avvisi agli incidenti. Se un controllo fallisce, la richiesta viene rifiutata e non viene creato alcun incidente — così un id di avviso sbagliato non consuma mai un numero di incidente. Una volta che l'incidente esiste — e una volta eseguite le sue regole di privacy, così i collegamenti sanno se è privato — ogni avviso viene collegato prima che la richiesta risponda, così la pagina **Avvisi collegati** dell'incidente li elenca già. Se un singolo collegamento fallisce — ad esempio perché l'avviso è stato eliminato un attimo prima — l'incidente viene comunque dichiarato e gli altri avvisi vengono comunque collegati.
 
 Il feed dell'incidente riceve un'unica voce **Avviso collegato** che elenca gli avvisi, scritta dopo **Incidente creato**, invece di una per avviso — vedete [Il feed, Slack e Microsoft Teams](#il-feed-slack-e-microsoft-teams).
+
+### I proprietari degli avvisi sono proprietari dell'incidente
+
+Le persone che lavorano sugli avvisi sono le persone che lavorano sull'incidente, quindi l'incidente parte con loro. Il campo **Proprietari**, sotto **Altri campi**, parte con ogni persona e ogni team proprietario di uno degli avvisi — una volta sola, dopo i proprietari di un modello di incidente se dichiarate da un modello — e il riquadro che elenca gli avvisi li nomina: "I proprietari dell'avviso sono anche proprietari dell'incidente. Cambiali in Altri campi prima di dichiararlo." Toglietene qualcuno, o aggiungetene altri, prima dell'invio; i proprietari dell'incidente sono allora esattamente ciò che il campo contiene, che l'incidente sia privato o no. Il riepilogo li elenca con le regole del proprietario che ne aggiungeranno altri.
+
+- **Una persona che ha lasciato il progetto non viene trasferita**, né una il cui invito non è mai stato accettato. Un team eliminato non è più proprietario dell'avviso, quindi non viene trasferito nemmeno lui.
+- **Vengono informati una volta sola.** I proprietari degli avvisi vengono aggiunti come ogni proprietario con cui parte un incidente — subito dopo la creazione dei suoi canali Slack e Microsoft Teams, così vengono invitati in quei canali, e prima che parta la sua notifica **Incidente creato** — quindi vengono a sapere dell'incidente da quella notifica, secondo le proprie regole di notifica, e non ricevono in più un messaggio «aggiunto come proprietario». Un proprietario aggiunto anche da una regola del proprietario, o scelto due volte, viene aggiunto una volta sola.
+- **Se non potete aggiungere proprietari degli incidenti**, potete comunque dichiarare l'incidente: il campo resta com'era, OneUptime aggiunge da sé i proprietari degli avvisi mentre lo dichiara, e il riquadro dice "I proprietari dell'avviso sono anche proprietari dell'incidente, una volta dichiarato." Dice lo stesso, senza nominarli, quando non potete leggere chi sono i proprietari degli avvisi.
+- **Gli avvisi senza proprietari** non aggiungono nessuno, e il riquadro non dice nulla sui proprietari.
+
+Un incidente dichiarato dagli avvisi in qualsiasi altro modo riceve anch'esso i proprietari degli avvisi: tramite l'API (vedete [Dichiarare tramite l'API](#dichiarare-tramite-lapi)), con una [regola degli incidenti](/docs/alerts/settings#regole-degli-incidenti) e con `/oneuptime incident` nel canale [Slack](/docs/workspace-connections/slack) o [Microsoft Teams](/docs/workspace-connections/microsoft-teams) di un avviso. Collegare un avviso a un incidente che esiste già non copia alcun proprietario.
 
 ### Riconoscere gli avvisi mentre dichiarate
 
@@ -180,7 +192,7 @@ Gli avvisi vengono riconosciuti in background, subito dopo essere stati collegat
 
 ### Dichiarare tramite l'API
 
-`POST /api/incident` accetta gli id degli avvisi da collegare in `miscDataProps`, sotto `alertIdsToLink`, e se riconoscere quegli avvisi sotto `acknowledgeAlertsToLink`:
+`POST /api/incident` accetta gli id degli avvisi da collegare in `miscDataProps`, sotto `alertIdsToLink`, se riconoscere quegli avvisi sotto `acknowledgeAlertsToLink`, e se i loro proprietari diventano quelli dell'incidente sotto `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - la chiave API non può riconoscere ogni avviso non ancora riconosciuto — ciò richiede **Create Alert State Timeline**, con etichette e ambito dei proprietari che raggiungano ciascuno di quegli avvisi, come per riconoscere ciascuno di essi.
 
 Una chiave API non è un utente, quindi gli avvisi riconosciuti con essa non vengono attribuiti a nessuno, proprio come i suoi collegamenti non hanno **Collegato da**.
+
+`carryOverAlertOwners` è facoltativo, e attivo a meno che non inviate `false`: ogni persona e ogni team proprietario di uno degli avvisi diventa proprietario dell'incidente non appena esiste, come nel modulo — una persona che ha lasciato il progetto viene saltata — e ne viene informato una volta sola, dalla sua notifica **Incidente creato**. Li aggiunge OneUptime, quindi la chiave API non ha bisogno del permesso di aggiungere proprietari per loro. Inviate `false` per scegliere voi i proprietari, in `ownerUsers` e `ownerTeams`. Viene rifiutato con un 400 quando è qualcosa di diverso da `true` o `false`, e quando è `true` senza `alertIdsToLink`.
 
 ## Collegare e scollegare tramite l'API
 

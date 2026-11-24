@@ -25,6 +25,12 @@ import {
   getMaxFileSizeInBytes,
   isPickerOfSeveralForOneFile,
 } from "./FilePickerLayout";
+import {
+  FilePickerChoice,
+  getFilePickerLeftOutMessage,
+  sortFilePickerChoice,
+} from "./FilePickerLeftOut";
+import { joinSentences } from "../../Utils/SentenceSeparator";
 import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import FileModel from "../../../Models/DatabaseModels/File";
 import React, {
@@ -44,10 +50,11 @@ import type { AxiosProgressEvent } from "axios";
 import { ErrorInSentence } from "../ErrorMessage/ErrorSentence";
 
 /*
- * Why the picker refused a file it was given - too large, of a kind it does
- * not take, one too many - drawn as every field's error is (FieldError):
- * the error's own red, said at once. It was a lighter red of its own, 3.8:1
- * on the white zone.
+ * Which files the picker left out of what it was given, and why - too
+ * large, of a kind it does not take, no room for them, several for a
+ * picker of one (FilePickerLeftOut) - drawn as every field's error is
+ * (FieldError): the error's own red, said at once. It was a lighter red of
+ * its own, 3.8:1 on the white zone.
  */
 export const FILE_PICKER_ERROR_TEST_ID: string = "file-picker-error";
 
@@ -81,8 +88,8 @@ export interface ComponentProps {
   maxFileSizeInBytes?: number | undefined;
   /*
    * A picker of several files: the most it holds. It takes no more - a drop
-   * of more than there is room for adds what fits and says so - and once it
-   * is full it says how to add another.
+   * of more than there is room for adds what fits and names the files it
+   * left out - and once it is full it says how to add another.
    */
   maxFiles?: number | undefined;
   /*
@@ -120,8 +127,6 @@ type UpdateUploadProgressFunction = (
   loaded?: number,
 ) => void;
 type RemoveUploadStatusFunction = (id: string) => void;
-type BuildFileSizeErrorFunction = (fileNames: Array<string>) => string;
-type BuildFileTypeErrorFunction = (fileNames: Array<string>) => string;
 type ResolveMimeTypeFunction = (file: File) => MimeType | undefined;
 type FormatFileSizeFunction = (file: FileModel) => string | null;
 
@@ -162,9 +167,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
   const maxFileSizeBytes: number = getMaxFileSizeInBytes(
     props.maxFileSizeInBytes,
   );
-  const maxFileSize: string = formatFileSizeLimit(maxFileSizeBytes, {
-    language: translator.language,
-  });
 
   const addUploadStatus: AddUploadStatusFunction = (
     status: UploadStatus,
@@ -263,107 +265,57 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }
   }, [props.value]);
 
-  const buildFileSizeError: BuildFileSizeErrorFunction = (
-    fileNames: Array<string>,
-  ): string => {
-    if (fileNames.length === 0) {
-      return "";
-    }
-
-    /*
-     * The limit, the everyday 10 MB too, is a value of the sentence: in the
-     * reader's digits and set apart, as a file's name is, so a page read
-     * from the right draws "۱۰ MB" (issue #7233). Drawn on the page only.
-     */
-    if (fileNames.length === 1) {
-      return translator.translateTemplate(
-        '"{{fileName}}" exceeds the {{size}} limit.',
-        { fileName: fileNames[0] || "", size: maxFileSize },
-        { setsValuesApart: true },
-      );
-    }
-
-    return translator.translateTemplate(
-      "These files exceed the {{size}} limit: {{fileNames}}.",
-      { fileNames: fileNames.join(", "), size: maxFileSize },
-      { setsValuesApart: true },
-    );
-  };
-
-  const buildFileTypeError: BuildFileTypeErrorFunction = (
-    fileNames: Array<string>,
-  ): string => {
-    if (fileNames.length === 1) {
-      return translator.translateTemplate(
-        '"{{fileName}}" is not a type of file this field takes.',
-        { fileName: fileNames[0] || "" },
-      );
-    }
-
-    return translator.translateTemplate(
-      "These files are not a type this field takes: {{fileNames}}.",
-      { fileNames: fileNames.join(", ") },
-    );
-  };
-
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     accept: acceptTypes,
     multiple: props.isMultiFilePicker,
     noClick: true,
     disabled: props.readOnly || isLoading,
     maxSize: maxFileSizeBytes,
-    onDropRejected: (fileRejections: Array<FileRejection>) => {
-      const oversizedFiles: Array<string> = fileRejections
-        .filter((rejection: FileRejection) => {
-          return rejection.file.size > maxFileSizeBytes;
-        })
-        .map((rejection: FileRejection) => {
-          return rejection.file.name;
-        });
-
-      if (oversizedFiles.length > 0) {
-        setError(buildFileSizeError(oversizedFiles));
-        return;
-      }
-
-      /*
-       * A file of a type the picker does not take is refused by the
-       * browser's picker and by the drop alike: say so, rather than drop it
-       * without a word.
-       */
-      const refusedTypes: Array<string> = fileRejections
-        .filter((rejection: FileRejection) => {
-          return rejection.errors.some((error: { code: string }) => {
-            return error.code === "file-invalid-type";
-          });
-        })
-        .map((rejection: FileRejection) => {
-          return rejection.file.name;
-        });
-
-      if (refusedTypes.length > 0) {
-        setError(buildFileTypeError(refusedTypes));
-        return;
-      }
-
-      // Several files dropped on a picker of one.
-      if (
-        fileRejections.some((rejection: FileRejection) => {
-          return rejection.errors.some((error: { code: string }) => {
-            return error.code === "too-many-files";
-          });
-        })
-      ) {
-        setError(translator.translateText("Add one file at a time.") || "");
-      }
-    },
-    onDrop: async (acceptedFiles: Array<File>) => {
+    /*
+     * Every choice and every drop, whatever react-dropzone made of it: what
+     * it accepted and what it refused come here together, so the picker
+     * sorts them in one place - what it adds, and each file it leaves out
+     * with why (FilePickerLeftOut).
+     */
+    onDrop: async (
+      acceptedFiles: Array<File>,
+      fileRejections: Array<FileRejection>,
+    ) => {
       if (props.readOnly) {
         return;
       }
 
+      /*
+       * The room a picker of several has left. A choice of more than fits
+       * adds what fits - the picker, full, then says how many it holds -
+       * and names the files it left out (issue #8041).
+       */
+      const choice: FilePickerChoice<File> = sortFilePickerChoice({
+        accepted: acceptedFiles,
+        refused: fileRejections,
+        room:
+          maxFiles === null ? null : Math.max(0, maxFiles - filesModel.length),
+        maxFileSizeInBytes: maxFileSizeBytes,
+      });
+
+      /*
+       * Said at once, while the files it adds upload: the line names what
+       * this choice left out, or is empty - a choice that leaves nothing
+       * out clears what the last one said.
+       */
+      const leftOutMessage: string = getFilePickerLeftOutMessage(
+        translator,
+        choice.leftOut,
+        { maxFiles: maxFiles, maxFileSizeInBytes: maxFileSizeBytes },
+      );
+
+      setError(leftOutMessage);
+
+      if (choice.toAdd.length === 0) {
+        return;
+      }
+
       setIsLoading(true);
-      setError("");
 
       try {
         // Upload these files.
@@ -418,23 +370,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           return map[ext];
         };
 
-        const oversizedFiles: Array<string> = [];
-
-        /*
-         * What room a picker of several files has left. A drop of more than
-         * fits adds what fits, and the picker - full - says how many it holds.
-         */
-        const room: number | null =
-          maxFiles === null ? null : Math.max(0, maxFiles - filesModel.length);
-        const filesToAdd: Array<File> =
-          room === null ? acceptedFiles : acceptedFiles.slice(0, room);
-
-        for (const acceptedFile of filesToAdd) {
-          if (acceptedFile.size > maxFileSizeBytes) {
-            oversizedFiles.push(acceptedFile.name);
-            continue;
-          }
-
+        for (const acceptedFile of choice.toAdd) {
           /*
            * Kept in the browser: the file with its bytes, and no id, for the
            * page to send with what it submits.
@@ -501,10 +437,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           }
         }
 
-        if (oversizedFiles.length > 0) {
-          setError(buildFileSizeError(oversizedFiles));
-        }
-
         if (filesResult.length > 0) {
           const updatedFiles: Array<FileModel> = props.isMultiFilePicker
             ? [...filesModel, ...filesResult]
@@ -516,7 +448,8 @@ const FilePicker: FunctionComponent<ComponentProps> = (
           props.onChange?.(updatedFiles);
         }
       } catch (err) {
-        setError(API.getFriendlyMessage(err));
+        // What it left out is still left out: said before why this failed.
+        setError(joinSentences([leftOutMessage, API.getFriendlyMessage(err)]));
       } finally {
         setIsLoading(false);
       }

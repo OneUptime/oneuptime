@@ -1,5 +1,6 @@
 import Input, {
   ComponentProps,
+  INPUT_REFUSED_CLASS_NAME,
   InputType,
 } from "../../../UI/Components/Input/Input";
 import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../../UI/Utils/TypedTextDirection";
@@ -423,6 +424,88 @@ describe("Input", () => {
 
     const errorInputClass: string = "border-red-300";
     expect(input).toHaveClass(errorInputClass);
+  });
+
+  /*
+   * A number whose unit sits beside it says why it was refused under both,
+   * so it hands the Input ariaInvalid alone. Its box stayed grey, and a
+   * reader of three numbers side by side had to read the line under them
+   * to find the refused one (#6520): the box is drawn refused, as with
+   * error, without the error's icon and line, which the field draws
+   * elsewhere.
+   */
+  describe("ariaInvalid alone", () => {
+    test("draws the refused box: the red border, words and focus ring an error has", () => {
+      render(<Input ariaInvalid={true} dataTestId="days" />);
+      const input: HTMLElement = screen.getByTestId("days");
+
+      expect(input).toHaveClass(...INPUT_REFUSED_CLASS_NAME.split(" "));
+      expect(input).toHaveAttribute("aria-invalid", "true");
+    });
+
+    test("is the same box an error draws", () => {
+      render(
+        <>
+          <Input ariaInvalid={true} dataTestId="refused" />
+          <Input error="Enter a number." dataTestId="explained" />
+        </>,
+      );
+      const refused: Array<string> = Array.from(
+        screen.getByTestId("refused").classList,
+      );
+      const explained: Array<string> = Array.from(
+        screen.getByTestId("explained").classList,
+      );
+
+      for (const className of INPUT_REFUSED_CLASS_NAME.split(" ")) {
+        expect(refused).toContain(className);
+        expect(explained).toContain(className);
+      }
+    });
+
+    test("adds no message and no icon: the field draws its own", () => {
+      const { container } = render(
+        <Input ariaInvalid={true} ariaDescribedby="days-error" />,
+      );
+      const input: HTMLElement = screen.getByRole("textbox");
+
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.queryByTestId("error-message")).toBeNull();
+      expect(container.querySelector("svg")).toBeNull();
+      // No room kept at the end for an icon that is not drawn.
+      expect(input).toHaveClass("pr-3");
+      expect(input).not.toHaveClass("pr-10");
+      // A screen reader hears the field's own message, and only it.
+      expect(input.getAttribute("aria-describedby")).toBe("days-error");
+    });
+
+    test("keeps a caller's own classes, and draws the refused box over them", () => {
+      render(
+        <Input
+          ariaInvalid={true}
+          className="block w-full rounded-md border"
+          dataTestId="custom"
+        />,
+      );
+      const input: HTMLElement = screen.getByTestId("custom");
+
+      expect(input).toHaveClass("block", "w-full", "rounded-md", "border");
+      expect(input).toHaveClass(...INPUT_REFUSED_CLASS_NAME.split(" "));
+      expect(input).not.toHaveClass("pr-10");
+    });
+
+    test("a value with nothing wrong keeps the grey box", () => {
+      render(<Input ariaInvalid={false} dataTestId="fine" />);
+      const input: HTMLElement = screen.getByTestId("fine");
+
+      expect(input).toHaveClass("border-gray-300");
+      for (const className of INPUT_REFUSED_CLASS_NAME.split(" ")) {
+        if (className !== "focus:outline-none") {
+          expect(input).not.toHaveClass(className);
+        }
+      }
+      expect(input).not.toHaveAttribute("aria-invalid");
+    });
   });
 
   test("sets outerDivClassName", () => {

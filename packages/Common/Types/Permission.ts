@@ -396,6 +396,11 @@ enum Permission {
   // Security Case Step Checks (what OneUptime found of a Response Plan step, written by OneUptime)
   ReadSecurityCaseStepCheck = "ReadSecurityCaseStepCheck",
 
+  // Security Case Pull Requests (a person's own fix, linked to a case's Fix step, #10604)
+  CreateSecurityCasePullRequest = "CreateSecurityCasePullRequest",
+  DeleteSecurityCasePullRequest = "DeleteSecurityCasePullRequest",
+  ReadSecurityCasePullRequest = "ReadSecurityCasePullRequest",
+
   // Security Case AI Actions (what OneUptime AI did, asked or left on a case it works, written by OneUptime)
   ReadSecurityCaseAiAction = "ReadSecurityCaseAiAction",
 
@@ -9485,6 +9490,38 @@ export class PermissionHelper {
         title: "Read Security Case Step Check",
         description:
           "This permission can read what OneUptime found when it checked the steps of Security Cases' Response Plans of this project, and the evidence for it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Security Case Pull Request Permissions
+      {
+        permission: Permission.CreateSecurityCasePullRequest,
+        title: "Create Security Case Pull Request",
+        description:
+          "This permission can link a pull request to a Security Case of this project as its fix, for OneUptime to follow to its deploy.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteSecurityCasePullRequest,
+        title: "Delete Security Case Pull Request",
+        description:
+          "This permission can take a pull request linked to a Security Case of this project off it.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityCasePullRequest,
+        title: "Read Security Case Pull Request",
+        description:
+          "This permission can read the pull requests linked to Security Cases of this project, and whether each merged and shipped.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,
@@ -19411,7 +19448,7 @@ export class PermissionHelper {
         permission: Permission.CreateForm,
         title: "Create Form",
         description:
-          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident or a maintenance event.",
+          "This permission can create forms in this project. Anyone with a form's link can fill it in, and each submission creates an incident, an alert or a maintenance event. Setting up a form that creates alerts also takes permission to create alerts.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

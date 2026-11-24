@@ -275,6 +275,61 @@ describe("ContainedErrorBoundary", () => {
     consoleWarnSpy.mockRestore();
   });
 
+  /*
+   * A notice over a page (the explorers' budget banner, #7167) only matters
+   * now and then, and the page under it works without it: its code not
+   * downloading is no reason to say the latest version is loading in its
+   * place, nor to reload the page. It draws its fallback, as any failure.
+   */
+  test("a notice whose code did not download draws its fallback, and never reloads the page", async () => {
+    const consoleWarnSpy: SpyInstance<typeof console.warn> = jest
+      .spyOn(console, "warn")
+      .mockImplementation(() => {
+        return undefined;
+      });
+
+    render(
+      <div>
+        <ContainedErrorBoundary isNotice={true} renderFallback={fallback}>
+          <ChunkFailure />
+        </ContainedErrorBoundary>
+        <p data-testid="page-under-the-notice">The page</p>
+      </div>,
+    );
+
+    expect(screen.getByTestId("contained-fallback")).toBeInTheDocument();
+    expect(screen.queryByTestId("chunk-load-recovery")).toBeNull();
+    expect(screen.getByTestId("page-under-the-notice")).toBeInTheDocument();
+
+    // Given the time a reload would take to be asked for, none is.
+    await act(async () => {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    });
+    expect(reloadMock).not.toHaveBeenCalled();
+    expect(
+      window.sessionStorage.getItem(CHUNK_LOAD_RELOAD_STORAGE_KEY),
+    ).toBeNull();
+    // Still told apart from a bug: warned of, not reported as an error.
+    expect(consoleWarnSpy).toHaveBeenCalled();
+
+    consoleWarnSpy.mockRestore();
+  });
+
+  test("a notice's ordinary error draws its fallback too", () => {
+    render(
+      <ContainedErrorBoundary isNotice={true} renderFallback={fallback}>
+        <Flaky />
+      </ContainedErrorBoundary>,
+    );
+
+    expect(screen.getByTestId("contained-fallback-message")).toHaveTextContent(
+      "Widget exploded",
+    );
+    expect(reloadMock).not.toHaveBeenCalled();
+  });
+
   test("an ordinary error never reloads the page", () => {
     render(
       <ContainedErrorBoundary renderFallback={fallback}>

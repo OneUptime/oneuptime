@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} grupper",
     "noResourcesTitle": "Inget att visa än",
     "noResourcesDescription": "Den här sidan visar inga tjänster än.",
-    "noResourcesPreviewDescription": "Besökare ser det här tills du lägger till resurser. Lägg till monitorer eller grupper på den här statussidan under Resurser i instrumentpanelen."
+    "noResourcesPreviewDescription": "Besökare ser det här tills du lägger till resurser.",
+    "noResourcesPreviewLink": "Lägg till resurser i instrumentpanelen"
   },
   "eventItem": {
     "affectedResources": "Berörda resurser",

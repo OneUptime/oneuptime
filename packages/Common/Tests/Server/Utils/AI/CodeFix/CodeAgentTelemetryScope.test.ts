@@ -1,4 +1,5 @@
 import CodeAgentTelemetryScope, {
+  CODE_AGENT_TELEMETRY_TASK_TYPES,
   CodeAgentScopedService,
   CodeAgentTelemetryOffer,
   CodeAgentTelemetryRun,
@@ -533,6 +534,23 @@ describe("CodeAgentTelemetryScope.getOffer", () => {
 
     expect(offer.scope).toBeNull();
     expect(offer.reason).toContain("reviews and to fixes");
+  });
+
+  test("a fix of a service's telemetry leaks is offered none: what a record held never reaches the agent (#10367)", async () => {
+    mockProject();
+
+    expect(CODE_AGENT_TELEMETRY_TASK_TYPES).not.toContain(
+      CodeFixTaskType.FixSensitiveDataInTelemetry,
+    );
+
+    const offer: CodeAgentTelemetryOffer =
+      await CodeAgentTelemetryScope.getOffer(
+        telemetryRun({
+          codeFixTaskType: CodeFixTaskType.FixSensitiveDataInTelemetry,
+        }),
+      );
+
+    expect(offer.scope).toBeNull();
   });
 
   test("a run with no repository is offered none", async () => {

@@ -225,6 +225,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Was it a breach? (#10377): the table of breach laws - what each asks,
+   * of whom, when, and what a person still checks - with the places and
+   * the data it names, and what the table does not cover and the parts of
+   * OneUptime AI's write-up, as a security case's Was It a Breach? and
+   * Breach Notices cards draw them. The server keeps the same files'
+   * English for OneUptime AI. Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/BreachLaws.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -439,6 +455,13 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   // The common schedules a workflow's Schedule trigger offers.
   { directory: "packages/Common/Utils/CronTab.ts", kind: "ui" },
+  /*
+   * A moment's words in a sentence (#10622): "at 14:25" today, "on 27 Nov
+   * at 14:25" on another day, and since and until each way - so a sentence
+   * never puts a time's preposition before a day. Only the words the file
+   * marks are read.
+   */
+  { directory: "packages/Common/Utils/MomentPhrases.ts", kind: "keys" },
   /*
    * What each placeholder a playbook's note or message may use stands for:
    * the step editor lists them under its field, said on hover.

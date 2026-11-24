@@ -141,6 +141,12 @@ export interface DataSecurityProbeStoreWork {
    */
   fingerprintKey: string;
   /*
+   * Whether the probe reads free-text columns for names and street
+   * addresses with the model in its own image (Model/ModelScan.ts). Off
+   * when a server older than the model says nothing.
+   */
+  findNamesAndAddresses: boolean;
+  /*
    * The data types OneUptime AI drafted from this store's fields, run in
    * shadow (#10371): counted, never found. A probe older than them leaves
    * them out, and its store is proven by the others of the group.
@@ -318,6 +324,7 @@ export function readProbeStoreWork(
       typeof work["fingerprintKey"] === "string"
         ? (work["fingerprintKey"] as string)
         : "",
+    findNamesAndAddresses: work["findNamesAndAddresses"] === true,
     shadowDataTypes: (Array.isArray(work["shadowDataTypes"])
       ? (work["shadowDataTypes"] as Array<unknown>)
       : []
@@ -467,7 +474,7 @@ function readClassification(
     readCount(raw["valuesWithMatch"]),
   );
 
-  return {
+  const classification: FieldClassification = {
     dataTypeId,
     matchCount: readCount(raw["matchCount"]),
     testValueCount: readCount(raw["testValueCount"]),
@@ -486,6 +493,12 @@ function readClassification(
     nameHinted: raw["nameHinted"] === true,
     foundByName: raw["foundByName"] === true,
   };
+
+  if (raw["foundByModel"] === true) {
+    classification.foundByModel = true;
+  }
+
+  return classification;
 }
 
 /*

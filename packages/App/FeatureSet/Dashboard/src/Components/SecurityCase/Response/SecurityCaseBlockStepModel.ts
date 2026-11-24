@@ -14,7 +14,6 @@ import {
   BLOCK_LINE_NOT_ENFORCED,
   BLOCK_LINE_PENDING,
 } from "./SecurityCaseResponseCopy";
-import { writeCheckTime } from "./SecurityCaseResponseChecks";
 import {
   formatTimeToBlock,
   getPolicyDisplayName,
@@ -32,6 +31,11 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import { ResponseAddressBlock } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
+import {
+  MomentRole,
+  momentPhrase,
+  writeReaderMoment,
+} from "Common/Utils/MomentPhrases";
 
 /*
  * How a case's block step says what it knows (#10342), React-free so a plain
@@ -153,7 +157,8 @@ export function getEnforcedBlockTemplate(block: ResponseAddressBlock): string {
 
 /*
  * The block's line in the reader's words: held, being applied, or held
- * nowhere. Its times on the reader's clock, the time alone for today.
+ * nowhere. Its moments on the reader's clock, each with its own words:
+ * "since 10:42" today, "since 21 Nov at 10:42" on another day (#10622).
  */
 export function writeAddressBlockLine(data: {
   block: ResponseAddressBlock;
@@ -167,9 +172,14 @@ export function writeAddressBlockLine(data: {
   if (block.enforcedAt.length > 0) {
     return translator.translateTemplate(getEnforcedBlockTemplate(block), {
       destinations: formatNamesInSentence(block.enforcedAt, translator),
-      time: writeCheckTime(since, now),
+      since: momentPhrase(MomentRole.Since, writeReaderMoment(since, now)),
       name: block.createdByName || "",
-      until: block.expiresAt ? writeCheckTime(block.expiresAt, now) : "",
+      until: block.expiresAt
+        ? momentPhrase(
+            MomentRole.Until,
+            writeReaderMoment(block.expiresAt, now),
+          )
+        : "",
       // A ready policy's name in the reader's words, a project's own as written.
       policy: block.policyName
         ? getPolicyDisplayName(
@@ -188,13 +198,19 @@ export function writeAddressBlockLine(data: {
 
   if (block.pendingAt.length > 0) {
     return translator.translateTemplate(BLOCK_LINE_PENDING, {
-      time: writeCheckTime(block.createdAt || now, now),
+      askedAt: momentPhrase(
+        MomentRole.At,
+        writeReaderMoment(block.createdAt || now, now),
+      ),
       destinations: formatNamesInSentence(block.pendingAt, translator),
     });
   }
 
   return translator.translateTemplate(BLOCK_LINE_NOT_ENFORCED, {
-    time: writeCheckTime(block.createdAt || now, now),
+    since: momentPhrase(
+      MomentRole.Since,
+      writeReaderMoment(block.createdAt || now, now),
+    ),
   });
 }
 

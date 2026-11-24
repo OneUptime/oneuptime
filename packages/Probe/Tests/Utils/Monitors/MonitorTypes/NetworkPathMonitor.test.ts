@@ -3,7 +3,7 @@ process.env["PROBE_KEY"] = "test-probe-key";
 
 import NetworkPathMonitor from "../../../../Utils/Monitors/MonitorTypes/NetworkPathMonitor";
 import { TraceRouteHop } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
 /*
  * Reading traceroute output back into hops.
@@ -44,6 +44,63 @@ function parseUnix(output: string): Array<TraceRouteHop> {
 function parseWindows(output: string): Array<TraceRouteHop> {
   return internals.parseTracerouteOutput(output, true);
 }
+
+/*
+ * A trace races its DNS lookup and its traceroute each against a timer.
+ * The timers were never cleared, so every failed Ping, Port or NTP check
+ * left two of them running for the whole timeout after its diagnosis was
+ * over - 20 seconds each on the probe (found in #10875, where a test of a
+ * Port check kept jest from exiting).
+ */
+describe("NetworkPathMonitor.trace", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("clears every timer it starts by the time it returns", async () => {
+    const TRACE_TIMEOUT_IN_MS: number = 600_000;
+    const started: Array<ReturnType<typeof setTimeout>> = [];
+    const cleared: Set<unknown> = new Set<unknown>();
+    const realSetTimeout: typeof setTimeout = global.setTimeout;
+    const realClearTimeout: typeof clearTimeout = global.clearTimeout;
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      callback: () => void,
+      delay?: number,
+    ): ReturnType<typeof setTimeout> => {
+      const timer: ReturnType<typeof setTimeout> = realSetTimeout(
+        callback,
+        delay,
+      );
+
+      // The trace's own: the ones as long as its timeout.
+      if (delay === TRACE_TIMEOUT_IN_MS) {
+        started.push(timer);
+      }
+
+      return timer;
+    }) as typeof setTimeout);
+
+    jest.spyOn(global, "clearTimeout").mockImplementation(((
+      timer: ReturnType<typeof setTimeout> | undefined,
+    ): void => {
+      cleared.add(timer);
+      realClearTimeout(timer);
+    }) as typeof clearTimeout);
+
+    // A name that does not resolve: both the lookup and the traceroute fail.
+    await NetworkPathMonitor.trace("no-such-host.invalid", {
+      timeout: TRACE_TIMEOUT_IN_MS,
+      maxHops: 2,
+    });
+
+    expect(started.length).toBeGreaterThan(0);
+
+    for (const timer of started) {
+      expect(cleared.has(timer)).toBe(true);
+    }
+  });
+});
 
 describe("NetworkPathMonitor traceroute parsing", () => {
   describe("Unix / macOS", () => {

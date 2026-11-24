@@ -490,12 +490,18 @@ describe("GoogleWorkspaceResponseClient", () => {
     const user: GoogleWorkspaceUser | null =
       await workspaceClient(api).findUser(" bob@example.com ");
 
-    // With whether 2-Step Verification is on: the Fix step's MFA check reads it (#10347).
+    /*
+     * With whether 2-Step Verification is on - the Fix step's MFA check
+     * reads it (#10347) - and whether the account is an admin, which the
+     * account-changes check reads back (#10603).
+     */
     expect(user).toEqual({
       id: BOB["id"],
       primaryEmail: "bob@example.com",
       suspended: false,
       isEnrolledIn2Sv: true,
+      isAdmin: false,
+      isDelegatedAdmin: false,
     });
 
     // A user the Directory API does not say is enrolled is not.
@@ -546,6 +552,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "bob@example.com",
         suspended: false,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.Done);
 
@@ -560,6 +568,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "bob@example.com",
         suspended: true,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.AlreadyDone);
     expect(api.requests).toHaveLength(2);
@@ -575,6 +585,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "",
         suspended: true,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.Done);
     expect(JSON.parse(String(api.requests[1]!.body))).toEqual({
@@ -586,6 +598,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "",
         suspended: false,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.AlreadyDone);
   });
@@ -651,6 +665,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "",
         suspended: false,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     );
 

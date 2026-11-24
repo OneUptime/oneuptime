@@ -1052,11 +1052,42 @@ describe("the Security Events page", () => {
     expect(valueOf("Name")).toEqual(["http"]);
     expect(valueOf("URI")).toEqual(["/security-events/v1/ingest"]);
     expect(valueOf("Format")).toEqual(["json"]);
+    // Compressed, as the route reads a gzip JSON batch (#10815).
+    expect(valueOf("compress")).toEqual(["gzip"]);
     expect(valueOf("Json_date_key")).toEqual([timeFields[0]]);
     expect(valueOf("Header")).toEqual([
       "x-oneuptime-token YOUR_INGESTION_TOKEN",
       "x-oneuptime-service-name my-security-source",
     ]);
+  });
+
+  /*
+   * #10815: since #10795 a gzip JSON batch is read as the same batch
+   * uncompressed (RequestBodyAfterAuthentication.readBody's parseGzipJson),
+   * and a compressed body of any other type is refused 400. The page says
+   * so, with the forwarders' own settings for it, and the Setup Guide's
+   * snippet compresses as the page's does.
+   */
+  it("says a batch may be gzip-compressed, as the route reads one, with each forwarder's setting for it", () => {
+    const route: string = flat(source("ingestRoute"));
+
+    expect(route).toContain(
+      "RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT, { parseGzipJson: true, })",
+    );
+    expect(route).toContain(
+      "TelemetryIngest.forSurface( TelemetryIngestSurface.SecurityEvents, readSecurityEventsBody, )",
+    );
+    expect(flat(page)).toContain(
+      "A batch can be gzip-compressed, sent with `Content-Encoding: gzip`: it is read as the same batch uncompressed.",
+    );
+    expect(flat(page)).toContain(
+      "Fluent Bit's `http` output compresses with `compress gzip`, Vector's `http` sink with `compression = \"gzip\"`, and Logstash's `http` output with `http_compression => true`.",
+    );
+    expect(flat(page)).toContain(
+      "Only JSON is read compressed: a compressed body of any other type is refused with `400`.",
+    );
+    // The Setup Guide's copy of the snippet compresses too.
+    expect(source("setupGuide")).toMatch(/^\s+compress\s+gzip$/m);
   });
 
   it("lists every security product a connection can poll, each with its setup guide", () => {
