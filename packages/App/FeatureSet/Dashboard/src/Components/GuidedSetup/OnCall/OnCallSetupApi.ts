@@ -69,6 +69,7 @@ import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import Search from "Common/Types/BaseDatabase/Search";
 import Select from "Common/Types/BaseDatabase/Select";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -130,6 +131,14 @@ export interface ProjectPhoneFacts {
   isCallOn: boolean | null;
   balanceInUSDCents: number | null;
 }
+
+/*
+ * How many of the project's policies the step offers at a time: the first
+ * by name as it opens, and the ones a search finds (#10764). It read the
+ * first 10,000 and offered those alone, so a policy past them could not be
+ * picked.
+ */
+export const POLICY_CHOICES_READ_AT_ONCE: number = 50;
 
 // A policy the step offers to pick.
 export interface PolicyChoice {
@@ -453,18 +462,24 @@ export default class OnCallSetupApi {
   }
 
   /*
-   * The project's policies in service, and whether this person may make or
-   * change one. An archived policy pages no one, so it is never offered,
-   * and a project whose only policies are archived has none to set up: the
-   * setup makes one that pages people (#8234). Pinned as the On-Call
-   * Policies list pins it, so the setup offers what the list shows.
+   * The project's policies in service whose name holds `search` (all of
+   * them for none), the first POLICY_CHOICES_READ_AT_ONCE by name. An
+   * archived policy pages no one, so it is never offered. Pinned as the
+   * On-Call Policies list pins it, so the setup offers what the list shows.
    */
-  public static async loadPolicyChoices(): Promise<PolicyChoiceFacts> {
+  private static async readPolicyChoices(
+    search: string,
+  ): Promise<Array<PolicyChoice>> {
+    const trimmed: string = search.trim();
+
     const policies: ListResult<OnCallDutyPolicy> =
       await ModelAPI.getList<OnCallDutyPolicy>({
         modelType: OnCallDutyPolicy,
-        query: { isArchived: false },
-        limit: LIMIT_PER_PROJECT,
+        query: {
+          isArchived: false,
+          ...(trimmed ? { name: new Search(trimmed) } : {}),
+        },
+        limit: POLICY_CHOICES_READ_AT_ONCE,
         skip: 0,
         select: {
           _id: true,
@@ -475,18 +490,45 @@ export default class OnCallSetupApi {
         sort: { name: SortOrder.Ascending },
       });
 
+    return policies.data
+      .filter((policy: OnCallDutyPolicy): boolean => {
+        return Boolean(policy.id);
+      })
+      .map((policy: OnCallDutyPolicy): PolicyChoice => {
+        return {
+          id: policy.id!.toString(),
+          name: policy.name || "",
+          sharedName: getSharedNameFacts(policy),
+        };
+      });
+  }
+
+  /*
+   * The project's policies in service whose name holds what is typed into
+   * the step's picker, searched on the server (#10764): the step offered
+   * the first ones by name alone, so a policy past them could not be
+   * picked. Nothing is asked for an empty box.
+   */
+  public static async searchPolicyChoices(
+    search: string,
+  ): Promise<Array<PolicyChoice>> {
+    if (!search.trim()) {
+      return [];
+    }
+
+    return await OnCallSetupApi.readPolicyChoices(search);
+  }
+
+  /*
+   * The project's first policies in service by name, and whether this
+   * person may make or change one. A project whose only policies are
+   * archived has none to set up: the setup makes one that pages people
+   * (#8234). The picker searches the server for the rest as it is typed in
+   * (searchPolicyChoices).
+   */
+  public static async loadPolicyChoices(): Promise<PolicyChoiceFacts> {
     return {
-      policies: policies.data
-        .filter((policy: OnCallDutyPolicy): boolean => {
-          return Boolean(policy.id);
-        })
-        .map((policy: OnCallDutyPolicy): PolicyChoice => {
-          return {
-            id: policy.id!.toString(),
-            name: policy.name || "",
-            sharedName: getSharedNameFacts(policy),
-          };
-        }),
+      policies: await OnCallSetupApi.readPolicyChoices(""),
       mayCreatePolicy:
         PermissionGate.check(new OnCallDutyPolicy(), ModelAction.Create)
           .isAllowed &&

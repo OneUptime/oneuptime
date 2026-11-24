@@ -5,8 +5,10 @@ Seguridad de datos conoce 143 clases de datos sensibles: números de tarjeta, cu
 :::cards
 - [Cómo se encuentra un valor](#cómo-se-encuentra-un-valor): Forma, validador, contexto, valores de prueba, confianza.
 - [Campos y columnas](#campos-y-columnas): Cómo se juzga una columna o un atributo entero.
+- [Nombres y direcciones postales en texto libre](#nombres-y-direcciones-postales-en-texto-libre): El pequeño modelo dentro del escáner y sus puntuaciones.
 - [Cada tipo de datos](#tipos-de-datos-integrados): Los 143, por categoría.
 - [Tus propios tipos de datos](#tus-propios-tipos-de-datos): IDs de empleado, números de póliza y el cuadro Probarlo.
+- [Tipos de datos que encuentra OneUptime AI](#tipos-de-datos-que-encuentra-oneuptime-ai): Tus propios tipos de datos, encontrados en los campos que ningún detector pudo clasificar.
 - [Los veredictos de OneUptime AI](#los-veredictos-de-oneuptime-ai): Un veredicto sobre cada hallazgo que te espera, con las decisiones de tu equipo como precedente.
 :::
 
@@ -56,7 +58,7 @@ Un campo cuyos valores tienen de media más de 80 caracteres es texto libre (not
 
 El nombre de un campo se divide en palabras (`customerEmail`, `customer_email` y `customer-email` son todos «customer email»), y la pista de nombre de un tipo coincide cuando sus palabras aparecen en ese orden, una junto a otra: «date of birth» coincide con `customer_date_of_birth`, no con `birth_city`. Solo la última parte de una ruta con puntos es el nombre propio del campo, junto con la parte anterior cuando la última es una palabra genérica como `number`, `id` o `value`: `customer.address.city` no es una dirección postal, y `card.number` sigue siendo un número de tarjeta.
 
-Algunos tipos de datos no se pueden distinguir por sus valores: ningún patrón distingue el nombre de una persona del de una calle, ni una religión de cualquier otra palabra. Estos se encuentran solo por el nombre del campo, cuando el campo tiene valores: Nombre de persona, Nombre de usuario, Género, Nacionalidad, Información de salud, Origen racial o étnico, Creencia religiosa, Orientación sexual, Opinión política, Afiliación sindical, Datos biométricos, Datos genéticos y Antecedentes penales. Un nombre, un nombre de usuario, un género o una nacionalidad tiene entonces confianza Alta cuando el 60% o más de los valores lo parecen, y Media en otro caso.
+Algunos tipos de datos no se pueden distinguir por sus valores: ningún patrón distingue el nombre de una persona del de una calle, ni una religión de cualquier otra palabra. Estos se encuentran solo por el nombre del campo, cuando el campo tiene valores: Nombre de persona, Nombre de usuario, Género, Nacionalidad, Información de salud, Origen racial o étnico, Creencia religiosa, Orientación sexual, Opinión política, Afiliación sindical, Datos biométricos, Datos genéticos y Antecedentes penales. Un nombre, un nombre de usuario, un género o una nacionalidad tiene entonces confianza Alta cuando el 60% o más de los valores lo parecen, y Media en otro caso. En texto libre, un pequeño modelo también encuentra los nombres de personas y las direcciones postales: consulta [Nombres y direcciones postales en texto libre](#nombres-y-direcciones-postales-en-texto-libre).
 
 Un campo cuyo nombre dice que contiene una contraseña (`password`, `passwordHash`, `pwd`, no `password_changed_at`) debería contener un hash: bcrypt, argon2, scrypt, PBKDF2 u otro esquema que probablemente use un almacén. Los valores vacíos, los marcadores de posición como `********` y los valores cifrados se dejan aparte. Cuando entre los demás hay más valores que no son hashes que hashes, el campo contiene las propias contraseñas, que ningún patrón puede ver, y el almacén no supera [Las contraseñas se guardan en texto plano](/docs/data-security/checks-and-issues#higiene-de-los-datos).
 
@@ -64,7 +66,74 @@ Un campo cuyo nombre dice que contiene una contraseña (`password`, `passwordHas
 
 Una columna o un campo cuyo nombre no apunta a ningún tipo de datos, y cuyos valores no coinciden con ningún detector, no se sabe que sea seguro: puede ser tu propio número de cliente, o una columna con nombre en otro idioma. Con **Habilitar IA** activado en el proyecto, un escaneo de contenido guarda esos campos, como máximo 200 por escaneo, y se pregunta a OneUptime AI qué tipo de datos del proyecto contiene cada uno, como máximo 40 campos de un almacén a la vez. Se le dice el nombre del campo, los nombres de los campos de al lado y las formas de sus valores (cada letra escrita como `a` o `A` y cada dígito como `9`, así que `AB-1234` es `AA-9999`), nunca un valor. No se pregunta por texto libre, campos con menos de 5 valores, números enteros pequeños ni campos con nombre de identificador, fecha o estado.
 
+Un escaneo de telemetría guarda del mismo modo los atributos que ningún detector clasificó, de los logs, spans, métricas y el resto de la telemetría de un servicio, como máximo 50 por servicio en cada escaneo. Nunca guarda los atributos propios de OneUptime, ni los que las convenciones de OpenTelemetry escriben en cada registro para decir de dónde viene, como el servicio, el host o el pod, ni texto libre, como el cuerpo de un log.
+
 Cada tipo que nombra OneUptime AI es un hallazgo de confianza Baja, marcado como **Sugerido por OneUptime AI** con su motivo, escrito en el idioma de tu proyecto y mostrado a lo ancho de toda la fila del hallazgo. Como cualquier hallazgo de confianza Baja, no cuenta para nada hasta que una persona elige **Confirmar** en la página **Contenido** del almacén; **Marcar como no sensible** lo rechaza. No se vuelve a preguntar por un campo ya respondido durante 30 días, y nunca más por un campo que una persona haya juzgado.
+
+## Nombres y direcciones postales en texto libre
+
+Ningún patrón distingue el nombre de una persona de cualquier otra palabra. Por eso el texto libre (una nota de soporte, una línea de registro, un mensaje de excepción, un prompt) también lo lee un pequeño modelo de lenguaje que encuentra nombres de personas y direcciones postales. El modelo se ejecuta dentro del escáner, en los workers de OneUptime y en tus sondas: el texto nunca sale del escáner, no se descarga nada mientras se ejecuta y no se escribe ningún prompt. No es OneUptime AI, y los interruptores de OneUptime AI no lo activan ni lo desactivan: eso lo hace **Detectar nombres y direcciones postales**.
+
+- **Qué lee.** Un campo cuyos valores tienen de media más de 80 caracteres y, en la telemetría, cada cuerpo de registro, mensaje de excepción, traza de pila y conversación de IA, por corto que sea. Lee hasta 100 valores distintos de un campo, 32 KB de texto en total, y hasta 16 KB de un mismo valor.
+- **Qué encuentra.** Un **Nombre de persona** (`person-name`) y una **Dirección postal** (`postal-address`): un lugar que el modelo lee junto a un número de calle, como `14 Calle Mayor`, con el código postal y la ciudad que lo siguen. Una ciudad o un país por sí solos no son una dirección postal.
+- **Qué confianza tiene.** Un nombre o una dirección que encuentra el modelo tiene confianza Media por sí solo. Pasa a Alta cuando el nombre del campo dice que contiene nombres o direcciones, o cuando lo dicen palabras cercanas, como «customer», «Kunde» o «dirección». Es Baja cuando el modelo duda, con una puntuación inferior a 0,6. Cada uno conserva la confianza que obtuvo por sí solo, así que un único nombre entre mil líneas de registro sigue teniendo confianza Media.
+- **Valores de prueba.** Los marcadores de posición como `Jane Doe`, `John Smith`, `Max Mustermann` y `123 Main Street` se cuentan aparte, igual que los valores de prueba de cualquier tipo.
+- **Qué guarda.** Sus muestras se enmascaran igual que las de un nombre encontrado por el nombre de un campo: el primer carácter y cuatro asteriscos, `M****`. Nunca se calcula su huella. En la página **Contenido** del almacén, un hallazgo así indica **Encontrado en texto libre por el modelo del escáner**.
+
+| Modelo | Licencia | Tamaño | Revisión | Idiomas evaluados |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual): seis capas de BERT multilingüe, ONNX int8 | Apache 2.0 | 98 MB | `8cf7273` | Inglés, español, alemán, francés, italiano, portugués, neerlandés |
+
+### Con qué acierto los encuentra
+
+Se midió a través del propio código del escáner, con un conjunto de prueba escrito para él: 392 frases inventadas en siete idiomas (líneas de registro, notas de soporte, correos, prompts), de las que 168 no contienen ni un nombre ni una dirección. Un hallazgo es correcto cuando se solapa con un nombre o una dirección de su tipo. El listón se fijó antes de medir ningún modelo: una precisión de al menos 0,90 para cada tipo en el conjunto de los idiomas y de 0,85 en cada idioma, una exhaustividad de al menos 0,70, y como máximo 20 hallazgos falsos por cada 1.000 valores que no contienen ninguno de los dos. De los cuatro modelos medidos, dos lo superaron, y se eligió el más pequeño. Una prueba vigila estas puntuaciones: un cambio en el modelo o en el escáner que baje alguna no la supera.
+
+| Idioma | Nombres: precisión | Nombres: exhaustividad | Direcciones: precisión | Direcciones: exhaustividad |
+| --- | --- | --- | --- | --- |
+| Inglés | 0,96 | 0,96 | 1,00 | 1,00 |
+| Español | 0,96 | 0,96 | 1,00 | 1,00 |
+| Alemán | 1,00 | 0,93 | 1,00 | 1,00 |
+| Francés | 0,96 | 0,96 | 1,00 | 1,00 |
+| Italiano | 0,96 | 0,96 | 1,00 | 1,00 |
+| Portugués | 0,93 | 0,89 | 1,00 | 1,00 |
+| Neerlandés | 0,96 | 0,89 | 1,00 | 1,00 |
+| Los siete | 0,96 | 0,94 | 1,00 | 1,00 |
+
+En las 168 frases del conjunto de prueba que no contienen ninguno de los dos, produce 18 hallazgos falsos por cada 1.000. Estos son también sus resultados en una parte de un benchmark público, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0): 15 documentos financieros en cada uno de siete idiomas. Sus etiquetas las generó una máquina y no están completas, así que lee esta tabla junto a la anterior y no por separado:
+
+| Idioma | Nombres: precisión | Nombres: exhaustividad | Direcciones: precisión | Direcciones: exhaustividad |
+| --- | --- | --- | --- | --- |
+| Inglés | 0,91 | 0,90 | 0,83 | 1,00 |
+| Español | 0,89 | 0,37 | 0,58 | 0,70 |
+| Alemán | 0,93 | 0,58 | 0,75 | 0,70 |
+| Francés | 0,84 | 0,50 | 0,42 | 0,83 |
+| Italiano | 0,73 | 0,61 | 0,79 | 0,69 |
+| Neerlandés | 0,91 | 0,49 | 1,00 | 0,89 |
+| Sueco | 1,00 | 0,61 | 1,00 | 0,93 |
+| Los siete | 0,89 | 0,54 | 0,77 | 0,82 |
+
+Estos son los cuatro modelos medidos con ese conjunto de prueba, uno tras otro en la misma máquina, cada uno cronometrado en un solo núcleo con el código nativo de onnxruntime. OneUptime ejecuta el elegido con la versión WebAssembly de onnxruntime, que funciona en todas las imágenes pero es entre cinco y ocho veces más lenta:
+
+| Modelo | Licencia | Tamaño | Nombres: precisión / exhaustividad | Direcciones: precisión / exhaustividad | Hallazgos falsos por cada 1.000 | Tiempo por cada 1.000 valores de 75 / 1.181 caracteres |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (elegido) | Apache 2.0 | 98 MB | 0,963 / 0,939 | 1,000 / 1,000 | 18 | 5,9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 MB | 0,995 / 0,974 | 0,985 / 1,000 | 12 | 7,4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
+
+### Dónde se ejecuta y cuánto cuesta
+
+- **En todas las imágenes.** La imagen App, que ejecuta los workers, y la imagen de la sonda llevan el modelo, su vocabulario y el entorno de ejecución, incluidas las imágenes para entornos aislados (air-gapped) y las de Iron Bank: unos 114 MB en disco. Se obtienen al construir la imagen, a partir de una revisión fijada, y se comprueban con su SHA-256. No se descarga nada mientras se ejecuta un escaneo.
+- **Memoria.** Se carga la primera vez que un escaneo lo necesita, una vez por proceso: unos 550 MB, que se liberan tras 10 minutos sin escaneos.
+- **Tiempo.** En un núcleo, entre 30 segundos y un minuto por cada 1.000 valores de la longitud de una línea de registro, y unos 9 minutos por cada 1.000 valores de 1.200 caracteres. Un escaneo de contenido de un almacén le da hasta 2 minutos. El escaneo horario de telemetría le da hasta 1 minuto en total y 6 segundos por almacén, a un grupo distinto de almacenes cada hora.
+- **Cuando se le acaba el tiempo**, el escaneo termina con lo que el modelo leyó, y sus avisos dicen cuántos de los valores de texto libre leyó, nunca qué contienen. Un worker o una sonda que no tiene el modelo escanea como antes y dice por qué:
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Detectar nombres y direcciones postales** está activado en todos los proyectos: los escaneos de contenido de buckets, bases de datos y conjuntos de datos de BigQuery leen el texto libre con el modelo, tanto en los workers como en las sondas. **Detectar nombres y direcciones postales en la telemetría**, justo debajo, está desactivado: leer una sola vez cada cuerpo de registro, cada excepción y cada conversación de un proyecto de 200 servicios con mucha actividad lleva unos 48 minutos de un núcleo, y el minuto por hora del escaneo lee alrededor del 4% de todo ello. Actívalo para que cada escaneo horario lea una parte. Ambos están en **Seguridad de datos → Ajustes → Ajustes de escaneo**, en **Qué lee Seguridad de datos**. El cuadro **Probarlo** se ejecuta en tu navegador, sin el modelo: ahí no aparece lo que encontraría el modelo.
 
 ## Sensibilidad
 
@@ -101,7 +170,7 @@ Un tipo de datos que pertenece a un país lo nombra, con un código ISO 3166-1: 
 | --- | --- | --- | --- | --- |
 | Dirección de correo electrónico | `email-address` | La dirección de correo electrónico de una persona. | Confidencial | — |
 | Número de teléfono | `phone-number` | Un número de teléfono en formato internacional o nacional. | Confidencial | — |
-| Nombre de persona | `person-name` | El nombre, el apellido o el nombre completo de una persona, encontrado por el nombre del campo. | Confidencial | — |
+| Nombre de persona | `person-name` | El nombre, el apellido o el nombre completo de una persona, detectado a partir del nombre del campo o por el modelo del escáner en texto libre. | Confidencial | — |
 | Dirección postal | `postal-address` | Una dirección postal: un número, un nombre de calle y un tipo de vía. | Confidencial | — |
 | Código postal | `postal-code` | Un código postal. Por sí solo, acota dónde vive alguien. | Interno | — |
 | Fecha de nacimiento | `date-of-birth` | Una fecha junto a palabras que dicen que es la fecha de nacimiento de alguien. | Confidencial | — |
@@ -296,6 +365,32 @@ En **Más campos**, **Ignorar mayúsculas y minúsculas** hace que el patrón co
 Un patrón se comprueba al guardarlo: debe compilar, no coincidir con texto vacío y ejecutarse en un tiempo proporcional al texto. Lo ejecuta un motor de coincidencia que nunca retrocede, así que ningún patrón puede bloquear un escaneo, se escriba como se escriba. Un tipo admite como máximo 50 palabras clave y 50 nombres de campo.
 
 Un valor de tu tipo tiene confianza Media por sí solo y Alta con una palabra clave cerca cuando supera una suma de comprobación, y Baja por sí solo y Media con una palabra clave cuando no tiene ninguna. En una columna, decide la proporción de valores que coinciden, como en todos los tipos.
+
+### Describirlo
+
+Arriba en el formulario de un tipo de datos nuevo, **Describirlo** rellena el formulario por ti. Escribe cómo son los datos, por ejemplo "nuestros ID de empleado son como EMP-123456, a veces sin el guion", añade algunos ejemplos si quieres, uno por línea, y elige **Rellenar el formulario**. OneUptime AI recibe tu frase y las formas de tus ejemplos, nunca los ejemplos: se quedan en tu navegador, donde **Probarlo** muestra cuántos de ellos encuentra su patrón. Lee lo que rellenó, cambia lo que quieras y guarda: no se guarda nada hasta que lo hagas, y el patrón se comprueba como uno que hubieras escrito tú. Describirlo necesita **Habilitar IA** activado en el proyecto.
+
+## Tipos de datos que encuentra OneUptime AI
+
+Los campos que ningún detector pudo clasificar a menudo contienen un tipo de datos propio de tu empresa, guardado en muchos sitios con nombres que dicen lo mismo: los números de póliza de una aseguradora en columnas llamadas `policy_no`, `policyNumber` y `police_nr`, en todas sus bases de datos. Con **Habilitar IA** activado en el proyecto, OneUptime AI encuentra un tipo de datos así en los campos que guardaron tus escaneos, y solo te pregunta por él cuando tus propios escaneos lo han demostrado.
+
+:::steps
+### Encuentra un grupo de campos
+
+Tres o más campos en dos o más almacenes forman un grupo cuando la mayoría de sus valores tienen una misma forma, con o sin los separadores entre sus partes, y sus nombres comparten una palabra que dice lo que contienen. Una forma sin dígitos, una fecha, una hora o un número decimal nunca forman un grupo, y una palabra como `id`, `no` o `number` no dice nada por sí sola.
+
+### Redacta un tipo de datos
+
+OneUptime AI redacta un tipo de datos para cada grupo nuevo, como máximo 3 a la vez, a partir de los nombres de los campos y las formas de sus valores, nunca de un valor. El borrador debe cumplir lo mismo que un tipo guardado y encontrar las formas a partir de las que se redactó. Un borrador que no lo cumple se vuelve a pedir una vez, con el motivo.
+
+### Tus próximos escaneos lo demuestran
+
+El borrador se ejecuta en el próximo escaneo de cada almacén de su grupo, durante un máximo de 48 horas o un intervalo de escaneo, lo que sea más largo. No crea ningún hallazgo: cada escaneo cuenta cuántos valores encontraría, en los campos del grupo y en todos los demás campos de los mismos almacenes. Se ofrece cuando encuentra al menos el 80% de los valores de sus campos y como máximo el 1% de los demás valores. Un campo de otro sitio donde encuentra casi todos los valores contiene los mismos datos con otro nombre: se nombra, no se cuenta en su contra.
+:::
+
+Cada borrador también se cuenta, a la vez, de forma restringida: fuera de los campos de su grupo, un borrador restringido solo encuentra un valor junto a una de sus palabras clave o bajo un nombre de campo que lo nombra. Un borrador que encuentra demasiado en otros sitios se ofrece restringido cuando eso basta. Un borrador que no basta de ninguna de las dos formas se descarta, y su grupo no se vuelve a redactar durante 30 días.
+
+Cada tipo de datos que ofrece espera en **Tipos de datos por revisar**, arriba en **Seguridad de datos → Ajustes → Tipos de datos** y en **Seguridad de datos → IA**, con lo que contaron tus escaneos, por ejemplo "Coincide con 98% de los valores de estos 11 campos, y con 0,1% de los valores en otras partes de los mismos almacenes." **Añadir tipo de datos** abre el formulario de un tipo de datos relleno con él, para cambiarlo y probarlo; guardarlo añade el tipo, que los escaneos encuentran desde su próxima ejecución. **No es un tipo de datos** lo rechaza: nunca se vuelve a ofrecer para esos campos. Añadirlo requiere un rol que pueda crear tipos de datos.
 
 ## No sensible, y nunca sensible
 

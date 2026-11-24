@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} grupper",
     "noResourcesTitle": "Intet at vise endnu",
     "noResourcesDescription": "Denne side viser endnu ingen tjenester.",
-    "noResourcesPreviewDescription": "Besøgende ser denne besked, indtil du tilføjer ressourcer. Tilføj monitorer eller grupper til denne statusside under Ressourcer i Dashboard."
+    "noResourcesPreviewDescription": "Besøgende ser denne besked, indtil du tilføjer ressourcer.",
+    "noResourcesPreviewLink": "Tilføj ressourcer i Dashboard"
   },
   "eventItem": {
     "affectedResources": "Berørte ressourcer",

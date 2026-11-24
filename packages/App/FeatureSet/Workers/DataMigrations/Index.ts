@@ -160,6 +160,8 @@ import CopyAuditLogWorkflowRunAsGiverColumns from "./CopyAuditLogWorkflowRunAsGi
 import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExplanationLogs";
 import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
 import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
+import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
+import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -216,6 +218,7 @@ import BackfillDataObservabilityAttentionColumns from "./BackfillDataObservabili
 import LinkMonitorsToTheirNetworkDevices from "./LinkMonitorsToTheirNetworkDevices";
 import WithholdAuditRecordNamesInSecurityEvents from "./WithholdAuditRecordNamesInSecurityEvents";
 import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppRequestMonitorTotals";
+import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1632,6 +1635,30 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement of its own; before the two slots kept last.
    */
   new RestoreContainerAppRequestMonitorTotals(),
+  /*
+   * The Rule Library's OpenStack rules that count per address count per
+   * principalIp, which names an address a Hash scrub rule hid (#10773):
+   * each project's copy still the library's is given that fix. Postgres
+   * only, idempotent; before the two slots kept last.
+   */
+  new UpgradeLibraryRuleCopiesForHashedAddresses(),
+  /*
+   * Scanning for sensitive files, the Scanners policy's new rule (#10745),
+   * for each project whose Scanners policy is in its trial run or on
+   * already, as turning it on would have added it - and nothing else of
+   * the policy's. Postgres only, idempotent; before the two slots kept
+   * last.
+   */
+  new AddSensitiveFileRuleToScannersPolicies(),
+  /*
+   * A status page resource shows a monitor or a monitor group, never
+   * neither (#6558): the rows the API took that named neither - shown to
+   * nobody, reached by no incident or subscriber - are deleted, and the
+   * worker's log says how many and on which status pages. Postgres only,
+   * one statement, idempotent; no ordering requirement of its own; before
+   * the two slots kept last.
+   */
+  new DeleteStatusPageResourcesThatShowNothing(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

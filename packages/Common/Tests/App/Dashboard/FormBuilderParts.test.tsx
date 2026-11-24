@@ -68,8 +68,10 @@ import QuestionPalette, {
 import { getFormPaletteState } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormBuilderState";
 import FormsCopy, {
   FORM_QUESTION_TYPE_TEXT,
+  getFormQuestionTypeDescription,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
+import { createTranslator, Translator } from "../../../Types/Translator";
 import {
   FORM_MAX_FIELDS,
   FORM_QUESTION_TYPES,
@@ -132,6 +134,9 @@ describe("the palette", () => {
   test("offers every answer type, named and described as the palette words them", () => {
     renderPalette({});
 
+    // English, as a page with no locale draws it: a plural filled with its count.
+    const english: Translator = createTranslator(undefined, "en");
+
     for (const type of FORM_QUESTION_TYPES) {
       const entry: HTMLElement = screen.getByTestId(
         `form-palette-question-${type}`,
@@ -139,7 +144,13 @@ describe("the palette", () => {
 
       expect(entry).toHaveTextContent(FORM_QUESTION_TYPE_TEXT[type].title);
       expect(entry).toHaveTextContent(
-        FORM_QUESTION_TYPE_TEXT[type].description,
+        getFormQuestionTypeDescription({
+          type: type,
+          translateText: (text: string): string => {
+            return text;
+          },
+          translatePlural: english.translatePlural,
+        }),
       );
     }
   });

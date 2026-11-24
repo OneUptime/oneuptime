@@ -179,6 +179,8 @@ Skärmen **Översikt** för varje statussida har ett kort **Länk till statussid
 
 Bakom kulisserna har varje offentlig rutt en förhandsgranskningstvilling under `/status-page/{statusPageId}/...`: en förhandsgranskad översikt, en förhandsgranskad incidentlista, en förhandsgranskad prenumerationssida och så vidare. En URL eller skärmbild från instrumentpanelens förhandsgranskning stämmer därför inte med det en kund ser när en anpassad domän är kopplad, så kontrollera alla länkar du klistrar in i en runbook eller ett e-postmeddelande.
 
+Så länge en sida inte visar något läser dess besökare **Inget att visa än**. I förhandsvisningen säger en anteckning under den "Besökare ser det här tills du lägger till resurser.", med **Lägg till resurser i instrumentpanelen**, som öppnar sidans **Resurser** i instrumentpanelen, i vilket av dina projekt sidan än ligger.
+
 ## Begränsa vem som kan se sidan
 
 Alla statussidor är inte till för allmänheten. Vem som får se en sida är ett enda val, det första kortet på **Statussidor → din sida → Säkerhet → Åtkomst**, **Vem som kan se den här statussidan**:

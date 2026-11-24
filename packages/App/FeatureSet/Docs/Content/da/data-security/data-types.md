@@ -5,8 +5,10 @@ Datasikkerhed kender 143 slags følsomme data: kortnumre, bankkonti, nationale I
 :::cards
 - [Sådan findes en værdi](#sådan-findes-en-værdi): Form, validering, kontekst, testværdier, konfidens.
 - [Felter og kolonner](#felter-og-kolonner): Hvordan en hel kolonne eller attribut vurderes.
+- [Navne og gadeadresser i fritekst](#navne-og-gadeadresser-i-fritekst): Den lille model inde i scanneren og dens scorer.
 - [Alle datatyper](#indbyggede-datatyper): Alle 143, efter kategori.
 - [Dine egne datatyper](#dine-egne-datatyper): Medarbejder-ID'er, policenumre og feltet Test det.
+- [Datatyper, som OneUptime AI finder](#datatyper-som-oneuptime-ai-finder): Dine egne datatyper, fundet i de felter, som ingen detektor kunne placere.
 - [OneUptime AI's vurderinger](#oneuptime-ais-vurderinger): En vurdering af hvert fund, der venter på dig, med dit teams beslutninger som præcedens.
 :::
 
@@ -56,7 +58,7 @@ Et felt, hvis værdier i gennemsnit er længere end 80 tegn, er fritekst - noter
 
 Et felts navn deles op i ord - `customerEmail`, `customer_email` og `customer-email` er alle "customer email" - og en types navnehint matcher, når dets ord står i den rækkefølge, lige efter hinanden: "date of birth" matcher `customer_date_of_birth`, ikke `birth_city`. Kun den sidste del af en sti med punktummer er feltets eget navn, sammen med delen før, når den sidste er et generisk ord som `number`, `id` eller `value`: `customer.address.city` er ikke en gadeadresse, og `card.number` er stadig et kortnummer.
 
-Nogle datatyper kan ikke kendes på deres værdier: intet mønster skelner en persons navn fra en gade eller en religion fra ethvert andet ord. De findes alene ud fra feltets navn, når feltet har værdier: Personnavn, Brugernavn, Køn, Nationalitet, Helbredsoplysninger, Racemæssig eller etnisk oprindelse, Religiøs overbevisning, Seksuel orientering, Politisk holdning, Fagforeningsmedlemskab, Biometriske data, Genetiske data og Straffeoplysninger. Et navn, et brugernavn, et køn eller en nationalitet er så Høj, når 60 % eller mere af værdierne ligner et, og ellers Middel.
+Nogle datatyper kan ikke kendes på deres værdier: intet mønster skelner en persons navn fra en gade eller en religion fra ethvert andet ord. De findes alene ud fra feltets navn, når feltet har værdier: Personnavn, Brugernavn, Køn, Nationalitet, Helbredsoplysninger, Racemæssig eller etnisk oprindelse, Religiøs overbevisning, Seksuel orientering, Politisk holdning, Fagforeningsmedlemskab, Biometriske data, Genetiske data og Straffeoplysninger. Et navn, et brugernavn, et køn eller en nationalitet er så Høj, når 60 % eller mere af værdierne ligner et, og ellers Middel. I fritekst findes personers navne og gadeadresser også af en lille model: se [Navne og gadeadresser i fritekst](#navne-og-gadeadresser-i-fritekst).
 
 Et felt, hvis navn siger, at det indeholder en adgangskode - `password`, `passwordHash`, `pwd`, ikke `password_changed_at` - bør indeholde en hash: bcrypt, argon2, scrypt, PBKDF2 eller et andet skema, som et datalager sandsynligvis bruger. Tomme værdier, pladsholdere som `********` og krypterede værdier sættes til side. Når flere af resten ikke er hashes end er, indeholder feltet selve adgangskoderne, som intet mønster kan se, og datalageret fejler [Adgangskoder gemmes i klartekst](/docs/data-security/checks-and-issues#datahygiejne).
 
@@ -64,7 +66,74 @@ Et felt, hvis navn siger, at det indeholder en adgangskode - `password`, `passwo
 
 En kolonne eller et felt, hvis navn ikke peger på nogen datatype, og hvis værdier ikke matcher nogen detektor, vides ikke at være sikkert: det kan være dit eget kundenummer eller en kolonne navngivet på et andet sprog. Med projektets **Aktivér AI** slået til gemmer en indholdsscanning sådanne felter, højst 200 pr. scanning, og OneUptime AI bliver spurgt, hvilken af projektets datatyper hvert felt indeholder, højst 40 felter fra et datalager ad gangen. Den får feltets navn, navnene på felterne ved siden af og formerne på dets værdier - hvert bogstav skrevet som `a` eller `A` og hvert ciffer som `9`, så `AB-1234` bliver `AA-9999` - aldrig en værdi. Der spørges ikke om fritekst, felter med færre end 5 værdier, små heltal og felter navngivet som et id, et tidspunkt eller en status.
 
+En telemetriscanning gemmer på samme måde de attributter, som ingen detektor placerede, fra en tjenestes logs, spans, metrikker og resten af dens telemetri, højst 50 pr. tjeneste ved hver scanning. Den gemmer aldrig OneUptimes egne attributter, de attributter, som OpenTelemetrys konventioner skriver på hver post for at sige, hvor den kommer fra, såsom tjenesten, værten eller poden, eller fritekst, såsom brødteksten i en log.
+
 Hver type, OneUptime AI nævner, er et fund med Lav, markeret **Foreslået af OneUptime AI** med sin begrundelse, skrevet på dit projekts sprog og vist på tværs af fundets række. Som ethvert fund med Lav tæller det ikke, før et menneske vælger **Bekræft** på datalagerets side **Indhold**; **Markér som ikke følsom** afviser det. Der spørges ikke igen om et felt, der har fået svar, i 30 dage, og aldrig igen om et felt, som et menneske har vurderet.
+
+## Navne og gadeadresser i fritekst
+
+Intet mønster skelner en persons navn fra ethvert andet ord. Derfor læses fritekst - en supportnote, en loglinje, en undtagelsesbesked, en prompt - også af en lille sprogmodel, der finder personers navne og gadeadresser. Modellen kører inde i scanneren, på OneUptimes workers og på dine sonder: teksten forlader aldrig scanneren, intet downloades, mens den kører, og der skrives ingen prompt. Den er ikke OneUptime AI, og OneUptime AI's kontakter slår den hverken til eller fra: det gør **Find navne og gadeadresser**.
+
+- **Hvad den læser.** Et felt, hvis værdier i gennemsnit er længere end 80 tegn, og i telemetri hver logbrødtekst, undtagelsesbesked, stack trace og AI-samtale, uanset hvor kort. Den læser op til 100 forskellige værdier af et felt, 32 KB tekst i alt og op til 16 KB af én værdi.
+- **Hvad den finder.** Et **Personnavn** (`person-name`) og en **Gadeadresse** (`postal-address`): et sted, som modellen læser ved siden af et husnummer, f.eks. `14 Calle Mayor`, sammen med det postnummer og den by, der følger efter. En by eller et land alene er ikke en gadeadresse.
+- **Hvor sikker den er.** Et navn eller en adresse, som modellen finder, er Middel alene. Det er Høj, når feltets navn siger, at feltet indeholder navne eller adresser, eller når ord tæt på siger det, f.eks. "customer", "Kunde" eller "dirección". Det er Lav, når modellen er usikker på det, med en score under 0,6. Hvert fund beholder den konfidens, det fik for sig selv, så ét navn blandt tusind loglinjer er stadig Middel.
+- **Testværdier.** Pladsholdere som `Jane Doe`, `John Smith`, `Max Mustermann` og `123 Main Street` tælles for sig, ligesom alle typers testværdier.
+- **Hvad den gemmer.** Dens prøver maskeres som et navn, der er fundet ud fra et felts navn: det første tegn og fire stjerner, `M****`. Der laves aldrig fingeraftryk af dem. På datalagerets side **Indhold** står der ved et sådant fund **Fundet i fritekst af scannerens model**.
+
+| Model | Licens | Størrelse | Revision | Målte sprog |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual): flersproget BERT med seks lag, int8-ONNX | Apache 2.0 | 98 MB | `8cf7273` | Engelsk, spansk, tysk, fransk, italiensk, portugisisk, nederlandsk |
+
+### Hvor godt den finder dem
+
+Den blev målt gennem scannerens egen kode på et testsæt, der blev skrevet til formålet: 392 opdigtede sætninger på syv sprog - loglinjer, supportnoter, e-mails, prompts - hvoraf 168 hverken indeholder et navn eller en adresse. Et fund er rigtigt, når det overlapper et navn eller en adresse af sin type. Kravene blev fastlagt, før nogen model blev målt: en præcision på mindst 0,90 for hver type på tværs af alle sprog og 0,85 på hvert sprog, en recall på mindst 0,70 og højst 20 falske fund pr. 1.000 værdier, der hverken indeholder det ene eller det andet. Af de fire målte modeller klarede to kravene, og den mindre af de to blev valgt. En test fastholder disse scorer: en ændring af modellen eller scanneren, der sænker en af dem, får testen til at fejle.
+
+| Sprog | Navne: præcision | Navne: recall | Adresser: præcision | Adresser: recall |
+| --- | --- | --- | --- | --- |
+| Engelsk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Spansk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Tysk | 1,00 | 0,93 | 1,00 | 1,00 |
+| Fransk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Italiensk | 0,96 | 0,96 | 1,00 | 1,00 |
+| Portugisisk | 0,93 | 0,89 | 1,00 | 1,00 |
+| Nederlandsk | 0,96 | 0,89 | 1,00 | 1,00 |
+| Alle syv | 0,96 | 0,94 | 1,00 | 1,00 |
+
+På testsættets 168 sætninger, der hverken indeholder det ene eller det andet, laver den 18 falske fund pr. 1.000. På et udsnit af et offentligt benchmark, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0): 15 finansielle dokumenter på hvert af syv sprog, hvis etiketter er lavet maskinelt og ikke er fuldstændige, så læs resultaterne sammen med tabellen ovenfor og ikke alene:
+
+| Sprog | Navne: præcision | Navne: recall | Adresser: præcision | Adresser: recall |
+| --- | --- | --- | --- | --- |
+| Engelsk | 0,91 | 0,90 | 0,83 | 1,00 |
+| Spansk | 0,89 | 0,37 | 0,58 | 0,70 |
+| Tysk | 0,93 | 0,58 | 0,75 | 0,70 |
+| Fransk | 0,84 | 0,50 | 0,42 | 0,83 |
+| Italiensk | 0,73 | 0,61 | 0,79 | 0,69 |
+| Nederlandsk | 0,91 | 0,49 | 1,00 | 0,89 |
+| Svensk | 1,00 | 0,61 | 1,00 | 0,93 |
+| Alle syv | 0,89 | 0,54 | 0,77 | 0,82 |
+
+De fire målte modeller på det skrevne testsæt, efter hinanden på samme maskine, hver tidtaget på én kerne med onnxruntimes native kode. OneUptime kører den valgte model med WebAssembly-udgaven af onnxruntime, der kører i alle images og er cirka fem til otte gange langsommere:
+
+| Model | Licens | Størrelse | Navne: præcision / recall | Adresser: præcision / recall | Falske fund pr. 1.000 | Tid pr. 1.000 værdier på 75 / 1.181 tegn |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (valgt) | Apache 2.0 | 98 MB | 0,963 / 0,939 | 1,000 / 1,000 | 18 | 5,9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 MB | 0,995 / 0,974 | 0,985 / 1,000 | 12 | 7,4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 MB | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 MB | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
+
+### Hvor den kører, og hvad den koster
+
+- **I alle images.** App-imaget, som kører workerne, og sonde-imaget indeholder modellen, dens ordforråd og runtimen, inklusive air-gapped- og Iron Bank-images: cirka 114 MB på disken. Filerne hentes, når imaget bygges, fra en fastlåst revision og kontrolleres mod deres SHA-256. Intet downloades, mens en scanning kører.
+- **Hukommelse.** Modellen indlæses første gang, en scanning har brug for den, én gang pr. proces: cirka 550 MB, som frigives igen efter 10 minutter uden en scanning.
+- **Tid.** På én kerne mellem 30 sekunder og et minut pr. 1.000 værdier på længde med en loglinje og cirka 9 minutter pr. 1.000 værdier på 1.200 tegn. En indholdsscanning af et datalager giver den op til 2 minutter. Den timevise telemetriscanning giver den op til 1 minut i alt og 6 sekunder pr. datalager og tager et nyt udvalg af datalagre hver time.
+- **Når dens tid løber ud**, afsluttes scanningen med det, modellen nåede at læse, og scanningens advarsler siger, hvor mange af fritekstværdierne modellen læste, aldrig hvad de indeholdt. En worker eller en sonde uden model scanner som før og siger hvorfor:
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Find navne og gadeadresser** er slået til for alle projekter: indholdsscanninger af buckets, databaser og BigQuery-datasæt læser fritekst med modellen, på workers og på sonder. Indstillingen under den, **Find navne og gadeadresser i telemetri**, er slået fra: at læse hver logbrødtekst, undtagelse og samtale i et travlt projekt med 200 tjenester én gang tager cirka 48 minutter på én kerne, og scanningens minut i timen læser cirka 4 % af det. Slå den til, så hver timevis scanning læser en del af dem. Begge findes på **Datasikkerhed → Indstillinger → Scanningsindstillinger** under **Hvad Datasikkerhed læser**. **Test det** kører i din browser uden modellen: det, modellen ville finde, vises ikke der.
 
 ## Følsomhed
 
@@ -101,7 +170,7 @@ En datatype, der hører til ét land, angiver det som en ISO 3166-1-kode: reside
 | --- | --- | --- | --- | --- |
 | E-mailadresse | `email-address` | En persons e-mailadresse. | Fortrolig | — |
 | Telefonnummer | `phone-number` | Et telefonnummer i internationalt eller nationalt format. | Fortrolig | — |
-| Personnavn | `person-name` | En persons fornavn, efternavn eller fulde navn, fundet ud fra feltets navn. | Fortrolig | — |
+| Personnavn | `person-name` | En persons fornavn, efternavn eller fulde navn, fundet ud fra feltets navn eller af scannerens model i fritekst. | Fortrolig | — |
 | Gadeadresse | `postal-address` | En gadeadresse: et nummer, et gadenavn og en gadetype. | Fortrolig | — |
 | Postnummer | `postal-code` | Et postnummer. Alene indsnævrer det, hvor nogen bor. | Intern | — |
 | Fødselsdato | `date-of-birth` | En dato ved siden af ord, der siger, at det er nogens fødselsdato. | Fortrolig | — |
@@ -296,6 +365,32 @@ Under **Flere felter** matcher **Ignorer store/små bogstaver** mønsteret uden 
 Et mønster kontrolleres, når du gemmer det: det skal kunne kompileres, må ikke matche tom tekst og skal køre på en tid, der vokser lineært med teksten. Det køres af en matcher, der aldrig backtracker, så intet mønster kan holde en scanning fast, uanset hvordan det er skrevet. En type kan have højst 50 nøgleord og 50 feltnavne.
 
 En værdi af din type er Middel alene og Høj med et nøgleord tæt på, når den består en kontrolsum, og Lav alene og Middel med et nøgleord, når den ikke har nogen. I en kolonne afgør andelen af værdier, der matcher, ligesom for alle typer.
+
+### Beskriv det
+
+Øverst i formularen for en ny datatype udfylder **Beskriv det** formularen for dig. Skriv, hvordan dataene ser ud, for eksempel "vores medarbejdernumre ser ud som EMP-123456, nogle gange uden bindestregen", tilføj nogle eksempler, hvis du vil, ét pr. linje, og vælg **Udfyld formularen**. OneUptime AI får din sætning og formerne af dine eksempler, aldrig selve eksemplerne: de bliver i din browser, hvor **Test det** viser, hvor mange af dem mønsteret finder. Læs, hvad den udfyldte, ret det, du vil, og gem: intet gemmes, før du gør det, og mønsteret kontrolleres som et, du selv har skrevet. Beskriv det kræver, at **Aktivér AI** er slået til for projektet.
+
+## Datatyper, som OneUptime AI finder
+
+De felter, som ingen detektor kunne placere, rummer ofte en datatype, der er din virksomheds egen, gemt mange steder under navne, der siger det samme: et forsikringsselskabs policenumre i kolonner med navnene `policy_no`, `policyNumber` og `police_nr` i alle dets databaser. Med **Aktivér AI** slået til for projektet finder OneUptime AI sådan en datatype i de felter, dine scanninger gemte, og spørger dig først, når dine egne scanninger har bevist den.
+
+:::steps
+### Den finder en gruppe felter
+
+Tre eller flere felter i to eller flere datalagre danner en gruppe, når de fleste af deres værdier har én form, med eller uden skilletegnene mellem dens dele, og deres navne deler et ord, der siger, hvad de indeholder. En form uden cifre, en dato, et klokkeslæt eller et decimaltal danner aldrig en gruppe, og et ord som `id`, `no` eller `number` siger intet i sig selv.
+
+### Den udkaster en datatype
+
+OneUptime AI udkaster en datatype for hver ny gruppe, højst 3 ad gangen, ud fra felternes navne og formerne af deres værdier, aldrig ud fra en værdi. Udkastet skal bestå det, en gemt type skal bestå, og finde de former, det blev udkastet ud fra. Et udkast, der ikke gør det, bliver bedt om én gang til, med årsagen.
+
+### Dine næste scanninger beviser den
+
+Udkastet kører i den næste scanning af hvert datalager i dets gruppe, i op til 48 timer eller ét scanningsinterval, alt efter hvad der er længst. Det laver intet fund: hver scanning tæller, hvor mange værdier det ville finde, i gruppens felter og i alle andre felter i de samme datalagre. Det tilbydes, når det finder mindst 80 % af sine felters værdier og højst 1 % af de øvrige værdier. Et felt et andet sted, hvor det finder næsten alle værdier, indeholder de samme data under et andet navn: det nævnes og tælles ikke imod udkastet.
+:::
+
+Hvert udkast tælles samtidig også i en indsnævret udgave: uden for gruppens felter finder et indsnævret udkast kun en værdi ved siden af et af sine nøgleord eller under et feltnavn, der nævner det. Et udkast, der finder for meget andre steder, tilbydes indsnævret, når det er nok. Et udkast, der ikke er nok på nogen af de to måder, droppes, og dets gruppe udkastes ikke igen i 30 dage.
+
+Hver datatype, den tilbyder, venter under **Datatyper til gennemsyn**, øverst på **Datasikkerhed → Indstillinger → Datatyper** og på **Datasikkerhed → AI**, med det, dine scanninger talte, for eksempel "Matcher 98 % af værdierne i disse 11 felter og 0,1 % af værdierne andre steder i de samme datalagre." **Tilføj datatype** åbner formularen for en datatype udfyldt med den, så du kan rette og teste den; når du gemmer, tilføjes typen, som scanninger finder fra deres næste kørsel. **Ikke en datatype** afviser den: den tilbydes aldrig igen for de felter. At tilføje en kræver en rolle, der må oprette datatyper.
 
 ## Ikke følsom og aldrig følsom
 

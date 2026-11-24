@@ -102,6 +102,16 @@ export interface ParsedAlertIds {
 }
 
 /*
+ * The owners of the alerts an incident is declared from, as its Owners
+ * field starts with them (#10867): user ids and team ids, lowercased, each
+ * once, in the order first read.
+ */
+export interface AlertOwnerIds {
+  userIds: Array<string>;
+  teamIds: Array<string>;
+}
+
+/*
  * The resource lists the incident form supports besides monitors (which come
  * from each alert's single `monitor`). Exported so the create page and the
  * tests walk the same list.
@@ -523,6 +533,99 @@ export default class IncidentFromAlerts {
     }
 
     return merged;
+  }
+
+  /*
+   * The owners of the alerts an incident is declared from that carry over
+   * to it (#10867): every user and team that owns one of them, each once,
+   * in the order read - but no user who is no longer a member of the
+   * project, when it is known who is (`projectMemberUserIds`: the accepted
+   * members among them). The server makes the same choice when it adds
+   * them itself (IncidentAlertService.copyAlertOwnersToIncident), and skips
+   * such a user whatever it is sent. A team that is gone takes its owner
+   * rows with it, so every team read is one of the project's. Ids that are
+   * not ids are left out.
+   */
+  public static getAlertOwnersToCarryOver(data: {
+    ownerUserIds: Array<string | null | undefined>;
+    ownerTeamIds: Array<string | null | undefined>;
+    // The users among them who are members of the project; null: unknown.
+    projectMemberUserIds?: Array<string | null | undefined> | null | undefined;
+  }): AlertOwnerIds {
+    const members: Set<string> | null = data.projectMemberUserIds
+      ? new Set<string>(this.toUniqueIds(data.projectMemberUserIds))
+      : null;
+
+    return {
+      userIds: this.toUniqueIds(data.ownerUserIds).filter(
+        (userId: string): boolean => {
+          return !members || members.has(userId);
+        },
+      ),
+      teamIds: this.toUniqueIds(data.ownerTeamIds),
+    };
+  }
+
+  // How many owners carry over, people and teams together.
+  public static countAlertOwners(owners: AlertOwnerIds | null): number {
+    return owners ? owners.userIds.length + owners.teamIds.length : 0;
+  }
+
+  /*
+   * Folds the alerts' owners into the form's initial values, as the
+   * Owners field keeps them (ownerUsers, ownerTeams): unioned with those
+   * there already - an incident template's - which keep their place first,
+   * each owner once. The declarer can still take any of them out, or add
+   * others, before declaring.
+   */
+  public static applyOwnersToInitialValues(
+    initialValues: JSONObject,
+    owners: AlertOwnerIds,
+  ): JSONObject {
+    const merged: JSONObject = { ...initialValues };
+
+    const union: (key: string, ids: Array<string>) => void = (
+      key: string,
+      ids: Array<string>,
+    ): void => {
+      const result: Array<string> = this.toUniqueIds(
+        this.asArray(merged[key]).map((value: JSONValue): string | null => {
+          return this.toId(value);
+        }),
+      );
+
+      for (const id of this.toUniqueIds(ids)) {
+        if (!result.includes(id)) {
+          result.push(id);
+        }
+      }
+
+      if (result.length > 0) {
+        merged[key] = result;
+      }
+    };
+
+    union("ownerUsers", owners.userIds);
+    union("ownerTeams", owners.teamIds);
+
+    return merged;
+  }
+
+  // Valid ids, lowercased, each once, in order.
+  private static toUniqueIds(
+    values: Array<string | null | undefined>,
+  ): Array<string> {
+    const ids: Array<string> = [];
+
+    for (const value of values) {
+      const id: string = (value || "").toString().trim().toLowerCase();
+
+      if (ObjectID.isValidUUID(id) && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    return ids;
   }
 
   private static addResource(

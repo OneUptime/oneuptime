@@ -61,7 +61,8 @@
     "subGroupCount": "المجموعات: {{total}}",
     "noResourcesTitle": "لا شيء لعرضه بعد",
     "noResourcesDescription": "لا تعرض هذه الصفحة أي خدمات بعد.",
-    "noResourcesPreviewDescription": "يرى الزوار هذا إلى أن تضيف موارد. أضف مراقبات أو مجموعات إلى صفحة الحالة هذه من قسم الموارد في لوحة المعلومات."
+    "noResourcesPreviewDescription": "يرى الزوار هذا إلى أن تضيف موارد.",
+    "noResourcesPreviewLink": "أضف موارد في لوحة المعلومات"
   },
   "eventItem": {
     "affectedResources": "الموارد المتأثرة",

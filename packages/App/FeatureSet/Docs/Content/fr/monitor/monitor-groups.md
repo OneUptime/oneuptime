@@ -125,6 +125,8 @@ Cliquez sur **Ajouter un moniteur**. Sous la liste déroulante des moniteurs, cl
 Choisissez le groupe. **Nom d'affichage**, le nom que lisent les visiteurs, reprend le nom du groupe jusqu'à ce que vous en saisissiez un vous-même. Cliquez sur **Ajouter un moniteur** : la ligne apparaît sur la page avec le statut du groupe.
 :::
 
+Une ligne qui montre un moniteur peut montrer un groupe à la place : ouvrez son **Modifier la ressource**, le crayon de la ligne, et cliquez sur **Affichez plutôt un groupe de moniteurs.** sous la liste déroulante. Sur la ligne d'un groupe, **Modifier la ressource** s'ouvre avec le groupe choisi, et **Affichez plutôt un moniteur.** fait montrer un moniteur à la ligne. L'enregistrement vide ce que la ligne montrait avant : une ligne montre un moniteur ou un groupe de moniteurs, jamais les deux.
+
 Sur la page de statut, la ligne représente chaque moniteur du groupe :
 
 - **Son statut.** C'est celui du groupe : le pire de ses moniteurs dont la surveillance est activée. Quand la surveillance est désactivée pour tous, la ligne affiche **Non surveillé** et ne compte ni pour l'en-tête au-dessus d'elle ni pour le statut global de la page.

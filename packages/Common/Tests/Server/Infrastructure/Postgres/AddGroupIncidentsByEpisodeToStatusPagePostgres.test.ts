@@ -1,4 +1,4 @@
-import { AddGroupIncidentsByEpisodeToStatusPage1809187560767 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187560767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import { DataSource, QueryRunner } from "typeorm";
@@ -252,7 +252,7 @@ describePostgres(
       }
 
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new AddGroupIncidentsByEpisodeToStatusPage1809187560767().up(
+        await new AddGroupIncidentsByEpisodeToStatusPage1809187610767().up(
           queryRunner,
         );
       });
@@ -312,7 +312,7 @@ describePostgres(
       expect(before).toContain(COLUMN);
 
       await runInSchema(async (queryRunner: QueryRunner) => {
-        await new AddGroupIncidentsByEpisodeToStatusPage1809187560767().down(
+        await new AddGroupIncidentsByEpisodeToStatusPage1809187610767().down(
           queryRunner,
         );
       });

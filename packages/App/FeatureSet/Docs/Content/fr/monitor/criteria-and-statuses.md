@@ -87,6 +87,7 @@ Avec **Évaluer ce critère sur une période donnée** coché, **Évaluer** indi
 | **Comptage** | Le nombre de vérifications qui ont rempli la condition se compare comme réglé sous **Vérifications correspondantes** : **Supérieur à** 30, par exemple. |
 | **Pourcentage** | Leur part des vérifications de la fenêtre se compare comme réglé sous **Part des vérifications correspondantes** : **Supérieur à** 10 %, par exemple. |
 | **Changements d'état** | Le nombre de fois où les vérifications sont passées de remplir la condition à ne pas la remplir, ou l'inverse, se compare comme réglé sous **Nombre de changements**. Un appareil qui tombe puis revient change deux fois. |
+| **Vérification précédente** | Cette vérification, comparée à la vérification précédente de la même sonde : un temps de réponse supérieur de plus de 50 % à celle-ci, par exemple, ou un site en panne maintenant qui ne l'était pas avant. Voir [Comparer une vérification à la précédente](#comparer-une-vérification-à-la-précédente). |
 
 Une phrase sous les réglages de la fenêtre relit le filtre tel qu'il est réglé : « Vérifier si "En ligne" est faux sur plus de 30 vérifications de la dernière période de 8 heures ».
 
@@ -107,6 +108,20 @@ Un moniteur Ping vérifie un point d'accès de bureau chaque minute. Avant que l
 | Le point d'accès est en ligne | **En ligne** est **Vrai** | Pas sur une période | **Opérationnel** |
 
 Pour le deuxième, activez **Se rétablir uniquement quand une condition propre est remplie** avec **Changements d'état**, **Inférieur ou égal à** 1, **Pour les dernières** 1 heure : l'incident d'instabilité reste ouvert jusqu'à ce que le point d'accès soit stable pendant une heure, au lieu de se fermer dès la première minute où il répond. Pour alerter quand il échoue à plus de 30 pings en 8 heures, réglez plutôt le deuxième critère sur **Comptage**, **Supérieur à** 30, **Pour les dernières** 8 heures.
+
+### Comparer une vérification à la précédente
+
+**Vérification précédente** compare chaque vérification à la vérification précédente de la même sonde, et du même disque pour l'occupation d'un disque. **Pour les dernières** indique l'ancienneté maximale de cette vérification : choisissez donc une durée plus longue que l'intervalle de surveillance. Il est proposé pour les mêmes filtres que **Comptage**.
+
+Une valeur mesurée, comme un temps de réponse, correspond quand elle dépasse la vérification précédente de plus que l'écart réglé sous **Écart par rapport à la vérification précédente**, avec **Supérieur à**, ou lui est inférieure de plus que cet écart, avec **Inférieur à**. L'écart est une **Valeur dans l'unité de la vérification**, comme 200 ms, ou un **Pourcentage de la vérification précédente**, comme 50 %, et 0 correspond à toute hausse ou baisse. **Égal à** et **Différent de** comparent à la valeur précédente elle-même.
+
+Un filtre vrai ou faux, comme **En ligne**, et un filtre sur le corps, un en-tête ou une expression correspondent à la vérification qui a commencé à remplir la condition : **En ligne** réglé sur **Faux** correspond à la vérification où le site est tombé, et pas de nouveau avant la prochaine panne.
+
+Dans les deux cas, il correspond sur une seule vérification, et à la suivante le critère cesse d'agir. Pour qu'il garde le statut qu'il fixe ou laisse son incident ouvert, donnez-lui une condition de rétablissement à lui : voir [Quand un critère se rétablit](#quand-un-critère-se-rétablit).
+
+Sans vérification précédente dans la fenêtre, comme à la première vérification du moniteur, pour une sonde tout juste ajoutée ou après une interruption, **En l'absence de données** décide : **Ignore** ne correspond pas, **Déclencheur** correspond, et **Treat As Zero** compare comme si la vérification précédente avait lu 0, ou n'avait pas rempli la condition.
+
+La phrase sous les réglages de la fenêtre le relit : « Vérifier si "Temps de réponse (en ms)" dépasse de plus de 50 % la vérification précédente », ou « Vérifier si "En ligne" est faux lors de cette vérification, mais pas lors de la précédente ».
 
 ## Quand un critère se rétablit
 

@@ -1,0 +1,173 @@
+{
+  "about": "What the names-and-addresses model scored, through the scanner's own code, on the written test set (NamesAndAddressesTestSet.json) and the benchmark slice (GretelPiiFinanceSlice.json), measured for #10373 and given in the docs (data-security/data-types). NameAddressModel.test.ts fails when a change scores lower: raise these only with what a change measured, and change the docs with them.",
+  "written": {
+    "falseFindingsPerThousandNegatives": 18,
+    "languages": {
+      "de": {
+        "person-name": {
+          "precision": 1,
+          "recall": 0.929
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "en": {
+        "person-name": {
+          "precision": 0.964,
+          "recall": 0.964
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "es": {
+        "person-name": {
+          "precision": 0.964,
+          "recall": 0.964
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "fr": {
+        "person-name": {
+          "precision": 0.964,
+          "recall": 0.964
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "it": {
+        "person-name": {
+          "precision": 0.964,
+          "recall": 0.964
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "nl": {
+        "person-name": {
+          "precision": 0.963,
+          "recall": 0.893
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "pt": {
+        "person-name": {
+          "precision": 0.926,
+          "recall": 0.893
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      },
+      "all": {
+        "person-name": {
+          "precision": 0.964,
+          "recall": 0.939
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 1
+        }
+      }
+    }
+  },
+  "benchmark": {
+    "falseFindingsPerThousandNegatives": 421,
+    "languages": {
+      "de": {
+        "person-name": {
+          "precision": 0.926,
+          "recall": 0.578
+        },
+        "postal-address": {
+          "precision": 0.75,
+          "recall": 0.7
+        }
+      },
+      "en": {
+        "person-name": {
+          "precision": 0.909,
+          "recall": 0.9
+        },
+        "postal-address": {
+          "precision": 0.833,
+          "recall": 1
+        }
+      },
+      "es": {
+        "person-name": {
+          "precision": 0.889,
+          "recall": 0.368
+        },
+        "postal-address": {
+          "precision": 0.583,
+          "recall": 0.7
+        }
+      },
+      "fr": {
+        "person-name": {
+          "precision": 0.842,
+          "recall": 0.5
+        },
+        "postal-address": {
+          "precision": 0.417,
+          "recall": 0.833
+        }
+      },
+      "it": {
+        "person-name": {
+          "precision": 0.733,
+          "recall": 0.611
+        },
+        "postal-address": {
+          "precision": 0.786,
+          "recall": 0.688
+        }
+      },
+      "nl": {
+        "person-name": {
+          "precision": 0.907,
+          "recall": 0.488
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 0.889
+        }
+      },
+      "sv": {
+        "person-name": {
+          "precision": 1,
+          "recall": 0.607
+        },
+        "postal-address": {
+          "precision": 1,
+          "recall": 0.933
+        }
+      },
+      "all": {
+        "person-name": {
+          "precision": 0.893,
+          "recall": 0.539
+        },
+        "postal-address": {
+          "precision": 0.771,
+          "recall": 0.816
+        }
+      }
+    }
+  }
+}

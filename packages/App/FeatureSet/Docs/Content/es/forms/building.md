@@ -66,7 +66,7 @@ El logotipo conserva la altura del logotipo de OneUptime al que sustituye, y uno
 
 ## Lo que puedes añadir
 
-**Añadir una pregunta** lista cuatro grupos: **Preguntas** propias del formulario, **Campos del incidente** o **Campos del mantenimiento programado** de lo que crea el formulario, **Campos personalizados** y **Remitente**.
+**Añadir una pregunta** lista cuatro grupos: **Preguntas** propias del formulario, **Campos del incidente**, **Campos de la alerta** o **Campos del mantenimiento programado** de lo que crea el formulario, **Campos personalizados** y **Remitente**.
 
 ### Preguntas propias del formulario
 
@@ -92,7 +92,7 @@ Una pregunta **Archivo** o **Varios archivos** toma archivos del equipo de quien
 
 ### Campos de lo que crea el formulario
 
-Los campos de un incidente, o de un evento de mantenimiento, que un remitente puede responder. La respuesta se convierte en el valor del campo.
+Los campos de un incidente, de una alerta o de un evento de mantenimiento que un remitente puede responder. La respuesta se convierte en el valor del campo.
 
 | Campo del incidente | Se responde con |
 | --- | --- |
@@ -100,6 +100,15 @@ Los campos de un incidente, o de un evento de mantenimiento, que un remitente pu
 | **Descripción** | Texto enriquecido, de hasta 20.000 caracteres. |
 | **Gravedad** | Una de tus gravedades de incidente. |
 | **Monitores** | Cualquiera de los monitores que ofreces — los monitores afectados del incidente. |
+| **Etiquetas** | Cualquiera de las etiquetas que ofreces. |
+| **Inicio del impacto** | Una fecha y una hora: cuándo empezó el problema, según lo recuerda el remitente. |
+
+| Campo de la alerta | Se responde con |
+| --- | --- |
+| **Título** | Una línea, de hasta 500 caracteres. |
+| **Descripción** | Texto enriquecido, de hasta 20.000 caracteres. |
+| **Gravedad** | Una de tus gravedades de alerta. |
+| **Monitor** | Uno de los monitores que ofreces — el monitor de la alerta. Una alerta se refiere a un solo monitor. |
 | **Etiquetas** | Cualquiera de las etiquetas que ofreces. |
 | **Inicio del impacto** | Una fecha y una hora: cuándo empezó el problema, según lo recuerda el remitente. |
 
@@ -115,11 +124,11 @@ Los campos de un incidente, o de un evento de mantenimiento, que un remitente pu
 
 Cada campo puede preguntarse una sola vez; la lista marca los que ya están en el formulario con **Añadido**. Un campo que el formulario no pregunta — o que se deja vacío — se rellena con los [ajustes Al enviar](/docs/forms/on-submit) del formulario.
 
-**Opciones ofrecidas.** Una página pública no debe listar todo tu proyecto a desconocidos, así que un campo que se responde eligiendo registros ofrece solo los que tú eliges. **Monitores**, **Etiquetas** y **Páginas de estado** listan exactamente las opciones que ofreces, y no se preguntan hasta que ofreces al menos una. **Gravedad** ofrece todas las gravedades de incidente salvo que la restrinjas, ya que las gravedades no son secretas. Las respuestas fuera de las opciones ofrecidas se rechazan.
+**Opciones ofrecidas.** Una página pública no debe listar todo tu proyecto a desconocidos, así que un campo que se responde eligiendo registros ofrece solo los que tú eliges. **Monitores**, **Monitor**, **Etiquetas** y **Páginas de estado** listan exactamente las opciones que ofreces, y no se preguntan hasta que ofreces al menos una. **Gravedad** ofrece todas las gravedades de incidente, o todas las gravedades de alerta en un formulario de alertas, salvo que la restrinjas, ya que las gravedades no son secretas. Las respuestas fuera de las opciones ofrecidas se rechazan.
 
 ### Campos personalizados
 
-Tus campos personalizados de incidente — o de mantenimiento programado, en un formulario de mantenimiento — cada uno una pregunta cuya respuesta se convierte en el valor del campo. La pregunta toma su tipo y sus opciones del campo personalizado, y empieza con su nombre como pregunta y su descripción como texto de ayuda, que puedes cambiar. Un campo personalizado **Archivo** o **Varios archivos** se pregunta como una pregunta de archivos, y sus archivos van al campo.
+Tus campos personalizados de incidente — o de alerta, en un formulario de alertas, y de mantenimiento programado, en un formulario de mantenimiento — cada uno una pregunta cuya respuesta se convierte en el valor del campo. La pregunta toma su tipo y sus opciones del campo personalizado, y empieza con su nombre como pregunta y su descripción como texto de ayuda, que puedes cambiar. Un campo personalizado **Archivo** o **Varios archivos** se pregunta como una pregunta de archivos, y sus archivos van al campo.
 
 Un formulario solo pregunta los campos personalizados que le añades, diga lo que diga **Mostrar al crear**: cada campo que pregunta un formulario muestra su nombre, su descripción y sus opciones a cualquiera que tenga el enlace. Cuando se elimina un campo personalizado, su pregunta se queda en el formulario pero ya no se pregunta, y su tarjeta lo dice — elimina la pregunta. Un campo creado de nuevo con el mismo nombre es un campo nuevo: añádelo otra vez.
 
@@ -231,6 +240,7 @@ Después de enviar, la página dice "Gracias: tu respuesta se ha enviado." y da 
 | Respuesta | Límite |
 | --- | --- |
 | El **Título** de un incidente | 500 caracteres, sin contar los espacios de los extremos. |
+| El **Título** de una alerta | 500 caracteres, sin contar los espacios de los extremos. |
 | El **Título** de un evento de mantenimiento | 100 caracteres. |
 | **Descripción** | 20.000 caracteres. |
 | Cualquier otra respuesta de texto | 10.000 caracteres. |

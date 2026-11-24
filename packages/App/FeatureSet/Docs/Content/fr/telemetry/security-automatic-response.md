@@ -35,11 +35,13 @@ Une politique agit sur une détection dès qu'elle est enregistrée sur son doss
 
 | Politique | Agit sur | Fait | Premier blocage |
 | --- | --- | --- | --- |
-| **Scanners** | Analyses web et tentatives d'exploitation (ATT&CK T1595, T1190) : tentatives d'injection SQL, de traversée de répertoires et Log4Shell, et de nombreuses correspondances de règles gérées Cloudflare depuis une adresse, tant que chaque requête de l'adresse a été refusée | Défi | 1 heure |
+| **Scanners** | Analyses web et tentatives d'exploitation (ATT&CK T1595, T1190) : tentatives d'injection SQL, de traversée de répertoires et Log4Shell, recherche de fichiers sensibles comme `/.env`, `/.git/config` et `/wp-admin`, et de nombreuses correspondances de règles gérées Cloudflare depuis une adresse, tant que chaque requête de l'adresse a été refusée | Défi | 1 heure |
 | **Devinette de mots de passe** | Force brute et pulvérisation de mots de passe (ATT&CK T1110) : connexions échouées depuis une adresse, et connexions échouées puis une réussite depuis la même adresse | Bloquer | 1 heure |
 | **Adresses connues comme malveillantes** | Toute détection concernant une adresse que votre [renseignement sur les menaces](/docs/telemetry/threat-intelligence) répertorie | Bloquer | 24 heures |
 
 Les personnes réussissent un défi, les scripts et les bots, non. Scanners ne soumet une adresse à un défi que tant qu'aucune de ses requêtes n'a atteint votre application : une adresse dont des requêtes sont passées est un dossier pour une personne.
+
+La recherche de fichiers sensibles ne compte que les requêtes que votre site a refusées ou qui portent sur ce qu'il n'a pas, et seulement quand une adresse demande au moins trois fichiers ou pages d'administration différents en l'espace de cinq minutes. Une page que votre site sert ne compte jamais, si bien que, sur un site WordPress, ses propres administrateurs chargent `/wp-admin` et `/wp-login.php` aussi souvent qu'ils le souhaitent.
 
 Activer Scanners ou Devinette de mots de passe, en période d'essai ou pour de bon, exécute en temps réel les règles de la **Bibliothèque de règles** sur lesquelles elle agit, en ajoutant celles que votre projet n'a pas : une règle en temps réel se déclenche quelques secondes après l'arrivée des événements, là où une règle planifiée lit avec des minutes de retard. Une règle que quelqu'un a désactivée reste désactivée. Un projet exécute au plus 50 règles en temps réel : au-delà, une règle reste sur sa planification, et la carte de la politique affiche **Selon une planification** à côté.
 
@@ -66,7 +68,7 @@ Pour activer une politique sans sa semaine de période d'essai, ouvrez **Plus de
 - **Jamais vos propres adresses ni les adresses protégées.** Les entrées des **Entités protégées**, et tout ce que OneUptime protège de lui-même : vos hôtes, ressources cloud et sondes, les plages qui ne sont pas sur Internet, et la bordure devant votre application. Voir [Liste de blocage](/docs/telemetry/security-cases#liste-de-blocage).
 - **Jamais une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours.** Le réseau d'un bureau, le proxy d'un client ou le domicile d'une personne : OneUptime cherche l'adresse dans les connexions de votre fournisseur d'identité et dans les requêtes que votre application a servies à un utilisateur connecté, celles qui portent un ID d'utilisateur dans leurs traces ou leurs journaux. Une adresse qu'il ne peut pas vérifier, parce que ces événements n'ont pas pu être lus ou que vos règles de masquage cachent les adresses d'une façon qu'il ne peut pas rapprocher, est laissée à une personne.
 - **Des blocages plus longs pour une adresse qui revient.** Le premier blocage dure 1 heure, puis 24 heures, puis 7 jours pour une adresse bloquée de nouveau dans les 30 jours. Adresses connues comme malveillantes commence à 24 heures.
-- **Au plus 50 blocages automatiques par heure.** Au-delà, vos politiques cessent de bloquer et alertent vos responsables de la sécurité : une attaque de cette ampleur demande une personne. La page le dit tant que cela dure.
+- **Au plus 50 blocages automatiques par heure, ou la limite que vous fixez.** Au-delà, vos politiques cessent de bloquer et alertent vos responsables de la sécurité : une attaque de cette ampleur demande une personne. La page le dit tant que cela dure. Un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut fixer la limite entre 1 et 500, sous **Plus de paramètres** en bas de la page : **Limite horaire**. Une nouvelle limite s'applique dès la détection suivante.
 - **Annulation en cas de doute.** Quand un utilisateur connecté est vu depuis une adresse qu'une politique a bloquée, la politique lève le blocage et prévient vos responsables de la sécurité.
 
 Vos responsables de la sécurité sont les Administrateurs de la sécurité de votre projet ou, s'il n'en a aucun, les Propriétaires du projet. Chaque adresse qu'un garde-fou a épargnée figure sur son dossier, avec la raison.
@@ -101,7 +103,7 @@ Regardez la chronologie du dossier : une politique qui a épargné une adresse d
 :::
 
 :::details La page dit que les blocages automatiques de l'heure sont épuisés
-Vos politiques ont posé 50 blocages automatiques dans la dernière heure et ont alerté vos responsables de la sécurité. Elles reprennent à mesure que les blocages de l'heure vieillissent. Regardez les dossiers de l'attaque, et bloquez une plage depuis **Liste de blocage** si elle vient d'un seul réseau.
+Vos politiques ont atteint votre limite horaire de blocages automatiques, 50 sauf si quelqu'un l'a modifiée, et ont alerté vos responsables de la sécurité. Elles reprennent à mesure que les blocages de l'heure vieillissent. Regardez les dossiers de l'attaque, et bloquez une plage depuis **Liste de blocage** si elle vient d'un seul réseau. Si votre projet est souvent la cible d'autant de scanners, cliquez sur **Modifier la limite** à côté de l'avis et augmentez-la.
 :::
 
 ## Étapes suivantes

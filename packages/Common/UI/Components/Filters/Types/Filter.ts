@@ -28,6 +28,13 @@ export interface EntityFilterSearch {
   modelAPI?: typeof ModelAPI | undefined;
   // What a held value no record answers to any more reads as: a key.
   notFoundLabel?: string | undefined;
+  /*
+   * Whether an archived record is marked Archived where the filter offers
+   * it: a model whose records can be archived though they are no values (a
+   * service), whose archive switch is read with each one
+   * (EntityDropdown's marksArchivedRecords).
+   */
+  marksArchivedRecords?: boolean | undefined;
 }
 
 export default interface Filter<T extends GenericObject> {

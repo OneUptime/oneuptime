@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * default touches no row at all - so the table is locked for an instant and
  * nothing waits on a scan.
  */
-export class AddGroupIncidentsByEpisodeToStatusPage1809187560767
+export class AddGroupIncidentsByEpisodeToStatusPage1809187610767
   implements MigrationInterface
 {
-  public name: string = "AddGroupIncidentsByEpisodeToStatusPage1809187560767";
+  public name: string = "AddGroupIncidentsByEpisodeToStatusPage1809187610767";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

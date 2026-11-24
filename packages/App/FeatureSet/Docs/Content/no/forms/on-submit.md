@@ -1,9 +1,10 @@
 # Hva en innsending oppretter
 
-Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendelse** eller en **vedlikeholdshendelse**. Et skjemas side **Ved innsending** viser hvilken, og hvordan hvert felt på den nye posten fylles ut — fra et svar, fra en standardverdi, fra en innstilling som alltid gjelder, eller fra hendelsesmalen. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder.
+Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendelse**, et **varsel** eller en **vedlikeholdshendelse**. Et skjemas side **Ved innsending** viser hvilken, og hvordan hvert felt på den nye posten fylles ut — fra et svar, fra en standardverdi, fra en innstilling som alltid gjelder, eller fra hendelsesmalen. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder.
 
 :::cards
 - [Slik blir en innsending til en hendelse](#slik-blir-en-innsending-til-en-hendelse): Hvert felt på den nye hendelsen, og hvor verdien kommer fra.
+- [Slik blir en innsending til et varsel](#slik-blir-en-innsending-til-et-varsel): Det samme, for en advarsel eller noe som bør sjekkes.
 - [Slik blir en innsending til en vedlikeholdshendelse](#slik-blir-en-innsending-til-en-vedlikeholdshendelse): Det samme, for en forespørsel om vedlikehold.
 - [Innstillingene Ved innsending](#innstillingene-ved-innsending): Standardverdier, hva som alltid knyttes til, eiere og publisering.
 - [Det private notatet](#det-private-notatet): Hvem som sendte det, og svarene som ikke står i noe felt.
@@ -11,11 +12,11 @@ Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendels
 
 ## Hva som skjer ved innsending
 
-```mermaid title="Fra en innsending til en hendelse eller en vedlikeholdshendelse"
+```mermaid title="Fra en innsending til en hendelse, et varsel eller en vedlikeholdshendelse"
 flowchart TB
     submit["Send inn"] --> checks["Beskyttelser og<br/>sjekk av svarene"]
     checks --> fields["Hvert felt: svaret,<br/>ellers innstillingene Ved innsending,<br/>ellers hendelsesmalen"]
-    fields --> record["Hendelsen eller<br/>vedlikeholdshendelsen"]
+    fields --> record["Hendelsen, varselet eller<br/>vedlikeholdshendelsen"]
     record --> note["Et privat notat: hvem som sendte det,<br/>og de andre svarene"]
     record --> runs["Regler, vaktpolicyer<br/>og arbeidsflyter kjører"]
 ```
@@ -27,13 +28,14 @@ En innsending som ikke består en sjekk, oppretter ingenting. Se [Hva som beskyt
 Kortet **Hva hver innsending oppretter** inneholder valget du tok da du opprettet skjemaet:
 
 - **Hendelse** — hver innsending oppretter en hendelse, så vaktteamet ditt får beskjed med en gang. Bruk det for problemrapporter.
+- **Varsel** — hver innsending oppretter et varsel, så eierne får beskjed uten at det erklæres en hendelse. Bruk det for advarsler og ting som bør sjekkes.
 - **Planlagt vedlikehold** — hver innsending planlegger en vedlikeholdshendelse. Bruk det for endrings- og vedlikeholdsforespørsler.
 
-Å velge det andre ber deg bekrefte, fordi skjemaet endres med det:
+**Varsel** tilbys bare til noen som har lov til å opprette varsler: se [Tillatelser](/docs/forms/index#tillatelser). Å velge et annet ber deg bekrefte, fordi skjemaet endres med det:
 
-- Tittelen, beskrivelsen, monitorene og etikettene forblir koblet: begge typer poster har dem.
-- Hvert annet koblet spørsmål — en alvorlighetsgrad, et valg av statusside, et egendefinert felt av den gamle typen — blir et av skjemaets egne spørsmål, med samme ordlyd, der svaret vises i det private notatet.
-- Innstillingene Ved innsending starter på nytt, siden innstillingene for en hendelse og for en begivenhet er forskjellige.
+- Tittelen, beskrivelsen og etikettene forblir koblet: alle typer poster har dem. Mellom en hendelse og en vedlikeholdshendelse forblir også monitorene koblet. Et varsel har sine egne alvorlighetsgrader og én monitor, så et spørsmål om alvorlighetsgrad eller monitorer beholder ikke koblingen til eller fra et varsel.
+- Hvert annet koblet spørsmål — en alvorlighetsgrad, et valg av monitor eller statusside, et egendefinert felt av den gamle typen — blir et av skjemaets egne spørsmål, med samme ordlyd, der svaret vises i det private notatet.
+- Innstillingene Ved innsending starter på nytt, siden hver type post har sine egne innstillinger.
 - Et skjema som nå oppretter vedlikeholdshendelser, spør når vedlikeholdet starter og slutter.
 
 Spørsmålene lagres med en gang, sammen med endringen. Sjekk dem på siden **Bygg**.
@@ -92,6 +94,36 @@ Slå på **Synlig på statussiden** fra hendelsens side **Innstillinger**.
 Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sender publisering ikke varslingen "hendelse opprettet". For å gi abonnentene beskjed publiserer du et offentlig notat med **Varsle statussideabonnenter** krysset av — se [Publiser et offentlig notat](/docs/incidents/notes-owners-and-feed#publiser-et-offentlig-notat).
 :::
 
+## Slik blir en innsending til et varsel
+
+| Felt | Kommer fra |
+| --- | --- |
+| **Tittel** | Svaret på spørsmålet **Tittel**. Når skjemaet ikke spør om det, eller det står tomt: **Standardtittel**, ellers skjemaets navn. |
+| **Beskrivelse** | Svaret på spørsmålet **Beskrivelse**. |
+| **Alvorlighetsgrad** | Innsenderens valg, når skjemaet spør om det. Ellers skjemaets innstilling **Alvorlighetsgrad**. |
+| **Monitor** | Monitoren innsenderen valgte, når skjemaet spør om den. Ellers skjemaets innstilling **Monitor**. Et varsel gjelder én monitor. |
+| **Etiketter** | Etikettene innsenderen valgte, sammen med de innstillingene alltid legger til. |
+| **Påvirkning startet** | Svaret på **Påvirkning startet**, når skjemaet spør om det. |
+| **Innledende tilstand** | Skjemaets innstilling **Innledende tilstand**, ellers den vanlige starttilstanden, der hvert nytt varsel starter. En senere tilstand, som **Bekreftet**, tilkaller ingen. |
+| **Vaktpolicyer** | Policyene innstillingene nevner, kjørt for hvert varsel skjemaet oppretter. |
+| **Eiere** | Personene og teamene innstillingene nevner. De eier hvert varsel skjemaet oppretter, og får beskjed om det. |
+| **Egendefinerte felt** | Svaret på hvert spørsmål om et egendefinert felt — med mindre feltet kopierer verdien sin fra et egendefinert monitorfelt og varselets monitor har en. |
+| **Andre svar** | Vises i et privat notat på varselet, med hvem som sendte inn. |
+
+> [!IMPORTANT]
+> **Ingen alvorlighetsgrad, ikke noe varsel.** Et varsel trenger en alvorlighetsgrad. Når skjemaet ikke spør om en, og innstillingene ikke nevner noen — eller den de nevnte, ble slettet — advarer raden **Alvorlighetsgrad** deg, og hver innsending avvises med "Dette skjemaet kan ikke opprette et varsel fordi det ikke har noen alvorlighetsgrad. Gi beskjed til teamet som delte det." Velg en alvorlighetsgrad i **Rediger innstillinger**.
+
+### Slik ser varselet ut
+
+Et varsel som er opprettet via et skjema, er et vanlig varsel, opprettet på samme måte som et som opprettes manuelt med **Opprett varsel**:
+
+- **Eierne får beskjed, én gang.** Eierne innstillingene nevner, legges til så snart varselets Slack- og Microsoft Teams-kanaler finnes, og varslingen **Varsel opprettet** venter til de er eierne, så den går til dem i stedet for til Prosjekteiere — og det er den eneste beskjeden de får om varselet.
+- **Det starter der du bestemmer.** I den vanlige starttilstanden, med mindre innstillingen **Innledende tilstand** nevner en senere. Et varsel som starter bekreftet eller løst, tilkaller ingen: et skjema for meldinger som bare trenger en titt, kan angi det.
+- **Opprettet av ingen, og ikke privat.** Innsenderen er ikke en OneUptime-bruker, så ingen bruker registreres som den som opprettet varselet. En personvernregel kan likevel gjøre det privat.
+- **Et privat notat registrerer innsendingen** — se [Det private notatet](#det-private-notatet).
+
+Alt som kjører for et nytt varsel, kjører også for disse: personvern-, eier-, etikett-, vakt-, grupperings-, runbook- og hendelsesregler, vaktpolicyer og arbeidsflyter med **Ved oppretting: Varsel**. En hendelsesregel for varsler som matcher det, erklærer en hendelse ut fra det, som fra ethvert varsel. Varsler vises aldri på statussider.
+
 ## Slik blir en innsending til en vedlikeholdshendelse
 
 | Felt | Kommer fra |
@@ -116,14 +148,14 @@ En innsending er noens forespørsel, og en forespørsel gjennomgås før den pub
 
 **Rediger innstillinger** åpner innstillingene i trinn: **Neste** går videre, og **Lagre endringer** er på siste trinn. Hvert trinn er allerede fylt ut, så trinnlisten ved siden av skjemaet åpner hvilket som helst av dem, også det siste: endre en innstilling på trinnet, åpne deretter siste trinn og lagre.
 
-| Trinn | Hendelsesskjema | Vedlikeholdsskjema |
-| --- | --- | --- |
-| **Standardverdier** | **Standardtittel**, **Alvorlighetsgrad**, **Hendelsesmal** | **Standardtittel** |
-| **Knytt alltid til** | **Monitorer**, **Etiketter**, **Vaktpolicyer** | **Monitorer**, **Statussider**, **Etiketter** |
-| **Eiere** | **Eiere** | **Eiere** |
-| **Publisering** | — | **Vis på statussider**, **Varsle abonnenter** |
+| Trinn | Hendelsesskjema | Varselskjema | Vedlikeholdsskjema |
+| --- | --- | --- | --- |
+| **Standardverdier** | **Standardtittel**, **Alvorlighetsgrad**, **Hendelsesmal** | **Standardtittel**, **Alvorlighetsgrad**, **Innledende tilstand**, **Monitor** | **Standardtittel** |
+| **Knytt alltid til** | **Monitorer**, **Etiketter**, **Vaktpolicyer** | **Etiketter**, **Vaktpolicyer** | **Monitorer**, **Statussider**, **Etiketter** |
+| **Eiere** | **Eiere** | **Eiere** | **Eiere** |
+| **Publisering** | — | — | **Vis på statussider**, **Varsle abonnenter** |
 
-**Eiere** er én velger for personer og team: **Legg til eier** åpner én søkeliste med begge, og hvert valg vises som en brikke du kan fjerne. Alt innstillingene nevner, må høre til skjemaets prosjekt, og eiere må være medlemmer av det. En post som slettes etter at den ble valgt, hoppes over når en innsending opprettes, og resten gjelder fortsatt.
+**Eiere** er én velger for personer og team: **Legg til eier** åpner én søkeliste med begge, og hvert valg vises som en brikke du kan fjerne. Alt innstillingene nevner, må høre til skjemaets prosjekt, og eiere må være medlemmer av det. En post som slettes etter at den ble valgt, hoppes over når en innsending opprettes, og resten gjelder fortsatt. I et varselskjema er **Rediger innstillinger** låst for noen som ikke har lov til å opprette varsler.
 
 ## Det private notatet
 

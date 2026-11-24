@@ -47,6 +47,12 @@ export const DATA_SECURITY_JUDGE_FINDINGS_JOB: string =
 export const DATA_SECURITY_TUNE_SCANS_JOB: string = "DataSecurity:TuneScans";
 export const DATA_SECURITY_DRAFT_RECORDS_JOB: string =
   "DataSecurity:DraftRecords";
+export const DATA_SECURITY_DISCOVER_DATA_TYPES_JOB: string =
+  "DataSecurity:DiscoverDataTypes";
+export const DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB: string =
+  "DataSecurity:ProposeTelemetryFixes";
+export const DATA_SECURITY_ASSESS_EXPOSURE_JOB: string =
+  "DataSecurity:AssessExposure";
 
 /*
  * How long the grouping waits after an evaluation: a connection's read
@@ -54,6 +60,14 @@ export const DATA_SECURITY_DRAFT_RECORDS_JOB: string =
  * groups what all of them opened.
  */
 export const GROUP_ISSUES_DELAY_IN_MS: number = 30 * 1000;
+
+/*
+ * How long OneUptime AI's proposals of each service's telemetry fix wait
+ * after an evaluation (#10367): the issues it opened are analyzed and
+ * contained first, in their own jobs, and one look after them proposes
+ * one pull request per service for all of them.
+ */
+export const TELEMETRY_FIXES_DELAY_IN_MS: number = 2 * 60 * 1000;
 
 /*
  * How long the owner rules wait after a store's owners are proposed: a
@@ -75,6 +89,13 @@ export const JUDGE_FINDINGS_DELAY_IN_MS: number = 2 * 60 * 1000;
  * all of them proposes what they say of the scans.
  */
 export const TUNE_SCANS_DELAY_IN_MS: number = 3 * 60 * 1000;
+
+/*
+ * How long the data type discovery waits after a scan that kept fields no
+ * detector placed (#10371): a project's stores are scanned one after
+ * another, and one look after them groups what all of them kept.
+ */
+export const DATA_TYPE_DISCOVERY_DELAY_IN_MS: number = 10 * 60 * 1000;
 
 // Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
@@ -334,6 +355,30 @@ export async function queueDataSecurityRecordDrafts(
 }
 
 /*
+ * Assesses the exposure a Critical issue opened a security case for
+ * (Server/Utils/AI/DataSecurity/ExposureAssessmentRun, #10377): plain
+ * code works the assessment out, and OneUptime AI writes it up as the
+ * project's Data Security AI rules allow. One job per case: a second
+ * exposure issue joining the case while it waits is assessed with it.
+ */
+export async function queueDataSecurityExposureAssessment(data: {
+  projectId: ObjectID;
+  securityCaseId: ObjectID;
+  dataSecurityIssueId: ObjectID;
+}): Promise<boolean> {
+  return await queue({
+    jobName: DATA_SECURITY_ASSESS_EXPOSURE_JOB,
+    key: `data-security-exposure-${data.securityCaseId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      securityCaseId: data.securityCaseId.toString(),
+      dataSecurityIssueId: data.dataSecurityIssueId.toString(),
+    },
+    description: `the exposure assessment of security case ${data.securityCaseId.toString()}`,
+  });
+}
+
+/*
  * Has OneUptime AI propose the owner rules the project's proposed owners
  * share (Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals): a few
  * minutes after a store's owners are proposed, once for all of them.
@@ -365,6 +410,23 @@ export async function queueDataSecurityIssueGrouping(
     payload: { projectId: projectId.toString() },
     description: `the grouping of the issues of project ${projectId.toString()}`,
     delayInMs: GROUP_ISSUES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI propose each service's telemetry fix in its code
+ * (Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals, #10367):
+ * queued by each evaluation, a little after it, once for all it opened.
+ */
+export async function queueTelemetryLeakFixProposals(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+    key: `data-security-telemetry-fixes-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's telemetry fixes for project ${projectId.toString()}`,
+    delayInMs: TELEMETRY_FIXES_DELAY_IN_MS,
   });
 }
 
@@ -405,6 +467,24 @@ export async function queueDataSecurityScanTuning(
     payload: { projectId: projectId.toString() },
     description: `OneUptime AI's tuning of the scans of project ${projectId.toString()}`,
     delayInMs: TUNE_SCANS_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI find the project's own data types in the fields its
+ * scans could not place, and decides the drafts being proven
+ * (Server/Utils/AI/DataSecurity/DataTypeDiscovery, #10371): a little after
+ * a scan that kept such fields, once for all of the project's stores.
+ */
+export async function queueDataTypeDiscovery(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+    key: `data-security-data-types-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's data types for project ${projectId.toString()}`,
+    delayInMs: DATA_TYPE_DISCOVERY_DELAY_IN_MS,
   });
 }
 

@@ -70,6 +70,12 @@ import { AppVersion } from "Common/Server/EnvironmentConfig";
  * fails it on an older custom probe with a sentence saying to update the
  * probe (issue #10737).
  *
+ * "hideSecretValuesInLogs": the monitor jobs hide the values of the Text
+ * monitor secrets filled into a step in every line they log while they run
+ * the step, at every log level (MonitorStep.secretValuesToHide,
+ * Common/Server/Utils/LogSecretValues). The server hands a step's values
+ * only to a probe that declares this (issue #10875).
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -83,6 +89,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.RetryAllWorkWhenBusy,
   ProbeCapability.TotpCodes,
   ProbeCapability.AnyRequestBody,
+  ProbeCapability.HideSecretValuesInLogs,
 ];
 
 /*

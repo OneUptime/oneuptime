@@ -1,5 +1,9 @@
 import AIService, {
   AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
   AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
@@ -306,6 +310,20 @@ describe("what every Data Security call keeps", () => {
         AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
       [DataSecurityAiFeature.DraftAuditEvidence]:
         AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+      // A data type drafted from fields scans could not place (#10371): autonomous, so budgeted.
+      [DataSecurityAiFeature.DraftDataTypes]:
+        AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+      // ...and from a person's sentence, while they wait: not autonomous.
+      [DataSecurityAiFeature.DescribeDataType]:
+        AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+      /*
+       * An exposure's write-up (#10377): on its own it is autonomous, so
+       * budgeted; when a person asks, a label of its own.
+       */
+      [DataSecurityAiFeature.DraftExposureAssessment]:
+        AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
+      [DataSecurityAiFeature.DraftExposureAssessmentOnRequest]:
+        AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE,
     });
   });
 
@@ -500,6 +518,17 @@ describe("every call runs on the project's own model", () => {
        */
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      // The company's own data types (#10371), drafted and described: the one call.
+      DataSecurityAiModelSource.ProjectProvider,
+      DataSecurityAiModelSource.ProjectProvider,
+      // A service's telemetry leaks (#10367): the coding agent, as Fix with AI's.
+      DataSecurityAiModelSource.CodeAgent,
+      /*
+       * An exposure's write-up (#10377), on its own and on request: the one
+       * call, on the provider the AI rule picks, else the project's.
+       */
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.ProjectProvider,
     ]);

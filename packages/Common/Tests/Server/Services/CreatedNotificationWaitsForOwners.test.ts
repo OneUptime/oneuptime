@@ -20,6 +20,7 @@ import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Form from "../../../Models/DatabaseModels/Form";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentOwnerRule from "../../../Models/DatabaseModels/IncidentOwnerRule";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
@@ -42,6 +43,8 @@ import AlertOwnerTeamService from "../../../Server/Services/AlertOwnerTeamServic
 import AlertOwnerUserService from "../../../Server/Services/AlertOwnerUserService";
 import AlertPrivacyRuleEngineService from "../../../Server/Services/AlertPrivacyRuleEngineService";
 import AlertService from "../../../Server/Services/AlertService";
+import AlertFormTarget from "../../../Server/Utils/Form/AlertFormTarget";
+import FormTargetType from "../../../Types/Form/FormTargetType";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
@@ -2477,6 +2480,63 @@ describe.each(["incident", "alert"] as Array<Kind>)(
     });
   },
 );
+
+/*
+ * An alert a form creates (#10760) is made the same way: the form's alert
+ * handler hands the owners its settings name to the create, as the API
+ * does, so they are added quietly and the Created email is the one notice
+ * they get of it - once, and not the project's owners'.
+ */
+describe("the Created email of an alert a form creates", () => {
+  beforeEach(() => {
+    // Nobody else owns it: no rule, no criteria, only whom the form names.
+    owners = NOBODY;
+  });
+
+  test("reaches the form's owners, once, and not the project's owners", async () => {
+    const form: Form = new Form();
+    form._id = "72100000-0000-4000-8000-0000000000a9";
+    form.projectId = PROJECT_ID;
+    form.name = "Something Looks Wrong";
+    form.targetType = FormTargetType.Alert;
+    form.targetSettings = { alertSeverityId: ALERT_SEVERITY };
+
+    await new AlertFormTarget().create({
+      context: { form: form, fields: [], bindings: {}, answers: {} },
+      prepared: {
+        alertSeverityId: new ObjectID(ALERT_SEVERITY),
+        labelIds: [],
+        onCallDutyPolicyIds: [],
+        ownerUserIds: [new ObjectID(ANA)],
+        ownerTeamIds: [new ObjectID(PLATFORM_TEAM)],
+      },
+    });
+    await waitUntil((): boolean => {
+      return !stored("alert").isNotified;
+    });
+
+    at(10);
+    await runJob("alert");
+    at(11);
+    await runJob("alert");
+
+    // Dan through the Platform team; each of them once.
+    expect(notified("alert")).toEqual([ANA, DAN].sort());
+    expect(errorsLogged()).toEqual([]);
+
+    // Added quietly: the Created email is the one they get.
+    expect(
+      ownerRows
+        .filter((row: OwnerRow): boolean => {
+          return row.recordId === onlyRecord("alert");
+        })
+        .map((row: OwnerRow): string => {
+          return row.userId || row.teamId || "";
+        })
+        .sort(),
+    ).toEqual([ANA, PLATFORM_TEAM].sort());
+  });
+});
 
 /*
  * #7571 as it was reported: a create made the way MonitorIncident makes

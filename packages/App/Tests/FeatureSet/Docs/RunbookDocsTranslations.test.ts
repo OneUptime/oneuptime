@@ -148,6 +148,15 @@ const PROSE: Record<string, Array<string>> = {
     // The rule's match criteria, as the anatomy table describes them.
     "Conditions",
   ],
+  "runbooks/running": [
+    /*
+     * One of the ways a run starts, the page's own words, worded as its
+     * link to Run on a schedule is: the label is the Automatic Response
+     * page's, whose detection rules run in real time or on a schedule
+     * (#10678), nothing a runbook draws.
+     */
+    "On a schedule",
+  ],
 };
 
 /*

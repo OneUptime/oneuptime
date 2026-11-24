@@ -114,6 +114,60 @@ export function getScrubRuleFingerprint(
   ).slice(0, FINGERPRINT_LENGTH);
 }
 
+/*
+ * What a metric attribute's Redact Attribute rule is, in sixteen hex
+ * digits (#10753): the signal, its service, the attribute it hides, its
+ * filters (each the attribute's key, the check and its pattern) and how
+ * they combine, and what it writes instead. Two rules that hide the same
+ * values of the same metrics have the same fingerprint.
+ */
+export function getMetricScrubRuleFingerprint(rule: {
+  serviceId?: unknown;
+  attributeKey?: string | null | undefined;
+  filters?:
+    | ReadonlyArray<{
+        checkOn?: string | undefined;
+        attributeKey?: string | undefined;
+        conditionType?: string | undefined;
+        value?: string | undefined;
+      }>
+    | null
+    | undefined;
+  filterCondition?: string | null | undefined;
+  redactReplacement?: string | null | undefined;
+}): string {
+  const filters: Array<Array<string>> = (rule.filters || [])
+    .map(
+      (filter: {
+        checkOn?: string | undefined;
+        attributeKey?: string | undefined;
+        conditionType?: string | undefined;
+        value?: string | undefined;
+      }): Array<string> => {
+        return [
+          text(filter.checkOn),
+          text(filter.attributeKey),
+          text(filter.conditionType),
+          text(filter.value),
+        ];
+      },
+    )
+    .sort((a: Array<string>, b: Array<string>): number => {
+      return JSON.stringify(a).localeCompare(JSON.stringify(b));
+    });
+
+  return sha256Hex(
+    JSON.stringify([
+      "metric",
+      readScopeId(rule.serviceId),
+      text(rule.attributeKey).trim(),
+      filters,
+      text(rule.filterCondition).trim(),
+      text(rule.redactReplacement),
+    ]),
+  ).slice(0, FINGERPRINT_LENGTH);
+}
+
 function count(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0
     ? value

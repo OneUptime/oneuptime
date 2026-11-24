@@ -126,6 +126,10 @@ export const DATA_SECURITY_AI_ASK_REASON_SENTENCES: Readonly<
   [DataSecurityAiAskReason.CircuitBreaker]: translationKey(
     "OneUptime AI already made as many changes without asking as it may in an hour.",
   ),
+  // The repository's Max Open Fix Pull Requests is reached (#10367).
+  [DataSecurityAiAskReason.AtPullRequestCap]: translationKey(
+    "The repository has as many open fix pull requests as it allows, so this one waits for a person.",
+  ),
 };
 
 export const DataSecurityAiPageCopy: {
@@ -221,6 +225,8 @@ export const DATA_SECURITY_AI_PROPOSAL_STATUS_LABELS: Readonly<
   [DataSecurityAiProposalStatus.Expired]: translationKey("Expired"),
   [DataSecurityAiProposalStatus.Undone]: translationKey("Undone"),
   [DataSecurityAiProposalStatus.Failed]: translationKey("Failed"),
+  // A data type OneUptime AI drafted, counted on its stores' next scans (#10371).
+  [DataSecurityAiProposalStatus.Proving]: translationKey("Checking"),
 };
 
 // The Overview's line about OneUptime AI (DataSecurityAiOverviewLine).

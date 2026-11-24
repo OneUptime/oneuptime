@@ -99,7 +99,7 @@ En regel kan tilhøre team. **Ansvarlige team** under **Flere felt** forbeholder
 
 ## Hendelsesregler
 
-**Varsler → Regler → Hendelsesregler** gjør selv varsler om til hendelser. Den første regelen som samsvarer med et nytt varsel, ovenfra og ned i listen, erklærer en hendelse ut fra det, slik **Erklær hendelse** på varselets side ville gjort, og knytter varselet til den.
+**Varsler → Regler → Hendelsesregler** gjør selv varsler om til hendelser. Den første regelen som samsvarer med et nytt varsel, ovenfra og ned i listen, erklærer en hendelse ut fra det, slik **Erklær hendelse** på varselets side ville gjort, og knytter varselet til den. Hendelsen starter med varselets eiere som sine eiere, og de får beskjed om den én gang, gjennom varslingen **Hendelse opprettet**.
 
 :::steps
 ### Velg ut varslene

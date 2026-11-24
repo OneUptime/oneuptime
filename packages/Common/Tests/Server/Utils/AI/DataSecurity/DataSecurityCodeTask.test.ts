@@ -121,6 +121,27 @@ beforeEach(() => {
         return askable.has(data.repositoryId.toString());
       },
     );
+  // Many repositories weighed at once, by the same rule (#10764).
+  jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation(
+      async (data: {
+        repositoryIds: Array<ObjectID | string>;
+      }): Promise<Set<string>> => {
+        return new Set<string>(
+          data.repositoryIds
+            .map((id: ObjectID | string): string => {
+              return id.toString();
+            })
+            .filter((id: string): boolean => {
+              return askable.has(id);
+            })
+            .map((id: string): string => {
+              return id.toLowerCase();
+            }),
+        );
+      },
+    );
   jest
     .spyOn(CodeTaskGate, "getBlocker")
     .mockImplementation(
@@ -285,7 +306,7 @@ describe("DataSecurityCodeTask.requestFix", () => {
 });
 
 describe("DataSecurityCodeTask.getAskableRepositories", () => {
-  test("keeps those the person may ask in, in their order, asking about each", async () => {
+  test("keeps those the person may ask in, in their order, asking about all of them at once", async () => {
     const many: Array<CodeRepository> = [];
 
     for (let index: number = 0; index < 23; index++) {
@@ -317,6 +338,41 @@ describe("DataSecurityCodeTask.getAskableRepositories", () => {
           return row.name || "";
         }),
     );
-    expect(CodeTaskAccess.canAskInRepository).toHaveBeenCalledTimes(23);
+    /*
+     * Every repository the person may read is weighed - not the first 500 -
+     * in one read (#10764), never one canAskInRepository a repository.
+     */
+    expect(CodeTaskAccess.listAskableRepositoryIds).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        (CodeTaskAccess.listAskableRepositoryIds as unknown as jest.Mock).mock
+          .calls[0]![0] as { repositoryIds: Array<string> }
+      ).repositoryIds,
+    ).toEqual(
+      many.map((row: CodeRepository): string => {
+        return row.id!.toString();
+      }),
+    );
+    expect(CodeTaskAccess.canAskInRepository).not.toHaveBeenCalled();
+  });
+
+  test("past the 500th: a repository the person may ask in is offered however many come before it", async () => {
+    const many: Array<CodeRepository> = [];
+
+    for (let index: number = 0; index < 1200; index++) {
+      many.push(repository(`repo-${String(index).padStart(4, "0")}`));
+    }
+
+    const late: CodeRepository = many[1150]!;
+    askable.add(late.id!.toString());
+
+    const kept: Array<CodeRepository> =
+      await DataSecurityCodeTask.getAskableRepositories({
+        props: CALLER,
+        projectId: PROJECT_ID,
+        readable: many,
+      });
+
+    expect(kept).toEqual([late]);
   });
 });

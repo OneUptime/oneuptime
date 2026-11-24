@@ -1,4 +1,6 @@
 import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
+import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
 import {
   DataSecurityAiVerdict,
   DataSecurityAnalysisPart,
@@ -19,6 +21,7 @@ import {
   ScrubRuleWriterRuleKind,
 } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
+import type { TelemetryLeakEvalCase } from "./TelemetryLeakEvalSet";
 import {
   AiAccessRecord,
   AiDataTypeChoice,
@@ -42,6 +45,8 @@ import {
   RecordLegalBasis,
   RecordPeople,
 } from "../../../../../Types/DataSecurity/RecordOfProcessing";
+import { ExposureDraftPart } from "../../../../../Types/DataSecurity/ExposureAssessment";
+import { ExposureEvalExposure } from "./DataSecurityExposureEvalSet";
 
 /*
  * A CASE OF THE DATA SECURITY EVAL (#10365): ONE INPUT A FEATURE WOULD
@@ -297,6 +302,20 @@ export interface FindingVerdictEvalCase extends DataSecurityEvalCaseBase {
 }
 
 /*
+ * A service's telemetry leaks fixed in its code (#10367): a case of the eval
+ * set of recorded findings (TelemetryLeakEvalSet) - the records each finding
+ * was seen in and the repository they lead to - and what the changed code
+ * must hold. The request is the one the product builds from those records,
+ * answered in one call; the code agent's benchmark runs the agent's loop on
+ * the same cases.
+ */
+export interface TelemetryLeakFixEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.FixTelemetryLeaks;
+  evalSetCase: TelemetryLeakEvalCase;
+  expect: Array<FixEvalFileCheck>;
+}
+
+/*
  * What a right draft of one field of a store's record is (#10375): drafted,
  * saying one word of each group; or left empty (null) where no fact says
  * it - a record that guesses is worse than one that asks.
@@ -369,6 +388,64 @@ export interface AuditEvidenceEvalCase extends DataSecurityEvalCaseBase {
   };
 }
 
+/*
+ * The data type a group of fields, or a person's sentence, should become
+ * (#10371): the type a person would write - null where there is none of
+ * the company's own - and made-up values a right pattern finds and leaves
+ * alone. The model never sees a value: the case's input is the names and
+ * shapes the product sends.
+ */
+export interface DataTypeEvalExpectation {
+  becomes: {
+    name: string;
+    category: DataCategory;
+    sensitivity: DataSensitivity;
+    pattern: string;
+    validator?: string | undefined;
+  } | null;
+  // Made-up values a right pattern finds whole.
+  finds: Array<string>;
+  // Made-up values beside them it never finds.
+  keeps: Array<string>;
+  // What a right answer may call it besides the type it becomes.
+  categories?: Array<DataCategory> | undefined;
+  sensitivities?: Array<DataSensitivity> | undefined;
+}
+
+// A group of fields scans could not place, as OneUptime AI is told it.
+export interface DraftDataTypesEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftDataTypes;
+  fields: Array<{ storeKind: string; field: UnplacedField }>;
+  storeCount: number;
+  expect: DataTypeEvalExpectation;
+}
+
+// Describe It: a sentence, and made-up examples sent only as their shapes.
+export interface DescribeDataTypeEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DescribeDataType;
+  sentence: string;
+  examples: Array<string>;
+  expect: DataTypeEvalExpectation;
+}
+
+/*
+ * An exposure's write-up (#10377): a made-up exposure, worked out by the
+ * product's plain code into its assessment (DataSecurityExposureEvalSet),
+ * and the words each part of OneUptime AI's write-up must say once it is
+ * held to its facts - each group, one of its words.
+ */
+export interface ExposureAssessmentEvalCase extends DataSecurityEvalCaseBase {
+  feature:
+    | DataSecurityAiFeature.DraftExposureAssessment
+    | DataSecurityAiFeature.DraftExposureAssessmentOnRequest;
+  exposure: ExposureEvalExposure;
+  language?: string | undefined;
+  expect: {
+    parts: Partial<Record<ExposureDraftPart, Array<Array<string>>>>;
+    never: Array<string>;
+  };
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FindingVerdictEvalCase
@@ -380,6 +457,10 @@ export type DataSecurityEvalCase =
   | IssueGroupFixEvalCase
   | ScrubRulesEvalCase
   | PullRequestReviewEvalCase
+  | TelemetryLeakFixEvalCase
   | RecordDraftEvalCase
   | ImpactAssessmentEvalCase
-  | AuditEvidenceEvalCase;
+  | AuditEvidenceEvalCase
+  | DraftDataTypesEvalCase
+  | DescribeDataTypeEvalCase
+  | ExposureAssessmentEvalCase;

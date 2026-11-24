@@ -98,6 +98,36 @@ export enum DataSecurityAiFeature {
    * asks (#10375).
    */
   DraftAuditEvidence = "DraftAuditEvidence",
+  /*
+   * The company's own data types (#10371): a data type drafted from a
+   * group of fields scans could not place - the same unknown shape under
+   * the same kind of name in several stores - from their names and shapes,
+   * then proven on the stores' next scans before anyone is asked.
+   */
+  DraftDataTypes = "DraftDataTypes",
+  /*
+   * Describe It on the data type form (#10371): a data type drafted from a
+   * sentence a person writes and the shapes of their examples, filled into
+   * the form for them to test and save.
+   */
+  DescribeDataType = "DescribeDataType",
+  /*
+   * The pull request that stops a service writing sensitive data to its
+   * telemetry (#10367): every open telemetry leak of the service in one
+   * repository, from the places its records name - a task in Code.
+   */
+  FixTelemetryLeaks = "FixTelemetryLeaks",
+  /*
+   * An exposure's assessment written up (#10377): what it means, a notice
+   * to the regulator, a notice to the people affected and an internal
+   * summary, from the facts plain code worked out - the window, who could
+   * read the data, whose data it was, the secrets to rotate and the breach
+   * laws that may apply. On its own for a Critical exposure of a store with
+   * Restricted or Confidential data, as the project's Data Security AI
+   * rules allow, and when a person asks on any case about a store.
+   */
+  DraftExposureAssessment = "DraftExposureAssessment",
+  DraftExposureAssessmentOnRequest = "DraftExposureAssessmentOnRequest",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -229,6 +259,36 @@ const RECORD_DRAFT_NEVER_SENDS: ReadonlyArray<string> = [
 
 const RECORD_DRAFT_KEEPS: string = translationKey(
   "Each draft, beside the store's record with the facts it rests on, until a person confirms it. A field a person wrote is never drafted.",
+);
+
+/*
+ * What an exposure's write-up sends (#10377), on its own or when a person
+ * asks: the facts plain code worked out, never what the store holds.
+ */
+const EXPOSURE_ASSESSMENT_SENDS: ReadonlyArray<string> = [
+  translationKey(
+    "The store's name, kind, region and the country it keeps its data in, its sensitivity, the names and categories of its data types and about how many records it holds",
+  ),
+  translationKey(
+    "The exposure's issues, when it started and ended, whether reads were logged, and how many accounts outside the company could read it",
+  ),
+  translationKey(
+    "The secrets found in the store by their type and where they were found, and where the people the data is about live",
+  ),
+  translationKey(
+    "Each breach law that may apply, as plain code worked it out: who must be told, its deadline and what a person still checks",
+  ),
+];
+
+const EXPOSURE_ASSESSMENT_NEVER_SENDS: ReadonlyArray<string> = [
+  translationKey("A sample of what was found, not even a masked one"),
+  translationKey("A record the data was seen in"),
+  translationKey("A secret's value"),
+  translationKey("Who read the data, or who can reach the store, by name"),
+];
+
+const EXPOSURE_ASSESSMENT_KEEPS: string = translationKey(
+  "What it means and the three drafted notices, on the case, with the facts each rests on, for the case's readers who may read the store's findings. A draft a person edited is never drafted again. Nothing is sent.",
 );
 
 export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo> =
@@ -559,6 +619,115 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       keeps: translationKey(
         "The paragraphs, for the framework and the period, with the facts each rests on. A paragraph a person edited is never drafted again.",
       ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftDataTypes,
+      title: translationKey("Data types found in your stores"),
+      startedBy: translationKey(
+        "Your stores' content scans, when three or more fields in two or more stores share a shape and a name no detector knows.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "The names of those fields and of the fields beside them, and the kind of store each is in",
+        ),
+        translationKey(
+          "The shapes of their values, such as AA-9999 for the value AB-1234, and how many values were read",
+        ),
+        translationKey("The names of the data types OneUptime already knows"),
+      ],
+      neverSends: [translationKey("A value of the fields, nor a masked one")],
+      keeps: translationKey(
+        "Each data type it drafts, counted on your stores' next scans, in Data Types to Review until a person adds it or says it is not a data type.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DescribeDataType,
+      title: translationKey("Describe It"),
+      startedBy: translationKey(
+        "A person, with Describe It on the data type form.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey("The sentence the person wrote"),
+        translationKey(
+          "The shapes of their examples, such as AA-9999 for the example AB-1234",
+        ),
+      ],
+      neverSends: [
+        translationKey(
+          "The examples themselves: Test It runs them in your browser",
+        ),
+      ],
+      keeps: translationKey(
+        "Nothing: the draft fills the form, and nothing is saved until the person saves it.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.FixTelemetryLeaks,
+      title: translationKey("Fix leaks in the code"),
+      startedBy: translationKey(
+        "A person, with Fix with AI on a telemetry issue or by approving OneUptime AI's proposal, in a repository they may change in Code; or, on its own, an AI rule whose Fix is set to Automatically.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey(
+          "Where the service's code writes each kind of data, as the records it was seen in name it: a file and line, a function, a span's or a logger's name, an exception's own frames and a metric's name",
+        ),
+        translationKey(
+          "Each log line as a template, its values replaced by their types' names, such as User <Email address> signed up",
+        ),
+        translationKey(
+          "Each attribute key and data type, how it should be fixed, and the issues the pull request fixes",
+        ),
+        translationKey(
+          "The repository's own code, which the coding agent reads to make the change",
+        ),
+      ],
+      neverSends: [
+        translationKey("A value of your data, nor a masked one"),
+        translationKey(
+          "A record the data was seen in: a log line as it was logged, a span's attributes, an exception's message",
+        ),
+        translationKey(
+          "What the service sent since: the coding agent reads none of your telemetry while it works",
+        ),
+      ],
+      keeps: translationKey(
+        "The task and its one pull request, under Code, which each issue it fixes keeps.",
+      ),
+      keepsProviderErrors: true,
+      modelSource: DataSecurityAiModelSource.CodeAgent,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftExposureAssessment,
+      title: translationKey("Exposure assessments"),
+      startedBy: translationKey(
+        "A security case Data Security opens for a Critical exposure of a store with Restricted or Confidential data, while Work on new issues is on, as your Data Security AI rules allow.",
+      ),
+      runsOnItsOwn: true,
+      sends: EXPOSURE_ASSESSMENT_SENDS,
+      neverSends: EXPOSURE_ASSESSMENT_NEVER_SENDS,
+      keeps: EXPOSURE_ASSESSMENT_KEEPS,
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+      title: translationKey("Exposure assessments on request"),
+      startedBy: translationKey(
+        "A person, on the Was It a Breach? card of any security case about a data store.",
+      ),
+      runsOnItsOwn: false,
+      sends: EXPOSURE_ASSESSMENT_SENDS,
+      neverSends: EXPOSURE_ASSESSMENT_NEVER_SENDS,
+      keeps: EXPOSURE_ASSESSMENT_KEEPS,
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,
     },

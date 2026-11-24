@@ -14,19 +14,26 @@ import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSec
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
 import RecordOfProcessingDraftRun from "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun";
+import ExposureAssessmentRun from "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun";
 import DataSecurityIssueGrouper from "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper";
+import DataTypeProving from "Common/Server/Utils/DataSecurity/DataTypeProving";
+import DataTypeDiscovery from "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery";
+import TelemetryLeakFixProposals from "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
+  DATA_SECURITY_ASSESS_EXPOSURE_JOB,
   DATA_SECURITY_NOTIFY_OWNERS_JOB,
   HeldOwnerNotice,
   readHeldOwnerNotice,
   DATA_SECURITY_DISCOVER_PROJECT_JOB,
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
   DATA_SECURITY_DRAFT_RECORDS_JOB,
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
   DATA_SECURITY_GROUP_ISSUES_JOB,
   DATA_SECURITY_JUDGE_FINDINGS_JOB,
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
@@ -39,6 +46,7 @@ import {
   queueDataSecurityTelemetryScan,
   queueDataStoreOwnerProposals,
   queueDataStoreScan,
+  queueDataTypeDiscovery,
 } from "Common/Server/Utils/DataSecurity/DataSecurityJobs";
 import {
   EVERY_DAY,
@@ -78,7 +86,13 @@ import ObjectID from "Common/Types/ObjectID";
  *    owner rules they share.
  *  - After each evaluation (queued by it, a little after), group the
  *    project's issues by what made them, so the issues one mistake made are
- *    one group, fixed once (#10370).
+ *    one group, fixed once (#10370); and, while OneUptime AI works on its
+ *    issues, propose each service's telemetry leaks fixed in its code, one
+ *    pull request per service and repository (#10367).
+ *  - A little after a scan that kept fields no detector placed (queued by
+ *    the scan), have OneUptime AI find the project's own data types in
+ *    them and prove each on its stores' next scans; every hour, decide
+ *    the drafts whose proving time ran out (#10371).
  *
  * The crons only decide what is due; each piece of work - one project, one
  * store, one connection - is its own queue job, deduplicated by what it is
@@ -166,6 +180,20 @@ RunCron(
   async () => {
     for (const projectId of await DataSecurityRunner.listProjectIds()) {
       await queueDataSecurityEvaluation(projectId);
+    }
+  },
+);
+
+RunCron(
+  "DataSecurity:DecideDataTypes",
+  {
+    schedule: EVERY_HOUR,
+    runOnStartup: false,
+    timeoutInMS: 10 * 60 * 1000,
+  },
+  async () => {
+    for (const projectId of await DataTypeProving.listProvingProjectIds()) {
+      await queueDataTypeDiscovery(projectId);
     }
   },
 );
@@ -274,6 +302,22 @@ JobDictionary.setJobFunction(
 JobDictionary.setTimeoutInMs(
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_TURN_TIME_LIMIT_IN_MS + 60 * 1000,
+);
+
+// OneUptime AI's own data types for the project, and the drafts being proven (#10371).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await DataTypeDiscovery.runForProject({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+  10 * 60 * 1000,
 );
 
 JobDictionary.setJobFunction(
@@ -406,6 +450,28 @@ JobDictionary.setJobFunction(
 );
 JobDictionary.setTimeoutInMs(DATA_SECURITY_DRAFT_RECORDS_JOB, 30 * 60 * 1000);
 
+// The exposure a Critical issue opened a security case for, assessed (#10377).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_ASSESS_EXPOSURE_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+    const securityCaseId: ObjectID | null = readId(job, "securityCaseId");
+    const dataSecurityIssueId: ObjectID | null = readId(
+      job,
+      "dataSecurityIssueId",
+    );
+
+    if (projectId && securityCaseId && dataSecurityIssueId) {
+      await ExposureAssessmentRun.run({
+        projectId,
+        securityCaseId,
+        dataSecurityIssueId,
+      });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(DATA_SECURITY_ASSESS_EXPOSURE_JOB, 5 * 60 * 1000);
+
 // The owner rules the project's proposed owners share (#10374).
 JobDictionary.setJobFunction(
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
@@ -434,3 +500,19 @@ JobDictionary.setJobFunction(
   },
 );
 JobDictionary.setTimeoutInMs(DATA_SECURITY_GROUP_ISSUES_JOB, 10 * 60 * 1000);
+
+// Each service's telemetry leaks, fixed in its code in one pull request (#10367).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await TelemetryLeakFixProposals.proposeForProject({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+  10 * 60 * 1000,
+);

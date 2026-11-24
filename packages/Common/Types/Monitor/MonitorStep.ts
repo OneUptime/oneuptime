@@ -130,6 +130,7 @@ import {
   readSecurityWatchlistFilters,
 } from "../SecurityEvent/SecurityWatchlistFilter";
 import { TotpSecrets, readTotpSecrets } from "../../Utils/Totp/TotpParameters";
+import { readSecretValuesToHide } from "../../Utils/Monitor/MonitorSecretValuesToHide";
 import { getPromQLMonitorExpressionProblem } from "../../Utils/PromQL/PromQLMonitorExpression";
 import MonitorRequestBody from "../../Utils/Monitor/MonitorRequestBody";
 import MonitorRequestBodyFormat, {
@@ -323,7 +324,27 @@ export interface MonitorStepType {
    * (MonitorStep.toDatabaseJSON).
    */
   totpSecrets?: TotpSecrets | undefined;
+
+  /*
+   * The values of the Text monitor secrets the server filled into this
+   * step, as it hands the step to a probe (issue #10875): what the probe
+   * hides in every line it logs while it runs the step
+   * (Common/Utils/Monitor/MonitorSecretValuesToHide). Never set by users,
+   * never stored (MonitorStep.toDatabaseJSON), and handed only to a probe
+   * that declares it hides them (ProbeCapability.HideSecretValuesInLogs).
+   */
+  secretValuesToHide?: Array<string> | undefined;
 }
+
+/*
+ * What a step carries only on its way to a probe, filled in by the server
+ * as it hands the step over: never written to the database
+ * (MonitorStep.toDatabaseJSON).
+ */
+const PROBE_ONLY_FIELDS: ReadonlyArray<string> = [
+  "totpSecrets",
+  "secretValuesToHide",
+];
 
 export default class MonitorStep extends DatabaseProperty {
   public data: MonitorStepType | undefined = undefined;
@@ -1561,6 +1582,9 @@ export default class MonitorStep extends DatabaseProperty {
               )
             : undefined,
           totpSecrets: MonitorStep.getTotpSecretsJSON(this.data.totpSecrets),
+          secretValuesToHide: MonitorStep.getSecretValuesToHideJSON(
+            this.data.secretValuesToHide,
+          ),
         },
       });
     }
@@ -1579,10 +1603,21 @@ export default class MonitorStep extends DatabaseProperty {
       : undefined;
   }
 
+  // The secret values a step hides in a probe's log as they travel, or nothing.
+  private static getSecretValuesToHideJSON(
+    secretValuesToHide: unknown,
+  ): Array<string> | undefined {
+    const read: Array<string> = readSecretValuesToHide(secretValuesToHide);
+
+    return read.length > 0 ? read : undefined;
+  }
+
   /*
    * A step as it is written to the database: what toJSON writes, without
-   * what only ever travels to a probe - the TOTP parameters the server
-   * hands it, which would put a seed into the monitor's own record.
+   * what only ever travels to a probe (PROBE_ONLY_FIELDS) - the TOTP
+   * parameters the server hands it, which would put a seed into the
+   * monitor's own record, and the values of the Text secrets filled into
+   * it, which the probe hides in its log (#10875).
    */
   public static toDatabaseJSON(json: JSONObject): JSONObject {
     const value: unknown = json["value"];
@@ -1590,14 +1625,18 @@ export default class MonitorStep extends DatabaseProperty {
     if (
       !value ||
       typeof value !== "object" ||
-      !Object.prototype.hasOwnProperty.call(value, "totpSecrets")
+      !PROBE_ONLY_FIELDS.some((field: string): boolean => {
+        return Object.prototype.hasOwnProperty.call(value, field);
+      })
     ) {
       return json;
     }
 
     const stored: JSONObject = { ...(value as JSONObject) };
 
-    delete stored["totpSecrets"];
+    for (const field of PROBE_ONLY_FIELDS) {
+      delete stored[field];
+    }
 
     return { ...json, value: stored };
   }
@@ -1871,6 +1910,9 @@ export default class MonitorStep extends DatabaseProperty {
           )
         : undefined,
       totpSecrets: MonitorStep.getTotpSecretsJSON(json["totpSecrets"]),
+      secretValuesToHide: MonitorStep.getSecretValuesToHideJSON(
+        json["secretValuesToHide"],
+      ),
     }) as any;
 
     return monitorStep;

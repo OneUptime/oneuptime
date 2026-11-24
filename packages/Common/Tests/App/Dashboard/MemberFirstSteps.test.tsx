@@ -207,6 +207,15 @@ import {
 } from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const PROJECT_ID: string = "65f00000000000000000dddd";
 const USER_ID: string = "65f00000000000000000eeee";
@@ -772,5 +781,110 @@ describe("Hide, Show and done", () => {
 
   test("the card's words are the catalog's", () => {
     expect(MEMBER_FIRST_STEPS_COPY.title).toBe("Your first steps here");
+  });
+});
+
+/*
+ * A server whose admins took the mobile app away, or offer it from a page of
+ * their own (Admin Dashboard > Settings > Help and Support, #10866).
+ */
+describe("the mobile app, as the server's admins offer it", () => {
+  afterEach(() => {
+    forgetHelpAndSupport();
+  });
+
+  test("turned off: no Get the mobile app step, and the card's other steps as before", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+    await renderHome();
+
+    expect(screen.getByTestId("member-first-steps")).toBeVisible();
+    expect(screen.queryByTestId("member-first-steps-mobile_app")).toBeNull();
+    expect(screen.getByTestId("member-first-steps-reach")).toBeVisible();
+    expect(screen.getByTestId("member-first-steps-test_page")).toHaveAttribute(
+      "data-next",
+      "true",
+    );
+    expect(screen.getByTestId("member-first-steps")).not.toHaveTextContent(
+      MEMBER_FIRST_STEPS_COPY.mobileAppTitle,
+    );
+  });
+
+  test("turned off: the progress is the same - one step left when hidden, and done when reached and paged", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+    postMock.mockResolvedValue(memberAnswer({ isHiddenForMe: true }));
+    await renderHome();
+
+    await press("member-first-steps-hide");
+
+    expect(sendMock).toHaveBeenCalledWith(
+      ProductEventName.MemberStepsDismissed,
+      { open_count: 1 },
+    );
+
+    cleanup();
+    fetchMock.mockResolvedValue(
+      memberAnswer({ hasAcknowledgedTestPage: true }),
+    );
+    await renderHome();
+
+    expect(screen.queryByTestId("member-first-steps")).toBeNull();
+  });
+
+  test("turned off: only email while on call suggests a phone number, not the app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+    checklistMock.mockReturnValue(
+      checklistState(checklistFor({ reachedVia: ["Team"] })),
+    );
+    await renderHome();
+
+    const reach: HTMLElement = screen.getByTestId("member-first-steps-reach");
+
+    expect(reach).toHaveTextContent("add a phone number.");
+    expect(reach).not.toHaveTextContent("mobile app");
+  });
+
+  test("from the server's own page: one code for that page, named by its address, and no store", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: {
+          choice: HelpChoice.Link,
+          value: "https://apps.example.com/oneuptime",
+        },
+      }),
+    );
+    await renderHome();
+    await press("member-first-steps-mobile_app");
+
+    const panel: HTMLElement = screen.getByTestId(
+      "member-first-steps-mobile-app-panel",
+    );
+
+    expect(
+      within(panel)
+        .getAllByTestId("qr-code")
+        .map((code: HTMLElement): string | null => {
+          return code.getAttribute("data-text");
+        }),
+    ).toEqual(["https://apps.example.com/oneuptime"]);
+    expect(
+      within(panel).getByRole("link", { name: "apps.example.com" }),
+    ).toHaveAttribute("href", "https://apps.example.com/oneuptime");
+    expect(within(panel).queryByRole("link", { name: "App Store" })).toBeNull();
+    expect(panel).toHaveTextContent("get the app from your organization");
+    expect(
+      within(panel).getByTestId("member-first-steps-server-url"),
+    ).toHaveTextContent(/^https?:\/\//);
   });
 });

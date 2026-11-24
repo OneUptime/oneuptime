@@ -39,6 +39,11 @@ import {
 } from "../../../../Server/Utils/DataSecurity/DataSecurityTelemetryScanRule";
 import { SubscriptionStatusUtil } from "../../../../Types/Billing/SubscriptionStatus";
 import * as TelemetryScrubCoverage from "../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
+import {
+  CONTENT_SCAN_MODEL_TIME_IN_MS,
+  TELEMETRY_SCAN_MODEL_TIME_IN_MS,
+  TELEMETRY_STORE_MODEL_TIME_IN_MS,
+} from "../../../../Server/Utils/DataSecurity/Model/ModelBudget";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
 import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
 import { deriveFingerprintKey } from "../../../../Server/Utils/DataSecurity/Fingerprint";
@@ -439,6 +444,66 @@ describe("listProjectIds", () => {
 });
 
 describe("getScanSetup", () => {
+  /*
+   * The names-and-addresses model (#10373): on for content scans unless the
+   * project turned Find Names And Street Addresses off; for the hourly
+   * telemetry scan only when the project turned its telemetry switch on
+   * too, under it. Each with its own budget of model time.
+   */
+  describe("the names-and-addresses model", () => {
+    async function modelOf(
+      scope: "content" | "telemetry" | "none",
+    ): Promise<ContentScanOptions["model"]> {
+      return (
+        await DataSecurityRunner.getScanSetup(PROJECT_ID, undefined, scope)
+      ).options.model;
+    }
+
+    test("a content scan reads free text with it by default, within the content scan's two minutes", async () => {
+      setting = new DataSecuritySetting();
+
+      const model: ContentScanOptions["model"] = await modelOf("content");
+
+      expect(model).toBeDefined();
+      expect(model!.budget.limitInMs).toBe(CONTENT_SCAN_MODEL_TIME_IN_MS);
+    });
+
+    test("a project that turned it off scans content without it", async () => {
+      setting.isModelScanEnabled = false;
+
+      expect(await modelOf("content")).toBeUndefined();
+    });
+
+    test("the hourly telemetry scan reads without it until the project turns telemetry on", async () => {
+      setting = new DataSecuritySetting();
+
+      expect(await modelOf("telemetry")).toBeUndefined();
+
+      setting.isTelemetryModelScanEnabled = true;
+
+      const model: ContentScanOptions["model"] = await modelOf("telemetry");
+
+      expect(model).toBeDefined();
+      expect(model!.budget.limitInMs).toBe(TELEMETRY_SCAN_MODEL_TIME_IN_MS);
+      expect(model!.budget.storeLimitInMs).toBe(
+        TELEMETRY_STORE_MODEL_TIME_IN_MS,
+      );
+    });
+
+    test("the telemetry switch does nothing while the switch above it is off", async () => {
+      setting.isModelScanEnabled = false;
+      setting.isTelemetryModelScanEnabled = true;
+
+      expect(await modelOf("telemetry")).toBeUndefined();
+    });
+
+    test("a configuration read never has it", async () => {
+      setting = new DataSecuritySetting();
+
+      expect(await modelOf("none")).toBeUndefined();
+    });
+  });
+
   test("a scan's limits are the project's, with sensible defaults where it set none", async () => {
     setting.maxObjectsPerScan = 500;
     setting.maxBytesPerObject = 4096;

@@ -50,6 +50,7 @@ import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission from "../../../../Types/Permission";
 import Query from "../../../Types/Database/Query";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import FeedMarkdown, { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import DataSecurityAiProposalService from "../../../Services/DataSecurityAiProposalService";
 import DataSecurityIssueFeedService from "../../../Services/DataSecurityIssueFeedService";
@@ -329,15 +330,32 @@ export default class DataSecurityAiProposals {
       };
     }
 
+    // An owner rule, a change to the scans, or a data type of the project's own (#10371): each a thing of its own.
     if (
       data.kind === DataSecurityAiProposalKind.CreateOwnerRule ||
       data.kind === DataSecurityAiProposalKind.TurnOffDataType ||
-      data.kind === DataSecurityAiProposalKind.AddScanExclusion
+      data.kind === DataSecurityAiProposalKind.AddScanExclusion ||
+      data.kind === DataSecurityAiProposalKind.AddDataType
     ) {
       return {
         projectId: data.projectId,
         kind: data.kind,
         planKey: data.planKey.slice(0, 100),
+      };
+    }
+
+    /*
+     * A service's telemetry fix in one repository (#10367) is for the
+     * service there, whichever of its issues it is kept on: its lane, the
+     * text of its plan key before the ":" (getTelemetryLeakFixLane).
+     */
+    if (data.kind === DataSecurityAiProposalKind.FixTelemetryLeaksInCode) {
+      return {
+        projectId: data.projectId,
+        kind: data.kind,
+        planKey: QueryHelper.startsWith(
+          `${getDataSecurityAiPlanLane(data.planKey)}:`,
+        ),
       };
     }
 

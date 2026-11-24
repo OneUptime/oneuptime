@@ -179,6 +179,8 @@ Het scherm **Overzicht** van elke statuspagina heeft een kaart **Link naar de st
 
 Achter de schermen heeft elke openbare route een voorbeeldtweeling onder `/status-page/{statusPageId}/...`: een voorbeeldoverzicht, een voorbeeldlijst met incidenten, een voorbeeldabonneerpagina enzovoort. Een URL of schermafbeelding uit het voorbeeld in het dashboard komt daardoor niet overeen met wat een klant ziet zodra er een aangepast domein is gekoppeld, dus controleer elke link die u in een runbook of e-mail plakt.
 
+Zolang een pagina niets toont, lezen de bezoekers ervan **Nog niets te tonen**. In de voorvertoning zegt een notitie daaronder "Bezoekers zien deze melding totdat u middelen toevoegt.", met **Middelen toevoegen in het dashboard**, die de **Middelen** van de pagina in het dashboard opent, in welk van uw projecten de pagina ook staat.
+
 ## Beperken wie de pagina mag zien
 
 Niet elke statuspagina is voor het publiek. Wie een pagina mag zien is één keuze, de eerste kaart van **Statuspagina's → uw pagina → Beveiliging → Toegang**, **Wie deze statuspagina kan zien**:

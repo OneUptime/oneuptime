@@ -82,6 +82,8 @@ Dans un groupe en grille, la boîte de dialogue demande aussi la ligne et la col
 > [!TIP]
 > Pour afficher plusieurs vérifications sur une seule ligne, ajoutez un [groupe de moniteurs](/docs/monitor/monitor-groups). Avec le commutateur **Groupes de moniteurs** activé (**Paramètres du projet** > **Basique** > **Produits**, qui s'enregistre dès que vous le basculez), un lien sous la liste déroulante indique **Ajoutez plutôt un groupe de moniteurs.** Cliquez dessus et **Moniteur** devient **Groupe de moniteurs** (**Sélectionner le groupe de moniteurs**) ; **Ajoutez plutôt un moniteur.** revient en arrière.
 
+**Modifier la ressource**, le crayon d'une ligne, s'ouvre sur ce que montre la ligne : la ligne d'un groupe de moniteurs sur **Groupe de moniteurs**, avec le groupe choisi, et celle d'un moniteur sur **Moniteur**. Avec le commutateur **Groupes de moniteurs** activé, le lien sous la liste déroulante indique **Affichez plutôt un moniteur.** sur la ligne d'un groupe et **Affichez plutôt un groupe de moniteurs.** sur celle d'un moniteur. Il échange la liste déroulante dans cette boîte de dialogue seulement, et l'enregistrement fait montrer à la ligne ce que vous avez choisi à la place. **Nom d'affichage** suit le nouveau choix tant qu'il est encore le nom de ce que la ligne montrait, et reste tel quel si vous avez renommé la ligne. Dans la liste, la ligne d'un groupe dont le nom d'affichage est celui du groupe indique **Identique au nom du groupe de moniteurs**.
+
 ### En ajouter plusieurs à la fois
 
 **Ajouter plusieurs** (aussi **Ajouter plusieurs moniteurs** dans le menu **Plus d'actions**) ouvre **Ajouter plusieurs moniteurs**. Elle tient elle aussi sur une seule page : une sélection multiple **Moniteurs**, puis les mêmes **Plus de champs** repliés, dont les options d'affichage s'appliquent à chaque moniteur choisi. Chaque ressource prend son nom d'affichage et sa description de son moniteur, et **Ajouter des moniteurs** les ajoute tous. C'est le moyen le plus rapide d'alimenter une nouvelle page.
@@ -97,6 +99,8 @@ Une page de statut ne liste un moniteur qu'une fois. L'ajout est idempotent : ch
 Le résumé à la fin de l'ajout groupé le dit : les moniteurs ajoutés sont listés sous **Ajouté**, et ceux qui étaient déjà là sous **Déjà ajoutés**. Rien n'est signalé comme un échec, et rien n'est écrit pour eux.
 
 La même règle vaut partout où une ressource est créée. Ajouter un moniteur déjà présent sur la page depuis le formulaire d'ajout unique, ou faire pointer une ressource existante vers lui depuis le formulaire de modification, est refusé avec *« This monitor is already added to this status page »* – y compris quand la ressource existante se trouve dans un autre groupe, car un visiteur verrait quand même le moniteur deux fois. Pour afficher un moniteur dans un autre groupe, supprimez la ressource qu'il a déjà et ajoutez-le là où vous le voulez.
+
+Une ressource montre un moniteur ou un groupe de moniteurs, jamais les deux et jamais aucun des deux. Diriger une ressource vers l'un vide l'autre : passer une ligne d'un moniteur à un groupe de moniteurs se fait en une seule modification. Par l'API, une ressource qui nomme les deux est refusée avec *« A status page resource shows a monitor or a monitor group, not both. Send one of them. »*, et une ressource qui n'en nomme aucun, ou une modification qui ne lui en laisserait aucun, avec *« A status page resource needs a monitor or a monitor group to show »*.
 
 ## Options d'affichage d'une ressource
 
@@ -280,6 +284,10 @@ L'import crée des groupes, pas des ressources : ajoutez ensuite des moniteurs a
 
 :::details « This monitor is already added to this status page »
 Une page liste chaque moniteur une seule fois, même d'un groupe à l'autre. Le moniteur a déjà une ressource, peut-être dans un autre groupe ou ajoutée par une règle de moniteurs. Cherchez-le dans le navigateur, supprimez cette ressource et ajoutez le moniteur là où vous le voulez.
+:::
+
+:::details « A status page resource needs a monitor or a monitor group to show »
+L'API, Terraform ou un script a envoyé une ressource sans moniteur ni groupe de moniteurs, ou une modification qui vide ce qu'elle montre. Envoyez `monitorId` ou `monitorGroupId`, l'un des deux. Pour diriger une ressource vers l'autre type, envoyez le nouveau dans la même modification : l'ancien est vidé. Les ressources qui ne montraient ni l'un ni l'autre avant cette règle n'ont jamais été montrées aux visiteurs, et une mise à niveau les supprime.
 :::
 
 :::details Un moniteur que j'ai ajouté n'apparaît pas sur la page de statut

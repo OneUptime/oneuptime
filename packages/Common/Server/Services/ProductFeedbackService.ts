@@ -43,16 +43,26 @@ import {
   ProductFeedbackKind,
   ProductFeedbackListItem,
   ProductFeedbackListPage,
+  GiveFeedbackDestination,
   ProductFeedbackSettings,
   ProductFeedbackSubmission,
   decideFeedbackQuestion,
   getGiveFeedbackDestination,
   isDocsFeedbackReason,
+  isGiveFeedbackOffered,
   readAskedQuestions,
   summarizeDocsPageFeedback,
   summarizeProductFeedback,
   withAskedQuestion,
 } from "../../Types/ProductFeedback/ProductFeedback";
+import {
+  HelpChoice,
+  HelpItem,
+  HelpItemSetting,
+  readHelpAndSupportSettings,
+} from "../../Types/HelpAndSupport/HelpAndSupport";
+import { SERVER_CHANNEL_SETUP_SELECT } from "../Utils/ServerSending/ServerChannelSetup";
+import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 
 /*
  * WHAT PEOPLE TELL ONEUPTIME, KEPT ON THIS SERVER (issue #6832). The rules
@@ -94,6 +104,17 @@ export const DOCS_FEEDBACK_SETTING_CACHE_MS: number = 30 * 1000;
 export interface ServerFeedbackSettings {
   isOn: boolean;
   adminNotificationEmail: string | null;
+  /*
+   * Where a master admin sent Give feedback (Admin Dashboard > Settings >
+   * Help and Support, #10865): OneUptime's default, an address or a page
+   * of the server's own, or hidden.
+   */
+  giveFeedback: HelpItemSetting;
+  /*
+   * Whether the server can send email (ServerSendingStatus): Give feedback
+   * sent to an address of the server's own is offered only while it can.
+   */
+  canSendEmail: boolean;
 }
 
 const MS_PER_DAY: number = 24 * 60 * 60 * 1000;
@@ -123,6 +144,11 @@ export class Service extends DatabaseService<Model> {
       select: {
         disableProductFeedback: true,
         adminNotificationEmail: true,
+        // Where Give feedback goes, read fresh with the rest (#10865).
+        helpAndSupport: true,
+        // Whether the server can send email: read, never sent on.
+        ...SERVER_CHANNEL_SETUP_SELECT,
+        serverSendingHealth: true,
       },
       props: {
         isRoot: true,
@@ -134,6 +160,10 @@ export class Service extends DatabaseService<Model> {
       adminNotificationEmail: config?.adminNotificationEmail
         ? config.adminNotificationEmail.toString()
         : null,
+      giveFeedback: readHelpAndSupportSettings(config?.helpAndSupport)[
+        HelpItem.GiveFeedback
+      ],
+      canSendEmail: ServerSendingStatus.canSendEmailPubliclyFrom(config),
     };
   }
 
@@ -224,15 +254,53 @@ export class Service extends DatabaseService<Model> {
       }),
     ]);
 
+    const giveFeedbackGoesTo: GiveFeedbackDestination =
+      getGiveFeedbackDestination({
+        isOneUptimeCloud: IsBillingEnabled,
+        adminNotificationEmail: server.adminNotificationEmail,
+        giveFeedback: server.giveFeedback,
+      });
+
     return {
       isOn: server.isOn,
       isAskingMe: server.isOn && !user?.disableFeedbackQuestions,
       // Where Give feedback goes, for the dialog to say before it is sent.
-      giveFeedbackGoesTo: getGiveFeedbackDestination({
-        isOneUptimeCloud: IsBillingEnabled,
-        adminNotificationEmail: server.adminNotificationEmail,
-      }),
+      giveFeedbackGoesTo: giveFeedbackGoesTo,
+      // Whether Help, Search and the check-in offer it at all (#10865).
+      isGiveFeedbackOffered:
+        server.isOn &&
+        isGiveFeedbackOffered({
+          giveFeedback: server.giveFeedback,
+          canSendEmail: server.canSendEmail,
+        }),
+      // The address it goes to, or the page it opens, as the dialog says.
+      ...(giveFeedbackGoesTo === GiveFeedbackDestination.SupportTeamByEmail &&
+      server.giveFeedback.value
+        ? { giveFeedbackTo: server.giveFeedback.value }
+        : {}),
+      ...(giveFeedbackGoesTo === GiveFeedbackDestination.SupportPage &&
+      server.giveFeedback.value
+        ? { giveFeedbackUrl: server.giveFeedback.value }
+        : {}),
     };
+  }
+
+  /*
+   * Whether Give feedback may be posted here: offered (isGiveFeedbackOffered),
+   * and not sent to a page of the server's own, which Help opens instead.
+   */
+  public async isGiveFeedbackTaken(): Promise<boolean> {
+    const server: ServerFeedbackSettings =
+      await this.getServerFeedbackSettings();
+
+    return (
+      server.isOn &&
+      isGiveFeedbackOffered({
+        giveFeedback: server.giveFeedback,
+        canSendEmail: server.canSendEmail,
+      }) &&
+      server.giveFeedback.choice !== HelpChoice.Link
+    );
   }
 
   /*

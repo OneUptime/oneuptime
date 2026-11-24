@@ -140,7 +140,7 @@ Ogni richiesta supera questi controlli, in questo ordine:
 5. Deve arrivare da uno degli utenti privati del modulo, dopo l'accesso, quando il modulo è impostato su **Solo chi accede** — vedi [Solo chi accede](#solo-chi-accede).
 6. Un invio deve superare il captcha, quando l'istanza ha il captcha attivo.
 7. Ogni risposta deve rientrare nei limiti di dimensione e adattarsi alla sua domanda — vedi [Creare un modulo](/docs/forms/building#limiti-di-dimensione).
-8. Ciò che formano le risposte e le impostazioni deve poter essere creato: un incidente ha bisogno di una gravità, un evento di una fine successiva al suo inizio.
+8. Ciò che formano le risposte e le impostazioni deve poter essere creato: un incidente o un avviso ha bisogno di una gravità, un evento di una fine successiva al suo inizio.
 9. Un invio deve rientrare nella quota oraria del modulo — vedi [Limiti di frequenza](#limiti-di-frequenza).
 10. I suoi file devono rientrare nella quota oraria di file del modulo, subito prima di essere salvati.
 
@@ -244,6 +244,10 @@ Apri la pagina **Domini personalizzati** del modulo e leggi la colonna **Stato**
 Il modulo non chiede una gravità, le sue impostazioni non ne indicano nessuna — o quella indicata è stata eliminata — e nemmeno il suo modello di incidente ne imposta una. Scegli una gravità nella pagina **All'invio** del modulo. Vedi [Senza gravità, niente incidente](/docs/forms/on-submit#come-un-invio-diventa-un-incidente).
 :::
 
+:::details Questo modulo non può creare un avviso perché non ha una gravità
+Il modulo di avvisi non chiede una gravità, e le sue impostazioni non ne indicano nessuna — o quella indicata è stata eliminata. Scegli una gravità nella pagina **All'invio** del modulo. Vedi [Come un invio diventa un avviso](/docs/forms/on-submit#come-un-invio-diventa-un-avviso).
+:::
+
 :::details Un invio viene rifiutato
 Il messaggio dice cosa non va: manca una risposta obbligatoria o contiene solo spazi, una risposta è troppo lunga o non si adatta alla sua domanda, l'indirizzo email non è un solo indirizzo normale, oppure una finestra di manutenzione finisce prima di iniziare. "Verifica captcha non riuscita. Riprova." significa che il captcha non è stato superato, o è scaduto: risolvilo di nuovo. In un'installazione self-hosted in cui ogni invio non supera il captcha, controlla che `CAPTCHA_SITE_KEY` e `CAPTCHA_SECRET_KEY` siano entrambi impostati.
 :::
@@ -261,7 +265,7 @@ La risposta di un modello viene usata solo finché si adatta ancora alla sua dom
 :::
 
 :::details Nessuno è stato chiamato
-L'incidente di un modulo esegue le policy di reperibilità indicate dalle sue impostazioni e dal suo modello, e ciò che aggiungono le tue regole di reperibilità, come qualsiasi altro incidente. Senza nessuna di queste, nessuno viene chiamato. Aggiungi una policy di reperibilità nella pagina **All'invio** del modulo, oppure scrivi una regola di reperibilità che corrisponda ai suoi incidenti — per un'etichetta che il modulo aggiunge sempre, per esempio.
+L'incidente di un modulo esegue le policy di reperibilità indicate dalle sue impostazioni e dal suo modello, e ciò che aggiungono le tue regole di reperibilità, come qualsiasi altro incidente; l'avviso di un modulo, le policy indicate dalle sue impostazioni e ciò che aggiungono le tue regole di reperibilità degli avvisi. Senza nessuna di queste, nessuno viene chiamato. Un avviso che parte in uno stato successivo, come **Riconosciuto**, non chiama nessuno, di proposito. Aggiungi una policy di reperibilità nella pagina **All'invio** del modulo, oppure scrivi una regola di reperibilità che corrisponda ai suoi incidenti o avvisi — per un'etichetta che il modulo aggiunge sempre, per esempio.
 :::
 
 ## Passaggi successivi

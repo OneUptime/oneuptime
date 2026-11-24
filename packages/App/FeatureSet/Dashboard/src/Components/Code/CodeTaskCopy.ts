@@ -126,6 +126,10 @@ export const CODE_TASK_RECIPE_LABELS: Record<string, string> = {
   [CodeFixTaskType.FixInfrastructureCode]: translationKey(
     "Fix Infrastructure Code",
   ),
+  // A service's telemetry leaks, fixed in its code (#10367).
+  [CodeFixTaskType.FixSensitiveDataInTelemetry]: translationKey(
+    "Fix Sensitive Data in Telemetry",
+  ),
 };
 
 export function getRecipeLabel(recipe: string | undefined): string {
@@ -186,6 +190,10 @@ export const CODE_TASK_ORIGIN_SENTENCES: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.DataSecurityIssueGroup]: translationKey(
     "Started to fix the cause of Data Security issues: {{label}}",
   ),
+  // A service's telemetry leaks, fixed in its code (#10367): the service.
+  [CodeTaskOriginType.DataSecurityTelemetryLeaks]: translationKey(
+    "Started to stop {{label}} writing sensitive data to its telemetry",
+  ),
   [CodeTaskOriginType.Unknown]: translationKey("OneUptime started this task"),
 };
 
@@ -211,6 +219,9 @@ export const CODE_TASK_ORIGIN_KINDS: Record<CodeTaskOriginType, string> = {
   [CodeTaskOriginType.CodeHostPullRequest]: translationKey("Pull Request"),
   [CodeTaskOriginType.SecurityCase]: translationKey("Security Case"),
   [CodeTaskOriginType.DataSecurityIssueGroup]: translationKey(
+    "Data Security Issues",
+  ),
+  [CodeTaskOriginType.DataSecurityTelemetryLeaks]: translationKey(
     "Data Security Issues",
   ),
   [CodeTaskOriginType.Unknown]: "",
@@ -717,6 +728,7 @@ export const CODE_PICKER_COPY: {
   branchesUnreadableAnyHost: string;
   branchesNotRead: string;
   branchesSearchToFindMore: string;
+  repositoriesSearchToFindMore: string;
 } = {
   repositoryLabel: translationKey("Repository"),
   repositoryNone: translationKey("Pick a repository"),
@@ -745,6 +757,13 @@ export const CODE_PICKER_COPY: {
   ),
   branchesSearchToFindMore: translationKey(
     "Type a branch's name to find one that is not listed.",
+  ),
+  /*
+   * Under a picker's first repositories, when the project has more than it
+   * lists: the server finds the rest by name (#10764).
+   */
+  repositoriesSearchToFindMore: translationKey(
+    "Type a repository's name to find one that is not listed.",
   ),
 };
 

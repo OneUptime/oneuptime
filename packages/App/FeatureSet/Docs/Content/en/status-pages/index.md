@@ -179,6 +179,8 @@ The **Overview** screen of every status page carries a **Status Page Link** card
 
 Behind the scenes, every public route has a preview twin under `/status-page/{statusPageId}/...` — a preview overview, a preview incident list, a preview subscribe page, and so on. That means a URL or screenshot taken from the dashboard preview will not match what a customer sees once a custom domain is attached, so double-check any link you paste into a runbook or an email.
 
+While a page has nothing on it, its visitors read **Nothing to show yet**. In the preview, a note under it says "Visitors see this until you add resources." with **Add resources in the Dashboard**, which opens the page's **Resources** in the Dashboard, in whichever of your projects the page is in.
+
 ## Restricting who can see the page
 
 Not every status page is for the public. Who can see a page is one choice, the first card on **Status Pages → your page → Security → Access**, **Who can see this status page**:

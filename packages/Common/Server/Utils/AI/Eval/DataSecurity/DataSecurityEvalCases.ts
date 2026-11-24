@@ -16,6 +16,10 @@ import {
 } from "../../../../../Types/DataSecurity/DataStoreAccess";
 import DataStoreEnvironment from "../../../../../Types/DataSecurity/DataStoreEnvironment";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
+import {
+  TELEMETRY_LEAK_EVAL_SET,
+  TelemetryLeakEvalCase,
+} from "./TelemetryLeakEvalSet";
 import { DataStoreExposure } from "../../../../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import {
@@ -48,6 +52,7 @@ import {
   PullRequestReviewEvalCase,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
+  TelemetryLeakFixEvalCase,
 } from "./DataSecurityEvalCase";
 import PULL_REQUEST_EVAL_DIFFS, {
   PullRequestEvalDiff,
@@ -60,6 +65,11 @@ import {
   IMPACT_ASSESSMENT_CASES,
   RECORD_DRAFT_CASES,
 } from "./DataSecurityPaperworkEvalCases";
+import {
+  DESCRIBE_DATA_TYPE_EVAL_CASES,
+  DRAFT_DATA_TYPE_EVAL_CASES,
+} from "./DataTypeDraftEvalSet";
+import { EXPOSURE_ASSESSMENT_CASES } from "./DataSecurityExposureEvalCases";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1743,6 +1753,24 @@ const PULL_REQUEST_REVIEW_CASES: Array<PullRequestReviewEvalCase> =
     };
   });
 
+/*
+ * A service's telemetry leaks fixed in its code (#10367): every case of the
+ * eval set of recorded findings, its request built from its records as the
+ * product builds it, and held to its own file checks.
+ */
+const TELEMETRY_LEAK_FIX_CASES: Array<TelemetryLeakFixEvalCase> =
+  TELEMETRY_LEAK_EVAL_SET.map(
+    (evalSetCase: TelemetryLeakEvalCase): TelemetryLeakFixEvalCase => {
+      return {
+        id: `fix-leaks-${evalSetCase.id}`,
+        title: evalSetCase.title,
+        feature: DataSecurityAiFeature.FixTelemetryLeaks,
+        evalSetCase,
+        expect: evalSetCase.expect,
+      };
+    },
+  );
+
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ANALYSIS_CASES,
   ...FIELD_SUGGESTION_CASES,
@@ -1759,6 +1787,11 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...RECORD_DRAFT_CASES,
   ...IMPACT_ASSESSMENT_CASES,
   ...AUDIT_EVIDENCE_CASES,
+  // The company's own data types (#10371): what each group or sentence should become.
+  ...DRAFT_DATA_TYPE_EVAL_CASES,
+  ...DESCRIBE_DATA_TYPE_EVAL_CASES,
+  ...TELEMETRY_LEAK_FIX_CASES,
+  ...EXPOSURE_ASSESSMENT_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;

@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} groupes",
     "noResourcesTitle": "Rien à afficher pour l'instant",
     "noResourcesDescription": "Cette page n'affiche encore aucun service.",
-    "noResourcesPreviewDescription": "Les visiteurs voient ce message tant que vous n'avez pas ajouté de ressources. Ajoutez des moniteurs ou des groupes à cette page de statut sous Ressources, dans le tableau de bord."
+    "noResourcesPreviewDescription": "Les visiteurs voient ce message tant que vous n'avez pas ajouté de ressources.",
+    "noResourcesPreviewLink": "Ajouter des ressources dans le tableau de bord"
   },
   "eventItem": {
     "affectedResources": "Ressources concernées",

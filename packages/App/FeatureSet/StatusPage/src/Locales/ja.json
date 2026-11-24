@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} グループ",
     "noResourcesTitle": "表示するものはまだありません",
     "noResourcesDescription": "このページにはまだサービスが表示されていません。",
-    "noResourcesPreviewDescription": "リソースを追加するまで、訪問者にはこの表示が見えます。ダッシュボードの「リソース」で、このステータスページにモニターまたはグループを追加してください。"
+    "noResourcesPreviewDescription": "リソースを追加するまで、訪問者にはこの表示が見えます。",
+    "noResourcesPreviewLink": "ダッシュボードでリソースを追加"
   },
   "eventItem": {
     "affectedResources": "影響を受けるリソース",

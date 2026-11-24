@@ -201,6 +201,11 @@ describe("LogService.findSecurityLogCandidates", () => {
       expect(values).toContain(group.requires);
       expect(values).toContainEqual([...group.anyOf]);
 
+      // A sensitive path's words (#10745), besides the required one.
+      if (group.requiresAnyOf) {
+        expect(values).toContainEqual([...group.requiresAnyOf]);
+      }
+
       if (group.noneOf) {
         expect(values).toContainEqual([...group.noneOf]);
       }

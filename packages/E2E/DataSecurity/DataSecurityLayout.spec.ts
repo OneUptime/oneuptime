@@ -167,6 +167,15 @@ async function screenshot(page: Page, name: string): Promise<void> {
   });
 }
 
+// Compliance's Record of Processing card: its header holds the exports.
+function recordCard(page: Page): Locator {
+  return page.getByTestId("card").filter({
+    has: page
+      .getByTestId("card-details-heading")
+      .getByText("Record of Processing", { exact: true }),
+  });
+}
+
 interface TableFit {
   heads: string;
   overflow: number;
@@ -812,5 +821,68 @@ test.describe("Compliance", () => {
     await expect(gdpr).toContainText("requirements failing");
 
     await screenshot(page, "layout-compliance-1280");
+  });
+
+  test("the record of processing lists each store that holds personal data, what it holds, and who can reach it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${BASE}/compliance`);
+
+    const record: Locator = page.getByTestId(
+      "data-security-record-of-processing-card",
+    );
+    const rows: Locator = record
+      .locator("tbody tr")
+      .filter({ hasNot: page.getByTestId("table-row-note") });
+
+    // By store name, as an auditor reads it down the page.
+    await expect(rows).toHaveCount(3);
+    await expect(rows.nth(0)).toContainText("checkout · Logs");
+    await expect(rows.nth(1)).toContainText("customer-exports");
+    await expect(rows.nth(2)).toContainText("orders-db");
+    // The warehouse holds nothing personal, so the record leaves it out.
+    await expect(record).not.toContainText("analytics");
+
+    // What each holds, by the catalog's names.
+    for (const name of ["Email address", "IP address", "Phone number"]) {
+      await expect(rows.nth(0)).toContainText(name);
+    }
+    await expect(rows.nth(1)).toContainText("Card number");
+
+    // A store Data Security found says who can reach it on its own page.
+    expect(
+      await rows
+        .nth(1)
+        .getByRole("link", { name: "Who Can Reach It" })
+        .getAttribute("href"),
+    ).toBe(`${STORE}/access`);
+    // The whole record exports, the CSV in sight in the card's header.
+    await expect(
+      recordCard(page).getByRole("button", { name: "Export CSV" }),
+    ).toBeVisible();
+  });
+
+  test("a new project's record of processing says what puts a store on it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${BASE}/compliance`, { data: "empty" });
+
+    const record: Locator = page.getByTestId(
+      "data-security-record-of-processing-card",
+    );
+
+    await expect(record).toContainText("No personal data recorded yet");
+    await expect(record).toContainText(
+      "A store joins the record once a scan finds personal data in it, or once your project keeps security events or network flows.",
+    );
+    await expect(record.locator("tbody tr")).toHaveCount(0);
+    // Nothing to export.
+    await expect(
+      recordCard(page).getByRole("button", { name: "Export CSV" }),
+    ).toHaveCount(0);
   });
 });

@@ -62,6 +62,26 @@ const ORDER_LIST_COLUMNS: Array<string> = [
 export const BOTH_TARGETS_MESSAGE: string =
   "A status page resource shows a monitor or a monitor group, not both. Send one of them.";
 
+/*
+ * Nor nothing (issue #6558). A resource that names neither has no status to
+ * show: the public page leaves it out, the Dashboard's list names it after
+ * its display name alone, and no incident, maintenance event or subscriber
+ * ever reaches it. The Dashboard's pickers are required, so such a row only
+ * came from the API - a script, Terraform, an MCP client - and is refused
+ * there now, on create.
+ */
+export const NO_TARGET_MESSAGE: string =
+  "A status page resource needs a monitor or a monitor group to show, and this one has neither. Send the monitor or the monitor group it shows.";
+
+/*
+ * And on update: a write that clears what a resource shows, and names
+ * nothing in its place, would leave it showing nothing. Pointing it at the
+ * other kind is one write that names it (the reference it leaves out is
+ * cleared then).
+ */
+export const TARGET_CLEARED_MESSAGE: string =
+  "A status page resource needs a monitor or a monitor group to show, and this change leaves it with neither. Send the monitor or the monitor group it shows in the same change.";
+
 /**
  * Named after what the operator sees rather than what the column is, because
  * this reads back to them on the resource form.
@@ -311,10 +331,65 @@ export class Service extends ProjectReferencesService<Model> {
     return Boolean(existingResource);
   }
 
+  /*
+   * What a resource shows - one monitor, or one monitor group (#6540,
+   * #6558) - is the write's own shape: checked before anything is looked
+   * up, the project check of its references included (ProjectReferences
+   * Service runs this first). A create that names both, or neither, is
+   * refused here, whoever sends it: the Dashboard, the API, Terraform, an
+   * MCP client, a workflow or OneUptime's own imports.
+   */
+  protected override async checkCreateBeforeReferences(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
+      createBy.data as unknown as Record<string, unknown>,
+    );
+
+    if (target.monitorId && target.monitorGroupId) {
+      throw new BadDataException(BOTH_TARGETS_MESSAGE);
+    }
+
+    if (!target.monitorId && !target.monitorGroupId) {
+      throw new BadDataException(NO_TARGET_MESSAGE);
+    }
+  }
+
+  /*
+   * The same for an update, as far as the write tells by itself: one that
+   * names both is refused, and so is one that clears both. A write that
+   * clears one alone leaves the resource what the other holds, which only
+   * the stored row says (onBeforeUpdate reads it); a write that touches
+   * neither - a rename, a move - leaves what the resource shows alone.
+   */
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const updateData: Record<string, unknown> =
+      updateBy.data as unknown as Record<string, unknown>;
+
+    const target: StatusPageResourceTarget =
+      this.getResourceMonitorTarget(updateData);
+
+    if (target.monitorId && target.monitorGroupId) {
+      throw new BadDataException(BOTH_TARGETS_MESSAGE);
+    }
+
+    if (
+      !target.monitorId &&
+      !target.monitorGroupId &&
+      RelationIdUtil.isPresent(updateData, MONITOR_KEYS) &&
+      RelationIdUtil.isPresent(updateData, MONITOR_GROUP_KEYS)
+    ) {
+      throw new BadDataException(TARGET_CLEARED_MESSAGE);
+    }
+  }
+
   @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
+    // Runs checkCreateBeforeReferences first: one target, named.
     await super.onBeforeCreate(createBy);
 
     const createData: Record<string, unknown> =
@@ -350,14 +425,14 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException("The status page resource has no project.");
     }
 
+    /*
+     * The one target checkCreateBeforeReferences let through, kept in its
+     * ID column for the duplicate check and for the saved row.
+     */
     const target: StatusPageResourceTarget = this.getResourceMonitorTarget(
       createData,
       true,
     );
-
-    if (target.monitorId && target.monitorGroupId) {
-      throw new BadDataException(BOTH_TARGETS_MESSAGE);
-    }
 
     if (
       await this.isResourceAlreadyOnStatusPage({
@@ -475,6 +550,7 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
+    // Runs checkUpdateBeforeReferences first: never both, never both cleared.
     await super.onBeforeUpdate(updateBy);
 
     /*
@@ -487,8 +563,43 @@ export class Service extends ProjectReferencesService<Model> {
     const updatedTarget: StatusPageResourceTarget =
       this.getResourceMonitorTarget(updateData);
 
-    if (updatedTarget.monitorId && updatedTarget.monitorGroupId) {
-      throw new BadDataException(BOTH_TARGETS_MESSAGE);
+    /*
+     * A write that clears one of the two and names nothing in its place
+     * leaves each resource it writes what the other holds: a monitor's row
+     * holds no group, so clearing its monitor leaves it showing nothing,
+     * while clearing the group a monitor's row never had changes nothing.
+     * Only the stored rows say which, so they are read - the rows the update
+     * writes, and the update held to them - and a resource left with neither
+     * is refused (#6558).
+     */
+    const writesMonitor: boolean = RelationIdUtil.isPresent(
+      updateData,
+      MONITOR_KEYS,
+    );
+
+    if (
+      !updatedTarget.monitorId &&
+      !updatedTarget.monitorGroupId &&
+      (writesMonitor ||
+        RelationIdUtil.isPresent(updateData, MONITOR_GROUP_KEYS))
+    ) {
+      const resourcesBeingCleared: Array<Model> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          _id: true,
+          monitorId: true,
+          monitorGroupId: true,
+        });
+
+      for (const resourceBeingCleared of resourcesBeingCleared) {
+        // What the reference the write leaves alone still holds.
+        const leftShowing: ObjectID | undefined = writesMonitor
+          ? resourceBeingCleared.monitorGroupId
+          : resourceBeingCleared.monitorId;
+
+        if (!leftShowing) {
+          throw new BadDataException(TARGET_CLEARED_MESSAGE);
+        }
+      }
     }
 
     /*

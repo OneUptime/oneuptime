@@ -1,4 +1,4 @@
-import { AddGroupIncidentsByEpisodeToStatusPage1809187560767 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187560767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
 import ColumnType from "../../../../Types/Database/ColumnType";
@@ -21,7 +21,7 @@ import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArg
  */
 
 const OWN_CLASS_NAME: string =
-  "AddGroupIncidentsByEpisodeToStatusPage1809187560767";
+  "AddGroupIncidentsByEpisodeToStatusPage1809187610767";
 
 const MIGRATION_PATH: string = path.join(
   __dirname,
@@ -33,7 +33,7 @@ const MIGRATION_PATH: string = path.join(
   "Infrastructure",
   "Postgres",
   "SchemaMigrations",
-  "1809187560767-AddGroupIncidentsByEpisodeToStatusPage.ts",
+  "1809187610767-AddGroupIncidentsByEpisodeToStatusPage.ts",
 );
 
 function timestampOfClassName(className: string): number | null {
@@ -56,7 +56,7 @@ async function recordQueries(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  await new AddGroupIncidentsByEpisodeToStatusPage1809187560767()[direction](
+  await new AddGroupIncidentsByEpisodeToStatusPage1809187610767()[direction](
     queryRunner,
   );
 
@@ -84,7 +84,7 @@ describe("AddGroupIncidentsByEpisodeToStatusPage migration - identity and regist
 
     expect(source).toContain(`export class ${OWN_CLASS_NAME}`);
     expect(source).toContain(`public name: string = "${OWN_CLASS_NAME}";`);
-    expect(new AddGroupIncidentsByEpisodeToStatusPage1809187560767().name).toBe(
+    expect(new AddGroupIncidentsByEpisodeToStatusPage1809187610767().name).toBe(
       OWN_CLASS_NAME,
     );
   });

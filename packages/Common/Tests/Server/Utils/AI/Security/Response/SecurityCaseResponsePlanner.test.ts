@@ -790,6 +790,45 @@ describe("the fix", () => {
     );
   });
 
+  test("the account's changes are a person's whatever their check says, with the check's reason (#10603)", () => {
+    const reasonFor: (state: SecurityCaseStepCheckState) => string = (
+      state: SecurityCaseStepCheckState,
+    ): string => {
+      const plan: ResponderPlan = planSecurityCaseResponse(
+        input({
+          plan: planOf([
+            step("fix:account-changes", ResponsePhase.Fix, {
+              check: check("fix:account-changes", state),
+            }),
+          ]),
+        }),
+      );
+
+      expect(plan.intents).toHaveLength(1);
+      expect(plan.intents[0]!.kind).toBe(
+        SecurityCaseAiActionKind.StepForPeople,
+      );
+
+      return plan.intents[0]!.reason;
+    };
+
+    // Undone where OneUptime could read it: a person confirms the rest.
+    expect(reasonFor(SecurityCaseStepCheckState.LooksDone)).toBe(
+      SecurityCaseAiActionReason.FixLooksDone,
+    );
+    // Still there, or back: OneUptime AI undoes nothing on an account - it may be the owner's own.
+    expect(reasonFor(SecurityCaseStepCheckState.NotDone)).toBe(
+      SecurityCaseAiActionReason.NeedsJudgement,
+    );
+    expect(reasonFor(SecurityCaseStepCheckState.Regressed)).toBe(
+      SecurityCaseAiActionReason.NeedsJudgement,
+    );
+    // Nothing OneUptime could read back.
+    expect(reasonFor(SecurityCaseStepCheckState.CannotTell)).toBe(
+      SecurityCaseAiActionReason.FixNotChecked,
+    );
+  });
+
   test("a step it left for the same reason is not logged again", () => {
     const plan: ResponderPlan = planSecurityCaseResponse(
       input({

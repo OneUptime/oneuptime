@@ -6,6 +6,10 @@ import {
 } from "mysql2/promise";
 import * as mssql from "mssql";
 import { CollectedField } from "../../../../Utils/DataSecurity/FieldCollector";
+import {
+  mergeShadowCounts,
+  ShadowCounts,
+} from "../../../../Utils/DataSecurity/ShadowCount";
 import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import {
   ContentScanOptions,
@@ -17,6 +21,8 @@ import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
+import { CONTENT_STORE_KEY, recognizeFields } from "../Model/ModelScan";
+import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import {
   classifyCollectedFields,
   FieldsClassification,
@@ -1052,6 +1058,8 @@ export async function sampleDatabase(
   const locations: Array<LocationFindings> = [];
   const plaintextPasswordFields: Array<string> = [];
   const unplacedFields: Array<UnplacedField> = [];
+  // What the drafts run in shadow would find, by column (#10371).
+  const shadowCounts: ShadowCounts = {};
   const excluded: Set<string> = readExclusions(options.exclusions);
   let isComplete: boolean = true;
   let estimatedRecords: number = 0;
@@ -1203,11 +1211,15 @@ export async function sampleDatabase(
           continue;
         }
 
+        // The names-and-addresses model reads the table's free-text columns.
+        const recognitions: ModelRecognitions | undefined =
+          await recognizeFields(options.model, CONTENT_STORE_KEY, fields);
         const classified: FieldsClassification = classifyCollectedFields({
           fields,
           options,
           fingerprints,
           locationKind: DataStoreLocationKind.Column,
+          recognitions,
         });
 
         locations.push(...classified.locations);
@@ -1217,6 +1229,8 @@ export async function sampleDatabase(
             unplacedFields.push(unplaced);
           }
         }
+
+        mergeShadowCounts(shadowCounts, classified.shadowCounts);
 
         for (const field of classified.plaintextPasswordFields) {
           if (plaintextPasswordFields.length < MAX_PLAINTEXT_PASSWORD_FIELDS) {
@@ -1249,6 +1263,10 @@ export async function sampleDatabase(
   result.estimatedRecords =
     result.objectsRead > 0 ? Math.round(estimatedRecords) : undefined;
   result.unplacedFields = unplacedFields;
+
+  if ((options.shadowDetectors || []).length > 0) {
+    result.shadowCounts = shadowCounts;
+  }
 
   return result;
 }

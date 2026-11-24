@@ -66,7 +66,19 @@ import {
 } from "../../../../../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import DataTypeNamer from "../../../../../../Types/DataSecurity/DataTypeNamer";
 import { DataStoreFindingVerdict } from "../../../../../../Types/DataSecurity/DataStoreFindingVerdict";
+import {
+  DESCRIBE_DATA_TYPE_EVAL_CASES,
+  DRAFT_DATA_TYPE_EVAL_CASES,
+  expectedDataTypeAnswer,
+  scoreDataTypeDraft,
+} from "../../../../../../Server/Utils/AI/Eval/DataSecurity/DataTypeDraftEvalSet";
+import {
+  DESCRIBE_DATA_TYPE_SYSTEM_PROMPT,
+  DRAFT_DATA_TYPE_SYSTEM_PROMPT,
+} from "../../../../../../Server/Utils/AI/DataSecurity/DataTypeDraftPrompt";
+import { valueShape } from "../../../../../../Utils/DataSecurity/UnplacedFields";
 import { describe, expect, test } from "@jest/globals";
+import { getGoodExposureAnswer } from "./ExposureEvalAnswers";
 
 /*
  * THE DATA SECURITY EVAL (#10365), AGAINST A PINNED MODEL STOOD IN FOR.
@@ -583,6 +595,9 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return goodScrubRulesAnswer(testCase);
     case DataSecurityAiFeature.ReviewPullRequests:
       return goodPullRequestAnswer(testCase);
+    // The fix a person would make, as the eval set of recorded leaks keeps it (#10367).
+    case DataSecurityAiFeature.FixTelemetryLeaks:
+      return fixAnswer(testCase.evalSetCase.solution);
     case DataSecurityAiFeature.DraftRecord:
     case DataSecurityAiFeature.DraftRecordOnRequest:
       return goodRecordAnswer(testCase);
@@ -590,6 +605,12 @@ function goodAnswer(testCase: DataSecurityEvalCase): string {
       return goodAssessmentAnswer(testCase);
     case DataSecurityAiFeature.DraftAuditEvidence:
       return goodEvidenceAnswer(testCase);
+    case DataSecurityAiFeature.DraftDataTypes:
+    case DataSecurityAiFeature.DescribeDataType:
+      return expectedDataTypeAnswer(testCase);
+    case DataSecurityAiFeature.DraftExposureAssessment:
+    case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
+      return getGoodExposureAnswer(testCase);
   }
 }
 
@@ -693,6 +714,115 @@ describe("verdicts on the findings that wait for a person (#10372)", () => {
     });
 
     expect(scoreAnswer(testCase, answer).passed).toBe(false);
+  });
+});
+
+describe("the company's own data types (#10371)", () => {
+  test("every group and sentence is asked as the product asks it, with no value in it", () => {
+    for (const testCase of DRAFT_DATA_TYPE_EVAL_CASES) {
+      const call: DataSecurityEvalCall = buildEvalCall(testCase);
+      const sent: string = JSON.stringify(call.messages);
+
+      expect(
+        call.messages[0]!.content.startsWith(DRAFT_DATA_TYPE_SYSTEM_PROMPT),
+      ).toBe(true);
+
+      for (const value of [
+        ...testCase.expect.finds,
+        ...testCase.expect.keeps,
+      ]) {
+        expect({ id: testCase.id, value, sent: sent.includes(value) }).toEqual({
+          id: testCase.id,
+          value,
+          sent: false,
+        });
+      }
+    }
+
+    for (const testCase of DESCRIBE_DATA_TYPE_EVAL_CASES) {
+      const call: DataSecurityEvalCall = buildEvalCall(testCase);
+      const data: Record<string, unknown> = JSON.parse(
+        call.messages[1]!.content,
+      ) as Record<string, unknown>;
+
+      expect(
+        call.messages[0]!.content.startsWith(DESCRIBE_DATA_TYPE_SYSTEM_PROMPT),
+      ).toBe(true);
+      // The examples' shapes, never the examples.
+      expect(data["exampleShapes"] || []).toEqual(
+        Array.from(new Set(testCase.examples.map(valueShape))),
+      );
+
+      for (const example of testCase.examples) {
+        expect(JSON.stringify(call.messages)).not.toContain(example);
+      }
+    }
+  });
+
+  test("every group has the type it should become, or none, and each a right answer passes", () => {
+    for (const testCase of [
+      ...DRAFT_DATA_TYPE_EVAL_CASES,
+      ...DESCRIBE_DATA_TYPE_EVAL_CASES,
+    ]) {
+      expect({
+        id: testCase.id,
+        score: scoreDataTypeDraft(testCase, expectedDataTypeAnswer(testCase)),
+      }).toEqual({ id: testCase.id, score: { passed: true, notes: [] } });
+    }
+
+    expect(
+      DRAFT_DATA_TYPE_EVAL_CASES.filter(
+        (testCase: { expect: { becomes: unknown } }) => {
+          return testCase.expect.becomes === null;
+        },
+      ).length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  test("a pattern that misses a value, finds one beside them, or finds words fails, and says why", () => {
+    const policies: (typeof DRAFT_DATA_TYPE_EVAL_CASES)[number] =
+      DRAFT_DATA_TYPE_EVAL_CASES[0]!;
+    const answer: (pattern: string) => string = (pattern: string): string => {
+      return JSON.stringify({
+        dataType: {
+          ...(
+            JSON.parse(expectedDataTypeAnswer(policies)) as {
+              dataType: Record<string, unknown>;
+            }
+          ).dataType,
+          pattern,
+        },
+        reason: "",
+      });
+    };
+
+    expect(
+      scoreDataTypeDraft(policies, answer("\\b[A-Z]{2}-\\d{7}\\b")),
+    ).toEqual({
+      passed: false,
+      notes: ["/\\b[A-Z]{2}-\\d{7}\\b/ misses XY9876543"],
+    });
+    expect(
+      scoreDataTypeDraft(policies, answer("[A-Z]{2,3}-?\\d{6,8}")).notes,
+    ).toEqual(
+      expect.arrayContaining(["/[A-Z]{2,3}-?\\d{6,8}/ also finds AB-123456"]),
+    );
+    expect(scoreDataTypeDraft(policies, answer("\\w+"))).toEqual({
+      passed: false,
+      notes: ["its pattern finds plain words"],
+    });
+    // Drafting a type where there is none fails too.
+    expect(
+      scoreDataTypeDraft(
+        DRAFT_DATA_TYPE_EVAL_CASES.find((testCase: { id: string }) => {
+          return testCase.id === "data-type-not-one-order-numbers";
+        })!,
+        answer("\\bORD-\\d{8}\\b"),
+      ),
+    ).toEqual({
+      passed: false,
+      notes: ["drafted a data type where there is none"],
+    });
   });
 });
 

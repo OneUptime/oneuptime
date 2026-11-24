@@ -179,6 +179,8 @@ A tela **Visão geral** de cada página de status tem um cartão **Link da pági
 
 Nos bastidores, cada rota pública tem uma gêmea de pré-visualização em `/status-page/{statusPageId}/...`: uma visão geral de pré-visualização, uma lista de incidentes de pré-visualização, uma página de inscrição de pré-visualização e assim por diante. Por isso, uma URL ou captura de tela tirada da pré-visualização do painel não vai corresponder ao que um cliente vê depois que um domínio personalizado estiver conectado, então confira qualquer link que você colar em um runbook ou e-mail.
 
+Enquanto uma página não tem nada, os visitantes dela leem **Nada para mostrar ainda**. Na pré-visualização, uma nota abaixo diz "Os visitantes veem este aviso até você adicionar recursos.", com **Adicionar recursos no painel**, que abre os **Recursos** da página no painel, em qualquer um dos seus projetos em que a página esteja.
+
 ## Restringir quem pode ver a página
 
 Nem toda página de status é para o público. Quem pode ver uma página é uma única escolha, o primeiro cartão de **Páginas de status → sua página → Segurança → Acesso**, **Quem pode ver esta página de status**:

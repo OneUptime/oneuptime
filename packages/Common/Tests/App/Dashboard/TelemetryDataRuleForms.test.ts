@@ -25,6 +25,7 @@ import { ReactElement } from "react";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import {
   getScrubRuleCustomRegexRefusal,
+  normalizeScrubRuleKeys,
   ScrubRuleValidationOptions,
   validateScrubRule,
 } from "../../../Server/Utils/ScrubRuleValidation";
@@ -47,8 +48,10 @@ import {
   getTraceScrubRuleFormFields,
   LOG_SCRUB_RULE_DEFAULTS_SUMMARY,
   LOG_SCRUB_RULE_FORM_OPTIONS,
+  LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
   LOG_SCRUB_RULE_SERVICE_HELP,
   LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
+  NAMED_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   SCRUB_RULE_CUSTOM_REGEX_MATCHES_EMPTY_TEXT,
   SCRUB_RULE_CUSTOM_REGEX_MISSING,
   SCRUB_RULE_DEFAULT_NAMES,
@@ -56,8 +59,11 @@ import {
   SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY,
   TRACE_SCRUB_RULE_DEFAULTS_SUMMARY,
   TRACE_SCRUB_RULE_FORM_OPTIONS,
+  TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
   TRACE_SCRUB_RULE_SERVICE_HELP,
+  withAttributeKeysOneALine,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleForm";
+import { getScrubRuleFingerprint } from "../../../Types/Telemetry/ScrubRuleProof";
 
 /*
  * The log and trace data rule forms, field by field: what each asks, in
@@ -159,6 +165,8 @@ describe("the scrub rule form", () => {
           "description",
           "scrubAction",
           "fieldsToScrub",
+          // The only attributes a pattern rule reads (#10751), folded.
+          "attributeKeys",
           "service",
           "isEnabled",
         ]);
@@ -234,7 +242,7 @@ describe("the scrub rule form", () => {
         }
       });
 
-      test("folds the description, the action, the fields, the service and Enabled under one Advanced", () => {
+      test("folds the description, the action, the fields, the attributes it reads, the service and Enabled under one Advanced", () => {
         const folded: Array<AnyField> = fields.filter((field: AnyField) => {
           return Boolean(field.collapsibleSection);
         });
@@ -243,6 +251,7 @@ describe("the scrub rule form", () => {
           "description",
           "scrubAction",
           "fieldsToScrub",
+          "attributeKeys",
           "service",
           "isEnabled",
         ]);
@@ -330,6 +339,138 @@ describe("the scrub rule form", () => {
         );
         expect(fieldsToScrub.showIf!({ patternType: "email" })).toBe(true);
         expect(fieldsToScrub.showIf!({})).toBe(true);
+      });
+
+      /*
+       * #10751: a pattern rule names the attributes it reads in the column
+       * a Named Attributes rule names the attributes it hides in - two
+       * fields, one shown at a time.
+       */
+      test("asks a pattern rule which attributes it reads, and never with Attributes to Hide", () => {
+        const [toHide, onlyIn] = fields.filter((field: AnyField): boolean => {
+          return keyOf(field) === "attributeKeys";
+        }) as [AnyField, AnyField];
+
+        expect(toHide.title).toBe("Attributes to Hide");
+        expect(onlyIn.title).toBe("Only in These Attributes");
+
+        for (const patternType of patternTypes) {
+          const values: FormValues<LogScrubRule> = {
+            patternType,
+          } as FormValues<LogScrubRule>;
+          const shown: Array<string> = [toHide, onlyIn]
+            .filter((field: AnyField): boolean => {
+              return field.showIf!(values);
+            })
+            .map((field: AnyField): string => {
+              return field.title as string;
+            });
+
+          if (patternType === "namedKeys") {
+            expect([patternType, shown]).toEqual([
+              patternType,
+              ["Attributes to Hide"],
+            ]);
+          } else if (patternType === "sensitiveKeys") {
+            // It reads every key; naming some would change nothing.
+            expect([patternType, shown]).toEqual([patternType, []]);
+          } else {
+            expect([patternType, shown]).toEqual([
+              patternType,
+              ["Only in These Attributes"],
+            ]);
+          }
+        }
+
+        // Before a type is picked, neither.
+        expect(toHide.showIf!({})).toBe(false);
+        expect(onlyIn.showIf!({})).toBe(false);
+        // A pick as the dropdown holds it.
+        expect(
+          onlyIn.showIf!({
+            patternType: { label: "Email Address", value: "email" },
+          } as unknown as FormValues<LogScrubRule>),
+        ).toBe(true);
+      });
+
+      test("says what a narrowed rule still reads, optional, folded, one key a line", () => {
+        const onlyIn: AnyField = fields.filter((field: AnyField): boolean => {
+          return keyOf(field) === "attributeKeys";
+        })[1]!;
+
+        expect(onlyIn.required).toBe(false);
+        expect(onlyIn.fieldType).toBe(FormFieldSchemaType.LongText);
+        expect(onlyIn.collapsibleSection!.title).toBe("More fields");
+        expect(onlyIn.placeholder).toBe("e.g. db.password");
+        expect(onlyIn.description).toBe(
+          signal === "log"
+            ? "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says."
+            : "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.",
+        );
+        // One short sentence under the field (Docs/ux/README.md#help-text).
+        expect((onlyIn.description as string).length).toBeLessThanOrEqual(150);
+      });
+
+      test("checks the attributes a pattern rule reads as the server does, and asks for none", () => {
+        const onlyIn: AnyField = fields.filter((field: AnyField): boolean => {
+          return keyOf(field) === "attributeKeys";
+        })[1]!;
+        const tooMany: string = Array.from(
+          { length: 51 },
+          (_value: unknown, index: number): string => {
+            return `attribute_${index}`;
+          },
+        ).join("\n");
+
+        for (const attributeKeys of [
+          undefined,
+          "",
+          "db.password",
+          tooMany.split("\n").slice(0, 50).join("\n"),
+        ]) {
+          expect(
+            onlyIn.customValidation!({
+              patternType: "email",
+              attributeKeys,
+            } as unknown as FormValues<LogScrubRule>),
+          ).toBeNull();
+        }
+
+        expect(
+          onlyIn.customValidation!({
+            patternType: "email",
+            attributeKeys: tooMany,
+          } as unknown as FormValues<LogScrubRule>),
+        ).toBe("A rule names at most 50 attributes.");
+        expect(
+          onlyIn.customValidation!({
+            patternType: "custom",
+            attributeKeys: "k".repeat(257),
+          } as unknown as FormValues<LogScrubRule>),
+        ).toBe("An attribute key is at most 256 characters.");
+      });
+
+      test("names the attributes it reads on the folded line, as code", () => {
+        const onlyIn: AnyField = fields.filter((field: AnyField): boolean => {
+          return keyOf(field) === "attributeKeys";
+        })[1]!;
+
+        expect(
+          onlyIn.getFoldedValue!({
+            attributeKeys: "db.password\n db.password_old \n\ndb.password",
+          } as unknown as FormValues<LogScrubRule>),
+        ).toBe("db.password, db.password_old");
+        expect(
+          onlyIn.getFoldedValue!({
+            attributeKeys: ["client.address"],
+          } as unknown as FormValues<LogScrubRule>),
+        ).toBe("client.address");
+        expect(
+          onlyIn.getFoldedValue!({
+            attributeKeys: "  ",
+          } as unknown as FormValues<LogScrubRule>),
+        ).toBeNull();
+        expect(onlyIn.getFoldedValue!({})).toBeNull();
       });
 
       test("the pattern type's pick names the rule until somebody names it", () => {
@@ -423,6 +564,15 @@ describe("the scrub rule form", () => {
     );
     expect(SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY).toBe(
       "The values of attributes whose key looks sensitive are replaced with [REDACTED].",
+    );
+  });
+
+  test("each form says what its narrowed rule still reads", () => {
+    expect(LOG_SCRUB_RULE_FORM_OPTIONS.onlyInAttributesHelp).toBe(
+      LOG_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
+    );
+    expect(TRACE_SCRUB_RULE_FORM_OPTIONS.onlyInAttributesHelp).toBe(
+      TRACE_SCRUB_RULE_ONLY_IN_ATTRIBUTES_HELP,
     );
   });
 
@@ -668,6 +818,50 @@ describe("what the scrub rule's folded Advanced says", () => {
     }
   });
 
+  /*
+   * #10751: a pattern rule that reads only some attributes reads less than
+   * the defaults' line says, so the line gives way to Configured and the
+   * chip naming them. A Named Attributes rule's attributes are its rule,
+   * not a folded setting.
+   */
+  test("nothing for a pattern rule that reads only some attributes", () => {
+    for (const attributeKeys of [
+      "db.password",
+      ["db.password"],
+      "db.password\ndb.password_old",
+    ]) {
+      expect(
+        getScrubRuleAdvancedSummary(LOG_SCRUB_RULE_FORM_OPTIONS, {
+          patternType: "email",
+          attributeKeys,
+        } as unknown as FormValues<LogScrubRule>),
+      ).toBeUndefined();
+    }
+
+    // None named, however the form holds none: every attribute, the default.
+    for (const attributeKeys of [undefined, null, "", "  \n ", []]) {
+      expect(
+        getScrubRuleAdvancedSummary(TRACE_SCRUB_RULE_FORM_OPTIONS, {
+          patternType: "ipAddress",
+          attributeKeys,
+        } as unknown as FormValues<LogScrubRule>),
+      ).toEqual([TRACE_SCRUB_RULE_DEFAULTS_SUMMARY]);
+    }
+
+    expect(
+      getScrubRuleAdvancedSummary(LOG_SCRUB_RULE_FORM_OPTIONS, {
+        patternType: "namedKeys",
+        attributeKeys: "customer_name",
+      } as unknown as FormValues<LogScrubRule>),
+    ).toEqual([NAMED_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY]);
+    expect(
+      getScrubRuleAdvancedSummary(LOG_SCRUB_RULE_FORM_OPTIONS, {
+        patternType: "sensitiveKeys",
+        attributeKeys: "password",
+      } as unknown as FormValues<LogScrubRule>),
+    ).toEqual([LOG_SENSITIVE_KEYS_SCRUB_RULE_DEFAULTS_SUMMARY]);
+  });
+
   test("no service, however the form holds it, is every service: the default", () => {
     for (const service of [undefined, null, ""]) {
       expect(
@@ -685,6 +879,128 @@ describe("what the scrub rule's folded Advanced says", () => {
         fieldsToScrub: { label: "Both (Body & Attributes)", value: "both" },
       } as unknown as FormValues<LogScrubRule>),
     ).toEqual([LOG_SCRUB_RULE_DEFAULTS_SUMMARY]);
+  });
+});
+
+/*
+ * #10751: a saved rule's attributes open one a line in its Edit form, and
+ * what the form sends the server keeps as the list it reads: the same list
+ * keeps the rule's proof, another loses it.
+ */
+describe("the attributes a saved rule names, in its Edit form", () => {
+  test("open one a line, each once, as the fields say to write them", () => {
+    const rule: LogScrubRule = new LogScrubRule();
+
+    rule.attributeKeys = ["db.password", " db.password_old ", "DB.PASSWORD"];
+
+    expect(withAttributeKeysOneALine(rule)).toBe(rule);
+    expect(rule.attributeKeys as unknown).toBe("db.password\ndb.password_old");
+  });
+
+  test("a rule that names none, or holds them as text already, is left as it is", () => {
+    for (const attributeKeys of [undefined, null, "db.password"]) {
+      const rule: TraceScrubRule = Object.assign(new TraceScrubRule(), {
+        attributeKeys,
+      });
+
+      withAttributeKeysOneALine(rule);
+
+      expect(rule.attributeKeys as unknown).toBe(attributeKeys);
+    }
+
+    const empty: LogScrubRule = Object.assign(new LogScrubRule(), {
+      attributeKeys: [],
+    });
+
+    withAttributeKeysOneALine(empty);
+
+    expect(empty.attributeKeys as unknown).toBe("");
+  });
+
+  test("the server keeps what the form sends as the list ingest reads, and an emptied field as none", () => {
+    const typed: { attributeKeys?: unknown } = {
+      attributeKeys: "db.password\n DB.password \ndb.password_old\n",
+    };
+
+    normalizeScrubRuleKeys(typed);
+
+    expect(typed.attributeKeys).toEqual(["db.password", "db.password_old"]);
+
+    const emptied: { attributeKeys?: unknown } = { attributeKeys: "" };
+
+    normalizeScrubRuleKeys(emptied);
+
+    expect(emptied.attributeKeys).toEqual([]);
+
+    // A pattern rule may name its attributes; the server's own check agrees.
+    expect(() => {
+      validateScrubRule(
+        {
+          patternType: "email",
+          attributeKeys: ["db.password", "db.password_old"],
+          fieldsToScrub: "attributes",
+        },
+        {
+          recordNoun: "logs",
+          patternTypes: LOG_SCRUB_PATTERN_TYPES,
+          fieldsToScrub: LOG_SCRUB_FIELDS,
+        } as ScrubRuleValidationOptions,
+      );
+    }).not.toThrow();
+  });
+
+  test("an edit of the attributes a rule reads loses its proof; the same attributes, written otherwise, keep it", () => {
+    const rule: {
+      signal: "log";
+      patternType: string;
+      customRegex: string;
+      scrubAction: string;
+      fieldsToScrub: string;
+      serviceId: string;
+    } = {
+      signal: "log",
+      patternType: "custom",
+      customRegex: "pw=[^&]+",
+      scrubAction: "redact",
+      fieldsToScrub: "attributes",
+      serviceId: "6b6b6b6b-0000-4000-8000-0000000000b2",
+    };
+    const proven: string = getScrubRuleFingerprint({
+      ...rule,
+      attributeKeys: ["db.password"],
+    });
+
+    // Saved again as the form sent it, one a line, in another case or order.
+    expect(
+      getScrubRuleFingerprint({ ...rule, attributeKeys: "db.password" }),
+    ).toBe(proven);
+    expect(
+      getScrubRuleFingerprint({ ...rule, attributeKeys: "DB.Password\n" }),
+    ).toBe(proven);
+
+    // Widened, emptied or changed: another rule, no longer the one proven.
+    for (const attributeKeys of [
+      "db.password\ndb.password_old",
+      "",
+      ["db.password_old"],
+    ]) {
+      expect([
+        attributeKeys,
+        getScrubRuleFingerprint({ ...rule, attributeKeys }) === proven,
+      ]).toEqual([attributeKeys, false]);
+    }
+
+    const both: string = getScrubRuleFingerprint({
+      ...rule,
+      attributeKeys: ["db.password", "db.password_old"],
+    });
+
+    expect(
+      getScrubRuleFingerprint({
+        ...rule,
+        attributeKeys: "db.password_old\ndb.password",
+      }),
+    ).toBe(both);
   });
 });
 

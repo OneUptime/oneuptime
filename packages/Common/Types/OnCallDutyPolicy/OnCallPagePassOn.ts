@@ -188,16 +188,12 @@ export function getOnCallPageStatusLabel(status: string): string {
 }
 
 /*
- * The key a phone call asks the person to press to escalate the page, and
- * what it says about it, after "To acknowledge this incident, press 1.": "If
- * you can't take it, press 2 to escalate." What it answers when the key is
- * pressed depends on what came of it (UserOnCallLogTimelineAPI).
+ * The key a phone call asks the person to press to escalate the page:
+ * "Press 1 to acknowledge, or 2 to escalate." (Utils/Call/OnCallPageCall).
+ * What it answers when the key is pressed depends on what came of it
+ * (UserOnCallLogTimelineAPI).
  */
 export const ON_CALL_PAGE_CALL_PASS_ON_DIGIT: string = "2";
-
-export function getOnCallPageCallPassOnPrompt(): string {
-  return `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`;
-}
 
 // The record kinds a page is about, as the Dashboard's API names them.
 export enum OnCallPageRecordType {

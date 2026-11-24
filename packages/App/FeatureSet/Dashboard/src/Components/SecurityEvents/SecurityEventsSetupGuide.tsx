@@ -360,7 +360,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
   const fluentBitSnippet: () => string = (): string => {
     return `# fluent-bit.conf — forward security logs you already collect.
 # The http output posts a JSON array; the ingest endpoint accepts a bare
-# array, { "events": [...] }, or a single object.
+# array, { "events": [...] }, or a single object, gzip-compressed or not.
 
 [OUTPUT]
     Name             http
@@ -370,6 +370,7 @@ const SecurityEventsSetupGuide: FunctionComponent = (): ReactElement => {
     tls              ${httpProtocol === "https" ? "On" : "Off"}
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token ${tokenValue}

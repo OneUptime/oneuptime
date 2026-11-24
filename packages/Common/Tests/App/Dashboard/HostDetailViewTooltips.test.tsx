@@ -139,6 +139,7 @@ import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 // A tooltip draws a duration's figure held to its word (#8811).
 import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
 import NotEqual from "../../../Types/BaseDatabase/NotEqual";
+import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInfoTooltip";
 
 const D: Record<HostMetric, string> = HOST_METRIC_DESCRIPTIONS;
 
@@ -765,16 +766,26 @@ describe("Host Windows service view", () => {
     }
   });
 
-  test("the timeline (i) sits beside the heading, not inside it", async () => {
+  /*
+   * The heading's (i) follows its last word, inside the heading's own words
+   * (WordsWithInfoTooltip, #8044): a heading that wraps keeps it beside the
+   * word it ends on, not at the far edge of the row.
+   */
+  test("the timeline (i) follows the heading's last word", async () => {
     await renderService();
 
     const heading: HTMLElement = screen.getByRole("heading", {
-      name: "Status timeline",
+      name: /^Status timeline/,
     });
     const button: HTMLElement = infoButtonsFor("Status timeline")[0]!;
+    const glue: HTMLElement | null = button.closest<HTMLElement>(
+      `[${INFO_GLUE_ATTRIBUTE}]`,
+    );
 
-    expect(heading).not.toContainElement(button);
-    expect(button.parentElement).toContainElement(heading);
+    expect(heading).toContainElement(button);
+    expect(glue).not.toBeNull();
+    expect(glue!.parentElement?.lastChild).toBe(glue);
+    expect(glue!.parentElement?.textContent?.trim()).toBe("Status timeline");
   });
 
   test("availability is a count of Running samples, as the text says", async () => {

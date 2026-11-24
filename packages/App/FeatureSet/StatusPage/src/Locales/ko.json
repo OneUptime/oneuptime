@@ -61,7 +61,8 @@
     "subGroupCount": "그룹 {{total}}개",
     "noResourcesTitle": "아직 표시할 내용이 없습니다",
     "noResourcesDescription": "이 페이지에는 아직 표시되는 서비스가 없습니다.",
-    "noResourcesPreviewDescription": "리소스를 추가할 때까지 방문자에게 이 내용이 표시됩니다. 대시보드의 리소스에서 이 상태 페이지에 모니터나 그룹을 추가하세요."
+    "noResourcesPreviewDescription": "리소스를 추가할 때까지 방문자에게 이 내용이 표시됩니다.",
+    "noResourcesPreviewLink": "대시보드에서 리소스 추가"
   },
   "eventItem": {
     "affectedResources": "영향을 받은 리소스",

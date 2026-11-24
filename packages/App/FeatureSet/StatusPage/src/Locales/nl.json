@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} groepen",
     "noResourcesTitle": "Nog niets te tonen",
     "noResourcesDescription": "Deze pagina toont nog geen diensten.",
-    "noResourcesPreviewDescription": "Bezoekers zien deze melding totdat u middelen toevoegt. Voeg in het dashboard onder Middelen monitors of groepen toe aan deze statuspagina."
+    "noResourcesPreviewDescription": "Bezoekers zien deze melding totdat u middelen toevoegt.",
+    "noResourcesPreviewLink": "Middelen toevoegen in het dashboard"
   },
   "eventItem": {
     "affectedResources": "Getroffen bronnen",

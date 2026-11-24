@@ -133,6 +133,7 @@ Open **Products → Security Events → Events**. The events show within a few s
 Name the format with `?format=`, with the `x-oneuptime-security-event-format` header, or with a top-level `"format"` field. Leave it out, and each event's format is worked out on its own, so one webhook can mix detections with raw events.
 
 - The body can be one event, an array of events, or `{ "events": [...] }`.
+- A batch can be gzip-compressed, sent with `Content-Encoding: gzip`: it is read as the same batch uncompressed. Fluent Bit's `http` output compresses with `compress gzip`, Vector's `http` sink with `compression = "gzip"`, and Logstash's `http` output with `http_compression => true`. Only JSON is read compressed: a compressed body of any other type is refused with `400`.
 - The `x-oneuptime-service-name` header names the telemetry service the events belong to. Without it, they belong to the service named after the first event's product or vendor, or to `Security Events`.
 - Nothing is dropped because it didn't map: every field of the source arrives in the event's attributes.
 
@@ -174,6 +175,7 @@ To send security logs you already collect, such as auditd, syslog or Falco, add 
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ The **Setup Guide** page, under **Connections**, has these snippets with your ow
 
 ### Find security events in your logs
 
-**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record and web attack in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
+**Your logs**, at the top of **Connections**, turns the logs you already send OneUptime into a source. With **Find security events in your logs** on, the project's new logs are read every minute, and each SSH or Windows sign-in, sudo command, cloud audit record, security product's CEF or LEEF record, Palo Alto Networks, FortiGate or Cisco ASA firewall record, Kubernetes audit record, web attack and refused request for a sensitive file in them is stored as a security event. See [Get Started with Security](/docs/telemetry/security-getting-started#find-security-events-in-your-logs) for what each kind covers.
 
 Each kind reaches OneUptime as ordinary logs:
 
@@ -297,6 +299,8 @@ An IP Address scrub rule that redacts or masks your logs or traces hides the add
 - The **Overview** names the rule that hides the addresses Security Events reads, with **Open Scrub Rules** too.
 
 A rule that hashes keeps the address for Security Events, so the event names it, unless its token is older than 30 days or was made before tokens had a key: see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data). To find these events, search `@oneuptime.request.client_address_hidden:scrub-rule`. What the rule left in the address's place, such as `[REDACTED]`, is in `oneuptime.request.client_address_scrubbed`. For a destination, search `@oneuptime.target_address_hidden:scrub-rule`.
+
+A detection rule that counts per address should count per `principalIp` or `targetIp`, which name the address behind a hashing rule's token, as the Rule Library's rules do. A format's own address field, such as `openstack.audit.initiator_address` or `asa.src_ip`, holds only an address the log wrote, so it stays empty wherever a scrub rule hid one.
 
 A rule that redacts or masks a user hides them the same way: where the event would name the user, **Principal User** or **Target User** says a scrub rule hid them. Where Security Events reads a user, a rule that hashes keeps the user for it: a request's `enduser.id` or `user.id`, an AI call's user, and a user a log line names, such as a cloud audit log's principal. So the event names the user behind the token, a case about them names the account, and a playbook can act on it as on any other user. What the rule left is in `oneuptime.principal_user_hashed_as` or `oneuptime.target_user_hashed_as`, so you can find the user in your logs and traces, which hold only the token. A token with no user kept for it, such as one made before tokens had a key, stays the event's user: rules count it as one account, and no playbook acts on it.
 

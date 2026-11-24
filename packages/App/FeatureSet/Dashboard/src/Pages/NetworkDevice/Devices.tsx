@@ -183,7 +183,7 @@ import {
   getNetworkDeviceAssetFacts,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -698,6 +698,8 @@ const NetworkDevices: FunctionComponent<
       modelType: NetworkDevice,
       // One at a time: each device's write recomputes its site's health.
       concurrency: 1,
+      // Where Archive says to unarchive: Network's side menu names it so.
+      archivedPageTitle: translationKey("Archived Devices"),
     });
 
   /*

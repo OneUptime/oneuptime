@@ -82,6 +82,8 @@ In einer Rastergruppe fragt der Dialog über **Weitere Felder** außerdem nach d
 > [!TIP]
 > Um mehrere Prüfungen als eine Zeile zu zeigen, fügen Sie eine [Monitor-Gruppe](/docs/monitor/monitor-groups) hinzu. Ist der Schalter **Monitor-Gruppen** eingeschaltet (**Projekteinstellungen** > **Grundlegend** > **Produkte**, der speichert, sobald Sie ihn umlegen), steht unter der Auswahlliste ein Link **Fügen Sie stattdessen eine Monitor-Gruppe hinzu.** Klicken Sie darauf, und aus **Monitor** wird **Monitor-Gruppe** (**Überwachungsgruppe auswählen**); **Fügen Sie stattdessen einen Monitor hinzu.** schaltet zurück.
 
+**Ressource bearbeiten**, der Stift an einer Zeile, öffnet sich auf dem, was die Zeile zeigt: die Zeile einer Monitor-Gruppe auf **Monitor-Gruppe**, mit der Gruppe ausgewählt, und die Zeile eines Monitors auf **Monitor**. Ist der Schalter **Monitor-Gruppen** an, lautet der Link unter der Auswahlliste **Zeigen Sie stattdessen einen Monitor an.** in der Zeile einer Gruppe und **Zeigen Sie stattdessen eine Monitor-Gruppe an.** in der eines Monitors. Er tauscht die Auswahlliste nur in diesem Dialog, und das Speichern richtet die Zeile stattdessen auf das, was Sie gewählt haben. **Anzeigename** folgt der neuen Auswahl, solange er noch der Name dessen ist, was die Zeile zeigte, und bleibt, wie er ist, wenn Sie die Zeile umbenannt haben. In der Liste sagt die Zeile einer Gruppe, deren Anzeigename der eigene Name der Gruppe ist, **Wie der Name der Monitor-Gruppe**.
+
 ### Mehrere auf einmal hinzufügen
 
 **Mehrere hinzufügen** (auch **Mehrere Monitore hinzufügen** im Menü **Weitere Aktionen**) öffnet **Mehrere Monitore hinzufügen**. Auch das ist eine einzige Seite: eine Mehrfachauswahl **Monitore**, dann dieselben eingeklappten **Weitere Felder**, deren Anzeigeoptionen für jeden gewählten Monitor gelten. Jede Ressource übernimmt Anzeigenamen und Beschreibung von ihrem Monitor, und **Monitore hinzufügen** fügt sie alle hinzu. Das ist der schnellste Weg, eine neue Seite zu befüllen.
@@ -97,6 +99,8 @@ Eine Statusseite führt einen Monitor nur einmal. Das Hinzufügen ist idempotent
 Die Zusammenfassung am Ende des Massenhinzufügens sagt das: Hinzugefügte Monitore stehen unter **Hinzugefügt**, die schon vorhandenen unter **Bereits hinzugefügt**. Nichts wird als Fehler gemeldet, und für sie wird nichts geschrieben.
 
 Dieselbe Regel gilt überall, wo eine Ressource entsteht. Einen Monitor, der schon auf der Seite ist, über das Formular für einen einzelnen Monitor hinzuzufügen oder eine bestehende Ressource im Bearbeitungsformular auf ihn zu richten, wird mit *„This monitor is already added to this status page“* abgelehnt – auch wenn die bestehende Ressource in einer anderen Gruppe liegt, denn ein Besucher sähe den Monitor trotzdem zweimal. Um einen Monitor in einer anderen Gruppe zu zeigen, löschen Sie seine bestehende Ressource und fügen ihn dort hinzu, wo Sie ihn haben wollen.
+
+Eine Ressource zeigt einen Monitor oder eine Monitor-Gruppe, nie beides und nie keins von beiden. Richten Sie eine Ressource auf das eine, wird das andere geleert, so dass eine Zeile in einer einzigen Änderung von einem Monitor zu einer Monitor-Gruppe wechselt. Über die API wird eine Ressource, die beides nennt, mit *„A status page resource shows a monitor or a monitor group, not both. Send one of them.“* abgelehnt, und eine, die keins von beiden nennt, oder eine Änderung, die ihr keins von beiden ließe, mit *„A status page resource needs a monitor or a monitor group to show“*.
 
 ## Anzeigeoptionen einer Ressource
 
@@ -280,6 +284,10 @@ Der Import legt Gruppen an, keine Ressourcen: Fügen Sie danach Monitore mit **M
 
 :::details „This monitor is already added to this status page“
 Eine Seite führt jeden Monitor nur einmal, auch über Gruppen hinweg. Der Monitor hat schon eine Ressource, vielleicht in einer anderen Gruppe oder von einer Monitor-Regel hinzugefügt. Suchen Sie ihn im Navigator, löschen Sie diese Ressource und fügen Sie den Monitor dort hinzu, wo Sie ihn haben wollen.
+:::
+
+:::details „A status page resource needs a monitor or a monitor group to show“
+Die API, Terraform oder ein Skript hat eine Ressource ohne Monitor und ohne Monitor-Gruppe gesendet, oder eine Änderung, die das leert, was sie zeigt. Senden Sie `monitorId` oder `monitorGroupId`, eines von beiden. Um eine Ressource auf die andere Art zu richten, senden Sie das Neue in derselben Änderung: Das Alte wird geleert. Ressourcen, die vor dieser Regel keins von beiden zeigten, wurden Besuchern nie gezeigt, und ein Upgrade löscht sie.
 :::
 
 :::details Ein hinzugefügter Monitor erscheint nicht auf der Statusseite

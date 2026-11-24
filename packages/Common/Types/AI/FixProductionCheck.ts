@@ -70,6 +70,9 @@ export class FixProductionCheckHelper {
         return FixProductionCheck.Telemetry;
       case CodeFixTaskType.FixInfrastructureCode:
         return FixProductionCheck.StoreConfiguration;
+      // A service's telemetry leaks, fixed in its code (#10367).
+      case CodeFixTaskType.FixSensitiveDataInTelemetry:
+        return FixProductionCheck.TelemetryLeak;
       default:
         return null;
     }
