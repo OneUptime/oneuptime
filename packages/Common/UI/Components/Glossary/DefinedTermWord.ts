@@ -9,6 +9,13 @@ import React from "react";
 export const DEFINED_TERM_TEST_ID: string = "defined-term";
 
 /*
+ * The place a word is drawn in says, while it is drawn as plain words -
+ * another word of its term came first on its page, or three terms did
+ * (GlossaryMarks) - which term it is.
+ */
+export const PLAIN_GLOSSARY_TERM_ATTRIBUTE: string = "data-plain-glossary-term";
+
+/*
  * The word: its own font and colour, with a dotted line under it that
  * darkens on hover, and the focus ring every control has.
  */
@@ -17,7 +24,8 @@ export const DEFINED_TERM_CLASS_NAME: string =
 
 /*
  * A press is the word's own: it does not tick the box a label belongs to,
- * submit a form or follow a card's link.
+ * submit a form or open the card or the row it is in. (A word is never
+ * inside a button, a link or a tab, which could not hear it: DefinedTermPlace.)
  */
 export const keepDefinedTermPress: (
   event: React.MouseEvent<HTMLButtonElement>,
@@ -27,8 +35,9 @@ export const keepDefinedTermPress: (
 };
 
 /*
- * A card that is itself a button hears Enter and Space bubble up and would
- * open; they are this word's.
+ * A card or a row that opens on a click, and listens for Enter and Space
+ * to open from the keyboard too, hears them bubble up from the word and
+ * would open; they are this word's.
  */
 export const keepDefinedTermKeys: (
   event: React.KeyboardEvent<HTMLButtonElement>,

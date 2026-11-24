@@ -4,16 +4,18 @@
  * links and "Was this clear?" under a definition - stays out of the first
  * load of every page that draws a form, a card or a table.
  */
-import type DefinedTerm from "./DefinedTerm";
+import type { DefinedTermMark } from "./DefinedTerm";
 import type { ComponentProps } from "./DefinedTerm";
 import {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_TEST_ID,
+  PLAIN_GLOSSARY_TERM_ATTRIBUTE,
   keepDefinedTermKeys,
   keepDefinedTermPress,
 } from "./DefinedTermWord";
+import { useDefinedTermPlace } from "./DefinedTermPlace";
 import { LazyLibrary, useLazyLibrary } from "../../Utils/LazyLibrary";
-import React, { FunctionComponent, ReactElement, useId } from "react";
+import React, { FunctionComponent, ReactElement, useId, useRef } from "react";
 
 /*
  * A word with its definition, as a form field's title, a card's title and a
@@ -27,41 +29,61 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
  * loaded, it is there from the first frame of every word drawn after. A
  * file that does not arrive leaves the word as it is drawn; the next word
  * drawn asks for it again.
+ *
+ * The word is counted on its page as DefinedTerm counts it (GlossaryMarks):
+ * drawn marked when it is the first word of its term on the page and among
+ * its first three terms, and otherwise as plain words - before the file
+ * arrives and after.
  */
-const definedTerm: LazyLibrary<typeof DefinedTerm> = new LazyLibrary<
-  typeof DefinedTerm
->(async (): Promise<typeof DefinedTerm> => {
-  return (await import("./DefinedTerm")).default;
+const definedTermMark: LazyLibrary<typeof DefinedTermMark> = new LazyLibrary<
+  typeof DefinedTermMark
+>(async (): Promise<typeof DefinedTermMark> => {
+  return (await import("./DefinedTerm")).DefinedTermMark;
 });
 
 const LazyDefinedTerm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const Loaded: typeof DefinedTerm | null = useLazyLibrary(definedTerm, true);
+  const Loaded: typeof DefinedTermMark | null = useLazyLibrary(
+    definedTermMark,
+    true,
+  );
   // The word itself, which names the button.
   const wordId: string = `${useId()}-word`;
+  // Where the word is drawn: its place on its page.
+  const placeRef: React.RefObject<HTMLSpanElement> =
+    useRef<HTMLSpanElement>(null);
+  const isMarked: boolean = useDefinedTermPlace(props.term, placeRef);
 
-  if (Loaded) {
-    return <Loaded {...props} />;
-  }
+  const drawn: ReactElement = !isMarked ? (
+    <>{props.children}</>
+  ) : Loaded ? (
+    <Loaded {...props} />
+  ) : (
+    <button
+      type="button"
+      /*
+       * Named by its own word, as DefinedTerm's is (a field's <label> with
+       * no `for` takes this button for the control it labels).
+       */
+      aria-labelledby={wordId}
+      data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
+      data-glossary-term={props.term}
+      className={DEFINED_TERM_CLASS_NAME}
+      onClick={keepDefinedTermPress}
+      onKeyDown={keepDefinedTermKeys}
+    >
+      <span id={wordId}>{props.children}</span>
+    </button>
+  );
 
   return (
-    <span className="inline">
-      <button
-        type="button"
-        /*
-         * Named by its own word, as DefinedTerm's is (a field's <label> with
-         * no `for` takes this button for the control it labels).
-         */
-        aria-labelledby={wordId}
-        data-testid={props.dataTestId || DEFINED_TERM_TEST_ID}
-        data-glossary-term={props.term}
-        className={DEFINED_TERM_CLASS_NAME}
-        onClick={keepDefinedTermPress}
-        onKeyDown={keepDefinedTermKeys}
-      >
-        <span id={wordId}>{props.children}</span>
-      </button>
+    <span
+      className="inline"
+      ref={placeRef}
+      {...(isMarked ? {} : { [PLAIN_GLOSSARY_TERM_ATTRIBUTE]: props.term })}
+    >
+      {drawn}
     </span>
   );
 };
