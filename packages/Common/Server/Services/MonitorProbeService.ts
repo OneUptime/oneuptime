@@ -81,16 +81,15 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * The schedules this process has handed monitors out on, so a claim
    * writes their next runs in its own statement (MonitorProbeSchedules).
    */
-  private readonly schedules: MonitorProbeSchedules =
-    new MonitorProbeSchedules(
-      (data: {
-        monitoringInterval: string;
-        fallback: Date;
-        onUnreadable: () => void;
-      }): Date => {
-        return Service.resolveNextPingAt(data);
-      },
-    );
+  private readonly schedules: MonitorProbeSchedules = new MonitorProbeSchedules(
+    (data: {
+      monitoringInterval: string;
+      fallback: Date;
+      onUnreadable: () => void;
+    }): Date => {
+      return Service.resolveNextPingAt(data);
+    },
+  );
 
   public constructor() {
     super(MonitorProbe);
@@ -332,9 +331,11 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    *
    * The same statement says whether the read stepped over a due row nothing
    * may probe (a paused monitor, a blocked project) - one of the first
-   * SET_ASIDE_PER_CLAIM due before the first row it claimed, read by index
-   * lookups (a join of that range to Monitor was planned as a scan of the
-   * whole table) - or the probe has a row with no nextPingAt. Only then are
+   * SET_ASIDE_PER_CLAIM due before the first row it claimed, each looked up
+   * by its monitor's and project's primary key (LATERAL ... LIMIT 1, which
+   * the planner cannot turn into a join: joined, the range was planned as a
+   * hash join over the whole Monitor table while other claims held 40
+   * rows, 1,588 pages) - or the probe has a row with no nextPingAt. Only then are
    * they set aside (setAsideUnprobeable), so the next claim does not step
    * over them again; a probe with nothing to set aside pays no statement
    * for it. The same probe with its paused monitors set aside: 163 buffers.
@@ -402,8 +403,16 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
                 ORDER BY mp."nextPingAt" ASC
                 LIMIT $8
               ) mp
-              LEFT JOIN "Monitor" m ON mp."monitorId" = m."_id"
-              LEFT JOIN "Project" p ON mp."projectId" = p."_id"
+              LEFT JOIN LATERAL (
+                SELECT * FROM "Monitor" m
+                WHERE m."_id" = mp."monitorId"
+                LIMIT 1
+              ) m ON true
+              LEFT JOIN LATERAL (
+                SELECT * FROM "Project" p
+                WHERE p."_id" = mp."projectId"
+                LIMIT 1
+              ) p ON true
               WHERE (
                 ${Service.getProbeableSql("$4")}
               ) IS NOT TRUE
@@ -461,16 +470,14 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
 
     ProbeSchedulingMetrics.recordMonitorsHandedOut({
       handedOutAt: currentDate,
-      monitors: claimed.map(
-        (row: ClaimedMonitorProbeRow): MonitorHandedOut => {
-          return {
-            dueAt: Service.toDate(row.dueAt),
-            intervalInMs: this.schedules.getIntervalInMs(
-              row.monitoringInterval || null,
-            ),
-          };
-        },
-      ),
+      monitors: claimed.map((row: ClaimedMonitorProbeRow): MonitorHandedOut => {
+        return {
+          dueAt: Service.toDate(row.dueAt),
+          intervalInMs: this.schedules.getIntervalInMs(
+            row.monitoringInterval || null,
+          ),
+        };
+      }),
     });
 
     const steppedOver: boolean = rows.some(
@@ -487,9 +494,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
        * due was: "before" a millisecond past now is everything due, the
        * statement asks for `<= now` as well.
        */
-      const firstClaimedDueAt: Date | null = Service.toDate(
-        claimed[0]?.dueAt,
-      );
+      const firstClaimedDueAt: Date | null = Service.toDate(claimed[0]?.dueAt);
 
       await this.setAsideUnprobeableSafely({
         probeId: data.probeId,

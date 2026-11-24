@@ -362,7 +362,7 @@ describe("the monitor claim reads only what it hands out", () => {
     );
     const checkPredicate: string = between(
       steppedOverCheckOf(claimSql),
-      'WHERE ( ',
+      "WHERE ( ",
       " ) IS NOT TRUE",
     );
     const setAsidePredicate: string = between(
@@ -392,8 +392,9 @@ describe("the monitor claim reads only what it hands out", () => {
   /*
    * The check reads only what the read stepped over - the rows due before
    * the first one it claimed - at most SET_ASIDE_PER_CLAIM of them, oldest
-   * first, by index lookups: joined to Monitor without a LIMIT, the range
-   * was planned as a scan of the whole table. And a legacy row with no
+   * first, each looked up by its monitor's and project's primary key:
+   * joined, the range was planned as a hash join over the whole Monitor
+   * table (ProbeDispatchQueryPlansPostgres). And a legacy row with no
    * nextPingAt counts too: the set-aside makes it due.
    */
   test("its check for what it stepped over reads at most SET_ASIDE_PER_CLAIM rows before the first claimed, and legacy rows", async () => {
@@ -403,8 +404,13 @@ describe("the monitor claim reads only what it hands out", () => {
     expect(check).toContain(
       'AND mp."nextPingAt" < COALESCE( (SELECT min("dueAt") FROM "claimable"), $2 + INTERVAL \'1 millisecond\' ) ORDER BY mp."nextPingAt" ASC LIMIT $8 ) mp',
     );
-    expect(check).toContain('LEFT JOIN "Monitor" m ON mp."monitorId" = m."_id"');
-    expect(check).toContain('LEFT JOIN "Project" p ON mp."projectId" = p."_id"');
+    // LIMIT 1 keeps each a lookup: the planner cannot make it a join.
+    expect(check).toContain(
+      'LEFT JOIN LATERAL ( SELECT * FROM "Monitor" m WHERE m."_id" = mp."monitorId" LIMIT 1 ) m ON true',
+    );
+    expect(check).toContain(
+      'LEFT JOIN LATERAL ( SELECT * FROM "Project" p WHERE p."_id" = mp."projectId" LIMIT 1 ) p ON true',
+    );
     expect(check).toContain(
       'OR EXISTS ( SELECT 1 FROM "MonitorProbe" mp WHERE mp."probeId" = $1 AND mp."isEnabled" = true AND mp."nextPingAt" IS NULL )',
     );
