@@ -31,9 +31,9 @@ const GOOGLE_AUTH_TIME_CLAIMS_REQUEST: string = JSON.stringify({
  * Government and Microsoft Entra China operated by 21Vianet ("Microsoft
  * Entra authentication & national clouds",
  * learn.microsoft.com/entra/identity-platform/authentication-national-cloud),
- * each with the aliases Microsoft's own instance discovery names for it
- * (login.microsoftonline.com/common/discovery/instance?api-version=1.1),
- * and the issuers their v1.0 discovery documents name: sts.windows.net,
+ * each with the aliases Microsoft's own instance discovery document names
+ * for it (discovery/instance, api-version 1.1, on the global host), and
+ * the issuers their v1.0 discovery documents name: sts.windows.net,
  * globally and for US Government, and sts.chinacloudapi.cn for 21Vianet.
  * Azure Germany's host is still listed there, though that cloud closed in
  * 2021. Sign In Again sends none of them max_age (generateAuthorizationUrl,

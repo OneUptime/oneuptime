@@ -15,7 +15,9 @@ import { Mock, SpyInstance } from "jest-mock";
 import path from "path";
 import React, { FunctionComponent, ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
-import ErrorBoundary from "../../../../UI/Components/ErrorBoundary";
+import ErrorBoundary, {
+  CRASH_SCREEN_WORDS,
+} from "../../../../UI/Components/ErrorBoundary";
 import NewVersionNotice from "../../../../UI/Components/NewVersion/NewVersionNotice";
 import { markChunkLoadErrorReload } from "../../../../UI/Utils/NewVersion/ChunkLoadError";
 import NewVersion, {
@@ -115,8 +117,8 @@ const OFFLINE_SCREEN: Array<string> = [
  * title and message go with them - one card in one language.
  */
 const GENERIC_ERROR: Array<string> = [
-  "Something went wrong",
-  "An unexpected error has occurred. Please reload the page to continue",
+  CRASH_SCREEN_WORDS.title,
+  CRASH_SCREEN_WORDS.message,
 ];
 
 const unique: (keys: Array<string>) => Array<string> = (

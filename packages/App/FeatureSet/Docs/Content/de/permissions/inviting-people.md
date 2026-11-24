@@ -132,8 +132,8 @@ Das Entfernen nimmt die Person aus jedem Team des Projekts. Sie verliert sofort 
 
 ## Fehlerbehebung
 
-:::details "This user has already been invited to this team"
-Die Person ist schon in diesem Team, als Mitglied oder mit einer noch nicht angenommenen Einladung. Öffnen Sie sie unter **Benutzer**, um ihre Teams zu sehen, oder laden Sie sie in ein anderes Team ein.
+:::details "This person has already been invited to this team, or is a member of it"
+Die Person ist schon in diesem Team, als Mitglied oder mit einer noch nicht angenommenen Einladung. Öffnen Sie sie unter **Benutzer**, um ihre Teams zu sehen, oder laden Sie sie in ein anderes Team ein. Ist die Person noch nicht beigetreten, sendet **Einladung erneut senden** im Zeilenmenü der Person ihre Einladungs-E-Mail noch einmal.
 :::
 
 :::details "You have reached the user limit for the free plan"

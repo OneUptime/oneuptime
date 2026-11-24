@@ -23,8 +23,8 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 
 | Punkt | Hva det gjør |
 | --- | --- |
-| **Profil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen, språket og bildet ditt, og sikkerheten rundt innloggingen. |
-| **Admin-innstillinger** | Åpner Admin Dashboard. Bare hovedadministratorer på en selvhostet installasjon ser det. |
+| **Brukerprofil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen, språket og bildet ditt, og sikkerheten rundt innloggingen. |
+| **Admin-dashbord** | Åpner Admin Dashboard. Bare hovedadministratorer på en selvhostet installasjon ser det. |
 | **Tema** | Velger dashbordets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt etter hvordan enheten din er stilt inn. |
 | **Logg ut** | Logger deg ut, med en gang på alle OneUptime-servere. Der administratoren din har satt det opp, logger den deg også ut av identitetsleverandøren din. |
 
@@ -35,7 +35,7 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 :::steps
 ### Åpne profilen din
 
-Klikk på bildet ditt øverst til høyre, og velg **Profil**. Siden **Oversikt** åpnes på kortet **Grunnleggende informasjon**: navnet, e-posten, tidssonen og språket ditt.
+Klikk på bildet ditt øverst til høyre, og velg **Brukerprofil**. Siden **Oversikt** åpnes på kortet **Grunnleggende informasjon**: navnet, e-posten, tidssonen og språket ditt.
 
 ### Rediger opplysningene dine
 

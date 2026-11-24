@@ -13,7 +13,11 @@
  * names no request OneUptime could follow: no trace, or no spans for it.
  */
 enum SecurityEventRequestOutcome {
-  // The app turned the request away (4xx): no handler did what it asked.
+  /*
+   * The app turned the request away (4xx): no handler did what it asked -
+   * as a site does that answers a request for a secret file it does not
+   * have with its own page, a single-page app's (#10912).
+   */
   Rejected = "Rejected",
   // A handler ran and answered (2xx, 3xx).
   ReachedApp = "Reached App",
@@ -103,6 +107,8 @@ export const SECURITY_REQUEST_ATTRIBUTES: {
   clientAddressTrust: string;
   claimedClientAddress: string;
   claimedClientAddressFrom: string;
+  responseBodySize: string;
+  responseContentType: string;
 } = {
   method: "http.request.method",
   url: "url.original",
@@ -128,6 +134,13 @@ export const SECURITY_REQUEST_ATTRIBUTES: {
   clientAddressTrust: "oneuptime.request.client_address_trust",
   claimedClientAddress: "oneuptime.request.claimed_client_address",
   claimedClientAddressFrom: "oneuptime.request.claimed_client_address_from",
+  /*
+   * What the answer carried, when the source recorded it (#10912): its
+   * body's size in bytes and its Content-Type - what tells a sensitive
+   * file the site served from its own page for a path it does not have.
+   */
+  responseBodySize: "http.response.body.size",
+  responseContentType: "http.response.header.content-type",
 };
 
 export default SecurityEventRequestOutcome;

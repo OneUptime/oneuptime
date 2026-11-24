@@ -65,9 +65,9 @@ describe("reading a stored filter", () => {
     expect(readServiceScope([])).toBeNull();
     expect(readServiceScope(undefined)).toBeNull();
     // An Includes as JSONFunctions writes it.
-    expect(readServiceScope({ _type: "Includes", value: [CHECKOUT] })).toEqual(
-      [CHECKOUT],
-    );
+    expect(readServiceScope({ _type: "Includes", value: [CHECKOUT] })).toEqual([
+      CHECKOUT,
+    ]);
   });
 
   test("texts: a plain value, an operator's values, never the operator's name", () => {
@@ -354,13 +354,11 @@ describe("recording rules", () => {
 
 describe("SLOs", () => {
   test("a request SLO's filter terms, of its services", () => {
-    const references: Array<TelemetryFieldReference> = findSloFieldReferences(
-      {
-        sliType: SliType.RequestSuccess,
-        requestFilter: '@user.email:alice@example.com name:"POST /pay*"',
-        serviceIds: [CHECKOUT],
-      },
-    );
+    const references: Array<TelemetryFieldReference> = findSloFieldReferences({
+      sliType: SliType.RequestSuccess,
+      requestFilter: '@user.email:alice@example.com name:"POST /pay*"',
+      serviceIds: [CHECKOUT],
+    });
 
     expect(references).toEqual([
       {
@@ -451,9 +449,7 @@ describe("dashboards", () => {
 
     expect(
       found.widgets.map(
-        (entry: {
-          widget: { id: string; title: string; type: string };
-        }) => {
+        (entry: { widget: { id: string; title: string; type: string } }) => {
           return entry.widget;
         },
       ),
@@ -589,7 +585,12 @@ describe("saved views", () => {
         TelemetryFieldUse.Search,
         ["/api"],
       ],
-      [TelemetryFieldPart.Body, undefined, TelemetryFieldUse.Search, ["timeout"]],
+      [
+        TelemetryFieldPart.Body,
+        undefined,
+        TelemetryFieldUse.Search,
+        ["timeout"],
+      ],
     ]);
     // The page's service, among the ones its query names.
     expect(references[0]!.serviceIds).toEqual([CHECKOUT]);

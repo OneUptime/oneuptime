@@ -113,7 +113,7 @@ Nenhum projeto deste OneUptime oferece ainda login único para o domínio desse 
 :::
 
 :::details Uma chave de segurança é o seu único segundo fator
-O aplicativo não consegue usar uma chave de segurança. Entre com um dos seus códigos de backup, ou adicione um aplicativo autenticador à sua conta no painel: veja [Ativar a autenticação de dois fatores](/docs/introduction/your-account#ativar-a-autenticação-de-dois-fatores).
+O aplicativo não consegue usar uma chave de segurança. Entre com um dos seus códigos de backup, ou adicione um app autenticador à sua conta no painel: veja [Ativar a autenticação de dois fatores](/docs/introduction/your-account#ativar-a-autenticação-de-dois-fatores).
 :::
 
 :::details O login com chave de acesso falha

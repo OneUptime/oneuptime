@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Written as npm run generate-postgres-migration writes it, alongside
- * AddOnCallPolicyIncidentRole1809187650000, and moved into a migration of
+ * AddOnCallPolicyIncidentRole1809187660000, and moved into a migration of
  * its own: "OnCallDutyPolicy" is read by every page and written whenever a
  * policy is changed, and "IncidentRole" by every role given on an incident.
  * So the index on the new "incidentRoleId" column is built online, and its
@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Safe to run again after a stop part way: an index or key that is already
  * there is left as it is.
  */
-export class AddOnCallPolicyIncidentRoleIndexAndKey1809187650010
+export class AddOnCallPolicyIncidentRoleIndexAndKey1809187660010
   implements MigrationInterface
 {
-  public name: string = "AddOnCallPolicyIncidentRoleIndexAndKey1809187650010";
+  public name: string = "AddOnCallPolicyIncidentRoleIndexAndKey1809187660010";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

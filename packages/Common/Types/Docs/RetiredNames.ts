@@ -43,7 +43,7 @@ export interface RetiredName {
   pattern: RegExp;
   // A sentence that uses it, when the name alone is not one (RetiredNamesGuard).
   example?: string | undefined;
-  // The pull request of #6817 that retired it, for the reader of a failure.
+  // The part of #6817, or the issue, that retired it, for the reader of a failure.
   retiredIn: string;
 }
 
@@ -172,6 +172,19 @@ export const RETIRED_NAMES: ReadonlyArray<RetiredName> = [
     glossaryTerm: GlossaryTerm.ScheduledMaintenance,
     pattern: /\bEvent States?\b/,
     retiredIn: "#6817 part 3",
+  },
+  {
+    name: "Chat",
+    nowCalled: "Ask AI",
+    glossaryTerm: GlossaryTerm.AskAI,
+    /*
+     * The products menu's entry for the Ask AI panel. Chat is ordinary
+     * English, and Slack's and Teams' chats are chats: it was a name only
+     * as that entry, in a path to it.
+     */
+    pattern: /\b(?:Products|AI)(?:\*\*)? (?:→|>) (?:\*\*)?Chat\b/,
+    example: "Open Products → AI → Chat.",
+    retiredIn: "#7474",
   },
 ];
 

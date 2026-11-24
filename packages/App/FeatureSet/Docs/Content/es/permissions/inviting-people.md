@@ -132,8 +132,8 @@ Quitar a alguien lo saca de cada equipo del proyecto. Pierde el acceso al instan
 
 ## Solución de problemas
 
-:::details "This user has already been invited to this team"
-Ya está en ese equipo, como miembro o con una invitación que no aceptó. Ábrala en **Usuarios** para ver sus equipos, o invítela a otro equipo.
+:::details "This person has already been invited to this team, or is a member of it"
+Ya está en ese equipo, como miembro o con una invitación que no aceptó. Ábrala en **Usuarios** para ver sus equipos, o invítela a otro equipo. Si aún no se ha unido, **Reenviar invitación** en el menú de su fila le envía de nuevo el correo de invitación.
 :::
 
 :::details "You have reached the user limit for the free plan"

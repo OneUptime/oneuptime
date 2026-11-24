@@ -2,8 +2,8 @@
   "Company name associated with this license.": "Nom de l'entreprise associée à cette licence.",
   "Annual contract value (in USD) for this license.": "Valeur annuelle du contrat (en USD) pour cette licence.",
   "Expiration date of this license.": "Date d'expiration de cette licence.",
-  "Something went wrong": "Un problème est survenu",
-  "An unexpected error has occurred. Please reload the page to continue": "Une erreur inattendue s'est produite. Veuillez recharger la page pour continuer",
+  "This page stopped working": "Cette page a cessé de fonctionner",
+  "Part of this page ran into a problem. Reload the page to continue.": "Une partie de cette page a rencontré un problème. Rechargez la page pour continuer.",
   "Error details": "Détails de l'erreur",
   "Still stuck?": "Toujours bloqué ?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Téléchargez un fichier de diagnostic local avec la pile d'erreur, la pile de composants, l'URL de la page nettoyée, les détails du navigateur et le build de OneUptime. Il ne lit jamais les cookies, les données enregistrées du navigateur ni le contenu des formulaires. Relisez-le avant de le partager avec le support OneUptime.",
@@ -497,7 +497,7 @@
       "title": "Se déconnecter"
     },
     "sendEmail": {
-      "title": "Envoyer un e-mail d'annonce",
+      "title": "Envoyer un e-mail",
       "testCardTitle": "Envoyer un e-mail de test",
       "testCardDescription": "Envoyez un e-mail d'annonce de test à une seule adresse e-mail pour prévisualiser son apparence avant de l'envoyer à tous les utilisateurs.",
       "allCardTitle": "Envoyer un e-mail à tous les utilisateurs",
@@ -514,7 +514,7 @@
       "confirmButton": "Oui, envoyer à tous les utilisateurs"
     },
     "moreEmail": {
-      "title": "Envoyer un e-mail d'annonce",
+      "title": "Envoyer un e-mail",
       "cardTitle": "Envoyer un e-mail d'annonce",
       "cardDescription": "Rédigez un e-mail d'annonce à envoyer à tous les utilisateurs enregistrés. Vous pouvez d'abord envoyer un e-mail de test pour prévisualiser son apparence.",
       "sendTestButton": "Envoyer l'e-mail de test",
@@ -536,7 +536,7 @@
       "confirmButton": "Oui, envoyer à tous les utilisateurs"
     },
     "settings": {
-      "title": "Paramètres admin",
+      "title": "Paramètres",
       "authentication": {
         "signUpCardTitle": "Inscription",
         "signUpCardDescription": "Qui peut créer un compte sur ce serveur.",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "Envoi d'une requête de test au canal.",
   "Custom Channel": "Canal personnalisé",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "Les règles d'astreinte de chacun qui utilisent ce canal sont supprimées avec lui. Pour arrêter les envois sans modifier les règles de quiconque, désactivez plutôt le canal.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Vous n'avez pas les autorisations nécessaires pour définir {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Vous n'avez pas les autorisations nécessaires pour modifier {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Vous n'avez pas les autorisations nécessaires pour définir {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Vous n'avez pas les autorisations nécessaires pour modifier {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}.",
   "Push Notifications": "Notifications push",
   "{{count}} {{itemsName}} skipped_one": "{{itemName}} ignoré : {{count}}",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "Êtes-vous sûr de vouloir appliquer « {{action}} » à {{count}} élément ({{itemName}}) ?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Donnez plus de mémoire et de CPU aux workers, et cherchez dans le journal de l'application les tâches qui échouent sans cesse.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Ce serveur exécute OneUptime {{current}}. La version {{latest}} est disponible.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Faites une sauvegarde, puis mettez à jour : npm run update avec Docker Compose, helm upgrade sur Kubernetes.",
-  "Finish it on the Server setup page.": "Terminez-le sur la page Configuration du serveur.",
+  "Finish it on the Server Setup page.": "Terminez-le sur la page Configuration du serveur.",
   "Products on this server": "Produits sur ce serveur",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Choisissez ce que chaque projet de ce serveur propose. Un produit désactivé disparaît du menu, de l'accueil et de la recherche de chaque projet, et ses pages indiquent qu'il est désactivé.",
   "Start from": "Partir de",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Passer à l'éditeur visuel",
   "Visual": "Visuel",
   "Drop image to upload": "Déposez l'image pour la téléverser",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "« {{fileName}} » n'a pas été téléversé. {{error}}",
+  "Uploading {{fileName}}…": "Téléversement de {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Saisissez directement dans l'éditeur visuel — utilisez la barre d'outils pour la mise en forme.",
   "Switch to {{markdown}} to view or edit the raw source.": "Passez à {{markdown}} pour voir ou modifier la source brute.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "Dans une liste, appuyez sur {{indentKey}} pour indenter un élément et sur {{outdentKey}} pour le désindenter, ou utilisez les boutons Indenter et Désindenter. Hors d'une liste, {{tabKey}} passe au champ suivant.",

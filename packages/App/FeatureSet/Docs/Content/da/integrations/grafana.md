@@ -59,13 +59,13 @@ Gå til **Monitorer**, og klik på **Opret monitor**. Vælg **Indgående anmodni
 
 ### Åbn én hændelse pr. advarsel
 
-Åbn **Indstillinger** i samme kriterium, og slå **Group incidents and alerts by a payload field** til. Udfyld den som nedenfor, så hver advarsel får sin egen hændelse, og dens genopretning løser den:
+Åbn **Indstillinger** i samme kriterium, og slå **Gruppér hændelser og advarsler efter et felt i payloaden** til. Udfyld den som nedenfor, så hver advarsel får sin egen hændelse, og dens genopretning løser den:
 
 | Felt | Værdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Åbn en separat hændelse for hver…** | `requestBody.alerts[*].fingerprint` |
+| **Felt, der signalerer genopretning** | `requestBody.alerts[*].status` |
+| **Værdi, der betyder genoprettet** | `resolved` |
 
 ### Bring monitoren online igen
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 En selvhostet installation har sin egen vært i stedet for `oneuptime.com`.
 :::
 
-Hver advarsel i en notifikation åbner sin egen hændelse, op til **Max incidents per request** (`100`, medmindre du ændrer det), og hver advarsels egen `status` afgør, hvornår dens hændelse løses. Grafanas `fingerprint` identificerer en advarsel ud fra dens etiketter, så det er den værdi, du skal gruppere efter. Se [Modtagelse af advarsler fra et andet system](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system) for, hvad hver indstilling gør.
+Hver advarsel i en notifikation åbner sin egen hændelse, op til **Maks. hændelser pr. anmodning** (`100`, medmindre du ændrer det), og hver advarsels egen `status` afgør, hvornår dens hændelse løses. Grafanas `fingerprint` identificerer en advarsel ud fra dens etiketter, så det er den værdi, du skal gruppere efter. Se [Modtagelse af advarsler fra et andet system](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system) for, hvad hver indstilling gør.
 
 > [!WARNING]
 > Gruppér ikke efter en etiket, som alle advarsler i en notifikation deler. Grafanas standardnotifikationspolitik grupperer advarsler efter `grafana_folder` og `alertname`, så alle advarsler i én notifikation har samme `alertname`: gruppering efter `requestBody.alerts[*].labels.alertname` folder hele notifikationen sammen til én hændelse.
@@ -103,7 +103,7 @@ Kald kontaktpunktet `OneUptime`, vælg **Webhook** under **Integration**, og ind
 Gå til **Alerting → Notification policies**. Sæt standardpolitikkens kontaktpunkt til `OneUptime`, eller tilføj en underordnet politik, der matcher de advarsler, OneUptime skal have, med `OneUptime` som kontaktpunkt.
 :::
 
-Grafana sender `Content-Type: application/json`, som monitoren skal bruge for at læse felterne i en notifikation. Kontaktpunktets indstilling **Max Alerts** begrænser advarslerne i én notifikation: hold den på `0`, ingen grænse, eller højst på monitorens **Max incidents per request**.
+Grafana sender `Content-Type: application/json`, som monitoren skal bruge for at læse felterne i en notifikation. Kontaktpunktets indstilling **Max Alerts** begrænser advarslerne i én notifikation: hold den på `0`, ingen grænse, eller højst på monitorens **Maks. hændelser pr. anmodning**.
 
 ## Test det
 
@@ -157,7 +157,7 @@ En kørsel håndterer én notifikation, så den erklærer én hændelse, uanset 
 
 :::details Hændelser oprettes, men løses aldrig
 - Kriteriets hændelse skal have **Løs hændelse automatisk**, under **Flere felter**.
-- **Field that signals recovery** skal være `requestBody.alerts[*].status`, og **Value that means recovered** præcis `resolved`. Sammenligningen skelner mellem store og små bogstaver.
+- **Felt, der signalerer genopretning** skal være `requestBody.alerts[*].status`, og **Værdi, der betyder genoprettet** præcis `resolved`. Sammenligningen skelner mellem store og små bogstaver.
 - Grupperingsstierne skal starte med `requestBody.`, og kun den første `[*]` i en sti læser en liste. En sti, der bryder en af reglerne, matcher intet, uden nogen fejl.
 :::
 

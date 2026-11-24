@@ -28,6 +28,7 @@ import {
   ProductionReviewWhere,
 } from "Common/Types/CodeRepository/ProductionReview";
 import { SensitiveDataAiNoteCode } from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
+import { DataStoreExposure } from "Common/Types/DataSecurity/DataStorePosture";
 import {
   PluralTemplate,
   Translator,
@@ -474,6 +475,10 @@ export const PRODUCTION_REVIEW_SENSITIVE_DATA_COPY: {
   maskedBy: string;
   masked: string;
   store: string;
+  tableStore: string;
+  sameData: string;
+  tableHolds: string;
+  notEncrypted: string;
   fix: string;
   suggestedChange: string;
   byRules: string;
@@ -490,6 +495,15 @@ export const PRODUCTION_REVIEW_SENSITIVE_DATA_COPY: {
   masked: translationKey("Masked at ingest, but written by the code."),
   store: translationKey(
     "It is the store {{store}}, which holds {{sensitivity}} data.",
+  ),
+  // A migration's table, as Data Security knows it (#10779).
+  tableStore: translationKey(
+    "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.",
+  ),
+  sameData: translationKey("The table already holds the same data"),
+  tableHolds: translationKey("Data Security found {{types}} in its columns."),
+  notEncrypted: translationKey(
+    "That store is not encrypted at rest, so the new column would not be either.",
   ),
   fix: translationKey("Fix"),
   suggestedChange: translationKey("Suggested change"),
@@ -508,6 +522,30 @@ export const PRODUCTION_REVIEW_SENSITIVE_DATA_DROPPED: PluralTemplate = {
 export const PRODUCTION_REVIEW_SENSITIVE_DATA_MORE: PluralTemplate = {
   one: "{{count}} more point the rules found is not listed.",
   other: "{{count}} more points the rules found are not listed.",
+};
+
+/*
+ * What a migration's new column inherits of the store its table is in
+ * (#10779): who outside the project's own accounts reaches the store.
+ */
+export const PRODUCTION_REVIEW_SENSITIVE_DATA_EXPOSURE: Partial<
+  Record<DataStoreExposure, string>
+> = {
+  [DataStoreExposure.Public]: translationKey(
+    "Anyone on the internet can read that store, so they could read the new column too.",
+  ),
+  [DataStoreExposure.OtherAccounts]: translationKey(
+    "Accounts outside yours can reach that store, so they could reach the new column too.",
+  ),
+  [DataStoreExposure.InternetReachable]: translationKey(
+    "That store accepts connections from the internet, and the new column would be in it.",
+  ),
+};
+
+// The project's other stores that hold a table of the migration's table's name.
+export const PRODUCTION_REVIEW_SENSITIVE_DATA_OTHER_STORES: PluralTemplate = {
+  one: "{{count}} more store of the project holds a table of this name.",
+  other: "{{count}} more stores of the project hold a table of this name.",
 };
 
 // Why OneUptime AI did not word the section: its own note, in a sentence.

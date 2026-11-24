@@ -32,6 +32,7 @@ import IncomingRequestPendingStore, {
   MAX_PENDING_BYTES_PER_MONITOR,
   MAX_PENDING_REQUESTS_PER_MONITOR,
   PendingIncomingRequest,
+  PendingRequestLimits,
   PushedIncomingRequest,
   SkippedIncomingRequests,
 } from "../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
@@ -299,9 +300,24 @@ describe("IncomingRequestPendingStore order", () => {
     }
 
     expect(results).toEqual([
-      { waiting: 1, skipped: 0 },
-      { waiting: 2, skipped: 0 },
-      { waiting: 3, skipped: 0 },
+      {
+        waiting: 1,
+        skipped: 0,
+        skippedOverRequestLimit: 0,
+        skippedOverByteLimit: 0,
+      },
+      {
+        waiting: 2,
+        skipped: 0,
+        skippedOverRequestLimit: 0,
+        skippedOverByteLimit: 0,
+      },
+      {
+        waiting: 3,
+        skipped: 0,
+        skippedOverRequestLimit: 0,
+        skippedOverByteLimit: 0,
+      },
     ]);
   });
 });
@@ -467,6 +483,7 @@ describe("IncomingRequestPendingStore limits", () => {
     const extra: number = 25;
 
     let skippedByPushes: number = 0;
+    let skippedOverRequestLimitByPushes: number = 0;
 
     for (
       let sequence: number = 1;
@@ -483,7 +500,9 @@ describe("IncomingRequestPendingStore limits", () => {
       expect(pushed.waiting).toBeLessThanOrEqual(
         MAX_PENDING_REQUESTS_PER_MONITOR,
       );
+      expect(pushed.skippedOverByteLimit).toBe(0);
       skippedByPushes += pushed.skipped;
+      skippedOverRequestLimitByPushes += pushed.skippedOverRequestLimit;
     }
 
     const sequences: Array<number> = await waitingSequences(hash);
@@ -496,8 +515,12 @@ describe("IncomingRequestPendingStore limits", () => {
       MAX_PENDING_REQUESTS_PER_MONITOR + extra,
     );
     expect(skippedByPushes).toBe(extra);
+    expect(skippedOverRequestLimitByPushes).toBe(extra);
+    // Skipped by the request limit, which is kept with them as it was (#10652).
     expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
       overLimit: extra,
+      overRequestLimit: extra,
+      requestLimit: MAX_PENDING_REQUESTS_PER_MONITOR,
       afterFailures: 0,
     });
 
@@ -526,14 +549,23 @@ describe("IncomingRequestPendingStore limits", () => {
       },
     );
 
-    expect(third).toEqual({ waiting: 2, skipped: 1 });
+    expect(third).toEqual({
+      waiting: 2,
+      skipped: 1,
+      skippedOverRequestLimit: 0,
+      skippedOverByteLimit: 1,
+    });
     expect(await waitingSequences(hash)).toEqual([1, 3]);
     expect(await storedBytes(hash)).toBeLessThanOrEqual(
       MAX_PENDING_BYTES_PER_MONITOR,
     );
-    expect((await IncomingRequestPendingStore.getSkipped(hash)).overLimit).toBe(
-      1,
-    );
+    // Skipped by the byte limit, kept with it as it was (#10652).
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 1,
+      overByteLimit: 1,
+      byteLimit: MAX_PENDING_BYTES_PER_MONITOR,
+      afterFailures: 0,
+    });
   });
 
   test("a request larger than the bytes a monitor keeps is still kept whole: it is the newest", async () => {
@@ -550,6 +582,343 @@ describe("IncomingRequestPendingStore limits", () => {
     const newest: PendingIncomingRequest | null =
       await IncomingRequestPendingStore.peekNewest(hash);
     expect((newest!.payload.requestBody as JSONObject)["huge"]).toBe(huge);
+  });
+});
+
+/*
+ * A self-hosted install sets its own limits (Telemetry/Config, #10652), and
+ * the note that says requests were skipped says which limit skipped them,
+ * as it was when it did. The Lua takes the limits it is handed: these run it
+ * with others than this server's.
+ */
+describe("IncomingRequestPendingStore limits a self-hosted install sets", () => {
+  // A request of about `bytes` bytes as the store keeps it, JSON and all.
+  function requestOfAbout(
+    secretKey: string,
+    sequence: number,
+    bytes: number,
+  ): IncomingRequestIngestJobData {
+    return request(secretKey, { sequence: sequence, pad: "z".repeat(bytes) });
+  }
+
+  async function pushWith(
+    secretKey: string,
+    sequence: number,
+    limits: PendingRequestLimits,
+    bytes: number = 0,
+  ): Promise<PushedIncomingRequest> {
+    return IncomingRequestPendingStore.push({
+      secretKey: secretKey,
+      requestId: `id-${sequence}`,
+      payload: requestOfAbout(secretKey, sequence, bytes),
+      limits: limits,
+    });
+  }
+
+  async function hashFields(hash: string): Promise<Record<string, string>> {
+    const fields: Record<string, string> = await client().hgetall(
+      IncomingRequestPendingStore.getRequestsKey(hash),
+    );
+    const notes: Record<string, string> = {};
+
+    for (const field of [
+      "skippedOverLimit",
+      "skippedAfterFailures",
+      "skippedOverRequestLimit",
+      "skippedOverByteLimit",
+      "requestLimit",
+      "byteLimit",
+    ]) {
+      if (fields[field] !== undefined) {
+        notes[field] = fields[field]!;
+      }
+    }
+
+    return notes;
+  }
+
+  const FEW: PendingRequestLimits = { maxRequests: 10, maxBytes: 1024 * 1024 };
+
+  test("a lower request limit keeps fewer waiting, and skips the oldest waiting past it", async () => {
+    const { secretKey, hash } = newMonitor();
+    const pushed: Array<PushedIncomingRequest> = [];
+
+    for (let sequence: number = 1; sequence <= 15; sequence++) {
+      pushed.push(await pushWith(secretKey, sequence, FEW));
+    }
+
+    expect(
+      pushed.map((result: PushedIncomingRequest): number => {
+        return result.waiting;
+      }),
+    ).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 10, 10, 10, 10]);
+    // The oldest of all stays, and the newest: 2 to 6 were skipped.
+    expect(await waitingSequences(hash)).toEqual([
+      1, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    ]);
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 5,
+      overRequestLimit: 5,
+      requestLimit: 10,
+      afterFailures: 0,
+    });
+  });
+
+  test("a higher request limit keeps more waiting than this server's default", async () => {
+    const { secretKey, hash } = newMonitor();
+    const limits: PendingRequestLimits = {
+      maxRequests: MAX_PENDING_REQUESTS_PER_MONITOR + 50,
+      maxBytes: MAX_PENDING_BYTES_PER_MONITOR,
+    };
+
+    for (
+      let sequence: number = 1;
+      sequence <= MAX_PENDING_REQUESTS_PER_MONITOR + 50;
+      sequence++
+    ) {
+      await pushWith(secretKey, sequence, limits);
+    }
+
+    expect(await waitingSequences(hash)).toHaveLength(
+      MAX_PENDING_REQUESTS_PER_MONITOR + 50,
+    );
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 0,
+      afterFailures: 0,
+    });
+  });
+
+  test("a lower byte limit skips by bytes, and says that limit", async () => {
+    const { secretKey, hash } = newMonitor();
+    const limits: PendingRequestLimits = { maxRequests: 1000, maxBytes: 8192 };
+
+    for (let sequence: number = 1; sequence <= 8; sequence++) {
+      await pushWith(secretKey, sequence, limits, 2000);
+    }
+
+    expect(await storedBytes(hash)).toBeLessThanOrEqual(8192);
+
+    const skipped: SkippedIncomingRequests =
+      await IncomingRequestPendingStore.getSkipped(hash);
+
+    expect(skipped.overLimit).toBeGreaterThan(0);
+    expect(skipped).toEqual({
+      overLimit: skipped.overLimit,
+      overByteLimit: skipped.overLimit,
+      byteLimit: 8192,
+      afterFailures: 0,
+    });
+    // As many waiting as were not skipped: the oldest of all and the newest among them.
+    const waiting: Array<number> = await waitingSequences(hash);
+    expect(waiting.length + skipped.overLimit).toBe(8);
+    expect(waiting[0]).toBe(1);
+    expect(waiting[waiting.length - 1]).toBe(8);
+  });
+
+  test("a request skipped while both limits are past is the request limit's", async () => {
+    const { secretKey, hash } = newMonitor();
+    // Every push is past both: more than two waiting, more than 100 bytes.
+    const limits: PendingRequestLimits = { maxRequests: 2, maxBytes: 100 };
+
+    for (let sequence: number = 1; sequence <= 4; sequence++) {
+      await pushWith(secretKey, sequence, limits, 200);
+    }
+
+    // Two always wait - the oldest of all and the newest - so two are skipped.
+    expect(await waitingSequences(hash)).toEqual([1, 4]);
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 2,
+      overRequestLimit: 2,
+      requestLimit: 2,
+      afterFailures: 0,
+    });
+  });
+
+  test("requests one limit skipped and requests the other skipped are said apart", async () => {
+    const { secretKey, hash } = newMonitor();
+
+    // The request limit skips 2 and 3.
+    for (let sequence: number = 1; sequence <= 4; sequence++) {
+      await pushWith(secretKey, sequence, {
+        maxRequests: 2,
+        maxBytes: 1024 * 1024,
+      });
+    }
+
+    // Then the byte limit skips 4.
+    await pushWith(secretKey, 5, { maxRequests: 1000, maxBytes: 300 });
+
+    expect(await waitingSequences(hash)).toEqual([1, 5]);
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 3,
+      overRequestLimit: 2,
+      requestLimit: 2,
+      overByteLimit: 1,
+      byteLimit: 300,
+      afterFailures: 0,
+    });
+  });
+
+  test("each limit is kept as it was when it last skipped a request", async () => {
+    const { secretKey, hash } = newMonitor();
+
+    for (let sequence: number = 1; sequence <= 12; sequence++) {
+      await pushWith(secretKey, sequence, FEW);
+    }
+
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual(
+      expect.objectContaining({ overRequestLimit: 2, requestLimit: 10 }),
+    );
+
+    // The operator lowered it since: what is skipped now says the new one.
+    for (let sequence: number = 13; sequence <= 14; sequence++) {
+      await pushWith(secretKey, sequence, {
+        maxRequests: 8,
+        maxBytes: FEW.maxBytes,
+      });
+    }
+
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 6,
+      overRequestLimit: 6,
+      requestLimit: 8,
+      afterFailures: 0,
+    });
+  });
+
+  test("peek reads which limit skipped them with the request it hands the job", async () => {
+    const { secretKey, hash } = newMonitor();
+
+    for (let sequence: number = 1; sequence <= 13; sequence++) {
+      await pushWith(secretKey, sequence, FEW);
+    }
+
+    const oldest: PendingIncomingRequest | null =
+      await IncomingRequestPendingStore.peekOldest(hash);
+
+    expect(sequenceOf(oldest)).toBe(1);
+    expect(oldest!.skipped).toEqual({
+      overLimit: 3,
+      overRequestLimit: 3,
+      requestLimit: 10,
+      afterFailures: 0,
+    });
+  });
+
+  test("once the log has said them all, neither the parts nor the limits stay behind", async () => {
+    const { secretKey, hash } = newMonitor();
+    const limits: PendingRequestLimits = { maxRequests: 3, maxBytes: 100 };
+
+    for (let sequence: number = 1; sequence <= 4; sequence++) {
+      await pushWith(secretKey, sequence, limits, 200);
+    }
+
+    await IncomingRequestPendingStore.acknowledgeSkipped(
+      hash,
+      await IncomingRequestPendingStore.getSkipped(hash),
+    );
+
+    expect(await hashFields(hash)).toEqual({});
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 0,
+      afterFailures: 0,
+    });
+  });
+
+  test("what the log said is taken off each part, and the rest is said with its limit", async () => {
+    const { secretKey, hash } = newMonitor();
+
+    for (let sequence: number = 1; sequence <= 14; sequence++) {
+      await pushWith(secretKey, sequence, FEW);
+    }
+
+    // The log said three of the four; one more arrived meanwhile.
+    await IncomingRequestPendingStore.acknowledgeSkipped(hash, {
+      overLimit: 3,
+      overRequestLimit: 3,
+      requestLimit: 10,
+      afterFailures: 0,
+    });
+
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 1,
+      overRequestLimit: 1,
+      requestLimit: 10,
+      afterFailures: 0,
+    });
+  });
+
+  test("an acknowledgement from an earlier release, which says no parts, leaves none behind once all are said", async () => {
+    const { secretKey, hash } = newMonitor();
+
+    for (let sequence: number = 1; sequence <= 12; sequence++) {
+      await pushWith(secretKey, sequence, FEW);
+    }
+
+    // An earlier worker took off only what it knew: the count.
+    await client().hincrby(
+      IncomingRequestPendingStore.getRequestsKey(hash),
+      "skippedOverLimit",
+      -2,
+    );
+    await client().hdel(
+      IncomingRequestPendingStore.getRequestsKey(hash),
+      "skippedOverLimit",
+    );
+
+    // Its parts read as nothing: there is no count for them to be part of.
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 0,
+      afterFailures: 0,
+    });
+
+    // The next skip drops them before it counts its own.
+    await pushWith(secretKey, 13, { maxRequests: 1000, maxBytes: 300 }, 200);
+
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 9,
+      overByteLimit: 9,
+      byteLimit: 300,
+      afterFailures: 0,
+    });
+  });
+
+  test("a count an earlier release kept, without its parts, reads as skipped by a limit unnamed", async () => {
+    const { secretKey, hash } = newMonitor();
+
+    await push(secretKey, 1);
+    await client().hset(
+      IncomingRequestPendingStore.getRequestsKey(hash),
+      "skippedOverLimit",
+      "4",
+    );
+
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 4,
+      afterFailures: 0,
+    });
+  });
+
+  test("a part is never more than the count it is a part of, nor said without its limit", async () => {
+    const { secretKey, hash } = newMonitor();
+    const requestsKey: string =
+      IncomingRequestPendingStore.getRequestsKey(hash);
+
+    await push(secretKey, 1);
+    await client().hset(requestsKey, {
+      skippedOverLimit: "2",
+      skippedOverRequestLimit: "5",
+      requestLimit: "10",
+      skippedOverByteLimit: "3",
+    });
+
+    // The request limit's part is held to the count; the byte limit's has no limit beside it.
+    expect(await IncomingRequestPendingStore.getSkipped(hash)).toEqual({
+      overLimit: 2,
+      overRequestLimit: 2,
+      requestLimit: 10,
+      afterFailures: 0,
+    });
   });
 });
 

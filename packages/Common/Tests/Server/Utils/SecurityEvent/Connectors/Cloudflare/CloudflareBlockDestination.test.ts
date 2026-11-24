@@ -867,6 +867,8 @@ describe("the opt-in: write access is asked for only while blocking is on", () =
       "blocking-setup:pass",
       "blocking-lists:pass",
       "blocking-rules:pass",
+      // And Challenge This Network's, whatever the plan (#10894).
+      "blocking-asn-access-rules:pass",
     ]);
 
     api.script({
@@ -881,5 +883,26 @@ describe("the opt-in: write access is asked for only while blocking is on", () =
     });
 
     expect(await checkKeys(true)).toContain("blocking-rules:fail");
+  });
+
+  test("with blocking on, Test Connection warns, before Challenge This Network fails, that the token cannot challenge a network by its ASN (#10894)", async () => {
+    api.permissions.delete("accessRules");
+
+    const keys: Array<string> = await checkKeys(true);
+
+    expect(keys).toContain("blocking-asn-access-rules:warn");
+    // Every other check stands: blocking itself needs nothing of it.
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "blocking-setup:pass",
+        "blocking-lists:pass",
+        "blocking-rules:pass",
+      ]),
+    );
+    expect(
+      keys.some((key: string): boolean => {
+        return key.endsWith(":fail");
+      }),
+    ).toBe(false);
   });
 });

@@ -70,9 +70,11 @@ La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni.
 | Fortinet FortiGate | Rilevamenti IPS e antivirus, traffico negato, accessi VPN e degli amministratori e modifiche di configurazione dal syslog di FortiGate |
 | Cisco ASA | Connessioni negate, rilevamenti delle minacce e dell'IPS, accessi VPN e degli amministratori e comandi da Cisco ASA e Firepower Threat Defense |
 | Log di audit di Kubernetes | Modifiche al cluster, shell aperte nei pod, secret letti e richieste rifiutate |
-| Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell, e richieste di file sensibili come `/.env` o `/.git/config` che il tuo sito ha rifiutato o non ha |
+| Attacchi web | Richieste nel log di accesso di un server web che tentano SQL injection, path traversal o Log4Shell, richieste di file sensibili come `/.env` o `/.git/config` che il tuo sito ha rifiutato o non ha, e un file con segreti che il tuo sito ha servito |
 
 I tuoi log restano come sono. Solo le righe che contano per la sicurezza diventano eventi: mai ogni pagina servita da un server web, né ogni lettura di un'API.
+
+Un file con segreti che il tuo sito ha servito, come `/.env`, è una fuga di dati, e la regola **Sensitive file served** della Libreria di regole apre un caso Critico su di esso. La pagina che un'app a pagina singola restituisce per un percorso che non ha non lo è mai. Vedi [Un file sensibile che il tuo sito ha servito](/docs/telemetry/security-events#un-file-sensibile-che-il-tuo-sito-ha-servito).
 
 Una minaccia che un prodotto di sicurezza scrive nei tuoi log, come un rilevamento CEF o LEEF o un rilevamento IPS di un FortiGate, apre un caso come fa l'avviso di un prodotto collegato. **Apri casi a partire da**, su **I tuoi log**, indica da quale gravità: **Alta e superiori** a meno che tu non ne scelga un'altra, oppure **Mai**.
 

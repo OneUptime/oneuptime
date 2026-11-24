@@ -24,7 +24,7 @@ flowchart TB
 - Overrides are honoured. When someone covers for you, the event moves to them (`(covering for <Name>)` is appended) and stays the same event in your calendar app, so it updates in place instead of duplicating. A partial override splits the shift into touching events.
 - Two days of history and 90 days ahead by default. You can widen this to 60 days back and 180 days ahead; a feed that would exceed 5,000 events is shortened and says so in its calendar description.
 - Events are marked free (`TRANSP:TRANSPARENT`), so a subscribed feed never blocks your availability, and nothing is marked private, so a shared team calendar shows titles to everyone who can see it.
-- Times are sent in UTC and converted by your calendar app; the description spells out the wall-clock time in the schedule's zone and in yours. Set your own time zone as **Timezone** on your **Profile** (your picture at the top right of the dashboard), and the schedule's in its **Schedule timezone** card on its **Layers** page. A schedule without a time zone is expanded in the server's zone, as paging is, and the event says so.
+- Times are sent in UTC and converted by your calendar app; the description spells out the wall-clock time in the schedule's zone and in yours. Set your own time zone as **Timezone** on your **User Profile** (your picture at the top right of the dashboard), and the schedule's in its **Schedule timezone** card on its **Layers** page. A schedule without a time zone is expanded in the server's zone, as paging is, and the event says so.
 
 Standing assignments — a user or team named directly on an escalation policy rule — have no start or end and do not appear in any feed. On OneUptime Cloud, feeds follow the same plan as on-call schedules (Growth); a project below that plan gets an empty calendar rather than an error.
 
@@ -327,7 +327,7 @@ These apps validate TLS on the device. Import your internal CA into the device's
 :::
 
 :::details Times are wrong
-All times in the file are UTC; the calendar app converts to its own zone. If shifts look shifted by a fixed offset, check the schedule's time zone (**Schedule timezone** on its **Layers** page) and your own (**Timezone** on your **Profile**). A schedule without a time zone is expanded in the server's zone and the event says so.
+All times in the file are UTC; the calendar app converts to its own zone. If shifts look shifted by a fixed offset, check the schedule's time zone (**Schedule timezone** on its **Layers** page) and your own (**Timezone** on your **User Profile**). A schedule without a time zone is expanded in the server's zone and the event says so.
 :::
 
 :::details The feed says it was shortened

@@ -100,14 +100,11 @@ const SECONDARY_EIP: AwsListedResource = listed(
   { PublicIp: "34.240.10.21", AllocationId: "eipalloc-0second" },
 );
 
-const INSTANCE_EIP: AwsListedResource = listed(
-  "52.18.1.9|eipalloc-0web",
-  {
-    PublicIp: "52.18.1.9",
-    AllocationId: "eipalloc-0web",
-    InstanceId: "i-0web",
-  },
-);
+const INSTANCE_EIP: AwsListedResource = listed("52.18.1.9|eipalloc-0web", {
+  PublicIp: "52.18.1.9",
+  AllocationId: "eipalloc-0web",
+  InstanceId: "i-0web",
+});
 
 const NAT_A: AwsListedResource = listed("nat-0aaa", {
   NatGatewayId: "nat-0aaa",
@@ -156,9 +153,9 @@ describe("an Elastic IP", () => {
     expect(getAwsInventoryRowTypes()).toContain(ELASTIC_IP);
     expect(type(ELASTIC_IP).metrics).toBeUndefined();
     expect(type(ELASTIC_IP).quietWhenRefused).toBe(true);
-    expect(isInventoryOnlyCloudResourceType(CloudProvider.AWS, ELASTIC_IP)).toBe(
-      true,
-    );
+    expect(
+      isInventoryOnlyCloudResourceType(CloudProvider.AWS, ELASTIC_IP),
+    ).toBe(true);
     expect(
       getCloudResourceTypeDescriptor(CloudProvider.AWS, ELASTIC_IP)?.label,
     ).toBe("Elastic IP");
@@ -173,7 +170,11 @@ describe("an Elastic IP", () => {
 describe("a NAT gateway's public addresses", () => {
   test("are the Elastic IPs its allocations name: its own and its secondary ones, as endpoints and as PublicIps", () => {
     const nat: CloudInventoryItem = item(NAT_GATEWAY, NAT_A);
-    const eips: Array<AwsListedResource> = [NAT_EIP, SECONDARY_EIP, INSTANCE_EIP];
+    const eips: Array<AwsListedResource> = [
+      NAT_EIP,
+      SECONDARY_EIP,
+      INSTANCE_EIP,
+    ];
     const items: Array<CloudInventoryItem> = [nat];
 
     addAwsNatGatewayAddresses({
@@ -266,9 +267,10 @@ async function readInventory(fake: FakeAws): Promise<CloudInventoryResult> {
   });
 }
 
-function asCloudControl(
-  resource: AwsListedResource,
-): { Identifier: string; Properties: JSONObject } {
+function asCloudControl(resource: AwsListedResource): {
+  Identifier: string;
+  Properties: JSONObject;
+} {
   return { Identifier: resource.identifier, Properties: resource.properties };
 }
 

@@ -275,7 +275,7 @@
       "SMS er slått av i dette prosjektet, så tilkallinger som bruker det, sendes ikke.",
       "Telefonanrop er slått av i dette prosjektet, så tilkallinger som bruker det, sendes ikke.",
       "SMS og anrop betales fra prosjektets saldo, som er 0.00 USD. Når du legger til et nummer, sendes en SMS, så saldoen må være over 1.00 USD.",
-      "Legg til saldo",
+      "Fyll på saldo",
       "Slå på SMS og anrop",
       "Mobilapp eller nettleser",
       "Ikke satt opp.",
@@ -286,15 +286,15 @@
       "Kontroller på nytt"
     ],
     "outline": [
-      "button: Legg til saldo",
+      "button: Fyll på saldo",
       "button: Slå på SMS og anrop",
       "button: Bruk denne nettleseren",
       "button: Hent appen",
       "button: Fortsett",
       "button: Kontroller på nytt"
     ],
-    "width": 768,
-    "height": 658
+    "width": 784,
+    "height": 687
   },
   "paging-phone": {
     "text": [

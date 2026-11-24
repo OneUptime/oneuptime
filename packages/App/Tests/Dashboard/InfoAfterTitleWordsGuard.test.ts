@@ -56,11 +56,6 @@ const ALLOWED: ReadonlyArray<Allowed> = [
     count: 1,
     why: "A line of prices (an element, not a title's words) in a wrapping row of facts; its (i) is one of the facts.",
   },
-  {
-    file: "Pages/AppPlatforms/View/Overview.tsx",
-    count: 1,
-    why: "Still to move (#10922): an App Platform's section titles were being reworked by another change when #8044 landed.",
-  },
 ];
 
 const TEXT_TAGS: ReadonlySet<string> = new Set<string>([
@@ -395,6 +390,10 @@ describe("the finder", () => {
     [
       "a chart's title before its zoom hint",
       '<div className="mb-2 flex items-center gap-1.5 text-sm">{translator.translateText("Client IOPS")}<InfoTooltip label="Client IOPS" text={DESCRIPTIONS.clientIops} /><TimeRangeZoomHint revealOnHover={true} /></div>',
+    ],
+    [
+      "App Platforms' Top instances by CPU title as it was until #10922",
+      '<span className="inline-flex items-center gap-1.5"><span>{title}</span><InfoTooltip label={title} text={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu} iconClassName="h-4 w-4" /></span>',
     ],
   ])("finds %s", (_name: string, jsx: string) => {
     expect(find(jsx)).toHaveLength(1);

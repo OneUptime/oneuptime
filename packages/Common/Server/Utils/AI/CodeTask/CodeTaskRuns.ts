@@ -223,6 +223,44 @@ export default class CodeTaskRuns {
   }
 
   /*
+   * A task OneUptime starts for a Data Security issue a security case is
+   * about (#10740): a playbook's Fix the code with AI step, on a case whose
+   * issue is in no group, asks Fix with AI for that issue itself. Nobody
+   * typed the request - DataSecurityAiInput built it - and the run names the
+   * issue and the case: the case keeps its pull request, as it keeps one the
+   * step asks for an exception or a group, and Code says the case is where
+   * it came from. An ordinary Code task from then on.
+   */
+  @CaptureSpan()
+  public static async startForDataSecurityIssue(data: {
+    projectId: ObjectID;
+    repository: CodeRepository;
+    message: string;
+    triggeredByDataSecurityIssueId: ObjectID;
+    triggeredBySecurityCaseId?: ObjectID | undefined;
+  }): Promise<AIRun> {
+    const message: string = CodeTaskRuns.readMessage(data.message);
+
+    // Subjectless AI work: no daily fix-task limit applies (FixRunBudget).
+    await FixRunBudget.assertWithinBudget(data.projectId, {});
+
+    const run: AIRun = CodeTaskRuns.newTurn({
+      projectId: data.projectId,
+      codeRepositoryId: data.repository.id!,
+      request: { message, context: [] },
+    });
+
+    run.title = CodeTaskTitle.fromMessage(message);
+    run.triggeredByDataSecurityIssueId = data.triggeredByDataSecurityIssueId;
+
+    if (data.triggeredBySecurityCaseId) {
+      run.triggeredBySecurityCaseId = data.triggeredBySecurityCaseId;
+    }
+
+    return await CodeTaskRuns.createFirstTurn(run, undefined);
+  }
+
+  /*
    * A task's first turn, written as root - held, when a path starts it as a
    * fix of problems it names in no column, to no fix of them being on its
    * way (CodeFixOnItsWay.createHeldTo).

@@ -4,6 +4,7 @@ import ProbeRequest from "../../Utils/ProbeRequest";
 import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
@@ -169,7 +170,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -181,7 +182,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("StatusReport not found"),
+          new BadDataException(ProbeConnectionRefusals.missingStatusReport),
         );
       }
 
@@ -226,7 +227,7 @@ router.post(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid Probe ID or Probe Key"),
+            new BadDataException(ProbeConnectionRefusals.wrongIdOrKey),
           );
         }
 
@@ -261,7 +262,9 @@ router.post(
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Global config not found"),
+              new BadDataException(
+                "OneUptime could not read its global settings, so nobody was emailed that this probe is offline. Check the OneUptime server's logs: the probe reports again on its next check.",
+              ),
             );
           }
 
@@ -280,7 +283,9 @@ router.post(
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid Project ID"),
+              new BadDataException(
+                "This probe belongs to no project, so nobody was emailed that it is offline. Add the probe again under Monitors > Settings > Probes.",
+              ),
             );
           }
 
@@ -398,7 +403,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -409,7 +414,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("ProbeMonitorResponse not found"),
+          new BadDataException(ProbeConnectionRefusals.missingMonitorResponse),
         );
       }
 
@@ -465,7 +470,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -473,7 +478,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("snmpTrap not found in request body"),
+          new BadDataException(ProbeConnectionRefusals.missingSnmpTrap),
         );
       }
 
@@ -516,7 +521,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("TestId not found"),
+          new BadDataException(ProbeConnectionRefusals.missingTestId),
         );
       }
 
@@ -526,7 +531,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -537,7 +542,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("ProbeMonitorResponse not found"),
+          new BadDataException(ProbeConnectionRefusals.missingMonitorResponse),
         );
       }
 
@@ -594,7 +599,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe ID not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 

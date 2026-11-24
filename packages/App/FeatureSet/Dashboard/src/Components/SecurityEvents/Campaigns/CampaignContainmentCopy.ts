@@ -236,6 +236,59 @@ export const REPEAT_MANY_NO_CASE: PluralTemplate = {
   other: translationKey("Blocked {{count}} times before, last on {{date}}."),
 };
 
+/*
+ * When the last block that counted held the address as part of a wider
+ * network - its whole network by its ASN, challenged from Campaigns
+ * (#10895), or a range around it - the line names that network and says
+ * what it was: "Challenged once before as part of AS14061, on Nov 12 (case
+ * CASE-812)." More than once, the count stays the line's own words, and
+ * the last is said as it was.
+ */
+export const REPEAT_ONCE_NETWORK_CHALLENGED: string = translationKey(
+  "Challenged once before as part of {{network}}, on {{date}} (case {{caseNumber}}).",
+);
+export const REPEAT_ONCE_NETWORK_CHALLENGED_NO_CASE: string = translationKey(
+  "Challenged once before as part of {{network}}, on {{date}}.",
+);
+export const REPEAT_ONCE_NETWORK_BLOCKED: string = translationKey(
+  "Blocked once before as part of {{network}}, on {{date}} (case {{caseNumber}}).",
+);
+export const REPEAT_ONCE_NETWORK_BLOCKED_NO_CASE: string = translationKey(
+  "Blocked once before as part of {{network}}, on {{date}}.",
+);
+export const REPEAT_MANY_NETWORK_CHALLENGED: PluralTemplate = {
+  one: translationKey(
+    "Blocked {{count}} time before, last challenged as part of {{network}} on {{date}} (case {{caseNumber}}).",
+  ),
+  other: translationKey(
+    "Blocked {{count}} times before, last challenged as part of {{network}} on {{date}} (case {{caseNumber}}).",
+  ),
+};
+export const REPEAT_MANY_NETWORK_CHALLENGED_NO_CASE: PluralTemplate = {
+  one: translationKey(
+    "Blocked {{count}} time before, last challenged as part of {{network}} on {{date}}.",
+  ),
+  other: translationKey(
+    "Blocked {{count}} times before, last challenged as part of {{network}} on {{date}}.",
+  ),
+};
+export const REPEAT_MANY_NETWORK_BLOCKED: PluralTemplate = {
+  one: translationKey(
+    "Blocked {{count}} time before, last as part of {{network}} on {{date}} (case {{caseNumber}}).",
+  ),
+  other: translationKey(
+    "Blocked {{count}} times before, last as part of {{network}} on {{date}} (case {{caseNumber}}).",
+  ),
+};
+export const REPEAT_MANY_NETWORK_BLOCKED_NO_CASE: PluralTemplate = {
+  one: translationKey(
+    "Blocked {{count}} time before, last as part of {{network}} on {{date}}.",
+  ),
+  other: translationKey(
+    "Blocked {{count}} times before, last as part of {{network}} on {{date}}.",
+  ),
+};
+
 // ---------- A case's Block the Whole Campaign ----------
 
 export const CAMPAIGN_OF_ADDRESS_LINE: PluralTemplate = {
@@ -277,6 +330,7 @@ export const SECURITY_CAMPAIGN_TEST_IDS: {
   clearSelection: string;
   groupByNetwork: string;
   networkRow: string;
+  networkRequests: string;
   challengeNetwork: string;
   rowBlock: string;
   checklist: string;
@@ -294,6 +348,7 @@ export const SECURITY_CAMPAIGN_TEST_IDS: {
   clearSelection: "security-campaigns-clear-selection",
   groupByNetwork: "security-campaigns-group-by-network",
   networkRow: "security-attack-network",
+  networkRequests: "security-attack-network-requests",
   challengeNetwork: "security-attack-network-challenge",
   rowBlock: "security-campaign-row-block",
   checklist: "security-campaign-checklist",

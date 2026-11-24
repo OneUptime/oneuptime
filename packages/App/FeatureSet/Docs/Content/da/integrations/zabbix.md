@@ -148,13 +148,13 @@ I trinnet **Kriterier** åbner du det første kriterium, det der markerer monito
 
 ### Opret én hændelse pr. problem
 
-Åbn **Indstillinger** i samme kriterium, og slå **Group incidents and alerts by a payload field** til. Udfyld det som nedenfor, så hvert problem får sin egen hændelse, og gendannelsen af det løser den:
+Åbn **Indstillinger** i samme kriterium, og slå **Gruppér hændelser og advarsler efter et felt i payloaden** til. Udfyld det som nedenfor, så hvert problem får sin egen hændelse, og gendannelsen af det løser den:
 
 | Felt | Værdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.event_id` |
-| **Field that signals recovery** | `requestBody.status` |
-| **Value that means recovered** | `0` |
+| **Åbn en separat hændelse for hver…** | `requestBody.event_id` |
+| **Felt, der signalerer genopretning** | `requestBody.status` |
+| **Værdi, der betyder genoprettet** | `0` |
 
 ### Bring monitoren online igen
 
@@ -321,7 +321,7 @@ Zabbix sender sin alvorlighed som tekst: `Not classified`, `Information`, `Warni
 :::details Hændelser oprettes, men løses aldrig
 - Handlingen skal have **Recovery operations**, ellers sender Zabbix aldrig gendannelsen.
 - Med skabelonen åbner du arbejdsgangens **Kørsler** og gendannelsens kørsel: dens sidste trin siger hvorfor. En gendannelse for et problem, der ikke oprettede nogen hændelse, ændrer intet.
-- Med monitoren skal kriteriets hændelse have **Løs hændelse automatisk** under **Flere felter**. **Field that signals recovery** skal være `requestBody.status`, og **Value that means recovered** præcis `0`.
+- Med monitoren skal kriteriets hændelse have **Løs hændelse automatisk** under **Flere felter**. **Felt, der signalerer genopretning** skal være `requestBody.status`, og **Værdi, der betyder genoprettet** præcis `0`.
 :::
 
 :::details Zabbix-problemet bliver ikke bekræftet eller lukket

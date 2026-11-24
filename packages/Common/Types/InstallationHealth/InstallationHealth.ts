@@ -243,7 +243,7 @@ export const INSTALLATION_HEALTH_WORDS: Readonly<
 
 // The fix of a step of the server setup checklist: its own page.
 export const INSTALLATION_HEALTH_SETUP_FIX: string = translationKey(
-  "Finish it on the Server setup page.",
+  "Finish it on the Server Setup page.",
 );
 
 // What the Admin Dashboard says when there is nothing to list.

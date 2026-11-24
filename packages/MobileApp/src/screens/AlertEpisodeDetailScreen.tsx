@@ -91,6 +91,7 @@ export default function AlertEpisodeDetailScreen({
   const {
     data: states,
     isError: statesError,
+    error: statesFailure,
     refetch: refetchStates,
   } = useAlertEpisodeStates(projectId);
   const { refetch: refetchTimeline } = useAlertEpisodeStateTimeline(
@@ -100,6 +101,7 @@ export default function AlertEpisodeDetailScreen({
   const {
     data: feed,
     isError: feedError,
+    error: feedFailure,
     refetch: refetchFeed,
   } = useAlertEpisodeFeed(projectId, episodeId);
   const {
@@ -480,6 +482,7 @@ export default function AlertEpisodeDetailScreen({
           message="Unable to load the latest response actions."
           retryLabel="Retry actions"
           onRetry={refetchStates}
+          error={statesFailure}
         />
       ) : null}
       <ResponseGuidance
@@ -524,6 +527,7 @@ export default function AlertEpisodeDetailScreen({
           message="Unable to load the latest activity."
           retryLabel="Retry activity"
           onRetry={refetchFeed}
+          error={feedFailure}
         />
       ) : null}
       {feed && feed.length > 0 ? (

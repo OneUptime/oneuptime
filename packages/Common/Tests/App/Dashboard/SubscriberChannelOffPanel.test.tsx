@@ -283,7 +283,7 @@ describe("turning it on from the list", () => {
 
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error(
-        "Please upgrade your plan to Scale to access this feature",
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
 
@@ -295,7 +295,7 @@ describe("turning it on from the list", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
-        "Please upgrade your plan to Scale to access this feature",
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
     await waitFor(() => {

@@ -1,7 +1,7 @@
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnlineDdl from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddOnCallPolicyIncidentRole1809187650000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187650000-AddOnCallPolicyIncidentRole";
-import { AddOnCallPolicyIncidentRoleIndexAndKey1809187650010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187650010-AddOnCallPolicyIncidentRoleIndexAndKey";
+import { AddOnCallPolicyIncidentRole1809187660000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187660000-AddOnCallPolicyIncidentRole";
+import { AddOnCallPolicyIncidentRoleIndexAndKey1809187660010 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187660010-AddOnCallPolicyIncidentRoleIndexAndKey";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -70,11 +70,11 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddOnCallPolicyIncidentRole1809187650000", () => {
+describe("AddOnCallPolicyIncidentRole1809187660000", () => {
   test("adds the role's id - and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddOnCallPolicyIncidentRole1809187650000().up(runner);
+        return new AddOnCallPolicyIncidentRole1809187660000().up(runner);
       }),
     ).toEqual([`ALTER TABLE "OnCallDutyPolicy" ADD "incidentRoleId" uuid`]);
   });
@@ -82,7 +82,7 @@ describe("AddOnCallPolicyIncidentRole1809187650000", () => {
   test("never rewrites the table: the column is nullable, with no default", async () => {
     const statements: Array<string> = await statementsOf(
       (runner: QueryRunner) => {
-        return new AddOnCallPolicyIncidentRole1809187650000().up(runner);
+        return new AddOnCallPolicyIncidentRole1809187660000().up(runner);
       },
     );
 
@@ -96,7 +96,7 @@ describe("AddOnCallPolicyIncidentRole1809187650000", () => {
   test("down() takes back exactly what up() added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddOnCallPolicyIncidentRole1809187650000().down(runner);
+        return new AddOnCallPolicyIncidentRole1809187660000().down(runner);
       }),
     ).toEqual([`ALTER TABLE "OnCallDutyPolicy" DROP COLUMN "incidentRoleId"`]);
   });
@@ -115,10 +115,10 @@ describe("AddOnCallPolicyIncidentRole1809187650000", () => {
   });
 });
 
-describe("AddOnCallPolicyIncidentRoleIndexAndKey1809187650010", () => {
+describe("AddOnCallPolicyIncidentRoleIndexAndKey1809187660010", () => {
   test("builds the column's index and its key to IncidentRole online, outside a transaction", async () => {
-    const migration: AddOnCallPolicyIncidentRoleIndexAndKey1809187650010 =
-      new AddOnCallPolicyIncidentRoleIndexAndKey1809187650010();
+    const migration: AddOnCallPolicyIncidentRoleIndexAndKey1809187660010 =
+      new AddOnCallPolicyIncidentRoleIndexAndKey1809187660010();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -134,7 +134,7 @@ describe("AddOnCallPolicyIncidentRoleIndexAndKey1809187650010", () => {
   test("a deleted role keeps its policies: the key sets the id to null", async () => {
     const statements: Array<string> = await statementsOf(
       (runner: QueryRunner) => {
-        return new AddOnCallPolicyIncidentRoleIndexAndKey1809187650010().up(
+        return new AddOnCallPolicyIncidentRoleIndexAndKey1809187660010().up(
           runner,
         );
       },
@@ -147,7 +147,7 @@ describe("AddOnCallPolicyIncidentRoleIndexAndKey1809187650010", () => {
   test("down() takes the key, then the index, away", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddOnCallPolicyIncidentRoleIndexAndKey1809187650010().down(
+        return new AddOnCallPolicyIncidentRoleIndexAndKey1809187660010().down(
           runner,
         );
       }),
@@ -187,10 +187,10 @@ describe("both migrations", () => {
   test("are registered once each, the column's first, after every migration before them", () => {
     const names: Array<string> = migrationNames();
     const column: number = names.indexOf(
-      "AddOnCallPolicyIncidentRole1809187650000",
+      "AddOnCallPolicyIncidentRole1809187660000",
     );
     const keys: number = names.indexOf(
-      "AddOnCallPolicyIncidentRoleIndexAndKey1809187650010",
+      "AddOnCallPolicyIncidentRoleIndexAndKey1809187660010",
     );
 
     expect(column).toBeGreaterThan(-1);
@@ -203,13 +203,13 @@ describe("both migrations", () => {
     ).toHaveLength(2);
     // After the newest migration on main when they were written.
     expect(column).toBeGreaterThan(
-      names.indexOf("AddUniqueNameIndexes1809187640010"),
+      names.indexOf("AddSecurityUserErasureRequest1809187650908"),
     );
-    expect(new AddOnCallPolicyIncidentRole1809187650000().name).toBe(
-      "AddOnCallPolicyIncidentRole1809187650000",
+    expect(new AddOnCallPolicyIncidentRole1809187660000().name).toBe(
+      "AddOnCallPolicyIncidentRole1809187660000",
     );
-    expect(new AddOnCallPolicyIncidentRoleIndexAndKey1809187650010().name).toBe(
-      "AddOnCallPolicyIncidentRoleIndexAndKey1809187650010",
+    expect(new AddOnCallPolicyIncidentRoleIndexAndKey1809187660010().name).toBe(
+      "AddOnCallPolicyIncidentRoleIndexAndKey1809187660010",
     );
   });
 });

@@ -460,6 +460,10 @@ enum Permission {
   EditSecurityBlocklistFeed = "EditSecurityBlocklistFeed",
   ReadSecurityBlocklistFeed = "ReadSecurityBlocklistFeed",
 
+  // Erasure Requests (erasing one person from Security Events' user vault, #10908)
+  CreateSecurityUserErasureRequest = "CreateSecurityUserErasureRequest",
+  ReadSecurityUserErasureRequest = "ReadSecurityUserErasureRequest",
+
   // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
   CreateDataStore = "CreateDataStore",
   DeleteDataStore = "DeleteDataStore",
@@ -9914,6 +9918,28 @@ export class PermissionHelper {
         title: "Read Security Blocklist Feed",
         description:
           "This permission can read the Blocklist feeds of this project and when each firewall last fetched one, never their secrets.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Erasure Request Permissions (#10908)
+      {
+        permission: Permission.CreateSecurityUserErasureRequest,
+        title: "Create Security Erasure Request",
+        description:
+          "This permission can erase a person from Security Events' user vault, for example to satisfy a right-to-erasure request: the vault never names them again, and the events, cases and proposals it named them in show the token instead.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadSecurityUserErasureRequest,
+        title: "Read Security Erasure Request",
+        description:
+          "This permission can read Security Events' erasure requests and what each one changed. They never name the person.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

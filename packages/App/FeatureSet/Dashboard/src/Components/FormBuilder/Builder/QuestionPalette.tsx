@@ -161,7 +161,8 @@ const PALETTE_TARGET_WORDS: Record<FormTargetType, PaletteTargetWords> = {
   [FormTargetType.ScheduledMaintenance]: {
     fieldsTitle: FormsCopy.paletteScheduledMaintenanceFields,
     noCustomFields: FormsCopy.noCustomFieldsScheduledMaintenance,
-    customFieldsPage: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
+    customFieldsPage:
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
   },
 };
 

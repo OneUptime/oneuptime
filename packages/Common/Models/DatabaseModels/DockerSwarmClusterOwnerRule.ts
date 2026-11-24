@@ -66,11 +66,14 @@ import {
 })
 @TableMetadata({
   tableName: "DockerSwarmClusterOwnerRule",
-  singularName: "DockerSwarm Cluster Owner Rule",
-  pluralName: "DockerSwarm Cluster Owner Rules",
+  singularName: "Docker Swarm Cluster Owner Rule",
+  pluralName: "Docker Swarm Cluster Owner Rules",
+  // Was "DockerSwarm Cluster Owner Rule" (#7474): its API names stay.
+  apiSingularName: "DockerSwarm Cluster Owner Rule",
+  apiPluralName: "DockerSwarm Cluster Owner Rules",
   icon: IconProp.User,
   tableDescription:
-    "Configure rules for automatically assigning owner users and teams when matching DockerSwarm clusters are created",
+    "Configure rules for automatically assigning owner users and teams when matching Docker Swarm clusters are created",
 })
 export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
   @ColumnAccessControl({
@@ -164,7 +167,7 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Name of this DockerSwarm cluster owner rule",
+    description: "Name of this Docker Swarm cluster owner rule",
   })
   @Column({
     nullable: false,
@@ -196,7 +199,7 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.LongText,
     title: "Description",
-    description: "Description of this DockerSwarm cluster owner rule",
+    description: "Description of this Docker Swarm cluster owner rule",
   })
   @Column({
     nullable: true,
@@ -300,9 +303,9 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: Label,
-    title: "DockerSwarm Cluster Labels",
+    title: "Docker Swarm Cluster Labels",
     description:
-      "Only trigger for DockerSwarm clusters that have at least one of these labels. Leave empty to match regardless of labels.",
+      "Only trigger for Docker Swarm clusters that have at least one of these labels. Leave empty to match regardless of labels.",
   })
   @ManyToMany(
     () => {
@@ -345,9 +348,9 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
-    title: "DockerSwarm Cluster Name Pattern",
+    title: "Docker Swarm Cluster Name Pattern",
     description:
-      "Regex (case-insensitive) matched against the DockerSwarm cluster name. Leave empty to match any name.",
+      "Regex (case-insensitive) matched against the Docker Swarm cluster name. Leave empty to match any name.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -378,9 +381,9 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
   @TableColumn({
     required: false,
     type: TableColumnType.LongText,
-    title: "DockerSwarm Cluster Description Pattern",
+    title: "Docker Swarm Cluster Description Pattern",
     description:
-      "Regex (case-insensitive) matched against the DockerSwarm cluster description. Leave empty to match any description.",
+      "Regex (case-insensitive) matched against the Docker Swarm cluster description. Leave empty to match any description.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -416,7 +419,7 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
     modelType: User,
     title: "Owner Users",
     description:
-      "Users to add as owners on the DockerSwarm cluster when this rule matches.",
+      "Users to add as owners on the Docker Swarm cluster when this rule matches.",
   })
   @ManyToMany(
     () => {
@@ -462,7 +465,7 @@ export default class DockerSwarmClusterOwnerRule extends RuleBaseModel {
     modelType: Team,
     title: "Owner Teams",
     description:
-      "Teams to add as owners on the DockerSwarm cluster when this rule matches.",
+      "Teams to add as owners on the Docker Swarm cluster when this rule matches.",
   })
   @ManyToMany(
     () => {

@@ -527,7 +527,9 @@ describe("SharedCalendarFeedCard below the plan", () => {
    */
   test("a 402 on the status read renders the upgrade notice, not a bare server error", async () => {
     getMock.mockRejectedValue(
-      new Error("Please upgrade your plan to Growth to access this feature"),
+      new Error(
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
+      ),
     );
 
     render(
@@ -545,7 +547,7 @@ describe("SharedCalendarFeedCard below the plan", () => {
 
     expect(
       screen.queryByText(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       ),
     ).not.toBeInTheDocument();
   });

@@ -105,13 +105,13 @@ Datadog 监视器在状态改变时，也就是触发、警告、恢复或没有
 
 ### 每个警报一个事件
 
-在同一个条件中，打开 **设置** 并开启 **Group incidents and alerts by a payload field**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
+在同一个条件中，打开 **设置** 并开启 **按负载字段对事件和警报分组**。按下表填写，让每个警报都有自己的事件，并由它的恢复来解决：
 
 | 字段 | 值 |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **为以下每个值分别打开一个事件…** | `requestBody.alert_key` |
+| **表示恢复的字段** | `requestBody.transition` |
+| **表示已恢复的值** | `Recovered` |
 
 ### 让监视器恢复在线
 
@@ -227,7 +227,7 @@ curl -X POST "<url>" \
 - Datadog 监视器也必须把恢复通知给该 Webhook。如果消息只在条件块中针对警报提到该 Webhook，就不会发送恢复。
 - 使用模板时，在 **运行记录** 中打开恢复的运行：它的最后一步会说明原因。恢复的 `alert_cycle_key` 必须与警报的相同，所以保持负载中的 `$ALERT_CYCLE_KEY` 不变。
 - 使用监视器时，条件中的事件需要开启 **更多字段** 下的 **自动解决事件**。
-- **Value that means recovered** 必须恰好是 `Recovered`。比较区分大小写。
+- **表示已恢复的值** 必须恰好是 `Recovered`。比较区分大小写。
 - 恢复的 `alert_key` 必须与警报的相同：保持负载中的 `$ALERT_ID $ALERT_SCOPE` 不变。
 :::
 

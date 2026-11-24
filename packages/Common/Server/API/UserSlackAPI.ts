@@ -12,6 +12,7 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { ChannelVerificationMessages } from "../../Types/UserNotification/ChannelVerificationMessages";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
@@ -42,7 +43,7 @@ export default class UserSlackAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItemToTest),
             );
           }
 
@@ -59,19 +60,16 @@ export default class UserSlackAPI extends BaseAPI<
             },
           });
 
-          if (!item) {
+          /*
+           * Somebody else's method is answered exactly like one that does
+           * not exist (#7272): the answer never says whether an id is
+           * someone's.
+           */
+          if (!item || item.userId?.toString() !== sender.userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          if (item.userId?.toString() !== sender.userId.toString()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
@@ -109,7 +107,7 @@ export default class UserSlackAPI extends BaseAPI<
             const message: string =
               err instanceof Error && err.message
                 ? err.message
-                : "Unknown error sending test Slack message.";
+                : "The test message was not sent, and Slack did not say why. Try again in a moment.";
 
             return Response.sendJsonObjectResponse(req, res, {
               ok: false,

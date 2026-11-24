@@ -18,6 +18,9 @@ import { getFactsByKeys } from "../../DataSecurity/ComplianceFacts";
 import CompliancePaperSection from "../../DataSecurity/CompliancePaperSection";
 import DataSecurityApi from "../../DataSecurity/DataSecurityApi";
 import LeaveWithoutSavingQuestion from "../../UnsavedChanges/LeaveWithoutSavingQuestion";
+import usePendingEdits, {
+  PendingEdits,
+} from "../../UnsavedChanges/UsePendingEdits";
 import { DataSecurityExposureAssessmentResponse } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   EXPOSURE_DRAFT_PART_TITLES,
@@ -69,9 +72,24 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-  const hasUnsaved: boolean = Object.values(editing).some(Boolean);
+  // The parts a person is mid-edit on, with their words not saved yet.
+  const pending: PendingEdits<string> = usePendingEdits<string>();
+  const hasUnsaved: boolean = pending.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
+
+  // A part in a person's own words, as its Save and the leave question's Save Changes write it.
+  const savePart: (part: string, markdown: string) => Promise<void> = async (
+    part: string,
+    markdown: string,
+  ): Promise<void> => {
+    props.onChanged(
+      await DataSecurityApi.editExposureAssessment({
+        securityCaseId: props.caseId,
+        part: part as ExposureDraftPart,
+        markdown,
+      }),
+    );
+  };
   const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> =
     props.answer.assessment?.sections || {};
   const hasDrafts: boolean = EXPOSURE_DRAFT_PARTS.some(
@@ -188,20 +206,10 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
                           }
                     }
                     onSave={async (markdown: string): Promise<void> => {
-                      props.onChanged(
-                        await DataSecurityApi.editExposureAssessment({
-                          securityCaseId: props.caseId,
-                          part,
-                          markdown,
-                        }),
-                      );
+                      await savePart(part, markdown);
                     }}
-                    onEditingChange={(isEditing: boolean) => {
-                      setEditing((current: Record<string, boolean>) => {
-                        return current[part] === isEditing
-                          ? current
-                          : { ...current, [part]: isEditing };
-                      });
+                    onEditingChange={(isEditing: boolean, words: string) => {
+                      pending.track(part, isEditing, words);
                     }}
                   />
                 );
@@ -213,6 +221,7 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_NOTICES}
+        onSaveChanges={pending.saveAllWith(savePart)}
       />
     </Fragment>
   );

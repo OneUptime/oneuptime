@@ -61,7 +61,13 @@ interface Findable {
    * title, or by its breadcrumb and title ("Profiles › Overview") where
    * the title alone is every product's.
    */
-  search: { query: string; offers: string };
+  search?: { query: string; offers: string } | undefined;
+  /*
+   * For a thing that is no page - the Ask AI panel - the Search action that
+   * opens it, by its id, and the keyword of that action the old name is
+   * (Components/CommandPalette/DashboardCommandPalette.tsx).
+   */
+  action?: { id: string; keyword: string } | undefined;
   /*
    * The products menu's entry, by its title's key, that finds the product
    * by its old name.
@@ -254,6 +260,17 @@ const FINDABLE: Record<string, Findable> = {
       opens: "/docs/en/scheduled-maintenance/states",
     },
   },
+  /*
+   * The products menu's entry for the Ask AI panel said Chat until #7474.
+   * The panel is no page: Search's Ask AI action opens it, as the products
+   * menu's entry does, and both are found by the old name.
+   */
+  Chat: {
+    action: { id: "action-ask-ai", keyword: "chat" },
+    product: { titleKey: "navbar.items.aiChatTitle", keyword: "chat" },
+    glossaryMentions: "Chat",
+    docs: { query: "ai chat", opens: "/docs/en/ai/ask-ai" },
+  },
 };
 
 const DASHBOARD_SRC: string = path.resolve(
@@ -322,7 +339,25 @@ function productKeywords(titleKey: string): Array<string> {
     "utf8",
   );
   // The entry's keywords follow its title.
-  const start: number = source.indexOf(`t("${titleKey}"`);
+  return keywordsAfter(source, source.indexOf(`t("${titleKey}"`));
+}
+
+// The keywords of the Search action of this id, read from its own entry.
+function actionKeywords(id: string): Array<string> {
+  const source: string = fs.readFileSync(
+    path.join(
+      DASHBOARD_SRC,
+      "Components/CommandPalette/DashboardCommandPalette.tsx",
+    ),
+    "utf8",
+  );
+  const start: number = source.indexOf(`id: "${id}",`);
+
+  return start === -1 ? [] : keywordsAfter(source, start);
+}
+
+// The first `keywords: [...]` of a source after a place in it.
+function keywordsAfter(source: string, start: number): Array<string> {
   const keywords: RegExpMatchArray | null = source
     .slice(start)
     .match(/keywords:\s*\[([\s\S]*?)\]/);
@@ -349,12 +384,48 @@ describe("every retired name says how it is still found", () => {
 });
 
 describe("Search (Cmd/Ctrl+K) finds the page by its old name", () => {
-  test.each(Object.entries(FINDABLE))(
-    "%s",
+  test.each(
+    Object.entries(FINDABLE).filter(
+      ([, findable]: [string, Findable]): boolean => {
+        return Boolean(findable.search);
+      },
+    ),
+  )("%s", (_name: string, findable: Findable) => {
+    expect(offered(findable.search!.query)).toContain(findable.search!.offers);
+  });
+
+  test("each old name finds a page, or the action of what is no page, never both", () => {
+    for (const [name, findable] of Object.entries(FINDABLE)) {
+      expect({
+        name,
+        ways: [findable.search, findable.action].filter(Boolean).length,
+      }).toEqual({
+        name,
+        ways: 1,
+      });
+    }
+  });
+
+  test.each(
+    Object.entries(FINDABLE).filter(
+      ([, findable]: [string, Findable]): boolean => {
+        return Boolean(findable.action);
+      },
+    ),
+  )(
+    "the Search action that opens what %s named is found by it",
     (_name: string, findable: Findable) => {
-      expect(offered(findable.search.query)).toContain(findable.search.offers);
+      expect(actionKeywords(findable.action!.id)).toContain(
+        findable.action!.keyword,
+      );
     },
   );
+
+  test("an action's keywords are read from its own entry", () => {
+    expect(actionKeywords("action-ask-ai")).toContain("copilot");
+    expect(actionKeywords("action-ask-ai")).not.toContain("hotkeys");
+    expect(actionKeywords("action-no-such-action")).toEqual([]);
+  });
 
   test("a query nothing names offers nothing, so a find above means something", () => {
     expect(offered("zzqx retired name")).toEqual([]);

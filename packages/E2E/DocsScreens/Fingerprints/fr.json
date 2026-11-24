@@ -275,7 +275,7 @@
       "SMS est désactivé dans ce projet, donc les alertes qui l'utilisent ne sont pas envoyées.",
       "Appel téléphonique est désactivé dans ce projet, donc les alertes qui l'utilisent ne sont pas envoyées.",
       "Les SMS et les appels sont payés avec le solde de ce projet, qui est de 0.00 USD. Ajouter un numéro envoie un SMS, le solde doit donc dépasser 1.00 USD.",
-      "Ajouter du solde",
+      "Ajouter au solde",
       "Activer les SMS et les appels",
       "Application mobile ou navigateur",
       "Non configuré.",
@@ -286,15 +286,15 @@
       "Revérifier"
     ],
     "outline": [
-      "button: Ajouter du solde",
+      "button: Ajouter au solde",
       "button: Activer les SMS et les appels",
       "button: Utiliser ce navigateur",
       "button: Obtenir l'application",
       "button: Continuer",
       "button: Revérifier"
     ],
-    "width": 768,
-    "height": 678
+    "width": 784,
+    "height": 707
   },
   "paging-phone": {
     "text": [

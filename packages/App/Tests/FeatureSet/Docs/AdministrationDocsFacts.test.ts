@@ -1037,9 +1037,23 @@ describe("Inviting People", () => {
   it("quotes the refusals as the server words them", () => {
     const refusals: string = section(page, "## Troubleshooting");
 
-    expect(refusals).toContain(
-      `:::details "${Errors.TeamMemberService.ALREADY_INVITED}"`,
+    // Someone in the team already, by its first sentence (#7271).
+    const alreadyInvited: string =
+      "This person has already been invited to this team, or is a member of it";
+
+    expect(
+      Errors.TeamMemberService.ALREADY_INVITED.startsWith(`${alreadyInvited}.`),
+    ).toBe(true);
+    expect(refusals).toContain(`:::details "${alreadyInvited}"`);
+    // What to do next, as the message says it: Resend Invitation.
+    expect(Errors.TeamMemberService.ALREADY_INVITED).toContain(
+      "Resend Invitation",
     );
+    const alreadyInvitedAnswer: string = refusals
+      .slice(refusals.indexOf(`:::details "${alreadyInvited}"`))
+      .split("\n:::")[0] as string;
+
+    expect(alreadyInvitedAnswer).toContain("**Resend Invitation**");
     expect(
       Errors.TeamMemberService.LIMIT_REACHED_FOR_FREE_PLAN.startsWith(
         "You have reached the user limit for the free plan",
@@ -2459,7 +2473,7 @@ describe("Billing & Usage", () => {
     expect([...rows].sort()).toEqual([...drawn].sort());
   });
 
-  it("names the balances' recharge, its bounds and Auto Recharge's defaults", () => {
+  it("names adding to the balances, its bounds and Auto Recharge's defaults", () => {
     for (const api of [
       "Server/API/NotificationAPI.ts",
       "Server/API/AIBillingAPI.ts",
@@ -2479,18 +2493,28 @@ describe("Billing & Usage", () => {
     const settings: string = readDashboardSource(
       "Pages/Settings/NotificationSettings.tsx",
     );
+    /*
+     * Up to its amount field's type, after its bounds: the dialog's
+     * description is an element, whose closing </> holds a "/>".
+     */
     const dialog: string = between(
       settings,
-      'title={"Recharge Balance"}',
-      "/>",
+      "title={ADD_TO_BALANCE_TITLE}",
+      "fieldType: FormFieldSchemaType.Number",
     );
 
-    expect(dialog).toContain('submitButtonText={"Recharge"}');
+    // One verb from the card's button to the dialog's own (#7475).
+    expect(dialog).toContain("submitButtonText={ADD_TO_BALANCE_TITLE}");
     expect(capturedNumber(dialog, MIN_VALUE)).toBe(20);
     expect(capturedNumber(dialog, MAX_VALUE)).toBe(1000);
     expect(
       readDashboardSource("Components/ProjectBalance/ProjectBalanceAccess.ts"),
-    ).toContain('title: "Recharge Balance"');
+    ).toContain("title: ADD_TO_BALANCE_TITLE,");
+    expect(
+      readDashboardSource("Components/ProjectBalance/ProjectBalanceCopy.ts"),
+    ).toContain(
+      'ADD_TO_BALANCE_TITLE: string = translationKey("Add to Balance");',
+    );
     /*
      * Both balances draw one Auto Recharge card (Components/ProjectBalance/
      * AutoRechargeCard), its switch named as the guide names it.

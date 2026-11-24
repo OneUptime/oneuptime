@@ -2,8 +2,8 @@
   "Company name associated with this license.": "इस लाइसेंस से जुड़ी कंपनी का नाम।",
   "Annual contract value (in USD) for this license.": "इस लाइसेंस का वार्षिक अनुबंध मूल्य (USD में)।",
   "Expiration date of this license.": "इस लाइसेंस की समाप्ति तिथि।",
-  "Something went wrong": "कुछ गड़बड़ हो गई",
-  "An unexpected error has occurred. Please reload the page to continue": "एक अनपेक्षित त्रुटि हुई। जारी रखने के लिए पेज फिर से लोड करें",
+  "This page stopped working": "इस पेज ने काम करना बंद कर दिया",
+  "Part of this page ran into a problem. Reload the page to continue.": "इस पेज के एक हिस्से में समस्या आई। जारी रखने के लिए पेज फिर से लोड करें।",
   "Error details": "त्रुटि विवरण",
   "Still stuck?": "अब भी अटके हैं?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "त्रुटि स्टैक, कंपोनेंट स्टैक, साफ़ किया गया पेज URL, ब्राउज़र विवरण और OneUptime बिल्ड वाली एक स्थानीय डायग्नोस्टिक फ़ाइल डाउनलोड करें। यह कभी कुकीज़, ब्राउज़र में सहेजा डेटा या फ़ॉर्म की सामग्री नहीं पढ़ती। OneUptime सपोर्ट के साथ साझा करने से पहले इसे देख लें।",
@@ -41,7 +41,7 @@
     "userProjects": "परियोजनाएँ",
     "enterpriseLicenses": "एंटरप्राइज़ लाइसेंस",
     "enterpriseLicense": "लाइसेंस",
-    "projects": "परियोजनाएँ",
+    "projects": "प्रोजेक्ट",
     "project": "परियोजना",
     "projectUsers": "उपयोगकर्ता",
     "projectUser": "उपयोगकर्ता",
@@ -96,7 +96,7 @@
   },
   "navbar": {
     "users": "उपयोगकर्ता",
-    "projects": "परियोजनाएँ",
+    "projects": "प्रोजेक्ट",
     "more": "अधिक",
     "settings": "सेटिंग्स"
   },
@@ -159,7 +159,7 @@
       "bulkAddToProjectSelectTeam": "चयनित उपयोगकर्ताओं को जोड़ने के लिए कोई टीम चुनें।",
       "bulkRequireTwoFactorAuth": "दो-कारक प्रमाणीकरण अनिवार्य करें",
       "bulkRequireTwoFactorAuthTitle": "{{userCount}} उपयोगकर्ता(ओं) के लिए दो-कारक प्रमाणीकरण अनिवार्य करें",
-      "bulkRequireTwoFactorAuthDescription": "{{userCount}} चयनित उपयोगकर्ता सभी सक्रिय सत्रों से साइन आउट कर दिए जाएँगे और अगली बार साइन इन करते समय उन्हें प्रमाणक ऐप सेट करना होगा। यदि आप भी उनमें शामिल हैं, तो यह आप पर भी लागू होगा।",
+      "bulkRequireTwoFactorAuthDescription": "{{userCount}} चयनित उपयोगकर्ता सभी सक्रिय सत्रों से साइन आउट कर दिए जाएँगे और अगली बार साइन इन करते समय उन्हें ऑथेंटिकेटर ऐप सेट करना होगा। यदि आप भी उनमें शामिल हैं, तो यह आप पर भी लागू होगा।",
       "bulkDoNotRequireTwoFactorAuth": "दो-कारक प्रमाणीकरण अनिवार्य न करें",
       "bulkDoNotRequireTwoFactorAuthTitle": "{{userCount}} उपयोगकर्ता(ओं) के लिए दो-कारक प्रमाणीकरण की अनिवार्यता हटाएँ",
       "bulkDoNotRequireTwoFactorAuthDescription": "{{userCount}} चयनित उपयोगकर्ता केवल अपने पासवर्ड से साइन इन कर सकेंगे। उन्होंने पहले से जो कुछ सेट किया है वह बना रहेगा, लेकिन अब उसकी माँग नहीं की जाएगी।",
@@ -313,7 +313,7 @@
       "selectProjectFirst": "टीम चुनने के लिए पहले कोई परियोजना चुनें।"
     },
     "projects": {
-      "title": "परियोजनाएँ",
+      "title": "प्रोजेक्ट",
       "cardTitle": "परियोजनाएँ",
       "listDescription": "इस सर्वर के सभी प्रोजेक्ट। किसी प्रोजेक्ट के उपयोगकर्ता, टीमें और सेटिंग्स प्रबंधित करने के लिए उसे खोलें।",
       "emptyMessage": "अभी तक कोई प्रोजेक्ट नहीं।"
@@ -497,7 +497,7 @@
       "title": "साइन आउट करें"
     },
     "sendEmail": {
-      "title": "घोषणा ईमेल भेजें",
+      "title": "ईमेल भेजें",
       "testCardTitle": "परीक्षण ईमेल भेजें",
       "testCardDescription": "सभी उपयोगकर्ताओं को भेजने से पहले पूर्वावलोकन के लिए एकल ईमेल पते पर परीक्षण घोषणा ईमेल भेजें।",
       "allCardTitle": "सभी उपयोगकर्ताओं को ईमेल भेजें",
@@ -514,7 +514,7 @@
       "confirmButton": "हाँ, सभी उपयोगकर्ताओं को भेजें"
     },
     "moreEmail": {
-      "title": "घोषणा ईमेल भेजें",
+      "title": "ईमेल भेजें",
       "cardTitle": "घोषणा ईमेल भेजें",
       "cardDescription": "सभी पंजीकृत उपयोगकर्ताओं को भेजने के लिए एक घोषणा ईमेल लिखें। आप यह देखने के लिए पहले एक परीक्षण ईमेल भेज सकते हैं कि यह कैसा दिखता है।",
       "sendTestButton": "परीक्षण ईमेल भेजें",
@@ -536,7 +536,7 @@
       "confirmButton": "हाँ, सभी उपयोगकर्ताओं को भेजें"
     },
     "settings": {
-      "title": "एडमिन सेटिंग्स",
+      "title": "सेटिंग्स",
       "authentication": {
         "signUpCardTitle": "साइन अप",
         "signUpCardDescription": "इस सर्वर पर कौन खाता बना सकता है।",
@@ -2020,8 +2020,8 @@
   "Sending a test request to the channel.": "चैनल को टेस्ट अनुरोध भेजा जा रहा है।",
   "Custom Channel": "कस्टम चैनल",
   "Everyone's on-call rules that use this channel are deleted with it. To stop sending without changing anyone's rules, turn the channel off instead.": "इस चैनल का उपयोग करने वाले सभी के ऑन-कॉल नियम इसके साथ हटा दिए जाते हैं। किसी के नियम बदले बिना भेजना रोकने के लिए, इसके बजाय चैनल बंद करें।",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "आपके पास {{itemName}} पर {{columnName}} सेट करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "आपके पास {{itemName}} पर {{columnName}} संपादित करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "आपके पास {{itemName}} पर {{columnName}} सेट करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}।",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "आपके पास {{itemName}} पर {{columnName}} संपादित करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}।",
   "Push Notifications": "पुश सूचनाएँ",
   "{{count}} {{itemsName}} skipped_one": "{{count}} {{itemName}} छोड़ा गया",
   "Are you sure you want to {{action}} {{count}} {{itemsName}}?_one": "क्या आप वाकई {{count}} {{itemName}} पर \"{{action}}\" करना चाहते हैं?",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "वर्कर को ज़्यादा मेमोरी और CPU दें, और ऐप के लॉग में बार-बार विफल होने वाले जॉब देखें।",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "यह सर्वर OneUptime {{current}} चला रहा है। {{latest}} आ चुका है।",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "पहले बैकअप लें, फिर अपडेट करें: Docker Compose पर npm run update, Kubernetes पर helm upgrade।",
-  "Finish it on the Server setup page.": "इसे सर्वर सेटअप पेज पर पूरा करें।",
+  "Finish it on the Server Setup page.": "इसे सर्वर सेटअप पेज पर पूरा करें।",
   "Products on this server": "इस सर्वर पर उत्पाद",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "चुनें कि इस सर्वर का हर प्रोजेक्ट क्या पेश करता है। बंद किया गया उत्पाद हर प्रोजेक्ट के मेनू, मुख्य पृष्ठ और खोज से हट जाता है, और उसके पेज बताते हैं कि वह बंद है।",
   "Start from": "इनमें से किसी से शुरू करें",
@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "विज़ुअल एडिटर पर जाएँ",
   "Visual": "विज़ुअल",
   "Drop image to upload": "अपलोड करने के लिए छवि छोड़ें",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" अपलोड नहीं की गई। {{error}}",
+  "Uploading {{fileName}}…": "{{fileName}} अपलोड हो रही है…",
   "Type directly in the visual editor — use the toolbar to format.": "विज़ुअल एडिटर में सीधे लिखें — फ़ॉर्मैट के लिए टूलबार इस्तेमाल करें।",
   "Switch to {{markdown}} to view or edit the raw source.": "मूल सामग्री देखने या संपादित करने के लिए {{markdown}} पर जाएँ।",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "सूची में, किसी आइटम को इंडेंट करने के लिए {{indentKey}} और आउटडेंट करने के लिए {{outdentKey}} दबाएँ, या इंडेंट और आउटडेंट बटन इस्तेमाल करें। सूची के बाहर, {{tabKey}} अगले फ़ील्ड पर ले जाता है।",

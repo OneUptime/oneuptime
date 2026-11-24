@@ -11,14 +11,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Written as npm run generate-postgres-migration writes it. Its index and
  * its key to "IncidentRole" are built online, in
- * AddOnCallPolicyIncidentRoleIndexAndKey1809187650010: every page reads the
+ * AddOnCallPolicyIncidentRoleIndexAndKey1809187660010: every page reads the
  * policy, and a key added in a transaction would hold "OnCallDutyPolicy"
  * and "IncidentRole" while it checked every policy.
  */
-export class AddOnCallPolicyIncidentRole1809187650000
+export class AddOnCallPolicyIncidentRole1809187660000
   implements MigrationInterface
 {
-  public name: string = "AddOnCallPolicyIncidentRole1809187650000";
+  public name: string = "AddOnCallPolicyIncidentRole1809187660000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

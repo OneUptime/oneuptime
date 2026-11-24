@@ -196,7 +196,7 @@ Alerts for payments:
 | `requestMethod` | HTTP 方法，例如 `POST`。 | `string` |
 | `incomingRequestReceivedAt` | 收到請求的時間，以 ISO 8601 時間戳記表示。 | `string` |
 
-當條件開啟了 **Group incidents and alerts by a payload field** 時，分組鍵也會成為變數，以分組路徑的 **最後一段** 命名：依 `requestBody.alerts[*].labels.alertname` 分組會得到 `{{alertname}}`，依 `requestBody.alerts[*].fingerprint` 分組會得到 `{{fingerprint}}`。完整的 `requestBody` 仍在旁邊可用。
+當條件開啟了 **依酬載欄位將事件和警示分組** 時，分組鍵也會成為變數，以分組路徑的 **最後一段** 命名：依 `requestBody.alerts[*].labels.alertname` 分組會得到 `{{alertname}}`，依 `requestBody.alerts[*].fingerprint` 分組會得到 `{{fingerprint}}`。完整的 `requestBody` 仍在旁邊可用。
 
 > [!NOTE]
 > `[*]` 只在分組路徑欄位中有效。在範本中它什麼也讀不到，因此預留位置會原樣保留。`{{requestBody.alerts[0].annotations.summary}}` 一律讀取酬載中的第一個警示，而不是事件所針對的那個警示：請使用分組變數和酬載的共用欄位，例如 `commonLabels` 和 `commonAnnotations`。請參閱 [傳入請求監測器](/docs/monitor/incoming-request-monitor)。

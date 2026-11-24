@@ -59,13 +59,13 @@ Open in de stap **Criteria** het eerste criterium, het criterium dat de monitor 
 
 ### Eén incident per waarschuwing openen
 
-Open in hetzelfde criterium **Instellingen** en zet **Group incidents and alerts by a payload field** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
+Open in hetzelfde criterium **Instellingen** en zet **Incidenten en waarschuwingen groeperen op een veld uit de payload** aan. Vul het in zoals hieronder, zodat elke waarschuwing een eigen incident krijgt en haar herstel het oplost:
 
 | Veld | Waarde |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alerts[*].fingerprint` |
-| **Field that signals recovery** | `requestBody.alerts[*].status` |
-| **Value that means recovered** | `resolved` |
+| **Een apart incident openen voor elke…** | `requestBody.alerts[*].fingerprint` |
+| **Veld dat herstel aangeeft** | `requestBody.alerts[*].status` |
+| **Waarde die hersteld betekent** | `resolved` |
 
 ### De monitor weer online brengen
 
@@ -82,7 +82,7 @@ https://oneuptime.com/heartbeat/<secret key>
 Een zelf gehoste installatie heeft een eigen host in plaats van `oneuptime.com`.
 :::
 
-Elke waarschuwing van een melding opent een eigen incident, tot **Max incidents per request** (`100`, tenzij je het wijzigt), en de eigen `status` van elke waarschuwing bepaalt wanneer haar incident wordt opgelost. De `fingerprint` van Grafana identificeert een waarschuwing aan de hand van haar labels, dus dat is de waarde om op te groeperen. Zie [Waarschuwingen uit een ander systeem ontvangen](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet.
+Elke waarschuwing van een melding opent een eigen incident, tot **Max. incidenten per verzoek** (`100`, tenzij je het wijzigt), en de eigen `status` van elke waarschuwing bepaalt wanneer haar incident wordt opgelost. De `fingerprint` van Grafana identificeert een waarschuwing aan de hand van haar labels, dus dat is de waarde om op te groeperen. Zie [Waarschuwingen uit een ander systeem ontvangen](/docs/monitor/incoming-request-monitor#waarschuwingen-uit-een-ander-systeem-ontvangen) voor wat elke instelling doet.
 
 > [!WARNING]
 > Groepeer niet op een label dat alle waarschuwingen van een melding delen. Het standaardmeldingsbeleid van Grafana groepeert waarschuwingen op `grafana_folder` en `alertname`, dus alle waarschuwingen van één melding hebben dezelfde `alertname`: groeperen op `requestBody.alerts[*].labels.alertname` vouwt de hele melding samen tot één incident.
@@ -103,7 +103,7 @@ Noem het contactpunt `OneUptime`, kies **Webhook** onder **Integration** en plak
 Ga naar **Alerting → Notification policies**. Zet het contactpunt van het standaardbeleid op `OneUptime`, of voeg een onderliggend beleid toe dat overeenkomt met de waarschuwingen die OneUptime moet krijgen, met `OneUptime` als contactpunt.
 :::
 
-Grafana stuurt `Content-Type: application/json`, wat de monitor nodig heeft om de velden van een melding te lezen. De instelling **Max Alerts** van het contactpunt beperkt de waarschuwingen van één melding: houd haar op `0`, geen limiet, of hooguit op de **Max incidents per request** van de monitor.
+Grafana stuurt `Content-Type: application/json`, wat de monitor nodig heeft om de velden van een melding te lezen. De instelling **Max Alerts** van het contactpunt beperkt de waarschuwingen van één melding: houd haar op `0`, geen limiet, of hooguit op de **Max. incidenten per verzoek** van de monitor.
 
 ## Testen
 
@@ -157,7 +157,7 @@ Eén run verwerkt één melding, dus hij declareert één incident, hoeveel waar
 
 :::details Incidenten gaan open maar worden nooit opgelost
 - Het incident van het criterium heeft **Incident automatisch oplossen** nodig, onder **Meer velden**.
-- **Field that signals recovery** moet `requestBody.alerts[*].status` zijn, en **Value that means recovered** precies `resolved`. De vergelijking is hoofdlettergevoelig.
+- **Veld dat herstel aangeeft** moet `requestBody.alerts[*].status` zijn, en **Waarde die hersteld betekent** precies `resolved`. De vergelijking is hoofdlettergevoelig.
 - De groeperingspaden moeten met `requestBody.` beginnen, en alleen de eerste `[*]` in een pad leest een lijst. Een pad dat een van beide regels breekt, komt nergens mee overeen, zonder foutmelding.
 :::
 

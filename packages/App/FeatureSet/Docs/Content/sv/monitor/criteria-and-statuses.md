@@ -44,7 +44,7 @@ Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrolle
 | **Kriterienamn** | Namnet i listan över kriterier och i grundorsaken till varje incident och larm som kriteriet öppnar. **Lägg till kriterier** namnger ett nytt kriterium efter dess filter, och namnet följer dem tills du skriver ett eget. |
 | **Filter** | Vad kontrollen måste visa, som ett eller flera filter. Kubernetes- och mätvärdesmonitorer kallar dem **Larmregler**. |
 | **Åtgärder** | Vad som händer när filtren matchar: ändra statusen, skapa ett larm, deklarera en incident eller någon kombination. |
-| **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning**, när det återställs och när det utvärderas och, på övervakningar av inkommande förfrågningar, **Group incidents and alerts by a payload field**. |
+| **Inställningar** | **Aktivera det här kriteriet**, en valfri **Beskrivning**, när det återställs och när det utvärderas och, på övervakningar av inkommande förfrågningar, **Gruppera incidenter och larm efter ett fält i nyttolasten**. |
 
 ### Filter
 
@@ -70,7 +70,7 @@ En incident eller ett larm frågar efter en titel, en **Allvarlighetsgrad** och,
 
 **Aktivera det här kriteriet** är påslaget för varje nytt kriterium. Stäng av det för att behålla ett kriterium utan att använda det: det hoppas över vid varje kontroll, ändrar ingen status, öppnar ingenting, och dess rubrik visar **Inaktiverad**.
 
-**Group incidents and alerts by a payload field** öppnar en incident per värde som hittas i en inkommande förfrågan, så att en enda webhook-adress kan hålla flera incidenter öppna. Se [Slå på incidentgruppering](/docs/monitor/incoming-request-monitor#aktivera-gruppering-av-incidenter).
+**Gruppera incidenter och larm efter ett fält i nyttolasten** öppnar en incident per värde som hittas i en inkommande förfrågan, så att en enda webhook-adress kan hålla flera incidenter öppna. Se [Slå på incidentgruppering](/docs/monitor/incoming-request-monitor#aktivera-gruppering-av-incidenter).
 
 **Återställ bara när ett eget villkor är uppfyllt** och **Utvärdera det här kriteriet bara vissa dagar och tider** är avstängda för ett nytt kriterium. Se [När ett kriterium återställs](#när-ett-kriterium-återställs) och [Bara vissa dagar och tider](#bara-vissa-dagar-och-tider).
 
@@ -218,6 +218,8 @@ Hemligheter och personuppgifter maskeras innan något sparas: headers som `Autho
 ## Hur lång tid varje kontroll tar
 
 Utvärderingssammanfattningen för varje kontroll, under **Visa sammanfattning** i monitorns **Övervakningsloggar** och för den senaste kontrollen på dess **Översikt**, berättar när kontrollen utvärderades, hur lång tid utvärderingen tog och, för en monitor som bedömer varje värd, container eller grupp för sig, hur många serier den bedömde. Tiden räknas från att OneUptime började läsa de data som kontrollen bedömer tills den skrev kontrollens logg: läsningen av data, bedömningen av kriterierna och öppnandet av incidenter och larm.
+
+I **Övervakningsloggar** visar kolumnen **Kontrollens längd** hur lång tid varje kontroll tog och markerar långsamma kontroller. Ett streck betyder att kontrollens längd inte registrerades.
 
 När en utvärdering tar för lång tid för sin monitor varnar sammanfattningen dig. För lång tid är mer än en tiondel av tiden mellan monitorns kontroller, aldrig under 5 sekunder och aldrig över en minut:
 
