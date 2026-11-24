@@ -5,7 +5,6 @@ import {
 import { ResponseStep } from "./SecurityCaseResponseTypes";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
 import {
   ResponseLink,
   ResponseLinkKind,
@@ -16,6 +15,7 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { DOCS_URL } from "Common/UI/Config";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { wordStepCheckSentence } from "Common/Utils/SecurityCase/ResponsePlan/StepCheckSentences";
+import { WrittenMoment, writeReaderMoment } from "Common/Utils/MomentPhrases";
 import {
   STEP_CHECK_OPEN_BLOCKLIST,
   STEP_CHECK_OPEN_EVENTS,
@@ -95,28 +95,29 @@ export function isDoneByCheckOnly(step: ResponseStep): boolean {
   return step.isCheckedByOneUptime && !step.taskId;
 }
 
-// A time of OneUptime's evidence on the reader's clock: the time today, the day and time before.
-export function writeCheckTime(time: Date, now: Date = new Date()): string {
-  const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
-
-  return OneUptimeDate.getDateAsLocalDayMonthString(time) ===
-    OneUptimeDate.getDateAsLocalDayMonthString(now)
-    ? OneUptimeDate.getLocalTimeString(time, { use12HourFormat })
-    : OneUptimeDate.getDateAsLocalDayMonthTimeString(time, {
-        use12HourFormat,
-      });
+/*
+ * A moment of OneUptime's evidence on the reader's clock: the time alone
+ * today, the day and the time on another day - each a sentence's moment
+ * brings its own words to, "at 14:25", "on 27 Nov at 14:25" (#10622).
+ */
+export function writeCheckMoment(
+  time: Date,
+  now: Date = new Date(),
+): WrittenMoment {
+  return writeReaderMoment(time, now);
 }
 
-// A sentence of the evidence in the reader's words, its times on their clock.
+// A sentence of the evidence in the reader's words, its moments on their clock.
 export function readCheckSentence(
   sentence: SecurityCaseStepCheckSentence,
   translator: Translator,
+  now: Date = new Date(),
 ): string {
   return wordStepCheckSentence({
     sentence,
     translator,
-    writeTime: (time: Date): string => {
-      return writeCheckTime(time);
+    writeMoment: (time: Date): WrittenMoment => {
+      return writeCheckMoment(time, now);
     },
   });
 }

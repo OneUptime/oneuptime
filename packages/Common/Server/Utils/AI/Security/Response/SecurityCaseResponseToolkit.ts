@@ -67,6 +67,7 @@ import {
 } from "../../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanBuilder";
 import { ResponseStep } from "../../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
 import { wordStepCheckSentence } from "../../../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
+import { writeMomentInUtc } from "../../../../../Utils/MomentPhrases";
 import SecurityCaseStatuses from "../../../../../Utils/SecurityCase/SecurityCaseStatuses";
 import { canonicalAddress } from "../../../../../Utils/SecurityCase/SecurityConnectionMatch";
 import IncidentSeverityService from "../../../../Services/IncidentSeverityService";
@@ -1030,9 +1031,7 @@ export default class SecurityCaseResponseToolkit {
       return wordStepCheckSentence({
         sentence,
         translator: ENGLISH,
-        writeTime: (time: Date): string => {
-          return `${time.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-        },
+        writeMoment: writeMomentInUtc,
       });
     });
 

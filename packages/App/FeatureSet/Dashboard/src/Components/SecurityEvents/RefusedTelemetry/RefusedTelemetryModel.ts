@@ -36,6 +36,12 @@ import { TelemetryIngestionBudgetScope } from "Common/Types/Telemetry/TelemetryI
 import { formatTelemetryIngestionBudgetBytes } from "Common/UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetWords";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
+  MomentRole,
+  WrittenMoment,
+  momentPhrase,
+  writeReaderMoment,
+} from "Common/Utils/MomentPhrases";
+import {
   RefusedTelemetry,
   RefusedTelemetryKind,
   RefusedTelemetrySignal,
@@ -234,6 +240,7 @@ export function describeRefusedTelemetry(data: {
   const { refusal, translator } = data;
   const name: string = getScopeName(refusal, translator);
   const sentence: string = getRefusedTelemetrySentence(refusal);
+  const refusedSince: WrittenMoment = writeReaderMoment(new Date(refusal.from));
 
   return {
     id: `${refusal.signal}:${refusal.kind}:${refusal.scope}:${refusal.scopeId}:${refusal.from}`,
@@ -243,7 +250,9 @@ export function describeRefusedTelemetry(data: {
       refusal.to === null
         ? translator.translateTemplate(sentence, {
             name,
-            time: formatRefusedTelemetryTime(refusal.from),
+            // When it began, or since when it goes on, with its own words (#10622).
+            time: momentPhrase(MomentRole.At, refusedSince),
+            since: momentPhrase(MomentRole.Since, refusedSince),
           })
         : translator.translateTemplate(sentence, {
             name,
