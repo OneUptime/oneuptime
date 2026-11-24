@@ -63,7 +63,11 @@ const aiRechargeGuard: BalanceRechargeGuard = new BalanceRechargeGuard({
 // What Auto Recharge is set to, from the project row or a change to it.
 export type AiAutoRechargeSettings = AutoRechargeSettings;
 
-// A change to Auto Recharge that is not written yet (ProjectService).
+/*
+ * A change to Auto Recharge that is not written yet: somebody saving it
+ * (ProjectService). The card it tries is tried for them, and what fails is
+ * theirs, read where they saved it, as for a recharge by hand (#11090).
+ */
 export interface AiAutoRechargeChange {
   enableAutoRechargeAiBalance: boolean;
   autoAiRechargeByBalanceInUSD?: number | undefined;
@@ -208,7 +212,10 @@ export class AIBillingService extends BaseService {
    * and the balance is answered as it is. After a failed charge it waits
    * AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS before trying the card again.
    *
-   * A charge that fails throws, after telling the owners (once a day).
+   * A charge that fails throws. Auto Recharge's own, before or after an AI
+   * call, tells the owners first (once a day). One somebody saving Auto
+   * Recharge made tells nobody else: they read why where they saved, and
+   * the save is refused (#11090).
    */
   @CaptureSpan()
   public async rechargeIfBalanceIsLow(
@@ -274,7 +281,15 @@ export class AIBillingService extends BaseService {
         projectId,
         amountInUSD: this.getAutoRechargeSettings(project, change)
           .rechargeByInUSD,
-        isAutomatic: true,
+        /*
+         * Only an AI call that found the credits low is Auto Recharge's own
+         * try. Somebody saving Auto Recharge (`change`) tries the card
+         * themselves, and reads what failed in the dialog they saved from,
+         * while the refusal leaves Auto Recharge as it was - so the try is
+         * theirs, as a recharge by hand is (#11090), as for SMS and calls
+         * (NotificationService.rechargeIfBalanceIsLow).
+         */
+        isAutomatic: change === undefined,
         /*
          * Nobody pressed anything: a success email here would be one message
          * to every owner per recharge, on a busy project many a day.
@@ -327,14 +342,17 @@ export class AIBillingService extends BaseService {
    * Who hears of a charge that fails depends on who asked for it (#11052),
    * as for SMS and calls (NotificationService.chargeAndCredit):
    *
-   * - Auto Recharge (isAutomatic): the owners are emailed ACTION REQUIRED,
-   *   once a day per project, failing open (BillingFailureNoticeThrottle),
-   *   and Auto Recharge waits before it tries the card again.
-   * - A recharge by hand: the person who pressed Add to Balance is told in
-   *   its dialog, by what this throws (PaymentProviderRefusal). The owners
-   *   are not emailed "We have tried to recharge your AI balance and
-   *   failed" about an attempt nobody else made, and the day's notice
-   *   window is left for Auto Recharge.
+   * - Auto Recharge (isAutomatic), before or after an AI call: the owners
+   *   are emailed ACTION REQUIRED, once a day per project, failing open
+   *   (BillingFailureNoticeThrottle), and Auto Recharge waits before it
+   *   tries the card again.
+   * - Somebody who asked - pressing Add to Balance, or saving Auto Recharge
+   *   while the credits are below its threshold (#11090): they are told in
+   *   the dialog they asked from, by what this throws
+   *   (PaymentProviderRefusal). The owners are not emailed "We have tried to
+   *   recharge your AI balance and failed" about an attempt nobody else
+   *   made, the day's notice window is left for Auto Recharge, and Auto
+   *   Recharge does not wait for it.
    */
   private async chargeAndCredit(data: {
     projectId: ObjectID;
@@ -469,9 +487,9 @@ export class AIBillingService extends BaseService {
       logger.error(err);
 
       /*
-       * By hand, the dialog shows what this throws: a declined card in the
-       * payment provider's words, with where to put the payment method
-       * right, rather than a failure nobody explained.
+       * By hand, or saving Auto Recharge, the dialog shows what this throws:
+       * a declined card in the payment provider's words, with where to put
+       * the payment method right, rather than a failure nobody explained.
        */
       throw data.isAutomatic ? err : toPaymentRefusalForWhoAsked(err);
     }
@@ -566,8 +584,9 @@ export class AIBillingService extends BaseService {
   /*
    * Tells the project's owners that Auto Recharge could not charge the AI
    * credits, with what to put right (`body`) - at most once a day per
-   * project. Only Auto Recharge asks: a recharge by hand is told to the
-   * person who asked, in its dialog (#11052).
+   * project. Only Auto Recharge asks: a recharge by hand (#11052), or the
+   * one saving Auto Recharge makes (#11090), is told to the person who
+   * asked, in their dialog.
    *
    * This used to write failedAiBalanceChargeNotificationSentToOwners and then
    * send WITHOUT ever reading it, so a project with a declined card mailed

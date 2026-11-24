@@ -1,6 +1,10 @@
-import AIBillingService from "../../../Server/Services/AIBillingService";
+import AIBillingService, {
+  AiAutoRechargeChange,
+} from "../../../Server/Services/AIBillingService";
 import BillingService from "../../../Server/Services/BillingService";
-import NotificationService from "../../../Server/Services/NotificationService";
+import NotificationService, {
+  SmsOrCallAutoRechargeChange,
+} from "../../../Server/Services/NotificationService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../Server/Infrastructure/Redis";
@@ -69,12 +73,23 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *      dialog. It claimed the day's window as well, so Auto Recharge's own
  *      failure later that day went unreported.
  *
- * WHICH PATH IS WHICH. Auto Recharge is rechargeIfBalanceIsLow (isAutomatic):
+ *   7. SAVING Auto Recharge while the balance is below its threshold tries
+ *      the card at once, and a failure refuses the save - so the person who
+ *      pressed Save reads why in its dialog. It ran as Auto Recharge's own
+ *      try, so it mailed every owner about an Auto Recharge the refusal left
+ *      off, claimed the day's window, and started Auto Recharge's hour of
+ *      waiting for it (#11090).
+ *
+ * WHICH PATH IS WHICH. Auto Recharge is rechargeIfBalanceIsLow with no
+ * change (isAutomatic), when a message or an AI call finds the balance low:
  * its failures mail the owners, once a day, failing open - the guarantees of
  * 2 to 4. A recharge by hand is rechargeBalance, what POST
- * /notification/recharge and POST /ai/recharge call: its failures mail
- * nobody, write no flag and claim no window - the person who asked is told
- * by what it throws. Each describe below names its path.
+ * /notification/recharge and POST /ai/recharge call; saving Auto Recharge is
+ * rechargeIfBalanceIsLow with the change not written yet
+ * (ProjectService.chargeAutoRechargeTurnedOn). Both are somebody asking:
+ * their failures mail nobody, write no flag, claim no window and start no
+ * wait - the person who asked is told by what it throws. Each describe below
+ * names its path.
  *
  * Both services are gated on IsBillingEnabled, so these are CLOUD-ONLY paths.
  * The last describe is a ratchet on the SIBLING owner emails in the four
@@ -268,6 +283,58 @@ const autoRechargeWaitStarted: AutoRechargeWaitStartedFunction =
       return String(call[0]).endsWith("auto-recharge-failed");
     });
   };
+
+/*
+ * Somebody saving Auto Recharge on (#11090): the change
+ * ProjectService.chargeAutoRechargeTurnedOn hands over - the amounts being
+ * saved, not written yet, and the card tried whatever failed before.
+ */
+type SaveAutoRechargeOnFunction = (data?: {
+  rechargeByInUSD?: number | undefined;
+  whenBalanceFallsToInUSD?: number | undefined;
+}) => Promise<number>;
+
+const saveSmsAutoRechargeOn: SaveAutoRechargeOnFunction = (data?: {
+  rechargeByInUSD?: number | undefined;
+  whenBalanceFallsToInUSD?: number | undefined;
+}): Promise<number> => {
+  const change: SmsOrCallAutoRechargeChange = {
+    enableAutoRechargeSmsOrCallBalance: true,
+    autoRechargeSmsOrCallByBalanceInUSD: data?.rechargeByInUSD ?? 20,
+    autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD:
+      data?.whenBalanceFallsToInUSD ?? 10,
+    ignoreRecentFailure: true,
+  };
+
+  return NotificationService.rechargeIfBalanceIsLow(PROJECT_ID, change);
+};
+
+const saveAiAutoRechargeOn: SaveAutoRechargeOnFunction = (data?: {
+  rechargeByInUSD?: number | undefined;
+  whenBalanceFallsToInUSD?: number | undefined;
+}): Promise<number> => {
+  const change: AiAutoRechargeChange = {
+    enableAutoRechargeAiBalance: true,
+    autoAiRechargeByBalanceInUSD: data?.rechargeByInUSD ?? 20,
+    autoRechargeAiWhenCurrentBalanceFallsInUSD:
+      data?.whenBalanceFallsToInUSD ?? 10,
+    ignoreRecentFailure: true,
+  };
+
+  return AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID, change);
+};
+
+// The project as it is while Auto Recharge is still off: the save turns it on.
+type WithAutoRechargeOffFunction = (project: Project) => Project;
+
+const withAutoRechargeOff: WithAutoRechargeOffFunction = (
+  project: Project,
+): Project => {
+  project.enableAutoRechargeSmsOrCallBalance = false;
+  project.enableAutoRechargeAiBalance = false;
+
+  return project;
+};
 
 beforeEach(() => {
   findOneByIdSpy = jest
@@ -815,6 +882,146 @@ describe("NotificationService - Add to Balance by hand (rechargeBalance) that fa
   });
 });
 
+describe("NotificationService - saving Auto Recharge (rechargeIfBalanceIsLow with the change) that fails: told in the dialog, no owner email (#11090)", () => {
+  test("a declined card mails no owner, sets no flag, claims no window and starts no wait", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      withAutoRechargeOff(makeSmsProject({ failedFlagAlreadySet: false })),
+    );
+    generateInvoiceSpy.mockRejectedValue(
+      makeCardDeclined("Your card was declined."),
+    );
+
+    const error: unknown = await saveSmsAutoRechargeOn().catch(
+      (err: unknown) => {
+        return err;
+      },
+    );
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    // Auto Recharge is still off: nothing to make wait.
+    expect(autoRechargeWaitStarted()).toBe(false);
+    // Nothing was added to the balance.
+    expect(smsCreditSpy).toHaveBeenCalledTimes(0);
+
+    // The card was tried once, with the amount being saved.
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
+    expect(generateInvoiceSpy.mock.calls[0]![2]).toBe(20);
+
+    // What refuses the save, said as the dialog shows it.
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as BadDataException).message).toBe(
+      getPaymentNotCompletedMessage("Your card was declined."),
+    );
+  });
+
+  test("no payment method mails no owner, and says so to the person saving", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      withAutoRechargeOff(makeSmsProject({ failedFlagAlreadySet: false })),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+
+    await expect(saveSmsAutoRechargeOn()).rejects.toThrow(
+      "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
+    );
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("whatever is saved, with Auto Recharge on before or not, a save that cannot charge the card mails nobody", async () => {
+    const random: SeededRandom = seededRandom(110905);
+
+    for (let attempt: number = 0; attempt < 40; attempt++) {
+      const rechargeByInUSD: number = 20 + random(981);
+      const whenBalanceFallsToInUSD: number = 10 + random(991);
+      const isDeclined: boolean = random(2) === 0;
+      const project: Project = makeSmsProject({
+        failedFlagAlreadySet: random(2) === 0,
+        balanceInUSDCents: random(whenBalanceFallsToInUSD * 100),
+      });
+
+      findOneByIdSpy.mockResolvedValue(
+        random(2) === 0 ? withAutoRechargeOff(project) : project,
+      );
+      hasPaymentMethodsSpy.mockResolvedValue(isDeclined);
+      generateInvoiceSpy.mockRejectedValue(
+        makeCardDeclined("Your card has insufficient funds."),
+      );
+
+      await expect(
+        saveSmsAutoRechargeOn({ rechargeByInUSD, whenBalanceFallsToInUSD }),
+      ).rejects.toThrow(
+        isDeclined
+          ? getPaymentNotCompletedMessage("Your card has insufficient funds.")
+          : NO_PAYMENT_METHOD_MESSAGE,
+      );
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+    expect(smsCreditSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("it leaves the day's window and the wait to Auto Recharge: Auto Recharge's own failure right after still reaches the owners, once", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
+    const claimed: Set<string> = useRealWindow();
+
+    // Somebody saves new amounts, and reads the refusal in the dialog.
+    await expect(
+      saveSmsAutoRechargeOn({
+        rechargeByInUSD: 50,
+        whenBalanceFallsToInUSD: 25,
+      }),
+    ).rejects.toThrow("card_declined");
+
+    expect(claimed.size).toBe(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+
+    // The next messages find the balance low, and Auto Recharge cannot charge.
+    for (let message: number = 0; message < 3; message++) {
+      await expect(
+        NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+      ).rejects.toThrow("card_declined");
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(getSentSubject(0)).toBe(SMS_FAILED_SUBJECT);
+    expect(
+      getUpdateData(0)["failedCallAndSMSBalanceChargeNotificationSentToOwners"],
+    ).toBe(true);
+    expect(autoRechargeWaitStarted()).toBe(true);
+  });
+
+  test("a save that charges the card charges the amount being saved, once, and mails nobody, as before", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      withAutoRechargeOff(makeSmsProject({ failedFlagAlreadySet: false })),
+    );
+
+    await saveSmsAutoRechargeOn({
+      rechargeByInUSD: 50,
+      whenBalanceFallsToInUSD: 25,
+    });
+
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
+    expect(generateInvoiceSpy.mock.calls[0]![2]).toBe(50);
+    expect(smsCreditSpy.mock.calls[0]![0]).toEqual({
+      projectId: PROJECT_ID,
+      amountInUSDCents: 5000,
+    });
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+  });
+});
+
 describe("AIBillingService - AI credit owner emails, when a recharge works", () => {
   test("a successful AUTO recharge (rechargeIfBalanceIsLow) mails Project Owners zero times", async () => {
     let balanceInUSDCents: number = 100;
@@ -1130,6 +1337,131 @@ describe("AIBillingService - Add to Balance by hand (rechargeBalance) that fails
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
     expect(getSentSubject(0)).toBe(AI_FAILED_SUBJECT);
+  });
+});
+
+describe("AIBillingService - saving Auto Recharge (rechargeIfBalanceIsLow with the change) that fails: told in the dialog, no owner email (#11090)", () => {
+  test("a declined card mails no owner, sets no flag, claims no window and starts no wait", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      withAutoRechargeOff(makeAiProject({ failedFlagAlreadySet: false })),
+    );
+    generateInvoiceSpy.mockRejectedValue(
+      makeCardDeclined("Your card has expired."),
+    );
+
+    await expect(saveAiAutoRechargeOn()).rejects.toThrow(
+      new BadDataException(
+        getPaymentNotCompletedMessage("Your card has expired."),
+      ),
+    );
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+    expect(atomicAddSpy).toHaveBeenCalledTimes(0);
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("no payment method mails no owner, and says so to the person saving", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      withAutoRechargeOff(makeAiProject({ failedFlagAlreadySet: false })),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+
+    await expect(saveAiAutoRechargeOn()).rejects.toThrow(
+      NO_PAYMENT_METHOD_MESSAGE,
+    );
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("whatever is saved, with Auto Recharge on before or not, a save that cannot charge the card mails nobody", async () => {
+    const random: SeededRandom = seededRandom(110906);
+
+    for (let attempt: number = 0; attempt < 40; attempt++) {
+      const rechargeByInUSD: number = 20 + random(981);
+      const whenBalanceFallsToInUSD: number = 10 + random(991);
+      const isDeclined: boolean = random(2) === 0;
+      const project: Project = makeAiProject({
+        failedFlagAlreadySet: random(2) === 0,
+        balanceInUSDCents: random(whenBalanceFallsToInUSD * 100),
+      });
+
+      findOneByIdSpy.mockResolvedValue(
+        random(2) === 0 ? withAutoRechargeOff(project) : project,
+      );
+      hasPaymentMethodsSpy.mockResolvedValue(isDeclined);
+      generateInvoiceSpy.mockRejectedValue(
+        makeCardDeclined("Your card was declined."),
+      );
+
+      await expect(
+        saveAiAutoRechargeOn({ rechargeByInUSD, whenBalanceFallsToInUSD }),
+      ).rejects.toThrow(
+        isDeclined
+          ? getPaymentNotCompletedMessage("Your card was declined.")
+          : NO_PAYMENT_METHOD_MESSAGE,
+      );
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+    expect(atomicAddSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("it leaves the day's window and the wait to Auto Recharge: Auto Recharge's own failure right after still reaches the owners, once", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: false }),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+    const claimed: Set<string> = useRealWindow();
+
+    await expect(
+      saveAiAutoRechargeOn({
+        rechargeByInUSD: 50,
+        whenBalanceFallsToInUSD: 25,
+      }),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
+
+    expect(claimed.size).toBe(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+
+    // The next AI calls find the credits low, and Auto Recharge cannot charge.
+    for (let call: number = 0; call < 3; call++) {
+      await expect(
+        AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
+      ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(getSentSubject(0)).toBe(AI_FAILED_SUBJECT);
+    expect(autoRechargeWaitStarted()).toBe(true);
+  });
+
+  test("a save that charges the card charges the amount being saved, once, and mails nobody, as before", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      withAutoRechargeOff(makeAiProject({ failedFlagAlreadySet: false })),
+    );
+
+    await saveAiAutoRechargeOn({
+      rechargeByInUSD: 50,
+      whenBalanceFallsToInUSD: 25,
+    });
+
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
+    expect(generateInvoiceSpy.mock.calls[0]![2]).toBe(50);
+    expect(atomicAddSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (atomicAddSpy.mock.calls[0]![0] as { add: Record<string, number> }).add,
+    ).toEqual({ aiCurrentBalanceInUSDCents: 5000 });
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
   });
 });
 
