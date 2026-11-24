@@ -154,9 +154,7 @@ describe("getXcpNgPoolConnection", () => {
   });
 
   test("a pool whose status was never written (null) reads as never connected", () => {
-    expect(connectionOf({}).state).toBe(
-      ResourceConnectionState.NeverConnected,
-    );
+    expect(connectionOf({}).state).toBe(ResourceConnectionState.NeverConnected);
     expect(connectionOf({}).label).toBe("Disconnected");
   });
 

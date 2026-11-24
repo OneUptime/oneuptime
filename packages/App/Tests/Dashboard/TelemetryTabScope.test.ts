@@ -369,6 +369,7 @@ describe("describeUnappliedScopeFilters", () => {
       proxmoxClusterId: "Proxmox cluster",
       openStackCloudId: "OpenStack cloud",
       vmwareVCenterId: "vCenter",
+      xcpNgPoolId: "XCP-ng pool",
       cephClusterId: "Ceph cluster",
       storageArrayId: "storage array",
       serverlessFunctionId: "serverless function",

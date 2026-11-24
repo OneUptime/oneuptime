@@ -80,13 +80,16 @@ const recommendationsResourceTypes: Array<unknown> = [];
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationsSideMenuItem",
   () => {
-    const SideMenuItem: React.FunctionComponent<Record<string, unknown>> =
-      jest.requireActual<{
+    const SideMenuItem: React.FunctionComponent<Record<string, unknown>> = (
+      jest.requireActual("../../../UI/Components/SideMenu/SideMenuItem") as {
         default: React.FunctionComponent<Record<string, unknown>>;
-      }>("../../../UI/Components/SideMenu/SideMenuItem").default;
-    const IconProp: Record<string, string> = jest.requireActual<{
-      default: Record<string, string>;
-    }>("../../../Types/Icon/IconProp").default;
+      }
+    ).default;
+    const IconProp: Record<string, string> = (
+      jest.requireActual("../../../Types/Icon/IconProp") as {
+        default: Record<string, string>;
+      }
+    ).default;
 
     return {
       __esModule: true,
@@ -150,9 +153,11 @@ function poolRoute(key: string): string {
   }).toString();
 }
 
-function renderPoolMenu(
-  counts?: { hosts?: number; vms?: number; storageRepositories?: number },
-): Promise<unknown> {
+function renderPoolMenu(counts?: {
+  hosts?: number;
+  vms?: number;
+  storageRepositories?: number;
+}): Promise<unknown> {
   return renderMenu(
     <XcpNgPoolSideMenu
       modelId={POOL_ID}
@@ -460,13 +465,8 @@ describe("one XCP-ng pool's side menu", () => {
         storageRepositoryCount: 4,
       }),
     ).toEqual({ hosts: 3, vms: 42, storageRepositories: 4 });
-    expect(
-      getXcpNgPoolResourceCounts({
-        hostCount: undefined,
-        vmCount: undefined,
-        storageRepositoryCount: undefined,
-      }),
-    ).toEqual({
+    // A pool whose counts were never written.
+    expect(getXcpNgPoolResourceCounts({})).toEqual({
       hosts: undefined,
       vms: undefined,
       storageRepositories: undefined,
@@ -571,9 +571,9 @@ describe("one XCP-ng pool's side menu", () => {
       await renderPoolMenu();
 
       expect(isExpanded(section)).toBe(true);
-      expect(screen.getByRole("link", { name: new RegExp(`^${title}`) })).toHaveClass(
-        "bg-indigo-50",
-      );
+      expect(
+        screen.getByRole("link", { name: new RegExp(`^${title}`) }),
+      ).toHaveClass("bg-indigo-50");
     },
   );
 

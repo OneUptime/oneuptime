@@ -198,6 +198,7 @@ describe("getLinkedResourcesToAdd", () => {
       proxmoxClusters: [],
       openStackClouds: [],
       vmwareVCenters: [],
+      xcpNgPools: [],
       cephClusters: [],
       storageArrays: [],
       dockerSwarmClusters: [],
