@@ -26,6 +26,8 @@ import {
 } from "../../../../../Utils/SecurityEvent/TelemetryScan/FlowSignals";
 import {
   PROMPT_INJECTION_PHRASES,
+  TRACE_SCAN_ATTRIBUTE_KEYS,
+  getTraceScanSensitiveFileWords,
   getTraceScanUrlMarkers,
 } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
 import {
@@ -123,6 +125,34 @@ describe("the trace read", () => {
     ]);
   });
 
+  /*
+   * #10745: a server span whose URL holds a sensitive path's words leaves
+   * the database only when its answer was a 4xx, by either attribute a
+   * status is written in - so the admin pages a WordPress site serves its
+   * people stay there, however many there are.
+   */
+  test("a server span asking for a sensitive file leaves the database only when it was refused or not found", () => {
+    expect(boundIncludes(statement)).toContainEqual(
+      getTraceScanSensitiveFileWords(),
+    );
+    expect(
+      statement.query.split("AND multiSearchAnyCaseInsensitive(concat(")
+        .length - 1,
+    ).toBe(2);
+    expect(statement.query).toMatch(
+      /\) AND \(startsWith\(attributes\[\{p\d+:String\}\], '4'\) OR startsWith\(attributes\[\{p\d+:String\}\], '4'\)\)\) OR \(isLlmSpan = 1 AND /,
+    );
+
+    for (const key of TRACE_SCAN_ATTRIBUTE_KEYS.statusCode) {
+      expect(bound(statement)).toContain(key);
+    }
+
+    // Balanced, so the scan's other conditions AND it as one.
+    expect(statement.query.split("(").length).toBe(
+      statement.query.split(")").length,
+    );
+  });
+
   test("pages in a fixed order", () => {
     expect(statement.query).toContain(
       "ORDER BY createdAt ASC, traceId ASC, spanId ASC LIMIT {",
@@ -155,6 +185,7 @@ describe("the trace read", () => {
     for (const word of [
       ...getTraceScanUrlMarkers(),
       ...PROMPT_INJECTION_PHRASES,
+      ...getTraceScanSensitiveFileWords(),
     ]) {
       expect(echo).not.toContain(word);
       expect(url).not.toContain(word);

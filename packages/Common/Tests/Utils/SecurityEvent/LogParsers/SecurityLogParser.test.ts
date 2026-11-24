@@ -409,6 +409,7 @@ describe("SECURITY_LOG_PREFILTER", () => {
         ): Array<string> => {
           return [
             group.requires,
+            ...(group.requiresAnyOf || []),
             ...group.anyOf,
             ...(group.noneOf || []),
             ...(group.unlessAnyOf || []),
@@ -738,6 +739,11 @@ describe("the recommended rules fire on what the log parsers make", () => {
     ["SQL injection attempts", WEB_LINES.sqlInjectionEncoded],
     ["Path traversal attempts", WEB_LINES.pathTraversal],
     ["Log4Shell exploit attempt", WEB_LINES.log4ShellInUserAgent],
+    // A scanner asking for a file the site does not have (#10745).
+    [
+      "Scanning for sensitive files",
+      '203.0.113.45 - - [24/Nov/2026:10:00:00 +0000] "GET /.env HTTP/1.1" 404 153 "-" "Mozilla/5.0 zgrab/0.x"',
+    ],
     ["Shell opened in a pod", AUDIT_EXEC],
     ["Privileged pod created", AUDIT_PRIVILEGED_POD],
     ["Cluster-admin granted", AUDIT_CLUSTER_ADMIN],

@@ -188,9 +188,22 @@ import {
   BlockAddressCell,
   BlockEnforcedAtCell,
   BlockExpiresCell,
+  getEnforcementChipTone,
   getEnforcementTone,
+  isEnforcementHeldBack,
   writeEnforcementTooltip,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCells";
+import {
+  SECURITY_BLOCK_REASON_FRAMES,
+  fillSecurityBlockReason,
+  frameSecurityBlockReason,
+  securityBlockHeldBackReason,
+  securityBlockReason,
+  toSecurityBlockReasonJson,
+} from "../../../Types/SecurityBlocklist/SecurityBlockReason";
+import { createTranslator } from "../../../Types/Translator";
+import fs from "fs";
+import path from "path";
 import {
   ACTION_QUARANTINE_OPTION,
   BLOCKLIST_EMPTY_DESCRIPTION,
@@ -852,6 +865,154 @@ describe("a row's cells", () => {
         now,
       ),
     ).toBe("Waiting for Cloudflare to hold this block.");
+  });
+
+  /*
+   * #10804: a block held back because its address is protected now. Its
+   * rows say why in the reader's language, and its chips are amber: the
+   * block was taken off on purpose, for a person to lift it or the
+   * protection - never the red of a destination that broke.
+   */
+  describe("a block held back because its address is protected now", () => {
+    const heldBackRow: (value: string) => SecurityBlockEnforcement = (
+      value: string,
+    ): SecurityBlockEnforcement => {
+      const reason: ReturnType<typeof securityBlockHeldBackReason> =
+        securityBlockHeldBackReason({
+          value,
+          protection: {
+            source: SecurityProtectedAddressSource.Host,
+            protectedValue: "35.205.11.131",
+          },
+        });
+
+      return enforcement({
+        state: SecurityBlockEnforcementState.Failed,
+        error: fillSecurityBlockReason(reason),
+        errorReason: toSecurityBlockReasonJson(reason),
+      });
+    };
+
+    const germanLocale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        const wording: unknown = germanLocale[text];
+
+        return typeof wording === "string" ? wording : undefined;
+      },
+      "de",
+    );
+
+    test("its chip is amber, not the red of a destination that failed", () => {
+      const row: SecurityBlockEnforcement = heldBackRow("35.205.11.131");
+      const failed: SecurityBlockEnforcement = enforcement({
+        state: SecurityBlockEnforcementState.Failed,
+        error: "Not applied: Azure WAF cannot challenge.",
+        errorReason: toSecurityBlockReasonJson(
+          frameSecurityBlockReason(
+            SECURITY_BLOCK_REASON_FRAMES.notApplied,
+            securityBlockReason("Azure WAF cannot challenge."),
+          )!,
+        ),
+      });
+
+      expect(isEnforcementHeldBack(row)).toBe(true);
+      expect(isEnforcementHeldBack(failed)).toBe(false);
+      expect(
+        getEnforcementChipTone(row, SecurityBlockEnforcementView.NotApplied),
+      ).toBe(PillTone.Warning);
+      expect(
+        getEnforcementChipTone(failed, SecurityBlockEnforcementView.NotApplied),
+      ).toBe(PillTone.Danger);
+      // A row that held it again since is no longer held back, whatever it kept.
+      expect(row.errorReason).toBeDefined();
+      expect(
+        isEnforcementHeldBack(
+          enforcement({
+            state: SecurityBlockEnforcementState.Applied,
+            errorReason: row.errorReason!,
+          }),
+        ),
+      ).toBe(false);
+      // Every other chip keeps the tone of where the block stands there.
+      for (const view of Object.values(SecurityBlockEnforcementView)) {
+        expect(
+          getEnforcementChipTone(
+            enforcement({ state: SecurityBlockEnforcementState.Pending }),
+            view,
+          ),
+        ).toBe(getEnforcementTone(view));
+      }
+    });
+
+    test("the cell draws it amber beside Not enforced, and its chip says why", () => {
+      const row: SecurityBlockEnforcement = heldBackRow("35.205.11.131");
+
+      render(
+        <BlockEnforcedAtCell block={block()} enforcements={[row]} now={now} />,
+      );
+
+      expect(
+        screen.getByTestId(BLOCKLIST_TEST_IDS.notEnforced),
+      ).toBeInTheDocument();
+
+      const chip: HTMLElement = screen
+        .getByText("Cloudflare")
+        .closest("[data-tone]") as HTMLElement;
+
+      expect(chip).not.toBeNull();
+      expect(chip.getAttribute("data-tone")).toBe(PillTone.Warning);
+      expect(writeEnforcementTooltip(english, row, now)).toBe(
+        "Cloudflare does not hold this block. Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+      );
+    });
+
+    test("a German reader reads why in German, beside a German chip", () => {
+      const tooltip: string = writeEnforcementTooltip(
+        german,
+        heldBackRow("35.205.11.131"),
+        now,
+      );
+
+      expect(tooltip).toContain("35.205.11.131");
+      expect(tooltip).not.toContain("Held back");
+      expect(tooltip).not.toContain("is protected now");
+      expect(tooltip).not.toContain("one of your project's own addresses");
+      expect(tooltip).not.toContain("does not hold this block");
+    });
+
+    test("a range that holds a protected address says how, in German too", () => {
+      const tooltip: string = writeEnforcementTooltip(
+        german,
+        heldBackRow("35.205.11.0/24"),
+        now,
+      );
+
+      expect(tooltip).toContain("35.205.11.0/24");
+      expect(tooltip).toContain("35.205.11.131");
+      expect(tooltip).not.toContain("holds 35.205.11.131");
+      expect(tooltip).not.toContain("is protected now");
+    });
+
+    test("a row held back before rows kept a reason says its English, as it did", () => {
+      const row: SecurityBlockEnforcement = enforcement({
+        state: SecurityBlockEnforcementState.Failed,
+        error:
+          "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+      });
+
+      expect(writeEnforcementTooltip(english, row, now)).toBe(
+        "Cloudflare does not hold this block. Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+      );
+    });
   });
 
   test("a feed's chip says when a firewall fetched the block, and waits for a fetch rather than a write", () => {

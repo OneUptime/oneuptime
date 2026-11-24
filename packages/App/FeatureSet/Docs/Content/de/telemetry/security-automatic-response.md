@@ -35,11 +35,13 @@ Eine Richtlinie reagiert auf eine Erkennung, sobald sie in ihrem Fall erfasst wi
 
 | Richtlinie | Reagiert auf | Tut | Erste Sperre |
 | --- | --- | --- | --- |
-| **Scanner** | Web-Scans und Angriffsversuche (ATT&CK T1595, T1190): SQL-Injection-, Path-Traversal- und Log4Shell-Versuche und viele Treffer verwalteter Cloudflare-Regeln von einer Adresse, solange jede Anfrage der Adresse abgewiesen wurde | Challenge | 1 Stunde |
+| **Scanner** | Web-Scans und Angriffsversuche (ATT&CK T1595, T1190): SQL-Injection-, Path-Traversal- und Log4Shell-Versuche, Scans nach sensiblen Dateien wie `/.env`, `/.git/config` und `/wp-admin` sowie viele Treffer verwalteter Cloudflare-Regeln von einer Adresse, solange jede Anfrage der Adresse abgewiesen wurde | Challenge | 1 Stunde |
 | **Passwortraten** | Brute Force und Password Spraying (ATT&CK T1110): fehlgeschlagene Anmeldungen von einer Adresse und fehlgeschlagene Anmeldungen und dann ein Erfolg von derselben Adresse | Sperren | 1 Stunde |
 | **Bekannt bösartige Adressen** | Jede Erkennung zu einer Adresse, die Ihre [Threat Intel](/docs/telemetry/threat-intelligence) auflistet | Sperren | 24 Stunden |
 
 Menschen bestehen eine Challenge, Skripte und Bots nicht. Scanner belegt eine Adresse nur mit einer Challenge, solange keine ihrer Anfragen Ihre App erreicht hat: Eine Adresse, deren Anfragen durchkamen, ist ein Fall für einen Menschen.
+
+Bei Scans nach sensiblen Dateien zählen nur Anfragen, die Ihre Website abgelehnt hat oder die etwas verlangen, das sie nicht hat, und nur, wenn eine Adresse innerhalb von fünf Minuten drei oder mehr verschiedene Dateien oder Admin-Seiten anfordert. Eine Seite, die Ihre Website ausliefert, zählt nie, sodass die eigenen Administratoren einer WordPress-Website `/wp-admin` und `/wp-login.php` so oft aufrufen können, wie sie wollen.
 
 Wenn Sie Scanner oder Passwortraten einschalten, in den Testlauf oder ganz, laufen die Regeln der **Regelbibliothek**, auf die sie reagiert, in Echtzeit, und die fehlenden kommen in Ihr Projekt: Eine Echtzeit-Regel löst Sekunden nach dem Eintreffen der Ereignisse aus, eine geplante liest Minuten später. Eine Regel, die jemand ausgeschaltet hat, bleibt aus. Ein Projekt führt höchstens 50 Regeln in Echtzeit aus: Darüber hinaus bleibt eine Regel bei ihrem Zeitplan, und die Karte der Richtlinie zeigt **Nach Zeitplan** daneben.
 
@@ -66,7 +68,7 @@ Um eine Richtlinie ohne ihre Woche Testlauf einzuschalten, öffnen Sie **Weitere
 - **Nie Ihre eigenen oder geschützte Adressen.** Die Einträge von **Geschützte Entitäten** und alles, was OneUptime von selbst schützt: Ihre Hosts, Cloud-Ressourcen und Prüfer, die Bereiche, die nicht im Internet liegen, und der Edge vor Ihrer App. Siehe [Sperrliste](/docs/telemetry/security-cases#sperrliste).
 - **Nie eine Adresse, die ein angemeldeter Benutzer in den letzten 30 Tagen verwendet hat.** Das Netz eines Büros, der Proxy eines Kunden oder das Zuhause eines Menschen: OneUptime sucht die Adresse in den Anmeldungen Ihres Identitätsanbieters und in den Anfragen, die Ihre App einem angemeldeten Benutzer beantwortet hat, denen mit einer Benutzer-ID in ihren Traces oder Logs. Eine Adresse, die es nicht prüfen kann, weil diese Ereignisse nicht gelesen werden konnten oder Ihre Scrub-Regeln Adressen so verbergen, dass es sie nicht zuordnen kann, bleibt einem Menschen überlassen.
 - **Längere Sperren für eine Adresse, die wiederkommt.** Die erste Sperre dauert 1 Stunde, dann 24 Stunden, dann 7 Tage für eine Adresse, die innerhalb von 30 Tagen erneut gesperrt wird. Bekannt bösartige Adressen beginnt bei 24 Stunden.
-- **Höchstens 50 automatische Sperren pro Stunde.** Darüber hinaus hören Ihre Richtlinien auf zu sperren und alarmieren Ihre Sicherheitsverantwortlichen: Ein so großer Angriff braucht einen Menschen. Die Seite sagt das, solange es anhält.
+- **Höchstens 50 automatische Sperren pro Stunde oder das von Ihnen festgelegte Limit.** Darüber hinaus hören Ihre Richtlinien auf zu sperren und alarmieren Ihre Sicherheitsverantwortlichen: Ein so großer Angriff braucht einen Menschen. Die Seite sagt das, solange es anhält. Ein Sicherheits-Administrator, Projektadministrator oder Projektinhaber kann das Limit zwischen 1 und 500 festlegen, unter **Weitere Einstellungen** unten auf der Seite: **Stundenlimit**. Ein neues Limit gilt ab der nächsten Erkennung.
 - **Rückgängig bei Zweifel.** Wenn ein angemeldeter Benutzer von einer Adresse aus gesehen wird, die eine Richtlinie gesperrt hat, hebt die Richtlinie die Sperre auf und informiert Ihre Sicherheitsverantwortlichen.
 
 Ihre Sicherheitsverantwortlichen sind die Sicherheits-Administratoren Ihres Projekts oder, wenn es keine hat, seine Projektinhaber. Jede Adresse, die eine Leitplanke in Ruhe gelassen hat, steht mit dem Grund in ihrem Fall.
@@ -101,7 +103,7 @@ Sehen Sie sich die Zeitachse des Falls an: Eine Richtlinie, die eine Adresse in 
 :::
 
 :::details Die Seite sagt, die automatischen Sperren der Stunde sind aufgebraucht
-Ihre Richtlinien haben in der letzten Stunde 50 automatische Sperren gesetzt und Ihre Sicherheitsverantwortlichen alarmiert. Sie machen weiter, sobald die Sperren dieser Stunde älter werden. Sehen Sie sich die Fälle des Angriffs an, und sperren Sie unter **Sperrliste** einen Bereich, wenn er aus einem Netz kommt.
+Ihre Richtlinien haben Ihr Stundenlimit für automatische Sperren erreicht, das bei 50 liegt, sofern es niemand geändert hat, und Ihre Sicherheitsverantwortlichen alarmiert. Sie machen weiter, sobald die Sperren dieser Stunde älter werden. Sehen Sie sich die Fälle des Angriffs an, und sperren Sie unter **Sperrliste** einen Bereich, wenn er aus einem Netz kommt. Ist Ihr Projekt oft so vielen Scannern ausgesetzt, klicken Sie neben dem Hinweis auf **Limit ändern** und erhöhen Sie das Limit.
 :::
 
 ## Nächste Schritte

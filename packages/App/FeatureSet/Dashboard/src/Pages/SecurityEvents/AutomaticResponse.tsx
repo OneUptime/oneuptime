@@ -7,8 +7,14 @@ import {
 } from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseApi";
 import {
   AUTOMATIC_RESPONSE_TEST_IDS,
+  CHANGE_LIMIT,
   CREATE_POLICY,
+  HOURLY_LIMIT_CARD_KEY,
+  HOURLY_LIMIT_COLUMN,
+  HOURLY_LIMIT_TITLE,
   LIMIT_REACHED,
+  LIMIT_REACHED_NOT_PAGED,
+  MORE_SETTINGS_DESCRIPTION,
   OWN_POLICIES_DESCRIPTION,
   OWN_POLICIES_TITLE,
   POLICY_DELETE_DESCRIPTION,
@@ -20,10 +26,15 @@ import {
   TURN_ON_WITHOUT_TRIAL,
   TURN_ON_WITHOUT_TRIAL_QUESTION,
 } from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
+import AutomaticResponseHourlyLimitCard from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard";
 import { getPolicyDisplayName } from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseModel";
 import AutomaticResponsePolicyCard from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponsePolicyCard";
 import AutomaticResponsePolicyModal from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponsePolicyModal";
 import BlocklistNotEnforcedNotice from "../../Components/SecurityEvents/Blocklist/BlocklistNotEnforcedNotice";
+import { canUpdateProjectColumns } from "../Settings/ProjectColumnEditGate";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import SecurityAutomaticResponsePolicy from "Common/Models/DatabaseModels/SecurityAutomaticResponsePolicy";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -32,9 +43,15 @@ import {
   SecurityAutomaticResponseOverviewPolicy,
 } from "Common/Types/SecurityAutomaticResponse/SecurityAutomaticResponseOverview";
 import {
+  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
   SecurityAutomaticResponseMode,
   SecurityAutomaticResponsePolicyKind,
 } from "Common/Types/SecurityAutomaticResponse/SecurityAutomaticResponsePolicy";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
+import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import Link from "Common/UI/Components/Link/Link";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
+import { getSentenceSeparator } from "Common/UI/Utils/SentenceSeparator";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -69,7 +86,12 @@ import React, {
  *
  * Above them, only when it is so: that nothing enforces the blocklist (a
  * policy's block would hold nowhere), and that the hour's automatic blocks
- * are used up, so the policies stopped and paged the security owners.
+ * are used up, so the policies stopped and paged the security owners - at
+ * the project's own limit, with Change Limit for whoever may change it.
+ *
+ * Under them, folded under More settings: what every policy shares, the
+ * hourly limit of automatic blocks (#10746), 50 unless a Security Admin
+ * set another - named on the folded header while it is set.
  */
 const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -185,6 +207,14 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
     const now: Date = OneUptimeDate.getCurrentDate();
     const isAtLimit: boolean =
       overview.blocksThisHour >= overview.maxBlocksPerHour;
+    // The policies stopped at the limit; the owners were paged, or are at the next stop.
+    const limitNotice: string = translator.translatePlural(
+      overview.pagedThisHour ? LIMIT_REACHED : LIMIT_REACHED_NOT_PAGED,
+      overview.maxBlocksPerHour,
+    );
+    const canChangeLimit: boolean = canUpdateProjectColumns([
+      HOURLY_LIMIT_COLUMN,
+    ]);
 
     return (
       <>
@@ -201,10 +231,32 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
             type={AlertType.WARNING}
             className="mb-5"
             dataTestId={AUTOMATIC_RESPONSE_TEST_IDS.limitNotice}
-            title={translator.translatePlural(
-              LIMIT_REACHED,
-              overview.blocksThisHour,
-            )}
+            title={
+              <>
+                <span>{limitNotice}</span>
+                {canChangeLimit ? (
+                  <>
+                    {getSentenceSeparator(limitNotice)}
+                    <Link
+                      to={getRouteToPageAnchor(
+                        RouteUtil.populateRouteParams(
+                          RouteMap[
+                            PageMap.SECURITY_AUTOMATIC_RESPONSE
+                          ] as Route,
+                        ),
+                        HOURLY_LIMIT_CARD_KEY,
+                      )}
+                      className="font-medium underline"
+                      dataTestId={AUTOMATIC_RESPONSE_TEST_IDS.changeLimit}
+                    >
+                      {translator.translateText(CHANGE_LIMIT)}
+                    </Link>
+                  </>
+                ) : (
+                  <></>
+                )}
+              </>
+            }
           />
         ) : (
           <></>
@@ -272,6 +324,22 @@ const SecurityAutomaticResponsePage: FunctionComponent<PageComponentProps> = (
           ) : (
             <></>
           )}
+
+          <AdvancedPageSection
+            description={MORE_SETTINGS_DESCRIPTION}
+            items={[
+              foldedSectionItem(HOURLY_LIMIT_TITLE, {
+                key: HOURLY_LIMIT_CARD_KEY,
+                isSet:
+                  overview.maxBlocksPerHour !==
+                  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+                value: translator.formatNumber(overview.maxBlocksPerHour),
+              }),
+            ]}
+            dataTestId={AUTOMATIC_RESPONSE_TEST_IDS.moreSettings}
+          >
+            <AutomaticResponseHourlyLimitCard onSaved={refresh} />
+          </AdvancedPageSection>
         </div>
       </>
     );
