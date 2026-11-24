@@ -16,6 +16,7 @@ import {
   SensitiveDataSink,
 } from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
+import { DataStoreExposure } from "../../../../../Types/DataSecurity/DataStorePosture";
 import ObjectID from "../../../../../Types/ObjectID";
 import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import { afterEach, describe, expect, test } from "@jest/globals";
@@ -205,6 +206,75 @@ describe("what OneUptime AI is sent", () => {
     const text: string = textOf(promptOf([emailPoint(), bucketPoint()]));
 
     for (const known of PRODUCTION_ONLY) {
+      expect({ known, isSent: text.includes(known) }).toEqual({
+        known,
+        isSent: false,
+      });
+    }
+  });
+
+  test("never what Data Security knows of a migration's table: its store, what it holds, its columns (#10779)", () => {
+    const column: ProductionReviewLeakJSON = emailPoint({
+      key: "column-key",
+      kind: SensitiveDataLeakKind.Migration,
+      checkId: "new-personal-data-column",
+      sink: undefined,
+      path: "db/migrations/20261124_add_billing_email.sql",
+      line: 1,
+      subject: "billing_email",
+      where: "orders",
+      text: "Adds the column `billing_email` to `orders`, whose name says it holds an email address.",
+      fix: "Store it only if you must.",
+      production: {
+        store: {
+          dataStoreId: "store-2",
+          name: "orders-db-prod-eu",
+          sensitivity: DataSensitivity.Restricted,
+          dataTypeNames: ["Card number"],
+          exposure: DataStoreExposure.Public,
+          isNotEncryptedAtRest: true,
+        },
+        table: {
+          name: "billing.orders",
+          dataTypeNames: ["Phone number"],
+          sameData: [
+            {
+              location: "billing.orders.contact_mail",
+              dataTypeName: "Email address",
+              lastSeenAt: "2026-11-20T10:00:00.000Z",
+            },
+          ],
+          otherStoreCount: 2,
+        },
+      },
+    });
+    const prompt: DataSecurityAiPrompt = PullRequestLeakReview.buildPrompt({
+      pullRequestTitle: "Bill to an address of its own",
+      points: [column],
+      files: [
+        {
+          path: "db/migrations/20261124_add_billing_email.sql",
+          patch:
+            "@@ -0,0 +1,1 @@\n+ALTER TABLE orders ADD COLUMN billing_email TEXT;",
+        },
+      ],
+      isFailOn: true,
+    });
+    const text: string = textOf(prompt);
+
+    // The column the diff adds, as the diff says it.
+    expect(text).toContain("billing_email");
+
+    for (const known of [
+      "orders-db-prod-eu",
+      "billing.orders",
+      "contact_mail",
+      "Phone number",
+      "Card number",
+      "Restricted",
+      "Public",
+      "store-2",
+    ]) {
       expect({ known, isSent: text.includes(known) }).toEqual({
         known,
         isSent: false,

@@ -303,9 +303,9 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
   },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules.ts",
-    count: 2,
+    count: 5,
     builtFrom:
-      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
+      "the column a line of Alembic, Rails or Django declares, read with the patterns the file lists (LINE_PATTERNS), each a pattern literal of bounded quantifiers; the table a line opens a block for (#10779), read with the pattern literals of TABLE_HEADERS, DJANGO_MODEL_HEADERS and TABLE_NAMED_BELOW, each of bounded quantifiers; and SensitiveNameMatcher's own match method, handed a column's name",
   },
   {
     file: "packages/Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
