@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "Предложение ИИ одобрено",
   "AI Change Made": "Изменение ИИ внесено",
   "AI Proposal Dismissed": "Предложение ИИ отклонено",
+  "AI Proposal Expired": "Предложение ИИ истекло",
   "AI Change Undone": "Изменение ИИ отменено",
   "AI Change Failed": "Изменение ИИ не удалось",
   "AI Response": "Реагирование ИИ",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Адреса сетевых интерфейсов этого зонда и, если они ему переданы, адреса его хоста — в том виде, в каком зонд перечисляет их при каждом выходе на связь. События безопасности откладывают в сторону собственные опросы, обнаружение и проверки мониторов зонда с этих адресов, а список блокировки никогда их не блокирует.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует.",
   "OneUptime AI's Scrub Rule Input Hash": "Хеш входных данных правил очистки OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Чтобы запросить исправление группы, нужно разрешение читать проблемы безопасности данных во всём проекте.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Каждое из хранилищ данных, созданных в консоли (их {{count}}), получает изменение ниже через своё облачное подключение.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "Хранилище данных, созданное в консоли, получает изменение ниже через своё облачное подключение.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Каждое из хранилищ данных, созданных в консоли (их {{count}}), получает изменение, нужное его типу, через своё облачное подключение. Одно одобрение вносит их все.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "Хранилище данных, созданное в консоли, получает изменение, нужное его типу, через своё облачное подключение."
 }

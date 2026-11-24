@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "AI 제안 승인됨",
   "AI Change Made": "AI 변경 완료",
   "AI Proposal Dismissed": "AI 제안 거부됨",
+  "AI Proposal Expired": "AI 제안 만료됨",
   "AI Change Undone": "AI 변경 취소됨",
   "AI Change Failed": "AI 변경 실패",
   "AI Response": "AI 대응",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
-  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙"
+  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "그룹의 수정을 요청하려면 프로젝트 전체의 데이터 보안 이슈를 읽을 권한이 필요합니다.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "콘솔에서 만든 데이터 저장소 {{count}}개 각각에 클라우드 연결을 통해 아래 변경을 적용합니다.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 아래 변경을 적용합니다.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "콘솔에서 만든 데이터 저장소 {{count}}개 각각에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다. 한 번의 승인으로 모두 적용됩니다.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다."
 }

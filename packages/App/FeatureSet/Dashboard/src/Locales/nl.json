@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "AI-voorstel goedgekeurd",
   "AI Change Made": "AI-wijziging doorgevoerd",
   "AI Proposal Dismissed": "AI-voorstel afgewezen",
+  "AI Proposal Expired": "AI-voorstel verlopen",
   "AI Change Undone": "AI-wijziging ongedaan gemaakt",
   "AI Change Failed": "AI-wijziging mislukt",
   "AI Response": "AI-reactie",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "De adressen op de netwerkinterfaces van deze sonde, en die van de host wanneer die aan de sonde worden doorgegeven, zoals de sonde ze bij elke melding opsomt. Beveiligingsgebeurtenissen zet de eigen polls, detecties en monitorcontroles van de sonde vanaf deze adressen apart, en de blokkeerlijst blokkeert ze nooit.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Het adres van waaruit OneUptime deze sonde ziet melden. De blokkeerlijst blokkeert het nooit.",
   "OneUptime AI's Scrub Rule Input Hash": "Invoerhash van de scrub-regels van OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Scrub-regels van OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Scrub-regels van OneUptime AI",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Om de oplossing van een groep te vragen, heb je toestemming nodig om gegevensbeveiligingsproblemen in het hele project te lezen.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Elk van de {{count}} gegevensopslagen die in de console zijn gemaakt, krijgt de wijziging hieronder, via zijn cloudkoppeling.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "De gegevensopslag die in de console is gemaakt, krijgt de wijziging hieronder, via zijn cloudkoppeling.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Elk van de {{count}} gegevensopslagen die in de console zijn gemaakt, krijgt de wijziging die zijn soort nodig heeft, via zijn cloudkoppeling. Eén goedkeuring voert ze allemaal uit.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "De gegevensopslag die in de console is gemaakt, krijgt de wijziging die zijn soort nodig heeft, via zijn cloudkoppeling."
 }

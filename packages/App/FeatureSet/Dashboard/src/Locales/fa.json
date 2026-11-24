@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "پیشنهاد هوش مصنوعی تأیید شد",
   "AI Change Made": "تغییر هوش مصنوعی انجام شد",
   "AI Proposal Dismissed": "پیشنهاد هوش مصنوعی رد شد",
+  "AI Proposal Expired": "پیشنهاد هوش مصنوعی منقضی شد",
   "AI Change Undone": "تغییر هوش مصنوعی برگردانده شد",
   "AI Change Failed": "تغییر هوش مصنوعی ناموفق بود",
   "AI Response": "پاسخ هوش مصنوعی",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند.",
   "OneUptime AI's Scrub Rule Input Hash": "هش ورودی قواعد پالایش OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "درخواست رفع مشکل یک گروه به مجوز خواندن مسائل امنیت داده در کل پروژه نیاز دارد.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "هر یک از {{count}} مخزن داده‌ای که در کنسول ساخته شده‌اند، تغییر زیر را از طریق اتصال ابری‌اش می‌گیرد.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "مخزن داده‌ای که در کنسول ساخته شده، تغییر زیر را از طریق اتصال ابری‌اش می‌گیرد.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "هر یک از {{count}} مخزن داده‌ای که در کنسول ساخته شده‌اند، تغییری را که نوعش لازم دارد از طریق اتصال ابری‌اش می‌گیرد. یک تأیید همه را انجام می‌دهد.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "مخزن داده‌ای که در کنسول ساخته شده، تغییری را که نوعش لازم دارد از طریق اتصال ابری‌اش می‌گیرد."
 }

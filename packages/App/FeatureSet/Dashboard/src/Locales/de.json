@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "KI-Vorschlag genehmigt",
   "AI Change Made": "KI-Änderung vorgenommen",
   "AI Proposal Dismissed": "KI-Vorschlag verworfen",
+  "AI Proposal Expired": "KI-Vorschlag abgelaufen",
   "AI Change Undone": "KI-Änderung rückgängig gemacht",
   "AI Change Failed": "KI-Änderung fehlgeschlagen",
   "AI Response": "KI-Reaktion",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie.",
   "OneUptime AI's Scrub Rule Input Hash": "Eingabe-Hash der Scrub-Regeln von OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Um die Behebung einer Gruppe anzufordern, brauchen Sie die Berechtigung, Datensicherheitsprobleme im gesamten Projekt zu lesen.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Jeder der {{count}} in der Konsole erstellten Datenspeicher erhält die Änderung unten, über seine Cloud-Verbindung.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "Der in der Konsole erstellte Datenspeicher erhält die Änderung unten, über seine Cloud-Verbindung.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Jeder der {{count}} in der Konsole erstellten Datenspeicher erhält die Änderung, die seine Art braucht, über seine Cloud-Verbindung. Eine Freigabe nimmt sie alle vor.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "Der in der Konsole erstellte Datenspeicher erhält die Änderung, die seine Art braucht, über seine Cloud-Verbindung."
 }

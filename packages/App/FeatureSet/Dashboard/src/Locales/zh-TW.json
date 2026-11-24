@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "AI 提議已核准",
   "AI Change Made": "AI 已進行變更",
   "AI Proposal Dismissed": "AI 提議已駁回",
+  "AI Proposal Expired": "AI 提議已過期",
   "AI Change Undone": "AI 變更已復原",
   "AI Change Failed": "AI 變更失敗",
   "AI Response": "AI 回應",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探測器網路介面上的位址，以及在告知它時其主機的位址，即探測器每次回報時列出的位址。安全事件會將探測器自身從這些位址發出的輪詢、探索與監控檢查另行擱置，封鎖清單也從不封鎖它們。",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探測器回報時所用的位址。封鎖清單從不封鎖它。",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理規則輸入雜湊",
-  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則"
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理規則",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "請求修復一個群組需要讀取整個專案資料安全問題的權限。",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "透過雲端連線，對在主控台中建立的 {{count}} 個資料儲存區逐一執行下方的變更。",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "透過雲端連線，對在主控台中建立的資料儲存區執行下方的變更。",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "透過雲端連線，對在主控台中建立的 {{count}} 個資料儲存區逐一執行其類型所需的變更。一次核准即可全部完成。",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "透過雲端連線，對在主控台中建立的資料儲存區執行其類型所需的變更。"
 }

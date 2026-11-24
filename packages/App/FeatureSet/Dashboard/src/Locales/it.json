@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "Proposta dell'IA approvata",
   "AI Change Made": "Modifica dell'IA eseguita",
   "AI Proposal Dismissed": "Proposta dell'IA ignorata",
+  "AI Proposal Expired": "Proposta dell'IA scaduta",
   "AI Change Undone": "Modifica dell'IA annullata",
   "AI Change Failed": "Modifica dell'IA non riuscita",
   "AI Response": "Risposta dell'IA",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Gli indirizzi delle interfacce di rete di questa sonda, e quelli del suo host quando le vengono indicati, come la sonda li elenca ogni volta che comunica. Eventi di sicurezza mette da parte le interrogazioni, le scoperte e i controlli dei monitor propri della sonda che partono da questi indirizzi, e la blocklist non li blocca mai.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "L'indirizzo da cui OneUptime vede comunicare questa sonda. La blocklist non lo blocca mai.",
   "OneUptime AI's Scrub Rule Input Hash": "Hash dell'input delle regole di mascheramento di OneUptime AI",
-  "OneUptime AI's Scrub Rules": "Regole di mascheramento di OneUptime AI"
+  "OneUptime AI's Scrub Rules": "Regole di mascheramento di OneUptime AI",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Chiedere la correzione di un gruppo richiede l'autorizzazione a leggere i problemi di sicurezza dei dati dell'intero progetto.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Ciascuno dei {{count}} archivi dati creati nella console riceve la modifica qui sotto, tramite la sua connessione cloud.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "L'archivio dati creato nella console riceve la modifica qui sotto, tramite la sua connessione cloud.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Ciascuno dei {{count}} archivi dati creati nella console riceve la modifica di cui ha bisogno il suo tipo, tramite la sua connessione cloud. Un'unica approvazione le applica tutte.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "L'archivio dati creato nella console riceve la modifica di cui ha bisogno il suo tipo, tramite la sua connessione cloud."
 }

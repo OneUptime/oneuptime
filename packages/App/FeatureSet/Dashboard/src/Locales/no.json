@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "KI-forslag godkjent",
   "AI Change Made": "KI-endring utført",
   "AI Proposal Dismissed": "KI-forslag avvist",
+  "AI Proposal Expired": "KI-forslag utløpt",
   "AI Change Undone": "KI-endring angret",
   "AI Change Failed": "KI-endring mislyktes",
   "AI Response": "KI-respons",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adressene på nettverksgrensesnittene til denne sonden, og vertens når den får dem oppgitt, slik sonden lister dem hver gang den sender livstegn. Sikkerhetshendelser legger sondens egne avspørringer, oppdagelser og monitorsjekker fra disse adressene til side, og blokkeringslisten blokkerer dem aldri.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen OneUptime ser at denne sonden sender livstegn fra. Blokkeringslisten blokkerer den aldri.",
   "OneUptime AI's Scrub Rule Input Hash": "Input-hash for OneUptime AI-scrub-regler",
-  "OneUptime AI's Scrub Rules": "OneUptime AI-scrub-regler"
+  "OneUptime AI's Scrub Rules": "OneUptime AI-scrub-regler",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "For å be om en gruppes retting trenger du tillatelse til å lese datasikkerhetsproblemer i hele prosjektet.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Hvert av de {{count}} datalagrene som ble laget i konsollen, får endringen nedenfor via skytilkoblingen sin.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "Datalageret som ble laget i konsollen, får endringen nedenfor via skytilkoblingen sin.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Hvert av de {{count}} datalagrene som ble laget i konsollen, får endringen som typen dets trenger, via skytilkoblingen sin. Én godkjenning gjør alle endringene.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "Datalageret som ble laget i konsollen, får endringen som typen dets trenger, via skytilkoblingen sin."
 }

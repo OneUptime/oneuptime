@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "AI प्रस्ताव स्वीकृत",
   "AI Change Made": "AI बदलाव किया गया",
   "AI Proposal Dismissed": "AI प्रस्ताव खारिज",
+  "AI Proposal Expired": "AI प्रस्ताव की अवधि समाप्त",
   "AI Change Undone": "AI बदलाव पूर्ववत किया गया",
   "AI Change Failed": "AI बदलाव विफल",
   "AI Response": "AI प्रतिक्रिया",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "इस प्रोब के नेटवर्क इंटरफ़ेस के पते, और बताए जाने पर इसके होस्ट के पते, जैसे प्रोब हर बार चेक-इन करते समय उन्हें सूचीबद्ध करता है। सुरक्षा इवेंट इन पतों से आने वाली प्रोब की अपनी पोलिंग, डिस्कवरी और मॉनिटर जाँचों को अलग रख देते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI के स्क्रब नियमों के इनपुट का हैश",
-  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम"
+  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "किसी समूह का सुधार मांगने के लिए पूरे प्रोजेक्ट की डेटा सुरक्षा समस्याएं पढ़ने की अनुमति चाहिए।",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "कंसोल में बने {{count}} डेटा स्टोर में से हर एक में, उसके क्लाउड कनेक्शन के ज़रिए, नीचे दिया बदलाव होता है।",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "कंसोल में बने डेटा स्टोर में, उसके क्लाउड कनेक्शन के ज़रिए, नीचे दिया बदलाव होता है।",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "कंसोल में बने {{count}} डेटा स्टोर में से हर एक में, उसके क्लाउड कनेक्शन के ज़रिए, वह बदलाव होता है जो उसके प्रकार को चाहिए। एक मंज़ूरी से सभी बदलाव हो जाते हैं।",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "कंसोल में बने डेटा स्टोर में, उसके क्लाउड कनेक्शन के ज़रिए, वह बदलाव होता है जो उसके प्रकार को चाहिए।"
 }

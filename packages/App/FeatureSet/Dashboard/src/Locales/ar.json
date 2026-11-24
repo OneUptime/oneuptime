@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "تمت الموافقة على اقتراح الذكاء الاصطناعي",
   "AI Change Made": "أجرى الذكاء الاصطناعي تغييرًا",
   "AI Proposal Dismissed": "رُفض اقتراح الذكاء الاصطناعي",
+  "AI Proposal Expired": "انتهت صلاحية اقتراح الذكاء الاصطناعي",
   "AI Change Undone": "تم التراجع عن تغيير الذكاء الاصطناعي",
   "AI Change Failed": "فشل تغيير الذكاء الاصطناعي",
   "AI Response": "استجابة الذكاء الاصطناعي",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
   "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
-  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI"
+  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "يتطلب طلب إصلاح مجموعة إذنًا بقراءة مشكلات أمن البيانات في المشروع بأكمله.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "يتلقى كل مخزن من مخازن البيانات المنشأة في وحدة التحكم (العدد: {{count}}) التغيير أدناه، عبر اتصاله السحابي.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "يتلقى مخزن البيانات المنشأ في وحدة التحكم التغيير أدناه، عبر اتصاله السحابي.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "يتلقى كل مخزن من مخازن البيانات المنشأة في وحدة التحكم (العدد: {{count}}) التغيير الذي يحتاجه نوعه، عبر اتصاله السحابي. موافقة واحدة تُجري التغييرات كلها.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "يتلقى مخزن البيانات المنشأ في وحدة التحكم التغيير الذي يحتاجه نوعه، عبر اتصاله السحابي."
 }

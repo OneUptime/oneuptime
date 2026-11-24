@@ -62896,6 +62896,7 @@
   "AI Proposal Approved": "AI Proposal Approved",
   "AI Change Made": "AI Change Made",
   "AI Proposal Dismissed": "AI Proposal Dismissed",
+  "AI Proposal Expired": "AI Proposal Expired",
   "AI Change Undone": "AI Change Undone",
   "AI Change Failed": "AI Change Failed",
   "AI Response": "AI Response",
@@ -63683,5 +63684,10 @@
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
   "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
-  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules"
+  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Asking for a group's fix takes permission to read Data Security issues across the whole project.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "The store made in the console takes the change below, through its cloud connection.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "The store made in the console takes the change its kind needs, through its cloud connection."
 }
