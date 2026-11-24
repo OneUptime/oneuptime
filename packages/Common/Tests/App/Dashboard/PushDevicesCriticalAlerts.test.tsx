@@ -102,6 +102,15 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const USER_ID: string = "7f000000-0000-4000-8000-0000000000a1";
 const PROJECT_ID: string = "7f000000-0000-4000-8000-0000000000b1";
@@ -1687,5 +1696,130 @@ describe("a test notification says what the server sent, not what the list showe
      * available in browsers"); the (i) no longer says it again.
      */
     expect(screen.queryByText(/Browsers can't override/)).toBeNull();
+  });
+});
+
+/*
+ * A server whose admins took the mobile app away, or offer it from a page of
+ * their own (Admin Dashboard > Settings > Help and Support, #10866). The
+ * card then names browsers only and offers no way to an app, or sends a
+ * browser to that page instead of the stores.
+ */
+describe("the mobile app, as the server's admins offer it", () => {
+  afterEach(() => {
+    forgetHelpAndSupport();
+  });
+
+  const turnTheAppOff: () => void = (): void => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+  };
+
+  test("turned off: the empty card names browsers only, and offers Register Device but no app", async () => {
+    turnTheAppOff();
+    devices = [];
+
+    render(<PushMethods />);
+
+    expect(await screen.findByText("No devices yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Browsers you register here get push notifications for this project.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "Phones signed in to the OneUptime On-Call app, and browsers you register here, get push notifications for this project.",
+      ),
+    ).toBeNull();
+    expect(screen.queryByTestId("push-devices-empty-get-app")).toBeNull();
+    expect(
+      screen.getAllByRole("button", { name: "Register Device" }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  test("turned off: a browser with no phone listed offers no way to an app", async () => {
+    turnTheAppOff();
+    devices = [CHROME()];
+
+    render(<PushMethods />);
+
+    const status: HTMLElement = await statusOf("Chrome on macOS");
+
+    expect(status).toHaveTextContent("Not available in browsers");
+    expect(within(status).queryByTestId("critical-alert-steps-link")).toBeNull();
+  });
+
+  test("turned off: a phone already listed keeps its steps to turn critical alerts on", async () => {
+    turnTheAppOff();
+
+    render(<PushMethods />);
+
+    const modal: HTMLElement = await openStepsFor("SM-S918B");
+
+    expect(stepsOf(modal).length).toBeGreaterThan(0);
+  });
+
+  test("from the server's own page: a browser's steps start there, named by its address, with no store", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: {
+          choice: HelpChoice.Link,
+          value: "https://apps.example.com/oneuptime",
+        },
+      }),
+    );
+    devices = [CHROME()];
+
+    render(<PushMethods />);
+
+    fireEvent.click(
+      await within(await statusOf("Chrome on macOS")).findByTestId(
+        "critical-alert-steps-link",
+      ),
+    );
+
+    const modal: HTMLElement = await screen.findByTestId("modal");
+    const steps: Array<string> = stepsOf(modal);
+
+    expect(steps[0]).toBe(
+      "Get OneUptime On-Call for your phone from apps.example.com.",
+    );
+    expect(
+      within(modal).getByRole("link", { name: "apps.example.com" }),
+    ).toHaveAttribute("href", "https://apps.example.com/oneuptime");
+    expect(
+      within(modal).getByTestId("critical-alert-steps-own-page"),
+    ).toHaveAttribute("dir", "ltr");
+    expect(within(modal).queryByRole("link", { name: "App Store" })).toBeNull();
+    expect(
+      within(modal).queryByRole("link", { name: "Google Play" }),
+    ).toBeNull();
+    // The rest is the app's own, wherever it came from.
+    expect(steps).toHaveLength(3);
+    expect(steps[1]).toBe(
+      `Open it, connect to ${getMobileAppServerUrl()} and sign in. Allow notifications, and your phone shows up in this list.`,
+    );
+  });
+
+  test("from the server's own page: the empty card still offers the app, as before", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: {
+          choice: HelpChoice.Link,
+          value: "https://apps.example.com/oneuptime",
+        },
+      }),
+    );
+    devices = [];
+
+    render(<PushMethods />);
+
+    expect(
+      await screen.findByTestId("push-devices-empty-get-app"),
+    ).toHaveTextContent("Get the mobile app");
   });
 });
