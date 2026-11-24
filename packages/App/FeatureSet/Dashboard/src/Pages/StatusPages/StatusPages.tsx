@@ -13,6 +13,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ObjectID from "Common/Types/ObjectID";
 import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -207,6 +208,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
           title: "Status Pages",
           description:
             "Status pages show your customers what is working and what is not — live monitor status, incidents and scheduled maintenance, on a page you can make public or private.",
+          // Where a newcomer first meets the word: what a status page is (#6935).
+          titleGlossaryTerm: GlossaryTerm.StatusPage,
         }}
         videoLink={URL.fromString("https://youtu.be/F6BNipy5VCk")}
         showViewIdButton={true}

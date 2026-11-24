@@ -39,6 +39,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -515,12 +517,32 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A Logs, Traces, Metrics or Exceptions monitor's criteria are its When to
+   * alert, as one rule or as the full editor: where other monitor types
+   * meet the word as their Criteria card's title, this card says what
+   * criteria are (#6935), with the docs page that explains them.
+   */
+  const criteriaCardProps: {
+    titleGlossaryTerm: GlossaryTerm;
+    rightElement: ReactElement;
+  } = {
+    titleGlossaryTerm: GlossaryTerm.Criteria,
+    rightElement: (
+      <LearnMoreLink
+        docsPath="/docs/monitor/criteria-and-statuses"
+        dataTestId="telemetry-rule-criteria-learn-more"
+      />
+    ),
+  };
+
   // Criteria that are not one rule, or someone who asked for all of them.
   if (!rule || isCustom) {
     return (
       <Card
         title={TelemetryRuleCopy.customCriteriaTitle}
         description={TelemetryRuleCopy.customCriteriaDescription}
+        {...criteriaCardProps}
         /*
          * The way back to the simple rule is a switch of what the card
          * shows, so it sits at the header's right edge, where every card
@@ -1068,6 +1090,7 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
       <Card
         title={TelemetryRuleCopy.whenToAlertTitle}
         description={TelemetryRuleCopy.whenToAlertDescription}
+        {...criteriaCardProps}
       >
         <div className="mt-2" data-testid="telemetry-rule-condition">
           {measureField}

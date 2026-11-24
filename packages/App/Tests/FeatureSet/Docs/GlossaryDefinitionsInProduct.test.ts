@@ -167,6 +167,66 @@ describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)("in %s", (lang: string) => {
   });
 });
 
+/*
+ * The words #6935 marked where newcomers meet them next: monitor status,
+ * status page, subscriber, maintenance and team, and a telemetry monitor's
+ * criteria. In every docs language each is a short, plain sentence or two
+ * that the popover shows whole: no Markdown left in it, three sentences at
+ * most, and the language's own words, not English in its place.
+ */
+const WORDS_NEWCOMERS_MEET_NEXT: ReadonlyArray<GlossaryTerm> = [
+  GlossaryTerm.MonitorStatus,
+  GlossaryTerm.StatusPage,
+  GlossaryTerm.Subscriber,
+  GlossaryTerm.ScheduledMaintenance,
+  GlossaryTerm.Team,
+  GlossaryTerm.Criteria,
+];
+
+// Longer than this, a definition is a paragraph, not a popover's line.
+const SHORT_DEFINITION_MAX_LENGTH: number = 360;
+
+describe.each(SUPPORTED_DOCS_LANGUAGE_CODES)(
+  "the words newcomers meet next, in %s",
+  (lang: string) => {
+    it.each(WORDS_NEWCOMERS_MEET_NEXT)(
+      "%s is marked, and is a short, plain definition the popover shows whole",
+      (term: GlossaryTerm) => {
+        expect(MARKED).toContain(term);
+
+        const entry: DocsGlossaryEntry | undefined = glossaries
+          .get(lang)!
+          .entries.find((candidate: DocsGlossaryEntry): boolean => {
+            return candidate.id === term;
+          });
+        const english: DocsGlossaryEntry | undefined = glossaries
+          .get("en")!
+          .entries.find((candidate: DocsGlossaryEntry): boolean => {
+            return candidate.id === term;
+          });
+
+        expect(entry).toBeDefined();
+
+        const definition: string = entry!.definition;
+
+        expect({
+          lang: lang,
+          term: term,
+          shown: client.shortenDefinition(definition),
+        }).toEqual({ lang: lang, term: term, shown: definition });
+        expect(definition).not.toMatch(/\*\*|`|\]\(|^#/);
+        expect(definition.length).toBeLessThanOrEqual(
+          SHORT_DEFINITION_MAX_LENGTH,
+        );
+
+        if (lang !== "en") {
+          expect(definition).not.toBe(english!.definition);
+        }
+      },
+    );
+  },
+);
+
 describe("in English", () => {
   it("every marked definition fits the popover whole: three sentences at most", () => {
     const byId: Map<string, DocsGlossaryEntry> = new Map(

@@ -46,6 +46,7 @@ import {
 import { getColumnChoiceRadioButtons } from "../../Utils/Form/ColumnChoice";
 import Route from "Common/Types/API/Route";
 import { Green, Red } from "Common/Types/BrandColors";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -875,6 +876,11 @@ const StatusPageSubscriberList: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: channel.cardTitle,
           description: channel.cardDescription,
+          /*
+           * Where a newcomer first meets the word, on whichever channel's
+           * tab the Subscribers page opens (#6935): what a subscriber is.
+           */
+          titleGlossaryTerm: GlossaryTerm.Subscriber,
           buttons: [
             {
               title: "Add in Bulk",

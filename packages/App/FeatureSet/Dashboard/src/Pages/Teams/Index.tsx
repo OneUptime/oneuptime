@@ -48,6 +48,7 @@ import {
   getTeamCreateFormFields,
 } from "../../Components/Team/TeamCreateForm";
 import Route from "Common/Types/API/Route";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import IconProp from "Common/Types/Icon/IconProp";
 import Query from "Common/Types/BaseDatabase/Query";
 import { JSONObject } from "Common/Types/JSON";
@@ -406,6 +407,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
           title: "Teams",
           description:
             "Teams decide what their members can do in this project. Every project starts with Owners, Admin and Members; create your own teams for finer-grained permissions.",
+          // Where a newcomer first meets the word: what a team is (#6935).
+          titleGlossaryTerm: GlossaryTerm.Team,
         }}
         query={mergeFiltersIntoQuery({
           projectId: ProjectUtil.getCurrentProjectId()!,

@@ -6,6 +6,7 @@ import {
   getStateSettingsFormFields,
 } from "../../../Components/StateSettings/StateSettingsTable";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import {
   STATE_LISTS,
   StateListDefinition,
@@ -64,6 +65,8 @@ const MonitorStatusesPage: FunctionComponent<
           title: STATE_SETTINGS_COPY[StateListType.MonitorStatus].title,
           description:
             STATE_SETTINGS_COPY[StateListType.MonitorStatus].description,
+          // Where a newcomer first meets the word: what a monitor status is (#6935).
+          titleGlossaryTerm: GlossaryTerm.MonitorStatus,
         }}
         getDeleteDisabledReason={(item: MonitorStatus): string | undefined => {
           return getStateSettingsDeleteLockedReason({
