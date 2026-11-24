@@ -114,7 +114,7 @@ Tofaktorautentisering gjelder når du logger på med passordet ditt eller en len
 
 ### Sett det opp
 
-For en autentiseringsapp skanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriver inn den sekssifrede koden den viser, og klikker på **Bekreft og fullfør**. En USB- eller NFC-nøkkel gir du et navn og følger nettleserens veiledning. Tofaktorautentisering er da slått på, og kortet viser **Aktivert**. Fra neste pålogging med passord eller en lenke på e-post ber OneUptime om det andre trinnet ditt.
+For en autentiseringsapp skanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, skriver inn den sekssifrede koden den viser, og klikker på **Bekreft og fullfør**. På en telefon trykker du på **Legg til i autentiseringsapp** i stedet for å skanne: appen åpnes med kontoen din fylt inn. En USB- eller NFC-nøkkel gir du et navn og følger nettleserens veiledning. Tofaktorautentisering er da slått på, og kortet viser **Aktivert**. Fra neste pålogging med passord eller en lenke på e-post ber OneUptime om det andre trinnet ditt.
 
 ### Ta vare på reservekodene dine
 
@@ -127,7 +127,7 @@ Har du allerede en app under **Autentiseringsapper** eller en nøkkel under **Si
 
 Når en administrator krever tofaktorautentisering og du ikke har satt opp noe ennå, ber neste pålogging med passord eller en lenke på e-post deg om å sette det opp før du slippes inn. Velg **Autentiseringsapp** eller **Sikkerhetsnøkkel**, og klikk på **Fortsett**:
 
-- **Autentiseringsapp**: Skann QR-koden, skriv inn den sekssifrede koden appen viser, og klikk på **Bekreft og logg inn**.
+- **Autentiseringsapp**: Skann QR-koden, skriv inn den sekssifrede koden appen viser, og klikk på **Bekreft og logg inn**. På en telefon trykker du på **Legg til i autentiseringsapp** i stedet for å skanne.
 - **Sikkerhetsnøkkel**: Klikk på **Registrer sikkerhetsnøkkel**, og følg nettleserens veiledning. Berør en USB- eller NFC-nøkkel, eller bruk fingeravtrykk, ansikt eller skjermlås på telefonen eller datamaskinen.
 
 Har du ingen reservekoder ennå, viser OneUptime dem deretter én gang, og du er pålogget. **Velg en annen måte** går tilbake til valget. En nettleser som ikke kan registrere en sikkerhetsnøkkel, for eksempel på en side uten HTTPS, tilbyr bare autentiseringsappen.

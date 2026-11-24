@@ -42,6 +42,9 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import SecurityAddressVaultWriter, {
   SecurityAddressVaultBatch,
 } from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
+import SecurityUserVaultWriter, {
+  SecurityUserVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 import { TELEMETRY_LOG_FLUSH_BATCH_SIZE } from "../Config";
 import TelemetryFanInWriter, {
   FanInSubmitResult,
@@ -343,6 +346,19 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
           scrubRules: loadedScrubRules,
         });
 
+      /*
+       * The users this batch's Hash rules hide where Security Events reads a
+       * user, kept for its user vault when Security Events reads the
+       * project's logs (#10632): null - and nothing kept - otherwise. Written
+       * after the batch's logs, never awaited, as the address vault is.
+       */
+      const userVault: SecurityUserVaultBatch | null =
+        await SecurityUserVaultWriter.startBatch({
+          projectId: projectId,
+          signal: "log",
+          scrubRules: loadedScrubRules,
+        });
+
       const dbLogs: Array<JSONObject> = [];
       let processed: number = 0;
       /*
@@ -446,6 +462,7 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
               logRow,
               loadedScrubRules,
               addressVault,
+              { hashedUsers: userVault },
             );
           }
 
@@ -483,8 +500,9 @@ export default class FluentLogsIngestService extends OtelIngestBaseService {
        */
       await Promise.all(pendingAcks);
 
-      // The logs are stored: their hashed addresses go to the vault, on their own.
+      // The logs are stored: their hashed addresses and users go to the vaults, on their own.
       addressVault?.write();
+      userVault?.write();
 
       if (processed === 0) {
         logger.warn("Fluent logs ingest: no valid entries processed");

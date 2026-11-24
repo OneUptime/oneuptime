@@ -32,6 +32,10 @@ import CodeHostAccess, {
 } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import { CodeHostBranch } from "../Utils/CodeRepository/CodeHost/CodeHostTypes";
 import CodeTaskPresenter from "../Utils/AI/CodeTask/CodeTaskPresenter";
+import CodeTaskRepositoryList, {
+  CodeRepositoryListPage,
+  CodeRepositoryListRequest,
+} from "../Utils/AI/CodeTask/CodeTaskRepositoryList";
 import CodeTaskRuns from "../Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskStats from "../Utils/AI/CodeTask/CodeTaskStats";
 import CodeTaskListQuery, {
@@ -75,6 +79,8 @@ import CodeRepositoryService from "../Services/CodeRepositoryService";
 import {
   CODE_TASK_LIMITS,
   CodeRepositoryBranchesJSON,
+  CodeRepositoryListGroup,
+  CodeRepositoryListOrder,
   CodeRepositoryTaskStatsJSON,
   CodeTaskBlocker,
   CodeTaskBranchName,
@@ -87,6 +93,8 @@ import {
   CodeTaskListFilter,
   CodeTaskListKind,
   CodeTaskRepositoryConnectionJSON,
+  CodeTaskRowRepositoryJSON,
+  MAX_CODE_REPOSITORIES_PER_PAGE,
   MAX_CODE_TASKS_PER_REQUEST,
   MAX_EARLIER_TURNS_PER_READ,
   CodeTaskRepositoryJSON,
@@ -105,6 +113,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { CodeHost } from "../../Types/CodeRepository/CodeHost";
+import { readCodeRepositorySearch } from "../../Types/CodeRepository/CodeRepositorySearch";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
 
@@ -112,7 +121,13 @@ import ProductKey from "../../Types/Product/ProductKey";
  * CODE: the project's repositories, their tasks, and asking OneUptime AI to
  * work in them - the API behind the Dashboard's Code pages.
  *
- *   POST /code-task/repositories          the repositories, at a glance
+ *   POST /code-task/repositories          a page of the repositories, at a
+ *                                         glance: searched, in one of the
+ *                                         two lists or both, by name or by
+ *                                         activity - over every repository
+ *                                         the caller may read (#10764)
+ *   POST /code-task/repositories-by-id    some repositories, at a glance,
+ *                                         read by their ids
  *   POST /code-task/repository/:id        one repository, and whether AI can
  *                                         work in it for the caller
  *   POST /code-task/list                  a repository's tasks, newest first
@@ -222,6 +237,7 @@ export default class CodeTaskAPI {
    */
   private initRoutes(): void {
     this.read("/code-task/repositories", this.listRepositories);
+    this.read("/code-task/repositories-by-id", this.getRepositoriesById);
     this.read("/code-task/repository/:repositoryId", this.getRepository);
     this.read("/code-task/list", this.listTasks);
     this.read("/code-task/branches/:repositoryId", this.listBranches);
@@ -375,62 +391,181 @@ export default class CodeTaskAPI {
     };
   }
 
-  // Code's first page: every repository the caller may read, at a glance.
+  /*
+   * A page of the repositories the caller may read, at a glance - however
+   * many the project has (#10764): searched, in one of Code's two lists or
+   * both, by name or by activity, over every repository of the caller's
+   * (CodeTaskRepositoryList). Body (all optional): { search, group
+   * (CodeRepositoryListGroup), order (CodeRepositoryListOrder, by name
+   * unless said), skip, limit (at most MAX_CODE_REPOSITORIES_PER_PAGE, and
+   * that many unless said) }. Answers the page, how many the search finds in
+   * the list asked for (count), what is true of all the caller's
+   * repositories (facts), how many of each list the search finds (matches)
+   * and how many tasks have no repository.
+   */
   private async listRepositories(
-    _req: ExpressRequest,
+    req: ExpressRequest,
     props: DatabaseCommonInteractionProps,
     projectId: ObjectID,
   ): Promise<JSONObject> {
-    const repositories: Array<CodeRepository> =
-      await CodeTaskAccess.listReadableRepositories({ props, projectId });
-
-    const repositoryIds: Array<ObjectID> = repositories.map(
-      (repository: CodeRepository): ObjectID => {
-        return repository.id!;
-      },
-    );
+    const body: JSONObject = (req.body as JSONObject) || {};
+    const request: CodeRepositoryListRequest = {
+      search: readCodeRepositorySearch(body["search"]),
+      group: CodeTaskAPI.readRepositoryListGroup(body["group"]),
+      order:
+        body["order"] === CodeRepositoryListOrder.Activity
+          ? CodeRepositoryListOrder.Activity
+          : CodeRepositoryListOrder.Name,
+      skip: CodeTaskAPI.readNumber(body["skip"], {
+        defaultValue: 0,
+        min: 0,
+        max: Number.MAX_SAFE_INTEGER,
+      }),
+      limit: CodeTaskAPI.readNumber(body["limit"], {
+        defaultValue: MAX_CODE_REPOSITORIES_PER_PAGE,
+        min: 1,
+        max: MAX_CODE_REPOSITORIES_PER_PAGE,
+      }),
+    };
 
     const mayReadTasksWithoutRepository: boolean =
       CodeTaskAccess.mayReadTasksWithoutRepository(props);
 
-    const [stats, connections, tasksWithoutRepository]: [
-      Map<string, CodeRepositoryTaskStatsJSON>,
-      Map<string, CodeHostConnectionSummary>,
-      number,
-    ] = await Promise.all([
-      CodeTaskStats.getRepositoryStats({
-        projectId,
-        repositoryIds,
-        reader: props,
-      }),
-      CodeHostAccess.getConnectionSummaries({ projectId, repositoryIds }),
-      mayReadTasksWithoutRepository
-        ? CodeTaskStats.countTasksWithoutRepository({
-            projectId,
-            reader: props,
-          })
-        : Promise.resolve(0),
-    ]);
-
-    const connectionUse: Map<string, number> =
-      await CodeTaskAPI.countConnectionUse({ projectId, connections });
+    const [list, tasksWithoutRepository]: [CodeRepositoryListPage, number] =
+      await Promise.all([
+        CodeTaskRepositoryList.read({ props, projectId, request }),
+        mayReadTasksWithoutRepository
+          ? CodeTaskStats.countTasksWithoutRepository({
+              projectId,
+              reader: props,
+            })
+          : Promise.resolve(0),
+      ]);
 
     return {
-      repositories: repositories.map(
-        (repository: CodeRepository): JSONObject => {
-          return {
-            ...CodeTaskAPI.toRepositoryJSON(
-              repository,
-              connections.get(repository.id!.toString()),
-              connectionUse,
-            ),
-            stats: (stats.get(repository.id!.toString()) ||
-              CodeTaskStats.empty()) as unknown as JSONObject,
-          } as unknown as JSONObject;
-        },
-      ),
+      repositories: (await CodeTaskAPI.toRepositoryListItems({
+        projectId,
+        props,
+        repositories: list.repositories,
+        connections: list.connections,
+      })) as unknown as Array<JSONObject>,
+      count: list.count,
+      facts: list.facts as unknown as JSONObject,
+      matches: list.matches as unknown as JSONObject,
       tasksWithoutRepositoryCount: tasksWithoutRepository,
     };
+  }
+
+  /*
+   * The repositories among some ids the caller may read, at a glance, read
+   * by their ids - what a page holds (the repository the request box picked
+   * last, a picker's value) named however far past any first page it is
+   * (#10764). An id of another project, of no repository, or of one the
+   * caller may not read is left out, as a repository that is not there.
+   * Body: { repositoryIds: Array<string> } (at most
+   * MAX_CODE_TASKS_PER_REQUEST).
+   */
+  private async getRepositoriesById(
+    req: ExpressRequest,
+    props: DatabaseCommonInteractionProps,
+    projectId: ObjectID,
+  ): Promise<JSONObject> {
+    const body: JSONObject = (req.body as JSONObject) || {};
+
+    if (!Array.isArray(body["repositoryIds"])) {
+      throw new BadDataException(
+        "repositoryIds must be a list of repository ids.",
+      );
+    }
+
+    const ids: Array<ObjectID> = CodeTaskAPI.readIds(body["repositoryIds"]);
+
+    if (ids.length === 0) {
+      return { repositories: [] };
+    }
+
+    const repositories: Array<CodeRepository> =
+      await CodeTaskAccess.listReadableRepositoriesByIds({
+        props,
+        projectId,
+        repositoryIds: ids,
+      });
+
+    const connections: Map<string, CodeHostConnectionSummary> =
+      await CodeHostAccess.getConnectionSummaries({
+        projectId,
+        repositoryIds: repositories.map(
+          (repository: CodeRepository): ObjectID => {
+            return repository.id!;
+          },
+        ),
+      });
+
+    return {
+      repositories: (await CodeTaskAPI.toRepositoryListItems({
+        projectId,
+        props,
+        repositories,
+        connections,
+      })) as unknown as Array<JSONObject>,
+    };
+  }
+
+  // One of Code's two lists, as a body names it: null for both.
+  private static readRepositoryListGroup(
+    raw: unknown,
+  ): CodeRepositoryListGroup | null {
+    return (Object.values(CodeRepositoryListGroup) as Array<unknown>).includes(
+      raw,
+    )
+      ? (raw as CodeRepositoryListGroup)
+      : null;
+  }
+
+  /*
+   * Repositories as a list draws them - what each is, how it connects and
+   * its tasks at a glance - in the order given.
+   */
+  private static async toRepositoryListItems(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    repositories: Array<CodeRepository>;
+    connections: Map<string, CodeHostConnectionSummary>;
+  }): Promise<Array<JSONObject>> {
+    if (data.repositories.length === 0) {
+      return [];
+    }
+
+    const [stats, connectionUse]: [
+      Map<string, CodeRepositoryTaskStatsJSON>,
+      Map<string, number>,
+    ] = await Promise.all([
+      CodeTaskStats.getRepositoryStats({
+        projectId: data.projectId,
+        repositoryIds: data.repositories.map(
+          (repository: CodeRepository): ObjectID => {
+            return repository.id!;
+          },
+        ),
+        reader: data.props,
+      }),
+      CodeTaskAPI.countConnectionUse({
+        projectId: data.projectId,
+        connections: data.connections,
+      }),
+    ]);
+
+    return data.repositories.map((repository: CodeRepository): JSONObject => {
+      return {
+        ...CodeTaskAPI.toRepositoryJSON(
+          repository,
+          data.connections.get(repository.id!.toString()),
+          connectionUse,
+        ),
+        stats: (stats.get(repository.id!.toString()) ||
+          CodeTaskStats.empty()) as unknown as JSONObject,
+      } as unknown as JSONObject;
+    });
   }
 
   /*
@@ -526,20 +661,23 @@ export default class CodeTaskAPI {
       /*
        * Code's first page: every task in a repository the caller may read -
        * labels and all, as each repository's own list - and, for those who
-       * may read AI runs, the tasks that have no repository.
+       * may read AI runs, the tasks that have no repository. Every
+       * repository the caller may read, however many (#10764): this read
+       * the first 500 by name, so a task in a repository past them was left
+       * out of the list, its counts and its search. The ids go to the
+       * database as one array, whatever their number.
        */
-      const repositoryIds: Array<ObjectID> = (
-        await CodeTaskAccess.listReadableRepositories({ props, projectId })
-      ).map((repository: CodeRepository): ObjectID => {
-        return repository.id!;
-      });
+      const repositoryIds: Array<ObjectID> =
+        await CodeTaskAccess.readReadableRepositoryIds({ props, projectId });
 
       scopeRepositoryIds = repositoryIds;
 
       if (CodeTaskAccess.mayReadTasksWithoutRepository(props)) {
-        codeRepositoryQuery = QueryHelper.inOrNull(repositoryIds);
+        codeRepositoryQuery = QueryHelper.anyOfIds(repositoryIds, {
+          orNull: true,
+        });
       } else if (repositoryIds.length > 0) {
-        codeRepositoryQuery = QueryHelper.any(repositoryIds);
+        codeRepositoryQuery = QueryHelper.anyOfIds(repositoryIds);
         scopeIncludesNoRepository = false;
       } else {
         return { tasks: [], totalCount: 0, skip, limit };
@@ -666,6 +804,11 @@ export default class CodeTaskAPI {
       summaries,
     });
 
+    // A list across repositories says which repository each row is in.
+    if (allRepositories) {
+      await CodeTaskAPI.nameRowRepositories({ projectId, props, summaries });
+    }
+
     /*
      * "totalCount": the name this answer has always had (CodeApi.listTasks
      * reads it). It was chosen while HTTPResponse took any body holding
@@ -679,6 +822,78 @@ export default class CodeTaskAPI {
       limit,
       ...(counts ? { counts: counts as unknown as JSONObject } : {}),
     };
+  }
+
+  /*
+   * Each row's repository - its name and host - read by the ids of the
+   * repositories the page's tasks are in (#10764): Code's first page named
+   * them from its list of the first 500, so a task in a repository past
+   * them had no name on its row. Every task listed is in a repository the
+   * reader may read (or none), so the reader's own read finds each.
+   */
+  private static async nameRowRepositories(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    summaries: Array<CodeTaskSummaryJSON>;
+  }): Promise<void> {
+    const repositoryIds: Array<string> = data.summaries
+      .map((summary: CodeTaskSummaryJSON): string => {
+        return summary.codeRepositoryId || "";
+      })
+      .filter((id: string): boolean => {
+        return Boolean(id);
+      });
+
+    if (repositoryIds.length === 0) {
+      return;
+    }
+
+    const repositories: Array<CodeRepository> =
+      await CodeTaskAccess.listReadableRepositoriesByIds({
+        props: data.props,
+        projectId: data.projectId,
+        repositoryIds,
+        select: { _id: true, name: true, repositoryHostedAt: true },
+      });
+
+    const connections: Map<string, CodeHostConnectionSummary> =
+      await CodeHostAccess.getConnectionSummaries({
+        projectId: data.projectId,
+        repositoryIds: repositories.map(
+          (repository: CodeRepository): ObjectID => {
+            return repository.id!;
+          },
+        ),
+      });
+
+    const byId: Map<string, CodeTaskRowRepositoryJSON> = new Map();
+
+    for (const repository of repositories) {
+      const id: string = repository.id!.toString();
+      const row: CodeTaskRowRepositoryJSON = {
+        name: repository.name || "",
+        provider: CodeHost.readType(repository.repositoryHostedAt),
+      };
+      const hostProduct: string | null | undefined =
+        connections.get(id)?.hostProduct;
+
+      if (hostProduct) {
+        row.hostProduct = hostProduct;
+      }
+
+      byId.set(id.toLowerCase(), row);
+    }
+
+    for (const summary of data.summaries) {
+      const row: CodeTaskRowRepositoryJSON | undefined =
+        summary.codeRepositoryId
+          ? byId.get(summary.codeRepositoryId.toLowerCase())
+          : undefined;
+
+      if (row) {
+        summary.repository = row;
+      }
+    }
   }
 
   // The tasks by id, in the order given: a filtered page's rows.
@@ -757,19 +972,38 @@ export default class CodeTaskAPI {
       props: { isRoot: true },
     });
 
+    /*
+     * The repositories these tasks are in, read by their ids as the caller:
+     * a task is theirs to read when its repository is (#10764) - not when
+     * its repository is among the project's first 500 by name, which left
+     * an insight's fix task in a repository past them unread.
+     */
     const readableRepositoryIds: Set<string> = new Set<string>(
-      (await CodeTaskAccess.listReadableRepositories({ props, projectId })).map(
-        (repository: CodeRepository): string => {
-          return repository.id!.toString();
-        },
-      ),
+      (
+        await CodeTaskAccess.listReadableRepositoriesByIds({
+          props,
+          projectId,
+          repositoryIds: rows
+            .map((task: AIRun): string => {
+              return task.codeRepositoryId?.toString() || "";
+            })
+            .filter((id: string): boolean => {
+              return Boolean(id);
+            }),
+          select: { _id: true },
+        })
+      ).map((repository: CodeRepository): string => {
+        return repository.id!.toString().toLowerCase();
+      }),
     );
     const mayReadWithoutRepository: boolean =
       CodeTaskAccess.mayReadTasksWithoutRepository(props);
 
     const readable: Array<AIRun> = rows.filter((task: AIRun): boolean => {
       return task.codeRepositoryId
-        ? readableRepositoryIds.has(task.codeRepositoryId.toString())
+        ? readableRepositoryIds.has(
+            task.codeRepositoryId.toString().toLowerCase(),
+          )
         : mayReadWithoutRepository;
     });
 

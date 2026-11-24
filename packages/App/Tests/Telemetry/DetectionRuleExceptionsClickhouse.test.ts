@@ -54,7 +54,11 @@ import {
  *     matched, how many its exceptions skipped and how many firings they
  *     prevented - for a distinct count too - and reads a correlation with
  *     the exceptions in every read;
- *   - another project's events are never read.
+ *   - another project's events are never read;
+ *   - an exception that names a project API key by its name (#10630) still
+ *     skips the key's audit-log events, which name it "api-key:<id>" now,
+ *     and the events stored before that named it by its name; one that
+ *     names "api-key:<id>" skips that key alone.
  *
  * Opt in locally by pointing TEST_CLICKHOUSE_URL at a disposable server:
  *
@@ -83,12 +87,23 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import SecurityEventService, {
   DetectionMatchGroup,
 } from "Common/Server/Services/SecurityEventService";
+import ApiKeyService from "Common/Server/Services/ApiKeyService";
 import DetectionRuleExceptionService from "Common/Server/Services/DetectionRuleExceptionService";
 import SecurityEventRetention from "Common/Server/Utils/SecurityEvent/SecurityEventRetention";
-import {
+import DetectionRuleExceptions, {
+  DetectionRuleExceptionRead,
   buildDetectionRuleExceptionsFilter,
   buildDetectionRuleExceptionsMatch,
 } from "Common/Server/Utils/SecurityEvent/DetectionRuleExceptions";
+import ApiKey from "Common/Models/DatabaseModels/ApiKey";
+import AuditLogAction from "Common/Types/AuditLog/AuditLogAction";
+import { getApiKeyPrincipal } from "Common/Types/SecurityEvent/OneUptimeActorPrincipal";
+import UserType from "Common/Types/UserType";
+import {
+  AuditActor,
+  AuditResourceType,
+  buildAuditRecordEvent,
+} from "Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
 import DetectionRuleRetrohunt from "Common/Server/Utils/SecurityEvent/DetectionRuleRetrohunt";
 import SigmaClickhouseCompiler from "Common/Server/Utils/SecurityEvent/Sigma/SigmaClickhouseCompiler";
 
@@ -571,6 +586,8 @@ detection:
         jest
           .spyOn(DetectionRuleExceptionService, "findAllBy")
           .mockResolvedValue(rows as never);
+        // The project has no API keys for an exception to name (#10630).
+        jest.spyOn(ApiKeyService, "findAllBy").mockResolvedValue([] as never);
         // How long the project keeps its events: the run reads only those.
         jest
           .spyOn(SecurityEventRetention, "getRetentionInDays")
@@ -801,6 +818,297 @@ detection:
             })
             .sort(),
         ).toEqual(["Carol", "svc-backup", "svc-deploy"]);
+      });
+    });
+
+    /*
+     * #10630: a project API key's audit-log events named it by its name as
+     * their principal user, so exceptions were written for "terraform".
+     * They name it "api-key:<id>" now, built here by the scan's own
+     * builder: two keys of one name, another key, a person, and an event
+     * stored before #10630 that named the key by its name.
+     */
+    describe("an exception that names a project API key by its name", () => {
+      const keyProjectId: ObjectID = new ObjectID(
+        "88000000-0000-4000-8000-0000000000f0",
+      );
+      const TERRAFORM_ID: string = "88000000-0000-4000-8000-0000000000f1";
+      const TERRAFORM_TWIN_ID: string = "88000000-0000-4000-8000-0000000000f2";
+      const DEPLOY_BOT_ID: string = "88000000-0000-4000-8000-0000000000f3";
+
+      const NOBODY: AuditActor = {
+        userId: "",
+        userName: "",
+        userEmail: "",
+        userType: "",
+        apiKeyId: "",
+        apiKeyName: "",
+        mcpClientName: "",
+        workflowId: "",
+        workflowName: "",
+        workflowRunAs: "",
+        workflowRunAsCustomRoleName: "",
+        workflowRunAsGiverName: "",
+        workflowRunAsGiverApiKeyId: "",
+      };
+
+      let recordSequence: number = 0;
+
+      // A role change in OneUptime by an actor, as the audit-log scan writes it.
+      function roleChange(actor: Partial<AuditActor>, at: number): JSONObject {
+        recordSequence++;
+
+        const normalized: NormalizedSecurityEvent | null =
+          buildAuditRecordEvent({
+            ...NOBODY,
+            ...actor,
+            id: `88000000-0000-4000-8000-${String(recordSequence).padStart(12, "0")}`,
+            createdAt: new Date(BASE.getTime() + at * MINUTE),
+            resourceType: AuditResourceType.CustomRole,
+            resourceId: "88000000-0000-4000-8000-0000000000fa",
+            resourceName: "Deployers",
+            action: AuditLogAction.Update,
+          });
+
+        return buildSecurityEventDbRow({
+          normalized: normalized!,
+          projectId: keyProjectId,
+          serviceMetadata: SERVICE_METADATA,
+          retentionDays: 15,
+        });
+      }
+
+      function key(id: string, name: string): Partial<AuditActor> {
+        return { userType: UserType.API, apiKeyId: id, apiKeyName: name };
+      }
+
+      function apiKeyRow(id: string, name: string): ApiKey {
+        const row: ApiKey = new ApiKey();
+        row._id = id;
+        row.name = name;
+        return row;
+      }
+
+      const TERRAFORM: string = getApiKeyPrincipal(TERRAFORM_ID);
+      const TERRAFORM_TWIN: string = getApiKeyPrincipal(TERRAFORM_TWIN_ID);
+      const DEPLOY_BOT: string = getApiKeyPrincipal(DEPLOY_BOT_ID);
+
+      const ALL: Record<string, number> = {
+        [TERRAFORM]: 3,
+        [TERRAFORM_TWIN]: 2,
+        [DEPLOY_BOT]: 2,
+        "jane@example.com": 1,
+        // Stored before #10630: the key by its name.
+        terraform: 1,
+      };
+
+      beforeAll(async (): Promise<void> => {
+        const legacy: JSONObject = roleChange(
+          key(TERRAFORM_ID, "terraform"),
+          9,
+        );
+        legacy["principalUser"] = "terraform";
+        legacy["observables"] = ["terraform"];
+
+        await SecurityEventService.insertJsonRows(
+          [
+            roleChange(key(TERRAFORM_ID, "terraform"), 1),
+            roleChange(key(TERRAFORM_ID, "terraform"), 2),
+            roleChange(key(TERRAFORM_ID, "terraform"), 3),
+            roleChange(key(TERRAFORM_TWIN_ID, "terraform"), 4),
+            roleChange(key(TERRAFORM_TWIN_ID, "terraform"), 5),
+            roleChange(key(DEPLOY_BOT_ID, "deploy-bot"), 6),
+            roleChange(key(DEPLOY_BOT_ID, "deploy-bot"), 7),
+            roleChange(
+              {
+                userType: UserType.User,
+                userId: "88000000-0000-4000-8000-0000000000fb",
+                userEmail: "jane@example.com",
+              },
+              8,
+            ),
+            legacy,
+          ],
+          { clickhouseSettings: { wait_for_async_insert: 1 } },
+        );
+      });
+
+      // The key project's role changes an exception list leaves, by principal.
+      async function principalsLeft(
+        exceptions: Array<DetectionRuleExceptionRead>,
+      ): Promise<Record<string, number>> {
+        const filter: Statement | null =
+          buildDetectionRuleExceptionsFilter(exceptions);
+        const statement: Statement = SQL`SELECT principalUser AS user, count() AS events FROM ${database}.${new SecurityEvent().tableName} WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: keyProjectId,
+        }}`;
+
+        if (filter) {
+          statement.append(" AND ");
+          statement.append(filter);
+        }
+
+        statement.append(" GROUP BY user ORDER BY user");
+
+        const response: { data?: Array<JSONObject> } = await (
+          await SecurityEventService.executeQuery(statement)
+        ).json();
+
+        const left: Record<string, number> = {};
+
+        for (const row of response.data || []) {
+          left[String(row["user"])] = Number(row["events"]);
+        }
+
+        return left;
+      }
+
+      function omit(...principals: Array<string>): Record<string, number> {
+        const left: Record<string, number> = { ...ALL };
+
+        for (const principal of principals) {
+          delete left[principal];
+        }
+
+        return left;
+      }
+
+      // An exception as the rule's runs load it, with the project's keys.
+      async function loaded(
+        overrides: Partial<DetectionRuleExceptionShape>,
+      ): Promise<Array<DetectionRuleExceptionRead>> {
+        jest
+          .spyOn(DetectionRuleExceptionService, "findAllBy")
+          .mockResolvedValue([savedException(overrides)] as never);
+        jest
+          .spyOn(ApiKeyService, "findAllBy")
+          .mockResolvedValue([
+            apiKeyRow(TERRAFORM_ID, "terraform"),
+            apiKeyRow(TERRAFORM_TWIN_ID, "Terraform"),
+            apiKeyRow(DEPLOY_BOT_ID, "deploy-bot"),
+          ] as never);
+
+        return await DetectionRuleExceptions.loadForRule({
+          projectId: keyProjectId,
+          ruleId: RULE_ID,
+          from: BASE,
+          until: NOW,
+          now: NOW,
+        });
+      }
+
+      test("the scan names each key by its id: two keys of one name are two principals", async () => {
+        expect(await principalsLeft([])).toEqual(ALL);
+      });
+
+      test("without the keys' names, the name alone skips only what was stored before", async () => {
+        expect(
+          await principalsLeft([exception({ value: "terraform" })]),
+        ).toEqual(omit("terraform"));
+      });
+
+      test("an existing exception for the user terraform still skips both keys of that name", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: "Terraform" })),
+        ).toEqual(omit(TERRAFORM, TERRAFORM_TWIN, "terraform"));
+      });
+
+      test("an existing exception for the value principalUser terraform does too", async () => {
+        expect(
+          await principalsLeft(
+            await loaded({
+              kind: DetectionRuleExceptionKind.Value,
+              entityType: undefined,
+              fieldName: "principalUser",
+              value: "terraform",
+            }),
+          ),
+        ).toEqual(omit(TERRAFORM, TERRAFORM_TWIN, "terraform"));
+      });
+
+      test("a pattern names the keys whose name it matches", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: "deploy-*" })),
+        ).toEqual(omit(DEPLOY_BOT));
+      });
+
+      test("an exception for one key's principal skips that key alone", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: TERRAFORM })),
+        ).toEqual(omit(TERRAFORM));
+      });
+
+      test("an exception for a person, or a host of a key's name, skips no key", async () => {
+        expect(
+          await principalsLeft(await loaded({ value: "jane@example.com" })),
+        ).toEqual(omit("jane@example.com"));
+        // Only a user's exception names keys: a host's never does.
+        expect(
+          await principalsLeft(
+            await loaded({
+              entityType: SecurityEntityType.Host,
+              value: "deploy-bot",
+            }),
+          ),
+        ).toEqual(ALL);
+      });
+
+      test("Run on Past Events skips them too, and says which firings it prevented", async () => {
+        jest
+          .spyOn(SecurityEventRetention, "getRetentionInDays")
+          .mockResolvedValue(15 as never);
+        jest
+          .spyOn(DetectionRuleExceptionService, "findAllBy")
+          .mockResolvedValue([savedException({ value: "terraform" })] as never);
+        jest
+          .spyOn(ApiKeyService, "findAllBy")
+          .mockResolvedValue([
+            apiKeyRow(TERRAFORM_ID, "terraform"),
+            apiKeyRow(TERRAFORM_TWIN_ID, "terraform"),
+            apiKeyRow(DEPLOY_BOT_ID, "deploy-bot"),
+          ] as never);
+
+        const result: DetectionRetrohuntResult =
+          await DetectionRuleRetrohunt.run({
+            projectId: keyProjectId,
+            rule: {
+              id: RULE_ID,
+              sigmaRuleYaml: `title: Custom role changed
+detection:
+  selection:
+    className: User Access Management
+  condition: selection`,
+              groupByField: "principalUser",
+              matchCountThreshold: 1,
+              evaluationIntervalInMinutes: 60,
+            },
+            periodInHours: 24,
+            serviceFilter: {},
+            now: NOW,
+          });
+
+        expect(result.exceptionCount).toBe(1);
+        expect(
+          result.groups
+            .map((group: { value: string }): string => {
+              return group.value;
+            })
+            .sort(),
+        ).toEqual([DEPLOY_BOT, "jane@example.com"]);
+        // Both terraform keys' and the stored one's: 3 + 2 + 1.
+        expect(result.skippedEventCount).toBe(6);
+        // A key is no user: its group is no kind of account, a person's is.
+        expect(
+          result.groups.find((group: { value: string }): boolean => {
+            return group.value === DEPLOY_BOT;
+          })!.entityType,
+        ).toBe("");
+        expect(
+          result.groups.find((group: { value: string }): boolean => {
+            return group.value === "jane@example.com";
+          })!.entityType,
+        ).toBe(SecurityEntityType.User);
       });
     });
   },

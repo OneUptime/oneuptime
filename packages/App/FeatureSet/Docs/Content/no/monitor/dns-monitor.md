@@ -126,6 +126,7 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 | **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
 | **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
 | **Antall**, **Prosentandel**, **Statusskifter** | Hvor mange sjekker som oppfylte betingelsen, andelen deres, eller hvor ofte de skiftet mellom å oppfylle den og ikke, sammenlignes med tallet som er satt under. |
+| **Forrige sjekk** | Denne sjekken sammenlignet med sondens forrige sjekk, slik det er satt under **Endring fra forrige sjekk**: for eksempel en svartid som ligger mer enn 50 % over den. Et filter som er sant eller usant, slår til ved sjekken som begynte å oppfylle betingelsen. |
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 

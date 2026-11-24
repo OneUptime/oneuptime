@@ -137,10 +137,11 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 | **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
 | **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 | **Recuento**, **Porcentaje**, **Cambios de estado** | Cuántas comprobaciones cumplieron la condición, su proporción o cuántas veces pasaron de cumplirla a no cumplirla se compara con el número definido debajo. |
+| **Comprobación anterior** | Esta comprobación, comparada con la comprobación anterior de la sonda según **Cambio respecto a la comprobación anterior**: un tiempo de respuesta más de un 50 % por encima, por ejemplo. Un filtro verdadero o falso coincide en la comprobación que empezó a cumplir la condición. |
 
 La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
-**Tiempo de espera de la solicitud agotado** no es un número que OneUptime registre, así que registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **Todos los valores** o **Cualquier valor**. También puede contarlo con **Recuento**, **Porcentaje** o **Cambios de estado**.
+**Tiempo de espera de la solicitud agotado** no es un número que OneUptime registre, así que registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **Todos los valores** o **Cualquier valor**. También puede contarlo con **Recuento**, **Porcentaje** o **Cambios de estado**. Con **Comprobación anterior**, el filtro coincide en la comprobación en la que empezó a coincidir.
 
 Elija una ventana más larga que el intervalo de supervisión, para que contenga varias comprobaciones: un monitor que se comprueba cada 5 minutos tiene una sola comprobación en cualquier ventana de 5 minutos.
 

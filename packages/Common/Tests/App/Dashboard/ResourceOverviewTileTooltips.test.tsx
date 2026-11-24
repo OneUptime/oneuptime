@@ -640,7 +640,16 @@ describe("WebVitalsCard", () => {
       name: "About Core Web Vitals",
     });
 
-    expect(info.querySelector("svg")).toHaveClass("h-4", "w-4");
+    /*
+     * After the title's last word, inside its words (WordsWithInfoTooltip,
+     * #8044), at the size every title's (i) is drawn at.
+     */
+    const glue: HTMLElement | null = info.closest<HTMLElement>(
+      `[${INFO_GLUE_ATTRIBUTE}]`,
+    );
+
+    expect(glue).not.toBeNull();
+    expect(glue!.parentElement?.textContent?.trim()).toBe("Core Web Vitals");
     await expectTooltip(info, CARD_TEXT);
   });
 

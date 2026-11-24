@@ -14,6 +14,7 @@ import {
   PROJECT_AI_RUN_LIMITS_CARD_KEY,
 } from "../../FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import { FIX_APPROVALS_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/AISettings/FixApprovalsCopy";
+import { HOURLY_LIMIT_CARD_KEY } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
 import { RETENTION_BY_TELEMETRY_TYPE_PLACE } from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/TelemetryRetentionFold";
 import { DISCOVERED_DEVICE_RETENTION_PLACE } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveredDevices/DiscoveredDeviceRetentionCopy";
 import {
@@ -553,6 +554,12 @@ describe("a folded setting opens its fold at its card", () => {
       name: "Two people approve riskier fixes",
       pageKey: PageMap.SETTINGS_AI_FEATURES,
       place: FIX_APPROVALS_CARD_KEY,
+    },
+    // The project's hourly limit of automatic blocks, under Automatic Response's More settings (#10746).
+    {
+      name: "Hourly Limit",
+      pageKey: PageMap.SECURITY_AUTOMATIC_RESPONSE,
+      place: HOURLY_LIMIT_CARD_KEY,
     },
     // How long a device nothing sees stays, under Discovered Devices (#6389).
     {

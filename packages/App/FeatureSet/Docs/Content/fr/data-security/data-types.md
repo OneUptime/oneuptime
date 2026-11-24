@@ -5,8 +5,10 @@ Sécurité des données connaît 143 sortes de données sensibles : numéros de 
 :::cards
 - [Comment une valeur est trouvée](#comment-une-valeur-est-trouvée): Forme, validateur, contexte, valeurs de test, confiance.
 - [Champs et colonnes](#champs-et-colonnes): Comment une colonne ou un attribut est jugé dans son ensemble.
+- [Noms et adresses postales dans le texte libre](#noms-et-adresses-postales-dans-le-texte-libre): Le petit modèle intégré au scanner, et ses scores.
 - [Chaque type de données](#types-de-données-intégrés): Les 143, par catégorie.
 - [Vos propres types de données](#vos-propres-types-de-données): Identifiants d'employé, numéros de police, et la zone Tester.
+- [Les types de données que trouve OneUptime AI](#les-types-de-données-que-trouve-oneuptime-ai): Vos propres types de données, trouvés dans les champs qu'aucun détecteur n'a pu identifier.
 - [Les verdicts d'OneUptime AI](#les-verdicts-doneuptime-ai): Un verdict sur chaque détection qui vous attend, avec les décisions de votre équipe comme précédents.
 :::
 
@@ -56,7 +58,7 @@ Un champ dont les valeurs dépassent 80 caractères en moyenne est du texte libr
 
 Le nom d'un champ est découpé en mots - `customerEmail`, `customer_email` et `customer-email` donnent tous « customer email » - et l'indice de nom d'un type correspond quand ses mots apparaissent dans cet ordre, côte à côte : « date of birth » correspond à `customer_date_of_birth`, pas à `birth_city`. Seule la dernière partie d'un chemin à points est le nom propre du champ, avec la partie qui la précède quand la dernière est un mot générique comme `number`, `id` ou `value` : `customer.address.city` n'est pas une adresse postale, et `card.number` est bien un numéro de carte.
 
-Certains types de données ne se reconnaissent pas à leurs valeurs : aucun motif ne distingue le nom d'une personne d'une rue, ni une religion de n'importe quel autre mot. Ils sont trouvés d'après le seul nom du champ, quand le champ a des valeurs : Nom de personne, Nom d'utilisateur, Genre, Nationalité, Informations de santé, Origine raciale ou ethnique, Croyance religieuse, Orientation sexuelle, Opinion politique, Appartenance syndicale, Données biométriques, Données génétiques et Casier judiciaire. Un nom, un nom d'utilisateur, un genre ou une nationalité a alors une confiance Élevé quand 60 % ou plus des valeurs y ressemblent, et Moyen sinon.
+Certains types de données ne se reconnaissent pas à leurs valeurs : aucun motif ne distingue le nom d'une personne d'une rue, ni une religion de n'importe quel autre mot. Ils sont trouvés d'après le seul nom du champ, quand le champ a des valeurs : Nom de personne, Nom d'utilisateur, Genre, Nationalité, Informations de santé, Origine raciale ou ethnique, Croyance religieuse, Orientation sexuelle, Opinion politique, Appartenance syndicale, Données biométriques, Données génétiques et Casier judiciaire. Un nom, un nom d'utilisateur, un genre ou une nationalité a alors une confiance Élevé quand 60 % ou plus des valeurs y ressemblent, et Moyen sinon. Dans du texte libre, les noms de personnes et les adresses postales sont aussi trouvés par un petit modèle : voir [Noms et adresses postales dans le texte libre](#noms-et-adresses-postales-dans-le-texte-libre).
 
 Un champ dont le nom dit qu'il contient un mot de passe - `password`, `passwordHash`, `pwd`, mais pas `password_changed_at` - devrait contenir un hachage : bcrypt, argon2, scrypt, PBKDF2 ou un autre schéma qu'un magasin de données est susceptible d'utiliser. Les valeurs vides, les valeurs fictives comme `********` et les valeurs chiffrées sont mises de côté. Quand le reste compte plus de valeurs qui ne sont pas des hachages que de valeurs qui en sont, le champ contient les mots de passe eux-mêmes, qu'aucun motif ne peut voir, et le magasin de données échoue au contrôle [Les mots de passe sont stockés en clair](/docs/data-security/checks-and-issues#hygiène-des-données).
 
@@ -64,7 +66,74 @@ Un champ dont le nom dit qu'il contient un mot de passe - `password`, `passwordH
 
 Une colonne ou un champ dont le nom n'évoque aucun type de données, et dont les valeurs ne correspondent à aucun détecteur, n'est pas connu comme sûr : ce peut être votre propre numéro de client, ou une colonne nommée dans une autre langue. Avec **Activer l'IA** activé pour le projet, une analyse du contenu conserve ces champs, 200 au plus par analyse, et OneUptime AI est interrogé sur le type de données du projet que contient chacun, 40 champs au plus d'un magasin de données à la fois. On lui donne le nom du champ, les noms des champs voisins et les formes de ses valeurs - chaque lettre écrite `a` ou `A` et chaque chiffre `9`, donc `AB-1234` devient `AA-9999` - jamais une valeur. Le texte libre, les champs de moins de 5 valeurs, les petits nombres entiers et les champs nommés comme un identifiant, une date ou un statut ne sont pas soumis.
 
+Une analyse de télémétrie conserve de la même façon les attributs qu'aucun détecteur n'a identifiés, à partir des logs, des spans, des métriques et du reste de la télémétrie d'un service, au plus 50 par service et par analyse. Elle ne conserve jamais les attributs propres à OneUptime, ni ceux que les conventions d'OpenTelemetry écrivent sur chaque enregistrement pour dire d'où il vient, comme le service, l'hôte ou le pod, ni du texte libre, comme le corps d'un log.
+
 Chaque type que nomme OneUptime AI est une détection de confiance Faible, marquée **Suggéré par OneUptime AI**, avec sa raison, rédigée dans la langue de votre projet et affichée sur toute la largeur de la ligne de la détection. Comme toute détection de confiance Faible, elle ne compte pour rien tant qu'une personne ne choisit pas **Confirmer** sur la page **Contenu** du magasin de données ; **Marquer comme non sensible** la refuse. Un champ qui a reçu une réponse n'est pas soumis de nouveau pendant 30 jours, et un champ qu'une personne a jugé ne l'est plus jamais.
+
+## Noms et adresses postales dans le texte libre
+
+Aucun motif ne distingue le nom d'une personne de n'importe quel autre mot. Le texte libre - une note de support, une ligne de journal, un message d'exception, un prompt - est donc aussi lu par un petit modèle de langage, qui y trouve les noms de personnes et les adresses postales. Le modèle s'exécute dans le scanner, sur les workers de OneUptime et sur vos sondes : le texte ne quitte jamais le scanner, rien n'est téléchargé pendant son exécution, et aucun prompt n'est rédigé. Ce n'est pas OneUptime AI, et les interrupteurs de OneUptime AI ne l'activent ni ne le désactivent : c'est le rôle de **Repérer les noms et les adresses postales**.
+
+- **Ce qu'il lit.** Un champ dont les valeurs dépassent 80 caractères en moyenne et, dans la télémétrie, chaque corps de journal, message d'exception, trace de pile et conversation IA, si court soit-il. Il lit jusqu'à 100 valeurs différentes d'un champ, 32 Ko de texte au total, et jusqu'à 16 Ko d'une même valeur.
+- **Ce qu'il trouve.** Un **Nom de personne** (`person-name`) et une **Adresse postale** (`postal-address`) : un lieu que le modèle lit à côté d'un numéro de rue, comme `14 Calle Mayor`, avec le code postal et la ville qui le suivent. Une ville ou un pays seul n'est pas une adresse postale.
+- **Son niveau de confiance.** Un nom ou une adresse que trouve le modèle a, à lui seul, une confiance Moyen. Il passe à Élevé quand le nom du champ indique que celui-ci contient des noms ou des adresses, ou quand des mots proches le disent, comme « customer », « Kunde » ou « dirección ». Il est Faible quand le modèle en est peu sûr, avec un score inférieur à 0,6. Chacun garde la confiance qu'il a obtenue seul : un nom isolé parmi mille lignes de journal reste donc Moyen.
+- **Valeurs de test.** Les valeurs fictives comme `Jane Doe`, `John Smith`, `Max Mustermann` et `123 Main Street` sont comptées à part, comme le sont les valeurs de test de chaque type.
+- **Ce qu'il conserve.** Ses échantillons sont masqués comme ceux d'un nom trouvé d'après le nom d'un champ : le premier caractère suivi de quatre astérisques, `M****`. Aucune empreinte n'en est jamais calculée. Sur la page **Contenu** du magasin de données, une telle détection porte la mention **Repéré dans du texte libre par le modèle du scanner**.
+
+| Modèle | Licence | Taille | Révision | Langues évaluées |
+| --- | --- | --- | --- | --- |
+| [openmasq/ner-multilingual](https://huggingface.co/openmasq/ner-multilingual) : six couches de BERT multilingue, ONNX int8 | Apache 2.0 | 98 Mo | `8cf7273` | Anglais, espagnol, allemand, français, italien, portugais, néerlandais |
+
+### Avec quelle fiabilité il les trouve
+
+Il a été évalué en passant par le code même du scanner, sur un jeu de test écrit pour lui : 392 phrases inventées en sept langues - lignes de journal, notes de support, e-mails, prompts - dont 168 ne contiennent ni nom ni adresse. Une détection est correcte quand elle chevauche un nom ou une adresse de son type. La barre a été fixée avant de mesurer le moindre modèle : une précision d'au moins 0,90 pour chaque type sur l'ensemble des langues et d'au moins 0,85 dans chaque langue, un rappel d'au moins 0,70, et au plus 20 fausses détections pour 1 000 valeurs qui ne contiennent ni l'un ni l'autre. Sur les quatre modèles mesurés, deux l'ont franchie, et le plus petit des deux a été retenu. Un test verrouille ces scores : une modification du modèle ou du scanner qui en fait baisser un le fait échouer.
+
+| Langue | Noms : précision | Noms : rappel | Adresses : précision | Adresses : rappel |
+| --- | --- | --- | --- | --- |
+| Anglais | 0,96 | 0,96 | 1,00 | 1,00 |
+| Espagnol | 0,96 | 0,96 | 1,00 | 1,00 |
+| Allemand | 1,00 | 0,93 | 1,00 | 1,00 |
+| Français | 0,96 | 0,96 | 1,00 | 1,00 |
+| Italien | 0,96 | 0,96 | 1,00 | 1,00 |
+| Portugais | 0,93 | 0,89 | 1,00 | 1,00 |
+| Néerlandais | 0,96 | 0,89 | 1,00 | 1,00 |
+| Les sept | 0,96 | 0,94 | 1,00 | 1,00 |
+
+Sur les 168 phrases du jeu de test qui ne contiennent ni l'un ni l'autre, il fait 18 fausses détections pour 1 000. Voici aussi ses scores sur un extrait d'un benchmark public, [gretelai/synthetic_pii_finance_multilingual](https://huggingface.co/datasets/gretelai/synthetic_pii_finance_multilingual) (Apache 2.0) : 15 documents financiers dans chacune de sept langues. Leurs étiquettes ont été produites automatiquement et sont incomplètes, alors lisez ce tableau à côté du précédent plutôt que seul :
+
+| Langue | Noms : précision | Noms : rappel | Adresses : précision | Adresses : rappel |
+| --- | --- | --- | --- | --- |
+| Anglais | 0,91 | 0,90 | 0,83 | 1,00 |
+| Espagnol | 0,89 | 0,37 | 0,58 | 0,70 |
+| Allemand | 0,93 | 0,58 | 0,75 | 0,70 |
+| Français | 0,84 | 0,50 | 0,42 | 0,83 |
+| Italien | 0,73 | 0,61 | 0,79 | 0,69 |
+| Néerlandais | 0,91 | 0,49 | 1,00 | 0,89 |
+| Suédois | 1,00 | 0,61 | 1,00 | 0,93 |
+| Les sept | 0,89 | 0,54 | 0,77 | 0,82 |
+
+Voici les quatre modèles mesurés sur ce jeu de test, l'un après l'autre sur la même machine, chacun chronométré sur un seul cœur avec le code natif d'onnxruntime. OneUptime exécute le modèle retenu avec la version WebAssembly d'onnxruntime, qui fonctionne dans toutes les images mais est environ cinq à huit fois plus lente :
+
+| Modèle | Licence | Taille | Noms : précision / rappel | Adresses : précision / rappel | Fausses détections pour 1 000 | Temps pour 1 000 valeurs de 75 / 1 181 caractères |
+| --- | --- | --- | --- | --- | --- | --- |
+| openmasq/ner-multilingual (retenu) | Apache 2.0 | 98 Mo | 0,963 / 0,939 | 1,000 / 1,000 | 18 | 5,9 s / 82 s |
+| Wismut/nym-pii-multilingual-small | MIT | 121 Mo | 0,995 / 0,974 | 0,985 / 1,000 | 12 | 7,4 s / 103 s |
+| jkomyno/minilmv2-l6-h384-ner-en-it-q8 | MIT | 34 Mo | 0,704 / 0,929 | 0,839 / 1,000 | 369 | 3,7 s / 68 s |
+| balticml/mmbert-small-pii-redaction | Apache 2.0 | 38 Mo | 0,712 / 0,995 | 0,762 / 0,992 | 589 | 7,8 s / 159 s |
+
+### Où il s'exécute, et ce qu'il coûte
+
+- **Dans chaque image.** L'image App, qui exécute les workers, et l'image de la sonde embarquent le modèle, son vocabulaire et l'environnement d'exécution, y compris les images pour environnements isolés (air-gapped) et Iron Bank : environ 114 Mo sur disque. Ils sont récupérés à la construction de l'image, depuis une révision épinglée, et vérifiés par rapport à leur SHA-256. Rien n'est téléchargé pendant une analyse.
+- **Mémoire.** Il est chargé la première fois qu'une analyse en a besoin, une fois par processus : environ 550 Mo, libérés après 10 minutes sans analyse.
+- **Temps.** Sur un cœur, entre 30 secondes et une minute pour 1 000 valeurs de la longueur d'une ligne de journal, et environ 9 minutes pour 1 000 valeurs de 1 200 caractères. Une analyse du contenu d'un magasin de données lui accorde jusqu'à 2 minutes. L'analyse horaire de la télémétrie lui accorde jusqu'à 1 minute au total et 6 secondes par magasin de données, à un ensemble différent de magasins de données chaque heure.
+- **Quand son temps est écoulé**, l'analyse se termine avec ce que le modèle a lu, et ses avertissements indiquent combien de valeurs de texte libre il a lues, jamais ce qu'elles contiennent. Un worker ou une sonde qui n'a pas le modèle analyse comme avant et indique pourquoi :
+
+```text
+Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
+Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
+```
+
+**Repérer les noms et les adresses postales** est activé pour chaque projet : les analyses du contenu des buckets, des bases de données et des jeux de données BigQuery lisent le texte libre avec le modèle, sur les workers comme sur les sondes. **Repérer les noms et les adresses postales dans la télémétrie**, juste en dessous, est désactivé : lire une seule fois chaque corps de journal, chaque exception et chaque conversation d'un projet très actif de 200 services prend environ 48 minutes d'un cœur, et la minute par heure dont dispose l'analyse en lit environ 4 %. Activez-le pour que chaque analyse horaire en lise une partie. Les deux se trouvent sur **Sécurité des données → Paramètres → Paramètres d'analyse**, sous **Ce que lit Sécurité des données**. La zone **Tester** s'exécute dans votre navigateur, sans le modèle : ce que le modèle trouverait n'y apparaît pas.
 
 ## Sensibilité
 
@@ -101,7 +170,7 @@ Un type de données qui appartient à un pays nomme ce pays, sous forme de code 
 | --- | --- | --- | --- | --- |
 | Adresse e-mail | `email-address` | L'adresse e-mail d'une personne. | Confidentiel | — |
 | Numéro de téléphone | `phone-number` | Un numéro de téléphone au format international ou national. | Confidentiel | — |
-| Nom de personne | `person-name` | Le prénom, le nom de famille ou le nom complet d'une personne, trouvé d'après le nom du champ. | Confidentiel | — |
+| Nom de personne | `person-name` | Le prénom, le nom ou le nom complet d'une personne, repéré d'après le nom du champ, ou par le modèle du scanner dans du texte libre. | Confidentiel | — |
 | Adresse postale | `postal-address` | Une adresse postale : un numéro, un nom de rue et un type de voie. | Confidentiel | — |
 | Code postal | `postal-code` | Un code postal. À lui seul, il restreint le lieu où vit quelqu'un. | Interne | — |
 | Date de naissance | `date-of-birth` | Une date à côté de mots qui disent qu'il s'agit de la date de naissance de quelqu'un. | Confidentiel | — |
@@ -296,6 +365,32 @@ Sous **Plus de champs**, **Ignorer la casse** fait correspondre le motif quelle 
 Un motif est vérifié à l'enregistrement : il doit compiler, ne correspondre à aucun texte vide et s'exécuter en un temps proportionnel au texte. Il est exécuté par un moteur qui ne fait jamais de retour arrière, donc aucun motif ne peut bloquer une analyse, quelle que soit la façon dont il est écrit. Un type accepte au plus 50 mots-clés et 50 noms de champs.
 
 Une valeur de votre type a une confiance Moyen seule et Élevé avec un mot-clé proche quand elle passe une somme de contrôle, et Faible seule et Moyen avec un mot-clé quand il n'y en a pas. Dans une colonne, c'est la part des valeurs qui correspondent qui décide, comme pour chaque type.
+
+### Décrire
+
+En haut du formulaire d'un nouveau type de données, **Décrire** remplit le formulaire pour vous. Écrivez à quoi ressemblent les données, par exemple « nos matricules d'employés ressemblent à EMP-123456, parfois sans le tiret », ajoutez quelques exemples si vous le souhaitez, un par ligne, et choisissez **Remplir le formulaire**. OneUptime AI reçoit votre phrase et les formes de vos exemples, jamais les exemples eux-mêmes : ils restent dans votre navigateur, où **Tester** montre combien d'entre eux son motif trouve. Relisez ce qu'il a rempli, modifiez ce que vous voulez, puis enregistrez : rien n'est enregistré tant que vous ne le faites pas, et le motif est vérifié comme si vous l'aviez écrit vous-même. Décrire nécessite que **Activer l'IA** soit activé pour le projet.
+
+## Les types de données que trouve OneUptime AI
+
+Les champs qu'aucun détecteur n'a pu identifier contiennent souvent un type de données propre à votre entreprise, conservé à de nombreux endroits sous des noms qui disent la même chose : les numéros de police d'un assureur dans des colonnes nommées `policy_no`, `policyNumber` et `police_nr`, dans toutes ses bases de données. Avec **Activer l'IA** activé pour le projet, OneUptime AI trouve un tel type de données dans les champs que vos analyses ont conservés, et ne vous le soumet qu'une fois que vos propres analyses l'ont prouvé.
+
+:::steps
+### Il trouve un groupe de champs
+
+Trois champs ou plus dans deux magasins de données ou plus forment un groupe quand la plupart de leurs valeurs ont une même forme, avec ou sans les séparateurs entre ses parties, et que leurs noms partagent un mot qui dit ce qu'ils contiennent. Une forme sans chiffre, une date, une heure ou un nombre décimal ne forme jamais de groupe, et un mot comme `id`, `no` ou `number` ne dit rien à lui seul.
+
+### Il rédige un type de données
+
+OneUptime AI rédige un type de données pour chaque nouveau groupe, au plus 3 à la fois, à partir des noms des champs et des formes de leurs valeurs, jamais d'une valeur. Le brouillon doit passer les mêmes contrôles qu'un type enregistré et trouver les formes à partir desquelles il a été rédigé. Un brouillon qui n'y parvient pas est redemandé une fois, avec la raison.
+
+### Vos prochaines analyses le prouvent
+
+Le brouillon s'exécute lors de la prochaine analyse de chaque magasin de données de son groupe, pendant au plus 48 heures ou un intervalle d'analyse, selon ce qui est le plus long. Il ne crée aucune détection : chaque analyse compte combien de valeurs il trouverait, dans les champs du groupe et dans tous les autres champs des mêmes magasins de données. Il est proposé quand il trouve au moins 80 % des valeurs de ses champs et au plus 1 % des autres valeurs. Un champ ailleurs où il trouve presque toutes les valeurs contient les mêmes données sous un autre nom : il est nommé, et non compté contre lui.
+:::
+
+Chaque brouillon est aussi compté, en même temps, sous une forme restreinte : en dehors des champs de son groupe, un brouillon restreint ne trouve une valeur qu'à côté de l'un de ses mots-clés ou sous un nom de champ qui le nomme. Un brouillon qui trouve trop de valeurs ailleurs est proposé sous sa forme restreinte quand cela suffit. Un brouillon qui ne suffit sous aucune forme est abandonné, et son groupe n'est pas rédigé à nouveau pendant 30 jours.
+
+Chaque type de données qu'il propose attend sous **Types de données à examiner**, en haut de **Sécurité des données → Paramètres → Types de données** et sur **Sécurité des données → IA**, avec ce que vos analyses ont compté, par exemple « Correspond à 98 % des valeurs de ces 11 champs, et à 0,1 % des valeurs ailleurs dans les mêmes magasins de données. » **Ajouter le type de données** ouvre le formulaire d'un type de données rempli avec lui, à modifier et à tester ; l'enregistrer ajoute le type, que les analyses trouvent dès leur prochaine exécution. **Pas un type de données** le refuse : il n'est plus jamais proposé pour ces champs. L'ajouter nécessite un rôle qui peut créer des types de données.
 
 ## Non sensible, et jamais sensible
 

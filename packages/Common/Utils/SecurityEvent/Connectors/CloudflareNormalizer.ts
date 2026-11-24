@@ -27,9 +27,11 @@ import {
   readValue,
 } from "../NormalizerHelpers";
 import { requestOutcomeFromStatusCode } from "../RequestOutcome";
+import { readSensitivePath } from "../SensitiveFileProbe";
 import {
   WEB_ATTACK_KIND_ATTRIBUTE,
   WEB_HTTP_ACTIVITY_CLASS_UID,
+  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WebAttackKind,
   readWebAttackKind,
 } from "../LogParsers/WebAttackLogParser";
@@ -656,6 +658,22 @@ export default class CloudflareNormalizer {
 
     if (attackKind) {
       attributes[WEB_ATTACK_KIND_ATTRIBUTE] = attackKind;
+    }
+
+    /*
+     * A request for a sensitive file or admin page that the edge stopped,
+     * or the origin refused or does not have (#10745): tagged as an access
+     * log's and a trace's are, so the Rule Library's rule counts it with
+     * them. Which requests are imported is unchanged.
+     */
+    const sensitivePath: string | null =
+      !attackKind && outcome === SecurityEventRequestOutcome.Rejected
+        ? readSensitivePath(target)
+        : null;
+
+    if (sensitivePath) {
+      attributes[WEB_ATTACK_KIND_ATTRIBUTE] = WebAttackKind.SensitiveFile;
+      attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitivePath;
     }
 
     const request: string = [

@@ -45,6 +45,7 @@ import {
   CHECK_FIX_FACT_WATCH_ENDED,
   CHECK_FIX_NOTHING_SHIPPED,
   CHECK_FIX_PULL_REQUEST_NOT_SHIPPED,
+  CHECK_FIX_LINKED_PULL_REQUEST_OPEN,
   CHECK_FIX_PULL_REQUEST_OPEN,
   CHECK_FIX_ROUTE_KEPT_OUT,
   CHECK_FIX_ROUTE_NO_ATTEMPTS,
@@ -204,6 +205,7 @@ function deploy(minute: number, label: string = "v2.4.1"): ServiceDeploy {
 function pullRequest(overrides: Partial<FixPullRequest> = {}): FixPullRequest {
   return {
     id: "77777777-7777-4777-8777-777777777777",
+    isLinked: false,
     number: 123,
     url: "https://github.com/acme/search/pull/123",
     host: "GitHub",
@@ -641,6 +643,78 @@ describe("which change fixed it", () => {
       url: "https://github.com/acme/search/pull/123",
     });
   });
+
+  test("a pull request a person linked, deployed: proved the same way, by the attack turned away after the deploy that carried it", async () => {
+    const result: StepCheckResult = await checked({
+      minute: 300,
+      evidence: {
+        attacks: [
+          ...BEFORE,
+          ...attacks(18, {
+            minute: 120,
+            outcome: SecurityEventRequestOutcome.Rejected,
+          }),
+        ],
+        fixChanges: {
+          pullRequests: [
+            pullRequest({
+              isLinked: true,
+              url: "https://github.com/acme/search/pull/482",
+              number: 482,
+              state: PullRequestState.Merged,
+              mergedAt: at(40),
+              deployedAt: at(60),
+              deployedVersion: "2.4.1",
+            }),
+          ],
+        },
+      },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.Verified);
+    expect(result.evidence.sentence).toEqual({
+      template: CHECK_FIX_ROUTE_TURNED_AWAY,
+      values: { route: ROUTE, change: "2.4.1" },
+      times: { time: at(60).toISOString() },
+      count: 18,
+    });
+    expect(result.evidence.links).toContainEqual({
+      kind: ResponseLinkKind.OpenProvider,
+      provider: "GitHub",
+      url: "https://github.com/acme/search/pull/482",
+    });
+  });
+
+  test("a pull request a person linked, merged, then the attack getting through after its deploy: not fixed, as with any fix", async () => {
+    const result: StepCheckResult = await checked({
+      minute: 300,
+      evidence: {
+        attacks: [
+          ...BEFORE,
+          ...attacks(4, {
+            minute: 120,
+            outcome: SecurityEventRequestOutcome.ReachedDatabase,
+          }),
+        ],
+        fixChanges: {
+          pullRequests: [
+            pullRequest({
+              isLinked: true,
+              state: PullRequestState.Merged,
+              mergedAt: at(40),
+              deployedAt: at(60),
+              deployedVersion: "2.4.1",
+            }),
+          ],
+        },
+      },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.NotDone);
+    expect(result.evidence.sentence.template).toBe(
+      CHECK_FIX_ROUTE_STILL_DATABASE,
+    );
+  });
 });
 
 describe("no attempts since the fix", () => {
@@ -956,6 +1030,37 @@ describe("nothing shipped yet", () => {
     expect(result.evidence.sentence).toEqual({
       template: CHECK_FIX_PULL_REQUEST_OPEN,
       values: { pullRequest: "#123" },
+    });
+  });
+
+  test("a pull request a person linked, not merged yet: theirs to merge, so it says the case's fix has not merged - no review OneUptime waits on", async () => {
+    const result: StepCheckResult = await checked({
+      minute: 300,
+      evidence: {
+        attacks: BEFORE,
+        fixChanges: {
+          pullRequests: [
+            pullRequest({
+              isLinked: true,
+              url: "https://gitlab.com/acme/search/-/merge_requests/17",
+              number: 17,
+              host: "GitLab",
+            }),
+          ],
+          hasDeployData: true,
+        },
+      },
+    });
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.NotDone);
+    expect(result.evidence.sentence).toEqual({
+      template: CHECK_FIX_LINKED_PULL_REQUEST_OPEN,
+      values: { pullRequest: "#17" },
+    });
+    expect(result.evidence.links).toContainEqual({
+      kind: ResponseLinkKind.OpenProvider,
+      provider: "GitLab",
+      url: "https://gitlab.com/acme/search/-/merge_requests/17",
     });
   });
 

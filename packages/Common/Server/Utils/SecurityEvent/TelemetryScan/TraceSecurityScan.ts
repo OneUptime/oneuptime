@@ -31,6 +31,7 @@ import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 import ScrubbedClientAddresses from "../ScrubbedClientAddresses";
 import SecurityTrustedProxies from "../SecurityTrustedProxies";
 import SecurityAddressVaultLookup from "../AddressVault/SecurityAddressVaultLookup";
+import SecurityUserVaultLookup from "../UserVault/SecurityUserVaultLookup";
 import {
   TelemetryScanWindow,
   buildTraceCandidatesStatement,
@@ -62,6 +63,9 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *   - a request whose client address a Hash rule hid names the address
  *     behind its token, when Security Events' address vault holds it
  *     (AddressVault/SecurityAddressVaultLookup.ts, #10395);
+ *   - a request or an AI call whose user a Hash rule hid names the user
+ *     behind its token, when Security Events' user vault holds it
+ *     (UserVault/SecurityUserVaultLookup.ts, #10632);
  *   - a request whose client address is still hidden names the project's
  *     rule that hid it (ScrubbedClientAddresses, #10397).
  *
@@ -219,6 +223,12 @@ export default class TraceSecurityScan {
      * (#10395), before the rule that hid an address still hidden is named.
      */
     await SecurityAddressVaultLookup.nameHashedAddresses({
+      projectId: data.projectId,
+      events,
+    });
+
+    // A user a Hash rule hid names the user behind its token (#10632).
+    await SecurityUserVaultLookup.nameHashedUsers({
       projectId: data.projectId,
       events,
     });

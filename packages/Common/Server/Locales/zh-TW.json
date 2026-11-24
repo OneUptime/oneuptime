@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}：在你的受保護實體清單中，因此永遠不會被處理",
   "{{target}}: one of the case's addresses": "{{target}}：案例的位址之一",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}：你自己的位址之一，因此永遠不會被封鎖",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}：與案例的位址使用相同工具傳送了相同請求",
   "{{target}}: the case is grouped on it": "{{target}}：案例依此值分組",
   "{{target}}: undone at {{time}}": "{{target}}：已於 {{time}} 復原",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}：{{person}} 已於 {{time}} 復原",

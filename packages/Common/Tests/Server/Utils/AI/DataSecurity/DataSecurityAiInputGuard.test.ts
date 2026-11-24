@@ -150,6 +150,42 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     agentFile:
       "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
   },
+  /*
+   * The paperwork (#10375): a store's record drafts, on their own in the
+   * daily run and when a person asks - one file, one call - an impact
+   * assessment, and a framework's audit evidence.
+   */
+  [DataSecurityAiFeature.DraftRecord]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RecordOfProcessingDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftRecordOnRequest]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RecordOfProcessingDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftImpactAssessment]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ImpactAssessmentDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftAuditEvidence]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/AuditEvidenceDrafter.ts`,
+  },
+  /*
+   * The company's own data types (#10371): drafted from a group of fields
+   * scans could not place, in the discovery's job - by names and shapes -
+   * and from a person's sentence and the shapes of their examples, on the
+   * data type form. Both prompts are the builder's, and neither holds a
+   * value.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataTypeDiscovery.ts`,
+  },
+  [DataSecurityAiFeature.DescribeDataType]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/DataTypeFromSentence.ts`,
+  },
 };
 
 /*

@@ -68,12 +68,23 @@ on:
       - packages/Common/Server/Utils/AI/DataSecurity/ScrubRuleWriter.ts
       - packages/Common/Types/DataSecurity/ScrubRuleWriterPlace.ts
       - packages/Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes.ts
+      - packages/Common/Types/DataSecurity/ComplianceFacts.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDossier.ts
+      - packages/Common/Types/DataSecurity/RecordOfProcessing.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentPrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter.ts
+      - packages/Common/Types/DataSecurity/ImpactAssessment.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/AuditEvidencePrompt.ts
+      - packages/Common/Server/Utils/AI/DataSecurity/AuditEvidenceDrafter.ts
+      - packages/Common/Types/DataSecurity/AuditEvidence.ts
   schedule:
     - cron: "17 4 * * *"
   workflow_dispatch:
     inputs:
       features:
-        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests. Empty: all of them."
+        description: "Features to run, separated by commas: ExplainIssue, AnalyzeIssue, FixIssue, SuggestFieldTypes, JudgeFindings, AskAi, ProposeStoreOwners, NameIssueGroup, FixIssueGroup, WriteScrubRules, ReviewPullRequests, DraftRecord, DraftRecordOnRequest, DraftImpactAssessment, DraftAuditEvidence. Empty: all of them."
         required: false
         default: ""
       cases:

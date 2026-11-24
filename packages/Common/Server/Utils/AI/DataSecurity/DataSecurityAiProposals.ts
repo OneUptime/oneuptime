@@ -329,10 +329,12 @@ export default class DataSecurityAiProposals {
       };
     }
 
+    // An owner rule, a change to the scans, or a data type of the project's own (#10371): each a thing of its own.
     if (
       data.kind === DataSecurityAiProposalKind.CreateOwnerRule ||
       data.kind === DataSecurityAiProposalKind.TurnOffDataType ||
-      data.kind === DataSecurityAiProposalKind.AddScanExclusion
+      data.kind === DataSecurityAiProposalKind.AddScanExclusion ||
+      data.kind === DataSecurityAiProposalKind.AddDataType
     ) {
       return {
         projectId: data.projectId,

@@ -1173,7 +1173,15 @@ import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSe
 import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
 import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
-import { AddHelpAndSupport1809187530000 } from "./1809187530000-AddHelpAndSupport";
+import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
+import { AddDataSecurityNamesAndAddressesModel1809187540373 } from "./1809187540373-AddDataSecurityNamesAndAddressesModel";
+import { AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618 } from "./1809187540618-AddTelemetryExceptionFormerFingerprintAndSplitFrom";
+import { AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628 } from "./1809187540628-AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys";
+import { AddSecurityAutomaticResponseHourlyLimit1809187550746 } from "./1809187550746-AddSecurityAutomaticResponseHourlyLimit";
+import { AddSecurityCasePullRequest1809187560604 } from "./1809187560604-AddSecurityCasePullRequest";
+import { AddProbeMajorVersionBehindNotifiedFor1809187570000 } from "./1809187570000-AddProbeMajorVersionBehindNotifiedFor";
+import { AddDataStoreFindingAiScrubRules1809187570752 } from "./1809187570752-AddDataStoreFindingAiScrubRules";
+import { AddHelpAndSupport1809187580000 } from "./1809187580000-AddHelpAndSupport";
 
 export default [
   InitialMigration,
@@ -2351,5 +2359,13 @@ export default [
   AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
   AddDataSecurityIssueResolution1809187510368,
   AddDataStoreFindingAiVerdicts1809187520372,
-  AddHelpAndSupport1809187530000,
+  AddDataSecurityComplianceDrafts1809187530375,
+  AddDataSecurityNamesAndAddressesModel1809187540373,
+  AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618,
+  AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628,
+  AddSecurityAutomaticResponseHourlyLimit1809187550746,
+  AddSecurityCasePullRequest1809187560604,
+  AddProbeMajorVersionBehindNotifiedFor1809187570000,
+  AddDataStoreFindingAiScrubRules1809187570752,
+  AddHelpAndSupport1809187580000,
 ];

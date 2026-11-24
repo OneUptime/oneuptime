@@ -1,4 +1,6 @@
 import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
+import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
 import {
   DataSecurityAiVerdict,
   DataSecurityAnalysisPart,
@@ -22,13 +24,26 @@ import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields"
 import {
   AiAccessRecord,
   AiDataTypeChoice,
+  AiEvidenceRequirement,
   AiFindingRecord,
   AiGroupFixStore,
+  AiImpactAssessmentDossier,
   AiIssueDossier,
   AiIssueRecord,
+  AiRecordDossier,
   AiStoreRecord,
   AiVerdictFindingRecord,
 } from "../../DataSecurity/DataSecurityAiInput";
+import ComplianceFramework from "../../../../../Types/DataSecurity/ComplianceFramework";
+import {
+  ImpactAssessmentPart,
+  ImpactAssessmentTriggerView,
+} from "../../../../../Types/DataSecurity/ImpactAssessment";
+import {
+  RecordField,
+  RecordLegalBasis,
+  RecordPeople,
+} from "../../../../../Types/DataSecurity/RecordOfProcessing";
 
 /*
  * A CASE OF THE DATA SECURITY EVAL (#10365): ONE INPUT A FEATURE WOULD
@@ -283,6 +298,119 @@ export interface FindingVerdictEvalCase extends DataSecurityEvalCaseBase {
   language?: string | undefined;
 }
 
+/*
+ * What a right draft of one field of a store's record is (#10375): drafted,
+ * saying one word of each group; or left empty (null) where no fact says
+ * it - a record that guesses is worse than one that asks.
+ */
+export interface RecordTextEvalExpectation {
+  says: Array<Array<string>>;
+  // A right answer may also leave it empty: the facts say it only in part.
+  mayBeLeftEmpty?: boolean | undefined;
+}
+
+export interface RecordDraftEvalExpectation {
+  purpose?: RecordTextEvalExpectation | null | undefined;
+  retention?: RecordTextEvalExpectation | null | undefined;
+  // The bases a right answer may pick: one of these.
+  legalBasis?: { oneOf: Array<RecordLegalBasis> } | null | undefined;
+  // The categories a right answer names, and those it never does.
+  people?:
+    | { includes: Array<RecordPeople>; excludes?: Array<RecordPeople> }
+    | null
+    | undefined;
+  // Words no draft of it says: a planted instruction's demand, a made-up recipient.
+  never: Array<string>;
+}
+
+/*
+ * A store's record drafts (#10375): what OneUptime knows of the store, as
+ * the dossier the product reads (RecordOfProcessingDossier), the fields
+ * asked, and what a right draft of each is. The answer is held to its
+ * facts as the product holds it before it is scored.
+ */
+export interface RecordDraftEvalCase extends DataSecurityEvalCaseBase {
+  feature:
+    | DataSecurityAiFeature.DraftRecord
+    | DataSecurityAiFeature.DraftRecordOnRequest;
+  dossier: AiRecordDossier;
+  fields: Array<RecordField>;
+  language?: string | undefined;
+  expect: RecordDraftEvalExpectation;
+}
+
+/*
+ * A store's impact assessment (#10375): its dossier, why it needs one, and
+ * the words each part must say - each group, one of its words.
+ */
+export interface ImpactAssessmentEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftImpactAssessment;
+  dossier: AiImpactAssessmentDossier;
+  triggers: Array<ImpactAssessmentTriggerView>;
+  language?: string | undefined;
+  expect: {
+    parts: Partial<Record<ImpactAssessmentPart, Array<Array<string>>>>;
+    never: Array<string>;
+  };
+}
+
+/*
+ * A framework's audit evidence (#10375): its requirements' evidence as the
+ * reader works it out (AuditEvidenceReader), and the words each
+ * requirement's paragraph must say.
+ */
+export interface AuditEvidenceEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftAuditEvidence;
+  framework: ComplianceFramework;
+  periodInDays: number;
+  requirements: Array<AiEvidenceRequirement>;
+  language?: string | undefined;
+  expect: {
+    paragraphs: Record<string, Array<Array<string>>>;
+    never: Array<string>;
+  };
+}
+
+/*
+ * The data type a group of fields, or a person's sentence, should become
+ * (#10371): the type a person would write - null where there is none of
+ * the company's own - and made-up values a right pattern finds and leaves
+ * alone. The model never sees a value: the case's input is the names and
+ * shapes the product sends.
+ */
+export interface DataTypeEvalExpectation {
+  becomes: {
+    name: string;
+    category: DataCategory;
+    sensitivity: DataSensitivity;
+    pattern: string;
+    validator?: string | undefined;
+  } | null;
+  // Made-up values a right pattern finds whole.
+  finds: Array<string>;
+  // Made-up values beside them it never finds.
+  keeps: Array<string>;
+  // What a right answer may call it besides the type it becomes.
+  categories?: Array<DataCategory> | undefined;
+  sensitivities?: Array<DataSensitivity> | undefined;
+}
+
+// A group of fields scans could not place, as OneUptime AI is told it.
+export interface DraftDataTypesEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftDataTypes;
+  fields: Array<{ storeKind: string; field: UnplacedField }>;
+  storeCount: number;
+  expect: DataTypeEvalExpectation;
+}
+
+// Describe It: a sentence, and made-up examples sent only as their shapes.
+export interface DescribeDataTypeEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DescribeDataType;
+  sentence: string;
+  examples: Array<string>;
+  expect: DataTypeEvalExpectation;
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FindingVerdictEvalCase
@@ -293,4 +421,9 @@ export type DataSecurityEvalCase =
   | IssueGroupNameEvalCase
   | IssueGroupFixEvalCase
   | ScrubRulesEvalCase
-  | PullRequestReviewEvalCase;
+  | PullRequestReviewEvalCase
+  | RecordDraftEvalCase
+  | ImpactAssessmentEvalCase
+  | AuditEvidenceEvalCase
+  | DraftDataTypesEvalCase
+  | DescribeDataTypeEvalCase;

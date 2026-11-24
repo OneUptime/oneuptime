@@ -300,13 +300,15 @@ export default class EvaluateOverTime {
       CriteriaFilterUtil.getEffectiveEvaluateOverTimeType(data.criteriaFilter);
 
     /*
-     * A window that counts its checks is judged by the criteria evaluator
-     * before any monitor type's evaluator asks for a value here
-     * (CheckWindowCounts). A caller that asks anyway gets the strictest
+     * A window that counts its checks, and a comparison with the previous
+     * check, are judged by the criteria evaluator before any monitor type's
+     * evaluator asks for a value here (CheckWindowCounts,
+     * PreviousCheckComparison). A caller that asks anyway gets the strictest
      * reading of the window, All Values, never a count read as a value.
      */
     const evaluateOverTimeType: EvaluateOverTimeType | undefined =
-      CriteriaFilterUtil.isCountedWindowType(effectiveType)
+      CriteriaFilterUtil.isCountedWindowType(effectiveType) ||
+      effectiveType === EvaluateOverTimeType.PreviousCheck
         ? EvaluateOverTimeType.AllValues
         : effectiveType;
 

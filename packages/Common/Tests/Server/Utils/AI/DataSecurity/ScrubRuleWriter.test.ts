@@ -3,8 +3,11 @@ import DataSecurityAiCall from "../../../../../Server/Utils/AI/DataSecurity/Data
 import { DataSecurityAiPrompt } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import ScrubRuleWriter, {
   buildScrubRuleWriterPrompt,
+  getScrubRuleWriterInputHash,
+  readKeptScrubRuleWriterRules,
   readScrubRuleWriterAnswer,
   SCRUB_RULE_WRITER_NOTHING,
+  toKeptScrubRuleWriterRules,
   toScrubRuleCandidate,
 } from "../../../../../Server/Utils/AI/DataSecurity/ScrubRuleWriter";
 import AIInvestigationEngine from "../../../../../Server/Utils/AI/SRE/AIInvestigationEngine";
@@ -237,6 +240,150 @@ describe("a rule it wrote, as a candidate for the verifier", () => {
       scrubAction: LogScrubAction.Redact,
       fieldsToScrub: LogScrubField.Attributes,
     });
+  });
+});
+
+/*
+ * #10752: what a place was told, hashed, decides whether OneUptime AI is
+ * asked again - only a change to what it writes from does.
+ */
+describe("what it was told, as one hash", () => {
+  test("is the same for the same place told again, whatever its reference, counts, shares or order", () => {
+    const hash: string = getScrubRuleWriterInputHash(place());
+
+    expect(hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(getScrubRuleWriterInputHash(place())).toBe(hash);
+
+    for (const same of [
+      place({ ref: "P7" }),
+      place({ valueCount: 3000, averageLength: 21 }),
+      place({
+        shapes: [
+          { shape: "aaaaaa AAAA-999999", share: 0.9 },
+          { shape: "AAAA-999999", share: 0.1 },
+        ],
+      }),
+      place({ neighbours: ["http.route", "order.id", "order.id"] }),
+    ]) {
+      expect(getScrubRuleWriterInputHash(same)).toBe(hash);
+    }
+  });
+
+  test("changes with anything it writes from: the data type, where it sits, the names beside it, the shapes", () => {
+    const hash: string = getScrubRuleWriterInputHash(place());
+
+    for (const [what, changed] of [
+      ["another data type", place({ dataTypeId: "person-name" })],
+      ["the type named otherwise", place({ dataTypeName: "Order note" })],
+      [
+        "another category",
+        place({ category: DataCategory.SecretsAndCredentials }),
+      ],
+      ["found by its name", place({ foundBy: "name" })],
+      ["a span's", place({ signal: "trace" })],
+      ["another place", place({ location: "attributes.order.memo" })],
+      ["another key", place({ attributeKey: "order.memo" })],
+      ["in the body", place({ locationKind: "Body", attributeKey: undefined })],
+      [
+        "a new neighbour",
+        place({ neighbours: ["order.id", "http.route", "user.id"] }),
+      ],
+      ["a neighbour gone", place({ neighbours: ["order.id"] })],
+      ["a new shape", place({ shapes: [{ shape: "AAAA-9999999", share: 1 }] })],
+      [
+        "one more shape",
+        place({
+          shapes: [
+            { shape: "AAAA-999999", share: 0.5 },
+            { shape: "aaaaaa AAAA-999999", share: 0.3 },
+            { shape: "999999", share: 0.2 },
+          ],
+        }),
+      ],
+    ] as Array<[string, ScrubRuleWriterPlace]>) {
+      expect([what, getScrubRuleWriterInputHash(changed) === hash]).toEqual([
+        what,
+        false,
+      ]);
+    }
+  });
+});
+
+describe("what a finding keeps of the answer", () => {
+  test("is the rules without their reference, and none is an answer too", () => {
+    expect(
+      toKeptScrubRuleWriterRules([
+        {
+          ref: "P3",
+          kind: ScrubRuleWriterRuleKind.Pattern,
+          pattern: "\\bAAAA-\\d{6}\\b",
+        },
+        { ref: "P3", kind: ScrubRuleWriterRuleKind.Keys, keys: ["order.note"] },
+      ]),
+    ).toEqual({
+      rules: [
+        { kind: "pattern", pattern: "\\bAAAA-\\d{6}\\b" },
+        { kind: "keys", keys: ["order.note"] },
+      ],
+    });
+    expect(toKeptScrubRuleWriterRules([])).toEqual({ rules: [] });
+  });
+
+  test("reads back as the place's rules, under the reference it is told by now", () => {
+    const kept: ReturnType<typeof toKeptScrubRuleWriterRules> =
+      toKeptScrubRuleWriterRules([
+        {
+          ref: "P1",
+          kind: ScrubRuleWriterRuleKind.Pattern,
+          pattern: "\\bAAAA-\\d{6}\\b",
+        },
+      ]);
+
+    expect(readKeptScrubRuleWriterRules(kept, place({ ref: "P4" }))).toEqual([
+      {
+        ref: "P4",
+        kind: ScrubRuleWriterRuleKind.Pattern,
+        pattern: "\\bAAAA-\\d{6}\\b",
+      },
+    ]);
+    // "No rule", kept: an answer, so it is not asked again.
+    expect(readKeptScrubRuleWriterRules({ rules: [] }, place())).toEqual([]);
+  });
+
+  test("is held to the place as a fresh answer is: a pattern no rule can run, or a key not its own, is left out", () => {
+    expect(
+      readKeptScrubRuleWriterRules(
+        {
+          rules: [
+            { kind: "pattern", pattern: "(\\d)\\1" },
+            { kind: "keys", keys: ["order.secret"] },
+            { kind: "keys", keys: ["ORDER.NOTE"] },
+            { kind: "neither" },
+          ],
+        },
+        place(),
+      ),
+    ).toEqual([
+      { ref: "P1", kind: ScrubRuleWriterRuleKind.Keys, keys: ["order.note"] },
+    ]);
+  });
+
+  test("anything that is no answer kept reads as none kept, so OneUptime AI is asked", () => {
+    for (const kept of [
+      undefined,
+      null,
+      "rules",
+      [],
+      {},
+      { rules: "none" },
+      { rules: [null] },
+      { rules: [{ pattern: "x" }] },
+    ]) {
+      expect([kept, readKeptScrubRuleWriterRules(kept, place())]).toEqual([
+        kept,
+        null,
+      ]);
+    }
   });
 });
 

@@ -30,8 +30,6 @@ namespace you choose. The images come from Google's registry,
 `marketplace.gcr.io/oneuptime-marketplace/oneuptime-enterprise`, tagged with
 the version and its track (such as `15.0.0` and `15.0`).
 
-<!-- TODO(identifiers): the path follows the listing's address (company `oneuptime-marketplace`, product `oneuptime-enterprise`), as Google's docs describe; confirm it here and in REGISTRY below once Google publishes the first version. -->
-
 | Component                  | Kind                                     | Image                   | What it does                                                                         |
 | -------------------------- | ---------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------ |
 | `<name>-nginx`             | Deployment, and a `LoadBalancer` Service | `.../nginx`             | The ingress: terminates TLS and routes every request to the app                      |

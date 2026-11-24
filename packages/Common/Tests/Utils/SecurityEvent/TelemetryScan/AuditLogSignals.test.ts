@@ -646,7 +646,11 @@ describe("a record's name reaches only readers who may read the record (#10663)"
     )!;
 
     expect(event.message).toBe('The API key "ci" deleted a team');
-    expect(event.principalUser).toBe("ci");
+    // By its id, never its name (#10630): a key is no user to suspend.
+    expect(event.principalUser).toBe(
+      "api-key:0192f1a0-0000-7000-8000-00000000a00b",
+    );
+    expect(event.attributes[AUDIT_ATTRIBUTES.apiKeyName]).toBe("ci");
     expect(textOfEvent(event)).not.toContain("Incident Commanders");
   });
 
@@ -769,6 +773,8 @@ describe("a mass delete", () => {
     expect(event.message).toBe(
       'The API key "terraform" deleted 40 records in 1 minute',
     );
-    expect(event.principalUser).toBe("terraform");
+    expect(event.principalUser).toBe(
+      "api-key:0192f1a0-0000-7000-8000-00000000a009",
+    );
   });
 });

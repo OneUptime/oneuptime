@@ -120,7 +120,11 @@ const SERVER_NAMED_TEAMS: Array<string> = [
  * with each option's facts (#10314).
  */
 const DROPDOWN_OPTIONS_WITH_FACTS: Array<string> = [
-  "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/OnCall/OnCallGuidedSetup.tsx",
+  /*
+   * The On-Call guided setup's policy to add people to, and Setup Health's
+   * quick fix's policy to page: searched on the server (#10764).
+   */
+  "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/PolicyChoicePicker.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/GuidedSetup/StatusPage/StatusPageSetupPicker.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/OnCallPolicy/ScheduleTimeline/TimelineToolbar.tsx",
   "packages/App/FeatureSet/Dashboard/src/Pages/OnCallDuty/Readiness.tsx",

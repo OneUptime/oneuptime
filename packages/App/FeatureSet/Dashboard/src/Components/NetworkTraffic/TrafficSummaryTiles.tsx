@@ -8,7 +8,6 @@ import { NetworkTrafficSummary } from "Common/Types/NetFlow/NetworkTraffic";
 import { getFigure } from "Common/UI/Components/EmptyFigure/EmptyFigure";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -71,11 +70,18 @@ const TrafficTile: FunctionComponent<TileProps> = (
           <Icon icon={props.icon} className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-1 text-xs font-medium text-gray-500">
-            <span className="truncate">
-              {translator.translateText(props.label)}
-            </span>
-            <InfoTooltip label={props.label} text={props.help} />
+          {/*
+           * The label whole, over as many lines as it needs, its (i) after
+           * its last word (#7348, #8044): cut short in "...", a German
+           * "Gesamtverkehr" lost its end on a phone's two tiles to a row.
+           */}
+          <div className="flex text-xs font-medium text-gray-500">
+            <WordsWithInfoTooltip
+              className="min-w-0"
+              text={translator.translateText(props.label) || props.label}
+              label={props.label}
+              description={props.help}
+            />
           </div>
           <div
             className="mt-0.5 truncate text-xl font-semibold tabular-nums text-gray-900"

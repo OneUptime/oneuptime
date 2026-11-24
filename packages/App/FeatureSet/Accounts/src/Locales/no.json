@@ -486,6 +486,7 @@
   "Can't scan the QR code?": "Kan du ikke skanne QR-koden?",
   "Enter this setup key in your authenticator app instead.": "Skriv inn denne oppsettsnøkkelen i autentiseringsappen din i stedet.",
   "If your app asks, choose a time-based key.": "Velg en tidsbasert nøkkel hvis appen spør.",
+  "Add to Authenticator App": "Legg til i autentiseringsapp",
   "Copy": "Kopier",
   "Copied!": "Kopiert!",
   "Copy failed": "Kopiering mislyktes",

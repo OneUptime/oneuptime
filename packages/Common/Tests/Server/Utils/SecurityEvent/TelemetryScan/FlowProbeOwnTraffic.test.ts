@@ -11,7 +11,9 @@ import Monitor from "../../../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../../../Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "../../../../../Models/DatabaseModels/NetworkDevice";
 import NetworkDeviceDiscoveryScan from "../../../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import Probe from "../../../../../Models/DatabaseModels/Probe";
 import { Results } from "../../../../../Server/Services/AnalyticsDatabaseService";
+import ProbeService from "../../../../../Server/Services/ProbeService";
 import MonitorProbeService from "../../../../../Server/Services/MonitorProbeService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import NetworkDeviceDiscoveryScanService from "../../../../../Server/Services/NetworkDeviceDiscoveryScanService";
@@ -38,6 +40,7 @@ import MonitorType from "../../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../../Types/ObjectID";
 import Port from "../../../../../Types/Port";
 import OneUptimeProbeKind from "../../../../../Types/Probe/OneUptimeProbeKind";
+import ProbeInterfaceAddressesUtil from "../../../../../Types/Probe/ProbeInterfaceAddresses";
 import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryEntry,
@@ -1149,5 +1152,492 @@ describe("OneUptime's own probes", () => {
 
     expect(eventsOf(read, SecurityTelemetrySignal.PortScan)).toHaveLength(1);
     expect(findings(read)).toEqual(["scan from 35.205.11.131"]);
+  });
+});
+
+/*
+ * A PROBE WITHOUT HOST NETWORKING, KNOWN BY ITS HOST'S ADDRESS (#10633).
+ *
+ * A probe in a Kubernetes pod lists its pod's address; its polls leave the
+ * node source-NATed to the node's address, which the project's routers
+ * export. Read here the whole way: the address list the probe's heartbeat
+ * sends (ProbeInterfaceAddressesUtil.forCheckIn, as Probe/Jobs/Alive builds
+ * it), what the server keeps of it in the probe's column, the probe rows
+ * OneUptimeProbeAddresses reads back - each read given only the columns it
+ * selects - and the window's events.
+ */
+describe("a probe without host networking, known by its host's address", () => {
+  const POD_ADDRESS: string = "10.244.1.7";
+  const NODE_ADDRESS: string = "10.0.0.4";
+  // Where the cluster reaches OneUptime from: its NAT's.
+  const NAT_ADDRESS: string = "198.51.100.20";
+  const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+    "0192f1a0-0000-7000-8000-00000000c1ff",
+  );
+
+  interface ProbeRow {
+    id: string;
+    projectId: ObjectID | null;
+    isGlobalProbe: boolean;
+    name: string;
+    egressIpAddress: string;
+    // What the probe's heartbeat listed, as the server keeps it.
+    interfaceIpAddresses: string | null;
+    lastAlive: Date;
+  }
+
+  // What the server keeps of a heartbeat: the field read, then written.
+  function keptOf(data: {
+    interfaces: Array<string>;
+    // PROBE_HOST_IP_ADDRESSES, as the probe's environment sets it.
+    hostSetting?: string | undefined;
+  }): string {
+    const sent: Array<string> = ProbeInterfaceAddressesUtil.forCheckIn({
+      interfaceAddresses: data.interfaces,
+      hostAddresses: ProbeInterfaceAddressesUtil.readHostAddressesSetting(
+        data.hostSetting,
+      ).addresses,
+    });
+
+    return ProbeInterfaceAddressesUtil.toText(
+      ProbeInterfaceAddressesUtil.read(sent)!,
+    );
+  }
+
+  function podProbe(data: {
+    hostSetting?: string | undefined;
+    lastAlive?: Date | undefined;
+  }): ProbeRow {
+    return {
+      id: OFFICE_ID,
+      projectId: PROJECT_ID,
+      isGlobalProbe: false,
+      name: "Office probe",
+      egressIpAddress: NAT_ADDRESS,
+      interfaceIpAddresses: keptOf({
+        interfaces: [`${POD_ADDRESS}/24`, "fe80::a8b9:1/64"],
+        hostSetting: data.hostSetting,
+      }),
+      lastAlive: data.lastAlive || new Date("2026-11-21T10:04:00.000Z"),
+    };
+  }
+
+  interface ProbeReads {
+    queries: Array<JSONObject>;
+  }
+
+  /*
+   * The probes' table: a read gets the rows its query matches - global
+   * ones, or the project's own - holding a value in the column it filters
+   * by, with only the columns it selects.
+   */
+  function standProbeRows(rows: Array<ProbeRow>): ProbeReads {
+    const reads: ProbeReads = { queries: [] };
+
+    jest.spyOn(ProbeService, "findBy").mockImplementation((async (input: {
+      query: JSONObject;
+      select: JSONObject;
+    }): Promise<Array<Probe>> => {
+      reads.queries.push(input.query);
+
+      return rows
+        .filter((row: ProbeRow): boolean => {
+          if (input.query["isGlobalProbe"] === true) {
+            return row.isGlobalProbe;
+          }
+
+          return (
+            !row.isGlobalProbe &&
+            Boolean(row.projectId) &&
+            row.projectId!.toString() ===
+              (input.query["projectId"] as ObjectID | undefined)?.toString()
+          );
+        })
+        .filter((row: ProbeRow): boolean => {
+          const column: string =
+            "interfaceIpAddresses" in input.query
+              ? "interfaceIpAddresses"
+              : "egressIpAddress";
+
+          return Boolean((row as unknown as JSONObject)[column]);
+        })
+        .map((row: ProbeRow): Probe => {
+          const read: Probe = new Probe();
+          read._id = row.id;
+
+          if (input.select["name"]) {
+            read.name = row.name;
+          }
+
+          if (input.select["egressIpAddress"]) {
+            read.egressIpAddress = row.egressIpAddress;
+          }
+
+          if (
+            input.select["interfaceIpAddresses"] &&
+            row.interfaceIpAddresses
+          ) {
+            read.interfaceIpAddresses = row.interfaceIpAddresses;
+          }
+
+          if (input.select["lastAlive"]) {
+            read.lastAlive = row.lastAlive;
+          }
+
+          return read;
+        });
+    }) as never);
+
+    jest
+      .spyOn(OneUptimeProbeAddresses, "getOneUptimeCloud")
+      .mockReturnValue(null);
+
+    return reads;
+  }
+
+  async function readWindowOf(
+    projectId: ObjectID,
+  ): Promise<TelemetryWindowRead> {
+    return FlowSecurityScan.readWindow({ window: { ...WINDOW, projectId } });
+  }
+
+  describe("the pod's polling, source-NATed to its node's address", () => {
+    test("before its host's address is listed: the probe lists only its pod's address, and its polling is reported as a network sweep", async () => {
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      standProbeRows([podProbe({})]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      expect(podProbe({}).interfaceIpAddresses).toBe(POD_ADDRESS);
+
+      const read: TelemetryWindowRead = await readWindow();
+      const sweeps: Array<NormalizedSecurityEvent> = eventsOf(
+        read,
+        SecurityTelemetrySignal.NetworkSweep,
+      );
+
+      expect(
+        sweeps
+          .map((event: NormalizedSecurityEvent): string => {
+            return `${event.principalIp}:${event.targetPort}`;
+          })
+          .sort(),
+      ).toEqual([`${NODE_ADDRESS}:161`, `${NODE_ADDRESS}:2048`]);
+      // Anyone's: no probe holds the node's address.
+      expect(
+        sweeps[0]!.attributes[PROBE_FLOW_ATTRIBUTES.probeId],
+      ).toBeUndefined();
+      expect(
+        eventsOf(read, SecurityTelemetrySignal.OneUptimeProbeTraffic),
+      ).toEqual([]);
+      expect(findings(read)).toEqual([
+        `sweep from ${NODE_ADDRESS}`,
+        `sweep from ${NODE_ADDRESS}`,
+      ]);
+    });
+
+    test("once it is listed - status.hostIPs, through PROBE_HOST_IP_ADDRESSES - the same polling is set aside as the probe's own work", async () => {
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      standProbeRows([podProbe({ hostSetting: NODE_ADDRESS })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      expect(podProbe({ hostSetting: NODE_ADDRESS }).interfaceIpAddresses).toBe(
+        `${NODE_ADDRESS}, ${POD_ADDRESS}`,
+      );
+
+      const read: TelemetryWindowRead = await readWindow();
+      const setAside: Array<NormalizedSecurityEvent> = eventsOf(
+        read,
+        SecurityTelemetrySignal.OneUptimeProbeTraffic,
+      );
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toEqual([]);
+      expect(setAside.map(sweptPortOf).sort()).toEqual([161, 2048]);
+
+      for (const event of setAside) {
+        expect(event.severityName).toBe(OcsfSeverity.Informational);
+        expect(event.principalIp).toBe(NODE_ADDRESS);
+        expect(event.attributes).toMatchObject({
+          [PROBE_FLOW_ATTRIBUTES.probeId]: OFFICE_ID,
+          [PROBE_FLOW_ATTRIBUTES.probeName]: "Office probe",
+          [PROBE_FLOW_ATTRIBUTES.traffic]: ProbeFlowTraffic.OwnWork,
+          [PROBE_FLOW_ATTRIBUTES.ownWorkCount]: "40",
+          [PROBE_FLOW_ATTRIBUTES.otherCount]: "0",
+        });
+      }
+
+      expect(findings(read)).toEqual([]);
+    });
+
+    test("a dual-stack node's two addresses are both the probe's, and its pod's stays", async () => {
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      standProbeRows([podProbe({ hostSetting: `${NODE_ADDRESS},fd00::4` })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      expect(
+        podProbe({ hostSetting: `${NODE_ADDRESS},fd00::4` })
+          .interfaceIpAddresses,
+      ).toBe(`${NODE_ADDRESS}, ${POD_ADDRESS}, fd00::4`);
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toEqual([]);
+      expect(findings(read)).toEqual([]);
+    });
+
+    test("traffic that still leaves from the pod's own address - a pod network routed without NAT - is set aside as before", async () => {
+      standFlows(polling(POD_ADDRESS, DEVICES));
+      standProbeRows([podProbe({ hostSetting: NODE_ADDRESS })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(
+        eventsOf(read, SecurityTelemetrySignal.OneUptimeProbeTraffic).map(
+          (event: NormalizedSecurityEvent): string => {
+            return event.principalIp || "";
+          },
+        ),
+      ).toEqual([POD_ADDRESS, POD_ADDRESS]);
+      expect(findings(read)).toEqual([]);
+    });
+
+    test("a container on Docker's default bridge: its Port monitors' checks from the host's address are a port scan until the host's address is listed", async () => {
+      const BRIDGE_ADDRESS: string = "172.17.0.2";
+      const DOCKER_HOST_ADDRESS: string = "192.168.1.20";
+      const monitors: Array<Monitor> = MONITORED_PORTS.map(
+        (port: number): Monitor => {
+          return portMonitor("10.0.0.9", port);
+        },
+      );
+      const container: (hostSetting?: string) => ProbeRow = (
+        hostSetting?: string,
+      ): ProbeRow => {
+        return {
+          ...podProbe({}),
+          interfaceIpAddresses: keptOf({
+            interfaces: [`${BRIDGE_ADDRESS}/16`],
+            hostSetting,
+          }),
+        };
+      };
+
+      standFlows(portChecks(DOCKER_HOST_ADDRESS, "10.0.0.9", MONITORED_PORTS));
+      standProbeRows([container()]);
+      standWork({ [OFFICE_ID]: { monitors } });
+
+      const before: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(before, SecurityTelemetrySignal.PortScan)).toHaveLength(
+        1,
+      );
+      expect(findings(before)).toEqual([`scan from ${DOCKER_HOST_ADDRESS}`]);
+
+      jest.restoreAllMocks();
+      jest.spyOn(logger, "warn").mockImplementation((): void => {
+        return undefined;
+      });
+      jest
+        .spyOn(ThreatIntelIndicatorService, "hasIndicatorsForProject")
+        .mockResolvedValue(false);
+
+      standFlows(portChecks(DOCKER_HOST_ADDRESS, "10.0.0.9", MONITORED_PORTS));
+      standProbeRows([container(DOCKER_HOST_ADDRESS)]);
+      standWork({ [OFFICE_ID]: { monitors } });
+
+      const after: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(after, SecurityTelemetrySignal.PortScan)).toEqual([]);
+      expect(
+        eventsOf(after, SecurityTelemetrySignal.OneUptimeProbeTraffic),
+      ).toHaveLength(1);
+      expect(findings(after)).toEqual([]);
+    });
+  });
+
+  /*
+   * An address a probe claims is never enough to set traffic aside: each of
+   * its destinations must also be one a project member gave the probe to
+   * reach, on the port and protocol it reaches it by, while the probe is
+   * checking in - and a claim is read for the probe's own project alone.
+   */
+  describe("a claimed address never hides someone else's traffic", () => {
+    test("another pod on the probe's node, sweeping SSH from the node's address: a network sweep, naming the probe whose address it came from", async () => {
+      const strangers: Array<string> = hostsOf("10.7.0.", 45);
+      standFlows([
+        ...polling(NODE_ADDRESS, DEVICES),
+        ...sshSweep(NODE_ADDRESS, strangers),
+      ]);
+      standProbeRows([podProbe({ hostSetting: NODE_ADDRESS })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindow();
+      const sweeps: Array<NormalizedSecurityEvent> = eventsOf(
+        read,
+        SecurityTelemetrySignal.NetworkSweep,
+      );
+
+      expect(sweeps).toHaveLength(1);
+      expect(sweeps[0]!.targetPort).toBe(22);
+      expect(sweeps[0]!.severityName).toBe(OcsfSeverity.Medium);
+      expect(sweeps[0]!.attributes[PROBE_FLOW_ATTRIBUTES.traffic]).toBe(
+        ProbeFlowTraffic.BeyondOwnWork,
+      );
+      expect(sweeps[0]!.message).toBe(
+        `Network sweep: ${NODE_ADDRESS}, an address of probe "Office probe", reached port 22 on 45 hosts the probe is not set to check`,
+      );
+      expect(findings(read)).toEqual([`sweep from ${NODE_ADDRESS}`]);
+    });
+
+    test("the probe's own port, on hosts the probe is not set to poll: the hosts beyond its work are a sweep", async () => {
+      const extra: Array<string> = hostsOf("10.9.0.", 35);
+      standFlows(polling(NODE_ADDRESS, [...DEVICES, ...extra]));
+      standProbeRows([podProbe({ hostSetting: NODE_ADDRESS })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(
+        eventsOf(read, SecurityTelemetrySignal.NetworkSweep)
+          .map((event: NormalizedSecurityEvent): string => {
+            return `${event.targetPort}: ${event.attributes["network.distinct_hosts"]}`;
+          })
+          .sort(),
+      ).toEqual(["161: 35", "2048: 35"]);
+      expect(findings(read)).toHaveLength(2);
+    });
+
+    test("a probe claiming another machine's address: that machine's sweep beyond the probe's work is reported", async () => {
+      const strangers: Array<string> = hostsOf("10.7.0.", 45);
+      standFlows(sshSweep(NEIGHBOUR_ADDRESS, strangers));
+      standProbeRows([podProbe({ hostSetting: NEIGHBOUR_ADDRESS })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toHaveLength(
+        1,
+      );
+      expect(findings(read)).toEqual([`sweep from ${NEIGHBOUR_ADDRESS}`]);
+    });
+
+    test("a probe set to do nothing sets nothing aside, whatever address it claims", async () => {
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      standProbeRows([podProbe({ hostSetting: NODE_ADDRESS })]);
+      standWork({});
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toHaveLength(
+        2,
+      );
+      expect(
+        eventsOf(read, SecurityTelemetrySignal.OneUptimeProbeTraffic),
+      ).toEqual([]);
+    });
+
+    test("a claim is read for the probe's own project alone: another project's flows from the same address are reported", async () => {
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      const reads: ProbeReads = standProbeRows([
+        podProbe({ hostSetting: NODE_ADDRESS }),
+      ]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindowOf(OTHER_PROJECT_ID);
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toHaveLength(
+        2,
+      );
+      expect(
+        eventsOf(read, SecurityTelemetrySignal.OneUptimeProbeTraffic),
+      ).toEqual([]);
+
+      // Every read of a project's probes asked for that project's alone.
+      const projectReads: Array<JSONObject> = reads.queries.filter(
+        (query: JSONObject): boolean => {
+          return query["isGlobalProbe"] !== true;
+        },
+      );
+
+      expect(projectReads.length).toBeGreaterThan(0);
+
+      for (const query of projectReads) {
+        expect((query["projectId"] as ObjectID).toString()).toBe(
+          OTHER_PROJECT_ID.toString(),
+        );
+      }
+    });
+
+    test("a global probe is known by the address it checks in from alone: an address listed for it is never read", async () => {
+      standFlows(portChecks(NODE_ADDRESS, "203.0.113.9", MONITORED_PORTS));
+      standProbeRows([
+        {
+          id: US_EAST_ID,
+          projectId: null,
+          isGlobalProbe: true,
+          name: "US East",
+          egressIpAddress: "34.1.2.3",
+          interfaceIpAddresses: NODE_ADDRESS,
+          lastAlive: new Date("2026-11-21T10:04:00.000Z"),
+        },
+      ]);
+      standWork({
+        [US_EAST_ID]: {
+          monitors: MONITORED_PORTS.map((port: number): Monitor => {
+            return portMonitor("203.0.113.9", port);
+          }),
+        },
+      });
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(read, SecurityTelemetrySignal.PortScan)).toHaveLength(1);
+      expect(
+        eventsOf(read, SecurityTelemetrySignal.OneUptimeProbeTraffic),
+      ).toEqual([]);
+      expect(findings(read)).toEqual([`scan from ${NODE_ADDRESS}`]);
+    });
+  });
+
+  describe("when in doubt, a person sees it", () => {
+    test("a probe told its host's address that has stopped checking in: the address is anyone's again", async () => {
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      standProbeRows([
+        podProbe({
+          hostSetting: NODE_ADDRESS,
+          lastAlive: new Date("2026-11-21T07:00:00.000Z"),
+        }),
+      ]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toHaveLength(
+        2,
+      );
+      expect(NetworkDeviceService.findAllBy).not.toHaveBeenCalled();
+    });
+
+    test("a host address the probe could not read - a name, a value the Downward API never filled in - is never kept, and the polling is reported as before", async () => {
+      for (const hostSetting of [
+        "node-1.internal",
+        "$(HOST_IP)",
+        "127.0.0.1",
+      ]) {
+        expect(podProbe({ hostSetting }).interfaceIpAddresses).toBe(
+          POD_ADDRESS,
+        );
+      }
+
+      standFlows(polling(NODE_ADDRESS, DEVICES));
+      standProbeRows([podProbe({ hostSetting: "node-1.internal" })]);
+      standWork({ [OFFICE_ID]: { devices: DEVICES } });
+
+      const read: TelemetryWindowRead = await readWindow();
+
+      expect(eventsOf(read, SecurityTelemetrySignal.NetworkSweep)).toHaveLength(
+        2,
+      );
+      expect(findings(read)).toHaveLength(2);
+    });
   });
 });

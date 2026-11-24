@@ -221,6 +221,8 @@ export const DATA_SECURITY_AI_PROPOSAL_STATUS_LABELS: Readonly<
   [DataSecurityAiProposalStatus.Expired]: translationKey("Expired"),
   [DataSecurityAiProposalStatus.Undone]: translationKey("Undone"),
   [DataSecurityAiProposalStatus.Failed]: translationKey("Failed"),
+  // A data type OneUptime AI drafted, counted on its stores' next scans (#10371).
+  [DataSecurityAiProposalStatus.Proving]: translationKey("Checking"),
 };
 
 // The Overview's line about OneUptime AI (DataSecurityAiOverviewLine).

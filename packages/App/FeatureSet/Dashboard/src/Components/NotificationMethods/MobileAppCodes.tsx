@@ -15,7 +15,7 @@ import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import QRCode from "Common/UI/Components/QR/QR";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * GET THE MOBILE APP: a code for each store and the address to sign in to.
@@ -68,12 +68,14 @@ export interface ComponentProps {
 const StoreCode: FunctionComponent<{
   name: string;
   url: string;
+  onCodeFailed: () => void;
   dataTestId?: string | undefined;
   // An address as its name: broken anywhere rather than run off a phone.
   isNamedByAddress?: boolean | undefined;
 }> = (props: {
   name: string;
   url: string;
+  onCodeFailed: () => void;
   dataTestId?: string | undefined;
   isNamedByAddress?: boolean | undefined;
 }): ReactElement => {
@@ -92,7 +94,11 @@ const StoreCode: FunctionComponent<{
        * hide the code at every width.
        */}
       <div className="max-sm:hidden sm:block">
-        <QRCode text={props.url} alt={props.name} />
+        <QRCode
+          text={props.url}
+          alt={props.name}
+          onError={props.onCodeFailed}
+        />
       </div>
       <a
         href={props.url}
@@ -112,6 +118,17 @@ const StoreCode: FunctionComponent<{
 const MobileAppCodes: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * A code that could not be drawn - its library did not load - says so in
+   * its place, and is no code to scan (#6653): the laptop is then told what
+   * a phone is, to get the app from the links under each code.
+   */
+  const [hasACodeFailed, setHasACodeFailed] = useState<boolean>(false);
+
+  const onCodeFailed: () => void = (): void => {
+    setHasACodeFailed(true);
+  };
+
   /*
    * How the server offers the app (Help and Support): OneUptime's stores,
    * a page of its own, or not at all - then nothing is drawn, and the places
@@ -156,13 +173,22 @@ const MobileAppCodes: FunctionComponent<ComponentProps> = (
           <StoreCode
             name={getHelpLinkLabel(offer.url)}
             url={offer.url}
+            onCodeFailed={onCodeFailed}
             dataTestId={`${props.dataTestId}-own-page`}
             isNamedByAddress={true}
           />
         ) : (
           <>
-            <StoreCode name={APP_STORE_NAME} url={MOBILE_APP_IOS_URL} />
-            <StoreCode name={GOOGLE_PLAY_NAME} url={MOBILE_APP_ANDROID_URL} />
+            <StoreCode
+              name={APP_STORE_NAME}
+              url={MOBILE_APP_IOS_URL}
+              onCodeFailed={onCodeFailed}
+            />
+            <StoreCode
+              name={GOOGLE_PLAY_NAME}
+              url={MOBILE_APP_ANDROID_URL}
+              onCodeFailed={onCodeFailed}
+            />
           </>
         )}
       </div>
@@ -171,8 +197,12 @@ const MobileAppCodes: FunctionComponent<ComponentProps> = (
         <TranslatedSentence
           template={
             isOwnPage
-              ? MOBILE_APP_INSTALL_FROM_OWN_PAGE_SENTENCE
-              : MOBILE_APP_INSTALL_SENTENCE
+              ? hasACodeFailed
+                ? MOBILE_APP_INSTALL_FROM_OWN_PAGE_ON_PHONE_SENTENCE
+                : MOBILE_APP_INSTALL_FROM_OWN_PAGE_SENTENCE
+              : hasACodeFailed
+                ? MOBILE_APP_INSTALL_ON_PHONE_SENTENCE
+                : MOBILE_APP_INSTALL_SENTENCE
           }
           slots={{
             serverUrl: getServerUrl(props.serverUrlDataTestId),

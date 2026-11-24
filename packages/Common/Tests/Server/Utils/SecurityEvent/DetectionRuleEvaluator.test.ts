@@ -56,6 +56,8 @@ import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
+import ApiKeyService from "../../../../Server/Services/ApiKeyService";
+import ApiKey from "../../../../Models/DatabaseModels/ApiKey";
 import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionRuleException";
 import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import SecurityEventService, {
@@ -467,6 +469,8 @@ describe("DetectionRuleEvaluator", () => {
     getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
       [] as never,
     );
+    // Nor does any exception name one of the project's API keys (#10630).
+    getJestSpyOn(ApiKeyService, "findAllBy").mockResolvedValue([] as never);
     /*
      * What a match's entities name in OneUptime - the records its alert is
      * linked to - has its own suites (SecurityConnections,
@@ -4217,6 +4221,42 @@ describe("DetectionRuleEvaluator", () => {
       ).toEqual([RULE_A.toString()]);
       expect(findMatchesArg(spies).whereFragment.query).toContain("NOT ((");
       expect(result.exceptionsApplied).toBe(1);
+    });
+
+    test("an exception that names an API key by its name still skips the key, now named by its id (#10630)", async () => {
+      const keyId: string = "0192f1a0-0000-7000-8000-00000000f001";
+      const apiKey: ApiKey = new ApiKey();
+      apiKey._id = keyId;
+      apiKey.name = "terraform";
+
+      stubFindAll([
+        exception({
+          id: "edededed-eded-4ded-8ded-ededededed09",
+          ruleId: RULE_A,
+          kind: DetectionRuleExceptionKind.Entity,
+          entityType: SecurityEntityType.User,
+          value: "terraform",
+        }),
+      ]);
+      const findKeys: Spy = getJestSpyOn(
+        ApiKeyService,
+        "findAllBy",
+      ).mockResolvedValue([apiKey] as never);
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+
+      await DetectionRuleEvaluator.evaluateRule(buildRule({ id: RULE_A }));
+
+      expect(findKeys).toHaveBeenCalledTimes(1);
+
+      const whereFragment: Statement = findMatchesArg(spies).whereFragment;
+
+      // The name, as events stored before #10630 hold it, and the key's principal.
+      expect(whereFragment.query).toContain("lowerUTF8(principalUser) = ");
+      expect(whereFragment.query).toContain("lowerUTF8(principalUser) IN ");
+      expect(Object.values(whereFragment.query_params)).toContain("terraform");
+      expect(Object.values(whereFragment.query_params)).toContainEqual([
+        `api-key:${keyId}`,
+      ]);
     });
 
     test("a rule with no exception reads exactly what it always read", async () => {

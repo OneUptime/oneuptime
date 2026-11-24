@@ -9,6 +9,9 @@ import LogScrubRuleService from "./LogScrubRuleService";
 import SecurityAddressVaultWriter, {
   SecurityAddressVaultBatch,
 } from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
+import SecurityUserVaultWriter, {
+  SecurityUserVaultBatch,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 import Dictionary from "Common/Types/Dictionary";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -120,6 +123,12 @@ interface LogProcessingContext {
    * nothing is kept.
    */
   addressVault: SecurityAddressVaultBatch | null;
+  /*
+   * The users this project's Hash rules hide where Security Events reads a
+   * user, kept for its user vault on the same terms (#10632): null when
+   * nothing is kept.
+   */
+  userVault: SecurityUserVaultBatch | null;
   /*
    * The work allowance of this project's patterns for the batch
    * (Common/Utils/LinearRegExp/PatternWork.ts): a probe's batch carries
@@ -453,6 +462,7 @@ export default class ProbeSyslogIngestService {
     // The logs are stored: each project's hashed addresses go to the vault, on their own.
     for (const context of Object.values(processingContextCache)) {
       context.addressVault?.write();
+      context.userVault?.write();
     }
 
     result.written = dbLogs.length;
@@ -900,6 +910,7 @@ export default class ProbeSyslogIngestService {
                 row,
                 processingContext.scrubRules,
                 processingContext.addressVault,
+                { hashedUsers: processingContext.userVault },
               );
             },
           });
@@ -1074,6 +1085,7 @@ export default class ProbeSyslogIngestService {
       dropFilters: [],
       scrubRules: [],
       addressVault: null,
+      userVault: null,
       patternWork: patternWork,
     };
 
@@ -1090,6 +1102,11 @@ export default class ProbeSyslogIngestService {
             dropFilters: await LogDropFilterService.loadDropFilters(projectId),
             scrubRules: scrubRules,
             addressVault: await SecurityAddressVaultWriter.startBatch({
+              projectId: projectId,
+              signal: "log",
+              scrubRules: scrubRules,
+            }),
+            userVault: await SecurityUserVaultWriter.startBatch({
               projectId: projectId,
               signal: "log",
               scrubRules: scrubRules,

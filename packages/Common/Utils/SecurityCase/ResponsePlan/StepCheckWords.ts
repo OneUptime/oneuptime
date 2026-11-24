@@ -9,6 +9,12 @@ import { PluralTemplate, translationKey } from "../../../Types/Translator";
  * its values as written - an address, a user, a product's name - and its
  * figures and times, worded where it is drawn, in the reader's language and
  * on their clock.
+ *
+ * A moment - {{time}}, {{since}}, {{until}}, {{ended}}, {{latest}},
+ * {{confirmed}} - comes with its own words (#10622, Utils/MomentPhrases):
+ * "at 14:25" today and "on 27 Nov at 14:25" on another day, "since ...",
+ * "until ...". So a sentence writes no preposition before one, and in a
+ * language whose letters have a case it never starts with one.
  */
 
 // ---------- Beside a checked step ----------
@@ -78,25 +84,24 @@ export const STEP_CHECKS_NOT_READ: string = translationKey(
 // ---------- Block an address (contain:block-ip) ----------
 
 export const CHECK_BLOCK_QUIET: PluralTemplate = {
-  one: "No request from {{address}} has reached your app since {{since}}. It sent {{count}} in the hour before.",
+  one: "No request from {{address}} has reached your app {{since}}. It sent {{count}} in the hour before.",
   other:
-    "No request from {{address}} has reached your app since {{since}}. It sent {{count}} in the hour before.",
+    "No request from {{address}} has reached your app {{since}}. It sent {{count}} in the hour before.",
 };
 export const CHECK_BLOCK_STILL_REACHING: PluralTemplate = {
-  one: "{{address}} still reaches your app: {{count}} request in the last 30 minutes, the latest at {{latest}}.",
+  one: "{{address}} still reaches your app: {{count}} request in the last 30 minutes, the latest {{latest}}.",
   other:
-    "{{address}} still reaches your app: {{count}} requests in the last 30 minutes, the latest at {{latest}}.",
+    "{{address}} still reaches your app: {{count}} requests in the last 30 minutes, the latest {{latest}}.",
 };
 export const CHECK_BLOCK_REGRESSED: string = translationKey(
-  "{{address}} got through again at {{time}}: the block is not holding.",
+  "{{address}} got through again {{time}}: the block is not holding.",
 );
 export const CHECK_BLOCK_SINCE_AGAIN: PluralTemplate = {
-  one: "{{count}} request from {{address}} has reached your app since {{time}}.",
-  other:
-    "{{count}} requests from {{address}} have reached your app since {{time}}.",
+  one: "{{count}} request from {{address}} has reached your app {{since}}.",
+  other: "{{count}} requests from {{address}} have reached your app {{since}}.",
 };
 export const CHECK_BLOCK_QUIET_SINCE: string = translationKey(
-  "No request from {{address}} has reached your app since {{since}}.",
+  "No request from {{address}} has reached your app {{since}}.",
 );
 export const CHECK_BLOCK_NOT_PROOF: string = translationKey(
   "An address that goes quiet may have been blocked, or may simply have stopped: OneUptime cannot tell which.",
@@ -115,16 +120,16 @@ export const CHECK_CHALLENGE_AWS_WAF_SAMPLED: string = translationKey(
  * it names the range.
  */
 export const CHECK_BLOCK_ENFORCED_AT: string = translationKey(
-  "{{address}} is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+  "{{address}} is blocked at {{destination}} {{since}}, last confirmed {{confirmed}}.",
 );
 export const CHECK_BLOCK_CHALLENGED_AT: string = translationKey(
-  "{{address}} is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+  "{{address}} is challenged at {{destination}} {{since}}, last confirmed {{confirmed}}.",
 );
 export const CHECK_BLOCK_RANGE_ENFORCED_AT: string = translationKey(
-  "{{range}}, which holds {{address}}, is blocked at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+  "{{range}}, which holds {{address}}, is blocked at {{destination}} {{since}}, last confirmed {{confirmed}}.",
 );
 export const CHECK_BLOCK_RANGE_CHALLENGED_AT: string = translationKey(
-  "{{range}}, which holds {{address}}, is challenged at {{destination}} since {{since}}, last confirmed {{confirmed}}.",
+  "{{range}}, which holds {{address}}, is challenged at {{destination}} {{since}}, last confirmed {{confirmed}}.",
 );
 
 /*
@@ -135,24 +140,24 @@ export const CHECK_BLOCK_RANGE_CHALLENGED_AT: string = translationKey(
  * ones says about.
  */
 export const CHECK_BLOCK_CLOUDFLARE_STOPPED: PluralTemplate = {
-  one: "Cloudflare has stopped {{count}} request from {{address}} since the block at {{time}}.",
+  one: "Cloudflare has stopped {{count}} request from {{address}} since the block {{time}}.",
   other:
-    "Cloudflare has stopped {{count}} requests from {{address}} since the block at {{time}}.",
+    "Cloudflare has stopped {{count}} requests from {{address}} since the block {{time}}.",
 };
 export const CHECK_BLOCK_CLOUDFLARE_STOPPED_ABOUT: PluralTemplate = {
-  one: "Cloudflare has stopped about {{count}} request from {{address}} since the block at {{time}}.",
+  one: "Cloudflare has stopped about {{count}} request from {{address}} since the block {{time}}.",
   other:
-    "Cloudflare has stopped about {{count}} requests from {{address}} since the block at {{time}}.",
+    "Cloudflare has stopped about {{count}} requests from {{address}} since the block {{time}}.",
 };
 export const CHECK_BLOCK_CLOUDFLARE_CHALLENGED: PluralTemplate = {
-  one: "Cloudflare has challenged {{count}} request from {{address}} since the challenge at {{time}}.",
+  one: "Cloudflare has challenged {{count}} request from {{address}} since the challenge {{time}}.",
   other:
-    "Cloudflare has challenged {{count}} requests from {{address}} since the challenge at {{time}}.",
+    "Cloudflare has challenged {{count}} requests from {{address}} since the challenge {{time}}.",
 };
 export const CHECK_BLOCK_CLOUDFLARE_CHALLENGED_ABOUT: PluralTemplate = {
-  one: "Cloudflare has challenged about {{count}} request from {{address}} since the challenge at {{time}}.",
+  one: "Cloudflare has challenged about {{count}} request from {{address}} since the challenge {{time}}.",
   other:
-    "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge at {{time}}.",
+    "Cloudflare has challenged about {{count}} requests from {{address}} since the challenge {{time}}.",
 };
 
 // A block on the Blocklist that no destination holds: never read as blocked.
@@ -182,7 +187,7 @@ export const CHECK_REQUESTS_SOME_UNREAD: PluralTemplate = {
     "{{rejected}} of the {{count}} requests from {{address}} were turned away. OneUptime could not read your app's answer to the rest.",
 };
 export const CHECK_REQUESTS_SINCE: string = translationKey(
-  "Counted since {{time}}, when the case's first detection began.",
+  "Counted {{since}}, when the case's first detection began.",
 );
 
 // ---------- Rule out a false positive (confirm:false-positive) ----------
@@ -214,13 +219,13 @@ export const CHECK_FACT_NO_SIGNED_IN_USERS: string = translationKey(
 // ---------- Suspend a user, contain a host (contain:user, contain:host) ----------
 
 export const CHECK_USER_SUSPENDED_SINCE: string = translationKey(
-  "{{user}} is suspended in {{provider}} (since {{since}}).",
+  "{{user}} is suspended in {{provider}} ({{since}}).",
 );
 export const CHECK_USER_SUSPENDED: string = translationKey(
   "{{user}} is suspended in {{provider}}.",
 );
 export const CHECK_USER_DISABLED_SIGNED_OUT: string = translationKey(
-  "{{user}} is disabled in {{provider}}, and their sessions were ended at {{since}}.",
+  "{{user}} is disabled in {{provider}}, and their sessions were ended {{time}}.",
 );
 export const CHECK_USER_DISABLED_NOT_SIGNED_OUT: string = translationKey(
   "{{user}} is disabled in {{provider}}, but their sessions were not ended after the case opened.",
@@ -282,10 +287,10 @@ export const CHECK_COULD_NOT_CHECK: string = translationKey(
  * and read back - by Microsoft Defender or CrowdStrike Falcon.
  */
 export const CHECK_BLOCKED_EVERYWHERE: string = translationKey(
-  "{{value}} is blocked on every machine with {{destination}} since {{since}}, until {{until}}.",
+  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.",
 );
 export const CHECK_BLOCKED_EVERYWHERE_UNTIL_LIFTED: string = translationKey(
-  "{{value}} is blocked on every machine with {{destination}} since {{since}}, until someone lifts it.",
+  "{{value}} is blocked on every machine with {{destination}} {{since}}, until someone lifts it.",
 );
 export const CHECK_BLOCK_NOT_HELD: string = translationKey(
   "{{value}} is on the blocklist, but nothing blocks it on your machines yet.",
@@ -297,7 +302,7 @@ export const CHECK_BLOCK_NONE: string = translationKey(
   "{{value}} is not blocked on your machines.",
 );
 export const CHECK_BLOCK_ENDED: string = translationKey(
-  "The block on {{value}} ended at {{time}}, so your machines no longer block it.",
+  "The block on {{value}} ended {{time}}, so your machines no longer block it.",
 );
 
 // ---------- Declare an incident (contain:incident) ----------
@@ -356,37 +361,37 @@ export const CHECK_FACT_SEEN_ADDRESSES: PluralTemplate = {
 
 /*
  * {{change}} names what shipped as written: its version ("2.4.1"), else the
- * fix's pull request ("#123"), revision or commit. {{time}} and {{until}}
- * are moments, on the reader's clock.
+ * fix's pull request ("#123"), revision or commit. {{time}} is when it
+ * shipped and {{until}} until when OneUptime watches: each brings its words.
  */
 export const CHECK_FIX_ROUTE_TURNED_AWAY: PluralTemplate = {
-  one: "Since {{change}} shipped at {{time}}, the {{count}} attack request to {{route}} was turned away.",
+  one: "Since {{change}} shipped {{time}}, the {{count}} attack request to {{route}} was turned away.",
   other:
-    "Since {{change}} shipped at {{time}}, all {{count}} attack requests to {{route}} were turned away.",
+    "Since {{change}} shipped {{time}}, all {{count}} attack requests to {{route}} were turned away.",
 };
 export const CHECK_FIX_ROUTE_KEPT_OUT: PluralTemplate = {
-  one: "Since {{change}} shipped at {{time}}, the {{count}} attack request to {{route}} did not reach the database.",
+  one: "Since {{change}} shipped {{time}}, the {{count}} attack request to {{route}} did not reach the database.",
   other:
-    "Since {{change}} shipped at {{time}}, none of the {{count}} attack requests to {{route}} reached the database.",
+    "Since {{change}} shipped {{time}}, none of the {{count}} attack requests to {{route}} reached the database.",
 };
 export const CHECK_FIX_ROUTE_NO_ATTEMPTS: string = translationKey(
-  "No attempts on {{route}} since {{change}} shipped at {{time}}.",
+  "No attempts on {{route}} since {{change}} shipped {{time}}.",
 );
 export const CHECK_FIX_ROUTE_STILL_THROUGH: PluralTemplate = {
-  one: "{{through}} of the {{count}} attack request to {{route}} since {{change}} shipped at {{time}} got past your app's checks.",
+  one: "{{through}} of the {{count}} attack request to {{route}} since {{change}} shipped {{time}} got past your app's checks.",
   other:
-    "{{through}} of the {{count}} attack requests to {{route}} since {{change}} shipped at {{time}} got past your app's checks.",
+    "{{through}} of the {{count}} attack requests to {{route}} since {{change}} shipped {{time}} got past your app's checks.",
 };
 export const CHECK_FIX_ROUTE_STILL_DATABASE: PluralTemplate = {
-  one: "{{through}} of the {{count}} attack request to {{route}} since {{change}} shipped at {{time}} reached the database.",
+  one: "{{through}} of the {{count}} attack request to {{route}} since {{change}} shipped {{time}} reached the database.",
   other:
-    "{{through}} of the {{count}} attack requests to {{route}} since {{change}} shipped at {{time}} reached the database.",
+    "{{through}} of the {{count}} attack requests to {{route}} since {{change}} shipped {{time}} reached the database.",
 };
 export const CHECK_FIX_ROUTE_REGRESSED: string = translationKey(
-  "An attack request to {{route}} got past your app's checks at {{time}}, after {{change}} shipped: the fix is not holding.",
+  "An attack request to {{route}} got past your app's checks {{time}}, after {{change}} shipped: the fix is not holding.",
 );
 export const CHECK_FIX_ROUTE_REGRESSED_DATABASE: string = translationKey(
-  "An attack request to {{route}} reached the database at {{time}}, after {{change}} shipped: the fix is not holding.",
+  "An attack request to {{route}} reached the database {{time}}, after {{change}} shipped: the fix is not holding.",
 );
 export const CHECK_FIX_NOTHING_SHIPPED: string = translationKey(
   "No new version of {{service}} has shipped since the case opened.",
@@ -394,8 +399,12 @@ export const CHECK_FIX_NOTHING_SHIPPED: string = translationKey(
 export const CHECK_FIX_PULL_REQUEST_OPEN: string = translationKey(
   "OneUptime AI's fix {{pullRequest}} is waiting for review.",
 );
+// A pull request a person linked to the case (#10604), not merged yet.
+export const CHECK_FIX_LINKED_PULL_REQUEST_OPEN: string = translationKey(
+  "The fix {{pullRequest}} linked to this case has not merged yet.",
+);
 export const CHECK_FIX_PULL_REQUEST_NOT_SHIPPED: string = translationKey(
-  "The fix {{pullRequest}} merged at {{time}}, but OneUptime has seen no deploy of it yet.",
+  "The fix {{pullRequest}} merged {{time}}, but OneUptime has seen no deploy of it yet.",
 );
 export const CHECK_FIX_CANNOT_NO_DEPLOYS: string = translationKey(
   "OneUptime records no deploys of {{service}}, so it cannot tell when a fix ships.",
@@ -426,17 +435,17 @@ export const CHECK_FIX_FACT_BEFORE_DATABASE: PluralTemplate = {
  * (FixRouteStepCheck's getNeededProof).
  */
 export const CHECK_FIX_FACT_WATCHING: PluralTemplate = {
-  one: "Watching {{route}} until {{until}}: verified once {{count}} attack request is turned away.",
+  one: "Watching {{route}} {{until}}: verified once {{count}} attack request is turned away.",
   other:
-    "Watching {{route}} until {{until}}: verified once {{count}} attack requests are turned away.",
+    "Watching {{route}} {{until}}: verified once {{count}} attack requests are turned away.",
 };
 export const CHECK_FIX_FACT_WATCHING_DATABASE: PluralTemplate = {
-  one: "Watching {{route}} until {{until}}: verified once {{count}} attack request is kept out of the database.",
+  one: "Watching {{route}} {{until}}: verified once {{count}} attack request is kept out of the database.",
   other:
-    "Watching {{route}} until {{until}}: verified once {{count}} attack requests are kept out of the database.",
+    "Watching {{route}} {{until}}: verified once {{count}} attack requests are kept out of the database.",
 };
 export const CHECK_FIX_FACT_WATCH_ENDED: string = translationKey(
-  "OneUptime watched {{route}} until {{until}}, and too few attacks came to verify the fix.",
+  "OneUptime watched {{route}} {{until}}, and too few attacks came to verify the fix.",
 );
 export const CHECK_FIX_FACT_NONE_BEFORE: string = translationKey(
   "Before it, no attack request to {{route}} got past your app's checks either, so the attacks cannot show the fix worked.",
@@ -458,10 +467,10 @@ export const CHECK_FIX_FACT_UNFOLLOWED: PluralTemplate = {
 // ---------- Reset the password (fix:credentials, #10347) ----------
 
 export const CHECK_FIX_PASSWORD_RESET: string = translationKey(
-  "{{user}}'s password was changed in {{provider}} at {{time}}, and their sessions were ended at {{ended}}.",
+  "{{user}}'s password was changed in {{provider}} {{time}}, and their sessions were ended {{ended}}.",
 );
 export const CHECK_FIX_PASSWORD_SESSIONS_OPEN: string = translationKey(
-  "{{user}}'s password was changed in {{provider}} at {{time}}, but their sessions were not ended after the case opened.",
+  "{{user}}'s password was changed in {{provider}} {{time}}, but their sessions were not ended after the case opened.",
 );
 export const CHECK_FIX_PASSWORD_NOT_RESET: string = translationKey(
   "{{user}}'s password has not changed in {{provider}} since the case opened.",
@@ -488,3 +497,116 @@ export const CHECK_FIX_FACT_MFA_ON: string = translationKey(
 export const CHECK_FIX_FACT_MFA_OFF: string = translationKey(
   "{{user}} has no MFA set up in {{provider}}.",
 );
+
+/*
+ * ---------- Undo what changed on the account (fix:account-changes, #10603) ----------
+ *
+ * What the attack changed on accounts, from the case's events - a role, a
+ * group, an app, an MFA device, a key, an account it made - each read back
+ * in the product it was made in (Okta, Microsoft Entra ID, Google
+ * Workspace). {{account}} and {{object}} are as the product names them,
+ * {{provider}} is the product's own name.
+ */
+export const CHECK_ACCOUNT_CHANGES_STILL_THERE: PluralTemplate = {
+  one: "{{count}} change the attack made to an account is still there.",
+  other: "{{count}} changes the attack made to accounts are still there.",
+};
+export const CHECK_ACCOUNT_CHANGES_BACK: PluralTemplate = {
+  one: "{{count}} change the attack made to an account is back: the undo is not holding.",
+  other:
+    "{{count}} changes the attack made to accounts are back: the undo is not holding.",
+};
+// Looks done, never checked: a change made another way may not be in the case's events.
+export const CHECK_ACCOUNT_CHANGES_ALL_UNDONE: PluralTemplate = {
+  one: "The change the attack made to an account is undone.",
+  other: "All {{count}} changes the attack made to accounts are undone.",
+};
+// Counted by the changes OneUptime cannot read back, which a person confirms.
+export const CHECK_ACCOUNT_CHANGES_CONFIRM_REST: PluralTemplate = {
+  one: "What OneUptime could read back is undone. Confirm the other change yourself: OneUptime cannot read it back.",
+  other:
+    "What OneUptime could read back is undone. Confirm the other {{count}} changes yourself: OneUptime cannot read them back.",
+};
+export const CHECK_ACCOUNT_CHANGES_CANNOT_READ: PluralTemplate = {
+  one: "OneUptime cannot read back the change the attack made to an account, so confirm it yourself.",
+  other:
+    "OneUptime cannot read back the {{count}} changes the attack made to accounts, so confirm each yourself.",
+};
+export const CHECK_ACCOUNT_CHANGES_NONE_FOUND: string = translationKey(
+  "OneUptime found no change to an account in this case's events, so it cannot tell what to undo.",
+);
+
+// Each change, as it stands: still there.
+export const CHECK_ACCOUNT_CHANGE_ROLE_STILL: string = translationKey(
+  "{{account}} still holds the admin role {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_GROUP_STILL: string = translationKey(
+  "{{account}} is still in the group {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_APP_STILL: string = translationKey(
+  "{{account}} still has access to {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_MFA_STILL: string = translationKey(
+  "The MFA device the attack added to {{account}} is still set up in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_KEY_STILL: string = translationKey(
+  "The key {{object}} the attack made for {{account}} still works in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ACCOUNT_STILL: string = translationKey(
+  "The account {{account}} the attack made is still active in {{provider}}.",
+);
+
+// Undone.
+export const CHECK_ACCOUNT_CHANGE_ROLE_UNDONE: string = translationKey(
+  "{{account}} no longer holds the admin role {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_GROUP_UNDONE: string = translationKey(
+  "{{account}} is no longer in the group {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_APP_UNDONE: string = translationKey(
+  "{{account}} no longer has access to {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_MFA_UNDONE: string = translationKey(
+  "The MFA device the attack added to {{account}} is gone from {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_KEY_UNDONE: string = translationKey(
+  "The key {{object}} the attack made for {{account}} no longer works in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ACCOUNT_UNDONE: string = translationKey(
+  "The account {{account}} the attack made is gone or disabled in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE: string = translationKey(
+  "{{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.",
+);
+
+// What a person confirms: OneUptime cannot read it back.
+export const CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM: string = translationKey(
+  "Confirm {{account}} no longer holds the admin role {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM: string = translationKey(
+  "Confirm {{account}} is no longer in the group {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_APP_CONFIRM: string = translationKey(
+  "Confirm {{account}} no longer has access to {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_MFA_CONFIRM: string = translationKey(
+  "Confirm the MFA device the attack added to {{account}} is gone from {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_KEY_CONFIRM: string = translationKey(
+  "Confirm the key {{object}} the attack made for {{account}} no longer works in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ACCOUNT_CONFIRM: string = translationKey(
+  "Confirm the account {{account}} the attack made is gone or disabled in {{provider}}.",
+);
+
+// Why OneUptime cannot read the changes in a product back, said once for it.
+export const CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION: string = translationKey(
+  "OneUptime has no connection to {{provider}}, so it cannot read the changes there back.",
+);
+export const CHECK_ACCOUNT_CHANGES_FACT_AWS: string = translationKey(
+  "OneUptime does not read changes in AWS IAM back yet.",
+);
+export const CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH: string =
+  translationKey(
+    "{{provider}} says {{account}} still has something of the kind the attack gave, but not whether it is that one.",
+  );

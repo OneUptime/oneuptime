@@ -145,7 +145,9 @@ describe("what a lock names (getPermissionsToName)", () => {
     /*
      * The Project's list holds Edit Incoming Request Secret for the one
      * column it opens, requireIncomingRequestSecret (#8502), as it holds
-     * Manage Billing for the billing columns.
+     * Manage Billing for the billing columns, and Security Admin for the
+     * hourly limit of automatic blocks (#10746) - a role, so never one of
+     * the permissions a refusal names.
      */
     const list: Array<Permission> = new Project().getUpdatePermissions();
 
@@ -157,6 +159,7 @@ describe("what a lock names (getPermissionsToName)", () => {
       "Manage Billing",
       "Edit Project",
       "Edit Incoming Request Secret",
+      "Security Admin",
     ]);
     expect(PermissionGate.getPermissionsToName(list)).toEqual({
       titles: [

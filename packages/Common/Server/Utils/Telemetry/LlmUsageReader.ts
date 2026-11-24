@@ -6,7 +6,6 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getLlmProviderStoredValues } from "../../../Types/Telemetry/LlmProviders";
 import {
-  LLM_USAGE_HIDDEN_GROUP_KEY,
   LlmUsageDimension,
   LlmUsageResponse,
 } from "../../../Types/Telemetry/LlmUsageApi";
@@ -22,12 +21,12 @@ import SpanService from "../../Services/SpanService";
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import CaptureSpan from "./CaptureSpan";
+import { buildLlmPersonSql, buildLlmTeamSql } from "./LlmCallIdentitySql";
 import LlmCountedCallsSql, {
   LlmCallFigure,
   LlmCountedCallsScope,
 } from "./LlmCountedCallsSql";
 import LlmMetricUsageReader from "./LlmMetricUsageReader";
-import { buildHoldsScrubPlaceholderSql } from "./ScrubPlaceholderSql";
 import TelemetryReadScopeUtil, {
   TelemetryServiceFilter,
 } from "./TelemetryReadScope";
@@ -69,18 +68,6 @@ const QUERY_SETTINGS: string = getQuerySettings({
   boundScanMemory: true,
 });
 
-const USER_EMAIL_SQL: string = "ifNull(llmUserEmail, '')";
-const USER_ID_SQL: string = "ifNull(llmUserId, '')";
-const TEAM_SQL: string = "ifNull(llmTeam, '')";
-
-// The usage whose person or team a scrub rule hid, as a group's value.
-function hiddenGroupSql(): Statement {
-  return SQL`${{
-    type: TableColumnType.Text,
-    value: LLM_USAGE_HIDDEN_GROUP_KEY,
-  }}`;
-}
-
 /*
  * What a call is grouped by, per dimension: the person (their email, else
  * their id - emitters send one or the other), the team, the requested
@@ -93,36 +80,19 @@ function hiddenGroupSql(): Statement {
  * whose every name was hidden - "[REDACTED]", a mask, a Hash rule's token -
  * is filed under the one group of usage nobody's name can be put to
  * (LLM_USAGE_HIDDEN_GROUP_KEY). Asked of each stored call, so the calls
- * stored before this are read the same.
+ * stored before this are read the same - with the expressions the
+ * conversation list reads its people by, so the Usage tab, Conversations
+ * and Calls always name a call's person alike (LlmCallIdentitySql, #10631).
  */
 export function buildSpanGroupSql(
   dimension: LlmUsageDimension,
 ): Statement | null {
   switch (dimension) {
-    case LlmUsageDimension.Employee: {
-      const statement: Statement = SQL`multiIf(`;
-      statement.append(`${USER_EMAIL_SQL} != '' AND NOT `);
-      statement.append(buildHoldsScrubPlaceholderSql(USER_EMAIL_SQL));
-      statement.append(`, ${USER_EMAIL_SQL}, ${USER_ID_SQL} != '' AND NOT `);
-      statement.append(buildHoldsScrubPlaceholderSql(USER_ID_SQL));
-      statement.append(`, ${USER_ID_SQL}, `);
-      statement.append(buildHoldsScrubPlaceholderSql(USER_EMAIL_SQL));
-      statement.append(" OR ");
-      statement.append(buildHoldsScrubPlaceholderSql(USER_ID_SQL));
-      statement.append(", ");
-      statement.append(hiddenGroupSql());
-      statement.append(", '')");
-      return statement;
-    }
+    case LlmUsageDimension.Employee:
+      return buildLlmPersonSql();
 
-    case LlmUsageDimension.Team: {
-      const statement: Statement = SQL`if(`;
-      statement.append(buildHoldsScrubPlaceholderSql(TEAM_SQL));
-      statement.append(", ");
-      statement.append(hiddenGroupSql());
-      statement.append(`, ${TEAM_SQL})`);
-      return statement;
-    }
+    case LlmUsageDimension.Team:
+      return buildLlmTeamSql();
 
     case LlmUsageDimension.Model:
       return new Statement(["ifNull(llmRequestModel, '')"], []);

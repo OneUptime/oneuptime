@@ -15,6 +15,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
@@ -209,6 +210,49 @@ export default class DataSecuritySetting extends BaseModel {
     default: true,
   })
   public isTelemetryScanEnabled?: boolean = undefined;
+
+  /*
+   * The names-and-addresses model (Server/Utils/DataSecurity/Model): a
+   * small open model that runs inside the scanner, on OneUptime's workers
+   * and on probes, and reads free text for people's names and street
+   * addresses. It is not OneUptime AI: no value leaves the scanner, and no
+   * prompt is built, so the AI switches do not govern it.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Find Names And Street Addresses",
+    description:
+      "Content scans read free text for people's names and street addresses with a small model that runs inside the scanner. No value leaves the scanner.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isModelScanEnabled?: boolean = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Find Names And Street Addresses In Telemetry",
+    description:
+      "With Find Names And Street Addresses on, the hourly telemetry scan also reads log bodies, exception messages and AI conversations with the model.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isTelemetryModelScanEnabled?: boolean = undefined;
 
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
@@ -529,6 +573,29 @@ export default class DataSecuritySetting extends BaseModel {
     nullable: true,
   })
   public disabledDataTypeIds?: Array<string> = undefined;
+
+  /*
+   * The audit evidence of each framework, for each period it was drafted
+   * for (#10375): a paragraph per requirement, as OneUptime AI drafted it or
+   * a person edited it, and the facts the drafted ones rest on
+   * (Types/DataSecurity/AuditEvidence). Never read through the API: its
+   * route holds a reader to the project's issues too, which the evidence
+   * cites.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Audit Evidence",
+    description:
+      "The paragraph under each framework requirement an auditor reads, as OneUptime AI drafted it and people edited it.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public auditEvidence?: JSONObject = undefined;
 
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({

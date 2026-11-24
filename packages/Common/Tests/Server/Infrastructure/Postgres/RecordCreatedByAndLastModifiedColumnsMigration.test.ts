@@ -128,6 +128,10 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "SecurityAutomaticResponseAction",
     migration: "1809187500000-AddSecurityAutomaticResponse.ts",
   },
+  {
+    table: "SecurityCasePullRequest",
+    migration: "1809187560604-AddSecurityCasePullRequest.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

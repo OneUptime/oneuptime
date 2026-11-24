@@ -216,6 +216,7 @@ import ProxmoxResource from "../../../Models/DatabaseModels/ProxmoxResource";
 import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 // What a page draws holds a duration's figure to its word (#8811).
 import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
+import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInfoTooltip";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -466,11 +467,19 @@ async function openMetricsTab(): Promise<void> {
 
 /*
  * The (i) sits in the header immediately above its rate chart, so a
- * reader can tell which chart it explains.
+ * reader can tell which chart it explains: after the last word of the
+ * header's title, inside the title's own words (WordsWithInfoTooltip,
+ * #8044).
  */
 function expectHeaderAboveChart(title: string, metricName: string): void {
-  const header: HTMLElement = infoButton(title).parentElement as HTMLElement;
-  expect(header).toHaveTextContent(title);
+  const glue: HTMLElement | null = infoButton(title).closest<HTMLElement>(
+    `[${INFO_GLUE_ATTRIBUTE}]`,
+  );
+  expect(glue).not.toBeNull();
+  const words: HTMLElement = glue!.parentElement as HTMLElement;
+  expect(words.lastChild).toBe(glue);
+  expect(words.textContent?.trim()).toBe(title);
+  const header: HTMLElement = words.parentElement as HTMLElement;
   const chart: Element | null = header.nextElementSibling;
   expect(chart).not.toBeNull();
   expect(chart!.getAttribute("data-testid")).toBe("proxmox-rate-chart");

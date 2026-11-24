@@ -1,7 +1,7 @@
 import DataConfidence, {
   higherConfidence,
 } from "../../Types/DataSecurity/DataConfidence";
-import { maskValue } from "./Masking";
+import { maskModelFoundValue, maskValue } from "./Masking";
 
 /*
  * WHAT A SCAN FOUND OF ONE DATA TYPE IN ONE PLACE, WITHOUT THE VALUES.
@@ -47,6 +47,8 @@ export class DataTypeTally {
   public testValueCount: number = 0;
   public confidence: DataConfidence = DataConfidence.Low;
   public readonly maskedSamples: Array<string> = [];
+  // Of matchCount, those the names-and-addresses model found.
+  public modelMatchCount: number = 0;
 
   private readonly distinct: Set<number> = new Set();
   private distinctCapped: boolean = false;
@@ -60,6 +62,8 @@ export class DataTypeTally {
     confidence: DataConfidence;
     isTestValue: boolean;
     raw?: string | undefined;
+    // Found by the names-and-addresses model: masked as a name-found value.
+    fromModel?: boolean | undefined;
   }): void {
     if (data.isTestValue) {
       this.testValueCount++;
@@ -67,6 +71,10 @@ export class DataTypeTally {
     }
 
     this.matchCount++;
+
+    if (data.fromModel) {
+      this.modelMatchCount++;
+    }
 
     // The first real match sets it; later ones can only raise it.
     this.confidence =
@@ -86,10 +94,9 @@ export class DataTypeTally {
     }
 
     if (this.maskedSamples.length < MAX_MASKED_SAMPLES) {
-      const masked: string = maskValue(
-        this.dataTypeId,
-        data.raw || data.normalized,
-      );
+      const masked: string = data.fromModel
+        ? maskModelFoundValue(data.raw || data.normalized)
+        : maskValue(this.dataTypeId, data.raw || data.normalized);
 
       if (!this.maskedSamples.includes(masked)) {
         this.maskedSamples.push(masked);
@@ -124,6 +131,7 @@ export class FindingTally {
     confidence: DataConfidence;
     isTestValue: boolean;
     raw?: string | undefined;
+    fromModel?: boolean | undefined;
   }): void {
     let tally: DataTypeTally | undefined = this.tallies.get(data.dataTypeId);
 
