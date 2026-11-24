@@ -30713,7 +30713,7 @@
   "A value runbook steps use: a host, a namespace or a URL, or a secret such as an SSH key, a password, a kubeconfig or an API token. It belongs to the project, which every runbook can use, or to one runbook. A secret value is encrypted and can never be read back through the API; it reaches only the Runners it lets use it, when they take a step that names it.": "運行手冊步驟使用的值：主機、命名空間或 URL，或是 SSH 金鑰、密碼、kubeconfig、API 權杖等機密值。它屬於專案（每個運行手冊都能使用），或屬於某一個運行手冊。機密值會加密，且永遠無法透過 API 讀回；只有獲准使用它的 Runner 在領取引用它的步驟時才會收到它。",
   "Add a custom domain": "新增自訂網域",
   "Add the user to sign in as, before an @: deploy@10.0.4.21.": "在 @ 前加上要登入的使用者：deploy@10.0.4.21。",
-  "Addresses": "網址",
+  "Addresses": "位址",
   "Check disk space": "檢查磁碟空間",
   "Check the machine": "檢查機器",
   "Copy link to {{address}}": "複製 {{address}} 的連結",
