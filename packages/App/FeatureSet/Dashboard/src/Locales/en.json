@@ -64072,5 +64072,6 @@
   "Page when the script timed out": "Page when the script timed out",
   "Page {{number}} when the script timed out": "Page {{number}} when the script timed out",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "Matches Pattern Type"
 }

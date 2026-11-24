@@ -64072,5 +64072,6 @@
   "Page when the script timed out": "스크립트 시간 초과 시점의 페이지",
   "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Matches Pattern Type": "패턴 유형과 일치"
 }

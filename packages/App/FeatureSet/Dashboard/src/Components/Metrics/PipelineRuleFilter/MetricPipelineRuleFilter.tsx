@@ -9,12 +9,33 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
+import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import MetricPipelineRuleFilterCondition, {
   MetricPipelineRuleFilterCheckOn,
   MetricPipelineRuleFilterConditionType,
   MetricPipelineRuleFilterConditionUtil,
 } from "Common/Types/Metrics/MetricPipelineRuleFilterCondition";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
+
+/*
+ * MATCHES PATTERN TYPE (#10934): the value holds what a log or trace scrub
+ * rule's built-in Pattern Type finds, matched by the very pattern those
+ * rules run - what Scrub It's rule for an IP address, an email address or a
+ * card number in a metric's attribute matches. Its value is picked from the
+ * pattern types, named as the scrub rule forms name them, never typed.
+ */
+export const MATCHES_PATTERN_TYPE_LABEL: string = translationKey(
+  "Matches Pattern Type",
+);
+
+export const METRIC_FILTER_PATTERN_TYPE_OPTIONS: Array<DropdownOption> = [
+  { label: "Email Address", value: LogScrubPatternType.Email },
+  { label: "Credit Card Number", value: LogScrubPatternType.CreditCard },
+  { label: "SSN (Social Security Number)", value: LogScrubPatternType.SSN },
+  { label: "Phone Number", value: LogScrubPatternType.PhoneNumber },
+  { label: "IP Address", value: LogScrubPatternType.IPAddress },
+];
 
 export interface ComponentProps {
   initialValue: MetricPipelineRuleFilterCondition | undefined;
@@ -51,10 +72,18 @@ const MetricPipelineRuleFilterFormElement: FunctionComponent<ComponentProps> = (
       ).map((conditionType: MetricPipelineRuleFilterConditionType) => {
         return {
           value: conditionType,
-          label: conditionType,
+          label:
+            conditionType ===
+            MetricPipelineRuleFilterConditionType.MatchesPatternType
+              ? MATCHES_PATTERN_TYPE_LABEL
+              : conditionType,
         };
       })
     : [];
+
+  const isPatternType: boolean =
+    filter?.conditionType ===
+    MetricPipelineRuleFilterConditionType.MatchesPatternType;
 
   const showAttributeKey: boolean = Boolean(
     filter?.checkOn &&
@@ -158,24 +187,53 @@ const MetricPipelineRuleFilterFormElement: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        {filter?.checkOn && filter?.conditionType && showValue && (
+        {filter?.checkOn && filter?.conditionType && isPatternType && (
           <div className="mt-1">
-            <FieldLabelElement title="Value" />
-            <Input
-              placeholder={valuePlaceholder}
-              value={filter?.value?.toString()}
-              onChange={(value: string) => {
+            <FieldLabelElement title="Pattern Type" />
+            <Dropdown
+              value={METRIC_FILTER_PATTERN_TYPE_OPTIONS.find(
+                (option: DropdownOption) => {
+                  return option.value === filter?.value;
+                },
+              )}
+              options={METRIC_FILTER_PATTERN_TYPE_OPTIONS}
+              isClearable={false}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
                 if (!filter) {
                   return;
                 }
                 setFilter({
                   ...filter,
-                  value: value,
+                  value: value?.toString(),
                 });
               }}
             />
           </div>
         )}
+
+        {filter?.checkOn &&
+          filter?.conditionType &&
+          showValue &&
+          !isPatternType && (
+            <div className="mt-1">
+              <FieldLabelElement title="Value" />
+              <Input
+                placeholder={valuePlaceholder}
+                value={filter?.value?.toString()}
+                onChange={(value: string) => {
+                  if (!filter) {
+                    return;
+                  }
+                  setFilter({
+                    ...filter,
+                    value: value,
+                  });
+                }}
+              />
+            </div>
+          )}
 
         <div className="mt-3 -mr-2 w-full flex justify-end">
           <Button
