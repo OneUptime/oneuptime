@@ -74,6 +74,9 @@ interface Fingerprints {
   keyedV1: string;
   v2: string;
   keyed: string;
+  // Grouping v3's, and its keyed one (#10620): v2's for frames.
+  v3: string;
+  keyedV3: string;
 }
 
 // An exception's fingerprints, made the way the ingest made them before.
@@ -105,6 +108,11 @@ function fingerprintsOf(content: ExceptionGroupingContent): Fingerprints {
         key: getExceptionGroupingKey(content),
       }),
     }),
+    v3: ExceptionUtil.getFingerprintV3(input),
+    keyedV3: KeyedExceptionFingerprint.ofGroupingText({
+      projectId: PROJECT_ID,
+      text: ExceptionUtil.getGroupingTexts(input).v3,
+    }),
   };
 }
 
@@ -123,25 +131,37 @@ function occurrence(data: {
 }
 
 describe("an occurrence's fingerprints", () => {
-  test("no rule changed it: v1, the keyed v1, v2 and the keyed one are tried in that order, a new exception is made under v2, and v1 is kept when nothing can be read", () => {
-    for (const content of [CARD_ARRIVED, CART_ARRIVED]) {
-      const expected: Fingerprints = fingerprintsOf(content);
+  test("no rule changed it: v1, v2 and v3, each with its keyed one, are tried in that order, a new exception is made under v3, and v1 is kept when nothing can be read", () => {
+    const card: Fingerprints = fingerprintsOf(CARD_ARRIVED);
 
-      for (const fromLog of [false, true]) {
-        expect(
-          occurrence({ arrived: content, stored: content, fromLog }),
-        ).toEqual({
-          fingerprint: expected.v1,
-          fingerprintV2: expected.v2,
-          fingerprintCandidates: [
-            expected.v1,
-            expected.keyedV1,
-            expected.v2,
-            expected.keyed,
-          ],
-        });
-      }
+    for (const fromLog of [false, true]) {
+      expect(
+        occurrence({ arrived: CARD_ARRIVED, stored: CARD_ARRIVED, fromLog }),
+      ).toEqual({
+        fingerprint: card.v1,
+        fingerprintV2: card.v3,
+        fingerprintCandidates: [
+          card.v1,
+          card.keyedV1,
+          card.v2,
+          card.keyed,
+          card.v3,
+          card.keyedV3,
+        ],
+      });
     }
+
+    // Grouped by its frames, v3 is v2: each is tried once.
+    const cart: Fingerprints = fingerprintsOf(CART_ARRIVED);
+    expect(cart.v3).toBe(cart.v2);
+    expect(cart.keyedV3).toBe(cart.keyed);
+    expect(occurrence({ arrived: CART_ARRIVED, stored: CART_ARRIVED })).toEqual(
+      {
+        fingerprint: cart.v1,
+        fingerprintV2: cart.v2,
+        fingerprintCandidates: [cart.v1, cart.keyedV1, cart.v2, cart.keyed],
+      },
+    );
   });
 
   test("the fingerprints an occurrence no rule changed was given before #10434 stay its own", () => {
@@ -156,22 +176,59 @@ describe("an occurrence's fingerprints", () => {
     expect(fingerprints.fingerprintV2).toBe(expected.v2);
   });
 
-  test("a rule hid what grouping v2 reads: tried as it arrived, made under the keyed fingerprint, and kept under it when nothing can be read", () => {
+  test("a rule hid a card number: tried as it arrived, and made under v3, which folds the card, as kept when nothing can be read", () => {
     const arrived: Fingerprints = fingerprintsOf(CARD_ARRIVED);
 
     expect(occurrence({ arrived: CARD_ARRIVED, stored: CARD_STORED })).toEqual({
-      fingerprint: arrived.keyed,
-      fingerprintV2: arrived.keyed,
+      fingerprint: arrived.v3,
+      fingerprintV2: arrived.v3,
       fingerprintCandidates: [
         arrived.v1,
         arrived.keyedV1,
         arrived.v2,
         arrived.keyed,
+        arrived.v3,
+        arrived.keyedV3,
       ],
-      // Both hash the card's digits: an exception under either moves (#10619).
+      /*
+       * v1 and v2 hash the card's digits: an exception made under either
+       * moves (#10619). v3's text holds <CARD> whatever the card was.
+       */
       fingerprintRekeys: {
         [arrived.v1]: arrived.keyedV1,
         [arrived.v2]: arrived.keyed,
+      },
+    });
+  });
+
+  test("a rule hid what grouping v3 reads too, a name: made under v3's keyed fingerprint, and kept under it when nothing can be read", () => {
+    const named: ExceptionGroupingContent = {
+      exceptionType: "AccountError",
+      message: "No account for Ada Lovelace",
+      stackTrace: "",
+    };
+    const arrived: Fingerprints = fingerprintsOf(named);
+
+    expect(
+      occurrence({
+        arrived: named,
+        stored: { ...named, message: "No account for [REDACTED]" },
+      }),
+    ).toEqual({
+      fingerprint: arrived.keyedV3,
+      fingerprintV2: arrived.keyedV3,
+      fingerprintCandidates: [
+        arrived.v1,
+        arrived.keyedV1,
+        arrived.v2,
+        arrived.keyed,
+        arrived.v3,
+        arrived.keyedV3,
+      ],
+      fingerprintRekeys: {
+        [arrived.v1]: arrived.keyedV1,
+        [arrived.v2]: arrived.keyed,
+        [arrived.v3]: arrived.keyedV3,
       },
     });
   });
@@ -183,8 +240,8 @@ describe("an occurrence's fingerprints", () => {
     expect(
       occurrence({ arrived: CARD_ARRIVED, stored: CARD_STORED, fromLog: true }),
     ).toEqual({
-      fingerprint: arrived.keyed,
-      fingerprintV2: arrived.keyed,
+      fingerprint: arrived.v3,
+      fingerprintV2: arrived.v3,
       fingerprintCandidates: [
         stored.v1,
         stored.v2,
@@ -192,6 +249,8 @@ describe("an occurrence's fingerprints", () => {
         arrived.keyedV1,
         arrived.v2,
         arrived.keyed,
+        arrived.v3,
+        arrived.keyedV3,
       ],
       // What the rule left hashes nothing hidden: never moved.
       fingerprintRekeys: {
@@ -201,7 +260,7 @@ describe("an occurrence's fingerprints", () => {
     });
   });
 
-  test("a rule hid only what grouping v2 leaves out (a stack trace's message): made under v2 as it arrived, which holds nothing hidden, and not kept under v1, which does", () => {
+  test("a rule hid only an address in a stack trace's message: made under v2 as it arrived, which leaves the message out, and kept under v1, which folds the address", () => {
     const arrived: Fingerprints = fingerprintsOf(CART_ARRIVED);
     const stored: Fingerprints = fingerprintsOf(CART_STORED);
 
@@ -210,7 +269,7 @@ describe("an occurrence's fingerprints", () => {
     expect(stored.v1).not.toBe(arrived.v1);
 
     expect(occurrence({ arrived: CART_ARRIVED, stored: CART_STORED })).toEqual({
-      fingerprint: arrived.v2,
+      fingerprint: arrived.v1,
       fingerprintV2: arrived.v2,
       fingerprintCandidates: [
         arrived.v1,

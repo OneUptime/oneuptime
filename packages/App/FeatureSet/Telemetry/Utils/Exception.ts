@@ -10,7 +10,9 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import logger from "Common/Server/Utils/Logger";
 import { normalizeExceptionText } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
 import {
+  ExceptionGroupingKey,
   getExceptionGroupingKey,
+  getExceptionGroupingKeyV3,
   getExceptionGroupingText,
   isChangedOnlyWhereFolded,
 } from "Common/Server/Utils/Telemetry/ExceptionGrouping";
@@ -387,15 +389,53 @@ export default class ExceptionUtil {
 
   // The text the grouping v2 fingerprint hashes.
   private static getGroupingTextV2(data: ExceptionFingerprintInput): string {
-    return getExceptionGroupingText({
-      projectId: data.projectId?.toString() || "",
-      primaryEntityId: data.primaryEntityId?.toString() || "",
-      key: getExceptionGroupingKey({
-        exceptionType: data.exceptionType,
-        message: data.message,
-        stackTrace: data.stackTrace,
-      }),
+    return ExceptionUtil.getGroupingTexts(data).v2;
+  }
+
+  /*
+   * The grouping v3 fingerprint (#10620): v2's, but for an exception grouped
+   * by a message that holds a card number in groups, a Social Security
+   * number or a phone number, which are taken out of it. The same as v2's
+   * for an exception grouped by its frames.
+   */
+  public static getFingerprintV3(data: ExceptionFingerprintInput): string {
+    return fingerprintSha256(ExceptionUtil.getGroupingTexts(data).v3);
+  }
+
+  /*
+   * The texts the grouping v2 and v3 fingerprints hash, from one reading of
+   * the stack trace: v3's is v2's for an exception grouped by its frames
+   * (ExceptionGrouping.getExceptionGroupingKeyV3).
+   */
+  public static getGroupingTexts(data: ExceptionFingerprintInput): {
+    v2: string;
+    v3: string;
+  } {
+    const projectId: string = data.projectId?.toString() || "";
+    const primaryEntityId: string = data.primaryEntityId?.toString() || "";
+    const keyV2: ExceptionGroupingKey = getExceptionGroupingKey({
+      exceptionType: data.exceptionType,
+      message: data.message,
+      stackTrace: data.stackTrace,
     });
+    const keyV3: ExceptionGroupingKey = getExceptionGroupingKeyV3(keyV2);
+    const v2: string = getExceptionGroupingText({
+      projectId,
+      primaryEntityId,
+      key: keyV2,
+    });
+
+    return {
+      v2,
+      v3:
+        keyV3 === keyV2
+          ? v2
+          : getExceptionGroupingText({
+              projectId,
+              primaryEntityId,
+              key: keyV3,
+            }),
+    };
   }
 
   /*
@@ -409,17 +449,18 @@ export default class ExceptionUtil {
    * new one - with a new first seen, so New Exception fired again for an
    * old error, and its triage, history and counts stayed on the old one.
    *
-   * When no rule changed it, its fingerprints are grouping v1's and v2's as
-   * ever: the exception made before v2 under the first, else the one made
-   * under the second - or one made under the keyed fingerprint below, by a
-   * copy of it a rule did change (its log record's, while no rule changed
-   * its span's; or one from before a rule was removed). None existing, a
-   * new exception is made under v2's.
+   * When no rule changed it, its fingerprints are grouping v1's, v2's and
+   * v3's: the exception made before v2 under the first, else the one made
+   * under the second, else the third - or one made under the keyed
+   * fingerprint of one of them, by a copy of it a rule did change (its log
+   * record's, while no rule changed its span's; or one from before a rule
+   * was removed). None existing, a new exception is made under v3's.
    *
    * When a rule changed it, the same are tried, so an exception that
    * existed before the rule keeps its occurrences. A new one is made under
-   * v2's only if what the rule hid is not in the text v2 hashes - a stack
-   * trace's frames leave the message out. Otherwise everyone who reads the
+   * v3's only if what the rule hid is not in the text v3 hashes - a stack
+   * trace's frames leave the message out, and the normalizer folds an email
+   * address or a Social Security number. Otherwise everyone who reads the
    * exception would read, in its fingerprint, an unkeyed hash of text a
    * rule hid, and whoever hashes every guess gets the value back: a card's
    * last digits, a Social Security number, which the normalizer leaves in.
@@ -442,12 +483,28 @@ export default class ExceptionUtil {
    * AND AN EXCEPTION MADE BEFORE IS MOVED TO A PRIVATE FINGERPRINT (#10619).
    * An exception made before #10434 - a span's, or any made before the rule
    * existed - keeps the unkeyed fingerprint it was made under, which hashes
-   * what the rule now hides. Each fingerprint that does, of v1's and v2's,
-   * is named in `fingerprintRekeys` with the keyed fingerprint of the same
-   * text: an exception the occurrence finds under it is moved there
+   * what the rule now hides. Each fingerprint that does, of v1's, v2's and
+   * v3's, is named in `fingerprintRekeys` with the keyed fingerprint of the
+   * same text: an exception the occurrence finds under it is moved there
    * (resolveGroupFingerprints, TelemetryExceptionRekey). The keyed one of
    * v1's text (KeyedExceptionFingerprint.ofFirstGroupingText) is tried
    * right after v1, where such an exception is found once moved.
+   *
+   * WHAT "HASHES WHAT A RULE HID" MEANS. The two texts a fingerprint can be
+   * made from, as the exception arrived and as the rules left it, differ
+   * wherever a rule hid something; but a value the normalizer folds never
+   * reaches a fingerprint, the text holding <EMAIL> or <SSN> whatever the
+   * value was. So a fingerprint gives something away only when the two
+   * texts differ beyond those placeholders (isChangedOnlyWhereFolded): only
+   * then is a new exception made under the keyed fingerprint, an existing
+   * one moved, or v1 not kept when the exceptions cannot be read.
+   *
+   * AND NEW EXCEPTIONS ARE GROUPED BY V3 (#10620): v2, with the card numbers
+   * in groups, Social Security and phone numbers a message holds taken out.
+   * v3 and its keyed fingerprint are tried after v2's, so an exception made
+   * before keeps the occurrences it had - each value it was made for - and
+   * the values seen since go to one exception. For an exception grouped by
+   * its frames, v3's fingerprints are v2's.
    */
   public static getOccurrenceFingerprints(data: {
     projectId: ObjectID;
@@ -469,12 +526,24 @@ export default class ExceptionUtil {
       projectId: data.projectId,
       text: v1Text,
     });
-    const groupingText: string = ExceptionUtil.getGroupingTextV2(arrived);
-    const v2: string = fingerprintSha256(groupingText);
-    const keyed: string = KeyedExceptionFingerprint.ofGroupingText({
+    const texts: { v2: string; v3: string } =
+      ExceptionUtil.getGroupingTexts(arrived);
+    const v2: string = fingerprintSha256(texts.v2);
+    const keyedV2: string = KeyedExceptionFingerprint.ofGroupingText({
       projectId: data.projectId,
-      text: groupingText,
+      text: texts.v2,
     });
+    const v3: string = texts.v3 === texts.v2 ? v2 : fingerprintSha256(texts.v3);
+    const keyedV3: string =
+      texts.v3 === texts.v2
+        ? keyedV2
+        : KeyedExceptionFingerprint.ofGroupingText({
+            projectId: data.projectId,
+            text: texts.v3,
+          });
+
+    // The exceptions made as each version was the newest, tried oldest first.
+    const ofArrived: Array<string> = [v1, keyedV1, v2, keyedV2, v3, keyedV3];
 
     if (
       (data.arrived.message || "") === (data.stored.message || "") &&
@@ -483,8 +552,8 @@ export default class ExceptionUtil {
     ) {
       return {
         fingerprint: v1,
-        fingerprintV2: v2,
-        fingerprintCandidates: [v1, keyedV1, v2, keyed],
+        fingerprintV2: v3,
+        fingerprintCandidates: Array.from(new Set<string>(ofArrived)),
       };
     }
 
@@ -496,45 +565,49 @@ export default class ExceptionUtil {
       exceptionType: data.stored.exceptionType,
     };
     const storedV1Text: string = ExceptionUtil.getGroupingTextV1(stored);
-    const storedV1: string = fingerprintSha256(storedV1Text);
-    const storedGroupingText: string = ExceptionUtil.getGroupingTextV2(stored);
-    const storedV2: string = fingerprintSha256(storedGroupingText);
+    const storedTexts: { v2: string; v3: string } =
+      ExceptionUtil.getGroupingTexts(stored);
 
-    /*
-     * Whether what a rule hid is in the text each fingerprint hashes: the
-     * text it hashes is the same with it as without it when it is not -
-     * left out (the message, beside a stack trace's frames, for v2) or
-     * taken out by the normalizer.
-     */
-    const opens: string = storedV2 === v2 ? v2 : keyed;
+    // Whether each fingerprint hashes what the rule hid (see above).
+    const revealsV1: boolean = !isChangedOnlyWhereFolded(v1Text, storedV1Text);
+    const revealsV2: boolean = !isChangedOnlyWhereFolded(
+      texts.v2,
+      storedTexts.v2,
+    );
+    const revealsV3: boolean = !isChangedOnlyWhereFolded(
+      texts.v3,
+      storedTexts.v3,
+    );
 
-    /*
-     * An exception made before is moved only when its fingerprint really
-     * hashes what the rule hid: the two texts differ beyond the values the
-     * normalizer folded (isChangedOnlyWhereFolded). An email address in a
-     * message reaches no fingerprint - the text holds <EMAIL> whatever it
-     * was - so an exception grouped with one keeps its fingerprint.
-     */
+    // A new exception is made under v3, or its keyed fingerprint.
+    const opens: string = revealsV3 ? keyedV3 : v3;
+
     const rekeys: Record<string, string> = {};
 
-    if (!isChangedOnlyWhereFolded(v1Text, storedV1Text)) {
+    if (revealsV1) {
       rekeys[v1] = keyedV1;
     }
 
-    if (!isChangedOnlyWhereFolded(groupingText, storedGroupingText)) {
-      rekeys[v2] = keyed;
+    if (revealsV2) {
+      rekeys[v2] = keyedV2;
+    }
+
+    if (revealsV3 && v3 !== v2) {
+      rekeys[v3] = keyedV3;
     }
 
     return {
-      fingerprint: storedV1 === v1 ? v1 : opens,
+      fingerprint: revealsV1 ? opens : v1,
       fingerprintV2: opens,
       fingerprintCandidates: Array.from(
         new Set<string>([
-          ...(data.findsGroupsOfStoredText ? [storedV1, storedV2] : []),
-          v1,
-          keyedV1,
-          v2,
-          keyed,
+          ...(data.findsGroupsOfStoredText
+            ? [
+                fingerprintSha256(storedV1Text),
+                fingerprintSha256(storedTexts.v2),
+              ]
+            : []),
+          ...ofArrived,
         ]),
       ),
       ...(Object.keys(rekeys).length > 0 ? { fingerprintRekeys: rekeys } : {}),
