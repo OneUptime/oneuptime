@@ -17,7 +17,11 @@
  * still the card. Then every script's digits are read together, so a
  * number typed in two scripts is read whole: ４１１１ 1111 1111 1111, or a
  * Persian card typed with a few Arabic-Indic digits. ASCII digits alone are
- * the text as it is written, which every detector reads anyway.
+ * the text as it is written, which every detector reads anyway. A script is
+ * read alone only where it holds a run of a card's twelve digits at least,
+ * and at most four are - a text of every script's digits costs a few
+ * readings, not one for each of the 37: every script is still read in the
+ * reading of all of them.
  *
  * A digit is one UTF-16 unit in either form, so a reading is exactly as
  * long as the text, and a match found in it is on the very characters the
@@ -150,37 +154,98 @@ function readingOfScript(text: string, scriptZero: number): string {
 }
 
 /*
+ * The fewest digits of one script, each group apart by at most one space
+ * or dash, a value read alone in that script's digits can be: a card has
+ * twelve at least. A script with no such run has no reading of its own -
+ * nothing to find in one - and is read with every other's.
+ */
+export const MIN_DIGITS_OF_A_SCRIPT_READ_ALONE: number = 12;
+
+/*
+ * The most scripts read alone in one text, the first to hold such a run
+ * first: every script's digits are still read together, so a text of more
+ * - none a person writes - costs a few readings, never one for each of
+ * the 37 scripts.
+ */
+export const MAX_SCRIPTS_READ_ALONE: number = 4;
+
+/*
+ * The zeros of the scripts a text holds digits of, in the order they
+ * appear, and of those beyond ASCII the ones that hold a run of
+ * MIN_DIGITS_OF_A_SCRIPT_READ_ALONE digits of their own - a digit of
+ * another script, two separators or anything else ends a run.
+ */
+function scriptsOf(text: string): {
+  zeros: Array<number>;
+  withRuns: Array<number>;
+} {
+  const zeros: Array<number> = [];
+  const withRuns: Array<number> = [];
+  let runZero: number = -1;
+  let runLength: number = 0;
+  let afterSeparator: boolean = false;
+
+  for (let index: number = 0; index < text.length; index++) {
+    const code: number = text.charCodeAt(index);
+    const zero: number = digitZeroOf(code);
+
+    if (zero < 0) {
+      if (
+        (code === 0x20 || code === 0x2d) &&
+        runLength > 0 &&
+        !afterSeparator
+      ) {
+        afterSeparator = true;
+      } else {
+        runLength = 0;
+        afterSeparator = false;
+      }
+
+      continue;
+    }
+
+    if (!zeros.includes(zero)) {
+      zeros.push(zero);
+    }
+
+    runLength = zero === runZero && runLength > 0 ? runLength + 1 : 1;
+    runZero = zero;
+    afterSeparator = false;
+
+    if (
+      runLength === MIN_DIGITS_OF_A_SCRIPT_READ_ALONE &&
+      zero !== ASCII_ZERO &&
+      !withRuns.includes(zero)
+    ) {
+      withRuns.push(zero);
+    }
+  }
+
+  return { zeros, withRuns };
+}
+
+/*
  * The readings of a text a detector of every script's digits reads beside
- * the text itself: each script's but ASCII's alone, then - when the text
- * mixes scripts - all of them together. None when the text holds no digit
- * beyond ASCII. Each is as long as the text.
+ * the text itself: each script beyond ASCII that holds a run of a value's
+ * digits alone (at most MAX_SCRIPTS_READ_ALONE of them), then all of them
+ * together - unless that one script's reading is every digit's already.
+ * None when the text holds no digit beyond ASCII. Each is as long as the
+ * text.
  */
 export function readDigitsOfEveryScript(text: string): Array<string> {
   if (!text || !hasDigitBeyondAscii(text)) {
     return [];
   }
 
-  // The zeros of the scripts the text holds digits of, in the order they appear.
-  const zeros: Array<number> = [];
-
-  for (let index: number = 0; index < text.length; index++) {
-    const zero: number = digitZeroOf(text.charCodeAt(index));
-
-    if (zero >= 0 && !zeros.includes(zero)) {
-      zeros.push(zero);
-    }
-  }
-
-  const readings: Array<string> = zeros
-    .filter((zero: number): boolean => {
-      return zero !== ASCII_ZERO;
-    })
+  const { zeros, withRuns } = scriptsOf(text);
+  const readings: Array<string> = withRuns
+    .slice(0, MAX_SCRIPTS_READ_ALONE)
     .map((zero: number): string => {
       return readingOfScript(text, zero);
     });
 
-  // One script beyond ASCII alone: its reading is every digit's already.
-  if (zeros.length > 1) {
+  // One script's digits alone, read alone already: that is every digit's reading.
+  if (!(zeros.length === 1 && readings.length === 1)) {
     readings.push(foldDigits(text));
   }
 
