@@ -537,7 +537,9 @@ describe("Telegram's Verify dialog on a phone, in the reader's language", () => 
 
     expect(within(dialog).getByText(byHand)).toBeInTheDocument();
     expect(
-      within(dialog).getByRole("link", { name: words["Open in Telegram"] }),
+      within(dialog).getByRole("link", {
+        name: words["Open in Telegram"] || "Open in Telegram",
+      }),
     ).toHaveAttribute("href", FIRST_LINK);
     expect(mockQRCodeImage.pending).toEqual([]);
   });
