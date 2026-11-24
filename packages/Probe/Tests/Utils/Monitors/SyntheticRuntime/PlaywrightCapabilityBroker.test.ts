@@ -1,12 +1,15 @@
 import dns from "dns";
 import fs from "fs";
 import http, { IncomingMessage, ServerResponse } from "http";
+import https from "https";
 import { AddressInfo } from "net";
 import os from "os";
 import path from "path";
 import { Browser, BrowserContext, Page, chromium } from "playwright";
 import PlaywrightCapabilityBroker from "../../../../Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker";
-import SyntheticEgressProxy from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy";
+import SyntheticEgressProxy, {
+  SyntheticEgressRequestAgents,
+} from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy";
 import { MonitorEgressPolicy } from "../../../../Utils/Monitors/MonitorEgressGuardOptions";
 import PrivateNetworkMonitorPolicy, {
   ResolvedPrivateNetworkMonitorPolicy,
@@ -20,6 +23,7 @@ import {
   useLocalHttpServers,
 } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 import FakeInternet, { FakeInternetRequest } from "./Fixtures/FakeInternet";
+import SelfSignedCertificate from "../MonitorTypes/SslTestCertificates";
 import {
   CapabilityDescriptor,
   PlaywrightRpcRequest,
@@ -799,6 +803,15 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
             response.end();
             return;
           }
+          if (request.url?.startsWith("/redirect?to=")) {
+            response.writeHead(302, {
+              Location: decodeURIComponent(
+                request.url.slice("/redirect?to=".length),
+              ),
+            });
+            response.end();
+            return;
+          }
           if (request.url === "/missing") {
             response.writeHead(404, {
               "Content-Type": "application/json",
@@ -1161,6 +1174,137 @@ describe("SyntheticRuntime PlaywrightCapabilityBroker", () => {
         }
         await close(decoy.server);
       }
+    });
+
+    /*
+     * Fails closed. The bridge's agents dial only the egress proxy, but should
+     * a runtime ever send a request - or one redirect hop of it - around them
+     * (Node 24 ignored the http.Agent option the first version relied on, and
+     * every request went direct), the answer is withheld rather than handed
+     * back from wherever it came.
+     */
+    describe("when a request goes around the egress proxy", () => {
+      const WITHHELD: string =
+        "The probe did not hand back this request's response: the request did not go through the probe's egress checks.";
+
+      // The egress proxy's agents, with those `direct` names dialling the target themselves.
+      function goAround(direct: { http?: boolean; https?: boolean }): void {
+        const createRequestAgents: () => SyntheticEgressRequestAgents =
+          SyntheticEgressProxy.prototype.createRequestAgents;
+        jest
+          .spyOn(SyntheticEgressProxy.prototype, "createRequestAgents")
+          .mockImplementation(function (
+            this: SyntheticEgressProxy,
+          ): SyntheticEgressRequestAgents {
+            const agents: SyntheticEgressRequestAgents =
+              createRequestAgents.call(this);
+            return {
+              ...agents,
+              httpAgent: direct.http ? new http.Agent() : agents.httpAgent,
+              httpsAgent: direct.https
+                ? new https.Agent({ rejectUnauthorized: false })
+                : agents.httpsAgent,
+            };
+          });
+      }
+
+      test("withholds its answer, though the target answered it", async () => {
+        goAround({ http: true, https: true });
+
+        const response: PlaywrightRpcResponse = await axiosRequest(broker, {
+          method: "get",
+          url: `http://127.0.0.1:${loopbackPort}/secret`,
+        });
+
+        expect(response.ok).toBe(false);
+        expect(response.error).toBe(WITHHELD);
+        expect(JSON.stringify(response)).not.toContain("loopback-sentinel");
+        // It did go: the regression this stands guard against.
+        expect(loopbackHits).toEqual(["/secret"]);
+      });
+
+      test("withholds an error status's answer too", async () => {
+        goAround({ http: true, https: true });
+
+        const response: PlaywrightRpcResponse = await axiosRequest(broker, {
+          method: "get",
+          url: `http://127.0.0.1:${sitePort}/missing`,
+        });
+
+        expect(response.ok).toBe(false);
+        expect(response.error).toBe(WITHHELD);
+        expect(JSON.stringify(response)).not.toContain("not here");
+      });
+
+      test("withholds the answer when only a redirect hop went around it", async () => {
+        const reached: Array<string> = [];
+        const secure: https.Server = https.createServer(
+          {
+            key: SelfSignedCertificate.key,
+            cert: SelfSignedCertificate.cert,
+          },
+          (request: IncomingMessage, response: ServerResponse): void => {
+            reached.push(request.url || "");
+            response.writeHead(200, { "Content-Type": "application/json" });
+            response.end(JSON.stringify({ secret: "https-loopback-sentinel" }));
+          },
+        );
+        await new Promise<void>((resolve: () => void): void => {
+          secure.listen(0, "127.0.0.1", resolve);
+        });
+        const securePort: number = (secure.address() as AddressInfo).port;
+        // The first request goes through the egress proxy; the https hop does not.
+        goAround({ https: true });
+
+        try {
+          const publicBroker: PlaywrightCapabilityBroker =
+            await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+          const response: PlaywrightRpcResponse = await axiosRequest(
+            publicBroker,
+            {
+              method: "get",
+              url: `http://93.184.215.14/redirect?to=${encodeURIComponent(
+                `https://127.0.0.1:${securePort}/secret`,
+              )}`,
+            },
+          );
+
+          expect(response.ok).toBe(false);
+          expect(response.error).toBe(WITHHELD);
+          expect(JSON.stringify(response)).not.toContain(
+            "https-loopback-sentinel",
+          );
+          expect(reached).toEqual(["/secret"]);
+        } finally {
+          secure.closeAllConnections();
+          await new Promise<void>((resolve: () => void): void => {
+            secure.close((): void => {
+              resolve();
+            });
+          });
+        }
+      });
+
+      test("hands back what the egress proxy carried, every hop of it", async () => {
+        const publicBroker: PlaywrightCapabilityBroker =
+          await brokerBehindFakeInternet(HOSTED_GLOBAL_PROBE);
+
+        const response: PlaywrightRpcResponse = await axiosRequest(
+          publicBroker,
+          {
+            method: "get",
+            url: `http://93.184.215.14/redirect?to=${encodeURIComponent(
+              "http://93.184.215.14/landed",
+            )}`,
+          },
+        );
+
+        expect(response.ok).toBe(true);
+        expect(response.value).toMatchObject({
+          status: 200,
+          data: { path: "/landed" },
+        });
+      });
     });
   });
 
