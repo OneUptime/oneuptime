@@ -1,4 +1,6 @@
 import { DataSecurityAiFeature } from "../../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
+import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
 import {
   DataSecurityAiVerdict,
   DataSecurityAnalysisPart,
@@ -243,6 +245,46 @@ export interface PullRequestReviewEvalCase extends DataSecurityEvalCaseBase {
   };
 }
 
+/*
+ * The data type a group of fields, or a person's sentence, should become
+ * (#10371): the type a person would write - null where there is none of
+ * the company's own - and made-up values a right pattern finds and leaves
+ * alone. The model never sees a value: the case's input is the names and
+ * shapes the product sends.
+ */
+export interface DataTypeEvalExpectation {
+  becomes: {
+    name: string;
+    category: DataCategory;
+    sensitivity: DataSensitivity;
+    pattern: string;
+    validator?: string | undefined;
+  } | null;
+  // Made-up values a right pattern finds whole.
+  finds: Array<string>;
+  // Made-up values beside them it never finds.
+  keeps: Array<string>;
+  // What a right answer may call it besides the type it becomes.
+  categories?: Array<DataCategory> | undefined;
+  sensitivities?: Array<DataSensitivity> | undefined;
+}
+
+// A group of fields scans could not place, as OneUptime AI is told it.
+export interface DraftDataTypesEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DraftDataTypes;
+  fields: Array<{ storeKind: string; field: UnplacedField }>;
+  storeCount: number;
+  expect: DataTypeEvalExpectation;
+}
+
+// Describe It: a sentence, and made-up examples sent only as their shapes.
+export interface DescribeDataTypeEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.DescribeDataType;
+  sentence: string;
+  examples: Array<string>;
+  expect: DataTypeEvalExpectation;
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FieldSuggestionEvalCase
@@ -252,4 +294,6 @@ export type DataSecurityEvalCase =
   | IssueGroupNameEvalCase
   | IssueGroupFixEvalCase
   | ScrubRulesEvalCase
-  | PullRequestReviewEvalCase;
+  | PullRequestReviewEvalCase
+  | DraftDataTypesEvalCase
+  | DescribeDataTypeEvalCase;

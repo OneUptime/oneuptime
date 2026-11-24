@@ -12,12 +12,15 @@ import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSec
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
 import DataSecurityIssueGrouper from "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper";
+import DataTypeProving from "Common/Server/Utils/DataSecurity/DataTypeProving";
+import DataTypeDiscovery from "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
   DATA_SECURITY_NOTIFY_OWNERS_JOB,
   HeldOwnerNotice,
   readHeldOwnerNotice,
   DATA_SECURITY_DISCOVER_PROJECT_JOB,
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
   DATA_SECURITY_PROPOSE_OWNER_RULES_JOB,
   DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB,
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
@@ -32,6 +35,7 @@ import {
   queueDataSecurityTelemetryScan,
   queueDataStoreOwnerProposals,
   queueDataStoreScan,
+  queueDataTypeDiscovery,
 } from "Common/Server/Utils/DataSecurity/DataSecurityJobs";
 import {
   EVERY_DAY,
@@ -68,6 +72,10 @@ import ObjectID from "Common/Types/ObjectID";
  *  - After each evaluation (queued by it, a little after), group the
  *    project's issues by what made them, so the issues one mistake made are
  *    one group, fixed once (#10370).
+ *  - A little after a scan that kept fields no detector placed (queued by
+ *    the scan), have OneUptime AI find the project's own data types in
+ *    them and prove each on its stores' next scans; every hour, decide
+ *    the drafts whose proving time ran out (#10371).
  *
  * The crons only decide what is due; each piece of work - one project, one
  * store, one connection - is its own queue job, deduplicated by what it is
@@ -155,6 +163,20 @@ RunCron(
   async () => {
     for (const projectId of await DataSecurityRunner.listProjectIds()) {
       await queueDataSecurityEvaluation(projectId);
+    }
+  },
+);
+
+RunCron(
+  "DataSecurity:DecideDataTypes",
+  {
+    schedule: EVERY_HOUR,
+    runOnStartup: false,
+    timeoutInMS: 10 * 60 * 1000,
+  },
+  async () => {
+    for (const projectId of await DataTypeProving.listProvingProjectIds()) {
+      await queueDataTypeDiscovery(projectId);
     }
   },
 );
@@ -248,6 +270,22 @@ JobDictionary.setJobFunction(
 JobDictionary.setTimeoutInMs(
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_TURN_TIME_LIMIT_IN_MS + 60 * 1000,
+);
+
+// OneUptime AI's own data types for the project, and the drafts being proven (#10371).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await DataTypeDiscovery.runForProject({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+  10 * 60 * 1000,
 );
 
 JobDictionary.setJobFunction(

@@ -327,7 +327,11 @@ export default class DataSecurityAiProposals {
       };
     }
 
-    if (data.kind === DataSecurityAiProposalKind.CreateOwnerRule) {
+    // An owner rule, or a data type of the project's own (#10371): each a thing of its own.
+    if (
+      data.kind === DataSecurityAiProposalKind.CreateOwnerRule ||
+      data.kind === DataSecurityAiProposalKind.AddDataType
+    ) {
       return {
         projectId: data.projectId,
         kind: data.kind,

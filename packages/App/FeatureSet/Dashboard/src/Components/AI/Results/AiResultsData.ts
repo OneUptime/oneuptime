@@ -1481,6 +1481,8 @@ export const DATA_SECURITY_KIND_LABELS: Record<
   [DataSecurityAiProposalKind.FixIssueGroupInCloud]: translationKey(
     "Cloud changes for a cause",
   ),
+  // A data type of the project's own, found in its stores (#10371).
+  [DataSecurityAiProposalKind.AddDataType]: translationKey("Data types"),
 };
 
 export const BY_KIND_TITLE: string = translationKey("By kind");

@@ -4,6 +4,7 @@ import {
   DataSecurityAiWork,
   isDataSecurityAiProposalKind,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
+import AddDataTypeAction from "./Actions/AddDataTypeAction";
 import CreateOwnerRuleAction from "./Actions/CreateOwnerRuleAction";
 import {
   FixIssueGroupInCloudAction,
@@ -35,6 +36,7 @@ function actions(): Readonly<
     [DataSecurityAiProposalKind.FixIssueGroupInCode]: FixIssueGroupInCodeAction,
     [DataSecurityAiProposalKind.FixIssueGroupInCloud]:
       FixIssueGroupInCloudAction,
+    [DataSecurityAiProposalKind.AddDataType]: AddDataTypeAction,
   };
 }
 

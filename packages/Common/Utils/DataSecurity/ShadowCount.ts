@@ -83,6 +83,15 @@ export interface ShadowDraftCount {
 // By draft key.
 export type ShadowCounts = Record<string, ShadowDraftCount>;
 
+/*
+ * A telemetry store, as a scan of a project's telemetry finds its drafts:
+ * by its kind and its owner (a service or a RUM application), since one
+ * scan reads every one of them.
+ */
+export function getShadowStoreKey(kind: string, ownerId: string): string {
+  return `${kind}|${ownerId.toLowerCase()}`;
+}
+
 export function isShadowKey(key: unknown): key is string {
   return typeof key === "string" && SHADOW_KEY.test(key);
 }

@@ -72,6 +72,19 @@ export enum DataSecurityAiFeature {
    * change writes to telemetry, does to a store or adds a column for.
    */
   ReviewPullRequests = "ReviewPullRequests",
+  /*
+   * The company's own data types (#10371): a data type drafted from a
+   * group of fields scans could not place - the same unknown shape under
+   * the same kind of name in several stores - from their names and shapes,
+   * then proven on the stores' next scans before anyone is asked.
+   */
+  DraftDataTypes = "DraftDataTypes",
+  /*
+   * Describe It on the data type form (#10371): a data type drafted from a
+   * sentence a person writes and the shapes of their examples, filled into
+   * the form for them to test and save.
+   */
+  DescribeDataType = "DescribeDataType",
 }
 
 // Which LLM provider a feature's calls run on.
@@ -405,6 +418,53 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProductionReview,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftDataTypes,
+      title: translationKey("Data types found in your stores"),
+      startedBy: translationKey(
+        "Your stores' content scans, when three or more fields in two or more stores share a shape and a name no detector knows.",
+      ),
+      runsOnItsOwn: true,
+      sends: [
+        translationKey(
+          "The names of those fields and of the fields beside them, and the kind of store each is in",
+        ),
+        translationKey(
+          "The shapes of their values, such as AA-9999 for the value AB-1234, and how many values were read",
+        ),
+        translationKey("The names of the data types OneUptime already knows"),
+      ],
+      neverSends: [translationKey("A value of the fields, nor a masked one")],
+      keeps: translationKey(
+        "Each data type it drafts, counted on your stores' next scans, in Data Types to Review until a person adds it or says it is not a data type.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DescribeDataType,
+      title: translationKey("Describe It"),
+      startedBy: translationKey(
+        "A person, with Describe It on the data type form.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey("The sentence the person wrote"),
+        translationKey(
+          "The shapes of their examples, such as AA-9999 for the example AB-1234",
+        ),
+      ],
+      neverSends: [
+        translationKey(
+          "The examples themselves: Test It runs them in your browser",
+        ),
+      ],
+      keeps: translationKey(
+        "Nothing: the draft fills the form, and nothing is saved until the person saves it.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
     },
   ];
 

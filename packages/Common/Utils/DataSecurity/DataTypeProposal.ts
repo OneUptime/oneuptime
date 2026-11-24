@@ -616,6 +616,47 @@ export function getDataTypeProof(data: {
   return proof;
 }
 
+export interface SharePercent {
+  // The percentage to show: 98, 0.1.
+  percent: number;
+  // Some, but less than the percentage shown: "less than 0.1%".
+  isLessThan: boolean;
+}
+
+/*
+ * A share as the percentage a proposal shows: whole from 10% up, with one
+ * decimal under it, never 100% unless it is every value, and "less than
+ * 0.1%" for some but less.
+ */
+export function getSharePercent(value: number): SharePercent {
+  const percent: number = Math.max(0, Math.min(1, value)) * 100;
+
+  if (percent === 0 || percent === 100) {
+    return { percent, isLessThan: false };
+  }
+
+  if (percent < 0.1) {
+    return { percent: 0.1, isLessThan: true };
+  }
+
+  if (percent < 10) {
+    return { percent: Math.round(percent * 10) / 10, isLessThan: false };
+  }
+
+  const whole: number = Math.round(percent);
+
+  return whole < 100
+    ? { percent: whole, isLessThan: false }
+    : { percent: Math.floor(percent * 10) / 10, isLessThan: false };
+}
+
+// The same, in English: "98%", "0.1%", "less than 0.1%".
+export function describeShare(value: number): string {
+  const share: SharePercent = getSharePercent(value);
+
+  return `${share.isLessThan ? "less than " : ""}${share.percent}%`;
+}
+
 // The share of its own fields' values a proof says it found.
 export function getGroupMatchShare(proof: DataTypeProof): number {
   return share(proof.groupMatched, proof.groupValues);

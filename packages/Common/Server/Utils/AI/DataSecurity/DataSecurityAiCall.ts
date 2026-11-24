@@ -2,6 +2,8 @@ import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecuri
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, {
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_ISSUE_ANALYSIS_FEATURE,
   AI_DATA_SECURITY_ISSUE_EXPLANATION_FEATURE,
@@ -83,6 +85,12 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   },
   get [DataSecurityAiFeature.ReviewPullRequests](): string {
     return AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftDataTypes](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DescribeDataType](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE;
   },
 };
 

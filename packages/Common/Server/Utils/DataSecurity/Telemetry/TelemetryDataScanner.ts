@@ -40,9 +40,16 @@ import {
 } from "../../../../Utils/DataSecurity/FieldClassifier";
 import FieldCollector from "../../../../Utils/DataSecurity/FieldCollector";
 import {
+  countShadowField,
+  getShadowStoreKey,
+  ShadowCounts,
+  ShadowScanDetector,
+} from "../../../../Utils/DataSecurity/ShadowCount";
+import {
   findSensitiveValues,
   ScanDetector,
 } from "../../../../Utils/DataSecurity/TextScanner";
+import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
 import LogService from "../../../Services/LogService";
@@ -64,6 +71,10 @@ import {
   LocationFindings,
   MAX_READ_LOG_ENTRIES,
 } from "../DataSecurityScanTypes";
+import {
+  describeUnplacedAttribute,
+  shareUnplacedAttributes,
+} from "./TelemetryUnplacedAttributes";
 
 /*
  * WHAT A PROJECT'S TELEMETRY HOLDS.
@@ -3027,12 +3038,27 @@ function toResult(data: {
   isDeletedOwner: boolean;
   window: TelemetryReadWindow;
   classifierOptions: FieldClassifierOptions;
+  // The data types being proven on this store, counted in shadow (#10371).
+  shadowDetectors: ReadonlyArray<ShadowScanDetector>;
 }): ContentScanResult {
   const sample: StoreSample = data.sample;
   const locations: Array<LocationFindings> = [];
+  const shadowCounts: ShadowCounts = {};
+  // The attributes no detector placed, before the service's share (#10371).
+  const unplacedFields: Array<UnplacedField> = [];
+  const names: Array<string> = Array.from(sample.locationKinds.keys());
 
   for (const field of sample.collector.getFields()) {
     let classifications: Array<FieldClassification>;
+
+    // The drafts run in shadow, each alone: counted, never found.
+    countShadowField({
+      counts: shadowCounts,
+      detectors: data.shadowDetectors,
+      location: field.path,
+      values: field.values,
+      allowedValues: data.classifierOptions.allowedValues,
+    });
 
     try {
       classifications = classifyField(
@@ -3072,6 +3098,20 @@ function toResult(data: {
           valueCount: field.values.length,
         }),
       });
+      continue;
+    }
+
+    // Not placed, nor known to be safe: described as a column would be, never its values.
+    const unplaced: UnplacedField | null = describeUnplacedAttribute({
+      location: field.path,
+      locationKind:
+        sample.locationKinds.get(field.path) || DataStoreLocationKind.Attribute,
+      values: field.values,
+      neighbours: names,
+    });
+
+    if (unplaced) {
+      unplacedFields.push(unplaced);
     }
   }
 
@@ -3129,7 +3169,12 @@ function toResult(data: {
     fingerprints: {},
     plaintextPasswordFields: [],
     isComplete: sample.isComplete,
+    unplacedFields,
   };
+
+  if (data.shadowDetectors.length > 0) {
+    result.shadowCounts = shadowCounts;
+  }
 
   // A metrics store keeps where its rotation stopped, for the next scan.
   if (sample.metricCursor !== undefined) {
@@ -3183,6 +3228,13 @@ export async function scanProjectTelemetry(data: {
   ownersNotScanned?: TelemetryOwnersNotScanned | undefined;
   // By service: where its metrics' rotation stopped (readMetricRotationCursor).
   metricCursors?: ReadonlyMap<string, number> | undefined;
+  /*
+   * The data types being proven on the project's telemetry stores, by store
+   * (getShadowStoreKey): each store's scan counts its own (#10371).
+   */
+  shadowDetectorsByStore?:
+    | ReadonlyMap<string, ReadonlyArray<ShadowScanDetector>>
+    | undefined;
 }): Promise<Array<TelemetryStoreScan>> {
   const until: Date = OneUptimeDate.getCurrentDate();
   const earliest: Date = OneUptimeDate.addRemoveHours(
@@ -3278,30 +3330,69 @@ export async function scanProjectTelemetry(data: {
     data.options,
   );
 
-  return samples.map((sample: StoreSample): TelemetryStoreScan => {
-    const name: string | undefined = owners.names.get(
-      sample.ownerId.toLowerCase(),
-    );
-    const scan: TelemetryStoreScan = {
-      serviceId: sample.ownerId,
-      kind: sample.kind,
-      result: toResult({
-        sample,
-        name,
-        isDeletedOwner:
-          !name &&
-          (sample.isRumApplication
-            ? owners.applicationsRead
-            : owners.servicesRead),
-        window: context.window,
-        classifierOptions,
+  const scans: Array<TelemetryStoreScan> = samples.map(
+    (sample: StoreSample): TelemetryStoreScan => {
+      const name: string | undefined = owners.names.get(
+        sample.ownerId.toLowerCase(),
+      );
+      const scan: TelemetryStoreScan = {
+        serviceId: sample.ownerId,
+        kind: sample.kind,
+        result: toResult({
+          sample,
+          name,
+          isDeletedOwner:
+            !name &&
+            (sample.isRumApplication
+              ? owners.applicationsRead
+              : owners.servicesRead),
+          window: context.window,
+          classifierOptions,
+          shadowDetectors:
+            data.shadowDetectorsByStore?.get(
+              getShadowStoreKey(sample.kind, sample.ownerId),
+            ) || [],
+        }),
+      };
+
+      if (name) {
+        scan.serviceName = name;
+      }
+
+      return scan;
+    },
+  );
+
+  shareUnplacedAttributesByOwner(scans);
+
+  return scans;
+}
+
+/*
+ * Each service's unplaced attributes, held to its share across its stores
+ * (TelemetryUnplacedAttributes): at most MAX_UNPLACED_ATTRIBUTES_PER_SERVICE
+ * a scan, given out in turn.
+ */
+export function shareUnplacedAttributesByOwner(
+  scans: ReadonlyArray<TelemetryStoreScan>,
+): void {
+  const byOwner: Map<string, Array<TelemetryStoreScan>> = new Map();
+
+  for (const scan of scans) {
+    const owner: string = scan.serviceId.toLowerCase();
+
+    byOwner.set(owner, [...(byOwner.get(owner) || []), scan]);
+  }
+
+  for (const owned of byOwner.values()) {
+    const shared: Array<Array<UnplacedField>> = shareUnplacedAttributes(
+      owned.map((scan: TelemetryStoreScan): Array<UnplacedField> => {
+        return scan.result.unplacedFields || [];
       }),
-    };
+    );
 
-    if (name) {
-      scan.serviceName = name;
-    }
-
-    return scan;
-  });
+    owned.forEach((scan: TelemetryStoreScan, index: number): void => {
+      scan.result.unplacedFields = shared[index] || [];
+    });
+  }
 }

@@ -40,6 +40,8 @@ export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
   "DataSecurity:ProposeOwnerRules";
 export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
   "DataSecurity:GroupIssues";
+export const DATA_SECURITY_DISCOVER_DATA_TYPES_JOB: string =
+  "DataSecurity:DiscoverDataTypes";
 
 /*
  * How long the grouping waits after an evaluation: a connection's read
@@ -54,6 +56,13 @@ export const GROUP_ISSUES_DELAY_IN_MS: number = 30 * 1000;
  * them finds the rules they share.
  */
 export const OWNER_RULES_DELAY_IN_MS: number = 3 * 60 * 1000;
+
+/*
+ * How long the data type discovery waits after a scan that kept fields no
+ * detector placed (#10371): a project's stores are scanned one after
+ * another, and one look after them groups what all of them kept.
+ */
+export const DATA_TYPE_DISCOVERY_DELAY_IN_MS: number = 10 * 60 * 1000;
 
 // Whether it was queued: a caller with somewhere else to go can go there.
 async function queue(data: {
@@ -328,6 +337,24 @@ export async function queueDataSecurityIssueGrouping(
     payload: { projectId: projectId.toString() },
     description: `the grouping of the issues of project ${projectId.toString()}`,
     delayInMs: GROUP_ISSUES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI find the project's own data types in the fields its
+ * scans could not place, and decides the drafts being proven
+ * (Server/Utils/AI/DataSecurity/DataTypeDiscovery, #10371): a little after
+ * a scan that kept such fields, once for all of the project's stores.
+ */
+export async function queueDataTypeDiscovery(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_DISCOVER_DATA_TYPES_JOB,
+    key: `data-security-data-types-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's data types for project ${projectId.toString()}`,
+    delayInMs: DATA_TYPE_DISCOVERY_DELAY_IN_MS,
   });
 }
 

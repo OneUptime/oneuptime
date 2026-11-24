@@ -270,6 +270,27 @@ export const AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE: string =
   "AI Data Security Pull Request Review";
 
 /*
+ * The LlmLog feature name for the data types OneUptime AI drafts from the
+ * fields scans could not place (DataTypeDiscovery, #10371): one constrained
+ * call per group of fields that share an unknown shape across stores, from
+ * their names and shapes - never a value - started by the scans that kept
+ * them, with no one pressing it, so the daily budget covers it. Its AI Logs
+ * rows keep no previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE: string =
+  "AI Data Security Data Type Draft";
+
+/*
+ * The LlmLog feature name for Describe It on the data type form
+ * (DataTypeFromSentence, #10371): one request, started by a person from a
+ * sentence and the shapes of their examples - never the examples - and
+ * answered while they wait. Not autonomous. Its AI Logs rows keep no
+ * previews, as every Data Security call's do not.
+ */
+export const AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE: string =
+  "AI Data Security Data Type Describe";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -450,6 +471,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * whose rules found something, and every push can start one.
    */
   AI_DATA_SECURITY_PULL_REQUEST_REVIEW_FEATURE,
+  /*
+   * The data types OneUptime AI drafts from the fields scans could not
+   * place (DataTypeDiscovery, #10371): one constrained call per new group,
+   * started by the scans that kept its fields.
+   */
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment
