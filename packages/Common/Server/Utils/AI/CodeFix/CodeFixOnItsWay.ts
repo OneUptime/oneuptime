@@ -62,6 +62,11 @@ export enum CodeFixProblemKind {
   Trace = "Trace",
   Service = "Service",
   ProfileFunction = "ProfileFunction",
+  /*
+   * A service's telemetry leaks, fixed in its code in one repository
+   * (#10367): the service's id in the fix's context, and the repository.
+   */
+  TelemetryLeaks = "TelemetryLeaks",
 }
 
 // A function of a service's profile, as a Code request's context names it.
@@ -85,6 +90,8 @@ export interface CodeFixProblem {
   taskTypes: Array<CodeFixTaskType>;
   // A profile's function (CodeFixProblemKind.ProfileFunction).
   profileFunction?: CodeFixProfileFunction | undefined;
+  // The repository a service's telemetry fix is in (CodeFixProblemKind.TelemetryLeaks).
+  codeRepositoryId?: string | undefined;
 }
 
 // What a fix's run carries that says what it is a fix of.
@@ -92,6 +99,7 @@ export interface CodeFixRunFacts {
   projectId?: ObjectID | undefined;
   runType?: AIRunType | undefined;
   codeFixTaskType?: CodeFixTaskType | undefined;
+  codeRepositoryId?: ObjectID | undefined;
   triggeredByTelemetryExceptionId?: ObjectID | undefined;
   triggeredByIncidentId?: ObjectID | undefined;
   triggeredByAlertId?: ObjectID | undefined;
@@ -214,6 +222,26 @@ export default class CodeFixOnItsWay {
   }
 
   /*
+   * A service's telemetry leaks, fixed in its code in one repository
+   * (#10367): one pull request at a time for the service there - Fix with
+   * AI on its log issue and on its span issue, an approved proposal and a
+   * rule's own start, all at once, open one.
+   */
+  public static ofTelemetryLeaks(data: {
+    projectId: ObjectID;
+    serviceId: string;
+    codeRepositoryId: string;
+  }): CodeFixProblem {
+    return {
+      projectId: data.projectId,
+      kind: CodeFixProblemKind.TelemetryLeaks,
+      recordId: data.serviceId.toLowerCase(),
+      taskTypes: [CodeFixTaskType.FixSensitiveDataInTelemetry],
+      codeRepositoryId: data.codeRepositoryId.toLowerCase(),
+    };
+  }
+
+  /*
    * A slow function of a service's profile: a request in Code whose context
    * names the function (ProfileFixTaskTrigger) - the service by its id in
    * any case, the file as written ("" for none).
@@ -319,6 +347,27 @@ export default class CodeFixOnItsWay {
           projectId,
           taskType,
           telemetryServiceId,
+        }),
+      );
+    }
+
+    const telemetryLeakFix: unknown = run.taskContext?.telemetryLeakFix;
+    const leakServiceId: unknown =
+      telemetryLeakFix && typeof telemetryLeakFix === "object"
+        ? (telemetryLeakFix as { serviceId?: unknown }).serviceId
+        : undefined;
+
+    if (
+      taskType === CodeFixTaskType.FixSensitiveDataInTelemetry &&
+      typeof leakServiceId === "string" &&
+      ObjectID.isValidUUID(leakServiceId) &&
+      run.codeRepositoryId
+    ) {
+      problems.push(
+        CodeFixOnItsWay.ofTelemetryLeaks({
+          projectId,
+          serviceId: leakServiceId,
+          codeRepositoryId: run.codeRepositoryId.toString(),
         }),
       );
     }
@@ -568,6 +617,8 @@ LIMIT ${limit}`,
         return taskType === CodeFixTaskType.ImproveTracing
           ? "OneUptime AI is already improving this service's tracing. Follow it in Code."
           : "OneUptime AI is already improving this service's logging. Follow it in Code.";
+      case CodeFixProblemKind.TelemetryLeaks:
+        return "OneUptime AI is already stopping this service writing sensitive data to its telemetry in this repository. Follow it in Code.";
       case CodeFixProblemKind.ProfileFunction:
       default:
         return "OneUptime AI is already working on this function. Follow it in Code.";
@@ -660,6 +711,20 @@ LIMIT ${limit}`,
       AND lower(COALESCE("item" ->> 'serviceId', '')) = ${serviceId}
       AND "item" ->> 'functionName' = ${functionName}
       AND COALESCE("item" ->> 'fileName', '') = ${fileName}))`;
+      };
+    }
+
+    // A service's telemetry leaks: its id in the fix's context, and its repository.
+    if (problem.kind === CodeFixProblemKind.TelemetryLeaks) {
+      const leaks: string = `$${parameters.push(
+        JSON.stringify({ telemetryLeakFix: { serviceId: problem.recordId } }),
+      )}::jsonb`;
+      const repository: string = `$${parameters.push(
+        (problem.codeRepositoryId || "").toLowerCase(),
+      )}`;
+
+      return (alias: string): string => {
+        return `("${alias}"."taskContext" @> ${leaks} AND lower(COALESCE("${alias}"."codeRepositoryId"::text, '')) = ${repository} AND ${recipe(alias)})`;
       };
     }
 

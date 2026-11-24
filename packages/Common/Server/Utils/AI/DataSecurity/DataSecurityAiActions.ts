@@ -17,6 +17,7 @@ import {
 } from "./Actions/ScanTuningActions";
 import ScrubTelemetryAction from "./Actions/ScrubTelemetryAction";
 import SetStoreOwnersAction from "./Actions/SetStoreOwnersAction";
+import TelemetryLeakFixAction from "./Actions/TelemetryLeakFixAction";
 import { DataSecurityAiAction } from "./DataSecurityAiAction";
 
 /*
@@ -41,6 +42,8 @@ function actions(): Readonly<
     [DataSecurityAiProposalKind.FixIssueGroupInCode]: FixIssueGroupInCodeAction,
     [DataSecurityAiProposalKind.FixIssueGroupInCloud]:
       FixIssueGroupInCloudAction,
+    [DataSecurityAiProposalKind.FixTelemetryLeaksInCode]:
+      TelemetryLeakFixAction,
     [DataSecurityAiProposalKind.ConfirmFindings]: ConfirmFindingsAction,
     [DataSecurityAiProposalKind.TurnOffDataType]: TurnOffDataTypeAction,
     [DataSecurityAiProposalKind.AddScanExclusion]: AddScanExclusionAction,
