@@ -62,6 +62,7 @@ import {
   MAX_PLACES_PER_TELEMETRY_LEAK,
   MAX_TELEMETRY_LEAKS_PER_FIX,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakFrame,
   TelemetryLeakPlace,
@@ -3408,6 +3409,19 @@ function telemetryLeakPlaceFacts(
       `${path}.template`,
       marks,
     ),
+    // A RUM application's (#10933): the page it was written on, the session recorder call that gave it.
+    page: customerText(
+      place.page,
+      MAX_FINDING_LOCATION_LENGTH,
+      `${path}.page`,
+      marks,
+    ),
+    recorderCall: customerText(
+      place.recorderCall,
+      MAX_WORD_LENGTH,
+      `${path}.recorderCall`,
+      marks,
+    ),
     frames: (place.frames || []).map(
       (frame: TelemetryLeakFrame, index: number): string => {
         const file: string = customerText(
@@ -3485,6 +3499,8 @@ function telemetryLeakFacts(
  */
 export function buildFixTelemetryLeaksRequest(data: {
   instruction: string;
+  // A service's, unless it is a RUM application's front end (#10933).
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceName: string;
   folder?: string | undefined;
   strategy: TelemetryLeakFixStrategy;
@@ -3510,13 +3526,19 @@ export function buildFixTelemetryLeaksRequest(data: {
     const marks: AiInputMarks = new AiInputMarks();
     const hasRedactionStep: boolean =
       data.strategy !== TelemetryLeakFixStrategy.CallSites;
+    const isApplication: boolean =
+      data.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
+    const owner: string = customerText(
+      data.serviceName,
+      MAX_ISSUE_VALUE_LENGTH,
+      isApplication ? "application" : "service",
+      marks,
+    );
     const facts: JSONObject = withoutEmpty({
-      service: customerText(
-        data.serviceName,
-        MAX_ISSUE_VALUE_LENGTH,
-        "service",
-        marks,
-      ),
+      // A web application's code runs in the browser: its front end is what changes.
+      ...(isApplication
+        ? { application: owner, runsIn: "browser" }
+        : { service: owner }),
       folder: customerText(
         data.folder,
         MAX_FINDING_LOCATION_LENGTH,

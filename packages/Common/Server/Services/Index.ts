@@ -442,6 +442,7 @@ import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
 import SecurityCasePullRequestService from "./SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService from "./DataSecurityIssuePullRequestService";
 import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
@@ -499,6 +500,7 @@ import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityUserErasureRequestService from "./SecurityUserErasureRequestService";
 import SecurityBlockService from "./SecurityBlockService";
 import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
 import SecurityBlocklistFeedService from "./SecurityBlocklistFeedService";
@@ -1076,6 +1078,7 @@ const services: Array<BaseService> = [
   SecurityCaseTaskService,
   SecurityCaseStepCheckService,
   SecurityCasePullRequestService,
+  DataSecurityIssuePullRequestService,
   SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
@@ -1131,6 +1134,7 @@ const services: Array<BaseService> = [
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,
+  SecurityUserErasureRequestService,
   SecurityBlockService,
   SecurityBlockEnforcementService,
   SecurityBlocklistFeedService,

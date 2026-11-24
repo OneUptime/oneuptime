@@ -6,7 +6,11 @@ import RowActionsStore, {
 } from "./RowActionsStore";
 import ConfirmModal from "../Modal/ConfirmModal";
 import GenericObject from "../../../Types/GenericObject";
+import API from "../../Utils/API/API";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
+import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslateValue from "../../Utils/Translation";
+import useTranslator from "../../Utils/UseTranslator";
 import React, { ReactElement, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -96,7 +100,6 @@ const RowActionQuestionDialog: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: QuestionProps<T>,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
   const { store, question } = props;
 
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -135,11 +138,13 @@ const RowActionQuestionDialog: <T extends GenericObject>(
         isRunningRef.current = false;
         loadingActionIndexes[index] = false;
         setIsRunning(false);
-        setError(
-          (err as Error).message ||
-            translateString("Something went wrong. Please try again.") ||
-            "Something went wrong. Please try again.",
-        );
+        /*
+         * The action's words for why, or - an error with none - the page
+         * that failed (API.getFriendlyMessage), with what to do next. It
+         * said "Something went wrong. Please try again.", which said
+         * neither (Docs/ux/README.md#errors).
+         */
+        setError((err as Error)?.message || API.getFriendlyMessage(err));
       },
     );
   };
@@ -174,17 +179,29 @@ interface ErrorProps<T extends GenericObject> {
   error: RowActionError;
 }
 
-// What an action that ran at once said when it failed.
+/*
+ * What an action that ran at once said when it failed. A failure nobody
+ * explained says first which action it was - "“Assign to Me” did not
+ * finish." - as the action's button names it: the dialog's title, "Error",
+ * names nothing (#7680).
+ */
 const RowActionErrorDialog: <T extends GenericObject>(
   props: ErrorProps<T>,
 ) => ReactElement = <T extends GenericObject>(
   props: ErrorProps<T>,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
+  const actionTitle: string | undefined = props.error.actionTitle
+    ? translateString(props.error.actionTitle) || props.error.actionTitle
+    : undefined;
+
   return drawRowDialog(
     <div className="text-align-left" data-testid="row-actions-dialog">
       <ConfirmModal
         title={`Error`}
         description={props.error.message}
+        errorWhatFailed={getDialogWhatFailed(translator, actionTitle)}
         submitButtonText={"Close"}
         onSubmit={() => {
           closeAndGiveFocusBack(props.store, props.error);

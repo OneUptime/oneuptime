@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
   "This did not finish.": "Handlingen blev ikke fuldført.",
+  "The {{itemName}} was not deleted.": "{{itemName}} blev ikke slettet.",
+  "“{{action}}” did not finish.": "Handlingen \"{{action}}\" blev ikke fuldført.",
   "The server ran into a problem it could not explain.": "Serveren stødte på et problem, den ikke kunne forklare.",
   "The OneUptime server did not answer.": "OneUptime-serveren svarede ikke.",
   "OneUptime could not be reached.": "OneUptime kunne ikke nås.",

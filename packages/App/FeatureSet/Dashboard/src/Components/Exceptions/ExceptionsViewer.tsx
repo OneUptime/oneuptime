@@ -32,10 +32,6 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
-import Host from "Common/Models/DatabaseModels/Host";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
@@ -137,6 +133,14 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  ServiceNameSearch,
+  useServiceNameSearch,
+} from "Common/UI/Utils/TelemetryServiceNameSearch";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
 import useAttributeValueSuggestions, {
   AttributeValueSuggestionsState,
 } from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
@@ -163,7 +167,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
@@ -621,6 +624,9 @@ export interface ExceptionsViewerProps {
   disableUrlSync?: boolean | undefined;
 }
 
+// No `@service:` token: no services to search for.
+const NO_PREDICATES: Array<SearchValuePredicate> = [];
+
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
@@ -772,20 +778,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    */
   const [hasListAnswered, setHasListAnswered] = useState<boolean>(false);
 
-  const [services, setServices] = useState<Array<Service>>([]);
-  const [hosts, setHosts] = useState<Array<Host>>([]);
-  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
-  const [podmanHosts, setPodmanHosts] = useState<Array<PodmanHost>>([]);
-  const [kubernetesClusters, setKubernetesClusters] = useState<
-    Array<KubernetesCluster>
-  >([]);
   /*
-   * Whether the Service / host / cluster lists above have settled (loaded or
-   * failed). Chip ids are held back from the name resolver until then — see
-   * collectExceptionEntityChipIds.
+   * The services the page names - its rows' and its Service facet's - read
+   * by their ids as they land (TelemetryServicesOnPage). The page read the
+   * project's first 10,000 services by name instead, and its first 10,000
+   * hosts, Docker and Podman hosts and Kubernetes clusters: a row whose
+   * service sorted past them showed none, and a typed `@service:` name past
+   * them matched no service (#10921). A typed name is searched for on the
+   * server now (useServiceNameSearch, below); hosts and clusters are named
+   * by their facets' server-side names and the entity resolver.
    */
-  const [areResourceListsLoaded, setAreResourceListsLoaded] =
-    useState<boolean>(false);
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -845,6 +848,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   >(undefined);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Whether the facets have answered (or failed) once. Chip ids are held
+   * back from the name resolver until then: the facets name most of them,
+   * from Postgres - see collectExceptionEntityChipIds.
+   */
+  const [haveFacetsAnswered, setHaveFacetsAnswered] = useState<boolean>(false);
   const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
   const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
     undefined,
@@ -968,86 +977,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     selectedSavedViewId,
   ]);
 
-  // Load services / hosts / docker hosts / k8s clusters once
-  useEffect(() => {
-    const loadResources: () => Promise<void> = async () => {
-      try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
-        const [
-          serviceResult,
-          hostResult,
-          dockerHostResult,
-          podmanHostResult,
-          clusterResult,
-        ]: [
-          ModelListResult<Service>,
-          ModelListResult<Host>,
-          ModelListResult<DockerHost>,
-          ModelListResult<PodmanHost>,
-          ModelListResult<KubernetesCluster>,
-        ] = await Promise.all([
-          ModelAPI.getList({
-            modelType: Service,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, serviceColor: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: Host,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: DockerHost,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: PodmanHost,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: KubernetesCluster,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, clusterIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-        ]);
-        setServices(serviceResult.data || []);
-        setHosts(hostResult.data || []);
-        setDockerHosts(dockerHostResult.data || []);
-        setPodmanHosts(podmanHostResult.data || []);
-        setKubernetesClusters(clusterResult.data || []);
-      } catch {
-        // non-critical
-      } finally {
-        /*
-         * Settled either way: on failure the resolver is the only name source
-         * left, so the held chip ids must be released.
-         */
-        setAreResourceListsLoaded(true);
-      }
-    };
-    void loadResources();
-  }, []);
-
   useEffect(() => {
     const loadAttributes: () => Promise<void> = async () => {
       try {
@@ -1101,15 +1030,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       },
     });
 
-  const serviceById: Record<string, Service> = useMemo(() => {
-    const map: Record<string, Service> = {};
-    for (const service of services) {
-      if (service.id) {
-        map[service.id.toString()] = service;
-      }
-    }
-    return map;
-  }, [services]);
+  // The ids of the services the rows and the Service facet name.
+  const serviceIdsOnPage: Array<string> = useMemo(() => {
+    return [
+      ...exceptions.map((exception: TelemetryException): string => {
+        return exception.primaryEntityId?.toString() || "";
+      }),
+      ...(facetData["primaryEntityId"] || []).map(
+        (facet: FacetValue): string => {
+          return facet.value;
+        },
+      ),
+    ];
+  }, [exceptions, facetData]);
+
+  useEffect(() => {
+    void servicesOnPage.readServicesOf(serviceIdsOnPage);
+  }, [serviceIdsOnPage]);
 
   /*
    * Parse the search bar with the shared telemetry grammar, so a filter
@@ -1121,6 +1058,54 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const parsedSearch: ExceptionSearchFilters = useMemo(() => {
     return parseExceptionSearch(submittedSearch);
   }, [submittedSearch]);
+
+  /*
+   * The services a typed `@service:` name may match, searched for on the
+   * server by the text each must contain (#10921); the token's own
+   * matcher (resolveExceptionServiceIds) keeps exactly the ones it names.
+   */
+  const serviceNameSearch: ServiceNameSearch = useServiceNameSearch(
+    parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || NO_PREDICATES,
+  );
+
+  // Every service the page knows of: its rows', its facet's and a token's.
+  const services: Array<Service> = useMemo(() => {
+    const byId: Map<string, Service> = new Map<string, Service>();
+
+    for (const id of serviceIdsOnPage) {
+      const service: Service | undefined = servicesOnPage.knownServices.get(
+        id.toLowerCase(),
+      );
+
+      if (service?.id) {
+        byId.set(service.id.toString().toLowerCase(), service);
+      }
+    }
+
+    for (const service of serviceNameSearch.services) {
+      const id: string = service.id?.toString().toLowerCase() || "";
+
+      if (id && !byId.has(id)) {
+        byId.set(id, service);
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [
+    serviceIdsOnPage,
+    servicesOnPage.knownServices,
+    serviceNameSearch.services,
+  ]);
+
+  const serviceById: Record<string, Service> = useMemo(() => {
+    const map: Record<string, Service> = {};
+    for (const service of services) {
+      if (service.id) {
+        map[service.id.toString()] = service;
+      }
+    }
+    return map;
+  }, [services]);
 
   const searchFieldFilters: ExceptionFieldFilters = useMemo(() => {
     return splitExceptionFieldPredicates(parsedSearch.fieldPredicates);
@@ -1141,8 +1126,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   /*
    * `@service:` is documented as taking a service NAME while the column
-   * stores a uuid, so the name resolves against the service list this
-   * component already loads — the same resolution MetricsViewer does. Bound
+   * stores a uuid, so the name resolves against the services the server's
+   * search found for it — the same resolution MetricsViewer does. Bound
    * straight to the column, as it was, `@service:api` asked for an exception
    * whose service id is the literal string "api", which no row has.
    */
@@ -1163,14 +1148,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     useStableValue(resolvedServicesNow);
 
   /*
-   * A `@service:` token names services, and the names resolve against that
-   * list: until it is in, the token resolves to no service at all. Reading
-   * then would query "no such service" and read everything again a moment
-   * later with the real ids, so the reads wait for the list instead.
+   * A `@service:` token names services, and the names resolve against the
+   * services the server's search finds for them: until they are in, the
+   * token resolves to no service at all. Reading then would query "no such
+   * service" and read everything again a moment later with the real ids,
+   * so the reads wait for the search instead.
    */
   const isWaitingForServiceNames: boolean =
-    (parsedSearch.fieldPredicates["primaryEntityId"] || []).length > 0 &&
-    !areResourceListsLoaded;
+    (parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || []).length > 0 &&
+    serviceNameSearch.isSearching;
 
   const facetGroups: Record<string, Array<string>> = useMemo(() => {
     const groups: Record<string, Array<string>> = {};
@@ -2026,38 +2012,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
     }
 
-    const hostNameMap: Record<string, string> = {};
-    for (const host of hosts) {
-      if (host.id) {
-        hostNameMap[host.id.toString()] =
-          host.name || host.hostIdentifier || unknownName;
-      }
-    }
-
-    const dockerHostNameMap: Record<string, string> = {};
-    for (const dockerHost of dockerHosts) {
-      if (dockerHost.id) {
-        dockerHostNameMap[dockerHost.id.toString()] =
-          dockerHost.name || dockerHost.hostIdentifier || unknownName;
-      }
-    }
-
-    const podmanHostNameMap: Record<string, string> = {};
-    for (const podmanHost of podmanHosts) {
-      if (podmanHost.id) {
-        podmanHostNameMap[podmanHost.id.toString()] =
-          podmanHost.name || podmanHost.hostIdentifier || unknownName;
-      }
-    }
-
-    const clusterNameMap: Record<string, string> = {};
-    for (const cluster of kubernetesClusters) {
-      if (cluster.id) {
-        clusterNameMap[cluster.id.toString()] =
-          cluster.name || cluster.clusterIdentifier || unknownName;
-      }
-    }
-
     return [
       // Never folded away while empty — only the resource type facets below are.
       {
@@ -2072,17 +2026,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       /*
        * One facet per catalog resource type (Host … IoT Fleet), at 2.00 –
        * 2.11 so they stay grouped under Service and above Exception Type.
-       * Each folds away while empty. Types without a preloaded list are
-       * named by the server's facet displayName.
+       * Each folds away while empty. Each value is named by the server's
+       * facet displayName, read from Postgres by its id.
        */
       ...buildResourceFacetConfigs({
         basePriority: 2,
-        valueDisplayMaps: {
-          hostId: hostNameMap,
-          dockerHostId: dockerHostNameMap,
-          podmanHostId: podmanHostNameMap,
-          kubernetesClusterId: clusterNameMap,
-        },
       }),
       {
         key: "exceptionType",
@@ -2106,14 +2054,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         priority: 8,
       },
     ];
-  }, [
-    services,
-    hosts,
-    dockerHosts,
-    podmanHosts,
-    kubernetesClusters,
-    translator.language,
-  ]);
+  }, [services, translator.language]);
 
   /*
    * Fetch facets from the backend. Counts come from ClickHouse aggregation
@@ -2226,6 +2167,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       setFacetError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setFacetLoading(false);
+      setHaveFacetsAnswered(true);
     }
   }, [
     timeRange,
@@ -2479,14 +2421,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       scopeEntityType: props.scopeEntityType,
       chips: entityChipRefs,
       knownIds: knownEntityChipIds,
-      isKnownIdsPending: !areResourceListsLoaded,
+      isKnownIdsPending: !haveFacetsAnswered,
     });
   }, [
     scopeEntityId,
     props.scopeEntityType,
     entityChipRefs,
     knownEntityChipIds,
-    areResourceListsLoaded,
+    haveFacetsAnswered,
   ]);
 
   const entityTypeHints: Record<string, ServiceType> = useMemo(() => {

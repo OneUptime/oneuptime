@@ -33,6 +33,7 @@ import {
   MAX_READ_LOG_ENTRIES,
 } from "./DataSecurityScanTypes";
 import { isFingerprint, MAX_FINGERPRINTED_DATA_TYPES } from "./Fingerprint";
+import { readModelResumeAt, withModelResumeAt } from "./Model/ModelTurns";
 
 /*
  * A DATABASE ONLY A CUSTOMER'S PROBE CAN REACH, SCANNED FROM THAT PROBE.
@@ -146,6 +147,12 @@ export interface DataSecurityProbeStoreWork {
    * when a server older than the model says nothing.
    */
   findNamesAndAddresses: boolean;
+  /*
+   * The table the model's turn starts at in this scan: where the store's
+   * last scan's model stopped (Model/ModelTurns.ts, #10928). Absent to
+   * start at the first, and from a server older than the turns.
+   */
+  modelResumeAt?: string | undefined;
   /*
    * The data types OneUptime AI drafted from this store's fields, run in
    * shadow (#10371): counted, never found. A probe older than them leaves
@@ -325,6 +332,13 @@ export function readProbeStoreWork(
         ? (work["fingerprintKey"] as string)
         : "",
     findNamesAndAddresses: work["findNamesAndAddresses"] === true,
+    ...(readModelResumeAt({ model: { resumeAt: work["modelResumeAt"] } })
+      ? {
+          modelResumeAt: readModelResumeAt({
+            model: { resumeAt: work["modelResumeAt"] },
+          })!,
+        }
+      : {}),
     shadowDataTypes: (Array.isArray(work["shadowDataTypes"])
       ? (work["shadowDataTypes"] as Array<unknown>)
       : []
@@ -425,6 +439,8 @@ export function buildProbeScanOptions(
     exclusions: work.exclusions,
     fingerprintKey: work.fingerprintKey,
     shadowDetectors: compileShadowDetectors(work.shadowDataTypes || []),
+    // Where the model's turn starts: the server keeps it between scans.
+    previousState: withModelResumeAt(undefined, work.modelResumeAt || null),
   };
 }
 
@@ -611,6 +627,8 @@ export function readProbeScanResult(
         ? Math.min(Math.round(estimatedRecords), Number.MAX_SAFE_INTEGER)
         : undefined,
     isComplete: raw["isComplete"] === true,
+    // Where the next scan's model starts: a table's name, nothing else of the state.
+    ...readProbeModelTurn(raw["nextState"]),
     // Shapes and names only: each shape is read again (isValueShape).
     unplacedFields: readUnplacedFields(
       raw["unplacedFields"],
@@ -620,6 +638,19 @@ export function readProbeScanResult(
     ),
     ...readProbeShadowCounts(raw["shadowCounts"], isExpectedShadowKey),
   };
+}
+
+/*
+ * The model's turn a probe's scan ended at (#10928): a table's name, and
+ * nothing else a probe could put in a store's state.
+ */
+function readProbeModelTurn(value: unknown): { nextState?: JSONObject } {
+  const resumeAt: string | null =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? readModelResumeAt(value as JSONObject)
+      : null;
+
+  return resumeAt ? { nextState: withModelResumeAt(undefined, resumeAt) } : {};
 }
 
 // A probe's shadow counts (#10371): counts only, of the drafts it was handed.

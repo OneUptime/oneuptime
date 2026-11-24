@@ -379,6 +379,12 @@ const MAX_VISIBLE_CHIPS: number = 50;
  * event, so the `_id IN (...)` list is split rather than sent in one go.
  */
 export const NAME_LOOKUP_BATCH_SIZE: number = 100;
+/*
+ * How many resources of one kind a label's bulk add reads at a time. It
+ * reads page after page until every resource the labels tag is in
+ * (#10921): a project's most, read as one page, stopped there.
+ */
+export const LABEL_BULK_ADD_PAGE_SIZE: number = LIMIT_PER_PROJECT;
 
 // An English key: a chip still waiting for its name shows it translated.
 export const NAME_LOADING_PLACEHOLDER: string = translationKey("Loading...");
@@ -1108,6 +1114,83 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   };
 
   /*
+   * Every resource of one kind a query matches, a page at a time, ordered
+   * by id so no record is skipped or read twice between pages: a label's
+   * bulk add takes every resource it tags, however many there are, where
+   * one read of the first 10,000 by name left the rest out without a word
+   * (#10921).
+   *
+   * A kind whose first page fails is left out, as fetchByQuery leaves it
+   * (one the person may not read, say). A later page that fails fails the
+   * read: a bulk add that took only part of a label's resources would look
+   * complete.
+   */
+  const fetchEveryByQuery: (
+    type: AffectedResourceType,
+    query: Record<string, unknown>,
+  ) => Promise<Array<AffectedResourceItem>> = async (
+    type: AffectedResourceType,
+    query: Record<string, unknown>,
+  ): Promise<Array<AffectedResourceItem>> => {
+    const cfg: ResourceConfig = RESOURCE_CONFIG[type];
+    const items: Array<AffectedResourceItem> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (let skip: number = 0; ; skip += LABEL_BULK_ADD_PAGE_SIZE) {
+      let page: Array<BaseModel>;
+
+      try {
+        const result: { data: Array<BaseModel> } =
+          await ModelAPI.getList<BaseModel>({
+            modelType: cfg.modelType,
+            query: query as never,
+            limit: LABEL_BULK_ADD_PAGE_SIZE,
+            skip: skip,
+            select: { _id: true, name: true } as never,
+            sort: { _id: SortOrder.Ascending } as never,
+          });
+
+        page = result.data || [];
+      } catch (err) {
+        if (skip === 0) {
+          return [];
+        }
+
+        throw err;
+      }
+
+      let added: number = 0;
+
+      for (const item of page) {
+        const id: string | undefined = item._id ? String(item._id) : undefined;
+
+        if (!id || seen.has(id)) {
+          continue;
+        }
+
+        seen.add(id);
+        added += 1;
+
+        const name: unknown = (item as { name?: unknown }).name;
+
+        items.push({
+          _id: id,
+          name:
+            typeof name === "string" && name.length > 0
+              ? name
+              : getUnnamedResourceLabel(type),
+          type,
+        });
+      }
+
+      // The last page, or one that holds nothing new: every one is read.
+      if (page.length < LABEL_BULK_ADD_PAGE_SIZE || added === 0) {
+        return items;
+      }
+    }
+  };
+
+  /*
    * Look up the names of selected resources that arrived without one. An
    * edit form hands the picker bare IDs (ModelForm flattens the relations it
    * loads), and on a fresh mount nothing has filled nameCache yet — without
@@ -1516,8 +1599,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
   /*
    * Preview is capped per type so a label tagging thousands of monitors
    * doesn't drown the popover. The actual Add to Selection (in
-   * applyLabelSelection) uses LIMIT_PER_PROJECT, so the preview can show
-   * fewer rows than will eventually be added — the "+" suffix flags that.
+   * applyLabelSelection) reads every resource the labels tag, a page at a
+   * time, so the preview can show fewer rows than will eventually be added
+   * — the "+" suffix flags that.
    */
   const LABEL_PREVIEW_LIMIT_PER_TYPE: number = 50;
 
@@ -1640,9 +1724,10 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
   /*
    * Pulls every resource (of each enabled type) tagged with any of the chosen
-   * labels and merges them into the current selection. Per-type failures are
-   * swallowed; the cap is generous (LIMIT_PER_PROJECT) since this is an
-   * intentional bulk selection rather than a quick search.
+   * labels and merges them into the current selection: all of them, a page
+   * at a time (fetchEveryByQuery), however many the labels tag. A type that
+   * cannot be read at all is left out; a read that fails part-way adds
+   * nothing, and says so.
    */
   const applyLabelSelection: () => Promise<void> = async (): Promise<void> => {
     if (selectedLabelIds.length === 0) {
@@ -1654,11 +1739,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       const requests: Array<Promise<Array<AffectedResourceItem>>> = [];
       for (const type of labelSelectableTypes) {
         requests.push(
-          fetchByQuery(
-            type,
-            { labels: new Includes(selectedLabelIds) },
-            LIMIT_PER_PROJECT,
-          ),
+          fetchEveryByQuery(type, { labels: new Includes(selectedLabelIds) }),
         );
       }
       const buckets: Array<Array<AffectedResourceItem>> =

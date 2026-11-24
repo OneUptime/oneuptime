@@ -537,6 +537,16 @@ const ModelTable: <TBaseModel extends BaseModel>(
                         })
                 }
                 isTitleTranslated={true}
+                description={
+                  modalType === ModalType.Create
+                    ? props.createFormDescription
+                    : undefined
+                }
+                submitButtonStyleType={
+                  modalType === ModalType.Create
+                    ? props.createFormSubmitButtonStyle
+                    : undefined
+                }
                 formRef={props.createEditFromRef}
                 modalWidth={props.createEditModalWidth}
                 name={

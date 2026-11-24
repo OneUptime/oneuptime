@@ -1,5 +1,7 @@
+import SecurityUserErasureRequestService from "../../../../Server/Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService from "../../../../Server/Services/SecurityUserVaultService";
 import SecurityPlaybookTargets from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookTargets";
+import SecurityUserErasedTokens from "../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
 import SecurityUserVaultLookup from "../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserVaultLookup";
 import ScrubHashToken from "../../../../Server/Utils/Telemetry/ScrubHashToken";
 import ObjectID from "../../../../Types/ObjectID";
@@ -69,6 +71,12 @@ let vault: Record<string, string> = {};
 
 beforeEach(() => {
   vault = {};
+
+  // Nobody erased from the vault on request (#10908).
+  SecurityUserErasedTokens.clearCache();
+  jest
+    .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+    .mockResolvedValue(new Set<string>());
 
   jest
     .spyOn(SecurityUserVaultService, "findUsersOfTokens")

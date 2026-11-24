@@ -29,10 +29,12 @@ import {
   CodeHostCommitMade,
   CodeHostCommitRange,
   CodeHostCommitSummary,
+  CodeHostDiffRefs,
   CodeHostFileContent,
   CodeHostFileExpected,
   CodeHostFileVersion,
   CodeHostFileWrite,
+  CodeHostLineComment,
   CodeHostOpenedPullRequest,
   CodeHostPullRequestDetails,
   CodeHostPullRequestState,
@@ -110,6 +112,22 @@ const PENDING_PIPELINE_STATUSES: Array<string> = [
 
 // A pipeline that ended in one of these did not pass.
 const FAILED_PIPELINE_STATUSES: Array<string> = ["failed", "canceled"];
+
+// A commit's full SHA: SHA-1's 40 hex characters, or SHA-256's 64.
+const COMMIT_SHA: RegExp = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
+
+// What a positioned diff discussion's first note is when GitLab placed it on its line.
+const DIFF_NOTE_TYPE: string = "DiffNote";
+
+/*
+ * A diff discussion GitLab started: its id, and whether its note sits on
+ * the line it was asked for - an older GitLab that cannot place a position
+ * starts the thread on the merge request itself.
+ */
+export interface GitLabDiscussion {
+  discussionId: string;
+  isOnItsLine: boolean;
+}
 
 export default class GitLabApi {
   private client: CodeHostApiClient;
@@ -855,6 +873,71 @@ export default class GitLabApi {
   }
 
   /*
+   * A thread on one line a merge request adds (#10777): a production
+   * review's suggested change, which GitLab draws on that line - and,
+   * with a `suggestion:-0+0` block, offers its author to apply. The
+   * position names the version of the diff the line is of (`diffRefs`)
+   * and the line in the file as it is after the change; GitLab refuses a
+   * position on no line of that diff (400). Needs the token's api scope.
+   */
+  public async createMergeRequestDiffDiscussion(data: {
+    project: string;
+    iid: number;
+    body: string;
+    diffRefs: CodeHostDiffRefs;
+    comment: Pick<CodeHostLineComment, "path" | "oldPath" | "line">;
+  }): Promise<GitLabDiscussion> {
+    const answer: CodeHostApiAnswer = await this.client.postJson(
+      `${GitLabApi.projectPath(data.project)}/merge_requests/${Math.floor(data.iid)}/discussions`,
+      {
+        body: data.body,
+        position: {
+          position_type: "text",
+          base_sha: data.diffRefs.baseSha,
+          start_sha: data.diffRefs.startSha,
+          head_sha: data.diffRefs.headSha,
+          old_path: data.comment.oldPath || data.comment.path,
+          new_path: data.comment.path,
+          new_line: Math.floor(data.comment.line),
+        },
+      },
+    );
+
+    return GitLabApi.readDiscussion(answer.json);
+  }
+
+  /*
+   * A discussion as GitLab answers it: its id, and whether its first note
+   * is a diff note - one placed on its line.
+   */
+  public static readDiscussion(raw: unknown): GitLabDiscussion {
+    const discussion: JSONObject | null =
+      raw && typeof raw === "object" && !Array.isArray(raw)
+        ? (raw as JSONObject)
+        : null;
+    const discussionId: string = CodeHostText.readId(discussion?.["id"]);
+
+    if (!discussionId) {
+      throw GitLabApi.badAnswer("the discussion it started");
+    }
+
+    const notes: JSONArray = Array.isArray(discussion?.["notes"])
+      ? (discussion!["notes"] as JSONArray)
+      : [];
+    const first: JSONObject | null =
+      notes[0] && typeof notes[0] === "object"
+        ? (notes[0] as JSONObject)
+        : null;
+
+    return {
+      discussionId,
+      isOnItsLine:
+        CodeHostText.readString(first?.["type"]) === DIFF_NOTE_TYPE &&
+        Boolean(first?.["position"]),
+    };
+  }
+
+  /*
    * A branch made from another, as chat's code writes start one: true when
    * it was made, false when a branch of that name is there already.
    */
@@ -1483,8 +1566,12 @@ export default class GitLabApi {
     const targetProjectId: string = CodeHostText.readId(
       mergeRequest["target_project_id"],
     );
+    const diffRefs: CodeHostDiffRefs | null = GitLabApi.readDiffRefs(
+      mergeRequest["diff_refs"],
+    );
 
     return {
+      ...(diffRefs ? { diffRefs } : {}),
       number: iid,
       title: CodeHostText.readString(mergeRequest["title"]),
       isOpen: state === "opened" || state === "locked",
@@ -1508,6 +1595,32 @@ export default class GitLabApi {
       changedLineCount: 0,
       updatedAt: CodeHostText.readString(mergeRequest["updated_at"]),
     };
+  }
+
+  /*
+   * A merge request diff's three commits, as GitLab answers them - each a
+   * full commit SHA - or null for an answer that does not have all three:
+   * nothing can be placed on a line of a diff not known.
+   */
+  public static readDiffRefs(raw: unknown): CodeHostDiffRefs | null {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+      return null;
+    }
+
+    const refs: JSONObject = raw as JSONObject;
+    const baseSha: string = CodeHostText.readString(refs["base_sha"]);
+    const startSha: string = CodeHostText.readString(refs["start_sha"]);
+    const headSha: string = CodeHostText.readString(refs["head_sha"]);
+
+    if (
+      ![baseSha, startSha, headSha].every((sha: string): boolean => {
+        return COMMIT_SHA.test(sha);
+      })
+    ) {
+      return null;
+    }
+
+    return { baseSha, startSha, headSha };
   }
 
   /*

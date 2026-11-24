@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "No se creó: {{itemName}}.",
   "The {{itemName}} was not saved.": "No se guardó: {{itemName}}.",
   "This did not finish.": "La operación no terminó.",
+  "The {{itemName}} was not deleted.": "No se eliminó: {{itemName}}.",
+  "“{{action}}” did not finish.": "La operación “{{action}}” no terminó.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Esta página tuvo un problema, así que la operación no terminó. Vuelva a cargar la página y vuelva a intentarlo.",
   "This page ran into a problem.": "Esta página tuvo un problema.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Para ver qué falló, ejecute npm run doctor -- --logs en la carpeta oneuptime del servidor y busque esta referencia.",
@@ -4575,5 +4577,18 @@
   "The server did not answer with its help and support settings.": "El servidor no respondió con sus ajustes de ayuda y soporte.",
   "Keyboard shortcuts": "Atajos de teclado",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Descarga un archivo de diagnóstico local con la pila del error, la pila de componentes, la URL de la página depurada, los detalles del navegador y la compilación de OneUptime. Nunca lee cookies, datos guardados del navegador ni contenido de formularios. Revísalo antes de compartirlo.",
-  "Chat on Slack": "Chatear en Slack"
+  "Chat on Slack": "Chatear en Slack",
+  "Your Twilio account's default voice": "Voz predeterminada de tu cuenta de Twilio",
+  "US English, female voice": "Inglés estadounidense, voz femenina",
+  "US English, male voice": "Inglés estadounidense, voz masculina",
+  "British English, female voice": "Inglés británico, voz femenina",
+  "British English, male voice": "Inglés británico, voz masculina",
+  "A page's call starts like this, always in English:": "La llamada de un aviso empieza así, siempre en inglés:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio cobra un recargo por esta voz: menos de 2 centavos de dólar por la llamada de cada aviso.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Según Twilio, sus voces Basic no están pensadas para uso en producción.",
+  "Save, then send a test call to hear it.": "Guarda y después envía una llamada de prueba para escucharla.",
+  "Call Voice": "Voz de las llamadas",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "La voz con la que hablan las llamadas telefónicas de OneUptime cuando salen por la cuenta de Twilio de este servidor.",
+  "Choose Voice": "Elegir voz",
+  "Voice": "Voz"
 }

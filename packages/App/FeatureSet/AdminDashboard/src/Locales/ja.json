@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "{{itemName}}は作成されませんでした。",
   "The {{itemName}} was not saved.": "{{itemName}}は保存されませんでした。",
   "This did not finish.": "処理は完了しませんでした。",
+  "The {{itemName}} was not deleted.": "{{itemName}}は削除されませんでした。",
+  "“{{action}}” did not finish.": "「{{action}}」の処理は完了しませんでした。",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "このページで問題が発生したため、処理は完了しませんでした。ページを再読み込みしてから、もう一度お試しください。",
   "This page ran into a problem.": "このページで問題が発生しました。",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "何が失敗したかを確認するには、サーバーの oneuptime フォルダーで npm run doctor -- --logs を実行し、この参照番号を探してください。",
@@ -4575,5 +4577,18 @@
   "The server did not answer with its help and support settings.": "サーバーがヘルプとサポートの設定を返しませんでした。",
   "Keyboard shortcuts": "キーボードショートカット",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "エラースタック、コンポーネントスタック、個人情報を除去したページ URL、ブラウザーの詳細、OneUptime のビルド情報を含む診断ファイルをローカルにダウンロードします。Cookie、ブラウザーに保存されたデータ、フォームの内容を読み取ることはありません。共有する前に内容を確認してください。",
-  "Chat on Slack": "Slack でチャット"
+  "Chat on Slack": "Slack でチャット",
+  "Your Twilio account's default voice": "Twilio アカウントのデフォルトの音声",
+  "US English, female voice": "アメリカ英語、女性の声",
+  "US English, male voice": "アメリカ英語、男性の声",
+  "British English, female voice": "イギリス英語、女性の声",
+  "British English, male voice": "イギリス英語、男性の声",
+  "A page's call starts like this, always in English:": "呼び出しの電話は、常に英語で次のように始まります:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "この音声には Twilio の追加料金がかかります。呼び出しの電話 1 件あたり 2 米セント未満です。",
+  "Free. Twilio says its Basic voices are not meant for production.": "無料。Twilio によると、Basic 音声は本番環境での使用を想定していません。",
+  "Save, then send a test call to hear it.": "保存してからテスト通話を発信すると、この音声を聞けます。",
+  "Call Voice": "通話の音声",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "このサーバーの Twilio アカウントから発信される OneUptime の電話で使われる音声です。",
+  "Choose Voice": "音声を選択",
+  "Voice": "音声"
 }

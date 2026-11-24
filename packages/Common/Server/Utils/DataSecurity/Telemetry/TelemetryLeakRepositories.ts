@@ -24,9 +24,12 @@ import {
  *      repository's tree, by the longest suffix;
  *   2. a leak whose records name no file goes where the service's other
  *      leaks are;
- *   3. else to the repository named like the service, or the project's
+ *   3. a RUM application's (#10933): where the files its newest release's
+ *      source maps name are - the repository whose tree holds the most of
+ *      them;
+ *   4. else to the repository named like the service, or the project's
  *      only repository;
- *   4. else nowhere: a person picks.
+ *   5. else nowhere: a person picks.
  *
  * Leaks found in two repositories make two fixes - one pull request per
  * service and repository. The folder is the one the matched files share
@@ -86,6 +89,66 @@ export function getTelemetryLeakStackTrace(
   }
 
   return lines.length > 0 ? lines.join("\n") : null;
+}
+
+/*
+ * The repository whose tree holds the most of an application's files - as
+ * its source maps name them - and the folder they sit under there, as a
+ * stack's files say a service's (tree apps/web/src/a.js holding src/a.js
+ * is under apps/web); null when no tree holds one, or two hold as many.
+ */
+export function chooseRepositoryOfFiles(data: {
+  files: ReadonlyArray<string>;
+  trees: ReadonlyArray<{ id: string; tree: ReadonlyArray<string> | null }>;
+}): { id: string; folder: string | null } | null {
+  const ranked: Array<{ id: string; paths: Array<string> }> = [];
+
+  for (const candidate of data.trees) {
+    if (!candidate.tree || candidate.tree.length === 0) {
+      continue;
+    }
+
+    // The folder each file sits under: its tree path less the part of it the file's path matched.
+    const paths: Array<string> = [];
+
+    for (const file of data.files) {
+      const match: {
+        matchedTreePaths: Array<string>;
+        matchedSegmentCount: number;
+      } | null = matchPathInTree(file, [...candidate.tree]);
+
+      if (match && match.matchedTreePaths.length === 1) {
+        const segments: Array<string> = match.matchedTreePaths[0]!.split("/");
+
+        paths.push(
+          segments
+            .slice(0, Math.max(0, segments.length - match.matchedSegmentCount))
+            .join("/"),
+        );
+      }
+    }
+
+    if (paths.length > 0) {
+      ranked.push({ id: candidate.id, paths });
+    }
+  }
+
+  ranked.sort(
+    (
+      left: { id: string; paths: Array<string> },
+      right: { id: string; paths: Array<string> },
+    ): number => {
+      return right.paths.length - left.paths.length;
+    },
+  );
+
+  const best: { id: string; paths: Array<string> } | undefined = ranked[0];
+
+  if (!best || (ranked[1] && ranked[1].paths.length === best.paths.length)) {
+    return null;
+  }
+
+  return { id: best.id, folder: sharedFolder(best.paths) };
 }
 
 // The repository-relative path every one of `paths` sits under, or null.
@@ -213,6 +276,12 @@ export async function chooseTelemetryLeakRepositories(data: {
   getServiceFolder: (
     repository: ResolvableRepository,
   ) => Promise<string | null>;
+  /*
+   * A RUM application's own files, as its newest release's source maps
+   * name them (#10933): the repository that holds them is where its leaks
+   * are fixed, when their records name no file.
+   */
+  appFiles?: ReadonlyArray<string> | undefined;
 }): Promise<Array<TelemetryLeakRepositoryGroup>> {
   if (data.leaks.length === 0) {
     return [];
@@ -307,9 +376,26 @@ export async function chooseTelemetryLeakRepositories(data: {
       ? ranked[0]![0]
       : null;
 
-  // 3. By the service's name, or the only repository.
+  // 3. A RUM application's: where the files its source maps name are.
+  const bySourceMaps: { id: string; folder: string | null } | null =
+    mostLeaks === null && data.appFiles && data.appFiles.length > 0
+      ? chooseRepositoryOfFiles({
+          files: data.appFiles,
+          trees: await Promise.all(
+            data.repositories.map(
+              async (
+                repository: ResolvableRepository,
+              ): Promise<{ id: string; tree: Array<string> | null }> => {
+                return { id: repository.id, tree: await treeOf(repository) };
+              },
+            ),
+          ),
+        })
+      : null;
+
+  // 4. By the service's name, or the only repository.
   const byName: RepoResolution | null =
-    mostLeaks === null
+    mostLeaks === null && bySourceMaps === null
       ? await resolver.resolve({
           stackTrace: null,
           serviceName: data.serviceName || null,
@@ -317,13 +403,15 @@ export async function chooseTelemetryLeakRepositories(data: {
       : null;
 
   const fallbackId: string | null =
-    mostLeaks || byName?.codeRepositoryId || null;
+    mostLeaks || bySourceMaps?.id || byName?.codeRepositoryId || null;
   const fallbackChoice: DataSecurityTelemetryFixRepositoryChoice | null =
     mostLeaks
       ? DataSecurityTelemetryFixRepositoryChoice.ServiceLeaks
-      : byName
-        ? NAME_CHOICES[byName.method]
-        : null;
+      : bySourceMaps
+        ? DataSecurityTelemetryFixRepositoryChoice.SourceMaps
+        : byName
+          ? NAME_CHOICES[byName.method]
+          : null;
 
   const groups: Map<
     string,
@@ -376,6 +464,16 @@ export async function chooseTelemetryLeakRepositories(data: {
       matchedFolders.length === group.byFiles.length
         ? sharedFolder(matchedFolders)
         : null;
+
+    // A RUM application's files, as its source maps name them, where its leaks name none.
+    if (
+      !folder &&
+      group.byFiles.length === 0 &&
+      bySourceMaps &&
+      bySourceMaps.id === repositoryId
+    ) {
+      folder = bySourceMaps.folder;
+    }
 
     if (!folder) {
       try {

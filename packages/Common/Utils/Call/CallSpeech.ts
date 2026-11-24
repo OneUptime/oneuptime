@@ -1,4 +1,5 @@
 import { escapeRegExp } from "../RegExpEscape";
+import { CallVoice, getCallVoice } from "../../Types/Call/CallVoice";
 
 /*
  * HOW A CALL SAYS ITS WORDS.
@@ -28,12 +29,13 @@ import { escapeRegExp } from "../RegExpEscape";
  *     OneUptime, so an installation that goes by its own name says that
  *     instead (ProductBrandingText), and only then is it spelled for the voice.
  *
- * SSML is read by Amazon Polly and Google voices only. OneUptime's calls name
- * no voice, so Twilio speaks them with the Twilio account's default voice -
- * Basic "man" unless the account's owner picked another in the Twilio
- * Console - and a Basic voice fails a <Say> that carries SSML. So a call
- * that names no voice is given spaced letters, which every voice reads alike
- * (isSsmlVoice).
+ * SSML is read by Amazon Polly and Google voices only. A call that names no
+ * voice is spoken by the Twilio account's default voice - Basic "man"
+ * unless the account's owner picked another in the Twilio Console - and a
+ * Basic voice fails a <Say> that carries SSML. So only a call that names a
+ * voice from OneUptime's list (Types/Call/CallVoice), each of which reads
+ * it, gets SSML; any other is given spaced letters, which every voice reads
+ * alike (isSsmlVoice).
  *
  * Pure, with no Node or browser APIs.
  */
@@ -95,9 +97,6 @@ const DANGLING_END: RegExp = /[\s,;:.!?、。，；：\-–—([{/\\]+$/u;
 // "OneUptime" as a word: "OneUptime's", "OneUptime." - never inside a longer word.
 const PRODUCT_NAME_WORD: RegExp = /\bOneUptime\b/g;
 
-// Whether the voice named reads SSML: Amazon Polly's and Google's do.
-const SSML_VOICE: RegExp = /^(polly|google)\./i;
-
 /*
  * Whether a code point is one a voice can be given: one XML 1.0 allows (its
  * Char production - tab, line feed, carriage return, and everything from
@@ -153,11 +152,18 @@ export const toSpokenText: (text: unknown) => string = (
   return toTwimlText(text).replace(PRODUCT_NAME_WORD, ONEUPTIME_SPOKEN_NAME);
 };
 
-// Whether the voice named reads SSML. None - the account's default voice - may not.
+/*
+ * Whether the voice named reads SSML: a voice of OneUptime's list that does
+ * (Types/Call/CallVoice). None - the account's default voice - may not, nor
+ * may a voice the list does not hold, whatever its provider: Google's
+ * Chirp3-HD voices read none, and a Basic voice fails the <Say>.
+ */
 export const isSsmlVoice: (voice: string | null | undefined) => boolean = (
   voice: string | null | undefined,
 ): boolean => {
-  return typeof voice === "string" && SSML_VOICE.test(voice.trim());
+  const listed: CallVoice | null = getCallVoice(voice);
+
+  return Boolean(listed && listed.readsSsml);
 };
 
 /*

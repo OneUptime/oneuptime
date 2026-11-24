@@ -7,14 +7,17 @@ import {
   getIssueName,
   readAcceptedUntil,
 } from "./IssueChanges";
+import CodeRepositorySearchField from "../Code/CodeRepositorySearchField";
+import { TELEMETRY_AI_FIX_COPY } from "../TelemetryAi/TelemetryAiFixCopy";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
-import { DataSecurityFixRepository } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { CodeRepositoryListGroup } from "Common/Types/AI/CodeTask";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import Field from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  CustomElementProps,
+} from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import {
@@ -384,11 +387,6 @@ export const AssignIssueModal: FunctionComponent<AssignIssueModalProps> = (
 };
 
 export interface IssueRepositoryModalProps {
-  /*
-   * The repositories to choose from: those the person may ask OneUptime AI
-   * to work in, as the server answered Fix with AI (#10362).
-   */
-  repositories: Array<DataSecurityFixRepository>;
   // A telemetry issue is fixed in its service's code, any other in infrastructure code.
   isTelemetry: boolean;
   onClose: () => void;
@@ -404,24 +402,29 @@ const PICK_SERVICE_REPOSITORY: string = translationKey(
 );
 
 /*
+ * What a Fix with AI picker says when it has nothing to offer: no connected
+ * repository is one the person may ask OneUptime AI to work in (the words
+ * every Fix with AI picker says it in).
+ */
+export const NO_ASKABLE_REPOSITORY: string =
+  TELEMETRY_AI_FIX_COPY.noAskableRepository;
+
+// The field's own test id: its search box, or its value once one is picked.
+export const ISSUE_FIX_REPOSITORY_PICKER_TEST_ID: string =
+  "data-security-issue-fix-repository-picker";
+
+/*
  * Fix with AI when the person may ask in several repositories: which one
- * holds the code to change. It offers only the repositories the server
- * said they may ask OneUptime AI to work in - never one they could not
- * start a task in from Code.
+ * holds the code to change. It offers only the repositories the fix then
+ * works in - connected ones the person may ask OneUptime AI to work in,
+ * never one they could not start a task in from Code - searched on the
+ * server as they type (CodeRepositorySearchField, #10921): the dialog
+ * listed every one of them, so a project of thousands of repositories was
+ * one very long list.
  */
 export const IssueRepositoryModal: FunctionComponent<
   IssueRepositoryModalProps
 > = (props: IssueRepositoryModalProps): ReactElement => {
-  const options: Array<DropdownOption> = props.repositories.map(
-    (repository: DataSecurityFixRepository): DropdownOption => {
-      return {
-        value: repository.id,
-        label: repository.name || repository.id,
-        isUserContent: true,
-      };
-    },
-  );
-
   return (
     <IssueChangeModal
       title="Fix with AI"
@@ -437,10 +440,33 @@ export const IssueRepositoryModal: FunctionComponent<
         {
           field: { [REPOSITORY_KEY]: true },
           title: "Repository",
-          fieldType: FormFieldSchemaType.Dropdown,
+          fieldType: FormFieldSchemaType.CustomComponent,
           required: true,
-          placeholder: "Choose a repository",
-          dropdownOptions: options,
+          getCustomElement: (
+            values: FormValues<JSONObject>,
+            customProps: CustomElementProps,
+          ): ReactElement => {
+            const value: unknown = (values as JSONObject)[REPOSITORY_KEY];
+
+            return (
+              <CodeRepositorySearchField
+                value={typeof value === "string" && value ? value : null}
+                group={CodeRepositoryListGroup.Connected}
+                isAskableOnly={true}
+                isClearable={false}
+                placeholder="Choose a repository"
+                emptyListText={NO_ASKABLE_REPOSITORY}
+                error={customProps.error}
+                tabIndex={customProps.tabIndex}
+                ariaLabelledby={customProps.ariaLabelledby}
+                ariaDescribedby={customProps.ariaDescribedby}
+                dataTestId={ISSUE_FIX_REPOSITORY_PICKER_TEST_ID}
+                onChange={(repositoryId: string | null) => {
+                  customProps.onChange?.(repositoryId);
+                }}
+              />
+            );
+          },
         },
       ]}
       onClose={props.onClose}

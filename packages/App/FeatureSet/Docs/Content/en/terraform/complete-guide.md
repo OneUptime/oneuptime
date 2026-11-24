@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-A setting someone adds in OneUptime to a monitor's steps, which your configuration does not write, is a difference, though: the next plan shows `monitor_steps` changing, and the apply that follows removes the setting, as the plan says. To keep it, write it in your configuration too.
+A setting someone adds in OneUptime to a monitor's steps, which your configuration does not write, is a difference, though: the next plan shows `monitor_steps` changing, and the apply that follows removes the setting, as the plan says. To keep it, write it in your configuration too. A setting the provider has no attribute for, and a key OneUptime holds inside a setting you write with `jsonencode()`, are no difference, and an apply keeps them: see [Monitor Steps](/docs/terraform/monitor-steps).
 
 ## Labels and other lists OneUptime adds to
 

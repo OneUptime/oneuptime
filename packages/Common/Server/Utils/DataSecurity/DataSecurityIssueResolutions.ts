@@ -66,16 +66,34 @@ const MAX_ISSUES_WRITTEN: number = 500;
 // The most findings of one fix marked fixed.
 const MAX_FINDINGS_MARKED: number = 2000;
 
+/*
+ * What a resolution reads of the pull request a fix came in: OneUptime
+ * AI's (AIAgentTaskPullRequest), or one a person linked to the issue
+ * (DataSecurityIssuePullRequest, #10831) - the same columns on each.
+ */
+export type ResolutionPullRequest = Pick<
+  AIAgentTaskPullRequest,
+  | "id"
+  | "_id"
+  | "repoOrganizationName"
+  | "repoName"
+  | "codeRepository"
+  | "pullRequestUrl"
+  | "pullRequestNumber"
+  | "mergedAt"
+>;
+
 // The pull request a fix came in, as a resolution keeps it.
 export function getResolutionFixOf(data: {
-  pullRequest: AIAgentTaskPullRequest;
+  // OneUptime AI's pull request, or one a person linked to the issue (#10831).
+  pullRequest: ResolutionPullRequest;
   taskId?: ObjectID | undefined;
   // A code fix: the deploy that shipped it.
   version?: string | undefined;
   commitSha?: string | undefined;
   deployedAt?: Date | undefined;
 }): DataSecurityIssueResolutionFix {
-  const pullRequest: AIAgentTaskPullRequest = data.pullRequest;
+  const pullRequest: ResolutionPullRequest = data.pullRequest;
   const fix: DataSecurityIssueResolutionFix = {
     pullRequestId:
       pullRequest.id?.toString() || String(pullRequest._id || "") || "",

@@ -194,7 +194,11 @@ export function decideTelemetryLeakVerdict(data: {
 
 /*
  * The first check of a fix whose issues hold no place to watch - every
- * finding of them gone, set aside or never counted: nothing tells.
+ * finding of them gone, set aside or never counted - or only places no
+ * read can tell about: a metric attribute a metric pipeline rule removes,
+ * or metric points it drops, before they are stored (#10832). Every other
+ * place, a metric's and a session replay's among them, is read in the new
+ * version.
  */
 export function decideTelemetryLeakBaseline(data: {
   placeCount: number;
@@ -213,7 +217,7 @@ export function decideTelemetryLeakBaseline(data: {
     return {
       status: FixProductionStatus.Unverifiable,
       summary:
-        "This leak is in a metric or a session replay, where neither a scrub rule's counter nor a read of the new version's records can tell whether the data still arrives.",
+        "A metric pipeline rule removes this data, or drops the metric's points, before they are stored, so neither a rule's counter nor a read of the new version's records can tell whether the code still sends it. A Redact Attribute rule leaves its replacement to read.",
     };
   }
 

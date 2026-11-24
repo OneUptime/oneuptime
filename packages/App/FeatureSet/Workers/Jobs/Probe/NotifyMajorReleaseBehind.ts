@@ -283,6 +283,8 @@ async function tellOwners(data: {
         smsMessage: content.smsMessage,
         callRequestMessage: content.callRequestMessage,
         pushNotificationMessage: content.pushNotificationMessage,
+        // Through its own approved template (#10913).
+        whatsAppMessage: content.whatsAppMessage,
       });
     });
   }

@@ -522,7 +522,17 @@ describe("with traces", () => {
   });
 
   test("its map names services without the cloud the page is already about", async () => {
-    stand.spans = [tracedSpan({ spanId: "1c089ea828fe4f3d" })];
+    /*
+     * The span is attributed to the service the map names: the services are
+     * read by the ids the spans name, never the project's first 10,000 by
+     * name (#10921).
+     */
+    stand.spans = [
+      tracedSpan({
+        spanId: "1c089ea828fe4f3d",
+        primaryEntityId: "0193c0de-7777-4aaa-8bbb-000000000099",
+      }),
+    ];
 
     jest.spyOn(ModelAPI, "getList").mockImplementation((async (
       call: ListQuery,

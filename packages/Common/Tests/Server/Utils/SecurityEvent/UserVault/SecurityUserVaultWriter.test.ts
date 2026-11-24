@@ -1,4 +1,6 @@
+import SecurityUserErasureRequestService from "../../../../../Server/Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService from "../../../../../Server/Services/SecurityUserVaultService";
+import SecurityUserErasedTokens from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
 import SecurityUserVaultWriter, {
   MAX_USER_VAULT_ENTRIES_PER_BATCH,
   MAX_USER_VAULT_WRITES_IN_FLIGHT,
@@ -96,6 +98,8 @@ interface Submitted {
 
 let submitted: Array<Submitted> = [];
 let counted: Array<{ count: number; attributes: JSONObject }> = [];
+// The tokens of the project's erasure requests (#10908).
+let erased: Set<string> = new Set<string>();
 
 function acceptSubmissions(): ReturnType<typeof jest.spyOn> {
   return jest
@@ -127,6 +131,19 @@ function batchOf(
   return batch;
 }
 
+/*
+ * Lets the writes in flight run on, a microtask at a time, until `condition`
+ * holds: a write reads the erased users (#10908) before it submits, so how
+ * many turns it takes to reach the fan-in writer is the writer's business.
+ */
+async function until(condition: () => boolean): Promise<void> {
+  for (let turn: number = 0; turn < 1000 && !condition(); turn++) {
+    await Promise.resolve();
+  }
+
+  expect(condition()).toBe(true);
+}
+
 function outcomes(): Array<string> {
   return counted.map(
     (entry: { count: number; attributes: JSONObject }): string => {
@@ -142,7 +159,14 @@ function outcomes(): Array<string> {
 beforeEach(() => {
   submitted = [];
   counted = [];
+  erased = new Set<string>();
   SecurityUserVaultWriter.forgetWrites();
+  SecurityUserErasedTokens.clearCache();
+  jest
+    .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+    .mockImplementation(async (): Promise<Set<string>> => {
+      return new Set<string>(erased);
+    });
   jest.spyOn(AppMetrics, "getUserVaultWriteCounter").mockReturnValue({
     add: (count: number, attributes?: JSONObject): void => {
       counted.push({ count, attributes: attributes || {} });
@@ -345,7 +369,7 @@ describe("the write", () => {
   });
 
   test("never waits: write() returns before the vault has the rows", async () => {
-    let accept: () => void = (): void => {};
+    let accept: (() => void) | null = null;
     jest
       .spyOn(TelemetryFanInWriter, "submit")
       .mockImplementation(async (): Promise<FanInSubmitResult> => {
@@ -362,9 +386,12 @@ describe("the write", () => {
     expect(returned).toBeUndefined();
     expect(outcomes()).toEqual([]);
 
-    await Promise.resolve();
-    await Promise.resolve();
-    accept();
+    // The write reaches the fan-in writer on its own, then waits for the vault.
+    await until((): boolean => {
+      return accept !== null;
+    });
+    expect(outcomes()).toEqual([]);
+    (accept as unknown as () => void)();
     await SecurityUserVaultWriter.whenIdle();
 
     expect(outcomes()).toEqual(["trace:written:1"]);
@@ -507,9 +534,9 @@ describe("the write", () => {
     expect(outcomes()).toEqual(["trace:skipped:2"]);
 
     // Let the submits reach their acks, then accept them all.
-    for (let tick: number = 0; tick < 5; tick++) {
-      await Promise.resolve();
-    }
+    await until((): boolean => {
+      return accepts.length === MAX_USER_VAULT_WRITES_IN_FLIGHT;
+    });
 
     for (const accept of accepts) {
       accept();
@@ -522,5 +549,88 @@ describe("the write", () => {
         return outcome.includes(SecurityUserVaultWriteOutcome.Written);
       }),
     ).toHaveLength(MAX_USER_VAULT_WRITES_IN_FLIGHT);
+  });
+});
+
+/*
+ * A PERSON ERASED FROM THE VAULT ON REQUEST IS NEVER KEPT AGAIN (#10908):
+ * from the moment the request is filed, a token of the project's erasure
+ * requests is refused - not written, and counted as refused - and when the
+ * erased tokens cannot be read, the batch keeps nobody.
+ */
+describe("a person erased on request", () => {
+  test("their token is refused and counted; everybody else is written", async () => {
+    acceptSubmissions();
+    erased = new Set<string>([tokenOf(USER_A)]);
+
+    batchOf([
+      [tokenOf(USER_A), USER_A],
+      [tokenOf(USER_B), USER_B],
+    ]).write();
+    await SecurityUserVaultWriter.whenIdle();
+
+    expect(submitted).toHaveLength(1);
+    expect(
+      submitted[0]!.rows.map((row: JSONObject): unknown => {
+        return row["userValue"];
+      }),
+    ).toEqual([USER_B]);
+    expect(outcomes().sort()).toEqual(
+      [
+        `trace:${SecurityUserVaultWriteOutcome.Refused}:1`,
+        `trace:${SecurityUserVaultWriteOutcome.Written}:1`,
+      ].sort(),
+    );
+  });
+
+  test("a batch of only erased people submits nothing", async () => {
+    acceptSubmissions();
+    erased = new Set<string>([tokenOf(USER_A)]);
+
+    batchOf([[tokenOf(USER_A), USER_A]]).write();
+    await SecurityUserVaultWriter.whenIdle();
+
+    expect(submitted).toEqual([]);
+    expect(outcomes()).toEqual([
+      `trace:${SecurityUserVaultWriteOutcome.Refused}:1`,
+    ]);
+  });
+
+  test("another project's erasure refuses nobody here", async () => {
+    acceptSubmissions();
+    jest
+      .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+      .mockImplementation(async (projectId: ObjectID): Promise<Set<string>> => {
+        return projectId.toString() === OTHER_PROJECT_ID.toString()
+          ? new Set<string>([tokenOf(USER_A)])
+          : new Set<string>();
+      });
+    SecurityUserErasedTokens.clearCache();
+
+    batchOf([[tokenOf(USER_A), USER_A]]).write();
+    await SecurityUserVaultWriter.whenIdle();
+
+    expect(submitted).toHaveLength(1);
+  });
+
+  test("when the erased tokens cannot be read, nobody is kept - and the batch is never failed", async () => {
+    acceptSubmissions();
+    jest
+      .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+      .mockRejectedValue(new Error("Postgres is down") as never);
+    SecurityUserErasedTokens.clearCache();
+
+    expect(() => {
+      batchOf([
+        [tokenOf(USER_A), USER_A],
+        [tokenOf(USER_B), USER_B],
+      ]).write();
+    }).not.toThrow();
+    await SecurityUserVaultWriter.whenIdle();
+
+    expect(submitted).toEqual([]);
+    expect(outcomes()).toEqual([
+      `trace:${SecurityUserVaultWriteOutcome.Refused}:2`,
+    ]);
   });
 });

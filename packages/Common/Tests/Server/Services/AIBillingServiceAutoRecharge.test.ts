@@ -535,6 +535,51 @@ describe("AIBillingService.rechargeBalance (the Recharge button)", () => {
     expect(world.cache.has(FAILURE_KEY)).toBe(false);
   });
 
+  test("a recharge by hand that fails emails no owner: the person who asked reads why in its dialog (#11052)", async () => {
+    world.failChargesWith(
+      Object.assign(new Error("Your card has insufficient funds."), {
+        type: "StripeCardError",
+      }),
+    );
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 25),
+    ).rejects.toThrow(
+      "Your payment could not be completed: Your card has insufficient funds. Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.",
+    );
+
+    world.failChargesWith(null);
+    world.setHasPaymentMethods(false);
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 25),
+    ).rejects.toThrow("No payment methods found for the project.");
+
+    expect(world.ownerEmails).toEqual([]);
+    expect(world.row.failedAiBalanceChargeNotificationSentToOwners).toBe(false);
+    expect(world.charges).toEqual([]);
+    expect(world.row.aiCurrentBalanceInUSDCents).toBe(0);
+  });
+
+  test("Auto Recharge's own failure after one by hand still tells the owners, once", async () => {
+    world.failChargesWith(new Error("Your card was declined."));
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 25),
+    ).rejects.toThrow();
+    await expect(
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow();
+
+    expect(
+      world.ownerEmails.map((email: { subject: string }) => {
+        return email.subject;
+      }),
+    ).toEqual([
+      "ACTION REQUIRED: AI Balance Recharge Failed for project - Acme Production",
+    ]);
+  });
+
   test("one that works ends Auto Recharge's wait: the card works", async () => {
     world.cache.set(FAILURE_KEY, "2026-10-07T08:00:00.000Z");
 

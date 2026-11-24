@@ -147,6 +147,21 @@ Twilio 號碼可以同時撥打電話和傳送簡訊，也可以只支援其中�
 
 狀態頁只提供傳送簡訊的設定，**發送測試簡訊** 和 **發送測試通話** 也只針對設定所傳送的內容顯示。所有現有設定都和以前一樣用於 **通話與簡訊**。在 API 和 Terraform 中，這個選擇是 `usedFor` 欄位，缺少所選用途所需號碼的設定會被拒絕。
 
+### 通話使用的語音
+
+通話使用您的 Twilio 帳戶預設的語音：Twilio 免費的 Basic 語音，除非您在 Twilio Console 中選擇了其他語音。Twilio 表示其 Basic 語音不適合用於正式環境，因此每個帳戶都可以改用下列神經語音之一。整個安裝的帳戶在 **Admin Dashboard > 設定 > 通話和簡訊** 中的 **通話語音** 卡片裡選擇，專案的設定則在 **更多欄位** 中的 **通話語音** 裡選擇。
+
+| 語音 | 供應商 | 聽起來 |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | 美式英文，女聲 |
+| `Polly.Matthew-Neural` | Amazon Polly | 美式英文，男聲 |
+| `Polly.Amy-Neural` | Amazon Polly | 英式英文，女聲 |
+| `Polly.Brian-Neural` | Amazon Polly | 英式英文，男聲 |
+| `Google.en-US-Neural2-F` | Google | 美式英文，女聲 |
+| `Google.en-US-Neural2-J` | Google | 美式英文，男聲 |
+
+透過該帳戶撥出的每通電話都使用這個語音：待命呼叫和對您所按按鍵的回應、留在語音信箱中的留言、驗證碼、**發送測試通話**，以及來電原則的問候語。使用這些語音時，像 `INC-42` 這樣的編號會透過 SSML 逐一拼讀，比其他語音讀出的以空格分隔的字母聽起來更自然。Twilio 會向撥打電話的帳戶收取這些語音的費用：2026 年 11 月為每 100 個字元 $0.0032，一通呼叫電話不到 2 美分。請參閱 [Twilio 語音價格](https://www.twilio.com/en-us/voice/pricing/us)。將 **通話語音** 留空即可保留帳戶的預設語音。在 API 和 Terraform 中，語音是 `twilioCallVoice` 欄位，不在表中的語音會被拒絕。
+
 ### 待命電話的語音信箱
 
 對 Twilio 來說，語音信箱接聽的電話和有人接聽的電話一樣，都算已接聽。因此每通待命電話都會在背景透過[答錄機偵測](https://www.twilio.com/docs/voice/answering-machine-detection)詢問 Twilio 接聽的是人還是語音信箱：接起電話的人會立即聽到呼叫內容。語音信箱接聽的電話算作未接聽，和一直響鈴無人接的電話一樣，呼叫會像未接來電那樣繼續。問候語一結束，OneUptime 就會留下一段簡短留言，內容是電話所說的話。通話記錄會說明是否留下了留言，事件的 Feed 也會說明："Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

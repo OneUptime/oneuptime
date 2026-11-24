@@ -6,10 +6,6 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
@@ -19,7 +15,6 @@ import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
   NO_TELEMETRY_AI_FIX_SUGGESTION,
-  TelemetryAiFixRepository,
   TelemetryAiFixSuggestion,
 } from "Common/Utils/Suggestions/TelemetryAiFixSuggestion";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -27,6 +22,7 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import useAiOffered from "../../Utils/UseAiOffered";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import CodeRepositorySearchField from "../Code/CodeRepositorySearchField";
 import CodeTaskHiddenNotice from "../Code/CodeTaskHiddenNotice";
 import useProfileRequest, {
   ProfileRequestState,
@@ -56,7 +52,9 @@ import {
  *
  *   Act         what Fix with AI does, then Fix with AI - with a picker
  *               first when no repository was found to hold the code for
- *               certain;
+ *               certain: a search on the server of the repositories the
+ *               fix works in - connected, whose code OneUptime reads, that
+ *               the person may ask OneUptime AI to work in (#10921);
  *   SetUp       the one step in the way: connect a repository in Code, or
  *               what Code's gate says (credits, a Runner, the plan) with
  *               its fix;
@@ -275,17 +273,6 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
       );
     }
 
-    const repositoryOptions: Array<DropdownOption> =
-      suggestion.repositories.map(
-        (repository: TelemetryAiFixRepository): DropdownOption => {
-          return {
-            value: repository.id,
-            label: repository.name,
-            isUserContent: true,
-          };
-        },
-      );
-
     return (
       <div className={FIX_STRIP_ACTION_CONTAINER_CLASS_NAME}>
         <div className={FIX_STRIP_ACTION_ROW_CLASS_NAME}>
@@ -300,20 +287,17 @@ const TelemetryAiFixStrip: FunctionComponent<ComponentProps> = (
               >
                 {translator.translateText(TELEMETRY_AI_FIX_COPY.pickRepository)}
               </p>
-              <Dropdown
-                options={repositoryOptions}
-                value={repositoryOptions.find(
-                  (option: DropdownOption): boolean => {
-                    return option.value === pickedRepositoryId;
-                  },
-                )}
-                placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
-                ariaLabelledby={REPOSITORY_LABEL_ID}
+              <CodeRepositorySearchField
+                value={pickedRepositoryId || null}
+                isAskableOnly={true}
+                isCodeReadableOnly={true}
                 isClearable={false}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setPickedRepositoryId(value ? value.toString() : "");
+                placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
+                emptyListText={TELEMETRY_AI_FIX_COPY.noAskableRepository}
+                ariaLabelledby={REPOSITORY_LABEL_ID}
+                dataTestId={TELEMETRY_AI_FIX_TEST_IDS.repositoryPicker}
+                onChange={(repositoryId: string | null) => {
+                  setPickedRepositoryId(repositoryId || "");
                 }}
               />
             </div>

@@ -1,5 +1,5 @@
-import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import Link from "../Link/Link";
+import ErrorReference from "./ErrorReference";
 import WhereToLookWords from "./WhereToLookWords";
 import { BILLING_ENABLED } from "../../Config";
 import NewVersion, {
@@ -52,12 +52,6 @@ export interface ComponentProps {
    * ("Page Did Not Load").
    */
   hideWhatFailed?: boolean | undefined;
-  /*
-   * Drawn among centred lines - a failure in the middle of a feed, under a
-   * centred heading and over a centred Try again: the reference's row is
-   * centred under them too, not left at their start.
-   */
-  isCentered?: boolean | undefined;
 }
 
 // Whether the message is one this draws, rather than words of their own.
@@ -132,22 +126,11 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
          */}
         {joinSentences([say(words.why), say(words.next)])}
       </span>
-      {error.reference && (
-        <span
-          className={`mt-2 flex flex-wrap items-center gap-2${
-            props.isCentered ? " justify-center" : ""
-          }`}
-          data-testid="error-reference"
-        >
-          <code
-            dir="ltr"
-            className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-900"
-          >
-            {error.reference}
-          </code>
-          <CopyTextButton textToBeCopied={error.reference} size="sm" />
-        </span>
-      )}
+      {/*
+       * On a line of its own, placed as the lines above it are: centred
+       * under centred lines, at their start where they start (#7622).
+       */}
+      {error.reference && <ErrorReference reference={error.reference} />}
       {words.whereToLook && (
         <span className="mt-2 block" data-testid="error-where-to-look">
           {/* The command in it drawn as a command, with a copy button (#7539). */}

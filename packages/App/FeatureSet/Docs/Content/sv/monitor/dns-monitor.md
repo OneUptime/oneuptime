@@ -118,7 +118,7 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **DNS är online** och **DNS-svarstid (i ms)**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för den senaste: välj en aggregering under **Utvärdera** och ett fönster, från 2 minuter till 24 timmar, under **Under de senaste**.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under ett filter, som erbjuds för **DNS är online**, **DNS-svarstid (i ms)** och **Värde för DNS-post**. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för den senaste: välj en aggregering under **Utvärdera** och ett fönster, från 2 minuter till 24 timmar, under **Under de senaste**. För **Värde för DNS-post** är det enda valet **Föregående kontroll**: se [När DNS-svaret ändras](#när-dns-svaret-ändras).
 
 | Aggregering | Matchar när |
 | --- | --- |
@@ -126,7 +126,7 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 | **Alla värden** | Varje kontroll i fönstret uppfyller villkoret. |
 | **Minst ett värde** | Minst en kontroll i fönstret uppfyller villkoret. |
 | **Antal**, **Procentandel**, **Statusbyten** | Hur många kontroller som uppfyllde villkoret, deras andel eller hur ofta de växlade mellan att uppfylla det och inte, jämförs med talet som anges under. |
-| **Föregående kontroll** | Den här kontrollen jämförd med sondens föregående kontroll, som angivet under **Förändring från föregående kontroll**: till exempel en svarstid som ligger mer än 50 % över den. Ett filter som är sant eller falskt matchar vid den kontroll som började uppfylla villkoret. |
+| **Föregående kontroll** | Den här kontrollen jämförd med sondens föregående kontroll, som angivet under **Förändring från föregående kontroll**: till exempel en svarstid som ligger mer än 50 % över den. Ett filter som är sant eller falskt matchar vid den kontroll som började uppfylla villkoret. **Värde för DNS-post** jämför hela svaret: se nedan. |
 
 **Alla värden** matchar först när fönstret verkligen täcks av data. En monitor som just skapats, eller en vars kontroller slutade registreras, har inte tillräcklig historik för att säga något om de senaste N minuterna, så kriteriet väntar i stället för att matcha på den enda mätning det har. **Minst ett värde** är inställningen för "säg till direkt när en enda kontroll går över gränsen" och utlöses fortfarande omedelbart.
 
@@ -138,11 +138,26 @@ Kriterier kontrolleras uppifrån och ned, och det första som matchar avgör vad
 | **Utlösare** | Den saknade datan räknas som problemet. | Kontroller där tystnad i sig är ett fel. |
 | **Treat As Zero** | Fönstret jämförs som en enda nolla. | Räknare där inga händelser verkligen betyder noll. |
 
+### När DNS-svaret ändras
+
+För att få veta när svaret för ett namn ändras, till exempel en adress som har flyttat, en e-postserver som har bytts ut eller en post som har lagts till eller försvunnit, jämför du **Värde för DNS-post** med föregående kontroll:
+
+1. Lägg till ett filter med **Värde för DNS-post** och **Inte lika med**.
+2. Kryssa i **Utvärdera dessa kriterier över en tidsperiod**. **Föregående kontroll** är det enda valet under **Utvärdera** för det här filtret, och det behöver inget värde.
+3. Välj under **Under de senaste** hur länge sedan föregående kontroll får vara: längre än övervakningsintervallet.
+
+Svaret jämförs som en helhet: alla poster av typen, utan deras TTL. Samma poster i en annan ordning är samma svar, och det är även ett namn med andra versaler och gemener, eftersom DNS-namn inte skiljer på versaler och gemener. En post som har lagts till, tagits bort eller ändrats ger ett annat svar. **Lika med** matchar det motsatta, ett svar som är detsamma som vid föregående kontroll, för ett kriterium som ska gälla så länge svaret är stabilt.
+
+Varje sonds svar jämförs med samma sonds föregående svar, och varje stegs med stegets eget, så ett namn som svarar olika i olika regioner är ingen ändring. En kontroll som inte får något svar, eftersom namnet inte går att slå upp eller frågan får timeout, jämförs inte: till det finns filtret **DNS är online**. Nästa kontroll som får ett svar jämförs med det senaste svaret före den, om det ligger inom **Under de senaste**. Utan ett föregående svar i fönstret, som vid monitorns första kontroll, avgör **Om ingen data**, som vid varje jämförelse med föregående kontroll.
+
+Incidenten eller larmet säger vad svaret var och vad det är nu: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Exempelkriterier
 
 | Mål | Filter | Villkor | Värde |
 | --- | --- | --- | --- |
 | Offline när namnet slutar gå att slå upp | **DNS är online** | **Falskt** | — |
+| Larma när svaret för ett namn ändras | **Värde för DNS-post**, utvärderat över **Föregående kontroll** | **Inte lika med** | — |
 | Larma när ett namns enda `A`-post ändras | **Värde för DNS-post** | **Inte lika med** | `93.184.216.34` |
 | Larma när en `MX`-post pekar utanför din domän | **Värde för DNS-post** | **Innehåller inte** | `example.com` |
 | Markera DNS som försämrad när den är långsam | **DNS-svarstid (i ms)** | **Större än** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Behåll standardkriteriet för offline överst: **DNS är online** / **Falskt**.
 2. Lägg under det till ett kriterium med **Värde för DNS-post** / **Lika med** / värdet du förväntar dig, som markerar monitorn som **Fungerar**.
 3. Lägg under det i sin tur till ett kriterium med **DNS är online** / **Sant**, som markerar monitorn som **Offline** och deklarerar en incident. Det matchar bara svar som inte har värdet.
+:::
+
+:::details Ett kriterium som jämför svaret med föregående kontroll utlöses vid varje kontroll
+Servern returnerar en annan del av en stor pool av poster vid varje fråga, som vissa lastbalanserade namn gör. Varje sådant svar är en annan uppsättning poster. Fråga i **DNS-server (valfritt)** en server som returnerar hela poolen, eller kontrollera i stället det värde du väntar dig med **Värde för DNS-post** / **Lika med**.
 :::
 
 :::details DNSSEC är giltig matchar aldrig
