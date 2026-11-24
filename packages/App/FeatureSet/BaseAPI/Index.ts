@@ -726,6 +726,9 @@ import SecurityCaseAiActionService, {
 import SecurityCasePullRequestService, {
   Service as SecurityCasePullRequestServiceType,
 } from "Common/Server/Services/SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService, {
+  Service as DataSecurityIssuePullRequestServiceType,
+} from "Common/Server/Services/DataSecurityIssuePullRequestService";
 import SecurityDetectionService, {
   Service as SecurityDetectionServiceType,
 } from "Common/Server/Services/SecurityDetectionService";
@@ -1996,6 +1999,7 @@ import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
 import SecurityCaseAiAction from "Common/Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
@@ -4873,6 +4877,23 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<SecurityCasePullRequest, SecurityCasePullRequestServiceType>(
         SecurityCasePullRequest,
         SecurityCasePullRequestService,
+      ).getRouter(),
+    );
+
+    /*
+     * A person's own pull request, linked to a Data Security issue as its
+     * fix (#10831): linked and taken off by who may change the issue, read
+     * by its readers - the issue's Linked pull requests. What it says of
+     * the pull request, and how production proved it, is OneUptime's.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestServiceType
+      >(
+        DataSecurityIssuePullRequest,
+        DataSecurityIssuePullRequestService,
       ).getRouter(),
     );
 

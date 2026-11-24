@@ -158,7 +158,7 @@ OneUptime AI आपके AI नियमों के अनुसार हर
 | रिकॉर्ड | API पथ |
 | --- | --- |
 | डेटा स्टोर, उनकी टाइमलाइन, उनके निष्कर्ष, उन तक कौन पहुंच सकता है और ऐसी हर पहचान | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| समस्याएं, उनकी टाइमलाइन और डेटा प्रवाह | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| समस्याएं, उनकी टाइमलाइन, उनसे लिंक किए गए पुल रिक्वेस्ट और डेटा प्रवाह | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | स्कैन | `/data-security-scan` |
 | कस्टम डेटा प्रकार, जांच सेटिंग्स, अनुपालन सेटिंग्स और डेटा रेजिडेंसी नियम | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | प्रोजेक्ट की सेटिंग्स | `/data-security-setting` |

@@ -158,7 +158,7 @@ Alt Datasikkerhet tar vare på, er en post i OneUptime-API-et, som leses med de 
 | Poster | API-sti |
 | --- | --- |
 | Datalagre, tidslinjene deres, funnene deres, hvem som kan nå dem og hver identitet som kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problemer, tidslinjene deres og dataflyter | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problemer, tidslinjene deres, de tilkoblede pull-forespørslene deres og dataflyter | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Skanninger | `/data-security-scan` |
 | Egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Prosjektets innstillinger | `/data-security-setting` |

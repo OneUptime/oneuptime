@@ -158,7 +158,7 @@ OneUptime AI 还会按照您的 AI 规则，自动处理每个新问题：请参
 | 记录 | API 路径 |
 | --- | --- |
 | 数据存储、它们的时间线、它们的发现、谁可以访问它们，以及每个可以访问的身份 | `/data-store`、`/data-store-feed`、`/data-store-finding`、`/data-store-access`、`/data-security-identity` |
-| 问题、它们的时间线以及数据流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-flow` |
+| 问题、它们的时间线、关联的拉取请求以及数据流 | `/data-security-issue`、`/data-security-issue-feed`、`/data-security-issue-pull-request`、`/data-security-flow` |
 | 扫描 | `/data-security-scan` |
 | 自定义数据类型、检查设置、合规设置和数据驻留规则 | `/data-security-custom-data-type`、`/data-security-check-setting`、`/data-security-compliance-setting`、`/data-security-residency-rule` |
 | 项目的设置 | `/data-security-setting` |

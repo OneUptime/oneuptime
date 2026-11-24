@@ -158,7 +158,7 @@ OneUptime AI также сам работает с каждой новой пр�
 | Записи | Путь API |
 | --- | --- |
 | Хранилища данных, их хронологии, их находки, кто имеет к ним доступ и каждый субъект, который его имеет | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Проблемы, их хронологии и потоки данных | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Проблемы, их хронологии, привязанные к ним пул-реквесты и потоки данных | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Сканирования | `/data-security-scan` |
 | Пользовательские типы данных, настройки проверок, настройки соответствия и правила размещения данных | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Настройки проекта | `/data-security-setting` |

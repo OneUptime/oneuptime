@@ -158,7 +158,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 | Records | API path |
 | --- | --- |
 | Data stores, their timelines, their findings, who can reach them and each identity that does | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Issues, their timelines and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Issues, their timelines, their linked pull requests and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Custom data types, check settings, compliance settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | The project's settings | `/data-security-setting` |

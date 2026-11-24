@@ -158,7 +158,7 @@ Alt, hvad Datasikkerhed gemmer, er en post i OneUptime-API'et, som læses med de
 | Poster | API-sti |
 | --- | --- |
 | Datalagre, deres tidslinjer, deres fund, hvem der kan nå dem, og hver identitet, der kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problemer, deres tidslinjer og datastrømme | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problemer, deres tidslinjer, deres tilknyttede pull requests og datastrømme | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scanninger | `/data-security-scan` |
 | Brugerdefinerede datatyper, kontrolindstillinger, overholdelsesindstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Projektets indstillinger | `/data-security-setting` |
