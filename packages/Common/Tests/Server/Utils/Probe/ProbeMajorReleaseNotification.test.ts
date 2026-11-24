@@ -4,6 +4,7 @@ import ProbeMajorReleaseNotification, {
   ProbeMajorReleaseNotificationContent,
   ProbeMajorReleaseNotificationInput,
 } from "../../../../Server/Utils/Probe/ProbeMajorReleaseNotification";
+import { Say } from "../../../../Types/Call/CallRequest";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import {
@@ -299,7 +300,7 @@ describe("the short channels", () => {
   });
 
   test("a call says the line, and what to do", () => {
-    const said: string = build().callRequestMessage.data[0]!.sayMessage!;
+    const said: string = (build().callRequestMessage.data[0] as Say).sayMessage;
 
     expect(said.startsWith("This is a message from OneUptime.")).toBe(true);
     expect(said).toContain("2 major releases behind OneUptime 18.1.0");
