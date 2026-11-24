@@ -14630,7 +14630,7 @@
   "Puerto Rico": "Puerto Rico",
   "Pull Request ID": "Pull Request ID",
   "Pull Request Number": "Pull Request Number",
-  "Pull Request URL": "Pull Request URL",
+  "Pull Request URL": "URL til pull request",
   "Pull requests created by AI agents during task execution.": "Pull requests created by AI agents during task execution.",
   "Pull the latest images, or stop and remove the agent.": "Pull the latest images, or stop and remove the agent.",
   "Pulls structured fields out of an unstructured log line (e.g. an nginx access line) and stores them as log attributes": "Pulls structured fields out of an unstructured log line (e.g. an nginx access line) and stores them as log attributes",
