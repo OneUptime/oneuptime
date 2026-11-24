@@ -98,6 +98,7 @@ import {
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, {
   Fragment,
   FunctionComponent,
@@ -852,7 +853,7 @@ const CustomDataTypesTable: FunctionComponent<CustomDataTypesTableProps> = (
     } catch (error) {
       Toast.error(
         translator.translateTemplate(DataTypesToReviewCopy.addedButNotClosed, {
-          error: API.getFriendlyMessage(error),
+          error: errorInSentence(API.getFriendlyMessage(error)),
         }),
       );
     }
