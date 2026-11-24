@@ -410,7 +410,16 @@ describe("a value too long for its column", () => {
     // As wide as a focus ring: Chrome's is two pixels, drawn outside.
     expect(Number(padding?.[1])).toBeGreaterThanOrEqual(2);
     // Never one side alone, which would move the words.
-    for (const oneSide of ["pl-", "pr-", "ps-", "pe-", "ml-", "mr-", "ms-", "me-"]) {
+    for (const oneSide of [
+      "pl-",
+      "pr-",
+      "ps-",
+      "pe-",
+      "ml-",
+      "mr-",
+      "ms-",
+      "me-",
+    ]) {
       expect(TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME).not.toContain(oneSide);
     }
   });

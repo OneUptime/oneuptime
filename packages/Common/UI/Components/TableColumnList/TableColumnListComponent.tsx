@@ -191,7 +191,9 @@ const TableColumnListComponent: <TGenericObject extends GenericObject>(
        * so the cell leaves the clip to them (TableLayout's
        * TABLE_LIST_ATTRIBUTE): a focused resource's ring shows at its sides.
        */
-      {...(isTableCell && !isTableCard ? { [TABLE_LIST_ATTRIBUTE]: "true" } : {})}
+      {...(isTableCell && !isTableCard
+        ? { [TABLE_LIST_ATTRIBUTE]: "true" }
+        : {})}
     >
       {firstItems.map((item: TGenericObject, i: number) => {
         return getItem(item, i);

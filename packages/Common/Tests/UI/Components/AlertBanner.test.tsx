@@ -328,7 +328,10 @@ describe("AlertBanner", () => {
       expect(content).toHaveClass("[container-type:inline-size]");
       expect(layout.className).toBe(ALERT_BANNER_LAYOUT_CLASS_NAME);
       // No window breakpoint decides it: a banner sits in narrow cards too.
-      for (const element of [content, ...Array.from(content.querySelectorAll("*"))]) {
+      for (const element of [
+        content,
+        ...Array.from(content.querySelectorAll("*")),
+      ]) {
         expect(element.getAttribute("class") || "").not.toMatch(
           /(^|\s)(sm|md|lg|xl|2xl):/,
         );
@@ -378,7 +381,9 @@ describe("AlertBanner", () => {
       ].join(" ");
 
       expect(action.className).toBe(ALERT_BANNER_ACTION_PLACE_CLASS_NAME);
-      expect(placement).not.toMatch(/\b(left|right)\b|\b[mp][lr]-|text-(left|right)/);
+      expect(placement).not.toMatch(
+        /\b(left|right)\b|\b[mp][lr]-|text-(left|right)/,
+      );
     });
 
     test("a banner with an action and no sentence keeps the title first", () => {

@@ -312,9 +312,7 @@ describe("useBulkArchiveActions copy overrides", () => {
     ).toBe(ARCHIVE_OVERRIDE);
     expect(
       onlyAction(result.unarchiveBulkActions).confirmMessage!(hosts(1)),
-    ).toBe(
-      "It will reappear in the main list.",
-    );
+    ).toBe("It will reappear in the main list.");
   });
 
   test("change nothing about what is written: archive sends isArchived true, unarchive false", async () => {

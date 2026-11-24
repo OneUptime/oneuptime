@@ -31,26 +31,29 @@ import { Mock } from "jest-mock";
 
 let titleThrows: Error | null = null;
 
-jest.mock("../../../../UI/Components/TelemetryUsage/TelemetryUsageWords", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../../UI/Components/TelemetryUsage/TelemetryUsageWords",
-  );
+jest.mock(
+  "../../../../UI/Components/TelemetryUsage/TelemetryUsageWords",
+  () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../UI/Components/TelemetryUsage/TelemetryUsageWords",
+    );
 
-  return {
-    ...actual,
-    getTelemetryUsageSignalTitle: (...args: Array<unknown>): string => {
-      if (titleThrows) {
-        throw titleThrows;
-      }
+    return {
+      ...actual,
+      getTelemetryUsageSignalTitle: (...args: Array<unknown>): string => {
+        if (titleThrows) {
+          throw titleThrows;
+        }
 
-      return (
-        actual["getTelemetryUsageSignalTitle"] as (
-          ...callArgs: Array<unknown>
-        ) => string
-      )(...args);
-    },
-  };
-});
+        return (
+          actual["getTelemetryUsageSignalTitle"] as (
+            ...callArgs: Array<unknown>
+          ) => string
+        )(...args);
+      },
+    };
+  },
+);
 
 import TelemetryIngestionBudgetBanner, {
   TELEMETRY_INGESTION_BUDGET_BANNER_TEST_ID,
@@ -63,7 +66,12 @@ import {
   TelemetryIngestionBudgetStatus,
 } from "../../../../Types/Telemetry/TelemetryIngestionBudget";
 import NewVersion from "../../../../UI/Utils/NewVersion/NewVersion";
-import { budgeted, LOGS, status, TRACES } from "./TelemetryIngestionBudgetFixtures";
+import {
+  budgeted,
+  LOGS,
+  status,
+  TRACES,
+} from "./TelemetryIngestionBudgetFixtures";
 
 const EXPLORER_TEST_ID: string = "explorer-under-the-banner";
 

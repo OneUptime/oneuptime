@@ -1049,9 +1049,7 @@ describe.each(["en", ...DASHBOARD_LANGUAGES])(
           archived: true,
         });
         // Advanced comes before the page, as the side menu has them.
-        expect(body.indexOf(advanced)).toBeLessThan(
-          body.lastIndexOf(archived),
-        );
+        expect(body.indexOf(advanced)).toBeLessThan(body.lastIndexOf(archived));
         cleanup();
       }
     });

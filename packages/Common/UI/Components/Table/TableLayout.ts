@@ -449,7 +449,8 @@ export const TABLE_CELL_PART_LINE_CLASS_NAME: string =
  * their own line short: clipped at its own edges, it cut the room the
  * items keep for the ring off again.
  */
-export const TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME: string = "-mx-[3px] px-[3px]";
+export const TABLE_LIST_ITEM_RING_ROOM_CLASS_NAME: string =
+  "-mx-[3px] px-[3px]";
 
 // On a list's own element in a table's cell: its items clip themselves.
 export const TABLE_LIST_ATTRIBUTE: string = "data-table-list";

@@ -1078,8 +1078,7 @@ test.describe("the Alerts list of the screenshot", () => {
       const row: Element = element.firstElementChild as Element;
       const clipped: Array<string> = [];
       const clippedSideways: Array<string> = [];
-      const isRightToLeft: boolean =
-        getComputedStyle(item).direction === "rtl";
+      const isRightToLeft: boolean = getComputedStyle(item).direction === "rtl";
       const linkBox: DOMRect = element.getBoundingClientRect();
       let ringRoomAtStart: number = Number.POSITIVE_INFINITY;
       let ringRoomAtEnd: number = Number.POSITIVE_INFINITY;

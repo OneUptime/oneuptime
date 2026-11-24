@@ -393,9 +393,7 @@ describe("who started a call, and when, in every language", () => {
       // The name is set apart by its box, not by marks in the text.
       expect(line.textContent).toBe(withoutIsolateMarks(line.textContent!));
       expect(time).toBeTruthy();
-      expect(when.textContent).toBe(
-        `${getInlineSeparator(language)}${time}`,
-      );
+      expect(when.textContent).toBe(`${getInlineSeparator(language)}${time}`);
     },
   );
 
@@ -448,7 +446,11 @@ describe("who started a call, and when, in every language", () => {
         },
       );
 
-      expect(boxes.map((box: Element) => box.textContent)).toEqual(expected);
+      expect(
+        boxes.map((box: Element) => {
+          return box.textContent;
+        }),
+      ).toEqual(expected);
       expect(boxes[expected.indexOf(ENGLISH_PERSON)]).toBe(nameBoxOf(line));
     },
   );
@@ -648,7 +650,9 @@ describe("a line with one fact, or with no person in it", () => {
       expect(
         within(line).queryByTestId("event-video-call-started-by-name"),
       ).toBeNull();
-      expect(whenOf(line).textContent!.startsWith(getInlineSeparator(language))).toBe(true);
+      expect(
+        whenOf(line).textContent!.startsWith(getInlineSeparator(language)),
+      ).toBe(true);
     },
   );
 
