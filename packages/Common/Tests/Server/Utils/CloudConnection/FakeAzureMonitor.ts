@@ -83,7 +83,10 @@ export interface FakeMonitorCall {
   aggregations: Array<string>;
   interval: string;
   namespace: string;
+  // The dimension its filter splits by (`$filter` alone, `filter` in a batch).
   splitBy: string;
+  // How many series a split asks for at most per resource (`top`).
+  top: string;
 }
 
 export interface FakeAzureMonitorOptions {
@@ -112,6 +115,12 @@ export interface FakeAzureMonitorOptions {
   hold?: ((call: FakeMonitorCall) => Promise<void>) | undefined;
   // A resource's metric definitions, as Resource Manager lists them.
   definitions?: ((resourceId: string) => Array<JSONObject>) | undefined;
+  /*
+   * The values of the dimension a split call asks for, a series of each -
+   * as a Container App's Requests answer by statusCodeCategory. Unset, a
+   * split call is answered whole, as a metric without the dimension is.
+   */
+  splitValues?: Array<string> | undefined;
 }
 
 /*
@@ -199,24 +208,41 @@ export function createFakeAzureMonitor(
         };
       }
 
+      // A split's series a value each, its dimension named as Azure names it.
+      const values: Array<string | null> =
+        data.call.splitBy && options.splitValues
+          ? options.splitValues
+          : [null];
+
       return {
         name: { value: metric, localizedValue: metric },
         unit: "Percent",
-        timeseries: [
-          {
-            metadatavalues: [],
+        timeseries: values.map((value: string | null, at: number) => {
+          return {
+            metadatavalues:
+              value === null
+                ? []
+                : [
+                    {
+                      name: {
+                        value: data.call.splitBy.toLowerCase(),
+                        localizedValue: data.call.splitBy,
+                      },
+                      value,
+                    },
+                  ],
             data: [
               {
                 timeStamp: new Date(data.start).toISOString(),
-                average: 10 + index,
-                total: 100 + index,
-                maximum: 50 + index,
-                minimum: 1 + index,
-                count: 5 + index,
+                average: 10 + index + at,
+                total: 100 + index + at,
+                maximum: 50 + index + at,
+                minimum: 1 + index + at,
+                count: 5 + index + at,
               },
             ],
-          },
-        ],
+          };
+        }),
         errorCode: "Success",
       };
     });
@@ -299,6 +325,7 @@ export function createFakeAzureMonitor(
           namespace: "",
           splitBy:
             SPLIT_FILTER.exec(url.searchParams.get("$filter") || "")?.[1] || "",
+          top: url.searchParams.get("top") || "",
         };
 
         calls.push(call);
@@ -352,7 +379,10 @@ export function createFakeAzureMonitor(
           aggregations: listOf(url.searchParams.get("aggregation")),
           interval: url.searchParams.get("interval") || "",
           namespace: url.searchParams.get("metricnamespace") || "",
-          splitBy: "",
+          // The batch API's filter has no $ (Microsoft's reference).
+          splitBy:
+            SPLIT_FILTER.exec(url.searchParams.get("filter") || "")?.[1] || "",
+          top: url.searchParams.get("top") || "",
         };
 
         calls.push(call);

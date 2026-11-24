@@ -6,6 +6,7 @@ import {
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AzureTypeKeyMetrics,
+  getAzureKeyMetricSplit,
   getAzureKeyMetrics,
   getAzureReadMetricNames,
   getAzureStoredMetricName,
@@ -647,9 +648,12 @@ export function getAzureReadGroupKey(
  * What a resource asks Azure Monitor for this read (AzureMetricReads): its
  * metrics by read group - each group whose window is due now - and by the
  * split an addition is read with (#9808), which its filter splits alone.
- * A Service Bus or Event Hubs namespace's are split by its entities. A
- * metric Azure said lately it does not serve for the resource is left out
- * until it is asked again (azureMetricStatus).
+ * A Service Bus or Event Hubs namespace's are split by its entities. A key
+ * metric the catalog splits alone (AzureKeyMetric.splitBy: a Container
+ * App's Requests by statusCodeCategory, #10837) is asked in a call of its
+ * own, which the type's resources share in batches. A metric Azure said
+ * lately it does not serve for the resource is left out until it is asked
+ * again (azureMetricStatus).
  */
 export function buildAzureMetricRequest(data: {
   entry: {
@@ -691,9 +695,15 @@ export function buildAzureMetricRequest(data: {
     const orderBy: string | undefined = metric.splitBy
       ? getAzureSplitOrder(metric.aggregation)
       : undefined;
-    const callKey: string = [key, metric.splitBy || "", orderBy || ""].join(
-      "\n",
-    );
+    // A key metric split alone; never an addition, which has its own.
+    const keySplit: string | undefined = metric.isAdded
+      ? undefined
+      : getAzureKeyMetricSplit(data.entry.type, metric.name);
+    const callKey: string = [
+      key,
+      metric.splitBy || keySplit || "",
+      orderBy || "",
+    ].join("\n");
     let group: AzureMetricCallGroup<SelectedMetric> | undefined =
       groups.get(callKey);
 
@@ -703,12 +713,16 @@ export function buildAzureMetricRequest(data: {
         grain: readGroup.grain,
         window: readGroup.window,
         metrics: [],
-        // An added metric's split stops at its cap by design; a namespace's says so.
-        reportsCapped: !metric.splitBy,
+        /*
+         * An added metric's split stops at its cap by design, and a key
+         * metric's values are a few classes; a namespace's says so.
+         */
+        reportsCapped: !metric.splitBy && !keySplit,
         /*
          * The split rides on the resource's own call, never a call per
          * queue: an addition's by its own dimension, a namespace's by its
-         * entities.
+         * entities. A key metric's split alone is a call of its own, whose
+         * resources share batches.
          */
         ...(metric.splitBy
           ? {
@@ -716,9 +730,15 @@ export function buildAzureMetricRequest(data: {
               top: CLOUD_ADDED_METRIC_MAX_SPLIT_VALUES,
               orderBy,
             }
-          : splitBy
-            ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
-            : {}),
+          : keySplit
+            ? {
+                splitBy: keySplit,
+                top: AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+                batchesSplit: true,
+              }
+            : splitBy
+              ? { splitBy, top: AZURE_MAX_SPLIT_SERIES_PER_METRIC }
+              : {}),
       };
       groups.set(callKey, group);
     }
