@@ -980,6 +980,12 @@ describe("the helpers, on these pages' shapes", () => {
  * name its own language's menu gives the group (navbar.categories.security).
  */
 describe.each(LANGUAGES)("%s Security Events page", (language: string) => {
+  it("lists both headers for a gzip-compressed JSON batch together", () => {
+    expect(readPage(language, SECURITY_EVENTS)).toMatch(
+      /^- .*`Content-Encoding: gzip`.*`Content-Type: application\/json`/m,
+    );
+  });
+
   it("names the Products menu group it is under as this language's menu does: Security, not Observability", () => {
     const translated: string = readPage(language, SECURITY_EVENTS);
     const security: string = drawnMenuGroup(language, "Security");

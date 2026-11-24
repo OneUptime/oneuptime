@@ -133,6 +133,7 @@ Endpointet svarer `200`, når begivenhederne står i kø. En begivenhed uden tid
 Angiv formatet med `?format=`, med headeren `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste niveau. Udelader du det, bestemmes hver begivenheds format for sig, så én webhook kan blande detektioner med rå begivenheder.
 
 - Brødteksten kan være én begivenhed, et array af begivenheder eller `{ "events": [...] }`.
+- Sæt `Content-Encoding: gzip` og `Content-Type: application/json`, når du sender en gzip-komprimeret JSON-batch.
 - Headeren `x-oneuptime-service-name` angiver den telemetritjeneste, begivenhederne hører til. Uden den hører de til den tjeneste, der er opkaldt efter den første begivenheds produkt eller leverandør, eller til `Security Events`.
 - Intet kasseres, fordi det ikke kunne tilknyttes: hvert felt fra kilden havner i begivenhedens attributter.
 

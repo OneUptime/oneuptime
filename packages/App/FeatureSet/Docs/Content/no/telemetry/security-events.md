@@ -133,6 +133,7 @@ Endepunktet svarer `200` så snart hendelsene står i kø. En hendelse sendt ute
 Angi formatet med `?format=`, med hodet `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste nivå. Utelater du det, bestemmes formatet for hver hendelse for seg, så én webhook kan blande deteksjoner med rå hendelser.
 
 - Body kan være én hendelse, en matrise av hendelser eller `{ "events": [...] }`.
+- Sett `Content-Encoding: gzip` og `Content-Type: application/json` når du sender en gzip-komprimert JSON-batch.
 - Hodet `x-oneuptime-service-name` angir telemetritjenesten hendelsene hører til. Uten det hører de til tjenesten som er oppkalt etter produktet eller leverandøren til den første hendelsen, eller til `Security Events`.
 - Ingenting forkastes fordi det ikke lot seg tilordne: hvert felt fra kilden havner i hendelsens attributter.
 

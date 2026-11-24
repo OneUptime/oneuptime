@@ -133,6 +133,7 @@ Der Endpunkt antwortet mit `200`, sobald die Ereignisse in der Warteschlange ste
 Nennen Sie das Format mit `?format=`, mit dem Header `x-oneuptime-security-event-format` oder mit einem Feld `"format"` auf oberster Ebene. Lassen Sie es weg, wird das Format jedes Ereignisses einzeln ermittelt, sodass ein Webhook Erkennungen und rohe Ereignisse mischen kann.
 
 - Der Body kann ein Ereignis sein, ein Array von Ereignissen oder `{ "events": [...] }`.
+- Wenn Sie mehrere Ereignisse als gzip-komprimiertes JSON senden, setzen Sie die Header `Content-Encoding: gzip` und `Content-Type: application/json`.
 - Der Header `x-oneuptime-service-name` nennt den Telemetrie-Dienst, zu dem die Ereignisse gehören. Ohne ihn gehören sie zu dem Dienst, der nach Produkt oder Anbieter des ersten Ereignisses benannt ist, oder zu `Security Events`.
 - Nichts geht verloren, weil es sich nicht zuordnen ließ: Jedes Feld der Quelle landet in den Attributen des Ereignisses.
 

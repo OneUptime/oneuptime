@@ -133,6 +133,7 @@ Apri **Prodotti → Eventi di sicurezza → Eventi**. Gli eventi compaiono in po
 Indica il formato con `?format=`, con l'intestazione `x-oneuptime-security-event-format` o con un campo `"format"` di primo livello. Se lo ometti, il formato di ogni evento viene ricavato a parte, così un webhook può mescolare rilevamenti ed eventi grezzi.
 
 - Il corpo può essere un evento, un array di eventi o `{ "events": [...] }`.
+- Per inviare un batch JSON compresso con gzip, imposta le intestazioni `Content-Encoding: gzip` e `Content-Type: application/json`.
 - L'intestazione `x-oneuptime-service-name` nomina il servizio di telemetria a cui appartengono gli eventi. Senza di essa, appartengono al servizio che prende il nome dal prodotto o dal fornitore del primo evento, oppure a `Security Events`.
 - Nulla viene scartato perché non si è riusciti a mapparlo: ogni campo dell'origine arriva negli attributi dell'evento.
 

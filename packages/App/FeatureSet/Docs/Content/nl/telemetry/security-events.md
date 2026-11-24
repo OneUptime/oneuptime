@@ -133,6 +133,7 @@ Open **Producten → Beveiligingsgebeurtenissen → Gebeurtenissen**. De gebeurt
 Geef het formaat op met `?format=`, met de header `x-oneuptime-security-event-format`, of met een veld `"format"` op het hoogste niveau. Laat je het weg, dan wordt het formaat van elke gebeurtenis apart bepaald, zodat één webhook detecties en ruwe gebeurtenissen kan mengen.
 
 - De body kan één gebeurtenis zijn, een array van gebeurtenissen, of `{ "events": [...] }`.
+- Stel de headers `Content-Encoding: gzip` en `Content-Type: application/json` in om een met gzip gecomprimeerde JSON-batch te sturen.
 - De header `x-oneuptime-service-name` noemt de telemetrieservice waartoe de gebeurtenissen behoren. Zonder die header behoren ze tot de service die is genoemd naar het product of de leverancier van de eerste gebeurtenis, of tot `Security Events`.
 - Er wordt niets weggegooid omdat het niet te koppelen was: elk veld van de bron komt terecht in de attributen van de gebeurtenis.
 

@@ -133,6 +133,7 @@ Abre **Productos → Eventos de seguridad → Eventos**. Los eventos aparecen en
 Indica el formato con `?format=`, con la cabecera `x-oneuptime-security-event-format` o con un campo `"format"` de primer nivel. Si lo omites, el formato de cada evento se deduce por separado, así que un mismo webhook puede mezclar detecciones con eventos en bruto.
 
 - El cuerpo puede ser un evento, un array de eventos o `{ "events": [...] }`.
+- Para enviar un lote JSON comprimido con gzip, configura las cabeceras `Content-Encoding: gzip` y `Content-Type: application/json`.
 - La cabecera `x-oneuptime-service-name` nombra el servicio de telemetría al que pertenecen los eventos. Sin ella, pertenecen al servicio con el nombre del producto o del proveedor del primer evento, o a `Security Events`.
 - No se descarta nada por no poder mapearlo: cada campo del origen llega a los atributos del evento.
 

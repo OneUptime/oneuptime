@@ -739,6 +739,20 @@ describe("the Security Events page", () => {
     }
   });
 
+  it("documents the gzip-compressed JSON batches the ingest route reads", () => {
+    const route: string = flat(source("ingestRoute"));
+
+    expect(route).toContain(
+      "const readSecurityEventsBody: RequestHandler = RequestBodyAfterAuthentication.readBody(LARGE_REQUEST_BODY_LIMIT, { parseGzipJson: true, });",
+    );
+    expect(route).toContain(
+      "TelemetryIngest.forSurface( TelemetryIngestSurface.SecurityEvents, readSecurityEventsBody, )",
+    );
+    expect(section(page, "Formats")).toContain(
+      "- To send a gzip-compressed JSON batch, set `Content-Encoding: gzip` and `Content-Type: application/json`.",
+    );
+  });
+
   it("names the format by query, header or body field, and works it out per event when none is named", () => {
     const service: string = flat(source("ingestService"));
 

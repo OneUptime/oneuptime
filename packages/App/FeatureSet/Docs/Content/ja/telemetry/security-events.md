@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 形式は `?format=`、 `x-oneuptime-security-event-format` ヘッダー、または最上位の `"format"` フィールドで指定します。指定しなければイベントごとに形式が判定されるので、ひとつの Webhook で検出と生のイベントを混在させることができます。
 
 - 本文は、ひとつのイベント、イベントの配列、または `{ "events": [...] }` のいずれかです。
+- gzip で圧縮した JSON バッチを送るには、`Content-Encoding: gzip` と `Content-Type: application/json` を設定します。
 - `x-oneuptime-service-name` ヘッダーは、イベントが属するテレメトリサービスを指定します。指定しなければ、最初のイベントの製品名またはベンダー名にちなんだサービス、または `Security Events` に属します。
 - 対応付けられなかったものも破棄されません。ソースのすべての項目がイベントの属性に入ります。
 
