@@ -114,6 +114,7 @@ const buildStores: BuildStoresFunction = (): Array<CustomFieldValueStore> => {
       getValueServices: (): Array<DatabaseService<any>> => {
         return [AlertService];
       },
+      formTargetType: FormTargetType.Alert,
     }),
     store({
       definitionTableName: new ScheduledMaintenanceCustomField().tableName!,

@@ -2,7 +2,7 @@
 
 Et udfald udløser sjældent kun én advarsel. Når den primære database går ned, slår monitoren for replikeringsforsinkelse ud, monitoren for API'ets fejlrate slår ud, og SLO'en for checkoutens latens begynder at brænde — tre advarsler, ét problem. At knytte de advarsler til hændelsen siger netop det: hændelsen er dér, hvor indsatsen foregår, og hver advarsel viser, hvilken hændelse der forklarer den.
 
-En tilknytning er kun en tilknytning. Advarslen beholder sin egen tilstand, sine ejere, vagtpolitikker, noter og sit feed; hændelsen beholder sine. Tilknytning fletter og kopierer intet, og bekræfter, løser eller dæmper aldrig i sig selv en advarsel. (At erklære en ny hændelse fra advarsler er anderledes: den nye hændelse udfyldes på forhånd fra dem, som [beskrevet nedenfor](#erklær-en-hændelse-fra-advarsler), og medmindre du fjerner fluebenet på formularen, bekræftes advarslerne, mens du erklærer den, hvilket stopper deres eskalering — se [Bekræft advarslerne, mens du erklærer](#bekræft-advarslerne-mens-du-erklærer).) To projektkontakter, der er slået til i nye projekter, tager de tilknyttede advarsler med, efterhånden som hændelsen bekræftes og løses — se [længere nede](#hold-advarslernes-tilstande-i-takt-med-hændelsen).
+En tilknytning er kun en tilknytning. Advarslen beholder sin egen tilstand, sine ejere, vagtpolitikker, noter og sit feed; hændelsen beholder sine. Tilknytning fletter og kopierer intet, og bekræfter, løser eller dæmper aldrig i sig selv en advarsel. (At erklære en ny hændelse fra advarsler er anderledes: den nye hændelse udfyldes på forhånd fra dem og starter med deres ejere, som [beskrevet nedenfor](#erklær-en-hændelse-fra-advarsler), og medmindre du fjerner fluebenet på formularen, bekræftes advarslerne, mens du erklærer den, hvilket stopper deres eskalering — se [Bekræft advarslerne, mens du erklærer](#bekræft-advarslerne-mens-du-erklærer).) To projektkontakter, der er slået til i nye projekter, tager de tilknyttede advarsler med, efterhånden som hændelsen bekræftes og løses — se [længere nede](#hold-advarslernes-tilstande-i-takt-med-hændelsen).
 
 :::cards
 - [Knyt advarsler til en hændelse](#knyt-advarsler-fra-en-hændelse): Fra hændelsen, fra en advarsel eller mange på én gang.
@@ -119,11 +119,12 @@ Uanset hvilken du bruger, lander du på den sædvanlige formular **Erklær ny h�
 | **Hændelsesalvor**     | Den mest alvorlige advarsels alvorsgrad, oversat til en hændelsesalvorsgrad. En hændelsesalvorsgrad med samme navn, uden hensyn til store og små bogstaver, vinder. Ellers tager OneUptime den hændelsesalvorsgrad, der står på samme plads i rækkefølgen af alvorsgrader, eller den sidste, hvis du har færre hændelsesalvorsgrader. |
 | **Berørte ressourcer** | Hver monitor, vært, Kubernetes-klynge, Docker-vært, Podman-vært og tjeneste fra de valgte advarsler, samlet. Monitorerne kommer under **Monitorer**, resten under **Andre berørte ressourcer**. Andre ressourcer, som SLO'er eller VMware-, Proxmox- og Ceph-klynger, kopieres ikke — tilføj dem selv, hvis hændelsen berører dem. |
 | **Etiketter**          | Hver etiket fra hver valgt advarsel.                                                                                                                                                                                                                                                   |
-| **Privat hændelse**    | Slået til, hvis nogen af advarslerne er private. Formularen siger det, og advarslernes ejere bliver ejere af hændelsen — se nedenfor.                                                                                                                                                   |
+| **Ejere**              | Hver person og hvert team, der ejer en af advarslerne, hver én gang — men ikke en person, der har forladt projektet. Banneret nævner dem. Se [Advarslernes ejere ejer hændelsen](#advarslernes-ejere-ejer-hændelsen). |
+| **Privat hændelse**    | Slået til, hvis nogen af advarslerne er private. Formularen siger det — se nedenfor.                                                                                                                                                                                                   |
 
 "Mest alvorlig" følger rækkefølgen af dine advarselsalvorsgrader: den første advarselsalvorsgrad i listen er den mest alvorlige. Med de alvorsgrader, hvert projekt starter med, bliver en advarsel **Høj** til en **Kritisk hændelse** og en advarsel **Lav** til en **Større hændelse**.
 
-Alt kan redigeres, før du sender. **Etiketter** og **Privat hændelse** ligger under **Flere felter** på formularens første trin, hvis sammenfoldede overskrift viser hver af dem, mens den er sat.
+Alt kan redigeres, før du sender. **Etiketter**, **Privat hændelse** og **Ejere** ligger under **Flere felter** på formularens første trin, hvis sammenfoldede overskrift viser hver af dem, mens den er sat.
 
 **En advarsel, der allerede har en hændelse, markeres.** Med **Erklær hændelse** på hver advarsels side kan to vagthavende, der tilkaldes af det samme udfald, hver erklære det. Derfor markerer banneret, der viser advarslerne, hver advarsel, der allerede er knyttet til en hændelse — "(already linked to Incident INC-42)", med et link til den hændelse — og tilføjer en bemærkning, formuleret efter hvor mange af advarslerne der er tilknyttet:
 
@@ -137,7 +138,7 @@ Hændelseslinkene åbner i en ny fane, så du kan tjekke den eksisterende hænde
 
 **Advarslernes monitorer udfyldes på forhånd som berørte monitorer.** Som ved enhver hændelse, der erklæres i hånden, sættes den aktive overvågning af hændelsens monitorer på pause, indtil hændelsen er løst. Fjern en monitor fra **Monitorer** på trinnet **Berørte ressourcer**, før du sender, hvis den skal blive ved med at blive kontrolleret.
 
-**En privat advarsel giver en privat hændelse.** Er nogen af advarslerne private, starter **Privat hændelse** slået til, og banneret, der viser advarslerne, siger det. En privat hændelse er kun synlig for sine ejere, Projektejere og Projektadministratorer, så OneUptime sørger for, at de personer, der kunne se advarslerne, kan se hændelsen: når den er erklæret, tilføjes ejerne af hver advarsel, der blev erklæret fra — brugere og teams — som ejere af hændelsen, uden at få besked. De tilføjes lige efter, at hændelsens Slack- og Microsoft Teams-kanaler er oprettet, så de inviteres til de kanaler som enhver anden ejer. Du er også ejer, som ved enhver hændelse, du erklærer. Det samme sker, når en privatlivsregel for hændelser gør den nye hændelse privat. Slår du **Privat hændelse** fra, før du sender, og gælder der ingen privatlivsregel, er hændelsen ikke privat, og ingen ejere kopieres.
+**En privat advarsel giver en privat hændelse.** Er nogen af advarslerne private, starter **Privat hændelse** slået til, og banneret, der viser advarslerne, siger det. En privat hændelse er kun synlig for sine ejere, Projektejere og Projektadministratorer — og advarslernes ejere starter som dens ejere, så de personer, der kunne se advarslerne, kan se hændelsen, medmindre du fjerner dem. Du er også ejer, som ved enhver hændelse, du erklærer.
 
 ```mermaid title="Hvad der sker, når du erklærer fra advarsler"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 Når du sender, kontrollerer serveren advarslerne, før den opretter noget: højst 50 af dem, hver en advarsel i dette projekt, som du må se, og du skal have lov til at knytte advarsler til hændelser. Fejler en kontrol, afvises anmodningen, og ingen hændelse oprettes — så et forkert advarsels-id bruger aldrig et hændelsesnummer. Når hændelsen findes — og når dens privatlivsregler har kørt, så tilknytningerne ved, om den er privat — knyttes hver advarsel, før anmodningen vender tilbage, så hændelsens side **Tilknyttede advarsler** allerede viser dem. Fejler en enkelt tilknytning — fordi advarslen blev slettet et øjeblik forinden for eksempel — erklæres hændelsen alligevel, og de andre advarsler knyttes alligevel.
 
 Hændelsens feed får én post **Advarsel tilknyttet**, der nævner advarslerne, skrevet efter **Hændelse oprettet**, i stedet for én pr. advarsel — se [Feedet, Slack og Microsoft Teams](#feedet-slack-og-microsoft-teams).
+
+### Advarslernes ejere ejer hændelsen
+
+De personer, der arbejder med advarslerne, er de personer, der arbejder med hændelsen, så den starter med dem. Feltet **Ejere** under **Flere felter** starter med hver person og hvert team, der ejer en af advarslerne — hver én gang, efter en hændelsesskabelons ejere, hvis du erklærer ud fra en skabelon — og banneret, der viser advarslerne, nævner dem: "Advarslens ejere ejer også hændelsen. Ret dem under Flere felter, før du erklærer den." Fjern nogen af dem, eller tilføj andre, før du sender; hændelsens ejere er så præcis det, feltet indeholder, privat hændelse eller ej. Opsummeringen viser dem sammen med de ejerregler, der vil tilføje flere.
+
+- **En person, der har forladt projektet, overføres ikke**, og det gør en, hvis invitation aldrig blev accepteret, heller ikke. Et team, der er slettet, ejer ikke længere advarslen, så det overføres heller ikke.
+- **De får besked én gang.** Advarslernes ejere tilføjes, som hver ejer, en hændelse starter med, tilføjes — lige efter at dens Slack- og Microsoft Teams-kanaler er oprettet, så de inviteres til de kanaler, og før dens notifikation **Hændelse oprettet** sendes — så de hører om hændelsen fra den notifikation, efter deres egne notifikationsregler, og får ingen besked om at være "tilføjet som ejer" oven i den. En ejer, der også tilføjes af en ejerregel eller vælges to gange, tilføjes én gang.
+- **Hvis du ikke må tilføje ejere til hændelser**, kan du stadig erklære hændelsen: feltet efterlades, som det var, OneUptime tilføjer selv advarslernes ejere, når hændelsen erklæres, og banneret siger "Advarslens ejere ejer også hændelsen, når den er erklæret." Det siger det samme, uden at nævne dem, når du ikke må se, hvem der ejer advarslerne.
+- **Advarsler uden ejere** tilføjer ingen, og banneret siger intet om ejere.
+
+En hændelse, der erklæres fra advarsler på en anden måde, får også advarslernes ejere: via API'et (se [Erklær via API'et](#erklær-via-apiet)), af en [hændelsesregel](/docs/alerts/settings#hændelsesregler) og med `/oneuptime incident` i en advarsels [Slack](/docs/workspace-connections/slack)- eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-kanal. At knytte en advarsel til en hændelse, der allerede findes, kopierer ingen ejere.
 
 ### Bekræft advarslerne, mens du erklærer
 
@@ -180,7 +192,7 @@ Advarslerne bekræftes i baggrunden, lige efter at de er knyttet, nogle få ad g
 
 ### Erklær via API'et
 
-`POST /api/incident` tager imod id'erne på de advarsler, der skal knyttes, i `miscDataProps` under `alertIdsToLink`, og om de advarsler skal bekræftes, under `acknowledgeAlertsToLink`:
+`POST /api/incident` tager imod id'erne på de advarsler, der skal knyttes, i `miscDataProps` under `alertIdsToLink`, om de advarsler skal bekræftes, under `acknowledgeAlertsToLink`, og om deres ejere bliver hændelsens, under `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - API-nøglen ikke må bekræfte hver advarsel, der ikke er bekræftet endnu — det kræver **Create Alert State Timeline** med etiketter og et ejeromfang, der når hver af de advarsler, ligesom når hver af dem bekræftes.
 
 En API-nøgle er ikke en bruger, så advarsler, der bekræftes med en, krediteres ingen, ligesom dens tilknytninger ikke har noget **Tilknyttet af**.
+
+`carryOverAlertOwners` er valgfri og slået til, medmindre du sender `false`: hver person og hvert team, der ejer en af advarslerne, bliver ejer af hændelsen, så snart den findes, som på formularen — en person, der har forladt projektet, springes over — og får besked om det én gang, via dens notifikation **Hændelse oprettet**. De tilføjes af OneUptime, så API-nøglen behøver ingen tilladelse til at tilføje ejere for dem. Send `false` for selv at vælge ejerne, i `ownerUsers` og `ownerTeams`. Den afvises med en 400, når den er noget andet end `true` eller `false`, og når den er `true` uden `alertIdsToLink`.
 
 ## Knyt og frakobl via API'et
 

@@ -45,6 +45,8 @@ import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedExcept
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import {
   INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "../../../Types/Incident/IncidentAlertLink";
 import { JSONObject } from "../../../Types/JSON";
@@ -2486,5 +2488,72 @@ describe("a duplicate caught by the unique index answers like the unique-togethe
       expect(result.linkedAlertIds).toEqual([]);
       expect(result.failed).toEqual([]);
     });
+  });
+});
+
+/*
+ * #10867: whether the owners of the alerts an incident is declared from
+ * become its owners - on by default for a declaration from alerts, off when
+ * the declaration says false (the dashboard, whose Owners field holds them),
+ * and refused when it is not true or false, or true without alerts.
+ */
+describe("readCarryOverAlertOwnersForNewIncident", () => {
+  function read(value: unknown, alertIds: Array<ObjectID>): boolean {
+    return IncidentAlertService.readCarryOverAlertOwnersForNewIncident({
+      carryOverAlertOwners: value,
+      alertIds: alertIds,
+    });
+  }
+
+  test.each([
+    ["left out", undefined],
+    ["null", null],
+    ["true", true],
+  ])(
+    "%s, with alerts, carries the owners over",
+    (_label: string, value: unknown) => {
+      expect(read(value, [ALERT_ID])).toBe(true);
+      expect(read(value, [ALERT_ID, ALERT_ID_2])).toBe(true);
+    },
+  );
+
+  test("false, with alerts, carries none over", () => {
+    expect(read(false, [ALERT_ID])).toBe(false);
+  });
+
+  test.each([
+    ["left out", undefined],
+    ["null", null],
+    ["false", false],
+  ])("%s, without alerts, carries none over", (_label: string, value: unknown) => {
+    expect(read(value, [])).toBe(false);
+  });
+
+  test("true without alerts is refused, naming the key the alerts go in", () => {
+    expect(() => {
+      return read(true, []);
+    }).toThrow(BadDataException);
+    expect(() => {
+      return read(true, []);
+    }).toThrow(
+      `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} only applies when the incident is declared from alerts: send the alert ids in ${INCIDENT_ALERT_IDS_TO_LINK_KEY}.`,
+    );
+  });
+
+  test.each([
+    ["text", "true"],
+    ["an empty string", ""],
+    ["a number", 1],
+    ["zero", 0],
+    ["a list", [false]],
+    ["an object", {}],
+  ])("%s is refused, with or without alerts", (_label: string, value: unknown) => {
+    for (const alertIds of [[ALERT_ID], []]) {
+      expect(() => {
+        return read(value, alertIds);
+      }).toThrow(
+        `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} must be true or false.`,
+      );
+    }
   });
 });

@@ -66,7 +66,7 @@ Das Logo behält die Höhe des Logos von OneUptime, das es ersetzt, und ein brei
 
 ## Was Sie hinzufügen können
 
-**Frage hinzufügen** listet vier Gruppen: **Fragen** des Formulars selbst, **Vorfallfelder** oder **Felder der geplanten Wartung** dessen, was das Formular erstellt, **Benutzerdefinierte Felder** und **Einreicher**.
+**Frage hinzufügen** listet vier Gruppen: **Fragen** des Formulars selbst, **Vorfallfelder**, **Warnungsfelder** oder **Felder der geplanten Wartung** dessen, was das Formular erstellt, **Benutzerdefinierte Felder** und **Einreicher**.
 
 ### Eigene Fragen des Formulars
 
@@ -92,7 +92,7 @@ Eine Frage vom Typ **Datei** oder **Mehrere Dateien** nimmt Dateien vom Computer
 
 ### Felder dessen, was das Formular erstellt
 
-Die Felder eines Vorfalls oder eines Wartungsereignisses, die eine einreichende Person beantworten kann. Die Antwort wird zum Wert des Felds.
+Die Felder eines Vorfalls, einer Warnung oder eines Wartungsereignisses, die eine einreichende Person beantworten kann. Die Antwort wird zum Wert des Felds.
 
 | Vorfallfeld | Beantwortet mit |
 | --- | --- |
@@ -100,6 +100,15 @@ Die Felder eines Vorfalls oder eines Wartungsereignisses, die eine einreichende 
 | **Beschreibung** | Formatiertem Text, bis zu 20.000 Zeichen. |
 | **Schweregrad** | Einem Ihrer Vorfall-Schweregrade. |
 | **Monitore** | Beliebigen der Monitore, die Sie anbieten — die betroffenen Monitore des Vorfalls. |
+| **Beschriftungen** | Beliebigen der Beschriftungen, die Sie anbieten. |
+| **Beginn der Auswirkung** | Einem Datum mit Uhrzeit: wann das Problem begann, so wie die einreichende Person es in Erinnerung hat. |
+
+| Warnungsfeld | Beantwortet mit |
+| --- | --- |
+| **Titel** | Einer Zeile, bis zu 500 Zeichen. |
+| **Beschreibung** | Formatiertem Text, bis zu 20.000 Zeichen. |
+| **Schweregrad** | Einem Ihrer Warnungs-Schweregrade. |
+| **Monitor** | Einem der Monitore, die Sie anbieten — dem Monitor der Warnung. Eine Warnung betrifft genau einen Monitor. |
 | **Beschriftungen** | Beliebigen der Beschriftungen, die Sie anbieten. |
 | **Beginn der Auswirkung** | Einem Datum mit Uhrzeit: wann das Problem begann, so wie die einreichende Person es in Erinnerung hat. |
 
@@ -115,11 +124,11 @@ Die Felder eines Vorfalls oder eines Wartungsereignisses, die eine einreichende 
 
 Jedes Feld kann einmal gefragt werden; die Liste markiert die, die schon im Formular sind, mit **Hinzugefügt**. Ein Feld, das das Formular nicht fragt — oder das leer bleibt —, wird aus den [Einstellungen Beim Absenden](/docs/forms/on-submit) des Formulars gefüllt.
 
-**Angebotene Auswahl.** Eine öffentliche Seite darf Fremden nicht Ihr ganzes Projekt auflisten, daher bietet ein Feld, das durch Auswahl von Datensätzen beantwortet wird, nur die an, die Sie auswählen. **Monitore**, **Beschriftungen** und **Statusseiten** listen genau die angebotenen Auswahlen und werden erst gefragt, wenn Sie mindestens eine anbieten. **Schweregrad** bietet jeden Vorfall-Schweregrad an, solange Sie es nicht eingrenzen, denn Schweregrade sind nicht geheim. Antworten außerhalb der angebotenen Auswahl werden abgelehnt.
+**Angebotene Auswahl.** Eine öffentliche Seite darf Fremden nicht Ihr ganzes Projekt auflisten, daher bietet ein Feld, das durch Auswahl von Datensätzen beantwortet wird, nur die an, die Sie auswählen. **Monitore**, **Monitor**, **Beschriftungen** und **Statusseiten** listen genau die angebotenen Auswahlen und werden erst gefragt, wenn Sie mindestens eine anbieten. **Schweregrad** bietet jeden Vorfall-Schweregrad an, in einem Warnungsformular jeden Warnungs-Schweregrad, solange Sie es nicht eingrenzen, denn Schweregrade sind nicht geheim. Antworten außerhalb der angebotenen Auswahl werden abgelehnt.
 
 ### Benutzerdefinierte Felder
 
-Ihre benutzerdefinierten Vorfallfelder — oder, bei einem Wartungsformular, die der geplanten Wartung —, jedes eine Frage, deren Antwort zum Wert des Felds wird. Die Frage übernimmt Typ und Optionen vom benutzerdefinierten Feld und beginnt mit seinem Namen als Frage und seiner Beschreibung als Hilfetext, die Sie ändern können. Ein benutzerdefiniertes Feld vom Typ **Datei** oder **Mehrere Dateien** wird als Dateifrage gestellt, und seine Dateien kommen in das Feld.
+Ihre benutzerdefinierten Vorfallfelder — oder bei einem Warnungsformular die benutzerdefinierten Warnungsfelder und bei einem Wartungsformular die der geplanten Wartung —, jedes eine Frage, deren Antwort zum Wert des Felds wird. Die Frage übernimmt Typ und Optionen vom benutzerdefinierten Feld und beginnt mit seinem Namen als Frage und seiner Beschreibung als Hilfetext, die Sie ändern können. Ein benutzerdefiniertes Feld vom Typ **Datei** oder **Mehrere Dateien** wird als Dateifrage gestellt, und seine Dateien kommen in das Feld.
 
 Ein Formular fragt nur die benutzerdefinierten Felder, die Sie ihm hinzufügen, was auch immer **Beim Erstellen anzeigen** sagt: Jedes Feld, das ein Formular fragt, zeigt seinen Namen, seine Beschreibung und seine Optionen allen mit dem Link. Wird ein benutzerdefiniertes Feld gelöscht, bleibt seine Frage im Formular, wird aber nicht mehr gefragt, und ihre Karte sagt das — löschen Sie die Frage. Ein mit demselben Namen neu angelegtes Feld ist ein neues Feld: Fügen Sie es erneut hinzu.
 
@@ -231,6 +240,7 @@ Nach dem Einreichen sagt die Seite "Vielen Dank – Ihre Antwort wurde übermitt
 | Antwort | Grenze |
 | --- | --- |
 | Der **Titel** eines Vorfalls | 500 Zeichen, Leerzeichen an beiden Enden nicht mitgezählt. |
+| Der **Titel** einer Warnung | 500 Zeichen, Leerzeichen an beiden Enden nicht mitgezählt. |
 | Der **Titel** eines Wartungsereignisses | 100 Zeichen. |
 | **Beschreibung** | 20.000 Zeichen. |
 | Jede andere Textantwort | 10.000 Zeichen. |

@@ -66,7 +66,7 @@ Logoen beholder høyden til OneUptime-logoen den erstatter, og en bred logo tilp
 
 ## Hva du kan legge til
 
-**Legg til et spørsmål** viser fire grupper: skjemaets egne **Spørsmål**, **Hendelsesfelt** eller **Felt for planlagt vedlikehold** for det skjemaet oppretter, **Egendefinerte felt** og **Innsender**.
+**Legg til et spørsmål** viser fire grupper: skjemaets egne **Spørsmål**, **Hendelsesfelt**, **Varselfelt** eller **Felt for planlagt vedlikehold** for det skjemaet oppretter, **Egendefinerte felt** og **Innsender**.
 
 ### Skjemaets egne spørsmål
 
@@ -92,7 +92,7 @@ Et spørsmål av typen **Fil** eller **Flere filer** tar filer fra innsenderens 
 
 ### Felt på det skjemaet oppretter
 
-Feltene på en hendelse, eller på en vedlikeholdshendelse, som en innsender kan svare på. Svaret blir feltets verdi.
+Feltene på en hendelse, et varsel eller en vedlikeholdshendelse som en innsender kan svare på. Svaret blir feltets verdi.
 
 | Hendelsesfelt | Besvares med |
 | --- | --- |
@@ -100,6 +100,15 @@ Feltene på en hendelse, eller på en vedlikeholdshendelse, som en innsender kan
 | **Beskrivelse** | Formatert tekst, opptil 20 000 tegn. |
 | **Alvorlighetsgrad** | En av alvorlighetsgradene dine for hendelser. |
 | **Monitorer** | Hvilke som helst av monitorene du tilbyr — hendelsens berørte monitorer. |
+| **Etiketter** | Hvilke som helst av etikettene du tilbyr. |
+| **Påvirkning startet** | En dato og et klokkeslett: når problemet startet, slik innsenderen husker det. |
+
+| Varselfelt | Besvares med |
+| --- | --- |
+| **Tittel** | Én linje, opptil 500 tegn. |
+| **Beskrivelse** | Formatert tekst, opptil 20 000 tegn. |
+| **Alvorlighetsgrad** | En av alvorlighetsgradene dine for varsler. |
+| **Monitor** | En av monitorene du tilbyr — varselets monitor. Et varsel gjelder én monitor. |
 | **Etiketter** | Hvilke som helst av etikettene du tilbyr. |
 | **Påvirkning startet** | En dato og et klokkeslett: når problemet startet, slik innsenderen husker det. |
 
@@ -115,11 +124,11 @@ Feltene på en hendelse, eller på en vedlikeholdshendelse, som en innsender kan
 
 Hvert felt kan bare spørres om én gang; listen markerer de som allerede er på skjemaet, med **Lagt til**. Et felt skjemaet ikke spør om — eller som står tomt — fylles ut fra skjemaets [innstillinger Ved innsending](/docs/forms/on-submit).
 
-**Tilbudte valg.** En offentlig side skal ikke vise hele prosjektet ditt til fremmede, så et felt som besvares ved å velge poster, tilbyr bare de du velger. **Monitorer**, **Etiketter** og **Statussider** viser nøyaktig valgene du tilbyr, og spørres ikke om før du tilbyr minst ett. **Alvorlighetsgrad** tilbyr alle alvorlighetsgrader for hendelser med mindre du begrenser den, siden alvorlighetsgrader ikke er hemmelige. Svar utenfor de tilbudte valgene avvises.
+**Tilbudte valg.** En offentlig side skal ikke vise hele prosjektet ditt til fremmede, så et felt som besvares ved å velge poster, tilbyr bare de du velger. **Monitorer**, **Monitor**, **Etiketter** og **Statussider** viser nøyaktig valgene du tilbyr, og spørres ikke om før du tilbyr minst ett. **Alvorlighetsgrad** tilbyr alle alvorlighetsgrader for hendelser, eller alle alvorlighetsgrader for varsler i et varselskjema, med mindre du begrenser den, siden alvorlighetsgrader ikke er hemmelige. Svar utenfor de tilbudte valgene avvises.
 
 ### Egendefinerte felt
 
-Dine egendefinerte felt for hendelser — eller for planlagt vedlikehold, på et vedlikeholdsskjema — hvert et spørsmål der svaret blir feltets verdi. Spørsmålet tar typen og alternativene fra det egendefinerte feltet, og starter med navnet som spørsmål og beskrivelsen som hjelpetekst, som du kan endre. Et egendefinert felt av typen **Fil** eller **Flere filer** stilles som et filspørsmål, og filene havner i feltet.
+Dine egendefinerte felt for hendelser — eller for varsler, på et varselskjema, og for planlagt vedlikehold, på et vedlikeholdsskjema — hvert et spørsmål der svaret blir feltets verdi. Spørsmålet tar typen og alternativene fra det egendefinerte feltet, og starter med navnet som spørsmål og beskrivelsen som hjelpetekst, som du kan endre. Et egendefinert felt av typen **Fil** eller **Flere filer** stilles som et filspørsmål, og filene havner i feltet.
 
 Et skjema spør bare om de egendefinerte feltene du legger til det, uansett hva **Vis ved opprettelse** sier: hvert felt et skjema spør om, viser navnet, beskrivelsen og alternativene sine til alle med lenken. Når et egendefinert felt slettes, blir spørsmålet stående på skjemaet, men spørres ikke lenger om, og kortet sier det — slett spørsmålet. Et felt som opprettes igjen med samme navn, er et nytt felt: legg det til igjen.
 
@@ -231,6 +240,7 @@ Etter innsending sier siden "Takk — svaret ditt er sendt." og gir nummeret på
 | Svar | Grense |
 | --- | --- |
 | En hendelses **Tittel** | 500 tegn, uten å telle mellomrom i hver ende. |
+| Et varsels **Tittel** | 500 tegn, uten å telle mellomrom i hver ende. |
 | En vedlikeholdshendelses **Tittel** | 100 tegn. |
 | **Beskrivelse** | 20 000 tegn. |
 | Et hvilket som helst annet tekstsvar | 10 000 tegn. |

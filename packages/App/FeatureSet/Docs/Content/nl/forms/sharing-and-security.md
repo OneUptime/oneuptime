@@ -140,7 +140,7 @@ Elk verzoek doorloopt deze controles, in deze volgorde:
 5. Het moet van een van de privégebruikers van het formulier komen, ingelogd, als het formulier op **Alleen mensen die inloggen** staat — zie [Alleen mensen die inloggen](#alleen-mensen-die-inloggen).
 6. Een inzending moet de captcha doorstaan, als de instantie captcha heeft aanstaan.
 7. Elk antwoord moet binnen de groottelimieten blijven en bij zijn vraag passen — zie [Een formulier bouwen](/docs/forms/building#groottelimieten).
-8. Wat de antwoorden en de instellingen opleveren, moet kunnen worden aangemaakt: een incident heeft een ernstniveau nodig, een gebeurtenis een einde na het begin.
+8. Wat de antwoorden en de instellingen opleveren, moet kunnen worden aangemaakt: een incident of een waarschuwing heeft een ernstniveau nodig, een gebeurtenis een einde na het begin.
 9. Een inzending moet binnen het uurtegoed van het formulier passen — zie [Snelheidslimieten](#snelheidslimieten).
 10. De bestanden moeten binnen het uurtegoed voor bestanden van het formulier passen, vlak voordat ze worden opgeslagen.
 
@@ -244,6 +244,10 @@ Open de pagina **Aangepaste domeinen** van het formulier en lees de kolom **Stat
 Het formulier vraagt niet naar een ernstniveau, de instellingen noemen er geen — of het genoemde is verwijderd — en het incidentsjabloon stelt er ook geen in. Kies een ernstniveau op de pagina **Bij verzenden** van het formulier. Zie [Geen ernstniveau, geen incident](/docs/forms/on-submit#hoe-een-inzending-een-incident-wordt).
 :::
 
+:::details Dit formulier kan geen waarschuwing aanmaken omdat het geen ernstniveau heeft
+Het waarschuwingsformulier vraagt niet naar een ernstniveau, en de instellingen noemen er geen — of het genoemde is verwijderd. Kies een ernstniveau op de pagina **Bij verzenden** van het formulier. Zie [Hoe een inzending een waarschuwing wordt](/docs/forms/on-submit#hoe-een-inzending-een-waarschuwing-wordt).
+:::
+
 :::details Een inzending wordt geweigerd
 Het bericht zegt wat er mis is: een verplicht antwoord ontbreekt of bestaat alleen uit spaties, een antwoord is te lang of past niet bij zijn vraag, het e-mailadres is niet één gewoon adres, of een onderhoudsvenster eindigt voordat het begint. "Captcha-verificatie mislukt. Probeer het opnieuw." betekent dat de captcha niet is doorstaan, of is verlopen: los hem opnieuw op. Controleer op een zelf gehoste installatie waar elke inzending op de captcha stukloopt, of `CAPTCHA_SITE_KEY` en `CAPTCHA_SECRET_KEY` allebei zijn ingesteld.
 :::
@@ -261,7 +265,7 @@ Dat is zo bedoeld: incidenten uit een formulier worden verborgen gemeld, en onde
 :::
 
 :::details Niemand werd opgeroepen
-Het incident van een formulier voert het bereikbaarheidsbeleid uit dat de instellingen en het sjabloon noemen, en wat je bereikbaarheidsregels toevoegen, zoals bij elk ander incident. Zonder een van die wordt niemand opgeroepen. Voeg een bereikbaarheidsbeleid toe op de pagina **Bij verzenden** van het formulier, of schrijf een bereikbaarheidsregel die bij zijn incidenten past — op een label dat het formulier altijd toevoegt, bijvoorbeeld.
+Het incident van een formulier voert het bereikbaarheidsbeleid uit dat de instellingen en het sjabloon noemen, en wat je bereikbaarheidsregels toevoegen, zoals bij elk ander incident; de waarschuwing van een formulier voert het beleid uit dat de instellingen noemen, en wat je bereikbaarheidsregels voor waarschuwingen toevoegen. Zonder een van die wordt niemand opgeroepen. Een waarschuwing die in een latere status begint, zoals **Bevestigd**, roept bewust niemand op. Voeg een bereikbaarheidsbeleid toe op de pagina **Bij verzenden** van het formulier, of schrijf een bereikbaarheidsregel die bij zijn incidenten of waarschuwingen past — op een label dat het formulier altijd toevoegt, bijvoorbeeld.
 :::
 
 ## Volgende stappen

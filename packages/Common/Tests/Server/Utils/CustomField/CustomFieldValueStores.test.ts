@@ -125,7 +125,7 @@ describe("the stores of each resource's custom field values", () => {
     }
   });
 
-  test("only incident and scheduled maintenance fields can be questions of a form", () => {
+  test("only incident, alert and scheduled maintenance fields can be questions of a form", () => {
     const withForms: Array<[string, FormTargetType | null]> =
       getCustomFieldValueStores()
         .filter((store: CustomFieldValueStore): boolean => {
@@ -140,6 +140,8 @@ describe("the stores of each resource's custom field values", () => {
     expect(withForms.sort()).toEqual(
       [
         ["IncidentCustomField", FormTargetType.Incident],
+        // An alert form asks alert custom fields (#10760).
+        ["AlertCustomField", FormTargetType.Alert],
         [
           "ScheduledMaintenanceCustomField",
           FormTargetType.ScheduledMaintenance,

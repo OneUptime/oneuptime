@@ -99,7 +99,7 @@ Uma regra pode pertencer a equipes. **Equipes responsáveis**, sob **Mais campos
 
 ## Regras de incidentes
 
-**Alertas → Regras → Regras de incidentes** transforma alertas em incidentes por conta própria. A primeira regra que corresponde a um alerta novo, de cima para baixo na lista, declara um incidente a partir dele, como faria **Declarar incidente** na página do alerta, e vincula o alerta a ele.
+**Alertas → Regras → Regras de incidentes** transforma alertas em incidentes por conta própria. A primeira regra que corresponde a um alerta novo, de cima para baixo na lista, declara um incidente a partir dele, como faria **Declarar incidente** na página do alerta, e vincula o alerta a ele. O incidente começa com os proprietários do alerta como seus proprietários, que ficam sabendo dele uma vez, pela notificação **Incidente criado** do incidente.
 
 :::steps
 ### Escolher os alertas afetados
