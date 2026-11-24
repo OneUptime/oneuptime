@@ -62,11 +62,27 @@ describe("a moment's words", () => {
     ]);
 
     for (const role of MOMENT_ROLES) {
-      expect(MOMENT_PHRASES[role].time).toContain("{{time}}");
-      expect(MOMENT_PHRASES[role].time).not.toContain("{{date}}");
-      expect(MOMENT_PHRASES[role].day).toContain("{{date}}");
-      expect(MOMENT_PHRASES[role].day).toContain("{{time}}");
+      expect(MOMENT_PHRASES[role].time).toContain("{{clock}}");
+      expect(MOMENT_PHRASES[role].time).not.toContain("{{day}}");
+      expect(MOMENT_PHRASES[role].day).toContain("{{day}}");
+      expect(MOMENT_PHRASES[role].day).toContain("{{clock}}");
     }
+  });
+
+  test("the phrases' keys are theirs alone: no other place looks one up with something else in it", () => {
+    // "until {{time}}" is also an on-call shift's end, a weekday and a time in it.
+    expect(
+      MOMENT_ROLES.flatMap((role: MomentRole): Array<string> => {
+        return [MOMENT_PHRASES[role].time, MOMENT_PHRASES[role].day];
+      }),
+    ).toEqual([
+      "at {{clock}}",
+      "on {{day}} at {{clock}}",
+      "since {{clock}}",
+      "since {{day}} at {{clock}}",
+      "until {{clock}}",
+      "until {{day}} at {{clock}}",
+    ]);
   });
 
   test("a placeholder's name says the part its moment plays", () => {
@@ -82,8 +98,8 @@ describe("a moment's words", () => {
 describe("a moment goes into its sentence worded with it", () => {
   // A language that words the phrases but not the sentence, and one that words both.
   const PHRASES_ONLY: Record<string, string> = {
-    "at {{time}}": "a las {{time}}",
-    "on {{date}} at {{time}}": "el {{date}} a las {{time}}",
+    "at {{clock}}": "a las {{clock}}",
+    "on {{day}} at {{clock}}": "el {{day}} a las {{clock}}",
   };
   const SENTENCE: string = "{{address}} got through again {{time}}.";
 

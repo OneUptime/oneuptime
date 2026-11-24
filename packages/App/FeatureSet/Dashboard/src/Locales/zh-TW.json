@@ -63072,10 +63072,6 @@
   "Your logs have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.": "Your logs have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.",
   "Your own fix for this case. OneUptime follows it to its deploy, then checks the attack is turned away after it.": "Your own fix for this case. OneUptime follows it to its deploy, then checks the attack is turned away after it.",
   "Your traces have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.": "Your traces have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.",
-  "on {{date}} at {{time}}": "on {{date}} at {{time}}",
-  "since {{date}} at {{time}}": "since {{date}} at {{time}}",
-  "since {{time}}": "since {{time}}",
-  "until {{date}} at {{time}}": "until {{date}} at {{time}}",
   "{{account}} is no longer in the group {{object}} in {{provider}}.": "{{account}} is no longer in the group {{object}} in {{provider}}.",
   "{{account}} is still in the group {{object}} in {{provider}}.": "{{account}} is still in the group {{object}} in {{provider}}.",
   "{{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.": "{{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.",
@@ -63110,5 +63106,11 @@
   "{{user}}'s password was changed in {{provider}} {{time}}, and their sessions were ended {{ended}}.": "{{user}}'s password was changed in {{provider}} {{time}}, and their sessions were ended {{ended}}.",
   "{{user}}'s password was changed in {{provider}} {{time}}, but their sessions were not ended after the case opened.": "{{user}}'s password was changed in {{provider}} {{time}}, but their sessions were not ended after the case opened.",
   "{{value}} is blocked on every machine with {{destination}} {{since}}, until someone lifts it.": "{{value}} is blocked on every machine with {{destination}} {{since}}, until someone lifts it.",
-  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.": "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}."
+  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.": "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.",
+  "at {{clock}}": "at {{clock}}",
+  "on {{day}} at {{clock}}": "on {{day}} at {{clock}}",
+  "since {{clock}}": "since {{clock}}",
+  "since {{day}} at {{clock}}": "since {{day}} at {{clock}}",
+  "until {{clock}}": "until {{clock}}",
+  "until {{day}} at {{clock}}": "until {{day}} at {{clock}}"
 }

@@ -31,6 +31,11 @@ import {
  * a composed value: it is worded by the translator the sentence is worded
  * by, so an English sentence takes the English phrase.
  *
+ * The keys name their parts {{clock}} and {{day}}, so they are these
+ * phrases' alone: "until {{time}}" is also an on-call shift's end and a
+ * story's, filled with a weekday and a time, and a language words a clock
+ * time on its own differently ("fino alle 14:25", not "fino a 14:25").
+ *
  * A sentence never starts with a moment in a language whose letters have a
  * case: the phrase is worded for the middle of a sentence ("seit 14:25"),
  * and would start it without its capital (StepCheckMomentsReadRight).
@@ -69,16 +74,16 @@ export interface MomentPhraseWords {
 
 export const MOMENT_PHRASES: Record<MomentRole, MomentPhraseWords> = {
   [MomentRole.At]: {
-    time: translationKey("at {{time}}"),
-    day: translationKey("on {{date}} at {{time}}"),
+    time: translationKey("at {{clock}}"),
+    day: translationKey("on {{day}} at {{clock}}"),
   },
   [MomentRole.Since]: {
-    time: translationKey("since {{time}}"),
-    day: translationKey("since {{date}} at {{time}}"),
+    time: translationKey("since {{clock}}"),
+    day: translationKey("since {{day}} at {{clock}}"),
   },
   [MomentRole.Until]: {
-    time: translationKey("until {{time}}"),
-    day: translationKey("until {{date}} at {{time}}"),
+    time: translationKey("until {{clock}}"),
+    day: translationKey("until {{day}} at {{clock}}"),
   },
 };
 
@@ -92,11 +97,11 @@ export function wordMoment(data: {
 
   return data.moment.date
     ? data.translator.translateTemplate(words.day, {
-        date: data.moment.date,
-        time: data.moment.time,
+        day: data.moment.date,
+        clock: data.moment.time,
       })
     : data.translator.translateTemplate(words.time, {
-        time: data.moment.time,
+        clock: data.moment.time,
       });
 }
 

@@ -63072,10 +63072,6 @@
   "Your logs have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.": "Uw logboeken komen {{since}} sneller binnen dan uw ingestiesnelheid toestaat. Verzoeken daarboven zijn afgeremd, en hun afzenders proberen het opnieuw, dus sommige logboeken komen mogelijk te laat of helemaal niet aan.",
   "Your own fix for this case. OneUptime follows it to its deploy, then checks the attack is turned away after it.": "Je eigen fix voor deze zaak. OneUptime volgt hem tot aan de deploy en controleert daarna of de aanval vanaf dan wordt afgewezen.",
   "Your traces have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.": "Uw traces komen {{since}} sneller binnen dan uw ingestiesnelheid toestaat. Verzoeken daarboven zijn afgeremd, en hun afzenders proberen het opnieuw, dus sommige traces komen mogelijk te laat of helemaal niet aan.",
-  "on {{date}} at {{time}}": "op {{date}} om {{time}}",
-  "since {{date}} at {{time}}": "sinds {{date}} om {{time}}",
-  "since {{time}}": "sinds {{time}}",
-  "until {{date}} at {{time}}": "tot {{date}} om {{time}}",
   "{{account}} is no longer in the group {{object}} in {{provider}}.": "{{account}} is in {{provider}} geen lid meer van de groep {{object}}.",
   "{{account}} is still in the group {{object}} in {{provider}}.": "{{account}} is in {{provider}} nog lid van de groep {{object}}.",
   "{{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.": "{{account}} bestaat niet meer in {{provider}}, dus er is niets meer over van wat de aanval het gaf.",
@@ -63110,5 +63106,11 @@
   "{{user}}'s password was changed in {{provider}} {{time}}, and their sessions were ended {{ended}}.": "Het wachtwoord van {{user}} is {{time}} in {{provider}} gewijzigd, en de sessies zijn {{ended}} beëindigd.",
   "{{user}}'s password was changed in {{provider}} {{time}}, but their sessions were not ended after the case opened.": "Het wachtwoord van {{user}} is {{time}} in {{provider}} gewijzigd, maar de sessies zijn na het openen van de zaak niet beëindigd.",
   "{{value}} is blocked on every machine with {{destination}} {{since}}, until someone lifts it.": "{{value}} is {{since}} op elke machine geblokkeerd met {{destination}}, totdat iemand het opheft.",
-  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.": "{{value}} is {{since}} op elke machine geblokkeerd met {{destination}}, {{until}}."
+  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.": "{{value}} is {{since}} op elke machine geblokkeerd met {{destination}}, {{until}}.",
+  "at {{clock}}": "om {{clock}}",
+  "on {{day}} at {{clock}}": "op {{day}} om {{clock}}",
+  "since {{clock}}": "sinds {{clock}}",
+  "since {{day}} at {{clock}}": "sinds {{day}} om {{clock}}",
+  "until {{clock}}": "tot {{clock}}",
+  "until {{day}} at {{clock}}": "tot {{day}} om {{clock}}"
 }

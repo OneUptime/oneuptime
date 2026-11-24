@@ -63072,10 +63072,6 @@
   "Your logs have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some logs may arrive late or not at all.": "I tuoi log arrivano {{since}} più velocemente di quanto consenta la tua velocità di acquisizione. Le richieste oltre il limite sono state limitate, e i loro mittenti riprovano, quindi alcuni log potrebbero arrivare in ritardo o mai.",
   "Your own fix for this case. OneUptime follows it to its deploy, then checks the attack is turned away after it.": "La tua correzione per questo caso. OneUptime la segue fino al suo deploy, poi controlla che da allora l'attacco venga respinto.",
   "Your traces have come in faster than your ingestion rate {{since}}. Requests over it were throttled, and their senders retry, so some traces may arrive late or not at all.": "Le tue tracce arrivano {{since}} più velocemente di quanto consenta la tua velocità di acquisizione. Le richieste oltre il limite sono state limitate, e i loro mittenti riprovano, quindi alcune tracce potrebbero arrivare in ritardo o mai.",
-  "on {{date}} at {{time}}": "il {{date}} alle {{time}}",
-  "since {{date}} at {{time}}": "dal {{date}} alle {{time}}",
-  "since {{time}}": "dalle {{time}}",
-  "until {{date}} at {{time}}": "fino al {{date}} alle {{time}}",
   "{{account}} is no longer in the group {{object}} in {{provider}}.": "{{account}} non fa più parte del gruppo {{object}} in {{provider}}.",
   "{{account}} is still in the group {{object}} in {{provider}}.": "{{account}} fa ancora parte del gruppo {{object}} in {{provider}}.",
   "{{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.": "{{account}} non esiste più in {{provider}}, quindi non resta nulla di ciò che l'attacco gli ha dato.",
@@ -63110,5 +63106,11 @@
   "{{user}}'s password was changed in {{provider}} {{time}}, and their sessions were ended {{ended}}.": "La password di {{user}} è stata cambiata in {{provider}} {{time}} e le sue sessioni sono state terminate {{ended}}.",
   "{{user}}'s password was changed in {{provider}} {{time}}, but their sessions were not ended after the case opened.": "La password di {{user}} è stata cambiata in {{provider}} {{time}}, ma le sue sessioni non sono state terminate dopo l'apertura del caso.",
   "{{value}} is blocked on every machine with {{destination}} {{since}}, until someone lifts it.": "{{value}} è bloccato su ogni macchina con {{destination}} {{since}}, finché qualcuno non lo revoca.",
-  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.": "{{value}} è bloccato su ogni macchina con {{destination}} {{since}}, {{until}}."
+  "{{value}} is blocked on every machine with {{destination}} {{since}}, {{until}}.": "{{value}} è bloccato su ogni macchina con {{destination}} {{since}}, {{until}}.",
+  "at {{clock}}": "alle {{clock}}",
+  "on {{day}} at {{clock}}": "il {{day}} alle {{clock}}",
+  "since {{clock}}": "dalle {{clock}}",
+  "since {{day}} at {{clock}}": "dal {{day}} alle {{clock}}",
+  "until {{clock}}": "fino alle {{clock}}",
+  "until {{day}} at {{clock}}": "fino al {{day}} alle {{clock}}"
 }
