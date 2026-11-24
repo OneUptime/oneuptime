@@ -2308,6 +2308,14 @@ detection:
     /*
      * OpenStack's audit trail (OpenStackAuditLogParser), as a project's logs bring it in.
      * Each rule reads what that parser keeps, and it keeps an allowlist.
+     *
+     * A rule that counts per address counts per principalIp (#10773), never
+     * the parser's own openstack.audit.initiator_address: the log scan names
+     * the address behind a Hash rule's token in principalIp (AddressVault),
+     * while the parser's attribute holds real addresses only, on purpose -
+     * so a sign-in whose address a Hash rule hid counts toward its real
+     * address, and one a Redact or Mask rule hid toward none, never toward
+     * one "[REDACTED]" every hidden sign-in shares (#10415).
      */
     {
       id: "6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10",
@@ -2318,7 +2326,7 @@ detection:
       dataSource: "OpenStack audit trail",
       dataKind: DetectionRuleDataKind.OpenStackAuditTrail,
       evaluationIntervalInMinutes: 5,
-      groupByField: "openstack.audit.initiator_address",
+      groupByField: "principalIp",
       matchCountThreshold: 10,
       sigmaRuleYaml: `title: OpenStack failed logins burst
 id: 6e7a4f92-2d3b-4b31-9a55-1f0c8e7d4a10
@@ -2387,7 +2395,7 @@ correlation:
     - principalUser
   timespan: 30d
   condition:
-    field: openstack.audit.initiator_address
+    field: principalIp
 ---
 title: OpenStack admin account used
 name: openstack_admin_used
