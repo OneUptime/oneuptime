@@ -31,6 +31,11 @@ import {
 import { getStoreViewRoute } from "../../../Components/DataSecurity/IssueListRoute";
 import IssueAiAnalysisCard from "../../../Components/DataSecurity/IssueAiAnalysisCard";
 import IssueCodeFix from "../../../Components/DataSecurity/IssueCodeFix";
+import IssueLinkedPullRequests, {
+  LinkIssuePullRequestModal,
+} from "../../../Components/DataSecurity/IssueLinkedPullRequests";
+import { LINK_PULL_REQUEST } from "../../../Components/DataSecurity/IssueLinkedPullRequestsCopy";
+import { canLinkIssuePullRequest } from "../../../Components/DataSecurity/IssueLinkedPullRequestsModel";
 import {
   AcceptIssueRiskModal,
   AssignIssueModal,
@@ -58,6 +63,7 @@ import DataSecurityIssueViewContext, {
   useDataSecurityIssueView,
 } from "./IssueViewContext";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
@@ -156,6 +162,8 @@ type IssueDialog =
   | "notAnIssue"
   // Fix with AI's plan for a service's telemetry leaks (#10367).
   | "telemetryFix"
+  // A person's own pull request, linked as the issue's fix (#10831).
+  | "linkPullRequest"
   | null;
 
 // Why Fix with AI started nothing, in the server's words.
@@ -503,6 +511,31 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
 
     if (fixButton) {
       fixButtons.push(fixButton);
+    }
+  }
+
+  /*
+   * Fixed it in a pull request of your own: link it, and OneUptime follows
+   * it to production as it follows OneUptime AI's (#10831). Offered on an
+   * open or a resolved issue, to who may change the issue.
+   */
+  if (canLinkIssuePullRequest({ status: issue.status, isAllowed: true })) {
+    const linkButton: CardButtonSchema | null = PermissionGate.gateCardButton(
+      {
+        title: LINK_PULL_REQUEST,
+        icon: IconProp.Link,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          setDialog("linkPullRequest");
+        },
+      },
+      new DataSecurityIssuePullRequest(),
+      ModelAction.Create,
+      { sentence: ISSUE_MOVES_LOCKED },
+    );
+
+    if (linkButton) {
+      fixButtons.push(linkButton);
     }
   }
 
@@ -960,6 +993,14 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
             issueId={view.issueId}
             refreshToggle={view.refreshToggle}
           />
+          {/* The pull requests people linked as its fix, followed to production (#10831). */}
+          <IssueLinkedPullRequests
+            issueId={view.issueId}
+            refreshToggle={view.refreshToggle}
+            onChanged={() => {
+              view.refresh();
+            }}
+          />
           {issue.status === DataSecurityIssueStatus.Open && storeId ? (
             <IssueResponseAction
               issueId={view.issueId}
@@ -1073,6 +1114,21 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
             Toast.success(
               translator.translateText(result.message) || result.message,
             );
+            view.refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dialog === "linkPullRequest" ? (
+        <LinkIssuePullRequestModal
+          issueId={view.issueId}
+          onClose={() => {
+            setDialog(null);
+          }}
+          onLinked={() => {
+            setDialog(null);
             view.refresh();
           }}
         />

@@ -1,4 +1,5 @@
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import DataSecurityIssuePullRequest from "../../../../Models/DatabaseModels/DataSecurityIssuePullRequest";
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
 import { DataSecurityIssueFeedEventType } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
@@ -37,6 +38,7 @@ import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRule
 import ObjectID from "../../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
+import DataSecurityIssuePullRequestService from "../../../Services/DataSecurityIssuePullRequestService";
 import DataSecurityIssueService from "../../../Services/DataSecurityIssueService";
 import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import DataStoreService from "../../../Services/DataStoreService";
@@ -72,6 +74,7 @@ import {
   watchedMilliseconds,
 } from "./FixProductionVerdict";
 import FixProductionVerifier, {
+  FollowedFix,
   RUN_TIME_BUDGET_MS,
   ShippedFix,
   VerifierRun,
@@ -149,7 +152,7 @@ export interface SourceVersion {
 
 export default class TelemetryLeakFixWatch {
   public static async verify(
-    fix: AIAgentTaskPullRequest,
+    fix: FollowedFix,
     run: VerifierRun,
   ): Promise<void> {
     const mergedAt: Date = FixProductionVerifier.mergedAtOf(fix, run);
@@ -157,9 +160,9 @@ export default class TelemetryLeakFixWatch {
       fix.productionBaseline?.telemetryLeak;
 
     if (!baseline) {
-      const target: DataSecurityFixTargetRead | null = fix.aiRunId
-        ? await DataSecurityFixTarget.read(fix.aiRunId)
-        : null;
+      // OneUptime AI's fix's task, or the issue a person linked their own fix to (#10831).
+      const target: DataSecurityFixTargetRead | null =
+        await DataSecurityFixTarget.readOfFix(fix);
 
       if (!target) {
         await FixProductionVerifier.settle(fix, run, {
@@ -304,7 +307,7 @@ export default class TelemetryLeakFixWatch {
    * verdict instead when nothing can tell.
    */
   public static async readBaseline(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     target: DataSecurityFixTargetRead;
     mergedAt: Date;
     now: Date;
@@ -412,7 +415,7 @@ export default class TelemetryLeakFixWatch {
     return {
       serviceId,
       stores: watchedStores,
-      taskId: data.target.taskId.toString(),
+      ...(data.target.taskId ? { taskId: data.target.taskId.toString() } : {}),
       valuesChangedBefore: changedBefore.valuesChanged,
       from: from.toISOString(),
       to: data.mergedAt.toISOString(),
@@ -720,7 +723,7 @@ export default class TelemetryLeakFixWatch {
    * the service's spans and logs name, as it always was.
    */
   public static async measure(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     baseline: TelemetryLeakFixBaseline;
     shipped: ShippedFix;
     now: Date;
@@ -981,7 +984,7 @@ export default class TelemetryLeakFixWatch {
    * the pull request, the version and the rules kept.
    */
   public static async markFixed(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     baseline: TelemetryLeakFixBaseline;
     shipped: ShippedFix;
     verifiedAt: Date;
@@ -1063,7 +1066,7 @@ export default class TelemetryLeakFixWatch {
 
   // The deploy that ships the fix is found: the issues say it is being watched.
   private static async noteShipped(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     baseline: TelemetryLeakFixBaseline;
     shipped: ShippedFix;
   }): Promise<void> {
@@ -1083,7 +1086,7 @@ export default class TelemetryLeakFixWatch {
 
   // The fix did not stop it, or nothing could tell: the issues say so.
   private static async noteVerdict(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     baseline: TelemetryLeakFixBaseline;
     verdict: FixProductionVerdict;
   }): Promise<void> {
@@ -1117,23 +1120,44 @@ export default class TelemetryLeakFixWatch {
    * Never throws for one fix.
    */
   public static async watchVerifiedFixes(run: VerifierRun): Promise<void> {
-    let fixes: Array<AIAgentTaskPullRequest> = [];
+    let fixes: Array<FollowedFix> = [];
+    const query: never = {
+      productionCheck: FixProductionCheck.TelemetryLeak,
+      productionStatus: FixProductionStatus.Verified,
+    } as never;
 
     try {
-      fixes = await AIAgentTaskPullRequestService.findBy({
-        query: {
-          productionCheck: FixProductionCheck.TelemetryLeak,
-          productionStatus: FixProductionStatus.Verified,
-        } as never,
-        select: {
-          _id: true,
-          projectId: true,
-          productionBaseline: true,
-        } as never,
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: ROOT,
-      });
+      // OneUptime AI's fixes, and the ones people linked to issues (#10831).
+      const [aiFixes, linkedFixes]: [
+        Array<AIAgentTaskPullRequest>,
+        Array<DataSecurityIssuePullRequest>,
+      ] = await Promise.all([
+        AIAgentTaskPullRequestService.findBy({
+          query,
+          select: {
+            _id: true,
+            projectId: true,
+            productionBaseline: true,
+          } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+        DataSecurityIssuePullRequestService.findBy({
+          query,
+          select: {
+            _id: true,
+            projectId: true,
+            dataSecurityIssueId: true,
+            productionBaseline: true,
+          } as never,
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: ROOT,
+        }),
+      ]);
+
+      fixes = [...aiFixes, ...linkedFixes];
     } catch (error) {
       logger.error(
         `Fix verification: could not read the verified telemetry leak fixes to watch: ${error}`,
@@ -1160,7 +1184,7 @@ export default class TelemetryLeakFixWatch {
   }
 
   public static async watchVerifiedFix(
-    fix: AIAgentTaskPullRequest,
+    fix: FollowedFix,
     run: VerifierRun,
   ): Promise<void> {
     const baseline: TelemetryLeakFixBaseline | undefined =

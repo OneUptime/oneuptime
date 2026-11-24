@@ -1186,6 +1186,7 @@ import { AddDataStoreFindingAiScrubRules1809187570752 } from "./1809187570752-Ad
 import { AddDataSecurityIssueCodeFixTask1809187580367 } from "./1809187580367-AddDataSecurityIssueCodeFixTask";
 import { AddDataSecurityIssueCodeFixTaskIndex1809187580377 } from "./1809187580377-AddDataSecurityIssueCodeFixTaskIndex";
 import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
+import { AddDataSecurityIssuePullRequest1809187600831 } from "./1809187600831-AddDataSecurityIssuePullRequest";
 
 export default [
   InitialMigration,
@@ -2376,4 +2377,5 @@ export default [
   AddDataSecurityIssueCodeFixTask1809187580367,
   AddDataSecurityIssueCodeFixTaskIndex1809187580377,
   AddSecurityCaseExposureAssessment1809187590377,
+  AddDataSecurityIssuePullRequest1809187600831,
 ];
