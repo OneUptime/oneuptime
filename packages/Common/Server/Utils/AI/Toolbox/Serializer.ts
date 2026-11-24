@@ -1,5 +1,13 @@
 import { JSONObject, JSONValue } from "../../../../Types/JSON";
+import { scrubRegExpFromBuiltIn } from "../../../../Types/Telemetry/ScrubRule";
 import PromptText from "../../../../Utils/AI/PromptText";
+import { EMAIL_ADDRESS_DETECTORS } from "../../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import {
+  findDetectorRanges,
+  findInEveryReading,
+  mergeRanges,
+  TextRange,
+} from "../../../../Utils/DataSecurity/TextReadings";
 import { replacePrivateKeyBlocks } from "../../../../Utils/PrivateKeyBlocks";
 import ScrubIpAddress, {
   ScrubIpAddressRange,
@@ -93,8 +101,15 @@ const redactIpAddresses: (
   text: string,
   placeholder: string,
 ): { text: string; count: number } => {
-  const ranges: Array<ScrubIpAddressRange> = ScrubIpAddress.findRanges(text);
+  return replaceRanges(text, ScrubIpAddress.findRanges(text), placeholder);
+};
 
+// Each range of a text written over with the placeholder, and how many.
+function replaceRanges(
+  text: string,
+  ranges: ReadonlyArray<ScrubIpAddressRange>,
+  placeholder: string,
+): { text: string; count: number } {
   if (ranges.length === 0) {
     return { text, count: 0 };
   }
@@ -110,6 +125,107 @@ const redactIpAddresses: (
   parts.push(text.slice(at));
 
   return { text: parts.join(""), count: ranges.length };
+}
+
+/*
+ * THE EMAIL ADDRESSES A MODEL IS NEVER SHOWN.
+ *
+ * Each part of an address is length-bounded to the sizes RFC 5321 allows
+ * (local part 64, domain 253, final label 63), so scanning a long tool
+ * result for addresses stays in line with its length. The local part
+ * starts with a letter, a digit, "_", "%" or "+": a lone "-" or "." before
+ * an "@" is the search syntax's excluded attribute (`-@http.route:/health`,
+ * a request SLO's filter), not an address. An address after a dash is
+ * still found, from its first letter on: "-alice@example.com" reads
+ * "-[redacted-email]".
+ *
+ * Read as Data Security reads an address, so a model is shown none it calls
+ * one: in a percent-encoded URL too, its escapes read
+ * (jane.doe%40acmecorp.io, #10935), and in any script (张伟@acmecorp.io,
+ * почта@пример.рф, #10960), as the email detectors find it - each hidden
+ * as written, and the rest of the URL kept. An address written in ASCII
+ * alone is this pattern's, so the search syntax keeps its "-@".
+ */
+const SERIALIZER_EMAIL_PATTERN: RegExp =
+  /[A-Za-z0-9_%+][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g;
+
+// Whether a text holds a character beyond ASCII: what an address the email detectors alone find holds.
+function holdsCharacterBeyondAscii(text: string): boolean {
+  for (let index: number = 0; index < text.length; index++) {
+    if (text.charCodeAt(index) > 0x7f) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const redactEmailAddresses: (
+  text: string,
+  placeholder: string,
+) => { text: string; count: number } = (
+  text: string,
+  placeholder: string,
+): { text: string; count: number } => {
+  if (text.indexOf("@") === -1 && text.indexOf("%") === -1) {
+    return { text, count: 0 };
+  }
+
+  const inScripts: Array<TextRange> = findDetectorRanges(
+    EMAIL_ADDRESS_DETECTORS,
+    text,
+  ).filter(([start, end]: TextRange): boolean => {
+    return holdsCharacterBeyondAscii(text.slice(start, end));
+  });
+
+  return replaceRanges(
+    text,
+    mergeRanges([
+      ...findInEveryReading({
+        text,
+        needs: { readsPercentEncoded: true },
+        findIn: (reading: string): Array<TextRange> => {
+          return scrubRegExpFromBuiltIn(SERIALIZER_EMAIL_PATTERN).matchRanges(
+            reading,
+          );
+        },
+      }),
+      ...inScripts,
+    ]),
+    placeholder,
+  );
+};
+
+/*
+ * Payment card numbers in the classic space/dash-separated grouping
+ * (e.g. "4111 1111 1111 1111"). Deliberately NOT matching bare 16-digit
+ * runs: an all-numeric 16-char OTel span id would collide with those and
+ * break the search_logs → get_trace pivot. In any script's digits too, each
+ * read by its value, as Data Security reads a card (#10960): ４１１１ １１１１
+ * １１１１ １１１１ is hidden as written.
+ */
+const SERIALIZER_CARD_PATTERN: RegExp = /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g;
+
+const redactCardNumbers: (
+  text: string,
+  placeholder: string,
+) => { text: string; count: number } = (
+  text: string,
+  placeholder: string,
+): { text: string; count: number } => {
+  return replaceRanges(
+    text,
+    findInEveryReading({
+      text,
+      needs: { readsDigitsOfEveryScript: true },
+      findIn: (reading: string): Array<TextRange> => {
+        return scrubRegExpFromBuiltIn(SERIALIZER_CARD_PATTERN).matchRanges(
+          reading,
+        );
+      },
+    }),
+    placeholder,
+  );
 };
 
 /*
@@ -181,22 +297,10 @@ const REDACTION_RULES: Array<RedactionRule> = [
     replacement: "[redacted-google-api-key]",
   },
   {
-    /*
-     * Each part of the address is length-bounded to the sizes RFC 5321 allows
-     * (local part 64, domain 253, final label 63), so scanning a long tool
-     * result for addresses stays in line with its length.
-     *
-     * The local part starts with a letter, a digit, "_", "%" or "+": a lone
-     * "-" or "." before an "@" is the search syntax's excluded attribute
-     * (`-@http.route:/health`, a request SLO's filter), not an address. An
-     * address after a dash is still found, from its first letter on:
-     * "-alice@example.com" reads "-[redacted-email]".
-     */
+    // Every address Data Security calls one, encoded or in any script: see redactEmailAddresses.
     name: "email",
     placeholder: "[redacted-email]",
-    regex:
-      /[A-Za-z0-9_%+][A-Za-z0-9._%+-]{0,63}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,63}/g,
-    replacement: "[redacted-email]",
+    redact: redactEmailAddresses,
   },
   {
     // IPv4 and IPv6, as an IP Address scrub rule finds them: see redactIpAddresses.
@@ -205,16 +309,10 @@ const REDACTION_RULES: Array<RedactionRule> = [
     redact: redactIpAddresses,
   },
   {
-    /*
-     * Payment card numbers in the classic space/dash-separated grouping
-     * (e.g. "4111 1111 1111 1111"). Deliberately NOT matching bare 16-digit
-     * runs: an all-numeric 16-char OTel span id would collide with those and
-     * break the search_logs → get_trace pivot.
-     */
+    // Grouped card numbers, in any script's digits: see redactCardNumbers.
     name: "credit-card",
     placeholder: "[redacted-card]",
-    regex: /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g,
-    replacement: "[redacted-card]",
+    redact: redactCardNumbers,
   },
   {
     /*

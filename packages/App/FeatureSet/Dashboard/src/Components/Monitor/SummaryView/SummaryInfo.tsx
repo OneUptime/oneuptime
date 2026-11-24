@@ -1,4 +1,5 @@
 import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
+import ObjectID from "Common/Types/ObjectID";
 import IncomingRequestMonitorView from "./IncomingRequestMonitorSummaryView";
 import IncomingEmailMonitorSummaryView from "./IncomingEmailMonitorSummaryView";
 import PingMonitorView from "./PingMonitorView";
@@ -74,6 +75,12 @@ export interface ComponentProps {
    * hold requests kept before copies were cut, so they leave it out.
    */
   areIncomingRequestSecretsMasked?: boolean | undefined;
+  /*
+   * The monitor the summary is of, where the page knows it: its
+   * evaluation's warnings link to the monitor's incidents and alerts
+   * (EvaluationLogList).
+   */
+  monitorId?: ObjectID | undefined;
 }
 
 const SummaryInfo: FunctionComponent<ComponentProps> = (
@@ -258,7 +265,12 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
-    return <EvaluationLogList evaluationSummary={summary} />;
+    return (
+      <EvaluationLogList
+        evaluationSummary={summary}
+        monitorId={props.monitorId}
+      />
+    );
   };
 
   const probableMonitorEvaluationSummary: MonitorEvaluationSummary | undefined =

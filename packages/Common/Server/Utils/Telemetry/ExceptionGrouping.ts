@@ -4,6 +4,7 @@ import StackTraceParser, {
 } from "./StackTraceParser";
 import {
   foldSeparatedNumbers,
+  foldSeparatedNumbersV4,
   normalizeExceptionText,
 } from "./ExceptionSanitizer";
 import {
@@ -60,12 +61,24 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  * getOccurrenceFingerprints), so nothing splits or merges: the values seen
  * before keep landing where they always did, and the values seen since go
  * to one exception.
+ *
+ * GROUPING V4 (#10898) is v3, with the message folded further
+ * (foldSeparatedNumbersV4): international phone numbers ("call +44 20 7946
+ * 0958 failed"), 15-digit American Express cards written 4-6-5 and 19-digit
+ * cards are taken out too. It reads v3's folded message, so whatever v3
+ * groups as one, v4 groups as one. For an exception grouped by its frames
+ * its key, text and fingerprint are v2's, as v3's are. New exceptions are
+ * grouped by v4, and v4's fingerprints are tried after v3's: an exception
+ * made before keeps the fingerprint it was made under, and the values it was
+ * made for keep landing on it.
  */
 
 // The version of grouping v2's text.
 export const EXCEPTION_GROUPING_VERSION: number = 2;
 // And of grouping v3's, where it differs from v2's.
 export const EXCEPTION_GROUPING_V3_VERSION: number = 3;
+// And of grouping v4's, where it differs from v2's.
+export const EXCEPTION_GROUPING_V4_VERSION: number = 4;
 
 // How much of a stack trace and of a message is read.
 export const MAX_GROUPING_STACK_TRACE_LENGTH: number = 64 * 1024;
@@ -540,11 +553,33 @@ export function getExceptionGroupingKeyV3(
 }
 
 /*
- * The text a v2 (or v3) fingerprint hashes: the version, the exception's
+ * The grouping v4 key of an exception, from its grouping v3 key: the same,
+ * but for a message that holds an international phone number, a 15-digit
+ * American Express card or a 19-digit card, which are taken out of what v3
+ * left of it (see the header). An exception grouped by its frames keeps v3's
+ * key, which is v2's.
+ */
+export function getExceptionGroupingKeyV4(
+  keyV3: ExceptionGroupingKey,
+): ExceptionGroupingKey {
+  if (keyV3.basis !== ExceptionGroupingBasis.Message) {
+    return keyV3;
+  }
+
+  // Every message names v4, as every message names v3 (see above).
+  return {
+    ...keyV3,
+    parts: [foldSeparatedNumbersV4(keyV3.parts[0] || "")],
+    version: EXCEPTION_GROUPING_V4_VERSION,
+  };
+}
+
+/*
+ * The text a v2 (v3, v4) fingerprint hashes: the version, the exception's
  * service and project (a fingerprint is unique per service, as v1's), the
  * type, the basis and the parts, one per line. The version keeps a v2
- * fingerprint from ever equalling a v1 one, and a v3 one from ever equalling
- * a v2 one.
+ * fingerprint from ever equalling a v1 one, a v3 one from ever equalling a
+ * v2 one, and a v4 one from ever equalling a v3 one.
  */
 export function getExceptionGroupingText(data: {
   projectId: string;

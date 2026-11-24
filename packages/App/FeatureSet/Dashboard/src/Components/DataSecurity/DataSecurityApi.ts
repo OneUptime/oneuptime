@@ -19,6 +19,7 @@ import {
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
+  DataSecurityExposureAssessmentResponse,
   DataSecurityIssueAnalysisResult,
   DataSecurityIssueContainment,
   DataSecurityIssueContainmentRule,
@@ -26,6 +27,11 @@ import {
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
+  DataSecurityIssueCodeFixJSON,
+  DataSecurityIssueCodeFixResult,
+  DataSecuritySecretSighting,
+  DataSecurityTelemetryFixPlanJSON,
+  DataSecurityTelemetryFixPlanResult,
   DataSecurityOverview,
   DataSecurityDeclaredStoreResponse,
   DataSecurityAuditEvidenceResponse,
@@ -64,8 +70,18 @@ import {
   DataSecurityIssueGroupFixResultJSON,
 } from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  readTelemetryLeakFixIssue,
+  readTelemetryLeakFixLeak,
+  readTelemetryLeakList,
+  readTelemetryLeakTexts,
+  TelemetryLeakFixIssue,
+  TelemetryLeakFixLeak,
+} from "Common/Types/DataSecurity/TelemetryLeakFix";
 import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
 import { ImpactAssessmentPart } from "Common/Types/DataSecurity/ImpactAssessment";
+import { ExposureDraftPart } from "Common/Types/DataSecurity/ExposureAssessment";
+import { BreachPlace } from "Common/Types/DataSecurity/BreachLaws";
 import {
   RecordField,
   RecordFieldAction,
@@ -419,6 +435,66 @@ export default class DataSecurityApi {
       ),
       { part: data.part, markdown: data.markdown },
     )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  /*
+   * A security case's exposure assessment (#10377): what plain code works
+   * out of the store it is about, and OneUptime AI's write-up. Nothing
+   * any of these does sends anything anywhere.
+   */
+  public static async getExposureAssessment(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposureAssessment(securityCaseId.toString()),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // ...started by a person: of the store they pick, when the case is about more than one.
+  public static async assessExposure(data: {
+    securityCaseId: ObjectID;
+    dataStoreId?: string | undefined;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.assessExposure(data.securityCaseId.toString()),
+      data.dataStoreId ? { dataStoreId: data.dataStoreId } : {},
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  public static async draftExposureAssessment(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment(
+        securityCaseId.toString(),
+      ),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  public static async editExposureAssessment(data: {
+    securityCaseId: ObjectID;
+    part: ExposureDraftPart;
+    markdown: string;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(
+        data.securityCaseId.toString(),
+      ),
+      { part: data.part, markdown: data.markdown },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // Where the people the data is about live; none takes the answer back.
+  public static async setExposurePeoplePlaces(data: {
+    securityCaseId: ObjectID;
+    places: Array<BreachPlace>;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(
+        data.securityCaseId.toString(),
+      ),
+      { places: data.places },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
   }
 
   // A framework's audit evidence over a period (#10375).
@@ -960,14 +1036,70 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityAiInputResponse;
   }
 
+  /*
+   * Fix with AI on an issue. For a service's telemetry issue (#10367) it
+   * names the plan the person was shown, and a plan that changed since
+   * starts nothing and comes back to show again.
+   */
   public static async fixIssueWithAi(
     issueId: ObjectID,
     codeRepositoryId?: ObjectID | undefined,
+    expectedPlanFingerprint?: string | undefined,
   ): Promise<DataSecurityFixResult> {
     return (await post(
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId.toString()),
-      codeRepositoryId ? { codeRepositoryId: codeRepositoryId.toString() } : {},
+      {
+        ...(codeRepositoryId
+          ? { codeRepositoryId: codeRepositoryId.toString() }
+          : {}),
+        ...(expectedPlanFingerprint ? { expectedPlanFingerprint } : {}),
+      },
     )) as unknown as DataSecurityFixResult;
+  }
+
+  /*
+   * What Fix with AI on a telemetry issue would do now (#10367): one pull
+   * request for every open leak of the issue's service, with where each is
+   * written and the files OneUptime AI starts from - or why there is none.
+   */
+  public static async getIssueFixPlan(
+    issueId: ObjectID,
+  ): Promise<DataSecurityTelemetryFixPlanResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(issueId.toString()),
+    );
+
+    return {
+      plan: readTelemetryFixPlan(answer["plan"]),
+      ...(typeof answer["message"] === "string"
+        ? { message: answer["message"] }
+        : {}),
+    };
+  }
+
+  /*
+   * Where the issue's fix in code stands, for the reader (#10367): its
+   * pull request and its state - and for a secret, where it was seen.
+   */
+  public static async getIssueCodeFix(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueCodeFixResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueCodeFix(issueId.toString()),
+    );
+    const fix: unknown = answer["fix"];
+
+    return {
+      fix:
+        fix && typeof fix === "object" && !Array.isArray(fix)
+          ? (fix as unknown as DataSecurityIssueCodeFixJSON)
+          : null,
+      secretSightings: Array.isArray(answer["secretSightings"])
+        ? (answer[
+            "secretSightings"
+          ] as unknown as Array<DataSecuritySecretSighting>)
+        : [],
+    };
   }
 
   /*
@@ -1036,4 +1168,47 @@ export default class DataSecurityApi {
         : {}),
     })) as unknown as DataSecurityIssueGroupFixResultJSON;
   }
+}
+
+/*
+ * A telemetry fix's plan as the server sent it (#10367), read defensively:
+ * its leaks and issues each read whole, or left out - null for none.
+ */
+export function readTelemetryFixPlan(
+  value: unknown,
+): DataSecurityTelemetryFixPlanJSON | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const plan: DataSecurityTelemetryFixPlanJSON =
+    value as unknown as DataSecurityTelemetryFixPlanJSON;
+  const leaks: Array<TelemetryLeakFixLeak> = readTelemetryLeakList(
+    plan.leaks,
+    readTelemetryLeakFixLeak,
+    100,
+  );
+  const issues: Array<TelemetryLeakFixIssue> = readTelemetryLeakList(
+    plan.issues,
+    readTelemetryLeakFixIssue,
+    100,
+  );
+
+  if (typeof plan.fingerprint !== "string" || leaks.length === 0) {
+    return null;
+  }
+
+  return {
+    ...plan,
+    leaks,
+    issues,
+    startFiles: readTelemetryLeakTexts(plan.startFiles, 20, 500),
+    redactionKeys: readTelemetryLeakTexts(plan.redactionKeys, 100, 500),
+    redactionDataTypes: readTelemetryLeakTexts(
+      plan.redactionDataTypes,
+      100,
+      200,
+    ),
+    repositories: Array.isArray(plan.repositories) ? plan.repositories : [],
+  };
 }

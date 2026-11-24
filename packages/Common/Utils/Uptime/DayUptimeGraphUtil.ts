@@ -46,9 +46,70 @@ export interface UptimeGraphDay {
   endOfDay: Date;
 }
 
+// What a day lists of an event: which one it is, and when it began.
+export interface DayEvent {
+  id: string;
+  declaredAt: Date | string;
+}
+
 export default class DayUptimeGraphUtil {
   /* How far PageUp / PageDown jump. A week reads naturally on a daily strip. */
   public static readonly PageJumpInDays: number = 7;
+
+  /*
+   * The events a day lists: those declared in it - inclusive at both ends,
+   * as endOfDay is the next day's start less a millisecond, so every instant
+   * is in exactly one day - each once, in the order they came.
+   *
+   * Once: on a page that shows episodes but not incidents, a day lists the
+   * episode each incident of it belongs to (Utils/StatusPage/
+   * TimelineEpisodes), and an episode with two incidents that day is one
+   * event of it, drawn at its earliest. An event without an id is never
+   * taken for another.
+   */
+  public static getEventsOfDay<T extends DayEvent>(data: {
+    events: ReadonlyArray<T>;
+    startOfDay: Date;
+    endOfDay: Date;
+  }): Array<T> {
+    const dayStartTime: number = data.startOfDay.getTime();
+    const dayEndTime: number = data.endOfDay.getTime();
+
+    const listed: Array<T> = [];
+    const indexById: Map<string, number> = new Map();
+
+    for (const event of data.events) {
+      const declaredAt: number = OneUptimeDate.fromString(
+        event.declaredAt,
+      ).getTime();
+
+      if (declaredAt < dayStartTime || declaredAt > dayEndTime) {
+        continue;
+      }
+
+      const id: string = (event.id || "").toString();
+      const index: number | undefined = id ? indexById.get(id) : undefined;
+
+      if (index === undefined) {
+        if (id) {
+          indexById.set(id, listed.length);
+        }
+
+        listed.push(event);
+        continue;
+      }
+
+      const listedAt: number = OneUptimeDate.fromString(
+        listed[index]!.declaredAt,
+      ).getTime();
+
+      if (declaredAt < listedAt) {
+        listed[index] = event;
+      }
+    }
+
+    return listed;
+  }
 
   /*
    * Where focus goes for a key pressed on the bar at `currentIndex`, or null

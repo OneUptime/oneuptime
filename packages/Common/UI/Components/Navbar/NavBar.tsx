@@ -160,14 +160,13 @@ export interface ComponentProps {
   disableCommandKShortcut?: boolean | undefined;
   /*
    * Rows of the phone's menu (below 768px, PHONE_MENU_BELOW_WIDTH_IN_PX,
-   * where the products dialog never opens): drawn first, above Home, and
-   * last, after User Settings. The Dashboard puts its Search and Help there,
-   * which its header has no room for on a phone (#6816) and draws itself
-   * from 768px up (#7037). Each is handed the function that closes the
-   * menu, for when it opens something.
+   * where the products dialog never opens), drawn first, above Home. The
+   * Dashboard puts its Search and then its Help there, which its header has
+   * no room for on a phone (#6816) and draws itself from 768px up (#7037):
+   * Help was drawn last, under every product, until #7473. They are handed
+   * the function that closes the menu, for when they open something.
    */
   mobileMenuTop?: ((closeMenu: () => void) => ReactElement) | undefined;
-  mobileMenuBottom?: ((closeMenu: () => void) => ReactElement) | undefined;
   /*
    * The products the project hides (#6814): left out of the menu's
    * categories and its Recently visited row, and listed under one more row
@@ -217,7 +216,7 @@ const MOBILE_MENU_MIN_HEIGHT_IN_PX: number = 160;
 
 /*
  * Below this width the nav bar is the phone's menu (a toggle that lists the
- * products, with mobileMenuTop and mobileMenuBottom); from it up, the
+ * products, under mobileMenuTop); from it up, the
  * desktop row and the products dialog. Tailwind's md: a header entry the
  * phone's menu carries instead (the Dashboard's Search and Help) is drawn
  * from md (`max-md:hidden md:flex`), so at every width it is in exactly one
@@ -616,7 +615,6 @@ const Navbar: FunctionComponent<ComponentProps> = (
                 recentLabel={props.moreMenuRecentLabel}
                 isRecentLabelTranslated={props.isMoreMenuRecentLabelTranslated}
                 topElement={props.mobileMenuTop?.(closeMobileMenu)}
-                bottomElement={props.mobileMenuBottom?.(closeMobileMenu)}
                 hiddenItems={props.moreMenuHiddenItems}
                 hiddenTitle={props.moreMenuHiddenTitle}
                 pinnedItems={props.pinnedItems}

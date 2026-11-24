@@ -131,9 +131,9 @@ I messaggi SMS, le chiamate, WhatsApp e Telegram si pagano con il saldo del prog
 | OneUptime AI | **Impostazioni del progetto → IA → Crediti IA** |
 
 :::steps
-### Ricaricarlo subito
+### Aggiungere al saldo subito
 
-Nella scheda **Saldo attuale** della pagina, fai clic su **Ricarica saldo**. Inserisci un importo da $20 a $1,000 e fai clic su **Ricarica**. L'importo viene addebitato sulla carta del progetto.
+Nella scheda **Saldo attuale** della pagina, fai clic su **Aggiungi al saldo**. Inserisci un importo da $20 a $1,000 e fai clic su **Aggiungi al saldo**. L'importo viene addebitato sulla carta del progetto.
 
 ### Oppure lasciarlo ricaricare da solo
 
@@ -152,7 +152,7 @@ Quando un saldo non basta, il messaggio non viene inviato oppure OneUptime AI si
 | Attivare o disattivare SMS, chiamate, WhatsApp o Telegram | Proprietario del progetto, **Manage Billing** o **Amministratore della fatturazione** |
 | Aggiungere un metodo di pagamento | Proprietario del progetto, **Manage Billing** o **Create Payment Method** |
 | Pagare una fattura | Proprietario del progetto, **Manage Billing** o **Edit Invoices** |
-| Cambiare il piano, ricaricare un saldo o cambiare la ricarica automatica | Proprietario del progetto o **Manage Billing** |
+| Cambiare il piano, aggiungere a un saldo o cambiare la ricarica automatica | Proprietario del progetto o **Manage Billing** |
 
 Un pulsante che non puoi usare appare bloccato e dice chi può. Vedi [Utenti, team e autorizzazioni](/docs/permissions/index#team) per i ruoli di fatturazione.
 

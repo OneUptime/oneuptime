@@ -132,14 +132,19 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     // Someone else is paged by the rule now: the header says so at once.
     await OnDutyPoliciesCache.forgetProjects([createdItem.projectId]);
 
+    /*
+     * The row's ids are read from its own columns - the person's
+     * (getUserIdOfRow), the rule's and the policy's (getRuleOfRow) - which
+     * every row holds: the policy and the rule are joined for their names
+     * alone, and nobody's User row at all (#10970).
+     */
     const createdModel: Model | null = await this.findOneById({
       id: createdItemId,
       select: {
         projectId: true,
-        user: {
-          timezone: true,
-          _id: true,
-        },
+        userId: true,
+        onCallDutyPolicyId: true,
+        onCallDutyPolicyEscalationRuleId: true,
         onCallDutyPolicyEscalationRule: {
           name: true,
           _id: true,
@@ -156,18 +161,36 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       },
     });
 
+    if (!createdModel) {
+      return createdItem;
+    }
+
     // send notification to the new current user.
 
-    const sendEmailToUserId: ObjectID | undefined | null =
-      createdModel?.user?.id;
+    const sendEmailToUserId: ObjectID | null =
+      Service.getUserIdOfRow(createdModel);
 
     if (!sendEmailToUserId) {
       return createdItem;
     }
 
-    if (!createdModel) {
+    const rule: EscalationRuleOfReach = this.getRuleOfRow(createdModel);
+    const onCallDutyPolicyId: ObjectID | null = rule.policyId;
+
+    // Required columns both: a row without them names nobody to tell or log.
+    if (!rule.projectId || !rule.ruleId || !onCallDutyPolicyId) {
+      logger.error(
+        `Escalation rule person ${createdItemId.toString()} was read back without its project, rule or policy; nobody was told or logged.`,
+        {
+          projectId: rule.projectId?.toString(),
+        } as LogAttributes,
+      );
+
       return createdItem;
     }
+
+    const projectId: ObjectID = rule.projectId;
+    const ruleId: ObjectID = rule.ruleId;
 
     /*
      * Who the rule pages now, and through what (EscalationRuleReach): this
@@ -178,7 +201,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
      * pages them already. A read that fails tells and logs them as before.
      */
     const paths: Array<RulePath> | null = await this.readPathsOfRow({
-      row: createdModel,
+      rule: rule,
+      userId: sendEmailToUserId,
       withSchedules: false,
     });
     const isPagedByRow: boolean =
@@ -193,75 +217,81 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
         }));
 
     if (isNewToRule) {
-      await this.tellAdded(createdModel, sendEmailToUserId);
+      await this.tellAdded({
+        createdModel: createdModel,
+        sendEmailToUserId: sendEmailToUserId,
+        projectId: projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        ruleId: ruleId,
+      });
     }
 
     // add workspace message.
 
-    const onCallDutyPolicyId: ObjectID | undefined | null =
-      createdModel.onCallDutyPolicy!.id;
-    const projectId: ObjectID | undefined = createdModel.projectId;
+    await this.writeAddedToFeed({
+      createdModel: createdModel,
+      addedUserId: sendEmailToUserId,
+      projectId: projectId,
+      onCallDutyPolicyId: onCallDutyPolicyId,
+    });
 
-    if (onCallDutyPolicyId) {
-      await this.writeAddedToFeed({
-        createdModel: createdModel,
-        projectId: projectId!,
+    // Their on-call time on this rule, by name, while it pages them.
+    if (isPagedByRow) {
+      OnCallDutyPolicyTimeLogService.startTimeLogForUser({
+        projectId: projectId,
         onCallDutyPolicyId: onCallDutyPolicyId,
+        onCallDutyPolicyEscalationRuleId: ruleId,
+        userId: sendEmailToUserId,
+        startsAt: OneUptimeDate.getCurrentDate(),
+      }).catch((error: Error) => {
+        logger.error(
+          `Error starting time log for user ${sendEmailToUserId.toString()}: ${error}`,
+          {
+            projectId: projectId.toString(),
+            userId: sendEmailToUserId.toString(),
+          } as LogAttributes,
+        );
       });
-
-      // Their on-call time on this rule, by name, while it pages them.
-      if (isPagedByRow) {
-        OnCallDutyPolicyTimeLogService.startTimeLogForUser({
-          projectId: projectId!,
-          onCallDutyPolicyId: onCallDutyPolicyId!,
-          onCallDutyPolicyEscalationRuleId:
-            createdModel.onCallDutyPolicyEscalationRule!.id!,
-          userId: createdModel.user!.id!,
-          startsAt: OneUptimeDate.getCurrentDate(),
-        }).catch((error: Error) => {
-          logger.error(
-            `Error starting time log for user ${createdModel.user?.id}: ${error}`,
-            {
-              projectId: projectId?.toString(),
-              userId: createdModel.user?.id?.toString(),
-            } as LogAttributes,
-          );
-        });
-      }
     }
 
     return createdItem;
   }
 
   /*
-   * The paths by which the rule of `row` pages its person now
-   * (EscalationRuleReach): none for someone it does not page, null when they
-   * could not be read.
+   * The person a row read back names: its userId column, which every row
+   * holds, else the relation, for a row handed over with it alone (#10970).
+   */
+  private static getUserIdOfRow(row: Model): ObjectID | null {
+    return row.userId || row.user?.id || null;
+  }
+
+  /*
+   * The paths by which `rule` pages the person now (EscalationRuleReach):
+   * none for someone it does not page, null when they could not be read.
    */
   private async readPathsOfRow(data: {
-    row: Model;
+    rule: EscalationRuleOfReach;
+    userId: ObjectID;
     withSchedules: boolean;
   }): Promise<Array<RulePath> | null> {
-    const userId: ObjectID | undefined = data.row.user?.id || data.row.userId;
-    const rule: EscalationRuleOfReach = this.getRuleOfRow(data.row);
-
-    if (!userId || !rule.ruleId || !rule.projectId) {
-      return null;
-    }
-
     const reach: RuleReach | null = await EscalationRuleReach.readOrNull({
-      ...rule,
+      ...data.rule,
       withSchedules: data.withSchedules,
     });
 
-    return reach ? EscalationRuleReach.getPaths(reach, userId) : null;
+    return reach ? EscalationRuleReach.getPaths(reach, data.userId) : null;
   }
 
   // "You have been added to the on-call policy ...", as their settings say.
-  private async tellAdded(
-    createdModel: Model,
-    sendEmailToUserId: ObjectID,
-  ): Promise<void> {
+  private async tellAdded(data: {
+    createdModel: Model;
+    sendEmailToUserId: ObjectID;
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID;
+    ruleId: ObjectID;
+  }): Promise<void> {
+    const { createdModel, sendEmailToUserId } = data;
+
     const vars: Dictionary<string> = {
       onCallPolicyName:
         createdModel.onCallDutyPolicy?.name || "No name provided",
@@ -273,8 +303,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       reason: "You have been added to the on-call policy escalation rule.",
       onCallPolicyViewLink: (
         await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-          createdModel!.projectId!,
-          createdModel.onCallDutyPolicy!.id!,
+          data.projectId,
+          data.onCallDutyPolicyId,
         )
       ).toString(),
     };
@@ -322,16 +352,15 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
     await UserNotificationSettingService.sendUserNotification({
       userId: sendEmailToUserId,
-      projectId: createdModel!.projectId!,
+      projectId: data.projectId,
       emailEnvelope: emailMessage,
       smsMessage: sms,
       callRequestMessage: callMessage,
       pushNotificationMessage: pushMessage,
       whatsAppMessage,
       eventType,
-      onCallPolicyId: createdModel.onCallDutyPolicy!.id!,
-      onCallPolicyEscalationRuleId:
-        createdModel.onCallDutyPolicyEscalationRule!.id!,
+      onCallPolicyId: data.onCallDutyPolicyId,
+      onCallPolicyEscalationRuleId: data.ruleId,
     });
   }
 
@@ -344,12 +373,11 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
    */
   private async writeAddedToFeed(data: {
     createdModel: Model;
+    addedUserId: ObjectID;
     projectId: ObjectID;
     onCallDutyPolicyId: ObjectID;
   }): Promise<void> {
-    const { createdModel, projectId, onCallDutyPolicyId } = data;
-
-    const addedUserId: ObjectID = createdModel.user!.id!;
+    const { createdModel, addedUserId, projectId, onCallDutyPolicyId } = data;
 
     const chat: OnCallChatByWorkspace = new OnCallChatByWorkspace({
       projectId: projectId,
@@ -413,10 +441,10 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     const itemsToFetchBeforeDelete: Array<Model> =
       await this.findRowsAndHoldDeleteToThem(deleteBy, {
         projectId: true,
-        user: {
-          timezone: true,
-          _id: true,
-        },
+        // The ids from the row's own columns (getUserIdOfRow, getRuleOfRow, #10970).
+        userId: true,
+        onCallDutyPolicyId: true,
+        onCallDutyPolicyEscalationRuleId: true,
         onCallDutyPolicyEscalationRule: {
           name: true,
           _id: true,
@@ -433,10 +461,10 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
       deleteBy.deletedByUser?.id || deleteBy.props.userId;
 
     for (const item of itemsToFetchBeforeDelete) {
-      const onCallDutyPolicyId: ObjectID | undefined =
-        item.onCallDutyPolicy!.id!;
+      const rule: EscalationRuleOfReach = this.getRuleOfRow(item);
+      const onCallDutyPolicyId: ObjectID | null = rule.policyId;
       const projectId: ObjectID | undefined = item.projectId;
-      const userId: ObjectID | undefined = item.user!.id!;
+      const userId: ObjectID | null = Service.getUserIdOfRow(item);
 
       if (onCallDutyPolicyId && userId && projectId) {
         const onCallDutyPolicyName: string | null =
@@ -444,8 +472,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
         const policyLink: string = (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-            projectId!,
-            onCallDutyPolicyId!,
+            projectId,
+            onCallDutyPolicyId,
           )
         ).toString();
 
@@ -519,19 +547,20 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
          * open forever, showing them as perpetually on-call in reporting
          * (audit F19).
          */
-        OnCallDutyPolicyTimeLogService.endTimeLogForUser({
-          projectId: projectId,
-          onCallDutyPolicyId: onCallDutyPolicyId,
-          onCallDutyPolicyEscalationRuleId:
-            item.onCallDutyPolicyEscalationRule!.id!,
-          userId: userId,
-          endsAt: OneUptimeDate.getCurrentDate(),
-        }).catch((error: Error) => {
-          logger.error(`Error ending time log for user ${userId}: ${error}`, {
-            projectId: projectId?.toString(),
-            userId: userId?.toString(),
-          } as LogAttributes);
-        });
+        if (rule.ruleId) {
+          OnCallDutyPolicyTimeLogService.endTimeLogForUser({
+            projectId: projectId,
+            onCallDutyPolicyId: onCallDutyPolicyId,
+            onCallDutyPolicyEscalationRuleId: rule.ruleId,
+            userId: userId,
+            endsAt: OneUptimeDate.getCurrentDate(),
+          }).catch((error: Error) => {
+            logger.error(`Error ending time log for user ${userId}: ${error}`, {
+              projectId: projectId.toString(),
+              userId: userId.toString(),
+            } as LogAttributes);
+          });
+        }
       }
     }
 
@@ -575,12 +604,14 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     const members: RuleMembers = await EscalationRuleReach.readMembers(
       deletedItems
         .filter((deletedItem: Model): boolean => {
-          return Boolean(deletedItem.projectId && deletedItem.user?.id);
+          return Boolean(
+            deletedItem.projectId && Service.getUserIdOfRow(deletedItem),
+          );
         })
         .map((deletedItem: Model): ProjectUserPair => {
           return {
             projectId: deletedItem.projectId!,
-            userId: deletedItem.user!.id!,
+            userId: Service.getUserIdOfRow(deletedItem)!,
           };
         }),
     );
@@ -589,14 +620,18 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
     const told: Set<string> = new Set<string>();
 
     for (const deletedItem of deletedItems) {
-      const sendEmailToUserId: ObjectID | undefined | null =
-        deletedItem.user?.id;
+      const sendEmailToUserId: ObjectID | null =
+        Service.getUserIdOfRow(deletedItem);
+      const projectId: ObjectID | undefined = deletedItem.projectId;
+      const rule: EscalationRuleOfReach = this.getRuleOfRow(deletedItem);
+      const onCallDutyPolicyId: ObjectID | null = rule.policyId;
+      const ruleId: ObjectID | undefined = rule.ruleId;
 
-      if (!sendEmailToUserId || !deletedItem.projectId) {
+      // Without them the row names nobody to tell, nor a log to keep.
+      if (!sendEmailToUserId || !projectId || !ruleId || !onCallDutyPolicyId) {
         continue;
       }
 
-      const rule: EscalationRuleOfReach = this.getRuleOfRow(deletedItem);
       const reach: RuleReach | null | undefined = reachByRule.get(
         EscalationRuleReach.getRuleKey(rule),
       );
@@ -618,7 +653,7 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
       if (
         told.has(toldKey) ||
-        !members.isMember(deletedItem.projectId, sendEmailToUserId)
+        !members.isMember(projectId, sendEmailToUserId)
       ) {
         continue;
       }
@@ -638,8 +673,8 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
           "You have been removed from the on-call policy escalation rule.",
         onCallPolicyViewLink: (
           await OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard(
-            deletedItem!.projectId!,
-            deletedItem.onCallDutyPolicy!.id!,
+            projectId,
+            onCallDutyPolicyId,
           )
         ).toString(),
       };
@@ -687,16 +722,15 @@ export class Service extends OnCallDutyPolicyEscalationRuleResponderService<Mode
 
       UserNotificationSettingService.sendUserNotification({
         userId: sendEmailToUserId,
-        projectId: deletedItem!.projectId!,
+        projectId: projectId,
         emailEnvelope: emailMessage,
         smsMessage: sms,
         callRequestMessage: callMessage,
         pushNotificationMessage: pushMessage,
         whatsAppMessage,
         eventType,
-        onCallPolicyId: deletedItem.onCallDutyPolicy!.id!,
-        onCallPolicyEscalationRuleId:
-          deletedItem.onCallDutyPolicyEscalationRule!.id!,
+        onCallPolicyId: onCallDutyPolicyId,
+        onCallPolicyEscalationRuleId: ruleId,
       });
     }
 

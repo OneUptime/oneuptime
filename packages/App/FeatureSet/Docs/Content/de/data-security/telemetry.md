@@ -9,6 +9,7 @@ Es gibt nichts einzurichten: Die Telemetrie jedes Dienstes wird jede Stunde gesc
 - [Wie ein Scan Stichproben nimmt](#wie-ein-scan-stichproben-nimmt): Die neuesten Datensätze jedes Dienstes, jede Stunde.
 - [Bereinigen](#bereinigen): Einen Fund bei der Aufnahme verbergen, in dem Dienst, in dem er gefunden wurde.
 - [Von sich aus eingedämmt](#von-sich-aus-eingedämmt): Ein Geheimnis, das verborgen wird, ohne dass jemand auf etwas klickt, wo das nachweislich sicher ist.
+- [Im Code beheben](#im-code-beheben): Ein Pull Request, der einen Dienst davon abhält, irgendeines seiner Lecks zu schreiben.
 - [Diese Metrik verwerfen](#diese-metrik-verwerfen): Die Metriken nicht mehr speichern, deren Namen sensible Daten enthalten.
 - [Was als bereinigt zählt](#was-als-bereinigt-zählt): Wann eine Bereinigungsregel einen Fund bereits abdeckt.
 :::
@@ -99,7 +100,7 @@ Klicken Sie auf **Bereinigen**. Ein Dialog sagt, was die Regel tun würde, bevor
 
 ### Auch den Code beheben
 
-Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut.
+Die Regel verbirgt neue Daten, bevor sie gespeichert werden. Bereits gespeicherte Daten bleiben, bis ihre Aufbewahrung endet, also beheben Sie den Code, der sie schreibt: Der Fund nennt den Dienst und das Attribut. **Mit KI beheben** am Problem öffnet einen Pull Request für jedes Leck des Dienstes: siehe [Im Code beheben](#im-code-beheben).
 :::
 
 Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email address in log attributes of checkout“, oder „Data Security: Password or secret in db.password of checkout“ bei einer Regel, die ihr Attribut nennt, und erscheint bei Ihren anderen Bereinigungsregeln (siehe [Drop-Filter und Bereinigungsregeln](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Es ist die engste Regel, die die Daten des Funds verbirgt, die erste der folgenden, die passt:
@@ -112,7 +113,7 @@ Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email 
 | Ein Datentyp, der sich durch die Wörter um ihn herum unterscheidet, etwa eine Bankleitzahl | Seine Form, nur in dem Attribut, in dem er gefunden wurde |
 | Ein Datentyp, der anhand des Feldnamens gefunden wird, etwa der Name einer Person unter `customer_name`, oder ein Wert unter einem Schlüssel, der ein Geheimnis benennt | Eine Regel **Benannte Attribute**, die den ganzen Wert dieses Attributs verbirgt |
 | Ein Wert unter einem Schlüssel, der sensibel aussieht, wo nichts Engeres ihn verbirgt | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
-| Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs in der Form des Datentyps durch `[REDACTED]` ersetzt, oder jeden Wert des Attributs, wenn kein Muster den Datentyp findet |
+| Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs, die den Datentyp enthalten, durch `[REDACTED]` ersetzt. Für eine IP-Adresse, eine E-Mail-Adresse oder eine Kartennummer ist ihr Filter **Entspricht Mustertyp** mit diesem Typ, der findet, was eine Regel für Logs oder Traces mit diesem **Mustertyp** findet, darunter IPv6-Adressen und Werte, die prozentkodiert oder in einer anderen Schrift geschrieben sind. Für einen anderen Datentyp ist es das eigene Muster des Typs, und wo kein Muster den Datentyp findet, ersetzt die Regel jeden Wert des Attributs |
 
 ### Nachgewiesen an den Einträgen des Funds
 
@@ -158,11 +159,53 @@ Eine Änderung, die OneUptime AI von sich aus vorgenommen hat:
 
 Neue Funde in einem Dienst, dessen Problem bereits offen ist, werden auf dieselbe Weise eingedämmt, sobald der stündliche Scan sie findet.
 
+## Im Code beheben
+
+Eine Bereinigungsregel verbirgt neue Daten bei der Aufnahme, doch der Code schreibt sie weiterhin. **Mit KI beheben** an einem Telemetrieproblem bittet OneUptime AI um einen Pull Request, der den Dienst davon abhält, irgendein Leck zu schreiben, das OneUptime noch in seiner Telemetrie sieht: das dieses Problems und die anderen des Dienstes, auch die bei der Aufnahme eingedämmten. Ein Dialog zeigt, was der Pull Request tun wird, bevor etwas startet, und **Pull Request öffnen** fordert genau das an.
+
+:::steps
+### Finden, wo jedes Leck geschrieben wird
+
+Bevor OneUptime AI beginnt, liest Datensicherheit die Einträge, in denen jedes Leck gesehen wurde, innerhalb von OneUptime erneut und behält nur, wo der Code sie geschrieben hat:
+
+- **Ein Span oder ein KI-Aufruf**: die Datei, Zeile und Funktion, die seine Attribute `code.*` nennen, und der Name des Spans.
+- **Eine Ausnahme**: ihre eigenen obersten Frames, die im Code des Dienstes.
+- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`.
+- **Eine Metrik**: der Name der Metrik.
+- **Jedes Leck**: sein Attributschlüssel, etwa `user.email`, den der Code meist unverändert schreibt.
+
+### Das Repository wählen
+
+Der Pull Request geht an das Repository, das die Dateien enthält, die die Einträge nennen, abgeglichen wie die Dateien eines Stacktraces. Ein Leck, dessen Einträge keine Datei nennen, geht dorthin, wo die anderen Lecks des Dienstes sind, sonst an das Repository, das wie der Dienst heißt, oder an das einzige des Projekts. In einem Repository mit mehreren Diensten arbeitet OneUptime AI im Ordner des Dienstes: dem, den diese Dateien teilen, sonst dem, den die Produktionsprüfungen des Dienstes verwenden. Wenn nichts entscheidet, wählen Sie selbst, unter den Repositorys, in denen Sie OneUptime AI arbeiten lassen dürfen.
+
+### Den Pull Request öffnen
+
+Der Dialog sagt, wie sich der Code ändern wird, listet jedes Leck mit dem Ort auf, an dem es geschrieben wird, und nennt das Repository, warum es dieses ist, und die Dateien, bei denen OneUptime AI beginnt. **Pull Request öffnen** fordert genau diesen Plan an: Wurde seit dem Öffnen ein Leck gefunden oder behoben, startet nichts, und der Plan wird erneut angezeigt.
+:::
+
+Wie sich der Code ändert, hängt davon ab, an wie vielen Stellen die Daten geschrieben werden:
+
+| Wo die Daten geschrieben werden | Was der Pull Request tut |
+| --- | --- |
+| An drei Stellen oder weniger | Ändert den Code an jeder Stelle: lässt den Wert weg oder maskiert oder hasht ihn, bevor er gesendet wird |
+| An mehr als drei Stellen | Fügt einen Schwärzungsschritt mit einem Test dort hinzu, wo der Dienst seine Telemetrie einrichtet, statt jede Stelle zu ändern |
+| Wo Ihre Bereinigungsregeln sie bereits bei der Aufnahme verbergen | Fügt diesen Schwärzungsschritt auch für diese Schlüssel hinzu, damit der Code tut, was die Aufnahme tut |
+
+Ein Pull Request behebt einen Dienst in einem Repository: Ein Dienst, dessen Lecks in zwei Repositorys geschrieben werden, bekommt in jedem einen. Während er geschrieben wird, verweist **Mit KI beheben** an jedem Problem des Dienstes darauf, und kein zweiter wird gestartet.
+
+OneUptime AI erhält die Stellen, Schlüssel, Datentypen und Vorlagen, nie einen Wert Ihrer Daten, eine maskierte Stichprobe oder einen Eintrag, und der Coding-Agent liest während der Arbeit nichts aus Ihrer Telemetrie. Die Beschreibung des Pull Requests listet die Lecks auf, verlinkt die Probleme, die er behebt, und zitiert nie einen Eintrag.
+
+Jedes Problem, das der Pull Request behebt, behält ihn: Seine Karte **Behebung** sagt, ob er gerade geschrieben wird, offen, zusammengeführt oder geschlossen ist, mit Links zum Pull Request und zur Aufgabe, und nach dem Zusammenführen, was die Produktion gezeigt hat. Die Zeitleiste des Problems sagt, wann er geöffnet wurde. Das Problem wird als **Im Code korrigiert** gelöst, sobald die neue Version des Dienstes die Daten nicht mehr schreibt (siehe [Was mit einem Problem geschieht](/docs/data-security/checks-and-issues#was-mit-einem-problem-geschieht)).
+
+Ein Geheimnis braucht mehr als eine Codekorrektur: Der Code verhindert nur neue Kopien, und das Geheimnis funktioniert weiterhin. Der Pull Request, die Zeitleiste des Problems und seine Karte **Behebung** sagen, dass es rotiert werden muss, und die Karte listet auf, wo es gesehen wurde.
+
+Mit **An neuen Problemen arbeiten** schlägt OneUptime AI die Korrektur jedes Dienstes auch von sich aus vor, den riskantesten Dienst zuerst, unter **Datensicherheit → KI** und beim riskantesten Problem des Dienstes. Standardmäßig wartet sie auf Sie. Eine KI-Regel der Datensicherheit, die **Behebung** für das riskanteste Problem des Dienstes auf **Automatisch** setzt, öffnet den Pull Request ohne Nachfrage, in einem Repository, über das etwas entschieden hat. **Max. offene Korrektur-Pull-Requests** des Repositorys begrenzt beides: Ist die Grenze erreicht, wartet ein Pull Request, den eine Regel öffnen würde, auf Sie, und kein neuer Korrektur-Pull-Request wird geöffnet, bis einer zusammengeführt oder geschlossen ist.
+
 ## Diese Metrik verwerfen
 
 Keine Regel nimmt die Daten aus dem Namen einer Metrik heraus, daher kommen sie weiter an, bis der Code behoben ist, der die Metrik benennt. **Diese Metrik verwerfen** an einem Fund im Namen einer Metrik beendet das Speichern der Metriken, deren Namen sie enthalten, auf Kosten ihrer Daten, und geschieht daher nur, wenn Sie es verlangen:
 
-- **Die Metriken eines Dienstes.** Es erstellt eine Metrik-Pipeline-Regel **Verwerfen** für den Dienst des Funds: Jeder neue Datenpunkt einer Metrik, deren Name diesen Datentyp enthält, wird verworfen, bevor er gespeichert wird. Ihr Filter ist das Muster, das **Bereinigen** für den Typ verwendet, daher lässt sich ein Typ, den kein Muster findet, etwa der Name einer Person, nicht verwerfen, und der Dialog sagt, warum.
+- **Die Metriken eines Dienstes.** Es erstellt eine Metrik-Pipeline-Regel **Verwerfen** für den Dienst des Funds: Jeder neue Datenpunkt einer Metrik, deren Name diesen Datentyp enthält, wird verworfen, bevor er gespeichert wird. Ihr Filter ist das eigene Muster des Datentyps auf dem Namen der Metrik, daher lässt sich ein Typ, den kein Muster findet, etwa der Name einer Person, nicht verwerfen, und der Dialog sagt, warum.
 - **Gesagt, bevor es geschieht.** Der Dialog sagt, dass diese Datenpunkte endgültig verloren gehen, wie viele der am letzten Tag geschriebenen Metriken des Dienstes einen solchen Namen haben, was sie liest und daher keine neuen Daten mehr erhält, dass bereits Gespeichertes bleibt, bis seine Aufbewahrungsfrist endet, und wie man es rückgängig macht. Nichts wird verworfen, bevor Sie ankreuzen, dass Sie das verstehen.
 - **Was sie liest, und was damit geschieht.** Der Dialog nennt, jeweils als Link, jeden Monitor, jedes Dashboard mit seinen Widgets, die diese Metriken lesen, jedes metrikbasierte SLO des Dienstes und jede Aufzeichnungsregel für Metriken, die sie liest. Monitore können nicht mehr auf deren Werte warnen, Widgets zeigen keine neuen Daten, SLOs zählen keine neuen Ereignisse daraus, und die Ausgabemetriken der Aufzeichnungsregeln enthalten sie nicht mehr. Unter jeder Aufzeichnungsregel nennt er auch, was ihre Ausgabemetrik liest, und was wiederum deren Ausgabemetriken liest, bis zu drei Ausgabemetriken die Kette hinunter. Der Link eines Widgets öffnet sein Dashboard bei diesem Widget. Was Sie nicht sehen können, wird gezählt, aber nie benannt.
 - **In Ihrem Namen, nachvollziehbar.** Die Regel wird mit Ihrer eigenen Berechtigung erstellt, Metrik-Pipeline-Regeln anzulegen: Projektinhaber und Projektadministratoren können sie erstellen, ebenso ein Team, das Metrik-Pipeline-Regeln erstellen darf. Die Audit-Protokolle halten fest, wer sie erstellt hat.
@@ -181,7 +224,7 @@ Ein Fund wird nur dann als bereinigt markiert, wenn die Aufnahme eine aktivierte
 - **Eine Regel, die an den Einträgen des Funds nachgewiesen ist.** Eine Regel, die OneUptime erstellt und an den Einträgen nachgewiesen hat, in denen ein Fund gesehen wurde, deckt diesen Fund ab, egal welches Muster sie hat, solange sie die Regel ist, die nachgewiesen wurde: Ändern Sie ihr Muster, ihre Attribute, ihre Aktion, ihre Felder oder ihren Dienst, und sie deckt ihn nicht mehr ab.
 - **Eine Regel für benannte Attribute** deckt einen Fund in einem Attribut ab, das sie nennt, oder in einem darunter verschachtelten.
 - **Ihre eigenen benutzerdefinierten Muster zählen sonst nie.** Ein **Benutzerdefinierter Regex**, den Sie geschrieben haben, deckt einen Fund nur ab, wenn er genau das Muster ist, das **Bereinigen** für dessen Typ erstellt. Ein Fund behält nur maskierte Stichproben, an denen sich kein Muster ausprobieren lässt, also könnte OneUptime nicht beweisen, dass Ihr Muster die Daten verbirgt, und ein fälschlich als bereinigt bezeichneter Fund ist ein Leck, das niemand ansieht.
-- **Das Attribut einer Metrik.** Eine Metrik-Pipeline-Regel **Attribut schwärzen** oder **Attribut entfernen** für den Schlüssel dieses Attributs, für den Dienst des Funds oder das ganze Projekt, deckt ihn ab, wenn sie keinen Filter hat oder genau den Filter, den **Bereinigen** erstellt. Ein Filter, den Sie selbst geschrieben haben, zählt nie, aus demselben Grund.
+- **Das Attribut einer Metrik.** Eine Metrik-Pipeline-Regel **Attribut schwärzen** oder **Attribut entfernen** für den Schlüssel dieses Attributs, für den Dienst des Funds oder das ganze Projekt, deckt ihn ab, wenn sie keinen Filter hat oder genau den Filter, den **Bereinigen** erstellt. Ein Filter, den Sie selbst geschrieben haben, zählt nie, aus demselben Grund. Eine Regel, die **Bereinigen** für eine IP-Adresse, eine E-Mail-Adresse oder eine Kartennummer erstellt hat, bevor ihr Filter **Entspricht Mustertyp** war, wird beim Upgrade auf diesen Filter umgestellt, sodass sie auch IPv6-Adressen verbirgt und ihren Fund abdeckt.
 - **Der Name einer Metrik.** Eine Metrik-Pipeline-Regel **Verwerfen** für den Dienst des Funds oder das ganze Projekt deckt ihn ab, wenn sie genau den Filter hat, den **Diese Metrik verwerfen** erstellt, oder gar keinen Filter, womit sie keine Metrik des Dienstes speichert. Eine solche Regel ohne Filter deckt jeden Fund in diesen Metriken ab.
 
 Eine Regel, die ausgeschaltet ist oder nichts bereinigt, zählt nie. Die Abdeckung wird nach jedem Scan neu ermittelt, sodass eine Regel, die Sie von Hand hinzufügen oder entfernen, innerhalb einer Stunde ändert, was als bereinigt markiert ist.

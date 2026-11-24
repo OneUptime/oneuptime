@@ -143,7 +143,7 @@ To bjælker løber hen over toppen af hver side.
 | Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Tastaturgenveje** og support via e-mail og på Slack. På en tablet eller i et smalt vindue er **Spørg AI** udeladt for at spare plads: den findes blandt handlingerne i **Søg**. På en telefon flytter **Søg** og **Hjælp** ind i menuknappens liste, øverst og nederst; klokken og dit billede bliver.
+**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Tastaturgenveje** og support via e-mail og på Slack. På en tablet eller i et smalt vindue er **Spørg AI** udeladt for at spare plads: den findes blandt handlingerne i **Søg**. På en telefon flytter **Søg** og **Hjælp** øverst i menuknappens liste, **Hjælp** lige under **Søg**; klokken og dit billede bliver.
 
 Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor, fortæller, hvad det betyder, når du peger på det, tabber til det eller trykker på det. Dets **Læs mere** åbner ordet i [Ordliste](/docs/introduction/glossary).
 

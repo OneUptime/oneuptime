@@ -301,8 +301,9 @@ describe("the navbar names Code as the product on every Code page", () => {
   });
 
   test.each([
-    ["AI Chat", "ai/chat", "Chat"],
-    ["AI Insights", "ai/insights", "Insights"],
+    // Named as the panel and the page they open (#7474).
+    ["Ask AI", "ai/chat", "Ask AI"],
+    ["AI Insights", "ai/insights", "AI Insights"],
   ])(
     "while the AI pages keep their own item (%s)",
     (_page: string, path: string, product: string) => {

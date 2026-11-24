@@ -99,6 +99,20 @@ OneUptimeDate.fromNow(date) })`), or draw a time component in a
   sentence's subject takes ("3 Tage"). Word a translation so the duration
   stands where that case is right: German "{{headline}} · {{duration}}",
   never "seit {{duration}}", which needs "3 Tagen".
+- **A moment in a sentence.** A security case's sentence names a moment
+  with no preposition ("Blocked {{until}}"), and the moment brings its own
+  words, from keys of its own (`Common/Utils/MomentPhrases.ts`): "at
+  {{clock}}" today, "on {{day}} at {{clock}}" on another day, and the same
+  for since and until. Each is a plural counted by the hour its clock
+  starts with, so its `_one` form is the one o'clock form: Spanish "a la
+  {{clock}}" beside "a las {{clock}}", Portuguese "à {{clock}}" (and at
+  0:25, "à zero hora"), Italian "all'{{clock}}". "on {{vowelDay}} at
+  {{clock}}" is read for a day your language reads with a vowel first,
+  where its article changes: Italian "l'{{vowelDay}} alle {{clock}}" for
+  the 8th and the 11th (`DAYS_READ_WITH_A_VOWEL`). A language whose words
+  never change words each form as its general one, `{{vowelDay}}` for
+  `{{day}}`. Every form of a phrase ends alike after `{{clock}}`
+  (`StepCheckMomentsReadRight`).
 - **What ships.** The files here keep every key, so the tooling can track
   what is left to translate. The bundle carries only what a reader can tell
   apart (`Common/UI/esbuild-locales.js`, wired in the Dashboard's

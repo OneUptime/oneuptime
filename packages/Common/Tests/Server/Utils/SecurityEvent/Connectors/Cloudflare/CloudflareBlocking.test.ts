@@ -1,6 +1,10 @@
 import CloudflareBlocking, {
+  CLOUDFLARE_BLOCKING_ADVISORY_CHECK_KEYS,
+  CLOUDFLARE_BLOCKING_ASN_CHECK_KEY,
+  CLOUDFLARE_BLOCKING_CHECK_NAMES,
   CloudflareAccountReading,
   getCloudflareRuleInput,
+  isCloudflareBlockingReady,
 } from "../../../../../../Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareBlocking";
 import CloudflareClient from "../../../../../../Server/Utils/SecurityEvent/Connectors/Cloudflare/CloudflareClient";
 import {
@@ -1172,6 +1176,8 @@ describe("whether the token may write: asked without writing", () => {
       "blocking-setup:pass",
       "blocking-lists:pass",
       "blocking-rules:pass",
+      // Asked whatever the plan, for Challenge This Network (#10894).
+      "blocking-asn-access-rules:pass",
     ]);
     expect(checkNamed(checks, "blocking-setup")?.message).toBe(
       "Blocks go to the list oneuptime_block, with a custom rule in each zone. Challenges go to the list oneuptime_challenge, with a custom rule in each zone.",
@@ -1278,6 +1284,229 @@ describe("whether the token may write: asked without writing", () => {
     const { checks } = await blocking().checkWriteAccess();
 
     expect(checkNamed(checks, "blocking-setup")?.status).toBe("fail");
+  });
+
+  // ---------- Challenging a network by its ASN (#10894) ----------
+
+  test("where blocks take the lists, the token's ASN permission is asked too, and passes with it", async () => {
+    const { checks } = await blocking().checkWriteAccess();
+
+    expect(checkNamed(checks, CLOUDFLARE_BLOCKING_ASN_CHECK_KEY)).toEqual(
+      expect.objectContaining({
+        name: "Challenge a network by its ASN",
+        status: "pass",
+        message:
+          "The API token can challenge a whole network by its ASN from Campaigns (Account > Account Firewall Access Rules > Edit).",
+      }),
+    );
+    // Its name is the docs' bold label for it.
+    expect(CLOUDFLARE_BLOCKING_CHECK_NAMES.asnChallenges).toBe(
+      "Challenge a network by its ASN",
+    );
+    /*
+     * Asked without writing: the probe is a request Cloudflare refuses for
+     * its empty value, so no IP Access Rule is made.
+     */
+    expect(writes()).toContain(
+      `POST /accounts/${ACCOUNT_ID}/firewall/access_rules/rules`,
+    );
+    expect(api.accessRules).toEqual([]);
+  });
+
+  test("where blocks take the lists, a token without Account Firewall Access Rules Edit only warns, and says what fails without it", async () => {
+    api.permissions.delete("accessRules");
+
+    const { checks } = await blocking().checkWriteAccess();
+    const asn: SecurityConnectorCheck | undefined = checkNamed(
+      checks,
+      CLOUDFLARE_BLOCKING_ASN_CHECK_KEY,
+    );
+
+    expect(asn).toEqual(
+      expect.objectContaining({
+        status: "warn",
+        message:
+          "Challenging a network by its ASN needs Account > Account Firewall Access Rules > Edit, which the API token lacks. Blocking works without it: only Challenge This Network on Campaigns fails.",
+        remediation:
+          "To challenge networks by their ASN, edit the token in Cloudflare and add Account > Account Firewall Access Rules > Edit, or paste a new token that has it.",
+      }),
+    );
+    // Never a failure: every address block works without the permission.
+    expect(
+      checks.some((check: SecurityConnectorCheck): boolean => {
+        return check.status === "fail";
+      }),
+    ).toBe(false);
+    // ...so blocking can still be turned on.
+    expect(isCloudflareBlockingReady(checks)).toBe(true);
+    // The lists' and rules' own checks are as they were.
+    expect(checkNamed(checks, "blocking-lists")?.status).toBe("pass");
+    expect(checkNamed(checks, "blocking-rules")?.status).toBe("pass");
+    // No separate Edit IP Access Rules check where none is needed.
+    expect(checkNamed(checks, "blocking-access-rules")).toBeUndefined();
+  });
+
+  test("where blocks take the lists, an ASN check Cloudflare could not answer warns that it cannot tell", async () => {
+    api.script({
+      matches: (request: FakeRequest): boolean => {
+        return (
+          request.method === "POST" &&
+          request.path.endsWith("/firewall/access_rules/rules")
+        );
+      },
+      response: json(503, {
+        success: false,
+        errors: [{ code: 1, message: "Service Unavailable" }],
+      }),
+      times: 10,
+    });
+
+    const { checks } = await blocking().checkWriteAccess();
+    const asn: SecurityConnectorCheck | undefined = checkNamed(
+      checks,
+      CLOUDFLARE_BLOCKING_ASN_CHECK_KEY,
+    );
+
+    expect(asn?.status).toBe("warn");
+    expect(asn?.message).toContain(
+      "OneUptime could not tell whether the API token can challenge a network by its ASN (Account > Account Firewall Access Rules > Edit)",
+    );
+    expect(asn?.remediation).toBe("Test again in a few minutes.");
+    // Still only advisory.
+    expect(isCloudflareBlockingReady(checks)).toBe(true);
+  });
+
+  test("the ASN check runs last, after the lists' and the rules' checks", async () => {
+    const { checks } = await blocking().checkWriteAccess();
+
+    expect(checks[checks.length - 1]?.key).toBe(
+      CLOUDFLARE_BLOCKING_ASN_CHECK_KEY,
+    );
+  });
+
+  test("on a plan that needs IP Access Rules anyway, their check covers networks too, and no ASN check is added", async () => {
+    api = new CloudflareBlockingFakeApi([zone(ZONE_A, "example.com", FREE)]);
+
+    const { checks } = await blocking().checkWriteAccess();
+
+    expect(checkNamed(checks, CLOUDFLARE_BLOCKING_ASN_CHECK_KEY)).toBe(
+      undefined,
+    );
+    expect(checkNamed(checks, "blocking-access-rules")).toEqual(
+      expect.objectContaining({
+        status: "pass",
+        message:
+          "The API token can add and remove IP Access Rules (Account > Account Firewall Access Rules > Edit), and so challenge a network by its ASN from Campaigns.",
+      }),
+    );
+  });
+
+  test("on a plan that needs IP Access Rules, their missing permission still fails and keeps blocking off", async () => {
+    api = new CloudflareBlockingFakeApi([zone(ZONE_A, "example.com", FREE)]);
+    api.permissions.delete("accessRules");
+
+    const { checks } = await blocking().checkWriteAccess();
+
+    expect(checkNamed(checks, "blocking-access-rules")?.status).toBe("fail");
+    expect(isCloudflareBlockingReady(checks)).toBe(false);
+  });
+
+  test("an account OneUptime cannot read asks nothing about networks", async () => {
+    api.script({
+      matches: (request: FakeRequest): boolean => {
+        return (
+          request.method === "GET" && request.path.endsWith("/rules/lists")
+        );
+      },
+      response: restError(403, 10000, "Authentication error"),
+      times: 10,
+    });
+
+    const { checks } = await blocking().checkWriteAccess();
+
+    expect(
+      checks.map((check: SecurityConnectorCheck): string => {
+        return check.key;
+      }),
+    ).toEqual(["blocking-setup"]);
+    expect(isCloudflareBlockingReady(checks)).toBe(false);
+  });
+
+  // ---------- When blocking may be turned on ----------
+
+  describe("isCloudflareBlockingReady", () => {
+    function check(
+      key: string,
+      status: SecurityConnectorCheck["status"],
+    ): SecurityConnectorCheck {
+      return { key, name: key, status, durationMs: 0, message: "" };
+    }
+
+    test("only the ASN check is advisory", () => {
+      expect([...CLOUDFLARE_BLOCKING_ADVISORY_CHECK_KEYS]).toEqual([
+        "blocking-asn-access-rules",
+      ]);
+    });
+
+    test("no checks: never ready", () => {
+      expect(isCloudflareBlockingReady([])).toBe(false);
+    });
+
+    test("every check passing: ready", () => {
+      expect(
+        isCloudflareBlockingReady([
+          check("blocking-setup", "pass"),
+          check("blocking-lists", "pass"),
+          check("blocking-rules", "pass"),
+          check(CLOUDFLARE_BLOCKING_ASN_CHECK_KEY, "pass"),
+        ]),
+      ).toBe(true);
+    });
+
+    test("the advisory check warning: still ready", () => {
+      expect(
+        isCloudflareBlockingReady([
+          check("blocking-setup", "pass"),
+          check("blocking-lists", "pass"),
+          check("blocking-rules", "pass"),
+          check(CLOUDFLARE_BLOCKING_ASN_CHECK_KEY, "warn"),
+        ]),
+      ).toBe(true);
+    });
+
+    test("the advisory check failing or skipped: not ready - it only ever passes or warns", () => {
+      expect(
+        isCloudflareBlockingReady([
+          check("blocking-setup", "pass"),
+          check(CLOUDFLARE_BLOCKING_ASN_CHECK_KEY, "fail"),
+        ]),
+      ).toBe(false);
+      expect(
+        isCloudflareBlockingReady([
+          check("blocking-setup", "pass"),
+          check(CLOUDFLARE_BLOCKING_ASN_CHECK_KEY, "skip"),
+        ]),
+      ).toBe(false);
+    });
+
+    test.each(["warn", "fail", "skip"] as const)(
+      "any other check that is %s: not ready",
+      (status: SecurityConnectorCheck["status"]) => {
+        for (const key of [
+          "blocking-setup",
+          "blocking-lists",
+          "blocking-rules",
+          "blocking-access-rules",
+        ]) {
+          expect(
+            isCloudflareBlockingReady([
+              check("blocking-setup", "pass"),
+              check(key, status),
+            ]),
+          ).toBe(false);
+        }
+      },
+    );
   });
 
   test("each rule written is the one OneUptime expects to read back", () => {

@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+Een instelling die iemand in OneUptime aan de stappen van een monitor toevoegt, en die je configuratie niet schrijft, is wel een verschil: het volgende plan toont dat `monitor_steps` verandert, en de apply die volgt verwijdert de instelling, zoals het plan zegt. Schrijf haar ook in je configuratie om haar te houden.
+
 ## Labels en andere lijsten waar OneUptime ook aan toevoegt
 
 OneUptime voegt zelf toe aan sommige lijsten van een record: een labelregel voegt zijn labels toe aan de records die erbij passen, een bereikbaarheidsregel voegt zijn beleid toe aan de incidenten en waarschuwingen die erbij passen, en de monitorregels van een SLO koppelen de monitors die erbij passen. De referentie zegt het bij elk zo'n attribuut: "OneUptime adds to it too, on its own". Een configuratie die er een instelt, houdt de items die ze opsomt, en laat de rest:

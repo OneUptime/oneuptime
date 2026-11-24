@@ -163,6 +163,10 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess",
   () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess",
+    ) as Record<string, unknown>;
+
     return {
       __esModule: true,
       canAddProjectBalance: (): boolean => {
@@ -171,6 +175,9 @@ jest.mock(
       getCurrentProjectBillingMarketplace: (): string | null => {
         return marketplace;
       },
+      // What the Add to Balance dialog says, as the page words it (#7475).
+      getAddToBalanceAmountDescription:
+        actual["getAddToBalanceAmountDescription"],
     };
   },
 );
@@ -290,18 +297,39 @@ jest.mock(
   },
 );
 
-// The recharge dialog: its form is the real one's; here one press sends 20.
+/*
+ * The Add to Balance dialog: its form is the real one's; here one press
+ * sends 20. It draws what the real one is handed - its title, what its
+ * amount says and its button's words - for the words the step's button
+ * opens it with (#7475).
+ */
 jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
   return {
     __esModule: true,
     default: (props: {
       title: string;
+      submitButtonText?: string;
       onSubmit: (item: Record<string, unknown>) => void;
-      formProps: { error?: string };
+      formProps: {
+        error?: string;
+        fields?: Array<{ title?: string; description?: unknown }>;
+      };
     }) => {
       return (
         <div data-testid="recharge-dialog">
-          <span>{props.title}</span>
+          <span data-testid="recharge-title">{props.title}</span>
+          {(props.formProps.fields || []).map(
+            (
+              field: { title?: string; description?: unknown },
+              index: number,
+            ) => {
+              return (
+                <p key={index} data-testid="recharge-field">
+                  {field.title}: {field.description as React.ReactNode}
+                </p>
+              );
+            },
+          )}
           {props.formProps.error ? <p>{props.formProps.error}</p> : <></>}
           <button
             type="button"
@@ -310,7 +338,7 @@ jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
               props.onSubmit({ amount: 20 });
             }}
           >
-            Recharge
+            {props.submitButtonText}
           </button>
         </div>
       );
@@ -569,6 +597,15 @@ import {
   readKeptRunValues,
 } from "./GuidedSetupRunServerMock";
 import { GuidedSetupResourceStatus } from "../../../Types/GuidedSetup/GuidedSetupRun";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -985,6 +1022,37 @@ describe("how should we reach you", () => {
     expect(screen.queryByTestId("on-call-setup-get-the-app")).toBeNull();
   });
 
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10866): the step offers this browser only,
+   * and says so.
+   */
+  test("on a server whose admins took the mobile app away: this browser only, and no Get the app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      await renderSetup();
+
+      expect(
+        screen.getByTestId("on-call-setup-push-options"),
+      ).toHaveTextContent("Get pages in this browser.");
+      expect(
+        screen.getByTestId("on-call-setup-push-options"),
+      ).not.toHaveTextContent("OneUptime On-Call app");
+      expect(
+        screen.getByTestId("on-call-setup-use-this-browser"),
+      ).toHaveTextContent("Use this browser");
+      expect(screen.queryByTestId("on-call-setup-get-the-app")).toBeNull();
+      expect(screen.queryByTestId("on-call-setup-app-codes")).toBeNull();
+    } finally {
+      forgetHelpAndSupport();
+    }
+  });
+
   test("Get the app opens a code for each store and the address to sign in to, then Recheck (#7149)", async () => {
     await renderSetup();
 
@@ -1103,6 +1171,38 @@ describe("how should we reach you", () => {
       "which is 20.00 USD",
     );
     expect(screen.getByTestId("on-call-setup-phone")).toBeInTheDocument();
+  });
+
+  test("Add to Balance says what the money is for and what it is charged to, and adds with the same words", async () => {
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    // The step's button, the dialog's title and the dialog's own button: one verb.
+    expect(screen.getByTestId("on-call-setup-add-balance")).toHaveTextContent(
+      "Add to Balance",
+    );
+
+    await press("on-call-setup-add-balance");
+
+    expect(screen.getByTestId("recharge-title")).toHaveTextContent(
+      "Add to Balance",
+    );
+    expect(screen.getByTestId("recharge-submit")).toHaveTextContent(
+      "Add to Balance",
+    );
+    expect(screen.getByTestId("recharge-field")).toHaveTextContent(
+      "Amount (USD): Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.",
+    );
+    expect(screen.getByTestId("recharge-dialog")).not.toHaveTextContent(
+      "Between 20 and 1,000 USD, charged now.",
+    );
+    expect(screen.getByTestId("recharge-dialog")).not.toHaveTextContent(
+      "Recharge",
+    );
   });
 
   test("a recharge the server refuses keeps the dialog open with its reason", async () => {

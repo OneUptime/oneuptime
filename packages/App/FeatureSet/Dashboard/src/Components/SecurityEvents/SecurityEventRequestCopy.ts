@@ -1,5 +1,8 @@
 import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The words of a security event's request: what happened next, and where
@@ -78,6 +81,37 @@ export const REACHED_DATABASE_BY_DELAY: string = translationKey(
 export const NOT_FOLLOWED_WITH_TRACE: string = translationKey(
   "OneUptime has this request's trace but not the span that answered it, so it can't say how far the request got.",
 );
+
+/*
+ * What a site sent for a request for a file that holds secrets (#10912):
+ * the file itself - by its type, or by its size on a site that answers a
+ * path it does not have with 404 - its own page, nothing, or what the
+ * record cannot say.
+ */
+export const SENSITIVE_FILE_SENT_AS: string = translationKey(
+  "Your site sent the file itself: it answered {{status}} with {{type}}, not a web page.",
+);
+
+export const SENSITIVE_FILE_SENT_BY_SIZE: string = translationKey(
+  "Your site sent the file itself: it answered {{status}} with {{size}}, while it answers 404 for the paths it doesn't have.",
+);
+
+export const SENSITIVE_FILE_OWN_PAGE: string = translationKey(
+  "Your site doesn't have the file: it answered {{status}} with a page of its own, as it does for any path it doesn't have.",
+);
+
+export const SENSITIVE_FILE_EMPTY: string = translationKey(
+  "Your site sent nothing: it answered {{status}} with an empty body.",
+);
+
+export const SENSITIVE_FILE_UNCONFIRMED: string = translationKey(
+  "OneUptime can't tell whether your site sent the file: it answered {{status}}, and the record says nothing of what it sent.",
+);
+
+export const RESPONSE_SIZE_BYTES: PluralTemplate = {
+  one: translationKey("{{count}} byte"),
+  other: translationKey("{{count}} bytes"),
+};
 
 export const CHECKING_TRACE: string = translationKey(
   "Reading the request's trace…",

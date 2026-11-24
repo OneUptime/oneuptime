@@ -57,8 +57,6 @@ const SHORTER_NAMES: Record<string, string> = {
   DataAsset: "tables",
   // "Data Pipelines": Data Observability says pipelines, as its menu does.
   DataPipeline: "pipelines",
-  // "DockerSwarm Clusters": the product writes the name in two words.
-  DockerSwarmCluster: "docker swarm clusters",
   // "On-Call Duty Policies": the Dashboard says on-call policies.
   OnCallDutyPolicy: "on-call policies",
   // "On-Call Duty Policy Schedules": the Dashboard says on-call schedules.

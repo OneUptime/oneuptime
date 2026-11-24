@@ -27,7 +27,7 @@ Se [SSO](/docs/identity/sso) for et enkelt prosjekts egen leverandør.
 :::steps
 ### Åpne listen over leverandører
 
-Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** i brukermenyen. Gå deretter til **Innstillinger** > **Enkel pålogging**. Siden viser instansens SAML-leverandører, deretter OpenID Connect-leverandørene og til slutt kortet **Krev SSO**.
+Logg inn som master-admin, og velg **Admin-dashbord** i brukermenyen. Gå deretter til **Innstillinger** > **Enkel pålogging**. Siden viser instansens SAML-leverandører, deretter OpenID Connect-leverandørene og til slutt kortet **Krev SSO**.
 
 ### Opprett leverandøren
 

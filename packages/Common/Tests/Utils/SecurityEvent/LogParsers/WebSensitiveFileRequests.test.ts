@@ -12,9 +12,11 @@ import SecurityLogParser, {
 } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import WebAttackLogParser, {
   WEB_ATTACK_KIND_ATTRIBUTE,
+  WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE,
   WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WebAttackKind,
 } from "../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { judgeSensitiveFileAnswers } from "../../../../Utils/SecurityEvent/SensitiveFileAnswers";
 import { SecurityLogLine } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogLine";
 import { logLine } from "./LogParserFixtures";
 
@@ -66,6 +68,7 @@ function isCounted(event: NormalizedSecurityEvent): boolean {
  */
 function distinctPathsByAddress(bodies: Array<string>): Record<string, number> {
   const paths: Map<string, Set<string>> = new Map();
+  const events: Array<NormalizedSecurityEvent> = [];
 
   for (const body of bodies) {
     // Only what the database hands the scan is read.
@@ -73,15 +76,18 @@ function distinctPathsByAddress(bodies: Array<string>): Record<string, number> {
       continue;
     }
 
-    for (const event of SecurityLogParser.parse(logLine(body))) {
-      if (!isCounted(event) || !event.principalIp) {
-        continue;
-      }
+    events.push(...SecurityLogParser.parse(logLine(body)));
+  }
 
-      const set: Set<string> = paths.get(event.principalIp) || new Set();
-      set.add(String(event.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]));
-      paths.set(event.principalIp, set);
+  // What the scan stores of a page (#10912): a 2xx nothing decides is no event.
+  for (const event of judgeSensitiveFileAnswers(events)) {
+    if (!isCounted(event) || !event.principalIp) {
+      continue;
     }
+
+    const set: Set<string> = paths.get(event.principalIp) || new Set();
+    set.add(String(event.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]));
+    paths.set(event.principalIp, set);
   }
 
   const counts: Record<string, number> = {};
@@ -153,12 +159,51 @@ describe("a request for a sensitive file, refused or not found", () => {
     },
   );
 
-  test.each([200, 206, 301, 302, 304, 500, 503])(
-    "a %p answer is not: the site served it, sent it on, or broke - and no record says it refused it",
+  test.each([301, 302, 304, 500, 503])(
+    "a %p answer is not: the site sent it on, or broke - and no record says it refused it",
     (status: number) => {
       expect(
         parse(clf({ ip: "198.51.100.7", target: "/.git/config", status })),
       ).toEqual([]);
+    },
+  );
+
+  /*
+   * A 2xx for a file that holds secrets is read for what the site sent
+   * (#10912): a size and no type says neither the file nor the site's own
+   * page, so the line is unconfirmed - and, with nothing else of the site's
+   * to decide it, no event is stored.
+   */
+  test.each([200, 206])(
+    "a %p answer for a file that holds secrets is unconfirmed by itself, and no event is stored",
+    (status: number) => {
+      const events: Array<NormalizedSecurityEvent> = parse(
+        clf({ ip: "198.51.100.7", target: "/.git/config", status }),
+      );
+
+      expect(events).toHaveLength(1);
+      expect(events[0]!.attributes[WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE]).toBe(
+        "unconfirmed",
+      );
+      expect(judgeSensitiveFileAnswers(events)).toEqual([]);
+    },
+  );
+
+  test.each([200, 206])(
+    "a %p answer for an admin page the site serves is no event at all",
+    (status: number) => {
+      for (const target of [
+        "/wp-admin/",
+        "/wp-login.php",
+        "/phpmyadmin/",
+        "/server-status",
+        "/phpinfo.php",
+      ]) {
+        expect({
+          target,
+          events: parse(clf({ ip: "198.51.100.7", target, status })),
+        }).toEqual({ target, events: [] });
+      }
     },
   );
 

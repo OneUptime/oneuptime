@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import {
   afterEach,
@@ -20,9 +21,12 @@ import { MemoryRouter } from "react-router-dom";
 import ExceptionSplitNotice from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionSplitNotice";
 import ExceptionMergedPanel from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionMergedPanel";
 import {
+  MAX_SPLIT_INTO_EXCEPTIONS,
   MERGE_ROUTE_PREFIX,
   MERGE_SPLIT_ROUTE_PREFIX,
+  SPLIT_INTO_EXCEPTION_SELECT,
   getListedMergedExceptions,
+  getSplitIntoNoticeExceptions,
   isSplitNoticeShown,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionMerge";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
@@ -344,5 +348,282 @@ describe("an exception moved to a private fingerprint, on its page", () => {
     );
 
     expect(screen.queryByTestId("exception-merged-members")).toBeNull();
+  });
+});
+
+/*
+ * The exception a scrub rule split another from, on its page (#10897).
+ *
+ * The older of the two - the one that went quiet, often resolved by the
+ * time anyone looks - records nothing of the pair itself. Its page reads
+ * the exceptions recorded as split from it, and says so as the split one's
+ * page does: which, linked, and why, with the same Merge Exceptions.
+ */
+describe("the exception a scrub rule split others from, on its page", () => {
+  const OLDER: TelemetryException = exception(SPLIT_FROM_ID);
+  const SECOND_SPLIT_ID: string = "60000000-0000-4000-8000-000000000004";
+  const SECOND_SPLIT: TelemetryException = exception(SECOND_SPLIT_ID, {
+    message: "No cart for a***@***.com",
+    splitFromTelemetryExceptionId: new ObjectID(SPLIT_FROM_ID),
+  });
+
+  function renderOlderPage(
+    values: {
+      exception?: TelemetryException;
+      splitFrom?: TelemetryException | null;
+      splitInto?: Array<TelemetryException>;
+      onMerged?: () => void;
+    } = {},
+  ): void {
+    render(
+      <MemoryRouter>
+        <ExceptionSplitNotice
+          exception={values.exception || OLDER}
+          splitFrom={values.splitFrom === undefined ? null : values.splitFrom}
+          splitInto={values.splitInto || [SPLIT]}
+          onMerged={values.onMerged || ((): void => {})}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  test("names the exception split from it, linked, and why", () => {
+    renderOlderPage();
+
+    const note: HTMLElement = screen.getByTestId("exception-split-into");
+    expect(note).toHaveTextContent(
+      "A scrub rule split CartNotFoundError: No cart for [REDACTED] from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here.",
+    );
+    expect(screen.getByTestId("exception-split-into-link")).toHaveAttribute(
+      "href",
+      expect.stringContaining(SPLIT_ID),
+    );
+    expect(screen.getByTestId("exception-split-into-hint")).toHaveTextContent(
+      "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.",
+    );
+    // The split one's note is not drawn here: this one was split from none.
+    expect(screen.queryByTestId("exception-split-from")).toBeNull();
+    expect(screen.queryByTestId("exception-split-into-list")).toBeNull();
+  });
+
+  test("an editor merges the two with one click from here too: one request for the split one, no AI, a toast, and the page reads itself again", async () => {
+    const onMerged: Mock<() => void> = jest.fn<() => void>();
+    renderOlderPage({ onMerged });
+
+    fireEvent.click(screen.getByTestId("exception-split-into-merge"));
+
+    await waitFor(() => {
+      expect(onMerged).toHaveBeenCalledTimes(1);
+    });
+
+    const requests: Array<RequestArgs> = posts(MERGE_SPLIT_ROUTE_PREFIX);
+    expect(requests).toHaveLength(1);
+    // The pair is recorded on the split one: the server reads it from there.
+    expect(requests[0]!.url.toString()).toContain(
+      `${MERGE_SPLIT_ROUTE_PREFIX}/${SPLIT_ID}`,
+    );
+    expect(requests[0]!.data).toEqual({});
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(posts("similar-ai-check")).toEqual([]);
+    expect(Toast.success).toHaveBeenCalledWith("Exceptions merged");
+  });
+
+  test("split into several: lists each, linked, oldest kept, and one Merge Exceptions merges them all, one after another", async () => {
+    const onMerged: Mock<() => void> = jest.fn<() => void>();
+    renderOlderPage({ splitInto: [SPLIT, SECOND_SPLIT], onMerged });
+
+    expect(screen.getByTestId("exception-split-into")).toHaveTextContent(
+      "A scrub rule split these exceptions from this one. Once the rule hid part of what it says, its occurrences were counted there instead of here.",
+    );
+    const links: Array<HTMLElement> = within(
+      screen.getByTestId("exception-split-into-list"),
+    ).getAllByTestId("exception-split-into-link");
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveTextContent(
+      "CartNotFoundError: No cart for [REDACTED]",
+    );
+    expect(links[1]).toHaveTextContent(
+      "CartNotFoundError: No cart for a***@***.com",
+    );
+    expect(links[1]).toHaveAttribute(
+      "href",
+      expect.stringContaining(SECOND_SPLIT_ID),
+    );
+    expect(screen.getByTestId("exception-split-into-hint")).toHaveTextContent(
+      "Merge them to count every occurrence as one exception again. The oldest one is kept, and you can unmerge them later.",
+    );
+    expect(screen.getAllByTestId("exception-split-into-merge")).toHaveLength(1);
+
+    fireEvent.click(screen.getByTestId("exception-split-into-merge"));
+
+    await waitFor(() => {
+      expect(onMerged).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      posts(MERGE_SPLIT_ROUTE_PREFIX).map((args: RequestArgs): string => {
+        return args.url.toString();
+      }),
+    ).toEqual([
+      expect.stringContaining(`${MERGE_SPLIT_ROUTE_PREFIX}/${SPLIT_ID}`),
+      expect.stringContaining(`${MERGE_SPLIT_ROUTE_PREFIX}/${SECOND_SPLIT_ID}`),
+    ]);
+    expect(Toast.success).toHaveBeenCalledTimes(1);
+  });
+
+  test("a refusal part-way stops there and says why: the page stays, and Merge Exceptions again merges what is left", async () => {
+    const onMerged: Mock<() => void> = jest.fn<() => void>();
+    let calls: number = 0;
+    postMock.mockImplementation(async () => {
+      calls++;
+      if (calls === 2) {
+        return new HTTPErrorResponse(
+          400,
+          { message: "You do not have permission to edit this exception." },
+          {},
+        );
+      }
+      return new HTTPResponse<JSONObject>(
+        200,
+        { telemetryExceptionId: SPLIT_FROM_ID, merged: [] },
+        {},
+      );
+    });
+    renderOlderPage({ splitInto: [SPLIT, SECOND_SPLIT], onMerged });
+
+    fireEvent.click(screen.getByTestId("exception-split-into-merge"));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("exception-split-into-merge-error"),
+      ).toHaveTextContent("You do not have permission to edit this exception.");
+    });
+    expect(onMerged).not.toHaveBeenCalled();
+    expect(Toast.success).not.toHaveBeenCalled();
+    expect(posts(MERGE_SPLIT_ROUTE_PREFIX)).toHaveLength(2);
+
+    fireEvent.click(screen.getByTestId("exception-split-into-merge"));
+
+    await waitFor(() => {
+      expect(onMerged).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByTestId("exception-split-into-merge-error")).toBeNull();
+  });
+
+  test("someone who may not edit exceptions reads the note, with no Merge", () => {
+    canEdit = false;
+    renderOlderPage({ splitInto: [SPLIT, SECOND_SPLIT] });
+
+    expect(screen.getByTestId("exception-split-into")).toBeInTheDocument();
+    expect(screen.queryByTestId("exception-split-into-merge")).toBeNull();
+    expect(screen.getByTestId("exception-split-into-hint")).toHaveTextContent(
+      "Someone who can edit exceptions can merge them into one.",
+    );
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["nothing was split from it", OLDER, []],
+    [
+      "it is merged into another exception, whose page says so instead",
+      exception(SPLIT_FROM_ID, {
+        mergedIntoTelemetryExceptionId: new ObjectID(OTHER_ID),
+      }),
+      [SPLIT],
+    ],
+    [
+      "the split one is merged already",
+      OLDER,
+      [
+        exception(SPLIT_ID, {
+          splitFromTelemetryExceptionId: new ObjectID(SPLIT_FROM_ID),
+          mergedIntoTelemetryExceptionId: new ObjectID(SPLIT_FROM_ID),
+        }),
+      ],
+    ],
+    [
+      "what was read was split from another exception",
+      OLDER,
+      [
+        exception(SPLIT_ID, {
+          splitFromTelemetryExceptionId: new ObjectID(OTHER_ID),
+        }),
+      ],
+    ],
+    [
+      "what was read is this exception itself",
+      exception(SPLIT_FROM_ID, {
+        splitFromTelemetryExceptionId: new ObjectID(SPLIT_FROM_ID),
+      }),
+      [
+        exception(SPLIT_FROM_ID, {
+          splitFromTelemetryExceptionId: new ObjectID(SPLIT_FROM_ID),
+        }),
+      ],
+    ],
+  ])(
+    "no note when %s",
+    (
+      _name: string,
+      older: TelemetryException,
+      splitInto: Array<TelemetryException>,
+    ) => {
+      renderOlderPage({ exception: older, splitInto });
+
+      expect(screen.queryByTestId("exception-split-into")).toBeNull();
+    },
+  );
+
+  test("an exception split from one and split into another says both, each with its own Merge Exceptions", () => {
+    const middleId: string = "60000000-0000-4000-8000-000000000005";
+    const middle: TelemetryException = exception(middleId, {
+      splitFromTelemetryExceptionId: new ObjectID(SPLIT_FROM_ID),
+    });
+    const newest: TelemetryException = exception(SPLIT_ID, {
+      splitFromTelemetryExceptionId: new ObjectID(middleId),
+    });
+
+    renderOlderPage({
+      exception: middle,
+      splitFrom: exception(SPLIT_FROM_ID),
+      splitInto: [newest],
+    });
+
+    expect(screen.getByTestId("exception-split-from")).toBeInTheDocument();
+    expect(screen.getByTestId("exception-split-into")).toBeInTheDocument();
+    expect(screen.getByTestId("exception-split-merge")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("exception-split-into-merge"),
+    ).toBeInTheDocument();
+  });
+
+  test("names each split one once, in the order the page read them: oldest first", () => {
+    expect(
+      getSplitIntoNoticeExceptions({
+        exception: OLDER,
+        splitInto: [SPLIT, SECOND_SPLIT, SPLIT],
+      }),
+    ).toEqual([SPLIT, SECOND_SPLIT]);
+    expect(
+      getSplitIntoNoticeExceptions({ exception: OLDER, splitInto: null }),
+    ).toEqual([]);
+    expect(
+      getSplitIntoNoticeExceptions({
+        exception: new TelemetryException(),
+        splitInto: [SPLIT],
+      }),
+    ).toEqual([]);
+  });
+
+  test("the page reads them as the lists read exceptions, by the split column, oldest first, at most a page's worth", () => {
+    expect(SPLIT_INTO_EXCEPTION_SELECT).toEqual({
+      _id: true,
+      exceptionType: true,
+      message: true,
+      firstSeenAt: true,
+      splitFromTelemetryExceptionId: true,
+      mergedIntoTelemetryExceptionId: true,
+    });
+    expect(MAX_SPLIT_INTO_EXCEPTIONS).toBeGreaterThanOrEqual(10);
   });
 });

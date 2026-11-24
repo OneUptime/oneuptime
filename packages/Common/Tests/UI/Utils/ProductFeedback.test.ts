@@ -533,6 +533,154 @@ describe("Give feedback (#8893)", () => {
   });
 });
 
+/*
+ * WHERE THE SERVER'S ADMINS SEND GIVE FEEDBACK (Admin Dashboard > Settings >
+ * Help and Support, #10865): an address of their own, a page of their own,
+ * or nowhere. What a person writes is never posted where the server would
+ * not take it, so nothing written is dropped silently.
+ */
+describe("Give feedback, where the server's admins chose (#10865)", () => {
+  test("offered where the server takes feedback and does not say otherwise, as it always was", () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
+    expect(ProductFeedback.isGiveFeedbackOffered()).toBe(true);
+
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      isGiveFeedbackOffered: true,
+    });
+    expect(ProductFeedback.isGiveFeedbackOffered()).toBe(true);
+  });
+
+  test("not offered where the server says so, nor where it takes no feedback at all, nor before it has said", () => {
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      isGiveFeedbackOffered: false,
+    });
+    expect(ProductFeedback.isGiveFeedbackOffered()).toBe(false);
+    // Its questions are another matter: they still ask.
+    expect(ProductFeedback.isOn()).toBe(true);
+
+    ProductFeedback.setSettings({ isOn: false, isAskingMe: false });
+    expect(ProductFeedback.isGiveFeedbackOffered()).toBe(false);
+
+    ProductFeedback.setSettings(null);
+    expect(ProductFeedback.isGiveFeedbackOffered()).toBe(false);
+  });
+
+  test("a page of their own is read only for that destination", () => {
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportPage,
+      giveFeedbackUrl: "https://help.example.com/feedback",
+    });
+    expect(ProductFeedback.getGiveFeedbackUrl()).toBe(
+      "https://help.example.com/feedback",
+    );
+    expect(ProductFeedback.getGiveFeedbackTo()).toBeNull();
+
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+      giveFeedbackUrl: "https://help.example.com/feedback",
+    });
+    expect(ProductFeedback.getGiveFeedbackUrl()).toBeNull();
+  });
+
+  test("an address of their own is read only for that destination", () => {
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportTeamByEmail,
+      giveFeedbackTo: "it-help@example.com",
+    });
+    expect(ProductFeedback.getGiveFeedbackTo()).toBe("it-help@example.com");
+    expect(ProductFeedback.getGiveFeedbackUrl()).toBeNull();
+    expect(ProductFeedback.getGiveFeedbackDestination()).toBe(
+      GiveFeedbackDestination.SupportTeamByEmail,
+    );
+
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackTo: "it-help@example.com",
+    });
+    expect(ProductFeedback.getGiveFeedbackTo()).toBeNull();
+  });
+
+  test.each([
+    ["hidden", { isOn: true, isAskingMe: true, isGiveFeedbackOffered: false }],
+    [
+      "sent to a page of their own",
+      {
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: GiveFeedbackDestination.SupportPage,
+        giveFeedbackUrl: "https://help.example.com/feedback",
+      },
+    ],
+  ])(
+    "%s: what is written is not posted, and nothing says it was sent",
+    async (_name: string, settings: Record<string, unknown>) => {
+      ProductFeedback.setSettings(
+        settings as unknown as Parameters<
+          typeof ProductFeedback.setSettings
+        >[0],
+      );
+
+      expect(
+        await ProductFeedback.giveFeedback({
+          category: GiveFeedbackCategory.Broken,
+          details: "Words that would go nowhere.",
+        }),
+      ).toBeNull();
+      expect(postMock).not.toHaveBeenCalled();
+      expect(captureMock).not.toHaveBeenCalledWith(
+        ProductEventName.FeedbackGiven,
+        expect.anything(),
+      );
+    },
+  );
+
+  test("hidden: the questions' one-click answers are still kept", async () => {
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      isGiveFeedbackOffered: false,
+    });
+    postMock.mockResolvedValue(ok({ answerId: "answer-9" }));
+
+    expect(
+      await ProductFeedback.submit({
+        kind: ProductFeedbackKind.SetupFlow,
+        topic: "website_down",
+        score: 5,
+      }),
+    ).toBe("answer-9");
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("the settings carry the offer, the address and the page, read from the server", async () => {
+    getMock.mockResolvedValue(
+      ok({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: GiveFeedbackDestination.SupportTeamByEmail,
+        isGiveFeedbackOffered: true,
+        giveFeedbackTo: "it-help@example.com",
+      }),
+    );
+
+    await ProductFeedback.loadSettings();
+
+    expect(ProductFeedback.isGiveFeedbackOffered()).toBe(true);
+    expect(ProductFeedback.getGiveFeedbackTo()).toBe("it-help@example.com");
+  });
+});
+
 describe("words after a one-click answer, and stopping", () => {
   test("the words go to the answer they follow", async () => {
     postMock.mockResolvedValue(ok({ added: true }));

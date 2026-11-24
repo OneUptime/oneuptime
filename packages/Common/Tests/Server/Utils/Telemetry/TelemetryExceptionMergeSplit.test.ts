@@ -248,3 +248,169 @@ describe("merging an exception a scrub rule split with the one it was split from
     expect(merged).toEqual([]);
   });
 });
+
+/*
+ * MERGING FROM THE PAGE OF THE ONE IT WAS SPLIT FROM (#10897).
+ *
+ * The older exception's page names each exception split from it, and its
+ * Merge Exceptions asks the same thing of each in turn: mergeSplit with the
+ * split one's id, where the pair is recorded. The older of each pair is
+ * kept, so however many were split from it, they end as one exception; and
+ * every merge is as the caller, who must be able to edit both.
+ */
+describe("merging every exception split from one, from that one's page", () => {
+  const SECOND_SPLIT_ID: string = "30000000-0000-4000-8000-0000000d0618";
+
+  function mergeSplitOf(id: string): Promise<ExceptionMergeResult> {
+    return TelemetryExceptionMerge.mergeSplit({
+      telemetryExceptionId: new ObjectID(id),
+      props: PROPS,
+    });
+  }
+
+  // A merge as the database keeps it: the merged ones point at the survivor.
+  function keepMerges(): void {
+    jest.spyOn(TelemetryExceptionMerge, "merge").mockImplementation((async (
+      data: Parameters<typeof TelemetryExceptionMerge.merge>[0],
+    ) => {
+      merged.push(data);
+
+      for (const id of data.mergedTelemetryExceptionIds) {
+        const row: Row = editable.get(id.toString())!;
+        editable.set(id.toString(), {
+          ...row,
+          mergedInto: data.telemetryExceptionId.toString(),
+        });
+      }
+
+      return {
+        telemetryExceptionId: data.telemetryExceptionId.toString(),
+        merged: data.mergedTelemetryExceptionIds.map((id: ObjectID) => {
+          return {
+            telemetryExceptionId: id.toString(),
+            outcome: ExceptionMergeOutcome.Merged,
+          };
+        }),
+      };
+    }) as never);
+  }
+
+  function rowsSplitFromTheOlderOne(splitFirstSeen: [string, string]): void {
+    editable.set(SPLIT_FROM_ID, {
+      id: SPLIT_FROM_ID,
+      firstSeenAt: new Date("2026-03-01T00:00:00Z"),
+    });
+    editable.set(SPLIT_ID, {
+      id: SPLIT_ID,
+      firstSeenAt: new Date(splitFirstSeen[0]),
+      splitFrom: SPLIT_FROM_ID,
+    });
+    editable.set(SECOND_SPLIT_ID, {
+      id: SECOND_SPLIT_ID,
+      firstSeenAt: new Date(splitFirstSeen[1]),
+      splitFrom: SPLIT_FROM_ID,
+    });
+  }
+
+  test("each merges into the one it was split from, one request each: the three are one exception", async () => {
+    keepMerges();
+    rowsSplitFromTheOlderOne(["2026-10-02T00:00:00Z", "2026-11-02T00:00:00Z"]);
+
+    await mergeSplitOf(SPLIT_ID);
+    await mergeSplitOf(SECOND_SPLIT_ID);
+
+    expect(
+      merged.map(
+        (data: Parameters<typeof TelemetryExceptionMerge.merge>[0]) => {
+          return [
+            data.telemetryExceptionId.toString(),
+            data.mergedTelemetryExceptionIds.map((id: ObjectID): string => {
+              return id.toString();
+            }),
+          ];
+        },
+      ),
+    ).toEqual([
+      [SPLIT_FROM_ID, [SPLIT_ID]],
+      [SPLIT_FROM_ID, [SECOND_SPLIT_ID]],
+    ]);
+    // As the caller each time, so each merge checks their edit on both.
+    for (const data of merged) {
+      expect(data.props).toBe(PROPS);
+    }
+  });
+
+  test("when a split one was first seen before it, the rest join that one: still one exception", async () => {
+    keepMerges();
+    rowsSplitFromTheOlderOne(["2026-01-01T00:00:00Z", "2026-11-02T00:00:00Z"]);
+
+    await mergeSplitOf(SPLIT_ID);
+    await mergeSplitOf(SECOND_SPLIT_ID);
+
+    expect(merged).toHaveLength(2);
+    expect(merged[0]!.telemetryExceptionId.toString()).toBe(SPLIT_ID);
+    expect(merged[1]!.telemetryExceptionId.toString()).toBe(SPLIT_ID);
+    expect(editable.get(SPLIT_FROM_ID)!.mergedInto).toBe(SPLIT_ID);
+    expect(editable.get(SECOND_SPLIT_ID)!.mergedInto).toBe(SPLIT_ID);
+  });
+
+  test("asked again after a refusal part-way, it merges what is left and skips what is merged already", async () => {
+    keepMerges();
+    rowsSplitFromTheOlderOne(["2026-10-02T00:00:00Z", "2026-11-02T00:00:00Z"]);
+
+    await mergeSplitOf(SPLIT_ID);
+    // The page asks for every one again: the first is merged already.
+    const again: ExceptionMergeResult = await mergeSplitOf(SPLIT_ID);
+    await mergeSplitOf(SECOND_SPLIT_ID);
+
+    expect(again.merged).toEqual([
+      {
+        telemetryExceptionId: SPLIT_ID,
+        outcome: ExceptionMergeOutcome.AlreadyMerged,
+      },
+    ]);
+    expect(merged).toHaveLength(2);
+  });
+
+  test("someone who may edit the older one but not a split one cannot merge it from the older one's page", async () => {
+    editable.set(SPLIT_FROM_ID, { id: SPLIT_FROM_ID });
+
+    await expect(mergeSplitOf(SPLIT_ID)).rejects.toBeInstanceOf(
+      NotAuthorizedException,
+    );
+    expect(merged).toEqual([]);
+  });
+
+  test("nor someone who may edit the split ones but not the older one", async () => {
+    editable.set(SPLIT_ID, { id: SPLIT_ID, splitFrom: SPLIT_FROM_ID });
+    editable.set(SECOND_SPLIT_ID, {
+      id: SECOND_SPLIT_ID,
+      splitFrom: SPLIT_FROM_ID,
+    });
+
+    for (const id of [SPLIT_ID, SECOND_SPLIT_ID]) {
+      await expect(mergeSplitOf(id)).rejects.toBeInstanceOf(
+        NotAuthorizedException,
+      );
+    }
+    expect(merged).toEqual([]);
+  });
+
+  test("nor someone who may only read exceptions: nothing is editable, nothing merges", async () => {
+    for (const id of [SPLIT_ID, SECOND_SPLIT_ID, SPLIT_FROM_ID]) {
+      await expect(mergeSplitOf(id)).rejects.toBeInstanceOf(
+        NotAuthorizedException,
+      );
+    }
+    expect(merged).toEqual([]);
+  });
+
+  test("the older one's own id names no pair: the pair is recorded on the split one", async () => {
+    editable.set(SPLIT_FROM_ID, { id: SPLIT_FROM_ID });
+
+    await expect(mergeSplitOf(SPLIT_FROM_ID)).rejects.toBeInstanceOf(
+      BadDataException,
+    );
+    expect(merged).toEqual([]);
+  });
+});

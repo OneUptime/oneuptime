@@ -105,13 +105,13 @@ Nel passaggio **Criteri**, apri il primo criterio, quello che segna il monitor c
 
 ### Aprire un incidente per avviso
 
-Nello stesso criterio, apri **Impostazioni** e attiva **Group incidents and alerts by a payload field**. Compilalo come sotto, così ogni avviso ha il proprio incidente e il suo rientro lo risolve:
+Nello stesso criterio, apri **Impostazioni** e attiva **Raggruppa incidenti e avvisi per un campo del payload**. Compilalo come sotto, così ogni avviso ha il proprio incidente e il suo rientro lo risolve:
 
 | Campo | Valore |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Apri un incidente separato per ogni…** | `requestBody.alert_key` |
+| **Campo che segnala il ripristino** | `requestBody.transition` |
+| **Valore che indica il ripristino** | `Recovered` |
 
 ### Riportare il monitor online
 
@@ -227,7 +227,7 @@ Apri l'esecuzione in **Esecuzioni**. La voce `read-event-1` nei suoi **Passaggi*
 - Il monitor di Datadog deve notificare al webhook anche i suoi rientri. Un messaggio che menziona il webhook solo per gli avvisi, dentro una condizione, non invia alcun rientro.
 - Con il modello, apri l'esecuzione del rientro in **Esecuzioni**: il suo ultimo passo dice perché. L'`alert_cycle_key` del rientro deve essere quello dell'avviso, quindi lascia `$ALERT_CYCLE_KEY` così com'è nel payload.
 - Con il monitor, l'incidente del criterio ha bisogno di **Risoluzione automatica dell'incidente**, in **Altri campi**.
-- **Value that means recovered** deve essere esattamente `Recovered`. Il confronto distingue maiuscole e minuscole.
+- **Valore che indica il ripristino** deve essere esattamente `Recovered`. Il confronto distingue maiuscole e minuscole.
 - L'`alert_key` del rientro deve essere quello dell'avviso: lascia `$ALERT_ID $ALERT_SCOPE` così com'è nel payload.
 :::
 

@@ -456,7 +456,11 @@ describe("approved", () => {
     expect(withGeneratedIdsNumbered(made.data.monitorSteps?.toJSON())).toEqual(
       withGeneratedIdsNumbered(expected.monitorSteps?.toJSON()),
     );
-    expect(made.miscDataProps).toEqual({});
+    /*
+     * No owners; its name is the recommendation's, numbered rather than
+     * refused where the project requires unique names (#10761).
+     */
+    expect(made.miscDataProps).toEqual({ numbersTakenName: true });
 
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.MonitorView,

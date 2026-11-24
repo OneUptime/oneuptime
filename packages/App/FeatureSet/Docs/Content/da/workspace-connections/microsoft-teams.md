@@ -43,7 +43,7 @@ Tre ting får det til at virke:
 :::steps
 ### Giv administratorsamtykke
 
-Gå til **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, og klik på **Giv administratorsamtykke**. En Microsoft 365-administrator logger ind og tillader OneUptime-appen for organisationen. Kortet siger derefter **Admin Consent Completed**. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagt **Forbind et arbejdsområde**, som også fører hertil.
+Gå til **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, og klik på **Giv administratorsamtykke**. En Microsoft 365-administrator logger ind og tillader OneUptime-appen for organisationen. Kortet siger derefter **Admin Consent Completed** og nævner organisationen, for eksempel Contoso (contoso.onmicrosoft.com). Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagt **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Forbind din konto
 
@@ -305,7 +305,7 @@ Når projektets offentlige noter kræver godkendelse, og du slår Microsoft Team
 - **Uninstall OneUptime from Microsoft Teams**, på **Projektindstillinger** > **Arbejdsområde** > **Microsoft Teams**, afbryder projektets forbindelse. OneUptime holder op med at slå op i Microsoft Teams, og menuerne **Arbejdsområde** holder op med at vise det. Notifikationsreglerne og opsummeringerne bevares, til du forbinder igen.
 
 > [!WARNING]
-> At afinstallere fjerner også tilknytningen af hvert medlems egen Microsoft Teams-konto i projektet og fjerner Microsoft Teams-notifikationsmetoderne og de vagtregler, der brugte dem. Et projekt er forbundet med én Microsoft 365-organisation: for at flytte det til en anden skal du afinstallere først.
+> At afinstallere fjerner også tilknytningen af hvert medlems egen Microsoft Teams-konto i projektet og fjerner Microsoft Teams-notifikationsmetoderne og de vagtregler, der brugte dem. Et projekt er forbundet med én Microsoft 365-organisation: for at flytte det til en anden skal du i stedet vælge **Connect a Different Organization** i samme menu. Det afinstallerer OneUptime på samme måde og beder derefter en Microsoft 365-administrator i den anden organisation om samtykke.
 
 ## Fejlfinding
 
@@ -319,6 +319,10 @@ Når Microsoft sender dig tilbage uden en forbindelse, siger den side, du starte
 
 :::details Botten siger, at min konto ikke er forbundet
 Tryk på **Connect Microsoft Teams account** i botens svar for at forbinde den i ét trin, eller knyt den under **Brugerindstillinger** > **Arbejdsområde** > **Microsoft Teams** med **Connect my account with Microsoft Teams**. Uanset hvad logger du ind i den organisation, projektet er forbundet med, som gæst, hvis du er gæst der. Er du gæst og har tidligere forbundet din egen organisations konto, så forbind den igen.
+:::
+
+:::details Microsoft siger, at den valgte konto ikke findes i lejeren
+Hvert Microsoft-login for et projekt går til den Microsoft 365-organisation, projektet er forbundet med, og som kortet **Admin Consent Completed** nævner. En konto, der ikke er i den organisation, stopper Microsoft på sin egen side (`AADSTS50020`), og du bliver ikke sendt tilbage. Log ind med din konto i den organisation. For i stedet at forbinde projektet med din organisation skal du vælge **Connect a Different Organization** i kortets menu og få en Microsoft 365-administrator i din organisation til at give samtykke.
 :::
 
 :::details Alle notifikationer fejler på en selvhostet server

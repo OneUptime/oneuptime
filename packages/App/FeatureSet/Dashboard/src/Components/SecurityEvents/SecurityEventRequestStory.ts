@@ -30,6 +30,12 @@ import {
   readScrubbedValue,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE } from "Common/Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import {
+  SensitiveFileAnswer,
+  isSensitiveFileAnswer,
+  readBodySize,
+} from "Common/Utils/SecurityEvent/SensitiveFileProbe";
 import {
   ERRORED,
   ERRORED_WITH_EXCEPTION,
@@ -43,6 +49,12 @@ import {
   REACHED_DATABASE_IN_SYSTEM,
   REJECTED,
   REJECTED_IN,
+  RESPONSE_SIZE_BYTES,
+  SENSITIVE_FILE_EMPTY,
+  SENSITIVE_FILE_OWN_PAGE,
+  SENSITIVE_FILE_SENT_AS,
+  SENSITIVE_FILE_SENT_BY_SIZE,
+  SENSITIVE_FILE_UNCONFIRMED,
 } from "./SecurityEventRequestCopy";
 
 /*
@@ -85,6 +97,14 @@ export interface SecurityEventRequestFacts {
   databaseSystem: string;
   databaseStatement: string;
   requestedDelaySeconds: number;
+  /*
+   * For a request for a file that holds secrets the site answered
+   * (#10912): what it sent - the file, its own page, nothing - and what
+   * the answer carried, when the source recorded it.
+   */
+  sensitiveFileAnswer: SensitiveFileAnswer | null;
+  responseBodySize: number | null;
+  responseContentType: string;
 }
 
 function readText(attributes: JSONObject, key: string): string {
@@ -160,7 +180,79 @@ export function readSecurityEventRequestFacts(
       attributes,
       SECURITY_REQUEST_ATTRIBUTES.requestedDelaySeconds,
     ),
+    ...readSensitiveFileFacts(attributes),
   };
+}
+
+// What a request for a sensitive file's answer was, and carried (#10912).
+function readSensitiveFileFacts(
+  attributes: JSONObject,
+): Pick<
+  SecurityEventRequestFacts,
+  "sensitiveFileAnswer" | "responseBodySize" | "responseContentType"
+> {
+  const answer: string = readText(
+    attributes,
+    WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE,
+  );
+  const size: string = readText(
+    attributes,
+    SECURITY_REQUEST_ATTRIBUTES.responseBodySize,
+  );
+
+  return {
+    sensitiveFileAnswer: isSensitiveFileAnswer(answer) ? answer : null,
+    responseBodySize: size ? readBodySize(size) : null,
+    responseContentType: readText(
+      attributes,
+      SECURITY_REQUEST_ATTRIBUTES.responseContentType,
+    ),
+  };
+}
+
+/*
+ * What the site sent for a request for a file that holds secrets, in one
+ * sentence (#10912); '' for a refusal, which the outcome's own sentence
+ * says, and for any other request.
+ */
+export function describeSensitiveFileAnswer(data: {
+  facts: SecurityEventRequestFacts;
+  translator: Translator;
+}): string {
+  const { facts, translator } = data;
+  const status: string = facts.statusCode
+    ? formatStatus(facts.statusCode)
+    : "2xx";
+
+  switch (facts.sensitiveFileAnswer) {
+    case SensitiveFileAnswer.File:
+      if (facts.responseContentType) {
+        return translator.translateTemplate(SENSITIVE_FILE_SENT_AS, {
+          status,
+          type: facts.responseContentType,
+        });
+      }
+
+      return translator.translateTemplate(SENSITIVE_FILE_SENT_BY_SIZE, {
+        status,
+        size: translator.translatePlural(
+          RESPONSE_SIZE_BYTES,
+          facts.responseBodySize || 0,
+        ),
+      });
+    case SensitiveFileAnswer.OwnPage:
+      return translator.translateTemplate(SENSITIVE_FILE_OWN_PAGE, {
+        status,
+      });
+    case SensitiveFileAnswer.Empty:
+      return translator.translateTemplate(SENSITIVE_FILE_EMPTY, { status });
+    case SensitiveFileAnswer.Unconfirmed:
+      return translator.translateTemplate(SENSITIVE_FILE_UNCONFIRMED, {
+        status,
+      });
+    default:
+      return "";
+  }
 }
 
 function firstOf(current: string, found: string): string {
@@ -231,11 +323,22 @@ export function mergeAssessment(
     return facts;
   }
 
-  const outcome: SecurityEventRequestOutcome | undefined =
+  const merged: SecurityEventRequestOutcome | undefined =
     getRequestOutcomeRank(assessment.outcome) >
     getRequestOutcomeRank(facts.outcome)
       ? assessment.outcome
       : facts.outcome;
+  /*
+   * A request for a secret file the site answered with its own page, or
+   * with nothing, reached nothing, however the trace reads its 2xx (#10912).
+   */
+  const foundNothing: boolean =
+    facts.sensitiveFileAnswer === SensitiveFileAnswer.OwnPage ||
+    facts.sensitiveFileAnswer === SensitiveFileAnswer.Empty;
+  const outcome: SecurityEventRequestOutcome | undefined =
+    foundNothing && merged === SecurityEventRequestOutcome.ReachedApp
+      ? facts.outcome
+      : merged;
   const found: { clientAddress: string; hidden: HiddenClientAddress | null } =
     readFoundClientAddress(assessment.client);
   const clientAddress: string = firstOf(
@@ -287,6 +390,10 @@ export function mergeAssessment(
     ),
     requestedDelaySeconds:
       facts.requestedDelaySeconds || assessment.requestedDelaySeconds,
+    // What the site sent is the event's own: a trace says nothing of it.
+    sensitiveFileAnswer: facts.sensitiveFileAnswer,
+    responseBodySize: facts.responseBodySize,
+    responseContentType: facts.responseContentType,
   };
 }
 
@@ -385,6 +492,22 @@ export function describeWhatHappenedNext(data: {
   const status: string = facts.statusCode ? formatStatus(facts.statusCode) : "";
   const duration: string = formatRequestDuration(facts.durationMs, translator);
   const exception: string = facts.exceptionType;
+
+  /*
+   * A request for a file that holds secrets the site answered says what it
+   * sent (#10912) - unless its trace showed it broke something, which says
+   * more.
+   */
+  if (
+    facts.outcome !== SecurityEventRequestOutcome.Errored &&
+    facts.outcome !== SecurityEventRequestOutcome.ReachedDatabase
+  ) {
+    const sent: string = describeSensitiveFileAnswer({ facts, translator });
+
+    if (sent) {
+      return sent;
+    }
+  }
 
   switch (facts.outcome) {
     case SecurityEventRequestOutcome.ReachedDatabase:

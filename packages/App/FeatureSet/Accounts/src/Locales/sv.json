@@ -725,6 +725,10 @@
   "Add one file at a time.": "Lägg till en fil i taget.",
   "This field holds up to {{count}} files. Remove one to add another.": "Det här fältet rymmer upp till {{count}} filer. Ta bort en för att lägga till en annan.",
   "This field holds up to {{count}} files. Remove one to add another._one": "Det här fältet rymmer en fil. Ta bort den för att lägga till en annan.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" lades inte till: det här fältet rymmer upp till {{count}} filer.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" lades inte till: det här fältet rymmer en fil.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "De här filerna lades inte till, eftersom det här fältet rymmer upp till {{count}} filer: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "De här filerna lades inte till, eftersom det här fältet rymmer en fil: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",
@@ -733,5 +737,6 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den."
 }

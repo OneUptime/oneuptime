@@ -41,7 +41,7 @@ A policy acts on a detection as it is recorded on its case, a few seconds after 
 
 People pass a challenge, and scripts and bots do not. Scanners only challenges an address while none of its requests reached your app: an address whose requests got through is a case for a person.
 
-Scanning for sensitive files counts only the requests your site refused or does not have, and only when one address asks for three or more different files or admin pages within five minutes. A page your site serves never counts, so a WordPress site's own admins load `/wp-admin` and `/wp-login.php` as often as they like.
+Scanning for sensitive files counts only the requests your site refused or does not have, and only when one address asks for three or more different files or admin pages within five minutes. A page your site serves never counts, so a WordPress site's own admins load `/wp-admin` and `/wp-login.php` as often as they like. A request for a file that holds secrets, such as `/.env`, that a single-page app answered with its own page is one it does not have, and counts. A file your site served is a leak, not a scan: the Rule Library's **Sensitive file served** opens a Critical case for a person, and no policy acts on it.
 
 Turning Scanners or Password Guessing on, into its trial run or on, runs the **Rule Library** rules it acts on in real time, adding the ones your project does not have: a real-time rule fires seconds after the events arrive, where a scheduled one reads minutes behind. A rule someone turned off stays off. A project runs at most 50 rules in real time: past that, a rule stays on its schedule, and the policy's card says **On a schedule** beside it.
 

@@ -74,6 +74,8 @@ import {
   toDocsFeedbackSubmission,
 } from "../../../Types/ProductFeedback/ProductFeedback";
 import OlderRowsPurge from "../../../Server/Utils/Retention/OlderRowsPurge";
+import ServerSendingStatus from "../../../Server/Utils/ServerSending/ServerSendingStatus";
+import { HelpChoice } from "../../../Types/HelpAndSupport/HelpAndSupport";
 import {
   AskAiSourceOfNoProduct,
   ASK_AI_RATINGS_DAYS,
@@ -203,6 +205,7 @@ describe("the switches", () => {
       isOn: true,
       isAskingMe: true,
       giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+      isGiveFeedbackOffered: true,
     });
 
     user = makeUser({ disableFeedbackQuestions: true });
@@ -210,6 +213,7 @@ describe("the switches", () => {
       isOn: true,
       isAskingMe: false,
       giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+      isGiveFeedbackOffered: true,
     });
 
     user = makeUser({});
@@ -218,6 +222,8 @@ describe("the switches", () => {
       isOn: false,
       isAskingMe: false,
       giveFeedbackGoesTo: GiveFeedbackDestination.ServerAdmins,
+      // A server that asks nothing offers no Give feedback either.
+      isGiveFeedbackOffered: false,
     });
   });
 });
@@ -258,6 +264,9 @@ describe("where Give feedback goes (#8893)", () => {
     expect(await ProductFeedbackService.getServerFeedbackSettings()).toEqual({
       isOn: true,
       adminNotificationEmail: "ops@acme.test",
+      // Where Help and Support sends Give feedback, and whether email can go (#10865).
+      giveFeedback: { choice: HelpChoice.Default, value: null },
+      canSendEmail: expect.any(Boolean),
     });
     expect(GlobalConfigService.findOneById).toHaveBeenCalledTimes(1);
     expect(
@@ -266,13 +275,140 @@ describe("where Give feedback goes (#8893)", () => {
           select: Record<string, boolean>;
         }
       ).select,
-    ).toEqual({ disableProductFeedback: true, adminNotificationEmail: true });
+    ).toEqual(
+      expect.objectContaining({
+        disableProductFeedback: true,
+        adminNotificationEmail: true,
+        helpAndSupport: true,
+        serverSendingHealth: true,
+      }),
+    );
 
     config = null;
     expect(await ProductFeedbackService.getServerFeedbackSettings()).toEqual({
       isOn: true,
       adminNotificationEmail: null,
+      giveFeedback: { choice: HelpChoice.Default, value: null },
+      canSendEmail: false,
     });
+  });
+});
+
+describe("where Give feedback goes, chosen on Help and Support (#10865)", () => {
+  const canSendEmail: (answer: boolean) => void = (answer: boolean): void => {
+    jest
+      .spyOn(ServerSendingStatus, "canSendEmailPubliclyFrom")
+      .mockReturnValue(answer);
+  };
+
+  test("to an address of the server's own while it can send email: offered, and named", async () => {
+    canSendEmail(true);
+    config!.adminNotificationEmail = new Email("ops@acme.test");
+    config!.helpAndSupport = {
+      giveFeedback: { choice: "email", value: "support-team@acme.test" },
+    };
+
+    expect(await ProductFeedbackService.getSettings(USER_ID)).toEqual({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportTeamByEmail,
+      isGiveFeedbackOffered: true,
+      giveFeedbackTo: "support-team@acme.test",
+    });
+    expect(await ProductFeedbackService.isGiveFeedbackTaken()).toBe(true);
+  });
+
+  test("to an address of the server's own while it cannot send email: not offered, never silently dropped", async () => {
+    canSendEmail(false);
+    config!.helpAndSupport = {
+      giveFeedback: { choice: "email", value: "support-team@acme.test" },
+    };
+
+    const settings: Awaited<
+      ReturnType<typeof ProductFeedbackService.getSettings>
+    > = await ProductFeedbackService.getSettings(USER_ID);
+
+    expect(settings.isGiveFeedbackOffered).toBe(false);
+    expect(settings.giveFeedbackGoesTo).toBe(
+      GiveFeedbackDestination.SupportTeamByEmail,
+    );
+    expect(await ProductFeedbackService.isGiveFeedbackTaken()).toBe(false);
+  });
+
+  test("to a page of the server's own: offered with its page, taken nowhere here", async () => {
+    canSendEmail(false);
+    config!.helpAndSupport = {
+      giveFeedback: {
+        choice: "link",
+        value: "https://desk.acme.test/feedback",
+      },
+    };
+
+    expect(await ProductFeedbackService.getSettings(USER_ID)).toEqual({
+      isOn: true,
+      isAskingMe: true,
+      giveFeedbackGoesTo: GiveFeedbackDestination.SupportPage,
+      isGiveFeedbackOffered: true,
+      giveFeedbackUrl: "https://desk.acme.test/feedback",
+    });
+    expect(await ProductFeedbackService.isGiveFeedbackTaken()).toBe(false);
+  });
+
+  test("hidden: not offered, and not taken", async () => {
+    canSendEmail(true);
+    config!.helpAndSupport = { giveFeedback: { choice: "hidden" } };
+
+    expect(
+      (await ProductFeedbackService.getSettings(USER_ID)).isGiveFeedbackOffered,
+    ).toBe(false);
+    expect(await ProductFeedbackService.isGiveFeedbackTaken()).toBe(false);
+  });
+
+  test("by default, offered and taken whether or not the server can send email, as before", async () => {
+    const sending: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ServerSendingStatus,
+      "canSendEmailPubliclyFrom",
+    );
+
+    for (const answer of [true, false]) {
+      sending.mockReturnValue(answer);
+
+      expect(
+        (await ProductFeedbackService.getSettings(USER_ID))
+          .isGiveFeedbackOffered,
+      ).toBe(true);
+      expect(await ProductFeedbackService.isGiveFeedbackTaken()).toBe(true);
+    }
+  });
+
+  test("a server that asks nothing takes no Give feedback, whatever its destination", async () => {
+    canSendEmail(true);
+    config!.disableProductFeedback = true;
+    config!.helpAndSupport = {
+      giveFeedback: { choice: "email", value: "support-team@acme.test" },
+    };
+
+    expect(
+      (await ProductFeedbackService.getSettings(USER_ID)).isGiveFeedbackOffered,
+    ).toBe(false);
+    expect(await ProductFeedbackService.isGiveFeedbackTaken()).toBe(false);
+  });
+
+  test("an unsafe page written straight into the database is never offered", async () => {
+    canSendEmail(true);
+    config!.helpAndSupport = {
+      giveFeedback: { choice: "link", value: "javascript:alert(1)" },
+    };
+
+    const settings: Awaited<
+      ReturnType<typeof ProductFeedbackService.getSettings>
+    > = await ProductFeedbackService.getSettings(USER_ID);
+
+    // Read as the default: where it always went, and no page at all.
+    expect(settings.giveFeedbackGoesTo).toBe(
+      GiveFeedbackDestination.ServerAdmins,
+    );
+    expect(settings.giveFeedbackUrl).toBeUndefined();
   });
 });
 

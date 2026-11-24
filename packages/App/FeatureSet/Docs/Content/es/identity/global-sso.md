@@ -27,7 +27,7 @@ Para el proveedor propio de un solo proyecto, consulta [SSO](/docs/identity/sso)
 :::steps
 ### Abrir la lista de proveedores
 
-Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajustes de admin** en tu menú de usuario. Después ve a **Ajustes** > **Inicio de sesión único**. Ahí están los proveedores SAML de la instancia, luego sus proveedores OpenID Connect y, al final, la tarjeta **Exigir SSO**.
+Inicia sesión como administrador maestro y elige **Panel de administración** en tu menú de usuario. Después ve a **Ajustes** > **Inicio de sesión único**. Ahí están los proveedores SAML de la instancia, luego sus proveedores OpenID Connect y, al final, la tarjeta **Exigir SSO**.
 
 ### Crear el proveedor
 

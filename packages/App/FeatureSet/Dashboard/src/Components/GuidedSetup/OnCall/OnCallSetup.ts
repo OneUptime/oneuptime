@@ -120,6 +120,7 @@ export const ON_CALL_SETUP_COPY: {
   phoneNone: string;
   pushNone: string;
   pushHelp: string;
+  pushHelpWithoutApp: string;
   useThisBrowser: string;
   getTheApp: string;
   appRecheckHint: string;
@@ -237,6 +238,11 @@ export const ON_CALL_SETUP_COPY: {
   pushHelp: translationKey(
     "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
   ),
+  /*
+   * The same, where the server's admins took the mobile app away (Admin
+   * Dashboard > Settings > Help and Support, #10866): this browser only.
+   */
+  pushHelpWithoutApp: translationKey("Get pages in this browser."),
   useThisBrowser: translationKey("Use this browser"),
   getTheApp: translationKey("Get the app"),
   appRecheckHint: translationKey(
@@ -253,7 +259,12 @@ export const ON_CALL_SETUP_COPY: {
   phoneBalance: translationKey(
     "Texts and calls are paid from this project's balance, which is {{balance}}. Adding a number sends a text, so the balance must be more than {{floor}}.",
   ),
-  addBalance: translationKey("Add balance"),
+  /*
+   * The words of the balance's own button and dialog (ProjectBalanceCopy's
+   * ADD_TO_BALANCE_TITLE): one verb from this button to the dialog's
+   * (#7475).
+   */
+  addBalance: translationKey("Add to Balance"),
   whoCanAddBalance: translationKey(
     "A Project Owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
   ),

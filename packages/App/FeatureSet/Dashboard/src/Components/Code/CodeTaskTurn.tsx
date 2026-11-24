@@ -584,6 +584,9 @@ export const CODE_TASK_ORIGIN_RECORD_PAGES: Partial<
   [CodeTaskOriginType.Alert]: PageMap.ALERT_VIEW,
   [CodeTaskOriginType.Insight]: PageMap.AI_INSIGHT_VIEW,
   [CodeTaskOriginType.SecurityCase]: PageMap.SECURITY_CASE_VIEW,
+  // A service's telemetry leaks (#10367): the riskiest issue its fix is for.
+  [CodeTaskOriginType.DataSecurityTelemetryLeaks]:
+    PageMap.DATA_SECURITY_ISSUE_VIEW,
 };
 
 /*

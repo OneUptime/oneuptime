@@ -1220,18 +1220,18 @@ describe("the helpers, on these pages' shapes", () => {
     /*
      * A product after Products is the menu's item. The Russian menu named
      * Logs "Логи" over pages titled "Журналы" until #8229 made every menu
-     * title its page's; Chat's page draws no title, so its item is the
-     * menu's own word.
+     * title its page's; the Persian menu said "Chat" in its own word, not
+     * the Ask AI panel's, until #7474.
      */
     expect(drawnPathSegment("ru", ["Products", "Logs"], 1)).toBe(
       drawnMenuItem("ru", "Logs"),
     );
     expect(drawnMenuItem("ru", "Logs")).toBe(drawnDashboardLabel("ru", "Logs"));
-    expect(drawnPathSegment("fa", ["Products", "Chat"], 1)).toBe(
-      drawnMenuItem("fa", "Chat"),
+    expect(drawnPathSegment("fa", ["Products", "Ask AI"], 1)).toBe(
+      drawnMenuItem("fa", "Ask AI"),
     );
-    expect(drawnMenuItem("fa", "Chat")).not.toBe(
-      drawnDashboardLabel("fa", "Chat"),
+    expect(drawnMenuItem("fa", "Ask AI")).toBe(
+      drawnDashboardLabel("fa", "Ask AI"),
     );
     // Services read "Сервисы" in the menu and as a label alike (#7387).
     expect(drawnMenuItem("ru", "Services")).toBe(

@@ -676,6 +676,8 @@ def build_google_cloud(
 
     google: Path = HERE / "google-cloud"
     shutil.copyfile(google / "application.yaml", chart / "templates" / "application.yaml")
+    # The listing's icon, which the Application carries (.Files.Get reads it from the chart's root).
+    shutil.copyfile(google / "logo.png", chart / "logo.png")
     # Kept as deployer.Dockerfile: the repository ignores files named Dockerfile.
     shutil.copyfile(google / "deployer.Dockerfile", out / "Dockerfile")
     shutil.copyfile(google / "schema.yaml", out / "schema.yaml")

@@ -262,6 +262,42 @@ describe("Add transcript", () => {
     expect(screen.getByTestId("add-call-transcript-text")).toBeVisible();
   });
 
+  /*
+   * A drop of several files took the first and left the rest out without
+   * a word (#8041): it takes none now, and says to add one at a time, as
+   * every picker of one file says it.
+   */
+  test("several files dropped are refused together, and none is chosen", async () => {
+    renderAdd({});
+
+    fireEvent.drop(screen.getByTestId("add-call-transcript-choose-file"), {
+      dataTransfer: {
+        files: [
+          transcriptFile(VTT, "checkout-call.vtt"),
+          transcriptFile(VTT, "checkout-call-part-2.vtt"),
+        ],
+        types: ["Files"],
+      },
+    });
+
+    expect(await screen.findByText("Add one file at a time.")).toBeVisible();
+    expect(screen.queryByTestId("add-call-transcript-file")).toBeNull();
+    expect(post).not.toHaveBeenCalled();
+
+    // One file dropped is chosen, and the line goes.
+    fireEvent.drop(screen.getByTestId("add-call-transcript-choose-file"), {
+      dataTransfer: {
+        files: [transcriptFile(VTT, "checkout-call.vtt")],
+        types: ["Files"],
+      },
+    });
+
+    expect(
+      await screen.findByTestId("add-call-transcript-file"),
+    ).toHaveTextContent("checkout-call.vtt");
+    expect(screen.queryByText("Add one file at a time.")).toBeNull();
+  });
+
   test("a file too large is refused at once, without sending it", async () => {
     renderAdd({});
 

@@ -3,7 +3,8 @@ name: Code Agent Benchmark
 # #6531): the benchmark in packages/Runner/Benchmark runs the agent - its
 # prompt, its tools, its loop and its limits - on tasks shaped like the work
 # customers hand Code (a bug behind an exception in a 2,000-line file, a
-# failing test, a change across several files, a slow test suite), and each
+# failing test, a change across several files, a slow test suite, and a
+# service's telemetry leaks from Data Security's recorded findings), and each
 # task's check says whether the repository was fixed. Its table - passed or
 # not, how the run ended, rounds, tool calls by tool, tokens and time - goes
 # to the run's summary, and every row to the code-agent-benchmark-results
@@ -44,8 +45,8 @@ jobs:
   benchmark:
     name: Benchmark the Code agent
     runs-on: ubuntu-latest
-    # Four tasks of 30 minutes at most each, and the installs.
-    timeout-minutes: 150
+    # Six tasks of 30 minutes at most each, and the installs.
+    timeout-minutes: 210
     env:
       AI_EVAL_LLM_API_KEY: ${{ secrets.CODE_AGENT_BENCHMARK_LLM_API_KEY }}
       AI_EVAL_LLM_BASE_URL: ${{ vars.CODE_AGENT_BENCHMARK_LLM_BASE_URL }}

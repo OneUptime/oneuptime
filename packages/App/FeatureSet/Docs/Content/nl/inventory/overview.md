@@ -22,7 +22,7 @@ flowchart TB
     T["Je<br/>telemetrie"] -->|"Discovered"| I["Inventaris: één item<br/>per ding, met een<br/>stabiele<br/>identiteitssleutel"]
     R["De pollers<br/>van OneUptime"] -->|"Elke 15 minuten<br/>gespiegeld"| I
     Y["Dingen zonder<br/>telemetrie"] -->|"Door jou toegevoegd"| I
-    I --> L["All Items, de topologie-<br/>kaart en de itempagina's"]
+    I --> L["All Items, Topologie<br/>en de itempagina's"]
     I --> X["Aangepaste velden,<br/>de CSV-export en de API"]
 ```
 
@@ -63,7 +63,7 @@ Open **Producten → Bronnen → Inventaris**. Het zijmenu heeft deze pagina's. 
 | **Overzicht** | Hoeveel items je hebt, wat ze zijn, hoeveel er stil zijn geworden en wat het laatst is toegevoegd. |
 | **Alle items** | Elk item. Zoek op naam, beschrijving of identiteitssleutel, beperk de lijst op type, bron, status of aangepast veld, en voeg handmatig een item toe. |
 | **Beheerde apparaten** | Je MDM-koppelingen – Esper, Microsoft Intune, Workspace ONE UEM en SOTI MobiControl – en elk apparaat dat ze importeren, met zijn status, groep, model en besturingssysteem. |
-| **Topologiekaart** | Hoe de items met elkaar verbonden zijn: services, wat ze aanroepen, en de hosts, pods en apparaten waarop ze draaien. |
+| **Topologie** | Hoe de items met elkaar verbonden zijn: services, wat ze aanroepen, en de hosts, pods en apparaten waarop ze draaien. |
 | **Stilgevallen** | De items waarvan al meer dan een dag niets is vernomen: ontdekte items die geen telemetrie hebben gestuurd, en apparaten die niet meer bij hun MDM inchecken. |
 | **Per bron** | De items van één bron: **Ontdekt**, **Gespiegeld** of **Door u toegevoegd**. |
 | **Instellingen → Aangepaste velden** | De velden die je project op elk item bijhoudt. |
@@ -271,7 +271,7 @@ Om items te archiveren selecteer je ze in **Alle items** en archiveer je ze in �
 
 ## Relaties en topologie
 
-OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topologiekaart** tekent ze, en de pagina **Verbindingen** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
+OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topologie** tekent ze, en de pagina **Verbindingen** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
 
 | Relatie | Bijvoorbeeld |
 | --- | --- |

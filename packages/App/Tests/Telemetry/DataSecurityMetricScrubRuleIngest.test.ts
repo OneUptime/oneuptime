@@ -178,6 +178,50 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     ).toEqual({ "customer.full_name": METRIC_REDACT_REPLACEMENT, plan: "pro" });
   });
 
+  /*
+   * #10934: Scrub It's rule for an IP address matched the IPv4 pattern
+   * alone, so every IPv6 address stayed in the label; it matches the IP
+   * Address pattern type now, as do its rules for an email address and a
+   * card number theirs - what the log and trace rules of those types hide,
+   * found by Data Security's own detectors, encoded or in any script.
+   */
+  test.each([
+    ["ip-address", "peer", "2a00:1450:4001:82a::200e"],
+    ["ip-address", "peer", "2001::1"],
+    ["ip-address", "peer", "remote:2606:4700:4700::1111"],
+    ["ip-address", "url.full", "/geo?client=2606%3A4700%3A%3A1111"],
+    ["ip-address", "peer", "81.2.69.160"],
+    ["email-address", "http.target", "/signup?email=jane.doe%40acmecorp.io"],
+    ["email-address", "user", "张伟@acmecorp.io"],
+    ["email-address", "user", "почта@пример.рф"],
+    ["credit-card-number", "card", "４５３２ ０１５１ １２８３ ０３６６"],
+    ["credit-card-number", "card", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
+    ["credit-card-number", "card", "3782 822463 10005"],
+  ])(
+    "the rule for %s redacts %s holding %s",
+    (dataTypeId: string, key: string, value: string) => {
+      const rules: MetricRulesForProject = rulesOf(
+        scrubRule(`attributes.${key}`, dataTypeId),
+      );
+
+      expect(
+        attributesAfter(point({ [key]: value, region: "eu" }), CHECKOUT, rules),
+      ).toEqual({ [key]: METRIC_REDACT_REPLACEMENT, region: "eu" });
+    },
+  );
+
+  test("the rule for an IP address keeps what is no one's address, which the frozen IPv4 pattern redacted", () => {
+    const rules: MetricRulesForProject = rulesOf(
+      scrubRule("attributes.peer", "ip-address"),
+    );
+
+    for (const value of ["10.0.0.12", "127.0.0.1", "fe80::1", "12:30:45"]) {
+      expect(attributesAfter(point({ peer: value }), CHECKOUT, rules)).toEqual({
+        peer: value,
+      });
+    }
+  });
+
   test("another service's metrics, and a point without the label, are untouched", () => {
     const rules: MetricRulesForProject = rulesOf(
       scrubRule("attributes.user.email", "email-address"),

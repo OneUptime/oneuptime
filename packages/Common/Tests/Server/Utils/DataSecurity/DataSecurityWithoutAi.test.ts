@@ -79,7 +79,18 @@ import ts from "typescript";
  *     issues first and asks nothing, and writes nothing, with either off;
  *     the audit evidence's reader (AuditEvidenceReader) only shapes the
  *     facts the page shows and a draft is built from, with the input
- *     builder's types, and asks no model.
+ *     builder's types, and asks no model;
+ *   - the discovery of the data types a project's own fields make (#10371)
+ *     runs DataTypeDiscovery.runForProject, which decides the proofs under
+ *     way from their counts and asks no model, then asks
+ *     AIService.isProjectAIEnabled and drafts nothing with it off
+ *     (DataTypeDiscovery.test);
+ *   - the job that assesses an exposure a Critical issue opened a case for
+ *     (#10377) runs ExposureAssessmentRun.run: plain code's assessment -
+ *     the window, the reads, whose data, the secrets and the breach laws -
+ *     is worked out with no model, and OneUptime AI writes it up only once
+ *     Enable AI, Work on new issues and the issue's Analyze rule allow it
+ *     (ExposureAssessmentRun.test).
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -178,6 +189,20 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
       uses: ["RecordOfProcessingDraftRun.run"],
+    },
+    /*
+     * An exposure's assessment (#10377): plain code's part asks no model;
+     * the run reads Enable AI and Work on new issues, and the rules, before
+     * OneUptime AI writes it up.
+     */
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun",
+      uses: ["ExposureAssessmentRun.run"],
+    },
+    // The data types a project's own fields make (#10371): drafted only with Enable AI on.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
+      uses: ["DataTypeDiscovery.runForProject"],
     },
   ],
   "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [

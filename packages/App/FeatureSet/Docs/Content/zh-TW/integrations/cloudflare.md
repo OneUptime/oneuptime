@@ -171,10 +171,10 @@ Cloudflare 的 Logpush 也能傳送防火牆事件，自 2026 年 9 月 30 日�
 
 ### 開啟封鎖
 
-在連線所在列選擇 **封鎖位址**。將新權杖貼到 **新的 API 權杖**，或留空以保留目前的權杖，並在 **區域** 中保留 **所有區域**，或選擇要封鎖的區域。**檢查權限** 會詢問 Cloudflare 權杖是否具有每項權限，不會變更任何內容。**開啟封鎖** 只在所有檢查都通過時才開啟封鎖，接著 OneUptime 會在 1 分鐘內設定好 Cloudflare。
+在連線所在列選擇 **封鎖位址**。將新權杖貼到 **新的 API 權杖**，或留空以保留目前的權杖，並在 **區域** 中保留 **所有區域**，或選擇要封鎖的區域。**檢查權限** 會詢問 Cloudflare 權杖是否具有每項權限，不會變更任何內容。**開啟封鎖** 只在所有檢查都通過時才開啟封鎖，但 **Challenge a network by its ASN** 除外，它只會發出警告；接著 OneUptime 會在 1 分鐘內設定好 Cloudflare。
 :::
 
-封鎖開啟期間，**測試連線** 也會執行相同的檢查：**How blocking is set up**、**Edit the lists**、**Edit custom rules in each zone**，以及在使用 IP Access Rules 時的 **Edit IP Access Rules**。
+封鎖開啟期間，**測試連線** 也會執行相同的檢查：**How blocking is set up**、**Edit the lists**、**Edit custom rules in each zone**，以及在使用 IP Access Rules 時的 **Edit IP Access Rules**，否則是 **Challenge a network by its ASN**。
 
 ### OneUptime 加入 Cloudflare 的內容
 
@@ -183,7 +183,7 @@ Cloudflare 的 Logpush 也能傳送防火牆事件，自 2026 年 9 月 30 日�
 | 清單 `oneuptime_block` 和 `oneuptime_challenge` | 帳戶中的兩份 IP 清單，一份用於封鎖，一份用於挑戰。它們的描述寫明你的 OneUptime 專案。 |
 | 每個區域中，每份清單一條自訂規則 | 動作為 Block 的 `(ip.src in $oneuptime_block)`，以及動作為 Managed Challenge 的 `(ip.src in $oneuptime_challenge)`。它們的描述說明由 OneUptime 管理。 |
 | 每個封鎖一個清單項目 | 其註解寫明案件以及封鎖的結束時間，例如 `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`。 |
-| 每個依 ASN 挑戰的網路一條 IP Access Rule | 從 **攻擊活動** 挑戰的整個網路，以目標為 `asn` 的 IP Access Rule 保存，每個方案都有這項功能。其備註與清單項目的註解相同。如果權杖沒有 `Account > Account Firewall Access Rules > Edit`，挑戰不會生效，**封鎖清單** 會說明需要新增哪項權限。 |
+| 每個依 ASN 挑戰的網路一條 IP Access Rule | 從 **攻擊活動** 挑戰的整個網路，以目標為 `asn` 的 IP Access Rule 保存，每個方案都有這項功能。其備註與清單項目的註解相同。如果權杖沒有 `Account > Account Firewall Access Rules > Edit`，**檢查權限** 和 **測試連線** 會先在 **Challenge a network by its ASN** 下發出警告：沒有它封鎖照樣有效，但挑戰不會生效，**封鎖清單** 會說明需要新增哪項權限。 |
 
 每條規則都排在該區域自訂規則的最前面，因此會比你的規則先執行：你的 Skip 規則無法讓被封鎖的位址通過。當你的 Skip 規則放行某些位址時，例如你的監測器或合作夥伴的位址，**封鎖狀態** 會列出它們。**保護這些位址** 會將它們加入 **受保護的實體**，任何人都無法封鎖其中的位址。
 

@@ -6,15 +6,21 @@ import {
 } from "../../../Types/SecurityEvent/SecurityAttackCampaign";
 import {
   SECURITY_ATTACK_NETWORK_ADDRESSES_KEPT,
+  SECURITY_ATTACK_NETWORK_ASN_ATTRIBUTE,
   SecurityAttackNetwork,
   SecurityAttackNetworkKind,
   getSecurityAttackNetworkChallengeValues,
   getSecurityAttackNetworkOf,
+  getSecurityAttackNetworkRequestsFilter,
+  getSecurityAttackRangeAddressGlobs,
   getSecurityAttackRangeOfAddress,
   groupSecurityAttackCampaignsByNetwork,
   readSecurityAttackNetwork,
 } from "../../../Types/SecurityEvent/SecurityAttackNetwork";
 import SecurityEventRequestOutcome from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { CLOUDFLARE_ATTRIBUTES } from "../../../Utils/SecurityEvent/Connectors/CloudflareNormalizer";
+import NetworkAddressBlockUtil from "../../../Utils/NetworkTraffic/NetworkAddressBlock";
+import escapeRegExp from "../../../Utils/RegExpEscape";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -416,5 +422,269 @@ describe("reading rows from the wire", () => {
     expect(
       readSecurityAttackNetwork({ network: "AS1", kind: "Country" }).kind,
     ).toBe("");
+  });
+});
+
+/*
+ * A NETWORK ROW'S REQUESTS (#10896): what the Security Events explorer
+ * reads a row's requests by - an ASN row's by the ASN its Cloudflare events
+ * carry, a /24's or a /48's by globs that every address in it is written to
+ * match, however the event writes it, and no address outside it.
+ */
+describe("a network row's requests", () => {
+  // A glob as ClickHouse's ILIKE reads the explorer's: `*` any run of characters, without case.
+  function matchesGlob(text: string, glob: string): boolean {
+    const pattern: string = glob.split("*").map(escapeRegExp).join(".*");
+
+    return new RegExp(`^${pattern}$`, "i").test(text);
+  }
+
+  function matchesAny(text: string, globs: Array<string>): boolean {
+    return globs.some((glob: string): boolean => {
+      return matchesGlob(text, glob);
+    });
+  }
+
+  // An IPv6 address's groups, written in full: four digits each, no group left out.
+  function writtenInFull(groups: Array<number>): string {
+    return groups
+      .map((group: number): string => {
+        return group.toString(16).padStart(4, "0");
+      })
+      .join(":");
+  }
+
+  // Every way an event may write the address: shortest, in full, and in capitals.
+  function spellings(groups: Array<number>): Array<string> {
+    const shortest: string = NetworkAddressBlockUtil.canonicalAddress(
+      groups
+        .map((group: number): string => {
+          return group.toString(16);
+        })
+        .join(":"),
+    )!;
+
+    return [
+      shortest,
+      writtenInFull(groups),
+      shortest.toUpperCase(),
+      writtenInFull(groups).toUpperCase(),
+    ];
+  }
+
+  // The last five groups an address of a /48 may have: zeros in every place a run of them can take.
+  const TAILS: Array<Array<number>> = [
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 0],
+    [0, 0, 0x1a2b, 0, 0],
+    [0xffff, 0xffff, 0xffff, 0xffff, 0xffff],
+    [0, 7, 0, 0, 7],
+    [0x10, 0, 0, 0x200, 0],
+    [0, 0, 0, 0xabc, 0xdef],
+    [0x8a2e, 0x370, 0x7334, 0, 0x1],
+  ];
+
+  test("an IPv4 /24's addresses, by its three octets", () => {
+    expect(getSecurityAttackRangeAddressGlobs("203.0.113.0/24")).toEqual([
+      "203.0.113.*",
+    ]);
+    expect(getSecurityAttackRangeAddressGlobs("10.0.4.0/24")).toEqual([
+      "10.0.4.*",
+    ]);
+    expect(getSecurityAttackRangeAddressGlobs("0.0.0.0/24")).toEqual([
+      "0.0.0.*",
+    ]);
+    expect(getSecurityAttackRangeAddressGlobs("255.255.255.0/24")).toEqual([
+      "255.255.255.*",
+    ]);
+  });
+
+  test("every address of an IPv4 /24 matches, and no address of the /24s beside it", () => {
+    const globs: Array<string> =
+      getSecurityAttackRangeAddressGlobs("203.0.113.0/24");
+
+    for (let last: number = 0; last <= 255; last++) {
+      expect(matchesAny(`203.0.113.${last}`, globs)).toBe(true);
+    }
+
+    for (const outside of [
+      "203.0.112.255",
+      "203.0.114.0",
+      "203.0.11.3",
+      "203.0.1130.1",
+      "103.0.113.7",
+      "1203.0.113.7",
+      "2001:db8::203.0.113.7",
+    ]) {
+      expect(matchesAny(outside, globs)).toBe(false);
+    }
+  });
+
+  test("an IPv6 /48 with no zero group: its shortest form, and in full", () => {
+    expect(getSecurityAttackRangeAddressGlobs("2001:db8:85a3::/48")).toEqual([
+      "2001:db8:85a3:*",
+      "2001:0db8:85a3:*",
+    ]);
+  });
+
+  test("an IPv6 /48 whose groups have all four digits is one glob: in full it is written the same", () => {
+    expect(getSecurityAttackRangeAddressGlobs("2a03:2880:f0ff::/48")).toEqual([
+      "2a03:2880:f0ff:*",
+    ]);
+  });
+
+  test("an IPv6 /48 whose third group is zero matches too the shortest form that runs its zeros together", () => {
+    expect(getSecurityAttackRangeAddressGlobs("2001:db8::/48")).toEqual([
+      "2001:db8:0:*",
+      "2001:db8::*",
+      "2001:0db8:0000:*",
+    ]);
+  });
+
+  test("an IPv6 /48 whose second and third groups are zero", () => {
+    expect(getSecurityAttackRangeAddressGlobs("2600::/48")).toEqual([
+      "2600:0:0:*",
+      "2600::*",
+      "2600:0000:0000:*",
+    ]);
+  });
+
+  test("a /48 written another way is read as blocks write it", () => {
+    expect(
+      getSecurityAttackRangeAddressGlobs("2001:0DB8:85A3:0000::/48"),
+    ).toEqual(getSecurityAttackRangeAddressGlobs("2001:db8:85a3::/48"));
+  });
+
+  test.each([
+    ["2001:db8:85a3::/48", [0x2001, 0xdb8, 0x85a3]],
+    ["2001:db8::/48", [0x2001, 0xdb8, 0]],
+    ["2600::/48", [0x2600, 0, 0]],
+    ["2a03:2880:f0ff::/48", [0x2a03, 0x2880, 0xf0ff]],
+    ["2001:0:1::/48", [0x2001, 0, 1]],
+  ])(
+    "every address of %s matches, however the event writes it, and no address outside it",
+    (range: string, head: Array<number>) => {
+      const globs: Array<string> = getSecurityAttackRangeAddressGlobs(range);
+
+      for (const tail of TAILS) {
+        for (const spelling of spellings([...head, ...tail])) {
+          expect({ spelling, matches: matchesAny(spelling, globs) }).toEqual({
+            spelling,
+            matches: true,
+          });
+        }
+      }
+
+      // The /48s beside it, and one that shares its first groups' digits.
+      const outsides: Array<Array<number>> = [
+        [head[0]!, head[1]!, (head[2]! + 1) & 0xffff],
+        [head[0]!, head[1]!, (head[2]! + 0xffff) & 0xffff],
+        [head[0]!, (head[1]! + 1) & 0xffff, head[2]!],
+        [(head[0]! + 1) & 0xffff, head[1]!, head[2]!],
+        [head[0]!, head[1]!, (head[2]! << 4) & 0xffff || 0x10],
+      ];
+
+      for (const outside of outsides) {
+        for (const tail of TAILS) {
+          for (const spelling of spellings([...outside, ...tail])) {
+            expect({
+              spelling,
+              matches: matchesAny(spelling, globs),
+            }).toEqual({ spelling, matches: false });
+          }
+        }
+      }
+    },
+  );
+
+  test("anything that is no IPv4 /24 or IPv6 /48 has none: an address, a /16, a /25, a /64, an ASN, words", () => {
+    for (const value of [
+      "203.0.113.7",
+      "203.0.0.0/16",
+      "203.0.113.0/25",
+      "2001:db8:85a3::/64",
+      "2001:db8::/32",
+      "2001:db8::7",
+      "AS14061",
+      "",
+      "not a network",
+    ]) {
+      expect(getSecurityAttackRangeAddressGlobs(value)).toEqual([]);
+    }
+  });
+
+  test("an ASN row is found by the ASN its Cloudflare events carry, as Cloudflare writes it and as a block does", () => {
+    expect(
+      getSecurityAttackNetworkRequestsFilter({
+        network: "AS14061",
+        kind: SecurityAttackNetworkKind.Asn,
+      }),
+    ).toEqual({ asnValues: ["14061", "AS14061"], addressGlobs: [] });
+  });
+
+  test("the ASN's attribute is the one Cloudflare's events carry it in", () => {
+    expect(SECURITY_ATTACK_NETWORK_ASN_ATTRIBUTE).toBe(
+      CLOUDFLARE_ATTRIBUTES.asn,
+    );
+  });
+
+  test("a range row is found by its addresses' globs", () => {
+    expect(
+      getSecurityAttackNetworkRequestsFilter({
+        network: "203.0.113.0/24",
+        kind: SecurityAttackNetworkKind.Range,
+      }),
+    ).toEqual({ asnValues: [], addressGlobs: ["203.0.113.*"] });
+    expect(
+      getSecurityAttackNetworkRequestsFilter({
+        network: "2001:db8::/48",
+        kind: SecurityAttackNetworkKind.Range,
+      }),
+    ).toEqual({
+      asnValues: [],
+      addressGlobs: ["2001:db8:0:*", "2001:db8::*", "2001:0db8:0000:*"],
+    });
+  });
+
+  test("the row of no address, and a network OneUptime cannot read, have no filter", () => {
+    expect(
+      getSecurityAttackNetworkRequestsFilter({ network: "", kind: "" }),
+    ).toBeNull();
+    expect(
+      getSecurityAttackNetworkRequestsFilter({
+        network: "Unknown",
+        kind: SecurityAttackNetworkKind.Asn,
+      }),
+    ).toBeNull();
+    expect(
+      getSecurityAttackNetworkRequestsFilter({
+        network: "203.0.113.0/25",
+        kind: SecurityAttackNetworkKind.Range,
+      }),
+    ).toBeNull();
+  });
+
+  test("every row the grouping makes has a filter but the row of no address", () => {
+    const rows: Array<SecurityAttackNetwork> =
+      groupSecurityAttackCampaignsByNetwork([
+        campaign("203.0.113.7", { asn: "AS14061" }),
+        campaign("198.51.100.9"),
+        campaign("2001:db8:85a3::7"),
+        campaign(""),
+      ]);
+
+    expect(
+      rows.map((row: SecurityAttackNetwork): string => {
+        return `${row.network}:${getSecurityAttackNetworkRequestsFilter(row) ? "filter" : "none"}`;
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        "AS14061:filter",
+        "198.51.100.0/24:filter",
+        "2001:db8:85a3::/48:filter",
+        ":none",
+      ]),
+    );
   });
 });

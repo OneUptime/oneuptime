@@ -87,6 +87,8 @@ Kriterien entscheiden, wann das Zertifikat als in Ordnung, beeinträchtigt oder 
 
 **Tage bis zum Ablauf** zählt ganze Tage: Ein Zertifikat, das in 14 Tagen und 20 Stunden abläuft, hat noch 14 Tage. **Stunden bis zum Ablauf** zählt ganze Stunden auf dieselbe Weise.
 
+**Tage bis zum Ablauf** bietet auch **Diese Kriterien über einen Zeitraum hinweg auswerten** an, und mit **Vorherige Prüfung** vergleicht es jede Prüfung mit der vorherigen derselben Sonde. **Kleiner als** mit einem **Wert in der Einheit der Prüfung** von `1` trifft zu, wenn die verbleibenden Tage seit der vorherigen Prüfung um mehr als einen gefallen sind, etwa wenn das Zertifikat durch eines ersetzt wurde, das früher abläuft. **Größer als** trifft zu, wenn sie gestiegen sind, etwa wenn das Zertifikat erneuert wurde. Siehe [Eine Prüfung mit der vorherigen vergleichen](/docs/monitor/criteria-and-statuses#eine-prüfung-mit-der-vorherigen-vergleichen).
+
 Bei zwei oder mehr Filtern entscheidet **Abgleichsbedingung**, ob **Alle** zutreffen müssen oder **Beliebig** einer genügt. Die **Aktionen** eines Kriteriums legen fest, was es tut: den Monitorstatus ändern, eine Warnung erstellen, einen Vorfall melden oder mehreres davon.
 
 ### Standardkriterien

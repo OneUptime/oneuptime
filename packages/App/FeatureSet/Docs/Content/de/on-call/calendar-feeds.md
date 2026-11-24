@@ -24,7 +24,7 @@ flowchart TB
 - Vertretungen werden berücksichtigt. Wenn jemand für Sie einspringt, wandert der Termin zu dieser Person (`(covering for <Name>)` wird angehängt) und bleibt in Ihrer Kalender-App derselbe Termin, sodass er an Ort und Stelle aktualisiert statt dupliziert wird. Eine teilweise Vertretung teilt die Schicht in aneinander anschließende Termine.
 - Standardmäßig zwei Tage Rückschau und 90 Tage Vorschau. Sie können das auf 60 Tage zurück und 180 Tage voraus ausweiten; ein Feed, der 5.000 Termine überschreiten würde, wird gekürzt und weist in seiner Kalenderbeschreibung darauf hin.
 - Termine sind als frei markiert (`TRANSP:TRANSPARENT`), ein abonnierter Feed blockiert also nie Ihre Verfügbarkeit, und nichts ist als privat markiert, sodass ein geteilter Teamkalender allen, die ihn sehen, die Titel zeigt.
-- Zeiten werden in UTC gesendet und von Ihrer Kalender-App umgerechnet; die Beschreibung nennt die Uhrzeit in der Zeitzone des Plans und in Ihrer. Ihre eigene Zeitzone stellen Sie als **Zeitzone** in Ihrem **Profil** ein (Ihr Bild oben rechts im Dashboard), die des Plans in der Karte **Zeitzone des Zeitplans** auf seiner Seite **Ebenen**. Ein Plan ohne Zeitzone wird in der Zeitzone des Servers berechnet, genau wie beim Alarmieren, und der Termin weist darauf hin.
+- Zeiten werden in UTC gesendet und von Ihrer Kalender-App umgerechnet; die Beschreibung nennt die Uhrzeit in der Zeitzone des Plans und in Ihrer. Ihre eigene Zeitzone stellen Sie als **Zeitzone** in Ihrem **Benutzerprofil** ein (Ihr Bild oben rechts im Dashboard), die des Plans in der Karte **Zeitzone des Zeitplans** auf seiner Seite **Ebenen**. Ein Plan ohne Zeitzone wird in der Zeitzone des Servers berechnet, genau wie beim Alarmieren, und der Termin weist darauf hin.
 
 Feste Zuweisungen — ein Benutzer oder ein Team, das direkt in einer Regel einer Eskalationsrichtlinie steht — haben keinen Anfang und kein Ende und erscheinen in keinem Feed. In OneUptime Cloud folgen Feeds demselben Tarif wie Bereitschaftspläne (Growth); ein Projekt unterhalb dieses Tarifs erhält einen leeren Kalender statt eines Fehlers.
 
@@ -327,7 +327,7 @@ Diese Apps prüfen TLS auf dem Gerät. Importieren Sie Ihre interne CA in den Ve
 :::
 
 :::details Die Zeiten sind falsch
-Alle Zeiten in der Datei sind UTC; die Kalender-App rechnet in ihre eigene Zeitzone um. Wirken Schichten um einen festen Versatz verschoben, prüfen Sie die Zeitzone des Plans (**Zeitzone des Zeitplans** auf seiner Seite **Ebenen**) und Ihre eigene (**Zeitzone** in Ihrem **Profil**). Ein Plan ohne Zeitzone wird in der Zeitzone des Servers berechnet, und der Termin weist darauf hin.
+Alle Zeiten in der Datei sind UTC; die Kalender-App rechnet in ihre eigene Zeitzone um. Wirken Schichten um einen festen Versatz verschoben, prüfen Sie die Zeitzone des Plans (**Zeitzone des Zeitplans** auf seiner Seite **Ebenen**) und Ihre eigene (**Zeitzone** in Ihrem **Benutzerprofil**). Ein Plan ohne Zeitzone wird in der Zeitzone des Servers berechnet, und der Termin weist darauf hin.
 :::
 
 :::details Der Feed sagt, er wurde gekürzt

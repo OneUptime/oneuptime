@@ -23,8 +23,8 @@ Klicka på din bild uppe till höger i instrumentpanelen.
 
 | Post | Vad den gör |
 | --- | --- |
-| **Profil** | Öppnar **Användarprofil**: ditt namn, din e-postadress, din tidszon, ditt språk, din bild och säkerheten för din inloggning. |
-| **Admin-inställningar** | Öppnar Admin Dashboard. Bara huvudadministratörer för en självhostad installation ser den. |
+| **Användarprofil** | Öppnar **Användarprofil**: ditt namn, din e-postadress, din tidszon, ditt språk, din bild och säkerheten för din inloggning. |
+| **Administratörspanel** | Öppnar Admin Dashboard. Bara huvudadministratörer för en självhostad installation ser den. |
 | **Tema** | Väljer instrumentpanelens tema: **Ljust**, **Mörkt** eller **System**, som är ljust eller mörkt beroende på hur din enhet är inställd. |
 | **Logga ut** | Loggar ut dig, direkt på varje OneUptime-server. Där din administratör har ställt in det loggar den även ut dig från din identitetsleverantör. |
 
@@ -35,7 +35,7 @@ Klicka på din bild uppe till höger i instrumentpanelen.
 :::steps
 ### Öppna din profil
 
-Klicka på din bild uppe till höger och välj **Profil**. Sidan **Översikt** öppnas på kortet **Grundläggande information**: ditt namn, din e-postadress, din tidszon och ditt språk.
+Klicka på din bild uppe till höger och välj **Användarprofil**. Sidan **Översikt** öppnas på kortet **Grundläggande information**: ditt namn, din e-postadress, din tidszon och ditt språk.
 
 ### Redigera dina uppgifter
 

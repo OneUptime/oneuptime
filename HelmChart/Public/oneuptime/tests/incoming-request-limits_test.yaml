@@ -1,0 +1,234 @@
+# What a grouped Incoming Request monitor keeps waiting to be evaluated, and
+# how many requests one job evaluates (#10652): incomingRequests, read by the
+# app as INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR,
+# INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR and
+# INCOMING_REQUEST_MAX_REQUESTS_PER_JOB (Telemetry/Config). The endpoint
+# applies the first two as it keeps each request, and the queue's workers the
+# third, so the app pods and the worker pods carry the same values - a value
+# that reached only one of them would let the endpoint keep a burst the
+# workers then skip, or the other way round.
+suite: Incoming Request limits
+release:
+  name: oneuptime
+  namespace: oneuptime
+tests:
+  - it: gives the app pods today's limits when unset
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+            value: "1000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+            value: "16"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+            value: "100"
+
+  - it: gives the worker pods the same limits when unset
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+            value: "1000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+            value: "16"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+            value: "100"
+
+  - it: passes the values set through to the app pods
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingRequestsPerMonitor: 25000
+      incomingRequests.maxPendingMegabytesPerMonitor: 128
+      incomingRequests.maxRequestsPerJob: 500
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+            value: "25000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+            value: "128"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+            value: "500"
+
+  - it: passes the same values through to the worker pods
+    templates:
+      - templates/worker.yaml
+    set:
+      worker.enabled: true
+      incomingRequests.maxPendingRequestsPerMonitor: 25000
+      incomingRequests.maxPendingMegabytesPerMonitor: 128
+      incomingRequests.maxRequestsPerJob: 500
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+            value: "25000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+            value: "128"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+            value: "500"
+
+  - it: accepts the highest values
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingRequestsPerMonitor: 100000
+      incomingRequests.maxPendingMegabytesPerMonitor: 512
+      incomingRequests.maxRequestsPerJob: 1000
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+            value: "100000"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+            value: "512"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+            value: "1000"
+
+  - it: accepts the lowest values
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingRequestsPerMonitor: 10
+      incomingRequests.maxPendingMegabytesPerMonitor: 1
+      incomingRequests.maxRequestsPerJob: 1
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+            value: "10"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+            value: "1"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+            value: "1"
+
+  - it: refuses fewer than 10 waiting requests
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingRequestsPerMonitor: 9
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses more than 100000 waiting requests
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingRequestsPerMonitor: 100001
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses less than a megabyte of waiting requests
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingMegabytesPerMonitor: 0
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses more than 512 megabytes of waiting requests
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingMegabytesPerMonitor: 513
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a job that evaluates no request
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxRequestsPerJob: 0
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a job that evaluates more than 1000 requests
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxRequestsPerJob: 1001
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a limit that is not a whole number
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingMegabytesPerMonitor: 2.5
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a setting it does not know
+    templates:
+      - templates/app.yaml
+    set:
+      incomingRequests.maxPendingRequests: 5000
+    asserts:
+      - failedTemplate: {}

@@ -39,6 +39,7 @@ import {
   validateRpcRequest,
 } from "./RpcProtocol";
 import TotpCodeIssuer from "Common/Utils/Monitor/MonitorSecretTotp";
+import { getTimedOutPageScreenshotName } from "Common/Utils/Monitor/SyntheticTimedOutPageScreenshot";
 import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
 
 type HostObject = Record<string, unknown>;
@@ -536,6 +537,52 @@ export default class PlaywrightCapabilityBroker {
     }
 
     return result;
+  }
+
+  /*
+   * A screenshot of every page the script still has open, taken when it
+   * has run out of time, before the run is torn down. The script was
+   * stopped where it stood, so these are the only record of where that
+   * was: it never took the screenshot it meant to take next, and a script
+   * that keeps its screenshots in an object of its own loses every one it
+   * took (SyntheticTimedOutPageScreenshot, which names them).
+   *
+   * Taken side by side, within `timeoutInMs` in all: a page that cannot be
+   * drawn in time - its renderer busy or gone - is left out rather than
+   * holding up the run's result, and the pages that could be drawn are
+   * kept. Each counts against the run's screenshot limits as the script's
+   * own do, and the script's come first: a screenshot that does not fit is
+   * left out, and a name the script already used keeps the script's
+   * screenshot.
+   *
+   * Only for a run that has run out of time: the screenshots the script
+   * took but never assigned to `screenshots` - kept in an object of its
+   * own, to return - are let go first, as the return they waited for never
+   * comes. They would otherwise hold the limits against these.
+   */
+  public async captureTimedOutPages(data: {
+    timeoutInMs: number;
+  }): Promise<void> {
+    this.releaseUnassignedScreenshots();
+
+    const deadlineAtInMs: number = Date.now() + data.timeoutInMs;
+    const pages: Array<Page> = this.monitoredPages().filter(
+      (page: Page): boolean => {
+        return !page.isClosed();
+      },
+    );
+
+    const images: Array<Buffer | null> = await Promise.all(
+      pages.map((page: Page): Promise<Buffer | null> => {
+        return this.screenshotBefore({ page, deadlineAtInMs });
+      }),
+    );
+
+    images.forEach((image: Buffer | null, index: number): void => {
+      if (image) {
+        this.keepScreenshot(getTimedOutPageScreenshotName(index + 1), image);
+      }
+    });
   }
 
   public async dispatch(value: unknown): Promise<PlaywrightRpcResponse> {
@@ -1611,6 +1658,119 @@ export default class PlaywrightCapabilityBroker {
       id,
       byteLength: buffer.byteLength,
     };
+  }
+
+  /*
+   * The page's screenshot, or null when it cannot be taken before the
+   * deadline. Playwright's own timeout bounds the screenshot; the race
+   * bounds it too, for a page whose browser never answers at all. A
+   * screenshot still pending then is left to the browser's teardown.
+   */
+  private async screenshotBefore(data: {
+    page: Page;
+    deadlineAtInMs: number;
+  }): Promise<Buffer | null> {
+    const remainingInMs: number = data.deadlineAtInMs - Date.now();
+    if (remainingInMs <= 0) {
+      return null;
+    }
+
+    let timer: NodeJS.Timeout | undefined;
+    const screenshot: Promise<Buffer> = data.page.screenshot({
+      timeout: remainingInMs,
+    });
+    void screenshot.catch((): void => {
+      // Its failure after the deadline, if it comes, is no one's.
+    });
+
+    try {
+      return await Promise.race([
+        screenshot,
+        new Promise<null>((resolve: (value: null) => void): void => {
+          timer = setTimeout((): void => {
+            resolve(null);
+          }, remainingInMs);
+          timer.unref?.();
+        }),
+      ]);
+    } catch {
+      // A page that closed or crashed as it was drawn has nothing to show.
+      return null;
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  }
+
+  /*
+   * Keeps a screenshot the runtime took for itself under `name`, within
+   * the run's screenshot limits, as a script's own screenshot is kept. A
+   * name the script already used keeps the script's screenshot, and this
+   * one is kept under the name with " (2)" after it, as two screenshots
+   * whose names would read the same are kept apart elsewhere.
+   */
+  private keepScreenshot(name: string, image: Buffer): void {
+    let descriptor: ScreenshotDescriptor;
+    try {
+      descriptor = this.registerScreenshot(image);
+    } catch {
+      // Past the run's screenshot limits, which the script's own filled.
+      return;
+    }
+
+    const unusedName: string = this.getUnusedScreenshotName(name);
+    if (
+      !this.hasScreenshotAssignmentCapacity(
+        unusedName,
+        descriptor.id,
+        "side-channel",
+      )
+    ) {
+      this.forgetScreenshot(descriptor.id);
+      return;
+    }
+
+    this.screenshotAssignments.set(unusedName, descriptor.id);
+  }
+
+  private getUnusedScreenshotName(name: string): string {
+    const isUsed: (candidate: string) => boolean = (
+      candidate: string,
+    ): boolean => {
+      return (
+        this.screenshotAssignments.has(candidate) ||
+        this.returnedScreenshotAssignments.has(candidate)
+      );
+    };
+
+    let candidate: string = name;
+    for (let copy: number = 2; isUsed(candidate); copy++) {
+      candidate = `${name} (${copy})`;
+    }
+    return candidate;
+  }
+
+  // Lets go of every screenshot no name refers to.
+  private releaseUnassignedScreenshots(): void {
+    const assigned: Set<string> = new Set<string>([
+      ...this.screenshotAssignments.values(),
+      ...this.returnedScreenshotAssignments.values(),
+    ]);
+
+    for (const id of Array.from(this.screenshotsById.keys())) {
+      if (!assigned.has(id)) {
+        this.forgetScreenshot(id);
+      }
+    }
+  }
+
+  private forgetScreenshot(id: string): void {
+    const screenshot: Buffer | undefined = this.screenshotsById.get(id);
+    if (screenshot) {
+      this.screenshotsById.delete(id);
+      this.totalScreenshotBytes -= screenshot.byteLength;
+    }
   }
 
   private registerCapability(

@@ -70,6 +70,8 @@ Die Endpunkte folgen den eigenen Einstellungen der Seite in der Karte **Was Ihre
 
 **Welche Vorfälle eine Seite liefert.** Der Vorfall-Endpunkt liefert die Vorfälle an den Monitoren der Seite, ohne die auf andere Statusseiten beschränkten, und ohne jeden nicht auf diese Seite beschränkten Vorfall, wenn die Seite nur auf sie beschränkte Vorfälle zeigt (siehe [Eine Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience)). Auf welche Seiten ein Vorfall beschränkt ist, steht nie in der Antwort.
 
+**Wie eine Seite ihre Vorfälle anordnet.** Die Übersicht und die Vorfall- und Episodenlisten nennen den Modus der Seite in `incidentListMode`: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` oder `None` in der Übersicht einer Seite, die weder Vorfälle noch Episoden zeigt. Solange die Seite sowohl Vorfälle als auch Episoden zeigt, hat jede Episode in `episodes` und `activeEpisodes` den Schlüssel `incidents`: diejenigen ihrer Vorfälle, die die Seite zeigt, die neuesten zuerst, jeder mit `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` und `monitors`. Ein über seine ID gelesener Vorfall hat dann `partOfEpisodes`: jede Episode, zu der er gehört, mit ihrer `_id` und ihrem `title`. Gruppiert die Seite nach Episode, weil **Vorfälle nach Episode gruppiert anzeigen** an ist, zeichnet sie eine Episode als eine Karte und lässt ihre Vorfälle bei den Vorfallkarten weg, und eine Episode, von deren Vorfällen die Seite keinen zeigt, fehlt in den Listen; `incidents` und `activeIncidents` enthalten trotzdem jeden Vorfall, den die Seite zeigt, und wer Episoden ignoriert, verpasst so keinen. Wo immer ein Vorfall oder eine Episode `monitors` nennt, sind es nur die Monitore der Seite.
+
 ## Die Übersicht lesen
 
 Die Übersicht ist eine Anfrage für die ganze Seite. Es sind dieselben Daten, die die Statusseite zeichnet, und sie sind höchstens 15 Sekunden alt.
@@ -140,7 +142,9 @@ Der Gesamtstatus ist der schlechteste aktuelle Status der Monitore und Monitorgr
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Woraus die Verfügbarkeitsbalken gezeichnet werden, und die Balkenfarbregeln der Seite. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Die nicht behobenen Vorfälle, die die Seite zeigt, ihre öffentlichen Notizen und Statuswechsel sowie die Vorfallstatus des Projekts. |
 | `timelineIncidents` | Die Vorfälle im Zeitfenster der Verfügbarkeitsbalken, behobene eingeschlossen, für die Tooltips der Balken. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Dasselbe für Vorfall-Episoden. |
+| `timelineEpisodes` | Auf einer Seite, die Episoden, aber keine Vorfälle zeigt, das, was die Tooltips und Tagesdialoge der Verfügbarkeitsbalken stattdessen auflisten: jede Episode hinter einem Vorfall im Zeitfenster der Balken und von jedem ihrer Vorfälle, den die Seite einzeln zeigen würde, nur `declaredAt` und die `monitors` der Seite. Auf jeder anderen Seite leer. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Dasselbe für Vorfall-Episoden. Jede Episode hat `monitors`, die Monitore der Seite, die von ihren gezeigten Vorfällen betroffen sind, und, solange die Seite auch Vorfälle zeigt, `incidents`. |
+| `incidentListMode` | Wie die Seite ihre Vorfälle und Episoden anordnet: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` oder `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Die Wartungsereignisse, die noch bevorstehen oder gerade laufen, ihre öffentlichen Notizen und Statuswechsel. |
 | `timelineScheduledMaintenanceEvents` | Die Wartungsereignisse im Zeitfenster der Verfügbarkeitsbalken, die schon begonnen haben, ob sie noch laufen oder vorbei sind, für die Tooltips und Tagesdialoge der Balken: nur solche, die die Seite zeigt und die einen ihrer Monitore betreffen, jedes nur mit den Monitoren der Seite. |
 | `activeAnnouncements` | Die Ankündigungen, die gerade angezeigt werden: begonnen und nicht beendet. |
@@ -195,7 +199,7 @@ Die Antwort:
 | --- | -------------- |
 | `overallStatus` | Der Gesamtstatus der Seite, wie ihr Banner ihn zeigt: `name`, `color` und `isOperational`. `null`, wenn jede Ressource der Seite **Nicht überwacht** ist. |
 | `resources` | Jede Ressource, die die Seite zeigt, in ihrer Reihenfolge: ihr `name` auf der Seite, ihr `groupName` mit den Gruppen darüber, ihr `currentStatus`, `isMonitored` und `isUnderMaintenance`. |
-| `activeIncidents` | Die ungelösten Vorfälle, die die Seite zeigt, jeweils mit den `affectedResourceIds` der Ressourcen, die sie betreffen. |
+| `activeIncidents` | Die ungelösten Vorfälle, die die Seite zeigt, jeweils mit den `affectedResourceIds` der Ressourcen, die sie betreffen. Auf einer Seite, die Episoden, aber keine Vorfälle zeigt, ihre aktiven Episoden, die ihre Übersicht als ihre aktiven Vorfälle aufführt. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Die Wartungsereignisse, die laufen oder noch anstehen, jeweils mit ihren `affectedResourceIds`. |
 
 Der `currentStatus` einer Ressource ist `null`, wenn die Seite ihn nicht zeigt, und wenn `isMonitored` `false` ist: Nichts prüft die Ressource, weil die Überwachung ihres Monitors ausgeschaltet ist oder jeder Monitor ihrer Monitorgruppe sie ausgeschaltet hat, also zeigt die Seite sie als **Nicht überwacht**, oder noch nichts hat sie geprüft, also zeigt die Seite sie als **Noch nicht überwacht**. `isUnderMaintenance` ist `true`, solange ein laufendes Ereignis einen der Monitore der Ressource oder einen Monitor ihrer Monitorgruppe nennt, gleich in welchem Status diese Monitore sind.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | Endpunkt | Schlüssel in der Antwort |
 | -------- | -------------------- |
-| Vorfälle | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| Episoden | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| Vorfälle | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| Episoden | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | Wartungsereignisse | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | Ankündigungen | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ Ein Fehler antwortet mit einem Statuscode und einem JSON-Inhalt, der den Grund n
 
 ## Andere Wege, eine Statusseite zu lesen
 
-- **RSS.** Jede Statusseite stellt `/rss` bereit, einen Feed ihrer Vorfälle, Ankündigungen und Wartungsereignisse, jeweils so datiert, wie die Seite sie datiert. Siehe [Das einbettbare Badge und der RSS-Feed](/docs/status-pages/index#das-einbettbare-badge-und-der-rss-feed).
+- **RSS.** Jede Statusseite stellt `/rss` bereit, einen Feed ihrer Vorfälle und Episoden, Ankündigungen und Wartungsereignisse, jeweils so datiert, wie die Seite sie datiert, und die Vorfälle so angeordnet, wie die Seite sie anordnet. Siehe [Das einbettbare Badge und der RSS-Feed](/docs/status-pages/index#das-einbettbare-badge-und-der-rss-feed).
 - **llms.txt.** Neben `/rss` stellt jede Statusseite `/llms.txt` bereit, das KI-Agenten auf den RSS-Feed und das Übersichts-JSON verweist.
 - **MCP.** KI-Agenten können die Seite über den MCP-Server von OneUptime unter `https://oneuptime.com/mcp` lesen, ohne API-Schlüssel, indem sie die ID oder Domain der Seite als `statusPageIdOrDomain` übergeben. Er ist standardmäßig eingeschaltet; schalten Sie ihn mit **MCP-Server aktivieren** unter **Erweitert → MCP** im Seitenmenü der Seite aus. Siehe [MCP-Server](/docs/ai/mcp-server).
 - **Die REST-API.** Um Statusseiten, Ressourcen, Abonnenten und Ankündigungen zu erstellen oder zu ändern, verwenden Sie die [OneUptime-API](/docs/api-reference/api-reference) mit einem API-Schlüssel.

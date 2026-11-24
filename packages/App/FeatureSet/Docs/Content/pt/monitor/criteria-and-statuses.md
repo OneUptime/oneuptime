@@ -44,7 +44,7 @@ Abra um critério: ele tem um nome e três seções, cada uma das quais se recol
 | **Nome dos Critérios** | O nome na lista de critérios e na causa raiz de cada incidente e alerta que o critério abre. **Adicionar critérios** dá a um novo critério o nome dos seus filtros, e o nome os acompanha até você digitar um próprio. |
 | **Filtros** | O que a verificação precisa mostrar, como um ou mais filtros. Os monitores de Kubernetes e de métricas os chamam de **Regras de alertas**. |
 | **Ações** | O que acontece quando os filtros correspondem: alterar o status, criar um alerta, declarar um incidente ou qualquer combinação. |
-| **Configurações** | **Habilitar este critério**, uma **Descrição** opcional, quando ele se recupera e quando é julgado e, em monitores de requisições recebidas, **Group incidents and alerts by a payload field**. |
+| **Configurações** | **Habilitar este critério**, uma **Descrição** opcional, quando ele se recupera e quando é julgado e, em monitores de requisições recebidas, **Agrupar incidentes e alertas por um campo da carga útil**. |
 
 ### Filtros
 
@@ -70,7 +70,7 @@ Um incidente ou alerta pede um título, uma **Gravidade** e, recolhidos, uma des
 
 **Habilitar este critério** vem ligado em todo novo critério. Desligue-o para manter um critério sem usá-lo: ele é ignorado em toda verificação, não altera nenhum status, não abre nada e seu cabeçalho mostra **Desabilitado**.
 
-**Group incidents and alerts by a payload field** abre um incidente para cada valor encontrado em uma requisição recebida, de modo que um único endereço de webhook pode manter vários incidentes abertos. Veja [Ativar o agrupamento de incidentes](/docs/monitor/incoming-request-monitor#ligar-o-agrupamento-de-incidentes).
+**Agrupar incidentes e alertas por um campo da carga útil** abre um incidente para cada valor encontrado em uma requisição recebida, de modo que um único endereço de webhook pode manter vários incidentes abertos. Veja [Ativar o agrupamento de incidentes](/docs/monitor/incoming-request-monitor#ligar-o-agrupamento-de-incidentes).
 
 **Recuperar apenas quando uma condição própria for atendida** e **Avaliar este critério apenas em certos dias e horários** vêm desativados em um critério novo. Veja [Quando um critério se recupera](#quando-um-critério-se-recupera) e [Apenas em certos dias e horários](#apenas-em-certos-dias-e-horários).
 
@@ -95,7 +95,7 @@ Uma frase abaixo das configurações da janela repete o filtro como ele está de
 - **Uma janela que ainda não está cheia.** Até que as verificações cheguem ao início da janela, um monitor que acabou de começar tem menos verificações do que terá. **Contagem** e **Mudanças de status** correspondem cedo quando já passaram de **Maior que** ou **Maior ou igual a**, já que mais verificações só aumentam esses números; todo o resto espera uma janela cheia.
 - **Uma janela sem verificações.** Enquanto a janela não tiver verificações, ou ainda não estiver cheia, **Se não houver dados** decide: **Ignore** espera, **Gatilho** corresponde, e **Treat As Zero** a julga como se as verificações que faltam não tivessem atendido à condição.
 
-As médias e os percentis leem os valores das verificações de todas as sondas, como **Média** sempre fez. **Contagem**, **Porcentagem** e **Mudanças de status** são oferecidos para todo filtro ao qual se oferece uma janela: em monitores Website, API, Ping, IP e Port, para CPU, memória, discos e carga de um servidor, para **Dispositivo SNMP online** e o tempo de resposta de um dispositivo de rede, e em monitores DNS, NTP, de banco de dados, de página de status externa e de status de sondas. **Online** de um monitor de servidor não é contado: é julgado pelo tempo desde o último relatório do servidor. Monitores de métricas e outros de telemetria julgam em vez disso o intervalo de tempo da sua consulta, com a agregação da própria consulta, que também lê percentis.
+As médias e os percentis leem os valores das verificações de todas as sondas, como **Média** sempre fez. **Contagem**, **Porcentagem** e **Mudanças de status** são oferecidos para todo filtro ao qual se oferece uma janela: em monitores Website, API, Ping, IP e Port, para CPU, memória, discos e carga de um servidor, para **Dispositivo SNMP online** e o tempo de resposta de um dispositivo de rede, para **Dias até a expiração** de um monitor de certificado SSL, e em monitores DNS, NTP, de banco de dados, de página de status externa e de status de sondas. **Online** de um monitor de servidor não é contado: é julgado pelo tempo desde o último relatório do servidor. Monitores de métricas e outros de telemetria julgam em vez disso o intervalo de tempo da sua consulta, com a agregação da própria consulta, que também lê percentis.
 
 ### Exemplo: um ponto de acesso fora do ar e outro instável
 
@@ -218,6 +218,8 @@ Segredos e dados pessoais são mascarados antes de qualquer coisa ser guardada: 
 ## Quanto tempo leva cada verificação
 
 O resumo de avaliação de cada verificação, em **Ver resumo** nos **Registros de monitoramento** do monitor e, para a última verificação, na sua **Visão geral**, diz quando a verificação foi avaliada, quanto tempo levou a sua avaliação e, num monitor que julga cada host, contêiner ou grupo separadamente, quantas séries avaliou. O tempo vai de quando o OneUptime começou a ler os dados que a verificação julga até escrever o seu registro: a leitura dos dados, a avaliação dos critérios e a abertura de incidentes e alertas.
+
+Nos **Registros de monitoramento**, a coluna **Duração da verificação** mostra quanto tempo levou cada verificação e marca as verificações lentas. Um traço indica que a duração da verificação não foi registrada.
 
 Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa você. Demais é mais de um décimo do tempo entre as verificações do monitor, nunca menos de 5 segundos e nunca mais de um minuto:
 

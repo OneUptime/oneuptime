@@ -70,9 +70,11 @@ La carte **Vos journaux**, en haut de **Connexions**, ne demande aucune installa
 | Fortinet FortiGate | Les détections IPS et antivirus, le trafic refusé, les connexions VPN et d'administrateurs, et les modifications de configuration depuis le syslog propre à FortiGate |
 | Cisco ASA | Les connexions refusées, les détections de menaces et d'IPS, les connexions VPN et d'administrateurs, et les commandes de Cisco ASA et Firepower Threat Defense |
 | Journaux d'audit Kubernetes | Les modifications du cluster, les shells ouverts dans des pods, les secrets lus et les requêtes refusées |
-| Attaques web | Les requêtes du journal d'accès d'un serveur web qui tentent une injection SQL, une traversée de répertoires ou Log4Shell, et les requêtes visant des fichiers sensibles comme `/.env` ou `/.git/config` que votre site a refusés ou qu'il n'a pas |
+| Attaques web | Les requêtes du journal d'accès d'un serveur web qui tentent une injection SQL, une traversée de répertoires ou Log4Shell, les requêtes visant des fichiers sensibles comme `/.env` ou `/.git/config` que votre site a refusés ou qu'il n'a pas, et un fichier contenant des secrets que votre site a servi |
 
 Vos journaux restent tels quels. Seules les lignes qui comptent pour la sécurité deviennent des événements : jamais chaque page servie par un serveur web, ni chaque lecture d'une API.
+
+Un fichier contenant des secrets que votre site a servi, comme `/.env`, est une fuite, et la règle **Sensitive file served** de la Bibliothèque de règles ouvre un dossier Critique à son sujet. La propre page d'une application monopage pour un chemin qu'elle n'a pas n'en est jamais une. Voir [Un fichier sensible que votre site a servi](/docs/telemetry/security-events#un-fichier-sensible-que-votre-site-a-servi).
 
 Une menace qu'un produit de sécurité écrit dans vos journaux, comme une détection CEF ou LEEF ou une détection IPS d'un FortiGate, ouvre un dossier comme le fait l'alerte d'un produit connecté. **Ouvrir des dossiers à partir de**, sur **Vos journaux**, indique à partir de quelle gravité : **Élevé et au-dessus** sauf si vous en choisissez une autre, ou **Jamais**.
 

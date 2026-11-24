@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 8294
+    "keys": 63890,
+    "untranslated": 8286
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -63,6 +63,7 @@
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
+    "Colorado",
     "Commit",
     "Commits",
     "Community Edition",
@@ -114,6 +115,7 @@
     "FlashBlade",
     "Flavor",
     "Flavors",
+    "Florida",
     "Fluent Bit",
     "Format",
     "Frustration",
@@ -207,6 +209,7 @@
     "N/A",
     "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Nav",
+    "New York",
     "Normal",
     "Null",
     "OID Collection Template",
@@ -316,6 +319,7 @@
     "Slug",
     "Snapshots",
     "Span",
+    "Span {{name}}",
     "Span: {{id}}",
     "Spans",
     "Spec",
@@ -339,6 +343,7 @@
     "Tenancy",
     "Tenant",
     "Tenant: {{tenant}}",
+    "Texas",
     "Text",
     "Token",
     "Tokens",
@@ -370,6 +375,7 @@
     "Version {{version}}",
     "Vital",
     "WAF",
+    "Washington",
     "Webhook",
     "Webhooks",
     "[\".customer-name\", \"#invoice-total\"]",
@@ -494,6 +500,7 @@
     "{{count}} appliance",
     "{{count}} bucket",
     "{{count}} buckets",
+    "{{count}} byte",
     "{{count}} commit",
     "{{count}} commits",
     "{{count}} datacenter",

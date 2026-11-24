@@ -512,8 +512,9 @@ const MARKDOWN_VIEWER_WORDS: Array<string> = ["Opens in a new tab"];
 /*
  * The file picker's words, for a form's file questions: what it offers,
  * what it takes (the hints the questions hand it), the files it holds, and
- * why it refuses one - a file too large, of a type it does not take, one too
- * many. Flat keys, as the picker looks them up, in the page's locale.
+ * why it leaves one out - a file too large, of a type it does not take, one
+ * too many, one it had no room for (issue #8041). Flat keys, as the picker
+ * looks them up, in the page's locale.
  */
 const FILE_PICKER_SENTENCES: Array<string> = [
   "Upload a file",
@@ -538,6 +539,10 @@ const FILE_PICKER_SENTENCES: Array<string> = [
   "Add one file at a time.",
   "This field holds up to {{count}} files. Remove one to add another.",
   "This field holds up to {{count}} files. Remove one to add another._one",
+  '"{{fileName}}" was not added: this field holds up to {{count}} files.',
+  '"{{fileName}}" was not added: this field holds up to {{count}} files._one',
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one",
 ];
 
 /*
@@ -551,6 +556,10 @@ const PLURAL_ONE_FORMS: Record<string, string> = {
     "One file of up to {{size}}: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
   "This field holds up to {{count}} files. Remove one to add another._one":
     "This field holds one file. Remove it to add another.",
+  '"{{fileName}}" was not added: this field holds up to {{count}} files._one':
+    '"{{fileName}}" was not added: this field holds one file.',
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one":
+    "These files were not added, as this field holds one file: {{fileNames}}.",
 };
 
 // What English says for a flat key: the key itself, or a plural's one form.

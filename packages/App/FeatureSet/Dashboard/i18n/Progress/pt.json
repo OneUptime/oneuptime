@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 8284
+    "keys": 63890,
+    "untranslated": 8276
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -61,7 +61,6 @@
     "Cache",
     "Canonical Sunbeam",
     "Celsius",
-    "Chat",
     "Chats",
     "Chrome, Safari, Firefox",
     "ClickHouse",
@@ -71,6 +70,7 @@
     "Cluster",
     "Cluster {{cluster}}",
     "Clusters",
+    "Colorado",
     "Commit",
     "Commits",
     "Community Edition",
@@ -190,6 +190,7 @@
     "Listeners",
     "Local",
     "Log4Shell",
+    "Logger {{name}}",
     "Loopback",
     "MCP",
     "MITRE ATT&CK",
@@ -314,6 +315,7 @@
     "Slug",
     "Snapshots",
     "Span",
+    "Span {{name}}",
     "Span: {{id}}",
     "Spans",
     "Stack",
@@ -334,6 +336,7 @@
     "Tebibytes",
     "Tenancy",
     "Terabytes",
+    "Texas",
     "Threads",
     "Token",
     "Tokens",
@@ -373,6 +376,7 @@
     "Volumes",
     "WAF",
     "WAFs",
+    "Washington",
     "Watts",
     "Web",
     "Web, iOS, Android, React Native",
@@ -521,6 +525,8 @@
     "{{count}} apps",
     "{{count}} bucket",
     "{{count}} buckets",
+    "{{count}} byte",
+    "{{count}} bytes",
     "{{count}} cluster",
     "{{count}} clusters",
     "{{count}} commit",

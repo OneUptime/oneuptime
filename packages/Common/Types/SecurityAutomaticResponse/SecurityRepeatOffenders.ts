@@ -4,7 +4,11 @@ import {
   SecurityBlockDuration,
   SecurityBlockSource,
   SecurityBlockState,
+  SecurityBlockValue,
+  readSecurityBlockAsn,
+  readSecurityBlockValue,
 } from "../SecurityBlocklist/SecurityBlock";
+import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 
 /*
  * THE REPEAT-OFFENDER LADDER (#10350): how many times an address or a
@@ -19,11 +23,14 @@ import {
  * (case #812)".
  *
  * Every block of the address in the window counts - a person's, a
- * playbook's, a policy's - or of a range around it; for a network, of the
- * network, a range around it, or an address or range inside it. A block
- * lifted counts for nothing: somebody ended it on purpose, which is no sign
- * the address did anything again. Shared by the server, which reads the
- * blocks, and the Dashboard, which words the record. Pure.
+ * playbook's, a policy's - or of a range around it, or of the whole network
+ * its Cloudflare events say it sent from, by its ASN (#10895); for a
+ * network, of the network, a range around it, or an address or range
+ * inside it. A block lifted counts for nothing: somebody ended it on
+ * purpose, which is no sign the address did anything again. Shared by the
+ * server, which reads the blocks, and the Dashboard, which words the
+ * record - naming the network when the last block held the address as part
+ * of one (getSecurityRepeatOffenderHoldingNetwork). Pure.
  */
 
 export const SECURITY_REPEAT_OFFENDER_WINDOW_DAYS: number = 30;
@@ -191,6 +198,47 @@ export function summarizeSecurityRepeatOffender(
       record.offenceCount,
     ),
   };
+}
+
+/*
+ * The wider network the last block that counted held the address or
+ * network as part of (#10895): a whole network by its ASN - challenged
+ * from Campaigns, and counted for an address its Cloudflare events say was
+ * in it - or a range around it. Null when the last was of the value itself,
+ * or of an address or range inside a network asked about: the line then
+ * names no network.
+ */
+export function getSecurityRepeatOffenderHoldingNetwork(
+  summary: Pick<SecurityRepeatOffenderSummary, "value" | "last">,
+): string | null {
+  const held: string = (summary.last?.value || "").trim();
+
+  if (!held) {
+    return null;
+  }
+
+  const asn: string | null = readSecurityBlockAsn(held);
+
+  if (asn) {
+    return asn === readSecurityBlockAsn(summary.value) ? null : asn;
+  }
+
+  const heldRange: SecurityBlockValue | null = readSecurityBlockValue(held);
+  const asked: SecurityBlockValue | null = readSecurityBlockValue(
+    summary.value,
+  );
+
+  if (
+    !heldRange ||
+    !asked ||
+    heldRange.value === asked.value ||
+    NetworkAddressBlockUtil.isSingleAddress(heldRange.block) ||
+    !NetworkAddressBlockUtil.containsBlock(heldRange.block, asked.block)
+  ) {
+    return null;
+  }
+
+  return heldRange.value;
 }
 
 export function writeSecurityRepeatOffenderSummary(

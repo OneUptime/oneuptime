@@ -9,6 +9,7 @@ Il n'y a rien à configurer : la télémétrie de chaque service est analysée t
 - [Comment une analyse échantillonne](#comment-une-analyse-échantillonne): Les enregistrements les plus récents de chaque service, toutes les heures.
 - [Nettoyer](#nettoyer): Masquer une détection à l'ingestion, dans le service où elle a été trouvée.
 - [Confiné de lui-même](#confiné-de-lui-même): Un secret masqué sans que personne n'appuie sur quoi que ce soit, là où c'est prouvé sûr.
+- [Le corriger dans le code](#le-corriger-dans-le-code): Une seule pull request qui empêche un service d'écrire toutes ses fuites.
 - [Abandonner cette métrique](#abandonner-cette-métrique): Ne plus stocker les métriques dont le nom contient des données sensibles.
 - [Ce qui compte comme nettoyé](#ce-qui-compte-comme-nettoyé): Quand une règle de nettoyage couvre déjà une détection.
 :::
@@ -99,7 +100,7 @@ Cliquez sur **Nettoyer**. Une boîte de dialogue dit ce que ferait la règle ava
 
 ### Corriger aussi le code
 
-La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut.
+La règle masque les nouvelles données avant qu'elles ne soient stockées. Les données déjà stockées restent jusqu'à la fin de leur conservation, alors corrigez le code qui les écrit : la détection nomme le service et l'attribut. **Corriger avec l'IA** sur le problème ouvre une seule pull request pour toutes les fuites du service : voir [Le corriger dans le code](#le-corriger-dans-le-code).
 :::
 
 La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: Email address in log attributes of checkout », ou « Data Security: Password or secret in db.password of checkout » pour une règle qui nomme son attribut, et apparaît avec vos autres règles de nettoyage (voir [Filtres de suppression et règles de nettoyage](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles)). C'est la règle la plus étroite qui masque les données de la détection, la première de celles-ci qui convient :
@@ -112,7 +113,7 @@ La règle est nommée d'après ce qu'elle masque, par exemple « Data Security: 
 | Un type de données qui se distingue par les mots qui l'entourent, comme un numéro de routage bancaire | Sa forme, uniquement dans l'attribut où il a été trouvé |
 | Un type de données trouvé d'après le nom du champ, comme le nom d'une personne sous `customer_name`, ou une valeur sous une clé qui nomme un secret | Une règle **Attributs nommés**, qui masque la valeur entière de cet attribut |
 | Une valeur sous une clé qui semble sensible, là où rien de plus étroit ne la masque | Une règle **Clés d'attributs sensibles**, qui caviarde la valeur entière de chacun de ces attributs |
-| Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut ayant la forme du type de données, ou chaque valeur de l'attribut quand aucun motif ne trouve ce type de données |
+| Tout type de données dans l'attribut d'une métrique | Une règle de pipeline de métriques **Masquer l'attribut** pour le service, qui remplace par `[REDACTED]` les valeurs de l'attribut qui contiennent le type de données. Pour une adresse IP, une adresse e-mail ou un numéro de carte, son filtre est **Correspond au type de modèle** avec ce type, qui trouve ce que trouve une règle de journaux ou de traces de ce **Type de modèle**, y compris les adresses IPv6 et les valeurs encodées en pourcentage ou écrites dans une autre écriture. Pour un autre type de données, c'est le propre motif du type, et quand aucun motif ne trouve ce type de données, la règle remplace chaque valeur de l'attribut |
 
 ### Prouvée sur les enregistrements de la détection
 
@@ -158,11 +159,53 @@ Une modification qu'OneUptime AI a faite de lui-même :
 
 Les nouvelles détections dans un service dont le problème est déjà ouvert sont confinées de la même façon, dès que l'analyse horaire les trouve.
 
+## Le corriger dans le code
+
+Une règle de masquage cache les nouvelles données à l'ingestion, mais le code les écrit toujours. **Corriger avec l'IA** sur un problème de télémétrie demande à OneUptime AI une seule pull request qui empêche le service d'écrire toutes les fuites que OneUptime voit encore dans sa télémétrie : celle de ce problème et les autres du service, y compris celles confinées à l'ingestion. Une boîte de dialogue montre ce que fera la pull request avant que quoi que ce soit ne démarre, et **Ouvrir la pull request** demande exactement cela.
+
+:::steps
+### Trouver où chaque fuite est écrite
+
+Avant que OneUptime AI ne commence, la Sécurité des données relit, dans OneUptime, les enregistrements où chaque fuite a été vue, et ne garde que l'endroit où le code les a écrits :
+
+- **Un span ou un appel d'IA** : le fichier, la ligne et la fonction que nomment ses attributs `code.*`, et le nom du span.
+- **Une exception** : ses propres frames du haut de la pile, celles du code du service.
+- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`.
+- **Une métrique** : le nom de la métrique.
+- **Toute fuite** : sa clé d'attribut, par exemple `user.email`, que le code écrit généralement telle quelle.
+
+### Choisir le dépôt
+
+La pull request va au dépôt qui contient les fichiers que nomment les enregistrements, trouvés comme les fichiers d'une trace de pile. Une fuite dont les enregistrements ne nomment aucun fichier va là où sont les autres fuites du service, sinon au dépôt qui porte le nom du service, ou au seul dépôt du projet. Dans un dépôt qui contient plusieurs services, OneUptime AI travaille dans le dossier du service : celui que partagent ces fichiers, sinon celui qu'utilisent les revues de production du service. Quand rien ne décide, c'est vous qui choisissez, parmi les dépôts où vous pouvez faire travailler OneUptime AI.
+
+### Ouvrir la pull request
+
+La boîte de dialogue dit comment le code va changer, liste chaque fuite avec l'endroit où elle est écrite, et nomme le dépôt, pourquoi c'est celui-là, et les fichiers par lesquels OneUptime AI commence. **Ouvrir la pull request** demande exactement ce plan : si une fuite a été trouvée ou corrigée depuis que vous l'avez ouverte, rien ne démarre, et le plan est montré à nouveau.
+:::
+
+La façon dont le code change dépend du nombre d'endroits qui écrivent les données :
+
+| Où les données sont écrites | Ce que fait la pull request |
+| --- | --- |
+| À trois endroits ou moins | Modifie le code à chaque endroit : retire la valeur, ou la masque ou la hache avant qu'elle ne soit envoyée |
+| À plus de trois endroits | Ajoute une étape de masquage, avec un test, là où le service configure sa télémétrie, au lieu de modifier chaque endroit |
+| Là où vos règles de masquage les cachent déjà à l'ingestion | Ajoute aussi cette étape de masquage pour ces clés, afin que le code fasse ce que fait l'ingestion |
+
+Une pull request corrige un service dans un dépôt : un service dont les fuites sont écrites dans deux dépôts en reçoit une dans chacun. Pendant qu'elle est rédigée, **Corriger avec l'IA** sur n'importe quel problème du service y renvoie, et aucune deuxième n'est lancée.
+
+OneUptime AI reçoit les endroits, les clés, les types de données et les modèles, jamais une valeur de vos données, un échantillon masqué ou un enregistrement, et l'agent de code ne lit rien de votre télémétrie pendant qu'il travaille. La description de la pull request liste les fuites et renvoie aux problèmes qu'elle corrige, sans jamais citer un enregistrement.
+
+Chaque problème que la pull request corrige la garde : sa carte **Comment corriger** dit si elle est en cours de rédaction, ouverte, fusionnée ou fermée, avec des liens vers la pull request et la tâche, et une fois fusionnée, ce que la production a montré. La chronologie du problème dit quand elle a été ouverte. Le problème est résolu comme **Corrigé dans le code** dès que la nouvelle version du service n'écrit plus les données (voir [Ce qu'il advient d'un problème](/docs/data-security/checks-and-issues#ce-quil-advient-dun-problème)).
+
+Un secret demande plus qu'une correction du code : le code n'empêche que les nouvelles copies, et le secret fonctionne toujours. La pull request, la chronologie du problème et sa carte **Comment corriger** disent de le faire tourner, et la carte liste où il a été vu.
+
+Avec **Travailler sur les nouveaux problèmes** activé, OneUptime AI propose aussi de lui-même la correction de chaque service, le service le plus risqué d'abord, dans **Sécurité des données → IA** et sur le problème le plus risqué du service. Par défaut, elle vous attend. Une règle d'IA de la Sécurité des données qui règle **Correction** sur **Automatiquement** pour le problème le plus risqué du service ouvre la pull request sans demander, dans un dépôt que quelque chose a décidé. **Nombre max de demandes de tirage de correctifs ouvertes** du dépôt plafonne les deux : au plafond, une pull request qu'une règle ouvrirait vous attend, et aucune nouvelle pull request de correction ne s'ouvre avant qu'une ne soit fusionnée ou fermée.
+
 ## Abandonner cette métrique
 
 Aucune règle ne retire les données du nom d'une métrique : tant que le code qui nomme la métrique n'est pas corrigé, les données continuent d'arriver. **Abandonner cette métrique** sur une détection dans le nom d'une métrique cesse de stocker les métriques dont le nom les contient, au prix de leurs données, et ne se fait donc que si vous le demandez :
 
-- **Les métriques d'un seul service.** L'action crée une règle de pipeline de métriques **Supprimer** pour le service de la détection : chaque nouveau point de données d'une métrique dont le nom contient ce type de données est abandonné avant d'être stocké. Son filtre est le motif que **Nettoyer** utilise pour ce type, donc un type qu'aucun motif ne peut trouver, comme le nom d'une personne, ne peut pas être abandonné, et la boîte de dialogue dit pourquoi.
+- **Les métriques d'un seul service.** L'action crée une règle de pipeline de métriques **Supprimer** pour le service de la détection : chaque nouveau point de données d'une métrique dont le nom contient ce type de données est abandonné avant d'être stocké. Son filtre est le propre motif du type de données, appliqué au nom de la métrique, donc un type qu'aucun motif ne peut trouver, comme le nom d'une personne, ne peut pas être abandonné, et la boîte de dialogue dit pourquoi.
 - **Dit avant d'être fait.** La boîte de dialogue indique que ces points de données sont perdus définitivement, combien des métriques du service écrites au cours du dernier jour portent un tel nom, ce qui les lit et ne reçoit donc plus de nouvelles données, que ce qui est déjà stocké reste jusqu'à la fin de sa rétention, et comment revenir en arrière. Rien n'est abandonné tant que vous n'avez pas coché que vous comprenez.
 - **Ce qui les lit, et ce qui lui arrive.** La boîte de dialogue nomme, chacun sous forme de lien, chaque moniteur, chaque tableau de bord avec ses widgets qui lisent ces métriques, chaque SLO de métrique du service et chaque règle d'enregistrement de métriques qui les lit. Les moniteurs ne peuvent plus alerter sur leurs valeurs, les widgets n'affichent plus de nouvelles données, les SLO ne comptent plus de nouveaux événements de ces métriques, et les métriques de sortie des règles d'enregistrement ne les incluent plus. Sous chaque règle d'enregistrement, elle nomme aussi ce qui lit sa métrique de sortie, puis ce qui lit les leurs à leur tour, jusqu'à trois métriques de sortie plus loin dans la chaîne. Le lien d'un widget ouvre son tableau de bord sur ce widget. Ce que vous ne pouvez pas voir est compté, jamais nommé.
 - **En votre nom, et tracé.** La règle est créée avec votre propre autorisation de créer des règles de pipeline de métriques : les Propriétaires du projet et les Administrateurs du projet peuvent la créer, tout comme une équipe autorisée à créer des règles de pipeline de métriques. Les journaux d'audit enregistrent qui l'a créée.
@@ -181,7 +224,7 @@ Une détection n'est marquée comme nettoyée que lorsque l'ingestion lui appliq
 - **Une règle prouvée sur les enregistrements de la détection.** Une règle qu'OneUptime a créée et prouvée sur les enregistrements où une détection a été vue couvre cette détection, quel que soit son motif, tant qu'elle reste la règle qui a été prouvée : modifiez son motif, ses attributs, son action, ses champs ou son service, et elle ne la couvre plus.
 - **Une règle d'attributs nommés** couvre une détection dans un attribut qu'elle nomme, ou dans un attribut imbriqué sous celui-ci.
 - **Sinon, vos propres motifs personnalisés ne comptent jamais.** Une **Regex personnalisée** que vous avez écrite ne couvre une détection que si elle est exactement le motif que **Nettoyer** crée pour son type. Une détection ne conserve que des échantillons masqués, sur lesquels aucun motif ne peut être essayé : OneUptime ne pourrait donc pas prouver que votre motif masque les données, et une détection marquée à tort comme nettoyée est une fuite que personne ne regarde.
-- **L'attribut d'une métrique.** Une règle de pipeline de métriques **Masquer l'attribut** ou **Supprimer l'attribut** portant sur la clé de cet attribut, pour le service de la détection ou pour tout le projet, la couvre quand elle n'a aucun filtre, ou exactement le filtre que crée **Nettoyer**. Un filtre que vous avez écrit ne compte jamais, pour la même raison.
+- **L'attribut d'une métrique.** Une règle de pipeline de métriques **Masquer l'attribut** ou **Supprimer l'attribut** portant sur la clé de cet attribut, pour le service de la détection ou pour tout le projet, la couvre quand elle n'a aucun filtre, ou exactement le filtre que crée **Nettoyer**. Un filtre que vous avez écrit ne compte jamais, pour la même raison. Une règle que **Nettoyer** a créée pour une adresse IP, une adresse e-mail ou un numéro de carte avant que son filtre soit **Correspond au type de modèle** passe à ce filtre lors de la mise à niveau, si bien qu'elle cache aussi les adresses IPv6 et couvre sa détection.
 - **Le nom d'une métrique.** Une règle de pipeline de métriques **Supprimer** pour le service de la détection ou pour tout le projet la couvre quand elle a exactement le filtre que crée **Abandonner cette métrique**, ou aucun filtre, auquel cas elle ne stocke aucune des métriques du service. Une telle règle sans filtre couvre toutes les détections dans ces métriques.
 
 Une règle désactivée, ou qui ne nettoie rien, ne compte jamais. La couverture est recalculée après chaque analyse, donc une règle que vous ajoutez ou supprimez à la main change ce qui est marqué comme nettoyé dans l'heure.

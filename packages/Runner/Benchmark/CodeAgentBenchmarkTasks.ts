@@ -2,6 +2,11 @@ import { execFile } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import {
+  TELEMETRY_LEAK_EVAL_SET,
+  TelemetryLeakEvalCase,
+  buildTelemetryLeakEvalRequest,
+} from "Common/Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet";
 
 /*
  * The code agent benchmark's tasks (issue #6531): the work customers hand
@@ -23,6 +28,13 @@ export enum CodeAgentBenchmarkShape {
   FailingTest = "A failing test",
   ManyFiles = "A change across files",
   SlowTests = "A slow test suite",
+  /*
+   * A service that writes sensitive data to its telemetry (#10367): from
+   * Data Security's eval set of recorded findings, handed the request the
+   * product builds from the records - where each leak is written, never a
+   * value.
+   */
+  TelemetryLeak = "A leak in telemetry",
 }
 
 export interface CodeAgentBenchmarkCheck {
@@ -834,8 +846,118 @@ const SLOW_TESTS: CodeAgentBenchmarkTask = {
   },
 };
 
+/*
+ * ---------------------------------------------------------------------------
+ * A service writes sensitive data to its telemetry (#10367): cases of Data
+ * Security's eval set of recorded findings (TelemetryLeakEvalSet), each
+ * handed the request the product builds from its records - the issue's two
+ * scenarios: a span's and a log line's user.email fixed in one pull
+ * request, and a key written in twenty places fixed with one redaction
+ * step and a test, never twenty edits.
+ * ---------------------------------------------------------------------------
+ */
+
+export const TELEMETRY_LEAK_BENCHMARK_CASE_IDS: ReadonlyArray<string> = [
+  "user-email-on-a-span-and-in-a-log-line",
+  "customer-email-in-twenty-places",
+];
+
+/*
+ * Whether a test of the repository names `text` and is new or changed: the
+ * test a redaction step comes with.
+ */
+export function hasNewTestNaming(data: {
+  repositoryPath: string;
+  original: Record<string, string>;
+  text: string;
+}): CodeAgentBenchmarkCheck {
+  const directory: string = path.join(data.repositoryPath, "test");
+  const files: Array<string> = fs.existsSync(directory)
+    ? fs.readdirSync(directory).map((name: string): string => {
+        return `test/${name}`;
+      })
+    : [];
+  const named: Array<string> = files.filter((relative: string): boolean => {
+    const content: string = fs.readFileSync(
+      path.join(data.repositoryPath, relative),
+      "utf8",
+    );
+
+    return content !== data.original[relative] && content.includes(data.text);
+  });
+
+  return {
+    passed: named.length > 0,
+    detail: `no new or changed test names ${data.text}`,
+  };
+}
+
+function telemetryLeakTask(
+  evalCase: TelemetryLeakEvalCase,
+): CodeAgentBenchmarkTask {
+  return {
+    id: `fix-leaks-${evalCase.id}`,
+    title: evalCase.title,
+    shape: CodeAgentBenchmarkShape.TelemetryLeak,
+    files: (): Record<string, string> => {
+      return { ...evalCase.files };
+    },
+    prompt: buildTelemetryLeakEvalRequest(evalCase).text,
+    check: async (repositoryPath: string): Promise<CodeAgentBenchmarkCheck> => {
+      const checks: Array<CodeAgentBenchmarkCheck> = [
+        await runHiddenCheck(repositoryPath, evalCase.check),
+        await runRepositoryTests(repositoryPath),
+      ];
+
+      if (evalCase.untouchedFiles) {
+        const edited: Array<string> = changedFiles(
+          repositoryPath,
+          evalCase.files,
+          evalCase.untouchedFiles,
+        );
+
+        checks.push({
+          passed: edited.length === 0,
+          detail: `the call sites were edited, not one redaction step: ${edited.join(", ")}`,
+        });
+      }
+
+      if (evalCase.testNames) {
+        checks.push(
+          hasNewTestNaming({
+            repositoryPath,
+            original: evalCase.files,
+            text: evalCase.testNames,
+          }),
+        );
+      }
+
+      return allOf(checks);
+    },
+    solve: (repositoryPath: string): void => {
+      for (const [relative, content] of Object.entries(evalCase.solution)) {
+        const full: string = path.join(repositoryPath, relative);
+
+        fs.mkdirSync(path.dirname(full), { recursive: true });
+        fs.writeFileSync(full, content);
+      }
+    },
+  };
+}
+
+const TELEMETRY_LEAK_TASKS: Array<CodeAgentBenchmarkTask> =
+  TELEMETRY_LEAK_EVAL_SET.filter((evalCase: TelemetryLeakEvalCase): boolean => {
+    return TELEMETRY_LEAK_BENCHMARK_CASE_IDS.includes(evalCase.id);
+  }).map(telemetryLeakTask);
+
 export const CODE_AGENT_BENCHMARK_TASKS: ReadonlyArray<CodeAgentBenchmarkTask> =
-  [LONG_FILE_BUG, FAILING_TEST, MANY_FILES, SLOW_TESTS];
+  [
+    LONG_FILE_BUG,
+    FAILING_TEST,
+    MANY_FILES,
+    SLOW_TESTS,
+    ...TELEMETRY_LEAK_TASKS,
+  ];
 
 // The slow suite as a test writes it, with waits short enough to run.
 export function slowSuiteWith(waitMs: number): string {

@@ -38,6 +38,17 @@ import {
   THEME_STORAGE_KEY,
   ThemePreference,
 } from "../../../Types/Theme/ThemePreference";
+import {
+  HelpChoice,
+  HelpItem,
+  ONEUPTIME_REPORT_ISSUE_URL,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import ProductFeedback from "../../../UI/Utils/ProductFeedback";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 /*
  * The flagship interaction of the command palette — press Cmd/Ctrl+K anywhere
@@ -1262,5 +1273,116 @@ describe("DashboardCommandPalette and the products a project hides (#6814)", () 
     expect(navigateMock).toHaveBeenCalledWith(
       new Route("/dashboard/project-a/kubernetes"),
     );
+  });
+});
+
+/*
+ * Where the server sends its people for help (Admin Dashboard > Settings >
+ * Help and Support, #10865 and #10866): Search offers Give feedback only
+ * where the server offers it, and the products menu ends with OneUptime's
+ * GitHub only while its admins keep it.
+ */
+describe("Search and the products menu follow the server's help and support settings", () => {
+  const GIVE_FEEDBACK: string = "command-palette-option-action-give-feedback";
+
+  const searchFor: (query: string) => void = (query: string): void => {
+    pressChord({ key: "k", metaKey: true });
+    fireEvent.change(screen.getByTestId("command-palette-input"), {
+      target: { value: query },
+    });
+  };
+
+  const gitHubLinksIn: (element: HTMLElement) => Array<string> = (
+    element: HTMLElement,
+  ): Array<string> => {
+    return Array.from(element.querySelectorAll("a[href]"))
+      .map((link: Element): string => {
+        return link.getAttribute("href") || "";
+      })
+      .filter((href: string): boolean => {
+        return href.includes("github.com");
+      });
+  };
+
+  afterEach(() => {
+    ProductFeedback.setSettings(null);
+    forgetHelpAndSupport();
+  });
+
+  test("Give feedback is found where the server offers it", () => {
+    ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
+    render(<DashboardCommandPalette />);
+    searchFor("feedback");
+
+    expect(screen.getByTestId(GIVE_FEEDBACK)).toBeInTheDocument();
+  });
+
+  test("Give feedback is not found where the server's admins hid it, or sent it to an address the server cannot email yet", () => {
+    ProductFeedback.setSettings({
+      isOn: true,
+      isAskingMe: true,
+      isGiveFeedbackOffered: false,
+    });
+    render(<DashboardCommandPalette />);
+    searchFor("feedback");
+
+    expect(screen.queryByTestId(GIVE_FEEDBACK)).toBeNull();
+  });
+
+  test("Search finds the Mobile Apps page where the server offers the app, and not where its admins took it away", () => {
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+    const mobileApps: string = `command-palette-option-${slugifyPaletteCommandId(
+      "page",
+      RouteMap[PageMap.SETTINGS_MOBILE_APPS]!.toString(),
+    )}`;
+
+    const shown: ReturnType<typeof render> = render(
+      <DashboardCommandPalette />,
+    );
+    searchFor("mobile apps");
+    expect(screen.getByTestId(mobileApps)).toHaveTextContent("Mobile Apps");
+    shown.unmount();
+
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+    render(<DashboardCommandPalette />);
+    searchFor("mobile apps");
+    expect(screen.queryByTestId(mobileApps)).toBeNull();
+  });
+
+  test("the products menu ends with Report a bug or request a feature, on OneUptime's GitHub, by default", () => {
+    renderDashboardChrome();
+    fireEvent.click(screen.getByRole("button", { name: /Products/i }));
+
+    const menu: HTMLElement = screen.getByRole("dialog", {
+      name: "Products menu",
+    });
+
+    expect(menu).toHaveTextContent("navbar.moreFooter.title");
+    expect(gitHubLinksIn(menu)).toEqual([ONEUPTIME_REPORT_ISSUE_URL]);
+  });
+
+  test("where the server's admins took OneUptime's GitHub away, the products menu has no GitHub link", () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.GitHub]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+    renderDashboardChrome();
+    fireEvent.click(screen.getByRole("button", { name: /Products/i }));
+
+    const menu: HTMLElement = screen.getByRole("dialog", {
+      name: "Products menu",
+    });
+
+    expect(menu).not.toHaveTextContent("navbar.moreFooter.title");
+    expect(gitHubLinksIn(menu)).toEqual([]);
+    // The menu itself is all there.
+    expect(
+      screen.getByRole("combobox", { name: "Search products" }),
+    ).toBeInTheDocument();
   });
 });

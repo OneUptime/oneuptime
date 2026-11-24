@@ -135,6 +135,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
       {props.projects.length !== 0 && (
         <ProjectPicker
           selectedProjectName={props.selectedProject?.name || ""}
+          // Marks the open project in the list, by its id (#8050).
+          selectedProjectId={props.selectedProject?.id}
           selectedProjectIcon={IconProp.Folder}
           projects={props.projects}
           hideCreateProjectButton={!canCreateProject}
