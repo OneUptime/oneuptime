@@ -2922,3 +2922,28 @@ describe("Security Cases and Playbooks docs", () => {
     expect(TACTIC_LIBRARY_COUNT).toBe("+{{count}} in the Rule Library");
   });
 });
+
+/*
+ * FIX THE CODE WITH AI ON A DATA SECURITY CASE (#10740): an issue in no
+ * group gets its own pull request, a few at most - the page's number is the
+ * step's - and the step never changes a store through its cloud connection.
+ */
+describe("Fix the code with AI on a Data Security case (#10740)", () => {
+  test("asks for each issue in no group, up to the step's own cap, and changes no store through its cloud", () => {
+    const capped: RegExpMatchArray | null = source(
+      "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookIssueGroupFix.ts",
+    ).match(/\bMAX_CASE_ISSUES_FIXED: number = (\d+);/);
+    const words: Record<string, string> = { "5": "five" };
+
+    expect(capped?.[1]).toBe("5");
+
+    const step: string = flat(englishPage());
+
+    expect(step).toContain(
+      `and for each other issue, up to ${words[capped?.[1] || ""]}, a pull request of its own, asked as **Fix with AI** asks one, in the repository that code is in.`,
+    );
+    expect(step).toContain(
+      "It never changes a store through its cloud connection (see [Issues with one cause](/docs/data-security/checks-and-issues#issues-with-one-cause)).",
+    );
+  });
+});
