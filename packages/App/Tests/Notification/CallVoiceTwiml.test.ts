@@ -218,7 +218,7 @@ describe("no voice chosen: the call is as every call was", () => {
 });
 
 describe.each(
-  CALL_VOICES.map((voice: CallVoice) => {
+  CALL_VOICES.map((voice: CallVoice): [string, CallVoice] => {
     return [voice.value, voice];
   }),
 )("%s", (_value: string, voice: CallVoice) => {
