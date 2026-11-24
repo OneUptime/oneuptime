@@ -1,4 +1,5 @@
 import ComponentCode, { RunOptions, RunReturnType } from "../../ComponentCode";
+import { getChatMessageNotSent } from "../OtherSystemSaidNothing";
 import IncomingWebhookUtils, {
   DISCORD_WEBHOOK_DOMAINS,
 } from "../IncomingWebhookUtils";
@@ -101,7 +102,7 @@ export default class SendMessageToChannel extends ComponentCode {
       if (apiResult instanceof HTTPErrorResponse) {
         return Promise.resolve({
           returnValues: {
-            error: apiResult.message || "Server Error.",
+            error: apiResult.message || getChatMessageNotSent("Discord"),
           },
           executePort: errorPort,
         });
@@ -114,7 +115,7 @@ export default class SendMessageToChannel extends ComponentCode {
       if (err instanceof HTTPErrorResponse) {
         return Promise.resolve({
           returnValues: {
-            error: err.message || "Server Error.",
+            error: err.message || getChatMessageNotSent("Discord"),
           },
           executePort: errorPort,
         });
