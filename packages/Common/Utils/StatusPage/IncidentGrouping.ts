@@ -63,6 +63,14 @@ export const INCIDENT_LIST_MODE_RESPONSE_KEY: string = "incidentListMode";
  */
 export const EPISODE_INCIDENTS_KEY: string = "incidents";
 
+/*
+ * The key an incident's own answer (the incident read by its id) names the
+ * episodes it is part of under, while the page groups incidents by episode:
+ * each episode the page shows that holds it, by its _id and title. Such an
+ * incident has no card of its own, so its page says where it is listed.
+ */
+export const PART_OF_EPISODES_RESPONSE_KEY: string = "partOfEpisodes";
+
 // What decides the mode: the page's three switches, as read or as stored.
 export interface StatusPageIncidentListSwitches {
   showIncidentsOnStatusPage?: unknown;

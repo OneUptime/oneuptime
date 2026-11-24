@@ -14,7 +14,6 @@ import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberServi
 import IncidentEpisodePublicNoteService from "../Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeStateTimelineService from "../Services/IncidentEpisodeStateTimelineService";
 import IncidentPublicNoteService from "../Services/IncidentPublicNoteService";
-import IncidentService from "../Services/IncidentService";
 import IncidentStateService from "../Services/IncidentStateService";
 import IncidentStateTimelineService from "../Services/IncidentStateTimelineService";
 import MonitorGroupService from "../Services/MonitorGroupService";
@@ -170,10 +169,18 @@ import FrozenMonitorResources, {
   StartingStatusIds,
 } from "../../Utils/StatusPage/FrozenMonitorResources";
 import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
-import IncidentStatusPageScope, {
-  INCIDENT_SCOPE_SELECT,
-} from "../Utils/StatusPage/IncidentStatusPageScope";
+import IncidentStatusPageScope from "../Utils/StatusPage/IncidentStatusPageScope";
 import StatusPageVisibilityQuery from "../Utils/StatusPage/StatusPageVisibilityQuery";
+import StatusPageEpisodeIncidents, {
+  ShownEpisodeOfIncident,
+} from "../Utils/StatusPage/StatusPageEpisodeIncidents";
+import StatusPageIncidentGrouping, {
+  EPISODE_INCIDENTS_KEY,
+  INCIDENT_LIST_MODE_RESPONSE_KEY,
+  PART_OF_EPISODES_RESPONSE_KEY,
+  StatusPageIncidentListMode,
+} from "../../Utils/StatusPage/IncidentGrouping";
+import { TIMELINE_EPISODES_RESPONSE_KEY } from "../../Utils/StatusPage/TimelineEpisodes";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import StatusPageOverviewCache, {
   STATUS_PAGE_OVERVIEW_BASE_FORM,
@@ -4648,26 +4655,55 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   /*
-   * An episode's member incidents, read by id to work out which of the
-   * page's monitors the episode affects, keeping only those this page shows
-   * as far as scope goes. The read selects the scope columns for that
-   * (INCIDENT_SCOPE_SELECT); they are removed again before the incidents are
-   * used, so they cannot reach the page's JSON.
+   * Every episode a public status page is sent goes through here - the
+   * overview's active episodes, and the episode list and detail. Each
+   * carries `monitors`: the page's monitors that the incidents of it the
+   * page shows are on (StatusPageEpisodeIncidents), what its card names its
+   * resources from - never a monitor only a hidden, private or out-of-scope
+   * incident of it is on, nor one the page does not list. While the page
+   * groups incidents by episode, each carries those incidents too
+   * (EPISODE_INCIDENTS_KEY), serialized as every incident the page shows is.
    */
-  private keepMemberIncidentsInScope(data: {
-    incidents: Array<Incident>;
-    statusPage: StatusPage;
-  }): Array<Incident> {
-    return data.incidents
-      .filter((incident: Incident): boolean => {
-        return IncidentStatusPageScope.isIncidentInScope(
-          incident,
-          data.statusPage,
+  private serializeEpisodesForStatusPage(data: {
+    episodes: Array<IncidentEpisode>;
+    incidentsByEpisode: Map<string, Array<Incident>>;
+    incidentListMode: StatusPageIncidentListMode;
+  }): JSONArray {
+    const isGrouped: boolean = StatusPageIncidentGrouping.isGroupedByEpisode(
+      data.incidentListMode,
+    );
+
+    const episodesJson: JSONArray = BaseModel.toJSONArray(
+      data.episodes,
+      IncidentEpisode,
+    );
+
+    for (const episodeJson of episodesJson) {
+      const episodeObj: JSONObject = episodeJson as JSONObject;
+      const episodeId: string = (episodeObj["_id"]?.toString() || "")
+        .trim()
+        .toLowerCase();
+      const incidents: Array<Incident> =
+        (episodeId && data.incidentsByEpisode.get(episodeId)) || [];
+
+      episodeObj["monitors"] =
+        StatusPageEpisodeIncidents.getMonitorIdsOfIncidents(incidents).map(
+          (monitorId: string): JSONObject => {
+            return { _id: monitorId };
+          },
         );
-      })
-      .map((incident: Incident): Incident => {
-        return IncidentStatusPageScope.removeScopeColumns(incident);
-      });
+
+      if (isGrouped) {
+        episodeObj[EPISODE_INCIDENTS_KEY] = StatusPageEpisodeIncidents.toJSON({
+          incidents: incidents,
+          serialize: (list: Array<Incident>): JSONArray => {
+            return this.serializeIncidentsForStatusPage(list);
+          },
+        });
+      }
+    }
+
+    return episodesJson;
   }
 
   @CaptureSpan()
@@ -4715,6 +4751,9 @@ export default class StatusPageAPI extends BaseAPI<
         showIncidentHistoryInDays: true,
         showIncidentLabelsOnStatusPage: true,
         showIncidentsOnStatusPage: true,
+        // With the two below, how the page lists them (IncidentGrouping).
+        showEpisodesOnStatusPage: true,
+        groupIncidentsByEpisode: true,
         // Read by IncidentStatusPageScope to decide which incidents it shows.
         onlyShowScopedIncidents: true,
       },
@@ -4732,6 +4771,9 @@ export default class StatusPageAPI extends BaseAPI<
         "Incidents are not enabled on this status page.",
       );
     }
+
+    const incidentListMode: StatusPageIncidentListMode =
+      StatusPageIncidentGrouping.getMode(statusPage);
 
     // get monitors on status page.
     const statusPageResources: Array<StatusPageResource> =
@@ -4959,8 +5001,38 @@ export default class StatusPageAPI extends BaseAPI<
     const incidentStates: Array<IncidentState> =
       await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
+    /*
+     * Grouped by episode, an incident of an episode the page shows has no
+     * card of its own: its page names the episodes it is part of, so a
+     * reader who lands on it - from the uptime history, or a subscriber's
+     * message - can open the card it is listed in.
+     */
+    let partOfEpisodes: Array<ShownEpisodeOfIncident> = [];
+
+    if (
+      incidentId &&
+      incidents.length > 0 &&
+      StatusPageIncidentGrouping.isGroupedByEpisode(incidentListMode)
+    ) {
+      partOfEpisodes =
+        await StatusPageEpisodeIncidents.getShownEpisodesOfIncident({
+          projectId: statusPage.projectId!,
+          incidentId: incidentId,
+        });
+    }
+
     const response: JSONObject = {
       [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
+      [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
+      ...(incidentId
+        ? {
+            [PART_OF_EPISODES_RESPONSE_KEY]: partOfEpisodes.map(
+              (episode: ShownEpisodeOfIncident): JSONObject => {
+                return { _id: episode._id, title: episode.title };
+              },
+            ),
+          }
+        : {}),
       incidentPublicNotes: BaseModel.toJSONArray(
         incidentPublicNotes,
         IncidentPublicNote,
@@ -5026,6 +5098,9 @@ export default class StatusPageAPI extends BaseAPI<
         showEpisodeHistoryInDays: true,
         showEpisodesOnStatusPage: true,
         showEpisodeLabelsOnStatusPage: true,
+        // With the two below, how the page lists them (IncidentGrouping).
+        showIncidentsOnStatusPage: true,
+        groupIncidentsByEpisode: true,
         // Read by IncidentStatusPageScope to decide which incidents it shows.
         onlyShowScopedIncidents: true,
       },
@@ -5219,21 +5294,6 @@ export default class StatusPageAPI extends BaseAPI<
       if (!incidentShownOnStatusPage) {
         throw new NotFoundException("Episode not found");
       }
-
-      // Merge with existing episode members
-      for (const member of episodeMembersForSpecificEpisode) {
-        if (
-          !episodeMembers.some((m: IncidentEpisodeMember) => {
-            return (
-              m.incidentEpisodeId?.toString() ===
-                member.incidentEpisodeId?.toString() &&
-              m.incidentId?.toString() === member.incidentId?.toString()
-            );
-          })
-        ) {
-          episodeMembers.push(member);
-        }
-      }
     }
 
     // Get episodes
@@ -5335,102 +5395,51 @@ export default class StatusPageAPI extends BaseAPI<
       episodes = ArrayUtil.distinctByFieldName(episodes, "_id");
     }
 
+    /*
+     * What each episode's card says of its incidents - the resources they
+     * affect, and, grouped by episode, the incidents themselves - from the
+     * incidents of it the page shows (StatusPageEpisodeIncidents). A member
+     * incident hidden from status pages, private, limited to other pages or
+     * on none of the page's monitors names nothing here, as on the
+     * overview. (An episode viewed by id brings all of its members.)
+     */
+    const incidentListMode: StatusPageIncidentListMode =
+      StatusPageIncidentGrouping.getMode(statusPage);
+
+    const incidentsByEpisode: Map<
+      string,
+      Array<Incident>
+    > = await StatusPageEpisodeIncidents.getShownIncidentsByEpisode({
+      statusPage: statusPage,
+      projectId: statusPage.projectId!,
+      episodeIds: episodes.map((episode: IncidentEpisode): ObjectID => {
+        return episode.id!;
+      }),
+      monitorsOnStatusPage: monitorsOnStatusPage,
+    });
+
+    /*
+     * Grouped, the list leaves out an episode none of whose incidents the
+     * page shows: its card would list nothing. Its own link still opens it,
+     * as a subscriber told of it may follow one.
+     */
+    if (
+      !episodeId &&
+      StatusPageIncidentGrouping.isGroupedByEpisode(incidentListMode)
+    ) {
+      episodes = episodes.filter((episode: IncidentEpisode): boolean => {
+        return (
+          (incidentsByEpisode.get(episode.id!.toString().toLowerCase()) || [])
+            .length > 0
+        );
+      });
+    }
+
     const episodesOnStatusPage: Array<ObjectID> = episodes.map(
       (episode: IncidentEpisode) => {
         return episode.id!;
       },
     );
-
-    /*
-     * Build a map of episode ID -> monitor IDs from episode members
-     * Collect all unique incident IDs from episode members
-     */
-    const memberIncidentIds: Array<ObjectID> = [];
-    for (const member of episodeMembers) {
-      if (
-        member.incidentId &&
-        !memberIncidentIds.some((id: ObjectID) => {
-          return id.toString() === member.incidentId!.toString();
-        })
-      ) {
-        memberIncidentIds.push(member.incidentId);
-      }
-    }
-
-    /*
-     * Fetch incidents with their monitors. Read by id, so the scope is
-     * applied here, in memory: a member incident limited to other status
-     * pages does not tell this page which of its monitors the episode
-     * affects. (An episode viewed by id brings all of its members.) A
-     * private member is left out of the read itself: its monitors are not
-     * the episode's to show.
-     */
-    let memberIncidents: Array<Incident> = [];
-    if (memberIncidentIds.length > 0) {
-      memberIncidents = this.keepMemberIncidentsInScope({
-        incidents: await IncidentService.findBy({
-          query: StatusPageVisibilityQuery.notPrivateIncidents({
-            _id: QueryHelper.any(memberIncidentIds),
-            projectId: statusPage.projectId!,
-          }),
-          select: {
-            _id: true,
-            monitors: {
-              _id: true,
-            },
-            ...INCIDENT_SCOPE_SELECT,
-          },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          props: {
-            isRoot: true,
-          },
-        }),
-        statusPage: statusPage,
-      });
-    }
-
-    // Build a map of incident ID -> monitors
-    const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
-    for (const incident of memberIncidents) {
-      const incidentIdStr: string = incident.id!.toString();
-      const monitorIds: Array<ObjectID> = (incident.monitors || [])
-        .map((m: Monitor) => {
-          return new ObjectID(m._id?.toString() || m.id?.toString() || "");
-        })
-        .filter((id: ObjectID) => {
-          return id.toString() !== "";
-        });
-      incidentMonitorsMap.set(incidentIdStr, monitorIds);
-    }
-
-    // Build episode monitors map from members and incident monitors
-    const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
-    for (const member of episodeMembers) {
-      if (member.incidentEpisodeId && member.incidentId) {
-        const episodeIdStr: string = member.incidentEpisodeId.toString();
-        const incidentIdStr: string = member.incidentId.toString();
-
-        if (!episodeMonitorsMap.has(episodeIdStr)) {
-          episodeMonitorsMap.set(episodeIdStr, []);
-        }
-
-        const episodeMonitors: Array<ObjectID> =
-          episodeMonitorsMap.get(episodeIdStr)!;
-        const incidentMonitors: Array<ObjectID> =
-          incidentMonitorsMap.get(incidentIdStr) || [];
-
-        for (const monitorId of incidentMonitors) {
-          if (
-            !episodeMonitors.some((m: ObjectID) => {
-              return m.toString() === monitorId.toString();
-            })
-          ) {
-            episodeMonitors.push(monitorId);
-          }
-        }
-      }
-    }
 
     // Get public notes for episodes
     let episodePublicNotes: Array<IncidentEpisodePublicNote> = [];
@@ -5500,25 +5509,15 @@ export default class StatusPageAPI extends BaseAPI<
     const incidentStates: Array<IncidentState> =
       await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
-    // Serialize episodes and add monitors to each
-    const episodesJson: JSONArray = BaseModel.toJSONArray(
-      episodes,
-      IncidentEpisode,
-    );
-    for (const episodeJson of episodesJson) {
-      const episodeObj: JSONObject = episodeJson as JSONObject;
-      const episodeId: string | undefined = episodeObj["_id"]?.toString();
-      if (episodeId) {
-        const monitorIds: Array<ObjectID> =
-          episodeMonitorsMap.get(episodeId) || [];
-        episodeObj["monitors"] = monitorIds.map((id: ObjectID) => {
-          return { _id: id.toString() };
-        });
-      }
-    }
+    const episodesJson: JSONArray = this.serializeEpisodesForStatusPage({
+      episodes: episodes,
+      incidentsByEpisode: incidentsByEpisode,
+      incidentListMode: incidentListMode,
+    });
 
     const response: JSONObject = {
       [HISTORY_IN_DAYS_RESPONSE_KEY]: historyInDays,
+      [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
       episodePublicNotes: BaseModel.toJSONArray(
         episodePublicNotes,
         IncidentEpisodePublicNote,
@@ -5611,6 +5610,8 @@ export default class StatusPageAPI extends BaseAPI<
         showAnnouncementsOnStatusPage: true,
         showIncidentsOnStatusPage: true,
         showEpisodesOnStatusPage: true,
+        // With the two above, how the page lists them (IncidentGrouping).
+        groupIncidentsByEpisode: true,
         showScheduledMaintenanceEventsOnStatusPage: true,
         showUptimeHistoryInDays: true,
         /*
@@ -6210,6 +6211,10 @@ export default class StatusPageAPI extends BaseAPI<
       includeUptimeDailyAggregate: false,
     });
 
+    // How the page lists its incidents and episodes (IncidentGrouping).
+    const incidentListMode: StatusPageIncidentListMode =
+      StatusPageIncidentGrouping.getMode(statusPage);
+
     /*
      * What a monitor group's uptime percentage is read from in the browser,
      * over the same window as the day aggregate. See
@@ -6548,125 +6553,49 @@ export default class StatusPageAPI extends BaseAPI<
           },
         });
 
-        // Build episode monitors map
+        /*
+         * What each active episode's card says of its incidents, as on the
+         * episode list (StatusPageEpisodeIncidents). Grouped by episode, an
+         * active episode none of whose incidents the page shows is not
+         * drawn: its card would list nothing.
+         */
         if (activeEpisodes.length > 0) {
-          // Collect all incident IDs from episode members for active episodes
-          const activeEpisodeIds: Set<string> = new Set(
-            activeEpisodes.map((e: IncidentEpisode) => {
-              return e.id!.toString();
-            }),
-          );
+          const incidentsByEpisode: Map<
+            string,
+            Array<Incident>
+          > = await StatusPageEpisodeIncidents.getShownIncidentsByEpisode({
+            statusPage: statusPage,
+            projectId: statusPage.projectId!,
+            episodeIds: activeEpisodes.map(
+              (episode: IncidentEpisode): ObjectID => {
+                return episode.id!;
+              },
+            ),
+            monitorsOnStatusPage: monitorsOnStatusPage,
+          });
 
-          const memberIncidentIds: Array<ObjectID> = [];
-          for (const member of episodeMembers) {
-            if (
-              member.incidentEpisodeId &&
-              activeEpisodeIds.has(member.incidentEpisodeId.toString()) &&
-              member.incidentId &&
-              !memberIncidentIds.some((id: ObjectID) => {
-                return id.toString() === member.incidentId!.toString();
-              })
-            ) {
-              memberIncidentIds.push(member.incidentId);
-            }
-          }
-
-          /*
-           * Fetch incidents with monitors. Read by id, so the scope is
-           * applied in memory, as in getEpisodes - these members came from
-           * incidents in scope, and this keeps it that way should that
-           * change.
-           */
-          let memberIncidents: Array<Incident> = [];
-          if (memberIncidentIds.length > 0) {
-            memberIncidents = this.keepMemberIncidentsInScope({
-              incidents: await IncidentService.findBy({
-                query: StatusPageVisibilityQuery.shownIncidents({
-                  _id: QueryHelper.any(memberIncidentIds),
-                  projectId: statusPage.projectId!,
-                }),
-                select: {
-                  _id: true,
-                  monitors: {
-                    _id: true,
-                  },
-                  ...INCIDENT_SCOPE_SELECT,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: {
-                  isRoot: true,
-                },
-              }),
-              statusPage: statusPage,
-            });
-          }
-
-          // Build incident -> monitors map
-          const incidentMonitorsMap: Map<string, Array<ObjectID>> = new Map();
-          for (const incident of memberIncidents) {
-            const incidentIdStr: string = incident.id!.toString();
-            const monitorIds: Array<ObjectID> = (incident.monitors || [])
-              .map((m: Monitor) => {
-                return new ObjectID(
-                  m._id?.toString() || m.id?.toString() || "",
+          if (StatusPageIncidentGrouping.isGroupedByEpisode(incidentListMode)) {
+            activeEpisodes = activeEpisodes.filter(
+              (episode: IncidentEpisode): boolean => {
+                return (
+                  (
+                    incidentsByEpisode.get(
+                      episode.id!.toString().toLowerCase(),
+                    ) || []
+                  ).length > 0
                 );
-              })
-              .filter((id: ObjectID) => {
-                return id.toString() !== "";
-              });
-            incidentMonitorsMap.set(incidentIdStr, monitorIds);
+              },
+            );
           }
 
-          // Build episode -> monitors map
-          const episodeMonitorsMap: Map<string, Array<ObjectID>> = new Map();
-          for (const member of episodeMembers) {
-            if (
-              member.incidentEpisodeId &&
-              member.incidentId &&
-              activeEpisodeIds.has(member.incidentEpisodeId.toString())
-            ) {
-              const episodeIdStr: string = member.incidentEpisodeId.toString();
-              const incidentIdStr: string = member.incidentId.toString();
+          activeEpisodesJson = this.serializeEpisodesForStatusPage({
+            episodes: activeEpisodes,
+            incidentsByEpisode: incidentsByEpisode,
+            incidentListMode: incidentListMode,
+          });
+        }
 
-              if (!episodeMonitorsMap.has(episodeIdStr)) {
-                episodeMonitorsMap.set(episodeIdStr, []);
-              }
-
-              const episodeMonitors: Array<ObjectID> =
-                episodeMonitorsMap.get(episodeIdStr)!;
-              const incidentMonitors: Array<ObjectID> =
-                incidentMonitorsMap.get(incidentIdStr) || [];
-
-              for (const monitorId of incidentMonitors) {
-                if (
-                  !episodeMonitors.some((m: ObjectID) => {
-                    return m.toString() === monitorId.toString();
-                  })
-                ) {
-                  episodeMonitors.push(monitorId);
-                }
-              }
-            }
-          }
-
-          // Serialize episodes and add monitors
-          activeEpisodesJson = BaseModel.toJSONArray(
-            activeEpisodes,
-            IncidentEpisode,
-          );
-          for (const episodeJson of activeEpisodesJson) {
-            const episodeObj: JSONObject = episodeJson as JSONObject;
-            const episodeId: string | undefined = episodeObj["_id"]?.toString();
-            if (episodeId) {
-              const monitorIds: Array<ObjectID> =
-                episodeMonitorsMap.get(episodeId) || [];
-              episodeObj["monitors"] = monitorIds.map((id: ObjectID) => {
-                return { _id: id.toString() };
-              });
-            }
-          }
-
+        if (activeEpisodes.length > 0) {
           // Get episode public notes
           const episodesOnStatusPage: Array<ObjectID> = activeEpisodes.map(
             (episode: IncidentEpisode) => {
@@ -7055,6 +6984,22 @@ export default class StatusPageAPI extends BaseAPI<
     }
 
     /*
+     * A page that shows episodes but not incidents names no incident, so
+     * its uptime history's day details list, for each incident of the day,
+     * the episode it belongs to (#10767). They said "No incidents" on a day
+     * that had them. See getTimelineEpisodes.
+     */
+    const timelineEpisodes: JSONArray =
+      incidentListMode === StatusPageIncidentListMode.EpisodesOnly
+        ? await this.getTimelineEpisodes({
+            statusPage: statusPage,
+            monitorsOnStatusPage: monitorsOnStatusPage,
+            startDate: startDate,
+            endDate: endDate,
+          })
+        : [];
+
+    /*
      * The scheduled maintenance of the uptime history, for its tooltips and
      * day dialogs, beside the incidents above (Common/Utils/Uptime/
      * UptimeMaintenanceUtil): see getTimelineScheduledMaintenanceEvents.
@@ -7179,6 +7124,8 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),
+      [TIMELINE_EPISODES_RESPONSE_KEY]: timelineEpisodes,
+      [INCIDENT_LIST_MODE_RESPONSE_KEY]: incidentListMode,
       timelineScheduledMaintenanceEvents: BaseModel.toJSONArray(
         timelineScheduledMaintenanceEvents,
         ScheduledMaintenance,
@@ -7226,6 +7173,174 @@ export default class StatusPageAPI extends BaseAPI<
    * else then. Newest first, so a window holding more than the limit keeps
    * the recent days.
    */
+  /*
+   * THE UPTIME HISTORY'S EPISODES (#10767): what a page that shows episodes
+   * but not incidents lists in a day's details, in place of the incidents
+   * it names nowhere. Each episode the page shows (visible on status pages,
+   * not private) that holds an incident declared in the history's window
+   * which the page would show on its own - visible on status pages, not
+   * private, in scope for the page and on one of its monitors - once, with
+   * its title, severity and state; and of each such incident only when it
+   * was declared and which of the page's monitors it is on: the day and the
+   * resources the episode is listed on (TimelineEpisodes). The incident's
+   * own id and title stay off the page, as they do everywhere else on it.
+   *
+   * A hidden or private incident places its episode on no day, as it names
+   * no resource on the episode's card. Newest first, so a window holding
+   * more than the limit keeps the recent days.
+   */
+  @CaptureSpan()
+  public async getTimelineEpisodes(data: {
+    statusPage: StatusPage;
+    monitorsOnStatusPage: Array<ObjectID>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<JSONArray> {
+    if (data.monitorsOnStatusPage.length === 0) {
+      return [];
+    }
+
+    const incidents: Array<Incident> =
+      await IncidentStatusPageScope.findIncidentsForStatusPage({
+        statusPage: data.statusPage,
+        query: {
+          monitors: data.monitorsOnStatusPage as any,
+          declaredAt: QueryHelper.inBetween(data.startDate, data.endDate),
+          projectId: data.statusPage.projectId!,
+        },
+        select: {
+          _id: true,
+          declaredAt: true,
+          monitors: {
+            _id: true,
+          },
+        },
+        sort: {
+          declaredAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (incidents.length === 0) {
+      return [];
+    }
+
+    const members: Array<IncidentEpisodeMember> =
+      await IncidentEpisodeMemberService.findBy({
+        query: {
+          incidentId: QueryHelper.any(
+            incidents.map((incident: Incident): ObjectID => {
+              return incident.id!;
+            }),
+          ),
+          projectId: data.statusPage.projectId!,
+        },
+        select: {
+          incidentEpisodeId: true,
+          incidentId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const episodeIds: Array<string> = [];
+
+    for (const member of members) {
+      const episodeId: string | undefined = member.incidentEpisodeId
+        ?.toString()
+        .toLowerCase();
+
+      if (episodeId && !episodeIds.includes(episodeId)) {
+        episodeIds.push(episodeId);
+      }
+    }
+
+    if (episodeIds.length === 0) {
+      return [];
+    }
+
+    const episodes: Array<IncidentEpisode> =
+      await IncidentEpisodeService.findBy({
+        query: StatusPageVisibilityQuery.shownEpisodes({
+          _id: QueryHelper.any(
+            episodeIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+          ),
+          projectId: data.statusPage.projectId!,
+        }),
+        select: {
+          _id: true,
+          title: true,
+          declaredAt: true,
+          incidentSeverity: {
+            name: true,
+            color: true,
+          },
+          currentIncidentState: {
+            _id: true,
+            name: true,
+            color: true,
+          },
+        },
+        sort: {
+          declaredAt: SortOrder.Descending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return episodes.map((episode: IncidentEpisode): JSONObject => {
+      const episodeId: string = episode.id!.toString().toLowerCase();
+
+      const incidentsOfEpisode: Array<Incident> = incidents.filter(
+        (incident: Incident): boolean => {
+          const incidentId: string = incident.id!.toString().toLowerCase();
+
+          return members.some((member: IncidentEpisodeMember): boolean => {
+            return (
+              member.incidentEpisodeId?.toString().toLowerCase() ===
+                episodeId &&
+              member.incidentId?.toString().toLowerCase() === incidentId
+            );
+          });
+        },
+      );
+
+      for (const incident of incidentsOfEpisode) {
+        incident.monitors = StatusPageEpisodeIncidents.keepPageMonitors(
+          incident.monitors,
+          data.monitorsOnStatusPage,
+        );
+      }
+
+      return {
+        ...BaseModel.toJSON(episode, IncidentEpisode),
+        [EPISODE_INCIDENTS_KEY]: this.serializeIncidentsForStatusPage(
+          incidentsOfEpisode,
+        ).map((item: unknown): JSONObject => {
+          const json: JSONObject = item as JSONObject;
+
+          // When and where, never which: no id or title of the incident.
+          return {
+            declaredAt: json["declaredAt"] || null,
+            monitors: json["monitors"] || [],
+          };
+        }),
+      };
+    });
+  }
+
   @CaptureSpan()
   public async getTimelineScheduledMaintenanceEvents(data: {
     statusPage: StatusPage;
