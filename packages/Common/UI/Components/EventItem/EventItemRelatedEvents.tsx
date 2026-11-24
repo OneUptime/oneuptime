@@ -53,45 +53,52 @@ export const RELATED_EVENTS_TOGGLE_CLASS_NAME: string =
 export const RELATED_EVENT_ROW_CLASS_NAME: string =
   "flex items-center gap-3 rounded-md px-2 py-2.5 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 [@media(pointer:coarse)]:min-h-11";
 
+/*
+ * A row's words, and its state beside them - under them on a phone, so the
+ * title and when it was declared keep the row's width rather than wrapping
+ * word by word beside the state.
+ */
 const RelatedEventRowContent: FunctionComponent<{
   item: EventItemRelatedEvent;
 }> = (props: { item: EventItemRelatedEvent }): ReactElement => {
   return (
     <>
-      <span className="min-w-0 flex-1">
-        <span
-          className="block break-words text-sm font-medium text-gray-900"
-          data-testid="event-item-related-event-title"
-        >
-          {props.item.title}
-        </span>
-        {props.item.detail ? (
+      <span className="flex min-w-0 flex-1 flex-col items-start gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+        <span className="block w-full min-w-0 sm:w-auto sm:flex-1">
           <span
-            className="mt-0.5 block text-sm text-gray-500"
-            data-testid="event-item-related-event-detail"
+            className="block break-words text-sm font-medium text-gray-900"
+            data-testid="event-item-related-event-title"
           >
-            {props.item.detail}
+            {props.item.title}
+          </span>
+          {props.item.detail ? (
+            <span
+              className="mt-0.5 block text-sm text-gray-500"
+              data-testid="event-item-related-event-detail"
+            >
+              {props.item.detail}
+            </span>
+          ) : (
+            <></>
+          )}
+        </span>
+        {props.item.statusName && props.item.statusColor ? (
+          <span
+            className="flex-shrink-0"
+            data-testid="event-item-related-event-status"
+          >
+            <Pill
+              text={props.item.statusName}
+              // The page's own words for the state, drawn as given.
+              isUserContent={true}
+              color={props.item.statusColor}
+              isMinimal={true}
+            />
           </span>
         ) : (
           <></>
         )}
       </span>
-      {props.item.statusName && props.item.statusColor ? (
-        <span
-          className="flex-shrink-0"
-          data-testid="event-item-related-event-status"
-        >
-          <Pill
-            text={props.item.statusName}
-            // The page's own words for the state, drawn as given.
-            isUserContent={true}
-            color={props.item.statusColor}
-            isMinimal={true}
-          />
-        </span>
-      ) : (
-        <></>
-      )}
       {props.item.route ? (
         <Icon
           icon={IconProp.ChevronRight}
