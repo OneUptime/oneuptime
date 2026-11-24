@@ -3,13 +3,17 @@ import BillingService from "../../../Server/Services/BillingService";
 import NotificationService from "../../../Server/Services/NotificationService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Redis from "../../../Server/Infrastructure/Redis";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
+import { getPaymentNotCompletedMessage } from "../../../Server/Utils/Billing/PaymentProviderRefusal";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../../Types/Exception/DatabaseNotConnectedException";
 import logger from "../../../Server/Utils/Logger";
 import Project from "../../../Models/DatabaseModels/Project";
 import ObjectID from "../../../Types/ObjectID";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import fs from "fs";
 import Path from "path";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -17,25 +21,24 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 /*
  * WHAT BREAKS IN PRODUCTION IF THIS REGRESSES.
  *
- * NotificationService.rechargeIfBalanceIsLow is called INLINE on every SMS,
- * call, WhatsApp and Telegram notification attempt (SmsService.ts:282,
- * CallService.ts:299, WhatsAppService.ts:180, TelegramService.ts:168), and
+ * NotificationService.rechargeIfBalanceIsLow - Auto Recharge - is called
+ * INLINE on every SMS, call, WhatsApp and Telegram notification attempt
+ * (SmsService, CallService, WhatsAppService, TelegramService), and
  * AIBillingService is the same shape for AI credits. So anything these two
- * rechargeBalance methods mail is multiplied by the paging rate of the very
- * incident the owner is already being paged about. Four separate defects lived
- * here, and each one turns a single billing condition into a per-attempt mail
- * storm:
+ * services mail is multiplied by the paging rate of the very incident the
+ * owner is already being paged about. Four separate defects lived here, and
+ * each one turns a single billing condition into a per-attempt mail storm:
  *
  *   1. The SUCCESS mail had no guard flag at all. A project auto-recharging
  *      through an outage mailed every owner once per recharge, and the same
  *      update reset lowCallAndSMSBalanceNotificationSentToOwners and
  *      notEnabledSmsOrCallNotificationSentToOwners to false, re-arming two
  *      MORE owner emails. It is now suppressed for AUTO-recharge only. The
- *      manual "Recharge" button keeps it, because Project.sendInvoicesByEmail
+ *      manual Add to Balance keeps it, because Project.sendInvoicesByEmail
  *      defaults to false, so the Stripe invoice is filed rather than sent and
  *      the Slack hook is an operator webhook most installs never configure -
  *      delete it there and a person who charged their own card is told
- *      nothing. That split is the first two tests in each describe.
+ *      nothing. That split is the first tests in each describe.
  *
  *   2. The catch block WROTE failedCallAndSMSBalanceChargeNotificationSentToOwners
  *      = true and then mailed without ever reading it - unlike its correctly
@@ -59,6 +62,20 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  *
  *   5. AIBillingService had bugs 1-4 byte-for-byte.
  *
+ *   6. A recharge BY HAND that failed mailed every owner too (#11052):
+ *      "We have tried to recharge your SMS and Call balance ... and failed",
+ *      worded as if OneUptime had tried on its own, about an attempt the
+ *      person who pressed Add to Balance had just read the failure of in its
+ *      dialog. It claimed the day's window as well, so Auto Recharge's own
+ *      failure later that day went unreported.
+ *
+ * WHICH PATH IS WHICH. Auto Recharge is rechargeIfBalanceIsLow (isAutomatic):
+ * its failures mail the owners, once a day, failing open - the guarantees of
+ * 2 to 4. A recharge by hand is rechargeBalance, what POST
+ * /notification/recharge and POST /ai/recharge call: its failures mail
+ * nobody, write no flag and claim no window - the person who asked is told
+ * by what it throws. Each describe below names its path.
+ *
  * Both services are gated on IsBillingEnabled, so these are CLOUD-ONLY paths.
  * The last describe is a ratchet on the SIBLING owner emails in the four
  * notification services: those are already guarded by their own project
@@ -68,13 +85,12 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  */
 
 /*
- * AIBillingService.rechargeBalance throws "Billing is not enabled" before it
- * does anything else, and BILLING_ENABLED is not set when jest runs a single
- * suite directly. Mocking the tiny BillingConfig module (rather than
- * EnvironmentConfig, which reads it) is the precedent set by the Stripe
- * provider's test helper (ee/Tests/Server/Billing/Helpers/
- * StripeBillingProviderHelper.ts), and it makes the suite deterministic no
- * matter what the runner exports.
+ * The services throw "Billing is not enabled" before they do anything else,
+ * and BILLING_ENABLED is not set when jest runs a single suite directly.
+ * Mocking the tiny BillingConfig module (rather than EnvironmentConfig,
+ * which reads it) is the precedent set by the Stripe provider's test helper
+ * (ee/Tests/Server/Billing/Helpers/StripeBillingProviderHelper.ts), and it
+ * makes the suite deterministic no matter what the runner exports.
  */
 jest.mock("../../../Server/BillingConfig", () => {
   return {
@@ -94,6 +110,14 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const PROJECT_NAME: string = "Acme Production";
 const CUSTOMER_ID: string = "cus_test_recharge_guards";
 
+const SMS_FAILED_SUBJECT: string =
+  "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
+  PROJECT_NAME;
+const AI_FAILED_SUBJECT: string =
+  "ACTION REQUIRED: AI Balance Recharge Failed for project - " + PROJECT_NAME;
+const NO_PAYMENT_METHOD_MESSAGE: string =
+  "No payment methods found for the project";
+
 /*
  * sendBalanceRefillSlackNotification is private on both services. The suite
  * has to assert it still fires after the success mail was deleted, so it is
@@ -107,18 +131,42 @@ interface SlackRefillNotifier {
   }) => Promise<void>;
 }
 
+/*
+ * What the payment provider's SDK throws for a declined card: an Error that
+ * carries a type such as StripeCardError, its message meant for the
+ * cardholder.
+ */
+type MakeCardDeclinedFunction = (message: string) => Error;
+
+const makeCardDeclined: MakeCardDeclinedFunction = (message: string): Error => {
+  return Object.assign(new Error(message), {
+    type: "StripeCardError",
+    code: "card_declined",
+  });
+};
+
+/*
+ * A project whose Auto Recharge is set up (20 USD whenever the balance falls
+ * below 10 USD) and whose balance is 1 USD: Auto Recharge charges it, and so
+ * may a recharge by hand.
+ */
 type MakeSmsProjectFunction = (data: {
   failedFlagAlreadySet: boolean;
+  balanceInUSDCents?: number | undefined;
 }) => Project;
 
 const makeSmsProject: MakeSmsProjectFunction = (data: {
   failedFlagAlreadySet: boolean;
+  balanceInUSDCents?: number | undefined;
 }): Project => {
   const project: Project = new Project();
   project.id = PROJECT_ID;
   project.name = PROJECT_NAME;
   project.paymentProviderCustomerId = CUSTOMER_ID;
-  project.smsOrCallCurrentBalanceInUSDCents = 100;
+  project.smsOrCallCurrentBalanceInUSDCents = data.balanceInUSDCents ?? 100;
+  project.enableAutoRechargeSmsOrCallBalance = true;
+  project.autoRechargeSmsOrCallByBalanceInUSD = 20;
+  project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD = 10;
   project.sendInvoicesByEmail = false;
   project.failedCallAndSMSBalanceChargeNotificationSentToOwners =
     data.failedFlagAlreadySet;
@@ -128,16 +176,21 @@ const makeSmsProject: MakeSmsProjectFunction = (data: {
 
 type MakeAiProjectFunction = (data: {
   failedFlagAlreadySet: boolean;
+  balanceInUSDCents?: number | undefined;
 }) => Project;
 
 const makeAiProject: MakeAiProjectFunction = (data: {
   failedFlagAlreadySet: boolean;
+  balanceInUSDCents?: number | undefined;
 }): Project => {
   const project: Project = new Project();
   project.id = PROJECT_ID;
   project.name = PROJECT_NAME;
   project.paymentProviderCustomerId = CUSTOMER_ID;
-  project.aiCurrentBalanceInUSDCents = 100;
+  project.aiCurrentBalanceInUSDCents = data.balanceInUSDCents ?? 100;
+  project.enableAutoRechargeAiBalance = true;
+  project.autoAiRechargeByBalanceInUSD = 20;
+  project.autoRechargeAiWhenCurrentBalanceFallsInUSD = 10;
   project.sendInvoicesByEmail = false;
   project.failedAiBalanceChargeNotificationSentToOwners =
     data.failedFlagAlreadySet;
@@ -155,6 +208,7 @@ let aiSlackSpy: jest.SpyInstance;
 let claimWindowSpy: jest.SpyInstance;
 let atomicAddSpy: jest.SpyInstance;
 let smsCreditSpy: jest.SpyInstance;
+let rememberFailureSpy: jest.SpyInstance;
 
 /* The `data` object of the nth ProjectService.updateOneById call. */
 type GetUpdateDataFunction = (index: number) => Record<string, unknown>;
@@ -178,6 +232,43 @@ const getSentSubject: GetSentSubjectFunction = (index: number): string => {
 
   return call[1] as string;
 };
+
+/*
+ * The day's notice window as the shared cache keeps it: SET NX on a key that
+ * stays until it expires, so a test can run one failure after another and
+ * see which of them owns the window.
+ */
+type UseRealWindowFunction = () => Set<string>;
+
+const useRealWindow: UseRealWindowFunction = (): Set<string> => {
+  const claimed: Set<string> = new Set<string>();
+
+  claimWindowSpy.mockImplementation((async (
+    namespace: string,
+    key: string,
+  ): Promise<boolean> => {
+    const name: string = `${namespace}-${key}`;
+
+    if (claimed.has(name)) {
+      return false;
+    }
+
+    claimed.add(name);
+    return true;
+  }) as never);
+
+  return claimed;
+};
+
+// Whether Auto Recharge was told to wait before trying the card again.
+type AutoRechargeWaitStartedFunction = () => boolean;
+
+const autoRechargeWaitStarted: AutoRechargeWaitStartedFunction =
+  (): boolean => {
+    return rememberFailureSpy.mock.calls.some((call: Array<unknown>) => {
+      return String(call[0]).endsWith("auto-recharge-failed");
+    });
+  };
 
 beforeEach(() => {
   findOneByIdSpy = jest
@@ -240,12 +331,22 @@ beforeEach(() => {
   smsCreditSpy = jest
     .spyOn(ProjectService, "creditSmsOrCallBalanceInUSDCents")
     .mockResolvedValue(2100);
+
+  /*
+   * Auto Recharge charges only holding the recharge lock, which lives in the
+   * shared cache: connected, the lock taken, and no failure in the last hour
+   * holding it back.
+   */
+  jest.spyOn(Redis, "isConnected").mockReturnValue(true);
   jest
     .spyOn(Semaphore, "lock")
     .mockResolvedValue({} as unknown as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest.spyOn(GlobalCache, "getString").mockResolvedValue(null);
   jest.spyOn(GlobalCache, "deleteKey").mockResolvedValue(undefined);
-  jest.spyOn(GlobalCache, "setString").mockResolvedValue(undefined);
+  rememberFailureSpy = jest
+    .spyOn(GlobalCache, "setString")
+    .mockResolvedValue(undefined);
 
   // The catch blocks log the underlying failure; silenced, not asserted on.
   jest.spyOn(logger, "error").mockImplementation((): void => {});
@@ -256,17 +357,14 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("NotificationService.rechargeBalance - SMS and call owner emails", () => {
-  test("a successful AUTO recharge mails Project Owners zero times", async () => {
+describe("NotificationService - SMS and call owner emails, when a recharge works", () => {
+  test("a successful AUTO recharge (rechargeIfBalanceIsLow) mails Project Owners zero times", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: false }),
     );
 
-    const balance: number = await NotificationService.rechargeBalance(
-      PROJECT_ID,
-      20,
-      { sendOwnerConfirmationEmail: false },
-    );
+    const balance: number =
+      await NotificationService.rechargeIfBalanceIsLow(PROJECT_ID);
 
     expect(balance).toBe(2100);
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(1);
@@ -300,13 +398,13 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     expect(autoRechargeBody).toContain("sendOwnerConfirmationEmail: false");
   });
 
-  test("a successful MANUAL recharge still confirms to the owners", async () => {
+  test("a successful MANUAL recharge (rechargeBalance) still confirms to the owners", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: false }),
     );
 
     /*
-     * NotificationAPI's "Recharge" endpoint calls rechargeBalance with no
+     * NotificationAPI's Add to Balance route calls rechargeBalance with no
      * options. Project.sendInvoicesByEmail defaults to false, so the Stripe
      * invoice is filed and not sent, and the Slack hook is empty on most
      * installs - this email is the only thing that tells a person their card
@@ -358,7 +456,9 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
       }),
     );
   });
+});
 
+describe("NotificationService - Auto Recharge (rechargeIfBalanceIsLow) that fails: the owners are told, once a day", () => {
   test("a first recharge failure mails owners exactly once and sets the flag", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeSmsProject({ failedFlagAlreadySet: false }),
@@ -366,19 +466,39 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
-    expect(getSentSubject(0)).toBe(
-      "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-        PROJECT_NAME,
-    );
+    expect(getSentSubject(0)).toBe(SMS_FAILED_SUBJECT);
 
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
     expect(
       getUpdateData(0)["failedCallAndSMSBalanceChargeNotificationSentToOwners"],
     ).toBe(true);
+
+    // And Auto Recharge waits before trying the card again.
+    expect(autoRechargeWaitStarted()).toBe(true);
+  });
+
+  test("its email says what to put right, as it always has", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
+
+    await expect(
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow("card_declined");
+
+    const body: string = sendEmailSpy.mock.calls[0]![2] as string;
+
+    expect(body).toContain(
+      `We have tried to recharge your SMS and Call balance for project - ${PROJECT_NAME} and failed.`,
+    );
+    expect(body).toContain(
+      "Please make sure your payment method is up to date and has sufficient balance.",
+    );
   });
 
   test("a repeat recharge failure inside the 24h window mails owners zero times", async () => {
@@ -391,7 +511,7 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     claimWindowSpy.mockResolvedValue(false);
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
@@ -425,14 +545,11 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     claimWindowSpy.mockResolvedValue(true);
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
-    expect(getSentSubject(0)).toBe(
-      "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-        PROJECT_NAME,
-    );
+    expect(getSentSubject(0)).toBe(SMS_FAILED_SUBJECT);
   });
 
   test("the failure notice is sent when the shared cache is unreachable", async () => {
@@ -450,7 +567,7 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     );
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
@@ -463,7 +580,7 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(claimWindowSpy).toHaveBeenCalledTimes(1);
@@ -484,8 +601,8 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     hasPaymentMethodsSpy.mockResolvedValue(false);
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
-    ).rejects.toThrow("No payment methods found for the project");
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
 
     /*
      * The regression guard for the throw falling into this method's own catch.
@@ -493,9 +610,9 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
      * catch's newly added guard still read false and sent a second copy.
      */
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
-    expect(getSentSubject(0)).toBe(
-      "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-        PROJECT_NAME,
+    expect(getSentSubject(0)).toBe(SMS_FAILED_SUBJECT);
+    expect(sendEmailSpy.mock.calls[0]![2]).toContain(
+      "We could not find a payment method for the project.",
     );
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
@@ -516,8 +633,8 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     claimWindowSpy.mockResolvedValue(false);
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
-    ).rejects.toThrow("No payment methods found for the project");
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
@@ -537,31 +654,186 @@ describe("NotificationService.rechargeBalance - SMS and call owner emails", () =
     claimWindowSpy.mockResolvedValue(true);
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 20),
-    ).rejects.toThrow("No payment methods found for the project");
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
-    expect(getSentSubject(0)).toBe(
-      "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-        PROJECT_NAME,
+    expect(getSentSubject(0)).toBe(SMS_FAILED_SUBJECT);
+  });
+
+  test("a storm of messages finding the balance low, with the card declined, mails the owners once", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
     );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
+    useRealWindow();
+
+    for (let attempt: number = 0; attempt < 5; attempt++) {
+      await expect(
+        NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+      ).rejects.toThrow("card_declined");
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
   });
 });
 
-describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
-  test("a successful AUTO recharge mails Project Owners zero times", async () => {
-    const credited: Project = makeAiProject({ failedFlagAlreadySet: false });
-    credited.aiCurrentBalanceInUSDCents = 2100;
+describe("NotificationService - Add to Balance by hand (rechargeBalance) that fails: told in the dialog, no owner email (#11052)", () => {
+  test("a declined card mails no owner, sets no flag and claims no window", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
 
-    findOneByIdSpy
-      .mockResolvedValueOnce(makeAiProject({ failedFlagAlreadySet: false }))
-      .mockResolvedValueOnce(credited);
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow("card_declined");
 
-    const balance: number = await AIBillingService.rechargeBalance(
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    // Nothing was added to the balance.
+    expect(smsCreditSpy).toHaveBeenCalledTimes(0);
+    // Nor does it make Auto Recharge wait: that is Auto Recharge's own failure.
+    expect(autoRechargeWaitStarted()).toBe(false);
+  });
+
+  test("a card the payment provider declines is said in its words, with where to update the payment method", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(
+      makeCardDeclined("Your card was declined."),
+    );
+
+    const error: unknown = await NotificationService.rechargeBalance(
       PROJECT_ID,
       20,
-      { sendOwnerConfirmationEmail: false },
+    ).catch((err: unknown) => {
+      return err;
+    });
+
+    // A refusal the dialog shows as it is, not a failure nobody explained.
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as BadDataException).message).toBe(
+      "Your payment could not be completed: Your card was declined. Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.",
     );
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("no payment method mails no owner, and says so to the person who asked", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow(
+      "No payment methods found for the project. Please add a payment method in Project Settings to continue.",
+    );
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    // Nothing was charged.
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("whatever the amount, a recharge by hand that fails mails nobody", async () => {
+    const random: SeededRandom = seededRandom(11052);
+
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+
+    for (let attempt: number = 0; attempt < 40; attempt++) {
+      // Between 20 and 1,000 USD, the amounts the route lets through.
+      const amountInUSD: number = 20 + random(981);
+      const isDeclined: boolean = random(2) === 0;
+
+      hasPaymentMethodsSpy.mockResolvedValue(isDeclined);
+      generateInvoiceSpy.mockRejectedValue(
+        makeCardDeclined("Your card has insufficient funds."),
+      );
+
+      await expect(
+        NotificationService.rechargeBalance(PROJECT_ID, amountInUSD),
+      ).rejects.toThrow(
+        isDeclined
+          ? getPaymentNotCompletedMessage("Your card has insufficient funds.")
+          : NO_PAYMENT_METHOD_MESSAGE,
+      );
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(smsCreditSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("it leaves the day's window to Auto Recharge: Auto Recharge's own failure right after still reaches the owners", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
+    const claimed: Set<string> = useRealWindow();
+
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 50),
+    ).rejects.toThrow("card_declined");
+
+    expect(claimed.size).toBe(0);
+
+    await expect(
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow("card_declined");
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(getSentSubject(0)).toBe(SMS_FAILED_SUBJECT);
+  });
+
+  test("a failure by hand inside Auto Recharge's window still mails nobody", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeSmsProject({ failedFlagAlreadySet: true }),
+    );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
+    useRealWindow();
+
+    // Auto Recharge failed first, and told the owners.
+    await expect(
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow("card_declined");
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+
+    // Then somebody tried by hand, and read why in the dialog.
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow("card_declined");
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AIBillingService - AI credit owner emails, when a recharge works", () => {
+  test("a successful AUTO recharge (rechargeIfBalanceIsLow) mails Project Owners zero times", async () => {
+    let balanceInUSDCents: number = 100;
+
+    findOneByIdSpy.mockImplementation(async (): Promise<Project> => {
+      return makeAiProject({
+        failedFlagAlreadySet: false,
+        balanceInUSDCents: balanceInUSDCents,
+      });
+    });
+    atomicAddSpy.mockImplementation((async (data: {
+      add: { aiCurrentBalanceInUSDCents: number };
+    }): Promise<void> => {
+      balanceInUSDCents += data.add.aiCurrentBalanceInUSDCents;
+    }) as never);
+
+    const balance: number =
+      await AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID);
 
     // The balance as it is once the credits were added.
     expect(balance).toBe(2100);
@@ -582,7 +854,7 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     expect(autoRechargeBody).toContain("sendOwnerConfirmationEmail: false");
   });
 
-  test("a successful MANUAL recharge still confirms to the owners", async () => {
+  test("a successful MANUAL recharge (rechargeBalance) still confirms to the owners", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeAiProject({ failedFlagAlreadySet: false }),
     );
@@ -621,7 +893,9 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
 
     expect(aiSlackSpy).toHaveBeenCalledTimes(1);
   });
+});
 
+describe("AIBillingService - Auto Recharge (rechargeIfBalanceIsLow) that fails: the owners are told, once a day", () => {
   test("a first recharge failure mails owners exactly once and sets the flag", async () => {
     findOneByIdSpy.mockResolvedValue(
       makeAiProject({ failedFlagAlreadySet: false }),
@@ -629,19 +903,17 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
-    expect(getSentSubject(0)).toBe(
-      "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
-        PROJECT_NAME,
-    );
+    expect(getSentSubject(0)).toBe(AI_FAILED_SUBJECT);
 
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
     expect(
       getUpdateData(0)["failedAiBalanceChargeNotificationSentToOwners"],
     ).toBe(true);
+    expect(autoRechargeWaitStarted()).toBe(true);
   });
 
   test("a repeat recharge failure inside the 24h window mails owners zero times", async () => {
@@ -652,7 +924,7 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     claimWindowSpy.mockResolvedValue(false);
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
@@ -668,14 +940,11 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     claimWindowSpy.mockResolvedValue(true);
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
-    expect(getSentSubject(0)).toBe(
-      "ACTION REQUIRED: AI Balance Recharge Failed for project - " +
-        PROJECT_NAME,
-    );
+    expect(getSentSubject(0)).toBe(AI_FAILED_SUBJECT);
   });
 
   test("the failure notice is sent when the shared cache is unreachable", async () => {
@@ -688,7 +957,7 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     );
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
@@ -701,7 +970,7 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow("card_declined");
 
     const call: Array<unknown> = claimWindowSpy.mock.calls[0] as Array<unknown>;
@@ -720,10 +989,11 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     hasPaymentMethodsSpy.mockResolvedValue(false);
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
-    ).rejects.toThrow("No payment methods found for the project");
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(getSentSubject(0)).toBe(AI_FAILED_SUBJECT);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(1);
     expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
     expect(claimWindowSpy).toHaveBeenCalledTimes(1);
@@ -737,8 +1007,8 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     claimWindowSpy.mockResolvedValue(false);
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
-    ).rejects.toThrow("No payment methods found for the project");
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(0);
     expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
@@ -752,10 +1022,115 @@ describe("AIBillingService.rechargeBalance - AI credit owner emails", () => {
     claimWindowSpy.mockResolvedValue(true);
 
     await expect(
-      AIBillingService.rechargeBalance(PROJECT_ID, 20),
-    ).rejects.toThrow("No payment methods found for the project");
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
 
     expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AIBillingService - Add to Balance by hand (rechargeBalance) that fails: told in the dialog, no owner email (#11052)", () => {
+  test("a declined card mails no owner, sets no flag and claims no window", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(new Error("card_declined"));
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow("card_declined");
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(atomicAddSpy).toHaveBeenCalledTimes(0);
+    expect(autoRechargeWaitStarted()).toBe(false);
+  });
+
+  test("a card the payment provider declines is said in its words, with where to update the payment method", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: false }),
+    );
+    generateInvoiceSpy.mockRejectedValue(
+      makeCardDeclined("Your card has expired."),
+    );
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow(
+      new BadDataException(
+        "Your payment could not be completed: Your card has expired. Please update your payment method in Project Settings > Billing and Invoices > Billing and try again.",
+      ),
+    );
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("no payment method mails no owner, and says so to the person who asked", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: false }),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 20),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(generateInvoiceSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("whatever the amount, a recharge by hand that fails mails nobody", async () => {
+    const random: SeededRandom = seededRandom(11053);
+
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: false }),
+    );
+
+    for (let attempt: number = 0; attempt < 40; attempt++) {
+      const amountInUSD: number = 20 + random(981);
+      const isDeclined: boolean = random(2) === 0;
+
+      hasPaymentMethodsSpy.mockResolvedValue(isDeclined);
+      generateInvoiceSpy.mockRejectedValue(
+        makeCardDeclined("Your card was declined."),
+      );
+
+      await expect(
+        AIBillingService.rechargeBalance(PROJECT_ID, amountInUSD),
+      ).rejects.toThrow(
+        isDeclined
+          ? getPaymentNotCompletedMessage("Your card was declined.")
+          : NO_PAYMENT_METHOD_MESSAGE,
+      );
+    }
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    expect(updateOneByIdSpy).toHaveBeenCalledTimes(0);
+    expect(claimWindowSpy).toHaveBeenCalledTimes(0);
+    expect(atomicAddSpy).toHaveBeenCalledTimes(0);
+  });
+
+  test("it leaves the day's window to Auto Recharge: Auto Recharge's own failure right after still reaches the owners", async () => {
+    findOneByIdSpy.mockResolvedValue(
+      makeAiProject({ failedFlagAlreadySet: false }),
+    );
+    hasPaymentMethodsSpy.mockResolvedValue(false);
+    const claimed: Set<string> = useRealWindow();
+
+    await expect(
+      AIBillingService.rechargeBalance(PROJECT_ID, 50),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
+
+    expect(claimed.size).toBe(0);
+
+    await expect(
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
+    ).rejects.toThrow(NO_PAYMENT_METHOD_MESSAGE);
+
+    expect(sendEmailSpy).toHaveBeenCalledTimes(1);
+    expect(getSentSubject(0)).toBe(AI_FAILED_SUBJECT);
   });
 });
 
