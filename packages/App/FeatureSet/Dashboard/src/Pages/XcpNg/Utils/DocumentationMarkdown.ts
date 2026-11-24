@@ -80,9 +80,10 @@ export const XCP_NG_AGENT_INSTALL_DIR: string = "/opt/oneuptime-xcp-ng-agent";
 export const XCP_NG_AGENT_CONTAINER: string = "oneuptime-xcp-ng-agent";
 
 /*
- * The Xen Orchestra version the agent needs: the first whose OpenMetrics
- * plugin keeps its secret across a restart and serves every series the
- * pages read (host and VM status, storage repositories, virtual disks).
+ * The Xen Orchestra version the agent needs: its OpenMetrics plugin keeps
+ * its secret across a restart (since 6.8), has the scrape memory-leak fixes
+ * (6.9) and serves every series the pages read (host and VM status,
+ * storage repositories, virtual disks).
  */
 export const XCP_NG_MINIMUM_XEN_ORCHESTRA_VERSION: string = "6.9";
 
@@ -561,7 +562,7 @@ It ends with a verdict naming the most likely cause. It never prints the secret.
     },
     {
       title: "Xen Orchestra refuses the secret (401)",
-      markdown: `The collector logs \`server returned HTTP status 401 Unauthorized\`. Copy the secret again from *Settings → Plugins → openmetrics*, set \`XO_OPENMETRICS_SECRET\` to it in \`.env\` — between single quotes, every \`$\` written as \`$$\` — and apply it with \`docker compose up -d\` in ${agentFolder(context.method)}. Xen Orchestra older than ${XCP_NG_MINIMUM_XEN_ORCHESTRA_VERSION} made a new secret each time it restarted.`,
+      markdown: `The collector logs \`server returned HTTP status 401 Unauthorized\`. Copy the secret again from *Settings → Plugins → openmetrics*, set \`XO_OPENMETRICS_SECRET\` to it in \`.env\` — between single quotes, every \`$\` written as \`$$\` — and apply it with \`docker compose up -d\` in ${agentFolder(context.method)}. Before 6.8, Xen Orchestra made a new secret each time it restarted.`,
     },
     {
       title: "The plugin does not answer (404, 500, 502 or 503)",
