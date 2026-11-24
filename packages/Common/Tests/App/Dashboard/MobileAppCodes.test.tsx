@@ -1,13 +1,22 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 
-// A code as what it leads to: the store's address.
+/*
+ * A code as what it leads to: the store's address. What it is told to do
+ * when it cannot be drawn is kept, by address, for a test to call.
+ */
+const mockCodeFailures: Map<string, () => void> = new Map();
+
 jest.mock("../../../UI/Components/QR/QR", () => {
   return {
     __esModule: true,
-    default: (props: { text: string }) => {
+    default: (props: { text: string; onError?: () => void }) => {
+      if (props.onError) {
+        mockCodeFailures.set(props.text, props.onError);
+      }
+
       return <span data-testid="qr-code" data-text={props.text} />;
     },
   };
@@ -35,6 +44,7 @@ import {
 
 afterEach(() => {
   cleanup();
+  mockCodeFailures.clear();
 });
 
 const renderCodes: () => HTMLElement = (): HTMLElement => {
@@ -101,6 +111,46 @@ describe("the mobile app's codes", () => {
     expect(MOBILE_APP_INSTALL_SENTENCE).toContain("{{serverUrl}}");
     expect(MOBILE_APP_INSTALL_ON_PHONE_SENTENCE).toContain("{{serverUrl}}");
   });
+
+  /*
+   * A code that could not be drawn says so in its place (QR), and is no
+   * code to scan: "Scan a code with your phone" beside it said the opposite
+   * (#6653). The laptop is then told what a phone is, the store links under
+   * each code being there either way.
+   */
+  test.each([
+    ["the App Store's", [MOBILE_APP_IOS_URL]],
+    ["Google Play's", [MOBILE_APP_ANDROID_URL]],
+    ["both", [MOBILE_APP_IOS_URL, MOBILE_APP_ANDROID_URL]],
+  ])(
+    "when %s code cannot be drawn, a laptop is sent to the stores too, never asked to scan",
+    (_name: string, failed: Array<string>) => {
+      const codes: HTMLElement = renderCodes();
+
+      for (const address of failed) {
+        act(() => {
+          mockCodeFailures.get(address)!();
+        });
+      }
+
+      const laptop: HTMLElement = sentenceWith("app-server-url");
+
+      expect(laptop.textContent).toMatch(
+        /^Install the app from the App Store or Google Play/,
+      );
+      expect(laptop.textContent).not.toMatch(/Scan/);
+      // Still the laptop's sentence: shown from a laptop's width.
+      expect(laptop).toHaveClass("max-sm:hidden");
+      // And the store links, the way in, stay.
+      expect(
+        Array.from(codes.querySelectorAll("a")).map(
+          (link: HTMLAnchorElement): string => {
+            return link.getAttribute("href") || "";
+          },
+        ),
+      ).toEqual([MOBILE_APP_IOS_URL, MOBILE_APP_ANDROID_URL]);
+    },
+  );
 
   test("the address reads left to right, and is never broken mid-word", () => {
     renderCodes();
