@@ -1,6 +1,7 @@
 import CodeRepositoryService from "../../../Services/CodeRepositoryService";
 import ModelPermission from "../../../Types/Database/Permissions/Index";
 import Query from "../../../Types/Database/Query";
+import QueryHelper from "../../../Types/Database/QueryHelper";
 import Select from "../../../Types/Database/Select";
 import CallerPermission from "../../Permission/CallerPermission";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -62,8 +63,11 @@ export const CODE_TASK_REPOSITORY_SELECT: Select<CodeRepository> = {
   isGitHubCommandsEnabled: true,
 };
 
-// At most this many repositories are listed on Code's first page.
-export const MAX_LISTED_REPOSITORIES: number = 500;
+/*
+ * How many repositories one read by id asks for: a long list goes in
+ * several, so no statement grows past what Postgres binds.
+ */
+export const REPOSITORIES_READ_BY_ID_AT_ONCE: number = 500;
 
 export default class CodeTaskAccess {
   // The repository, when the caller may read it; null otherwise.
@@ -100,24 +104,257 @@ export default class CodeTaskAccess {
   }
 
   /*
-   * The repositories the caller may read, by name. Code's first page filters
-   * them as the person types, so they come in one read.
+   * EVERY repository the caller may read, by name - however many the
+   * project has (#10764). They used to be the first 500, and a repository
+   * past them was left out of everything read from this list: a task in it
+   * dropped out of Code's list across repositories and out of an insight's
+   * fix card, it could not be picked, and Data Security never offered it.
+   * Read a page at a time through the caller's own permissions
+   * (findAllBy), in an order with no ties (the id breaks them), so no page
+   * skips or repeats one.
    */
   @CaptureSpan()
   public static async listReadableRepositories(data: {
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID;
+    // Unset: what Code's pages show of a repository.
+    select?: Select<CodeRepository> | undefined;
+  }): Promise<Array<CodeRepository>> {
+    return await CodeRepositoryService.findAllBy({
+      query: {
+        projectId: data.projectId,
+      },
+      select: data.select || CODE_TASK_REPOSITORY_SELECT,
+      sort: { name: SortOrder.Ascending },
+      props: data.props,
+    });
+  }
+
+  /*
+   * One page of the repositories the caller may read, by name: for a reader
+   * that stops once it has found what it needs among them (SourceLocator)
+   * rather than reading every one.
+   */
+  @CaptureSpan()
+  public static async readReadableRepositoriesPage(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    skip: number;
+    limit: number;
+    select?: Select<CodeRepository> | undefined;
   }): Promise<Array<CodeRepository>> {
     return await CodeRepositoryService.findBy({
       query: {
         projectId: data.projectId,
       },
-      select: CODE_TASK_REPOSITORY_SELECT,
+      select: data.select || CODE_TASK_REPOSITORY_SELECT,
       sort: { name: SortOrder.Ascending },
-      limit: MAX_LISTED_REPOSITORIES,
-      skip: 0,
+      limit: data.limit,
+      skip: data.skip,
       props: data.props,
     });
+  }
+
+  /*
+   * The ids of every repository the caller may read: the scope of a list
+   * across repositories (Code's first page). Never a first page of them: a
+   * repository's tasks are the caller's to read exactly when the repository
+   * is, however many repositories there are.
+   */
+  @CaptureSpan()
+  public static async readReadableRepositoryIds(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+  }): Promise<Array<ObjectID>> {
+    const repositories: Array<CodeRepository> =
+      await CodeRepositoryService.findAllBy({
+        query: {
+          projectId: data.projectId,
+        },
+        select: { _id: true },
+        sort: { _id: SortOrder.Ascending },
+        props: data.props,
+      });
+
+    return repositories
+      .map((repository: CodeRepository): ObjectID | undefined => {
+        return repository.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+  }
+
+  /*
+   * The repositories among `repositoryIds` the caller may read, read by
+   * their ids under the caller's own permissions: what a task, a page or a
+   * rule holds is named this way, never looked for in a list of the
+   * project's first repositories. An id of another project, of no
+   * repository, or of one the caller may not read is left out. In batches
+   * of REPOSITORIES_READ_BY_ID_AT_ONCE.
+   */
+  @CaptureSpan()
+  public static async listReadableRepositoriesByIds(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    repositoryIds: Array<ObjectID | string>;
+    // Unset: what Code's pages show of a repository.
+    select?: Select<CodeRepository> | undefined;
+  }): Promise<Array<CodeRepository>> {
+    const ids: Array<ObjectID> = CodeTaskAccess.toDistinctIds(
+      data.repositoryIds,
+    );
+    const repositories: Array<CodeRepository> = [];
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += REPOSITORIES_READ_BY_ID_AT_ONCE
+    ) {
+      const batch: Array<ObjectID> = ids.slice(
+        start,
+        start + REPOSITORIES_READ_BY_ID_AT_ONCE,
+      );
+
+      repositories.push(
+        ...(await CodeRepositoryService.findBy({
+          query: {
+            _id: QueryHelper.any(batch),
+            projectId: data.projectId,
+          },
+          select: data.select || CODE_TASK_REPOSITORY_SELECT,
+          limit: batch.length,
+          skip: 0,
+          props: data.props,
+        })),
+      );
+    }
+
+    return repositories;
+  }
+
+  /*
+   * Of `repositoryIds`, the ones the caller may ask AI to work in - as a
+   * set, lower-cased: canAskInRepository's rule (the repository's update
+   * list, its labels and team blocks), asked of many repositories in one
+   * read per batch rather than one repository at a time. A caller who may
+   * change no repository at all, or whose plan does not include them, may
+   * ask in none.
+   */
+  @CaptureSpan()
+  public static async listAskableRepositoryIds(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    repositoryIds: Array<ObjectID | string>;
+  }): Promise<Set<string>> {
+    const ids: Array<ObjectID> = CodeTaskAccess.toDistinctIds(
+      data.repositoryIds,
+    );
+    const askable: Set<string> = new Set<string>();
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += REPOSITORIES_READ_BY_ID_AT_ONCE
+    ) {
+      const batch: Array<ObjectID> = ids.slice(
+        start,
+        start + REPOSITORIES_READ_BY_ID_AT_ONCE,
+      );
+
+      let permittedQuery: Query<CodeRepository>;
+
+      try {
+        permittedQuery = await ModelPermission.getUpdatableQuery<CodeRepository>(
+          CodeRepository,
+          {
+            _id: QueryHelper.any(batch),
+            projectId: data.projectId,
+          } as Query<CodeRepository>,
+          data.props,
+        );
+      } catch (error) {
+        // canAskInRepository's refusals: no repository may be asked in.
+        if (
+          error instanceof NotAuthorizedException ||
+          error instanceof PaymentRequiredException ||
+          error instanceof NotFoundException
+        ) {
+          return new Set<string>();
+        }
+
+        throw error;
+      }
+
+      const permitted: Array<CodeRepository> =
+        await CodeRepositoryService.findBy({
+          query: permittedQuery,
+          select: { _id: true },
+          limit: batch.length,
+          skip: 0,
+          props: { isRoot: true },
+        });
+
+      for (const repository of permitted) {
+        if (repository.id) {
+          askable.add(repository.id.toString().toLowerCase());
+        }
+      }
+    }
+
+    return askable;
+  }
+
+  /*
+   * Of some repositories, in their order, the ones the caller may ask AI to
+   * work in (listAskableRepositoryIds): what a Fix with AI offers to choose
+   * from. With every repository the caller may read in play - not the first
+   * 500 (#10764) - asking canAskInRepository of each in turn would take
+   * three reads a repository; this takes one a batch.
+   */
+  @CaptureSpan()
+  public static async keepAskableRepositories<TRepository>(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    repositories: ReadonlyArray<TRepository>;
+    getId: (repository: TRepository) => string;
+  }): Promise<Array<TRepository>> {
+    if (data.repositories.length === 0) {
+      return [];
+    }
+
+    const askable: Set<string> = await CodeTaskAccess.listAskableRepositoryIds(
+      {
+        props: data.props,
+        projectId: data.projectId,
+        repositoryIds: data.repositories.map(data.getId),
+      },
+    );
+
+    return data.repositories.filter((repository: TRepository): boolean => {
+      return askable.has(data.getId(repository).toLowerCase());
+    });
+  }
+
+  // Ids as ObjectIDs, each once - a value that is not an id left out.
+  private static toDistinctIds(
+    values: Array<ObjectID | string>,
+  ): Array<ObjectID> {
+    const seen: Set<string> = new Set<string>();
+    const ids: Array<ObjectID> = [];
+
+    for (const value of values) {
+      const text: string = value ? value.toString().trim().toLowerCase() : "";
+
+      if (!ObjectID.isValidUUID(text) || seen.has(text)) {
+        continue;
+      }
+
+      seen.add(text);
+      ids.push(new ObjectID(text));
+    }
+
+    return ids;
   }
 
   /*

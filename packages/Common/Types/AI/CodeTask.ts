@@ -499,6 +499,12 @@ export interface CodeTaskSummaryJSON {
   turnCount: number;
   codeRepositoryId?: string | undefined;
   /*
+   * Its repository's name and host, on a list across repositories (Code's
+   * first page), read by the repository's id. Left out elsewhere, and for a
+   * task with no repository.
+   */
+  repository?: CodeTaskRowRepositoryJSON | undefined;
+  /*
    * What the task changed, added up over its turns (CodeTaskChangeStats),
    * when it changed anything: the "+23 −1" a list row shows.
    */
@@ -766,6 +772,78 @@ export interface CodeRepositoryTaskStatsJSON {
   openPullRequests: number;
   taskCount: number;
   lastActivityAt?: string | undefined;
+}
+
+/*
+ * A PAGE OF THE READER'S REPOSITORIES, HOWEVER MANY THE PROJECT HAS
+ * (POST /code-task/repositories, #10764).
+ *
+ * Code read the first 500 repositories by name and searched them in the
+ * browser, so a repository past them could not be picked, scoped or found.
+ * The list is now the server's to search, order and page, over every
+ * repository the reader may read (CodeTaskRepositoryList).
+ */
+
+/*
+ * The two lists Code's Repositories page draws: the repositories AI can
+ * work in, and those OneUptime cannot reach any more.
+ */
+export enum CodeRepositoryListGroup {
+  Connected = "connected",
+  NotConnected = "notConnected",
+}
+
+/*
+ * The order a list reads in: by name - the order a picker lists them in -
+ * or the most recently active first, then by name: the Repositories page's
+ * order, and how the request box finds the repository it starts on. Asked
+ * for both lists at once, those AI can work in come first either way.
+ */
+export enum CodeRepositoryListOrder {
+  Name = "name",
+  Activity = "activity",
+}
+
+/*
+ * The most repositories one page holds: what a read that names no page
+ * gets, as Code's first page always read.
+ */
+export const MAX_CODE_REPOSITORIES_PER_PAGE: number = 500;
+
+/*
+ * What a page says of all the reader's repositories, whatever its search
+ * and its page: how many each list holds, and where they are hosted - the
+ * words for those OneUptime cannot reach name GitHub while every one of
+ * them is on GitHub.
+ */
+export interface CodeRepositoryListFactsJSON {
+  total: number;
+  connected: number;
+  notConnected: number;
+  areAllOnGitHub: boolean;
+  isAnyOnGitHub: boolean;
+  // The same, of the repositories OneUptime cannot reach.
+  areAllNotConnectedOnGitHub: boolean;
+  isAnyNotConnectedOnGitHub: boolean;
+}
+
+// How many repositories of each list a search finds (all of them, unsearched).
+export interface CodeRepositoryListMatchesJSON {
+  connected: number;
+  notConnected: number;
+}
+
+/*
+ * The repository a task works in, as a list across repositories names it
+ * on the task's row (Code's first page): read by its id with the page, so a
+ * repository past any first page is named like any other.
+ */
+export interface CodeTaskRowRepositoryJSON {
+  name: string;
+  // Where it is hosted (CodeRepositoryType); left out is GitHub.
+  provider?: string | undefined;
+  // "Forgejo" or "Gitea", for a Forgejo-family server.
+  hostProduct?: string | undefined;
 }
 
 /*
