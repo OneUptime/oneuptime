@@ -56,6 +56,7 @@ export const PRODUCT_TITLES: Readonly<Record<ProductKey, string>> = {
   [ProductKey.StorageArrays]: "Storage Arrays",
   [ProductKey.Network]: "Network",
   [ProductKey.IoT]: "IoT",
+  [ProductKey.XcpNg]: "XCP-ng",
   [ProductKey.Cloud]: "Cloud",
   [ProductKey.AppPlatforms]: "App Platforms",
   [ProductKey.Serverless]: "Serverless",
@@ -139,6 +140,7 @@ export const PRODUCT_CATEGORIES: ReadonlyArray<ProductCategory> = [
       ProductKey.StorageArrays,
       ProductKey.Network,
       ProductKey.IoT,
+      ProductKey.XcpNg,
     ],
   },
   {

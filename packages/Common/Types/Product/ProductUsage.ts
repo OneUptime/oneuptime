@@ -97,6 +97,7 @@ export const PRODUCTS_USED_BY_RECORDS: ReadonlyArray<ProductKey> = [
   ProductKey.StorageArrays,
   ProductKey.Network,
   ProductKey.IoT,
+  ProductKey.XcpNg,
   ProductKey.Cloud,
   ProductKey.Serverless,
   ProductKey.Dashboards,

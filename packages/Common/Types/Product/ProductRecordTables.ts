@@ -556,6 +556,15 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "StorageArrayOwnerUser",
     "StorageArrayResource",
   ],
+  [ProductKey.XcpNg]: [
+    "XcpNgPool",
+    "XcpNgPoolFeed",
+    "XcpNgPoolLabelRule",
+    "XcpNgPoolOwnerRule",
+    "XcpNgPoolOwnerTeam",
+    "XcpNgPoolOwnerUser",
+    "XcpNgResource",
+  ],
   [ProductKey.Network]: [
     "NetworkAddressName",
     "NetworkAlertPolicy",
