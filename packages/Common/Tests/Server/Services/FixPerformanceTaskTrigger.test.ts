@@ -12,6 +12,7 @@ import CodeFixStartGate, {
 import CodeTaskRuns from "../../../Server/Utils/AI/CodeTask/CodeTaskRuns";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
 import {
   CodeTaskBlocker,
   CodeTaskBlockerType,
@@ -44,6 +45,7 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
   PICK_A_REPOSITORY_FOR_THE_FIX_MESSAGE,
   PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   TRACE_NOT_WORTH_FIXING_MESSAGE,
@@ -1609,9 +1611,41 @@ describe("a repository to pick for a fix no repository was found for", () => {
     { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
   ];
 
+  /*
+   * The project's connected repositories: the list a suggestion reads
+   * (getResolvableRepositories), and whether one is connected, as a pick
+   * is checked (CodeHostAccess, through CodeTaskGate.isRepositoryReachable).
+   */
+  let reachableAsked: Array<Array<string>> = [];
+
   function connectedRepositories(
     repositories: Array<{ id: string; name: string }> = REPOSITORIES,
   ): jest.SpyInstance {
+    const connected: Set<string> = new Set<string>(
+      repositories.map((repository: { id: string; name: string }): string => {
+        return repository.id.toLowerCase();
+      }),
+    );
+
+    reachableAsked = [];
+    jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockImplementation(async (data: { repositoryIds: Array<ObjectID> }) => {
+        const ids: Array<string> = data.repositoryIds.map(
+          (id: ObjectID): string => {
+            return id.toString();
+          },
+        );
+
+        reachableAsked.push(ids);
+
+        return new Set<string>(
+          ids.filter((id: string): boolean => {
+            return connected.has(id);
+          }),
+        );
+      });
+
     return jest
       .spyOn(CodeRepositoryService, "getResolvableRepositories")
       .mockResolvedValue(
@@ -1626,6 +1660,21 @@ describe("a repository to pick for a fix no repository was found for", () => {
           };
         }),
       );
+  }
+
+  // More connected repositories than a suggestion lists, by name.
+  function manyRepositories(count: number): Array<{ id: string; name: string }> {
+    return Array.from(
+      { length: count },
+      (_: unknown, index: number): { id: string; name: string } => {
+        const number: string = String(index + 1).padStart(6, "0");
+
+        return {
+          id: `52000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+          name: `ap-${number}`,
+        };
+      },
+    );
   }
 
   function noFixYet(): void {
@@ -1694,6 +1743,21 @@ describe("a repository to pick for a fix no repository was found for", () => {
       connectedRepositories(REPOSITORIES.slice(0, 1));
 
       expect((await suggest()).repositories).toEqual([]);
+    });
+
+    test("past the first 200: the answer lists the first 200 by name - enough to say a pick is asked for, which the page searches for", async () => {
+      gateSays(null, null);
+      connectedRepositories(
+        manyRepositories(MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES + 50),
+      );
+
+      const suggestion: TracePerformanceFixSuggestion = await suggest();
+
+      expect(suggestion.offer).toBe(SuggestionOffer.Act);
+      expect(suggestion.repositories).toHaveLength(
+        MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES,
+      );
+      expect(suggestion.repositories[0]!.name).toBe("ap-000001");
     });
 
     test("Code's gate says a step is missing: that step, and no pick", async () => {
@@ -1803,6 +1867,70 @@ describe("a repository to pick for a fix no repository was found for", () => {
         PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
       );
       expect(enqueue).not.toHaveBeenCalled();
+    });
+
+    /*
+     * #10921: the pick was checked against the first 200 connected
+     * repositories by name, so one past them - which the page's search
+     * finds - was refused as not connected.
+     */
+    test("a pick past the first 200 connected repositories by name is taken: checked by itself, never against a list", async () => {
+      const repositories: Array<{ id: string; name: string }> =
+        manyRepositories(MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES + 50);
+      const last: { id: string; name: string } =
+        repositories[repositories.length - 1]!;
+      const list: jest.SpyInstance = connectedRepositories(repositories);
+      const gate: jest.SpyInstance = gateSays(null, new ObjectID(last.id));
+      const enqueue: jest.SpyInstance = jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click(new ObjectID(last.id));
+
+      // Only that one repository was asked about - no list was read.
+      expect(reachableAsked).toEqual([[last.id]]);
+      expect(list).not.toHaveBeenCalled();
+      expect(
+        (gate.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBe(last.id);
+      expect(
+        (enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext })
+          .taskContext.pickedCodeRepositoryId,
+      ).toBe(last.id);
+    });
+
+    test("a pick in another letter case is asked about as the database writes an id", async () => {
+      connectedRepositories();
+      gateSays(null, new ObjectID(REPOSITORIES[1]!.id));
+      jest
+        .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+        .mockResolvedValue(fakeRun());
+
+      await click(new ObjectID(REPOSITORIES[1]!.id.toUpperCase()));
+
+      expect(reachableAsked).toEqual([[REPOSITORIES[1]!.id]]);
+    });
+
+    test("nothing picked, or no id, is no choice", async () => {
+      connectedRepositories();
+
+      expect(
+        await FixPerformanceTaskTrigger.isRepositoryChoice({ projectId }),
+      ).toBe(false);
+      expect(
+        await FixPerformanceTaskTrigger.isRepositoryChoice({
+          projectId,
+          pickedRepositoryId: new ObjectID("not-an-id"),
+        }),
+      ).toBe(false);
+      expect(reachableAsked).toEqual([]);
+      expect(
+        await FixPerformanceTaskTrigger.isRepositoryChoice({
+          projectId,
+          pickedRepositoryId: new ObjectID(REPOSITORIES[0]!.id),
+        }),
+      ).toBe(true);
     });
 
     test("none resolves, several connected, no pick: refused in the words of the missing step, nothing queued", async () => {
