@@ -254,6 +254,16 @@ import HowOneUptimeWorksDialog, {
   openHowOneUptimeWorks,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import { getVisibleActionIds } from "../../../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPaletteHelpers";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import Navigation from "../../../UI/Utils/Navigation";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000006832";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -1195,6 +1205,175 @@ describe("Give feedback, from any page", () => {
     expect(
       getVisibleActionIds({ ...base, canGiveFeedback: false }),
     ).not.toContain("action-give-feedback");
+  });
+
+  /*
+   * WHERE THE SERVER'S ADMINS SEND GIVE FEEDBACK (Admin Dashboard > Settings
+   * > Help and Support, #10865): to an address of their own, to a page of
+   * their own, or nowhere - and whether OneUptime's public GitHub issue is
+   * offered after it (#10866).
+   */
+  describe("where the server's admins chose", () => {
+    const SUPPORT_TEAM: string = "it-help@example.com";
+    const SUPPORT_PAGE: string = "https://help.example.com/feedback";
+
+    afterEach(() => {
+      forgetHelpAndSupport();
+    });
+
+    const toTheSupportTeam: () => void = (): void => {
+      ProductFeedback.setSettings({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: GiveFeedbackDestination.SupportTeamByEmail,
+        isGiveFeedbackOffered: true,
+        giveFeedbackTo: SUPPORT_TEAM,
+      });
+    };
+
+    const toTheSupportPage: () => void = (): void => {
+      ProductFeedback.setSettings({
+        isOn: true,
+        isAskingMe: true,
+        giveFeedbackGoesTo: GiveFeedbackDestination.SupportPage,
+        isGiveFeedbackOffered: true,
+        giveFeedbackUrl: SUPPORT_PAGE,
+      });
+    };
+
+    test("an address of their own: says, before anything is sent, that it goes there with your name and email, and nothing to OneUptime", () => {
+      toTheSupportTeam();
+      openDialog();
+
+      expect(
+        screen.getByText(
+          "Tell your support team what's broken, confusing or missing.",
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+      ).toHaveTextContent(
+        `Sent to ${SUPPORT_TEAM} with your name and email (${PERSON_EMAIL}), your project, this page (/dashboard/:projectId/monitors/setup) and the version (14.3.0). Nothing is sent to OneUptime.`,
+      );
+      expect(
+        screen.getByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID),
+      ).not.toHaveTextContent("this server's admins");
+    });
+
+    test("an address of their own: once sent, names it, and where the copy went", async () => {
+      toTheSupportTeam();
+      serverAnswers({ isEmailed: true, copyTo: PERSON_EMAIL });
+      openDialog();
+      write("The status page logo is blurry.");
+
+      const sent: HTMLElement = await send();
+
+      expect(sent).toHaveTextContent(`Sent to ${SUPPORT_TEAM}.`);
+      expect(sent).toHaveTextContent(
+        `A copy is on its way to ${PERSON_EMAIL}, and any reply will come there too.`,
+      );
+      expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toHaveLength(1);
+    });
+
+    test("an address of their own that was not emailed this time: says where the admins can read it, never that it was sent", async () => {
+      toTheSupportTeam();
+      serverAnswers({ isEmailed: false, copyTo: null });
+      openDialog();
+      write("Words.");
+
+      const sent: HTMLElement = await send();
+
+      expect(sent).toHaveTextContent(
+        "This server's admins can read it in the Admin Dashboard, under Feedback.",
+      );
+      expect(sent).not.toHaveTextContent(`Sent to ${SUPPORT_TEAM}.`);
+    });
+
+    test("with OneUptime's GitHub taken away, no public GitHub issue is offered after it", async () => {
+      setSignedInHelpAndSupport(
+        helpAndSupportWith({
+          [HelpItem.GitHub]: { choice: HelpChoice.Hidden, value: null },
+        }),
+      );
+      serverAnswers({ isEmailed: false, copyTo: null });
+      openDialog();
+      write("Words.");
+
+      const sent: HTMLElement = await send();
+
+      expect(sent).toHaveTextContent(
+        "This server's admins can read it in the Admin Dashboard, under Feedback.",
+      );
+      expect(screen.queryByTestId(GIVE_FEEDBACK_GITHUB_TEST_ID)).toBeNull();
+      expect(screen.queryByTestId(FEEDBACK_GITHUB_HINT_TEST_ID)).toBeNull();
+    });
+
+    test("a page of their own: Help opens it in a new tab, and no dialog", () => {
+      toTheSupportPage();
+      render(
+        <>
+          <Help />
+          <GiveFeedbackDialog />
+        </>,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "help.label" }));
+
+      const entry: HTMLElement = screen.getByText("Give feedback");
+      const link: HTMLAnchorElement = entry.closest("a") as HTMLAnchorElement;
+
+      expect(link).toHaveAttribute("href", SUPPORT_PAGE);
+      expect(link).toHaveAttribute("target", "_blank");
+      expect(screen.queryByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID)).toBeNull();
+    });
+
+    test("a page of their own: opened from anywhere else (Search), it opens the page in a new tab, not the dialog", () => {
+      toTheSupportPage();
+      const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation(() => {
+          // Where it goes is what is checked.
+        });
+
+      render(<GiveFeedbackDialog />);
+      act(() => {
+        openGiveFeedback(GiveFeedbackOpenedFrom.CommandPalette);
+      });
+
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(String(navigate.mock.calls[0]![0])).toBe(SUPPORT_PAGE);
+      expect(navigate.mock.calls[0]![1]).toEqual({ openInNewTab: true });
+      expect(screen.queryByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID)).toBeNull();
+    });
+
+    test("hidden, or to an address the server cannot email yet: Help offers no Give feedback, and Search none", () => {
+      ProductFeedback.setSettings({
+        isOn: true,
+        isAskingMe: true,
+        isGiveFeedbackOffered: false,
+      });
+      render(<Help />);
+      fireEvent.click(screen.getByRole("button", { name: "help.label" }));
+
+      expect(
+        screen.getByTestId(HELP_ASK_GROUP_TEST_ID),
+      ).not.toHaveTextContent("Give feedback");
+      expect(ProductFeedback.isGiveFeedbackOffered()).toBe(false);
+    });
+
+    test("hidden: Give feedback alone goes - the end of a setup still asks How easy was that?", async () => {
+      ProductFeedback.setSettings({
+        isOn: true,
+        isAskingMe: true,
+        isGiveFeedbackOffered: false,
+      });
+
+      // The ease question still asks where the server says ask.
+      drawSetup(true);
+      expect(
+        await screen.findByTestId(EASE_QUESTION_TEST_ID),
+      ).toBeInTheDocument();
+    });
   });
 });
 

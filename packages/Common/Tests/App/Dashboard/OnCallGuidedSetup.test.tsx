@@ -567,6 +567,15 @@ import {
   readKeptRunValues,
 } from "./GuidedSetupRunServerMock";
 import { GuidedSetupResourceStatus } from "../../../Types/GuidedSetup/GuidedSetupRun";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -981,6 +990,37 @@ describe("how should we reach you", () => {
     ).toHaveTextContent("Push notifications are turned off on this server.");
     expect(screen.queryByTestId("on-call-setup-use-this-browser")).toBeNull();
     expect(screen.queryByTestId("on-call-setup-get-the-app")).toBeNull();
+  });
+
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10866): the step offers this browser only,
+   * and says so.
+   */
+  test("on a server whose admins took the mobile app away: this browser only, and no Get the app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      await renderSetup();
+
+      expect(
+        screen.getByTestId("on-call-setup-push-options"),
+      ).toHaveTextContent("Get pages in this browser.");
+      expect(
+        screen.getByTestId("on-call-setup-push-options"),
+      ).not.toHaveTextContent("OneUptime On-Call app");
+      expect(
+        screen.getByTestId("on-call-setup-use-this-browser"),
+      ).toHaveTextContent("Use this browser");
+      expect(screen.queryByTestId("on-call-setup-get-the-app")).toBeNull();
+      expect(screen.queryByTestId("on-call-setup-app-codes")).toBeNull();
+    } finally {
+      forgetHelpAndSupport();
+    }
   });
 
   test("Get the app opens a code for each store and the address to sign in to, then Recheck (#7149)", async () => {
