@@ -233,6 +233,8 @@ function siteRow(id: string, name: string): CloudResource {
   return Object.assign(new CloudResource(), {
     _id: id,
     cloudResourceKind: CloudResourceKind.Resource,
+    // The type the app runs as: a kept row of another is not its (#6793).
+    cloudResourceType: "Microsoft.Web/sites",
     telemetryAttributes: { "azuremonitor.resource_id": armId(name) },
     cloudReadings: {},
   });
@@ -752,6 +754,9 @@ describe("the Last hour cell, drawn alone", () => {
           serverErrors: 0,
           serverErrorRatePercent: 0,
           responseTimeMs: 90,
+          latency: "average",
+          service: "Azure Monitor",
+          isAppService: true,
         }}
         isLoadingPlatformSignals={true}
       />,
@@ -775,6 +780,9 @@ describe("the Last hour cell, drawn alone", () => {
           serverErrors: null,
           serverErrorRatePercent: null,
           responseTimeMs: null,
+          latency: "average",
+          service: "Azure Monitor",
+          isAppService: true,
         }}
       />,
     );
@@ -799,6 +807,9 @@ describe("the Last hour cell, drawn alone", () => {
           serverErrors: 0,
           serverErrorRatePercent: 0,
           responseTimeMs: 90,
+          latency: "average",
+          service: "Azure Monitor",
+          isAppService: true,
         }}
       />,
     );

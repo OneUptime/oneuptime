@@ -177,6 +177,7 @@ OneUptime AI nunca se retira en silencio. Deriva el caso a personas, y dice por 
 - el objetivo de su siguiente paso está protegido;
 - ha actuado por su cuenta tantas veces como puede en una hora;
 - la IA está desactivada para el proyecto o para los casos de seguridad, no hay proveedor de LLM, o el proyecto se quedó sin créditos de IA o alcanzó su límite diario de IA;
+- el producto Eventos de seguridad está desactivado en el servidor;
 - su clasificación no pudo determinar si el caso es real;
 - un paso que dio no se sostiene, un paso que inició no terminó, o una persona rechazó o deshizo un paso que dio;
 - no puede determinar qué hacer a continuación, o todo lo que queda en el caso le toca hacerlo a una persona.
@@ -184,6 +185,8 @@ OneUptime AI nunca se retira en silencio. Deriva el caso a personas, y dice por 
 Las personas del caso se enteran enseguida o, cuando nadie está en él, las personas a las que se avisa de los casos de su prioridad: **OneUptime AI derivó un caso de seguridad a personas**, en **Ajustes de usuario → Ajustes de notificaciones**. Una regla de notificación del espacio de trabajo para casos de seguridad lo publica en su canal de Slack o Microsoft Teams en **Casos derivados a personas por OneUptime AI**. **Tomar el control** pasa el caso sin avisar a nadie, ya que la persona que lo pulsó se queda con él.
 
 **Responder con IA** pide a OneUptime AI que vuelva a gestionar el caso, desde donde está.
+
+Mientras el producto Eventos de seguridad está desactivado en el servidor, OneUptime AI no inicia ningún paso nuevo en ningún caso y, en menos de un minuto, deriva a personas cada caso que gestiona. Un paso que ya inició termina, o se puede deshacer, como siempre. Cuando el producto vuelve a activarse, no retoma ninguno de esos casos por sí solo: lo hace **Responder con IA**.
 
 Un caso retenido mientras OneUptime AI responde primero llega a las personas una sola vez, con el aviso del caso nuevo y el motivo por el que OneUptime AI se detuvo: consulta [Dejar que OneUptime AI responda primero](#dejar-que-oneuptime-ai-responda-primero).
 

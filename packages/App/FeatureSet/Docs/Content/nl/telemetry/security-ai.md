@@ -177,6 +177,7 @@ OneUptime AI trekt zich nooit stilletjes terug. Het draagt de zaak over aan mens
 - waar de volgende stap op ingrijpt, beschermd is;
 - het binnen een uur zo vaak zelfstandig heeft gehandeld als het mag;
 - AI uit staat voor het project of voor beveiligingszaken, er geen LLM-provider is, of het project geen AI-tegoed meer heeft of zijn dagelijkse AI-limiet heeft bereikt;
+- het product Beveiligingsgebeurtenissen op de server is uitgeschakeld;
 - de beoordeling niet kon vaststellen of de zaak echt is;
 - een stap die het zette geen stand houdt, een stap die het startte niet is voltooid, of iemand een stap die het zette heeft geweigerd of ongedaan gemaakt;
 - het niet kan bepalen wat het nu moet doen, of alles wat nog op de zaak staat door een persoon moet worden gedaan.
@@ -184,6 +185,8 @@ OneUptime AI trekt zich nooit stilletjes terug. Het draagt de zaak over aan mens
 De mensen op de zaak horen het meteen, of, als niemand aan de zaak werkt, de mensen die over zaken met die prioriteit worden geïnformeerd: **OneUptime AI heeft een beveiligingszaak aan mensen overgedragen**, onder **Gebruikersinstellingen → Meldingsinstellingen**. Een meldingsregel van de werkruimte voor beveiligingszaken plaatst het in zijn Slack- of Microsoft Teams-kanaal onder **Door OneUptime AI aan mensen overgedragen**. **Overnemen** draagt de zaak over zonder iemand te informeren, omdat degene die erop drukte de zaak al heeft.
 
 **Reageren met AI** vraagt OneUptime AI de zaak opnieuw te behandelen, vanaf waar de zaak nu staat.
+
+Zolang het product Beveiligingsgebeurtenissen op de server is uitgeschakeld, start OneUptime AI op geen enkele zaak een nieuwe stap en draagt het binnen een minuut elke zaak die het behandelt over aan mensen. Een stap die het al had gestart, wordt zoals gewoonlijk voltooid of kan ongedaan worden gemaakt. Staat het product weer aan, dan pakt het geen van die zaken uit zichzelf weer op: dat doet **Reageren met AI**.
 
 Een zaak die wordt tegengehouden terwijl OneUptime AI eerst reageert, bereikt mensen één keer, met de melding van de nieuwe zaak en waarom OneUptime AI stopte: zie [OneUptime AI eerst laten reageren](#oneuptime-ai-eerst-laten-reageren).
 
