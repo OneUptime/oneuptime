@@ -284,7 +284,7 @@ describe("Data Types to Review", () => {
   test("Not a Data Type asks once, then turns the proposal down for good", async () => {
     proposalRows = [proposalRow("00000000-0000-4000-8000-000000000002")];
 
-    const post: jest.SpiedFunction<typeof API.post> = jest
+    const post: ReturnType<typeof jest.spyOn> = jest
       .spyOn(API, "post")
       .mockResolvedValue(
         new HTTPResponse(200, { status: "Dismissed" }, {}) as never,
@@ -348,7 +348,7 @@ describe("Describe It", () => {
   });
 
   test("sends a sentence and the shapes of the examples, never an example, and fills the form", async () => {
-    const post: jest.SpiedFunction<typeof API.post> = jest
+    const post: ReturnType<typeof jest.spyOn> = jest
       .spyOn(API, "post")
       .mockResolvedValue(
         new HTTPResponse(200, { dataType: DESCRIBED, reason: "" }, {}) as never,

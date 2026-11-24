@@ -543,10 +543,9 @@ describe("a span attribute is asked about, as a column is", () => {
     jest.spyOn(Queue, "addJob").mockResolvedValue(undefined as never);
     jest.spyOn(logger, "info").mockImplementation((): void => {});
 
-    const execute: jest.SpiedFunction<typeof AIService.executeWithLogging> =
-      jest
-        .spyOn(AIService, "executeWithLogging")
-        .mockResolvedValue({ content: '{"fields":[]}' } as never);
+    const execute: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AIService, "executeWithLogging")
+      .mockResolvedValue({ content: '{"fields":[]}' } as never);
 
     await DataSecurityFieldSuggestion.suggestForStore({
       projectId: PROJECT_ID,
