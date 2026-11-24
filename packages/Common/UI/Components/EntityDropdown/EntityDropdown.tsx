@@ -42,6 +42,7 @@ import {
 import { getEntityDropdownEmptyListText } from "./EntityDropdownEmptyList";
 import useLabelSearch, { LabelSearch } from "./LabelSearch";
 import ArchivedValuePicker from "../../Utils/ArchivedValuePicker";
+import { ARCHIVED_COLUMN } from "../../../Utils/ArchivableValues";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import {
   SharedNameMark,
@@ -236,6 +237,15 @@ export interface EntityDropdownProps {
    * only (ArchivedValuePicker).
    */
   listsArchivedValues?: boolean | undefined;
+  /*
+   * Whether each record is read with its archive switch and marked Archived
+   * when it is: a model whose records can be archived though they are no
+   * values a record picks - a service, which archiving hides from its list
+   * while its telemetry keeps arriving - and which ArchivedValuePicker
+   * leaves alone (#10764). A search's read and a held value's read both
+   * select it. Unset, only an archivable value is marked.
+   */
+  marksArchivedRecords?: boolean | undefined;
   /*
    * How a record reads as an option, past the one built from labelField,
    * colorField and descriptionField: a network device named by its hostname
@@ -507,12 +517,22 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
     ? { ...(props.query || {}) }
     : ArchivedValuePicker.getPickerQuery(modelType, props.query);
   /*
+   * The archive switch of a record that is no value (marksArchivedRecords):
+   * every read selects it, so an archived one is marked wherever it shows.
+   */
+  const recordArchiveSelect: Record<string, true> = props.marksArchivedRecords
+    ? { [ARCHIVED_COLUMN]: true }
+    : {};
+  /*
    * What a search reads to mark an archived value it offers: a list's filter
    * offers them (listsArchivedValues).
    */
-  const archivedSelect: Record<string, true> = props.listsArchivedValues
-    ? ArchivedValuePicker.getSelectedValueSelect(modelType)
-    : {};
+  const archivedSelect: Record<string, true> = {
+    ...(props.listsArchivedValues
+      ? ArchivedValuePicker.getSelectedValueSelect(modelType)
+      : {}),
+    ...recordArchiveSelect,
+  };
   const baseQueryRef: React.MutableRefObject<Record<string, unknown>> =
     useRef<Record<string, unknown>>(pickerQuery);
   baseQueryRef.current = pickerQuery;
@@ -1136,6 +1156,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
           ...sharedNameSelect,
           // An archived value a record still has is marked as one.
           ...ArchivedValuePicker.getSelectedValueSelect(modelType),
+          ...recordArchiveSelect,
         } as Record<string, true>;
         if (colorField) {
           baseSelect[colorField] = true;

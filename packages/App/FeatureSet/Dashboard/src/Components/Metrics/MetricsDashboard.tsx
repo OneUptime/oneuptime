@@ -26,6 +26,7 @@ import Select from "Common/Types/BaseDatabase/Select";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
+import RecordsById from "Common/UI/Utils/RecordsById";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -40,10 +41,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import AppLink from "../AppLink/AppLink";
-import Dropdown, {
-  DropdownOption,
-  DropdownValue,
-} from "Common/UI/Components/Dropdown/Dropdown";
+import TelemetryServiceScopePicker from "../Telemetry/TelemetryServiceScopePicker";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import MetricSavedView from "Common/Models/DatabaseModels/MetricSavedView";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -62,12 +60,6 @@ import {
   ScopedServiceCoverage,
   computeScopedServiceCoverage,
 } from "../../Utils/ServiceCoverage";
-import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
-import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
-import {
-  getMetricsScopeFallbackLabel,
-  getMetricsUnnamedScopeIds,
-} from "../../Utils/MetricsEntityChipDisplay";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   translatableTerm,
@@ -253,7 +245,18 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
    */
   const [carriedSearch] = useState<string | null>(initialUrlScope.search);
 
+  /*
+   * The services the loaded points name, read by their ids (with the
+   * synthetic "Unknown Service" when some point names none): every card's
+   * service, however many the project has.
+   */
   const [services, setServices] = useState<Array<Service>>([]);
+  /*
+   * How many services the project has, counted on the server (plus the
+   * synthetic one when the points name it): the population the quiet
+   * services are counted against when the page is not scoped.
+   */
+  const [projectServiceCount, setProjectServiceCount] = useState<number>(0);
   const [metricTypes, setMetricTypes] = useState<Array<MetricType>>([]);
   const [activeMetrics, setActiveMetrics] = useState<Array<Metric>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -284,15 +287,19 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       const dateRange: InBetween<Date> =
         RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-      const [servicesResult, metricTypesResult, metricsResult] =
+      const [servicesCountResult, metricTypesResult, metricsResult] =
         await Promise.all([
+          /*
+           * How many services the project has: one row and the count, never
+           * the first 10,000 by name, which a project can pass (#10764).
+           */
           ModelAPI.getList({
             modelType: Service,
             query: { projectId },
-            select: { name: true, serviceColor: true },
-            limit: LIMIT_PER_PROJECT,
+            select: { _id: true },
+            limit: 1,
             skip: 0,
-            sort: { name: SortOrder.Ascending },
+            sort: {},
           }),
           ModelAPI.getList({
             modelType: MetricType,
@@ -362,12 +369,43 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
           }),
       );
 
-      setServices(
+      /*
+       * The services the points name, read by their ids: a service whose
+       * name sorts past the project's first 10,000 has its card - one the
+       * page is scoped to too - where a read of the first 10,000 by name
+       * left it out (#10764). An id that is no service (a RUM application,
+       * a host, the project's own) is not found, and has no card, as before.
+       */
+      const reportingServices: Array<Service> = await RecordsById.read<Service>(
+        {
+          modelType: Service,
+          ids: Array.from(referencedServiceIds).filter(
+            (id: string): boolean => {
+              return !TelemetryServiceUtil.isUnknownServiceId(id, projectId);
+            },
+          ),
+          select: { name: true, serviceColor: true },
+        },
+      );
+
+      if (loadGenerationRef.current !== generation) {
+        return;
+      }
+
+      const servicesInView: Array<Service> =
         TelemetryServiceUtil.withUnknownServiceIfReferenced({
-          services: servicesResult.data || [],
+          services: reportingServices,
           referencedServiceIds,
           projectId,
-        }),
+        });
+
+      setServices(servicesInView);
+      setProjectServiceCount(
+        Math.max(
+          servicesCountResult.count ?? 0,
+          servicesCountResult.data?.length || 0,
+        ) +
+          (servicesInView.length - reportingServices.length),
       );
       setMetricTypes(metricTypesResult.data || []);
       setActiveMetrics(loadedMetrics);
@@ -494,63 +532,18 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
     );
   }, [unappliedFilters, carriedSearch, translator.language]);
 
-  const serviceOptions: Array<DropdownOption> = useMemo(() => {
-    return services.map((service: Service): DropdownOption => {
-      return {
-        value: service.id?.toString() || "",
-        label: service.name?.toString() || "Unknown Service",
-        // "Unknown Service" in its place is the product's word, looked up.
-        isUserContent: Boolean(service.name),
-      };
-    });
-  }, [services]);
-
   /*
-   * Names for selected ids the service list does not cover. The carried id
-   * is a telemetry entity id — it can be a RUM application, a host, a
-   * cluster — so the pill resolves it across every entity table rather than
-   * showing a raw UUID it cannot name.
-   *
-   * Only ids that still need a name are sent: one the service list already
-   * names takes its option's label, and a non-UUID value (a hand-edited
-   * link) cannot be an entity row — resolving either would only fan out
-   * requests across the entity tables for a result the pill never uses.
+   * "Unknown Service" is offered in the scope picker while the points name
+   * it: telemetry that named no service is tagged with the project's id.
    */
-  const unnamedSelectedServiceIds: Array<string> = useMemo(() => {
-    return getMetricsUnnamedScopeIds({
-      selectedIds: selectedServiceIds,
-      knownIds: serviceOptions.map((option: DropdownOption): string => {
-        return option.value.toString();
-      }),
-    });
-  }, [selectedServiceIds, serviceOptions]);
-
-  const selectedEntityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
-    unnamedSelectedServiceIds,
-  );
-
-  const selectedServiceOptions: Array<DropdownOption> = useMemo(() => {
-    return selectedServiceIds.map((serviceId: string): DropdownOption => {
-      /*
-       * A carried selection has to render even before the service list has
-       * loaded — and even for a service that stopped reporting — or the user
-       * would have a filter they can see the effect of but not remove.
-       */
-      return (
-        serviceOptions.find((option: DropdownOption): boolean => {
-          return option.value === serviceId;
-        }) || {
-          value: serviceId,
-          label: getMetricsScopeFallbackLabel({
-            id: serviceId,
-            nameMap: selectedEntityNames,
-          }),
-          // The entity's name, or its id: drawn as written.
-          isUserContent: true,
-        }
+  const offersUnknownService: boolean = services.some(
+    (service: Service): boolean => {
+      return TelemetryServiceUtil.isUnknownServiceId(
+        service.id?.toString(),
+        ProjectUtil.getCurrentProjectId(),
       );
-    });
-  }, [selectedServiceIds, serviceOptions, selectedEntityNames]);
+    },
+  );
 
   /*
    * Editing the scope by hand means it is no longer the saved view's scope,
@@ -689,7 +682,7 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
   const coverage: ScopedServiceCoverage = computeScopedServiceCoverage({
     scopedServiceIds: selectedServiceIds,
     hasNonServiceResourceScope: false,
-    projectServiceCount: services.length,
+    projectServiceCount,
     reportingServices,
   });
   const scopedServiceCount: number = coverage.scopedServiceCount;
@@ -765,33 +758,14 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-[16rem]">
-          <Dropdown
-            options={serviceOptions}
-            value={selectedServiceOptions}
-            isMultiSelect={true}
+          <TelemetryServiceScopePicker
+            serviceIds={selectedServiceIds}
+            offersUnknownService={offersUnknownService}
             placeholder="All services"
             ariaLabel="Scope insights to a service"
-            onChange={(
-              value: DropdownValue | Array<DropdownValue> | null,
-            ): void => {
-              if (!value) {
-                applyServiceSelection([]);
-                return;
-              }
-
-              const values: Array<DropdownValue> = Array.isArray(value)
-                ? value
-                : [value];
-
-              applyServiceSelection(
-                values
-                  .map((item: DropdownValue): string => {
-                    return String(item);
-                  })
-                  .filter((item: string): boolean => {
-                    return item.length > 0;
-                  }),
-              );
+            dataTestId="metrics-insights-service-scope"
+            onChange={(serviceIds: Array<string>): void => {
+              applyServiceSelection(serviceIds);
             }}
           />
         </div>

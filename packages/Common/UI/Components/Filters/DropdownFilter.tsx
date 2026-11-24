@@ -39,9 +39,15 @@ const DropdownFilter: DropdownFilterFunction = <T extends GenericObject>(
       return option.value.toString() === filterData[filter.key]?.toString();
     }) || [];
 
+  /*
+   * A filter whose choices are searched on the server is EntityFilter's to
+   * draw (#10764): its options are only the ones it holds and offers, never
+   * every choice there is.
+   */
   if (
     filter.type !== FieldType.Entity &&
     filter.type !== FieldType.EntityArray &&
+    !filter.entitySearch &&
     filter.filterDropdownOptions
   ) {
     return (

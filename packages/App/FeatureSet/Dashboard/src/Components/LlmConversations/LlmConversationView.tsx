@@ -379,7 +379,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
 
   const appNames: Array<string> = transcript.serviceIds
     .map((id: string): string => {
-      return services.names.get(id) || "";
+      return services.nameOf(id);
     })
     .filter((name: string): boolean => {
       return name.length > 0;

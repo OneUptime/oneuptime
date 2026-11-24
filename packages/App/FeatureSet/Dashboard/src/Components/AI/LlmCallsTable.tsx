@@ -11,20 +11,26 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
-  useEffect,
   useMemo,
   useState,
 } from "react";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Service from "Common/Models/DatabaseModels/Service";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ServiceElement from "../Service/ServiceElement";
 import SpanStatusElement from "../Span/SpanStatusElement";
-import API from "Common/UI/Utils/API/API";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
+import { getUnknownServiceScopeOption } from "../Telemetry/TelemetryServiceScope";
+import {
+  LlmServiceNames,
+  useLlmServiceNames,
+} from "../LlmConversations/useLlmServiceNames";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import OneUptimeDate from "Common/Types/Date";
@@ -53,7 +59,14 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [telemetryServices, setServices] = useState<Array<Service>>([]);
+  /*
+   * The services the shown calls ran in, read by their ids as each page of
+   * calls arrives - never the project's first 10,000 by name, past which a
+   * call's service read "Unknown" (#10764).
+   */
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
+  // The apps the setup check names, read by their ids as it draws them.
+  const appNames: LlmServiceNames = useLlmServiceNames();
   /*
    * The list came back with nothing: ask the project's setup check why,
    * and lead the empty state with what it finds (LlmEmptyViewDiagnosis).
@@ -63,32 +76,17 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     enabled: isEmpty,
   });
 
-  useEffect(() => {
-    const loadServices: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<Service> = await ModelAPI.getList({
-          modelType: Service,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          select: {
-            serviceColor: true,
-            name: true,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-        setServices(result.data || []);
-      } catch (err) {
-        // Non-critical — the table still renders without service labels.
-        API.getFriendlyErrorMessage(err as Error);
-      }
-    };
+  /*
+   * Calls without a service.name are tagged with the projectId
+   * (ServiceType.Unknown) and have no Service row: the filter offers them
+   * as "Unknown Service" beside its search.
+   */
+  const unknownServiceOptions: Array<DropdownOption> = useMemo(() => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-    void loadServices();
+    return projectId
+      ? [getUnknownServiceScopeOption(projectId.toString())]
+      : [];
   }, []);
 
   const computedQuery: Query<Span> = useMemo(() => {
@@ -108,13 +106,16 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
   const renderServiceElement: (span: Span) => ReactElement = (
     span: Span,
   ): ReactElement => {
-    const telemetryService: Service | undefined = telemetryServices.find(
-      (service: Service) => {
-        return service.id?.toString() === span.primaryEntityId?.toString();
-      },
+    const telemetryService: Service | undefined = servicesOnPage.getService(
+      span.primaryEntityId,
     );
 
     if (!telemetryService) {
+      // Its name is on its way: never "Unknown" meanwhile.
+      if (servicesOnPage.isReading(span.primaryEntityId)) {
+        return <InlineValueSkeleton widthClassName="w-24" />;
+      }
+
       return (
         <p className="text-gray-500">{translator.translateText("Unknown")}</p>
       );
@@ -147,15 +148,7 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
     view: "calls",
     check: setupCheck,
     translator: translator,
-    serviceName: (serviceId: string): string => {
-      return (
-        telemetryServices
-          .find((service: Service): boolean => {
-            return service.id?.toString() === serviceId;
-          })
-          ?.name?.toString() || ""
-      );
-    },
+    serviceName: appNames.nameOf,
     now: OneUptimeDate.getCurrentDate(),
   });
 
@@ -246,8 +239,14 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
         actions: emptyView.actions,
         hideCreateButton: true,
       }}
-      onFetchSuccess={(_data: Array<Span>, totalCount: number) => {
+      onFetchSuccess={(data: Array<Span>, totalCount: number) => {
         setIsEmpty(totalCount === 0);
+        // The services the page's calls ran in, read by their ids.
+        void servicesOnPage.readServicesOf(
+          data.map((span: Span): ObjectID | undefined => {
+            return span.primaryEntityId;
+          }),
+        );
       }}
       showRefreshButton={true}
       showViewIdButton={true}
@@ -273,14 +272,16 @@ const LlmCallsTable: FunctionComponent<ComponentProps> = (
             primaryEntityId: true,
           },
           type: FieldType.MultiSelectDropdown,
-          // A service's name, drawn as written (DropdownOption.isUserContent).
-          filterDropdownOptions: telemetryServices.map((service: Service) => {
-            return {
-              label: service.name!,
-              value: service.id!.toString(),
-              isUserContent: true,
-            };
-          }),
+          /*
+           * Searched on the server as it is typed in, 50 by name; what the
+           * filter holds - from a link or a saved view - is named by its
+           * ids, one gone as "No longer available" (#10764). Archived
+           * services keep sending calls: offered, marked.
+           */
+          filterEntityType: Service,
+          filterDropdownField: { label: "name", value: "_id" },
+          marksArchivedRecords: true,
+          filterDropdownOptions: unknownServiceOptions,
           title: "Service",
         },
         {
