@@ -28,6 +28,12 @@ import {
   getDataSecurityAiRuleProblem,
 } from "../../Types/DataSecurity/DataSecurityAi";
 import {
+  CLOUD_SAVINGS_AI_AUTONOMY_COLUMN,
+  CLOUD_SAVINGS_AI_RULE_COLUMNS,
+  CLOUD_SAVINGS_AI_RULE_DEFAULT_AUTONOMY,
+  getCloudSavingsAiRuleProblem,
+} from "../../Types/Cloud/CloudSavingsAi";
+import {
   DATA_SECURITY_AI_RULE_CONDITION_LIST_FIELDS,
   getDataSecurityAiRuleConditionsProblem,
 } from "../../Types/DataSecurity/DataSecurityAiRuleConditions";
@@ -98,6 +104,14 @@ export class Service extends ProjectReferencesService<Model> {
       data.triggerEntityType === AutoRemediationTriggerEntity.DataSecurityIssue
     ) {
       Service.prepareNewDataSecurityRule(data);
+    } else if (
+      data.triggerEntityType === AutoRemediationTriggerEntity.CloudSaving
+    ) {
+      Service.assertNoDataSecurityWork({
+        triggerEntityType: data.triggerEntityType,
+        data: data as unknown as Record<string, unknown>,
+      });
+      Service.prepareNewCloudSavingRule(data);
     } else {
       Service.assertNoDataSecurityWork({
         triggerEntityType: data.triggerEntityType,
@@ -108,6 +122,11 @@ export class Service extends ProjectReferencesService<Model> {
         fixes: data.fixes,
       });
     }
+
+    Service.assertNoCloudSavingWork({
+      triggerEntityType: data.triggerEntityType,
+      data: data as unknown as Record<string, unknown>,
+    });
 
     Service.assertWaitFits(data.onlyIfOpenAfterMinutes);
 
@@ -250,6 +269,78 @@ export class Service extends ProjectReferencesService<Model> {
         );
       }
     }
+  }
+
+  /*
+   * A new AI rule for savings (#11010, Types/Cloud/CloudSavingsAi) says what
+   * it does in its own columns: Off, Suggest or WithoutAsking, up to a
+   * monthly limit, for the changes, environments and clouds it names. Its
+   * autonomy, left out of a create, is Suggest - propose only, as the
+   * project does with no rule - and what it holds must be values that
+   * exist; one that acts without asking must cover non-production.
+   */
+  public static prepareNewCloudSavingRule(data: Model): void {
+    const written: Record<string, unknown> = data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      written[CLOUD_SAVINGS_AI_AUTONOMY_COLUMN] === undefined ||
+      written[CLOUD_SAVINGS_AI_AUTONOMY_COLUMN] === null
+    ) {
+      written[CLOUD_SAVINGS_AI_AUTONOMY_COLUMN] =
+        CLOUD_SAVINGS_AI_RULE_DEFAULT_AUTONOMY;
+    }
+
+    Service.assertCloudSavingRuleFits(written);
+  }
+
+  // What a savings rule says, over what it held: refused when it cannot be saved.
+  public static assertCloudSavingRuleFits(
+    values: Record<string, unknown>,
+  ): void {
+    const problem: string | null = getCloudSavingsAiRuleProblem(values);
+
+    if (problem) {
+      throw new BadDataException(problem);
+    }
+  }
+
+  /*
+   * Only an AI rule for savings holds the savings columns: on an incident's
+   * or a Data Security rule they would mean nothing.
+   */
+  public static assertNoCloudSavingWork(data: {
+    triggerEntityType: unknown;
+    data: Record<string, unknown>;
+  }): void {
+    if (data.triggerEntityType === AutoRemediationTriggerEntity.CloudSaving) {
+      return;
+    }
+
+    for (const column of CLOUD_SAVINGS_AI_RULE_COLUMNS) {
+      const value: unknown = data.data[column];
+
+      if (
+        value !== undefined &&
+        value !== null &&
+        !(Array.isArray(value) && value.length === 0)
+      ) {
+        throw new BadDataException(
+          "The Cloud Saving settings can only be used by AI rules for savings.",
+        );
+      }
+    }
+  }
+
+  // Whether an update writes what an AI rule for savings does or matches.
+  public static doesUpdateChangeCloudSavingRule(
+    data: Record<string, unknown>,
+  ): boolean {
+    return CLOUD_SAVINGS_AI_RULE_COLUMNS.some((column: string): boolean => {
+      return data[column] !== undefined;
+    });
   }
 
   // Whether an update writes what a Data Security AI rule does or matches.
@@ -424,12 +515,15 @@ export class Service extends ProjectReferencesService<Model> {
     const changesCriteria: boolean = Service.doesUpdateChangeCriteria(written);
     const changesDataSecurityRule: boolean =
       Service.doesUpdateChangeDataSecurityRule(written);
+    const changesCloudSavingRule: boolean =
+      Service.doesUpdateChangeCloudSavingRule(written);
 
     if (
       agentRunners.length === 0 &&
       !changesShape &&
       !changesCriteria &&
-      !changesDataSecurityRule
+      !changesDataSecurityRule &&
+      !changesCloudSavingRule
     ) {
       await this.allowPickedRunners({
         updateBy,
@@ -457,6 +551,11 @@ export class Service extends ProjectReferencesService<Model> {
         dataSecurityContain: true,
         dataSecurityFix: true,
         dataSecurityJudge: true,
+        cloudSavingAutonomy: true,
+        cloudSavingMonthlyLimit: true,
+        cloudSavingActionGroups: true,
+        cloudSavingEnvironments: true,
+        cloudSavingProviders: true,
       },
     );
 
@@ -464,6 +563,27 @@ export class Service extends ProjectReferencesService<Model> {
       const isDataSecurityRule: boolean =
         rule.triggerEntityType ===
         AutoRemediationTriggerEntity.DataSecurityIssue;
+      const isCloudSavingRule: boolean =
+        rule.triggerEntityType === AutoRemediationTriggerEntity.CloudSaving;
+
+      if (changesCloudSavingRule) {
+        if (isCloudSavingRule) {
+          // What the update says, over what the rule holds.
+          Service.assertCloudSavingRuleFits({
+            cloudSavingAutonomy: rule.cloudSavingAutonomy,
+            cloudSavingMonthlyLimit: rule.cloudSavingMonthlyLimit,
+            cloudSavingActionGroups: rule.cloudSavingActionGroups,
+            cloudSavingEnvironments: rule.cloudSavingEnvironments,
+            cloudSavingProviders: rule.cloudSavingProviders,
+            ...written,
+          });
+        } else {
+          Service.assertNoCloudSavingWork({
+            triggerEntityType: rule.triggerEntityType,
+            data: written,
+          });
+        }
+      }
 
       if (changesDataSecurityRule) {
         if (isDataSecurityRule) {
@@ -484,7 +604,7 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       // A Data Security AI rule says what it does in its own columns.
-      if (changesShape && !isDataSecurityRule) {
+      if (changesShape && !isDataSecurityRule && !isCloudSavingRule) {
         Service.assertShapeFits({
           investigates:
             written["investigates"] !== undefined

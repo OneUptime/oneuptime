@@ -2161,10 +2161,7 @@ import CloudOffHoursSchedule from "Common/Models/DatabaseModels/CloudOffHoursSch
 import CloudOffHoursScheduleService, {
   Service as CloudOffHoursScheduleServiceType,
 } from "Common/Server/Services/CloudOffHoursScheduleService";
-import CloudSavingsAction from "Common/Models/DatabaseModels/CloudSavingsAction";
-import CloudSavingsActionService, {
-  Service as CloudSavingsActionServiceType,
-} from "Common/Server/Services/CloudSavingsActionService";
+import CloudSavingsAPI from "Common/Server/API/CloudSavingsAPI";
 import CloudResourceFeedService, {
   Service as CloudResourceFeedServiceType,
 } from "Common/Server/Services/CloudResourceFeedService";
@@ -3948,14 +3945,12 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     /*
      * The changes OneUptime proposes and makes for savings (#11010): read
-     * here, written only by the savings routes and the workers.
+     * here, and asked for, approved, dismissed and undone through the
+     * savings routes; written only by those and the workers.
      */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<CloudSavingsAction, CloudSavingsActionServiceType>(
-        CloudSavingsAction,
-        CloudSavingsActionService,
-      ).getRouter(),
+      new CloudSavingsAPI().getRouter(),
     );
 
     // Off-hours schedules that stop non-production resources (#11010).
