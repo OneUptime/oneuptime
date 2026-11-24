@@ -30,10 +30,13 @@ import {
   SCRAPE_1_NOW_SECONDS,
   SCRAPE_2_NOW_SECONDS,
   UNNAMED_POOL_ID,
+  XCP_NG_FIXTURE_DIR,
   parseOpenMetrics,
   readRecordedScrape,
   toAgentResourceMetrics,
 } from "Common/Tests/Server/Utils/Telemetry/XcpNgScrapeFixture";
+import fs from "fs";
+import path from "path";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -742,5 +745,145 @@ describe("XCP-ng ingest - the name Xen Orchestra gives a pool", () => {
     );
 
     expect(reportedNamesOf(spies, PRODUCTION_ID)).toEqual([undefined]);
+  });
+});
+
+/*
+ * What the real collector sends: the agent's shipped config on
+ * otel/opentelemetry-collector-contrib 0.165.0, scraping the recorded lab
+ * from a stand-in Xen Orchestra, as its own exporter sent it
+ * (Fixtures/XcpNg/AgentOtlpScrape1.json and 2.json, written and held to
+ * the collector by Tests/Ops/xcp-ng-agent-scrape-behaviour.sh). The ingest
+ * reads it exactly as it reads the recorded scrape turned into OTLP here:
+ * the same inventory, the same rows.
+ */
+describe("XCP-ng ingest - what collector 0.165.0 really sends", () => {
+  function agentOutput(which: 1 | 2): Array<JSONObject> {
+    const request: JSONObject = JSON.parse(
+      fs.readFileSync(
+        path.join(XCP_NG_FIXTURE_DIR, `AgentOtlpScrape${which}.json`),
+        "utf8",
+      ),
+    ) as JSONObject;
+    return request["resourceMetrics"] as Array<JSONObject>;
+  }
+
+  function sortedInventory(
+    rows: Array<ParsedXcpNgResource>,
+  ): Array<ParsedXcpNgResource> {
+    return [...rows].sort(
+      (a: ParsedXcpNgResource, b: ParsedXcpNgResource): number => {
+        return `${a.kind}|${a.externalId}`.localeCompare(
+          `${b.kind}|${b.externalId}`,
+        );
+      },
+    );
+  }
+
+  // A stored row as the pages and monitors read it, without its row id.
+  function rowKey(row: JSONObject): string {
+    const attributes: JSONObject = {
+      ...((row["attributes"] || {}) as JSONObject),
+    };
+    // The receiver's own resource attributes ride the real batches only.
+    for (const key of Object.keys(attributes)) {
+      if (
+        key === "resource.server.address" ||
+        key === "resource.server.port" ||
+        key === "resource.url.scheme" ||
+        key === "resource.xen_orchestra.name"
+      ) {
+        delete attributes[key];
+      }
+    }
+    return JSON.stringify([
+      row["name"],
+      row["metricPointType"],
+      row["value"],
+      row["timeUnixNano"],
+      Object.keys(attributes)
+        .sort()
+        .map((key: string) => {
+          return [key, attributes[key]];
+        }),
+    ]);
+  }
+
+  test.each([[1], [2]] as Array<[1 | 2]>)(
+    "scrape %i: the same inventory, and the same rows, as the recorded scrape",
+    async (which: 1 | 2) => {
+      const fromCollector: Spies = setupIngestMocks({
+        ranRecently: [VM_WEB01],
+      });
+      await OtelMetricsIngestService.processMetricsFromQueue(
+        request(agentOutput(which)),
+      );
+      const collectorInventory: Array<Array<ParsedXcpNgResource>> = [
+        sortedInventory(inventoryOf(fromCollector, PRODUCTION_ID)),
+        sortedInventory(inventoryOf(fromCollector, UNNAMED_ID)),
+      ];
+      const collectorRows: Array<string> = fromCollector.stored
+        .map(rowKey)
+        .sort();
+      jest.restoreAllMocks();
+
+      const fromRecording: Spies = setupIngestMocks({
+        ranRecently: [VM_WEB01],
+      });
+      await OtelMetricsIngestService.processMetricsFromQueue(
+        request(scrape(which)),
+      );
+
+      expect(collectorInventory[0]!.length).toBeGreaterThan(10);
+      expect(collectorInventory).toEqual([
+        sortedInventory(inventoryOf(fromRecording, PRODUCTION_ID)),
+        sortedInventory(inventoryOf(fromRecording, UNNAMED_ID)),
+      ]);
+      expect(collectorRows).toEqual(fromRecording.stored.map(rowKey).sort());
+    },
+  );
+
+  test("its batches name Xen Orchestra, and nothing routes them to a phantom service", async () => {
+    const spies: Spies = setupIngestMocks();
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request(agentOutput(1)),
+    );
+
+    expect(spies.discoverPool).toHaveBeenCalledTimes(2);
+    expect(spies.recordReportedNames).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reportedName: "Production",
+        xenOrchestraName: "xo-behaviour",
+      }),
+    );
+    for (const block of agentOutput(1)) {
+      const keys: Array<string> = (
+        ((block["resource"] as JSONObject)["attributes"] as JSONArray) || []
+      ).map((entry: unknown) => {
+        return (entry as JSONObject)["key"] as string;
+      });
+      expect(keys).not.toContain("service.name");
+      expect(keys).not.toContain("pool_id");
+    }
+  });
+
+  test("the eight rates arrive as gauges, scrape 2's lower values included", async () => {
+    const spies: Spies = setupIngestMocks();
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request(agentOutput(2)),
+    );
+
+    for (const name of XCP_NG_RATE_TYPED_AS_COUNTER_SERIES) {
+      const rows: Array<JSONObject> = storedNamed(spies, name);
+      expect([name, rows.length > 0]).toEqual([name, true]);
+      for (const row of rows) {
+        expect([name, row["metricPointType"]]).toEqual([
+          name,
+          MetricPointType.Gauge,
+        ]);
+      }
+    }
   });
 });
