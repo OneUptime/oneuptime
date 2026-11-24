@@ -113,7 +113,9 @@ describe("a step's secret values on their way to the probe", () => {
         stepJSON(
           secretValuesToHide === undefined
             ? {}
-            : { secretValuesToHide: secretValuesToHide as JSONArray },
+            : {
+                secretValuesToHide: secretValuesToHide as unknown as JSONArray,
+              },
         ),
       );
 

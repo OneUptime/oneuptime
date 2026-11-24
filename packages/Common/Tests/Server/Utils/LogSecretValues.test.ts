@@ -239,24 +239,44 @@ describe("a monitor secret's value in the logger's lines while a check runs", ()
   test("an error's message, stack, cause, aggregate errors and fields keep no form of it", () => {
     const secret: string = makeSecret(random);
 
+    /*
+     * A cause, and an aggregate's errors, are no enumerable fields of the
+     * error's own, as an ES2022 runtime sets them, yet the console prints
+     * them.
+     */
+    const withCause: Error = new Error("request failed");
+    Object.defineProperty(withCause, "cause", {
+      value: new Error(`refused for ${secret}`),
+      enumerable: false,
+    });
+
+    const AggregateErrorClass: new (
+      errors: Array<Error>,
+      message: string,
+    ) => Error = (
+      globalThis as unknown as {
+        AggregateError: new (errors: Array<Error>, message: string) => Error;
+      }
+    ).AggregateError;
+    const aggregate: Error = new AggregateErrorClass(
+      [new Error(`first ${JSON.stringify(secret)}`)],
+      "all connection attempts failed",
+    );
+
+    expect(Object.keys(withCause)).toEqual([]);
+    expect(secretValueFormsIn(inspect(withCause), secret).length).toBeGreaterThan(
+      0,
+    );
+    expect(secretValueFormsIn(inspect(aggregate), secret).length).toBeGreaterThan(
+      0,
+    );
+
     LogSecretValues.run([secret], () => {
       logger.error(
         new Error(`page.goto: net::ERR_NAME_NOT_RESOLVED at ${secret}`),
       );
-
-      // A cause is no field of the error's own: the console prints it anyway.
-      logger.error(
-        new Error("request failed", {
-          cause: new Error(`refused for ${secret}`),
-        }),
-      );
-
-      logger.error(
-        new AggregateError(
-          [new Error(`first ${JSON.stringify(secret)}`)],
-          "all connection attempts failed",
-        ),
-      );
+      logger.error(withCause);
+      logger.error(aggregate);
 
       // A client's error, holding the request it sent: the report itself.
       const clientError: Error & { config?: unknown } = new Error(
@@ -350,9 +370,10 @@ describe("a monitor secret's value in the logger's lines while a check runs", ()
 
     // Once the runs are over, nothing is hidden.
     logger.debug(`after: ${first}`);
-    expect(String(consoleSpies.debug.mock.calls.at(-1)?.[0])).toBe(
-      `after: ${first}`,
-    );
+
+    const calls: Array<Array<unknown>> = consoleSpies.debug.mock.calls;
+
+    expect(String(calls[calls.length - 1]?.[0])).toBe(`after: ${first}`);
   });
 
   test("a run inside another hides the values of both", () => {
