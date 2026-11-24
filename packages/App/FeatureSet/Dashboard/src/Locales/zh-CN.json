@@ -64303,5 +64303,17 @@
   "{{reason}} Security Events still refuses to name them. File the request again to retry.": "{{reason}} 安全事件仍拒绝指名此人。请重新提交请求以重试。",
   "When a Hash scrub rule hides a user in your logs and traces, Security Events keeps the user behind the token in its user vault for 30 days, so it can name them in events, cases and playbooks. An erasure request takes one person out of it for good.\n\n## What it does\n\n- Within a minute of filing it, the user vault refuses the person's tokens: Security Events never names them again, even when a later event carries the token.\n- Within a few minutes it deletes the vault's entries of them, puts the token back in the events it named them in, and takes them out of the titles, entities and kept events of cases and detections, and out of entity risk.\n- A playbook run or an action of OneUptime AI waiting for approval to act on them is withdrawn.\n\n## What it leaves\n\n- What people wrote: notes, closing notes, tasks, evidence and custom fields.\n- Events that named the person because your logs held them in clear, and your logs and traces themselves, which hold only the token.\n- The Detection Finding events a rule wrote about them, until your telemetry retention deletes them.\n- Notifications already sent, incidents and alerts a detection opened, and the audit log.\n\n## What the request keeps\n\n- Who filed it and when, your reference, and the person's tokens - never their user ID or email address once it is done.\n- Project Owners and Admins, Security Admins and anyone with Create Security Erasure Request can file one. Every Security role can read them.": "当哈希清除规则在您的日志和追踪中隐藏用户时，安全事件会将令牌背后的用户在其用户保管库中保存 30 天，以便在事件、案例和剧本中指名此人。删除请求会将一名人员从中永久移除。\n\n## 它的作用\n\n- 提交后一分钟内，用户保管库会拒绝此人的令牌：即使之后的事件带有该令牌，安全事件也不会再指名此人。\n- 几分钟内，它会删除保管库中关于此人的条目，将令牌放回曾指名此人的事件，并将此人从案例和检测的标题、实体和保存的事件以及实体风险中移除。\n- 等待批准以对此人执行操作的剧本运行或 OneUptime AI 操作会被撤回。\n\n## 它保留的内容\n\n- 人员编写的内容：备注、结案备注、任务、证据和自定义字段。\n- 因日志以明文包含此人而指名此人的事件，以及只包含令牌的日志和追踪本身。\n- 规则针对此人写入的 Detection Finding 事件，直到遥测保留期将其删除。\n- 已发送的通知、检测打开的事件和警报，以及审计日志。\n\n## 请求保存的内容\n\n- 提交者和提交时间、您的参考以及此人的令牌——完成后绝不保存其用户 ID 或电子邮件地址。\n- 项目所有者和管理员、安全管理员以及拥有“Create Security Erasure Request”的任何人都可以提交。所有安全角色都可以查看。",
   "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add AI credits.": "此项目还没有支付方式。请在 项目设置 > 账单和发票 > 账单 中添加一个，然后添加 AI 积分。",
-  "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add to the balance.": "此项目还没有支付方式。请在 项目设置 > 账单和发票 > 账单 中添加一个，然后为余额充值。"
+  "This project has no payment method yet. Add one in Project Settings > Billing and Invoices > Billing, then add to the balance.": "此项目还没有支付方式。请在 项目设置 > 账单和发票 > 账单 中添加一个，然后为余额充值。",
+  "A page's call starts like this, always in English:": "呼叫电话始终使用英语，开头如下：",
+  "British English, female voice": "英式英语，女声",
+  "British English, male voice": "英式英语，男声",
+  "Call Voice": "通话语音",
+  "Free. Twilio says its Basic voices are not meant for production.": "免费。Twilio 表示其 Basic 语音不适合用于生产环境。",
+  "Save, then send a test call to hear it.": "保存后，发送测试呼叫即可试听。",
+  "The voice calls through this account speak with.": "通过此账户拨打的电话所使用的语音。",
+  "Twilio Call Voice": "Twilio 通话语音",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio 对此语音额外收费：每通呼叫电话不到 2 美分。",
+  "US English, female voice": "美式英语，女声",
+  "US English, male voice": "美式英语，男声",
+  "Your Twilio account's default voice": "Twilio 账户的默认语音"
 }

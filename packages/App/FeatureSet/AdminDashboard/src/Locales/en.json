@@ -4575,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "The server did not answer with its help and support settings.",
   "Keyboard shortcuts": "Keyboard shortcuts",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.",
-  "Chat on Slack": "Chat on Slack"
+  "Chat on Slack": "Chat on Slack",
+  "Your Twilio account's default voice": "Your Twilio account's default voice",
+  "US English, female voice": "US English, female voice",
+  "US English, male voice": "US English, male voice",
+  "British English, female voice": "British English, female voice",
+  "British English, male voice": "British English, male voice",
+  "A page's call starts like this, always in English:": "A page's call starts like this, always in English:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio charges extra for this voice: under 2 US cents for each page's call.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Free. Twilio says its Basic voices are not meant for production.",
+  "Save, then send a test call to hear it.": "Save, then send a test call to hear it.",
+  "Call Voice": "Call Voice",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.",
+  "Choose Voice": "Choose Voice",
+  "Voice": "Voice"
 }

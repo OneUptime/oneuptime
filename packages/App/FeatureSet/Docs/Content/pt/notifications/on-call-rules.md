@@ -44,7 +44,9 @@ Press 1 to acknowledge, or 2 to escalate.
 You did not press a key, so this incident is not acknowledged. Good bye.
 ```
 
-A chamada diz o nome do seu projeto. Uma chamada que não é de um projeto, como um código de verificação, diz OneUptime ou o nome que a sua instalação auto-hospedada usa. Um título com mais de cerca de 100 caracteres é cortado depois de uma palavra inteira, e o OneUptime guarda o título completo. As letras de um número como `INC-42` são ditas uma a uma, para que a voz nunca as leia como uma palavra. As chamadas são sempre em inglês.
+Se você pressionar uma tecla que a chamada não ofereceu, como 3, # ou *, a chamada diz "That key does nothing." e pede de novo que você pressione uma tecla. Ela pede de novo no máximo duas vezes, o mesmo número de vezes que diz as teclas quando você não pressiona nenhuma; depois disso, uma tecla errada encerra a chamada e o acionamento continua sem confirmação. As teclas 1 e 2 funcionam como sempre funcionaram.
+
+A chamada diz o nome do seu projeto. Uma chamada que não é de um projeto, como um código de verificação, diz OneUptime ou o nome que a sua instalação auto-hospedada usa. Um título com mais de cerca de 100 caracteres é cortado depois de uma palavra inteira, e o OneUptime guarda o título completo. As letras de um número como `INC-42` são ditas uma a uma, para que a voz nunca as leia como uma palavra. As chamadas são sempre em inglês, na voz que a sua conta do Twilio usa por padrão, a menos que um administrador escolha outra: veja [A voz com que as chamadas falam](/docs/self-hosted/twilio-integration#a-voz-com-que-as-chamadas-falam).
 
 ## Uma só sequência para tudo
 
