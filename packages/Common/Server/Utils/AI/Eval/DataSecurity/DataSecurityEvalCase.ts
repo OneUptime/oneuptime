@@ -19,6 +19,7 @@ import {
   ScrubRuleWriterRuleKind,
 } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import { UnplacedField } from "../../../../../Utils/DataSecurity/UnplacedFields";
+import type { TelemetryLeakEvalCase } from "./TelemetryLeakEvalSet";
 import {
   AiAccessRecord,
   AiDataTypeChoice,
@@ -283,6 +284,20 @@ export interface FindingVerdictEvalCase extends DataSecurityEvalCaseBase {
   language?: string | undefined;
 }
 
+/*
+ * A service's telemetry leaks fixed in its code (#10367): a case of the eval
+ * set of recorded findings (TelemetryLeakEvalSet) - the records each finding
+ * was seen in and the repository they lead to - and what the changed code
+ * must hold. The request is the one the product builds from those records,
+ * answered in one call; the code agent's benchmark runs the agent's loop on
+ * the same cases.
+ */
+export interface TelemetryLeakFixEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.FixTelemetryLeaks;
+  evalSetCase: TelemetryLeakEvalCase;
+  expect: Array<FixEvalFileCheck>;
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FindingVerdictEvalCase
@@ -293,4 +308,5 @@ export type DataSecurityEvalCase =
   | IssueGroupNameEvalCase
   | IssueGroupFixEvalCase
   | ScrubRulesEvalCase
-  | PullRequestReviewEvalCase;
+  | PullRequestReviewEvalCase
+  | TelemetryLeakFixEvalCase;

@@ -16,6 +16,10 @@ import {
 } from "../../../../../Types/DataSecurity/DataStoreAccess";
 import DataStoreEnvironment from "../../../../../Types/DataSecurity/DataStoreEnvironment";
 import { DataStoreKind } from "../../../../../Types/DataSecurity/DataStoreKind";
+import {
+  TELEMETRY_LEAK_EVAL_SET,
+  TelemetryLeakEvalCase,
+} from "./TelemetryLeakEvalSet";
 import { DataStoreExposure } from "../../../../../Types/DataSecurity/DataStorePosture";
 import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import {
@@ -48,6 +52,7 @@ import {
   PullRequestReviewEvalCase,
   ScrubRulesEvalCase,
   StoreOwnersEvalCase,
+  TelemetryLeakFixEvalCase,
 } from "./DataSecurityEvalCase";
 import PULL_REQUEST_EVAL_DIFFS, {
   PullRequestEvalDiff,
@@ -1738,6 +1743,24 @@ const PULL_REQUEST_REVIEW_CASES: Array<PullRequestReviewEvalCase> =
     };
   });
 
+/*
+ * A service's telemetry leaks fixed in its code (#10367): every case of the
+ * eval set of recorded findings, its request built from its records as the
+ * product builds it, and held to its own file checks.
+ */
+const TELEMETRY_LEAK_FIX_CASES: Array<TelemetryLeakFixEvalCase> =
+  TELEMETRY_LEAK_EVAL_SET.map(
+    (evalSetCase: TelemetryLeakEvalCase): TelemetryLeakFixEvalCase => {
+      return {
+        id: `fix-leaks-${evalSetCase.id}`,
+        title: evalSetCase.title,
+        feature: DataSecurityAiFeature.FixTelemetryLeaks,
+        evalSetCase,
+        expect: evalSetCase.expect,
+      };
+    },
+  );
+
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ANALYSIS_CASES,
   ...FIELD_SUGGESTION_CASES,
@@ -1750,6 +1773,7 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ISSUE_GROUP_FIX_CASES,
   ...SCRUB_RULE_CASES,
   ...PULL_REQUEST_REVIEW_CASES,
+  ...TELEMETRY_LEAK_FIX_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;
