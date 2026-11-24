@@ -110,7 +110,9 @@ beforeEach(() => {
   jest
     .spyOn(ExternalMcpServerCheck, "recordConnection")
     .mockResolvedValue(undefined);
-  aiOffSpy = jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+  aiOffSpy = jest
+    .spyOn(AiCommandKillSwitch, "isAiOff")
+    .mockResolvedValue(false);
 });
 
 afterEach(async () => {
@@ -143,9 +145,9 @@ function props(
   allowed: Array<Permission>,
   blocked: Array<Permission> = [],
 ): DatabaseCommonInteractionProps {
-  const row: (
+  const row: (isBlock: boolean) => (permission: Permission) => JSONObject = (
     isBlock: boolean,
-  ) => (permission: Permission) => JSONObject = (isBlock: boolean) => {
+  ) => {
     return (permission: Permission): JSONObject => {
       return {
         permission,
@@ -222,7 +224,10 @@ describe("a chat's MCP tools", () => {
       CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
     ]);
 
-    const change: ChatExtraTool = tool(kit, CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME);
+    const change: ChatExtraTool = tool(
+      kit,
+      CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
+    );
     expect(change.isMutation).toBe(true);
     expect(change.alwaysAsksForApproval).toBe(true);
     expect(tool(kit, CALL_MCP_TOOL_TOOL_NAME).isMutation).toBeUndefined();
@@ -426,10 +431,8 @@ describe("call_mcp_tool_with_approval: before its card", () => {
     kit: McpRunToolkit,
     args: JSONObject,
   ): Promise<ChatExtraToolPreparation> {
-    return await tool(
-      kit,
-      CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
-    ).prepareForApproval!(args);
+    return await tool(kit, CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME)
+      .prepareForApproval!(args);
   }
 
   test("a change is proposed with exactly what will be sent, and the card's lines", async () => {
@@ -590,7 +593,10 @@ describe("call_mcp_tool_with_approval: once approved", () => {
   test("nothing is sent without a person's approval, whatever asked for it", async () => {
     const fake: FakeMcpServer = await startServer();
     const kit: McpRunToolkit = chatToolkit({ servers: [stored(fake)] });
-    const change: ChatExtraTool = tool(kit, CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME);
+    const change: ChatExtraTool = tool(
+      kit,
+      CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
+    );
 
     const unapproved: ToolCallOutcome = await change.execute(CHANGE);
     const autoRun: ToolCallOutcome = await change.execute(CHANGE, {

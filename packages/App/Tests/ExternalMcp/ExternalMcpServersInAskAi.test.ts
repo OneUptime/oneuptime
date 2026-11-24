@@ -141,11 +141,9 @@ function lastRequest(): AILogRequest {
 }
 
 function pendingAction(): AIChatToolAction | undefined {
-  return harness
-    .lastToolActions()
-    .find((action: AIChatToolAction): boolean => {
-      return action.status === AIChatToolActionStatus.Pending;
-    });
+  return harness.lastToolActions().find((action: AIChatToolAction): boolean => {
+    return action.status === AIChatToolActionStatus.Pending;
+  });
 }
 
 describe("Ask AI is offered the project's MCP servers (#10879)", () => {
@@ -652,18 +650,15 @@ describe("the person's permissions decide", () => {
     harness.serveRunForResume(harness.pausedState()!);
 
     // The role changed while the card waited.
-    await resumeWith(
-      { ...request, props: personProps([Permission.Viewer]) },
-      [{ toolCallId: "change-1", approved: true }],
-    );
+    await resumeWith({ ...request, props: personProps([Permission.Viewer]) }, [
+      { toolCallId: "change-1", approved: true },
+    ]);
 
     expect(callsReceived()).toEqual([]);
     expect(
-      harness
-        .lastToolActions()
-        .find((action: AIChatToolAction): boolean => {
-          return action.id === "change-1";
-        })?.status,
+      harness.lastToolActions().find((action: AIChatToolAction): boolean => {
+        return action.id === "change-1";
+      })?.status,
     ).toBe(AIChatToolActionStatus.Failed);
   });
 

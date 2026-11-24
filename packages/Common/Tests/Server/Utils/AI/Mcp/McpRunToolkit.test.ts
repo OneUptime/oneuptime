@@ -114,7 +114,9 @@ beforeEach(() => {
   recordSpy = jest
     .spyOn(ExternalMcpServerCheck, "recordConnection")
     .mockResolvedValue(undefined);
-  aiOffSpy = jest.spyOn(AiCommandKillSwitch, "isAiOff").mockResolvedValue(false);
+  aiOffSpy = jest
+    .spyOn(AiCommandKillSwitch, "isAiOff")
+    .mockResolvedValue(false);
 });
 
 afterEach(async () => {

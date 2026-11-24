@@ -95,11 +95,11 @@ beforeEach(() => {
       allowances.push(data.allowance);
       return onServers;
     }) as never);
-  jest.spyOn(ExternalMcpServerService, "findBy").mockImplementation((async (
-    data: { query: JSONObject },
-  ) => {
-    return data.query["isEnabled"] === false ? offServers : onServers;
-  }) as never);
+  jest
+    .spyOn(ExternalMcpServerService, "findBy")
+    .mockImplementation((async (data: { query: JSONObject }) => {
+      return data.query["isEnabled"] === false ? offServers : onServers;
+    }) as never);
   jest.spyOn(logger, "error").mockImplementation((): void => {});
 });
 
@@ -116,8 +116,7 @@ async function build(data?: {
     projectId: PROJECT_ID,
     aiRunId: RUN_ID,
     props: props(data?.permissions || [Permission.ProjectMember]),
-    permissionMode:
-      data?.permissionMode || AIChatPermissionMode.AskForApproval,
+    permissionMode: data?.permissionMode || AIChatPermissionMode.AskForApproval,
     outputPager: new ToolOutputPager(),
     hasReadToolOutput: data?.hasReadToolOutput === true,
   });

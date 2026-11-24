@@ -36,7 +36,10 @@ import {
   AIRunPausedState,
   AIToolRefusal,
 } from "../../../../Types/AI/AIChatTypes";
-import { AI_ACTION_LINES, AI_ACTION_TITLES } from "../../../../Types/AI/AIActionWords";
+import {
+  AI_ACTION_LINES,
+  AI_ACTION_TITLES,
+} from "../../../../Types/AI/AIActionWords";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
@@ -180,8 +183,9 @@ interface Spies {
 }
 
 function installSpies(run?: AIRun | undefined): Spies {
-  const createEvent: jest.SpiedFunction<typeof AIRunEventService.create> =
-    jest.spyOn(AIRunEventService, "create").mockResolvedValue({} as never);
+  const createEvent: jest.SpiedFunction<typeof AIRunEventService.create> = jest
+    .spyOn(AIRunEventService, "create")
+    .mockResolvedValue({} as never);
   jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1 as never);
   jest.spyOn(AiContextReader, "read").mockResolvedValue(null as never);
   jest
@@ -226,7 +230,12 @@ function installSpies(run?: AIRun | undefined): Spies {
     .spyOn(AIService, "executeWithLogging")
     .mockResolvedValue(response({ content: "Done." }) as never);
 
-  return { executeWithLogging, runUpdateOneBy, messageUpdateOneBy, createEvent };
+  return {
+    executeWithLogging,
+    runUpdateOneBy,
+    messageUpdateOneBy,
+    createEvent,
+  };
 }
 
 function request(overrides?: Partial<ChatTurnRequest>): ChatTurnRequest {
@@ -284,8 +293,7 @@ function lastToolActions(spies: Spies): Array<AIChatToolAction> {
 
 function toolsOffered(spies: Spies, index: number = 0): Array<string> {
   return (
-    (spies.executeWithLogging.mock.calls[index]![0] as AILogRequest).tools ||
-    []
+    (spies.executeWithLogging.mock.calls[index]![0] as AILogRequest).tools || []
   ).map((tool: LLMToolDefinition): string => {
     return tool.name;
   });
@@ -313,8 +321,9 @@ describe("an extra tool that always asks for approval", () => {
 
     await ChatAgentRunner.runTurn(request({ extraTools: stubTools().tools }));
 
-    const pending: JSONObject = (pausedState(spies)!
-      .pendingToolCalls as Array<JSONObject>)[0]!;
+    const pending: JSONObject = (
+      pausedState(spies)!.pendingToolCalls as Array<JSONObject>
+    )[0]!;
     expect(pending["arguments"]).toEqual({
       server: "Kubernetes",
       tool: "restart",
@@ -497,8 +506,8 @@ describe("the project's external MCP servers in a turn", () => {
     await ChatAgentRunner.runTurn(turn);
 
     expect(build).toHaveBeenCalledTimes(1);
-    const args: Parameters<typeof ChatMcpAccess.buildForTurn>[0] = build.mock
-      .calls[0]![0];
+    const args: Parameters<typeof ChatMcpAccess.buildForTurn>[0] =
+      build.mock.calls[0]![0];
     expect(args.projectId).toBe(PROJECT_ID);
     expect(args.props).toBe(turn.props);
     expect(args.permissionMode).toBe(AIChatPermissionMode.AskForApproval);
@@ -573,15 +582,17 @@ describe("the project's external MCP servers in a turn", () => {
   test("a page's command tools and the servers' tools page with one pager, and read_tool_output is offered once", async () => {
     installSpies();
     const pager: ToolOutputPager = new ToolOutputPager();
-    jest.spyOn(ChatInfrastructureAccess, "buildForPage").mockImplementation(
-      async (data: { outputPager?: ToolOutputPager | undefined }) => {
-        expect(data.outputPager).toBe(pager);
-        return {
-          extraTools: [pager.buildReadTool()],
-          instructions: "# Commands on infrastructure",
-        };
-      },
-    );
+    jest
+      .spyOn(ChatInfrastructureAccess, "buildForPage")
+      .mockImplementation(
+        async (data: { outputPager?: ToolOutputPager | undefined }) => {
+          expect(data.outputPager).toBe(pager);
+          return {
+            extraTools: [pager.buildReadTool()],
+            instructions: "# Commands on infrastructure",
+          };
+        },
+      );
     const { build } = stubServers();
 
     await ChatAgentRunner.runTurn(
@@ -596,8 +607,8 @@ describe("the project's external MCP servers in a turn", () => {
       }),
     );
 
-    const args: Parameters<typeof ChatMcpAccess.buildForTurn>[0] = build.mock
-      .calls[0]![0];
+    const args: Parameters<typeof ChatMcpAccess.buildForTurn>[0] =
+      build.mock.calls[0]![0];
     expect(args.outputPager).toBe(pager);
     expect(args.hasReadToolOutput).toBe(true);
   });

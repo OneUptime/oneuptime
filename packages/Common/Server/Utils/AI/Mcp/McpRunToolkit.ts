@@ -304,8 +304,7 @@ export default class McpRunToolkit {
 
     return servers.map((server: ExternalMcpServer): ServerState => {
       const base: string =
-        (server.name || "").replace(WHITESPACE_RUN, " ").trim() ||
-        "MCP server";
+        (server.name || "").replace(WHITESPACE_RUN, " ").trim() || "MCP server";
       let label: string = base;
       let suffix: number = 2;
 
@@ -995,7 +994,10 @@ export default class McpRunToolkit {
     }
 
     const answer: McpToolResultText = readMcpToolResult(result);
-    const text: string = connection.redact(answer.text, Number.MAX_SAFE_INTEGER);
+    const text: string = connection.redact(
+      answer.text,
+      Number.MAX_SAFE_INTEGER,
+    );
 
     await onFinished?.({ isError: answer.isError, text });
 
@@ -1093,10 +1095,7 @@ export default class McpRunToolkit {
         parsed.toolArguments,
       ),
     };
-    const rationale: string | undefined = ToolArgs.getString(
-      args,
-      "rationale",
-    );
+    const rationale: string | undefined = ToolArgs.getString(args, "rationale");
 
     if (rationale) {
       preparedArguments["rationale"] = rationale;

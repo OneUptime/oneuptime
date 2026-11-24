@@ -183,8 +183,9 @@ export function installTurnHarness(): TurnHarness {
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
   jest.spyOn(logger, "info").mockImplementation((): void => {});
 
-  const createEvent: jest.SpiedFunction<typeof AIRunEventService.create> =
-    jest.spyOn(AIRunEventService, "create").mockResolvedValue({} as never);
+  const createEvent: jest.SpiedFunction<typeof AIRunEventService.create> = jest
+    .spyOn(AIRunEventService, "create")
+    .mockResolvedValue({} as never);
   jest.spyOn(AIRunService, "updateOneById").mockResolvedValue(1 as never);
   jest.spyOn(AiContextReader, "read").mockResolvedValue(null as never);
 
@@ -288,8 +289,7 @@ export function installTurnHarness(): TurnHarness {
     },
     runEvents: (): Array<JSONObject> => {
       return createEvent.mock.calls.map((call: Array<unknown>): JSONObject => {
-        return ((call[0] as { data?: JSONObject }).data ||
-          {}) as JSONObject;
+        return ((call[0] as { data?: JSONObject }).data || {}) as JSONObject;
       });
     },
     llmRequests: (): Array<AILogRequest> => {
@@ -415,7 +415,8 @@ export function toolResultFor(
   return "";
 }
 
-export function citationsOf(finalized: JSONObject | undefined): Array<AIChatCitation> {
-  return ((finalized?.["citations"] as unknown) ||
-    []) as Array<AIChatCitation>;
+export function citationsOf(
+  finalized: JSONObject | undefined,
+): Array<AIChatCitation> {
+  return ((finalized?.["citations"] as unknown) || []) as Array<AIChatCitation>;
 }

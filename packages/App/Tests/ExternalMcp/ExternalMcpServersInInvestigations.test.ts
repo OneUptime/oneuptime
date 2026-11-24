@@ -34,7 +34,10 @@ import {
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import AIChatPageContextType from "Common/Types/AI/AIChatPageContext";
-import { AIChatToolAction, AIChatToolActionStatus } from "Common/Types/AI/AIChatTypes";
+import {
+  AIChatToolAction,
+  AIChatToolActionStatus,
+} from "Common/Types/AI/AIChatTypes";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
@@ -359,8 +362,7 @@ describe("the autonomous investigation of an incident", () => {
   }> {
     const outcomes: Array<ObservabilityAssistantToolOutcome> = [];
     const calls: Array<ObservabilityAssistantModelCall> = [];
-    const extraTools: Array<ObservabilityAssistantExtraTool> =
-      kit.buildTools();
+    const extraTools: Array<ObservabilityAssistantExtraTool> = kit.buildTools();
 
     const result: ObservabilityAssistantResult =
       await ObservabilityAssistant.answerQuestion({
@@ -418,7 +420,9 @@ describe("the autonomous investigation of an incident", () => {
     expect(kit).not.toBeNull();
 
     const { outcomes, calls } = await investigate(kit!, [
-      toolCallReply("list-1", LIST_MCP_TOOLS_TOOL_NAME, { server: SERVER_NAME }),
+      toolCallReply("list-1", LIST_MCP_TOOLS_TOOL_NAME, {
+        server: SERVER_NAME,
+      }),
       toolCallReply("read-1", CALL_MCP_TOOL_TOOL_NAME, {
         server: SERVER_NAME,
         tool: "get_pod_status",
@@ -431,7 +435,10 @@ describe("the autonomous investigation of an incident", () => {
         return tool.name;
       }),
     ).toEqual(
-      expect.arrayContaining([LIST_MCP_TOOLS_TOOL_NAME, CALL_MCP_TOOL_TOOL_NAME]),
+      expect.arrayContaining([
+        LIST_MCP_TOOLS_TOOL_NAME,
+        CALL_MCP_TOOL_TOOL_NAME,
+      ]),
     );
     // An investigation is never handed the tool that asks a person.
     expect(
@@ -452,7 +459,9 @@ describe("the autonomous investigation of an incident", () => {
     const kit: McpRunToolkit | null = await investigationToolkit();
 
     const { outcomes } = await investigate(kit!, [
-      toolCallReply("list-1", LIST_MCP_TOOLS_TOOL_NAME, { server: SERVER_NAME }),
+      toolCallReply("list-1", LIST_MCP_TOOLS_TOOL_NAME, {
+        server: SERVER_NAME,
+      }),
       toolCallReply("read-1", CALL_MCP_TOOL_TOOL_NAME, {
         server: SERVER_NAME,
         tool: "k8s_get_resources",
