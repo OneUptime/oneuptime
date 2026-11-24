@@ -22,6 +22,7 @@ import {
   findSensitiveValues,
   TextMatch,
 } from "../../../Utils/DataSecurity/TextScanner";
+import AndroidAgentRedactor from "../../../Utils/Host/AndroidAgentRedactor";
 
 /*
  * CONTACT AND IDENTITY, AS THE SCANNER FINDS THEM.
@@ -169,6 +170,292 @@ describe("email-address", () => {
     expect(isTestEmail("jane@EXAMPLE.com")).toBe(true);
     expect(isTestEmail("jane@localhost")).toBe(true);
     expect(isTestEmail("jane@example.co")).toBe(false);
+  });
+});
+
+interface EmailFinding {
+  written: string;
+  normalized: string;
+  confidence: DataConfidence;
+  isTestValue: boolean;
+}
+
+function emailFindings(text: string): Array<EmailFinding> {
+  return findSensitiveValues(text, { detectors: CONTACT_DETECTORS })
+    .filter((match: TextMatch) => {
+      return match.dataTypeId === "email-address";
+    })
+    .map((match: TextMatch) => {
+      return {
+        written: text.slice(match.start, match.end),
+        normalized: match.normalized,
+        confidence: match.confidence,
+        isTestValue: match.isTestValue,
+      };
+    });
+}
+
+/*
+ * #10935: an email address in a percent-encoded URL - jane.doe%40acmecorp.io
+ * in /signup?email=..., as browsers and HTTP clients write a query string -
+ * was never found. It is read with its escapes read now, found on the
+ * characters it is written with, as the address it reads as.
+ */
+describe("email-address: in a percent-encoded URL (#10935)", () => {
+  test.each([
+    [
+      "the query string of the issue",
+      "GET /signup?email=jane.doe%40acmecorp.io HTTP/1.1",
+      "jane.doe%40acmecorp.io",
+      "jane.doe@acmecorp.io",
+    ],
+    [
+      "its plus sign encoded",
+      "u=jane.doe%2Bnews%40acmecorp.io&n=1",
+      "jane.doe%2Bnews%40acmecorp.io",
+      "jane.doe+news@acmecorp.io",
+    ],
+    [
+      "its dots encoded",
+      "to=jane%2Edoe%40acmecorp%2Eio",
+      "jane%2Edoe%40acmecorp%2Eio",
+      "jane.doe@acmecorp.io",
+    ],
+    [
+      "in capitals, read in lower case",
+      "u=Jane.Doe%40AcmeCorp.IO",
+      "Jane.Doe%40AcmeCorp.IO",
+      "jane.doe@acmecorp.io",
+    ],
+    [
+      "in lower-case escapes",
+      "u=jane%40acmecorp.io",
+      "jane%40acmecorp.io",
+      "jane@acmecorp.io",
+    ],
+    [
+      "encoded twice, in a URL inside a query string",
+      "next=%2Fsignup%3Femail%3Djane%2540acmecorp.io",
+      "jane%2540acmecorp.io",
+      "jane@acmecorp.io",
+    ],
+    [
+      "in a JSON body's URL",
+      '{"url":"/welcome?to=jane%40acmecorp.io","n":1}',
+      "jane%40acmecorp.io",
+      "jane@acmecorp.io",
+    ],
+  ])(
+    "finds %s on its written characters: %s",
+    (_label: string, text: string, written: string, normalized: string) => {
+      expect(emailFindings(text)).toEqual([
+        { written, normalized, confidence: H, isTestValue: false },
+      ]);
+    },
+  );
+
+  test("counts an encoded address of a documentation domain as a test value", () => {
+    expect(emailFindings("u=jane%40example.com")).toEqual([
+      {
+        written: "jane%40example.com",
+        normalized: "jane@example.com",
+        confidence: H,
+        isTestValue: true,
+      },
+    ]);
+  });
+
+  test("an address found as written and as its escapes read is one finding", () => {
+    expect(emailFindings("u=jane@acmecorp.io&q=a%20b")).toEqual([
+      {
+        written: "jane@acmecorp.io",
+        normalized: "jane@acmecorp.io",
+        confidence: H,
+        isTestValue: false,
+      },
+    ]);
+  });
+
+  test("refuses what an encoded text of no address reads as", () => {
+    expectNothingOf("email-address", [
+      "GET /assets/logo%402x.png HTTP/1.1",
+      "GET /search?q=jane%40&n=1",
+      "u=%40acmecorp.io",
+      "100%40 off",
+      "u=jane%40acmecorp",
+      "u=jane..doe%40acmecorp.io",
+      "cpu 100% busy",
+    ]);
+  });
+
+  test("finds an encoded address wherever a window of a long text cuts it", () => {
+    const written: string = "jane.doe%40acmecorp.io";
+
+    for (const at of [61_430, 61_440, 61_450, 65_520, 65_530, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " u=" + written + " " + "b".repeat(8_000);
+      const found: Array<EmailFinding> = emailFindings(text);
+
+      expect([at, found.length]).toEqual([at, 1]);
+      expect(found[0]!.written).toBe(written);
+      expect(found[0]!.normalized).toBe("jane.doe@acmecorp.io");
+    }
+  });
+});
+
+/*
+ * #10960: an email address in another script - 张伟@example.com,
+ * josé@example.com, user@例え.jp, почта@пример.рф - and one with a punycode
+ * top-level domain were never found. A second detector reads them as the
+ * Android agent's redactor does (#10937): a Latin name or another script's,
+ * never both; a domain in any script's letters or punycode.
+ */
+describe("email-address: in any script (#10960)", () => {
+  test.each([
+    [
+      "a name in Han letters",
+      "email 张伟@acmecorp.io sent",
+      "张伟@acmecorp.io",
+    ],
+    [
+      "a Latin name with accents",
+      "email josé.garcía@acmecorp.io sent",
+      "josé.garcía@acmecorp.io",
+    ],
+    ["a domain in Japanese", "email user@例え.jp sent", "user@例え.jp"],
+    [
+      "a name and a domain in Cyrillic",
+      "email почта@пример.рф sent",
+      "почта@пример.рф",
+    ],
+    [
+      "a punycode top-level domain",
+      "email user@пример.xn--p1ai sent",
+      "user@пример.xn--p1ai",
+    ],
+    [
+      "a name in Devanagari, its marks among its letters",
+      "ईमेल मोहन@उदाहरण.भारत भेजा",
+      "मोहन@उदाहरण.भारत",
+    ],
+    ["a name in Greek", "email θέμα@acmecorp.io sent", "θέμα@acmecorp.io"],
+  ])("finds %s: %s", (_label: string, text: string, written: string) => {
+    const found: Array<EmailFinding> = emailFindings(text);
+
+    expect(
+      found.map((finding: EmailFinding) => {
+        return finding.written;
+      }),
+    ).toEqual([written]);
+    expect(found[0]!.confidence).toBe(H);
+    expect(found[0]!.isTestValue).toBe(false);
+  });
+
+  test("the issue's table: each address found, a documentation domain's as a test value", () => {
+    for (const [text, written] of [
+      ["email jane.doe@example.com", "jane.doe@example.com"],
+      ["email 张伟@example.com", "张伟@example.com"],
+      ["email josé.garcia@example.com", "josé.garcia@example.com"],
+      ["email user@例え.jp", "user@例え.jp"],
+      ["email user@xn--r8jz45g.jp", "user@xn--r8jz45g.jp"],
+      ["email почта@пример.рф", "почта@пример.рф"],
+    ]) {
+      expect([
+        text,
+        emailFindings(text!).map((finding: EmailFinding) => {
+          return finding.written;
+        }),
+      ]).toEqual([text, [written]]);
+    }
+  });
+
+  test("a name is Latin or another script's, never both: where they meet an address begins", () => {
+    expect(emailFindings("邮箱jane@acmecorp.io")).toEqual([
+      {
+        written: "jane@acmecorp.io",
+        normalized: "jane@acmecorp.io",
+        confidence: H,
+        isTestValue: false,
+      },
+    ]);
+    expect(
+      emailFindings("jane张伟@acmecorp.io").map((finding: EmailFinding) => {
+        return finding.written;
+      }),
+    ).toEqual(["张伟@acmecorp.io"]);
+  });
+
+  test("a letter of another script after an ASCII top-level domain is no part of it", () => {
+    expect(
+      emailFindings("jane@acmecorp.io已发送").map((finding: EmailFinding) => {
+        return finding.written;
+      }),
+    ).toEqual(["jane@acmecorp.io"]);
+  });
+
+  test("is read in one spelling: lower case, its accents composed", () => {
+    expect(emailFindings("email Josée@AcmeCorp.IO")[0]!.normalized).toBe(
+      "josée@acmecorp.io",
+    );
+    // "é" written as "e" and a combining accent reads as the one character.
+    expect(emailFindings("email josé@acmecorp.io")[0]!.normalized).toBe(
+      "josé@acmecorp.io",
+    );
+  });
+
+  test("refuses what no address in any script is", () => {
+    expectNothingOf("email-address", [
+      "@用户 你好",
+      "联系 张伟@ 已发送",
+      "张伟@微信",
+      "почта@пример.р",
+      "user@пример.xn--4111",
+      "4111 1111 1111 1111é@例え.jp",
+      "logo@2x.png",
+    ]);
+  });
+
+  test("agrees with the Android agent's redactor on what an address in any script is", () => {
+    for (const text of [
+      "email 张伟@acmecorp.io sent",
+      "email josé.garcía@acmecorp.io sent",
+      "email user@例え.jp sent",
+      "email почта@пример.рф sent",
+      "email user@пример.xn--p1ai sent",
+      "邮箱jane@acmecorp.io已发送",
+      "4111 1111 1111 1111é@例え.jp",
+      "@用户 你好",
+    ]) {
+      const redacted: string = AndroidAgentRedactor.redact(text);
+      const found: Array<EmailFinding> = emailFindings(text);
+      let rewritten: string = text;
+
+      for (const finding of [...found].reverse()) {
+        const at: number = rewritten.lastIndexOf(finding.written);
+
+        rewritten =
+          rewritten.slice(0, at) +
+          "[email]" +
+          rewritten.slice(at + finding.written.length);
+      }
+
+      // A card the redactor takes out is no address's business here.
+      expect([text, rewritten]).toEqual([
+        text,
+        redacted.replace("[card number]", "4111 1111 1111 1111"),
+      ]);
+    }
+  });
+
+  test("finds an address in another script wherever a window of a long text cuts it", () => {
+    for (const at of [61_430, 61_440, 61_450, 65_520, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " to 张伟@acmecorp.io " + "b".repeat(8_000);
+      const found: Array<EmailFinding> = emailFindings(text);
+
+      expect([at, found.length]).toEqual([at, 1]);
+      expect(found[0]!.written).toBe("张伟@acmecorp.io");
+    }
   });
 });
 
