@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "Een opslag met persoonsgegevens, eens per dag zolang 'Aan nieuwe problemen werken' aan staat, zoals uw AI-regels voor gegevensbeveiliging toestaan.",
   "AI provider": "AI-aanbieder",
   "Accepted risk": "Geaccepteerd risico",
+  "Add to Authenticator App": "Toevoegen aan authenticator-app",
   "All {{count}} of its checks pass on every store in scope": "Alle {{count}} controles slagen op elke opslag binnen bereik",
   "All {{count}} of its checks pass on every store in scope_one": "De {{count}} controle slaagt op elke opslag binnen bereik",
   "Audit Evidence": "Auditbewijs",

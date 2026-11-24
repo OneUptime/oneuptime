@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "مخزنی که داده شخصی دارد، روزی یک بار تا وقتی «کار روی مسائل جدید» روشن است، همان‌طور که قواعد هوش مصنوعی امنیت داده شما اجازه می‌دهند.",
   "AI provider": "ارائه‌دهنده هوش مصنوعی",
   "Accepted risk": "ریسک پذیرفته‌شده",
+  "Add to Authenticator App": "افزودن به اپلیکیشن احراز هویت",
   "All {{count}} of its checks pass on every store in scope": "همه {{count}} بررسی آن روی همه مخازن در محدوده موفق‌اند",
   "All {{count}} of its checks pass on every store in scope_one": "{{count}} بررسی آن روی همه مخازن در محدوده موفق است",
   "Audit Evidence": "شواهد ممیزی",

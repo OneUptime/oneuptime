@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "個人データを保持するデータストア: 「新しい問題に対応する」がオンの間、データセキュリティの AI ルールが許す範囲で 1 日 1 回実行されます。",
   "AI provider": "AI プロバイダー",
   "Accepted risk": "受容されたリスク",
+  "Add to Authenticator App": "認証アプリに追加",
   "All {{count}} of its checks pass on every store in scope": "対象範囲内のすべてのデータストアで {{count}} 件のチェックすべてに合格",
   "All {{count}} of its checks pass on every store in scope_one": "対象範囲内のすべてのデータストアで {{count}} 件のチェックすべてに合格",
   "Audit Evidence": "監査証拠",

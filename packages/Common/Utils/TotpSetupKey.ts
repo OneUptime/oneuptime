@@ -72,6 +72,27 @@ export function getTotpSetupKey(otpUrl: string | undefined | null): string {
 }
 
 /*
+ * What hands the enrolment to the authenticator app on the device the page
+ * is open on (issue #6651): the otpauth:// URL itself, exactly as the QR
+ * code holds it - the same secret, the same parameters - or "" when it is no
+ * URL an authenticator app can take, by the same rule as the setup key (an
+ * otpauth:// URL with a base32 secret). So a page never offers a hand-off
+ * that cannot work, and never sends the browser anywhere but an otpauth://
+ * URL. Google Authenticator, Microsoft Authenticator, 1Password and iOS
+ * Passwords open such a URL with the account filled in; the mobile app hands
+ * over the same one (TwoFactorEnrolmentScreen).
+ */
+export function getTotpAuthenticatorAppLink(
+  otpUrl: string | undefined | null,
+): string {
+  if (typeof otpUrl !== "string" || !getTotpSetupKey(otpUrl)) {
+    return "";
+  }
+
+  return otpUrl.trim();
+}
+
+/*
  * The key in groups of four, as it is shown: MTEA 5EME V46E OK5M ... Easier to
  * read off a screen and type in than thirty-two letters at once. It is copied
  * whole, without the gaps.

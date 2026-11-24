@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "Хранилище с персональными данными — раз в день, пока включено «Работать с новыми проблемами», как разрешают ваши правила ИИ для безопасности данных.",
   "AI provider": "Провайдер ИИ",
   "Accepted risk": "Принятый риск",
+  "Add to Authenticator App": "Добавить в приложение-аутентификатор",
   "All {{count}} of its checks pass on every store in scope": "Все его проверки ({{count}}) пройдены на всех хранилищах в области",
   "All {{count}} of its checks pass on every store in scope_one": "Его {{count}} проверка пройдена на всех хранилищах в области",
   "Audit Evidence": "Доказательства для аудита",

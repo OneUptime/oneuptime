@@ -114,7 +114,7 @@ Die Zwei-Faktor-Authentifizierung gilt, wenn Sie sich mit Ihrem Passwort oder ei
 
 ### Ihn einrichten
 
-Für eine Authenticator-App scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben den sechsstelligen Code ein, den sie zeigt, und klicken auf **Verifizieren und abschließen**. Einem USB- oder NFC-Schlüssel geben Sie einen Namen und folgen der Aufforderung Ihres Browsers. Danach ist die Zwei-Faktor-Authentifizierung eingeschaltet, und die Karte zeigt **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
+Für eine Authenticator-App scannen Sie den QR-Code mit einer App wie 1Password, Google Authenticator oder Microsoft Authenticator, geben den sechsstelligen Code ein, den sie zeigt, und klicken auf **Verifizieren und abschließen**. Auf einem Smartphone tippen Sie statt zu scannen auf **Zur Authenticator-App hinzufügen**: Ihre App öffnet sich mit Ihrem Konto bereits eingetragen. Einem USB- oder NFC-Schlüssel geben Sie einen Namen und folgen der Aufforderung Ihres Browsers. Danach ist die Zwei-Faktor-Authentifizierung eingeschaltet, und die Karte zeigt **Aktiviert**. Ab Ihrer nächsten Anmeldung mit Passwort oder einem per E-Mail gesendeten Link fragt OneUptime nach Ihrem zweiten Schritt.
 
 ### Ihre Backup-Codes sichern
 
@@ -127,7 +127,7 @@ Haben Sie unter **Authenticator-Apps** schon eine App oder unter **Sicherheitssc
 
 Verlangt ein Administrator die Zwei-Faktor-Authentifizierung und haben Sie noch nichts eingerichtet, fordert Sie Ihre nächste Anmeldung mit Passwort oder einem per E-Mail gesendeten Link auf, sie einzurichten, bevor sie Sie hineinlässt. Wählen Sie **Authenticator-App** oder **Sicherheitsschlüssel** und klicken Sie auf **Weiter**:
 
-- **Authenticator-App**: Scannen Sie den QR-Code, geben Sie den sechsstelligen Code ein, den Ihre App zeigt, und klicken Sie auf **Bestätigen und anmelden**.
+- **Authenticator-App**: Scannen Sie den QR-Code, geben Sie den sechsstelligen Code ein, den Ihre App zeigt, und klicken Sie auf **Bestätigen und anmelden**. Auf einem Smartphone tippen Sie statt zu scannen auf **Zur Authenticator-App hinzufügen**.
 - **Sicherheitsschlüssel**: Klicken Sie auf **Sicherheitsschlüssel registrieren** und folgen Sie der Aufforderung Ihres Browsers. Berühren Sie einen USB- oder NFC-Schlüssel, oder nutzen Sie den Fingerabdruck, das Gesicht oder die Displaysperre Ihres Smartphones oder Computers.
 
 Haben Sie noch keine Backup-Codes, zeigt OneUptime sie Ihnen danach einmal, und Sie sind angemeldet. **Andere Methode wählen** führt zurück zur Auswahl. Ein Browser, der keinen Sicherheitsschlüssel registrieren kann, etwa auf einer Seite ohne HTTPS, bietet nur die Authenticator-App an.

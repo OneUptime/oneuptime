@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "Ett datalager som innehåller personuppgifter, en gång om dagen medan ”Arbeta med nya problem” är påslaget, som dina AI-regler för datasäkerhet tillåter.",
   "AI provider": "AI-leverantör",
   "Accepted risk": "Accepterad risk",
+  "Add to Authenticator App": "Lägg till i autentiseringsapp",
   "All {{count}} of its checks pass on every store in scope": "Alla kravets {{count}} kontroller godkänns på varje datalager inom omfattningen",
   "All {{count}} of its checks pass on every store in scope_one": "Kravets {{count}} kontroll godkänns på varje datalager inom omfattningen",
   "Audit Evidence": "Revisionsbevis",

@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "व्यक्तिगत डेटा रखने वाला स्टोर, दिन में एक बार, जब तक \"नई समस्याओं पर काम करें\" चालू है, जैसा आपके डेटा सुरक्षा AI नियम अनुमति दें।",
   "AI provider": "AI प्रदाता",
   "Accepted risk": "स्वीकृत जोखिम",
+  "Add to Authenticator App": "प्रमाणक ऐप में जोड़ें",
   "All {{count}} of its checks pass on every store in scope": "इसकी सभी {{count}} जांचें दायरे के हर स्टोर पर पास होती हैं",
   "All {{count}} of its checks pass on every store in scope_one": "इसकी {{count}} जांच दायरे के हर स्टोर पर पास होती है",
   "Audit Evidence": "ऑडिट साक्ष्य",

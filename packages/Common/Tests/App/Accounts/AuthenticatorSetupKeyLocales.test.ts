@@ -4,8 +4,9 @@ import path from "path";
 
 /*
  * The words of the authenticator app's setup - its QR code and the setup key
- * under it (issue #6638) - in every language of the sign-in pages, and of the
- * Dashboard, which draws the same component (AuthenticatorAppSetupCode).
+ * under it (issue #6638), and on a phone the button that hands it to the
+ * authenticator app (#6651) - in every language of the sign-in pages, and of
+ * the Dashboard, which draws the same component (AuthenticatorAppSetupCode).
  *
  * The sign-in pages are where someone whose administrator requires
  * two-factor authentication sets it up, most often in their own language (the
@@ -64,6 +65,8 @@ const CANT_SCAN: string = "Can't scan the QR code?";
 const ENTER_KEY: string =
   "Enter this setup key in your authenticator app instead.";
 const TIME_BASED: string = "If your app asks, choose a time-based key.";
+// On a touch screen, the button that hands the enrolment to the app (#6651).
+const ADD_TO_APP: string = "Add to Authenticator App";
 
 // What the setup component and the QR code say.
 const SETUP_KEYS: Array<string> = [
@@ -72,6 +75,7 @@ const SETUP_KEYS: Array<string> = [
   CANT_SCAN,
   ENTER_KEY,
   TIME_BASED,
+  ADD_TO_APP,
 ];
 
 // What the copy button beside the key says.
@@ -219,6 +223,34 @@ describe("the setup key's words on the sign-in pages", () => {
 
       expect(enrolmentWordOf(locale, "codeFieldDescription")).toContain(app);
       expect(wordsOf(locale, ENTER_KEY)).toContain(app);
+      expect(wordsOf(locale, ADD_TO_APP)).toContain(app);
+    },
+  );
+
+  test.each(LANGUAGES)(
+    "say Add to Authenticator App as a button, never a sentence, in %s",
+    (language: string) => {
+      const words: string = wordsOf(
+        readLocale(ACCOUNTS_LOCALES, language),
+        ADD_TO_APP,
+      );
+
+      expect(words).not.toMatch(SENTENCE_END);
+      expect(words).not.toMatch(QUESTION_END);
+    },
+  );
+
+  /*
+   * The one component draws it on the sign-in page and in the Dashboard, and
+   * the docs name it once in each language (Your Account), so it is the same
+   * words in both.
+   */
+  test.each(LANGUAGES)(
+    "say Add to Authenticator App as the Dashboard does, in %s",
+    (language: string) => {
+      expect(wordsOf(readLocale(ACCOUNTS_LOCALES, language), ADD_TO_APP)).toBe(
+        wordsOf(readLocale(DASHBOARD_LOCALES, language), ADD_TO_APP),
+      );
     },
   );
 

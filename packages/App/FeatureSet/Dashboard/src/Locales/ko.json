@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "개인 데이터가 있는 저장소. \"새 이슈 처리\"가 켜져 있는 동안 하루에 한 번, 데이터 보안 AI 규칙이 허용하는 대로 실행됩니다.",
   "AI provider": "AI 공급자",
   "Accepted risk": "수락된 위험",
+  "Add to Authenticator App": "인증 앱에 추가",
   "All {{count}} of its checks pass on every store in scope": "범위 내 모든 저장소에서 검사 {{count}}개 모두 통과",
   "All {{count}} of its checks pass on every store in scope_one": "범위 내 모든 저장소에서 검사 {{count}}개 모두 통과",
   "Audit Evidence": "감사 증거",

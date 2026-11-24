@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "مخزن يحتفظ ببيانات شخصية، مرة يوميًا ما دام «العمل على المشكلات الجديدة» مُفعَّلًا، وكما تسمح قواعد الذكاء الاصطناعي لأمن البيانات لديك.",
   "AI provider": "موفّر ذكاء اصطناعي",
   "Accepted risk": "مخاطرة مقبولة",
+  "Add to Authenticator App": "إضافة إلى تطبيق المصادقة",
   "All {{count}} of its checks pass on every store in scope": "تنجح كل فحوصاته على كل مخزن ضمن النطاق (العدد: {{count}})",
   "All {{count}} of its checks pass on every store in scope_one": "ينجح فحصه الوحيد ({{count}}) على كل مخزن ضمن النطاق",
   "Audit Evidence": "أدلة التدقيق",

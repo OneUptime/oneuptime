@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "Un archivio che contiene dati personali, una volta al giorno mentre «Lavora sui nuovi problemi» è attivo, come consentono le tue regole IA della sicurezza dei dati.",
   "AI provider": "Fornitore di IA",
   "Accepted risk": "Rischio accettato",
+  "Add to Authenticator App": "Aggiungi all'app di autenticazione",
   "All {{count}} of its checks pass on every store in scope": "Tutti i suoi {{count}} controlli sono superati su ogni archivio nell'ambito",
   "All {{count}} of its checks pass on every store in scope_one": "Il suo {{count}} controllo è superato su ogni archivio nell'ambito",
   "Audit Evidence": "Prove di audit",

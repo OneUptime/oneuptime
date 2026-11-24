@@ -63118,6 +63118,7 @@
   "A store that holds personal data, once a day while Work on new issues is on, as your Data Security AI rules allow.": "在「處理新問題」開啟期間，依您的資料安全 AI 規則所允許的，保存個人資料的資料儲存區，每天一次。",
   "AI provider": "AI 提供者",
   "Accepted risk": "已接受的風險",
+  "Add to Authenticator App": "新增至驗證器應用程式",
   "All {{count}} of its checks pass on every store in scope": "其全部 {{count}} 項檢查在範圍內的每個資料儲存區上都通過",
   "All {{count}} of its checks pass on every store in scope_one": "其全部 {{count}} 項檢查在範圍內的每個資料儲存區上都通過",
   "Audit Evidence": "稽核證據",
