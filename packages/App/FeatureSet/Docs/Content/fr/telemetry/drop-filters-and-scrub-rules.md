@@ -111,8 +111,8 @@ Sous **Plus de champs**, choisissez l'**Action de nettoyage** et les **Champs à
 | --- | --- |
 | **Adresse e-mail** | Les adresses e-mail, comme `jane@example.com`, y compris dans une autre écriture, comme `张伟@example.com`, et dans une URL encodée en pourcentage |
 | **Numéro de carte de crédit** | Les numéros de carte, comme `4111 1111 1111 1111` ou un numéro American Express, y compris dans les chiffres d'une autre écriture, comme `４１１１ １１１１ １１１１ １１１１`, et seize chiffres quelconques en groupes de quatre |
-| **SSN (numéro de sécurité sociale)** | Les numéros de sécurité sociale américains, comme `123-45-6789` |
-| **Numéro de téléphone** | Les numéros de téléphone nord-américains, comme `555-123-4567` |
+| **SSN (numéro de sécurité sociale)** | Les numéros de sécurité sociale américains, comme `123-45-6789`, y compris séparés par des points ou des espaces et dans les chiffres d'une autre écriture, comme `１２３-４５-６７８９` |
+| **Numéro de téléphone** | Les numéros de téléphone, comme `555-123-4567` ou `+44 20 7946 0958`, les internationaux dans les groupes où on les écrit, y compris dans une URL encodée en pourcentage et dans les chiffres d'une autre écriture, mais pas un nombre décimal, le décalage d'un fuseau horaire ni une version |
 | **Adresse IP** | Les adresses IPv4 et IPv6 publiques, comme `203.0.113.7`, `2001:db8::1` ou `2001::1`, y compris juste après le deux-points d'une clé et dans une URL encodée en pourcentage, mais pas les adresses privées, de bouclage ou link-local |
 | **Clés d'attributs sensibles** | La valeur entière de tout attribut dont la clé semble secrète, comme `password`, `token`, `api_key`, `authorization` ou `cookie` |
 | **Attributs nommés** | La valeur entière des attributs que vous nommez, quoi qu'elle contienne, comme le nom d'une personne sous `customer_name`. Une clé nomme aussi les attributs imbriqués sous elle : `user` masque `user.email` |

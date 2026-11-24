@@ -3261,7 +3261,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     const flat: string = exceptionUtil.replace(/\s+/g, " ");
 
     expect(troubleshooting).toContain(
-      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second firing New Exception again, is merged back into the first by its next occurrence: the older one is kept, nothing alerts, and **Unmerge** undoes it.\n:::",
+      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence: the older one is kept, nothing alerts, and **Unmerge** undoes it.\n:::",
     );
 
     // Tried again, then held: the occurrence's exception unknown, nothing made.

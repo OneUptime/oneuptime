@@ -111,8 +111,8 @@ En **Más campos**, elija la **Acción de depuración** y los **Campos a depurar
 | --- | --- |
 | **Dirección de correo electrónico** | Direcciones de correo electrónico, como `jane@example.com`, también en otra escritura, como `张伟@example.com`, y en una URL codificada con porcentajes |
 | **Número de tarjeta de crédito** | Números de tarjeta, como `4111 1111 1111 1111` o un número de American Express, también en los dígitos de otra escritura, como `４１１１ １１１１ １１１１ １１１１`, y cualesquiera dieciséis dígitos en grupos de cuatro |
-| **SSN (número de la Seguridad Social)** | Números de la Seguridad Social de EE. UU., como `123-45-6789` |
-| **Número de teléfono** | Números de teléfono norteamericanos, como `555-123-4567` |
+| **SSN (número de la Seguridad Social)** | Números de la Seguridad Social de EE. UU., como `123-45-6789`, también separados por puntos o espacios y en los dígitos de otra escritura, como `１２３-４５-６７８９` |
+| **Número de teléfono** | Números de teléfono, como `555-123-4567` o `+44 20 7946 0958`, los internacionales en los grupos en que se escriben, también en una URL codificada con porcentajes y en los dígitos de otra escritura, pero no un número decimal, el desfase de una zona horaria ni una versión |
 | **Dirección IP** | Direcciones IPv4 e IPv6 públicas, como `203.0.113.7`, `2001:db8::1` o `2001::1`, también justo después de los dos puntos de una clave y en una URL codificada con porcentajes, pero no las privadas, de bucle invertido ni de enlace local |
 | **Claves de atributos sensibles** | El valor completo de cualquier atributo cuya clave parezca secreta, como `password`, `token`, `api_key`, `authorization` o `cookie` |
 | **Atributos indicados** | El valor completo de los atributos que indique, contenga lo que contenga, como el nombre de una persona bajo `customer_name`. Una clave nombra también los atributos anidados bajo ella: `user` oculta `user.email` |

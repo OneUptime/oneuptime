@@ -111,8 +111,8 @@ In **Altri campi**, scegliete l'**Azione di pulizia** e i **Campi da rimuovere**
 | --- | --- |
 | **Indirizzo email** | Indirizzi email, come `jane@example.com`, anche in un'altra scrittura, come `张伟@example.com`, e in un URL codificato in percentuale |
 | **Numero di carta di credito** | Numeri di carta, come `4111 1111 1111 1111` o un numero American Express, anche nelle cifre di un'altra scrittura, come `４１１１ １１１１ １１１１ １１１１`, e sedici cifre qualsiasi in gruppi di quattro |
-| **SSN (numero di previdenza sociale USA)** | I numeri di previdenza sociale statunitensi, come `123-45-6789` |
-| **Numero di telefono** | I numeri di telefono nordamericani, come `555-123-4567` |
+| **SSN (numero di previdenza sociale USA)** | I numeri di previdenza sociale statunitensi, come `123-45-6789`, anche separati da punti o spazi e nelle cifre di un'altra scrittura, come `１２３-４５-６７８９` |
+| **Numero di telefono** | I numeri di telefono, come `555-123-4567` o `+44 20 7946 0958`, quelli internazionali nei gruppi in cui si scrivono, anche in un URL codificato in percentuale e nelle cifre di un'altra scrittura, ma non un numero decimale, lo scarto di un fuso orario o una versione |
 | **Indirizzo IP** | Indirizzi IPv4 e IPv6 pubblici, come `203.0.113.7`, `2001:db8::1` o `2001::1`, anche subito dopo i due punti di una chiave e in un URL codificato in percentuale, ma non quelli privati, di loopback o link-local |
 | **Chiavi di attributi sensibili** | L'intero valore di qualsiasi attributo la cui chiave sembri segreta, come `password`, `token`, `api_key`, `authorization` o `cookie` |
 | **Attributi indicati** | L'intero valore degli attributi che indicate, qualunque cosa contenga, come il nome di una persona sotto `customer_name`. Una chiave indica anche gli attributi annidati sotto di essa: `user` nasconde `user.email` |

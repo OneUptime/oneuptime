@@ -222,7 +222,7 @@ The fingerprint includes the message and the stack trace. When they differ, for 
 
 To list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many, and saved views and links keep it.
 
-When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second firing New Exception again, is merged back into the first by its next occurrence: the older one is kept, nothing alerts, and **Unmerge** undoes it.
+When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence: the older one is kept, nothing alerts, and **Unmerge** undoes it.
 :::
 
 :::details An exception's fingerprint changed

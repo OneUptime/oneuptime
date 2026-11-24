@@ -111,8 +111,8 @@ Em **Mais campos**, escolha a **Ação de limpeza** e os **Campos a depurar**, o
 | --- | --- |
 | **Endereço de e-mail** | Endereços de e-mail, como `jane@example.com`, também noutra escrita, como `张伟@example.com`, e numa URL com codificação percentual |
 | **Número do cartão de crédito** | Números de cartão, como `4111 1111 1111 1111` ou um número American Express, também nos dígitos de outra escrita, como `４１１１ １１１１ １１１１ １１１１`, e quaisquer dezesseis dígitos em grupos de quatro |
-| **SSN (Número de Seguro Social)** | Números do Seguro Social dos EUA, como `123-45-6789` |
-| **Número de telefone** | Números de telefone norte-americanos, como `555-123-4567` |
+| **SSN (Número de Seguro Social)** | Números do Seguro Social dos EUA, como `123-45-6789`, também separados por pontos ou espaços e nos dígitos de outra escrita, como `１２３-４５-６７８９` |
+| **Número de telefone** | Números de telefone, como `555-123-4567` ou `+44 20 7946 0958`, os internacionais nos grupos em que se escrevem, também numa URL com codificação percentual e nos dígitos de outra escrita, mas não um número decimal, o deslocamento de um fuso horário nem uma versão |
 | **Endereço IP** | Endereços IPv4 e IPv6 públicos, como `203.0.113.7`, `2001:db8::1` ou `2001::1`, também logo após os dois-pontos de uma chave e numa URL com codificação percentual, mas não os privados, de loopback ou link-local |
 | **Chaves de atributos sensíveis** | O valor inteiro de qualquer atributo cuja chave pareça secreta, como `password`, `token`, `api_key`, `authorization` ou `cookie` |
 | **Atributos nomeados** | O valor inteiro dos atributos que você nomear, seja o que for que contenha, como o nome de uma pessoa sob `customer_name`. Uma chave também nomeia os atributos aninhados sob ela: `user` oculta `user.email` |
