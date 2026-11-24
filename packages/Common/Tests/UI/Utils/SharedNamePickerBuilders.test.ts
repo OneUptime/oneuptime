@@ -166,6 +166,10 @@ const CHAT_BUILDERS: Array<string> = [
  * first 10,000 of each before), and so do a workspace rule's conditions (the
  * rules' tables read them before, with DropdownUtil).
  */
+// A picker that hands the held read a select of its own.
+const HANDS_THE_HELD_READ_A_SELECT: RegExp =
+  /useHeldValueOptions\(\{[^}]*\bselect:/;
+
 const SEARCHED_PICKERS: Array<string> = [
   "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaRecordPicker.tsx",
   "packages/App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/RecordConditionPicker.tsx",
@@ -275,8 +279,7 @@ describe("the builders of the four kinds' options", () => {
     "%s reads what tells twins apart in any select it hands the held read",
     (file: string) => {
       const source: string = read(file);
-      const handsASelect: boolean =
-        /useHeldValueOptions\(\{[^}]*\bselect:/.test(source);
+      const handsASelect: boolean = HANDS_THE_HELD_READ_A_SELECT.test(source);
 
       expect({
         file,
