@@ -64389,6 +64389,13 @@
   "Private addresses": "Privéadressen",
   "Security Events trusts these as proxies without your listing them.": "Beveiligingsgebeurtenissen vertrouwt deze als proxy's zonder dat u ze opgeeft.",
   "That is every event it matched, so it can't fire.": "Dat zijn alle overeenkomende gebeurtenissen, dus hij kan niet afgaan.",
+  "The alert states could not be loaded.": "De waarschuwingsstatussen konden niet worden geladen.",
+  "The announcement templates could not be loaded.": "De aankondigings-sjablonen konden niet worden geladen.",
+  "The incident states could not be loaded.": "De incidentstatussen konden niet worden geladen.",
+  "The incident templates could not be loaded.": "De incident-sjablonen konden niet worden geladen.",
+  "The scheduled maintenance states could not be loaded.": "De statussen van gepland onderhoud konden niet worden geladen.",
+  "The scheduled maintenance templates could not be loaded.": "De sjablonen voor gepland onderhoud konden niet worden geladen.",
+  "The {{itemName}} was not deleted.": "{{itemName}} is niet verwijderd.",
   "Trust Your Load Balancers": "Uw loadbalancers vertrouwen",
   "Trusted Automatically": "Automatisch vertrouwd",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "Zet dit aan als uw webservers X-Forwarded-For als laatste loggen, zoals het main-formaat van nginx doet. Tot dan is het eerste veld van elke logregel de client.",
@@ -64454,5 +64461,8 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Dit probleem is opzijgezet: het risico is geaccepteerd, of het is geen probleem. Heropen het om de pull request te koppelen die het oplost.",
   "Took {{pullRequest}} off this issue.": "{{pullRequest}} is ontkoppeld van dit probleem.",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "Je eigen oplossing voor dit probleem. OneUptime volgt hem tot in productie, zoals de oplossingen van OneUptime AI, en het probleem telt als opgelost zodra productie dat laat zien.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} is al aan dit probleem gekoppeld."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} is al aan dit probleem gekoppeld.",
+  "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid.",
+  "Date unknown": "Datum onbekend",
+  "Yesterday": "Gisteren"
 }

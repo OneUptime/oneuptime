@@ -64389,6 +64389,13 @@
   "Private addresses": "निजी पते",
   "Security Events trusts these as proxies without your listing them.": "सुरक्षा इवेंट इन्हें आपके सूचीबद्ध किए बिना भी प्रॉक्सी के रूप में भरोसेमंद मानता है।",
   "That is every event it matched, so it can't fire.": "मेल खाए सभी इवेंट यही हैं, इसलिए यह चल नहीं सकता।",
+  "The alert states could not be loaded.": "अलर्ट स्थितियां लोड नहीं हो सकीं।",
+  "The announcement templates could not be loaded.": "घोषणा टेम्पलेट लोड नहीं हो सके।",
+  "The incident states could not be loaded.": "घटना स्थितियां लोड नहीं हो सकीं।",
+  "The incident templates could not be loaded.": "घटना टेम्पलेट लोड नहीं हो सके।",
+  "The scheduled maintenance states could not be loaded.": "अनुसूचित रखरखाव स्थितियां लोड नहीं हो सकीं।",
+  "The scheduled maintenance templates could not be loaded.": "अनुसूचित रखरखाव टेम्पलेट लोड नहीं हो सके।",
+  "The {{itemName}} was not deleted.": "{{itemName}} हटाया नहीं गया।",
   "Trust Your Load Balancers": "अपने लोड बैलेंसर पर भरोसा करें",
   "Trusted Automatically": "अपने-आप भरोसेमंद",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "अगर आपके वेब सर्वर X-Forwarded-For को आखिर में लॉग करते हैं, जैसा nginx का main फ़ॉर्मेट करता है, तो इसे चालू करें। तब तक हर पंक्ति का पहला फ़ील्ड ही उसका क्लाइंट है।",
@@ -64454,5 +64461,8 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "यह इश्यू अलग रखा गया है: इसका जोखिम स्वीकार किया गया, या यह इश्यू नहीं है। इसे ठीक करने वाला पुल रिक्वेस्ट लिंक करने के लिए इसे फिर से खोलें।",
   "Took {{pullRequest}} off this issue.": "{{pullRequest}} को इस इश्यू से हटा दिया गया।",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "इस इश्यू के लिए आपका अपना फ़िक्स। OneUptime इसे प्रोडक्शन तक वैसे ही फ़ॉलो करता है जैसे OneUptime AI के फ़िक्स को, और प्रोडक्शन में साबित होते ही इश्यू ठीक हुआ माना जाता है।",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} पहले से इस इश्यू से लिंक है।"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} पहले से इस इश्यू से लिंक है।",
+  "“{{action}}” did not finish.": "\"{{action}}\" पूरा नहीं हुआ।",
+  "Date unknown": "तारीख़ अज्ञात",
+  "Yesterday": "कल"
 }

@@ -64389,6 +64389,13 @@
   "Private addresses": "プライベートアドレス",
   "Security Events trusts these as proxies without your listing them.": "セキュリティイベントは、一覧に追加しなくてもこれらをプロキシとして信頼します。",
   "That is every event it matched, so it can't fire.": "一致したイベントはすべてこれに当たるため、このルールは発火できません。",
+  "The alert states could not be loaded.": "アラートの状態を読み込めませんでした。",
+  "The announcement templates could not be loaded.": "お知らせテンプレートを読み込めませんでした。",
+  "The incident states could not be loaded.": "インシデントの状態を読み込めませんでした。",
+  "The incident templates could not be loaded.": "インシデントテンプレートを読み込めませんでした。",
+  "The scheduled maintenance states could not be loaded.": "定期メンテナンスの状態を読み込めませんでした。",
+  "The scheduled maintenance templates could not be loaded.": "定期メンテナンステンプレートを読み込めませんでした。",
+  "The {{itemName}} was not deleted.": "{{itemName}}は削除されませんでした。",
   "Trust Your Load Balancers": "ロードバランサーを信頼",
   "Trusted Automatically": "自動で信頼",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "Web サーバーが X-Forwarded-For を最後に記録する場合（nginx の main 形式など）はオンにしてください。それまでは、各行の最初のフィールドがクライアントです。",
@@ -64454,5 +64461,8 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "この問題は保留されています。リスクが受け入れられたか、問題ではないとされました。修正するプルリクエストをリンクするには、問題を再度開いてください。",
   "Took {{pullRequest}} off this issue.": "{{pullRequest}} とこの問題のリンクを解除しました。",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "この問題に対するあなた自身の修正です。OneUptime は OneUptime AI の修正と同様に、これを本番環境まで追跡し、本番環境で確認されると問題は修正済みとして扱われます。",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。",
+  "“{{action}}” did not finish.": "「{{action}}」の処理は完了しませんでした。",
+  "Date unknown": "日付不明",
+  "Yesterday": "昨日"
 }

@@ -22,11 +22,6 @@ export interface ComponentProps {
    * title over a load that failed - so the reader is not told it twice.
    */
   hideWhatFailed?: boolean | undefined;
-  /*
-   * The lines around these words are centred: the reference's row of an
-   * error nobody explained is centred under them too (ErrorExplanation).
-   */
-  isCentered?: boolean | undefined;
 }
 
 /*
@@ -48,7 +43,9 @@ export interface ComponentProps {
  * failure draws them where its lines are, beside its own Try again: the
  * note composer's Templates menu; the notes feed, under its heading; a
  * table's empty state (TableEmptyState), under its title. The last two
- * leave out what failed (hideWhatFailed): their heading says it.
+ * leave out what failed (hideWhatFailed): their heading says it. The
+ * reference's line is placed as the lines around the words are - centred
+ * in all three but the menu - with nothing to say so (ErrorReference).
  */
 const ErrorMessageText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -62,7 +59,6 @@ const ErrorMessageText: FunctionComponent<ComponentProps> = (
         message={props.message as string}
         whatFailed={props.whatFailed}
         hideWhatFailed={props.hideWhatFailed}
-        isCentered={props.isCentered}
       />
     );
   }

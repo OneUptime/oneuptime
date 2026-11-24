@@ -64389,6 +64389,13 @@
   "Private addresses": "Indirizzi privati",
   "Security Events trusts these as proxies without your listing them.": "Eventi di sicurezza li considera proxy attendibili senza che tu li elenchi.",
   "That is every event it matched, so it can't fire.": "Sono tutti gli eventi corrispondenti, quindi non può attivarsi.",
+  "The alert states could not be loaded.": "Caricamento non riuscito: stati avviso.",
+  "The announcement templates could not be loaded.": "Caricamento non riuscito: modelli di annunci.",
+  "The incident states could not be loaded.": "Caricamento non riuscito: stati incidente.",
+  "The incident templates could not be loaded.": "Caricamento non riuscito: modelli di incidenti.",
+  "The scheduled maintenance states could not be loaded.": "Caricamento non riuscito: stati della manutenzione programmata.",
+  "The scheduled maintenance templates could not be loaded.": "Caricamento non riuscito: modelli di manutenzione programmata.",
+  "The {{itemName}} was not deleted.": "Eliminazione non riuscita: {{itemName}}.",
   "Trust Your Load Balancers": "Considera attendibili i tuoi bilanciatori di carico",
   "Trusted Automatically": "Attendibili automaticamente",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "Attivalo se i tuoi server web registrano X-Forwarded-For per ultimo, come fa il formato main di nginx. Fino ad allora, il primo campo di ogni riga è il suo client.",
@@ -64454,5 +64461,8 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Questo problema è stato messo da parte: il suo rischio è stato accettato, oppure non è un problema. Riaprilo per collegare la pull request che lo corregge.",
   "Took {{pullRequest}} off this issue.": "Pull request {{pullRequest}} rimossa da questo problema.",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "La tua correzione per questo problema. OneUptime la segue fino alla produzione, come segue le correzioni di OneUptime AI, e il problema conta come risolto non appena la produzione lo dimostra.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} è già collegata a questo problema."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} è già collegata a questo problema.",
+  "“{{action}}” did not finish.": "L'operazione «{{action}}» non è stata completata.",
+  "Date unknown": "Data sconosciuta",
+  "Yesterday": "Ieri"
 }

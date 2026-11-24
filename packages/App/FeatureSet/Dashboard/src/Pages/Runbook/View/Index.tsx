@@ -781,6 +781,8 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ConfirmModal
           title="Could not start runbook"
           description={error}
+          // Its title says what failed: the explanation does not again (#7680).
+          titleSaysWhatFailed={true}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={() => {

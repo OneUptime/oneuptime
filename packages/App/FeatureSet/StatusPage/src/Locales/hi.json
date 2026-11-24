@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "जो भेजा गया, वह सर्वर के स्वीकार करने के लिए बहुत बड़ा था, इसलिए यह पूरा नहीं हुआ। एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "जो भेजा गया, वह उस 50 MB से बड़ा है जितना OneUptime एक अनुरोध में स्वीकार करता है, इसलिए यह पूरा नहीं हुआ। एक बार में कम भेजकर फिर कोशिश करें, जैसे कोई छोटी फ़ाइल।",
   "This did not finish.": "यह पूरा नहीं हुआ।",
+  "The {{itemName}} was not deleted.": "{{itemName}} हटाया नहीं गया।",
+  "“{{action}}” did not finish.": "\"{{action}}\" पूरा नहीं हुआ।",
   "The server ran into a problem it could not explain.": "सर्वर में ऐसी समस्या आई जिसकी वजह वह नहीं बता सका।",
   "The OneUptime server did not answer.": "OneUptime सर्वर ने जवाब नहीं दिया।",
   "OneUptime could not be reached.": "OneUptime तक पहुँचा नहीं जा सका।",

@@ -79,11 +79,7 @@ export const DashboardWidgetErrorLine: FunctionComponent<
       className={props.className || DASHBOARD_WIDGET_ERROR_LINE_CLASS_NAME}
       data-testid={props.dataTestId || DASHBOARD_WIDGET_ERROR_LINE_TEST_ID}
     >
-      <ErrorMessageText
-        message={props.error}
-        hideWhatFailed={true}
-        isCentered={true}
-      />
+      <ErrorMessageText message={props.error} hideWhatFailed={true} />
     </p>
   );
 };

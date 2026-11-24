@@ -642,6 +642,8 @@
   "The {{itemName}} was not created.": "Não foi criado: {{itemName}}.",
   "The {{itemName}} was not saved.": "Não foi guardado: {{itemName}}.",
   "This did not finish.": "A operação não terminou.",
+  "The {{itemName}} was not deleted.": "Não foi excluído: {{itemName}}.",
+  "“{{action}}” did not finish.": "A operação \"{{action}}\" não terminou.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Esta página teve um problema, por isso a operação não terminou. Recarregue a página e tente novamente.",
   "This page ran into a problem.": "Esta página teve um problema.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Para ver o que falhou, execute npm run doctor -- --logs na pasta oneuptime do servidor e procure esta referência.",

@@ -39,6 +39,7 @@ import {
 } from "../../../Types/Exception/UnexplainedError";
 import ObjectID from "../../../Types/ObjectID";
 import { joinSentences } from "../../../UI/Components/DeleteConfirmation/DeleteConsequences";
+import { getReferenceAlignment } from "../../Helpers/ReferenceLineAlignment";
 
 /*
  * THE NOTES FEED, WHEN ITS NOTES DO NOT LOAD (#7570).
@@ -599,8 +600,8 @@ describe("the notes feed, when its notes do not load", () => {
       expect(reference.querySelector("code")).toHaveAttribute("dir", "ltr");
       expect(within(reference).getAllByRole("button")).toHaveLength(1);
       expect(timesSaid(failureText(failure), REFERENCE)).toBe(1);
-      // Centred, as the lines around it are.
-      expect(reference).toHaveClass("justify-center");
+      // Centred, as the lines around it are (ErrorReference, #7622).
+      expect(getReferenceAlignment(reference)).toBe("center");
 
       // A member is told nothing about the server's logs.
       expect(within(failure).queryByTestId("error-where-to-look")).toBeNull();

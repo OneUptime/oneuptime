@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "لم يتم إنشاء {{itemName}}.",
   "The {{itemName}} was not saved.": "لم يتم حفظ {{itemName}}.",
   "This did not finish.": "لم تكتمل العملية.",
+  "The {{itemName}} was not deleted.": "لم يتم حذف {{itemName}}.",
+  "“{{action}}” did not finish.": "لم تكتمل عملية «{{action}}».",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "واجهت هذه الصفحة مشكلة، لذا لم تكتمل العملية. أعد تحميل الصفحة، ثم حاول مرة أخرى.",
   "This page ran into a problem.": "واجهت هذه الصفحة مشكلة.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "لمعرفة ما فشل، شغّل npm run doctor -- --logs في مجلد oneuptime على الخادم وابحث عن هذا المرجع.",

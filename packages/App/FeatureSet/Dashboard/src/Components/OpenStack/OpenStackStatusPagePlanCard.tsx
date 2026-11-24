@@ -16,6 +16,7 @@ import Toggle from "Common/UI/Components/Toggle/Toggle";
 import API from "Common/UI/Utils/API/API";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import {
   OpenStackObjectivesMadeAnswer,
@@ -239,6 +240,16 @@ const OpenStackStatusPagePlanCard: FunctionComponent<ComponentProps> = (
           submitButtonText={translationKey("Create")}
           isLoading={isMaking}
           error={error || undefined}
+          /*
+           * What failed is the Create Status Page or the Create Objectives
+           * the person pressed: the title names no action (#7680).
+           */
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText(
+              wantsObjectives ? "Create Objectives" : "Create Status Page",
+            ) || (wantsObjectives ? "Create Objectives" : "Create Status Page"),
+          )}
           disableSubmitButton={answer.plan.groups.length === 0}
           onClose={() => {
             setAnswer(null);

@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "{{itemName}} नहीं बना।",
   "The {{itemName}} was not saved.": "{{itemName}} सहेजा नहीं गया।",
   "This did not finish.": "यह पूरा नहीं हुआ।",
+  "The {{itemName}} was not deleted.": "{{itemName}} हटाया नहीं गया।",
+  "“{{action}}” did not finish.": "\"{{action}}\" पूरा नहीं हुआ।",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "इस पेज में समस्या आई, इसलिए यह पूरा नहीं हुआ। पेज दोबारा लोड करें, फिर दोबारा कोशिश करें।",
   "This page ran into a problem.": "इस पेज में समस्या आई।",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "क्या विफल हुआ यह देखने के लिए, सर्वर के oneuptime फ़ोल्डर में npm run doctor -- --logs चलाएँ और यह संदर्भ खोजें।",

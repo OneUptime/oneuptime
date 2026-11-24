@@ -70,6 +70,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import User from "Common/UI/Utils/User";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getDeleteWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -1985,6 +1986,8 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title="Error"
           description={deleteError}
+          // "The notification rule was not deleted.", where nobody said why (#7680).
+          errorWhatFailed={getDeleteWhatFailed(translator, "Notification Rule")}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={() => {

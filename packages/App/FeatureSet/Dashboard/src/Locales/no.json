@@ -64389,6 +64389,13 @@
   "Private addresses": "Private adresser",
   "Security Events trusts these as proxies without your listing them.": "Sikkerhetshendelser stoler på disse som proxyer uten at du lister dem opp.",
   "That is every event it matched, so it can't fire.": "Det er alle de samsvarende hendelsene, så den kan ikke utløses.",
+  "The alert states could not be loaded.": "Varselsstatusene kunne ikke lastes inn.",
+  "The announcement templates could not be loaded.": "Kunngjøringsmalene kunne ikke lastes inn.",
+  "The incident states could not be loaded.": "Hendelsesstatusene kunne ikke lastes inn.",
+  "The incident templates could not be loaded.": "Hendelsesmalene kunne ikke lastes inn.",
+  "The scheduled maintenance states could not be loaded.": "Tilstandene for planlagt vedlikehold kunne ikke lastes inn.",
+  "The scheduled maintenance templates could not be loaded.": "Malene for planlagt vedlikehold kunne ikke lastes inn.",
+  "The {{itemName}} was not deleted.": "{{itemName}} ble ikke slettet.",
   "Trust Your Load Balancers": "Stol på lastbalansererne dine",
   "Trusted Automatically": "Klarert automatisk",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "Slå på hvis webserverne dine logger X-Forwarded-For sist, slik nginx' main-format gjør. Inntil da er det første feltet i hver linje klienten.",
@@ -64454,5 +64461,8 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Dette problemet er lagt til side: risikoen er akseptert, eller det er ikke et problem. Åpne det igjen for å koble til pull-forespørselen som fikser det.",
   "Took {{pullRequest}} off this issue.": "{{pullRequest}} er fjernet fra dette problemet.",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "Din egen rettelse for dette problemet. OneUptime følger den til produksjon, slik den følger OneUptime AI sine rettelser, og problemet regnes som fikset når produksjonen viser det.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} er allerede koblet til dette problemet."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} er allerede koblet til dette problemet.",
+  "“{{action}}” did not finish.": "Handlingen «{{action}}» ble ikke fullført.",
+  "Date unknown": "Ukjent dato",
+  "Yesterday": "I går"
 }

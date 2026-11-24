@@ -64389,6 +64389,13 @@
   "Private addresses": "私有位址",
   "Security Events trusts these as proxies without your listing them.": "安全事件不需要你列出，就會把這些當作代理伺服器信任。",
   "That is every event it matched, so it can't fire.": "這就是它符合的全部事件，因此它無法觸發。",
+  "The alert states could not be loaded.": "無法載入警示狀態。",
+  "The announcement templates could not be loaded.": "無法載入公告範本。",
+  "The incident states could not be loaded.": "無法載入事件狀態。",
+  "The incident templates could not be loaded.": "無法載入事件範本。",
+  "The scheduled maintenance states could not be loaded.": "無法載入排定維護狀態。",
+  "The scheduled maintenance templates could not be loaded.": "無法載入排定維護範本。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未刪除。",
   "Trust Your Load Balancers": "信任你的負載平衡器",
   "Trusted Automatically": "自動信任",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "如果你的 Web 伺服器把 X-Forwarded-For 記錄在最後（就像 nginx 的 main 格式），請開啟。在此之前，每行的第一個欄位就是它的用戶端。",
@@ -64454,5 +64461,8 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "此問題已被擱置：其風險已被接受，或它不是問題。重新開啟它，才能連結修正它的拉取請求。",
   "Took {{pullRequest}} off this issue.": "已從此問題中移除 {{pullRequest}}。",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "你為此問題做的修正。OneUptime 會像追蹤 OneUptime AI 的修正一樣將其追蹤到正式環境，一旦正式環境證實，該問題即視為已修正。",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} 已連結到此問題。"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} 已連結到此問題。",
+  "“{{action}}” did not finish.": "「{{action}}」操作未完成。",
+  "Date unknown": "日期未知",
+  "Yesterday": "昨天"
 }

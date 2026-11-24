@@ -25,6 +25,9 @@ import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import { withDurationWordsHeld } from "Common/Types/NoBreakSpaces";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -53,6 +56,7 @@ const ShiftRemindersCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { translateString } = useTranslateValue();
+  const translator: Translator = useTranslator();
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -344,6 +348,14 @@ const ShiftRemindersCard: FunctionComponent<ComponentProps> = (
             submitButtonType={ButtonStyleType.PRIMARY}
             isLoading={isSavingCustom}
             error={customError || undefined}
+            /*
+             * What failed is the Add reminder the person pressed, as its
+             * button names it: the title names no action (#7680).
+             */
+            errorWhatFailed={getDialogWhatFailed(
+              translator,
+              translator.translateText("Add reminder") || "Add reminder",
+            )}
             onClose={() => {
               setShowCustomModal(false);
             }}

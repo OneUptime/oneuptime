@@ -13,7 +13,8 @@ export interface ComponentProps {
   /*
    * What the dialog was doing, in the reader's language - "Couldn't delete
    * the note." - said first when the error is one nobody explained
-   * (ErrorExplanation). Without it, that line says "This did not finish."
+   * (ErrorExplanation). Modal hands it on, or the dialog named by its title
+   * when the page says nothing more (DialogWhatFailed, #7680).
    */
   whatFailed?: string | undefined;
 }
