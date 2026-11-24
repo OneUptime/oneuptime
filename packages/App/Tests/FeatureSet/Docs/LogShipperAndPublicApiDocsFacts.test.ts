@@ -2057,12 +2057,13 @@ describe("the Fluentd page", () => {
       "LogDropFilterService.shouldDropLog(logRow, loadedDropFilters)",
     );
     /*
-     * Scrubbed as an OTLP log is, with the batch's address vault (#10496):
-     * an address an IP Address Hash rule hides from a Fluentd log is kept
-     * for Security Events as one hidden from any other log is.
+     * Scrubbed as an OTLP log is, with the batch's address vault (#10496)
+     * and user vault (#10632): an address or a user a Hash rule hides from
+     * a Fluentd log is kept for Security Events as one hidden from any
+     * other log is.
      */
     const scrubbed: string =
-      "logRow = LogScrubRuleService.scrubLog( logRow, loadedScrubRules, addressVault, );";
+      "logRow = LogScrubRuleService.scrubLog( logRow, loadedScrubRules, addressVault, { hashedUsers: userVault }, );";
 
     expect(FLUENT_SERVICE_SOURCE).toContain(scrubbed);
     expect(
@@ -2074,6 +2075,9 @@ describe("the Fluentd page", () => {
     ).toContain(scrubbed);
     expect(FLUENT_SERVICE_SOURCE).toContain(
       'await SecurityAddressVaultWriter.startBatch({ projectId: projectId, signal: "log", scrubRules: loadedScrubRules, });',
+    );
+    expect(FLUENT_SERVICE_SOURCE).toContain(
+      'await SecurityUserVaultWriter.startBatch({ projectId: projectId, signal: "log", scrubRules: loadedScrubRules, });',
     );
     expect(FLUENT_SERVICE_SOURCE).toContain(
       "logRow = LogPipelineService.processLog(logRow, loadedPipelines);",
