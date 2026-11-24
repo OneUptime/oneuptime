@@ -614,7 +614,10 @@ describe("an exception that names an API key by its name", () => {
 
   test("a star spans every character, newlines too, and what is between the stars is read as written", () => {
     expect(
-      doesDetectionRuleExceptionValueMatchText("deploy*bot", "deploy\nthe\nbot"),
+      doesDetectionRuleExceptionValueMatchText(
+        "deploy*bot",
+        "deploy\nthe\nbot",
+      ),
     ).toBe(true);
     expect(
       doesDetectionRuleExceptionValueMatchText("ci.*.key", "ci.prod.key"),

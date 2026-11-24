@@ -449,9 +449,11 @@ export default function describeDaysAsLengthsOfTime(data: ZoneUnderTest): void {
           "metrics"
         ] as unknown as SecurityOverviewMetrics;
 
-        // The cases from the midnight of the first of their 30 bars, the
-        // detections from the first of their 14, OneUptime AI's actions
-        // from the cases'.
+        /*
+         * The cases from the midnight of the first of their 30 bars, the
+         * detections from the first of their 14, OneUptime AI's actions
+         * from the cases'.
+         */
         expect(
           datesComparedWith(compared).map((date: Date): number => {
             return date.getTime();

@@ -531,7 +531,7 @@ describe("a framework's audit evidence", () => {
 
   test("a requirement with no paragraph reads its facts, in plain English", () => {
     expect(summarizeRequirementFacts([SCOPE, CHECKS, HISTORY])).toBe(
-      "3 stores are in its scope. All 4 checks that are evidence for it pass on every store in scope. In the last 90 days, 2 issues were opened and 2 fixed, in 1 day at the median; 0 are still open.",
+      "3 stores are in its scope. All 4 checks that are evidence for it pass on every store in scope. In the last 90\u00A0days, 2 issues were opened and 2 fixed, in 1\u00A0day at the median; 0 are still open.",
     );
   });
 
@@ -544,10 +544,10 @@ describe("a framework's audit evidence", () => {
     expect(
       summarizeRequirementFacts([{ ...HISTORY, medianDaysToFix: 3 }]),
     ).toBe(
-      "In the last 90 days, 2 issues were opened and 2 fixed, in 3 days at the median; 0 are still open.",
+      "In the last 90\u00A0days, 2 issues were opened and 2 fixed, in 3\u00A0days at the median; 0 are still open.",
     );
     expect(describeComplianceFact(HISTORY)).toBe(
-      "In the last 90 days: 2 opened, 2 fixed in 30 hours at the median, 0 still open",
+      "In the last 90\u00A0days: 2 opened, 2 fixed in 30\u00A0hours at the median, 0 still open",
     );
     expect(
       describeComplianceFact({
@@ -557,7 +557,7 @@ describe("a framework's audit evidence", () => {
         backupsEnabled: true,
         backupRetentionDays: 1,
       }),
-    ).toBe("Backed up, backups kept 1 day");
+    ).toBe("Backed up, backups kept 1\u00A0day");
     expect(
       describeComplianceFact({
         id: "F5",
@@ -567,12 +567,10 @@ describe("a framework's audit evidence", () => {
         days: 15,
         maxDays: 30,
       }),
-    ).toBe("OneUptime keeps its logs 15 days, some up to 30 days");
+    ).toBe("OneUptime keeps its logs 15\u00A0days, some up to 30\u00A0days");
 
     for (const fact of [HISTORY, SCOPE, CHECKS]) {
-      expect(describeComplianceFact(fact)).not.toMatch(
-        /\d (?:days?|hours?)\b/,
-      );
+      expect(describeComplianceFact(fact)).not.toMatch(/\d (?:days?|hours?)\b/);
     }
   });
 

@@ -140,7 +140,9 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                     index: number,
                   ): ReactElement => {
                     return (
-                      <tr key={`${service.serviceId}-${service.serviceVersion}-${index}`}>
+                      <tr
+                        key={`${service.serviceId}-${service.serviceVersion}-${index}`}
+                      >
                         <td className="py-2 pe-4 text-gray-900 break-all">
                           {service.serviceName ||
                             translator.translateText(
@@ -157,9 +159,7 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                           {service.valueCount.toLocaleString()}
                         </td>
                         <td className="py-2 text-gray-700">
-                          {whenOf(service.lastChangedAt) || (
-                            <TableEmptyValue />
-                          )}
+                          {whenOf(service.lastChangedAt) || <TableEmptyValue />}
                         </td>
                       </tr>
                     );

@@ -301,9 +301,7 @@ describe("a framework's audit evidence, exported", () => {
       "# Audit Evidence: SOC 2, SOC 2 Trust Services Criteria",
     );
     // The figure keeps its word's line in the PDF and a rendered Markdown.
-    expect(markdown).toContain(
-      "Period: the last 90 days, to 2026-11-23.",
-    );
+    expect(markdown).toContain("Period: the last 90\u00A0days, to 2026-11-23.");
     expect(markdown).not.toContain("the last 90 days");
     expect(markdown).toContain("## A1.2 · Backup and recovery (Passing)");
     expect(markdown).toContain("Both stores in scope are backed up.");

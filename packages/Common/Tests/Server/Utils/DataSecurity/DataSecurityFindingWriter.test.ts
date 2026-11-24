@@ -1386,7 +1386,9 @@ describe("recordContentScan: OneUptime AI's verdicts on what a scan found (#1037
     expect(output.scanId).not.toBeNull();
     expect(
       errorSpy.mock.calls.some((call: Array<unknown>): boolean => {
-        return String(call[0]).includes("OneUptime AI's verdicts on the findings");
+        return String(call[0]).includes(
+          "OneUptime AI's verdicts on the findings",
+        );
       }),
     ).toBe(true);
   });

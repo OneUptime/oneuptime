@@ -850,9 +850,7 @@ export default class ProductionReviewComposer {
       : "";
 
     // The suggested change's diff block, fenced where it was built.
-    return diff
-      ? mdText`${item}\n\n${FeedMarkdown.asMarkdown(diff)}`
-      : item;
+    return diff ? mdText`${item}\n\n${FeedMarkdown.asMarkdown(diff)}` : item;
   }
 
   /*
