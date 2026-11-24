@@ -196,7 +196,7 @@ Alerts for payments:
 | `requestMethod` | HTTP 方法，例如 `POST`。 | `string` |
 | `incomingRequestReceivedAt` | 收到请求的时间，以 ISO 8601 时间戳表示。 | `string` |
 
-当条件开启了 **Group incidents and alerts by a payload field** 时，分组键也会成为变量，以分组路径的 **最后一段** 命名：按 `requestBody.alerts[*].labels.alertname` 分组会得到 `{{alertname}}`，按 `requestBody.alerts[*].fingerprint` 分组会得到 `{{fingerprint}}`。完整的 `requestBody` 仍在旁边可用。
+当条件开启了 **按负载字段对事件和警报分组** 时，分组键也会成为变量，以分组路径的 **最后一段** 命名：按 `requestBody.alerts[*].labels.alertname` 分组会得到 `{{alertname}}`，按 `requestBody.alerts[*].fingerprint` 分组会得到 `{{fingerprint}}`。完整的 `requestBody` 仍在旁边可用。
 
 > [!NOTE]
 > `[*]` 只在分组路径字段中有效。在模板中它什么也读不到，因此占位符会原样保留。`{{requestBody.alerts[0].annotations.summary}}` 始终读取负载中的第一个警报，而不是事件所针对的那个警报：请使用分组变量和负载的公共字段，例如 `commonLabels` 和 `commonAnnotations`。请参阅 [入站请求监视器](/docs/monitor/incoming-request-monitor)。

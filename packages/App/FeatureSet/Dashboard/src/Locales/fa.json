@@ -64123,5 +64123,10 @@
   "and {{count}} records you cannot open_one": "و {{count}} رکوردی که نمی‌توانید باز کنید",
   "{{count}} name is used by more than one record.": "{{count}} نام در بیش از یک رکورد به کار رفته است.",
   "{{count}} names are used by more than one record.": "{{count}} نام در بیش از یک رکورد به کار رفته است.",
-  "{{count}} names are used by more than one record._one": "{{count}} نام در بیش از یک رکورد به کار رفته است."
+  "{{count}} names are used by more than one record._one": "{{count}} نام در بیش از یک رکورد به کار رفته است.",
+  "Check Duration": "مدت بررسی",
+  "View Alerts": "مشاهده هشدارها",
+  "View Incidents": "مشاهده حوادث",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "بیش از {{limit}} درخواستی که این مانیتور نگه می‌دارد منتظر ارزیابی بودند، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "حجم درخواست‌های منتظر ارزیابی از {{size}} MB که این مانیتور نگه می‌دارد بیشتر شد، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد."
 }

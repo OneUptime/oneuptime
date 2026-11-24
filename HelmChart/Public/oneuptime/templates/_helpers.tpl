@@ -2169,6 +2169,24 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: SOURCE_MAP_RETENTION_DAYS
   value: {{ default 90 $.Values.sourceMaps.retentionDays | int64 | squote }}
 
+{{/*
+  What a grouped Incoming Request monitor keeps waiting to be evaluated, and
+  how many requests one job evaluates (#10652). The endpoint applies the
+  first two as it keeps each request, and the queue's workers the third, so
+  every pod reads the same block. Read through `dig` so a values file written
+  before these keys existed still renders, and `int64` for the reason above.
+  The schema holds each to its bounds; the app refuses a value outside them
+  too, and uses its default.
+*/}}
+- name: INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR
+  value: {{ dig "maxPendingRequestsPerMonitor" 1000 ($.Values.incomingRequests | default dict) | int64 | squote }}
+
+- name: INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR
+  value: {{ dig "maxPendingMegabytesPerMonitor" 16 ($.Values.incomingRequests | default dict) | int64 | squote }}
+
+- name: INCOMING_REQUEST_MAX_REQUESTS_PER_JOB
+  value: {{ dig "maxRequestsPerJob" 100 ($.Values.incomingRequests | default dict) | int64 | squote }}
+
 - name: WORKFLOW_SCRIPT_TIMEOUT_IN_MS
   value: {{ $.Values.script.workflowScriptTimeoutInMs | squote }}
 

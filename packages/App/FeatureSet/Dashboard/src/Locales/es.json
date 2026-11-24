@@ -20246,7 +20246,7 @@
   "A database's telemetry is matched by its endpoints — the {{hostPort}} your applications connect to — and by the pods or containers it runs as. Add the endpoint your applications use, or connect the Database Agent with this database's id, and its data appears here.": "A database's telemetry is matched by its endpoints — the {{hostPort}} your applications connect to — and by the pods or containers it runs as. Add the endpoint your applications use, or connect the Database Agent with this database's id, and its data appears here.",
   "A license is installed, but this installation cannot confirm that it is current, so nothing is licensed by it.": "Hay una licencia instalada, pero esta instalación no puede confirmar que esté vigente, así que no habilita nada.",
   "A license is installed, but this installation cannot tell whether it is still current, so it is treating this as an unlicensed install.": "Hay una licencia instalada, pero esta instalación no puede saber si sigue vigente, así que la trata como una instalación sin licencia.",
-  "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.",
+  "A path into the request body — the same {{requestBody}} you reference in incident templates. Every distinct value opens its own incident; add {{wildcard}} to fan out over an array.": "Una ruta dentro del cuerpo de la solicitud: el mismo {{requestBody}} al que haces referencia en las plantillas de incidentes. Cada valor distinto abre su propio incidente; añade {{wildcard}} para leer cada elemento de un arreglo.",
   "A payment method is required before you can send paid telemetry.": "A payment method is required before you can send paid telemetry.",
   "A Project Admin can review these settings.": "Un Administrador del proyecto puede revisar estos ajustes.",
   "A Project Owner or someone with Manage Billing can add AI credits.": "Un Propietario del proyecto o alguien con Manage Billing puede añadir créditos de IA.",
@@ -20347,7 +20347,7 @@
   "Attach monitors, hosts, clusters, or services to track which parts of your infrastructure are impacted.": "Adjunta monitores, hosts, clústeres o servicios para saber qué partes de tu infraestructura se ven afectadas.",
   "Attributes as {{format}} JSON": "Atributos como JSON {{format}}",
   "Audit logs and many more enterprise-focused features.": "Registros de auditoría y muchas más funciones orientadas a empresas.",
-  "Auto-resolve each incident when…": "Auto-resolve each incident when…",
+  "Auto-resolve each incident when…": "Resolver automáticamente cada incidente cuando…",
   "Auto-run": "Ejecución automática",
   "Available variables: {{variables}}": "Variables disponibles: {{variables}}",
   "Back to options": "Volver a las opciones",
@@ -64123,5 +64123,10 @@
   "and {{count}} records you cannot open_one": "y {{count}} registro que no puedes abrir",
   "{{count}} name is used by more than one record.": "{{count}} nombre está en uso en más de un registro.",
   "{{count}} names are used by more than one record.": "{{count}} nombres están en uso en más de un registro.",
-  "{{count}} names are used by more than one record._one": "{{count}} nombre está en uso en más de un registro."
+  "{{count}} names are used by more than one record._one": "{{count}} nombre está en uso en más de un registro.",
+  "Check Duration": "Duración de la comprobación",
+  "View Alerts": "Ver alertas",
+  "View Incidents": "Ver incidentes",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Había más solicitudes esperando a ser evaluadas que las {{limit}} que este monitor conserva, así que se omitieron las más antiguas. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Las solicitudes que esperaban a ser evaluadas ocupaban más de los {{size}} MB que este monitor conserva, así que se omitieron las más antiguas. Un incidente o una alerta que una solicitud omitida habría abierto o resuelto puede faltar o seguir abierto."
 }

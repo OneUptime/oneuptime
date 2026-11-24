@@ -64123,5 +64123,10 @@
   "and {{count}} records you cannot open_one": "and {{count}} record you cannot open",
   "{{count}} name is used by more than one record.": "{{count}} name is used by more than one record.",
   "{{count}} names are used by more than one record.": "{{count}} names are used by more than one record.",
-  "{{count}} names are used by more than one record._one": "{{count}} name is used by more than one record."
+  "{{count}} names are used by more than one record._one": "{{count}} name is used by more than one record.",
+  "Check Duration": "Check Duration",
+  "View Alerts": "View Alerts",
+  "View Incidents": "View Incidents",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open."
 }
