@@ -109,7 +109,7 @@ const READS_AI_CONTEXT: Record<string, string> = {
   "Utils/AI/IncidentEpisodeAIContextBuilder.ts":
     "an episode's postmortem draft",
   "Utils/AI/DataSecurity/DataSecurityAiInput.ts":
-    "Explain on a Data Security issue: the steps to fix the team's own store, on its own systems (every Data Security prompt is built here, #10365; the field suggestions read none)",
+    "Explain on a Data Security issue: the steps to fix the team's own store, on its own systems (every Data Security prompt is built here, #10365; the field suggestions and the data type drafts read none: a data type is drafted from names and shapes alone, #10371)",
   "Utils/AI/TelemetryAi/ExceptionExplanation.ts":
     "an exception's explanation: what happened in the team's own code, its likely root cause and the fix",
   "Utils/AI/TelemetryAi/ExceptionDigest.ts":

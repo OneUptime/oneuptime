@@ -46,6 +46,8 @@ import DataSecurityAiInput, {
 import DataSecurityFieldSuggestion from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
 import DataSecurityAiEngine from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiEngine";
 import DataSecurityFindingVerdicts from "../../../../../Server/Utils/AI/DataSecurity/FindingVerdicts";
+import DataTypeDiscovery from "../../../../../Server/Utils/AI/DataSecurity/DataTypeDiscovery";
+import DataTypeFromSentence from "../../../../../Server/Utils/AI/DataSecurity/DataTypeFromSentence";
 import ChangeEventService from "../../../../../Server/Services/ChangeEventService";
 import ServiceOwnerTeamService from "../../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../../Server/Services/ServiceOwnerUserService";
@@ -196,6 +198,8 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const STORE_ID: string = "10365000-0000-4000-8000-0000000000b1";
 const TELEMETRY_STORE_ID: string = "10365000-0000-4000-8000-0000000000b2";
+// A second store that keeps the same unknown kind of value (#10371).
+const DATABASE_STORE_ID: string = "10365000-0000-4000-8000-0000000000b3";
 const BUCKET_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a1";
 const TELEMETRY_ISSUE_ID: string = "10365000-0000-4000-8000-0000000000a2";
 const INFRA_ID: string = "10365000-0000-4000-8000-0000000000c1";
@@ -1339,6 +1343,94 @@ const RUNS: Record<DataSecurityAiFeature, () => Promise<string>> = {
 
     return sentToTheModel();
   },
+  /*
+   * The company's own data types (#10371): three fields no detector placed,
+   * in two stores whose every column that holds a value is planted, grouped
+   * and drafted from their names and shapes.
+   */
+  [DataSecurityAiFeature.DraftDataTypes]: async (): Promise<string> => {
+    const unplaced: (location: string) => JSONObject = (
+      location: string,
+    ): JSONObject => {
+      return {
+        location,
+        locationKind: "Column",
+        neighbours: ["name", "email"],
+        shapes: [{ shape: "AA-999999", share: 1 }],
+        valueCount: 40,
+        averageLength: 9,
+      };
+    };
+
+    useInMemoryTable(asService(DataStoreService), [
+      storeRow(STORE_ID, {
+        fieldSuggestionState: toStoredFieldSuggestionState({
+          pending: [
+            unplaced("public.customers.kundennr"),
+            unplaced("public.orders.kundennr"),
+          ] as never,
+          answers: {},
+        }),
+      }),
+      storeRow(DATABASE_STORE_ID, {
+        name: "orders-db",
+        kind: "PostgreSQL",
+        fieldSuggestionState: toStoredFieldSuggestionState({
+          pending: [unplaced("crm.accounts.kundennr")] as never,
+          answers: {},
+        }),
+      }),
+    ]);
+    jest
+      .spyOn(DataSecuritySettingService, "getOrCreateForProject")
+      .mockResolvedValue({ contentScanIntervalInHours: 24 } as never);
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        dataType: null,
+        reason: "A customer number of the company's own.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 20, totalTokens: 320 },
+    });
+
+    await DataTypeDiscovery.runForProject({
+      projectId: PROJECT_ID,
+      now: new Date(),
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
+  // Describe It on the data type form (#10371): a sentence and its examples' shapes.
+  [DataSecurityAiFeature.DescribeDataType]: async (): Promise<string> => {
+    completion.mockResolvedValue({
+      content: JSON.stringify({
+        dataType: {
+          name: "Customer number",
+          description: "A customer number, such as AA-999999.",
+          category: "Contact and identity",
+          sensitivity: "Confidential",
+          pattern: "\\b[A-Z]{2}-?\\d{6}\\b",
+          keywords: ["customer"],
+          nameHints: ["kundennr"],
+        },
+        reason: "As described.",
+      }),
+      usage: { promptTokens: 300, completionTokens: 20, totalTokens: 320 },
+    });
+
+    await DataTypeFromSentence.draft({
+      projectId: PROJECT_ID,
+      userId: OWNER.userId,
+      sentence:
+        "Our customer numbers look like AB-123456, sometimes without the dash.",
+      exampleShapes: ["AA-999999", "AA999999"],
+    });
+
+    expect(completion).toHaveBeenCalledTimes(1);
+
+    return sentToTheModel();
+  },
 };
 
 /*
@@ -1438,6 +1530,14 @@ const WHAT_EACH_SENDS: Record<DataSecurityAiFeature, Array<string>> = {
     "crm.customers.kontakt",
     REASON_WORDS,
   ],
+  // The group's fields, by where each is, and their shape - never a value.
+  [DataSecurityAiFeature.DraftDataTypes]: [
+    "public.customers.kundennr",
+    "crm.accounts.kundennr",
+    "AA-999999",
+  ],
+  // The person's sentence, and their examples' shapes.
+  [DataSecurityAiFeature.DescribeDataType]: ["customer numbers", "AA-999999"],
 };
 
 describe("no feature's input carries a value planted where a record keeps one", () => {
