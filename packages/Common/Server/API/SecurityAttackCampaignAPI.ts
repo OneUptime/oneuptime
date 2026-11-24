@@ -48,6 +48,7 @@ import Express, {
   ExpressRouter,
   NextFunction,
 } from "../Utils/Express";
+import logger from "../Utils/Logger";
 import Response from "../Utils/Response";
 import SecurityCampaignContainment, {
   readCampaignValues,
@@ -605,9 +606,17 @@ export default class SecurityAttackCampaignAPI {
       return [];
     }
 
-    return await SecurityBlockService.findActiveBlocks({
-      projectId: data.projectId,
-    });
+    // The attacks are the page: a Blocklist that cannot be read leaves the rows without their blocks.
+    try {
+      return await SecurityBlockService.findActiveBlocks({
+        projectId: data.projectId,
+      });
+    } catch (error) {
+      logger.warn(
+        `SecurityAttackCampaignAPI: could not read project ${data.projectId.toString()}'s blocks for its campaigns: ${String(error)}`,
+      );
+      return [];
+    }
   }
 
   private readValues(body: JSONObject): Array<string> {
