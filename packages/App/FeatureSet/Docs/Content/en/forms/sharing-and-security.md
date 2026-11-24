@@ -1,6 +1,6 @@
 # Sharing & Security
 
-A form is open to anyone who has its link, and each submission can page your on-call team or put a maintenance window on your calendar. This page covers the form's **Share** page — the link, turning the form off, the message after submitting and the IP allowlist — and every other check a request passes on the way. It also covers serving the form on your own domain.
+A form is open to anyone who has its link, and each submission can page your on-call team, alert the owners of what it reports, or put a maintenance window on your calendar. This page covers the form's **Share** page — the link, turning the form off, the message after submitting and the IP allowlist — and every other check a request passes on the way. It also covers serving the form on your own domain.
 
 :::cards
 - [Sharing the link](#sharing-the-link): Copy it, open it, and reset it when it spreads too far.
@@ -140,7 +140,7 @@ Every request passes these checks, in this order:
 5. It must come from one of the form's private users, signed in, when the form is set to **Only people who sign in** — see [Only people who sign in](#only-people-who-sign-in).
 6. A submission must pass the captcha, when the instance has captcha turned on.
 7. Every answer must be within the size limits and fit its question — see [Building a Form](/docs/forms/building#size-limits).
-8. What the answers and the settings make must be creatable: an incident needs a severity, an event an end after its start.
+8. What the answers and the settings make must be creatable: an incident or an alert needs a severity, an event an end after its start.
 9. A submission must fit within the form's hourly allowance — see [Rate limits](#rate-limits).
 10. Its files must fit within the form's hourly allowance of files, right before they are stored.
 
@@ -244,6 +244,10 @@ Open the form's **Custom Domains** page and read the domain's **Status** column:
 The form does not ask for a severity, its settings name none — or the one they named was deleted — and its incident template sets none either. Choose a severity on the form's **On Submit** page. See [No severity, no incident](/docs/forms/on-submit#how-a-submission-becomes-an-incident).
 :::
 
+:::details This form cannot create an alert because it has no severity
+The alert form does not ask for a severity, and its settings name none — or the one they named was deleted. Choose a severity on the form's **On Submit** page. See [How a submission becomes an alert](/docs/forms/on-submit#how-a-submission-becomes-an-alert).
+:::
+
 :::details A submission is refused
 The message says what is wrong: a required answer is missing or only spaces, an answer is too long or does not fit its question, the email address is not one ordinary address, or a maintenance window ends before it starts. "Captcha verification failed. Please try again." means the captcha was not passed, or has expired: solve it again. On a self-hosted installation where every submission fails the captcha, check that `CAPTCHA_SITE_KEY` and `CAPTCHA_SECRET_KEY` are both set.
 :::
@@ -257,11 +261,11 @@ A template's answer is used only while it still fits its question: an option the
 :::
 
 :::details The incident or event is not on the status page
-That is by design: incidents from a form are declared hidden, and maintenance events stay hidden unless the form's **Publishing** settings say otherwise. See [What a Submission Creates](/docs/forms/on-submit).
+That is by design: incidents from a form are declared hidden, and maintenance events stay hidden unless the form's **Publishing** settings say otherwise. An alert never shows on a status page. See [What a Submission Creates](/docs/forms/on-submit).
 :::
 
 :::details Nobody was paged
-A form's incident executes the on-call policies its settings and its template name, and whatever your on-call rules add, like any other incident. With none of them, nobody is paged. Add an on-call policy on the form's **On Submit** page, or write an on-call rule that matches its incidents — by a label the form always adds, for example.
+A form's incident executes the on-call policies its settings and its template name, and whatever your on-call rules add, like any other incident; a form's alert, the policies its settings name and whatever your alert on-call rules add. With none of them, nobody is paged. An alert that starts in a later state, such as **Acknowledged**, pages nobody by design. Add an on-call policy on the form's **On Submit** page, or write an on-call rule that matches its incidents or alerts — by a label the form always adds, for example.
 :::
 
 ## Next steps
@@ -269,5 +273,5 @@ A form's incident executes the on-call policies its settings and its template na
 :::cards
 - [Forms Overview](/docs/forms/index): What forms are for, permissions and the API.
 - [Building a Form](/docs/forms/building): The questions, hidden questions and templates.
-- [What a Submission Creates](/docs/forms/on-submit): The incident or event each submission creates.
+- [What a Submission Creates](/docs/forms/on-submit): The incident, alert or event each submission creates.
 :::

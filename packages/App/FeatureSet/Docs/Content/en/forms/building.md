@@ -14,7 +14,7 @@ A form's **Build** page is where you decide what it asks, and how its page looks
 ```mermaid title="Where each kind of answer goes"
 flowchart LR
     answer["An answer, submitted"]
-    answer -->|"A field of<br/>the record"| field["That field of the new<br/>incident or event"]
+    answer -->|"A field of<br/>the record"| field["That field of the new<br/>incident, alert or event"]
     answer -->|"A custom field"| custom["That custom<br/>field's value"]
     answer -->|"A question of<br/>the form's own"| note["A line on the<br/>private note"]
     answer -->|"Your Name,<br/>Your Email"| who["Who submitted,<br/>on the private note"]
@@ -66,7 +66,7 @@ The logo keeps the height of the OneUptime logo it replaces, and a wide one is f
 
 ## What you can add
 
-**Add a Question** lists four groups: **Questions** of the form's own, **Incident Fields** or **Scheduled Maintenance Fields** of what the form creates, **Custom Fields**, and **Submitter**.
+**Add a Question** lists four groups: **Questions** of the form's own, **Incident Fields**, **Alert Fields** or **Scheduled Maintenance Fields** of what the form creates, **Custom Fields**, and **Submitter**.
 
 ### Questions of the form's own
 
@@ -88,11 +88,11 @@ A dropdown or multi-select lists the **Options** you give it, each with an optio
 
 The answers to these questions are kept with the submission and listed on the private note of what the form creates — they do not fill in a field of it. To fill in a field, add the field itself, from the next two groups.
 
-A **File** or **Multiple Files** question takes files from the submitter's computer and attaches them to the private note, where your team downloads them. To keep the files in a custom field of the incident or event instead, add a **File** or **Multiple files** custom field.
+A **File** or **Multiple Files** question takes files from the submitter's computer and attaches them to the private note, where your team downloads them. To keep the files in a custom field of the incident, alert or event instead, add a **File** or **Multiple files** custom field.
 
 ### Fields of what the form creates
 
-The fields of an incident, or of a maintenance event, that a submitter can answer. The answer becomes the field's value.
+The fields of an incident, an alert or a maintenance event that a submitter can answer. The answer becomes the field's value.
 
 | Incident field | Answered with |
 | --- | --- |
@@ -100,6 +100,15 @@ The fields of an incident, or of a maintenance event, that a submitter can answe
 | **Description** | Rich text, up to 20,000 characters. |
 | **Severity** | One of your incident severities. |
 | **Monitors** | Any of the monitors you offer — the incident's affected monitors. |
+| **Labels** | Any of the labels you offer. |
+| **Impact Started At** | A date and time: when the problem started, as the submitter remembers it. |
+
+| Alert field | Answered with |
+| --- | --- |
+| **Title** | One line, up to 500 characters. |
+| **Description** | Rich text, up to 20,000 characters. |
+| **Severity** | One of your alert severities. |
+| **Monitor** | One of the monitors you offer — the alert's monitor. An alert is about one monitor. |
 | **Labels** | Any of the labels you offer. |
 | **Impact Started At** | A date and time: when the problem started, as the submitter remembers it. |
 
@@ -115,19 +124,19 @@ The fields of an incident, or of a maintenance event, that a submitter can answe
 
 Each field can be asked once; the list marks the ones already on the form **Added**. A field the form does not ask — or that is left empty — is filled in from the form's [On Submit settings](/docs/forms/on-submit).
 
-**Choices Offered.** A public page must not list your whole project to strangers, so a field answered by choosing records offers only the ones you pick. **Monitors**, **Labels** and **Status Pages** list exactly the choices you offer, and are not asked until you offer at least one. **Severity** offers every incident severity unless you narrow it, since severities are not secret. Answers outside the offered choices are refused.
+**Choices Offered.** A public page must not list your whole project to strangers, so a field answered by choosing records offers only the ones you pick. **Monitors**, **Monitor**, **Labels** and **Status Pages** list exactly the choices you offer, and are not asked until you offer at least one. **Severity** offers every incident severity, or every alert severity on an alert form, unless you narrow it, since severities are not secret. Answers outside the offered choices are refused.
 
 ### Custom fields
 
-Your incident custom fields — or scheduled maintenance custom fields, for a maintenance form — each one a question whose answer becomes the field's value. The question takes its type and options from the custom field, and starts with its name as the question and its description as the help text, which you can change. A **File** or **Multiple files** custom field is asked as a file question, and its files go into the field.
+Your incident custom fields — or alert custom fields for an alert form, and scheduled maintenance custom fields for a maintenance form — each one a question whose answer becomes the field's value. The question takes its type and options from the custom field, and starts with its name as the question and its description as the help text, which you can change. A **File** or **Multiple files** custom field is asked as a file question, and its files go into the field.
 
 A form asks only the custom fields you add to it, whatever **Show on Create** says: every field a form asks shows its name, description and options to anyone with the link. When a custom field is deleted, its question stays on the form but is no longer asked, and its card says so — delete the question. A field created again with the same name is a new field: add it again.
 
-A custom field that copies its value from a monitor custom field says so on its card: when the incident or event has monitors that agree on a value for it, that value replaces the submitter's answer.
+A custom field that copies its value from a monitor custom field says so on its card: when the incident, alert or event has monitors that agree on a value for it, that value replaces the submitter's answer.
 
 ### Submitter
 
-**Your Name** and **Your Email** ask who is submitting. They are kept with the submission and named on the private note, so your team can follow up, and are never shown on the incident or event itself. OneUptime never emails the submitter. Leave them out, or make them optional, to take anonymous submissions.
+**Your Name** and **Your Email** ask who is submitting. They are kept with the submission and named on the private note, so your team can follow up, and are never shown on the incident, alert or event itself. OneUptime never emails the submitter. Leave them out, or make them optional, to take anonymous submissions.
 
 The email must be one ordinary address, such as `ada@example.com` — not a name with the address in angle brackets, and not a list of addresses. Name and email are up to 100 characters each.
 
@@ -224,13 +233,14 @@ The form cannot be saved while a question has one of the last three: **Save Chan
 
 The public page shows the form's logo — the OneUptime logo until you upload yours — then the form's name and description, its templates if it has any, the questions it asks — as the chosen template asks them, or the ones it does not hide when no template is chosen — and **Submit**, and the browser tab shows the form's name and its favicon. It is in the submitter's language when OneUptime has it — the language they last chose in OneUptime on that browser, or else the one their browser asks for — and in English otherwise. Your questions, options and help texts are shown as you wrote them.
 
-After submitting, the page says "Thank you — your response was submitted." and gives the number of what was created — "Your reference number is INC-42." — followed by the form's thank-you message, if you wrote one on the **Share** page. **Submit another response** opens an empty form. The submitter gets no email and no way back to the incident or event.
+After submitting, the page says "Thank you — your response was submitted." and gives the number of what was created — "Your reference number is INC-42." — followed by the form's thank-you message, if you wrote one on the **Share** page. **Submit another response** opens an empty form. The submitter gets no email and no way back to the incident, alert or event.
 
 ## Size limits
 
 | Answer | Limit |
 | --- | --- |
 | An incident's **Title** | 500 characters, not counting spaces at either end. |
+| An alert's **Title** | 500 characters, not counting spaces at either end. |
 | A maintenance event's **Title** | 100 characters. |
 | **Description** | 20,000 characters. |
 | Any other text answer | 10,000 characters. |
@@ -245,7 +255,7 @@ A submission that breaks a limit, leaves out a required answer or gives an answe
 ## Next steps
 
 :::cards
-- [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident or a maintenance event.
+- [What a Submission Creates](/docs/forms/on-submit): How the answers and the On Submit settings become an incident, an alert or a maintenance event.
 - [Sharing & Security](/docs/forms/sharing-and-security): Sharing the link, a link for each template, and what protects them.
 - [Incident Settings & Automation](/docs/incidents/settings): Incident custom fields and templates.
 :::

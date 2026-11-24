@@ -858,6 +858,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "acknowledgedAlertStateId",
       "alertIdsToAcknowledge",
       "alertIdsToLink",
+      "carryOverAlertOwners",
       "declaredByAlertIncidentRuleName",
       "startingStage",
     ]);
@@ -936,6 +937,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       "acknowledgedAlertStateId",
       "alertIdsToAcknowledge",
       "alertIdsToLink",
+      "carryOverAlertOwners",
       "declaredByAlertIncidentRuleName",
       "startingStage",
     ]);

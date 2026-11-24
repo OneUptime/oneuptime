@@ -71,6 +71,7 @@ import {
   FORM_SUBMISSION_MAX_FILES,
 } from "Common/Types/Form/FormFileAnswer";
 import {
+  FORM_ALERT_PERMISSION_MESSAGE,
   FORM_NETWORK_NOT_ALLOWED_MESSAGE,
   FORM_NOT_AVAILABLE_MESSAGE,
 } from "Common/Server/Services/FormService";
@@ -80,6 +81,7 @@ import {
   getFormSubmissionNote,
 } from "Common/Server/Utils/Form/FormSubmissionNote";
 import { FORM_NO_SEVERITY_MESSAGE } from "Common/Server/Utils/Form/IncidentFormTarget";
+import { FORM_NO_ALERT_SEVERITY_MESSAGE } from "Common/Server/Utils/Form/AlertFormTarget";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import CustomFieldType from "Common/Types/CustomField/CustomFieldType";
 import {
@@ -114,6 +116,7 @@ import {
 } from "Common/Types/Form/FormPublic";
 import {
   FORM_DESCRIPTION_MAX_LENGTH,
+  FORM_ALERT_TITLE_MAX_LENGTH,
   FORM_INCIDENT_TITLE_MAX_LENGTH,
   FORM_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
   FormTargetFieldDefinition,
@@ -827,10 +830,11 @@ describe("Forms docs", () => {
           return tableBody(block);
         });
 
-      expect(tables).toHaveLength(2);
+      expect(tables).toHaveLength(3);
 
       for (const [index, targetType] of [
         FormTargetType.Incident,
+        FormTargetType.Alert,
         FormTargetType.ScheduledMaintenance,
       ].entries()) {
         expect(
@@ -855,7 +859,8 @@ describe("Forms docs", () => {
         ).find((row: Array<string>): boolean => {
           return row[0] === "`TargetField`";
         })?.[1] || "";
-      const [incidentPart, maintenancePart] = apiRow.split(" for an incident;");
+      const [incidentPart, rest] = apiRow.split(" for an incident;");
+      const [alertPart, maintenancePart] = (rest || "").split(" for an alert;");
 
       expect(
         Array.from((incidentPart || "").matchAll(/`([a-zA-Z]+)`/g))
@@ -867,6 +872,19 @@ describe("Forms docs", () => {
           }),
       ).toEqual(
         getFormTargetFields(FormTargetType.Incident).map(
+          (field: FormTargetFieldDefinition): string => {
+            return field.key;
+          },
+        ),
+      );
+      expect(
+        Array.from((alertPart || "").matchAll(/`([a-zA-Z]+)`/g)).map(
+          (match: RegExpMatchArray): string => {
+            return match[1] as string;
+          },
+        ),
+      ).toEqual(
+        getFormTargetFields(FormTargetType.Alert).map(
           (field: FormTargetFieldDefinition): string => {
             return field.key;
           },
@@ -913,6 +931,9 @@ describe("Forms docs", () => {
 
       expect(limitOf("An incident's **Title**")).toEqual([
         FORM_INCIDENT_TITLE_MAX_LENGTH,
+      ]);
+      expect(limitOf("An alert's **Title**")).toEqual([
+        FORM_ALERT_TITLE_MAX_LENGTH,
       ]);
       expect(limitOf("A maintenance event's **Title**")).toEqual([
         FORM_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
@@ -997,6 +1018,12 @@ describe("Forms docs", () => {
         "Your Name (required)",
         "Your Email (required)",
       ]);
+      expect(describe(getDefaultFormFields(FormTargetType.Alert))).toEqual([
+        "Title (required)",
+        "Description",
+        "Your Name (required)",
+        "Your Email (required)",
+      ]);
       expect(
         describe(getDefaultFormFields(FormTargetType.ScheduledMaintenance)),
       ).toEqual([
@@ -1046,6 +1073,35 @@ describe("Forms docs", () => {
           return row.title;
         }),
       );
+    });
+
+    it("list how a submission becomes an alert, row for row as the On Submit page does", () => {
+      const rows: Array<FormMappingRow> = getFormMappingRows({
+        targetType: FormTargetType.Alert,
+        fields: getDefaultFormFields(FormTargetType.Alert),
+        settings: {} as never,
+        reference: { lists: {}, templateIdsWithSeverity: [] },
+        customFields: [],
+      });
+      const section: string = sectionOf(
+        readPage(ON_SUBMIT_PAGE),
+        2,
+        "How a submission becomes an alert",
+      );
+      const documented: Array<string> = firstTable(section).flatMap(
+        (row: Array<string>): Array<string> => {
+          return boldNamesIn(row[0] as string);
+        },
+      );
+
+      expect(documented).toEqual(
+        rows.map((row: FormMappingRow): string => {
+          return row.title;
+        }),
+      );
+
+      // The refusal a form left without a severity answers with.
+      expect(section).toContain(`"${FORM_NO_ALERT_SEVERITY_MESSAGE}"`);
     });
 
     it("list how a submission becomes a maintenance event, row for row as the On Submit page does", () => {
@@ -1111,7 +1167,8 @@ describe("Forms docs", () => {
 
       for (const [column, targetType] of [
         [1, FormTargetType.Incident],
-        [2, FormTargetType.ScheduledMaintenance],
+        [2, FormTargetType.Alert],
+        [3, FormTargetType.ScheduledMaintenance],
       ] as Array<[number, FormTargetType]>) {
         const steps: Array<{ id: string; title: string }> =
           getFormSettingsSteps(targetType);
@@ -1190,6 +1247,10 @@ describe("Forms docs", () => {
         FORM_FAVICON_NOT_FOUND_MESSAGE,
         // Uploading an image into a project the uploader cannot act in (API).
         UPLOAD_OUTSIDE_PROJECT_MESSAGE,
+        // An alert form with no severity (#10760), which the page has too.
+        FORM_NO_ALERT_SEVERITY_MESSAGE,
+        // Setting up an alert form without permission to create alerts.
+        FORM_ALERT_PERMISSION_MESSAGE,
       ];
 
       for (const sentence of quoted) {
@@ -1200,7 +1261,10 @@ describe("Forms docs", () => {
       }
 
       // What a submitter sees is the page's own copy of the server's words.
-      for (const sentence of quoted.slice(0, 10)) {
+      for (const sentence of [
+        ...quoted.slice(0, 10),
+        FORM_NO_ALERT_SEVERITY_MESSAGE,
+      ]) {
         expect(Object.values(FormMessage)).toContain(sentence);
       }
 
@@ -1609,11 +1673,12 @@ describe("Forms docs", () => {
         "that value replaces the answer",
       );
       expect(sectionOf(readPage(BUILDING_PAGE), 3, "Custom fields")).toContain(
-        "A custom field that copies its value from a monitor custom field says so on its card: when the incident or event has monitors that agree on a value for it, that value replaces the submitter's answer.",
+        "A custom field that copies its value from a monitor custom field says so on its card: when the incident, alert or event has monitors that agree on a value for it, that value replaces the submitter's answer.",
       );
 
       for (const heading of [
         "How a submission becomes an incident",
+        "How a submission becomes an alert",
         "How a submission becomes a maintenance event",
       ]) {
         const row: Array<string> | undefined = firstTable(

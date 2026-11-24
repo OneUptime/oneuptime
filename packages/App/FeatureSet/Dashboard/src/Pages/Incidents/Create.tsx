@@ -957,13 +957,18 @@ const IncidentCreate: FunctionComponent<
       return null;
     }
 
-    const userIds: Array<string> = ownerUsers
-      .map((owner: AlertOwnerUser): string => {
-        return owner.userId?.toString() || "";
-      })
-      .filter((userId: string): boolean => {
-        return Boolean(userId);
-      });
+    // Each person once, however many of the alerts they own.
+    const userIds: Array<string> = Array.from(
+      new Set<string>(
+        ownerUsers
+          .map((owner: AlertOwnerUser): string => {
+            return owner.userId?.toString().toLowerCase() || "";
+          })
+          .filter((userId: string): boolean => {
+            return Boolean(userId);
+          }),
+      ),
+    );
 
     let projectMemberUserIds: Array<string> | null = null;
 
