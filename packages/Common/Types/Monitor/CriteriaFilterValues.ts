@@ -5,6 +5,7 @@ import {
   EvaluateOverTimeType,
   FilterType,
   NoDataPolicy,
+  PreviousCheckChangeType,
 } from "./CriteriaFilter";
 
 /*
@@ -211,6 +212,21 @@ const NO_DATA_POLICIES: ValueSet<NoDataPolicy> = makeValueSet<NoDataPolicy>({
   values: Object.values(NoDataPolicy),
 });
 
+/*
+ * How far a check must be from the previous one (#10821): an amount, or a
+ * percentage of the previous value - "percent" and "%" too.
+ */
+const PREVIOUS_CHECK_CHANGE_TYPES: ValueSet<PreviousCheckChangeType> =
+  makeValueSet<PreviousCheckChangeType>({
+    values: Object.values(PreviousCheckChangeType),
+    otherNames: {
+      percent: PreviousCheckChangeType.Percentage,
+    },
+    symbols: {
+      "%": PreviousCheckChangeType.Percentage,
+    },
+  });
+
 // The fields of a criteria whose values are read when written another way.
 export type CriteriaFilterValueField =
   | "filterType"
@@ -372,6 +388,12 @@ export default class CriteriaFilterValues {
     return readValue(NO_DATA_POLICIES, value);
   }
 
+  public static readPreviousCheckChangeType(
+    value: unknown,
+  ): PreviousCheckChangeType | null {
+    return readValue(PREVIOUS_CHECK_CHANGE_TYPES, value);
+  }
+
   /*
    * Every name a field's value is read by, as it is written here: the
    * values, their other names ("avg", "gte") and their symbols (">="). For
@@ -442,10 +464,26 @@ export default class CriteriaFilterValues {
         set: FILTER_TYPES,
       });
 
-      // The count it is compared with, and a percentile, as numbers.
+      // How far from the previous check: an amount, or a percentage.
+      const withChangeType: unknown = withValueRead({
+        options: options,
+        key: "changeType",
+        set: PREVIOUS_CHECK_CHANGE_TYPES,
+      });
+
+      /*
+       * The count it is compared with, a percentile and a change from the
+       * previous check, as numbers.
+       */
       read["evaluateOverTimeOptions"] = withNumberRead({
-        options: withNumberRead({ options: options, key: "countValue" }),
-        key: "percentile",
+        options: withNumberRead({
+          options: withNumberRead({
+            options: withChangeType,
+            key: "countValue",
+          }),
+          key: "percentile",
+        }),
+        key: "changeValue",
       }) as JSONObject;
     }
 
@@ -541,6 +579,12 @@ export default class CriteriaFilterValues {
           set: FILTER_TYPES,
           value: evaluateOverTimeOptions?.["countFilterType"],
           path: `${at}.evaluateOverTimeOptions.countFilterType`,
+          criteriaName: data.criteriaName,
+        }),
+        getUnreadableValueError({
+          set: PREVIOUS_CHECK_CHANGE_TYPES,
+          value: evaluateOverTimeOptions?.["changeType"],
+          path: `${at}.evaluateOverTimeOptions.changeType`,
           criteriaName: data.criteriaName,
         }),
       );

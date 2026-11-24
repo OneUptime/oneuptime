@@ -69,6 +69,12 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     // Count, Percentage and Status Changes: "Greater Than" 30.
     countFilterType: Zod.string().optional(),
     countValue: Zod.number().optional(),
+    /*
+     * Previous Check, on a measured value (#10821): how far from the
+     * previous check, "Amount" or "Percentage", and how much.
+     */
+    changeType: Zod.string().optional(),
+    changeValue: Zod.number().optional(),
   }).optional(),
 });
 

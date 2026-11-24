@@ -126,6 +126,7 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 | **Alle værdier** | Hver kontrol i vinduet opfylder betingelsen. |
 | **Vilkårlig værdi** | Mindst én kontrol i vinduet opfylder betingelsen. |
 | **Antal**, **Procentdel**, **Statusskift** | Hvor mange kontroller der opfyldte betingelsen, deres andel, eller hvor ofte de skiftede mellem at opfylde den og ikke at opfylde den, sammenlignes med tallet, der er angivet nedenunder. |
+| **Forrige kontrol** | Denne kontrol sammenlignet med sondens forrige kontrol, som angivet under **Ændring fra den forrige kontrol**: fx en svartid, der ligger mere end 50 % over den. Et filter, der er sandt eller falsk, matcher ved den kontrol, der begyndte at opfylde betingelsen. |
 
 **Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller ikke længere blev registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "sig til, så snart en enkelt kontrol overskrider grænsen" og udløses stadig med det samme.
 
