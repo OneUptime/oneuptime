@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "OneUptime कभी-कभी पूछता है कि कुछ कैसा रहा: गाइडेड सेटअप के आखिर में, किसी व्याख्या के नीचे, और नए प्रोजेक्ट के पहले हफ़्तों में एक बार। हफ़्ते में ज़्यादा से ज़्यादा एक प्रश्न, और कुछ डाउन होने के दौरान कभी नहीं।",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime कभी-कभी आपसे एक छोटा प्रश्न पूछ सकता है। सहायता में फ़ीडबैक देना हर हाल में काम करता है।",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime आपसे कभी नहीं पूछता। जब भी आप हमें कुछ बताना चाहें, सहायता में फ़ीडबैक देना फिर भी काम करता है।",
+  "OneUptime may ask you one short question now and then.": "OneUptime कभी-कभी आपसे एक छोटा प्रश्न पूछ सकता है।",
+  "OneUptime never asks you.": "OneUptime आपसे कभी नहीं पूछता।",
   "Open Setup Health": "सेटअप स्वास्थ्य खोलें",
   "Optional: what was hard, missing or confusing?": "वैकल्पिक: क्या मुश्किल था, क्या कमी थी या क्या उलझन भरा था?",
   "Send Feedback": "फ़ीडबैक भेजें",

@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "Av og til spør OneUptime hvordan noe gikk: på slutten av et veiledet oppsett, under en forklaring og én gang i et nytt prosjekts første uker. Høyst ett spørsmål i uken, og aldri mens noe er nede.",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime kan stille deg et kort spørsmål av og til. Gi tilbakemelding i Hjelp fungerer uansett.",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime spør deg aldri. Gi tilbakemelding i Hjelp fungerer fortsatt når du vil fortelle oss noe.",
+  "OneUptime may ask you one short question now and then.": "OneUptime kan stille deg et kort spørsmål av og til.",
+  "OneUptime never asks you.": "OneUptime spør deg aldri.",
   "Open Setup Health": "Åpne Oppsettets helse",
   "Optional: what was hard, missing or confusing?": "Valgfritt: hva var vanskelig, manglet eller var forvirrende?",
   "Send Feedback": "Send tilbakemelding",

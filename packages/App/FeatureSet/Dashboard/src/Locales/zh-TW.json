@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "OneUptime 偶爾會詢問進展如何：在引導式設定結束時、在說明下方，以及在新專案的最初幾週內詢問一次。每週最多一個問題，發生故障時絕不詢問。",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime 可能偶爾問你一個簡短的問題。無論如何，你都可以在說明中提供意見回饋。",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime 不會詢問你。你想告訴我們什麼時，仍可在說明中提供意見回饋。",
+  "OneUptime may ask you one short question now and then.": "OneUptime 可能偶爾問你一個簡短的問題。",
+  "OneUptime never asks you.": "OneUptime 不會詢問你。",
   "Open Setup Health": "開啟設定健康狀況",
   "Optional: what was hard, missing or confusing?": "選填：哪裡困難、缺少或令人困惑？",
   "Send Feedback": "傳送意見回饋",

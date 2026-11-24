@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "يسأل OneUptime من حين لآخر كيف سار أمر ما: في نهاية الإعداد الموجّه، وتحت الشرح، ومرة واحدة في الأسابيع الأولى من المشروع الجديد. سؤال واحد في الأسبوع على الأكثر، ولا يسأل أبدًا أثناء تعطّل شيء ما.",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "قد يطرح عليك OneUptime سؤالًا قصيرًا من حين لآخر. يعمل إرسال الملاحظات من المساعدة في كل الأحوال.",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "لن يسألك OneUptime أبدًا. يظل إرسال الملاحظات من المساعدة متاحًا كلما أردت إخبارنا بشيء.",
+  "OneUptime may ask you one short question now and then.": "قد يطرح عليك OneUptime سؤالًا قصيرًا من حين لآخر.",
+  "OneUptime never asks you.": "لن يسألك OneUptime أبدًا.",
   "Open Setup Health": "فتح سلامة الإعداد",
   "Optional: what was hard, missing or confusing?": "اختياري: ما الذي كان صعبًا أو ناقصًا أو مربكًا؟",
   "Send Feedback": "إرسال الملاحظات",

@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "OneUptime 偶尔会询问进展如何：在引导式设置结束时、在说明下方，以及在新项目的最初几周内询问一次。每周最多一个问题，出现故障时绝不询问。",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime 可能偶尔问你一个简短的问题。无论如何，你都可以在帮助中提供反馈。",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime 不会询问你。你想告诉我们什么时，仍可在帮助中提供反馈。",
+  "OneUptime may ask you one short question now and then.": "OneUptime 可能偶尔问你一个简短的问题。",
+  "OneUptime never asks you.": "OneUptime 不会询问你。",
   "Open Setup Health": "打开配置健康",
   "Optional: what was hard, missing or confusing?": "可选：哪里困难、缺少或令人困惑？",
   "Send Feedback": "发送反馈",

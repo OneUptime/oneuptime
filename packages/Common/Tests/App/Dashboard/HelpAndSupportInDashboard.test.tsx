@@ -1,6 +1,20 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
@@ -111,6 +125,10 @@ import MobileApps, {
   MOBILE_APPS_PAGE_COPY,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/MobileApps";
 import {
+  FEEDBACK_QUESTIONS_COPY,
+  getFeedbackQuestionsDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Global/UserProfile/Index";
+import {
   MOBILE_APP_ANDROID_URL,
   MOBILE_APP_IOS_URL,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/MobileAppStoreLinks";
@@ -163,11 +181,11 @@ const setBranding: (value: string | null) => void = (
 const linkAddresses: (element?: HTMLElement) => Array<string> = (
   element?: HTMLElement,
 ): Array<string> => {
-  return Array.from(
-    (element || document.body).querySelectorAll("a[href]"),
-  ).map((anchor: Element): string => {
-    return anchor.getAttribute("href") || "";
-  });
+  return Array.from((element || document.body).querySelectorAll("a[href]")).map(
+    (anchor: Element): string => {
+      return anchor.getAttribute("href") || "";
+    },
+  );
 };
 
 beforeEach(() => {
@@ -233,7 +251,11 @@ describe("Help: the ways to ask", () => {
     ["a Slack workspace of their own", OWN_CHAT["slack"]!, "help.chatSlack"],
     ["Microsoft Teams", OWN_CHAT["teams"]!, CHAT_WITH_TEAMS_TITLE],
     ["any other chat", OWN_CHAT["other"]!, CHAT_WITH_SUPPORT_TITLE],
-    ["an address to write to", "mailto:it-help@example.com", CHAT_WITH_SUPPORT_TITLE],
+    [
+      "an address to write to",
+      "mailto:it-help@example.com",
+      CHAT_WITH_SUPPORT_TITLE,
+    ],
   ])(
     "a chat link to %s is named for what it opens",
     (_name: string, url: string, title: string) => {
@@ -251,7 +273,11 @@ describe("Help: the ways to ask", () => {
   );
 
   test.each([
-    [HelpItem.SupportEmail, "help.supportEmail", "mailto:support@oneuptime.com"],
+    [
+      HelpItem.SupportEmail,
+      "help.supportEmail",
+      "mailto:support@oneuptime.com",
+    ],
     [HelpItem.Chat, "help.chatSlack", ONEUPTIME_CHAT_URL],
     [HelpItem.RequestDemo, "help.requestDemo", ONEUPTIME_DEMO_URL],
   ])(
@@ -326,9 +352,9 @@ describe("the footer's Help and Support link", () => {
   const helpLink: () => HTMLAnchorElement | null =
     (): HTMLAnchorElement | null => {
       return (
-        (screen.queryByText("footer.helpSupport")?.closest(
-          "a",
-        ) as HTMLAnchorElement | null) || null
+        (screen
+          .queryByText("footer.helpSupport")
+          ?.closest("a") as HTMLAnchorElement | null) || null
       );
     };
 
@@ -390,7 +416,10 @@ describe("the footer's Help and Support link", () => {
     );
 
     await renderFooter();
-    expect(helpLink()).toHaveAttribute("href", "https://help.acme.example/oneuptime");
+    expect(helpLink()).toHaveAttribute(
+      "href",
+      "https://help.acme.example/oneuptime",
+    );
   });
 });
 
@@ -398,9 +427,9 @@ describe("Contact, on the sign-in pages", () => {
   const contactLink: () => HTMLAnchorElement | null =
     (): HTMLAnchorElement | null => {
       return (
-        (screen.queryByText("footer.contact")?.closest(
-          "a",
-        ) as HTMLAnchorElement | null) || null
+        (screen
+          .queryByText("footer.contact")
+          ?.closest("a") as HTMLAnchorElement | null) || null
       );
     };
 
@@ -458,7 +487,9 @@ describe("Give feedback's public GitHub issue", () => {
     expect(screen.getByTestId("feedback-github")).toHaveTextContent(
       "Also tell OneUptime in a public GitHub issue",
     );
-    expect(screen.getByTestId(FEEDBACK_GITHUB_HINT_TEST_ID)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(FEEDBACK_GITHUB_HINT_TEST_ID),
+    ).toBeInTheDocument();
   });
 
   test("not offered where the server's admins took OneUptime's GitHub away", () => {
@@ -672,5 +703,40 @@ describe("Project Settings > Mobile Apps", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("App Store")).toBeNull();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+});
+
+describe("User Profile's Ask me how things went", () => {
+  test("promises Give feedback in Help beside it, as it always did, where the server offers it", () => {
+    expect(
+      getFeedbackQuestionsDescription({
+        isOn: true,
+        isGiveFeedbackOffered: true,
+      }),
+    ).toBe(FEEDBACK_QUESTIONS_COPY.onDescription);
+    expect(
+      getFeedbackQuestionsDescription({
+        isOn: false,
+        isGiveFeedbackOffered: true,
+      }),
+    ).toBe(FEEDBACK_QUESTIONS_COPY.offDescription);
+  });
+
+  test("promises no Give feedback where the server's admins hid it", () => {
+    const on: string = getFeedbackQuestionsDescription({
+      isOn: true,
+      isGiveFeedbackOffered: false,
+    });
+    const off: string = getFeedbackQuestionsDescription({
+      isOn: false,
+      isGiveFeedbackOffered: false,
+    });
+
+    expect(on).toBe("OneUptime may ask you one short question now and then.");
+    expect(off).toBe("OneUptime never asks you.");
+    expect(`${on} ${off}`).not.toContain("Give feedback");
+    // Each is the first sentence of the one it stands in for.
+    expect(FEEDBACK_QUESTIONS_COPY.onDescription.startsWith(on)).toBe(true);
+    expect(FEEDBACK_QUESTIONS_COPY.offDescription.startsWith(off)).toBe(true);
   });
 });

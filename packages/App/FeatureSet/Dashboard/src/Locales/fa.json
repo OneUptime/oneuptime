@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "OneUptime گاهی می‌پرسد کاری چطور پیش رفت: در پایان یک راه‌اندازی گام‌به‌گام، زیر یک توضیح، و یک بار در هفته‌های نخست یک پروژهٔ تازه. حداکثر یک پرسش در هفته، و هرگز وقتی چیزی از کار افتاده است.",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime ممکن است گاهی یک پرسش کوتاه از شما بپرسد. ارسال بازخورد در راهنما در هر صورت کار می‌کند.",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime هرگز از شما نمی‌پرسد. هر وقت بخواهید چیزی به ما بگویید، ارسال بازخورد در راهنما همچنان کار می‌کند.",
+  "OneUptime may ask you one short question now and then.": "OneUptime ممکن است گاهی یک پرسش کوتاه از شما بپرسد.",
+  "OneUptime never asks you.": "OneUptime هرگز از شما نمی‌پرسد.",
   "Open Setup Health": "باز کردن سلامت پیکربندی",
   "Optional: what was hard, missing or confusing?": "اختیاری: چه چیزی سخت، ناقص یا گیج‌کننده بود؟",
   "Send Feedback": "ارسال بازخورد",

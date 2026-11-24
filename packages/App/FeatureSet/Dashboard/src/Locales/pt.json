@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "De vez em quando, o OneUptime pergunta como correu algo: no fim de uma configuração guiada, por baixo de uma explicação e uma vez nas primeiras semanas de um novo projeto. No máximo uma pergunta por semana, e nunca enquanto algo está em baixo.",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "O OneUptime pode fazer-lhe uma pergunta curta de vez em quando. Dar feedback na Ajuda funciona em qualquer caso.",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "O OneUptime nunca lhe pergunta nada. Dar feedback na Ajuda continua a funcionar sempre que nos quiser dizer algo.",
+  "OneUptime may ask you one short question now and then.": "O OneUptime pode fazer-lhe uma pergunta curta de vez em quando.",
+  "OneUptime never asks you.": "O OneUptime nunca lhe pergunta nada.",
   "Open Setup Health": "Abrir Saúde da configuração",
   "Optional: what was hard, missing or confusing?": "Opcional: o que foi difícil, faltou ou confundiu?",
   "Send Feedback": "Enviar feedback",

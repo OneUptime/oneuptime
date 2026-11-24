@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "Время от времени OneUptime спрашивает, как всё прошло: в конце пошаговой настройки, под пояснением и один раз в первые недели нового проекта. Не больше одного вопроса в неделю и никогда во время сбоя.",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime может время от времени задавать вам один короткий вопрос. Оставить отзыв в справке можно в любом случае.",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime никогда вас не спрашивает. Оставить отзыв в справке по-прежнему можно, когда захотите что-то нам сказать.",
+  "OneUptime may ask you one short question now and then.": "OneUptime может время от времени задавать вам один короткий вопрос.",
+  "OneUptime never asks you.": "OneUptime никогда вас не спрашивает.",
   "Open Setup Health": "Открыть «Состояние настройки»",
   "Optional: what was hard, missing or confusing?": "Необязательно: что было сложным, чего не хватало или что сбивало с толку?",
   "Send Feedback": "Отправить отзыв",

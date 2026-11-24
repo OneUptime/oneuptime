@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "Af en toe vraagt OneUptime hoe iets ging: aan het eind van een begeleide instelling, onder een uitleg en één keer in de eerste weken van een nieuw project. Hooguit één vraag per week, en nooit terwijl er iets plat ligt.",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime mag je af en toe een korte vraag stellen. Feedback geven in Help werkt hoe dan ook.",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime vraagt je nooit iets. Feedback geven in Help werkt nog steeds wanneer je ons iets wilt vertellen.",
+  "OneUptime may ask you one short question now and then.": "OneUptime mag je af en toe een korte vraag stellen.",
+  "OneUptime never asks you.": "OneUptime vraagt je nooit iets.",
   "Open Setup Health": "Inrichtingsstatus openen",
   "Optional: what was hard, missing or confusing?": "Optioneel: wat was lastig, ontbrak of was verwarrend?",
   "Send Feedback": "Feedback versturen",

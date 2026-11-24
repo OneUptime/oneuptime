@@ -51393,6 +51393,8 @@
   "Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down.": "OneUptime はときどき、うまくいったかを尋ねます。ガイド付きセットアップの最後、説明の下、そして新しいプロジェクトの最初の数週間に 1 回です。質問は週に 1 回までで、何かが停止している間は尋ねません。",
   "OneUptime may ask you one short question now and then. Give feedback in Help works either way.": "OneUptime がときどき短い質問をすることがあります。ヘルプの「フィードバックを送る」はどちらの場合も使えます。",
   "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.": "OneUptime から質問することはありません。伝えたいことがあれば、いつでもヘルプの「フィードバックを送る」を使えます。",
+  "OneUptime may ask you one short question now and then.": "OneUptime がときどき短い質問をすることがあります。",
+  "OneUptime never asks you.": "OneUptime から質問することはありません。",
   "Open Setup Health": "セットアップのヘルスを開く",
   "Optional: what was hard, missing or confusing?": "任意：難しかったこと、足りなかったこと、わかりにくかったことは？",
   "Send Feedback": "フィードバックを送信",
