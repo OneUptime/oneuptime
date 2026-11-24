@@ -18,6 +18,7 @@ import { LLMToolDefinition } from "../../LLM/LLMService";
 import logger from "../../Logger";
 import {
   ObservabilityTool,
+  PreparedMutation,
   SetupActionRefusal,
   ToolContext,
   ToolExecutionResult,
@@ -365,6 +366,47 @@ export default class AIToolbox {
   }
 
   /*
+   * Whether this call waits for a person's approval in every permission
+   * mode, Auto-run included: a setup action always does (#6829), and a
+   * Data Security action when the tool says so for the arguments it will
+   * run with and what its prepare read (ObservabilityTool.asksInEveryMode,
+   * #10378) - `prepared` undefined when the prepare failed or there is
+   * none. A tool whose answer throws asks: an action that could not be
+   * judged is shown to a person, never run unseen. False for a read, which
+   * changes nothing.
+   */
+  public static asksInEveryMode(data: {
+    name: string;
+    args: JSONObject;
+    prepared: PreparedMutation | undefined;
+  }): boolean {
+    const tool: ObservabilityTool | undefined = this.getToolByName(data.name);
+
+    if (!tool?.isMutation) {
+      return false;
+    }
+
+    if (tool.setupAction) {
+      return true;
+    }
+
+    if (!tool.asksInEveryMode) {
+      return false;
+    }
+
+    try {
+      return tool.asksInEveryMode(data.args || {}, data.prepared) !== false;
+    } catch (error) {
+      logger.error(
+        `AI toolbox could not tell whether ${data.name} asks in every mode; it asks: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return true;
+    }
+  }
+
+  /*
    * Where a setup action runs in its plan once approved (setupAction.
    * planOrder); every other tool keeps its place, after them.
    */
@@ -430,8 +472,12 @@ export default class AIToolbox {
       return refusedAsOff;
     }
 
-    // Only a setup action has a check of its own (ObservabilityTool).
-    if (!tool.setupAction || !tool.checkBeforeApproval) {
+    /*
+     * A setup action, and a Data Security action (#10378), has a check of
+     * its own (ObservabilityTool.checkBeforeApproval): what is missing, or
+     * what changed since it was proposed.
+     */
+    if (!tool.checkBeforeApproval) {
       return null;
     }
 

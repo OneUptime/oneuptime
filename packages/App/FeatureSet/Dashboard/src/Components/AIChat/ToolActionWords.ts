@@ -1,5 +1,6 @@
 import {
   AI_ACTION_CODE_CHANGE_LINES,
+  AIActionEffects,
   AIActionSentence,
   AIActionWords,
   describeAIActionSentence,
@@ -172,6 +173,68 @@ export function getToolActionDescription(
   }
 
   return drawn;
+}
+
+/*
+ * What the action does, as its card says it under the title (#10378): what
+ * changes, what stops working and what it costs - each section's sentences
+ * in the reader's language, a section with none left empty - and why it
+ * asks in every mode, or null. All empty for an action that says none, and
+ * for one saved before its words: it reads as its title and line, as it
+ * always did.
+ */
+export interface DrawnActionEffects {
+  changes: Array<DrawnActionSentence>;
+  stopsWorking: Array<DrawnActionSentence>;
+  costs: Array<DrawnActionSentence>;
+  asksBecause: DrawnActionSentence | null;
+}
+
+export function getToolActionEffects(
+  action: AIChatToolAction,
+  translator: Translator,
+): DrawnActionEffects {
+  const effects: AIActionEffects | undefined = getKnownWords(action)?.effects;
+  const draw: (
+    sentences: Array<AIActionSentence> | undefined,
+  ) => Array<DrawnActionSentence> = (
+    sentences: Array<AIActionSentence> | undefined,
+  ): Array<DrawnActionSentence> => {
+    const drawn: Array<DrawnActionSentence> = [];
+    let previous: string = "";
+
+    for (const sentence of sentences || []) {
+      const next: DrawnActionSentence = drawActionSentence(
+        sentence,
+        translator,
+        previous,
+      );
+
+      drawn.push(next);
+      previous = next.text;
+    }
+
+    return drawn;
+  };
+
+  return {
+    changes: draw(effects?.changes),
+    stopsWorking: draw(effects?.stopsWorking),
+    costs: draw(effects?.costs),
+    asksBecause: effects?.asksBecause
+      ? drawActionSentence(effects.asksBecause, translator, "")
+      : null,
+  };
+}
+
+// Whether the card has any effect to say (getToolActionEffects).
+export function hasToolActionEffects(effects: DrawnActionEffects): boolean {
+  return (
+    effects.changes.length > 0 ||
+    effects.stopsWorking.length > 0 ||
+    effects.costs.length > 0 ||
+    effects.asksBecause !== null
+  );
 }
 
 /*
