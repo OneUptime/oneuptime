@@ -196,9 +196,7 @@ export function getFindingFieldName(finding: FindingPlaceFacts): string | null {
  * The words of a finding's field's own name, as the scanner reads them:
  * [] when it sits in free text or its name is nothing but generic words.
  */
-export function getFindingNameWords(
-  finding: FindingPlaceFacts,
-): Array<string> {
+export function getFindingNameWords(finding: FindingPlaceFacts): Array<string> {
   const field: string | null = getFindingFieldName(finding);
 
   if (!field) {

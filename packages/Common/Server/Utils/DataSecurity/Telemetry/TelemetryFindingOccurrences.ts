@@ -12,6 +12,7 @@ import {
   DataSecurityOccurrenceExcerpt,
   DataSecurityOccurrenceRecordKind,
   DataSecurityOccurrencesSource,
+  DataSecurityOccurrencesUnavailableReason,
 } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
 import { readTelemetryDataStoreKeyOwnerId } from "../../../../Types/DataSecurity/DataStoreKey";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
@@ -40,6 +41,8 @@ import { getQuerySettings } from "../../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../../AnalyticsDatabase/Statement";
 import logger from "../../Logger";
 import { ContentScanOptions } from "../DataSecurityScanTypes";
+import { ModelRereads } from "../Model/ModelRereads";
+import { RecognizerAvailability } from "../Model/NameAddressRecognizer";
 import {
   appendOwnersIn,
   appendWhere,
@@ -214,21 +217,59 @@ export const OCCURRENCE_READ_TIME_LIMIT_IN_SECONDS: number = 20;
 /*
  * The resource attribute a service names its version in, as its records
  * keep it among their attributes (#10368): what a code fix's version is
- * read by. A RUM application's records name none.
+ * read by. A metric's data points keep their resource's attributes there
+ * too, and so do a RUM application's logs and spans: the browser SDK's
+ * service.version, the release its source maps are uploaded for (#10832).
  */
 export const SERVICE_VERSION_ATTRIBUTE_KEY: string = "resource.service.version";
+
+/*
+ * A RUM application's session names its release in a column of its own:
+ * the session recorder's appVersion option (#6625), '' when the page set
+ * none.
+ */
+export const SESSION_APP_VERSION_COLUMN: string = "appVersion";
 
 // The longest a record's version is read.
 export const MAX_OCCURRENCE_VERSION_LENGTH: number = 100;
 
-// The records that carry their service's version among their attributes.
+/*
+ * The records that name the version that wrote them (#10368, #10832): a
+ * service's logs, spans, AI calls, exceptions and metric data points, and
+ * a RUM application's logs, spans and sessions - each by
+ * appendRecordVersion's column.
+ */
 export const VERSIONED_OCCURRENCE_SOURCES: ReadonlySet<TelemetrySampleSource> =
   new Set([
     TelemetrySampleSource.Logs,
     TelemetrySampleSource.Traces,
     TelemetrySampleSource.AiConversations,
     TelemetrySampleSource.Exceptions,
+    TelemetrySampleSource.Metrics,
+    TelemetrySampleSource.RumLogs,
+    TelemetrySampleSource.RumSpans,
+    TelemetrySampleSource.RumSessions,
   ]);
+
+/*
+ * Where a source's record names the version that wrote it: a session's
+ * appVersion column, any other record's resource.service.version
+ * attribute - its key bound as a parameter.
+ */
+export function appendRecordVersion(
+  statement: Statement,
+  source: TelemetrySampleSource,
+): void {
+  if (source === TelemetrySampleSource.RumSessions) {
+    statement.append(SESSION_APP_VERSION_COLUMN);
+    return;
+  }
+
+  statement.append("attributes[");
+  statement.append(
+    SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}]`,
+  );
+}
 
 const OCCURRENCE_MAX_RESULT_BYTES: number = 64 * 1024 * 1024;
 
@@ -844,12 +885,15 @@ export function getOccurrencePrefilter(data: {
 
 /*
  * A record's value at the location as its excerpt shows it: cut around the
- * finding's data, every sensitive value in it masked (OccurrenceExcerpt).
+ * finding's data, every sensitive value in it masked (OccurrenceExcerpt) -
+ * for a finding the model made, around what the model found in it, every
+ * name and address it found masked.
  */
 export function buildOccurrenceExcerptReader(data: {
   dataTypeId: string;
   location: string;
   options: ContentScanOptions;
+  model?: ModelRereads | null | undefined;
 }): (value: TelemetryRecordValue) => DataSecurityOccurrenceExcerpt {
   return (value: TelemetryRecordValue): DataSecurityOccurrenceExcerpt => {
     return buildOccurrenceExcerpt({
@@ -864,9 +908,46 @@ export function buildOccurrenceExcerptReader(data: {
         disabledDataTypeIds: data.options.disabledDataTypeIds,
         allowedValues: data.options.allowedValues,
       },
+      recognized: data.model?.entitiesIn(value.value),
     });
   };
 }
+
+/*
+ * The values at a location the rows hold, in the order a read of them
+ * visits them (readOccurrenceRows): what the model is handed for a finding
+ * it made. Different ones once each.
+ */
+export function readValuesAtLocation(data: {
+  source: TelemetrySampleSource;
+  rows: ReadonlyArray<JSONObject>;
+  location: string;
+  caps: TelemetrySampleCaps;
+}): Array<string> {
+  const seen: Set<string> = new Set();
+  const values: Array<string> = [];
+
+  for (const row of data.rows) {
+    for (const value of readTelemetryRecordValues(
+      data.source,
+      row,
+      data.caps,
+    ) || []) {
+      if (value.location === data.location && !seen.has(value.value)) {
+        seen.add(value.value);
+        values.push(value.value);
+      }
+    }
+  }
+
+  return values;
+}
+
+/*
+ * How many values the model is handed at a time while a finding's records
+ * are looked for: once the records to show are found, it is handed no more.
+ */
+export const MODEL_REREAD_VALUES_PER_ROUND: number = 16;
 
 /*
  * Only the records written in one of the kept records' milliseconds: each
@@ -963,10 +1044,9 @@ export function buildTelemetryOccurrenceStatement(
   appendOccurrenceColumns(statement, data.plan.read, data.caps);
 
   if (isVersioned && data.readsServiceVersion) {
-    statement.append(", substringUTF8(attributes[");
-    statement.append(
-      SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}], 1, `,
-    );
+    statement.append(", substringUTF8(");
+    appendRecordVersion(statement, data.plan.source);
+    statement.append(", 1, ");
     appendNumber(statement, MAX_OCCURRENCE_VERSION_LENGTH);
     statement.append(") AS readServiceVersion");
   }
@@ -977,9 +1057,10 @@ export function buildTelemetryOccurrenceStatement(
   appendOwnersIn(statement, source, [data.ownerId]);
 
   if (isVersioned && data.serviceVersion) {
-    statement.append(" AND attributes[");
+    statement.append(" AND ");
+    appendRecordVersion(statement, data.plan.source);
     statement.append(
-      SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}] = ${{
+      SQL` = ${{
         type: TableColumnType.Text,
         value: data.serviceVersion,
       }}`,
@@ -1015,11 +1096,17 @@ export function buildTelemetryOccurrenceStatement(
  * the value classified at the finding's location with that type's own
  * detectors (the project's, for a custom type), its hints and its allowed
  * values. Null for a value that is not that type, or only a test value.
+ *
+ * For a finding the names-and-addresses model made, `model` holds what the
+ * model found in the values it read again (Model/ModelRereads.ts): a value
+ * is that type when the model found it there, as the scan did. A value the
+ * model did not read is not one.
  */
 export function buildOccurrenceMatcher(data: {
   dataTypeId: string;
   location: string;
   options: ContentScanOptions;
+  model?: ModelRereads | null | undefined;
 }): (value: string) => string | null {
   const detectors: Array<ScanDetector> = isCustomDataTypeId(data.dataTypeId)
     ? (data.options.customDetectors || []).filter(
@@ -1033,6 +1120,11 @@ export function buildOccurrenceMatcher(data: {
     extraHints: data.options.extraHints,
     disabledDataTypeIds: data.options.disabledDataTypeIds,
     allowedValues: data.options.allowedValues,
+    /*
+     * Every value at the place is one the model reads: the finding says
+     * the model read the place, however short each of its values is.
+     */
+    ...(data.model ? { recognitions: data.model, readWithModel: true } : {}),
   };
 
   return (value: string): string | null => {
@@ -1291,6 +1383,12 @@ async function readRows(
  * the reader may read the store's telemetry; `options` is the project's
  * scan setup (DataSecurityRunner.getScanSetup), for its custom types,
  * hints, allowed values and the scan's caps.
+ *
+ * A finding the names-and-addresses model made (`isFoundByModel`) is told
+ * in its records by the model (Model/ModelRereads.ts): the values read are
+ * handed to it a few at a time, newest first, until the records to show
+ * are found or its time for this read is spent. A server where the model
+ * cannot run reads nothing, and says why.
  */
 export async function findTelemetryFindingOccurrences(data: {
   projectId: ObjectID;
@@ -1303,22 +1401,65 @@ export async function findTelemetryFindingOccurrences(data: {
   sampleRecords?: ReadonlyArray<FindingSampleRecord> | undefined;
   lastSeenAt?: Date | null | undefined;
   now?: Date | undefined;
+  // The names-and-addresses model made the finding (DataStoreFinding.isFoundByModel).
+  isFoundByModel?: boolean | null | undefined;
+  // Stands in for the process's model in a test.
+  getRecognizer?: (() => Promise<RecognizerAvailability>) | undefined;
+  // Stands in for the database in a test.
+  readRows?:
+    | ((
+        source: SourceDefinition,
+        statement: Statement,
+      ) => Promise<Array<JSONObject>>)
+    | undefined;
 }): Promise<DataSecurityFindingOccurrences> {
   const search: OccurrenceSearch = planOccurrenceSearch({
     now: data.now || OneUptimeDate.getCurrentDate(),
     sampleRecords: data.sampleRecords,
     lastSeenAt: data.lastSeenAt,
   });
+  const model: ModelRereads | null = await ModelRereads.forFinding({
+    isFoundByModel: data.isFoundByModel,
+    getRecognizer: data.getRecognizer,
+  });
+
+  // Only the model can tell its data: where it cannot run, nothing is read.
+  if (model && !model.isAvailable) {
+    const found: DataSecurityFindingOccurrences = {
+      occurrences: [],
+      since: search.since.toISOString(),
+      until: search.until.toISOString(),
+      recordsRead: 0,
+      isComplete: true,
+      source: search.source,
+      unavailableReason:
+        DataSecurityOccurrencesUnavailableReason.ModelUnavailable,
+    };
+
+    if (data.lastSeenAt instanceof Date && !isNaN(data.lastSeenAt.getTime())) {
+      found.lastSeenAt = data.lastSeenAt.toISOString();
+    }
+
+    return found;
+  }
+
+  const read: (
+    source: SourceDefinition,
+    statement: Statement,
+  ) => Promise<Array<JSONObject>> = data.readRows || readRows;
   const source: SourceDefinition = getTelemetrySource(data.plan.source);
   const caps: TelemetrySampleCaps = capsOf(source, data.options);
   const limit: number = getOccurrenceReadLimit(data.plan, search.records);
   /*
    * A lookup of kept records needs no narrowing - but a metric's, whose
-   * millisecond holds every series of the metric; a search does.
+   * millisecond holds every series of the metric; a search does. Not for
+   * a finding the model made: what it finds no pattern does, so a search
+   * narrowed by the type's patterns would leave its records out.
    */
   const prefilter: string | null =
-    search.source === DataSecurityOccurrencesSource.SampledRecords &&
-    !isKeptRecordReadNarrowed(data.plan)
+    model ||
+    (search.source === DataSecurityOccurrencesSource.SampledRecords &&
+      !isKeptRecordReadNarrowed(data.plan))
       ? null
       : getOccurrencePrefilter({
           dataTypeId: data.dataTypeId,
@@ -1352,7 +1493,7 @@ export async function findTelemetryFindingOccurrences(data: {
   let rows: Array<JSONObject>;
 
   try {
-    rows = await readRows(source, statementFor(prefilter));
+    rows = await read(source, statementFor(prefilter));
   } catch (error) {
     readFailed(error);
 
@@ -1368,7 +1509,7 @@ export async function findTelemetryFindingOccurrences(data: {
     }
 
     try {
-      rows = await readRows(source, statementFor(null));
+      rows = await read(source, statementFor(null));
     } catch (retryError) {
       readFailed(retryError);
 
@@ -1378,34 +1519,61 @@ export async function findTelemetryFindingOccurrences(data: {
     }
   }
 
-  const read: {
+  const readRowsNow: () => {
     occurrences: Array<DataSecurityFindingOccurrence>;
     recordsRead: number;
-  } = readOccurrenceRows({
-    plan: data.plan,
-    rows,
-    location: data.location,
-    ownerId: data.ownerId,
-    caps,
-    maskIfFound: buildOccurrenceMatcher({
-      dataTypeId: data.dataTypeId,
+  } = (): {
+    occurrences: Array<DataSecurityFindingOccurrence>;
+    recordsRead: number;
+  } => {
+    return readOccurrenceRows({
+      plan: data.plan,
+      rows,
       location: data.location,
-      options: data.options,
-    }),
-    excerptOf: buildOccurrenceExcerptReader({
-      dataTypeId: data.dataTypeId,
-      location: data.location,
-      options: data.options,
-    }),
-    showMetricName: buildMetricNameReader(data.options),
-    max: MAX_OCCURRENCES,
-  });
+      ownerId: data.ownerId,
+      caps,
+      maskIfFound: buildOccurrenceMatcher({
+        dataTypeId: data.dataTypeId,
+        location: data.location,
+        options: data.options,
+        model,
+      }),
+      excerptOf: buildOccurrenceExcerptReader({
+        dataTypeId: data.dataTypeId,
+        location: data.location,
+        options: data.options,
+        model,
+      }),
+      showMetricName: buildMetricNameReader(data.options),
+      max: MAX_OCCURRENCES,
+    });
+  };
+
+  if (model) {
+    await readWithModelUntilFound({
+      model,
+      values: readValuesAtLocation({
+        source: data.plan.source,
+        rows,
+        location: data.location,
+        caps,
+      }),
+      foundSoFar: (): number => {
+        return readRowsNow().occurrences.length;
+      },
+    });
+  }
+
+  const shown: {
+    occurrences: Array<DataSecurityFindingOccurrence>;
+    recordsRead: number;
+  } = readRowsNow();
 
   const found: DataSecurityFindingOccurrences = {
-    occurrences: read.occurrences,
+    occurrences: shown.occurrences,
     since: search.since.toISOString(),
     until: search.until.toISOString(),
-    recordsRead: read.recordsRead,
+    recordsRead: shown.recordsRead,
     isComplete: rows.length < limit,
     source: search.source,
   };
@@ -1414,5 +1582,52 @@ export async function findTelemetryFindingOccurrences(data: {
     found.lastSeenAt = data.lastSeenAt.toISOString();
   }
 
+  // A record the model had no time to read may hold it: the list says so.
+  if (model && shown.occurrences.length < MAX_OCCURRENCES) {
+    const notRead: number = model.valuesNotRead;
+
+    if (notRead > 0) {
+      found.modelValuesNotRead = notRead;
+      found.isComplete = false;
+    }
+  }
+
   return found;
+}
+
+/*
+ * The values handed to the model a round at a time, in the order the
+ * records are listed, until as many records as are shown hold the data, the
+ * model's time for this read is spent, or every value was read.
+ */
+export async function readWithModelUntilFound(data: {
+  model: ModelRereads;
+  values: ReadonlyArray<string>;
+  // How many records hold the data with what the model has read so far.
+  foundSoFar: () => number;
+  max?: number | undefined;
+}): Promise<void> {
+  const max: number = data.max ?? MAX_OCCURRENCES;
+
+  for (
+    let start: number = 0;
+    start < data.values.length;
+    start += MODEL_REREAD_VALUES_PER_ROUND
+  ) {
+    await data.model.read(
+      data.values.slice(start, start + MODEL_REREAD_VALUES_PER_ROUND),
+    );
+
+    if (data.model.isOutOfTime || !data.model.isAvailable) {
+      // The rest are handed over unread, so they are counted as not read.
+      await data.model.read(
+        data.values.slice(start + MODEL_REREAD_VALUES_PER_ROUND),
+      );
+      return;
+    }
+
+    if (data.foundSoFar() >= max) {
+      return;
+    }
+  }
 }

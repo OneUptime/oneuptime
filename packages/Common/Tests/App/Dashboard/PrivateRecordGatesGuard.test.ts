@@ -80,6 +80,8 @@ const ASKED_WITHOUT_THE_SCOPE: Record<string, string> = {
     "The postmortems list's row status change: no record's page; the server holds each incident to the rule.",
   "Components/Alert/DeclareIncidentFromAlert.ts":
     "Takes its link's options from the alert header that calls it (ChangeAlertState hands it the alert's private record options).",
+  "Pages/Incidents/Create.tsx":
+    "The declare page carrying its alerts' owners onto the incident it creates (#10888): no record's page yet, as the owners join the new incident, and the server holds each owner it adds to the rule.",
 };
 
 // The PermissionGate calls that decide whether a change is offered.

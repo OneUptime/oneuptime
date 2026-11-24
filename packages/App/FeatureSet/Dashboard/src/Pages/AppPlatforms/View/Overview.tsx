@@ -24,7 +24,7 @@ import React, {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Card from "Common/UI/Components/Card/Card";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -94,8 +94,11 @@ const TOP_INSTANCES_TITLE: string = "Top instances by CPU";
 /*
  * The "Top instances by CPU" card title with its (i). A Card translates a
  * string title itself but passes an element through untouched, so the
- * title is translated here before the tooltip is attached to it. Exported
- * for tests.
+ * title is translated here before the tooltip is attached to it. The (i)
+ * follows the title's last word, on whichever line it ends
+ * (WordsWithInfoTooltip): drawn as the title's flex sibling, it stood at
+ * the card's far edge once a German title or a phone's narrow card wrapped
+ * it (#10922). Exported for tests.
  */
 export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
   const { translateString } = useTranslateValue();
@@ -103,14 +106,11 @@ export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
     translateString(TOP_INSTANCES_TITLE) || TOP_INSTANCES_TITLE;
 
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <span>{title}</span>
-      <InfoTooltip
-        label={title}
-        text={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu}
-        iconClassName="h-4 w-4"
-      />
-    </span>
+    <WordsWithInfoTooltip
+      text={title}
+      label={TOP_INSTANCES_TITLE}
+      description={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu}
+    />
   );
 };
 

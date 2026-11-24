@@ -631,8 +631,13 @@ export class Service extends DatabaseService<Model> {
       );
     } catch (err) {
       if (err instanceof NotAuthorizedException) {
+        /*
+         * FORM_ALERT_PERMISSION_MESSAGE, written out so the refusal reads as
+         * the two sentences it is (ErrorMessagesGuard); FormService.test
+         * holds the two to the same words.
+         */
         throw new NotAuthorizedException(
-          `${FORM_ALERT_PERMISSION_MESSAGE} ${err.message}`,
+          `Only people who may create alerts can set up a form that creates them. ${err.message}`,
         );
       }
 

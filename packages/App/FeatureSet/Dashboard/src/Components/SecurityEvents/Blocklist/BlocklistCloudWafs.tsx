@@ -114,6 +114,7 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -1028,6 +1029,8 @@ const BlocklistCloudWafs: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-[16rem]",
+            // The web ACL's name reads its own way; where it is, under it, is the page's words.
+            getLineText: drawsItsOwnLines,
             getElement: (row: SecurityBlockCloudWaf): ReactElement => {
               return <CloudWafWebAclCell row={row} />;
             },

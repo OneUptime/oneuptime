@@ -22,6 +22,13 @@ import {
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
 import { CONTENT_STORE_KEY, recognizeFields } from "../Model/ModelScan";
+import {
+  ModelTurnTracker,
+  readModelResumeAt,
+  rotateForModel,
+  withModelResumeAt,
+} from "../Model/ModelTurns";
+import { writeScanWarning } from "../../../../Types/DataSecurity/ScanWarnings";
 import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import {
   classifyCollectedFields,
@@ -1016,6 +1023,35 @@ function toText(value: unknown): unknown {
 }
 
 /*
+ * The tables in the order the model takes its turn at them (#10928): the
+ * ones with rows from where the last scan's model stopped, round to it,
+ * then the empty ones - read in the same order, so the model's time goes
+ * to the next tables each scan, not the same first ones.
+ */
+export function orderTablesForModel(
+  chosen: ReadonlyArray<TableToSample>,
+  resumeAt: string | null,
+): Array<TableToSample> {
+  const nameOf: (table: TableToSample) => string = (
+    table: TableToSample,
+  ): string => {
+    return `${table.schema}.${table.table}`;
+  };
+  const withRows: Array<TableToSample> = chosen.filter(
+    (table: TableToSample): boolean => {
+      return table.estimatedRows !== 0;
+    },
+  );
+  const empty: Array<TableToSample> = chosen.filter(
+    (table: TableToSample): boolean => {
+      return table.estimatedRows === 0;
+    },
+  );
+
+  return [...rotateForModel(withRows, nameOf, resumeAt), ...empty];
+}
+
+/*
  * The tables to read, of those listed: not excluded, the ones with rows
  * before the empty ones, at most maxTables.
  */
@@ -1063,6 +1099,11 @@ export async function sampleDatabase(
   const excluded: Set<string> = readExclusions(options.exclusions);
   let isComplete: boolean = true;
   let estimatedRecords: number = 0;
+  // With the model on, the tables take turns at its time (#10928).
+  const turn: ModelTurnTracker = new ModelTurnTracker({
+    model: options.model,
+    previous: readModelResumeAt(options.previousState),
+  });
 
   const warn: (message: string) => void = (message: string): void => {
     if (warnings.length < MAX_WARNINGS && !warnings.includes(message)) {
@@ -1070,12 +1111,21 @@ export async function sampleDatabase(
     }
   };
 
+  // A scan that read no table leaves the model's turn where it was.
+  const keepTurn: () => void = (): void => {
+    if (turn.isTurning) {
+      result.nextState = withModelResumeAt(
+        result.nextState,
+        readModelResumeAt(options.previousState),
+      );
+    }
+  };
+
   // No time left: not even a connection is made.
   if (Date.now() >= deadline) {
-    result.warnings = [
-      "The scan reached its time limit before it could connect.",
-    ];
+    result.warnings = [writeScanWarning("databaseTimeLimitBeforeConnecting")];
     result.isComplete = false;
+    keepTurn();
     return result;
   }
 
@@ -1101,51 +1151,81 @@ export async function sampleDatabase(
       );
     } catch (error) {
       warn(
-        `Could not list the tables: ${sanitizeErrorMessage(error, secrets)}`,
+        writeScanWarning("databaseCouldNotListTables", {
+          error: sanitizeErrorMessage(error, secrets),
+        }),
       );
       result.warnings = warnings;
       result.isComplete = false;
+      keepTurn();
       return result;
     }
 
     const choice: { chosen: Array<TableToSample>; eligible: number } =
       chooseTables({ listed, excluded, maxTables: limits.maxTables });
-    const chosen: Array<TableToSample> = choice.chosen;
     const eligible: number = choice.eligible;
+    const chosen: Array<TableToSample> = turn.isTurning
+      ? orderTablesForModel(
+          choice.chosen,
+          readModelResumeAt(options.previousState),
+        )
+      : choice.chosen;
+    const tableName: (index: number) => string | null = (
+      index: number,
+    ): string | null => {
+      const table: TableToSample | undefined = chosen[index % chosen.length];
+
+      return table ? `${table.schema}.${table.table}` : null;
+    };
 
     if (eligible > chosen.length) {
       isComplete = false;
       warn(
-        `${eligible - chosen.length} tables were not sampled: the scan reads at most ${limits.maxTables} tables.`,
+        writeScanWarning("databaseTablesNotSampled", {
+          count: eligible - chosen.length,
+          max: limits.maxTables,
+        }),
       );
     }
 
     let consecutiveFailures: number = 0;
 
-    for (const table of chosen) {
+    for (const [index, table] of chosen.entries()) {
       const name: string = `${table.schema}.${table.table}`;
       const timeLeft: number = deadline - Date.now();
 
       if (timeLeft <= 0) {
         isComplete = false;
+        turn.notReached(name);
         warn(
-          `The scan reached its time limit after ${result.objectsRead} of ${chosen.length} tables.`,
+          writeScanWarning("databaseTimeLimitAfterTables", {
+            read: result.objectsRead,
+            total: chosen.length,
+          }),
         );
         break;
       }
 
       if (result.bytesRead >= limits.maxBytesTotal) {
         isComplete = false;
+        turn.notReached(name);
         warn(
-          `The scan read its ${limits.maxBytesTotal} bytes after ${result.objectsRead} of ${chosen.length} tables.`,
+          writeScanWarning("databaseBytesAfterTables", {
+            bytes: limits.maxBytesTotal,
+            read: result.objectsRead,
+            total: chosen.length,
+          }),
         );
         break;
       }
 
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         isComplete = false;
+        turn.notReached(name);
         warn(
-          `The scan stopped after ${MAX_CONSECUTIVE_FAILURES} tables in a row could not be read.`,
+          writeScanWarning("databaseFailuresInARow", {
+            count: MAX_CONSECUTIVE_FAILURES,
+          }),
         );
         break;
       }
@@ -1212,8 +1292,12 @@ export async function sampleDatabase(
         }
 
         // The names-and-addresses model reads the table's free-text columns.
+        turn.begin();
+
         const recognitions: ModelRecognitions | undefined =
           await recognizeFields(options.model, CONTENT_STORE_KEY, fields);
+
+        turn.end(name, tableName(index + 1));
         const classified: FieldsClassification = classifyCollectedFields({
           fields,
           options,
@@ -1247,7 +1331,10 @@ export async function sampleDatabase(
         consecutiveFailures++;
         isComplete = false;
         warn(
-          `Could not sample ${name}: ${sanitizeErrorMessage(error, secrets)}`,
+          writeScanWarning("databaseCouldNotSampleTable", {
+            table: name,
+            error: sanitizeErrorMessage(error, secrets),
+          }),
         );
       }
     }
@@ -1263,6 +1350,11 @@ export async function sampleDatabase(
   result.estimatedRecords =
     result.objectsRead > 0 ? Math.round(estimatedRecords) : undefined;
   result.unplacedFields = unplacedFields;
+
+  // Where the next scan's model starts (#10928).
+  if (turn.isTurning) {
+    result.nextState = withModelResumeAt(result.nextState, turn.nextResumeAt);
+  }
 
   if ((options.shadowDetectors || []).length > 0) {
     result.shadowCounts = shadowCounts;

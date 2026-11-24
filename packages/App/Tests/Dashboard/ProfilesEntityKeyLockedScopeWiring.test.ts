@@ -262,12 +262,15 @@ describe("ProfileTable builds the locked chips from its entity-key scope", () =>
     expect(deps).toContain("props.entityKeyDisplays");
   });
 
-  test("the memo runs before the loading early-return (rules of hooks)", () => {
+  test("the memo runs on every render: the table has no loading early-return (rules of hooks)", () => {
     const memoAt: number = PROFILE_TABLE.indexOf(CHIP_MEMO_MARKER);
-    const earlyReturnAt: number = PROFILE_TABLE.indexOf(EARLY_RETURN);
 
     expect(memoAt).toBeGreaterThanOrEqual(0);
-    expect(earlyReturnAt).toBeGreaterThan(memoAt);
+    /*
+     * It waited for the project's first 10,000 hosts before drawing; hosts
+     * are named by their ids now (#10921), so nothing returns early.
+     */
+    expect(PROFILE_TABLE.indexOf(EARLY_RETURN)).toBe(-1);
   });
 
   test("REGRESSION: only the explicit entityKeys prop builds a pill — never entityScope, modelId or a deep link", () => {

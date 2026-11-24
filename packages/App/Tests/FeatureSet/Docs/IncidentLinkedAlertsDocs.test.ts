@@ -1914,7 +1914,7 @@ describe("Incident Linked Alerts docs", () => {
       // Told once, by Incident Created - never "without being notified".
       expect(english).not.toContain("without being notified");
       expect(english).toContain(
-        "and get no \"added as an owner\" notice on top of it",
+        'and get no "added as an owner" notice on top of it',
       );
       // A private incident no longer copies them on its own.
       expect(

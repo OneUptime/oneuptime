@@ -33,6 +33,7 @@ import {
 } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { TelemetryLeakFixOwnerKind } from "../../../Types/DataSecurity/TelemetryLeakFix";
 import Permission from "../../../Types/Permission";
 import { customDomainCaller } from "./CustomDomainCallers";
 import DashboardRequestsOverHttp, {
@@ -208,9 +209,10 @@ beforeEach(() => {
       "OneUptime AI is working on one pull request for the service's leaks.",
     aiRunId: "10367000-0000-4000-8000-0000000000f1",
   } as DataSecurityFixResult);
-  jest
-    .spyOn(TelemetryLeakFix, "serviceOfIssue")
-    .mockResolvedValue(new ObjectID("10367000-0000-4000-8000-0000000000e1"));
+  jest.spyOn(TelemetryLeakFix, "ownerOfIssue").mockResolvedValue({
+    kind: TelemetryLeakFixOwnerKind.Service,
+    id: new ObjectID("10367000-0000-4000-8000-0000000000e1"),
+  });
   codeFixRead = jest
     .spyOn(DataSecurityIssueCodeFix, "read")
     .mockResolvedValue({ fix: null } as DataSecurityIssueCodeFixResult);
@@ -338,10 +340,21 @@ describe("Fix with AI on a service's telemetry issue", () => {
   });
 
   test("an issue in no service's telemetry takes the one-issue fix, never the service's", async () => {
-    jest.spyOn(TelemetryLeakFix, "serviceOfIssue").mockResolvedValue(null);
+    jest.spyOn(TelemetryLeakFix, "ownerOfIssue").mockResolvedValue(null);
 
     await post(DATA_SECURITY_API_ROUTES.fixIssueWithAi(ISSUE_ID));
 
     expect(asked).not.toHaveBeenCalled();
+  });
+
+  test("a RUM application's session replay issue takes the plan of its front-end code (#10933)", async () => {
+    jest.spyOn(TelemetryLeakFix, "ownerOfIssue").mockResolvedValue({
+      kind: TelemetryLeakFixOwnerKind.RumApplication,
+      id: new ObjectID("10933000-0000-4000-8000-0000000000a1"),
+    });
+
+    await post(DATA_SECURITY_API_ROUTES.fixIssueWithAi(ISSUE_ID));
+
+    expect(asked).toHaveBeenCalledTimes(1);
   });
 });

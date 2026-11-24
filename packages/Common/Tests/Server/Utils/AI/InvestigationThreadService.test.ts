@@ -210,6 +210,8 @@ describe("InvestigationThreadService.sendMessage", () => {
     expect(runTurn).toHaveBeenCalledTimes(1);
     const turn: ChatTurnRequest = runTurn.mock.calls[0]![0] as ChatTurnRequest;
     expect(turn.isSharedThread).toBe(true);
+    // The project's external MCP servers, for whoever asked (#10879).
+    expect(turn.offersExternalMcpServers).toBe(true);
     expect(turn.feature).toBe(INVESTIGATION_THREAD_FEATURE);
     expect(turn.additionalSystemInstructions).toBe("# This conversation");
     expect(turn.pageContext?.entityId).toBe(INCIDENT_ID.toString());
@@ -323,6 +325,8 @@ describe("InvestigationThreadService.sendMessage", () => {
     expect(turn.isSharedThread).toBe(true);
     expect(turn.additionalSystemInstructions).toBeUndefined();
     expect(turn.extraTools).toBeUndefined();
+    // The servers need none of the context: they are offered all the same.
+    expect(turn.offersExternalMcpServers).toBe(true);
   });
 
   test.each([[""], ["   "]])(

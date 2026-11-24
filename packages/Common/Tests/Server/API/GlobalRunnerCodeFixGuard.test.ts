@@ -253,11 +253,16 @@ describe("the code-fix route files", () => {
   });
 
   test("the routes that hand a repository to a worker hand its commands through getRepositoryCommands", () => {
+    /*
+     * Six: the four it had before, and the task details of Data Security's
+     * two recipes - the infrastructure code a group of stores shares
+     * (#10370) and a service's telemetry leaks (#10367).
+     */
     expect(
       codeOf("Server/API/AIAgentDataAPI.ts").split(
         "CodeFixAgentAuth.getRepositoryCommands(aiAgent, repository)",
       ).length - 1,
-    ).toBe(4);
+    ).toBe(6);
     expect(codeOf("Server/API/AIAgentGitHubAPI.ts")).toContain(
       "CodeFixAgentAuth.getRepositoryCommands(aiAgent, codeRepository)",
     );

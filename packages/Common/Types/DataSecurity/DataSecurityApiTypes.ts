@@ -20,6 +20,7 @@ import {
 import {
   TelemetryLeakFixIssue,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakSignal,
 } from "./TelemetryLeakFix";
@@ -1007,6 +1008,11 @@ export enum DataSecurityOccurrencesUnavailableReason {
   UnreadableLocation = "UnreadableLocation",
   // The service or RUM application the telemetry was sent under is gone.
   NoOwner = "NoOwner",
+  /*
+   * The names-and-addresses model found it, and cannot run on this server
+   * just now: only it can tell its data in a record (#10926).
+   */
+  ModelUnavailable = "ModelUnavailable",
 }
 
 // What a part of a record's excerpt is.
@@ -1108,6 +1114,12 @@ export interface DataSecurityFindingOccurrences {
   source?: DataSecurityOccurrencesSource | undefined;
   // When a scan last saw the finding (ISO 8601): the records it was found in are from then.
   lastSeenAt?: string | undefined;
+  /*
+   * For a finding the names-and-addresses model made: how many of the
+   * values read the model had no time to read (#10926). A record that held
+   * the data among them is not listed. Absent when it read them all.
+   */
+  modelValuesNotRead?: number | undefined;
 }
 
 /*
@@ -1172,6 +1184,8 @@ export enum DataSecurityTelemetryFixRepositoryChoice {
   OnlyRepository = "only-repository",
   ServiceLeaks = "service-leaks",
   Picked = "picked",
+  // A RUM application's: the files its newest release's source maps name are there (#10933).
+  SourceMaps = "source-maps",
 }
 
 export interface DataSecurityTelemetryFixRepository {
@@ -1189,6 +1203,12 @@ export interface DataSecurityTelemetryFixRepository {
  * or a record.
  */
 export interface DataSecurityTelemetryFixPlanJSON {
+  /*
+   * Whose code it changes: a service's, or a RUM application's front end
+   * (#10933) - left out, a service's. serviceId and serviceName are the
+   * owner's either way.
+   */
+  ownerKind?: TelemetryLeakFixOwnerKind | undefined;
   serviceId: string;
   serviceName: string;
   strategy: TelemetryLeakFixStrategy;

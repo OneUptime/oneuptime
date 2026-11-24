@@ -1118,9 +1118,9 @@ describe("the alerts' owners", () => {
 
     const banner: HTMLElement = ownersBanner();
 
-    expect(screen.getByTestId("incident-create-alerts-to-link")).toContainElement(
-      banner,
-    );
+    expect(
+      screen.getByTestId("incident-create-alerts-to-link"),
+    ).toContainElement(banner);
     expect(banner).toHaveAttribute(
       "data-mode",
       AlertOwnersOnDeclareMode.InOwnersField,

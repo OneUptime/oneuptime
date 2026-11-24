@@ -125,6 +125,14 @@ export interface McpToolDescription {
   inputSchema: JSONObject;
   // The server marks it read-only (annotations.readOnlyHint).
   readsOnly: boolean;
+  /*
+   * The server says whether it only reads at all (annotations.readOnlyHint
+   * is true or false). A tool it says nothing about - kAgent's tool server
+   * says nothing about any of its tools - may change something as far as
+   * the protocol goes (readOnlyHint's default is false), and the people
+   * asked to approve a call of it are told the server does not say.
+   */
+  saysWhetherItReads?: boolean | undefined;
 }
 
 export interface McpToolList {
@@ -219,6 +227,7 @@ export function readMcpToolDescription(
         ? (schema as JSONObject)
         : { type: "object", properties: {} },
     readsOnly: annotations["readOnlyHint"] === true,
+    saysWhetherItReads: typeof annotations["readOnlyHint"] === "boolean",
   };
 
   const title: string | undefined =

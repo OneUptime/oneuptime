@@ -118,8 +118,9 @@ describe("ExceptionsViewer resource facets come from the shared catalog", () => 
     expect(EXCEPTIONS_VIEWER).toContain(
       'import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";',
     );
+    // Every value named by the server's facet displayName (#10921).
     expect(FACET_CONFIGS).toContain(
-      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+      "...buildResourceFacetConfigs({ basePriority: 2, }),",
     );
     for (const key of [
       "hostId",
@@ -185,7 +186,7 @@ describe("ExceptionsViewer names every entity chip", () => {
       "[...hostScope.chips, ...activeFilters]",
     );
     expect(EXCEPTIONS_VIEWER).toContain(
-      "collectExceptionEntityChipIds({ scopeEntityId, scopeEntityType: props.scopeEntityType, chips: entityChipRefs, knownIds: knownEntityChipIds, isKnownIdsPending: !areResourceListsLoaded, })",
+      "collectExceptionEntityChipIds({ scopeEntityId, scopeEntityType: props.scopeEntityType, chips: entityChipRefs, knownIds: knownEntityChipIds, isKnownIdsPending: !haveFacetsAnswered, })",
     );
   });
 
@@ -206,15 +207,21 @@ describe("ExceptionsViewer names every entity chip", () => {
     ).toBeLessThan(EXCEPTIONS_VIEWER.indexOf("buildExceptionKnownChipIds({"));
   });
 
-  test("chip ids are held until the resource lists settle, even when they fail", () => {
+  /*
+   * The facets name most chips, from Postgres by id: chip ids wait for
+   * their first answer, which settles whether it lands or fails. The page
+   * read the project's first 10,000 services, hosts and clusters instead,
+   * and named nothing past them (#10921).
+   */
+  test("chip ids are held until the facets first answer, even when they fail", () => {
     expect(EXCEPTIONS_VIEWER).toContain(
-      "const [areResourceListsLoaded, setAreResourceListsLoaded] = useState<boolean>(false);",
+      "const [haveFacetsAnswered, setHaveFacetsAnswered] = useState<boolean>(false);",
     );
     expect(EXCEPTIONS_VIEWER).toMatch(
-      /setKubernetesClusters\(clusterResult\.data \|\| \[\]\); \} catch \{ \} finally \{ setAreResourceListsLoaded\(true\); \}/,
+      /\} finally \{ setFacetLoading\(false\); setHaveFacetsAnswered\(true\); \}/,
     );
     const memoDeps: RegExpMatchArray | null = EXCEPTIONS_VIEWER.match(
-      /isKnownIdsPending: !areResourceListsLoaded, \}\); \}, \[([^\]]*)\]\);/,
+      /isKnownIdsPending: !haveFacetsAnswered, \}\); \}, \[([^\]]*)\]\);/,
     );
     expect(memoDeps).not.toBeNull();
     for (const dep of [
@@ -222,10 +229,34 @@ describe("ExceptionsViewer names every entity chip", () => {
       "props.scopeEntityType",
       "entityChipRefs",
       "knownEntityChipIds",
-      "areResourceListsLoaded",
+      "haveFacetsAnswered",
     ]) {
       expect(memoDeps![1]!).toContain(dep);
     }
+    expect(EXCEPTIONS_VIEWER).not.toContain("LIMIT_PER_PROJECT");
+    for (const model of [
+      "Host",
+      "DockerHost",
+      "PodmanHost",
+      "KubernetesCluster",
+    ]) {
+      expect(EXCEPTIONS_VIEWER).not.toContain(`modelType: ${model},`);
+    }
+  });
+
+  test("the rows' and the Service facet's services are read by their ids; a typed name is searched for", () => {
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "void servicesOnPage.readServicesOf(serviceIdsOnPage);",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "const serviceNameSearch: ServiceNameSearch = useServiceNameSearch( parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || NO_PREDICATES, );",
+    );
+    expect(EXCEPTIONS_VIEWER).toContain(
+      "(parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || []).length > 0 && serviceNameSearch.isSearching;",
+    );
   });
 
   test("the page's scope type is passed as the resolver hint", () => {
@@ -308,12 +339,12 @@ describe("ProfileTable names every source", () => {
       "onFetchSuccess={(profiles: Array<Profile>) => { void handleProfilesFetched(profiles); }}",
     );
     /*
-     * The page's services are read by their ids first (#10764), and only
-     * what neither they nor the Host list name goes to the resolver.
+     * The page's services are read by their ids first (#10764), and what
+     * they do not name - a host too (#10921) - goes to the resolver.
      */
     expect(PROFILE_TABLE).toContain("await servicesOnPage.readServicesOf(");
     expect(PROFILE_TABLE).toContain(
-      "const knownIds: Set<string> = new Set<string>(knownEntityIds);",
+      "const knownIds: Set<string> = new Set<string>();",
     );
     expect(PROFILE_TABLE).toContain(
       "collectProfileEntityRefs({ profiles, knownIds: knownIds, })",
@@ -331,23 +362,30 @@ describe("ProfileTable names every source", () => {
     expect(PROFILE_TABLE).toContain("ids.push(serviceIdFilter);");
   });
 
-  test("the hook runs before the loading early-return (rules of hooks)", () => {
-    const hookIndex: number = PROFILE_TABLE.indexOf("useTelemetryEntityNames(");
-    const earlyReturn: number = PROFILE_TABLE.indexOf(
-      "if (isPageLoading) { return <PageSkeleton",
-    );
-    expect(hookIndex).toBeGreaterThan(-1);
-    expect(earlyReturn).toBeGreaterThan(-1);
-    expect(hookIndex).toBeLessThan(earlyReturn);
+  test("REGRESSION: no list of the project's hosts is read: a host is named by its id (#10921)", () => {
+    // The first 10,000 hosts by name, read to name host-level profiles.
+    expect(PROFILE_TABLE).not.toContain("modelType: Host");
+    expect(PROFILE_TABLE).not.toContain("LIMIT_PER_PROJECT");
+    expect(PROFILE_TABLE).not.toContain("hosts.find(");
+    // Nothing to wait for before the table is drawn.
+    expect(PROFILE_TABLE).not.toContain("isPageLoading");
   });
 
-  test("the Source column uses the shared display helper", () => {
+  test("the Source column uses the shared display helper, its kind in the reader's words", () => {
     expect(PROFILE_TABLE).toContain(
       "getProfileEntityDisplay({ entityId, entityType, nameMap: entityNames, })",
     );
     expect(PROFILE_TABLE).toContain(
       "<ServiceElement service={telemetryService} />",
     );
+    // The resolver's kind label is English: looked up where it is drawn.
+    expect(PROFILE_TABLE).toContain(
+      "{translator.translateText(source.typeLabel)}",
+    );
+    expect(PROFILE_TABLE).toContain(
+      "{translator.translateText(source.primary)}",
+    );
+    expect(PROFILE_TABLE).not.toContain("{source.typeLabel}");
   });
 
   test("REGRESSION: the ?serviceId= chip is not an 8-character id prefix", () => {
@@ -362,23 +400,16 @@ describe("ProfileTable names every source", () => {
     expect(PROFILE_TABLE).toContain("{serviceFilterChip.value}");
   });
 
-  test("REGRESSION: the ?serviceId= chip can name a loaded Host, and only list-named ids skip the lookup", () => {
-    // The chip is handed the loaded Host's name, not just the Service's.
-    expect(
-      count(PROFILE_TABLE, "hostName: serviceFilterListNames.hostName,"),
-    ).toBe(2);
-    expect(PROFILE_TABLE).toContain(
-      "hostName: host ? host.name || host.hostIdentifier : undefined,",
-    );
-    /*
-     * The lookup is skipped by asking the chip itself, not the broader
-     * knownEntityIds set (which the chip could not always print from).
-     */
+  test("REGRESSION: the ?serviceId= chip of a host is named by the resolver, and only a service read by its id skips the lookup", () => {
+    // No host list to name it from: the resolver reads the Host by its id.
+    expect(PROFILE_TABLE).not.toContain("serviceFilterListNames");
+    expect(PROFILE_TABLE).not.toContain("hostName:");
+    expect(count(PROFILE_TABLE, "serviceName: deepLinkedServiceName,")).toBe(2);
     expect(PROFILE_TABLE).not.toContain(
       "serviceIdFilter && !knownEntityIds.has(serviceIdFilter)",
     );
     expect(PROFILE_TABLE).toContain(
-      "if (serviceIdFilter && !isChipNamedByLists) { ids.push(serviceIdFilter); }",
+      "if (serviceIdFilter && !isChipNamedByServices) { ids.push(serviceIdFilter); }",
     );
   });
 
@@ -410,7 +441,10 @@ describe("profile page summary card names its source", () => {
     expect(PROFILE_VIEW).toContain(
       "{source.isResolved ? source.primary : entityId}",
     );
-    expect(PROFILE_VIEW).toContain("{source.typeLabel}");
+    // Its kind, a key, in the reader's words (#10921).
+    expect(PROFILE_VIEW).toContain(
+      "{translator.translateText(source.typeLabel)}",
+    );
     expect(PROFILE_VIEW).toContain("title={entityId}");
   });
 

@@ -14,8 +14,8 @@ import {
 } from "../../../Utils/Call/CallSpeech";
 import {
   ON_CALL_OBSERVER_PAGE_CALL_NO_INPUT,
+  ON_CALL_OBSERVER_PAGE_CALL_WRONG_KEY,
   ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT,
-  ON_CALL_PAGE_CALL_INVALID_INPUT,
   ON_CALL_PAGE_CALL_PROMPT,
   ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS,
   OnCallPageCallInput,
@@ -25,6 +25,7 @@ import {
   getOnCallPageCallNoInputMessage,
   getOnCallPageCallOpening,
   getOnCallPageCallRecordLabel,
+  getOnCallPageCallWrongKeyMessage,
 } from "../../../Utils/Call/OnCallPageCall";
 import { describe, expect, test } from "@jest/globals";
 
@@ -344,17 +345,51 @@ describe("what a responder's call says, and asks", () => {
     expect(ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS).toBe(10);
   });
 
-  test("1 answers as it always has, any other key too, and 2 from what happened", () => {
+  test("1 answers as it always has, and 2 from what happened", () => {
+    const prompt: GatherInput = promptOf(buildOnCallPageCallData(input()));
+
+    expect(prompt.onInputCallRequest["1"]).toEqual({
+      sayMessage: "You have acknowledged this incident. Good bye",
+    });
+    expect(getOnCallPageCallAcknowledgedMessage("alert episode")).toBe(
+      "You have acknowledged this alert episode. Good bye",
+    );
+    // 2 is answered from what happened (OnCallPagePassOn), never from the call.
+    expect(prompt.onInputCallRequest["2"]).toBeUndefined();
+  });
+
+  /*
+   * A wrong key is asked again (Utils/Call/CallKeypad, #10949). What the
+   * call says it answers is what it says once it may ask no more - and what
+   * a keypad route of the release before says to the first wrong key, as it
+   * reads it from the call: a goodbye that says the page is left as it was,
+   * no longer "Invalid input. Good bye".
+   */
+  test("any other key, once the call has asked again as often as it may: it does nothing, and the page is left as it was", () => {
     const prompt: GatherInput = promptOf(buildOnCallPageCallData(input()));
 
     expect(prompt.onInputCallRequest).toEqual({
       "1": { sayMessage: "You have acknowledged this incident. Good bye" },
-      default: { sayMessage: "Invalid input. Good bye" },
+      default: {
+        sayMessage:
+          "That key does nothing, so this incident is not acknowledged. Good bye.",
+      },
     });
-    expect(ON_CALL_PAGE_CALL_INVALID_INPUT).toBe("Invalid input. Good bye");
-    expect(getOnCallPageCallAcknowledgedMessage("alert episode")).toBe(
-      "You have acknowledged this alert episode. Good bye",
-    );
+
+    for (const noun of [
+      "incident",
+      "alert",
+      "incident episode",
+      "alert episode",
+    ] as const) {
+      expect(getOnCallPageCallWrongKeyMessage(noun)).toBe(
+        `That key does nothing, so this ${noun} is not acknowledged. Good bye.`,
+      );
+      expect(
+        promptOf(buildOnCallPageCallData(input({}, { noun: noun })))
+          .onInputCallRequest.default!.sayMessage,
+      ).toBe(getOnCallPageCallWrongKeyMessage(noun));
+    }
   });
 
   test("a call nobody answered says so, for what it was about, and ends", () => {
@@ -484,8 +519,12 @@ describe("what an observer's call says, and asks", () => {
     expect(prompt.introMessage).not.toContain("press 2");
     expect(prompt.onInputCallRequest).toEqual({
       "1": { sayMessage: "Thank you. The page is marked as heard. Good bye" },
-      default: { sayMessage: "Invalid input. Good bye" },
+      default: { sayMessage: ON_CALL_OBSERVER_PAGE_CALL_WRONG_KEY },
     });
+    // An observer has nothing to acknowledge: the page is not marked as heard.
+    expect(ON_CALL_OBSERVER_PAGE_CALL_WRONG_KEY).toBe(
+      "That key does nothing, so this page is not marked as heard. Good bye.",
+    );
   });
 
   test("a call nobody answered says the page is not marked as heard", () => {

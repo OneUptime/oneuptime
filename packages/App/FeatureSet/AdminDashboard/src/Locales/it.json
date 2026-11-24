@@ -2897,6 +2897,8 @@
   "Switch to visual editor": "Passa all'editor visuale",
   "Visual": "Visuale",
   "Drop image to upload": "Rilascia l'immagine per caricarla",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" non è stato caricato. {{error}}",
+  "Uploading {{fileName}}…": "Caricamento di {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Scrivi direttamente nell'editor visuale — usa la barra degli strumenti per formattare.",
   "Switch to {{markdown}} to view or edit the raw source.": "Passa a {{markdown}} per vedere o modificare il sorgente.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "In un elenco, premi {{indentKey}} per rientrare una voce e {{outdentKey}} per ridurre il rientro, oppure usa i pulsanti Aumenta rientro e Riduci rientro. Fuori da un elenco, {{tabKey}} passa al campo successivo.",
@@ -4575,5 +4577,18 @@
   "The server did not answer with its help and support settings.": "Il server non ha risposto con le sue impostazioni di aiuto e supporto.",
   "Keyboard shortcuts": "Scorciatoie da tastiera",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Scarica un file di diagnostica locale con lo stack dell'errore, lo stack dei componenti, l'URL della pagina ripulito, i dettagli del browser e la build di OneUptime. Non legge mai cookie, dati salvati del browser o contenuti dei moduli. Controllalo prima di condividerlo.",
-  "Chat on Slack": "Chatta su Slack"
+  "Chat on Slack": "Chatta su Slack",
+  "Your Twilio account's default voice": "Voce predefinita del tuo account Twilio",
+  "US English, female voice": "Inglese americano, voce femminile",
+  "US English, male voice": "Inglese americano, voce maschile",
+  "British English, female voice": "Inglese britannico, voce femminile",
+  "British English, male voice": "Inglese britannico, voce maschile",
+  "A page's call starts like this, always in English:": "Una chiamata di reperibilità inizia così, sempre in inglese:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio addebita un supplemento per questa voce: meno di 2 centesimi di dollaro per ogni chiamata di reperibilità.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Secondo Twilio, le sue voci Basic non sono pensate per l'uso in produzione.",
+  "Save, then send a test call to hear it.": "Salva, poi invia una chiamata di prova per ascoltarla.",
+  "Call Voice": "Voce delle chiamate",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "La voce con cui parlano le chiamate telefoniche di OneUptime quando partono dall'account Twilio di questo server.",
+  "Choose Voice": "Scegli voce",
+  "Voice": "Voce"
 }

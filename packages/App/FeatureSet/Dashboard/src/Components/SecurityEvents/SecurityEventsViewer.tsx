@@ -36,11 +36,13 @@ import {
   SearchHelpRow,
 } from "Common/UI/Components/TelemetryViewer/types";
 import Service from "Common/Models/DatabaseModels/Service";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import ModelAPI, {
-  ListResult as ModelListResult,
-} from "Common/UI/Utils/ModelAPI/ModelAPI";
+import RecordsById from "Common/UI/Utils/RecordsById";
+import { ENTITY_DROPDOWN_NOT_FOUND_LABEL } from "Common/UI/Components/EntityDropdown/EntityDropdownNotFound";
+import {
+  SECURITY_EVENT_SOURCE_FACET_KEY,
+  getSecurityEventBaseFacetKey,
+} from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useAttributeValueSuggestions, {
@@ -488,12 +490,23 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Source id -> Service name. The aggregate route can only hand back the
-   * ObjectID a row is attributed to, so the Source facet and its chips are
-   * named from Postgres here — exactly as the other explorers name their
-   * Service facet.
+   * Source id (lower-cased) -> Service name. The aggregate route can only
+   * hand back the ObjectID a row is attributed to, so the Source facet and
+   * its chips are named from Postgres here, by the ids the page shows
+   * (below) - never from the project's first 10,000 services by name, past
+   * which a source read as its bare id (#10921).
    */
-  const [sourceNames, setSourceNames] = useState<Record<string, string>>({});
+  const [sourceNamesById, setSourceNamesById] = useState<Map<string, string>>(
+    new Map(),
+  );
+  // The source ids no service answers to any more (lower-cased).
+  const [missingSourceIds, setMissingSourceIds] = useState<Set<string>>(
+    new Set(),
+  );
+  // The source ids asked for already (lower-cased): each is read once.
+  const requestedSourceIdsRef: React.MutableRefObject<Set<string>> = useRef<
+    Set<string>
+  >(new Set());
 
   /*
    * Results for a query the page has since left must not land on the new
@@ -844,43 +857,146 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
 
   // --- Source names ---
 
-  useEffect(() => {
-    let isCancelled: boolean = false;
+  /*
+   * The sources the page names: the Source facet's values, the chips' and
+   * the page's own scope's - each read by its id once, as they appear
+   * (RecordsById, in pages). A source deleted since is named so on its chip.
+   */
+  const sourceIdsOnPage: Array<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
 
-    ModelAPI.getList<Service>({
-      modelType: Service,
-      query: { projectId: projectId },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { name: true },
-      sort: { name: SortOrder.Ascending },
+    for (const value of facetData[SECURITY_EVENT_SOURCE_FACET_KEY] || []) {
+      ids.add(value.value);
+    }
+
+    for (const [facetKey, values] of facetFilters.entries()) {
+      if (
+        getSecurityEventBaseFacetKey(facetKey) ===
+        SECURITY_EVENT_SOURCE_FACET_KEY
+      ) {
+        for (const value of values) {
+          ids.add(value);
+        }
+      }
+    }
+
+    const scopeChip: ActiveFilter | undefined = props.scope?.chip;
+
+    if (
+      scopeChip &&
+      getSecurityEventBaseFacetKey(scopeChip.facetKey) ===
+        SECURITY_EVENT_SOURCE_FACET_KEY
+    ) {
+      ids.add(scopeChip.value);
+    }
+
+    return Array.from(ids);
+  }, [facetData, facetFilters, props.scope?.chip]);
+
+  const sourceIdsOnPageKey: string = sourceIdsOnPage
+    .map((id: string): string => {
+      return id.trim().toLowerCase();
     })
-      .then((result: ModelListResult<Service>) => {
-        if (isCancelled) {
-          return;
-        }
+    .sort()
+    .join("|");
 
-        const names: Record<string, string> = {};
+  useEffect(() => {
+    const toRead: Array<string> = RecordsById.getValuesToRead({
+      ids: sourceIdsOnPage,
+    }).filter((id: string): boolean => {
+      return !requestedSourceIdsRef.current.has(id);
+    });
 
-        for (const service of result.data) {
-          if (service.id && service.name) {
-            names[service.id.toString()] = service.name;
+    if (toRead.length === 0) {
+      return;
+    }
+
+    for (const id of toRead) {
+      requestedSourceIdsRef.current.add(id);
+    }
+
+    RecordsById.read<Service>({
+      modelType: Service,
+      ids: toRead,
+      select: { name: true },
+    })
+      .then((services: Array<Service>) => {
+        const byId: Map<string, Service> = RecordsById.byValue<Service>({
+          records: services,
+        });
+
+        // A source's name is the same whatever the page shows: always kept.
+        setSourceNamesById(
+          (current: Map<string, string>): Map<string, string> => {
+            const next: Map<string, string> = new Map(current);
+
+            for (const [id, service] of byId) {
+              if (service.name) {
+                next.set(id, service.name.toString());
+              }
+            }
+
+            return next;
+          },
+        );
+        setMissingSourceIds((current: Set<string>): Set<string> => {
+          const next: Set<string> = new Set(current);
+
+          for (const id of toRead) {
+            if (!byId.has(id)) {
+              next.add(id);
+            }
           }
-        }
 
-        setSourceNames(names);
+          return next;
+        });
       })
       .catch(() => {
         /*
          * Non-critical: the Source facet then lists raw ids, which still
-         * filter correctly — better than hiding the dimension outright.
+         * filter correctly — better than hiding the dimension outright. They
+         * are asked for again with the next sources the page shows.
          */
+        for (const id of toRead) {
+          requestedSourceIdsRef.current.delete(id);
+        }
       });
+  }, [sourceIdsOnPageKey]);
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [projectId?.toString()]);
+  // The Source facet's names, by each value as the page holds it.
+  const sourceNames: Record<string, string> = useMemo(() => {
+    const names: Record<string, string> = {};
+
+    for (const id of sourceIdsOnPage) {
+      const name: string | undefined = sourceNamesById.get(
+        id.trim().toLowerCase(),
+      );
+
+      if (name) {
+        names[id] = name;
+      }
+    }
+
+    return names;
+  }, [sourceIdsOnPage, sourceNamesById]);
+
+  /*
+   * A chip's sources: by name, and one no service answers to any more as
+   * "No longer available", in the reader's words, to take off.
+   */
+  const chipSourceNames: Record<string, string> = useMemo(() => {
+    const names: Record<string, string> = { ...sourceNames };
+
+    for (const id of sourceIdsOnPage) {
+      if (missingSourceIds.has(id.trim().toLowerCase())) {
+        names[id] =
+          translator.translateText(ENTITY_DROPDOWN_NOT_FOUND_LABEL) ||
+          ENTITY_DROPDOWN_NOT_FOUND_LABEL;
+      }
+    }
+
+    return names;
+  }, [sourceNames, sourceIdsOnPage, missingSourceIds, translator.language]);
 
   // --- Search bar completions ---
 
@@ -1163,14 +1279,14 @@ const SecurityEventsViewer: FunctionComponent<ComponentProps> = (
           displayValue: getSecurityEventFacetChipDisplayValue(
             facetKey,
             value,
-            sourceNames,
+            chipSourceNames,
           ),
         });
       }
     }
 
     return filters;
-  }, [facetFilters, sourceNames, props.scope?.chip, arrivalKey]);
+  }, [facetFilters, chipSourceNames, props.scope?.chip, arrivalKey]);
 
   const facetConfigs: Array<FacetConfig> = useMemo(() => {
     return buildSecurityEventFacetConfigs({ sourceNames: sourceNames });

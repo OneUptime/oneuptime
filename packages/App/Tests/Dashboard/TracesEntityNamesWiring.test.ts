@@ -108,17 +108,40 @@ describe("TracesViewer resolves entity names with one lookup", () => {
     expect(block).toContain(
       'knownNames: [serviceNameMap, facetDisplayNames["primaryEntityId"]]',
     );
-    // Span ids wait for the Service list, which names most of them.
-    expect(block).toContain("includeSpanEntityIds: resourcesLoaded");
+    // Span ids wait for their services' read, which names most of them.
+    expect(block).toContain(
+      "includeSpanEntityIds: spansWithServicesRead === spans",
+    );
   });
 
-  test("resourcesLoaded flips once the resource lists land, even on failure", () => {
+  /*
+   * The spans' and the Service facet's services are read by their ids, never
+   * the project's first 10,000 services by name - nor its hosts and clusters
+   * (#10921). The read settles whether it lands or fails
+   * (TelemetryServicesOnPage keeps a failure to itself).
+   */
+  test("the spans' services are read by their ids, and the span ids wait for that read", () => {
     expect(TRACES_VIEWER).toContain(
-      "const [resourcesLoaded, setResourcesLoaded] = useState<boolean>(false);",
+      "const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();",
     );
     expect(TRACES_VIEWER).toContain(
-      "} catch { } finally { setResourcesLoaded(true); }",
+      "const [spansWithServicesRead, setSpansWithServicesRead] = useState<Array<Span> | null>(null);",
     );
+    expect(TRACES_VIEWER).toContain(
+      "void servicesOnPage.readServicesOf(serviceIdsOnPage).then(() => { if (isCurrent) { setSpansWithServicesRead(spans); } });",
+    );
+    expect(TRACES_VIEWER).toContain(
+      '...(facetData["primaryEntityId"] || []).map( (facet: FacetValue): string => { return facet.value; }, ),',
+    );
+    expect(TRACES_VIEWER).not.toContain("LIMIT_PER_PROJECT");
+    for (const model of [
+      "Host",
+      "DockerHost",
+      "PodmanHost",
+      "KubernetesCluster",
+    ]) {
+      expect(TRACES_VIEWER).not.toContain(`modelType: ${model},`);
+    }
   });
 
   test("server facet display names are indexed for chips", () => {
@@ -275,8 +298,9 @@ describe("TracesViewer resource facets come from the shared catalog", () => {
   });
 
   test("REGRESSION: resource facets are built from the catalog, not hand-written per type", () => {
+    // Every value named by the server's facet displayName (#10921).
     expect(FACET_CONFIGS).toContain(
-      "...buildResourceFacetConfigs({ basePriority: 2, valueDisplayMaps: { hostId: hostNameMap, dockerHostId: dockerHostNameMap, podmanHostId: podmanHostNameMap, kubernetesClusterId: clusterNameMap, }, }),",
+      "...buildResourceFacetConfigs({ basePriority: 2, }),",
     );
     for (const key of [
       "hostId",

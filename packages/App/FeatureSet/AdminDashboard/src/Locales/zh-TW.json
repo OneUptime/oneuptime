@@ -2897,6 +2897,8 @@
   "Switch to visual editor": "切換到視覺化編輯器",
   "Visual": "視覺化",
   "Drop image to upload": "放開即可上傳圖片",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "「{{fileName}}」未上傳。{{error}}",
+  "Uploading {{fileName}}…": "正在上傳 {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "直接在視覺化編輯器中輸入 — 用工具列設定格式。",
   "Switch to {{markdown}} to view or edit the raw source.": "切換到 {{markdown}} 可檢視或編輯原始文字。",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "在清單中，按 {{indentKey}} 縮排項目，按 {{outdentKey}} 取消縮排，或使用縮排和取消縮排按鈕。在清單外，{{tabKey}} 會移到下一個欄位。",
@@ -4575,5 +4577,18 @@
   "The server did not answer with its help and support settings.": "伺服器沒有回傳其說明與支援設定。",
   "Keyboard shortcuts": "鍵盤快速鍵",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享之前請先檢查。",
-  "Chat on Slack": "在 Slack 上聊天"
+  "Chat on Slack": "在 Slack 上聊天",
+  "Your Twilio account's default voice": "Twilio 帳戶的預設語音",
+  "US English, female voice": "美式英文，女聲",
+  "US English, male voice": "美式英文，男聲",
+  "British English, female voice": "英式英文，女聲",
+  "British English, male voice": "英式英文，男聲",
+  "A page's call starts like this, always in English:": "呼叫電話一律使用英文，開頭如下：",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio 對此語音額外收費：每通呼叫電話不到 2 美分。",
+  "Free. Twilio says its Basic voices are not meant for production.": "免費。Twilio 表示其 Basic 語音不適合用於正式環境。",
+  "Save, then send a test call to hear it.": "儲存後，發送測試通話即可試聽。",
+  "Call Voice": "通話語音",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "OneUptime 透過此伺服器的 Twilio 帳戶撥出的電話所使用的語音。",
+  "Choose Voice": "選擇語音",
+  "Voice": "語音"
 }

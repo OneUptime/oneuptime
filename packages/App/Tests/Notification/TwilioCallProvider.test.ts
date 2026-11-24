@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
 import RequestClient from "twilio/lib/base/RequestClient";
-import TwilioCallProvider from "../../FeatureSet/Notification/Providers/TwilioCallProvider";
+import TwilioCallProvider, {
+  INCOMING_CALL_DEFAULT_VOICE,
+} from "../../FeatureSet/Notification/Providers/TwilioCallProvider";
 
 /*
  * This server's HOST and HTTP_PROTOCOL, set per test: the URL it gives
@@ -775,5 +777,59 @@ describe("TwilioCallProvider voice response generation", () => {
     expect(voiceResponses[0]?.hangup).toHaveBeenCalledTimes(1);
     expect(voiceResponses[1]?.say).not.toHaveBeenCalled();
     expect(voiceResponses[1]?.hangup).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The voice chosen for the config the number belongs to (#10948): every
+   * greeting of an incoming call policy is said in it, with the language
+   * it speaks. A config with none - every config before voices could be
+   * chosen - keeps "alice", exactly as before.
+   */
+  test("a config's voice: every greeting, the escalation and the goodbye are said in it, with its language", () => {
+    const provider: TwilioCallProvider = new TwilioCallProvider({
+      ...CONFIG,
+      callVoice: "Polly.Amy-Neural",
+    });
+
+    provider.generateGreetingResponse("Welcome");
+    provider.generateEscalationResponse("Trying the next engineer", {
+      toPhoneNumber: "+14155551002",
+      fromPhoneNumber: "+14155550103",
+      timeoutSeconds: 30,
+      statusCallbackUrl: "https://oneuptime.example/dial-status/next",
+    });
+    provider.generateHangupResponse("Goodbye");
+
+    for (const [index, words] of [
+      "Welcome",
+      "Trying the next engineer",
+      "Goodbye",
+    ].entries()) {
+      expect(voiceResponses[index]?.say).toHaveBeenCalledWith(
+        { voice: "Polly.Amy-Neural", language: "en-GB" },
+        words,
+      );
+    }
+
+    expect(provider.getGreetingSayAttributes()).toEqual({
+      voice: "Polly.Amy-Neural",
+      language: "en-GB",
+    });
+  });
+
+  test("a voice OneUptime does not offer is never named: the greeting keeps alice", () => {
+    for (const callVoice of ["man", "Polly.Joanna", "polly.amy-neural"]) {
+      expect(
+        new TwilioCallProvider({
+          ...CONFIG,
+          callVoice: callVoice,
+        }).getGreetingSayAttributes(),
+      ).toEqual({ voice: INCOMING_CALL_DEFAULT_VOICE });
+    }
+
+    expect(INCOMING_CALL_DEFAULT_VOICE).toBe("alice");
+    expect(newProvider().getGreetingSayAttributes()).toEqual({
+      voice: "alice",
+    });
   });
 });
