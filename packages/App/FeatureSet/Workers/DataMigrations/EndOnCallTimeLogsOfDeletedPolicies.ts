@@ -62,8 +62,8 @@ import { getAuditLogResourceTypesOfModel } from "Common/Utils/AuditLog/AuditLogR
  *      too, after it was gone.
  *   3. Otherwise - nothing on the policy started after this log - the log's
  *      own start: nothing is known of the policy after it, so its open
- *      stretch counts as nothing. Its updatedAt is no later: nothing writes
- *      a log that is still open.
+ *      stretch counts as nothing. Its updatedAt adds nothing: nothing
+ *      writes a log that is still open, so it is when the log was written.
  *
  * The rest of the data says nothing of the deletion: the policy's rules,
  * schedules-of-rules, teams-of-rules, executions, feed and notification logs
