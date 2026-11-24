@@ -22,6 +22,7 @@ import {
   ResponseStep,
 } from "../../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanTypes";
 import { wordStepCheckSentence } from "../../../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
+import { writeMomentInUtc } from "../../../../../Utils/MomentPhrases";
 
 /*
  * ONEUPTIME AI'S CLOSING REPORT OF A CASE (#10352): what happened, the
@@ -97,7 +98,7 @@ function checkLine(step: ResponseStep): string | null {
   return wordStepCheckSentence({
     sentence: step.check.evidence.sentence,
     translator: ENGLISH,
-    writeTime: writeReportTime,
+    writeMoment: writeMomentInUtc,
   });
 }
 
