@@ -38,6 +38,8 @@ import DataSecurityRunner from "../../../../../Server/Utils/DataSecurity/DataSec
 import { ContentScanOptions } from "../../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
 import * as ScrubCoverage from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage";
 import * as ScrubImpact from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubImpact";
+import * as MetricDrop from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
+import * as ScrubProof from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubProof";
 import * as ScrubIt from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubIt";
 import * as ScrubPlanModule from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubPlan";
 import * as ScrubShapes from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes";
@@ -58,6 +60,7 @@ import {
   ScrubRuleWriterRuleKind,
 } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../../../Types/JSON";
 import LogScrubAction from "../../../../../Types/Log/LogScrubAction";
 import LogScrubField from "../../../../../Types/Log/LogScrubField";
 import LogScrubPatternType from "../../../../../Types/Log/LogScrubPatternType";
@@ -1757,6 +1760,338 @@ describe("OneUptime AI writes a place's rule once", () => {
       1,
     );
     expect(written).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * #10753: a secret in an exception or in a metric's attribute was always
+ * proposed - an exception's rule could not be proven, and a metric's
+ * pipeline rule was never run on records - so it kept arriving on every
+ * request until someone approved. Both are proven now, and judged by the
+ * same conditions as any other place: only a proven rule runs on its own.
+ */
+describe("exceptions and metric attributes, proven and contained like the rest", () => {
+  const METRIC_FINDING: string = "10364000-0000-4000-8000-0000000004b1";
+  const NO_READERS: Partial<Record<TelemetryFieldReaderKind, number>> = {
+    [TelemetryFieldReaderKind.Monitor]: 0,
+    [TelemetryFieldReaderKind.Dashboard]: 0,
+    [TelemetryFieldReaderKind.SavedView]: 0,
+    [TelemetryFieldReaderKind.RecordingRule]: 0,
+    [TelemetryFieldReaderKind.ServiceLevelObjective]: 0,
+  };
+
+  function metricProof(changed: number = 0): ScrubRuleProof {
+    return {
+      version: SCRUB_RULE_PROOF_VERSION,
+      provenAt: "2026-11-20T10:00:00.000Z",
+      fingerprint: "0123456789abcdef",
+      places: [
+        {
+          dataTypeId: "github-token",
+          location: "attributes.api_token",
+          kind: DataStoreKind.TelemetryMetrics,
+          findingId: METRIC_FINDING,
+        },
+      ],
+      findingRecordsRead: 2,
+      recordsRead: 30,
+      valuesWithData: 4,
+      valuesStillWithData: 0,
+      otherValues: 26,
+      otherValuesChanged: changed,
+    };
+  }
+
+  let proved: SpyInstance<typeof ScrubProof.proveMetricScrubRule>;
+  let readersLookup: SpyInstance<typeof MetricDrop.findMetricScrubRuleReaders>;
+
+  beforeEach(() => {
+    counted = [
+      finding(
+        METRIC_FINDING,
+        "github-token",
+        "attributes.api_token",
+        4,
+        DataCategory.SecretsAndCredentials,
+      ),
+    ];
+    jest.spyOn(ScrubPlanModule, "readScrubProofFinding").mockResolvedValue({
+      findingId: METRIC_FINDING,
+      kind: DataStoreKind.TelemetryMetrics,
+      dataTypeId: "github-token",
+      location: "attributes.api_token",
+      sampleRecords: [
+        {
+          time: "2026-11-20T09:40:00.000Z",
+          metricName: "git.pushes",
+        } as never,
+      ],
+    });
+    proved = jest
+      .spyOn(ScrubProof, "proveMetricScrubRule")
+      .mockResolvedValue({ proof: metricProof(), covers: true, overreach: 0 });
+    readersLookup = jest
+      .spyOn(MetricDrop, "findMetricScrubRuleReaders")
+      .mockResolvedValue(NO_READERS);
+  });
+
+  function metricContext(): DataSecurityAiIssueContext {
+    return context({ store: { kind: DataStoreKind.TelemetryMetrics } });
+  }
+
+  test("a secret in a metric attribute, proven on its data points with nothing reading it, is made on its own", async () => {
+    const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+      await ScrubTelemetryAction.plan(metricContext()),
+    );
+
+    expect(changes).toHaveLength(1);
+    expect(laneOf(changes[0]!)).toBe(ScrubLane.Alone);
+    expect(changes[0]!.meetsDefaultConditions).toBe(true);
+
+    const rule: ReturnType<typeof readScrubPlan> = readScrubPlan(
+      changes[0]!.plan,
+    );
+
+    expect(rule!.rules![0]).toMatchObject({
+      signal: "metric",
+      findingIds: [METRIC_FINDING],
+      proof: metricProof(),
+      readers: NO_READERS,
+      waitReasons: [],
+    });
+    // Proven with the very rule Scrub It makes, on the finding's own data points.
+    expect(proved.mock.calls[0]![0].rule.addAttributeKey).toBe("api_token");
+    expect(proved.mock.calls[0]![0].rule.serviceId!.toString()).toBe(
+      SERVICE_ID.toString(),
+    );
+    expect(proved.mock.calls[0]![0].finding.sampleRecords).toHaveLength(1);
+    // What reads it: the metrics of the service that carry the attribute.
+    expect(readersLookup.mock.calls[0]![0]).toMatchObject({
+      serviceId: SERVICE_ID.toString().toLowerCase(),
+      attributeKey: "api_token",
+      props: { isRoot: true },
+    });
+    // The proposal says how it was proven, as any rule's does.
+    expect(changes[0]!.proofMarkdown + changes[0]!.changeMarkdown).toContain(
+      "Nothing in the project reads what it hides.",
+    );
+  });
+
+  test("proposed instead when something reads the metrics it changes", async () => {
+    readersLookup.mockResolvedValue({
+      ...NO_READERS,
+      [TelemetryFieldReaderKind.Monitor]: 2,
+      [TelemetryFieldReaderKind.Dashboard]: 1,
+    });
+
+    const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+      await ScrubTelemetryAction.plan(metricContext()),
+    );
+
+    expect(laneOf(changes[0]!)).toBe(ScrubLane.Ask);
+    expect(readScrubPlan(changes[0]!.plan)!.rules![0]!.waitReasons).toEqual([
+      ScrubWaitReason.IsRead,
+    ]);
+    expect(changes[0]!.changeMarkdown).toContain(
+      "Read by 2 monitors and 1 dashboard",
+    );
+  });
+
+  test("proposed when it could not be proven, changes other values, or what reads it is not known", async () => {
+    for (const [what, setUp, reasons] of [
+      [
+        "no data point left to prove it on",
+        () => {
+          proved.mockResolvedValue({
+            proof: metricProof(),
+            covers: false,
+            overreach: 0,
+            failure: ScrubProof.ScrubProofFailure.NothingToProveOn,
+          });
+        },
+        [ScrubWaitReason.NotProven],
+      ],
+      [
+        "a rule that leaves the data",
+        () => {
+          proved.mockResolvedValue({
+            proof: { ...metricProof(), valuesStillWithData: 1 },
+            covers: false,
+            overreach: 0,
+          });
+        },
+        [ScrubWaitReason.NotProven],
+      ],
+      [
+        "a rule that changes other values",
+        () => {
+          proved.mockResolvedValue({
+            proof: metricProof(3),
+            covers: true,
+            overreach: 3 / 26,
+          });
+        },
+        [ScrubWaitReason.ChangesOtherValues],
+      ],
+      [
+        "readers not known",
+        () => {
+          readersLookup.mockResolvedValue(undefined);
+        },
+        [ScrubWaitReason.ReadersUnknown],
+      ],
+    ] as Array<[string, () => void, Array<ScrubWaitReason>]>) {
+      proved.mockResolvedValue({
+        proof: metricProof(),
+        covers: true,
+        overreach: 0,
+      });
+      readersLookup.mockResolvedValue(NO_READERS);
+      setUp();
+
+      const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+        await ScrubTelemetryAction.plan(metricContext()),
+      );
+
+      expect([what, laneOf(changes[0]!)]).toEqual([what, ScrubLane.Ask]);
+      expect([
+        what,
+        readScrubPlan(changes[0]!.plan)!.rules![0]!.waitReasons,
+      ]).toEqual([what, reasons]);
+    }
+  });
+
+  test("personal data in a metric attribute, proven safe, waits in its own lane: never out of the box", async () => {
+    counted = [
+      finding(
+        METRIC_FINDING,
+        "email-address",
+        "attributes.user",
+        4,
+        DataCategory.ContactAndIdentity,
+      ),
+    ];
+
+    const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+      await ScrubTelemetryAction.plan(metricContext()),
+    );
+
+    expect(laneOf(changes[0]!)).toBe(ScrubLane.Widen);
+    expect(changes[0]!.meetsDefaultConditions).toBe(false);
+  });
+
+  test("a finding that is gone proves nothing: its rule waits", async () => {
+    jest
+      .spyOn(ScrubPlanModule, "readScrubProofFinding")
+      .mockResolvedValue(null);
+
+    const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+      await ScrubTelemetryAction.plan(metricContext()),
+    );
+
+    expect(proved).not.toHaveBeenCalled();
+    expect(readScrubPlan(changes[0]!.plan)!.rules![0]!.waitReasons).toEqual([
+      ScrubWaitReason.NotProven,
+    ]);
+  });
+
+  test("a secret in an exception's message, proven on its exceptions, is made on its own", async () => {
+    counted = [
+      finding(
+        TOKEN_FINDING,
+        "github-token",
+        "message",
+        3,
+        DataCategory.SecretsAndCredentials,
+      ),
+    ];
+    const planned: SpyInstance<typeof ScrubIt.planProvenScrubItRule> = jest
+      .spyOn(ScrubIt, "planProvenScrubItRule")
+      .mockResolvedValue({
+        ...namedKeysRule({
+          findingId: TOKEN_FINDING,
+          dataTypeId: "github-token",
+          key: "exception.message",
+          dataTypeName: "GitHub token",
+        }),
+        signal: "trace",
+        plan: {
+          patternType: LogScrubPatternType.Custom,
+          customRegex: "ghp_[A-Za-z0-9]{36}",
+          scrubAction: LogScrubAction.Redact,
+          fieldsToScrub: "events",
+        },
+      });
+
+    const changes: Array<DataSecurityAiPlannedChange> = changesOf(
+      await ScrubTelemetryAction.plan(
+        context({ store: { kind: DataStoreKind.TelemetryExceptions } }),
+      ),
+    );
+
+    expect(planned.mock.calls[0]![0].kind).toBe(
+      DataStoreKind.TelemetryExceptions,
+    );
+    expect(laneOf(changes[0]!)).toBe(ScrubLane.Alone);
+    expect(readScrubPlan(changes[0]!.plan)!.rules![0]!.signal).toBe("trace");
+  });
+
+  test("a stored plan keeps a metric rule's proof and readers when read back", () => {
+    const plan: ReturnType<typeof readScrubPlan> = readScrubPlan({
+      kind: DataStoreKind.TelemetryMetrics,
+      serviceId: SERVICE_ID.toString(),
+      places: [
+        {
+          findingId: METRIC_FINDING,
+          dataTypeId: "github-token",
+          location: "attributes.api_token",
+          signal: "metric",
+          isSecret: true,
+        },
+      ],
+      rules: [
+        {
+          signal: "metric",
+          name: "Data Security: GitHub token in attributes.api_token",
+          description:
+            "It replaces every value of api_token that holds a GitHub token with [REDACTED].",
+          findingIds: [METRIC_FINDING],
+          proof: metricProof(),
+          readers: NO_READERS,
+          waitReasons: [],
+        },
+      ],
+    } as unknown as JSONObject);
+
+    expect(plan!.rules![0]!.proof).toEqual(metricProof());
+    expect(plan!.rules![0]!.readers).toEqual(NO_READERS);
+  });
+
+  test("a plan made before #10753 keeps its metric rule waiting, with the reason it gave", () => {
+    const plan: ReturnType<typeof readScrubPlan> = readScrubPlan({
+      kind: DataStoreKind.TelemetryMetrics,
+      serviceId: SERVICE_ID.toString(),
+      places: [
+        {
+          findingId: METRIC_FINDING,
+          dataTypeId: "github-token",
+          location: "attributes.api_token",
+          signal: "metric",
+        },
+      ],
+      rules: [
+        {
+          signal: "metric",
+          name: "Data Security: GitHub token in attributes.api_token",
+          description: "x",
+          findingIds: [METRIC_FINDING],
+          waitReasons: [ScrubWaitReason.MetricRule],
+        },
+      ],
+    } as unknown as JSONObject);
+
+    expect(plan!.rules![0]!.waitReasons).toEqual([ScrubWaitReason.MetricRule]);
+    expect(plan!.rules![0]!.proof).toBeUndefined();
   });
 });
 

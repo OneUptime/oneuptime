@@ -27,6 +27,7 @@ import {
   readEachStatementOnce,
   readRowsWithRunner,
   ScrubProofFailure,
+  ScrubProofFinding,
   ScrubProofOutcome,
   ScrubProofRowReader,
 } from "./TelemetryScrubProof";
@@ -165,6 +166,47 @@ export async function readScrubPlanFindingRecord(data: {
           aiScrubRules: finding.aiScrubRules,
         }
       : {}),
+  };
+}
+
+/*
+ * A finding's place and the records its last scan kept, read by id, as a
+ * proof reads them - for a rule no log or trace planner proves, a metric
+ * attribute's (#10753). Null for a finding that is gone.
+ */
+export async function readScrubProofFinding(data: {
+  projectId: ObjectID;
+  findingId: string;
+  kind: DataStoreKind;
+}): Promise<ScrubProofFinding | null> {
+  if (!ObjectID.isValidUUID(data.findingId)) {
+    return null;
+  }
+
+  const finding: DataStoreFinding | null =
+    await DataStoreFindingService.findOneBy({
+      query: { _id: data.findingId, projectId: data.projectId },
+      select: {
+        _id: true,
+        dataTypeId: true,
+        location: true,
+        sampleRecords: true,
+        lastSeenAt: true,
+      },
+      props: { isRoot: true },
+    });
+
+  if (!finding?.dataTypeId || !finding.location) {
+    return null;
+  }
+
+  return {
+    findingId: data.findingId,
+    kind: data.kind,
+    dataTypeId: finding.dataTypeId,
+    location: finding.location,
+    sampleRecords: readFindingSampleRecords(finding.sampleRecords),
+    lastSeenAt: finding.lastSeenAt || null,
   };
 }
 

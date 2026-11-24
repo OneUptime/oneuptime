@@ -33,7 +33,10 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
-import { describeScrubRuleProof } from "../../../../../Types/Telemetry/ScrubRuleProof";
+import {
+  describeScrubRuleProof,
+  ScrubRuleProof,
+} from "../../../../../Types/Telemetry/ScrubRuleProof";
 import {
   isEveryTelemetryFieldReaderChecked,
   TELEMETRY_FIELD_READER_KINDS,
@@ -86,10 +89,17 @@ import {
   mergeScrubRuleKeys,
   mergeScrubRuleProofs,
 } from "../../../DataSecurity/Telemetry/TelemetryScrubMerge";
+import { findMetricScrubRuleReaders } from "../../../DataSecurity/Telemetry/TelemetryMetricDrop";
 import {
   readScrubPlanFindingRecord,
+  readScrubProofFinding,
   ScrubPlanFindingRecord,
 } from "../../../DataSecurity/Telemetry/TelemetryScrubPlan";
+import {
+  proveMetricScrubRule,
+  ScrubProofFinding,
+  ScrubProofOutcome,
+} from "../../../DataSecurity/Telemetry/TelemetryScrubProof";
 import {
   getAttributeKeyOfTarget,
   getScrubFindingCategory,
@@ -230,6 +240,13 @@ interface PlannedPlace {
   attributeKey: string | null;
   rule?: ProvenScrubItRule | undefined;
   metric?: ScrubRulePreview | undefined;
+  /*
+   * A metric's rule, proven on the finding's data points, and what reads
+   * the metrics that carry its attribute (#10753): none when it could not
+   * be proven, or read.
+   */
+  metricProof?: ScrubRuleProof | undefined;
+  metricReaders?: ScrubReaderCounts | undefined;
 }
 
 // A rule the plan makes, with the places it is for.
@@ -454,6 +471,7 @@ function mergePlannedPlaces(data: {
           name: planned.metric.name,
           description: planned.metric.description,
           findingIds: [planned.place.findingId],
+          ...(planned.metricProof ? { proof: planned.metricProof } : {}),
           waitReasons: [],
         },
         places: [planned],
@@ -576,6 +594,73 @@ function mergePlannedPlaces(data: {
   }
 
   return merged;
+}
+
+/*
+ * A metric attribute's rule, proven on the finding's data points and the
+ * newest of its service with a value at the place (#10753) - kept only
+ * when it hid the data in every value that held it, as a log's or a
+ * span's proven rule is - and what reads the metrics that carry its
+ * attribute. Either is left out when it could not be had: the rule then
+ * waits for a person, as any rule not proven or whose readers are not
+ * known does.
+ */
+async function proveMetricPlace(data: {
+  context: DataSecurityAiIssueContext;
+  kind: DataStoreKind;
+  place: ScrubPlace;
+  preview: ScrubRulePreview;
+  attributeKey: string;
+  serviceId: string | undefined;
+  options: ContentScanOptions;
+}): Promise<{
+  metricProof?: ScrubRuleProof | undefined;
+  metricReaders?: ScrubReaderCounts | undefined;
+}> {
+  const proven: {
+    metricProof?: ScrubRuleProof | undefined;
+    metricReaders?: ScrubReaderCounts | undefined;
+  } = {};
+
+  if (!data.preview.metricRule || !data.serviceId || !data.attributeKey) {
+    return proven;
+  }
+
+  const finding: ScrubProofFinding | null = await readScrubProofFinding({
+    projectId: data.context.projectId,
+    findingId: data.place.findingId,
+    kind: data.kind,
+  });
+
+  if (finding) {
+    const outcome: ScrubProofOutcome = await proveMetricScrubRule({
+      projectId: data.context.projectId,
+      rule: data.preview.metricRule,
+      finding,
+      options: data.options,
+      now: data.context.now,
+    });
+
+    if (!outcome.failure && outcome.covers) {
+      proven.metricProof = outcome.proof;
+    }
+  }
+
+  const readers: ScrubReaderCounts | undefined =
+    await findMetricScrubRuleReaders({
+      projectId: data.context.projectId,
+      serviceId: data.serviceId.toLowerCase(),
+      attributeKey: data.attributeKey,
+      // As OneUptime: counted, never named, in the plan.
+      props: { isRoot: true },
+      now: data.context.now,
+    });
+
+  if (readers) {
+    proven.metricReaders = readers;
+  }
+
+  return proven;
 }
 
 /*
@@ -1086,10 +1171,23 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
             serviceId,
           });
 
+          options =
+            options ||
+            (await DataSecurityRunner.getScanSetup(context.projectId)).options;
+
           planned.push({
             place: { ...place, signal: "metric" },
             attributeKey: null,
             metric: preview,
+            ...(await proveMetricPlace({
+              context,
+              kind,
+              place,
+              preview,
+              attributeKey: target.key || "",
+              serviceId,
+              options,
+            })),
           });
         } catch (error) {
           if (!(error instanceof BadDataException)) {
@@ -1176,7 +1274,9 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
 
     // What reads what each rule hides, and so whether it may run on its own.
     for (const merged of rules) {
-      if (merged.rule.signal !== "metric") {
+      if (merged.rule.signal === "metric") {
+        merged.rule.readers = merged.places[0]?.metricReaders;
+      } else {
         try {
           const readers: TelemetryFieldReaders = await findScrubRuleReaders({
             projectId: context.projectId,
