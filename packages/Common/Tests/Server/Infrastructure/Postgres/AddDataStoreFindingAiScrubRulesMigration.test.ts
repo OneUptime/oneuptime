@@ -1,5 +1,5 @@
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
-import { AddDataStoreFindingAiScrubRules1809187530752 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187530752-AddDataStoreFindingAiScrubRules";
+import { AddDataStoreFindingAiScrubRules1809187570752 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187570752-AddDataStoreFindingAiScrubRules";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import { QueryRunner, getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
@@ -32,11 +32,11 @@ async function statementsOf(
   return statements;
 }
 
-describe("AddDataStoreFindingAiScrubRules1809187530752", () => {
+describe("AddDataStoreFindingAiScrubRules1809187570752", () => {
   test("adds the two columns, as TypeORM writes them", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddDataStoreFindingAiScrubRules1809187530752().up(runner);
+        return new AddDataStoreFindingAiScrubRules1809187570752().up(runner);
       }),
     ).toEqual([
       `ALTER TABLE "DataStoreFinding" ADD "aiScrubRuleInputHash" character varying(100)`,
@@ -46,7 +46,7 @@ describe("AddDataStoreFindingAiScrubRules1809187530752", () => {
 
   test("never rewrites the table: no default, and no update", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddDataStoreFindingAiScrubRules1809187530752().up(runner);
+      return new AddDataStoreFindingAiScrubRules1809187570752().up(runner);
     })) {
       expect(statement.startsWith(`ALTER TABLE "DataStoreFinding" ADD`)).toBe(
         true,
@@ -59,7 +59,7 @@ describe("AddDataStoreFindingAiScrubRules1809187530752", () => {
   test("down() takes back exactly what up() made, in reverse", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddDataStoreFindingAiScrubRules1809187530752().down(runner);
+        return new AddDataStoreFindingAiScrubRules1809187570752().down(runner);
       }),
     ).toEqual(
       [...COLUMNS].reverse().map((column: string): string => {
@@ -76,7 +76,7 @@ describe("AddDataStoreFindingAiScrubRules1809187530752", () => {
       },
     );
     const index: number = names.indexOf(
-      "AddDataStoreFindingAiScrubRules1809187530752",
+      "AddDataStoreFindingAiScrubRules1809187570752",
     );
 
     expect(index).toBeGreaterThan(-1);
@@ -85,11 +85,11 @@ describe("AddDataStoreFindingAiScrubRules1809187530752", () => {
     );
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddDataStoreFindingAiScrubRules1809187530752;
+        return candidate === AddDataStoreFindingAiScrubRules1809187570752;
       }),
     ).toHaveLength(1);
-    expect(new AddDataStoreFindingAiScrubRules1809187530752().name).toBe(
-      "AddDataStoreFindingAiScrubRules1809187530752",
+    expect(new AddDataStoreFindingAiScrubRules1809187570752().name).toBe(
+      "AddDataStoreFindingAiScrubRules1809187570752",
     );
   });
 });

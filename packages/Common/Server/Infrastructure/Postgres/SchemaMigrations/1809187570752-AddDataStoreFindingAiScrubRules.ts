@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * them rewrites nothing, and an existing finding has no answer kept until
  * OneUptime AI is next asked about its place.
  */
-export class AddDataStoreFindingAiScrubRules1809187530752
+export class AddDataStoreFindingAiScrubRules1809187570752
   implements MigrationInterface
 {
-  public name: string = "AddDataStoreFindingAiScrubRules1809187530752";
+  public name: string = "AddDataStoreFindingAiScrubRules1809187570752";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
