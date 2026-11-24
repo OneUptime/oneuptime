@@ -768,6 +768,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SecurityCaseNotifications.notifyPriorityReached SecurityCase":
       Why.Bookkeeping,
   },
+  /*
+   * What the code host says of a pull request a person linked to a case
+   * (#10604): its state, its merge commit and the deploy that shipped it.
+   * Linking it and taking it off are on the case's timeline and audited.
+   */
+  "packages/Common/Server/Utils/SecurityCase/SecurityCasePullRequestFollower.ts":
+    {
+      "SecurityCasePullRequestFollower.followOne SecurityCasePullRequest":
+        Why.Reported,
+    },
   "packages/Common/Server/Utils/SecurityCase/SecurityCaseTargetCheck.ts": {
     "SecurityCaseTargetCheck.checkCase SecurityCase": Why.Bookkeeping,
   },
