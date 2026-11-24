@@ -246,7 +246,7 @@ Slå på **Nettverksflyt** under **OneUptime-dataene dine** på **Tilkoblinger**
 - området til hver av oppdagelsene dens, mens skanningen pågår;
 - vertene og portene monitorene dens sjekker.
 
-Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg.
+Den lagres som en informativ hendelse, `oneuptime-probe-traffic`, som navngir sonden, og ingen regel leser den. **Nettverksflyt** viser hvor mange som ble lagt til side det siste døgnet, med **Se dem**. Alt annet fra en sondes adresse telles som alles trafikk, og et sveip eller en skanning utover sondens arbeid rapporteres med sondens navn. En sonde gjenkjennes på adressen den melder seg fra, og på adressene til sine egne nettverksgrensesnitt, som den lister opp hver gang den melder seg. En egendefinert sonde uten vertens nettverk, som en Kubernetes-pod eller en container på et Docker-bridgenettverk, gjenkjennes også på vertens adresser, som `PROBE_HOST_IP_ADDRESSES` gir den: til den har dem, forlater avspørringene dens maskinen fra en adresse den ikke gjenkjennes på, og rapporteres som sveip. Se [Hva en sonde sender når den sender livstegn](/docs/probe/custom-probe#hva-en-sonde-sender-når-den-sender-livstegn).
 
 ### Koble til et sikkerhetsprodukt
 

@@ -246,7 +246,7 @@ Zet **Netwerkflows** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, e
 - het bereik van elke detectie van de sonde, zolang de scan loopt;
 - de hosts en poorten die haar monitoren controleren.
 
-Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt.
+Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt. Een aangepaste sonde zonder hostnetwerk, zoals een Kubernetes-pod of een container op een Docker-bridgenetwerk, wordt ook herkend aan de adressen van haar host, die `PROBE_HOST_IP_ADDRESSES` haar doorgeeft: zolang ze die niet heeft, vertrekken haar polls vanaf een adres waaraan ze niet wordt herkend en worden ze als sweeps gemeld. Zie [Wat een sonde stuurt wanneer ze zich meldt](/docs/probe/custom-probe#wat-een-sonde-stuurt-wanneer-ze-zich-meldt).
 
 ### Een beveiligingsproduct koppelen
 

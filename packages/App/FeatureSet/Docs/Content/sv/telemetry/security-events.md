@@ -246,7 +246,7 @@ Slå på **Nätverksflöden** under **Dina OneUptime-data** på **Anslutningar**
 - intervallet för var och en av dess identifieringar, medan skanningen pågår;
 - värdarna och portarna som dess monitorer kontrollerar.
 
-Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in.
+Den sparas som en informativ händelse, `oneuptime-probe-traffic`, som namnger sonden, och ingen regel läser den. **Nätverksflöden** visar hur många som lades åt sidan det senaste dygnet, med **Visa dem**. Allt annat från en sonds adress räknas som allas trafik, och ett svep eller en skanning utöver sondens arbete rapporteras med sondens namn. En sond känns igen på adressen den rapporterar in från och på adresserna på sina egna nätverksgränssnitt, som den listar varje gång den rapporterar in. En anpassad sond utan värdens nätverk, som en Kubernetes-pod eller en container på ett Docker-bridgenätverk, känns också igen på värdens adresser, som `PROBE_HOST_IP_ADDRESSES` ger den: tills den har dem lämnar dess avfrågningar maskinen från en adress den inte känns igen på och rapporteras som svep. Se [Vad en sond skickar när den hör av sig](/docs/probe/custom-probe#vad-en-sond-skickar-när-den-hör-av-sig).
 
 ### Anslut en säkerhetsprodukt
 

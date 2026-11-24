@@ -246,7 +246,7 @@ Slå **Netværksflows** til under **Dine OneUptime-data** på **Forbindelser**, 
 - området for hver af dens opdagelser, mens scanningen kører;
 - de værter og porte, dens monitorer tjekker.
 
-Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig.
+Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig. En brugerdefineret sonde uden værtens netværk, som en Kubernetes-pod eller en container på et Docker-bridgenetværk, genkendes også på værtens adresser, som `PROBE_HOST_IP_ADDRESSES` giver den: indtil den har dem, forlader dens forespørgsler maskinen fra en adresse, den ikke genkendes på, og rapporteres som sweeps. Se [Hvad en sonde sender, når den melder sig](/docs/probe/custom-probe#hvad-en-sonde-sender-når-den-melder-sig).
 
 ### Forbind et sikkerhedsprodukt
 

@@ -246,7 +246,7 @@ Turn on **Network flows**, under **Your OneUptime data** on **Connections**, and
 - the range of each of its discovery scans, while the scan runs;
 - the hosts and ports its monitors check.
 
-It is kept as an Informational event, `oneuptime-probe-traffic`, naming the probe, and no rule reads it. **Network flows** says how many it set aside in the last day, with **See them**. Anything else from a probe's address is counted as anyone's traffic is, and a sweep or scan beyond the probe's work is reported, naming the probe. A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in.
+It is kept as an Informational event, `oneuptime-probe-traffic`, naming the probe, and no rule reads it. **Network flows** says how many it set aside in the last day, with **See them**. Anything else from a probe's address is counted as anyone's traffic is, and a sweep or scan beyond the probe's work is reported, naming the probe. A probe is known by the address it checks in from and the addresses on its own network interfaces, which it lists each time it checks in. A custom probe without host networking, such as a Kubernetes pod or a container on a Docker bridge network, is known by its host's addresses too, which `PROBE_HOST_IP_ADDRESSES` gives it: until it has them, its polling leaves from an address it is not known by and is reported as sweeps. See [What a probe sends when it checks in](/docs/probe/custom-probe#what-a-probe-sends-when-it-checks-in).
 
 ### Connect a security product
 

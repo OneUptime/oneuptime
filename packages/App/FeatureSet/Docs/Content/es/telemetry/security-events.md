@@ -246,7 +246,7 @@ Activa **Flujos de red**, en **Tus datos de OneUptime** de **Conexiones**, y los
 - el rango de cada uno de sus descubrimientos, mientras el escaneo está en marcha;
 - los hosts y puertos que comprueban sus monitores.
 
-Se guarda como un evento informativo, `oneuptime-probe-traffic`, que nombra la sonda, y ninguna regla lo lee. **Flujos de red** indica cuántos se apartaron en el último día, con **Verlas**. Cualquier otra cosa desde la dirección de una sonda se cuenta como el tráfico de cualquiera, y un barrido o escaneo que va más allá del trabajo de la sonda se notifica, nombrando la sonda. Una sonda se reconoce por la dirección desde la que se registra y por las direcciones de sus propias interfaces de red, que enumera cada vez que se registra.
+Se guarda como un evento informativo, `oneuptime-probe-traffic`, que nombra la sonda, y ninguna regla lo lee. **Flujos de red** indica cuántos se apartaron en el último día, con **Verlas**. Cualquier otra cosa desde la dirección de una sonda se cuenta como el tráfico de cualquiera, y un barrido o escaneo que va más allá del trabajo de la sonda se notifica, nombrando la sonda. Una sonda se reconoce por la dirección desde la que se registra y por las direcciones de sus propias interfaces de red, que enumera cada vez que se registra. Una sonda personalizada sin red del host, como un pod de Kubernetes o un contenedor en una red bridge de Docker, se reconoce también por las direcciones de su host, que le indica `PROBE_HOST_IP_ADDRESSES`: hasta que las tiene, sus sondeos salen desde una dirección por la que no se la reconoce y se notifican como barridos. Consulte [Qué envía una sonda cuando se comunica](/docs/probe/custom-probe#qué-envía-una-sonda-cuando-se-comunica).
 
 ### Conectar un producto de seguridad
 
