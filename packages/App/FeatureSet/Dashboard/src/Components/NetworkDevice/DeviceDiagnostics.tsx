@@ -33,7 +33,7 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "Common/UI/Utils/Translation";
@@ -439,13 +439,14 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
                 <div key={index} className="flex justify-between gap-4">
                   {/*
                    * The statistic rows carry a description; Host and Reason
-                   * do not, and InfoTooltip draws nothing for them.
+                   * do not, and draw their words alone. The (i) follows the
+                   * term's last word (#7348, #8044).
                    */}
-                  <dt className="flex items-center gap-1">
-                    <span>{label}</span>
-                    <InfoTooltip
-                      label={label}
-                      text={diagnosticRow.description}
+                  <dt className="min-w-0">
+                    <WordsWithInfoTooltip
+                      text={label}
+                      label={diagnosticRow.label}
+                      description={diagnosticRow.description}
                     />
                   </dt>
                   <dd className="font-medium text-right break-all">

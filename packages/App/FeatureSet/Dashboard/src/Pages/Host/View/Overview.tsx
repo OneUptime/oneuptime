@@ -40,6 +40,7 @@ import HostFilesystemsTable, {
   HostMount,
 } from "../../../Components/Host/HostFilesystemsTable";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -1935,11 +1936,13 @@ const HostOverview: FunctionComponent<
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex min-w-0 items-center gap-1">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {translator.translateText(params.title)}
-              </span>
-              <InfoTooltip label={params.title} text={params.description} />
+            <div className="flex min-w-0">
+              <WordsWithInfoTooltip
+                className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+                text={translator.translateText(params.title) || params.title}
+                label={params.title}
+                description={params.description}
+              />
             </div>
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
@@ -1984,11 +1987,13 @@ const HostOverview: FunctionComponent<
       <div className="flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="flex min-w-0 items-center gap-1">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                {translator.translateText(params.title)}
-              </span>
-              <InfoTooltip label={params.title} text={params.description} />
+            <div className="flex min-w-0">
+              <WordsWithInfoTooltip
+                className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+                text={translator.translateText(params.title) || params.title}
+                label={params.title}
+                description={params.description}
+              />
             </div>
             {params.headerExtra ?? null}
           </div>

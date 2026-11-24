@@ -43,6 +43,7 @@ import { expectReadableDescriptionRecord } from "../../App/Dashboard/MetricDescr
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { QUIET_DASH_TEXT } from "../../Helpers/QuietDash";
 import { withDurationWordsHeld } from "../../../Types/NoBreakSpaces";
+import { INFO_GLUE_ATTRIBUTE } from "../../../UI/Components/Tooltip/WordsWithInfoTooltip";
 
 /*
  * The User Flows page's (i) tooltips, rendered: the five overview tiles,
@@ -384,7 +385,7 @@ describe("User Flows overview tiles", () => {
     await expectExplained("Top exit page", "topExitPage");
   });
 
-  test("the (i) sits in the tile's label row, beside the label it names", () => {
+  test("the (i) follows the last word of the label it names", () => {
     renderOverview();
 
     for (const [testId, label] of [
@@ -398,10 +399,20 @@ describe("User Flows overview tiles", () => {
       const info: HTMLElement = within(tile).getByTestId(`${testId}-info`);
 
       expect(info).toHaveAttribute("aria-label", `About ${label}`);
-      expect(info.parentElement).toHaveTextContent(label);
+
+      /*
+       * Inside the label's own words, after the last of them
+       * (WordsWithInfoTooltip, #8044): a label that wraps keeps it there.
+       */
+      const glue: HTMLElement | null = info.closest<HTMLElement>(
+        `[${INFO_GLUE_ATTRIBUTE}]`,
+      );
+
+      expect(glue).not.toBeNull();
+      expect(glue!.parentElement?.textContent?.trim()).toBe(label);
       // The value paragraph is not the (i)'s row.
       expect(
-        info.parentElement?.contains(
+        glue!.parentElement?.contains(
           within(tile).getByTestId(`${testId}-value`),
         ),
       ).toBe(false);

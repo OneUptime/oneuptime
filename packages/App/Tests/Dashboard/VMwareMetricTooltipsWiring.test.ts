@@ -490,12 +490,15 @@ describe("VMware overview (Index.tsx)", () => {
     );
 
     expect(card).toContain("description?: string | undefined;");
+    // Its (i) after the title's last word (WordsWithInfoTooltip, #8044).
     expect(
       countOf(
         card,
-        "<InfoTooltip label={params.title} text={params.description} />",
+        "text={tx(params.title)} label={params.title} description={params.description} />",
       ),
     ).toBe(1);
+    expect(card).toContain("<WordsWithInfoTooltip");
+    expect(card).not.toContain("<InfoTooltip");
     // One shared header, rendered by both branches.
     expect(card).toContain("const header: ReactElement = (");
     expect(countOf(card, "return (")).toBe(2);
@@ -505,7 +508,7 @@ describe("VMware overview (Index.tsx)", () => {
      * language, once as the (i)'s label), so no branch can lose the (i).
      */
     expect(countOf(card, "params.title")).toBe(2);
-    expect(countOf(card, "{tx(params.title)} </span>")).toBe(1);
+    expect(countOf(card, "text={tx(params.title)}")).toBe(1);
     expect(countOf(card, "label={params.title}")).toBe(1);
 
     const skeleton: string = between(
@@ -551,7 +554,7 @@ describe("VMware overview (Index.tsx)", () => {
     );
 
     expect(section).toContain(
-      "<InfoTooltip label={params.title} text={params.description} />",
+      '<h4 className="text-sm font-semibold text-gray-900"> <WordsWithInfoTooltip text={tx(params.title)} label={params.title} description={params.description} /> </h4>',
     );
   });
 
@@ -686,9 +689,10 @@ describe("VMware ESXi host page", () => {
     expect(code).toContain(
       'const title: string = tx("Busiest virtual machines");',
     );
-    expect(countOf(code, "<InfoTooltip")).toBe(1);
+    expect(countOf(code, "<WordsWithInfoTooltip")).toBe(1);
+    expect(countOf(code, "<InfoTooltip")).toBe(0);
     expect(code).toContain(
-      "<InfoTooltip label={title} text={VMWARE_METRIC_DESCRIPTIONS.hostPageBusiestVirtualMachines} />",
+      "<WordsWithInfoTooltip text={title} label={title} description={ VMWARE_METRIC_DESCRIPTIONS.hostPageBusiestVirtualMachines } />",
     );
   });
 
@@ -872,10 +876,11 @@ describe("VMware part pages: tiles and details", () => {
     expect(
       readCode("Components/Infrastructure/GoldenMetricTile.tsx"),
     ).toContain("<WordsWithInfoTooltip");
+    // A row's (i), when it has one, after its label's last word (#8044).
     expect(
       readCode("Components/ResourcePart/ResourcePartDetailsCard.tsx"),
     ).toContain(
-      "{row.description ? ( <InfoTooltip label={row.label} text={row.description} /> ) : ( <></> )}",
+      '<WordsWithInfoTooltip className="min-w-0" text={tx(row.label)} label={row.label} description={row.description} />',
     );
   });
 });
