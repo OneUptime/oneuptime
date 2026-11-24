@@ -172,6 +172,18 @@ const DataStoreViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Settings}
         />
+        {/*
+         * Its data protection impact assessment (#10375), beside the record
+         * of processing its Settings hold: the page says why the store
+         * needs one, or that it does not.
+         */}
+        <SideMenuItem
+          link={{
+            title: "Impact Assessment",
+            to: routeOf(PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT),
+          }}
+          icon={IconProp.DocumentText}
+        />
       </SideMenuSection>
 
       <SideMenuSection title="Advanced">

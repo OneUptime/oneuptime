@@ -6,7 +6,8 @@ Data Security knows 143 kinds of sensitive data: card numbers, bank accounts, na
 - [How a value is found](#how-a-value-is-found): Shape, validator, context, test values, confidence.
 - [Fields and columns](#fields-and-columns): How a whole column or attribute is judged.
 - [Every data type](#built-in-data-types): All 143, by category.
-- [Your own data types](#your-own-data-types): Employee IDs, policy numbers, and the Test It box.
+- [Your own data types](#your-own-data-types): Employee IDs, policy numbers, Describe It and the Test It box.
+- [Data types OneUptime AI finds](#data-types-oneuptime-ai-finds): Your own data types, found in the fields no detector could place.
 - [OneUptime AI's verdicts](#oneuptime-ais-verdicts): A verdict on every finding that waits for you, with your team's decisions as precedent.
 :::
 
@@ -63,6 +64,8 @@ A field whose name says it holds a password - `password`, `passwordHash`, `pwd`,
 ### Fields no detector could place
 
 A column or a field whose name points at no data type, and whose values match no detector, is not known to be safe: it can be your own customer number, or a column named in another language. With the project's **Enable AI** on, a content scan keeps such fields, at most 200 a scan, and OneUptime AI is asked which of the project's data types each holds, at most 40 fields of a store at a time. It is told the field's name, the names of the fields beside it, and the shapes of its values - every letter written as `a` or `A` and every digit as `9`, so `AB-1234` is `AA-9999` - never a value. Free text, fields with fewer than 5 values, small whole numbers and fields named as an id, a time or a status are not asked about.
+
+A telemetry scan keeps the attributes no detector placed in the same way, from a service's logs, spans, metrics and the rest of its telemetry, at most 50 a service each scan. It never keeps OneUptime's own attributes, the ones OpenTelemetry's conventions write on every record to say where it came from, such as the service, the host or the pod, or free text, such as a log's body.
 
 Each type OneUptime AI names is a Low finding, marked **Suggested by OneUptime AI** with its reason, written in your project's language and shown across the finding's row. Like any Low finding it counts toward nothing until a person chooses **Confirm** on the store's **What's Inside** page; **Mark as Not Sensitive** turns it down. A field that was answered is not asked about again for 30 days, and a field a person judged is not asked about again.
 
@@ -296,6 +299,32 @@ Under **More fields**, **Ignore Case** matches the pattern whatever the case of 
 A pattern is checked when you save it: it must compile, match no empty text and run in time in line with the text. It is run by a matcher that never backtracks, so no pattern can hold a scan, however it is written. A type takes at most 50 keywords and 50 field names.
 
 A value of your type is Medium on its own and High with a keyword near it when it passes a checksum, and Low on its own and Medium with a keyword when it has none. In a column, the share of values that match decides, as for every type.
+
+### Describe it
+
+At the top of a new data type's form, **Describe It** fills the form in for you. Write what the data looks like, such as "our employee IDs look like EMP-123456, sometimes without the dash", add a few examples if you like, one per line, and choose **Fill In the Form**. OneUptime AI is sent your sentence and the shapes of your examples, never the examples: they stay in your browser, where **Test It** shows how many of them its pattern finds. Read what it filled in, change what you like, and save: nothing is saved until you do, and the pattern is checked as one you wrote yourself. Describe It needs the project's **Enable AI** on.
+
+## Data types OneUptime AI finds
+
+The fields no detector could place often hold a data type of your company's own, kept in many places under names that say the same thing: an insurer's policy numbers in columns named `policy_no`, `policyNumber` and `police_nr`, across all its databases. With the project's **Enable AI** on, OneUptime AI finds such a data type in the fields your scans kept, and asks you about it only once your own scans have proven it.
+
+:::steps
+### It finds a group of fields
+
+Three or more fields in two or more stores make a group when most of their values have one shape, with or without the separators between its parts, and their names share a word that says what they hold. A shape with no digit, a date, a time or a decimal number never makes a group, and a word such as `id`, `no` or `number` says nothing by itself.
+
+### It drafts a data type
+
+OneUptime AI drafts a data type for each new group, at most 3 at a time, from the fields' names and the shapes of their values, never a value. The draft is held to what a saved type is held to, and must find the shapes it was drafted from. A draft that does not is asked for once more, with the reason.
+
+### Your next scans prove it
+
+The draft runs in the next scan of each store of its group, for up to 48 hours or one scan interval, whichever is longer. It makes no finding: each scan counts how many values it would find, in the group's fields and in every other field of the same stores. It is offered when it finds at least 80% of its fields' values and at most 1% of the other values. A field elsewhere where it finds nearly every value holds the same data under another name: it is named, not counted against it.
+:::
+
+Each draft is also counted narrowed, at the same time: outside its group's fields, a narrowed draft finds a value only beside one of its keywords or under a field name that names it. A draft that finds too much elsewhere is offered narrowed when that is enough. A draft that is not enough either way is dropped, and its group is not drafted again for 30 days.
+
+Each data type it offers waits under **Data Types to Review**, at the top of **Data Security → Settings → Data Types** and on **Data Security → AI**, with what your scans counted, such as "Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores." **Add Data Type** opens the data type form filled in with it, to change and test; saving it adds the type, which scans find from their next run on. **Not a Data Type** turns it down: it is never offered again for those fields. Adding one takes a role that can create data types.
 
 ## Not sensitive, and never sensitive
 

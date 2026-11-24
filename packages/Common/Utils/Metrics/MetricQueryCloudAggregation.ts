@@ -451,12 +451,24 @@ export default class MetricQueryCloudAggregation {
    * or whole, has no aggregation that reads its old number (a Sum would add
    * up every minute of every queue), and is left as it is. A query with any
    * other aggregation of its own (Max, Min, a percentile, Sum already) is
-   * left too. Writes on the step's own queries; returns what it moved.
+   * left too. So is a query of a resource not of `onlyTypes`, when given:
+   * each data migration moves the types whose metrics came to be read once
+   * per part in its own release - a namespace's (#6415), a Container App's
+   * requests (#10837) - and says why in their words. Writes on the step's
+   * own queries; returns what it moved.
    */
   public static restoreResourceTotals(
     metricMonitor: unknown,
+    options: { onlyTypes?: ReadonlyArray<string> | undefined } = {},
   ): Array<MetricQueryAggregationRestore> {
     const restored: Array<MetricQueryAggregationRestore> = [];
+    const onlyTypes: Set<string> | undefined = options.onlyTypes
+      ? new Set<string>(
+          options.onlyTypes.map((type: string): string => {
+            return type.trim().toLowerCase();
+          }),
+        )
+      : undefined;
 
     if (
       MetricQueryCloudAggregation.getMetricMonitorReadInterval(
@@ -485,7 +497,11 @@ export default class MetricQueryCloudAggregation {
           aggregationInterval: AggregationInterval.Minute,
         });
 
-      if (!resource || catalog !== AggregationType.Sum) {
+      if (
+        !resource ||
+        catalog !== AggregationType.Sum ||
+        (onlyTypes && !onlyTypes.has(resource.type.trim().toLowerCase()))
+      ) {
         continue;
       }
 

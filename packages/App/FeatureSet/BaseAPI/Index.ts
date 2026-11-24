@@ -646,6 +646,7 @@ import LogDropFilterService, {
   Service as LogDropFilterServiceType,
 } from "Common/Server/Services/LogDropFilterService";
 import DetectionRuleAPI from "Common/Server/API/DetectionRuleAPI";
+import DataSecurityCustomDataTypeAPI from "Common/Server/API/DataSecurityCustomDataTypeAPI";
 import ServiceLevelObjectiveAPI from "Common/Server/API/ServiceLevelObjectiveAPI";
 import ServiceLevelObjectiveBurnRateRuleAPI from "Common/Server/API/ServiceLevelObjectiveBurnRateRuleAPI";
 import ServiceLevelObjectiveErrorBudgetPolicyTierAPI from "Common/Server/API/ServiceLevelObjectiveErrorBudgetPolicyTierAPI";
@@ -787,9 +788,6 @@ import DataSecurityAiDecisionService, {
 import DataSecurityScanService, {
   Service as DataSecurityScanServiceType,
 } from "Common/Server/Services/DataSecurityScanService";
-import DataSecurityCustomDataTypeService, {
-  Service as DataSecurityCustomDataTypeServiceType,
-} from "Common/Server/Services/DataSecurityCustomDataTypeService";
 import DataSecurityCheckSettingService, {
   Service as DataSecurityCheckSettingServiceType,
 } from "Common/Server/Services/DataSecurityCheckSettingService";
@@ -2016,7 +2014,6 @@ import DataSecurityIssueFeed from "Common/Models/DatabaseModels/DataSecurityIssu
 import DataSecurityAiProposal from "Common/Models/DatabaseModels/DataSecurityAiProposal";
 import DataSecurityAiDecision from "Common/Models/DatabaseModels/DataSecurityAiDecision";
 import DataSecurityScan from "Common/Models/DatabaseModels/DataSecurityScan";
-import DataSecurityCustomDataType from "Common/Models/DatabaseModels/DataSecurityCustomDataType";
 import DataSecurityCheckSetting from "Common/Models/DatabaseModels/DataSecurityCheckSetting";
 import DataSecurityComplianceSetting from "Common/Models/DatabaseModels/DataSecurityComplianceSetting";
 import DataSecurityResidencyRule from "Common/Models/DatabaseModels/DataSecurityResidencyRule";
@@ -5078,15 +5075,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // The project's own data types' CRUD, with Describe It (#10371).
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        DataSecurityCustomDataType,
-        DataSecurityCustomDataTypeServiceType
-      >(
-        DataSecurityCustomDataType,
-        DataSecurityCustomDataTypeService,
-      ).getRouter(),
+      new DataSecurityCustomDataTypeAPI().getRouter(),
     );
 
     app.use(

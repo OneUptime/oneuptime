@@ -36,6 +36,12 @@ const setFluentProductType: RequestHandler = (
  *
  *   - a JSON array of records, or one record: Fluentd's HTTP output with
  *     json_array, Fluent Bit's http output with format json;
+ *   - records' JSON one after another, as application/json (#10796):
+ *     Fluent Bit's http output with format json_stream, with no separator,
+ *     and Fluentd's HTTP output with content_type application/json and no
+ *     json_array, a record a line. Read so only when the body is no one
+ *     JSON document; one that is no such stream either is refused 400 as
+ *     the JSON it is not;
  *   - newline-delimited JSON, one record a line (#10769): Fluentd's HTTP
  *     output without json_array, its default (application/x-ndjson), and
  *     Fluent Bit's with format json_lines. A line that is no JSON is a line
@@ -44,7 +50,7 @@ const setFluentProductType: RequestHandler = (
  */
 const readFluentBody: RequestHandler = RequestBodyAfterAuthentication.readBody(
   LARGE_REQUEST_BODY_LIMIT,
-  { parseGzipJson: true, readLines: true },
+  { parseGzipJson: true, readLines: true, readJsonStream: true },
 );
 
 router.post(

@@ -180,6 +180,70 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes.ts",
     features: [DataSecurityAiFeature.WriteScrubRules],
   },
+  // The compliance paperwork (#10375): what each draft is asked, and how its answer is held to its facts.
+  {
+    path: "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+      DataSecurityAiFeature.DraftAuditEvidence,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingPrompt.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDossier.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentPrompt.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/AuditEvidencePrompt.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/AuditEvidenceDrafter.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
 ];
 
 // The workflow's own paths: every file above, as GitHub's filter writes it.

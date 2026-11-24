@@ -1,4 +1,5 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
+import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import TelemetryExceptionMerge, {
   ExceptionMergeOutcome,
   ExceptionUnmergeOutcome,
@@ -44,6 +45,9 @@ jest.mock("../../../Server/Utils/Express", () => {
 const MERGE_ROUTE: string = "/telemetry-exception/merge/:telemetryExceptionId";
 const UNMERGE_ROUTE: string =
   "/telemetry-exception/unmerge/:telemetryExceptionId";
+// A pair a scrub rule split before #10434, merged from the split one's page.
+const MERGE_SPLIT_ROUTE: string =
+  "/telemetry-exception/merge-split/:telemetryExceptionId";
 const A: string = "30000000-0000-4000-8000-00000000000a";
 const B: string = "30000000-0000-4000-8000-00000000000b";
 const CALLER: DatabaseCommonInteractionProps = {
@@ -174,6 +178,7 @@ describe("the merge routes", () => {
       { mergedTelemetryExceptionIds: ["x"] },
     ],
     ["a malformed id to unmerge", UNMERGE_ROUTE, "nope", {}],
+    ["a malformed split exception's id", MERGE_SPLIT_ROUTE, "nope", {}],
   ])(
     "%s is refused before anything is read",
     async (_name: string, route: string, id: string, body: unknown) => {
@@ -181,15 +186,67 @@ describe("the merge routes", () => {
         jest.spyOn(TelemetryExceptionMerge, "merge");
       const unmerge: SpyInstance<typeof TelemetryExceptionMerge.unmerge> =
         jest.spyOn(TelemetryExceptionMerge, "unmerge");
+      const mergeSplit: SpyInstance<typeof TelemetryExceptionMerge.mergeSplit> =
+        jest.spyOn(TelemetryExceptionMerge, "mergeSplit");
 
       const next: NextFunction = await post(route, id, body);
 
       expect(refusal(next)).toBeInstanceOf(BadDataException);
       expect(merge).not.toHaveBeenCalled();
       expect(unmerge).not.toHaveBeenCalled();
+      expect(mergeSplit).not.toHaveBeenCalled();
       expect(sent).toHaveLength(0);
     },
   );
+
+  test("merge-split: the path's exception, as the caller, and the older one's answer", async () => {
+    const mergeSplit: SpyInstance<typeof TelemetryExceptionMerge.mergeSplit> =
+      jest.spyOn(TelemetryExceptionMerge, "mergeSplit").mockResolvedValue({
+        telemetryExceptionId: A,
+        merged: [
+          { telemetryExceptionId: B, outcome: ExceptionMergeOutcome.Merged },
+        ],
+      });
+
+    const next: NextFunction = await post(MERGE_SPLIT_ROUTE, B);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(mergeSplit.mock.calls[0]![0].props).toBe(CALLER);
+    expect(mergeSplit.mock.calls[0]![0].telemetryExceptionId.toString()).toBe(
+      B,
+    );
+    expect(sent).toEqual([
+      {
+        telemetryExceptionId: A,
+        merged: [{ telemetryExceptionId: B, outcome: "merged" }],
+      },
+    ]);
+  });
+
+  test("merge-split: a caller who may not edit both is refused, as raised", async () => {
+    jest
+      .spyOn(TelemetryExceptionMerge, "mergeSplit")
+      .mockRejectedValue(
+        new NotAuthorizedException("You do not have permission"),
+      );
+
+    const next: NextFunction = await post(MERGE_SPLIT_ROUTE, B);
+
+    expect(refusal(next)).toBeInstanceOf(NotAuthorizedException);
+    expect(sent).toHaveLength(0);
+  });
+
+  test("merge-split is signed in, and refused while Exceptions is switched off, as merge and unmerge are", () => {
+    for (const route of [MERGE_ROUTE, UNMERGE_ROUTE, MERGE_SPLIT_ROUTE]) {
+      const registered: { middlewares: Array<unknown> } = mockRouter.match(
+        "POST",
+        route,
+      ) as unknown as { middlewares: Array<unknown> };
+
+      expect(registered.middlewares).toHaveLength(2);
+      expect(registered.middlewares[0]).toBe(UserMiddleware.getUserMiddleware);
+    }
+  });
 
   test("a refusal of the merge itself is passed on, as it was raised", async () => {
     jest

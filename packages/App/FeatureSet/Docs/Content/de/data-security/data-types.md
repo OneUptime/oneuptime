@@ -7,6 +7,7 @@ Datensicherheit kennt 143 Arten sensibler Daten: Kartennummern, Bankkonten, nati
 - [Felder und Spalten](#felder-und-spalten): Wie eine ganze Spalte oder ein ganzes Attribut beurteilt wird.
 - [Jeder Datentyp](#integrierte-datentypen): Alle 143, nach Kategorie.
 - [Ihre eigenen Datentypen](#ihre-eigenen-datentypen): Personalnummern, Policennummern und das Feld Testen.
+- [Datentypen, die OneUptime AI findet](#datentypen-die-oneuptime-ai-findet): Ihre eigenen Datentypen, gefunden in den Feldern, die kein Detektor zuordnen konnte.
 - [Die Einschätzungen von OneUptime AI](#die-einschätzungen-von-oneuptime-ai): Eine Einschätzung zu jedem Fund, der auf Sie wartet, mit den Entscheidungen Ihres Teams als Präzedenzfällen.
 :::
 
@@ -63,6 +64,8 @@ Ein Feld, dessen Name sagt, dass es ein Passwort enthält - `password`, `passwor
 ### Felder, die kein Detektor zuordnen konnte
 
 Eine Spalte oder ein Feld, deren Name auf keinen Datentyp hinweist und deren Werte zu keinem Detektor passen, ist nicht als sicher bekannt: Es kann Ihre eigene Kundennummer sein oder eine Spalte, die in einer anderen Sprache benannt ist. Ist **KI aktivieren** im Projekt eingeschaltet, behält ein Inhaltsscan solche Felder, höchstens 200 pro Scan, und OneUptime AI wird gefragt, welchen der Datentypen des Projekts jedes davon enthält, höchstens 40 Felder eines Datenspeichers auf einmal. Es erfährt den Namen des Feldes, die Namen der Felder daneben und die Formen seiner Werte - jeder Buchstabe als `a` oder `A` geschrieben und jede Ziffer als `9`, sodass aus `AB-1234` die Form `AA-9999` wird - nie einen Wert. Nach Freitext, Feldern mit weniger als 5 Werten, kleinen ganzen Zahlen und Feldern, die als ID, Zeitpunkt oder Status benannt sind, wird nicht gefragt.
+
+Ein Telemetriescan behält die Attribute, die kein Detektor zugeordnet hat, auf dieselbe Weise, aus den Logs, Spans, Metriken und der übrigen Telemetrie eines Dienstes, höchstens 50 pro Dienst und Scan. Er behält nie die eigenen Attribute von OneUptime, nie die, die die Konventionen von OpenTelemetry an jeden Datensatz schreiben, um zu sagen, woher er kommt, etwa den Dienst, den Host oder den Pod, und nie Freitext wie den Text eines Logs.
 
 Jeder Typ, den OneUptime AI nennt, ist ein Fund mit Konfidenz Niedrig, markiert als **Von OneUptime AI vorgeschlagen**, mit seiner Begründung, die in der Sprache Ihres Projekts geschrieben ist und über die ganze Zeile des Funds angezeigt wird. Wie jeder Fund mit Konfidenz Niedrig zählt er für nichts, bis ein Mensch auf der Seite **Inhalt** des Datenspeichers **Bestätigen** wählt; **Als nicht sensibel markieren** lehnt ihn ab. Nach einer Antwort wird zu einem Feld 30 Tage lang nicht erneut gefragt, und zu einem Feld, das ein Mensch beurteilt hat, nie wieder.
 
@@ -296,6 +299,32 @@ Unter **Weitere Felder** lässt **Groß-/Kleinschreibung ignorieren** das Muster
 Ein Muster wird beim Speichern geprüft: Es muss kompilieren, darf auf keinen leeren Text passen und muss in einer Zeit laufen, die linear mit dem Text wächst. Es wird von einem Matcher ausgeführt, der nie zurückspringt (kein Backtracking), sodass kein Muster einen Scan aufhalten kann, egal wie es geschrieben ist. Ein Typ nimmt höchstens 50 Schlüsselwörter und 50 Feldnamen.
 
 Ein Wert Ihres Typs ist für sich allein Mittel und mit einem Schlüsselwort in der Nähe Hoch, wenn er eine Prüfsumme besteht, und für sich allein Niedrig und mit einem Schlüsselwort Mittel, wenn er keine hat. In einer Spalte entscheidet der Anteil der passenden Werte, wie bei jedem Typ.
+
+### Beschreiben
+
+Oben im Formular eines neuen Datentyps füllt **Beschreiben** das Formular für Sie aus. Schreiben Sie, wie die Daten aussehen, etwa „Unsere Personalnummern sehen aus wie EMP-123456, manchmal ohne Bindestrich“, fügen Sie auf Wunsch einige Beispiele hinzu, eines pro Zeile, und wählen Sie **Formular ausfüllen**. OneUptime AI erhält Ihren Satz und die Formen Ihrer Beispiele, nie die Beispiele selbst: Sie bleiben in Ihrem Browser, wo **Testen** zeigt, wie viele davon sein Muster findet. Lesen Sie, was es ausgefüllt hat, ändern Sie, was Sie möchten, und speichern Sie: Gespeichert wird erst, wenn Sie speichern, und das Muster wird geprüft wie eines, das Sie selbst geschrieben haben. Für Beschreiben muss **KI aktivieren** im Projekt eingeschaltet sein.
+
+## Datentypen, die OneUptime AI findet
+
+Die Felder, die kein Detektor zuordnen konnte, enthalten oft einen eigenen Datentyp Ihres Unternehmens, an vielen Stellen unter Namen gespeichert, die dasselbe sagen: die Policennummern eines Versicherers in Spalten namens `policy_no`, `policyNumber` und `police_nr`, in allen seinen Datenbanken. Ist **KI aktivieren** im Projekt eingeschaltet, findet OneUptime AI einen solchen Datentyp in den Feldern, die Ihre Scans behalten haben, und fragt Sie erst, wenn Ihre eigenen Scans ihn bestätigt haben.
+
+:::steps
+### Es findet eine Gruppe von Feldern
+
+Drei oder mehr Felder in zwei oder mehr Datenspeichern bilden eine Gruppe, wenn die meisten ihrer Werte eine Form haben, mit oder ohne die Trennzeichen zwischen ihren Teilen, und ihre Namen ein Wort teilen, das sagt, was sie enthalten. Eine Form ohne Ziffer, ein Datum, eine Uhrzeit oder eine Dezimalzahl bildet nie eine Gruppe, und ein Wort wie `id`, `no` oder `number` sagt für sich allein nichts.
+
+### Es entwirft einen Datentyp
+
+OneUptime AI entwirft für jede neue Gruppe einen Datentyp, höchstens 3 auf einmal, aus den Namen der Felder und den Formen ihrer Werte, nie aus einem Wert. Der Entwurf muss bestehen, was ein gespeicherter Typ bestehen muss, und die Formen finden, aus denen er entworfen wurde. Ein Entwurf, der das nicht tut, wird noch einmal angefordert, mit dem Grund.
+
+### Ihre nächsten Scans prüfen ihn
+
+Der Entwurf läuft im nächsten Scan jedes Datenspeichers seiner Gruppe, bis zu 48 Stunden oder ein Scanintervall lang, je nachdem, was länger ist. Er erzeugt keinen Fund: Jeder Scan zählt, wie viele Werte er finden würde, in den Feldern der Gruppe und in jedem anderen Feld derselben Datenspeicher. Angeboten wird er, wenn er mindestens 80 % der Werte seiner Felder und höchstens 1 % der übrigen Werte findet. Ein Feld anderswo, in dem er fast jeden Wert findet, enthält dieselben Daten unter einem anderen Namen: Es wird genannt, nicht gegen ihn gezählt.
+:::
+
+Jeder Entwurf wird zugleich auch eingeschränkt gezählt: Außerhalb der Felder seiner Gruppe findet ein eingeschränkter Entwurf einen Wert nur neben einem seiner Schlüsselwörter oder unter einem Feldnamen, der ihn nennt. Ein Entwurf, der anderswo zu viel findet, wird eingeschränkt angeboten, wenn das genügt. Ein Entwurf, der auf keine der beiden Arten genügt, wird verworfen, und seine Gruppe wird 30 Tage lang nicht erneut entworfen.
+
+Jeder Datentyp, den es anbietet, wartet unter **Zu prüfende Datentypen**, oben auf **Datensicherheit → Einstellungen → Datentypen** und auf **Datensicherheit → KI**, mit dem, was Ihre Scans gezählt haben, etwa „Passt auf 98 % der Werte in diesen 11 Feldern und auf 0,1 % der Werte anderswo in denselben Datenspeichern.“ **Datentyp hinzufügen** öffnet das Formular eines Datentyps, mit ihm ausgefüllt, zum Ändern und Testen; Speichern fügt den Typ hinzu, den Scans ab ihrem nächsten Lauf finden. **Kein Datentyp** lehnt ihn ab: Er wird für diese Felder nie wieder angeboten. Hinzufügen erfordert eine Rolle, die Datentypen erstellen darf.
 
 ## Nicht sensibel und nie sensibel
 

@@ -66,6 +66,7 @@ export enum DataStoreKind {
   SecurityEvents = "Security Events",
   NetworkFlows = "Network Flows",
   SecurityAddressVault = "Security Address Vault",
+  SecurityUserVault = "Security User Vault",
 }
 
 export enum DataStoreProvider {
@@ -262,6 +263,11 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
     isDeclared: true,
     icon: IconProp.Lock,
   }),
+  // The address vault's twin, for users (#10632).
+  kind(K.SecurityUserVault, P.OneUptime, F.SecurityRecords, {
+    isDeclared: true,
+    icon: IconProp.Lock,
+  }),
 ];
 
 const KINDS_BY_VALUE: ReadonlyMap<string, DataStoreKindInfo> = new Map(
@@ -307,6 +313,7 @@ export const DECLARED_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.SecurityEvents,
   DataStoreKind.NetworkFlows,
   DataStoreKind.SecurityAddressVault,
+  DataStoreKind.SecurityUserVault,
 ];
 
 export function isDeclaredDataStoreKind(

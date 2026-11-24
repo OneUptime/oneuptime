@@ -121,7 +121,8 @@ object JavaStackParser {
 
 /** One thread of an ANR's or a watchdog's traces: its header line and its frames. */
 object ThreadTraceParser {
-    private val THREAD_HEADER: Regex = Regex("""^"([^"]*)".*\btid=\d+.*$""")
+    // "tid=" where no ASCII word runs into it, as the JVM's \b read it: Android's counts every script's letters (#10835).
+    private val THREAD_HEADER: Regex = Regex("""^"([^"]*)".*(?<![A-Za-z0-9_])tid=\d+.*$""")
 
     /**
      * The stack of the thread named [threadName] (the main thread's, `main`,

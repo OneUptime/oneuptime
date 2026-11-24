@@ -136,7 +136,7 @@ Under it, every step it took, asked about or left, the latest first, each with w
 
 ### A case it reads as benign or a false positive
 
-**Respond with AI** on a case the triage read as Likely Benign or Likely False Positive closes it as Benign Positive or False Positive, as **Close the case** allows. Once it is closed, OneUptime AI lifts the blocks the case made, as **Close the case** allows too, and offers the case's rule an exception for the value that set it off. The exception always waits for a person: **Approve** adds it, as you.
+**Respond with AI** on a case the triage read as Likely Benign or Likely False Positive closes it as Benign Positive or False Positive, as **Close the case** allows. Once it is closed, OneUptime AI lifts the blocks the case made, as **Close the case** allows too, and offers the case's rule an exception for the value that set it off. The exception always waits for a person: **Approve** adds it, as you. A person who reopens the case or takes it over first stops both, and while Security Events is switched off OneUptime AI leaves both for a person.
 
 ## What OneUptime AI may do on a case
 

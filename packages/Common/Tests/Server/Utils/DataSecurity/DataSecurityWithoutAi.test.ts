@@ -73,7 +73,13 @@ import ts from "typescript";
  *     model;
  *   - the list of groups (DataSecurityIssueGroups) asks
  *     AIService.isProjectAIEnabled, and with AI off shows no name OneUptime
- *     AI gave a group: each goes by its cause's own words.
+ *     AI gave a group: each goes by its cause's own words;
+ *   - the daily drafts of the record of processing (#10375) run
+ *     RecordOfProcessingDraftRun.run, which reads Enable AI and Work on new
+ *     issues first and asks nothing, and writes nothing, with either off;
+ *     the audit evidence's reader (AuditEvidenceReader) only shapes the
+ *     facts the page shows and a draft is built from, with the input
+ *     builder's types, and asks no model.
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -168,6 +174,16 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals",
       uses: ["DataStoreOwnerRuleProposals.proposeForProject"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
+      uses: ["RecordOfProcessingDraftRun.run"],
+    },
+  ],
+  "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["AiEvidenceRequirement", "AiIssueRecord", "AiStoreRecord"],
     },
   ],
   "Common/Server/Services/DataSecurityIssueService.ts": [
