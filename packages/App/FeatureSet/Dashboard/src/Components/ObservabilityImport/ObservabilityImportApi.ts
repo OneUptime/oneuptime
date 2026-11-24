@@ -3,12 +3,19 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import { AggregationTemporality } from "Common/Models/AnalyticsModels/Metric";
+import Metric, {
+  AggregationTemporality,
+} from "Common/Models/AnalyticsModels/Metric";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import Query from "Common/Types/BaseDatabase/Query";
+import Select from "Common/Types/BaseDatabase/Select";
+import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { JSONObject } from "Common/Types/JSON";
@@ -19,9 +26,13 @@ import {
   ImportAiCandidate,
 } from "Common/Types/ObservabilityImport/ObservabilityImport";
 import { APP_API_URL } from "Common/UI/Config";
+import AnalyticsModelAPI, {
+  ListResult as AnalyticsListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
+import ProjectUtil from "Common/UI/Utils/Project";
 import { AlertImportSeeds } from "Common/Utils/ObservabilityImport/AlertImportMonitorBuilder";
 import { DatadogMetricKind } from "Common/Utils/ObservabilityImport/Datadog/DatadogPromQL";
 import MetricUtil from "../Metrics/Utils/Metrics";
@@ -33,8 +44,8 @@ import MetricUtil from "../Metrics/Utils/Metrics";
  *   - OneUptime AI's conversion of one query, when the person asks for it;
  *   - the first value a variable takes, where the source picks its first
  *     value itself (Grafana does), from the project's metrics;
- *   - whether each Datadog metric is a gauge or a count, from the
- *     project's metrics;
+ *   - whether each Datadog metric is a gauge, a rate or a count, and the
+ *     seconds a rate's point covers, from the project's metrics;
  *   - the project's statuses and severities a monitor is made with, and
  *     its monitors' names, so none is taken twice.
  *
@@ -147,29 +158,102 @@ export const lookUpVariableStartingValues: (
   return values;
 };
 
-/*
- * Whether each Datadog metric is a gauge or a count, as the project's own
- * data says: the Datadog Agent's counts arrive as sums of deltas. A metric
- * the project has no data for yet is left out, and read as a gauge.
- */
-export const lookUpDatadogMetricKinds: (
-  names: Array<string>,
-) => Promise<Map<string, DatadogMetricKind>> = async (
-  names: Array<string>,
-): Promise<Map<string, DatadogMetricKind>> => {
-  const kinds: Map<string, DatadogMetricKind> = new Map<
-    string,
-    DatadogMetricKind
-  >();
+// What the project's data says of a file's Datadog metrics.
+export interface DatadogMetricFacts {
+  // Each metric's kind, by its Datadog name: a gauge, a rate or a count.
+  kinds: Map<string, DatadogMetricKind>;
+  // The seconds each point of a rate covers, where its data says.
+  rateIntervalsInSeconds: Map<string, number>;
+}
 
-  if (names.length === 0) {
-    return kinds;
+export const NO_DATADOG_METRIC_FACTS: DatadogMetricFacts = {
+  kinds: new Map<string, DatadogMetricKind>(),
+  rateIntervalsInSeconds: new Map<string, number>(),
+};
+
+// How far back a rate's newest point is looked for.
+const RATE_LOOKUP_DAYS: number = 7;
+
+/*
+ * Whether a gauge the file reads with .as_count() is a rate - a DogStatsD
+ * count, its points marked datadog.metric.type = rate - and the seconds its
+ * newest point covers (its time less its start, which the intake keeps
+ * as a rate's interval, issue #10327). Undefined when it is no rate.
+ */
+const lookUpRate: (
+  name: string,
+) => Promise<{ intervalInSeconds: number | undefined } | undefined> = async (
+  name: string,
+): Promise<{ intervalInSeconds: number | undefined } | undefined> => {
+  const now: Date = OneUptimeDate.getCurrentDate();
+  // Written out, then read as the model's query: its type is too deep to infer.
+  const query: Record<string, unknown> = {
+    projectId: ProjectUtil.getCurrentProjectId()!,
+    name: name,
+    time: new InBetween<Date>(
+      OneUptimeDate.addRemoveDays(now, -RATE_LOOKUP_DAYS),
+      now,
+    ),
+    attributes: { "datadog.metric.type": "rate" },
+  };
+  const select: Record<string, boolean> = { time: true, startTime: true };
+  const sort: Record<string, SortOrder> = { time: SortOrder.Descending };
+  const result: AnalyticsListResult<Metric> =
+    await AnalyticsModelAPI.getList<Metric>({
+      modelType: Metric,
+      query: query as unknown as Query<Metric>,
+      select: select as unknown as Select<Metric>,
+      sort: sort as unknown as Sort<Metric>,
+      limit: 1,
+      skip: 0,
+    });
+  const point: Metric | undefined = result.data[0];
+
+  if (!point) {
+    return undefined;
+  }
+
+  const time: Date | undefined = point.time
+    ? OneUptimeDate.fromString(point.time)
+    : undefined;
+  const start: Date | undefined = point.startTime
+    ? OneUptimeDate.fromString(point.startTime)
+    : undefined;
+  const seconds: number =
+    time && start ? Math.round((time.getTime() - start.getTime()) / 1000) : 0;
+
+  return { intervalInSeconds: seconds > 0 ? seconds : undefined };
+};
+
+/*
+ * What each Datadog metric is, as the project's own data says: the Datadog
+ * Agent's counts arrive as sums of deltas, its gauges and rates as gauges,
+ * a rate's points marked as one. Of the gauges the file reads with
+ * .as_count() (`asCountNames`), each is asked whether it is a rate, and
+ * over how many seconds (issue #10327). A metric the project has no data
+ * for yet is left out, and read as the query's words imply, said; so is a
+ * gauge whose rate could not be looked up.
+ */
+export const lookUpDatadogMetrics: (data: {
+  names: Array<string>;
+  asCountNames: Array<string>;
+}) => Promise<DatadogMetricFacts> = async (data: {
+  names: Array<string>;
+  asCountNames: Array<string>;
+}): Promise<DatadogMetricFacts> => {
+  const facts: DatadogMetricFacts = {
+    kinds: new Map<string, DatadogMetricKind>(),
+    rateIntervalsInSeconds: new Map<string, number>(),
+  };
+
+  if (data.names.length === 0) {
+    return facts;
   }
 
   try {
     const result: ListResult<MetricType> = await ModelAPI.getList<MetricType>({
       modelType: MetricType,
-      query: { name: new Includes(names.slice(0, LIMIT_PER_PROJECT)) },
+      query: { name: new Includes(data.names.slice(0, LIMIT_PER_PROJECT)) },
       select: { name: true, aggregationTemporality: true },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
@@ -178,7 +262,7 @@ export const lookUpDatadogMetricKinds: (
 
     for (const metricType of result.data || []) {
       if (metricType.name) {
-        kinds.set(
+        facts.kinds.set(
           metricType.name,
           metricType.aggregationTemporality === AggregationTemporality.Delta
             ? DatadogMetricKind.Count
@@ -187,10 +271,39 @@ export const lookUpDatadogMetricKinds: (
       }
     }
   } catch {
-    // Read as gauges, and said so.
+    // Read as the queries' words imply, and said so.
+    return facts;
   }
 
-  return kinds;
+  const gauges: Array<string> = data.asCountNames
+    .filter((name: string): boolean => {
+      return facts.kinds.get(name) === DatadogMetricKind.Gauge;
+    })
+    .slice(0, LIMIT_PER_PROJECT);
+
+  await Promise.all(
+    gauges.map(async (name: string): Promise<void> => {
+      try {
+        const rate: { intervalInSeconds: number | undefined } | undefined =
+          await lookUpRate(name);
+
+        if (!rate) {
+          return;
+        }
+
+        facts.kinds.set(name, DatadogMetricKind.Rate);
+
+        if (rate.intervalInSeconds) {
+          facts.rateIntervalsInSeconds.set(name, rate.intervalInSeconds);
+        }
+      } catch {
+        // Not known to be a gauge or a rate: read as its words imply, said.
+        facts.kinds.delete(name);
+      }
+    }),
+  );
+
+  return facts;
 };
 
 /*

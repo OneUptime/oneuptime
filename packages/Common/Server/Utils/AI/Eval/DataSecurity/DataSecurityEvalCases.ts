@@ -52,8 +52,14 @@ import {
 import PULL_REQUEST_EVAL_DIFFS, {
   PullRequestEvalDiff,
 } from "./PullRequestReviewEvalSet";
+import FINDING_VERDICT_EVAL_CASES from "./FindingVerdictEvalSet";
 import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
 import { ScrubRuleWriterRuleKind } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import {
+  AUDIT_EVIDENCE_CASES,
+  IMPACT_ASSESSMENT_CASES,
+  RECORD_DRAFT_CASES,
+} from "./DataSecurityPaperworkEvalCases";
 
 /*
  * THE DATA SECURITY EVAL'S CORPUS (#10365): FIXED CASES FOR EVERY ONEUPTIME
@@ -1740,6 +1746,8 @@ const PULL_REQUEST_REVIEW_CASES: Array<PullRequestReviewEvalCase> =
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ANALYSIS_CASES,
   ...FIELD_SUGGESTION_CASES,
+  // OneUptime AI's verdicts on findings, with the team's decisions as precedent (#10372).
+  ...FINDING_VERDICT_EVAL_CASES,
   ...FIX_CASES,
   ...ASK_AI_CASES,
   ...STORE_OWNER_CASES,
@@ -1747,6 +1755,10 @@ export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ISSUE_GROUP_FIX_CASES,
   ...SCRUB_RULE_CASES,
   ...PULL_REQUEST_REVIEW_CASES,
+  // The paperwork (#10375): records, impact assessments and audit evidence.
+  ...RECORD_DRAFT_CASES,
+  ...IMPACT_ASSESSMENT_CASES,
+  ...AUDIT_EVIDENCE_CASES,
 ];
 
 export default DATA_SECURITY_EVAL_CASES;

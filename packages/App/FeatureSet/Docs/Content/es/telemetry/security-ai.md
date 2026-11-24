@@ -136,7 +136,7 @@ Debajo, cada paso que dio, preguntó o dejó, el más reciente primero, cada uno
 
 ### Un caso que lee como benigno o falso positivo
 
-**Responder con IA** en un caso que la clasificación leyó como Probablemente benigno o Probablemente falso positivo lo cierra como Positivo benigno o Falso positivo, según permita **Cerrar el caso**. Una vez cerrado, OneUptime AI levanta los bloqueos que creó el caso, también según permita **Cerrar el caso**, y propone para la regla del caso una excepción para el valor que lo activó. La excepción siempre espera a una persona: **Aprobar** la añade, en tu nombre.
+**Responder con IA** en un caso que la clasificación leyó como Probablemente benigno o Probablemente falso positivo lo cierra como Positivo benigno o Falso positivo, según permita **Cerrar el caso**. Una vez cerrado, OneUptime AI levanta los bloqueos que creó el caso, también según permita **Cerrar el caso**, y propone para la regla del caso una excepción para el valor que lo activó. La excepción siempre espera a una persona: **Aprobar** la añade, en tu nombre. Si una persona reabre el caso o toma el control antes, no se hace ninguna de las dos cosas, y mientras el producto Eventos de seguridad está desactivado, OneUptime AI deja ambas a una persona.
 
 ## Qué puede hacer OneUptime AI en un caso
 
@@ -177,6 +177,7 @@ OneUptime AI nunca se retira en silencio. Deriva el caso a personas, y dice por 
 - el objetivo de su siguiente paso está protegido;
 - ha actuado por su cuenta tantas veces como puede en una hora;
 - la IA está desactivada para el proyecto o para los casos de seguridad, no hay proveedor de LLM, o el proyecto se quedó sin créditos de IA o alcanzó su límite diario de IA;
+- el producto Eventos de seguridad está desactivado en el servidor;
 - su clasificación no pudo determinar si el caso es real;
 - un paso que dio no se sostiene, un paso que inició no terminó, o una persona rechazó o deshizo un paso que dio;
 - no puede determinar qué hacer a continuación, o todo lo que queda en el caso le toca hacerlo a una persona.
@@ -184,6 +185,8 @@ OneUptime AI nunca se retira en silencio. Deriva el caso a personas, y dice por 
 Las personas del caso se enteran enseguida o, cuando nadie está en él, las personas a las que se avisa de los casos de su prioridad: **OneUptime AI derivó un caso de seguridad a personas**, en **Ajustes de usuario → Ajustes de notificaciones**. Una regla de notificación del espacio de trabajo para casos de seguridad lo publica en su canal de Slack o Microsoft Teams en **Casos derivados a personas por OneUptime AI**. **Tomar el control** pasa el caso sin avisar a nadie, ya que la persona que lo pulsó se queda con él.
 
 **Responder con IA** pide a OneUptime AI que vuelva a gestionar el caso, desde donde está.
+
+Mientras el producto Eventos de seguridad está desactivado en el servidor, OneUptime AI no inicia ningún paso nuevo en ningún caso y, en menos de un minuto, deriva a personas cada caso que gestiona. Un paso que ya inició termina, o se puede deshacer, como siempre. Cuando el producto vuelve a activarse, no retoma ninguno de esos casos por sí solo: lo hace **Responder con IA**.
 
 Un caso retenido mientras OneUptime AI responde primero llega a las personas una sola vez, con el aviso del caso nuevo y el motivo por el que OneUptime AI se detuvo: consulta [Dejar que OneUptime AI responda primero](#dejar-que-oneuptime-ai-responda-primero).
 

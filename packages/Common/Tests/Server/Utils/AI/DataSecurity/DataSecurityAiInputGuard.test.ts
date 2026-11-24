@@ -105,6 +105,11 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/FieldSuggestion.ts`,
   },
+  // Verdicts on the findings that wait for a person (#10372), after a store's scan.
+  [DataSecurityAiFeature.JudgeFindings]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/FindingVerdicts.ts`,
+  },
   // Owners for a store with none (#10374), in the engine's and the daily run's jobs.
   [DataSecurityAiFeature.ProposeStoreOwners]: {
     kind: "ask",
@@ -144,6 +149,27 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     file: `${AI_DIRECTORY}/DataSecurityCodeTask.ts`,
     agentFile:
       "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentCompletion.ts",
+  },
+  /*
+   * The paperwork (#10375): a store's record drafts, on their own in the
+   * daily run and when a person asks - one file, one call - an impact
+   * assessment, and a framework's audit evidence.
+   */
+  [DataSecurityAiFeature.DraftRecord]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RecordOfProcessingDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftRecordOnRequest]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RecordOfProcessingDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftImpactAssessment]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/ImpactAssessmentDrafter.ts`,
+  },
+  [DataSecurityAiFeature.DraftAuditEvidence]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/AuditEvidenceDrafter.ts`,
   },
 };
 

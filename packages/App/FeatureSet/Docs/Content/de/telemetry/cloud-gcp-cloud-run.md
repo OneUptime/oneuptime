@@ -270,7 +270,7 @@ Nur der Container, der Anfragen empfängt (`app`), deklariert `ports`; ein Sidec
 
 ## Was Sie erhalten
 
-- **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus Ihren Traces.
+- **Übersicht**: Anfragen, Fehlerrate und p95-Latenz aus Ihren Traces. Verbinden Sie das Projekt unter **Cloud → Verbinden**, und dieser Tab erhält einen Abschnitt **Google Cloud Monitoring**: die Anfragen des Dienstes, den Anteil, der mit einem 5xx-Status beantwortet wurde, die p95-Latenz sowie CPU und Speicher seiner Container, wie Cloud Run sie misst, unabhängig davon, was die App sendet. Die Zeile **Google-Cloud-Monitoring-Verbindung** der **Einrichtungsprüfung** nennt den gesuchten Dienst, solange keiner gelesen wird.
 - **Instanzen**: eine Zeile pro Cloud-Run-Instanz, benannt nach `faas.instance`. Cloud Run zeigt einem Sidecar die Ressourcennutzung eines Containers nicht, daher bleiben die Kacheln **CPU** und **Arbeitsspeicher** leer, es sei denn, Sie senden selbst Metriken `container.cpu.utilization` und `container.memory.usage` mit derselben `faas.instance`. Lesen Sie hier die Anfrage-Kacheln, und überlassen Sie CPU und Arbeitsspeicher der Instanzen Cloud Monitoring.
 - **Protokolle**, **Traces** und **Metriken**, auf die Umgebung gefiltert.
 - Derselbe Dienst unter **Serverless-Funktionen** (nach `faas.name`) und unter **Dienste** (nach `service.name`).

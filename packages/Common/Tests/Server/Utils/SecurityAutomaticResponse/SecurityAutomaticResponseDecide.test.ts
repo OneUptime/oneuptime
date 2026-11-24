@@ -367,6 +367,50 @@ describe("while Security Events is switched off", () => {
     expect(timeline).toHaveLength(0);
   });
 
+  /*
+   * #10848: a decision waits up to a minute for the project's lock, behind
+   * the project's other decisions. Switched off meanwhile, it decides
+   * nothing once it holds the lock - and gives the lock back.
+   */
+  test("switched off while the decision waits for the project's lock: no block, nothing counted, and the lock given back", async () => {
+    jest.spyOn(Semaphore, "lock").mockImplementation((async () => {
+      switchSecurityEventsOff();
+      return {} as SemaphoreMutex;
+    }) as never);
+
+    expect(await decide()).toBeNull();
+    expect(Semaphore.release).toHaveBeenCalledTimes(1);
+    // Decided nothing: not even the policy was read under the lock.
+    expect(
+      SecurityAutomaticResponsePolicyService.findOneBy,
+    ).not.toHaveBeenCalled();
+
+    policy = makePolicy({ mode: SecurityAutomaticResponseMode.TrialRun });
+    expect(await decide()).toBeNull();
+
+    expect(created).toHaveLength(0);
+    expect(updated).toHaveLength(0);
+    expect(startedRuns).toHaveLength(0);
+    expect(timeline).toHaveLength(0);
+  });
+
+  test("switched off while the decision reads its guardrails under the lock: the block does not start, and a trial run counts nothing", async () => {
+    jest.spyOn(SecurityBlockService, "check").mockImplementation(async () => {
+      switchSecurityEventsOff();
+      return check;
+    });
+
+    expect(await decide()).toBeNull();
+
+    policy = makePolicy({ mode: SecurityAutomaticResponseMode.TrialRun });
+    expect(await decide()).toBeNull();
+
+    expect(SecurityBlockService.check).toHaveBeenCalled();
+    expect(created).toHaveLength(0);
+    expect(startedRuns).toHaveLength(0);
+    expect(timeline).toHaveLength(0);
+  });
+
   test("once it is on again, the same detection is decided as before", async () => {
     switchSecurityEventsOff();
     expect(await decide()).toBeNull();

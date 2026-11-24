@@ -21,6 +21,11 @@ export const WINDOW_NEAREST: string = translationKey(
   "It waits {{source}} before it fires; OneUptime waits {{window}}, the nearest window it has.",
 );
 
+// The same, for a window a rule reads its values over (a forecast's history).
+export const WINDOW_NEAREST_READ: string = translationKey(
+  "It reads {{source}} of values; OneUptime reads {{window}}, the nearest window it has.",
+);
+
 export const ALERT_TEXT_TEMPLATE_LEFT_OUT: string = translationKey(
   "The firing value and template logic in its alert's text are left out: OneUptime shows the value on the alert.",
 );
@@ -50,17 +55,20 @@ const WINDOWS: Array<{ rollingTime: RollingTime; ms: number }> = Object.values(
 
 /*
  * The monitor's window for a rule that waits `ms`: the window of exactly
- * that length, else the nearest longer one, and a note saying so. Nothing
- * to wait is one minute: a check reads the minute it runs in.
+ * that length, else the nearest longer one, and a note saying so (by
+ * default WINDOW_NEAREST; `nearestText` for a window read some other way).
+ * Nothing to wait is one minute: a check reads the minute it runs in.
  */
 export const readImportWindow: (data: {
   ms: number;
   sourceText: string;
   notes: Array<ImportNote>;
+  nearestText?: string | undefined;
 }) => RollingTime = (data: {
   ms: number;
   sourceText: string;
   notes: Array<ImportNote>;
+  nearestText?: string | undefined;
 }): RollingTime => {
   if (!Number.isFinite(data.ms) || data.ms <= 60 * 1000) {
     return RollingTime.Past1Minute;
@@ -81,7 +89,7 @@ export const readImportWindow: (data: {
 
   data.notes.push({
     kind: ImportNoteKind.Approximation,
-    text: WINDOW_NEAREST,
+    text: data.nearestText || WINDOW_NEAREST,
     values: { source: data.sourceText, window: nearest },
   });
 

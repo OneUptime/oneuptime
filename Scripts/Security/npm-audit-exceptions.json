@@ -87,6 +87,11 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
+    },
+    {
+      "advisory": "GHSA-6jcc-5g8w-32mx",
+      "expires": "2026-12-22",
+      "reason": "i18next has no fixed release in the line OneUptime's frontends use: GHSA-6jcc-5g8w-32mx (published 2026-11-23) covers every version before 26.3.4, and the fix is only in a new major (26.3.4 and up; npm proposes 27.2.6), three majors past the 23.x every frontend's translation setup is written against (checked on 2026-11-24; the move is #10871). Its deepExtend recursion needs objects somebody else shapes to reach i18next's merge. Here i18next is given only the frontend's own locale files, bundled with it: Common/UI/Utils/VisitorLanguage builds its resources from them, and the Dashboard's I18nLocaleLoader imports its own Locales/*.json chunks - never a translation from a request, a server or a user."
     }
   ],
   "packages/App/FeatureSet/AdminDashboard": [
@@ -94,6 +99,11 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
+    },
+    {
+      "advisory": "GHSA-6jcc-5g8w-32mx",
+      "expires": "2026-12-22",
+      "reason": "i18next has no fixed release in the line OneUptime's frontends use: GHSA-6jcc-5g8w-32mx (published 2026-11-23) covers every version before 26.3.4, and the fix is only in a new major (26.3.4 and up; npm proposes 27.2.6), three majors past the 23.x every frontend's translation setup is written against (checked on 2026-11-24; the move is #10871). Its deepExtend recursion needs objects somebody else shapes to reach i18next's merge. Here i18next is given only the frontend's own locale files, bundled with it: Common/UI/Utils/VisitorLanguage builds its resources from them, and the Dashboard's I18nLocaleLoader imports its own Locales/*.json chunks - never a translation from a request, a server or a user."
     }
   ],
   "packages/App/FeatureSet/BrowserRecorder": [
@@ -113,6 +123,11 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
+    },
+    {
+      "advisory": "GHSA-6jcc-5g8w-32mx",
+      "expires": "2026-12-22",
+      "reason": "i18next has no fixed release in the line OneUptime's frontends use: GHSA-6jcc-5g8w-32mx (published 2026-11-23) covers every version before 26.3.4, and the fix is only in a new major (26.3.4 and up; npm proposes 27.2.6), three majors past the 23.x every frontend's translation setup is written against (checked on 2026-11-24; the move is #10871). Its deepExtend recursion needs objects somebody else shapes to reach i18next's merge. Here i18next is given only the frontend's own locale files, bundled with it: Common/UI/Utils/VisitorLanguage builds its resources from them, and the Dashboard's I18nLocaleLoader imports its own Locales/*.json chunks - never a translation from a request, a server or a user."
     }
   ],
   "packages/App/FeatureSet/PublicDashboard": [
@@ -127,6 +142,11 @@
       "advisory": "GHSA-g3hv-75wg-m249",
       "expires": "2026-12-04",
       "reason": "minimatch has no fixed release in the lines its dependents ask for: GHSA-g3hv-75wg-m249 covers every version before 11.0.1 (published 2026-10-27), and the latest 3.x, 5.x, 9.x and 10.x releases (3.1.5, 5.1.9, 9.0.9, 10.2.6) are still affected (checked on 2026-10-31); 11 is a new major that none of them takes. Its globparts amplification needs a glob pattern somebody else writes. A production install has it only through ejs > jake > filelist, and ejs loads jake only in its command-line tool (bin/cli.js): lib/ejs.js, which render and renderFile use, never requires it, so the server never runs that minimatch. The same copy also serves nodemon's file watcher, development tooling matching this repository's own patterns."
+    },
+    {
+      "advisory": "GHSA-6jcc-5g8w-32mx",
+      "expires": "2026-12-22",
+      "reason": "i18next has no fixed release in the line OneUptime's frontends use: GHSA-6jcc-5g8w-32mx (published 2026-11-23) covers every version before 26.3.4, and the fix is only in a new major (26.3.4 and up; npm proposes 27.2.6), three majors past the 23.x every frontend's translation setup is written against (checked on 2026-11-24; the move is #10871). Its deepExtend recursion needs objects somebody else shapes to reach i18next's merge. Here i18next is given only the frontend's own locale files, bundled with it: Common/UI/Utils/VisitorLanguage builds its resources from them, and the Dashboard's I18nLocaleLoader imports its own Locales/*.json chunks - never a translation from a request, a server or a user."
     }
   ],
   "packages/CLI": [
@@ -146,6 +166,11 @@
       "advisory": "GHSA-3g3m-2fjr-6pw4",
       "expires": "2026-12-04",
       "reason": "glob has no fixed release in the lines its dependents ask for: GHSA-3g3m-2fjr-6pw4 covers 9.0.0 to 14.0.1 and is fixed in 14.0.2 (published 2026-10-27), and the latest 10.x and 13.x releases (10.5.0, 13.0.6) are still affected (checked on 2026-10-31); 14 is a new major that none of them takes. It lets a walk aborted through an AbortSignal keep reading the file system, which matters only to code that relies on a signal to stop a glob walk. A production install has it only through archiver-utils, whose glob runs for archive.glob() and archive.directory(), while Common only appends buffers (MicrosoftTeamsAPI's app package), and through typeorm, whose glob loads entities and migrations given as path strings, while Common gives TypeORM classes: neither walk ever runs. jest's glob here (7.2.3) is not affected."
+    },
+    {
+      "advisory": "GHSA-6jcc-5g8w-32mx",
+      "expires": "2026-12-22",
+      "reason": "i18next has no fixed release in the line OneUptime's frontends use: GHSA-6jcc-5g8w-32mx (published 2026-11-23) covers every version before 26.3.4, and the fix is only in a new major (26.3.4 and up; npm proposes 27.2.6), three majors past the 23.x every frontend's translation setup is written against (checked on 2026-11-24; the move is #10871). Its deepExtend recursion needs objects somebody else shapes to reach i18next's merge. Here i18next is given only the frontend's own locale files, bundled with it: Common/UI/Utils/VisitorLanguage builds its resources from them, and the Dashboard's I18nLocaleLoader imports its own Locales/*.json chunks - never a translation from a request, a server or a user."
     }
   ],
   "packages/Home": [

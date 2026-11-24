@@ -143,7 +143,7 @@ SQL-makron skrivs i UTC, så kör dina databassessioner i UTC, eller räkna om i
 
 ### Instrumentpanelsvariabler
 
-Skriv `{{name}}` var som helst i en fråga, så sätter widgeten in variabelns värde där innan den skickar frågan. Flera värden i en flervalsvariabel slås ihop med `|`, vilket är vad en matchning med reguljära uttryck i PromQL eller LogQL behöver: `job=~"{{job}}"`. En variabel utan något valt lämnar platshållaren som den är skriven, så att felet namnger den. [Instrumentpanelsvariabler & filter](/docs/dashboards/variables) visar hur du lägger till en.
+Skriv `{{name}}` var som helst i en fråga, så sätter widgeten in variabelns värde där innan den skickar frågan. En fråga mot projektets mätvärden eller mot en Prometheus fylls i som Grafanas Prometheus-datakälla fyller i den: i `job=~"{{job}}"` matchar flera värden i en flervalsvariabel vilket som helst av dem, vart och ett som det är skrivet, och en variabel utan något valt matchar alla värden. I varje annan fråga slås flera värden ihop med `|`, vilket är vad en matchning med reguljära uttryck i LogQL behöver, och en variabel utan något valt lämnar platshållaren som den är skriven, så att felet namnger den. [Instrumentpanelsvariabler & filter](/docs/dashboards/variables) visar hur du lägger till en.
 
 ## Gränser
 

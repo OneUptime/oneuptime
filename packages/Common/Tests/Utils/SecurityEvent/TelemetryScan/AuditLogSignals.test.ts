@@ -21,6 +21,7 @@ import {
   describeAuditActor,
   describeAuditChange,
   describeAuditTarget,
+  getAuditChangeWords,
   isAuditRecordNameReadByEveryEventReader,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
 
@@ -664,6 +665,31 @@ describe("a record's name reaches only readers who may read the record (#10663)"
         resourceName: "Ops",
       }),
     ).toBe("Team: Ops");
+  });
+
+  /*
+   * A stored event is reworded by the words of its record's type, as the
+   * audit log stored the type (AuditRecordNamesWithheld): a type named
+   * like what every object inherits has none, as any type the scan does
+   * not read.
+   */
+  test("a type the scan does not read has no words, a name every object inherits among them", () => {
+    expect(
+      getAuditChangeWords(AuditResourceType.Team, AuditLogAction.Delete),
+    ).toEqual({ named: "deleted the team", unnamed: "deleted a team" });
+
+    for (const resourceType of [
+      "constructor",
+      "toString",
+      "hasOwnProperty",
+      "__proto__",
+      "Incident",
+    ]) {
+      expect([
+        resourceType,
+        getAuditChangeWords(resourceType, AuditLogAction.Delete),
+      ]).toEqual([resourceType, null]);
+    }
   });
 });
 

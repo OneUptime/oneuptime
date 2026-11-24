@@ -143,7 +143,7 @@ SQL-Makros werden in UTC geschrieben, also lassen Sie Ihre Datenbanksitzungen in
 
 ### Dashboard-Variablen
 
-Schreiben Sie `{{name}}` an eine beliebige Stelle einer Abfrage, und das Widget setzt dort den Wert der Variablen ein, bevor es die Abfrage sendet. Mehrere Werte einer Variablen mit Mehrfachauswahl werden mit `|` verbunden, genau was ein regulärer Ausdruck als Matcher in PromQL oder LogQL braucht: `job=~"{{job}}"`. Eine Variable ohne Auswahl lässt den Platzhalter stehen, wie er geschrieben ist, sodass der Fehler ihn nennt. [Dashboard-Variablen & Filter](/docs/dashboards/variables) zeigt, wie Sie eine hinzufügen.
+Schreiben Sie `{{name}}` an eine beliebige Stelle einer Abfrage, und das Widget setzt dort den Wert der Variablen ein, bevor es die Abfrage sendet. Eine Abfrage auf die Metriken dieses Projekts oder auf ein Prometheus wird so gefüllt, wie die Prometheus-Datenquelle von Grafana sie füllt: In `job=~"{{job}}"` passen mehrere Werte einer Variablen mit Mehrfachauswahl auf jeden einzelnen dieser Werte, jeden so, wie er geschrieben ist, und eine Variable ohne Auswahl passt auf jeden Wert. In jeder anderen Abfrage werden mehrere Werte mit `|` verbunden, genau was ein regulärer Ausdruck als Matcher in LogQL braucht, und eine Variable ohne Auswahl lässt den Platzhalter stehen, wie er geschrieben ist, sodass der Fehler ihn nennt. [Dashboard-Variablen & Filter](/docs/dashboards/variables) zeigt, wie Sie eine hinzufügen.
 
 ## Grenzen
 

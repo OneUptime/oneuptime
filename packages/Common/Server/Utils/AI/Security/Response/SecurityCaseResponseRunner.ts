@@ -170,6 +170,13 @@ export default class SecurityCaseResponseRunner {
       return `Handed the case to people (${outcome.handedOff}).`;
     }
 
+    // Handed to people before the look, or while it looked (#10816).
+    if (outcome.isNoLongerWorking) {
+      return outcome.carriedOut > 0
+        ? `Carried out ${outcome.carriedOut} step(s), then stopped: the case was handed to people.`
+        : "Did nothing: the case was handed to people.";
+    }
+
     if (outcome.isFinished) {
       return "The case is closed.";
     }

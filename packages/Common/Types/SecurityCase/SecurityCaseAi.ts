@@ -441,6 +441,11 @@ export enum SecurityCaseAiActionReason {
   NoBlockDestination = "NoBlockDestination",
   // Left: none of the case's requests threw an exception to fix in code.
   NothingToFixInCode = "NothingToFixInCode",
+  /*
+   * Left: Security Events is switched off on the server (#10816) - what
+   * follows a close of OneUptime AI's own is left for a person (#10847).
+   */
+  ProductOff = "ProductOff",
   // Failed: the engine could not do it.
   EngineFailed = "EngineFailed",
   // Undone: a person took it back.
@@ -474,6 +479,11 @@ export enum SecurityCaseHandOffReason {
   NoLlmProvider = "NoLlmProvider",
   // The project is out of AI credits, or reached a daily AI limit.
   OutOfCredits = "OutOfCredits",
+  /*
+   * Security Events is switched off on the server (#10816): none of its
+   * work goes on, OneUptime AI's included, until a person asks again.
+   */
+  ProductOff = "ProductOff",
   // The triage read the case as Inconclusive, or something else than malicious.
   NotLikelyMalicious = "NotLikelyMalicious",
   // A step it did does not hold, and it will not repeat it blindly.

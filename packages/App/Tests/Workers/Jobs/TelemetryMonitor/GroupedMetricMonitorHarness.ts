@@ -225,6 +225,8 @@ export interface EvaluationRun {
   written: {
     statusChangeLogs: Array<JSONObject>;
     monitorLogBodies: Array<JSONObject>;
+    // The check each alert opened keeps (createdStateLog), in their order.
+    createdAlertStateLogs: Array<JSONObject>;
   };
 }
 
@@ -241,6 +243,14 @@ export interface RunEvaluationOptions {
    * criteria were before #10108, or in slices that hand it back.
    */
   slowCriteria?: { ms: number; inOneBlock: boolean } | undefined;
+  /*
+   * How long each Postgres call waits for its answer, in milliseconds: a
+   * round trip to the database. Left out, an answer takes one turn of the
+   * event loop, as it does in the equivalence and lock tests. The benchmark
+   * sets it to show what an evaluation that opens records for many series
+   * spends waiting on Postgres (#10315).
+   */
+  postgresLatencyMs?: number | undefined;
 }
 
 function hashOf(value: unknown): string {
@@ -596,6 +606,27 @@ function toResultSet(body: Buffer, queryId: string): Record<string, unknown> {
   };
 }
 
+/*
+ * A fake answer to an exec: the response stream, chunk by chunk, each on a
+ * later turn of the event loop, as a socket hands a body over.
+ */
+function toExecResult(body: Buffer, queryId: string): Record<string, unknown> {
+  const chunkSize: number = 64 * 1024;
+
+  async function* chunks(): AsyncGenerator<Buffer> {
+    for (let offset: number = 0; offset < body.length; offset += chunkSize) {
+      await nextTurn();
+      yield body.subarray(offset, offset + chunkSize);
+    }
+  }
+
+  return {
+    query_id: queryId,
+    response_headers: {},
+    stream: Readable.from(chunks()),
+  };
+}
+
 // A read's aggregation, as its statement opens: "SELECT max(".
 const AGGREGATION_PATTERN: RegExp = /^SELECT\s+([a-zA-Z]+)\(/;
 
@@ -603,6 +634,9 @@ const EMPTY_ANSWER: Buffer = Buffer.from(
   JSON.stringify({ meta: [], data: [], rows: 0 }),
   "utf8",
 );
+
+// The same, as JSONCompactEachRowWithNames: the names line alone.
+const EMPTY_ROWS_ANSWER: Buffer = Buffer.from('["value","time"]\n', "utf8");
 
 interface InstalledStubs {
   restore: () => void;
@@ -653,7 +687,11 @@ function modelNameOf(service: unknown): string {
   return modelType?.name || "Unknown";
 }
 
-export function installFleetStubs(fleet: GroupedMetricFleet): InstalledStubs {
+export function installFleetStubs(
+  fleet: GroupedMetricFleet,
+  options: { postgresLatencyMs?: number | undefined } = {},
+): InstalledStubs {
+  const postgresLatencyMs: number = options.postgresLatencyMs || 0;
   const restorers: Array<() => void> = [];
   const store: FakeValkey = new FakeValkey();
   const postgresCalls: Map<string, number> = new Map();
@@ -824,7 +862,12 @@ export function installFleetStubs(fleet: GroupedMetricFleet): InstalledStubs {
       ): Promise<unknown> {
         const key: string = `${modelNameOf(this)}.${method}`;
         postgresCalls.set(key, (postgresCalls.get(key) || 0) + 1);
-        await nextTurn();
+
+        if (postgresLatencyMs > 0) {
+          await sleep(postgresLatencyMs);
+        } else {
+          await nextTurn();
+        }
 
         const handler: StoreHandler | undefined = handlers.get(key);
 
@@ -969,6 +1012,34 @@ export function installFleetStubs(fleet: GroupedMetricFleet): InstalledStubs {
       clickhouse.readBytes += body.length;
       await sleep(CLICKHOUSE_READ_LATENCY_MS);
       return toResultSet(body, `fleet-${clickhouse.reads}`);
+    },
+    /*
+     * A read grouped by attribute keys asks for its rows as they arrive
+     * (JSONCompactEachRowWithNames, #10316): the same rows, its body in the
+     * chunks a socket hands them over in.
+     */
+    exec: async (params: {
+      query: string;
+      query_params?: Record<string, unknown>;
+    }): Promise<Record<string, unknown>> => {
+      clickhouse.reads++;
+      const metricName: string | null = nameOf(params.query_params);
+      const aggregation: string | undefined = AGGREGATION_PATTERN.exec(
+        params.query,
+      )?.[1];
+      let body: Buffer | undefined =
+        metricName && aggregation
+          ? fleet.valueRowAnswers.get(readKey(metricName, aggregation))
+          : undefined;
+
+      if (!body) {
+        clickhouse.unexpectedReads.push(params.query.substring(0, 160));
+        body = EMPTY_ROWS_ANSWER;
+      }
+
+      clickhouse.readBytes += body.length;
+      await sleep(CLICKHOUSE_READ_LATENCY_MS);
+      return toExecResult(body, `fleet-${clickhouse.reads}`);
     },
   };
 
@@ -1355,7 +1426,9 @@ export async function runFleetEvaluation(
   options: RunEvaluationOptions,
 ): Promise<EvaluationRun> {
   const fleet: GroupedMetricFleet = options.fleet;
-  const stubs: InstalledStubs = installFleetStubs(fleet);
+  const stubs: InstalledStubs = installFleetStubs(fleet, {
+    postgresLatencyMs: options.postgresLatencyMs,
+  });
   const tracker: StallTracker = new StallTracker();
   const phaseRestorers: Array<() => void> = [];
   markPhases({ tracker: tracker, restorers: phaseRestorers });
@@ -1617,6 +1690,11 @@ export async function runFleetEvaluation(
       monitorLogBodies: stubs.monitorLogRows.map(
         (row: JSONObject): JSONObject => {
           return (row["logBody"] as JSONObject) || {};
+        },
+      ),
+      createdAlertStateLogs: stubs.createdAlerts.map(
+        (alert: Alert): JSONObject => {
+          return (alert.createdStateLog as JSONObject) || {};
         },
       ),
     },
