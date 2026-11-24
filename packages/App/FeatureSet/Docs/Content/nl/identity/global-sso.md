@@ -27,7 +27,7 @@ Voor de eigen provider van één project, zie [SSO](/docs/identity/sso).
 :::steps
 ### De lijst met providers openen
 
-Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstellingen** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
+Meld u aan als master-admin en kies **Admin-dashboard** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
 
 ### De provider aanmaken
 

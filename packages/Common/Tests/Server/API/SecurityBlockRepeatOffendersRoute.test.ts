@@ -65,6 +65,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import SecurityRepeatOffenders from "../../../Server/Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import SecurityRepeatOffenderNetworks from "../../../Server/Utils/SecurityAutomaticResponse/SecurityRepeatOffenderNetworks";
 import ServerProductRoutes from "../../../Server/Utils/ServerProducts/ServerProductRoutes";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -181,6 +182,11 @@ beforeEach(() => {
     securityCase as never,
   );
 
+  // The networks the addresses' Cloudflare events named: none, unless a test says (#10895).
+  getJestSpyOn(SecurityRepeatOffenderNetworks, "readAsns").mockResolvedValue(
+    new Map() as never,
+  );
+
   // Every block of 35.205.11.131: two before the case opened, the case's own, one since.
   getJestSpyOn(SecurityRepeatOffenders, "read").mockImplementation(
     (async (data: { value: string }) => {
@@ -287,6 +293,96 @@ describe("POST /security-block/repeat-offenders", () => {
     expect(asked[0]).toBe("35.205.11.131");
     expect(asked).toHaveLength(50);
     expect(asked).not.toContain("AS14061");
+  });
+
+  test("an address its Cloudflare events say sent from a network: the network's blocks and challenges are read with its record (#10895)", async () => {
+    props = caller(Permission.SecurityViewer);
+    getJestSpyOn(SecurityRepeatOffenderNetworks, "readAsns").mockResolvedValue(
+      new Map([["35.205.11.131", ["AS14061"]]]) as never,
+    );
+
+    await call({
+      values: ["35.205.11.131", "198.51.100.7"],
+      securityCaseId: CASE_ID,
+    });
+
+    // One read of the networks, for every address asked about, over the record's window.
+    expect(
+      (SecurityRepeatOffenderNetworks.readAsns as unknown as MockedFn).mock
+        .calls,
+    ).toHaveLength(1);
+    expect(
+      (SecurityRepeatOffenderNetworks.readAsns as unknown as MockedFn).mock
+        .calls[0]![0],
+    ).toEqual({
+      projectId: PROJECT_ID,
+      addresses: ["35.205.11.131", "198.51.100.7"],
+      since: new Date("2026-10-21T10:00:00.000Z"),
+      until: CASE_OPENED,
+    });
+
+    const reads: Array<{ value: string; asns?: Array<string> }> = (
+      SecurityRepeatOffenders.read as unknown as MockedFn
+    ).mock.calls.map(
+      (call: Array<unknown>): { value: string; asns?: Array<string> } => {
+        return call[0] as { value: string; asns?: Array<string> };
+      },
+    );
+
+    // The address whose events named a network reads it; the other reads none.
+    expect(reads[0]).toEqual(
+      expect.objectContaining({ value: "35.205.11.131", asns: ["AS14061"] }),
+    );
+    expect(reads[1]?.value).toBe("198.51.100.7");
+    expect(reads[1]?.asns).toBeUndefined();
+  });
+
+  test("the last block that held the address as part of its network names that network on the wire (#10895)", async () => {
+    props = caller(Permission.SecurityViewer);
+    getJestSpyOn(SecurityRepeatOffenders, "read").mockResolvedValue({
+      value: "35.205.11.131",
+      since: new Date("2026-10-21T10:00:00.000Z"),
+      blocks: [
+        block({
+          value: "AS14061",
+          action: SecurityBlockAction.Challenge,
+          createdAt: new Date("2026-11-12T09:00:00.000Z"),
+        }),
+      ],
+      offenceCount: 1,
+      last: block({
+        value: "AS14061",
+        action: SecurityBlockAction.Challenge,
+        createdAt: new Date("2026-11-12T09:00:00.000Z"),
+      }),
+    } as never);
+
+    await call({ values: ["35.205.11.131"], securityCaseId: CASE_ID });
+
+    const [offender] = offenders();
+
+    expect(offender!.value).toBe("35.205.11.131");
+    expect(offender!.offenceCount).toBe(1);
+    expect(offender!.last?.value).toBe("AS14061");
+    expect(offender!.last?.action).toBe(SecurityBlockAction.Challenge);
+    expect(offender!.last?.caseNumber).toBe("CASE-812");
+  });
+
+  test("without a case, the networks are read over the 30 days up to now", async () => {
+    props = caller(Permission.SecurityViewer);
+    const before: number = Date.now();
+
+    await call({ values: ["35.205.11.131"] });
+
+    const asked: { since: Date; until: Date } = (
+      SecurityRepeatOffenderNetworks.readAsns as unknown as MockedFn
+    ).mock.calls[0]![0] as { since: Date; until: Date };
+
+    expect(asked.until.getTime()).toBeGreaterThanOrEqual(before);
+    expect(asked.until.getTime()).toBeLessThanOrEqual(Date.now());
+    expect(asked.until.getTime() - asked.since.getTime()).toBe(
+      30 * 24 * 60 * 60 * 1000,
+    );
   });
 
   test("a case the person may not read is not found", async () => {

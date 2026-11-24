@@ -171,10 +171,10 @@ Blokkering trenger skrivetillatelser på API-tokenet til tilkoblingen:
 
 ### Slå på blokkering
 
-Velg **Blokker adresser** på raden til tilkoblingen. Lim inn et nytt token i **Nytt API-token**, eller la feltet stå tomt for å beholde det gjeldende, og la **Alle soner** stå i **Soner**, eller velg sonene det skal blokkeres i. **Sjekk tillatelser** spør Cloudflare om tokenet har hver tillatelse, og endrer ingenting. **Slå på blokkering** slår bare på blokkering når hver sjekk består, og OneUptime setter opp Cloudflare innen ett minutt.
+Velg **Blokker adresser** på raden til tilkoblingen. Lim inn et nytt token i **Nytt API-token**, eller la feltet stå tomt for å beholde det gjeldende, og la **Alle soner** stå i **Soner**, eller velg sonene det skal blokkeres i. **Sjekk tillatelser** spør Cloudflare om tokenet har hver tillatelse, og endrer ingenting. **Slå på blokkering** slår bare på blokkering når hver sjekk består, bortsett fra **Challenge a network by its ASN**, som bare advarer, og OneUptime setter opp Cloudflare innen ett minutt.
 :::
 
-Mens blokkering er slått på, kjører **Test tilkoblingen** de samme sjekkene: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** og, der IP Access Rules brukes, **Edit IP Access Rules**.
+Mens blokkering er slått på, kjører **Test tilkoblingen** de samme sjekkene: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** og, der IP Access Rules brukes, **Edit IP Access Rules**, ellers **Challenge a network by its ASN**.
 
 ### Hva OneUptime legger til i Cloudflare
 
@@ -183,7 +183,7 @@ Mens blokkering er slått på, kjører **Test tilkoblingen** de samme sjekkene: 
 | Listene `oneuptime_block` og `oneuptime_challenge` | To IP-lister i kontoen, én for blokkeringer og én for utfordringer. Beskrivelsen deres nevner OneUptime-prosjektet ditt. |
 | Én egendefinert regel per liste, i hver sone | `(ip.src in $oneuptime_block)` med handlingen Block, og `(ip.src in $oneuptime_challenge)` med handlingen Managed Challenge. Beskrivelsen deres sier at OneUptime administrerer dem. |
 | Ett listeelement per blokkering | Kommentaren nevner saken og når blokkeringen slutter, for eksempel `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| Én IP Access Rule per nettverk som utfordres etter ASN-en | Et helt nettverk som utfordres fra **Kampanjer**, som en IP Access Rule med målet `asn`, som alle planer har. Notatet sier det samme som kommentaren til et listeelement. Uten `Account > Account Firewall Access Rules > Edit` på tokenet blir utfordringen ikke brukt, og **Blokkeringsliste** sier hvilken tillatelse som må legges til. |
+| Én IP Access Rule per nettverk som utfordres etter ASN-en | Et helt nettverk som utfordres fra **Kampanjer**, som en IP Access Rule med målet `asn`, som alle planer har. Notatet sier det samme som kommentaren til et listeelement. **Sjekk tillatelser** og **Test tilkoblingen** advarer først, under **Challenge a network by its ASN**, når tokenet mangler `Account > Account Firewall Access Rules > Edit`: Blokkering virker uten denne tillatelsen, men utfordringen blir ikke brukt, og **Blokkeringsliste** sier hvilken tillatelse som må legges til. |
 
 Hver regel kommer først blant sonens egendefinerte regler, så den kjører før dine: En Skip-regel fra deg kan ikke slippe en blokkert adresse forbi den. Når Skip-reglene dine slipper adresser gjennom, for eksempel monitorene dine eller en partners, nevner **Blokkeringsstatus** dem. **Beskytt disse adressene** legger dem til i **Beskyttede entiteter**, som ingen kan blokkere.
 

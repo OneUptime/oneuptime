@@ -227,12 +227,8 @@ const RESOURCES: Array<ResourceSettingsCase> = [
     overviewKey: PageMap.SERVERLESS_FUNCTION_VIEW,
     productPath: "serverless",
     getBreadcrumbs: getServerlessBreadcrumbs,
-    breadcrumbTitles: [
-      "Project",
-      "Serverless Functions",
-      "View Function",
-      "Settings",
-    ],
+    // The product's step is its menu entry's name (#7474).
+    breadcrumbTitles: ["Project", "Serverless", "View Function", "Settings"],
     menuSection: "Advanced",
   },
   {

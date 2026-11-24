@@ -70,9 +70,11 @@ Kortet **Loggene dine**, øverst på **Tilkoblinger**, trenger ingen installasjo
 | Fortinet FortiGate | IPS- og antivirusfunn, avvist trafikk, VPN- og administratorpålogginger og konfigurasjonsendringer fra FortiGates egen syslog |
 | Cisco ASA | Avviste tilkoblinger, funn fra trusseloppdagelse og IPS, VPN- og administratorpålogginger og kommandoer fra Cisco ASA og Firepower Threat Defense |
 | Kubernetes-revisjonslogger | Endringer i klyngen, skall åpnet i pods, leste hemmeligheter og avviste forespørsler |
-| Webangrep | Forespørsler i en webservers tilgangslogg som prøver SQL-injeksjon, path traversal eller Log4Shell, og forespørsler om sensitive filer, for eksempel `/.env` eller `/.git/config`, som nettstedet ditt avviste eller ikke har |
+| Webangrep | Forespørsler i en webservers tilgangslogg som prøver SQL-injeksjon, path traversal eller Log4Shell, forespørsler om sensitive filer, for eksempel `/.env` eller `/.git/config`, som nettstedet ditt avviste eller ikke har, og en fil med hemmeligheter som nettstedet ditt leverte |
 
 Loggene dine forblir som de er. Bare linjene som betyr noe for sikkerheten, blir hendelser: aldri hver side en webserver har levert, eller hver lesing av et API.
+
+En fil med hemmeligheter som nettstedet ditt leverte, for eksempel `/.env`, er en lekkasje, og regelbibliotekets regel **Sensitive file served** åpner en sak med alvorlighetsgraden Kritisk om den. En enkeltsideapps egen side for en sti den ikke har, er aldri en lekkasje. Se [En sensitiv fil nettstedet ditt leverte](/docs/telemetry/security-events#en-sensitiv-fil-nettstedet-ditt-leverte).
 
 En trussel som et sikkerhetsprodukt skriver i loggene dine, for eksempel et CEF- eller LEEF-funn eller et IPS-funn fra en FortiGate, åpner en sak slik et tilkoblet produkts varsel gjør. **Åpne saker fra** på **Loggene dine** angir fra hvilken alvorlighetsgrad: **Høy og høyere** med mindre du velger en annen, eller **Aldri**.
 

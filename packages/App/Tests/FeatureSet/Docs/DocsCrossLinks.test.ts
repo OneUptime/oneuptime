@@ -246,7 +246,7 @@ const CROSS_LINKS: ReadonlyArray<CrossLink> = [
     page: "inventory/overview",
     section: "Relationships and topology",
     target: "telemetry/topology",
-    why: "Inventory's Topology Map opens the Topology page",
+    why: "Inventory's Topology entry opens the Topology page",
   },
   {
     page: "installation/docker-compose",

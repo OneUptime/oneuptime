@@ -91,8 +91,8 @@ import {
 import { EVERY_THIRTY_SECONDS } from "Common/Utils/CronTime";
 import { describe, expect, it } from "@jest/globals";
 import {
-  MAX_PENDING_BYTES_PER_MONITOR,
-  MAX_PENDING_REQUESTS_PER_MONITOR,
+  DEFAULT_MAX_PENDING_BYTES_PER_MONITOR,
+  DEFAULT_MAX_PENDING_REQUESTS_PER_MONITOR,
 } from "../../../FeatureSet/Telemetry/Utils/IncomingRequestPendingStore";
 import fs from "fs";
 import path from "path";
@@ -2268,10 +2268,15 @@ describe("Incoming Request Monitor", () => {
       );
 
       expect(evaluator).toContain('type: "grouping",');
-      // Every event but the criteria verdicts is listed among the Actions.
-      expect(logList).toContain(
-        'return event.type !== "criteria-met" && event.type !== "criteria-not-met";',
-      );
+      /*
+       * Every event but the criteria verdicts is listed among the Actions,
+       * grouping notes included - but requests skipped before the check,
+       * which are drawn as a warning above them (#10653).
+       */
+      expect(logList).toContain('event.type !== "criteria-met" &&');
+      expect(logList).toContain('event.type !== "criteria-not-met" &&');
+      expect(logList).toContain("!isSkippedRequestsEvent(event)");
+      expect(logList).toContain('return event.type === "requests-skipped";');
       expect(withoutField).toContain(
         "The **Monitor Summary** card on the monitor's **Overview** shows what each request did",
       );
@@ -2376,8 +2381,9 @@ describe("Incoming Request Monitor", () => {
   });
 
   it("says a grouped monitor evaluates every request in order, and how many may wait", () => {
-    expect(MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
-    expect(MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);
+    // The defaults: a self-hosted install sets its own (#10652).
+    expect(DEFAULT_MAX_PENDING_REQUESTS_PER_MONITOR).toBe(1000);
+    expect(DEFAULT_MAX_PENDING_BYTES_PER_MONITOR).toBe(16 * 1024 * 1024);
     expect(
       readRepoFile(
         "App/FeatureSet/Telemetry/Jobs/IncomingRequestIngest/ProcessIncomingRequestIngest.ts",

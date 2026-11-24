@@ -2028,6 +2028,45 @@ detection:
   condition: selection
 `,
     },
+    /*
+     * Not a scan but a leak (#10912): a file that holds secrets - /.env,
+     * /.git/config, /.aws/credentials - that the site answered with the
+     * file itself, so whoever asked holds its passwords, keys and tokens
+     * now. A single-page app answers every path with its own page and a
+     * 200, so a 200 alone is never one: only a request whose answer was
+     * the file is (web.sensitive_file.answer: file) - its type says it is
+     * no web page, or its size is no page the site answers other paths
+     * with, on a site that refuses what it does not have
+     * (SensitiveFileProbe, SensitiveFileAnswers). One is enough, and it
+     * is Critical, as injected SQL that ran is: the case it opens says to
+     * take the file down and rotate what it holds. An admin page a site
+     * serves - WordPress's, phpMyAdmin - is never one.
+     */
+    {
+      id: "fe1afb71-1434-444c-8091-baa8f5b83d1f",
+      title: "Sensitive file served",
+      description:
+        "Your site answered a request for a well-known file that holds secrets, such as /.env, /.git/config or /.aws/credentials, with the file itself, not with its own page for a path it does not have: whoever asked holds the passwords, keys and tokens in it now.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "HTTP or web server events",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Sensitive file served
+id: fe1afb71-1434-444c-8091-baa8f5b83d1f
+description: A request for a well-known file that holds secrets that the site answered with the file itself.
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1552.001
+detection:
+  selection:
+    web.attack.kind: sensitive-file
+    web.sensitive_file.answer: file
+  condition: selection
+`,
+    },
 
     /*
      * What happened next, as the request's trace showed it
@@ -2988,11 +3027,15 @@ export const RECOMMENDED_DETECTION_RULE_IDS: ReadonlyArray<string> = [
   "388b42f9-2239-40bb-bf1a-2a476ad099c0",
   "066bf906-3932-4e5d-9920-131825734ea0",
   "2917bec0-2331-4e59-bdd4-a81211529156",
-  // Attacks on web servers, and scanners looking for secrets left on them (#10745).
+  /*
+   * Attacks on web servers, scanners looking for secrets left on them
+   * (#10745), and a secret file a site served (#10912).
+   */
   "cfdf6ad4-7138-4201-8a1c-6bf962335cee",
   "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52",
   "866b7566-304e-442b-b1ad-ca08264af493",
   "37aac329-ce8b-4ced-9255-4ae49d564451",
+  "fe1afb71-1434-444c-8091-baa8f5b83d1f",
   // Kubernetes audit logs.
   "1ce3af71-a3d5-409a-b477-34e4a734aa83",
   "44e60520-facd-443a-bf1f-8c741819be91",
@@ -3032,3 +3075,10 @@ export const SETUP_TEST_DETECTION_RULE_ID: string =
 // Scanning for sensitive files (#10745): the Scanners policy acts on it.
 export const SCANNING_FOR_SENSITIVE_FILES_RULE_ID: string =
   "37aac329-ce8b-4ced-9255-4ae49d564451";
+
+/*
+ * Sensitive file served (#10912): a leak, which a person answers - it opens
+ * a Critical case, and no automatic response policy acts on it.
+ */
+export const SENSITIVE_FILE_SERVED_RULE_ID: string =
+  "fe1afb71-1434-444c-8091-baa8f5b83d1f";

@@ -138,12 +138,54 @@ describe("Code says a fix asked from a security case started from that case", ()
   test("a person's request in Code is theirs, whatever it names", () => {
     const request: AIRun = fixOfCase((run: AIRun) => {
       run.codeFixTaskType = CodeFixTaskType.CodeRequest;
+      run.userId = READER.userId!;
     });
 
     expect(CodeTaskOrigin.isFixOfSecurityCase(request)).toBe(false);
     expect(CodeTaskOrigin.isFixOfSecurityCase(fixOfCase())).toBe(true);
+    expect(
+      CodeTaskOrigin.describe({ run: request, subjects: subjectsWith() }),
+    ).toEqual({ type: CodeTaskOriginType.Request, label: "" });
     // Its origin is on the run: no task context needs reading.
     expect(CodeTaskOrigin.needsTaskContext(fixOfCase())).toBe(false);
+  });
+
+  test("a request OneUptime started for a case's Data Security issue is the case's (#10740)", () => {
+    const securityCase: SecurityCase = new SecurityCase();
+    securityCase._id = CASE_ID.toString();
+    securityCase.caseNumberWithPrefix = "CASE-61";
+    securityCase.title = "A bucket of card numbers is public";
+
+    // Nobody asked it: Fix the code with AI on the case asked Fix with AI for the issue.
+    const request: AIRun = fixOfCase((run: AIRun) => {
+      run.codeFixTaskType = CodeFixTaskType.CodeRequest;
+      delete run.triggeredByTelemetryExceptionId;
+      run.triggeredByDataSecurityIssueId = new ObjectID(
+        "77777777-7777-4777-8777-777777777777",
+      );
+    });
+
+    expect(CodeTaskOrigin.isFixOfSecurityCase(request)).toBe(true);
+    expect(
+      CodeTaskOrigin.describe({
+        run: request,
+        subjects: subjectsWith(securityCase),
+      }),
+    ).toEqual({
+      type: CodeTaskOriginType.SecurityCase,
+      label: "CASE-61: A bucket of card numbers is public",
+      recordId: CASE_ID.toString(),
+    });
+    // Nor does one naming no case become a case's.
+    expect(
+      CodeTaskOrigin.isFixOfSecurityCase(
+        fixOfCase((run: AIRun) => {
+          run.codeFixTaskType = CodeFixTaskType.CodeRequest;
+          delete run.triggeredBySecurityCaseId;
+        }),
+      ),
+    ).toBe(false);
+    expect(CodeTaskOrigin.needsTaskContext(request)).toBe(false);
   });
 
   test("the cases are read as the reader, and a table they may not read names nothing", async () => {

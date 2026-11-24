@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import CardListSkeleton from "Common/UI/Components/Skeleton/CardListSkeleton";
+import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
@@ -70,6 +71,7 @@ import {
   VIEW_REQUESTS,
   buildCampaignCorrelateRoute,
   buildCampaignEventsRoute,
+  buildCampaignNetworkEventsRoute,
   describeCampaignResult,
   getCampaignAddressText,
   getCampaignAttackKindLabel,
@@ -440,6 +442,9 @@ const CampaignRow: FunctionComponent<CampaignRowProps> = (
 
 interface NetworkRowProps {
   network: SecurityAttackNetwork;
+  // The window the page read: View requests opens the network's requests over it (#10896).
+  startTime: Date;
+  endTime: Date;
   // Challenge This Network (#10354), and why it is locked; none without it.
   onChallenge?: ((network: SecurityAttackNetwork) => void) | undefined;
   challengeLockReason?: string | undefined;
@@ -449,7 +454,8 @@ interface NetworkRowProps {
  * One network a rotating attacker sent from (#10354): by its ASN where
  * Cloudflare's events name one, else its /24 or /48 - how many of its
  * addresses attacked, how far their requests got, which ones, and for an
- * ASN the ranges they came from - with Challenge This Network.
+ * ASN the ranges they came from - with View requests, which opens what the
+ * network sent in the events list (#10896), and Challenge This Network.
  */
 const NetworkRow: FunctionComponent<NetworkRowProps> = (
   props: NetworkRowProps,
@@ -460,6 +466,11 @@ const NetworkRow: FunctionComponent<NetworkRowProps> = (
     ? new Date(network.lastSeen)
     : null;
   const ranges: string | null = writeNetworkRanges({ network, translator });
+  const eventsRoute: Route | null = buildCampaignNetworkEventsRoute({
+    network,
+    startTime: props.startTime,
+    endTime: props.endTime,
+  });
 
   return (
     <li
@@ -531,6 +542,17 @@ const NetworkRow: FunctionComponent<NetworkRowProps> = (
         {ranges ? <div className="text-xs text-gray-500">{ranges}</div> : <></>}
       </div>
       <div className="flex flex-shrink-0 flex-col items-end gap-1 pt-0.5">
+        {eventsRoute ? (
+          <Link
+            to={eventsRoute}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-700"
+            dataTestId={SECURITY_CAMPAIGN_TEST_IDS.networkRequests}
+          >
+            {translator.translateText(VIEW_REQUESTS)}
+          </Link>
+        ) : (
+          <></>
+        )}
         {props.onChallenge &&
         isNetworkChallengeable(network) &&
         !network.block ? (
@@ -792,6 +814,8 @@ const SecurityAttackCampaigns: FunctionComponent = (): ReactElement => {
               <NetworkRow
                 key={`${network.kind}:${network.network}`}
                 network={network}
+                startTime={loaded.startTime}
+                endTime={loaded.endTime}
                 challengeLockReason={blockLockReason}
                 onChallenge={(picked: SecurityAttackNetwork) => {
                   setChallenging(picked);

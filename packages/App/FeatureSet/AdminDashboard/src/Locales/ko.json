@@ -497,7 +497,7 @@
       "title": "로그아웃"
     },
     "sendEmail": {
-      "title": "공지 이메일 보내기",
+      "title": "이메일 보내기",
       "testCardTitle": "테스트 이메일 보내기",
       "testCardDescription": "모든 사용자에게 보내기 전에 어떻게 보이는지 미리 보기 위해 단일 이메일 주소로 테스트 공지 이메일을 보냅니다.",
       "allCardTitle": "모든 사용자에게 이메일 보내기",
@@ -514,7 +514,7 @@
       "confirmButton": "예, 모든 사용자에게 보내기"
     },
     "moreEmail": {
-      "title": "공지 이메일 보내기",
+      "title": "이메일 보내기",
       "cardTitle": "공지 이메일 보내기",
       "cardDescription": "모든 등록된 사용자에게 보낼 공지 이메일을 작성하세요. 어떻게 보이는지 미리 보기 위해 먼저 테스트 이메일을 보낼 수 있습니다.",
       "sendTestButton": "테스트 이메일 보내기",
@@ -536,7 +536,7 @@
       "confirmButton": "예, 모든 사용자에게 보내기"
     },
     "settings": {
-      "title": "관리자 설정",
+      "title": "설정",
       "authentication": {
         "signUpCardTitle": "가입",
         "signUpCardDescription": "이 서버에서 계정을 만들 수 있는 사람.",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "워커에 메모리와 CPU를 더 할당하고, 앱 로그에서 계속 실패하는 작업을 확인하세요.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "이 서버는 OneUptime {{current}}을(를) 실행 중입니다. {{latest}}이(가) 출시되었습니다.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "백업한 다음 업데이트하세요. Docker Compose에서는 npm run update, Kubernetes에서는 helm upgrade를 실행합니다.",
-  "Finish it on the Server setup page.": "서버 설정 페이지에서 마무리하세요.",
+  "Finish it on the Server Setup page.": "서버 설정 페이지에서 마무리하세요.",
   "Products on this server": "이 서버의 제품",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "이 서버의 모든 프로젝트에서 제공할 제품을 선택하세요. 꺼진 제품은 모든 프로젝트의 메뉴, 홈, 검색에서 사라지고, 해당 페이지에는 꺼져 있다고 표시됩니다.",
   "Start from": "다음 중 하나로 시작",

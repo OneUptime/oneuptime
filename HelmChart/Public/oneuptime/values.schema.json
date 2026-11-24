@@ -2518,6 +2518,31 @@
             },
             "additionalProperties": false
         },
+        "incomingRequests": {
+            "type": "object",
+            "description": "What a grouped Incoming Request monitor keeps waiting to be evaluated, and how many requests one job evaluates. The app refuses a value outside these bounds too, and uses its default.",
+            "properties": {
+                "maxPendingRequestsPerMonitor": {
+                    "type": "integer",
+                    "minimum": 10,
+                    "maximum": 100000,
+                    "description": "Requests one monitor keeps waiting. Past it, the oldest waiting are skipped."
+                },
+                "maxPendingMegabytesPerMonitor": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 512,
+                    "description": "Megabytes of requests one monitor keeps waiting. Past it, the oldest waiting are skipped."
+                },
+                "maxRequestsPerJob": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "description": "Requests one job evaluates before the monitor's job is queued again, behind every job already waiting."
+                }
+            },
+            "additionalProperties": false
+        },
         "products": {
             "type": "object",
             "properties": {

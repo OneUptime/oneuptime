@@ -9,6 +9,7 @@ import VoicemailDetectionCard from "../../Components/NotificationMethods/Voicema
 import { getVoicemailDetectionFoldedItem } from "../../Components/NotificationMethods/VoicemailDetectionWords";
 import { getProjectPagingDefaultsFoldedItems } from "../../Components/NotificationRule/PagingLadder/ProjectPagingDefaultsWords";
 import {
+  getAddToBalanceAmountDescription,
   getCurrentProjectBillingMarketplace,
   getMarketplaceBalanceCardDescription,
   getProjectBalanceAccess,
@@ -20,9 +21,9 @@ import CloudMarketplace from "Common/Types/Marketplace/CloudMarketplace";
 import AutoRechargeFailedNotice from "../../Components/ProjectBalance/AutoRechargeFailedNotice";
 import AutoRechargeCard from "../../Components/ProjectBalance/AutoRechargeCard";
 import {
+  ADD_TO_BALANCE_AMOUNT_TITLE,
+  ADD_TO_BALANCE_TITLE,
   CURRENT_BALANCE_ROW_TITLE,
-  RECHARGE_AMOUNT_DESCRIPTION,
-  RECHARGE_AMOUNT_TITLE,
 } from "../../Components/ProjectBalance/ProjectBalanceCopy";
 import {
   getProjectColumnsEditGate,
@@ -213,12 +214,13 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
       {showRechargeBalanceModal ? (
         <BasicFormModal
-          title={"Recharge Balance"}
+          // One verb from the card's button to the dialog's (#7475).
+          title={ADD_TO_BALANCE_TITLE}
           onClose={() => {
             setShowRechargeBalanceModal(false);
           }}
           isLoading={isRechargeBalanceLoading}
-          submitButtonText={"Recharge"}
+          submitButtonText={ADD_TO_BALANCE_TITLE}
           onSubmit={async (item: JSONObject) => {
             setIsRechargeBalanceLoading(true);
             try {
@@ -247,12 +249,25 @@ const Settings: FunctionComponent<PageComponentProps> = (): ReactElement => {
             }
           }}
           formProps={{
-            name: "Recharge Balance",
+            name: ADD_TO_BALANCE_TITLE,
             error: rechargeBalanceError || "",
             fields: [
               {
-                title: RECHARGE_AMOUNT_TITLE,
-                description: RECHARGE_AMOUNT_DESCRIPTION,
+                title: ADD_TO_BALANCE_AMOUNT_TITLE,
+                /*
+                 * What the money is for and where it is charged, in the
+                 * reader's words already: an element, which the form's
+                 * label draws as given.
+                 */
+                description: (
+                  <>
+                    {getAddToBalanceAmountDescription({
+                      balance: ProjectBalanceType.SmsOrCall,
+                      marketplace: billingMarketplace,
+                      translator: translator,
+                    })}
+                  </>
+                ),
                 field: {
                   amount: true,
                 },

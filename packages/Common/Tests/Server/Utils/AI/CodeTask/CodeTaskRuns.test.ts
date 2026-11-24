@@ -765,3 +765,98 @@ describe("CodeTaskRuns.stop", () => {
     expect(transition).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A task OneUptime starts for a Data Security issue a security case is
+ * about (#10740): a playbook's Fix the code with AI step on a case whose
+ * issue is in no group - nobody asked it, and it names the issue and the
+ * case, so the case keeps its pull request.
+ */
+describe("CodeTaskRuns.startForDataSecurityIssue", () => {
+  const ISSUE_ID: ObjectID = new ObjectID(
+    "10740000-0000-4000-8000-0000000000a1",
+  );
+  const CASE_ID: ObjectID = new ObjectID(
+    "10740000-0000-4000-8000-0000000000c1",
+  );
+
+  test("queues a Code request nobody asked, naming the issue and the case", async () => {
+    await CodeTaskRuns.startForDataSecurityIssue({
+      projectId: PROJECT_ID,
+      repository: repository(),
+      message: "Turn on access logging for the exports bucket\n\nThe details.",
+      triggeredByDataSecurityIssueId: ISSUE_ID,
+      triggeredBySecurityCaseId: CASE_ID,
+    });
+
+    expect(created).toHaveLength(1);
+
+    const run: AIRun = created[0]!;
+
+    expect(run.runType).toBe(AIRunType.CodeFix);
+    expect(run.codeFixTaskType).toBe(CodeFixTaskType.CodeRequest);
+    expect(run.status).toBe(AIRunStatus.Queued);
+    expect(run.userId).toBeUndefined();
+    expect(run.triggeredByAiInsightId).toBeUndefined();
+    expect(run.triggeredByDataSecurityIssueId?.toString()).toBe(
+      ISSUE_ID.toString(),
+    );
+    expect(run.triggeredBySecurityCaseId?.toString()).toBe(CASE_ID.toString());
+    expect(run.codeRepositoryId?.toString()).toBe(REPOSITORY_ID.toString());
+    expect(run.title).toBe("Turn on access logging for the exports bucket");
+    expect(run.taskContext).toEqual({
+      request: {
+        message:
+          "Turn on access logging for the exports bucket\n\nThe details.",
+        context: [],
+      },
+    });
+    expect(
+      (AIRunService.create as unknown as jest.Mock).mock.calls[0]![0],
+    ).toMatchObject({ props: { isRoot: true } });
+  });
+
+  test("with no case, it names the issue alone", async () => {
+    await CodeTaskRuns.startForDataSecurityIssue({
+      projectId: PROJECT_ID,
+      repository: repository(),
+      message: "Fix it",
+      triggeredByDataSecurityIssueId: ISSUE_ID,
+    });
+
+    expect(created[0]!.triggeredBySecurityCaseId).toBeUndefined();
+  });
+
+  test("is held to the project's AI run budget, and to what a request may say", async () => {
+    expect(
+      await refusal(() => {
+        return CodeTaskRuns.startForDataSecurityIssue({
+          projectId: PROJECT_ID,
+          repository: repository(),
+          message: "   ",
+          triggeredByDataSecurityIssueId: ISSUE_ID,
+          triggeredBySecurityCaseId: CASE_ID,
+        });
+      }),
+    ).toBe("Write what you want AI to do.");
+
+    (
+      FixRunBudget.assertWithinBudget as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      throw new BadDataException("Daily limit reached.");
+    });
+
+    expect(
+      await refusal(() => {
+        return CodeTaskRuns.startForDataSecurityIssue({
+          projectId: PROJECT_ID,
+          repository: repository(),
+          message: "Fix it",
+          triggeredByDataSecurityIssueId: ISSUE_ID,
+          triggeredBySecurityCaseId: CASE_ID,
+        });
+      }),
+    ).toBe("Daily limit reached.");
+    expect(created).toHaveLength(0);
+  });
+});

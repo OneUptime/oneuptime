@@ -110,12 +110,25 @@ export const MORE_STORES: PluralTemplate = {
   other: "and {{count}} more",
 };
 
-// The one approval's part.
+/*
+ * The one approval's part: each kind of store's own action, listed with
+ * what it does (#10742) - one kind, or several.
+ */
 export const CLOUD_PART_TITLE: string = translationKey("One Approval");
-export const CLOUD_PART_SENTENCE: PluralTemplate = {
-  one: "{{action}} on {{count}} store made in the console, through its cloud connection.",
+export const CLOUD_PART_ONE_KIND_SENTENCE: PluralTemplate = {
+  one: "The store made in the console takes the change below, through its cloud connection.",
   other:
-    "{{action}} on each of the {{count}} stores made in the console, through their cloud connections.",
+    "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.",
+};
+export const CLOUD_PART_KINDS_SENTENCE: PluralTemplate = {
+  one: "The store made in the console takes the change its kind needs, through its cloud connection.",
+  other:
+    "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.",
+};
+// How many stores one kind's action runs on.
+export const CLOUD_ACTION_STORES: PluralTemplate = {
+  one: "{{count}} store",
+  other: "{{count}} stores",
 };
 export const CLOUD_PART_NOTE: string = translationKey(
   "This changes your cloud. Each store's timeline says what was changed, so it can be set back in its console.",
@@ -183,6 +196,10 @@ export const GROUP_FIX_SERVER_SENTENCES: ReadonlyArray<string> = [
   ),
   translationKey(
     "This group of issues could not be found. Its issues may have resolved, or no longer share a cause.",
+  ),
+  // A reader held to labels reads the group, and asks for no fix (#10739).
+  translationKey(
+    "Asking for a group's fix takes permission to read Data Security issues across the whole project.",
   ),
 ];
 
@@ -256,6 +273,54 @@ export function getGroupProgress(
   return translator.translatePlural(GROUP_PROGRESS, group.openIssueCount, {
     fixed: translator.formatNumber(group.fixedIssueCount),
   });
+}
+
+/*
+ * Which of the issues the Issues list draws as its rows, grouped by cause
+ * (#10370): those in no group the reader sees as a group. Most readers see
+ * every group an issue they may read is in, so that is the issues in no
+ * group at all. A reader held to labels (#10739) is not shown a group of
+ * which they may read only one issue - a group of one would say there are
+ * others - so its issue is listed with the rest: the rows are then the
+ * issues in none of the groups drawn. Until the groups' issues are read,
+ * the issues in no group.
+ */
+export type IssueRowsGroupFilter =
+  | { kind: "inNoGroup" }
+  | { kind: "inNoneOf"; groupIds: Array<string> }
+  | { kind: "all" };
+
+export function getIssueRowsGroupFilter(data: {
+  isGroupedByCause: boolean;
+  // The groups' issues the list's filters match have been read.
+  isMembersRead: boolean;
+  // The groups drawn above the rows.
+  drawnGroupIds: ReadonlyArray<string>;
+  // The groups of the grouped issues the filters match.
+  memberGroupIds: ReadonlyArray<string>;
+}): IssueRowsGroupFilter {
+  if (!data.isGroupedByCause) {
+    return { kind: "all" };
+  }
+
+  const drawn: Set<string> = new Set(
+    data.drawnGroupIds.map((id: string): string => {
+      return id.toLowerCase();
+    }),
+  );
+  const isAnyGroupNotDrawn: boolean = data.memberGroupIds.some(
+    (id: string): boolean => {
+      return !drawn.has(id.toLowerCase());
+    },
+  );
+
+  if (!data.isMembersRead || !isAnyGroupNotDrawn) {
+    return { kind: "inNoGroup" };
+  }
+
+  return drawn.size > 0
+    ? { kind: "inNoneOf", groupIds: Array.from(drawn).sort() }
+    : { kind: "all" };
 }
 
 // The parts a press makes by default: each the plan offers and the reader may make.

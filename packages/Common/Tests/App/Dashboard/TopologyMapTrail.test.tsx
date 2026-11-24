@@ -14,8 +14,8 @@ jest.mock("../../../UI/Utils/Analytics", () => {
 });
 
 /*
- * The Topology Map is an entry of the Inventory menu and drawn beside it,
- * but it had no trail: the header jumped from "Project > Inventory > All
+ * Topology is an entry of the Inventory menu and drawn beside it, but it
+ * had no trail: the header jumped from "Project > Inventory > All
  * Items" to nothing on the next entry down (EveryPageHasATrail listed its
  * route table as the one without a trail, "a follow-up"). Its address is a
  * section of its own (/topology/overview), so a trail read from the address
@@ -31,13 +31,18 @@ function trailAt(path: string): Array<Link> | undefined {
   );
 }
 
-describe("the Topology Map's trail", () => {
-  test("reads Project > Inventory > Topology Map, named as the Inventory menu names it", () => {
+describe("Topology's trail", () => {
+  /*
+   * Named as both menus that open it and its title name it: the trail and
+   * the Inventory menu said "Topology Map" over a page titled Topology
+   * (#7474).
+   */
+  test("reads Project > Inventory > Topology, named as the menus and the page name it", () => {
     expect(
       trailAt(TOPOLOGY_PATH)?.map((link: Link): string => {
         return link.title;
       }),
-    ).toEqual(["Project", "Inventory", "Topology Map"]);
+    ).toEqual(["Project", "Inventory", "Topology"]);
   });
 
   test("Project leads to the project, Inventory to the Inventory's overview, and the map is the page", () => {

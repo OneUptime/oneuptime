@@ -34,6 +34,9 @@ import {
   SecurityTelemetrySignal,
 } from "../../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import { SSRF_FETCHED_ATTRIBUTE } from "../../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
+import SecurityEventRequestOutcome from "../../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE } from "../../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
+import { SensitiveFileAnswer } from "../../../../../Utils/SecurityEvent/SensitiveFileProbe";
 
 /*
  * Each reader of "Your OneUptime data" turns the rows its queries return -
@@ -264,6 +267,102 @@ describe("the trace reader", () => {
         traceIds: ["4bf92f3577b34da6a3ce929d0e0e4736"],
       }),
     );
+  });
+
+  /*
+   * #10912: a page of server spans asking for files that hold secrets is
+   * judged as the log scan judges a page - the same size answering two
+   * paths is the app's own page, and a 200 nothing decides is no event -
+   * and a probe that found nothing stays turned away after its trace is
+   * followed.
+   */
+  test("a page of spans for files that hold secrets is judged before it is stored", async () => {
+    const appSite: string = "0192f1a0-0000-7000-8000-00000000c402";
+    const quietSite: string = "0192f1a0-0000-7000-8000-00000000c403";
+    const spanOf: (data: {
+      spanId: string;
+      url: string;
+      size: string;
+      site: string;
+    }) => JSONObject = (data: {
+      spanId: string;
+      url: string;
+      size: string;
+      site: string;
+    }): JSONObject => {
+      return {
+        ...ATTACK_SPAN_ROW,
+        traceId: `4bf92f3577b34da6a3ce929d0e0e${data.spanId.slice(-4)}`,
+        spanId: data.spanId,
+        primaryEntityId: data.site,
+        attributes: {
+          "url.full": data.url,
+          "http.request.method": "GET",
+          "http.response.status_code": "200",
+          "http.response_content_length": data.size,
+          "network.peer.address": "203.0.113.9",
+        },
+      };
+    };
+
+    jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([]);
+    // A follow-up reads every 2xx as reaching the app.
+    jest
+      .spyOn(SecurityRequestTrace, "followEvents")
+      .mockImplementation((async (data: {
+        events: Array<NormalizedSecurityEvent>;
+      }): Promise<number> => {
+        for (const event of data.events) {
+          event.requestOutcome = SecurityEventRequestOutcome.ReachedApp;
+        }
+
+        return data.events.length;
+      }) as never);
+    jest.spyOn(SpanService, "executeQuery").mockResolvedValue(
+      answer([
+        spanOf({
+          spanId: "00f067aa0ba90001",
+          url: "https://app.example/.env",
+          size: "1789",
+          site: appSite,
+        }),
+        spanOf({
+          spanId: "00f067aa0ba90002",
+          url: "https://app.example/.git/config",
+          size: "1789",
+          site: appSite,
+        }),
+        spanOf({
+          spanId: "00f067aa0ba90003",
+          url: "https://quiet.example/.aws/credentials",
+          size: "412",
+          site: quietSite,
+        }),
+      ]) as never,
+    );
+
+    const read: TelemetryWindowRead = await TraceSecurityScan.readWindow({
+      window: WINDOW,
+      offset: 0,
+      pageSize: 100,
+    });
+
+    expect(read.events).toHaveLength(3);
+
+    const prepared: Array<NormalizedSecurityEvent> =
+      await TraceSecurityScan.prepareEvents({
+        projectId: PROJECT_ID,
+        events: read.events,
+      });
+
+    expect(
+      prepared.map((event: NormalizedSecurityEvent): string => {
+        return `${String(event.attributes[WEB_SENSITIVE_FILE_ANSWER_ATTRIBUTE])} ${String(event.requestOutcome)} ${event.severityName}`;
+      }),
+    ).toEqual([
+      `${SensitiveFileAnswer.OwnPage} ${SecurityEventRequestOutcome.Rejected} ${OcsfSeverity.Low}`,
+      `${SensitiveFileAnswer.OwnPage} ${SecurityEventRequestOutcome.Rejected} ${OcsfSeverity.Low}`,
+    ]);
   });
 });
 

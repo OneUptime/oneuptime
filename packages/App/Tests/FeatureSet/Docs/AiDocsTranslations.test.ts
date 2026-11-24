@@ -1064,12 +1064,14 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
 describe("the helpers, on these pages' shapes", () => {
   it("draw the AI and Code products from the Products menu's own keys", () => {
-    expect(drawnPath("en", ["Products", "AI", "Chat"])).toBe(
-      "**Products → AI → Chat**",
+    expect(drawnPath("en", ["Products", "AI", "Ask AI"])).toBe(
+      "**Products → AI → Ask AI**",
     );
     expect(drawnPath("en", ["Products", "Code"])).toBe("**Products → Code**");
-    // The German menu reads "Chat" where no flat label of it exists.
-    expect(drawnPathSegment("de", ["Products", "AI", "Chat"], 2)).toBe("Chat");
+    // The German menu says the Ask AI panel's name, where it said "Chat" (#7474).
+    expect(drawnPathSegment("de", ["Products", "AI", "Ask AI"], 2)).toBe(
+      "KI fragen",
+    );
     // A Persian path is a bold span per segment.
     expect(drawnPath("fa", ["Products", "Code"])).toBe(
       `**${drawnPathSegment("fa", ["Products", "Code"], 0)}** > **${drawnPathSegment("fa", ["Products", "Code"], 1)}**`,

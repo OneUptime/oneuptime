@@ -122,11 +122,14 @@ jest.mock(
 );
 
 import {
+  DEFAULT_MAX_REQUESTS_PER_JOB,
   MAX_ATTEMPTS_PER_REQUEST,
   MAX_REQUESTS_PER_JOB,
   RETRY_WAITING_REQUESTS_AFTER_MS,
   processPendingIncomingRequestsFromQueue,
+  toSkippedIncomingRequestsNote,
 } from "../../FeatureSet/Telemetry/Jobs/IncomingRequestIngest/ProcessIncomingRequestIngest";
+import { INCOMING_REQUEST_MAX_REQUESTS_PER_JOB } from "../../FeatureSet/Telemetry/Config";
 import TelemetryQueueService, {
   IncomingRequestIngestJobData,
 } from "../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
@@ -532,6 +535,63 @@ describe("one sender takes its turn with everyone else", () => {
     expect(addPendingJob).toHaveBeenCalledWith({ secretKeyHash: HASH });
   });
 
+  /*
+   * A self-hosted install sets its own (INCOMING_REQUEST_MAX_REQUESTS_PER_JOB,
+   * #10652): 100 unless it does.
+   */
+  test("the limit is this server's setting, and 100 unless an install sets its own", () => {
+    expect(MAX_REQUESTS_PER_JOB).toBe(INCOMING_REQUEST_MAX_REQUESTS_PER_JOB);
+    expect(DEFAULT_MAX_REQUESTS_PER_JOB).toBe(100);
+  });
+
+  test("a job given a lower limit evaluates that many, then queues the monitor's job again", async () => {
+    keep(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+
+    await processPendingIncomingRequestsFromQueue(
+      { secretKeyHash: HASH },
+      { isFinalAttempt: false, maxRequestsPerJob: 5 },
+    );
+
+    expect(evaluatedSequences()).toEqual([1, 2, 3, 4, 5]);
+    expect(waiting).toHaveLength(7);
+    expect(addPendingJob).toHaveBeenCalledTimes(1);
+    expect(addPendingJob).toHaveBeenCalledWith({ secretKeyHash: HASH });
+  });
+
+  test("a limit of one evaluates one request a job, in order", async () => {
+    keep(1, 2, 3);
+
+    for (let job: number = 1; job <= 3; job++) {
+      await processPendingIncomingRequestsFromQueue(
+        { secretKeyHash: HASH },
+        { isFinalAttempt: false, maxRequestsPerJob: 1 },
+      );
+    }
+
+    expect(evaluatedSequences()).toEqual([1, 2, 3]);
+    // Queued again while requests were left: after the first and the second.
+    expect(addPendingJob).toHaveBeenCalledTimes(2);
+  });
+
+  test("a job given a higher limit works through more than this server's default", async () => {
+    keep(
+      ...Array.from(
+        { length: MAX_REQUESTS_PER_JOB + 20 },
+        (_v: unknown, i: number) => {
+          return i + 1;
+        },
+      ),
+    );
+
+    await processPendingIncomingRequestsFromQueue(
+      { secretKeyHash: HASH },
+      { isFinalAttempt: false, maxRequestsPerJob: MAX_REQUESTS_PER_JOB + 20 },
+    );
+
+    expect(monitorResource).toHaveBeenCalledTimes(MAX_REQUESTS_PER_JOB + 20);
+    expect(addPendingJob).not.toHaveBeenCalled();
+  });
+
   test("a job that reaches the end of the list queues nothing more", async () => {
     keep(
       ...Array.from(
@@ -563,6 +623,73 @@ describe("what the monitor's log is told was skipped", () => {
     });
     expect(optionsOf(1).skippedIncomingRequests).toBeUndefined();
     expect(skipped).toEqual({ overLimit: 0, afterFailures: 0 });
+  });
+
+  /*
+   * Which limit skipped them, as it was when it did (#10652): the store
+   * keeps it with the count, and the evaluation's log says it.
+   */
+  test("says which limit skipped them, and each limit as it was", async () => {
+    skipped = {
+      overLimit: 30,
+      overRequestLimit: 20,
+      requestLimit: 5000,
+      overByteLimit: 10,
+      byteLimit: 64 * 1024 * 1024,
+      afterFailures: 1,
+    };
+    keep(1, 2);
+
+    await run();
+
+    expect(optionsOf(0).skippedIncomingRequests).toEqual({
+      overLimit: 30,
+      overRequestLimit: 20,
+      requestLimit: 5000,
+      overByteLimit: 10,
+      byteLimit: 64 * 1024 * 1024,
+      afterFailures: 1,
+      attempts: MAX_ATTEMPTS_PER_REQUEST,
+    });
+    expect(optionsOf(1).skippedIncomingRequests).toBeUndefined();
+    // What was said, parts and all, is what is taken off.
+    expect(store("acknowledgeSkipped")).toHaveBeenCalledWith(
+      HASH,
+      expect.objectContaining({
+        overLimit: 30,
+        overRequestLimit: 20,
+        overByteLimit: 10,
+        afterFailures: 1,
+      }),
+    );
+  });
+
+  test("a part with no limit beside it is not said as that limit's", () => {
+    expect(
+      toSkippedIncomingRequestsNote({
+        overLimit: 5,
+        overRequestLimit: 5,
+        afterFailures: 0,
+      }),
+    ).toEqual({
+      overLimit: 5,
+      afterFailures: 0,
+      attempts: MAX_ATTEMPTS_PER_REQUEST,
+    });
+    expect(
+      toSkippedIncomingRequestsNote({
+        overLimit: 5,
+        overByteLimit: 2,
+        byteLimit: 1024 * 1024,
+        afterFailures: 3,
+      }),
+    ).toEqual({
+      overLimit: 5,
+      overByteLimit: 2,
+      byteLimit: 1024 * 1024,
+      afterFailures: 3,
+      attempts: MAX_ATTEMPTS_PER_REQUEST,
+    });
   });
 
   test("a skip left to say is said even when one request is waiting: the monitor is read to know whether to", async () => {

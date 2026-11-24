@@ -212,6 +212,197 @@ describe("MonitorResourceUtil.describeSkippedIncomingRequests", () => {
   });
 });
 
+/*
+ * WHICH LIMIT WAS REACHED (#10652). A self-hosted install sets its own
+ * limits, so the note says which one skipped the requests - the requests a
+ * monitor keeps waiting, or the megabytes of them - and what it was when it
+ * did, for the reader, or the operator they ask, to know which to raise.
+ */
+describe("MonitorResourceUtil.describeSkippedIncomingRequests, by limit", () => {
+  const OVER_REQUEST_LIMIT: string =
+    "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
+  const OVER_BYTE_LIMIT: string =
+    "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
+  const MEGABYTE: number = 1024 * 1024;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-11-24T09:00:00.000Z"));
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  function messages(events: Array<MonitorEvaluationEvent>): Array<string> {
+    return events.map((event: MonitorEvaluationEvent): string => {
+      return event.message || "";
+    });
+  }
+
+  it("names the request limit, as it was, for those it skipped", () => {
+    expect(
+      MonitorResourceUtil.describeSkippedIncomingRequests({
+        overLimit: 30,
+        overRequestLimit: 30,
+        requestLimit: 5000,
+        afterFailures: 0,
+        attempts: 3,
+      }),
+    ).toEqual([
+      {
+        type: "requests-skipped",
+        title: "Requests not evaluated: 30",
+        titleSentence: {
+          template: "Requests not evaluated: {{skipped}}",
+          values: { skipped: 30 },
+        },
+        message:
+          "More requests were waiting to be evaluated than the 5000 this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+        messageSentence: {
+          template: OVER_REQUEST_LIMIT,
+          values: { limit: 5000 },
+        },
+        at: new Date("2026-11-24T09:00:00.000Z"),
+      },
+    ]);
+  });
+
+  it("names the byte limit in megabytes for those it skipped", () => {
+    const [event]: Array<MonitorEvaluationEvent> =
+      MonitorResourceUtil.describeSkippedIncomingRequests({
+        overLimit: 7,
+        overByteLimit: 7,
+        byteLimit: 64 * MEGABYTE,
+        afterFailures: 0,
+        attempts: 3,
+      });
+
+    expect(event!.title).toBe("Requests not evaluated: 7");
+    expect(event!.message).toBe(
+      "The requests waiting to be evaluated took more than the 64\u00A0MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+    );
+    expect(event!.messageSentence).toEqual({
+      template: OVER_BYTE_LIMIT,
+      values: { size: 64 },
+    });
+  });
+
+  it("writes a byte limit that is not a whole number of megabytes to a tenth", () => {
+    const [event]: Array<MonitorEvaluationEvent> =
+      MonitorResourceUtil.describeSkippedIncomingRequests({
+        overLimit: 1,
+        overByteLimit: 1,
+        byteLimit: 1.5 * MEGABYTE,
+        afterFailures: 0,
+        attempts: 3,
+      });
+
+    expect(event!.messageSentence!.values).toEqual({ size: 1.5 });
+  });
+
+  it("says each limit apart, then those a release before it skipped, then those that failed", () => {
+    const events: Array<MonitorEvaluationEvent> =
+      MonitorResourceUtil.describeSkippedIncomingRequests({
+        overLimit: 50,
+        overRequestLimit: 20,
+        requestLimit: 1000,
+        overByteLimit: 10,
+        byteLimit: 16 * MEGABYTE,
+        afterFailures: 2,
+        attempts: 3,
+      });
+
+    expect(
+      events.map((event: MonitorEvaluationEvent): string => {
+        return event.title;
+      }),
+    ).toEqual([
+      "Requests not evaluated: 20",
+      "Requests not evaluated: 10",
+      "Requests not evaluated: 20",
+      "Requests not evaluated: 2",
+    ]);
+    expect(messages(events)).toEqual([
+      expect.stringContaining("than the 1000 this monitor keeps"),
+      expect.stringContaining("more than the 16\u00A0MB this monitor keeps"),
+      expect.stringContaining(
+        "More requests were waiting to be evaluated than this monitor keeps",
+      ),
+      expect.stringContaining("has failed 3 times"),
+    ]);
+  });
+
+  it("a count kept without which limit skipped them says only that more were waiting than it keeps", () => {
+    expect(
+      messages(
+        MonitorResourceUtil.describeSkippedIncomingRequests({
+          overLimit: 12,
+          afterFailures: 0,
+          attempts: 3,
+        }),
+      ),
+    ).toEqual([
+      "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+    ]);
+  });
+
+  it("a part never says more than the count it is a part of", () => {
+    const events: Array<MonitorEvaluationEvent> =
+      MonitorResourceUtil.describeSkippedIncomingRequests({
+        overLimit: 5,
+        overRequestLimit: 4,
+        requestLimit: 1000,
+        overByteLimit: 9,
+        byteLimit: 16 * MEGABYTE,
+        afterFailures: 0,
+        attempts: 3,
+      });
+
+    expect(
+      events.map((event: MonitorEvaluationEvent): string => {
+        return event.title;
+      }),
+    ).toEqual(["Requests not evaluated: 4", "Requests not evaluated: 1"]);
+  });
+
+  it("a part with no limit beside it is not said as that limit's", () => {
+    expect(
+      messages(
+        MonitorResourceUtil.describeSkippedIncomingRequests({
+          overLimit: 3,
+          overRequestLimit: 3,
+          afterFailures: 0,
+          attempts: 3,
+        }),
+      ),
+    ).toEqual([
+      expect.stringContaining(
+        "More requests were waiting to be evaluated than this monitor keeps",
+      ),
+    ]);
+  });
+
+  it("stores the English its sentences make, for every limit", () => {
+    for (const event of MonitorResourceUtil.describeSkippedIncomingRequests({
+      overLimit: 9,
+      overRequestLimit: 4,
+      requestLimit: 250,
+      overByteLimit: 3,
+      byteLimit: 8 * MEGABYTE,
+      afterFailures: 1,
+      attempts: 3,
+    })) {
+      expect(event.title).toBe(
+        englishOfEvaluationSentence(event.titleSentence!),
+      );
+      expect(event.message).toBe(
+        englishOfEvaluationSentence(event.messageSentence!),
+      );
+    }
+  });
+});
+
 describe("monitorResource with requests skipped before this one", () => {
   beforeEach(() => {
     jest.useFakeTimers();

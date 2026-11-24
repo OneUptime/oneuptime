@@ -187,7 +187,7 @@ De pagina **Installatiegids**, onder **Verbindingen**, bevat deze snippets, met 
 
 ### Beveiligingsgebeurtenissen in uw logs vinden
 
-De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel, webaanval en geweigerd verzoek om een gevoelig bestand daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
+De kaart **Uw logboeken**, boven aan **Verbindingen**, maakt van de logs die u al naar OneUptime stuurt een bron. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan worden de nieuwe logs van het project elke minuut gelezen, en elke SSH- of Windows-aanmelding, sudo-opdracht, auditregel van een cloud, CEF- of LEEF-record van een beveiligingsproduct, record van een firewall van Palo Alto Networks, FortiGate of Cisco ASA, Kubernetes-auditregel, webaanval en verzoek om een gevoelig bestand daarin wordt opgeslagen als beveiligingsgebeurtenis. Zie [Aan de slag met beveiliging](/docs/telemetry/security-getting-started#beveiligingsgebeurtenissen-in-uw-logs-vinden) voor wat elke soort omvat.
 
 Elke soort bereikt OneUptime als gewone logs:
 
@@ -384,13 +384,24 @@ De zijbalk telt de gebeurtenissen in het venster per **Bron**, **Ernst**, **Resu
 
 Een gebeurtenis uit een logregel die binnen een getracet verzoek is geschreven, wordt in dat verzoek gevolgd. Het paneel zegt hoe ver het verzoek kwam (**Afgewezen**, **App bereikt**, **Fout** of **Database bereikt**), wie het stuurde, en linkt naar de trace, de uitzondering, de sessieherhaling en de logregel zelf. Een logregel, een trace en een uitzondering die deel zijn van een aanval zeggen dat ook op hun eigen pagina's.
 
+### Een gevoelig bestand dat je site leverde
+
+Een verzoek om een bestand met geheimen, zoals `/.env`, `/.git/config`, `/.aws/credentials` of een kopie van `wp-config.php`, is een lek als je site het met het bestand zelf beantwoordde: wie erom vroeg, heeft nu de wachtwoorden, sleutels en tokens die erin staan. Een single-page-app beantwoordt elk pad dat hij niet heeft met zijn eigen pagina en status 200, dus status 200 alleen zegt dat nooit. OneUptime leest wat het antwoord bevatte:
+
+- Een type dat geen webpagina is, zoals `text/plain` of `application/octet-stream`: het bestand zelf.
+- Een webpagina, of JSON voor een bestand dat geen JSON is: de eigen pagina van je site.
+- Niets erin: er is niets meegenomen.
+- Een grootte en geen type, zoals het toegangslog van een webserver het vastlegt: het bestand zelf als geen ander pad die grootte kreeg en je site 404 antwoordt voor de paden die hij niet heeft, en de eigen pagina van je site als dezelfde grootte twee verschillende paden beantwoordde. Als niets het uitwijst, is het verzoek geen gebeurtenis.
+
+Een geleverd bestand heeft de ernst Kritiek, en de regel **Sensitive file served** uit de regelbibliotheek opent er een zaak over, met stappen om het bestand offline te halen en te roteren wat erin staat. Elk van deze verzoeken telt ook mee voor **Scanning for sensitive files**, die van een single-page-app inbegrepen. Een beheerpagina die je site levert, zoals die van WordPress, is er nooit een, en een `wp-config.php` die WordPress uitvoerde, is de eigen pagina van je site. De firewallgebeurtenissen van Cloudflare zeggen niet wat je oorsprong stuurde, dus een verzoek dat Cloudflare doorliet, telt alleen mee voor het scannen. Het paneel van een gebeurtenis zegt onder **Wat er daarna gebeurde** wat je site stuurde.
+
 ### Campaigns
 
 **Campagnes** toont elk adres dat aanvalsverzoeken stuurde als één rij, met de soorten aanval, de tools en de verzoeken die het stuurde, en hoeveel erdoor kwamen. De adressen waarvan verzoeken je app bereikten, staan bovenaan. Een rij die je blokkeerlijst al bevat, zegt tot wanneer het adres geblokkeerd is of een challenge heeft, en noemt het bereik of netwerk dat het bevat.
 
 Om meerdere aanvallers tegelijk te blokkeren, selecteer je hun rijen en druk je op **Adressen blokkeren**. Eén dialoogvenster toont elk adres dat het blokkeert en elk adres dat het weglaat, met de reden: al geblokkeerd, een van je eigen adressen of een beschermd adres, een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of een adres dat OneUptime niet kon controleren. Het blokkeert voor 24 uur, tenzij je een andere duur kiest, of geeft een challenge met **In plaats daarvan challenge**, en elke blokkering komt als de jouwe op je [blokkeerlijst](/docs/telemetry/security-cases#blokkeerlijst).
 
-**Groeperen op netwerk** zet de adressen van één netwerk op één rij: op zijn ASN waar de gebeurtenissen van je [Cloudflare](/docs/integrations/cloudflare)-verbinding er een noemen, en anders op zijn /24 bij IPv4 of zijn /48 bij IPv6. De rij van een ASN toont de bereiken van waaruit zijn adressen stuurden. **Dit netwerk een challenge geven** zegt wat het gaat doen, waar en hoe lang, voordat het dat doet: 24 uur, tenzij je een andere duur kiest, en de volgende trede van de ladder voor een netwerk dat al eerder een challenge kreeg. Cloudflare houdt een bereik in zijn challengelijst, en een ASN als IP Access Rule, die elk abonnement heeft.
+**Groeperen op netwerk** zet de adressen van één netwerk op één rij: op zijn ASN waar de gebeurtenissen van je [Cloudflare](/docs/integrations/cloudflare)-verbinding er een noemen, en anders op zijn /24 bij IPv4 of zijn /48 bij IPv6. De rij van een ASN toont de bereiken van waaruit zijn adressen stuurden. **Dit netwerk een challenge geven** zegt wat het gaat doen, waar en hoe lang, voordat het dat doet: 24 uur, tenzij je een andere duur kiest, en de volgende trede van de ladder voor een netwerk dat al eerder een challenge kreeg. Cloudflare houdt een bereik in zijn challengelijst, en een ASN als IP Access Rule, die elk abonnement heeft. **Aanvragen bekijken** bij een netwerk opent in **Gebeurtenissen** wat het stuurde: bij een ASN op de ASN die de Cloudflare-gebeurtenissen ervan noemen, en bij een bereik als zoekopdracht naar de adressen ervan, zoals `ip:203.0.113.*`, die je kunt aanpassen.
 
 - Een netwerk met een adres dat een aangemelde gebruiker in de laatste 30 dagen heeft gebruikt, of met een van je eigen adressen, krijgt nooit een challenge, en het dialoogvenster noemt wie of wat.
 - Een bereik dat breder is dan een /24 (een /48 bij IPv6), en een hele ASN, vragen een Beveiligingsbeheerder, een Projectbeheerder of een Projecteigenaar. De rij van een ASN biedt ook elk van zijn bereiken aan, die iedereen die mag blokkeren een challenge kan geven.

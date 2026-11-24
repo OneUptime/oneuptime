@@ -22,6 +22,10 @@ import {
   markSsrfFetched,
   readMetadataCallOf,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
+import {
+  judgeSensitiveFileAnswers,
+  keepSensitiveFileOutcomes,
+} from "../../../../Utils/SecurityEvent/SensitiveFileAnswers";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
 import SecurityEventService from "../../../Services/SecurityEventService";
 import SpanService from "../../../Services/SpanService";
@@ -55,6 +59,10 @@ import { TelemetryWindowRead } from "./TelemetryScanTypes";
  *   - a request "Your logs" already reported - the app logged the attack,
  *     and the log scan, which settles sooner, made it an event - is left to
  *     that event, so one request is one event;
+ *   - a request for a file that holds secrets that the app answered, its
+ *     span saying nothing of what was sent, is decided by what the app
+ *     answered the page's other requests - its own page, or the file - or
+ *     is no event (#10912, SensitiveFileAnswers);
  *   - a forgery toward cloud metadata is told whether the app then called
  *     that address, from the client spans of its trace;
  *   - each request is followed into its trace (RequestTrace/
@@ -206,8 +214,14 @@ export default class TraceSecurityScan {
     projectId: ObjectID;
     events: Array<NormalizedSecurityEvent>;
   }): Promise<Array<NormalizedSecurityEvent>> {
-    const events: Array<NormalizedSecurityEvent> =
-      await this.leaveRequestsToTheirLogs(data);
+    /*
+     * A request for a file that holds secrets whose span says nothing of
+     * what was sent is decided by what the app answered the page's other
+     * requests, or is no event (#10912, SensitiveFileAnswers).
+     */
+    const events: Array<NormalizedSecurityEvent> = judgeSensitiveFileAnswers(
+      await this.leaveRequestsToTheirLogs(data),
+    );
 
     await this.markFetchedForgeries({ projectId: data.projectId, events });
 
@@ -217,6 +231,9 @@ export default class TraceSecurityScan {
         return signalOf(event) === SecurityTelemetrySignal.WebAttack;
       }),
     });
+
+    // A probe of a secret file the app answered with its own page reached nothing (#10912).
+    keepSensitiveFileOutcomes(events);
 
     /*
      * A client address a Hash rule hid names the address behind its token

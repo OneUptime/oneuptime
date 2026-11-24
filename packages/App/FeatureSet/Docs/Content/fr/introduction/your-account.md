@@ -23,8 +23,8 @@ Cliquez sur votre photo en haut à droite du tableau de bord.
 
 | Élément | Ce qu'il fait |
 | --- | --- |
-| **Profil** | Ouvre **Profil utilisateur** : votre nom, votre adresse e-mail, votre fuseau horaire, votre langue, votre photo et la sécurité de votre connexion. |
-| **Paramètres admin** | Ouvre l'Admin Dashboard. Seuls les administrateurs principaux d'une installation auto-hébergée le voient. |
+| **Profil utilisateur** | Ouvre **Profil utilisateur** : votre nom, votre adresse e-mail, votre fuseau horaire, votre langue, votre photo et la sécurité de votre connexion. |
+| **Tableau de bord admin** | Ouvre l'Admin Dashboard. Seuls les administrateurs principaux d'une installation auto-hébergée le voient. |
 | **Thème** | Règle le thème du tableau de bord : **Clair**, **Sombre** ou **Système**, qui est clair ou sombre selon le réglage de votre appareil. |
 | **Se déconnecter** | Vous déconnecte, aussitôt sur chaque serveur OneUptime. Là où votre administrateur l'a prévu, vous déconnecte aussi de votre fournisseur d'identité. |
 
@@ -35,7 +35,7 @@ Cliquez sur votre photo en haut à droite du tableau de bord.
 :::steps
 ### Ouvrir votre profil
 
-Cliquez sur votre photo en haut à droite et choisissez **Profil**. La page **Vue d'ensemble** s'ouvre sur la carte **Informations de base** : votre nom, votre adresse e-mail, votre fuseau horaire et votre langue.
+Cliquez sur votre photo en haut à droite et choisissez **Profil utilisateur**. La page **Vue d'ensemble** s'ouvre sur la carte **Informations de base** : votre nom, votre adresse e-mail, votre fuseau horaire et votre langue.
 
 ### Modifier vos informations
 

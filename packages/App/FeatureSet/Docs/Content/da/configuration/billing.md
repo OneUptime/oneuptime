@@ -131,9 +131,9 @@ SMS, opkald, WhatsApp- og Telegram-beskeder betales fra projektets saldo, og One
 | OneUptime AI | **Projektindstillinger → AI → AI-kreditter** |
 
 :::steps
-### Genoplad nu
+### Tilføj til den nu
 
-Klik på **Genoplad saldo** på sidens kort **Aktuel saldo**. Indtast et beløb fra $20 til $1,000, og klik på **Genoplad**. Beløbet trækkes på projektets kort.
+Klik på **Tilføj til saldo** på sidens kort **Aktuel saldo**. Indtast et beløb fra $20 til $1,000, og klik på **Tilføj til saldo**. Beløbet trækkes på projektets kort.
 
 ### Eller lad den genopfylde sig selv
 
@@ -152,7 +152,7 @@ Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper,
 | Slå SMS, opkald, WhatsApp eller Telegram til eller fra | Projektejer, **Manage Billing** eller **Faktureringsadministrator** |
 | Tilføje en betalingsmetode | Projektejer, **Manage Billing** eller **Create Payment Method** |
 | Betale en faktura | Projektejer, **Manage Billing** eller **Edit Invoices** |
-| Skifte plan, genoplade en saldo eller ændre automatisk genopfyldning | Projektejer eller **Manage Billing** |
+| Skifte plan, tilføje til en saldo eller ændre automatisk genopfyldning | Projektejer eller **Manage Billing** |
 
 En knap, du ikke må bruge, vises låst og siger, hvem der må. Se [Brugere, teams og tilladelser](/docs/permissions/index#teams) for faktureringsrollerne.
 

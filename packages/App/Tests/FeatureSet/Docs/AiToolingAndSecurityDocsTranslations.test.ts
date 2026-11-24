@@ -69,6 +69,10 @@ import {
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import { describe, expect, it } from "@jest/globals";
 import { isStepNameOnPage } from "./DocsWorkflowStepNames";
+import {
+  DETECTION_RULE_LIBRARY,
+  DetectionRuleLibraryEntry,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 
 /*
  * Docs overhaul task 24b: the rest of the AI Observability group (Gemini
@@ -99,7 +103,8 @@ import { isStepNameOnPage } from "./DocsWorkflowStepNames";
  *
  * What every Dashboard draws in English stays English (KEPT_AS_WRITTEN): a
  * workflow step's own names (its title, settings and dots, as the workflow
- * pages keep them) and the value picker's glyph. The monitor criteria's
+ * pages keep them), the value picker's glyph and a Rule Library rule's title
+ * (RULE_TITLES). The monitor criteria's
  * filter types and conditions are labels like any other: every one is a key
  * of the Dashboard's locales since 31eadaee92e (CriteriaFilterTerms), so
  * "Security Event Count" is drawn. A new bold word on these English pages
@@ -204,6 +209,16 @@ const GLYPHS: Record<string, Array<string>> = {
 };
 
 /*
+ * A Rule Library rule a page names by its title. The Rule Library draws
+ * each title as the library writes it, in every language (RuleLibraryTable),
+ * so a translation keeps it in English, in bold, for a reader to find it.
+ */
+const RULE_TITLES: Record<string, Array<string>> = {
+  [SECURITY_GETTING_STARTED]: ["Sensitive file served"],
+  [SECURITY_EVENTS]: ["Sensitive file served", "Scanning for sensitive files"],
+};
+
+/*
  * Tab labels that are a product's or a format's name, kept as written so a
  * reader's pick follows them from page to page; the other tab labels are
  * words, which a translation translates.
@@ -279,6 +294,7 @@ function keptAsWritten(page: string): Array<string> {
       return !isStepNameOnPage(page, name);
     }),
     ...listed(GLYPHS, page),
+    ...listed(RULE_TITLES, page),
   ];
 }
 
@@ -452,6 +468,7 @@ describe("the lists this test keeps", () => {
       CREATE_BUTTONS,
       WORKFLOW_STEP_NAMES,
       GLYPHS,
+      RULE_TITLES,
       WIDEST_DIAGRAM_LINE,
     ]) {
       for (const page of Object.keys(lists)) {
@@ -487,9 +504,30 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  it("name each rule by the title the Rule Library gives it", () => {
+    const titles: Array<string> = DETECTION_RULE_LIBRARY.map(
+      (entry: DetectionRuleLibraryEntry): string => {
+        return entry.title;
+      },
+    );
+
+    for (const page of PAGE_NAMES) {
+      for (const title of listed(RULE_TITLES, page)) {
+        expect({ page, title, inLibrary: titles.includes(title) }).toEqual({
+          page,
+          title,
+          inLibrary: true,
+        });
+      }
+    }
+  });
+
   it("keep in English only what no Dashboard locale has as a label, or a step's own name", () => {
     for (const page of PAGE_NAMES) {
-      for (const name of listed(GLYPHS, page)) {
+      for (const name of [
+        ...listed(GLYPHS, page),
+        ...listed(RULE_TITLES, page),
+      ]) {
         expect({ page, name, label: isActionLabel(name) }).toEqual({
           page,
           name,
@@ -865,7 +903,7 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
-    it("keeps in English a workflow step's own names and the picker's glyph", () => {
+    it("keeps in English a workflow step's own names, the picker's glyph and a Rule Library rule's title", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = keptAsWritten(entry.page).filter(
         (name: string): boolean => {

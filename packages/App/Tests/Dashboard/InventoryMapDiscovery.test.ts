@@ -32,10 +32,11 @@ describe("Inventory topology discovery", () => {
     expect(overview).toContain("RouteMap[PageMap.TOPOLOGY]");
   });
 
-  test("the product side menu exposes Topology Map as primary navigation", () => {
+  test("the product side menu exposes Topology as primary navigation, by the page's own name", () => {
     const sideMenu: string = readPage("SideMenu.tsx");
 
-    expect(sideMenu).toContain('title: "Topology Map"');
+    expect(sideMenu).toContain('title: "Topology"');
+    expect(sideMenu).not.toContain('title: "Topology Map"');
     expect(sideMenu).toContain("RouteMap[PageMap.TOPOLOGY]");
   });
 
