@@ -47,6 +47,7 @@ import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../SecurityBlocklist/SecurityBlockDestinations";
 import SecurityBlocklistReconciler from "../SecurityBlocklist/SecurityBlocklistReconciler";
+import SecurityAutomaticResponseRecorder from "../SecurityAutomaticResponse/SecurityAutomaticResponseRecorder";
 import type { PlaybookStepOutcome } from "./SecurityPlaybookActions";
 import SecurityPlaybookContainment, {
   ContainmentTargetOutcome,
@@ -207,6 +208,13 @@ export default class SecurityPlaybookAddressBlocks {
     config: BlockAddressConfig;
     targets: Array<SecurityPlaybookTarget>;
     personId?: ObjectID | undefined;
+    /*
+     * The automatic response policy whose block it is (#10350): made as the
+     * policy's, its challenge held as a block where an edge cannot
+     * challenge, and what it did recorded on the policy's action and said
+     * on the case once it takes hold (SecurityAutomaticResponseRecorder).
+     */
+    automaticResponse?: { policyId: ObjectID; policyName: string } | undefined;
     // Who made it, when not a person or a playbook: OneUptime AI (#10352).
     source?: SecurityBlockSource | undefined;
   }): Promise<PlaybookStepOutcome> {
@@ -270,8 +278,19 @@ export default class SecurityPlaybookAddressBlocks {
             data.source ||
             (data.personId
               ? SecurityBlockSource.Person
-              : SecurityBlockSource.Playbook),
+              : data.automaticResponse
+                ? SecurityBlockSource.AutomaticResponse
+                : SecurityBlockSource.Playbook),
           securityPlaybookRunId: data.runId,
+          ...(data.automaticResponse
+            ? {
+                securityAutomaticResponsePolicyId:
+                  data.automaticResponse.policyId,
+                securityAutomaticResponsePolicyName:
+                  data.automaticResponse.policyName,
+                challengeFallsBackToBlock: true,
+              }
+            : {}),
           props,
         });
       } catch (error) {
@@ -365,12 +384,49 @@ export default class SecurityPlaybookAddressBlocks {
       },
     );
 
-    return this.summarize({
+    const stepOutcome: PlaybookStepOutcome = this.summarize({
       definition,
       targets,
       notEnforced,
       hasDestinations,
     });
+
+    if (!data.automaticResponse) {
+      return stepOutcome;
+    }
+
+    /*
+     * A policy's block: its action records what became of each address, and
+     * the case hears the policy's own line once the block takes hold - here
+     * when it already holds, or when the reconciler first confirms it.
+     */
+    let wroteOwnLine: boolean = false;
+
+    for (const target of toActOn) {
+      const block: SecurityBlock | undefined = made.get(target.value);
+      const outcome: AddressOutcome | undefined = outcomes.get(target.value);
+
+      wroteOwnLine =
+        (await SecurityAutomaticResponseRecorder.recordBlockStep({
+          projectId: data.projectId,
+          runId: data.runId,
+          policyId: data.automaticResponse.policyId,
+          securityCaseId: data.securityCaseId,
+          value: target.value,
+          block: block || null,
+          failure:
+            block ||
+            !outcome ||
+            outcome.state === SecurityPlaybookTargetState.AlreadyDone
+              ? null
+              : outcome.detail,
+        })) || wroteOwnLine;
+    }
+
+    return stepOutcome.status === SecurityPlaybookStepStatus.Succeeded &&
+      wroteOwnLine
+      ? { ...stepOutcome, hasWrittenOwnFeed: true }
+      : stepOutcome;
   }
 
   /*

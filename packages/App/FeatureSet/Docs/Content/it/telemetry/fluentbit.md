@@ -182,6 +182,31 @@ pipeline:
 
 `listen: 127.0.0.1` accetta log solo da questo host: l'input `http` non chiede alcuna chiave, quindi con `listen: 0.0.0.0` chiunque raggiunga la porta può inviare log a OneUptime con la tua chiave di acquisizione. Sostituisci l'input `http` con gli input che ti servono (ad esempio `tail` per i file di log o `systemd` per il journal) e mantieni i due processori e `storage.type: filesystem` su ciascuno di essi.
 
+## Inviare con l'output HTTP
+
+L'[output HTTP](https://docs.fluentbit.io/manual/pipeline/outputs/http) di Fluent Bit può anche inviare all'endpoint Fluentd di OneUptime, che legge ogni record come descrive la [pagina di Fluentd](/docs/telemetry/fluentd). Imposta `format` su `json_lines`, come qui sotto, o su `json`: OneUptime li legge entrambi, compressi con `compress: gzip` o no. Il formato predefinito di Fluent Bit, `msgpack`, viene rifiutato.
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: http
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      uri: "/fluentd/logs"
+      format: json_lines
+      # Send each record's time where OneUptime reads it
+      json_date_key: timestamp
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+        - x-oneuptime-service-name YOUR_SERVICE_NAME
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
+```
+
 ## OneUptime self-hosted
 
 Imposta `host` sull'host della tua istanza OneUptime. Se è servita in HTTP semplice anziché in HTTPS, imposta anche `port` sulla porta su cui è in ascolto (di solito `80`) e rimuovi `tls`:

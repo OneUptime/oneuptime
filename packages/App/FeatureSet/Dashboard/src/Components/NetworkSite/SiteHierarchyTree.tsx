@@ -463,6 +463,7 @@ const SiteHierarchyTree: FunctionComponent<ComponentProps> = (
               onChange={(value: string) => {
                 setSearch(value);
               }}
+              isSearchOrFilter={true}
               dataTestId="site-hierarchy-search"
             />
           </div>

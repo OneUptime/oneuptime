@@ -1,3 +1,5 @@
+import OutboundFetch from "../OutboundFetch";
+
 /*
  * The one HTTP call the marketplace clients make, behind a function type so
  * their tests hand in canned responses and see exactly what was sent.
@@ -6,6 +8,16 @@
  * marketplace API that accepts a connection and never answers would
  * otherwise hold a webhook (which the marketplace times out and retries) or
  * the hourly usage report behind it indefinitely.
+ *
+ * Every request goes through the server's outbound proxy, or directly, as
+ * every request of the server does (OutboundFetch, #10720). Node's fetch
+ * alone reads no HTTPS_PROXY, so on a server that reaches the internet only
+ * through a proxy none of the requests this client sends went out: Continue
+ * with Google and Sign in with Microsoft (GoogleSignInClient,
+ * MicrosoftSignInClient), the signing keys they and the marketplaces' tokens
+ * are checked with (RemoteJwtVerifier), the cloud marketplaces, and the
+ * usage a self-hosted Enterprise server on AWS or Azure reports
+ * (ee/Server/Marketplace/Reporters).
  */
 
 export type MarketplaceHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
@@ -33,7 +45,7 @@ export const DEFAULT_MARKETPLACE_HTTP_TIMEOUT_IN_MS: number = 30_000;
 export const defaultMarketplaceHttpClient: MarketplaceHttpClient = async (
   request: MarketplaceHttpRequest,
 ): Promise<MarketplaceHttpResponse> => {
-  const response: Response = await fetch(request.url, {
+  const response: Response = await OutboundFetch.fetch(request.url, {
     method: request.method,
     headers: request.headers || {},
     body: request.body ?? null,

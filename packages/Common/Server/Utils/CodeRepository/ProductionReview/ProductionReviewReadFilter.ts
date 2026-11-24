@@ -1,3 +1,4 @@
+import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import IncidentService from "../../../Services/IncidentService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
@@ -18,7 +19,12 @@ import {
   ProductionReviewReport,
   ProductionReviewUtil,
 } from "../../../../Types/CodeRepository/ProductionReview";
+import {
+  ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataUtil,
+} from "../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -115,17 +121,75 @@ export default class ProductionReviewReadFilter {
   }
 
   /*
+   * Whether the reader may read Data Security's findings: what production
+   * knows of a review's Sensitive data points - where the telemetry held
+   * the data, the scrub rule that masks it, the store a resource is - is
+   * theirs, read as the reader, in one read. Root may. What cannot be read
+   * is not known to be theirs: false.
+   */
+  @CaptureSpan()
+  public static async canReadDataSecurity(data: {
+    projectId: ObjectID;
+    reports: Array<ProductionReviewReport | null | undefined>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    if (data.props.isRoot || data.props.isMasterAdmin) {
+      return true;
+    }
+
+    const knowsProduction: boolean = data.reports.some(
+      (report: ProductionReviewReport | null | undefined): boolean => {
+        return ProductionReviewSensitiveDataUtil.getPoints(
+          report?.sensitiveData,
+        ).some((point: ProductionReviewLeakJSON): boolean => {
+          return point.production !== undefined;
+        });
+      },
+    );
+
+    // Nothing to hold back: no read needed.
+    if (!knowsProduction) {
+      return false;
+    }
+
+    try {
+      await DataStoreFindingService.findBy({
+        query: { projectId: data.projectId },
+        select: { _id: true },
+        limit: 1,
+        skip: 0,
+        props: data.props,
+      });
+
+      return true;
+    } catch (error) {
+      if (
+        !(error instanceof NotAuthorizedException) &&
+        !(error instanceof PaymentRequiredException)
+      ) {
+        logger.error(
+          `Production review: could not read who may read a review's sensitive data: ${error}`,
+        );
+      }
+
+      return false;
+    }
+  }
+
+  /*
    * An outcome with its review held to `readableIncidentIds`
-   * (ProductionReviewUtil.keepReadableIncidents) and, where that left
-   * something out, the sentence a list reads as what the review found
-   * (CodeTaskOutcome.summary) written again from what is left, in the
-   * host's words (`term`). The same outcome when it holds no review, or
-   * nothing in it is hidden.
+   * (ProductionReviewUtil.keepReadableIncidents) and to whether the reader
+   * may read Data Security (ProductionReviewUtil.keepReadableSensitiveData)
+   * and, where that left something out, the sentence a list reads as what
+   * the review found (CodeTaskOutcome.summary) written again from what is
+   * left, in the host's words (`term`). The same outcome when it holds no
+   * review, or nothing in it is hidden.
    */
   public static keepOutcome<T extends CodeTaskOutcome | null | undefined>(
     outcome: T,
     readableIncidentIds: Set<string>,
     term?: PullRequestTerm | undefined,
+    canReadDataSecurity: boolean = false,
   ): T {
     const report: ProductionReviewReport | undefined =
       outcome?.productionReview;
@@ -135,11 +199,14 @@ export default class ProductionReviewReadFilter {
     }
 
     const kept: ProductionReviewReport =
-      ProductionReviewUtil.keepReadableIncidents(
-        report,
-        (incidentId: string): boolean => {
-          return readableIncidentIds.has(incidentId.toLowerCase());
-        },
+      ProductionReviewUtil.keepReadableSensitiveData(
+        ProductionReviewUtil.keepReadableIncidents(
+          report,
+          (incidentId: string): boolean => {
+            return readableIncidentIds.has(incidentId.toLowerCase());
+          },
+        ),
+        canReadDataSecurity,
       );
 
     if (kept === report) {

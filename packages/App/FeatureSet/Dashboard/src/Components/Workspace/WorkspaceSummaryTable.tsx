@@ -1,14 +1,11 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import { getSharedNameSelect } from "Common/UI/Utils/SharedNameOptions";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Label from "Common/Models/DatabaseModels/Label";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
-import Team from "Common/Models/DatabaseModels/Team";
 import React, {
   Fragment,
   FunctionComponent,
@@ -122,8 +119,14 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
 
-  // Dropdown data for filters
-  const [labels, setLabels] = React.useState<Array<Label>>([]);
+  /*
+   * The short lists a condition picks from whole. Its monitors and labels
+   * are searched on the server, and which of an owners condition's picks
+   * are teams is read by their ids (RecordConditionPicker,
+   * useTeamIdsAmong, #10646, #10689): the page read the project's first
+   * 10,000 labels and teams, and a summary's label or team past them read
+   * as gone.
+   */
   const [alertStates, setAlertStates] = React.useState<Array<AlertState>>([]);
   const [alertSeverities, setAlertSeverities] = React.useState<
     Array<AlertSeverity>
@@ -134,8 +137,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [incidentStates, setIncidentStates] = React.useState<
     Array<IncidentState>
   >([]);
-  // Which of the people and teams an owners condition picks are teams.
-  const [teams, setTeams] = React.useState<Array<Team>>([]);
 
   /*
    * A Mattermost project's connection: the teams its bot is a member of,
@@ -242,31 +243,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       /*
        * Each list of values a condition picks from is read with whether each
        * value is archived: a picker leaves an archived one out for a new
-       * pick, and marks one a summary holds already (#7582).
+       * pick, and marks one a summary holds already (#7582). Monitors,
+       * labels and teams are not read here: a condition searches the server
+       * for them and names the ones it holds by their ids (#10646, #10689).
        */
-      /*
-       * Monitors are not read here: a Monitors condition searches the
-       * server and names the ones it holds by their ids
-       * (MonitorConditionPicker, #10646). The page read the project's first
-       * 10,000, and a summary's monitor past them read as gone.
-       */
-      const labelsResult: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
-        query: { projectId: ProjectUtil.getCurrentProjectId()! },
-        select: {
-          name: true,
-          _id: true,
-          color: true,
-          isArchived: true,
-          // What tells labels of one name apart (#10064).
-          ...getSharedNameSelect(Label),
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: { name: SortOrder.Ascending },
-      });
-      setLabels(labelsResult.data);
-
       const alertStatesResult: ListResult<AlertState> = await ModelAPI.getList({
         modelType: AlertState,
         query: { projectId: ProjectUtil.getCurrentProjectId()! },
@@ -342,25 +322,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         },
       );
       setIncidentStates(incStatesResult.data);
-
-      /*
-       * The project's teams: which of the people and teams an owners
-       * condition picks are teams. A member who may not read them still
-       * edits the summary, and the picks show as people.
-       */
-      try {
-        const teamsResult: ListResult<Team> = await ModelAPI.getList({
-          modelType: Team,
-          query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { name: true, _id: true },
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-          sort: { name: SortOrder.Ascending },
-        });
-        setTeams(teamsResult.data);
-      } catch {
-        setTeams([]);
-      }
 
       // A Mattermost summary picks the team of its channels among the bot's.
       if (props.workspaceType === WorkspaceType.Mattermost) {
@@ -1093,14 +1054,12 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               return (
                 <NotificationRuleConditions
                   eventType={eventType}
-                  labels={labels}
                   alertStates={alertStates}
                   alertSeverities={alertSeverities}
                   incidentSeverities={incidentSeverities}
                   incidentStates={incidentStates}
                   scheduledMaintenanceStates={[]}
                   monitorStatus={[]}
-                  teams={teams}
                   // "And" or "Or" between the conditions, as Match Condition says.
                   filterCondition={
                     value.filterCondition as FilterCondition | undefined

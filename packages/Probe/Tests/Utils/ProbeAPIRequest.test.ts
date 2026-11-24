@@ -62,6 +62,13 @@ describe("getDefaultRequestBody", () => {
          * sentence saying to update it (#9759).
          */
         "totpCodes",
+        /*
+         * Only a probe that declares "anyRequestBody" is handed an API step
+         * whose body is a JSON array, a single value or text; an older
+         * custom probe's step fails with a sentence saying to update it
+         * (#10737).
+         */
+        "anyRequestBody",
       ],
       /*
        * The release this probe runs, from APP_VERSION: kept with its
@@ -104,6 +111,12 @@ describe("getDefaultRequestBody", () => {
     expect(
       ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
     ).toContain(ProbeCapability.TotpCodes);
+  });
+
+  test("declares any request body, so the server hands this probe an array, a single value or a text body", () => {
+    expect(
+      ProbeAPIRequest.getDefaultRequestBody()["probeCapabilities"],
+    ).toContain(ProbeCapability.AnyRequestBody);
   });
 
   /*

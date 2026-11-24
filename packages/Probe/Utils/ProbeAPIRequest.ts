@@ -63,6 +63,13 @@ import { AppVersion } from "Common/Server/EnvironmentConfig";
  * a probe that declares this, and fails it on an older custom probe with a
  * sentence saying to update the probe (issue #9759).
  *
+ * "anyRequestBody": the API check sends a step's request body as the step
+ * says - any JSON value as written, an array or a single value too, and a
+ * text body byte for byte (MonitorRequestBody, #9737, #10736). The server
+ * hands a step with such a body only to a probe that declares this, and
+ * fails it on an older custom probe with a sentence saying to update the
+ * probe (issue #10737).
+ *
  * Add to this list only when the code that honours the new capability
  * ships in the same build.
  */
@@ -75,6 +82,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.RetryWhenBusy,
   ProbeCapability.RetryAllWorkWhenBusy,
   ProbeCapability.TotpCodes,
+  ProbeCapability.AnyRequestBody,
 ];
 
 /*

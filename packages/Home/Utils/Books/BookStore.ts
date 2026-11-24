@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import logger from "Common/Server/Utils/Logger";
+import OutboundFetch from "Common/Server/Utils/OutboundFetch";
 import { BookDefinition, getBookBySlug } from "./BookCatalog";
 import { BookSection, BookTocEntry, parseEpub, ParsedEpub } from "./Epub";
 
@@ -126,7 +127,8 @@ export const fetchArchiveOverHttp: ArchiveFetcher = async (
   }, options.timeoutMs);
 
   try {
-    const response: Response = await fetch(url, {
+    // Through the outbound proxy, or directly, as every request goes (#10720).
+    const response: Response = await OutboundFetch.fetch(url, {
       signal: controller.signal,
       redirect: "follow",
       headers: {

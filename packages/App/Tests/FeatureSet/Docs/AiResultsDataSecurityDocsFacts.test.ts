@@ -141,4 +141,45 @@ describe("AI Results counts Data Security", () => {
     );
     expect(CARD_DATA).toContain("return rows.length >= 2 ? { rows } : null;");
   });
+
+  /*
+   * Leaks Caught Before Merge (#10376): the leaks production reviews caught
+   * in pull requests against the issues scans opened on the same checks
+   * after the code shipped; fixed once a later review no longer finds one;
+   * for whoever may read both the repositories and Data Security's issues.
+   */
+  it("names Leaks Caught Before Merge as the page does, and says what it counts, when one is fixed and who sees it", () => {
+    const leaks: string = readRepoFile(
+      "Common/Server/Utils/AI/Outcomes/AiOutcomesLeaks.ts",
+    );
+    const util: string = readRepoFile(
+      "Common/Types/CodeRepository/ProductionReviewSensitiveData.ts",
+    );
+
+    expect(section).toContain(
+      "- **Leaks Caught Before Merge** — of the leaks of sensitive data that production reviews caught in pull requests (see [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests)) and the Data Security issues scans opened on the same checks after the code shipped, how many were caught before they merged.",
+    );
+    expect(CARD_DATA).toContain('"Leaks Caught Before Merge",');
+    // The issues found after: those opened on the checks a pull request's rules catch early.
+    expect(leaks).toContain(
+      "checkId: QueryHelper.any([...PRODUCTION_REVIEW_LEAK_CHECK_IDS]),",
+    );
+
+    // Fixed: a later review no longer posted it.
+    expect(section).toContain(
+      "A caught leak counts as fixed once a later review of its pull request no longer finds it.",
+    );
+    expect(util).toContain(
+      "merged.push({ ...leak, fixedAt: leak.fixedAt || at });",
+    );
+    expect(BUILDER).toContain('return row.fixedAt ? "fixed" : "open";');
+
+    // Both reads under the caller's own props: the repositories and the issues.
+    expect(section).toContain(
+      "It is shown to whoever may read both the project's repositories in Code and its Data Security issues, and each number lists the pull requests or issues it counts.",
+    );
+    expect(leaks).toContain("await CodeRepositoryService.findBy({");
+    expect(leaks).toContain("issues = await DataSecurityIssueService.findBy({");
+    expect(RECORDS_DIALOG).toContain("part === AiOutcomesPart.Leaks");
+  });
 });

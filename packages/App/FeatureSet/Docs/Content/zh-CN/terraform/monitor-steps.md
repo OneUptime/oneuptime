@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | 网站、API | HTTP 方法：`GET`、`POST`、`PUT`、`DELETE`、`HEAD` 或 `PATCH`。未设置时服务器使用 `GET`。 |
 | `request_headers` | map(string) | 网站、API | 要发送的请求头：`{ "Accept" = "application/json" }`。 |
 | `request_body` | string | API | 文本形式的请求体。 |
+| `request_body_format` | string | API | `request_body` 的发送方式：`json`（默认）用于任意 JSON 值；`text` 用于按原样发送的正文，例如 XML 或表单字段。 |
 | `do_not_follow_redirects` | bool | 网站、API | 在第一个响应处停止，而不是跟随重定向。 |
 | `allow_self_signed_certificates` | bool | 网站、API | 接受自签名的 TLS 证书。 |
 | `tls_client_certificate` | string | 网站、API | 用于双向 TLS 的客户端证书：PEM，或 `{{monitorSecrets.name}}` 引用。 |
@@ -287,7 +288,7 @@ criteria = [
 
 筛选器有 `check_on`（查看什么）、`filter_type`（如何比较）和 `value`（与什么比较，写成字符串；对于 `True`、`False` 这类真假检查则省略）。
 
-筛选器也可以判定一个时间窗口，而不是最近一次检查：设置 `evaluate_over_time = true`，在 `evaluate_over_time_minutes` 中设置窗口长度，并在 `evaluate_over_time_type` 中设置如何读取窗口：`Average`、`Sum`、`Maximum Value`、`Minimum Value`、`All Values` 或 `Any Value`。
+筛选器也可以判定一个时间窗口，而不是最近一次检查：设置 `evaluate_over_time = true`，在 `evaluate_over_time_minutes` 中设置窗口长度，并在 `evaluate_over_time_type` 中设置如何读取窗口：`Average`、`Sum`、`Maximum Value`、`Minimum Value`、`Percentile`、`All Values`、`Any Value`、`Count`、`Percentage` 或 `Status Changes`。`Percentile` 将 `evaluate_over_time_percentile` 中的百分位数与过滤器的值比较（未设置时为 95）。`Count`、`Percentage` 和 `Status Changes` 按探测器统计窗口内满足条件的检查数、其所占百分比，或在满足与不满足之间变化的次数，并按 `evaluate_over_time_count_filter_type` 的设置将该数字与 `evaluate_over_time_count_value` 比较（未设置时为 `Greater Than` 0）。
 
 `All Values` 表示窗口中的每次检查都违反了规则，因此只有当窗口被数据覆盖时它才会匹配：刚创建的监视器会等待窗口填满，而不是在第一次检查时就匹配。窗口至少应为监视器 `monitoring_interval` 的两倍；否则窗口中只有一次检查，“所有值”就和“任意值”意思相同。`Any Value` 在一次违反规则的检查时就会匹配，这是有意设计的。
 

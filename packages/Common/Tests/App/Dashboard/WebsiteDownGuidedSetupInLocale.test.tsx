@@ -110,6 +110,12 @@ jest.mock(
       isPaymentRequired: (): boolean => {
         return false;
       },
+      // Step 4's picker searches the server, through ModelAPI (#10646).
+      WEBSITE_DOWN_STATUS_PAGE_PICKER: (
+        jest.requireActual(
+          "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi",
+        ) as Record<string, unknown>
+      )["WEBSITE_DOWN_STATUS_PAGE_PICKER"],
     };
   },
 );

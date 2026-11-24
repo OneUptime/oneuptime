@@ -115,7 +115,6 @@ async function renderCondition(ids: Array<string>): Promise<void> {
           }}
           eventType={NotificationRuleEventType.Monitor}
           index={0}
-          labels={[]}
           alertStates={[]}
           alertSeverities={[]}
           incidentSeverities={[]}

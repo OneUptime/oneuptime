@@ -146,10 +146,10 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-將 `<version>` 替換為要執行的版本，例如 `17.0.1`，並在 `oneuptime-probe.yaml` 中寫入同一個映像檔，這樣再次套用該檔案時它會保留。
+將 `<version>` 替換為要執行的版本，例如 `17.1.0`，並在 `oneuptime-probe.yaml` 中寫入同一個映像檔，這樣再次套用該檔案時它會保留。
 :::
 
-探測器的頁面在 **探測器狀態** 下顯示它執行的版本。早於 17.0.1 的探測器無法產生[一次性驗證碼密鑰](/docs/monitor/monitor-secrets#使用一次性驗證碼登入)的驗證碼：它的頁面會說明這一點，它檢查的監測器的表單也會。
+探測器的頁面在 **探測器狀態** 下顯示它執行的版本。早於 17.1.0 的探測器無法產生[一次性驗證碼密鑰](/docs/monitor/monitor-secrets#使用一次性驗證碼登入)的驗證碼：它的頁面會說明這一點，它檢查的監測器的表單也會。過舊而無法傳送 JSON 陣列、單一值或文字形式的 API 監測器請求本文的探測器也是如此。
 
 ## 透過 Proxy 連線
 

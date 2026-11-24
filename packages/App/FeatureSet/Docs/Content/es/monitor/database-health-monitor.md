@@ -377,7 +377,7 @@ Los contadores que terminan en `total` son acumulativos desde que arrancó el se
 
 Los umbrales son números enteros. Escribe `90`, no `90.5`: los porcentajes y los segundos se comparan como enteros.
 
-**Base de datos en línea** y **Métrica de la base de datos** pueden comprobarse a lo largo del tiempo: marca **Evaluar estos criterios durante un periodo de tiempo**, luego elige cómo **Evaluar** los valores (por ejemplo **Todos los valores**) y **Durante los últimos (en minutos)**. A lo largo del tiempo, el ajuste **Si no hay datos** del filtro decide qué significa un valor que falta; déjalo en **Ignore** para que un permiso que falta siga sin poder avisar a nadie.
+**Base de datos en línea** y **Métrica de la base de datos** pueden comprobarse a lo largo del tiempo: marca **Evaluar estos criterios durante un periodo de tiempo**, luego elige cómo **Evaluar** los valores (por ejemplo **Todos los valores**) y **En el último período de**. A lo largo del tiempo, el ajuste **Si no hay datos** del filtro decide qué significa un valor que falta; déjalo en **Ignore** para que un permiso que falta siga sin poder avisar a nadie.
 
 ### Variables de las expresiones de JavaScript
 

@@ -348,10 +348,11 @@ describe("StorageArrayMonitorStepForm array selection", () => {
     /*
      * `name` is the `storage.array.name` attribute the agent stamps on
      * every metric; the worker scopes on it. Using the row id here would
-     * match nothing.
+     * match nothing. The picker searches arrays by it past its first page,
+     * and reads the step's own array by it (#10646).
      */
     expect(stepFormSource).toContain(
-      "useInfrastructureResources<StorageArray>({ modelType: StorageArray,",
+      'useInfrastructureResources<StorageArray>({ valueField: "name", searchFields: ["name"], heldValue: monitorStepStorageArrayMonitor.arrayIdentifier, modelType: StorageArray,',
     );
     /*
      * The option draws an array's own name as written (isUserContent), never

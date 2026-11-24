@@ -146,10 +146,10 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-`<version>`을 `17.0.1`처럼 실행할 버전으로 바꾸고, 같은 이미지를 `oneuptime-probe.yaml`에도 적으세요. 그래야 파일을 다시 적용해도 그 이미지가 유지됩니다.
+`<version>`을 `17.1.0`처럼 실행할 버전으로 바꾸고, 같은 이미지를 `oneuptime-probe.yaml`에도 적으세요. 그래야 파일을 다시 적용해도 그 이미지가 유지됩니다.
 :::
 
-프로브 페이지의 **프로브 상태** 에 실행 중인 버전이 표시됩니다. 17.0.1보다 오래된 프로브는 [일회용 코드 시크릿](/docs/monitor/monitor-secrets#일회용-코드로-로그인)의 코드를 만들 수 없습니다. 프로브 페이지가 이를 알려 주며, 프로브가 검사하는 모니터의 양식도 마찬가지입니다.
+프로브 페이지의 **프로브 상태** 에 실행 중인 버전이 표시됩니다. 17.1.0보다 오래된 프로브는 [일회용 코드 시크릿](/docs/monitor/monitor-secrets#일회용-코드로-로그인)의 코드를 만들 수 없습니다. 프로브 페이지가 이를 알려 주며, 프로브가 검사하는 모니터의 양식도 마찬가지입니다. JSON 배열, 단일 값 또는 텍스트인 API 모니터의 요청 본문을 보내기에는 너무 오래된 프로브도 마찬가지입니다.
 
 ## 프록시를 통해 연결
 

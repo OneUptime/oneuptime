@@ -52,8 +52,6 @@ export interface ComponentProps {
   initialValue?: undefined | CriteriaIncident;
   onChange?: undefined | ((value: CriteriaIncident) => void);
   incidentSeverityDropdownOptions: Array<DropdownOption>;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
   // The project's people, for the incident roles.
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
@@ -265,7 +263,6 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           <CriteriaRecordPicker
             modelType={OnCallDutyPolicy}
             ids={criteriaIncident.onCallPolicyIds}
-            knownOptions={props.onCallPolicyDropdownOptions}
             placeholder="Select On-Call Policies"
             dataTestId="monitor-criteria-incident-onCallPolicyIds"
             onChange={(ids: Array<ObjectID>) => {
@@ -347,7 +344,6 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
             <CriteriaRecordPicker
               modelType={Label}
               ids={criteriaIncident.labelIds}
-              knownOptions={props.labelDropdownOptions}
               placeholder="Select Labels"
               dataTestId="monitor-criteria-incident-labelIds"
               onChange={(ids: Array<ObjectID>) => {

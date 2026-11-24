@@ -120,6 +120,9 @@ jest.mock(
         return mayUseOnCallSetup;
       },
       isPaymentRequired: actual["isPaymentRequired"],
+      // Step 4's picker searches the server, through ModelAPI (#10646).
+      WEBSITE_DOWN_STATUS_PAGE_PICKER:
+        actual["WEBSITE_DOWN_STATUS_PAGE_PICKER"],
     };
   },
 );
@@ -355,6 +358,7 @@ import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
@@ -4246,26 +4250,72 @@ describe("4. Show it to customers? (#7053)", () => {
     expect(screen.queryByTestId("guided-setup-next-status-page")).toBeNull();
   });
 
-  test("another page picked: the monitor goes on that one", async () => {
+  /*
+   * #10646: the picker offered the first 100 pages read by name, archived
+   * ones among them, so a page past them could not be picked. It searches
+   * the project's live pages on the server as it is typed in.
+   */
+  test("another page picked, found by the picker's search past the first pages read: the monitor goes on that one", async () => {
+    const LATE_PAGE: { id: string; name: string } = {
+      id: "70000000-0000-4000-8000-000000000099",
+      name: "Zulu Status",
+    };
+    const searches: Array<{ query: Record<string, unknown> }> = [];
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (args: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+    }) => {
+      searches.push({ query: args.query });
+
+      const data: Array<StatusPage> =
+        args.modelType === StatusPage
+          ? [...PAGES, LATE_PAGE].map(
+              (page: { id: string; name: string }): StatusPage => {
+                return Object.assign(new StatusPage(), {
+                  _id: page.id,
+                  name: page.name,
+                });
+              },
+            )
+          : [];
+
+      return { data: data, count: data.length, skip: 0, limit: 50 };
+    }) as unknown as typeof ModelAPI.getList);
+
     await toStatusPageStep();
 
-    const picker: HTMLElement = within(
+    // The picker starts on the first page by name, as it always has.
+    const value: HTMLElement = within(
       screen.getByTestId("guided-setup-step-status_page-content"),
-    ).getByRole("combobox");
+    ).getByTestId("entity-dropdown-value");
 
-    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
+    expect(value).toHaveTextContent("Acme Status");
+
     await act(async () => {
-      fireEvent.click(
-        await screen.findByRole("option", { name: "Internal Status" }),
-      );
+      fireEvent.click(within(value).getAllByRole("button")[0]!);
+    });
+
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: /Zulu Status/,
+    });
+
+    // Live pages only: an archived page is offline.
+    expect(searches[searches.length - 1]!.query["isArchived"]).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(option);
     });
     await press("guided-setup-status-page-add");
 
     expect(api["addToStatusPage"]).toHaveBeenCalledWith({
-      statusPageId: PAGES[1]!.id,
+      statusPageId: LATE_PAGE.id,
       monitorId: MONITOR_ID,
       monitorName: "acme.example",
     });
+    expect(textOf("guided-setup-step-status_page-done-line")).toBe(
+      '"Zulu Status" shows it to your customers.',
+    );
   });
 
   test("Not now: nothing is added, the summary opens, and it stays so on return", async () => {

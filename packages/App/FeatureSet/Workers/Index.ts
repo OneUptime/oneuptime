@@ -338,11 +338,15 @@ import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
 import "./Jobs/SecurityCases/CheckResponseSteps";
 import "./Jobs/SecurityCases/WorkCasesWithAi";
+import "./Jobs/SecurityCases/ReviewAiHolds";
+import "./Jobs/SecurityCases/SendAiWeeklyDigest";
 import "./Jobs/SecurityBlocklist/ExpireSecurityBlocks";
 import "./Jobs/SecurityBlocklist/ReconcileSecurityBlocklist";
 import "./Jobs/SecurityBlocklist/RunSecurityBlocklistReconcile";
 import "./Jobs/SecurityBlocklist/CheckFeedsAreRead";
 import "./Jobs/SecurityBlocklist/PurgeFeedFetches";
+import "./Jobs/SecurityAutomaticResponse/DecideAutomaticResponse";
+import "./Jobs/SecurityAutomaticResponse/AutomaticResponseSweeps";
 
 /*
  * Instance capacity management (Community Edition). The Postgres and Redis

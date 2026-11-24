@@ -229,7 +229,7 @@ const WAYS_IN: ReadonlyArray<WayIn> = [
 const LOGS_OPEN_ACTION: string = "Open Your logs";
 // What Your logs reads, as its card on Connections lists it.
 const LOG_FORMATS_LINE: string =
-  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · OpenStack audit trail · CEF · LEEF · Palo Alto Networks · Fortinet FortiGate · Cisco ASA · Kubernetes audit logs · Web attacks";
+  "SSH sign-ins · sudo · Windows events · AWS CloudTrail · Google Cloud audit logs · Azure activity and Entra ID logs · Azure Key Vault, Storage and SQL logs · OpenStack audit trail · CEF · LEEF · Palo Alto Networks · Fortinet FortiGate · Cisco ASA · Kubernetes audit logs · Web attacks";
 
 // Computed colours the assertions compare against.
 const WHITE_RGB: string = "rgb(255, 255, 255)";
@@ -3082,7 +3082,7 @@ test.describe("connections: your logs and your SIEM", () => {
   }
 
   /*
-   * Your logs lists its thirteen kinds by where they come from: each group
+   * Your logs lists its fifteen kinds by where they come from: each group
    * one list, a kind a row, as Your OneUptime data lists its sources under
    * it. Where the card itself is 44rem wide the groups flow down two
    * newspaper columns - Servers and Cloud in the first, Security devices
@@ -3096,7 +3096,7 @@ test.describe("connections: your logs and your SIEM", () => {
    */
   const LOG_KIND_GROUPS: ReadonlyArray<{ id: string; kinds: number }> = [
     { id: "servers", kinds: 3 },
-    { id: "cloud", kinds: 4 },
+    { id: "cloud", kinds: 5 },
     { id: "security-devices", kinds: 5 },
     { id: "applications", kinds: 2 },
   ];
@@ -3421,7 +3421,8 @@ test.describe("connections: your logs and your SIEM", () => {
   /*
    * The heights a menu's items come in, each rounded: one height for a menu
    * whose every name keeps one line (the examples menu is the wide one,
-   * where 14rem broke "Azure activity and Entra ID logs" in two).
+   * where 14rem broke "Azure activity and Entra ID logs" in two, and 20rem
+   * "Azure Key Vault, Storage and SQL logs").
    */
   async function menuItemHeights(menu: Locator): Promise<Array<number>> {
     const heights: Array<number> = await menu
@@ -3442,6 +3443,7 @@ test.describe("connections: your logs and your SIEM", () => {
     "AWS CloudTrail",
     "Google Cloud audit logs",
     "Azure activity and Entra ID logs",
+    "Azure Key Vault, Storage and SQL logs",
     "OpenStack audit trail",
     "CEF",
     "LEEF",

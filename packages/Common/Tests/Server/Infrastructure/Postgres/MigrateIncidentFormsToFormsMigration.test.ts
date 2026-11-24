@@ -2,6 +2,7 @@ import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1796400000000-AddIncidentForms";
 import { AddFormBranding1797700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797700000000-AddFormBranding";
 import { AddFormTemplates1799500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799500000000-AddFormTemplates";
+import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187140120-AddFormPrivateUsersAndSingleSignOn";
 import {
   LEGACY_PERMISSION_RENAMES,
   MigrateIncidentFormsToForms1797400000000,
@@ -234,6 +235,12 @@ const ADDED_LATER: Array<{
     migration: new AddFormTemplates1799500000000(),
     table: "Form",
     columns: ["templates"],
+  },
+  {
+    // A form's link for only the people who sign in, and with SSO alone (#10249).
+    migration: new AddFormPrivateUsersAndSingleSignOn1809187140120(),
+    table: "Form",
+    columns: ["requireSignIn", "requireSsoForLogin"],
   },
 ];
 

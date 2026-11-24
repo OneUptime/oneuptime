@@ -182,6 +182,31 @@ pipeline:
 
 `listen: 127.0.0.1` 只接收來自本主機的日誌：`http` 輸入不要求任何金鑰，所以使用 `listen: 0.0.0.0` 時，任何能連到該連接埠的人都可以用你的擷取金鑰向 OneUptime 傳送日誌。把 `http` 輸入換成你需要的輸入，例如日誌檔案用 `tail`、journal 用 `systemd`，並在每個輸入上保留這兩個處理器和 `storage.type: filesystem`。
 
+## 用 HTTP 輸出傳送
+
+Fluent Bit 的 [HTTP 輸出](https://docs.fluentbit.io/manual/pipeline/outputs/http)也可以傳送到 OneUptime 的 Fluentd 端點，它會依照 [Fluentd 頁面](/docs/telemetry/fluentd)說明的方式讀取每筆記錄。把 `format` 設為 `json_lines`（如下所示）或 `json`：OneUptime 兩者都能讀取，無論是否用 `compress: gzip` 壓縮。Fluent Bit 的預設格式 `msgpack` 會被拒絕。
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: http
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      uri: "/fluentd/logs"
+      format: json_lines
+      # Send each record's time where OneUptime reads it
+      json_date_key: timestamp
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+        - x-oneuptime-service-name YOUR_SERVICE_NAME
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
+```
+
 ## 自行託管的 OneUptime
 
 把 `host` 設為你的 OneUptime 執行個體的主機。如果它透過一般 HTTP 而非 HTTPS 提供服務，也要把 `port` 設為它所監聽的連接埠（通常是 `80`），並移除 `tls`：

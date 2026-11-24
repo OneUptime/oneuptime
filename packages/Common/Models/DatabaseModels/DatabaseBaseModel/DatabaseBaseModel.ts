@@ -216,15 +216,15 @@ export default class DatabaseBaseModel extends BaseEntity {
    * those moves updatedAt. These move only when a person, an API key, a
    * workflow, an MCP client or a server admin changes the record.
    *
-   * Kept out of what the API's documentation is generated from - the
-   * OpenAPI spec, the API reference, the Terraform and Crossplane schemas,
-   * the MCP server's tools: on every resource they would add 4.4 MB to the
-   * spec, past its budget (#8853). A request reads them as it reads any
-   * column; the record line on each resource's page is where they show.
+   * Documented on every resource, read only: in the OpenAPI spec, the API
+   * reference, the Terraform and Crossplane providers and the MCP server's
+   * tools, and on the record line of each resource's page (#10527). The
+   * spec describes each once, as a schema of its own that every resource
+   * refers to (ModelSchema.RECORD_ACTOR_SCHEMA_NAMES): written out on each
+   * resource they were 4.4 MB of it, past its budget (#8853).
    */
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     title: "Created By Actor Type",
     type: TableColumnType.ShortText,
     computed: true,
@@ -242,7 +242,6 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     title: "Created By Actor ID",
     type: TableColumnType.ObjectID,
     computed: true,
@@ -259,7 +258,6 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     title: "Last Modified At",
     type: TableColumnType.Date,
     computed: true,
@@ -274,7 +272,6 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     title: "Last Modified By Actor Type",
     type: TableColumnType.ShortText,
     computed: true,
@@ -292,7 +289,6 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     title: "Last Modified By Actor ID",
     type: TableColumnType.ObjectID,
     computed: true,
@@ -315,7 +311,6 @@ export default class DatabaseBaseModel extends BaseEntity {
    */
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     manyToOneRelationColumn: "lastModifiedByUserId",
     type: TableColumnType.Entity,
     modelTypeThunk: getUserModelType,
@@ -333,7 +328,6 @@ export default class DatabaseBaseModel extends BaseEntity {
 
   @ColumnAccessControlDecorator({ create: [], read: [], update: [] })
   @TableColumn({
-    hideColumnInDocumentation: true,
     title: "Last Modified by User ID",
     type: TableColumnType.ObjectID,
     computed: true,

@@ -175,6 +175,7 @@ const SOURCES: Record<string, string> = {
   teamsChatsCard: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsChatsCard.tsx`,
   twilioMigration:
     "packages/App/FeatureSet/Workers/DataMigrations/UpdateGlobalCongfigFromEnv.ts",
+  twilioHttpClient: `${NOTIFICATION}/Utils/TwilioHttpClient.ts`,
   notificationIndex: `${NOTIFICATION}/Index.ts`,
   smsApi: `${NOTIFICATION}/API/SMS.ts`,
   callApi: `${NOTIFICATION}/API/Call.ts`,
@@ -3485,7 +3486,19 @@ describe("Twilio Integration, against the notification server and the forms", ()
     });
     const migration: string = readSource("twilioMigration");
 
-    expect(readers).toEqual([SOURCES["twilioMigration"]]);
+    /*
+     * The one other reader is the HTTP client Twilio's SMS and calls go
+     * through, past the outbound proxy (#10758), and only for
+     * TWILIO_CA_BUNDLE: the Twilio library's own variable for a CA bundle,
+     * which the library's client read itself before. No old credential is
+     * read there.
+     */
+    expect(readers.sort()).toEqual(
+      [SOURCES["twilioHttpClient"]!, SOURCES["twilioMigration"]!].sort(),
+    );
+    expect(
+      readSource("twilioHttpClient").match(/process\.env\["TWILIO_[A-Z_]+"\]/g),
+    ).toEqual(['process.env["TWILIO_CA_BUNDLE"]']);
 
     for (const variable of [
       "TWILIO_ACCOUNT_SID",

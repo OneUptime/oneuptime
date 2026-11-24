@@ -8,6 +8,7 @@ OneUptime AI lee cada caso de seguridad como lo haría un analista: sus deteccio
 - [Gestionar un caso de principio a fin](#gestionar-un-caso-de-principio-a-fin): Contener, comprobar, corregir y cerrar, con una persona que aprueba lo que elijas.
 - [Qué puede hacer OneUptime AI en un caso](#qué-puede-hacer-oneuptime-ai-en-un-caso): Desactivado, Preguntar antes o Por su cuenta, para cada tipo de paso.
 - [Cuándo deriva un caso a personas](#cuándo-deriva-un-caso-a-personas): Por qué se detiene y quién se entera.
+- [Dejar que OneUptime AI responda primero](#dejar-que-oneuptime-ai-responda-primero): Alertar a las personas solo cuando OneUptime AI las necesita.
 - [Ejecutar un playbook tras una clasificación](#ejecutar-un-playbook-tras-una-clasificación): Actuar sobre un caso que se lee como Probablemente malicioso.
 - [Redactar una regla de detección](#redactar-una-regla-de-detección): Describe qué hay que detectar y lee la regla Sigma.
 - [Preguntar a la IA en las páginas de seguridad](#preguntar-a-la-ia-en-las-páginas-de-seguridad): Preguntas sobre casos y eventos, con palabras sencillas.
@@ -184,6 +185,44 @@ Las personas del caso se enteran enseguida o, cuando nadie está en él, las per
 
 **Responder con IA** pide a OneUptime AI que vuelva a gestionar el caso, desde donde está.
 
+Un caso retenido mientras OneUptime AI responde primero llega a las personas una sola vez, con el aviso del caso nuevo y el motivo por el que OneUptime AI se detuvo: consulta [Dejar que OneUptime AI responda primero](#dejar-que-oneuptime-ai-responda-primero).
+
+## Dejar que OneUptime AI responda primero
+
+En **Dejar que OneUptime AI responda primero**, en **Productos → Eventos de seguridad → IA → Ajustes**, activa **Responder primero**: así, un caso nuevo que una detección abre por debajo de la prioridad que elijas espera a OneUptime AI antes de que se alerte a nadie. Se ofrece mientras **Clasificar los casos nuevos** y **Gestionar los casos de principio a fin** están activados. Empieza desactivado y se guarda en cuanto lo cambias. Propietario del proyecto y Administrador del proyecto pueden cambiarlo.
+
+- **Para casos por debajo de**: la prioridad por debajo de la cual tiene que estar un caso para retenerse. Es Alta mientras no elijas otra.
+- **Alertar de todos modos tras**: el tiempo máximo que se retiene un caso (5, 10, 15, 20 o 30 minutos). Empieza en 10 minutos.
+
+Mientras un caso está retenido, el aviso del caso nuevo espera, y también los pasos **Avisar a la guardia** de los playbooks que se inician solos en él. El caso muestra **OneUptime AI se está encargando**, con la hora a la que se alertará a las personas, y **Avisar ahora** las alerta de inmediato. Una ejecución de playbook cuyo aviso espera aparece como **Esperando a OneUptime AI**.
+
+La retención termina en cuanto ocurre una de estas cosas:
+
+| Cuando | Entonces |
+| --- | --- |
+| OneUptime AI contiene el caso y OneUptime comprueba cada paso que lo contiene, o el caso se cierra | No se alerta a nadie. Los canales que publican los casos nuevos reciben un único resumen de lo que hizo OneUptime AI, y los pasos de aviso que esperaban se omiten |
+| OneUptime AI necesita a una persona: pide a alguien que apruebe un paso, deriva el caso a personas o no puede empezar a gestionarlo | Se alerta de inmediato a todas las personas que habrían recibido el aviso del caso, con el motivo y lo que OneUptime AI ya hizo, y los pasos de aviso que esperaban avisan a la guardia |
+| Su clasificación no lee el caso como Probablemente malicioso, el caso se marca como Contenido antes de que OneUptime pueda comprobar cada paso, o se agota el tiempo de retención | Se alerta a todos de inmediato, con el motivo |
+| Alguien pulsa **Avisar ahora**, el caso sube a la prioridad que elegiste, o se desactiva **Responder primero** o **Gestionar los casos de principio a fin** | Se alerta a todos de inmediato |
+| Una persona se hace cargo del caso: **Tomar el control**, asignarlo o pasarlo a otro estado | El caso es suyo. No se alerta a nadie más, los canales se enteran del caso nuevo y los pasos de aviso que esperaban se omiten |
+
+Un caso nunca se retiene, y se alerta a las personas como siempre, cuando:
+
+- tiene tu prioridad más alta, o la prioridad que elegiste o una superior;
+- se abrieron otros 3 casos en los 5 minutos anteriores, lo que parece un ataque en curso: los casos retenidos en ese momento también pasan a personas;
+- parte de sus datos parece contener instrucciones para una IA;
+- trata de una dirección, un usuario o un host de un caso que OneUptime AI resolvió en las últimas 24 horas, ya que lo que hizo no se sostuvo;
+- OneUptime AI no puede clasificarlo ni gestionarlo, por ejemplo cuando el proyecto se quedó sin créditos de IA;
+- lo abrió una persona, o es el caso del ataque de prueba.
+
+La cronología del caso indica por qué no se retuvo, salvo en un caso con la prioridad que elegiste o una superior, un caso que abrió una persona y el caso del ataque de prueba. Los avisos de un objetivo de respuesta nunca se retienen.
+
+Bloquear direcciones y contener cuentas y hosts preguntan antes hasta que los pones en **Por su cuenta** en **Qué puede hacer OneUptime AI en un caso**, y un caso llega a las personas en cuanto OneUptime AI pregunta. Con **Bloquear direcciones** en **Por su cuenta**, confirmado por un Administrador de seguridad, puede contener un escáner sin alertar a nadie.
+
+### El correo semanal
+
+Cada lunes, los Propietarios del proyecto y los Administradores de seguridad que pueden leer casos de seguridad reciben un correo con lo que hizo OneUptime AI en los casos de seguridad del proyecto la semana anterior: los casos a los que respondió primero y cómo terminaron, lo rápido que se contuvieron los casos que gestionó, las direcciones que bloqueó y los bloqueos que se volvieron a levantar, los pasos que pidió aprobar a las personas y lo rápido que respondieron, y los pasos que las personas deshicieron. Solo contiene cifras y un enlace a **Productos → Eventos de seguridad → Vista general**. Una semana en la que OneUptime AI no hizo nada no envía ningún correo.
+
 ## El informe de cierre
 
 Cuando OneUptime AI cierra un caso, o pide a una persona que lo haga, redacta un informe de cierre a partir de lo que contiene el caso, no de las palabras de la clasificación: qué pasó, el impacto, qué se hizo, qué se corrigió y qué vigilar. El informe es la nota de cierre del caso, está en la cronología, y la tarjeta lo muestra en **Informe de cierre**. Con **Cerrar el caso** en **Preguntar antes**, el caso espera a que una persona apruebe el cierre, con el informe para leer antes.
@@ -242,6 +281,14 @@ Un Propietario del proyecto o alguien con Manage Billing puede añadir créditos
 
 :::details La tarjeta dice que un texto del caso parece contener instrucciones para una IA
 Parte de los datos del caso, como el mensaje de un evento o un nombre de usuario, se escribió para manipular a una IA. OneUptime AI lo leyó como datos y te dejó la decisión: lee tú mismo las detecciones y la evidencia antes de cerrar el caso.
+:::
+
+:::details Se alertó a las personas mientras OneUptime AI respondía primero
+La cronología del caso indica por qué terminó la retención: OneUptime AI pidió a alguien que aprobara un paso, derivó el caso a personas o no terminó en el tiempo de **Alertar de todos modos tras**, o alguien pulsó **Avisar ahora**. Un paso que pregunta antes llega a las personas en cuanto OneUptime AI pregunta: consulta **Qué puede hacer OneUptime AI en un caso**.
+:::
+
+:::details Un caso nuevo no se retuvo
+Comprueba que **Responder primero** está activado y que el caso está por debajo de la prioridad de **Para casos por debajo de**. Un caso con tu prioridad más alta, un caso que abrió una persona y el caso del ataque de prueba nunca se retienen. Por cualquier otro motivo, la cronología del caso indica por qué.
 :::
 
 :::details Un playbook con el disparador de IA no se ejecutó

@@ -10,17 +10,20 @@ import {
   AiOutcomesDataSecurityProposals,
   AiOutcomesIssueVerdictOutcome,
   AiOutcomesIssueVerdicts,
+  AiOutcomesLeaks,
   AiOutcomesModelChange,
   AiOutcomesModelResult,
   AiOutcomesModels,
   AiOutcomesPages,
   AiOutcomesPullRequestFixes,
+  AiOutcomesPullRequestFixKind,
   AiOutcomesRemediationFixes,
   AiOutcomesRootCauseOutcome,
   AiOutcomesRootCauses,
   AiOutcomesWeek,
   getDataSecurityChangesMadeCount,
 } from "../../../../Types/AI/AiOutcomes";
+import { FixProductionCheckHelper } from "../../../../Types/AI/FixProductionCheck";
 import FixProductionStatus from "../../../../Types/AI/FixProductionStatus";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import {
@@ -77,6 +80,8 @@ export interface AiOutcomesRemediationRow {
 export interface AiOutcomesPullRequestRow {
   createdAt: Date;
   productionStatus: FixProductionStatus | string | undefined;
+  // What production watched it for; none is an exception's fix (#10368).
+  productionCheck?: string | null | undefined;
   // The incident or alert its fix task was for, when it was for one.
   subjectKey?: AiOutcomesSubjectKey | undefined;
   /*
@@ -168,6 +173,22 @@ export interface AiOutcomesInput {
     | Array<AiOutcomesDataSecurityAnalysisRow>
     | null
     | undefined;
+  /*
+   * Leaks caught in pull requests and found after (#10376). Null: the
+   * caller may not read them; left out by a caller that does not count them.
+   */
+  leakRows?: Array<AiOutcomesLeakRow> | null | undefined;
+}
+
+/*
+ * One leak AI Results counts (#10376): caught in a pull request - when a
+ * review first posted it, and when a later one no longer found it - or
+ * found after it shipped, when a scan opened its issue.
+ */
+export interface AiOutcomesLeakRow {
+  createdAt: Date;
+  isCaught: boolean;
+  fixedAt?: Date | undefined;
 }
 
 export function getSubjectKey(
@@ -559,6 +580,8 @@ export default class AiOutcomesBuilder {
         dataSecurityChangesMade: 0,
         verdictsAgreed: 0,
         verdictsDecided: 0,
+        leaksCaught: 0,
+        leaksCounted: 0,
       });
     }
 
@@ -582,6 +605,9 @@ export default class AiOutcomesBuilder {
       pullRequestFixes: input.pullRequestRows
         ? this.countPullRequestFixes(input.pullRequestRows, weekOf)
         : null,
+      pullRequestFixKinds: input.pullRequestRows
+        ? this.countPullRequestFixKinds(input.pullRequestRows, weekOf)
+        : null,
       rootCauses: input.investigationRows
         ? this.countRootCauses(input.investigationRows, weekOf)
         : null,
@@ -599,6 +625,13 @@ export default class AiOutcomesBuilder {
               : null,
           }
         : {}),
+      ...(input.leakRows !== undefined
+        ? {
+            leaks: input.leakRows
+              ? this.countLeaks(input.leakRows, weekOf)
+              : null,
+          }
+        : {}),
       models: input.canReadModels
         ? this.countModels({
             investigationRows: input.investigationRows || [],
@@ -610,6 +643,43 @@ export default class AiOutcomesBuilder {
       weeks,
       isPartial: input.isPartial,
     };
+  }
+
+  // Where a leak counts (#10376): fixed or still open in its pull request, or found after.
+  public static getLeakOutcome(row: AiOutcomesLeakRow): keyof AiOutcomesLeaks {
+    if (!row.isCaught) {
+      return "foundAfter";
+    }
+
+    return row.fixedAt ? "fixed" : "open";
+  }
+
+  /*
+   * The leaks of the window: each in the week it was caught or found, and
+   * every week's bar its caught ones out of all it counted.
+   */
+  private static countLeaks(
+    rows: Array<AiOutcomesLeakRow>,
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null,
+  ): AiOutcomesLeaks {
+    const leaks: AiOutcomesLeaks = { fixed: 0, open: 0, foundAfter: 0 };
+
+    for (const row of rows) {
+      const week: AiOutcomesWeek | null = weekOf(row.createdAt);
+
+      if (!week) {
+        continue;
+      }
+
+      leaks[this.getLeakOutcome(row)]++;
+      week.leaksCounted++;
+
+      if (row.isCaught) {
+        week.leaksCaught++;
+      }
+    }
+
+    return leaks;
   }
 
   private static countPages(
@@ -719,6 +789,54 @@ export default class AiOutcomesBuilder {
     }
 
     return fixes;
+  }
+
+  /*
+   * The fix pull requests by what production watched each for (#10368):
+   * every kind with one counted, the most checked first. A row with no
+   * check is an exception's fix, watched before the column existed.
+   */
+  public static countPullRequestFixKinds(
+    rows: Array<AiOutcomesPullRequestRow>,
+    weekOf: (createdAt: Date) => AiOutcomesWeek | null,
+  ): Array<AiOutcomesPullRequestFixKind> {
+    const kinds: Map<string, AiOutcomesPullRequestFixKind> = new Map();
+
+    for (const row of rows) {
+      const outcome: keyof AiOutcomesPullRequestFixes | null =
+        this.getPullRequestOutcome(row);
+
+      if (!weekOf(row.createdAt) || !outcome) {
+        continue;
+      }
+
+      const check: string =
+        FixProductionCheckHelper.fromDatabaseValue(row.productionCheck) ||
+        String(row.productionCheck);
+      const kind: AiOutcomesPullRequestFixKind = kinds.get(check) || {
+        check,
+        verified: 0,
+        regressed: 0,
+        watching: 0,
+        awaitingDeploy: 0,
+        unverifiable: 0,
+      };
+
+      kind[outcome]++;
+      kinds.set(check, kind);
+    }
+
+    return Array.from(kinds.values()).sort(
+      (
+        a: AiOutcomesPullRequestFixKind,
+        b: AiOutcomesPullRequestFixKind,
+      ): number => {
+        return (
+          b.verified + b.regressed - (a.verified + a.regressed) ||
+          a.check.localeCompare(b.check)
+        );
+      },
+    );
   }
 
   private static countRootCauses(

@@ -45,6 +45,15 @@ interface FilterGroup {
 }
 
 const disabledCriteriaReasonPattern: RegExp = /\bdisabled\b/i;
+
+/*
+ * Why a criteria judged only during its active hours was skipped (#10355),
+ * as the server writes it (MonitorCriteriaEvaluator), worded in the reader's
+ * language from here.
+ */
+export const OUTSIDE_ACTIVE_HOURS_REASON: string = translationKey(
+  "This criteria is judged only during its active hours, and this check was outside them.",
+);
 const earlierCriteriaMatchedReasonPattern: RegExp =
   /\b(?:earlier|previous)\b.*\bcriteri(?:a|on)\b.*\bmatched\b/i;
 const stoppedAtFirstMatchReasonPattern: RegExp =

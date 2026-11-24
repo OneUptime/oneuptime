@@ -50,6 +50,12 @@ import React, {
  * emailed. It then reads the count again, and says nothing once nobody is
  * left.
  *
+ * The server clears only once the owner's session has confirmed it's
+ * theirs (#10775): until then it refuses the clear, changing nothing, and
+ * the Dashboard's API client asks them (Confirm It's You, mounted in
+ * App.tsx) and sends the same clear again once they have, while the dialog
+ * waits. Cancelled, the dialog says why nothing was cleared.
+ *
  * Nothing is drawn while the count is being read, when it cannot be read -
  * the server answers only the project's owners - or when nobody has
  * anything saved: a line that could only be wrong, or say nothing new, is
@@ -139,12 +145,23 @@ const ProjectSavedSignInSettings: FunctionComponent<ComponentProps> = (
     setIsConfirmShown(false);
 
     // Said only when the server said how many: never a count it did not give.
-    if (answer) {
+    if (answer && answer.peopleCleared > 0) {
       Toast.success(
         translator.translatePlural(
           PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.cleared,
           answer.peopleCleared,
         ),
+      );
+    } else if (answer) {
+      /*
+       * It cleared nobody: another clear of them came first (#10776), and
+       * this one removed and recorded nothing. Said as what it is, never as
+       * a clear of 0 people.
+       */
+      Toast.info(
+        translator.translateText(
+          PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared,
+        ) || PROJECT_SAVED_SIGN_IN_SETTINGS_COPY.alreadyCleared,
       );
     }
 

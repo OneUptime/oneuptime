@@ -93,6 +93,14 @@ Ett datalager utan ägare kan få dem från OneUptime AI. Den läser det som red
 
 Se [Utlösare för arbetsflöden](/docs/workflows/triggers) för de fält som varje utlösare skickar vidare.
 
+## Pull requests
+
+En läcka är billigast att rätta innan den mergas. I ett repository som är anslutet under **Kod** med produktionsgranskningar påslagna har granskningen av varje pull request ett avsnitt **Känsliga data**, läst från dess diff: kod som skriver personuppgifter eller en hemlighet till telemetri, infrastrukturkod som gör ett datalager offentligt eller stänger av dess kryptering, säkerhetskopior eller loggning, och migreringar som lägger till kolumner för personuppgifter, lösenord eller kortdata. Varje punkt nämner den datasäkerhetskontroll som ändringen skulle misslyckas med när den väl rullats ut, och dina egna datatyper läses utifrån sina namntips, så som skanningarna läser dem. Se [Produktionsgranskning av pull requests](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests).
+
+Det som Datasäkerhet vet gör de punkterna skarpare, i ett privat repositorys kommentar och, i Kod, för dem som får läsa Datasäkerhets fynd: var tjänstens telemetri innehöll samma typ av data de senaste 7 dagarna, den rensningsregel som maskerar dem vid inmatning, och det datalager som en resurs är, med dess känslighet. Ett datalager markerat **Offentlig avsiktligt** ger ingen punkt för att det är offentligt. Ett offentligt repositorys kommentar säger bara vad diffen visar.
+
+**Läckor fångade före merge** på **Projektinställningar → AI → AI-resultat** räknar de läckor som granskningar fångade i pull requests, rättade där eller ännu inte, bredvid de problem som skanningarna öppnade för samma kontroller efter att koden rullats ut.
+
 ## OneUptime AI
 
 Två åtgärder på ett problem ber OneUptime AI om hjälp. Båda skickar till OneUptime AI problemets titel och allvarlighetsgrad, datalagrets namn, typ, region och moln-ID, dess känslighet och datatyper, var och en med sitt namn (dina egna datatyper med namnet du gav dem), bevisen, varför kontrollen spelar roll och åtgärden för datalagrets moln – aldrig ett fynds prov. Båda körs under projektets reglage och gränser för OneUptime AI. Vad var och en skickar, vad den aldrig skickar och vilken modell den körs på finns på [OneUptime AI i Datasäkerhet](/docs/data-security/ai).

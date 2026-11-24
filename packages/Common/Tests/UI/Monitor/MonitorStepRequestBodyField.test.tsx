@@ -8,11 +8,13 @@ import {
   test,
 } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { ReactElement, useState } from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -21,6 +23,7 @@ import { getRequestBodyFieldError } from "../../../../App/FeatureSet/Dashboard/s
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import URL from "../../../Types/API/URL";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import MonitorRequestBodyFormat from "../../../Types/Monitor/MonitorRequestBodyFormat";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
@@ -53,6 +56,7 @@ jest.mock("../../../UI/Components/CodeEditor/CodeEditor", () => {
       initialValue?: string;
       error?: string;
       allowJSON5?: boolean;
+      type?: string;
       onChange?: (value: string) => void;
       onBlur?: () => void;
     }) => {
@@ -61,6 +65,7 @@ jest.mock("../../../UI/Components/CodeEditor/CodeEditor", () => {
           <textarea
             data-testid="request-body-editor"
             data-allow-json5={String(Boolean(props.allowJSON5))}
+            data-code-type={props.type}
             defaultValue={props.initialValue || ""}
             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
               props.onChange?.(event.target.value);
@@ -407,8 +412,6 @@ function mountEditor(step: MonitorStep): Array<MonitorStep> {
           monitorStatusDropdownOptions={[]}
           incidentSeverityDropdownOptions={[]}
           alertSeverityDropdownOptions={[]}
-          onCallPolicyDropdownOptions={[]}
-          labelDropdownOptions={[]}
           userDropdownOptions={[]}
           allMonitorSteps={new MonitorSteps()}
           probes={[]}
@@ -435,6 +438,33 @@ async function requestBodyEditor(): Promise<HTMLTextAreaElement> {
   return (await screen.findByTestId(
     "request-body-editor",
   )) as HTMLTextAreaElement;
+}
+
+// Picks the body's format, by the words the picker shows, under More fields.
+async function pickFormat(label: string): Promise<void> {
+  await requestBodyEditor();
+
+  const picker: HTMLElement = screen.getByRole("combobox", {
+    name: "Request Body Format",
+  });
+
+  await act(async () => {
+    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
+  });
+
+  const menu: HTMLElement =
+    document.querySelector<HTMLElement>(".ou-select__menu")!;
+  const option: HTMLElement | undefined = within(menu)
+    .getAllByTestId("dropdown-option-label")
+    .find((element: HTMLElement): boolean => {
+      return element.textContent === label;
+    });
+
+  expect(option).toBeDefined();
+
+  await act(async () => {
+    fireEvent.click(option!);
+  });
 }
 
 // Types a body, leaves the field, and returns the error the field shows.
@@ -525,6 +555,93 @@ describe("the request body field of an API monitor's form", () => {
   });
 });
 
+describe("the request body's format (#10736)", () => {
+  test("JSON is the default, listed first, and the editor is a JSON editor", async () => {
+    mountEditor(apiStep("[1]"));
+
+    const editor: HTMLTextAreaElement = await requestBodyEditor();
+
+    expect(editor).toHaveAttribute("data-code-type", "json");
+    expect(
+      screen.getByRole("combobox", { name: "Request Body Format" }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(
+        screen.getByRole("combobox", { name: "Request Body Format" }),
+        { key: "ArrowDown", code: "ArrowDown" },
+      );
+    });
+
+    const labels: Array<string> = within(
+      document.querySelector<HTMLElement>(".ou-select__menu")!,
+    )
+      .getAllByTestId("dropdown-option-label")
+      .map((element: HTMLElement): string => {
+        return element.textContent || "";
+      });
+
+    expect(labels).toEqual(["JSON", "Text"]);
+  });
+
+  test("Text takes a body that is not JSON, says nothing against it, and the form saves it", async () => {
+    const changes: Array<MonitorStep> = mountEditor(apiStep(undefined));
+    const editor: HTMLTextAreaElement = await requestBodyEditor();
+
+    expect(await typeBody(editor, "<ping/>")).not.toBeNull();
+
+    await pickFormat("Text");
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("request-body-error")).toBeNull();
+    });
+
+    const last: MonitorStep = changes[changes.length - 1]!;
+
+    expect(last.data!.requestBodyFormat).toBe(MonitorRequestBodyFormat.Text);
+    expect(last.data!.requestBody).toBe("<ping/>");
+    expect(MonitorStep.getValidationError(last, MonitorType.API)).toBeNull();
+
+    // The editor is a text editor now, and judges nothing as JSON.
+    const textEditor: HTMLTextAreaElement = await requestBodyEditor();
+
+    expect(textEditor).toHaveAttribute("data-code-type", "text");
+    expect(textEditor).toHaveAttribute("data-allow-json5", "false");
+    expect(await typeBody(textEditor, "a=1&b=2")).toBeNull();
+    expect(changes[changes.length - 1]!.data!.requestBody).toBe("a=1&b=2");
+  });
+
+  test("back to JSON, a body that is not JSON is said again, and refused", async () => {
+    const step: MonitorStep = apiStep("<ping/>");
+    step.setRequestBodyFormat(MonitorRequestBodyFormat.Text);
+
+    const changes: Array<MonitorStep> = mountEditor(
+      MonitorStep.fromJSON(step.toJSON()),
+    );
+
+    const editor: HTMLTextAreaElement = await requestBodyEditor();
+
+    expect(editor).toHaveAttribute("data-code-type", "text");
+
+    // Visited and left: the field says what is wrong with it from then on.
+    fireEvent.blur(editor);
+    expect(screen.queryByTestId("request-body-error")).toBeNull();
+
+    await pickFormat("JSON");
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("request-body-error")).not.toBeNull();
+    });
+
+    const last: MonitorStep = changes[changes.length - 1]!;
+
+    expect(last.data!.requestBodyFormat).toBe(MonitorRequestBodyFormat.JSON);
+    expect(MonitorStep.getValidationError(last, MonitorType.API)).toBe(
+      REQUEST_BODY_NOT_JSON_MESSAGE,
+    );
+  });
+});
+
 describe("the field's error", () => {
   test("is none for no body or for any JSON value", () => {
     for (const body of ["", "  ", "[1, 2]", "null", "{a: 1,}", "{{x}}"]) {
@@ -536,6 +653,14 @@ describe("the field's error", () => {
     expect(getRequestBodyFieldError('[{"id": 1}', ENGLISH)).toBe(
       "Request Body is not valid JSON. Invalid end of input (line 1, column 11)",
     );
+  });
+
+  test("is none for a body sent as text", () => {
+    for (const body of ["<ping/>", "a=1&b=2", "[1,", "plain text"]) {
+      expect(
+        getRequestBodyFieldError(body, ENGLISH, MonitorRequestBodyFormat.Text),
+      ).toBeNull();
+    }
   });
 
   test("is in the reader's language", () => {

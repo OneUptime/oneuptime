@@ -83,6 +83,8 @@ Os segredos são preenchidos antes de o script de um monitor Monitor sintético 
 
 Se um monitor faz referência a um segredo que não pode usar, a referência fica como está e não é substituída pelo valor.
 
+Quando a verificação de um monitor API, Site ou Página de status externa falha, o erro cita a URL apenas pelo esquema, host e porta, como `https://api.example.com`, então um segredo na URL nunca aparece.
+
 Quando você testa um monitor antes de salvá-lo, só os segredos disponíveis para **Todos os monitores** são preenchidos, porque um monitor novo não está em nenhuma lista e ainda não tem rótulos. Depois que você salva o monitor, os testes usam todos os segredos que o monitor pode usar.
 
 ## Entrar com um código de uso único
@@ -128,7 +130,7 @@ return {
 A sonda nunca entrega um código com menos de cinco segundos restantes, ou menos de um terço do período quando o período é mais curto: em vez disso, ela espera pelo próximo código, no máximo cinco segundos, e deixa essa espera fora do tempo de execução da verificação. Todo código que uma verificação gera aparece como asteriscos, como `******`, nas mensagens de log, no resultado, no erro e nos nomes das capturas de tela dela. Uma captura de tela é uma imagem da página, então tire-a antes de o código ser digitado ou depois que a página avançar.
 
 > [!NOTE]
-> A sonda gera os códigos, então uma sonda personalizada precisa do OneUptime 17.0.1 ou posterior. Em uma mais antiga, uma verificação que precisa de um código não roda e falha com uma frase pedindo para atualizar a sonda; o formulário do monitor e a página da sonda apontam uma sonda antiga demais, e [Atualizar uma sonda](/docs/probe/custom-probe#atualizar-uma-sonda) explica como. O relógio da sonda também precisa estar certo, porque uma sonda com um minuto de diferença gera códigos que o site já deixou para trás.
+> A sonda gera os códigos, então uma sonda personalizada precisa do OneUptime 17.1.0 ou posterior. Em uma mais antiga, uma verificação que precisa de um código não roda e falha com uma frase pedindo para atualizar a sonda; o formulário do monitor e a página da sonda apontam uma sonda antiga demais, e [Atualizar uma sonda](/docs/probe/custom-probe#atualizar-uma-sonda) explica como. O relógio da sonda também precisa estar certo, porque uma sonda com um minuto de diferença gera códigos que o site já deixou para trás.
 
 ## Solução de problemas
 
@@ -149,7 +151,7 @@ Confira se o **Código atual** era igual ao do seu aplicativo autenticador quand
 :::
 
 :::details A verificação diz que a sonda é antiga demais para gerar códigos de uso único
-A sonda executa uma versão anterior ao OneUptime 17.0.1, que não consegue gerar códigos de uso único, então a verificação não rodou nela. Atualize a sonda (veja [Atualizar uma sonda](/docs/probe/custom-probe#atualizar-uma-sonda)) ou faça sondas com a 17.0.1 ou posterior verificarem o monitor.
+A sonda executa uma versão anterior ao OneUptime 17.1.0, que não consegue gerar códigos de uso único, então a verificação não rodou nela. Atualize a sonda (veja [Atualizar uma sonda](/docs/probe/custom-probe#atualizar-uma-sonda)) ou faça sondas com a 17.1.0 ou posterior verificarem o monitor.
 :::
 
 ## Próximos passos

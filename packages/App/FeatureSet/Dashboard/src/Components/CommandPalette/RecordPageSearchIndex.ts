@@ -1128,6 +1128,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         section: "Custom Role",
         title: "Overview",
       },
+      {
+        page: PageMap.TEAM_ROLE_VIEW_AUDIT_LOGS,
+        section: "Custom Role",
+        title: "Audit Logs",
+      },
     ],
   },
   {
@@ -3650,6 +3655,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         page: PageMap.NETWORK_SITE_VIEW_SCHEDULED_MAINTENANCE,
         section: "Site",
         title: "Scheduled Maintenance",
+      },
+      {
+        page: PageMap.NETWORK_SITE_VIEW_OWNERS,
+        section: "Manage",
+        title: "Owners",
       },
       {
         page: PageMap.NETWORK_SITE_VIEW_SETTINGS,

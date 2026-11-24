@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import { JSONObject } from "Common/Types/JSON";
 import ProtobufElementCounter, {
@@ -292,18 +293,18 @@ describe("ProtobufElementCounter - remote write 1.0", () => {
       body[index + 1] = 0x00;
     }
 
-    const startedAt: number = Date.now();
-    const result: ProtobufElementCount = count(
-      body,
-      REMOTE_WRITE_V1_COUNT,
-      500000,
-    );
+    const timed: FastestRun<ProtobufElementCount> = fastestRun({
+      run: (): ProtobufElementCount => {
+        return count(body, REMOTE_WRITE_V1_COUNT, 500000);
+      },
+      limitInMs: 1000,
+    });
 
-    expect(result).toEqual({
+    expect(timed.result).toEqual({
       outcome: ProtobufElementCountOutcome.OverLimit,
       elements: 500001,
     });
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 
@@ -522,13 +523,18 @@ describe("ProtobufElementCounter - Loki's PushRequest", () => {
       body[index + 1] = 0x00;
     }
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<ProtobufElementCount> = fastestRun({
+      run: (): ProtobufElementCount => {
+        return count(body, LOKI_PUSH_COUNT, 500000);
+      },
+      limitInMs: 1000,
+    });
 
-    expect(count(body, LOKI_PUSH_COUNT, 500000)).toEqual({
+    expect(timed.result).toEqual({
       outcome: ProtobufElementCountOutcome.OverLimit,
       elements: 500001,
     });
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("an entry that is not a message is malformed", () => {

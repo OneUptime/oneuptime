@@ -99,8 +99,6 @@ const renderCriteria: (isFirstCriteria: boolean) => void = (
       monitorStatusDropdownOptions={[]}
       incidentSeverityDropdownOptions={[]}
       alertSeverityDropdownOptions={[]}
-      onCallPolicyDropdownOptions={[]}
-      labelDropdownOptions={[]}
       userDropdownOptions={[]}
       value={criteria()}
       isFirstCriteria={isFirstCriteria}

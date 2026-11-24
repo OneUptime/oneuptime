@@ -4,6 +4,7 @@ import GitHubCommandType, {
 import { DeclaredCodeChangeTaskContext } from "../../Utils/AiRemediation/DeclaredCodeChange";
 import { CodeHost, CodeHostCapability } from "../CodeRepository/CodeHost";
 import CodeRepositoryType from "../CodeRepository/CodeRepositoryType";
+import { ProductionReviewCaughtLeak } from "../CodeRepository/ProductionReviewSensitiveData";
 import { CodeTaskBranchName, CodeTaskRequest } from "./CodeTask";
 import {
   ProductionReviewPosting,
@@ -262,6 +263,19 @@ export interface ProductionReviewTaskContext {
   aiReadDay?: string | undefined;
   aiReadsToday?: number | undefined;
   aiInputHash?: string | undefined;
+  // The input of OneUptime AI's last read of the Sensitive data section (#10376).
+  sensitiveDataAiInputHash?: string | undefined;
+  /*
+   * Every leak a review of this pull request posted, once each, and when a
+   * later review no longer found it (#10376): what AI Results counts as
+   * caught before it merged.
+   */
+  caughtLeaks?: Array<ProductionReviewCaughtLeak> | undefined;
+  /*
+   * GitHub only: the leaks whose suggested change was posted on its line,
+   * by key - each is posted once, however many pushes show it.
+   */
+  suggestedLeakKeys?: Array<string> | undefined;
   // Attempts at the latest request that failed (a GitHub or database blip).
   failedAttempts?: number | undefined;
 }

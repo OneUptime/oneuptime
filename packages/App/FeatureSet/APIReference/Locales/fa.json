@@ -34,6 +34,7 @@
     "pageNotFoundMetaDescription": "صفحه‌ای که به دنبال آن هستید پیدا نشد.",
     "required": "الزامی",
     "defaultValue": "پیش‌فرض",
+    "readOnly": "فقط خواندنی",
     "or": "یا",
     "copy": "کپی",
     "copied": "کپی شد!",

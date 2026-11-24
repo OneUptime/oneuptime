@@ -6,7 +6,7 @@ import ProbesAndIntervalCopy, {
   NOT_CHECKED_BY_PROBES_TEST_ID,
 } from "../../../Components/Monitor/ProbesAndIntervalCopy";
 import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
-import OneTimeCodeProbesWarning from "../../../Components/Monitor/OneTimeCodeProbesWarning";
+import ProbesTooOldWarning from "../../../Components/Monitor/ProbesTooOldWarning";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -205,12 +205,13 @@ const MonitorProbes: FunctionComponent<
           buttons: [...switchBulkActions],
         }}
         /*
-         * The probes too old to make the one-time codes this monitor's
-         * steps need (#9759), read again whenever the list is: a probe
-         * added, removed, or switched on or off.
+         * The probes too old for what this monitor's steps need - a
+         * one-time code (#9759), or a request body that is a JSON array, a
+         * single value or text (#10788) - read again whenever the list is:
+         * a probe added, removed, or switched on or off.
          */
         topContent={
-          <OneTimeCodeProbesWarning
+          <ProbesTooOldWarning
             monitorSteps={monitor?.monitorSteps}
             monitorType={monitorType}
             monitorId={modelId}

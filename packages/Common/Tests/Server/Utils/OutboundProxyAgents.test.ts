@@ -805,7 +805,7 @@ describe("a proxy that refuses the tunnel", () => {
     const refusal: Error = await refusalOf("https://api.example.test/v1");
 
     expect(refusal.message).toContain(
-      "The outbound proxy did not take OneUptime's user name and password: it answered HTTP/1.1 407 Proxy Authentication Required, so the request to api.example.test:443 was not sent.",
+      "The outbound proxy answered HTTP/1.1 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to api.example.test:443 was not sent.",
     );
     // Never the password, encoded or not.
     expect(refusal.message).not.toContain("p@ss");

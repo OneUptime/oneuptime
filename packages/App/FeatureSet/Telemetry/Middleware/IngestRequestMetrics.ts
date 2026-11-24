@@ -31,10 +31,11 @@ import TelemetryIngestSurface from "Common/Types/Telemetry/TelemetryIngestSurfac
  * retry it.
  *
  * The payload size is the body as received, before its coding is undone.
- * On the OTLP routes it is read from req.body here, which
- * OtelRequestMiddleware.parseBody has read. A compatible endpoint reads its
- * own body after the key check, so its size is recorded once it is read
- * (CompatibleIngestBody), and a request refused before that has none.
+ * The OTLP routes and the compatible endpoints read their bodies after the
+ * key check (#10814), so the size is recorded once the body is read
+ * (OtelRequestMiddleware.readBodyAfterKey, CompatibleIngestBody), and a
+ * request refused before that has none. A body something read before this
+ * is mounted is recorded here.
  *
  * Cheap on the hot path: two small attribute objects and two listeners a
  * request, and a WeakMap entry while a compatible endpoint's body is unread.

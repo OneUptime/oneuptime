@@ -32,7 +32,7 @@ const scenario: BenchmarkScenario = {
     "Description: p95 latency on GET /api/orders/{id} above 5 s and 504s on more than 5% of requests for 15 minutes (Orders API monitor).",
     "Severity: SEV-2",
     "Current state: Created",
-    "Declared at: Apr 14 2026, 02:10 UTC",
+    "Declared at: Apr 14, 2026, 02:10 UTC",
     "Affected monitors: Orders API",
     "Labels: orders, storefront",
     "",

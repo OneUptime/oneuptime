@@ -64,7 +64,6 @@ import {
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
-import { openDropdown } from "../../DropdownPicks";
 
 const DAY: number = 24 * 60 * 60 * 1000;
 
@@ -168,7 +167,28 @@ function notice(): HTMLElement {
  * rule's name is drawn as written, set apart from the words around it.
  */
 async function chooseRule(name: RegExp): Promise<void> {
-  openDropdown(screen.getByRole("combobox", { name: "Rule" }));
+  /*
+   * The picker searches the server as it opens (#10646): its search box
+   * while nothing is chosen, the chosen rule's button once one is.
+   */
+  const box: HTMLElement | null = screen.queryByRole("combobox", {
+    name: "Rule",
+    hidden: true,
+  });
+
+  await act(async () => {
+    if (box) {
+      fireEvent.focus(box);
+      return;
+    }
+
+    fireEvent.click(
+      within(screen.getByTestId("entity-dropdown-value")).getAllByRole(
+        "button",
+        { hidden: true },
+      )[0]!,
+    );
+  });
 
   const option: HTMLElement = await screen.findByRole("option", {
     name,
@@ -357,13 +377,35 @@ describe("Run on Past Events, from the notice", () => {
     ).toHaveTextContent("Run on Past Events");
   });
 
-  test("offers the project's rules by name, and runs nothing until one is chosen", async () => {
+  /*
+   * #10646: the dialog read the project's first 500 rules by name, so a
+   * rule past them could not be run. It asks whether there is a rule at
+   * all, and its picker searches the server as it is typed in.
+   */
+  test("asks whether there is a rule, searches the rules by name as the picker opens, and runs nothing until one is chosen", async () => {
     await openRun();
 
     expect(ruleReads).toHaveLength(1);
     expect(ruleReads[0]!["modelType"]).toBe(DetectionRule);
-    expect(ruleReads[0]!["select"]).toEqual({ _id: true, name: true });
-    expect(ruleReads[0]!["sort"]).toEqual({ name: SortOrder.Ascending });
+    expect(ruleReads[0]!["limit"]).toBe(1);
+
+    await act(async () => {
+      fireEvent.focus(
+        screen.getByRole("combobox", { name: "Rule", hidden: true }),
+      );
+    });
+
+    await screen.findByRole("option", {
+      name: /Failed sign-ins/,
+      hidden: true,
+    });
+
+    const search: Record<string, unknown> = ruleReads[ruleReads.length - 1]!;
+
+    expect(search["modelType"]).toBe(DetectionRule);
+    expect(search["select"]).toMatchObject({ _id: true, name: true });
+    expect(search["sort"]).toEqual({ name: SortOrder.Ascending });
+    expect(search["limit"]).toBe(50);
     expect(runMock).not.toHaveBeenCalled();
   });
 

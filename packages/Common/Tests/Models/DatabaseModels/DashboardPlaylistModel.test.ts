@@ -223,16 +223,11 @@ describe("DashboardPlaylist: who makes, plays, changes and deletes one", () => {
     }
   });
 
-  test("the project is set once, and who created or deleted it is OneUptime's to write", () => {
+  test("the project is set once, and who created it is OneUptime's to write", () => {
     expect(accessOf("projectId").update).toEqual([]);
     expect(accessOf("project").update).toEqual([]);
 
-    for (const column of [
-      "createdByUser",
-      "createdByUserId",
-      "deletedByUser",
-      "deletedByUserId",
-    ]) {
+    for (const column of ["createdByUser", "createdByUserId"]) {
       expect({ column, create: accessOf(column).create }).toEqual({
         column,
         create: [],

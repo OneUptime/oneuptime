@@ -319,7 +319,8 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
                   )}
                 {(props.columns || []).map(
                   (column: { title?: string; getElement?: unknown }) => {
-                    if (column.title !== "Scrubbed" || !column.getElement) {
+                    // Where a finding stands at ingest: not scrubbed, contained or fixed (#10368).
+                    if (column.title !== "Status" || !column.getElement) {
                       return null;
                     }
 

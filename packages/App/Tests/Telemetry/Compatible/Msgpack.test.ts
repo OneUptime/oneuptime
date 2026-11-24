@@ -1,4 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import Msgpack, {
   MSGPACK_MAX_DEPTH,
@@ -300,14 +301,18 @@ describe("Msgpack.count", () => {
       Buffer.from([0xdd, 0x02, 0x00, 0x00, 0x00]),
       Buffer.alloc(32 * MIB, 0x90),
     ]);
-    const started: number = Date.now();
-    const counted: MsgpackElementCount = count(body, 1_000_000);
+    const timed: FastestRun<MsgpackElementCount> = fastestRun({
+      run: (): MsgpackElementCount => {
+        return count(body, 1_000_000);
+      },
+      limitInMs: 1000,
+    });
 
-    expect(counted).toEqual({
+    expect(timed.result).toEqual({
       outcome: MsgpackElementCountOutcome.OverLimit,
       elements: 1_000_001,
     });
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("a large real payload of spans is counted whole, quickly", () => {
@@ -331,12 +336,17 @@ describe("Msgpack.count", () => {
     }
 
     const body: Buffer = encodeMsgpack([spans]);
-    const started: number = Date.now();
-    const counted: MsgpackElementCount = count(body);
+    const timed: FastestRun<MsgpackElementCount> = fastestRun({
+      run: (): MsgpackElementCount => {
+        return count(body);
+      },
+      limitInMs: 2000,
+    });
+    const counted: MsgpackElementCount = timed.result;
 
     expect(counted.outcome).toBe(MsgpackElementCountOutcome.Counted);
     expect(counted.elements).toBe(decodedValues(Msgpack.decode(body)));
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

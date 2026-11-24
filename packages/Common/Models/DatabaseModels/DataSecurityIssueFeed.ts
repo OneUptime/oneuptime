@@ -63,6 +63,25 @@ export enum DataSecurityIssueFeedEventType {
   AiProposalDismissed = "AiProposalDismissed",
   AiChangeUndone = "AiChangeUndone",
   AiChangeFailed = "AiChangeFailed",
+  /*
+   * A telemetry issue resolved as contained at ingest (#10368): a scrub
+   * rule hides its data before it is stored, but the code still writes
+   * it. Not fixed, so not drawn as Resolved is.
+   */
+  Contained = "Contained",
+  /*
+   * The issue's fix followed to production (#10368): its pull request
+   * merged and shipped in a deploy; production proved it (Fixed in pull
+   * request #n, deployed in version x, verified at time t); it merged and,
+   * a day later, the store still failed its check (merged, not applied);
+   * the data came back - after the fix shipped, or in a later version; or
+   * production could not tell.
+   */
+  FixShipped = "FixShipped",
+  FixVerified = "FixVerified",
+  FixNotApplied = "FixNotApplied",
+  FixRegressed = "FixRegressed",
+  FixUnverifiable = "FixUnverifiable",
 }
 
 /*
@@ -355,39 +374,4 @@ export default class DataSecurityIssueFeed extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl(columnAccess)
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "Unused: feed entries are not deleted.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

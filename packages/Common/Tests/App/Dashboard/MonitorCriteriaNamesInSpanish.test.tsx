@@ -14,6 +14,7 @@ import {
   render,
   screen,
   within,
+  waitFor,
 } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
@@ -61,6 +62,7 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../../Models/DatabaseModels/Label";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import Color from "../../../Types/Color";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -194,12 +196,15 @@ function pickedValues(): Array<string> {
  * picked already.
  */
 async function listingOfSearchedPicker(testId: string): Promise<Array<string>> {
+  // Drawn once the labels it holds are read by their ids (#10690).
+  const picker: HTMLElement = await screen.findByTestId(testId);
+
   getListMock.mockImplementation(async (): Promise<any> => {
     return { data: labels(), count: 3, skip: 0, limit: 50 };
   });
 
   await act(async (): Promise<void> => {
-    fireEvent.focus(screen.getByTestId(testId));
+    fireEvent.focus(picker);
   });
 
   const menu: HTMLElement = await screen.findByTestId("entity-dropdown-menu");
@@ -255,7 +260,24 @@ function pillTexts(): Array<string> {
 beforeEach(() => {
   jest.clearAllMocks();
   window.history.replaceState({}, "", `/dashboard/${PROJECT_ID}/monitors`);
-  getListMock.mockImplementation(async (): Promise<any> => {
+  getListMock.mockImplementation(async (request: any): Promise<any> => {
+    // The labels a criteria holds, read by their ids (#10690).
+    if (
+      request?.modelType === Label &&
+      request.query?._id instanceof Includes
+    ) {
+      const ids: Array<string> = request.query._id.values.map(
+        (value: unknown): string => {
+          return String(value).toLowerCase();
+        },
+      );
+      const rows: Array<Label> = labels().filter((label: Label): boolean => {
+        return ids.includes(String(label._id).toLowerCase());
+      });
+
+      return { data: rows, count: rows.length, skip: 0, limit: rows.length };
+    }
+
     return { data: [], count: 0, skip: 0, limit: 0 };
   });
 });
@@ -296,18 +318,19 @@ describe("the form, a rule's incident", () => {
           labelIds: [new ObjectID(ID["database"]!)],
         }}
         incidentSeverityDropdownOptions={optionsOf(incidentSeverities())}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={optionsOf(labels())}
         userDropdownOptions={[]}
         onChange={(_value: CriteriaIncident) => {}}
       />,
     );
   }
 
-  test("shows its picked severity, OneUptime's Critical Incident, in Spanish, and its picked label Database as written", () => {
+  test("shows its picked severity, OneUptime's Critical Incident, in Spanish, and its picked label Database as written", async () => {
     renderIncidentForm();
 
-    expect(pickedValues()).toEqual(["Incidente crítico", "Database"]);
+    // The label is read by its id before its picker is drawn (#10690).
+    await waitFor(() => {
+      expect(pickedValues()).toEqual(["Incidente crítico", "Database"]);
+    });
     expect(screen.queryByText("Base de datos")).not.toBeInTheDocument();
   });
 
@@ -342,17 +365,18 @@ describe("the form, a rule's alert", () => {
           labelIds: [new ObjectID(ID["database"]!)],
         }}
         alertSeverityDropdownOptions={optionsOf(alertSeverities())}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={optionsOf(labels())}
         onChange={(_value: CriteriaAlert) => {}}
       />,
     );
   }
 
-  test("shows its picked severity, OneUptime's High, in Spanish", () => {
+  test("shows its picked severity, OneUptime's High, in Spanish", async () => {
     renderAlertForm();
 
-    expect(pickedValues()).toEqual(["Alta", "Database"]);
+    // The label is read by its id before its picker is drawn (#10690).
+    await waitFor(() => {
+      expect(pickedValues()).toEqual(["Alta", "Database"]);
+    });
   });
 
   test("offers High in Spanish and a severity the project named Network as written", async () => {

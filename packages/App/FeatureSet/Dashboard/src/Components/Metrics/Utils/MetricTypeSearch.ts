@@ -1,73 +1,81 @@
+import MetricTypeSearch, {
+  METRIC_TYPE_SEARCH_DEBOUNCE_MS,
+  METRIC_TYPE_SEARCH_LIMIT,
+  METRIC_TYPE_SELECT,
+} from "./MetricTypeReads";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
-import Search from "Common/Types/BaseDatabase/Search";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { MutableRefObject, useEffect, useRef, useState } from "react";
 
 /*
- * A PROJECT'S METRIC NAMES, SEARCHED ON THE SERVER (#10646).
- *
- * The metric pickers - a metric query's (Metrics, dashboards, a metric
- * monitor's step) and an SLO's - offered the project's first metric names
- * by name, read once: 10,000 for a query, 500 for an SLO. One Kubernetes
- * cluster sends more names than that. A metric past the list could not be
- * found, and one a query already charted showed as no metric at all.
- *
- * What is typed into a picker is asked of the server, 50 by name, and what
- * it finds is offered beside the list it read; a metric a query holds that
- * the list does not have is read by its name, so it is named, with its
- * unit and its kind of counter.
+ * The metric pickers' hooks (#10646). The reads they run are MetricTypeReads,
+ * which imports no React, so the metric loader every page's queries go
+ * through can read with them and keep React out of the tests that reach it.
+ * They are handed on from here too, so a picker imports one module.
  */
-
-export const METRIC_TYPE_SEARCH_LIMIT: number = 50;
-export const METRIC_TYPE_SEARCH_DEBOUNCE_MS: number = 250;
-
-// What a picker reads of a metric: its name, unit and kind of counter.
-export const METRIC_TYPE_SELECT: Record<string, true> = {
-  name: true,
-  unit: true,
-  isMonotonic: true,
-  aggregationTemporality: true,
+export {
+  METRIC_TYPE_SEARCH_DEBOUNCE_MS,
+  METRIC_TYPE_SEARCH_LIMIT,
+  METRIC_TYPE_SELECT,
 };
+export default MetricTypeSearch;
 
-export default class MetricTypeSearch {
-  // The project's metrics whose name holds the text, 50 by name.
-  public static async search(text: string): Promise<Array<MetricType>> {
-    const trimmed: string = text.trim();
+/*
+ * The metrics a page's queries chart that its list does not have, read by
+ * their names as the queries change (#10691): a dashboard or the Metrics
+ * explorer read the project's first 10,000 by name, and a charted metric
+ * past them had no unit, no kind of counter and no attributes. Each name
+ * is asked for once - never one the page's own load asked for already
+ * (`asked`: loadAllMetricsTypes' metricNames) - and `onRead` hands the
+ * page what was found, to merge into its list. `isEnabled` false (a public
+ * dashboard, whose metrics its own route reads) asks nothing.
+ */
+export function useMetricTypesHeldIn(data: {
+  holder: unknown;
+  known: Array<MetricType>;
+  onRead: (found: Array<MetricType>) => void;
+  asked?: Array<string> | undefined;
+  isEnabled?: boolean | undefined;
+}): void {
+  const askedRef: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set<string>(),
+  );
+  const isEnabled: boolean = data.isEnabled !== false;
+  const known: Set<string> = new Set<string>([
+    ...data.known.map((metric: MetricType): string => {
+      return metric.name || "";
+    }),
+    ...(data.asked || []),
+  ]);
+  const missing: Array<string> = isEnabled
+    ? MetricTypeSearch.getMetricNamesIn(data.holder).filter(
+        (name: string): boolean => {
+          return !known.has(name) && !askedRef.current.has(name);
+        },
+      )
+    : [];
+  const missingKey: string = [...missing].sort().join("\n");
 
-    if (!trimmed) {
-      return [];
+  useEffect(() => {
+    if (!missingKey) {
+      return;
     }
 
-    const result: ListResult<MetricType> = await ModelAPI.getList<MetricType>({
-      modelType: MetricType,
-      query: { name: new Search(trimmed) } as never,
-      select: METRIC_TYPE_SELECT as never,
-      sort: { name: SortOrder.Ascending },
-      limit: METRIC_TYPE_SEARCH_LIMIT,
-      skip: 0,
-    });
+    const names: Array<string> = missingKey.split("\n");
 
-    return result.data || [];
-  }
-
-  // The metric of one name, read by it; null when the project has none.
-  public static async readByName(name: string): Promise<MetricType | null> {
-    if (!name.trim()) {
-      return null;
+    for (const name of names) {
+      askedRef.current.add(name);
     }
 
-    const result: ListResult<MetricType> = await ModelAPI.getList<MetricType>({
-      modelType: MetricType,
-      query: { name: name } as never,
-      select: METRIC_TYPE_SELECT as never,
-      sort: {},
-      limit: 1,
-      skip: 0,
-    });
-
-    return result.data[0] || null;
-  }
+    MetricTypeSearch.readByNames(names)
+      .then((found: Array<MetricType>) => {
+        if (found.length > 0) {
+          data.onRead(found);
+        }
+      })
+      .catch(() => {
+        // Unknown still: the queries chart them without a unit.
+      });
+  }, [missingKey]);
 }
 
 export interface MetricTypeSearchState {

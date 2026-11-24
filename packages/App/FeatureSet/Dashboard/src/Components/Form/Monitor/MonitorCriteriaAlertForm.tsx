@@ -38,8 +38,6 @@ export interface ComponentProps {
   initialValue?: undefined | CriteriaAlert;
   onChange?: undefined | ((value: CriteriaAlert) => void);
   alertSeverityDropdownOptions: Array<DropdownOption>;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
   monitorType?: MonitorType | undefined;
   seriesAttributeKeys?: Array<string> | undefined;
 }
@@ -248,7 +246,6 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
             <CriteriaRecordPicker
               modelType={Label}
               ids={criteriaAlert.labelIds}
-              knownOptions={props.labelDropdownOptions}
               placeholder="Select Labels"
               dataTestId="monitor-criteria-alert-labelIds"
               onChange={(ids: Array<ObjectID>) => {
@@ -274,7 +271,6 @@ const MonitorCriteriaAlertForm: FunctionComponent<ComponentProps> = (
           <CriteriaRecordPicker
             modelType={OnCallDutyPolicy}
             ids={criteriaAlert.onCallPolicyIds}
-            knownOptions={props.onCallPolicyDropdownOptions}
             placeholder="Select On-Call Policies"
             dataTestId="monitor-criteria-alert-onCallPolicyIds"
             onChange={(ids: Array<ObjectID>) => {

@@ -30,6 +30,7 @@ import SecurityCaseService from "../../../../Services/SecurityCaseService";
 import QueryHelper from "../../../../Types/Database/QueryHelper";
 import logger from "../../../Logger";
 import { isSetupTestCase } from "../../../SecurityCase/SecurityCaseNotifications";
+import SecurityCaseAiHold from "../../../SecurityCase/SecurityCaseAiHold";
 import SecurityCaseHandOff from "../../../SecurityCase/SecurityCaseHandOff";
 import SecurityCaseValues, {
   ProjectSecurityCaseValues,
@@ -246,6 +247,16 @@ export default class SecurityCaseResponse {
       logger.error(
         `SecurityCaseResponse: could not take up security case ${data.securityCaseId.toString()} after its triage: ${error}`,
       );
+    } finally {
+      /*
+       * A case OneUptime AI responds first to (#10353): a triage that will
+       * not have it work the case - not malicious, text written to steer an
+       * AI - hands the case to people now. Never throws.
+       */
+      await SecurityCaseAiHold.reviewSoon({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+      });
     }
   }
 

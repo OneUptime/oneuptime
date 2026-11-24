@@ -26,6 +26,7 @@ import SecurityCaseService from "../../Services/SecurityCaseService";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityCaseAiHold from "./SecurityCaseAiHold";
 import SecurityCaseNotifications from "./SecurityCaseNotifications";
 
 /*
@@ -49,11 +50,11 @@ import SecurityCaseNotifications from "./SecurityCaseNotifications";
  * Once per hand-off: a case already handed over, or closed, is not handed
  * over again, and nobody is told twice.
  *
- * #10353 (let OneUptime AI respond first, and alert people only when it
- * needs them) plugs in here: it holds back a new case's notices while
- * OneUptime AI works it, and calls handToPeople when it needs them - every
- * reason it may need them for is already one of SecurityCaseHandOffReason,
- * worded for the people it tells.
+ * A case OneUptime AI held while it responded first (#10353,
+ * SecurityCaseAiHold) has its hold ended here too: the notice people were
+ * held from goes out with the hand-off's reason, in place of the hand-off's
+ * own notice - and a person who took the case over has it, so nobody else
+ * is alerted.
  */
 export default class SecurityCaseHandOff {
   @CaptureSpan()
@@ -162,8 +163,23 @@ export default class SecurityCaseHandOff {
       ...(data.byUserId ? { userId: data.byUserId } : {}),
     });
 
+    /*
+     * A case OneUptime AI held while it responded first (#10353): its hold
+     * ends with the hand-off, and the notice people were held from is the
+     * one that tells them, with this reason - so nobody is told twice.
+     */
+    const isHoldEnded: boolean = await SecurityCaseAiHold.onHandedToPeople({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      reason: data.reason,
+      byUserId: data.byUserId,
+    });
+
     // Whoever took the case over knows it is theirs.
-    if (!SECURITY_CASE_HAND_OFFS_TOLD_NOBODY.includes(data.reason)) {
+    if (
+      !isHoldEnded &&
+      !SECURITY_CASE_HAND_OFFS_TOLD_NOBODY.includes(data.reason)
+    ) {
       await SecurityCaseNotifications.aiHandedOff({
         projectId: data.projectId,
         securityCaseId: data.securityCaseId,

@@ -1302,10 +1302,11 @@ describe("Inviting People", () => {
       /*
        * The Users list offers it on a pending row, to a master admin, on a
        * server that cannot send email - or whose latest invitation email
-       * was not sent (#9511) - beside Resend Invitation (#9519).
+       * was not sent (#9511) - beside Resend Invitation (#9519), and, for
+       * an owner, a member's Clear Sign-In Settings (#9993).
        */
       expect(usersPage).toContain(
-        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), getResendInvitationRowAction<TeamMember>({ isAvailable: canResendInvitations(serverEmail), getRequestHeaders: () => { return ModelAPI.getCommonHeaders(); }, }), ]}",
+        "actionButtons={[ getInvitationLinkRowAction<TeamMember>({ isAvailable: canGetInvitationLinks(serverEmail), isNotSignedUp: membersNotSignedUp.isNotSignedUp, isEmailNotSent: canGetLinksOfInvitationsNotSent(serverEmail) ? (item: TeamMember): boolean => { return Boolean(invitationEmailsNotSent.getNotSent(item)); } : undefined, onOpen: (teamMemberId: ObjectID, item: TeamMember) => { setInvitationLinkFor({ teamMemberId: teamMemberId, viewPageRoute: null, isEmailNotSent: !cannotSendEmail(serverEmail) && Boolean(invitationEmailsNotSent.getNotSent(item)), }); }, }), getResendInvitationRowAction<TeamMember>({ isAvailable: canResendInvitations(serverEmail), getRequestHeaders: () => { return ModelAPI.getCommonHeaders(); }, }), getClearMemberSavedSignInSettingsRowAction({ savedSignInSettings: savedSignInSettings, }), ]}",
       );
       expect(serverEmail).toContain(
         "return cannotSendEmail(serverEmail) && serverEmail.isMasterAdmin;",

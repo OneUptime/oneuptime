@@ -161,7 +161,9 @@ function RecordRow(props: {
           ) : (
             <></>
           )}
-          {part === AiOutcomesPart.PullRequestFixes ? (
+          {part === AiOutcomesPart.PullRequestFixes ||
+          (part === AiOutcomesPart.Leaks &&
+            record.pullRequestNumber !== undefined) ? (
             <p
               className="break-words text-sm text-gray-900"
               data-testid={`${AI_RESULTS_RECORDS_TEST_ID}-pull-request`}

@@ -48,6 +48,10 @@
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].requiredOnCreate){ %>
                            <span class="ms-1.5 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 font-sans text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
                         <% } %>
+                        <%# Read only: only OneUptime writes it, so no create or update sends it (the spec's readOnly). -%>
+                        <% if(pageData.columns[Object.keys(pageData.columns)[i]].readOnly){ %>
+                           <span class="ms-1.5 inline-flex items-center rounded-full bg-surface-soft px-2 py-0.5 font-sans text-xs font-medium text-ink-muted ring-1 ring-inset ring-line"><%= t('ui.readOnly') %></span>
+                        <% } %>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault !== null && pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault !== undefined){ %>
                            <%# The badges are words of the page, in its own font; the default value is code. -%>
                            <span class="ms-1.5 inline-flex items-center gap-1 rounded-full bg-surface-soft px-2 py-0.5 font-sans text-xs font-medium text-ink-muted ring-1 ring-inset ring-line"><%= t('ui.defaultValue') %> <code class="font-mono text-ink"><%= pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault %></code></span>

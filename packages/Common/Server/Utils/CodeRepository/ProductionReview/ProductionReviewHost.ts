@@ -100,6 +100,35 @@ export interface ProductionReviewHost {
         content: GitHubCheckRunContent;
       }) => Promise<GitHubCheckRunWritten | null>)
     | undefined;
+  /*
+   * GitLab, Forgejo and Gitea, which have no check runs OneUptime writes:
+   * the review's commit status on the pull request's head (#10376) -
+   * success, or failed when the change leaks sensitive data the repository
+   * fails its check on. Written only for a repository that asked, so a
+   * branch rule can require it.
+   */
+  writeCommitStatus?:
+    | ((data: {
+        headSha: string;
+        isFailure: boolean;
+        name: string;
+        description: string;
+        targetUrl: string;
+      }) => Promise<void>)
+    | undefined;
+  /*
+   * GitHub only: suggested changes on their lines, as one review of the
+   * pull request (#10376) - each a suggestion block its author can commit.
+   * Never posted without them; throws when GitHub refuses one.
+   */
+  writeSuggestions?:
+    | ((data: {
+        pullRequestNumber: number;
+        headSha: string;
+        body: string;
+        comments: Array<{ path: string; line: number; body: string }>;
+      }) => Promise<void>)
+    | undefined;
 }
 
 /*
@@ -412,6 +441,21 @@ export default class ProductionReviewHosts {
           content: args.content,
         });
       },
+      writeSuggestions: async (args: {
+        pullRequestNumber: number;
+        headSha: string;
+        body: string;
+        comments: Array<{ path: string; line: number; body: string }>;
+      }): Promise<void> => {
+        await GitHubConversation.createPullRequestReview({
+          ...repository,
+          pullRequestNumber: args.pullRequestNumber,
+          body: args.body,
+          comments: args.comments,
+          commitSha: args.headSha,
+          isOnlyItsComments: true,
+        });
+      },
     };
   }
 
@@ -486,6 +530,24 @@ export default class ProductionReviewHosts {
       },
       getReviewCommand: async (): Promise<string | null> => {
         return null;
+      },
+      writeCommitStatus: async (args: {
+        headSha: string;
+        isFailure: boolean;
+        name: string;
+        description: string;
+        targetUrl: string;
+      }): Promise<void> => {
+        await api.call(() => {
+          return gitLab.setCommitStatus({
+            project,
+            sha: args.headSha,
+            state: args.isFailure ? "failed" : "success",
+            name: args.name,
+            description: args.description,
+            targetUrl: args.targetUrl,
+          });
+        });
       },
       listUpdatedPullRequests: async (
         updatedAfter: Date,
@@ -610,6 +672,25 @@ export default class ProductionReviewHosts {
       },
       getReviewCommand: async (): Promise<string | null> => {
         return null;
+      },
+      writeCommitStatus: async (args: {
+        headSha: string;
+        isFailure: boolean;
+        name: string;
+        description: string;
+        targetUrl: string;
+      }): Promise<void> => {
+        await api.call(() => {
+          return forgejo.setCommitStatus({
+            owner,
+            name,
+            sha: args.headSha,
+            state: args.isFailure ? "failure" : "success",
+            context: args.name,
+            description: args.description,
+            targetUrl: args.targetUrl,
+          });
+        });
       },
       listUpdatedPullRequests: async (
         updatedAfter: Date,

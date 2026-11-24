@@ -1,5 +1,4 @@
 import ProjectUtil from "Common/UI/Utils/Project";
-import { getSharedNameSelect } from "Common/UI/Utils/SharedNameOptions";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -43,7 +42,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
-import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import NotificationRuleForm, {
   NOTIFICATION_RULE_DESTINATION_FIELD_KEY,
   NotificationRuleFormPart,
@@ -59,11 +57,17 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
-import NotificationRuleCondition, {
-  NotificationRuleConditionCheckOn,
-  NotificationRuleConditionUtil,
-} from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
-import RecordsById from "Common/UI/Utils/RecordsById";
+import { NotificationRuleConditionUtil } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
+import {
+  createHeldRuleRecordCache,
+  getHeldRuleIds,
+  getHeldRuleRecords,
+  hasUnreadHeldRuleIds,
+  HeldRuleIds,
+  HeldRuleRecordCache,
+  HeldRuleRecords,
+  readHeldRuleRecords,
+} from "./WorkspaceRuleHeldRecords";
 import ObjectID from "Common/Types/ObjectID";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -185,23 +189,46 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [error, setError] = React.useState<string | undefined>(undefined);
 
   /*
-   * The monitors the shown rules' conditions hold, read by their ids
-   * (#10646): the page read every monitor of the project - the first 10,000
-   * by name - and a rule's monitor past them read "No longer in this
-   * project" on its card. Undefined until the rules are read, so no monitor
-   * is said to be gone from a list nobody read. A condition's picker reads
-   * and searches its own (MonitorConditionPicker).
+   * The monitors, labels, SLOs, policies, teams and people the shown rules
+   * hold, read by their ids (WorkspaceRuleHeldRecords, #10646, #10689): the
+   * page read every one of the project - the first 10,000 by name, the
+   * people from the first 10,000 team memberships, unsorted - and a rule's
+   * value past them read "No longer in this project" on its card. Each kind
+   * is undefined until every one of it the shown rules hold is read, so
+   * nothing is said to be gone from a list nobody read. A condition's
+   * picker reads and searches its own (RecordConditionPicker).
    */
-  const [monitors, setMonitors] = React.useState<Array<Monitor> | undefined>(
-    undefined,
-  );
-  const heldMonitorsRef: React.MutableRefObject<Map<string, Monitor>> =
-    React.useRef<Map<string, Monitor>>(new Map());
+  const heldRecordCacheRef: React.MutableRefObject<HeldRuleRecordCache> =
+    React.useRef<HeldRuleRecordCache>(createHeldRuleRecordCache());
+  const [shownRules, setShownRules] = React.useState<
+    Array<WorkspaceNotificationRule>
+  >([]);
+  // Drawn again as each read lands: what was read is in the cache.
+  const [heldRecordReads, setHeldRecordReads] = React.useState<number>(0);
+  // The reads on their way: the cards' values are named once they land.
+  const [heldRecordReadsPending, setHeldRecordReadsPending] =
+    React.useState<number>(0);
+  const heldRecords: HeldRuleRecords = React.useMemo((): HeldRuleRecords => {
+    return getHeldRuleRecords({
+      ids: getHeldRuleIds(shownRules),
+      cache: heldRecordCacheRef.current,
+    });
+  }, [shownRules, heldRecordReads]);
+  const isNamingValues: boolean = heldRecordReadsPending > 0;
+  const monitors: Array<Monitor> | undefined = heldRecords.monitors;
+  const labels: Array<Label> | undefined = heldRecords.labels;
+  const serviceLevelObjectives: Array<ServiceLevelObjective> | undefined =
+    heldRecords.serviceLevelObjectives;
+  const onCallDutyPolicies: Array<OnCallDutyPolicy> | undefined =
+    heldRecords.onCallDutyPolicies;
+  const teams: Array<Team> | undefined = heldRecords.teams;
+  const users: Array<User> | undefined = heldRecords.users;
+  const onCallSchedules: Array<OnCallDutyPolicySchedule> | undefined =
+    heldRecords.onCallSchedules;
   // One of the project's monitors, to show the name of a channel with.
   const [exampleMonitorName, setExampleMonitorName] = React.useState<
     string | undefined
   >(undefined);
-  const [labels, setLabels] = React.useState<Array<Label>>([]);
   const [alertStates, setAlertStates] = React.useState<Array<AlertState>>([]);
   const [alertSeverities, setAlertSeverities] = React.useState<
     Array<AlertSeverity>
@@ -224,15 +251,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [securityCaseStatuses, setSecurityCaseStatuses] = React.useState<
     Array<SecurityCaseStatus>
   >([]);
-  /*
-   * An SLO rule's: the project's SLOs, to pick the ones it is for. Left
-   * undefined while they could not be read, so no SLO a rule holds is said
-   * to be gone from a list nobody read (#7807).
-   */
-  const [serviceLevelObjectives, setServiceLevelObjectives] = React.useState<
-    Array<ServiceLevelObjective> | undefined
-  >(undefined);
-  const [teams, setTeams] = React.useState<Array<Team>>([]);
   const [microsoftTeamsTeams, setMicrosoftTeams] = React.useState<
     Array<MicrosoftTeamsTeam>
   >([]);
@@ -269,24 +287,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   const [mattermostConnection, setMattermostConnection] = React.useState<
     MattermostRuleTeams | undefined
   >(undefined);
-  const [users, setUsers] = React.useState<Array<User>>([]);
-  const [onCallSchedules, setOnCallSchedules] = React.useState<
-    Array<OnCallDutyPolicySchedule>
-  >([]);
   const [videoCallConnections, setVideoCallConnections] = React.useState<
     Array<VideoCallConnection>
   >([]);
   const [numberPrefixes, setNumberPrefixes] = React.useState<
     WorkspaceChannelNumberPrefixes | undefined
   >(undefined);
-  /*
-   * An on-call rule's policies. Undefined while they could not be read: no
-   * policy a rule holds is then said to be gone (#7807), and a name
-   * condition says nothing of what its words match (#7806).
-   */
-  const [onCallDutyPolicies, setOnCallDutyPolicies] = React.useState<
-    Array<OnCallDutyPolicy> | undefined
-  >(undefined);
+  // One of the project's policies, to show the name of a channel with.
   const [onCallPolicyName, setOnCallPolicyName] = React.useState<
     string | undefined
   >(undefined);
@@ -382,61 +389,44 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * The monitors the rules on the page name, read by their ids - only the
-   * ones not read already - so each card names its rule's monitors however
-   * many the project has, and one deleted since reads "No longer in this
-   * project". A read that fails names nothing, and says nothing is gone.
+   * What the rules on the page hold, read by its ids - only what no page
+   * before it read - so each card names its rule's values however many the
+   * project has, and one deleted since reads "No longer in this project". A
+   * read that fails names nothing, and says nothing is gone.
    */
-  const readMonitorsOfRules: (
+  const readRecordsOfRules: (
     rules: Array<WorkspaceNotificationRule>,
   ) => Promise<void> = async (
     rules: Array<WorkspaceNotificationRule>,
   ): Promise<void> => {
-    const ids: Set<string> = new Set<string>();
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    const ids: HeldRuleIds = getHeldRuleIds(rules);
 
-    for (const rule of rules) {
-      const conditions: Array<NotificationRuleCondition> =
-        (rule.notificationRule as IncidentNotificationRule | undefined)
-          ?.filters || [];
+    setShownRules(rules);
 
-      for (const condition of conditions) {
-        if (condition?.checkOn !== NotificationRuleConditionCheckOn.Monitors) {
-          continue;
-        }
-
-        for (const id of NotificationRuleConditionUtil.getValueIds(condition)) {
-          ids.add(id.toLowerCase());
-        }
-      }
+    if (
+      !projectId ||
+      !hasUnreadHeldRuleIds({ ids: ids, cache: heldRecordCacheRef.current })
+    ) {
+      return;
     }
 
-    const known: Map<string, Monitor> = heldMonitorsRef.current;
-    const toRead: Array<string> = Array.from(ids).filter(
-      (id: string): boolean => {
-        return !known.has(id);
-      },
-    );
+    setHeldRecordReadsPending((count: number): number => {
+      return count + 1;
+    });
 
-    try {
-      if (toRead.length > 0) {
-        const read: Array<Monitor> = await RecordsById.read<Monitor>({
-          modelType: Monitor,
-          ids: toRead,
-          query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          select: { _id: true, name: true, isArchived: true },
-        });
+    await readHeldRuleRecords({
+      projectId: projectId,
+      ids: ids,
+      cache: heldRecordCacheRef.current,
+    });
 
-        for (const monitor of read) {
-          if (monitor._id) {
-            known.set(monitor._id.toString().toLowerCase(), monitor);
-          }
-        }
-      }
-
-      setMonitors(Array.from(known.values()));
-    } catch {
-      // Named by nothing, and nothing said to be gone (monitors undefined).
-    }
+    setHeldRecordReads((count: number): number => {
+      return count + 1;
+    });
+    setHeldRecordReadsPending((count: number): number => {
+      return count - 1;
+    });
   };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
@@ -470,28 +460,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         setExampleMonitorName(firstMonitor.data[0]?.name || undefined);
       }
 
-      const labels: ListResult<Label> = await ModelAPI.getList({
-        modelType: Label,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        select: {
-          name: true,
-          _id: true,
-          color: true,
-          isArchived: true,
-          // What tells labels of one name apart (#10064).
-          ...getSharedNameSelect(Label),
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
-
-      setLabels(labels.data);
-
+      /*
+       * The project's labels, SLOs, policies, teams and people are not read
+       * whole (#10689): a condition's picker searches its own, and the
+       * cards name what the shown rules hold, read by its ids
+       * (readRecordsOfRules).
+       */
       const alertStates: ListResult<AlertState> = await ModelAPI.getList({
         modelType: AlertState,
         query: {
@@ -611,38 +585,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         setSecurityCaseStatuses(caseValues.statuses);
       }
 
-      /*
-       * Read only for the SLO rules, whose SLOs condition picks them by
-       * name. Someone who may set up rules but not read SLOs still edits the
-       * rule's other conditions, so a refusal leaves the list empty rather
-       * than failing the page.
-       */
-      if (props.eventType === NotificationRuleEventType.ServiceLevelObjective) {
-        try {
-          const slos: ListResult<ServiceLevelObjective> =
-            await ModelAPI.getList({
-              modelType: ServiceLevelObjective,
-              query: {
-                projectId: ProjectUtil.getCurrentProjectId()!,
-              },
-              select: {
-                _id: true,
-                name: true,
-                isArchived: true,
-              },
-              skip: 0,
-              limit: LIMIT_PER_PROJECT,
-              sort: {
-                name: SortOrder.Ascending,
-              },
-            });
-
-          setServiceLevelObjectives(slos.data);
-        } catch {
-          setServiceLevelObjectives(undefined);
-        }
-      }
-
       const monitorStatus: ListResult<MonitorStatus> = await ModelAPI.getList({
         modelType: MonitorStatus,
         query: {
@@ -664,92 +606,12 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
       setMonitorStatus(monitorStatus.data);
 
-      const teams: ListResult<Team> = await ModelAPI.getList({
-        modelType: Team,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        select: {
-          name: true,
-          _id: true,
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {
-          name: SortOrder.Ascending,
-        },
-      });
-
-      setTeams(teams.data);
-
-      const teamMembers: ListResult<TeamMember> = await ModelAPI.getList({
-        modelType: TeamMember,
-        query: {
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        select: {
-          _id: true,
-          user: {
-            name: true,
-            email: true,
-            _id: true,
-            profilePictureId: true,
-          },
-        },
-        skip: 0,
-        limit: LIMIT_PER_PROJECT,
-        sort: {},
-      });
-
-      const users: Array<User> = teamMembers.data.map(
-        (teamMember: TeamMember) => {
-          return teamMember.user!;
-        },
-      );
-
-      // make sure user is unique by id
-
-      const uniqueUsers: Array<User> = [];
-
-      users.forEach((user: User) => {
-        if (
-          !uniqueUsers.find((u: User) => {
-            return u._id?.toString() === user._id?.toString();
-          })
-        ) {
-          uniqueUsers.push(user);
-        }
-      });
-
-      setUsers(uniqueUsers);
-
       /*
-       * The on-call schedules, by name, for a rule's summary to name those
-       * whose on-call person joins its channel. A member who may not read
-       * them still edits the rule, so a refusal leaves them unnamed.
+       * The on-call schedules whose on-call person joins a rule's channel
+       * are named from a read of the ones the shown rules hold, by their
+       * ids (readRecordsOfRules): the project's first 10,000 by name left
+       * one past them out of its rule's summary (#10689).
        */
-      try {
-        const schedules: ListResult<OnCallDutyPolicySchedule> =
-          await ModelAPI.getList({
-            modelType: OnCallDutyPolicySchedule,
-            query: {
-              projectId: ProjectUtil.getCurrentProjectId()!,
-            },
-            select: {
-              _id: true,
-              name: true,
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            sort: {
-              name: SortOrder.Ascending,
-            },
-          });
-
-        setOnCallSchedules(schedules.data);
-      } catch {
-        setOnCallSchedules([]);
-      }
 
       /*
        * What the name of the channel a rule creates is made of: the
@@ -781,11 +643,11 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
 
       if (props.eventType === NotificationRuleEventType.OnCallDutyPolicy) {
         /*
-         * An on-call rule's policies, to pick the ones it is for by name
-         * (#7554) - archived ones too, so a rule that holds one shows it
-         * marked - and one of them names the channel in its preview. A
-         * member who may not read them still edits the rule's other
-         * conditions.
+         * One of the project's policies names the channel in a rule's
+         * preview: the first live one by name. The policies a rule picks
+         * are searched by its condition's picker, and the ones the shown
+         * rules hold are read by their ids (#10689). A member who may not
+         * read them still edits the rule's other conditions.
          */
         try {
           const policies: ListResult<OnCallDutyPolicy> = await ModelAPI.getList(
@@ -793,32 +655,22 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
               modelType: OnCallDutyPolicy,
               query: {
                 projectId: ProjectUtil.getCurrentProjectId()!,
+                isArchived: false,
               },
               select: {
                 _id: true,
                 name: true,
-                isArchived: true,
-                // What tells policies of one name apart (#10064).
-                ...getSharedNameSelect(OnCallDutyPolicy),
               },
               skip: 0,
-              limit: LIMIT_PER_PROJECT,
+              limit: 1,
               sort: {
                 name: SortOrder.Ascending,
               },
             },
           );
 
-          setOnCallDutyPolicies(policies.data);
-          setOnCallPolicyName(
-            (
-              policies.data.find((policy: OnCallDutyPolicy): boolean => {
-                return !policy.isArchived;
-              }) || policies.data[0]
-            )?.name || undefined,
-          );
+          setOnCallPolicyName(policies.data[0]?.name || undefined);
         } catch {
-          setOnCallDutyPolicies(undefined);
           setOnCallPolicyName(undefined);
         }
       }
@@ -1006,8 +858,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         part={part}
         value={values.notificationRule as IncidentNotificationRule}
         eventType={props.eventType}
-        monitors={monitors}
-        labels={labels}
         alertStates={alertStates}
         alertSeverities={alertSeverities}
         incidentSeverities={incidentSeverities}
@@ -1015,10 +865,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         scheduledMaintenanceStates={scheduledMaintenanceStates}
         securityCasePriorities={securityCasePriorities}
         securityCaseStatuses={securityCaseStatuses}
-        serviceLevelObjectives={serviceLevelObjectives}
-        onCallDutyPolicies={onCallDutyPolicies}
         monitorStatus={monitorStatus}
         workspaceType={props.workspaceType}
+        // Who the shown rules invite, named already: the form reads the rest.
         teams={teams}
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
@@ -1083,7 +932,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         modelType={WorkspaceNotificationRule}
         onFetchSuccess={(rules: Array<WorkspaceNotificationRule>) => {
           owningTeams.onRulesFetched(rules);
-          void readMonitorsOfRules(rules);
+          void readRecordsOfRules(rules);
         }}
         getEditDisabledReason={owningTeams.getEditDisabledReason}
         getDeleteDisabledReason={owningTeams.getDeleteDisabledReason}
@@ -1553,6 +1402,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             teams: teams,
             users: users,
             onCallSchedules: onCallSchedules,
+            isNamingValues: isNamingValues,
             microsoftTeamsTeams: microsoftTeamsTeams,
             microsoftTeamsChats: microsoftTeamsChats,
             slackWorkspaces: slackWorkspaces,

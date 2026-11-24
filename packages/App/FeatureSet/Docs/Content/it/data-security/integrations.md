@@ -93,6 +93,14 @@ Un archivio senza proprietari può riceverli da OneUptime AI. Legge ciò che ind
 
 Vedi [Trigger dei flussi di lavoro](/docs/workflows/triggers) per i campi che passa ogni trigger.
 
+## Pull request
+
+Una fuga costa meno da correggere prima del merge. In un repository collegato in **Codice** con le revisioni di produzione attive, la revisione di ogni pull request ha una sezione **Dati sensibili**, letta dal suo diff: codice che scrive dati personali o un segreto nella telemetria, codice di infrastruttura che rende pubblico un archivio o ne disattiva la crittografia, i backup o la registrazione, e migrazioni che aggiungono colonne per dati personali, password o dati di carte. Ogni punto nomina il controllo di Sicurezza dei dati che la modifica non supererebbe una volta rilasciata, e i tuoi tipi di dati vengono letti dai loro indizi nel nome, come li leggono le scansioni. Vedi [Revisione di produzione delle pull request](/docs/ai/ai-agent#revisione-di-produzione-delle-pull-request).
+
+Ciò che sa Sicurezza dei dati rende questi punti più precisi, nel commento di un repository privato e, in Codice, per chi può leggere i risultati di Sicurezza dei dati: dove la telemetria del servizio ha contenuto lo stesso tipo di dati negli ultimi 7 giorni, la regola di pulizia che lo maschera all'ingestione, e l'archivio che è una risorsa, con la sua sensibilità. Un archivio segnato come **Pubblico per scelta** non dà alcun punto per il fatto di essere pubblico. Il commento di un repository pubblico dice solo ciò che mostra il diff.
+
+**Fughe rilevate prima del merge**, in **Impostazioni del progetto → IA → Risultati IA**, conta le fughe che le revisioni hanno intercettato nelle pull request, corrette lì o non ancora, accanto ai problemi che le scansioni hanno aperto sugli stessi controlli dopo il rilascio del codice.
+
 ## OneUptime AI
 
 Due azioni su un problema chiedono aiuto a OneUptime AI. Entrambe inviano a OneUptime AI il titolo e la gravità del problema, il nome, il tipo, la regione e l'id cloud dell'archivio, la sua sensibilità e i suoi tipi di dati, ciascuno con il suo nome (i tuoi con il nome che gli hai dato), la prova, perché il controllo è importante e la correzione per il cloud dell'archivio - mai i campioni di un risultato. Entrambe rispettano gli interruttori e i limiti di OneUptime AI del progetto. Cosa invia ciascuna, cosa non invia mai e il modello su cui viene eseguita sono in [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai).

@@ -203,12 +203,12 @@ describe("NetworkAddressName: who reads and writes one", () => {
     }
   });
 
-  test("the project is set once, and who created or deleted it is OneUptime's to write", () => {
+  test("the project is set once, and who created it is OneUptime's to write", () => {
     expect(accessOf("projectId").update).toEqual([]);
     expect(accessOf("project").update).toEqual([]);
     expect(accessOf("createdByUserId").update).toEqual([]);
-    expect(accessOf("deletedByUserId").create).toEqual([]);
-    expect(accessOf("deletedByUser").create).toEqual([]);
+    expect(accessOf("createdByUserId").create).toEqual([]);
+    expect(accessOf("createdByUser").create).toEqual([]);
   });
 });
 

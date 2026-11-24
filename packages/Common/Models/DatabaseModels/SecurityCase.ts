@@ -29,11 +29,13 @@ import Permission from "../../Types/Permission";
 import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import SecurityCaseAiVerdict from "../../Types/SecurityCase/SecurityCaseAiVerdict";
 import {
-  SECURITY_CASE_AI_RESPONSE_STATES,
-  SECURITY_CASE_HAND_OFF_REASONS,
   SecurityCaseAiResponseState,
   SecurityCaseHandOffReason,
 } from "../../Types/SecurityCase/SecurityCaseAi";
+import {
+  SECURITY_CASE_AI_HOLD_OUTCOMES,
+  SecurityCaseAiHoldOutcome,
+} from "../../Types/SecurityCase/SecurityCaseAiHold";
 import SecurityCaseVerdict from "../../Types/SecurityCase/SecurityCaseVerdict";
 import SecurityDetectionSource from "../../Types/SecurityCase/SecurityDetectionSource";
 import {
@@ -699,6 +701,44 @@ export default class SecurityCase extends BaseModel {
   })
   public containedAt?: Date = undefined;
 
+  /*
+   * TIME TO BLOCK (#10350): when an automatic response policy's block of
+   * one of the case's addresses first took hold at an edge, and how long
+   * that was after the address's first malicious request. Written once, by
+   * OneUptime, as the block takes hold.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Blocked At",
+    description:
+      "When an automatic response policy's block of one of the case's addresses first took hold at an edge.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public blockedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Number,
+    computed: true,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "Time to Block (Seconds)",
+    description:
+      "Seconds from the address's first malicious request to an automatic response policy's block of it taking hold.",
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public timeToBlockInSeconds?: number = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @Index()
   @TableColumn({
@@ -1125,7 +1165,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: SECURITY_CASE_AI_RESPONSE_STATES,
+    allowedValues: Object.values(SecurityCaseAiResponseState),
     title: "AI Response State",
     description:
       "Where OneUptime AI stands on the case when it works it: Working, WaitingForPeople, HandedToPeople or Finished. Empty for a case OneUptime AI never worked.",
@@ -1142,7 +1182,7 @@ export default class SecurityCase extends BaseModel {
   @TableColumn({
     type: TableColumnType.ShortText,
     computed: true,
-    allowedValues: SECURITY_CASE_HAND_OFF_REASONS,
+    allowedValues: Object.values(SecurityCaseHandOffReason),
     title: "AI Hand Off Reason",
     description:
       "Why OneUptime AI last handed the case to people, such as SteeringText, HighestPriority or ProtectedTarget.",
@@ -1210,6 +1250,85 @@ export default class SecurityCase extends BaseModel {
     nullable: true,
   })
   public aiClosedAt?: Date = undefined;
+
+  /*
+   * OneUptime AI responding first to the case (#10353,
+   * Types/SecurityCase/SecurityCaseAiHold): Holding while the notice people
+   * get when it opens, and the Page On-Call steps its playbooks reach on
+   * their own, wait for OneUptime AI; then how the hold ended - resolved
+   * with nobody alerted, handed to people (and why), or stopped by a
+   * person. Empty for a case never held. Only OneUptime writes it.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    computed: true,
+    allowedValues: SECURITY_CASE_AI_HOLD_OUTCOMES,
+    title: "AI Hold Outcome",
+    description:
+      "Whether OneUptime AI is responding first to the case before anyone is alerted (Holding), and how that ended: Resolved with nobody alerted, handed to people (NeedsApproval, HandedOff, TimeRanOut and the rest), or stopped by a person (PageNow, TakenByPerson) or a priority rise (RoseInPriority). Empty for a case never held.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public aiHoldOutcome?: SecurityCaseAiHoldOutcome = undefined;
+
+  /*
+   * When the hold time runs out while OneUptime AI responds first: people
+   * are alerted then, if nothing ended the hold before. The every-minute
+   * review reads the held cases by this index (SecurityCaseAiHold); empty
+   * once the hold ends.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "AI Hold Until",
+    description:
+      "When people are alerted about the case at the latest while OneUptime AI responds first to it. Empty when it is not held.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiHoldUntil?: Date = undefined;
+
+  // When the hold ended: what the digest and the summary measure to.
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "AI Hold Ended At",
+    description:
+      "When OneUptime AI's hold of the case's alerts ended. Empty while it holds them, and for a case never held.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiHoldEndedAt?: Date = undefined;
+
+  /*
+   * The person who ended the hold - pressed Page now, or took the case -
+   * who is not alerted about what they did. Empty when OneUptime ended it.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    computed: true,
+    title: "AI Hold Ended By User ID",
+    description:
+      "The person who ended OneUptime AI's hold of the case's alerts, by pressing Page now or taking the case. Empty when OneUptime ended it.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public aiHoldEndedByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,
@@ -1285,47 +1404,4 @@ export default class SecurityCase extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public createdByUserId?: ObjectID = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    manyToOneRelationColumn: "deletedByUserId",
-    type: TableColumnType.Entity,
-    modelType: User,
-    title: "Deleted By User",
-    description: "The person who deleted the case.",
-  })
-  @ManyToOne(
-    () => {
-      return User;
-    },
-    {
-      eager: false,
-      nullable: true,
-      onDelete: "SET NULL",
-      orphanedRowAction: "nullify",
-    },
-  )
-  @JoinColumn({ name: "deletedByUserId" })
-  public deletedByUser?: User = undefined;
-
-  @ColumnAccessControl({
-    create: [],
-    read: readPermissions,
-    update: [],
-  })
-  @TableColumn({
-    type: TableColumnType.ObjectID,
-    title: "Deleted By User ID",
-    description: "ID of the person who deleted the case.",
-  })
-  @Column({
-    type: ColumnType.ObjectID,
-    nullable: true,
-    transformer: ObjectID.getDatabaseTransformer(),
-  })
-  public deletedByUserId?: ObjectID = undefined;
 }

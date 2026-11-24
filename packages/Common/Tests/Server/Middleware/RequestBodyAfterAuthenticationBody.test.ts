@@ -308,6 +308,16 @@ beforeAll(async () => {
     RequestBodyAfterAuthentication.readBody(LIMIT, { parseGzipJson: true }),
     answerWhatArrived,
   );
+  // As the Fluent route reads its batches: records a line at a time too.
+  app.post(
+    "/after-lines",
+    checkKey,
+    RequestBodyAfterAuthentication.readBody(LIMIT, {
+      parseGzipJson: true,
+      readLines: true,
+    }),
+    answerWhatArrived,
+  );
   // A body read before this ran - by StartServer, or a signature's check - is left as it is.
   app.post(
     "/read-twice",
@@ -473,6 +483,312 @@ describe("parseGzipJson: a gzip JSON body is read as the same body uncompressed"
 
     parse.mockRestore();
   });
+});
+
+/*
+ * readLines (#10769): newline-delimited JSON - Fluentd's HTTP output without
+ * json_array, Fluent Bit's with format json_lines - is read as its values, a
+ * line at a time, counted first; text as its bytes. Sent as it is, no
+ * parser StartServer runs read either, so the route found no body; gzip-
+ * compressed, it found the inflated bytes. Both are now read alike.
+ */
+describe("readLines: newline-delimited JSON is read as its values, and text as its bytes, gzip-compressed or not", () => {
+  const RECORD_LINES: Array<Record<string, unknown>> = [
+    { message: "order placed", level: "info" },
+    { message: "ü 中", nested: { pod: "web-1" } },
+  ];
+  const NDJSON: Buffer = Buffer.from(
+    RECORD_LINES.map((record: Record<string, unknown>): string => {
+      return `${JSON.stringify(record)}\n`;
+    }).join(""),
+  );
+
+  const encodings: Array<{ how: string; encode: (body: Buffer) => Sent }> = [
+    {
+      how: "as it is",
+      encode: (body: Buffer): Sent => {
+        return { how: "as it is", headers: {}, body: body };
+      },
+    },
+    {
+      how: "gzip",
+      encode: (body: Buffer): Sent => {
+        return {
+          how: "gzip",
+          headers: { "content-encoding": "gzip" },
+          body: zlib.gzipSync(body),
+        };
+      },
+    },
+    {
+      how: "deflate",
+      encode: (body: Buffer): Sent => {
+        return {
+          how: "deflate",
+          headers: { "content-encoding": "deflate" },
+          body: zlib.deflateSync(body),
+        };
+      },
+    },
+  ];
+
+  test.each([
+    "application/x-ndjson",
+    "application/ndjson",
+    "application/jsonl",
+    "application/x-ndjson; charset=utf-8",
+  ])(
+    "%s: its records, its text kept as rawBody, as it is, gzip and deflate, declared and chunked",
+    async (contentType: string) => {
+      for (const encoding of encodings) {
+        const encoded: Sent = encoding.encode(NDJSON);
+
+        for (const chunked of [false, true]) {
+          const sent: SentRequest = await send(
+            "/after-lines",
+            {
+              how: encoding.how,
+              headers: { ...encoded.headers, "content-type": contentType },
+              body: encoded.body,
+            },
+            chunked,
+          );
+
+          expect({
+            encoding: encoding.how,
+            chunked,
+            answer: answerOf(sent),
+          }).toEqual({
+            encoding: encoding.how,
+            chunked,
+            answer: {
+              status: 200,
+              json: {
+                kind: "array",
+                body: RECORD_LINES,
+                rawBody: NDJSON.toString("utf8"),
+                rawFormUrlEncodedBody: null,
+                limit: LIMIT.bytes,
+              },
+            },
+          });
+        }
+      }
+
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("text lines between the records are kept as their text", async () => {
+    const mixed: Buffer = Buffer.from(
+      `order placed\n${JSON.stringify(RECORD_LINES[0])}\r\n  2026-11-22 WARN retrying  \n\n`,
+    );
+
+    for (const encoding of encodings) {
+      const encoded: Sent = encoding.encode(mixed);
+      const sent: SentRequest = await send("/after-lines", {
+        how: encoding.how,
+        headers: {
+          ...encoded.headers,
+          "content-type": "application/x-ndjson",
+        },
+        body: encoded.body,
+      });
+
+      expect((sent.answer.json as Found).body).toEqual([
+        "order placed",
+        RECORD_LINES[0],
+        "2026-11-22 WARN retrying",
+      ]);
+    }
+  });
+
+  test("text (text/*) is its bytes, sent as it is as gzip-compressed: plain text was left unread", async () => {
+    for (const contentType of ["text/plain", "text/csv; charset=utf-8"]) {
+      const answers: Array<unknown> = [];
+
+      for (const encoding of encodings) {
+        const encoded: Sent = encoding.encode(LINES);
+
+        answers.push(
+          answerOf(
+            await send("/after-lines", {
+              how: encoding.how,
+              headers: { ...encoded.headers, "content-type": contentType },
+              body: encoded.body,
+            }),
+          ),
+        );
+      }
+
+      expect(answers).toEqual([
+        {
+          status: 200,
+          json: {
+            kind: "bytes",
+            body: LINES.toString("hex"),
+            rawBody: null,
+            rawFormUrlEncodedBody: null,
+            limit: LIMIT.bytes,
+          },
+        },
+        answers[0],
+        answers[0],
+      ]);
+      // As readBody alone hands a gzip text body on.
+      expect(answers[1]).toEqual(
+        answerOf(
+          await send("/after", {
+            how: "gzip text",
+            headers: {
+              "content-type": contentType,
+              "content-encoding": "gzip",
+            },
+            body: zlib.gzipSync(LINES),
+          }),
+        ),
+      );
+    }
+  });
+
+  test("every other body is read as parseGzipJson reads it", async () => {
+    for (const sent of BODIES.filter((candidate: Sent): boolean => {
+      const type: string = candidate.headers["content-type"] || "";
+      return !type.includes("ndjson") && !type.startsWith("text/");
+    })) {
+      expect({
+        how: sent.how,
+        answer: answerOf(await send("/after-lines", sent)),
+      }).toEqual({
+        how: sent.how,
+        answer: answerOf(await send("/after-json", sent)),
+      });
+    }
+  });
+
+  test("past the route's values it is refused 413 before a long line is parsed, as it is and gzip-compressed alike", async () => {
+    const line: string = `[${"0,".repeat(400)}0]\n`;
+    const over: Buffer = Buffer.from(line.repeat(3));
+    const parse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      for (const encoding of encodings) {
+        const encoded: Sent = encoding.encode(over);
+        const sent: SentRequest = await send("/after-lines", {
+          how: encoding.how,
+          headers: {
+            ...encoded.headers,
+            "content-type": "application/x-ndjson",
+          },
+          body: encoded.body,
+        });
+
+        expect(answerOf(sent)).toEqual({
+          status: 413,
+          json: {
+            error: getTooManyJsonValuesMessage(
+              JsonElementLimit.Values,
+              LIMIT.values,
+            ),
+          },
+        });
+      }
+
+      // Two lines fit the 1,000 values; the third, which passes them, was never parsed.
+      expect(
+        (parse.mock.calls as Array<Array<unknown>>).filter(
+          (call: Array<unknown>): boolean => {
+            return typeof call[0] === "string" && call[0].startsWith("[0,");
+          },
+        ),
+      ).toHaveLength(2 * encodings.length);
+    } finally {
+      parse.mockRestore();
+    }
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("past the route's bytes it is refused 413 in the words every body over its limit gets: declared unread, chunked at the limit, gzip as it inflates", async () => {
+    const big: Buffer = Buffer.from(
+      `${JSON.stringify({ message: "x".repeat(64) })}\n`.repeat(
+        Math.ceil((2 * LIMIT.bytes) / 80),
+      ),
+    );
+    const words: unknown = answerOf(
+      await send("/after-json", {
+        how: "JSON over the route's bytes",
+        headers: JSON_TYPE,
+        body: Buffer.from(JSON.stringify({ padding: "x".repeat(LIMIT.bytes) })),
+      }),
+    );
+
+    for (const chunked of [false, true]) {
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: "/after-lines",
+        headers: { "content-type": "application/x-ndjson", "x-test-key": KEY },
+        chunked: chunked,
+        body: big,
+      });
+
+      expect(answerOf(sent)).toEqual(words);
+      expect(sent.answer.connection).toBe("close");
+
+      const read: number = await server.readInAll(sent.tag);
+
+      expect(read).toBeLessThanOrEqual(
+        chunked ? LIMIT.bytes + READ_OR_TWO : READ_OR_TWO,
+      );
+    }
+
+    const bomb: SentRequest = await send("/after-lines", {
+      how: "a gzip bomb of lines",
+      headers: {
+        "content-type": "application/x-ndjson",
+        "content-encoding": "gzip",
+      },
+      body: zlib.gzipSync(big),
+    });
+
+    expect(answerOf(bomb)).toEqual(words);
+  });
+
+  test.each([...CONNECTIONS])(
+    "with no key, 40 MiB of it, declared or chunked, gzip or not, have a socket read or two read (%s)",
+    async (connection: Connection) => {
+      const lines: Buffer = Buffer.from(
+        `${JSON.stringify({ message: "a".repeat(1000) })}\n`.repeat(
+          (40 * MIB) / 1024,
+        ),
+      );
+
+      for (const sent of [
+        { headers: { "content-type": "application/x-ndjson" }, body: lines },
+        {
+          headers: {
+            "content-type": "application/x-ndjson",
+            "content-encoding": "gzip",
+          },
+          body: zlib.gzipSync(lines),
+        },
+      ]) {
+        for (const chunked of [false, true]) {
+          const refused: SentRequest = await sendOverHttp(server, {
+            path: "/after-lines",
+            headers: sent.headers,
+            connection: connection,
+            chunked: chunked,
+            body: sent.body,
+          });
+
+          expect(refused.answer.status).toBe(401);
+          expect(await server.readInAll(refused.tag)).toBeLessThanOrEqual(
+            READ_OR_TWO,
+          );
+        }
+      }
+    },
+  );
 });
 
 describe("a request the key check refuses has nothing of its body read", () => {

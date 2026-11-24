@@ -12,6 +12,7 @@ import {
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import Twilio from "twilio";
+import TwilioHttpClient from "../Utils/TwilioHttpClient";
 import logger from "Common/Server/Utils/Logger";
 import {
   describeTwilioWebhookUrl,
@@ -25,7 +26,10 @@ export default class TwilioCallProvider implements ICallProvider {
 
   public constructor(config: TwilioConfig) {
     this.config = config;
-    this.client = new Twilio.Twilio(config.accountSid, config.authToken);
+    // Through the outbound proxy, as every request of the server (#10721).
+    this.client = new Twilio.Twilio(config.accountSid, config.authToken, {
+      httpClient: TwilioHttpClient.create(),
+    });
   }
 
   public async searchAvailableNumbers(

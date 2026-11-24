@@ -46,11 +46,19 @@ import OutboundProxy from "./OutboundProxy";
  *     (SafeWebhookRequest) included;
  *   - the server's other axios requests, and the libraries that send with
  *     axios: routeAxiosRequest, on a request's config or as an interceptor
- *     (acme-client's certificate orders, SendGrid's mail).
+ *     (acme-client's certificate orders, SendGrid's mail);
+ *   - Twilio's SMS and calls: an interceptor on the client each one is
+ *     handed (Notification/Utils/TwilioHttpClient, issue #10721);
+ *   - the libraries that send on an agent they are handed: web push, and
+ *     Expo's push to the mobile app (PushNotificationService).
+ *
+ * A request sent with Node's fetch takes the same route, decided here, on
+ * undici's agents (OutboundFetch, issue #10720).
  *
  * OutboundAxiosRoutingGuard holds every server file that sends with axios
- * to one of them. With no proxy set at all, a request is sent exactly as it
- * always was.
+ * to one of them, and OutboundFetchRoutingGuard every one that sends with
+ * fetch. With no proxy set at all, a request is sent exactly as it always
+ * was.
  */
 
 // What a request's certificate check is, for one request (see createAgents).
@@ -137,6 +145,11 @@ export default class OutboundProxyAgents {
    * support speaks to an http or https proxy only, and would go direct past
    * any other, so another is refused, as axios fails a request to one. The
    * refusal names no proxy: its URL may hold its password.
+   *
+   * A user name or password the URL does not percent-encode as a URL must
+   * (a "%" not written "%25") is refused too, before anything is sent:
+   * Node's agents and undici, which Node's fetch goes through, both decode
+   * them, and would fail every request with a bare "URI malformed".
    */
   public static getProxyFor(url: URL): URL | null {
     let proxy: URL | null;
@@ -155,7 +168,27 @@ export default class OutboundProxyAgents {
       );
     }
 
+    if (proxy && !OutboundProxyAgents.hasDecodableCredentials(proxy)) {
+      throw new BadDataException(
+        "The user name or password of the outbound proxy set in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY is not written as a URL writes it: write each @, : and % in them as %40, %3A and %25.",
+      );
+    }
+
     return proxy;
+  }
+
+  /*
+   * The user name and password a proxy's URL holds, decoded, as a proxy
+   * reads them ("user:password"), or null when it holds neither. Node's
+   * agents sign in so, a user name alone included ("user:") and a password
+   * alone too (":password"), and so does OutboundFetch.
+   */
+  public static getProxyCredentials(proxy: URL): string | null {
+    if (!proxy.username && !proxy.password) {
+      return null;
+    }
+
+    return `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
   }
 
   /*
@@ -163,8 +196,19 @@ export default class OutboundProxyAgents {
    * scheme: the proxy getProxyFor chose, or none at all.
    */
   public static getProxyEnvFor(url: URL): NodeProxyEnv {
-    const proxy: URL | null = this.getProxyFor(url);
+    return OutboundProxyAgents.getProxyEnvThrough(
+      url,
+      OutboundProxyAgents.getProxyFor(url),
+    );
+  }
 
+  /*
+   * The proxyEnv of an agent that sends a request to `url` through `proxy`
+   * (a proxy getProxyFor chose), or directly for null: for a client whose
+   * route is decided with a rule of its own on top, as Twilio's keeps
+   * HTTP_PROXY as a fallback (Notification/Utils/TwilioHttpClient).
+   */
+  public static getProxyEnvThrough(url: URL, proxy: URL | null): NodeProxyEnv {
     if (!proxy) {
       return {};
     }
@@ -218,11 +262,10 @@ export default class OutboundProxyAgents {
     let agent: http.Agent | undefined = this.sharedAgents.get(key);
 
     if (!agent) {
-      const proxyEnv: NodeProxyEnv = !proxy
-        ? {}
-        : isHttps
-          ? { https_proxy: proxy.href }
-          : { http_proxy: proxy.href };
+      const proxyEnv: NodeProxyEnv = OutboundProxyAgents.getProxyEnvThrough(
+        url,
+        proxy,
+      );
 
       agent = isHttps
         ? new https.Agent({ ...SHARED_AGENT_OPTIONS, proxyEnv })
@@ -378,11 +421,23 @@ export default class OutboundProxyAgents {
     }
   }
 
+  // Whether a proxy's user name and password can be decoded at all.
+  private static hasDecodableCredentials(proxy: URL): boolean {
+    try {
+      OutboundProxyAgents.getProxyCredentials(proxy);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /*
-   * The https agent's options for `tls`: only what it sets, so an unset
-   * TargetTlsOptions leaves the agent as every other request's.
+   * The TLS options of the connection to a request's target for `tls`: only
+   * what it sets, so an unset TargetTlsOptions leaves the connection as
+   * every other request's. OutboundFetch puts them on the target's
+   * connection too, never the proxy's.
    */
-  private static getTlsAgentOptions(
+  public static getTlsAgentOptions(
     tls: TargetTlsOptions | undefined,
   ): https.AgentOptions {
     const options: https.AgentOptions = {};

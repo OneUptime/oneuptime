@@ -330,6 +330,52 @@ export function approveOnLoopback(
     );
 }
 
+/*
+ * The host names this process looks up from here on, each one in `refused`
+ * answered at once as a name DNS does not know (ENOTFOUND). A request sent
+ * directly looks its own host up; one sent through a proxy looks up the
+ * proxy's alone, and the proxy the target's. So the names a request looked
+ * up say which way it went - for a sender whose host is fixed
+ * (api.resend.com, api.twilio.com), without it leaving this machine.
+ * Stood in until jest.restoreAllMocks().
+ */
+export function watchLookups(refused: Array<string>): Array<string> {
+  const asked: Array<string> = [];
+  const realLookup: typeof dns.lookup = dns.lookup;
+
+  jest.spyOn(dns, "lookup").mockImplementation(((
+    hostname: string,
+    options: unknown,
+    callback?: unknown,
+  ): void => {
+    asked.push(hostname);
+
+    if (!refused.includes(hostname)) {
+      (realLookup as (...args: Array<unknown>) => void).call(
+        dns,
+        hostname,
+        options,
+        callback,
+      );
+      return;
+    }
+
+    const done: (error: NodeJS.ErrnoException) => void = (
+      typeof options === "function" ? options : callback
+    ) as (error: NodeJS.ErrnoException) => void;
+    const error: NodeJS.ErrnoException = new Error(
+      `getaddrinfo ENOTFOUND ${hostname}`,
+    );
+
+    error.code = "ENOTFOUND";
+    process.nextTick(() => {
+      done(error);
+    });
+  }) as never);
+
+  return asked;
+}
+
 // Whether this machine answers 127.0.0.2 on loopback, as Linux does.
 export async function canListenOn(host: string): Promise<boolean> {
   return await new Promise<boolean>((resolve: (value: boolean) => void) => {

@@ -287,24 +287,23 @@ describe("IncidentAlert table permissions", () => {
   });
 
   /*
-   * Who linked or deleted a link is OneUptime's to say (UserAttribution):
-   * no request may write either, DatabaseService takes them out of every
-   * write it does not make itself, and the column check skips them as
-   * computed, so a client that still sends one is not refused for it.
+   * Who linked a link is OneUptime's to say (UserAttribution): no request
+   * may write it, DatabaseService takes it out of every write it does not
+   * make itself, and the column check skips it as computed, so a client
+   * that still sends one is not refused for it. Who deleted a link is no
+   * column at all: a link is deleted outright (#10469).
    */
-  test.each([
-    "createdByUser",
-    "createdByUserId",
-    "deletedByUser",
-    "deletedByUserId",
-  ])("nobody can set %s", (column: string) => {
-    const model: IncidentAlert = new IncidentAlert();
+  test.each(["createdByUser", "createdByUserId"])(
+    "nobody can set %s",
+    (column: string) => {
+      const model: IncidentAlert = new IncidentAlert();
 
-    expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
-    expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
-    expect(model.getTableColumnMetadata(column).computed).toBe(true);
-    expect(UserAttribution.getColumns(model)).toContain(column);
-  });
+      expect(model.getColumnAccessControlFor(column)?.create).toEqual([]);
+      expect(model.getColumnAccessControlFor(column)?.update).toEqual([]);
+      expect(model.getTableColumnMetadata(column).computed).toBe(true);
+      expect(UserAttribution.getColumns(model)).toContain(column);
+    },
+  );
 });
 
 describe("IncidentAlert columns", () => {
@@ -317,11 +316,9 @@ describe("IncidentAlert columns", () => {
     "alertId",
     "createdByUser",
     "createdByUserId",
-    "deletedByUser",
-    "deletedByUserId",
   ];
 
-  test("has exactly the columns the migration creates", () => {
+  test("has exactly the columns the migrations leave", () => {
     const baseColumns: Array<string> = [
       "_id",
       "createdAt",
@@ -360,14 +357,11 @@ describe("IncidentAlert columns", () => {
     },
   );
 
-  test.each(["createdByUserId", "deletedByUserId"])(
-    "%s is optional",
-    (column: string) => {
-      expect(Boolean(model().getTableColumnMetadata(column).required)).toBe(
-        false,
-      );
-    },
-  );
+  test.each(["createdByUserId"])("%s is optional", (column: string) => {
+    expect(Boolean(model().getTableColumnMetadata(column).required)).toBe(
+      false,
+    );
+  });
 
   interface RelationCase {
     relation: string;
@@ -401,12 +395,6 @@ describe("IncidentAlert columns", () => {
       modelType: User,
       onDelete: "SET NULL",
     },
-    {
-      relation: "deletedByUser",
-      idColumn: "deletedByUserId",
-      modelType: User,
-      onDelete: "SET NULL",
-    },
   ] as Array<RelationCase>)(
     "$relation points at its model through $idColumn, and is $onDelete on delete",
     ({ relation, idColumn, modelType, onDelete }: RelationCase) => {
@@ -432,13 +420,9 @@ describe("IncidentAlert columns", () => {
     },
   );
 
-  test("the two deletedBy columns cannot be written on create", () => {
-    expect(model().getColumnAccessControlFor("deletedByUser")!.create).toEqual(
-      [],
-    );
-    expect(
-      model().getColumnAccessControlFor("deletedByUserId")!.create,
-    ).toEqual([]);
+  test("says nothing of who deleted a link: it is deleted outright", () => {
+    expect(model().hasColumn("deletedByUser")).toBe(false);
+    expect(model().hasColumn("deletedByUserId")).toBe(false);
   });
 });
 

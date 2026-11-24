@@ -83,8 +83,14 @@ const BULK_WITHOUT_DELETE: Record<string, string> = {
     "No page uses it; the Services list is Pages/Service/Services.tsx.",
   "Dashboard/src/Components/Postmortem/PostmortemsTable.tsx":
     "Each row of Incidents > Postmortems is an incident: a Delete there would delete the incident, not its postmortem. Incidents are deleted from the incidents list; a postmortem nobody needs is moved to Not Needed.",
-  "Dashboard/src/Pages/SecurityEvents/Blocklist.tsx":
-    "A block is never deleted, by any role (SecurityBlock grants no delete): lifting it is how it ends, and its record is how a case, and the next block of the same address, says it was blocked before. Lift is its bulk action.",
+  /*
+   * The Blocklist's table, one per tab - Addresses, Domains and URLs, Files
+   * (#10346) - drawn from Pages/SecurityEvents/Blocklist.tsx.
+   */
+  "Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistKindTable.tsx":
+    "A block is never deleted, by any role (SecurityBlock grants no delete): lifting it is how it ends, and its record is how a case, and the next block of the same value, says it was blocked before. Lift is each tab's bulk action.",
+  "Dashboard/src/Components/DataSecurity/OwnersToReview.tsx":
+    "An owner OneUptime AI proposes is never deleted, by any role (DataSecurityAiProposal grants no delete): it is approved, changed and approved, or dismissed with why, and kept as what OneUptime AI proposed. Approve is its bulk action.",
   "AdminDashboard/src/Pages/Projects/Index.tsx":
     "Deleting a project deletes everything in it for every member: it is done on the project's own page, after its name is typed. Bulk Actions keep their own Delete.",
   "AdminDashboard/src/Pages/Users/Index.tsx":

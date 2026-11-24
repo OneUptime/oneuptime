@@ -20,6 +20,8 @@ import {
   getStepTotpReferences,
   getTotpSecretNamesNeeded,
 } from "Common/Utils/Monitor/MonitorSecretReferences";
+import MonitorRequestBody from "Common/Utils/Monitor/MonitorRequestBody";
+import MonitorRequestBodyFormat from "Common/Types/Monitor/MonitorRequestBodyFormat";
 import { TotpParameters, TotpSecrets } from "Common/Utils/Totp/TotpParameters";
 import {
   TotpSecretReading,
@@ -161,18 +163,23 @@ export default class MonitorUtil {
          * Not an else: a request that sends a secret in a header can send
          * one in its body too, and used to go out with the body's
          * placeholder unfilled.
+         *
+         * Each secret is written as its place in the body needs it
+         * (#10735): escaped inside a JSON string, as it is anywhere else.
+         * Written as it is everywhere, a password holding a quote ended
+         * its string, and the check failed without sending anything.
          */
         if (
-          monitorStep.data?.requestBody &&
-          this.hasSecrets(JSONFunctions.toString(monitorStep.data.requestBody))
+          typeof monitorStep.data?.requestBody === "string" &&
+          this.hasSecrets(monitorStep.data.requestBody)
         ) {
           const monitorSecrets: MonitorSecret[] = await getSecrets();
 
-          monitorStep.data.requestBody =
-            (await MonitorUtil.fillSecretsInStringOrJSON({
-              secrets: monitorSecrets,
-              populateSecretsIn: monitorStep.data.requestBody,
-            })) as string;
+          monitorStep.data.requestBody = MonitorUtil.fillSecretsInRequestBody({
+            secrets: monitorSecrets,
+            populateSecretsIn: monitorStep.data.requestBody,
+            requestBodyFormat: monitorStep.data.requestBodyFormat,
+          });
         }
       }
     }
@@ -722,46 +729,71 @@ export default class MonitorUtil {
     }
   }
 
+  /*
+   * The values a monitor's {{monitorSecrets.NAME}} references are filled
+   * with, by name: its Text secrets that have one. A one-time code secret's
+   * value is a seed, and a seed is never written into a monitor: its
+   * reference is left for the probe, which makes the code when the check
+   * uses it (attachTotpSecrets).
+   */
+  private static getTextSecretValues(
+    secrets: Array<MonitorSecret>,
+  ): Map<string, string> {
+    const values: Map<string, string> = new Map();
+
+    for (const monitorSecret of secrets) {
+      if (
+        !monitorSecret.name ||
+        !monitorSecret.secretValue ||
+        MonitorSecretTypeUtil.isTotp(monitorSecret.secretType)
+      ) {
+        continue;
+      }
+
+      values.set(monitorSecret.name, monitorSecret.secretValue);
+    }
+
+    return values;
+  }
+
+  /*
+   * An API step's body with the monitor's Text secrets filled in, each
+   * written as its place in the body needs it (MonitorRequestBody.
+   * fillSecrets, #10735) - as it is throughout a text body (#10736). A
+   * reference to a secret the monitor may not use, or to a one-time code
+   * secret, is left as written. Nothing here is logged or thrown: the
+   * values are the secrets'.
+   */
+  private static fillSecretsInRequestBody(data: {
+    secrets: Array<MonitorSecret>;
+    // The body, as the step holds it.
+    populateSecretsIn: string;
+    requestBodyFormat: MonitorRequestBodyFormat | undefined;
+  }): string {
+    return MonitorRequestBody.fillSecrets(
+      data.populateSecretsIn,
+      MonitorUtil.getTextSecretValues(data.secrets),
+      data.requestBodyFormat,
+    );
+  }
+
   private static async fillSecretsInStringOrJSON(data: {
     secrets: MonitorSecret[];
     populateSecretsIn: string | JSONObject | URL | Hostname | IP;
   }): Promise<string | JSONObject | URL | Hostname | IP> {
-    // get all secrets for this monitor.
+    const values: Map<string, string> = MonitorUtil.getTextSecretValues(
+      data.secrets,
+    );
 
-    const secrets: MonitorSecret[] = data.secrets;
-
-    if (secrets.length === 0) {
+    if (values.size === 0) {
       return data.populateSecretsIn;
     }
 
     // replace all secrets in the populateSecretsIn
 
     const storageMap: JSONObject = {
-      monitorSecrets: {},
+      monitorSecrets: Object.fromEntries(values.entries()),
     };
-
-    for (const monitorSecret of secrets) {
-      if (!monitorSecret.name) {
-        continue;
-      }
-
-      if (!monitorSecret.secretValue) {
-        continue;
-      }
-
-      /*
-       * A one-time code secret's value is a seed, and a seed is never
-       * written into a monitor: its reference is left for the probe, which
-       * makes the code when the check uses it (attachTotpSecrets).
-       */
-      if (MonitorSecretTypeUtil.isTotp(monitorSecret.secretType)) {
-        continue;
-      }
-
-      (storageMap["monitorSecrets"] as JSONObject)[
-        monitorSecret.name as string
-      ] = monitorSecret.secretValue;
-    }
 
     const isValueJSON: boolean = typeof data.populateSecretsIn === "object";
 

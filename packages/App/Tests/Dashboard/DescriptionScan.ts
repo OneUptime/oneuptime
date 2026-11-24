@@ -412,6 +412,20 @@ export class DescriptionScanner {
     string,
     ts.SourceFile
   >();
+  /*
+   * The files a scan read something of while scanning another - a constant,
+   * a copy object, an import, a model's columns, where a text was written -
+   * which a later file may read again. scan() keeps their trees, and lets
+   * every other file's go once it is read: keeping the tree of every file
+   * of the frontends took the suite past a gigabyte of heap, which a test
+   * worker's 4 GB (App's test script) had no room for after the suites it
+   * ran before. On 17.2.0's App Test shard 3 the worker running
+   * ShortDescriptionsGuard died of it, and the shard waited for its answer
+   * until the job's cap.
+   */
+  private readonly lookedUp: Set<string> = new Set<string>();
+  // The file scan() is reading, while it reads it.
+  private scanning: string | null = null;
   private readonly columnDescriptions: Map<string, Map<string, ColumnText>> =
     new Map<string, Map<string, ColumnText>>();
   // Whether each model file's class is a rule model's (isRuleModel).
@@ -433,13 +447,24 @@ export class DescriptionScanner {
 
     for (const root of roots) {
       for (const file of this.listFiles(path.join(this.repoRoot, root))) {
-        for (const description of this.scanFile(file)) {
+        this.scanning = file;
+
+        const descriptions: Array<FoundDescription> = this.scanFile(file);
+
+        this.scanning = null;
+
+        for (const description of descriptions) {
           const key: string = `${description.kind}|${description.where}|${description.text}`;
 
           if (!seen.has(key)) {
             seen.add(key);
             found.push(description);
           }
+        }
+
+        // Read: let its tree go, unless another file read something of it.
+        if (!this.lookedUp.has(file)) {
+          this.parsed.delete(file);
         }
       }
     }
@@ -1036,6 +1061,11 @@ export class DescriptionScanner {
   }
 
   public parse(file: string): ts.SourceFile {
+    // Read for another file than the one being scanned: kept (lookedUp).
+    if (file !== this.scanning) {
+      this.lookedUp.add(file);
+    }
+
     let sourceFile: ts.SourceFile | undefined = this.parsed.get(file);
 
     if (!sourceFile) {

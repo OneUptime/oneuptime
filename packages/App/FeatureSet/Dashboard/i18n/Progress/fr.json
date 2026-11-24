@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 62757,
+    "keys": 63198,
     "untranslated": 4746
   },
   "sameAsEnglish": [
@@ -508,6 +508,7 @@
     "SLOs",
     "SQL Server",
     "SSH",
+    "Scanners",
     "ScheduledMaintenance",
     "Score",
     "Script",
@@ -543,6 +544,7 @@
     "Suggestions",
     "Switch",
     "Sysctls",
+    "T1110, T1190",
     "TLS",
     "TTL",
     "TX",

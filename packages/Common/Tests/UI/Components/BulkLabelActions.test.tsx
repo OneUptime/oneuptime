@@ -300,15 +300,54 @@ const waitForModalTitle: WaitForModalTitleFunction = async (
 type WaitForMountedLabelFetchFunction = () => Promise<void>;
 
 /*
- * The mount effect writes state after its fetch settles; waiting for the call
- * keeps that write inside act() instead of leaking into the next test.
+ * The hook used to read the project's first 10,000 labels on mount, for Add
+ * Labels to offer. Since #10646 Add Labels' picker searches the server as it
+ * is typed in, so nothing is read until it opens: the harness is drawn, and
+ * no label has been asked for.
  */
 const waitForMountedLabelFetch: WaitForMountedLabelFetchFunction =
   async (): Promise<void> => {
     await waitFor(() => {
-      expect(getListMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Trigger Add Labels")).toBeInTheDocument();
     });
+
+    expect(getListMock).not.toHaveBeenCalled();
   };
+
+type IsServerSearchedPickerFunction = () => boolean;
+
+/*
+ * Add Labels' picker is the server-searched EntityDropdown (#10646); Remove
+ * Labels keeps the react-select picker of the labels the items have.
+ */
+const isServerSearchedPicker: IsServerSearchedPickerFunction = (): boolean => {
+  return Boolean(screen.queryByTestId("entity-dropdown-box"));
+};
+
+type OpenAddMenuFunction = () => Promise<Array<HTMLElement>>;
+
+// Opens Add Labels' picker, and waits for its first search to answer.
+const openAddMenu: OpenAddMenuFunction = async (): Promise<
+  Array<HTMLElement>
+> => {
+  const combobox: HTMLElement = await screen.findByRole("combobox", undefined, {
+    timeout: WAIT_TIMEOUT,
+  });
+
+  await act(async () => {
+    fireEvent.focus(combobox);
+  });
+
+  await waitFor(
+    () => {
+      expect(screen.getByTestId("entity-dropdown-menu")).toBeInTheDocument();
+      expect(screen.queryByText("Searching...")).toBeNull();
+    },
+    { timeout: WAIT_TIMEOUT },
+  );
+
+  return screen.queryAllByRole("option");
+};
 
 type OpenMenuFunction = () => Promise<Array<HTMLElement>>;
 
@@ -342,6 +381,23 @@ const selectLabel: SelectLabelFunction = async (
   const combobox: HTMLElement = await screen.findByRole("combobox", undefined, {
     timeout: WAIT_TIMEOUT,
   });
+
+  if (isServerSearchedPicker()) {
+    await openAddMenu();
+
+    const option: HTMLElement = await screen.findByRole(
+      "option",
+      { name: new RegExp(`^${name}`) },
+      { timeout: WAIT_TIMEOUT },
+    );
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
+
+    return;
+  }
+
   fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
   fireEvent.click(
     await screen.findByText(name, undefined, { timeout: WAIT_TIMEOUT }),
@@ -617,16 +673,35 @@ describe("useBulkLabelActions", () => {
     expect(screen.queryByTestId("modal")).toBeNull();
   });
 
-  test("fetches the project's labels once on mount with the full query", async () => {
-    render(<Harness items={[]} />);
+  /*
+   * #10646: Add Labels read the project's first 10,000 labels by name on
+   * mount, so a label past them could not be added. Its picker searches the
+   * server as it is typed in now, 50 by name.
+   */
+  test("searches the project's labels as Add Labels' picker is typed in, never an archived one", async () => {
+    getListMock.mockResolvedValue({
+      data: [makeLabel(LABEL_ALPHA_ID, "Alpha")],
+      count: 1,
+    });
+
+    render(<Harness items={[makeItem(ITEM_ONE_ID)]} />);
 
     await waitForMountedLabelFetch();
+
+    clickTrigger("Add Labels");
+    await waitForModalTitle("Add Labels");
+
+    // The dialog reads nothing until its picker is opened.
+    expect(getListMock).not.toHaveBeenCalled();
+
+    await openAddMenu();
 
     const call: any = getListCall(0);
 
     expect(call.modelType).toBe(Label);
-    expect(call.query.projectId.toString()).toBe(PROJECT_ID);
-    expect(call.limit).toBe(LIMIT_PER_PROJECT);
+    expect(call.query).toEqual({ isArchived: false });
+    expect(call.limit).toBe(50);
+    expect(call.limit).toBeLessThan(LIMIT_PER_PROJECT);
     expect(call.skip).toBe(0);
     /*
      * `color` has to be selected or the add dropdown loses the colour swatch;
@@ -642,6 +717,28 @@ describe("useBulkLabelActions", () => {
       createdAt: true,
     });
     expect(call.sort).toEqual({ name: SortOrder.Ascending });
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole("combobox"), {
+        target: { value: "Alp" },
+      });
+    });
+
+    await waitFor(
+      () => {
+        const searched: any = getListMock.mock.calls
+          .map((args: Array<any>) => {
+            return args[0];
+          })
+          .find((options: any) => {
+            return options.query?.name !== undefined;
+          });
+
+        expect(searched?.query.name.toString()).toBe("Alp");
+        expect(searched?.query.isArchived).toBe(false);
+      },
+      { timeout: WAIT_TIMEOUT },
+    );
   });
 
   test("does not fetch labels at all when there is no current project", async () => {
@@ -670,9 +767,12 @@ describe("useBulkLabelActions", () => {
     clickTrigger("Add Labels");
     await waitForModalTitle("Add Labels");
 
-    const options: Array<HTMLElement> = await openMenu();
+    const options: Array<HTMLElement> = await openAddMenu();
 
     expect(options).toHaveLength(0);
+    expect(
+      screen.getByTestId("entity-dropdown-empty-list"),
+    ).toBeInTheDocument();
   });
 
   test("keeps Remove Labels working when the project label fetch failed", async () => {
@@ -800,7 +900,7 @@ describe("useBulkLabelActions", () => {
     expect(getUpdatedLabelIds(0)).toEqual([LABEL_ALPHA_ID]);
   });
 
-  test("drops a dropdown option that came back without an id before merging", async () => {
+  test("never offers a label that came back without an id, and adds the rest", async () => {
     const orphan: Label = new Label();
     orphan.name = "Orphan";
 
@@ -818,17 +918,20 @@ describe("useBulkLabelActions", () => {
 
     clickTrigger("Add Labels");
     await waitForModalTitle("Add Labels");
-    await selectLabel("Orphan");
+
+    /*
+     * An id-less label would be an option with an empty value; sending ""
+     * inside the labels array makes the API reject the whole item, so one
+     * unusable option would fail the entire bulk run. The server-searched
+     * picker never offers one.
+     */
+    expect(optionTexts(await openAddMenu())).toEqual(["Alpha"]);
+
     await selectLabel("Alpha");
     submitModal();
 
     await waitForBulkRunToEnd();
 
-    /*
-     * An id-less label renders as an option with an empty value; sending ""
-     * inside the labels array makes the API reject the whole item, so one
-     * unusable option would fail the entire bulk run.
-     */
     expect(getUpdatedLabelIds(0)).toEqual([LABEL_GAMMA_ID, LABEL_ALPHA_ID]);
   });
 
@@ -1250,11 +1353,12 @@ describe("useBulkLabelActions", () => {
 
     clickTrigger("Remove Labels");
 
+    // The selection's own read: nothing is read of the project's labels.
     await waitFor(() => {
-      expect(getListMock).toHaveBeenCalledTimes(2);
+      expect(getListMock).toHaveBeenCalledTimes(1);
     });
 
-    const call: any = getListCall(1);
+    const call: any = getListCall(0);
 
     expect(call.modelType).toBe(Monitor);
     expect(call.query._id).toBeInstanceOf(Includes);
@@ -1308,7 +1412,7 @@ describe("useBulkLabelActions", () => {
     await waitForModalTitle("No Labels to Remove");
 
     // No addressable ids means there is nothing to ask the server about.
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
   test("offers nothing to remove when the option fetch fails, rather than the whole project's labels", async () => {
@@ -1457,7 +1561,7 @@ describe("useBulkLabelActions", () => {
     await waitForModalTitle("Remove Labels");
 
     await waitFor(() => {
-      expect(getListMock).toHaveBeenCalledTimes(3);
+      expect(getListMock).toHaveBeenCalledTimes(2);
     });
 
     const secondOptions: Array<HTMLElement> = await openMenu();
@@ -1510,7 +1614,7 @@ describe("useBulkLabelActions", () => {
     });
 
     await waitFor(() => {
-      expect(getListMock).toHaveBeenCalledTimes(3);
+      expect(getListMock).toHaveBeenCalledTimes(2);
     });
 
     // The newest selection answers first...

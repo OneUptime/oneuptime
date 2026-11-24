@@ -798,14 +798,17 @@ test.describe("the Teams menu", () => {
     await screenshot(page, "teams-menu-on-roles");
 
     /*
-     * The role's own menu: its page, marked, and its Developer pages,
-     * folded. The trail leads back to Roles.
+     * The role's own menu: its page, marked, then its Audit Logs, and its
+     * Developer pages, folded. The trail leads back to Roles.
      */
     await openRole(page, ROLE_IDS["lead"]!);
-    await expect(shownMenuLinks(page)).toHaveText(["Overview"]);
+    await expect(shownMenuLinks(page)).toHaveText(["Overview", "Audit Logs"]);
     await expect(
       sideMenu(page).getByRole("link", { name: "Overview", exact: true }),
     ).toHaveClass(/bg-indigo-50/);
+    await expect(
+      sideMenu(page).getByRole("link", { name: "Audit Logs", exact: true }),
+    ).toHaveAttribute("href", `${ROLES_ROUTE}/${ROLE_IDS["lead"]!}/audit-logs`);
     await expect(menuSection(page, "Developer")).toHaveAttribute(
       "aria-expanded",
       "false",
@@ -1725,6 +1728,7 @@ test.describe("a role's Developer pages", () => {
     await menuSection(page, "Developer").click();
     await expect(shownMenuLinks(page)).toHaveText([
       "Overview",
+      "Audit Logs",
       "Terraform",
       "Crossplane",
       "API",

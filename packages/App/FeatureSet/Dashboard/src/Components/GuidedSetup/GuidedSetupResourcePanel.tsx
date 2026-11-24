@@ -14,6 +14,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { PRODUCT_TEXT_CLASS_NAME } from "Common/UI/Utils/ProductText";
 import {
@@ -368,7 +369,7 @@ export const GuidedSetupStepRecords: FunctionComponent<{
                 {row.name ? (
                   <span className="text-gray-600">
                     {/* Two facts set apart, as a row of facts is. */}
-                    {" · "}
+                    <InlineSeparator />
                     {row.name}
                   </span>
                 ) : (

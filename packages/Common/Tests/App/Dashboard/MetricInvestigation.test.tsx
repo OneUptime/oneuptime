@@ -172,6 +172,23 @@ import URL from "../../../Types/API/URL";
 import ChartReferenceRegionProps from "../../../UI/Components/Charts/Types/ReferenceRegionProps";
 import ChartTimeReferenceLineProps from "../../../UI/Components/Charts/Types/TimeReferenceLineProps";
 import Navigation from "../../../UI/Utils/Navigation";
+import MetricType from "../../../Models/DatabaseModels/MetricType";
+import CappedListServer from "./CappedListServer";
+
+/*
+ * The query builder's metric picker reads the metric it holds by its name
+ * (useHeldMetricType, #10646), which the stood-in loader does not answer:
+ * a project whose one metric is the incident's answers it, as the pickers'
+ * own suites' faked project does.
+ */
+const metricTypes: CappedListServer = new CappedListServer();
+
+metricTypes.add(MetricType, [
+  {
+    _id: "20000000-0000-4000-8000-000000000001",
+    name: "pod_cpu_saturation",
+  },
+]);
 
 const NOW: Date = new Date("2026-11-05T09:00:00.000Z");
 const STARTED_AT: Date = new Date("2026-11-05T05:44:00.000Z");
@@ -284,6 +301,8 @@ beforeEach(() => {
   });
   eventLinesInputs.length = 0;
   lastCharts = null;
+  metricTypes.calls.length = 0;
+  metricTypes.install();
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
     return undefined;
   });
@@ -292,6 +311,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   navigateSpy?.mockRestore();
+  jest.restoreAllMocks();
   jest.useRealTimers();
 });
 

@@ -1,3 +1,4 @@
+import { redactLogString } from "../../Server/Utils/LogRedaction";
 import APIException from "../../Types/Exception/ApiException";
 import API from "../../Utils/API";
 import ProxyTunnelRefusal, {
@@ -49,7 +50,7 @@ describe("ProxyTunnelRefusal.describe", () => {
         ),
       ),
     ).toBe(
-      "The outbound proxy did not take OneUptime's user name and password: it answered HTTP/1.1 407 Proxy Authentication Required, so the request to api.example.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
+      "The outbound proxy answered HTTP/1.1 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to api.example.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
     );
   });
 
@@ -100,6 +101,133 @@ describe("ProxyTunnelRefusal.describe", () => {
     ]) {
       expect(ProxyTunnelRefusal.describe(error)).toBeNull();
     }
+  });
+});
+
+/*
+ * Node's fetch goes through undici's proxy support, whose refusal says the
+ * proxy's status code alone (#10720). OutboundFetch turns it into a refusal
+ * that carries the code and where the request was going.
+ */
+describe("a refusal known by its status code alone", () => {
+  test("is worded with the code and its reason phrase", () => {
+    expect(
+      ProxyTunnelRefusal.wordStatus({
+        destination: "api.resend.com:443",
+        statusCode: 403,
+        reason: "Forbidden",
+      }),
+    ).toBe(
+      "The outbound proxy did not open a connection to api.resend.com:443: it answered 403 Forbidden. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.",
+    );
+  });
+
+  test("a 407 is the proxy not taking OneUptime's user name and password", () => {
+    expect(
+      ProxyTunnelRefusal.wordStatus({
+        destination: "api.resend.com:443",
+        statusCode: 407,
+        reason: "Proxy Authentication Required",
+      }),
+    ).toBe(
+      "The outbound proxy answered 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to api.resend.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
+    );
+  });
+
+  test("a status with no reason phrase is said by its code", () => {
+    expect(
+      ProxyTunnelRefusal.wordStatus({
+        destination: "api.resend.com:443",
+        statusCode: 599,
+      }),
+    ).toBe(
+      "The outbound proxy did not open a connection to api.resend.com:443: it answered 599. The request was not sent. Ask whoever runs this OneUptime server to let the proxy reach that host.",
+    );
+  });
+
+  test("is read by describe as Node's refusal is, wherever it is wrapped", () => {
+    const refusal: Error = Object.assign(new Error("worded already"), {
+      code: PROXY_TUNNEL_ERROR_CODE,
+      destination: "graph.microsoft.com:443",
+      statusCode: 407,
+      reason: "Proxy Authentication Required",
+    });
+    const wrapped: Error = Object.assign(new Error("fetch failed"), {
+      cause: refusal,
+    });
+
+    for (const error of [refusal, wrapped]) {
+      expect(ProxyTunnelRefusal.describe(error)).toBe(
+        "The outbound proxy answered 407 Proxy Authentication Required: it did not take OneUptime's user name and password, so the request to graph.microsoft.com:443 was not sent. Ask whoever runs this OneUptime server to check the user name and password in HTTPS_PROXY, HTTP_PROXY or ALL_PROXY.",
+      );
+    }
+  });
+});
+
+/*
+ * The status code alone, for a client that words the refusal itself with
+ * where it knows the request was going (OutboundProxyRefusal.fromTunnelError,
+ * the Teams bot's token requests and replies, #10763).
+ */
+describe("ProxyTunnelRefusal.getStatusCode", () => {
+  test.each([
+    ["HTTP/1.1 403 Forbidden", 403],
+    ["HTTP/1.1 407 Proxy Authentication Required", 407],
+    ["HTTP/1.0 502 Bad Gateway", 502],
+    ["HTTP/2 403", 403],
+  ])(
+    "reads the code of what the proxy answered: %s",
+    (answer: string, code: number) => {
+      expect(
+        ProxyTunnelRefusal.getStatusCode(
+          nodeTunnelError("hooks.example.com:443", answer).message,
+        ),
+      ).toBe(code);
+    },
+  );
+
+  test.each([
+    "Connection to establish proxy tunnel ended unexpectedly",
+    "Connection to establish proxy tunnel timed out after 5000ms",
+    "Proxy response headers exceeded 16384 bytes",
+    "",
+  ])("is null for a refusal that holds no answer: %s", (message: string) => {
+    expect(ProxyTunnelRefusal.getStatusCode(message)).toBeNull();
+  });
+});
+
+/*
+ * A log line is redacted before it is written, and so is a meeting's error:
+ * "password: <word>" reads as a password there, and the word after it is
+ * taken out. The 407 refusal said "user name and password: it answered",
+ * which came out "password: [REDACTED] answered".
+ */
+describe("a refusal's words", () => {
+  test.each([
+    ProxyTunnelRefusal.word({
+      destination: "hooks.example.com:443",
+      answer: "HTTP/1.1 407 Proxy Authentication Required",
+    }),
+    ProxyTunnelRefusal.word({
+      destination: "hooks.example.com:443",
+      answer: "HTTP/1.1 403 Forbidden",
+    }),
+    ProxyTunnelRefusal.word({
+      destination: "hooks.example.com:443",
+      answer: null,
+    }),
+    ProxyTunnelRefusal.wordStatus({
+      destination: "api.example.com:443",
+      statusCode: 407,
+      reason: "Proxy Authentication Required",
+    }),
+    ProxyTunnelRefusal.wordStatus({
+      destination: "api.example.com:80",
+      statusCode: 502,
+      reason: "Bad Gateway",
+    }),
+  ])("come through a log's redaction as they are: %s", (words: string) => {
+    expect(redactLogString(words)).toBe(words);
   });
 });
 

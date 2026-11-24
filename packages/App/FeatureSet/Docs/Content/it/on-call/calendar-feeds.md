@@ -246,7 +246,7 @@ Il feed mostra la rotazione **così come è configurata adesso**, anche per i gi
 Il Nginx di OneUptime tiene le richieste dei feed fuori dai suoi log:
 
 ```nginx title="default.conf.template"
-location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {
+location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/ {
     access_log off;
     error_log /dev/null crit;
     proxy_max_temp_file_size 0;

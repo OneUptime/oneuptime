@@ -65,6 +65,8 @@ export async function readCountedTelemetryFindings(data: {
         // What OneUptime AI's containment reads: a secret, and when it was last seen (#10366).
         dataCategory: true,
         lastSeenAt: true,
+        // A finding a verified code fix stopped is not counted (#10368).
+        fixedAt: true,
       },
       sort: { matchCount: SortOrder.Descending },
       skip: 0,

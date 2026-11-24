@@ -98,6 +98,10 @@ import DefaultDashboardSize from "Common/Types/Dashboard/DashboardSize";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MetricUtil from "../Metrics/Utils/Metrics";
+import MetricTypeSearch, {
+  useMetricTypesHeldIn,
+} from "../Metrics/Utils/MetricTypeSearch";
+import { getPublicDashboardContext } from "./Utils/PublicDashboardContext";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { DashboardTimeRangeZoom } from "Common/UI/Utils/UseDashboardTimeRangeZoom";
 import useDashboardViewerSettings, {
@@ -227,7 +231,32 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
   const [metricTypes, setMetricTypes] = useState<MetricType[]>([]);
 
-  const loadAllMetricsTypes: PromiseVoidFunction = async (): Promise<void> => {
+  /*
+   * The metrics the board charted as it was read: read by their names with
+   * the list (#10691). Undefined until then.
+   */
+  const [namesReadWithList, setNamesReadWithList] = useState<
+    Array<string> | undefined
+  >(undefined);
+
+  const loadAllMetricsTypes: (
+    boardRead: Promise<DashboardViewConfig | null>,
+  ) => Promise<void> = async (
+    boardRead: Promise<DashboardViewConfig | null>,
+  ): Promise<void> => {
+    /*
+     * The metrics the board charts, however they sort: named as the board
+     * is read, the list read meanwhile. A board that could not be read
+     * charts nothing (the page says why).
+     */
+    const chartedNames: Promise<Array<string>> = boardRead
+      .then((config: DashboardViewConfig | null): Array<string> => {
+        return MetricTypeSearch.getMetricNamesIn(config);
+      })
+      .catch((): Array<string> => {
+        return [];
+      });
+
     /*
      * Telemetry attribute keys are only used by ArgumentsForm inside the edit
      * Component Settings modal. Fetching them here would block the initial
@@ -236,9 +265,13 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
      * lazy-load attributes in the background.
      */
     const { metricTypes }: { metricTypes: Array<MetricType> } =
-      await MetricUtil.loadAllMetricsTypes({ includeAttributes: false });
+      await MetricUtil.loadAllMetricsTypes({
+        includeAttributes: false,
+        metricNames: chartedNames,
+      });
 
     setMetricTypes(metricTypes);
+    setNamesReadWithList(await chartedNames);
   };
 
   const telemetryAttributesRequestedRef: React.MutableRefObject<boolean> =
@@ -376,8 +409,28 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
    */
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const fetchDashboardViewConfig: PromiseVoidFunction =
-    async (): Promise<void> => {
+  /*
+   * The metrics the board charts that the list does not have - a widget's
+   * metric picked from a search since, past the project's first 10,000 by
+   * name - read by their names as the board changes (#10691): their units
+   * and kinds of counter. Those it charted as it was read came with the
+   * list. A public dashboard's are read by its own route, by name.
+   */
+  useMetricTypesHeldIn({
+    holder: dashboardViewConfig,
+    known: metricTypes,
+    asked: namesReadWithList,
+    isEnabled: namesReadWithList !== undefined && !getPublicDashboardContext(),
+    onRead: (found: Array<MetricType>): void => {
+      setMetricTypes((current: Array<MetricType>): Array<MetricType> => {
+        return MetricTypeSearch.merge(current, found);
+      });
+    },
+  });
+
+  // The board as it was read, or null when there is none to draw.
+  const fetchDashboardViewConfig: () => Promise<DashboardViewConfig | null> =
+    async (): Promise<DashboardViewConfig | null> => {
       const dashboard: Dashboard | null = await ModelAPI.getItem({
         modelType: Dashboard,
         id: props.dashboardId,
@@ -392,7 +445,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
 
       if (!dashboard) {
         setError("Dashboard not found");
-        return;
+        return null;
       }
 
       /*
@@ -436,7 +489,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       // A playlist's turn: the saved selection, and the address left alone.
       if (isPlayback) {
         setDashboardVariables(savedVariables);
-        return;
+        return config;
       }
 
       const urlSelections: ReturnType<
@@ -456,13 +509,19 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
        * otherwise the link keeps naming variables that no longer exist.
        */
       DashboardVariableUrlState.writeToBrowserUrl(restoredVariables);
+
+      return config;
     };
 
   const loadPage: PromiseVoidFunction = async (): Promise<void> => {
     setIsLoading(true);
     setError(null);
     try {
-      await Promise.all([loadAllMetricsTypes(), fetchDashboardViewConfig()]);
+      // The board and the metric list, read side by side (#10691).
+      const boardRead: Promise<DashboardViewConfig | null> =
+        fetchDashboardViewConfig();
+
+      await Promise.all([loadAllMetricsTypes(boardRead), boardRead]);
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Error));
     }

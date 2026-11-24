@@ -104,6 +104,8 @@ Fluentd 的設定檔通常是 `/etc/fluent/fluentd.conf`，舊的 td-agent 套�
 
 `json_array true` 讓緩衝區的每個區塊都以一個 JSON 陣列傳送，`flush_interval 10s` 則每 10 秒傳送一次緩衝區。`chunk_limit_size 900k` 讓每個要求都小於 1 MB，這是 OneUptime 在這個端點上接受的上限。
 
+Fluentd 本身的預設設定也可以：不設定 `content_type` 和 `json_array true` 時，Fluentd 會傳送以換行分隔的 JSON，每行一筆記錄，OneUptime 會把每一行讀成它所代表的記錄，無論是否使用 `compress gzip`。
+
 `@type file` 把尚未傳送的批次保存在 `path` 指定的資料夾中，因此重新啟動 Fluentd 不會遺失其中任何一批；記憶體中的緩衝區（Fluentd 的預設）會遺失其中保存的內容。Fluentd 的使用者必須能寫入該資料夾：`/var/log/fluent` 是 fluent-package 的，`/var/log/td-agent` 是 td-agent 的，`/fluentd/log` 是 `fluent/fluentd` 映像檔的。`total_limit_size 512m` 讓那裡最多保存 512 MB；滿了之後，Fluentd 在送出一批資料之前不再接收記錄。
 
 `retryable_response_codes 429,502,503,504` 會在 OneUptime 忙碌（`429`）或正在重新啟動（`502`、`503`、`504`）時重新傳送一批資料；沒有這一項，Fluentd 遇到 `503` 以外的任何回應都會丟棄這批資料。`retry_max_interval 30s` 讓兩次重試之間最多等待 30 秒，`retry_timeout 72h` 則會丟棄 72 小時後仍無法傳送的一批資料。`record_transformer` 過濾器把 Fluentd 給每筆記錄的時間作為 `fluentd_time` 加入記錄：HTTP 輸出只傳送記錄本身，而 OneUptime 從記錄中讀取日誌的時間。

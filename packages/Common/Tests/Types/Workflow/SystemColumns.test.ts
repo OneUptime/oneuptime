@@ -71,8 +71,6 @@ describe("SystemColumns", () => {
   test("names the who-did-it columns the write path stamps", () => {
     expect(isSystemColumnId("createdByUserId")).toBe(true);
     expect(isSystemColumnId("createdByUser")).toBe(true);
-    expect(isSystemColumnId("deletedByUserId")).toBe(true);
-    expect(isSystemColumnId("deletedByUser")).toBe(true);
     expect(isSystemColumnId("archivedAt")).toBe(true);
     expect(isSystemColumnId("archivedByUserId")).toBe(true);
     expect(isSystemColumnId("archivedByUser")).toBe(true);

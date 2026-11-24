@@ -351,6 +351,28 @@ describe("what a feed serves", () => {
     ).toEqual(["203.0.113.2"]);
   });
 
+  test("an automatic response policy's challenge is served as a block, for the same time (#10350)", () => {
+    expect(
+      values(
+        selectSecurityBlocklistFeedEntries({
+          blocks: [
+            block("203.0.113.1", {
+              action: SecurityBlockAction.Challenge,
+              challengeFallsBackToBlock: true,
+            }),
+            block("203.0.113.3", {
+              action: SecurityBlockAction.Challenge,
+              challengeFallsBackToBlock: false,
+            }),
+            block("203.0.113.2"),
+          ],
+          family: SecurityBlocklistFeedFamily.Both,
+          now: NOW,
+        }),
+      ).sort(),
+    ).toEqual(["203.0.113.1", "203.0.113.2"]);
+  });
+
   test("a feed of one family serves that family alone", () => {
     const blocks: Array<SecurityBlocklistFeedBlock> = [
       block("203.0.113.1"),

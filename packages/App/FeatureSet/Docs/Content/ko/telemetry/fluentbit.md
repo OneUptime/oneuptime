@@ -182,6 +182,31 @@ pipeline:
 
 `listen: 127.0.0.1`은 이 호스트에서만 로그를 받습니다. `http` 입력은 키를 요구하지 않으므로, `listen: 0.0.0.0`이면 포트에 닿을 수 있는 누구나 여러분의 수집 키로 OneUptime에 로그를 보낼 수 있습니다. `http` 입력은 필요한 입력으로 바꾸세요(예: 로그 파일은 `tail`, 저널은 `systemd`). 각 입력에는 두 프로세서와 `storage.type: filesystem`을 그대로 둡니다.
 
+## HTTP 출력으로 보내기
+
+Fluent Bit의 [HTTP 출력](https://docs.fluentbit.io/manual/pipeline/outputs/http)으로 OneUptime의 Fluentd 엔드포인트에 보낼 수도 있습니다. 각 레코드는 [Fluentd 페이지](/docs/telemetry/fluentd)에서 설명하는 대로 읽힙니다. `format`을 아래처럼 `json_lines`로, 또는 `json`으로 설정하세요. OneUptime은 둘 다 읽으며, `compress: gzip`으로 압축했든 안 했든 같습니다. Fluent Bit의 기본 형식인 `msgpack`은 거부됩니다.
+
+```yaml title="fluent-bit.yaml"
+pipeline:
+  outputs:
+    - name: http
+      match: "*"
+      host: "oneuptime.com"
+      port: 443
+      uri: "/fluentd/logs"
+      format: json_lines
+      # Send each record's time where OneUptime reads it
+      json_date_key: timestamp
+      tls: On
+      header:
+        - x-oneuptime-token YOUR_TELEMETRY_INGESTION_TOKEN
+        - x-oneuptime-service-name YOUR_SERVICE_NAME
+      # Send a chunk again when OneUptime is busy or restarting, for about 72 hours
+      retry_limit: 8640
+      # At most 512 MB on disk: when it is full, the oldest chunks are dropped
+      storage.total_limit_size: 512M
+```
+
 ## 자체 호스팅 OneUptime
 
 `host`를 OneUptime 인스턴스의 호스트로 설정합니다. HTTPS가 아니라 일반 HTTP로 제공한다면 `port`도 수신 포트(보통 `80`)로 설정하고 `tls`를 제거합니다.

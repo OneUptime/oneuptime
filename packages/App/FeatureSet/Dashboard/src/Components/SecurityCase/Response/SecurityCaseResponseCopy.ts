@@ -64,6 +64,23 @@ export const BLOCK_LINE_CHALLENGED_BY_UNTIL_LIFTED: string = translationKey(
 export const BLOCK_LINE_CHALLENGED_UNTIL_LIFTED: string = translationKey(
   "Challenged at {{destinations}} {{time}}, until someone lifts it.",
 );
+/*
+ * A block an automatic response policy made (#10350): "Challenged at
+ * Cloudflare 10:42 by the Scanners policy, 41s after its first request,
+ * until 11:42."
+ */
+export const BLOCK_LINE_CHALLENGED_BY_POLICY_AFTER: string = translationKey(
+  "Challenged at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.",
+);
+export const BLOCK_LINE_BLOCKED_BY_POLICY_AFTER: string = translationKey(
+  "Blocked at {{destinations}} {{time}} by the {{policy}} policy, {{after}} after its first request, until {{until}}.",
+);
+export const BLOCK_LINE_CHALLENGED_BY_POLICY: string = translationKey(
+  "Challenged at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.",
+);
+export const BLOCK_LINE_BLOCKED_BY_POLICY: string = translationKey(
+  "Blocked at {{destinations}} {{time}} by the {{policy}} policy, until {{until}}.",
+);
 // A block a destination is still applying: not done yet.
 export const BLOCK_LINE_PENDING: string = translationKey(
   "Asked {{time}}: waiting for {{destinations}} to apply the block.",

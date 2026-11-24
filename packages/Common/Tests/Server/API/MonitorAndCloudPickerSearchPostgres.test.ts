@@ -399,6 +399,33 @@ describePostgres(
           (await MetricTypeSearch.readByName("k8s.pod.WB.network.io"))?.unit,
         ).toBe("By");
       });
+
+      /*
+       * #10691: the Metrics explorer and a dashboard read the project's
+       * first 10,000 metric types by name, and named a charted one past
+       * them by nothing: no unit, no kind of counter.
+       */
+      test("the metrics a page charts are read by their names, past the 10,000th, in one read", async () => {
+        const reads: Array<ListRequest> = harness.routeModelAPIReads({
+          userId: memberId,
+          projectId: projectId,
+        });
+
+        const read: Array<MetricType> = await MetricTypeSearch.readByNames([
+          "k8s.pod.WB.network.io",
+          "k8s.a000001",
+          "a.metric.nobody.sends",
+        ]);
+
+        expect(
+          read
+            .map((metric: MetricType): string => {
+              return `${metric.name}:${metric.unit || ""}`;
+            })
+            .sort(),
+        ).toEqual(["k8s.a000001:", "k8s.pod.WB.network.io:By"]);
+        expect(reads).toHaveLength(1);
+      });
     });
   },
 );

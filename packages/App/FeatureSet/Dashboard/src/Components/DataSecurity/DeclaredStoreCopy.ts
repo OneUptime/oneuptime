@@ -84,7 +84,7 @@ export const READ_BY_SCANS_ONLY: string = translationKey(
 
 // A declared store's Overview.
 export const DECLARED_STORE_DESCRIPTION: string = translationKey(
-  "OneUptime keeps this store for your project's network and information security, so it knows what the store holds. Data Security doesn't scan it, and holding these addresses never raises an issue: it is what the store is for.",
+  "OneUptime keeps this store for your project's network and information security, so it knows what it holds. Data Security doesn't scan it, and these addresses never raise an issue: holding them is its purpose.",
 );
 
 export const WHAT_IT_HOLDS: string = translationKey("What It Holds");

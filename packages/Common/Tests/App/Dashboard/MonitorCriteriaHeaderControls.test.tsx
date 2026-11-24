@@ -79,8 +79,6 @@ const renderCriteria: () => RenderResult = (): RenderResult => {
         monitorStatusDropdownOptions={[]}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteria) => {

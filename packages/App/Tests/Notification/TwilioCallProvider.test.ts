@@ -5,6 +5,7 @@ import Phone from "Common/Types/Phone";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
+import RequestClient from "twilio/lib/base/RequestClient";
 import TwilioCallProvider from "../../FeatureSet/Notification/Providers/TwilioCallProvider";
 
 /*
@@ -170,10 +171,12 @@ describe("TwilioCallProvider phone number management", () => {
     incomingPhoneNumberRemove.mockResolvedValue(undefined);
   });
 
-  test("builds the SDK client with the configured account credentials", () => {
+  test("builds the SDK client with the configured account credentials, on the http client that routes its requests through the outbound proxy", () => {
     newProvider();
 
-    expect(twilioConstructor).toHaveBeenCalledWith("AC-account", "auth-token");
+    expect(twilioConstructor).toHaveBeenCalledWith("AC-account", "auth-token", {
+      httpClient: expect.any(RequestClient),
+    });
   });
 
   test("searches voice-enabled local numbers with a bounded default and maps optional metadata", async () => {

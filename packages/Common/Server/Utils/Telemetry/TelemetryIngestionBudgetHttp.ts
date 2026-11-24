@@ -79,9 +79,10 @@ export const OTLP_HTTP_SURFACES: ReadonlySet<TelemetryIngestSurface> =
   ]);
 
 /*
- * Surfaces whose body reaches the key check still as sent - OtelRequest-
- * Middleware reads it raw, and the Vercel drain's signature check inflates
- * it and drops the content coding - so its size comes from its coding.
+ * Surfaces whose body reaches the budget still as sent - OtelRequest-
+ * Middleware reads it raw once the key is right (#10814), and the Vercel
+ * drain's signature check may inflate it and drop the content coding - so
+ * its size comes from its coding.
  */
 export const RAW_BODY_SURFACES: ReadonlySet<TelemetryIngestSurface> =
   new Set<TelemetryIngestSurface>([

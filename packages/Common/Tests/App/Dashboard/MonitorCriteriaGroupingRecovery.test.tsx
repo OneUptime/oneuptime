@@ -179,8 +179,6 @@ function renderForm(
         monitorStatusDropdownOptions={[]}
         incidentSeverityDropdownOptions={INCIDENT_SEVERITY_OPTIONS}
         alertSeverityDropdownOptions={ALERT_SEVERITY_OPTIONS}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         value={value}
         onChange={(changed: MonitorCriteriaInstance) => {
@@ -637,8 +635,6 @@ describe("In every language the Dashboard ships", () => {
               monitorStatusDropdownOptions={[]}
               incidentSeverityDropdownOptions={INCIDENT_SEVERITY_OPTIONS}
               alertSeverityDropdownOptions={ALERT_SEVERITY_OPTIONS}
-              onCallPolicyDropdownOptions={[]}
-              labelDropdownOptions={[]}
               userDropdownOptions={[]}
               value={buildCriteria({ alerts: [addedAlert()] })}
             />

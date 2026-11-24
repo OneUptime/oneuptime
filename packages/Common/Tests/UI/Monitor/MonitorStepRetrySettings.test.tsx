@@ -373,8 +373,6 @@ function editor(data: {
         monitorStatusDropdownOptions={[]}
         incidentSeverityDropdownOptions={[]}
         alertSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={[]}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         allMonitorSteps={new MonitorSteps()}
         probes={[]}

@@ -244,7 +244,6 @@ const AUTO_GENERATED_COLUMNS: ReadonlyArray<string> = [
 const SYSTEM_COLUMNS: ReadonlyArray<string> = [
   "projectId",
   "createdByUserId",
-  "deletedByUserId",
   "slug",
   "isOwnerNotifiedOfResourceCreation",
 ];

@@ -1,4 +1,5 @@
 import ProbeCapability, {
+  FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY,
   FIRST_PROBE_VERSION_WITH_SNMP_TABLES,
   FIRST_PROBE_VERSION_WITH_TOTP_CODES,
   MAX_PROBE_CAPABILITIES,
@@ -27,6 +28,8 @@ describe("ProbeCapability", () => {
     expect(ProbeCapability.RetryAllWorkWhenBusy).toBe("retryAllWorkWhenBusy");
     // Only a probe declaring this is handed a step that needs a one-time code (#9759).
     expect(ProbeCapability.TotpCodes).toBe("totpCodes");
+    // Only a probe declaring this is handed an array, single-value or text body (#10737).
+    expect(ProbeCapability.AnyRequestBody).toBe("anyRequestBody");
   });
 
   test("a probe that reads a 429 from its scheduling fetches alone does not declare it reads one from all its work fetches", () => {
@@ -77,8 +80,30 @@ describe("ProbeCapability", () => {
     expect(FIRST_PROBE_VERSION_WITH_SNMP_TABLES).toBe("14.0.18");
   });
 
-  test("one-time codes ship in the release after 17.0.0", () => {
-    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.0.1");
+  test("one-time codes shipped in 17.1.0, the release after 17.0.0: no 17.0.1 was released", () => {
+    expect(FIRST_PROBE_VERSION_WITH_TOTP_CODES).toBe("17.1.0");
+  });
+
+  test("any request body ships in the release after 17.2.0, which was cut before it merged", () => {
+    expect(FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY).toBe("17.2.1");
+  });
+
+  test("a probe from before any request body does not declare it sends one", () => {
+    const before10737: Array<string> = ProbeCapabilityUtil.parse([
+      "networkDevicePing",
+      "retryWhenBusy",
+      "totpCodes",
+    ]);
+
+    expect(
+      ProbeCapabilityUtil.has(before10737, ProbeCapability.AnyRequestBody),
+    ).toBe(false);
+    expect(
+      ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse([...before10737, "anyRequestBody"]),
+        ProbeCapability.AnyRequestBody,
+      ),
+    ).toBe(true);
   });
 
   test("a probe from before one-time codes does not declare it makes them", () => {

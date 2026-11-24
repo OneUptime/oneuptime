@@ -1,4 +1,5 @@
 import AIRunService from "../../../../../Server/Services/AIRunService";
+import DataStoreFindingService from "../../../../../Server/Services/DataStoreFindingService";
 import IncidentService from "../../../../../Server/Services/IncidentService";
 import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import TelemetryAiFix from "../../../../../Server/Utils/AI/TelemetryAi/TelemetryAiFix";
@@ -13,6 +14,13 @@ import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/Da
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import { CodeTaskOutcome } from "../../../../../Types/AI/CodeTask";
 import { ProductionReviewReport } from "../../../../../Types/CodeRepository/ProductionReview";
+import {
+  ProductionReviewLeakJSON,
+  SensitiveDataLeakKind,
+} from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
+import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
+import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequiredException";
+import SecuritySeverity from "../../../../../Types/SecuritySeverity";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
@@ -398,6 +406,146 @@ describe("a stored review's incidents, read as each reader (#9241)", () => {
     expect(
       ProductionReviewReadFilter.keepOutcome(undefined, new Set()),
     ).toBeUndefined();
+  });
+});
+
+describe("a stored review's sensitive data, read as each reader (#10376)", () => {
+  const point: ProductionReviewLeakJSON = {
+    key: "bucket-key",
+    kind: SensitiveDataLeakKind.Infrastructure,
+    checkId: "public-read",
+    path: "infra/s3.tf",
+    line: 3,
+    subject: "acl",
+    dataTypeIds: [],
+    dataTypeNames: [],
+    sensitivity: DataSensitivity.Confidential,
+    severity: SecuritySeverity.Critical,
+    isBlocking: true,
+    failsCheck: false,
+    text: "Sets `acl` to `public-read`.",
+    fix: "Set it to `private`.",
+    isAiWorded: false,
+    production: {
+      store: {
+        dataStoreId: "5d1c2b3a-0000-4000-8000-0000000000b1",
+        name: "acme-card-exports",
+        sensitivity: DataSensitivity.Restricted,
+        dataTypeNames: ["Card number"],
+      },
+    },
+  };
+  const knowing: ProductionReviewReport = fullReport({
+    sensitiveData: {
+      points: [point],
+      moreCount: 0,
+      droppedCount: 0,
+      isFailOn: false,
+      isAiRead: false,
+    },
+  });
+  const plain: ProductionReviewReport = fullReport({
+    sensitiveData: {
+      points: [{ ...point, production: undefined }],
+      moreCount: 0,
+      droppedCount: 0,
+      isFailOn: false,
+      isAiRead: false,
+    },
+  });
+  const reader: DatabaseCommonInteractionProps = READERS[2]!.props;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("a reader whose role reads Data Security's findings reads what production knows - asked as themselves", async () => {
+    const read: SpyInstance<typeof DataStoreFindingService.findBy> = jest
+      .spyOn(DataStoreFindingService, "findBy")
+      .mockResolvedValue([]);
+
+    expect(
+      await ProductionReviewReadFilter.canReadDataSecurity({
+        projectId: PROJECT_ID,
+        reports: [knowing],
+        props: reader,
+      }),
+    ).toBe(true);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(read.mock.calls[0]![0]).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      limit: 1,
+      props: reader,
+    });
+  });
+
+  test.each([
+    new NotAuthorizedException("You may not read findings."),
+    new PaymentRequiredException("Data Security is not on your plan."),
+    new Error("Postgres is away"),
+  ])(
+    "a reader the read refuses (%s) reads each point without it",
+    async (refusal: Error) => {
+      jest.spyOn(DataStoreFindingService, "findBy").mockRejectedValue(refusal);
+
+      const canRead: boolean =
+        await ProductionReviewReadFilter.canReadDataSecurity({
+          projectId: PROJECT_ID,
+          reports: [knowing],
+          props: reader,
+        });
+
+      expect(canRead).toBe(false);
+
+      const outcome: CodeTaskOutcome = {
+        summary: "Production review: a public bucket.",
+        filesChanged: [],
+        productionReview: knowing,
+      };
+      const ids: Set<string> = new Set<string>(
+        knowing.incidents.items.map((item: { incidentId: string }): string => {
+          return item.incidentId;
+        }),
+      );
+      const kept: CodeTaskOutcome = ProductionReviewReadFilter.keepOutcome(
+        outcome,
+        ids,
+        undefined,
+        canRead,
+      );
+
+      expect(JSON.stringify(kept)).not.toContain("acme-card-exports");
+      expect(kept.productionReview!.sensitiveData!.points[0]!.production).toBe(
+        undefined,
+      );
+      // The stored outcome is not changed: a copy is.
+      expect(
+        outcome.productionReview!.sensitiveData!.points[0]!.production,
+      ).toBeDefined();
+    },
+  );
+
+  test("root reads it all, and a review with nothing of production asks nothing", async () => {
+    const read: SpyInstance<typeof DataStoreFindingService.findBy> = jest.spyOn(
+      DataStoreFindingService,
+      "findBy",
+    );
+
+    expect(
+      await ProductionReviewReadFilter.canReadDataSecurity({
+        projectId: PROJECT_ID,
+        reports: [knowing],
+        props: { isRoot: true },
+      }),
+    ).toBe(true);
+    expect(
+      await ProductionReviewReadFilter.canReadDataSecurity({
+        projectId: PROJECT_ID,
+        reports: [plain, undefined, null],
+        props: reader,
+      }),
+    ).toBe(false);
+    expect(read).not.toHaveBeenCalled();
   });
 });
 

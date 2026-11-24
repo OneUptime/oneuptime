@@ -93,6 +93,14 @@ Um repositório sem proprietários pode recebê-los do OneUptime AI. Ele lê o q
 
 Veja [Gatilhos de fluxo de trabalho](/docs/workflows/triggers) para os campos que cada gatilho repassa.
 
+## Pull requests
+
+Um vazamento sai mais barato de corrigir antes do merge. Em um repositório conectado em **Código** com as revisões de produção ativadas, a revisão de cada pull request tem uma seção **Dados sensíveis**, lida do diff dele: código que grava dados pessoais ou um segredo na telemetria, código de infraestrutura que torna público um repositório de dados ou desativa a criptografia, os backups ou o log dele, e migrações que adicionam colunas para dados pessoais, senhas ou dados de cartão. Cada ponto nomeia a verificação da Segurança de dados em que a alteração falharia depois de implantada, e os seus próprios tipos de dados são lidos pelas dicas de nome deles, como as varreduras os leem. Veja [Revisão de produção de pull requests](/docs/ai/ai-agent#revisão-de-produção-de-pull-requests).
+
+O que a Segurança de dados sabe deixa esses pontos mais precisos, no comentário de um repositório privado e, no Código, para quem pode ler as descobertas da Segurança de dados: onde a telemetria do serviço conteve o mesmo tipo de dado nos últimos 7 dias, a regra de limpeza que o mascara na ingestão, e o repositório de dados que um recurso é, com a sensibilidade dele. Um repositório marcado como **Público por design** não gera ponto por ser público. O comentário de um repositório público só diz o que o diff mostra.
+
+**Vazamentos detectados antes do merge**, em **Configurações do projeto → IA → Resultados de IA**, conta os vazamentos que as revisões detectaram em pull requests, corrigidos ali ou ainda não, ao lado dos problemas que as varreduras abriram nas mesmas verificações depois que o código foi implantado.
+
 ## OneUptime AI
 
 Duas ações em um problema pedem ajuda ao OneUptime AI. As duas enviam ao OneUptime AI o título e a gravidade do problema, o nome, o tipo, a região e o ID de nuvem do repositório, a sensibilidade e os tipos de dados dele, cada um pelo seu nome (os seus próprios pelo nome que você deu a eles), a evidência, por que a verificação importa e a correção para a nuvem do repositório - nunca as amostras de uma descoberta. As duas rodam sob os interruptores e limites de OneUptime AI do projeto. O que cada uma envia, o que nunca envia e o modelo em que roda estão em [OneUptime AI na Segurança de dados](/docs/data-security/ai).

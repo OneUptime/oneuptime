@@ -165,6 +165,7 @@ Each item of `monitor_steps` is one thing to check:
 | `request_type` | string | Website, API | The HTTP method: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` or `PATCH`. The server uses `GET` when it is not set. |
 | `request_headers` | map(string) | Website, API | Headers to send: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | The request body, as text. |
+| `request_body_format` | string | API | How `request_body` is sent: `json`, the default, for any JSON value; `text` for a body sent exactly as written, such as XML or form fields. |
 | `do_not_follow_redirects` | bool | Website, API | Stop at the first answer instead of following redirects. |
 | `allow_self_signed_certificates` | bool | Website, API | Accept a self-signed TLS certificate. |
 | `tls_client_certificate` | string | Website, API | A client certificate for mutual TLS: PEM, or a `{{monitorSecrets.name}}` reference. |
@@ -287,7 +288,7 @@ criteria = [
 
 A filter has `check_on` (what to look at), `filter_type` (how to compare) and `value` (what to compare with, as a string; leave it out for true-or-false checks such as `True` and `False`).
 
-A filter can also judge a time window instead of the latest check: set `evaluate_over_time = true`, the window's length in `evaluate_over_time_minutes`, and in `evaluate_over_time_type` how the window is read: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` or `Any Value`.
+A filter can also judge a time window instead of the latest check: set `evaluate_over_time = true`, the window's length in `evaluate_over_time_minutes`, and in `evaluate_over_time_type` how the window is read: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` or `Status Changes`. `Percentile` compares the percentile in `evaluate_over_time_percentile` with the filter's value (95 when unset). `Count`, `Percentage` and `Status Changes` count, per probe, the window's checks that met the condition, their share in percent, or how often they changed between meeting it and not, and compare that number with `evaluate_over_time_count_value` as `evaluate_over_time_count_filter_type` says (`Greater Than` 0 when unset).
 
 `All Values` means every check in the window broke the rule, so it matches only once the window is covered by data: a monitor that was just created waits for its window to fill instead of matching on its first check. Give it a window at least twice the monitor's `monitoring_interval`; otherwise the window holds one check, and "all values" means the same as "any value". `Any Value` matches on one breaking check, by design.
 

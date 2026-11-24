@@ -50,6 +50,7 @@ import { isUpdatesEventType } from "../NotificationRuleForm/NotificationRuleUpda
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import IconProp from "Common/Types/Icon/IconProp";
 
 /*
@@ -89,9 +90,12 @@ import IconProp from "Common/Types/Icon/IconProp";
 export interface NotificationRuleWhenProps {
   rule: IncidentNotificationRule | undefined;
   eventType: NotificationRuleEventType;
-  // The monitors the rules hold, by id; undefined while they are read.
+  /*
+   * The monitors, labels, SLOs, policies, people and teams the rules hold,
+   * read by their ids: each undefined until read (#10646, #10689).
+   */
   monitors?: Array<Monitor> | undefined;
-  labels: Array<Label>;
+  labels?: Array<Label> | undefined;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
   incidentSeverities: Array<IncidentSeverity>;
@@ -104,10 +108,12 @@ export interface NotificationRuleWhenProps {
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
   // An on-call rule's: the project's policies, to name the ones it picks.
   onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
-  // The project's people and teams, to name the owners a condition picks.
+  // The people and teams an owners condition picks, as above.
   users?: Array<User> | undefined;
   teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
+  // Whether they are being read: a value not read yet is a placeholder.
+  isNamingValues?: boolean | undefined;
 }
 
 export const NotificationRuleWhen: FunctionComponent<
@@ -142,6 +148,7 @@ export const NotificationRuleWhen: FunctionComponent<
       users={props.users}
       teams={props.teams}
       monitorStatus={props.monitorStatus}
+      isNamingValues={props.isNamingValues}
       filterCondition={props.rule.filterCondition}
       criteriaFilters={props.rule.filters}
     />
@@ -153,9 +160,15 @@ export interface NotificationRuleThenProps {
   rule: IncidentNotificationRule | undefined;
   eventType: NotificationRuleEventType;
   workspaceType: WorkspaceType;
-  teams: Array<Team>;
-  users: Array<User>;
+  /*
+   * Who the rules invite, read by their ids (#10689): each undefined until
+   * read. While they are read, a rule that invites one says so once they
+   * are named; one never read names nobody it cannot.
+   */
+  teams?: Array<Team> | undefined;
+  users?: Array<User> | undefined;
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
+  isNamingValues?: boolean | undefined;
   microsoftTeamsTeams?: Array<MicrosoftTeamsTeam> | undefined;
   microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
   // A Slack Enterprise organization's workspaces, to name the one a rule picks.
@@ -223,14 +236,42 @@ export const NotificationRuleThen: FunctionComponent<
     connection: props.mattermostConnection,
   });
 
+  /*
+   * Who the rule invites, while their names are read: the summary would
+   * say the rule invites nobody it cannot name yet (#10689).
+   */
+  const invites: Record<string, unknown> = (props.rule || {}) as Record<
+    string,
+    unknown
+  >;
+  const holdsAny: (key: string) => boolean = (key: string): boolean => {
+    const ids: unknown = invites[key];
+    return Array.isArray(ids) && ids.length > 0;
+  };
+  const isNamingInvitees: boolean =
+    Boolean(props.isNamingValues) &&
+    (((holdsAny("inviteUsersToNewChannel") ||
+      holdsAny("inviteTeamsToNewChannel")) &&
+      (!props.users || !props.teams)) ||
+      (holdsAny("inviteOnCallSchedulesToNewChannel") &&
+        !props.onCallSchedules));
+
+  if (isNamingInvitees) {
+    return (
+      <div data-testid="notification-rule-summary-loading">
+        <InlineValueSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div>
       <NotificationRuleSummary
         rule={props.rule}
         eventType={props.eventType}
         workspaceType={props.workspaceType}
-        users={props.users}
-        teams={props.teams}
+        users={props.users || []}
+        teams={props.teams || []}
         onCallSchedules={props.onCallSchedules}
         microsoftTeamsTeams={props.microsoftTeamsTeams}
         microsoftTeamsChats={props.microsoftTeamsChats}
@@ -348,6 +389,7 @@ export function getNotificationRuleCardColumns(
             users={data.users}
             teams={data.teams}
             monitorStatus={data.monitorStatus}
+            isNamingValues={data.isNamingValues}
           />
         );
       },
@@ -369,6 +411,7 @@ export function getNotificationRuleCardColumns(
             users={data.users}
             teams={data.teams}
             onCallSchedules={data.onCallSchedules}
+            isNamingValues={data.isNamingValues}
             microsoftTeamsTeams={data.microsoftTeamsTeams}
             microsoftTeamsChats={data.microsoftTeamsChats}
             slackWorkspaces={data.slackWorkspaces}

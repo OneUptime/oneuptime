@@ -216,4 +216,8 @@ export const EVALUATE_OVER_TIME_TERMS: Readonly<
   [EvaluateOverTimeType.MunimumValue]: translationKey("Minimum Value"),
   [EvaluateOverTimeType.AllValues]: translationKey("All Values"),
   [EvaluateOverTimeType.AnyValue]: translationKey("Any Value"),
+  [EvaluateOverTimeType.Percentile]: translationKey("Percentile"),
+  [EvaluateOverTimeType.Count]: translationKey("Count"),
+  [EvaluateOverTimeType.Percentage]: translationKey("Percentage"),
+  [EvaluateOverTimeType.StatusChanges]: translationKey("Status Changes"),
 };

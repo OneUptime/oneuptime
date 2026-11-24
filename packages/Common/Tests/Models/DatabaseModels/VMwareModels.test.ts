@@ -626,7 +626,6 @@ describe("VMware database models", () => {
         "metricsUpdatedAt",
         "lastSeenAt",
         "createdByUserId",
-        "deletedByUserId",
       ]) {
         expect(columns).toContain(column);
       }

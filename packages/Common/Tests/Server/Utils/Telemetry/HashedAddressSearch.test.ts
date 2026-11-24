@@ -481,6 +481,36 @@ describe("a query: only the fields a scrub rule scrubs are bound", () => {
     ).toBe(query);
   });
 
+  /*
+   * An attribute key is the sender's, or the filter's as typed: one named
+   * "__proto__" is bound as the map's own key (writeOwnValue), never written
+   * through the prototype's setter, which would drop it and change the map.
+   */
+  test("an attribute named __proto__ is bound as the map's own key", () => {
+    const attributes: Record<string, unknown> = JSON.parse(
+      `{"__proto__": "${ADDRESS}", "client.address": "${ADDRESS}"}`,
+    ) as Record<string, unknown>;
+    const bound: JSONObject = HashedAddressSearch.bindQueryWith({
+      query: { attributes } as unknown as JSONObject,
+      signal: HashedAddressSignal.Logs,
+      tokens: tokensA,
+    });
+    const boundAttributes: Record<string, unknown> = bound[
+      "attributes"
+    ] as unknown as Record<string, unknown>;
+
+    expect(
+      Object.prototype.hasOwnProperty.call(boundAttributes, "__proto__"),
+    ).toBe(true);
+    expect(
+      Object.getOwnPropertyDescriptor(boundAttributes, "__proto__")?.value,
+    ).toEqual(new Includes([ADDRESS, TOKEN]));
+    expect(Object.getPrototypeOf(boundAttributes)).toBe(Object.prototype);
+    expect(boundAttributes["client.address"]).toEqual(
+      new Includes([ADDRESS, TOKEN]),
+    );
+  });
+
   test("a typed old token is searched as typed, and an address never adds one", () => {
     const legacy: string = legacyTokenOf(ADDRESS);
     const bound: JSONObject = HashedAddressSearch.bindQueryWith({
@@ -556,6 +586,21 @@ describe("a chart's attribute filters, as they arrive serialized", () => {
         tokensA,
       ),
     ).toEqual({ "client.address": expected });
+  });
+
+  test("a filter on an attribute named __proto__ is bound as the filters' own key", () => {
+    const attributes: Record<string, unknown> = JSON.parse(
+      `{"__proto__": "${ADDRESS}"}`,
+    ) as Record<string, unknown>;
+    const bound: Record<string, unknown> =
+      HashedAddressSearch.bindSerializedAttributes(attributes, tokensA);
+
+    expect(Object.keys(bound)).toEqual(["__proto__"]);
+    expect(Object.getOwnPropertyDescriptor(bound, "__proto__")?.value).toEqual([
+      ADDRESS,
+      TOKEN,
+    ]);
+    expect(Object.getPrototypeOf(bound)).toBe(Object.prototype);
   });
 
   test("is empty, a number and an operator without an address are kept", () => {

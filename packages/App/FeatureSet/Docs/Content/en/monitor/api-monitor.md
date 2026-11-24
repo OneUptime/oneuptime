@@ -55,7 +55,7 @@ The **Name** fills in from what you entered, such as `api.example.com/health`. K
 
 ### Test it
 
-Under **Monitor Target**, pick the **API Request Type** (**GET** unless you change it). To add headers or a body, open **More fields** and fill in **Request Headers** and **Request Body (in JSON)**. Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the API answered. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
+Under **Monitor Target**, pick the **API Request Type** (**GET** unless you change it). To add headers or a body, open **More fields** and fill in **Request Headers** and **Request Body**. Click **Test Monitor**: the test starts on a probe the monitor is checked from. Pick another under **Select Probe** if you like, then click **Run Test**. **Monitor Test Result** shows what the API answered. It also says which criteria the answer matches and what would follow: the status, the incident or alert, and who is told.
 
 ### Review the criteria
 
@@ -70,7 +70,7 @@ Keep or change the **Probes** and the **Monitoring Interval** (it starts at **Ev
 
 ### API URL
 
-The endpoint to call, as a full URL with its scheme, such as `https://api.example.com/v1/health`. You can put a [monitor secret](/docs/monitor/monitor-secrets) in the URL as `{{monitorSecrets.NAME}}`.
+The endpoint to call, as a full URL with its scheme, such as `https://api.example.com/v1/health`. You can put a [monitor secret](/docs/monitor/monitor-secrets) in the URL as `{{monitorSecrets.NAME}}`. A failed check's error names the URL by its scheme, host and port alone, such as `https://api.example.com`, so the secret is never shown.
 
 ### Dynamic URL placeholders
 
@@ -107,14 +107,15 @@ These settings are folded under **More fields**. The folded header lists them an
 | Field | Default | What it does |
 | --- | --- | --- |
 | **Request Headers** | None | Headers to send, as name and value pairs. Click **Add Request Header** for each one. |
-| **Request Body (in JSON)** | None | The body to send, usually with **POST**, **PUT** or **PATCH**: any JSON value, such as an object, an array, a string or a number. It is sent as you write it, as `application/json` unless you set a `Content-Type` in **Request Headers**. With `application/x-www-form-urlencoded` or `multipart/form-data`, an object is sent as form fields. |
+| **Request Body Format** | **JSON** | How the body is read. **JSON** takes any JSON value, such as an object, an array, a string or a number. **Text** takes anything else, such as XML for a SOAP endpoint, plain text, or form fields written as `a=1&b=2`, and is never read as JSON. |
+| **Request Body** | None | The body to send, usually with **POST**, **PUT** or **PATCH**. It is sent exactly as you write it: a **JSON** body as `application/json`, a **Text** body as `text/plain`, unless you set a `Content-Type` in **Request Headers**. With `application/x-www-form-urlencoded` or `multipart/form-data`, a **JSON** object is sent as form fields. |
 | **Do not follow redirects** | Off | Judge the first response instead of following redirects. See [below](#do-not-follow-redirects). |
 | **Allow self-signed certificates** | Off | Skip TLS certificate validation for the monitor's own host name. |
 | **Use client certificate (mTLS)** | Off | Present a client certificate and private key. See [Client certificate (mTLS)](#client-certificate-mtls). |
 | **Request Timeout (seconds)** | `60` | How long to wait for each attempt. The maximum is 60 seconds. |
 | **Retries on Failure** | Probe default, usually `3` | How many times to retry a failed attempt. The maximum is 3. See [Retries and timeouts](#retries-and-timeouts). |
 
-Request headers and the request body can use [monitor secrets](/docs/monitor/monitor-secrets), for example a header `Authorization` with the value `Bearer {{monitorSecrets.ApiKey}}`.
+Request headers and the request body can use [monitor secrets](/docs/monitor/monitor-secrets), for example a header `Authorization` with the value `Bearer {{monitorSecrets.ApiKey}}`. In a **JSON** body, a secret inside quotes, as in `{"password": "{{monitorSecrets.Password}}"}`, is escaped for its string, so a value with a `"`, a `\` or a line break stays one string. A secret outside quotes, as in `[{{monitorSecrets.Ids}}]`, is written as it is, and so is every secret in a **Text** body.
 
 #### Do Not Follow Redirects
 
@@ -193,17 +194,18 @@ Monitors created before OneUptime changed these defaults keep the criteria they 
 
 ### Evaluating over a period of time
 
-**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **Is Online**, **Response Status Code**, **Response Time (in ms)**, **Response Body**, **Response Header**, **Response Header Value**, **JavaScript Expression** and **Is Request Timeout**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 to 60 minutes, under **For the last (in minutes)**.
+**Evaluate this criteria over a period of time** is a checkbox under a filter, offered for **Is Online**, **Response Status Code**, **Response Time (in ms)**, **Response Body**, **Response Header**, **Response Header Value**, **JavaScript Expression** and **Is Request Timeout**. Turn it on to judge a window of past checks instead of the latest one: pick an aggregate under **Evaluate** and a window, from 2 minutes to 24 hours, under **For the last**.
 
 | Aggregate | Matches when |
 | --- | --- |
-| **Average**, **Sum**, **Maximum Value**, **Minimum Value** | That figure, over the window, meets the condition. Numeric filters only. |
+| **Average**, **Sum**, **Maximum Value**, **Minimum Value**, **Percentile** | That figure, over the window, meets the condition, such as the p95 response time. Numeric filters only. |
 | **All Values** | Every check in the window meets the condition. |
 | **Any Value** | At least one check in the window meets the condition. |
+| **Count**, **Percentage**, **Status Changes** | How many checks met the condition, their share, or how often they changed between meeting it and not, compares with the number set under it. |
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
 
-A body, a header, a header value or an expression is not a number OneUptime records, so for those filters and for **Is Request Timeout** it records whether the filter matched on each check, and judges the window from that record with **All Values** or **Any Value**. That is how a monitor rides out a restart. An app that is starting may answer `200` with a placeholder such as `Application starting...`; with **All Values**, a **Response Body** filter that looks for the app's title takes the monitor offline only once the placeholder has lasted the whole window.
+A body, a header, a header value or an expression is not a number OneUptime records, so for those filters and for **Is Request Timeout** it records whether the filter matched on each check, and judges the window from that record with **All Values** or **Any Value**, or counts it with **Count**, **Percentage** or **Status Changes**. That is how a monitor rides out a restart. An app that is starting may answer `200` with a placeholder such as `Application starting...`; with **All Values**, a **Response Body** filter that looks for the app's title takes the monitor offline only once the placeholder has lasted the whole window.
 
 Make the window longer than the monitoring interval, so it holds several checks: a monitor checked every 5 minutes has a single check in any 5-minute window.
 
@@ -245,7 +247,11 @@ The probe reads at most 512 KiB of a response, and this one is larger. Call an e
 :::
 
 :::details The check fails with "The request body is not valid JSON, so the request was not sent."
-The body is not JSON once its [monitor secrets](/docs/monitor/monitor-secrets) are filled in, so the probe did not send the request. Correct the body under **More fields**, or the value of a secret it uses: a value with a `"` in it breaks the JSON string it stands in.
+The body is not JSON once its [monitor secrets](/docs/monitor/monitor-secrets) are filled in, so the probe did not send the request. Correct the body under **More fields**, or the value of a secret outside quotes in it, which is written as it is. To send a body that is not JSON, such as XML or form fields, set **Request Body Format** to **Text**.
+:::
+
+:::details The check says the probe is too old to send the request body
+The monitor's body is a JSON array, a single value or **Text**, and the custom probe that checks it runs an older release, which sends only a JSON object, so the check did not run on it. The monitor's form and the probe's page name such a probe. [Update the probe](/docs/probe/custom-probe#update-a-probe) to the latest release, or check the monitor from another probe.
 :::
 
 ## Next steps

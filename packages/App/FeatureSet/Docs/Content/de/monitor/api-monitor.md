@@ -55,7 +55,7 @@ Der **Name** wird aus Ihrer Eingabe gefüllt, etwa mit `api.example.com/health`.
 
 ### Ihn testen
 
-Wählen Sie unter **Monitor-Ziel** den **API-Anfragetyp** (**GET**, sofern Sie ihn nicht ändern). Um Header oder einen Body hinzuzufügen, öffnen Sie **Weitere Felder** und füllen Sie **Anfrage-Header** und **Anfrage-Body (in JSON)** aus. Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die API geantwortet hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
+Wählen Sie unter **Monitor-Ziel** den **API-Anfragetyp** (**GET**, sofern Sie ihn nicht ändern). Um Header oder einen Body hinzuzufügen, öffnen Sie **Weitere Felder** und füllen Sie **Anfrage-Header** und **Anfragetext** aus. Klicken Sie auf **Monitor testen**: Der Test beginnt auf einer Sonde, die den Monitor prüft. Wählen Sie bei Bedarf unter **Sonde auswählen** eine andere und klicken Sie dann auf **Test ausführen**. **Überwachungs-Testergebnis** zeigt, was die API geantwortet hat. Es sagt auch, welches Kriterium die Antwort erfüllt und was folgen würde: der Status, der Vorfall oder die Warnung und wer benachrichtigt wird.
 
 ### Die Kriterien prüfen
 
@@ -70,7 +70,7 @@ Behalten oder ändern Sie die **Sonden** und das **Überwachungsintervall** (es 
 
 ### API-URL
 
-Der aufzurufende Endpunkt, als vollständige URL mit Schema, etwa `https://api.example.com/v1/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen.
+Der aufzurufende Endpunkt, als vollständige URL mit Schema, etwa `https://api.example.com/v1/health`. Sie können ein [Monitor-Geheimnis](/docs/monitor/monitor-secrets) als `{{monitorSecrets.NAME}}` in die URL setzen. Der Fehler einer fehlgeschlagenen Prüfung nennt die URL nur mit Schema, Host und Port, etwa `https://api.example.com`, sodass das Geheimnis nie angezeigt wird.
 
 ### Dynamische URL-Platzhalter
 
@@ -107,14 +107,15 @@ Diese Einstellungen sind unter **Weitere Felder** eingeklappt. Die eingeklappte 
 | Feld | Standard | Was es tut |
 | --- | --- | --- |
 | **Anfrage-Header** | Keine | Header, die gesendet werden, als Paare aus Name und Wert. Klicken Sie für jeden auf **Anfrage-Header hinzufügen**. |
-| **Anfrage-Body (in JSON)** | Keiner | Der Body, der gesendet wird, meist mit **POST**, **PUT** oder **PATCH**: ein beliebiger JSON-Wert, etwa ein Objekt, ein Array, eine Zeichenkette oder eine Zahl. Er wird so gesendet, wie Sie ihn schreiben, als `application/json`, sofern Sie keinen `Content-Type` unter **Anfrage-Header** setzen. Mit `application/x-www-form-urlencoded` oder `multipart/form-data` wird ein Objekt als Formularfelder gesendet. |
+| **Format des Anfragetexts** | **JSON** | Wie der Anfragetext gelesen wird. **JSON** nimmt einen beliebigen JSON-Wert, etwa ein Objekt, ein Array, eine Zeichenkette oder eine Zahl. **Text** nimmt alles andere, etwa XML für einen SOAP-Endpunkt, reinen Text oder Formularfelder, geschrieben als `a=1&b=2`, und wird nie als JSON gelesen. |
+| **Anfragetext** | Keiner | Der Body, der gesendet wird, meist mit **POST**, **PUT** oder **PATCH**. Er wird genau so gesendet, wie Sie ihn schreiben: im Format **JSON** als `application/json`, im Format **Text** als `text/plain`, sofern Sie keinen `Content-Type` unter **Anfrage-Header** setzen. Mit `application/x-www-form-urlencoded` oder `multipart/form-data` wird ein Objekt im Format **JSON** als Formularfelder gesendet. |
 | **Weiterleitungen nicht folgen** | Aus | Die erste Antwort beurteilen, statt Weiterleitungen zu folgen. Siehe [unten](#weiterleitungen-nicht-folgen). |
 | **Selbstsignierte Zertifikate zulassen** | Aus | Die Prüfung des TLS-Zertifikats für den eigenen Hostnamen des Monitors überspringen. |
 | **Client-Zertifikat verwenden (mTLS)** | Aus | Ein Client-Zertifikat und einen privaten Schlüssel vorlegen. Siehe [Client-Zertifikat (mTLS)](#client-zertifikat-mtls). |
 | **Anfrage-Zeitlimit (Sekunden)** | `60` | Wie lange auf jeden Versuch gewartet wird. Das Maximum sind 60 Sekunden. |
 | **Wiederholungen bei Fehlschlag** | Standard der Sonde, meist `3` | Wie oft ein fehlgeschlagener Versuch wiederholt wird. Das Maximum ist 3. Siehe [Wiederholungen und Zeitlimits](#wiederholungen-und-zeitlimits). |
 
-Anfrage-Header und der Anfrage-Body können [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) verwenden, zum Beispiel einen Header `Authorization` mit dem Wert `Bearer {{monitorSecrets.ApiKey}}`.
+Anfrage-Header und der Anfrage-Body können [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) verwenden, zum Beispiel einen Header `Authorization` mit dem Wert `Bearer {{monitorSecrets.ApiKey}}`. In einem Body im Format **JSON** wird ein Geheimnis in Anführungszeichen, wie in `{"password": "{{monitorSecrets.Password}}"}`, für seine Zeichenkette maskiert, sodass ein Wert mit einem `"`, einem `\` oder einem Zeilenumbruch eine Zeichenkette bleibt. Ein Geheimnis außerhalb von Anführungszeichen, wie in `[{{monitorSecrets.Ids}}]`, wird so eingesetzt, wie es ist, ebenso jedes Geheimnis in einem Body im Format **Text**.
 
 #### Weiterleitungen nicht folgen
 
@@ -193,17 +194,18 @@ Monitore, die erstellt wurden, bevor OneUptime diese Standards geändert hat, be
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Antwort-Header**, **Antwort-Header-Wert**, **JavaScript-Ausdruck** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten (in Minuten)** ein Fenster von 2 bis 60 Minuten.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **Ist online**, **Antwort-Statuscode**, **Antwortzeit (in ms)**, **Antworttext**, **Antwort-Header**, **Antwort-Header-Wert**, **JavaScript-Ausdruck** und **Zeitüberschreitung der Anfrage**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden.
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
-| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert** | Dieser Wert über das Fenster die Bedingung erfüllt. Nur für numerische Filter. |
+| **Durchschnitt**, **Summe**, **Maximalwert**, **Minimalwert**, **Perzentil** | Dieser Wert über das Fenster die Bedingung erfüllt, etwa die p95-Antwortzeit. Nur für numerische Filter. |
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
+| **Anzahl**, **Prozentsatz**, **Statuswechsel** | Wie viele Prüfungen die Bedingung erfüllt haben, ihr Anteil oder wie oft sie zwischen Erfüllen und Nichterfüllen gewechselt haben, wird mit der darunter eingestellten Zahl verglichen. |
 
 Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Zeitüberschreitung der Anfrage** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **Alle Werte** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
+Ein Body, ein Header, ein Header-Wert oder ein Ausdruck ist keine Zahl, die OneUptime aufzeichnet. Für diese Filter und für **Zeitüberschreitung der Anfrage** zeichnet OneUptime deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. Oder OneUptime zählt sie mit **Anzahl**, **Prozentsatz** oder **Statuswechsel**. So übersteht ein Monitor einen Neustart. Eine App, die gerade startet, antwortet womöglich mit `200` und einem Platzhalter wie `Application starting...`; mit **Alle Werte** nimmt ein Filter **Antworttext**, der nach dem Titel der App sucht, den Monitor erst offline, wenn der Platzhalter das ganze Fenster über bestanden hat.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 
@@ -245,7 +247,11 @@ Die Sonde liest höchstens 512 KiB einer Antwort, und diese ist größer. Rufen 
 :::
 
 :::details Die Prüfung schlägt fehl mit „Der Anfragetext ist kein gültiges JSON, daher wurde die Anfrage nicht gesendet.“
-Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) eingesetzt sind, daher hat die Sonde die Anfrage nicht gesendet. Korrigieren Sie den Body unter **Weitere Felder** oder den Wert eines Geheimnisses, das er verwendet: Ein Wert mit einem `"` darin bricht die JSON-Zeichenkette, in der er steht.
+Der Body ist kein JSON, sobald seine [Monitor-Geheimnisse](/docs/monitor/monitor-secrets) eingesetzt sind, daher hat die Sonde die Anfrage nicht gesendet. Korrigieren Sie den Body unter **Weitere Felder** oder den Wert eines Geheimnisses außerhalb von Anführungszeichen darin, das so eingesetzt wird, wie es ist. Um einen Body zu senden, der kein JSON ist, etwa XML oder Formularfelder, stellen Sie **Format des Anfragetexts** auf **Text**.
+:::
+
+:::details Die Prüfung meldet, dass die Sonde zu alt ist, um den Anfragetext zu senden
+Der Body des Monitors ist ein JSON-Array, ein einzelner Wert oder **Text**, und die benutzerdefinierte Sonde, die ihn prüft, läuft mit einem älteren Release, das nur ein JSON-Objekt sendet, daher wurde die Prüfung auf ihr nicht ausgeführt. Das Formular des Monitors und die Seite der Sonde nennen eine solche Sonde. [Aktualisieren Sie die Sonde](/docs/probe/custom-probe#eine-sonde-aktualisieren) auf das neueste Release, oder prüfen Sie den Monitor von einer anderen Sonde aus.
 :::
 
 ## Nächste Schritte

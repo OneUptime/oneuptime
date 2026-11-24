@@ -24,6 +24,11 @@
  */
 
 import { LlmProviderActivity } from "../AI/LlmProviderChoice";
+import {
+  ProductionReviewSensitiveDataJSON,
+  ProductionReviewSensitiveDataUtil,
+  SensitiveDataPosting,
+} from "./ProductionReviewSensitiveData";
 
 /*
  * What a pull request's comment shows, a repository's choice
@@ -105,6 +110,11 @@ export enum ProductionReviewSection {
   Deploys = "Deploys",
   // The watched tables a migration or a dbt model changes (Data Observability).
   Data = "Data",
+  /*
+   * What the change writes of sensitive data to telemetry, does to a store
+   * of it, or adds a column for (#10376): read from the diff itself.
+   */
+  SensitiveData = "SensitiveData",
 }
 
 /*
@@ -365,6 +375,12 @@ export interface ProductionReviewReport {
    * review made before Data Observability read pull requests.
    */
   dataImpact?: Array<ProductionReviewDataImpactJSON> | undefined;
+  /*
+   * The sensitive data its changes write to telemetry, expose in a store or
+   * add a column for (#10376). Unset on a review made before the section
+   * existed.
+   */
+  sensitiveData?: ProductionReviewSensitiveDataJSON | undefined;
   // What OneUptime AI says to watch; empty without an AI read.
   points: Array<ProductionReviewPointJSON>;
   aiNote?: ProductionReviewAiNote | undefined;
@@ -403,6 +419,9 @@ export interface ProductionReviewSummaryJSON {
   incidentCount: number;
   suspectDeployCount: number;
   dataImpactCount?: number | undefined;
+  // The Sensitive data section's points, and whether the check failed on one.
+  sensitiveDataCount?: number | undefined;
+  failsCheck?: boolean | undefined;
   headSha: string;
   reviewedAt: string;
   posting: ProductionReviewPosting;
@@ -543,14 +562,66 @@ export class ProductionReviewUtil {
   }
 
   /*
-   * Whether production says something about this change: what it throws,
-   * runs or spends in the changed code, an incident that names it or is
-   * open on its services, a recent deploy of them OneUptime suspects, or
-   * a watched table its migrations or dbt models change. How busy a
-   * service is, on its own, is not: every change to a service would be
+   * What the pull request shows of a review's Sensitive data section
+   * (#10376). Its points are about the diff, which everyone who reads the
+   * pull request already sees, so they are posted even where the rest of
+   * the review is only a link - but on a public repository, or one whose
+   * visibility is not known, only what the diff shows: never a store, a
+   * production location or what production holds, whatever the repository
+   * chose for the rest. A repository that posts only a link posts none of
+   * them.
+   */
+  public static getSensitiveDataPosting(data: {
+    content: ProductionReviewPullRequestContent | string | null | undefined;
+    isPublic: boolean | null | undefined;
+  }): SensitiveDataPosting {
+    if (
+      ProductionReviewUtil.readContent(data.content) ===
+      ProductionReviewPullRequestContent.Link
+    ) {
+      return SensitiveDataPosting.None;
+    }
+
+    return data.isPublic === false
+      ? SensitiveDataPosting.Full
+      : SensitiveDataPosting.DiffOnly;
+  }
+
+  /*
+   * Whether the review says something about this change: what production
+   * says of it (hasProductionSignal), or sensitive data the change itself
+   * writes to telemetry, exposes in a store or adds a column for. How busy
+   * a service is, on its own, is not: every change to a service would be
    * commented on.
    */
   public static hasSignal(
+    report: Pick<
+      ProductionReviewReport,
+      | "exceptions"
+      | "operations"
+      | "hotFunctions"
+      | "incidents"
+      | "suspectDeploys"
+      | "dataImpact"
+      | "sensitiveData"
+    >,
+  ): boolean {
+    return (
+      ProductionReviewUtil.hasProductionSignal(report) ||
+      ProductionReviewSensitiveDataUtil.getPoints(report.sensitiveData).length >
+        0
+    );
+  }
+
+  /*
+   * Whether production says something about this change: what it throws,
+   * runs or spends in the changed code, an incident that names it or is
+   * open on its services, a recent deploy of them OneUptime suspects, or
+   * a watched table its migrations or dbt models change - what OneUptime
+   * AI's read of what to watch is about. The Sensitive data section is
+   * read from the diff, not from production.
+   */
+  public static hasProductionSignal(
     report: Pick<
       ProductionReviewReport,
       | "exceptions"
@@ -664,6 +735,34 @@ export class ProductionReviewUtil {
     };
   }
 
+  /*
+   * A REVIEW'S SENSITIVE DATA AS ITS READER MAY READ IT (#10376).
+   *
+   * A point of the Sensitive data section says what the diff shows - a
+   * type of data, a file and a line - which everyone who reads the
+   * repository's reviews may read. What production knows of it - where
+   * production's telemetry held the data, the scrub rule that masks it,
+   * the store a resource is and what it holds - is Data Security's, read
+   * only by those who may read Data Security's findings: for anyone else
+   * it leaves every point (`canReadDataSecurity` false). The same report
+   * when nothing is hidden; a copy otherwise.
+   */
+  public static keepReadableSensitiveData(
+    report: ProductionReviewReport,
+    canReadDataSecurity: boolean,
+  ): ProductionReviewReport {
+    if (canReadDataSecurity || !report.sensitiveData) {
+      return report;
+    }
+
+    const kept: ProductionReviewSensitiveDataJSON =
+      ProductionReviewSensitiveDataUtil.withoutProduction(report.sensitiveData);
+
+    return kept === report.sensitiveData
+      ? report
+      : { ...report, sensitiveData: kept };
+  }
+
   // The ids of the incidents a review lists, lower-cased, each once.
   public static getIncidentIds(
     report: ProductionReviewReport | null | undefined,
@@ -751,6 +850,12 @@ export class ProductionReviewUtil {
         .length,
       suspectDeployCount: report.suspectDeploys.length,
       dataImpactCount: (report.dataImpact || []).length,
+      sensitiveDataCount: ProductionReviewSensitiveDataUtil.getPoints(
+        report.sensitiveData,
+      ).length,
+      failsCheck: ProductionReviewSensitiveDataUtil.failsCheck(
+        report.sensitiveData,
+      ),
       headSha: report.pullRequest.headSha,
       reviewedAt: report.reviewedAt,
       posting: report.posting,

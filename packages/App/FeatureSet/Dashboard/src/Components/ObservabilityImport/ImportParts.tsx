@@ -176,7 +176,7 @@ export const ImportQueryCode: FunctionComponent<{ query: string }> = (props: {
 /*
  * OneUptime AI's conversion of one query no rule converted: asked for by
  * the person, who is told first that only the query goes to the project's
- * AI provider, and read before it is used - nothing is created with it
+ * LLM provider, and read before it is used - nothing is created with it
  * until "Use This Query".
  */
 export const ImportAiConversion: FunctionComponent<{
@@ -266,7 +266,7 @@ export const ImportAiConversion: FunctionComponent<{
         />
         <span className="text-xs text-gray-500">
           {translator.translateText(
-            "Sends only this query to your project's AI provider.",
+            "Sends only this query to your project's LLM provider.",
           )}
         </span>
       </div>

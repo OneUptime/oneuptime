@@ -2122,11 +2122,29 @@ test.describe("Savings", () => {
  * ---------------------------------------------------------------------------
  */
 test.describe("Budgets", () => {
+  /*
+   * A budget is on course to pass while its month so far is under its
+   * first threshold and the pace of the last week takes the month past it:
+   * a state of a month's first three weeks. Later the month so far nears
+   * where it is heading - on its last day they are one figure - and the
+   * fixture's data-lake budget, 85% of where that account's month is
+   * heading, has passed 80% from the 22nd on. So the statuses are read on
+   * a month's 10th, at noon; the fixture makes its figures up from the
+   * page's now.
+   */
   test("each budget: the month against it, where it is heading and how it is doing - the Overview's spend for every account", async ({
     page,
   }: {
     page: Page;
   }) => {
+    const time: Date = new Date("2026-11-10T12:00:00Z");
+    // The suite's own clock (CLOUD_SPEND_CLOCK) is moved, not installed twice.
+    if (SUITE_CLOCK) {
+      await page.clock.setSystemTime(time);
+    } else {
+      await page.clock.install({ time });
+    }
+
     await page.setViewportSize(LAPTOP);
     await open(page, CLOUD);
     const overviewSpend: string = await tileValue(

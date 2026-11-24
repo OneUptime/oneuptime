@@ -1,5 +1,6 @@
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -18,6 +19,7 @@ import NotificationRuleCondition, {
   NotificationRuleConditionUtil,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import ArchivedTag from "Common/UI/Components/ArchivedTag/ArchivedTag";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import { PeopleList } from "Common/UI/Components/PeoplePicker/PeopleList";
 import {
   PeoplePickerKind,
@@ -28,6 +30,7 @@ import {
   getConditionOperatorWords,
   VALUE_NOT_FOUND_NAME,
 } from "../NotificationRuleForm/NotificationRuleConditionWords";
+import { getRecordConditionKind } from "../NotificationRuleForm/RecordConditionPicker";
 import React, { FunctionComponent, ReactElement } from "react";
 import AlertSeverityElement from "../../AlertSeverity/AlertSeverityElement";
 import AlertStateElement from "../../AlertState/AlertStateElement";
@@ -51,12 +54,12 @@ export interface ComponentProps {
   notificationRuleCondition: NotificationRuleCondition | undefined;
   value?: string | Array<string>;
   /*
-   * The monitors the rules hold, read by their ids (#10646). Undefined
-   * while they are read: no monitor is said to be gone from a list nobody
-   * read.
+   * The monitors, labels, SLOs, policies, people and teams the rules hold,
+   * read by their ids (#10646, #10689). Each undefined until read, or when
+   * it could not be: nothing is said to be gone from a list nobody read.
    */
   monitors?: Array<Monitor> | undefined;
-  labels: Array<Label>;
+  labels?: Array<Label> | undefined;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
   incidentSeverities: Array<IncidentSeverity>;
@@ -65,14 +68,18 @@ export interface ComponentProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
-  // An SLO rule's: the project's SLOs, to name the ones it picks.
+  // An SLO rule's SLOs and an on-call rule's policies, as above.
   serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
-  // An on-call rule's: the project's policies, to name the ones it picks.
   onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
-  // The project's people and teams, to name the owners a condition picks.
+  // The people and teams an owners condition picks, as above.
   users?: Array<User> | undefined;
   teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
+  /*
+   * Whether the lists above are being read: a value of one not read yet is
+   * drawn as a placeholder until it is named.
+   */
+  isNamingValues?: boolean | undefined;
 }
 
 /*
@@ -182,6 +189,45 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
         props.notificationRuleCondition,
       );
 
+    const records: Array<BaseModel> | undefined =
+      NotificationRuleConditionUtil.getRecordsByCheckOn({
+        checkOn: checkOn,
+        alertSeverities: props.alertSeverities,
+        alertStates: props.alertStates,
+        incidentSeverities: props.incidentSeverities,
+        monitorStatus: props.monitorStatus,
+        incidentStates: props.incidentStates,
+        scheduledMaintenanceStates: props.scheduledMaintenanceStates,
+        labels: props.labels,
+        monitors: props.monitors,
+        securityCasePriorities: props.securityCasePriorities,
+        securityCaseStatuses: props.securityCaseStatuses,
+        serviceLevelObjectives: props.serviceLevelObjectives,
+        onCallDutyPolicies: props.onCallDutyPolicies,
+      });
+
+    /*
+     * Monitors, labels, SLOs, policies, people and teams are read by the
+     * ids the rules hold (#10689). One kind not read yet - or that could not
+     * be - names nothing and says nothing is gone: a placeholder while it
+     * is read, and nothing once the read failed.
+     */
+    const isUnread: boolean =
+      selectedIds.length > 0 &&
+      (NotificationRuleConditionUtil.isOwnerCheckOn(checkOn)
+        ? !props.users || !props.teams
+        : Boolean(getRecordConditionKind(checkOn)) && !records);
+
+    if (isUnread) {
+      return props.isNamingValues ? (
+        <span data-testid="notification-rule-condition-value-loading">
+          <InlineValueSkeleton />
+        </span>
+      ) : (
+        <></>
+      );
+    }
+
     /*
      * A value the condition holds that names none of the project's records
      * any more - a severity, a label, a monitor, an SLO or a policy since
@@ -192,21 +238,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     const notFoundIds: Array<string> =
       NotificationRuleConditionUtil.getIdsNotFound({
         ids: selectedIds,
-        records: NotificationRuleConditionUtil.getRecordsByCheckOn({
-          checkOn: checkOn,
-          alertSeverities: props.alertSeverities,
-          alertStates: props.alertStates,
-          incidentSeverities: props.incidentSeverities,
-          monitorStatus: props.monitorStatus,
-          incidentStates: props.incidentStates,
-          scheduledMaintenanceStates: props.scheduledMaintenanceStates,
-          labels: props.labels,
-          monitors: props.monitors,
-          securityCasePriorities: props.securityCasePriorities,
-          securityCaseStatuses: props.securityCaseStatuses,
-          serviceLevelObjectives: props.serviceLevelObjectives,
-          onCallDutyPolicies: props.onCallDutyPolicies,
-        }),
+        records: records,
       });
 
     const notFoundName: string =
@@ -421,7 +453,7 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     ) {
       // In natural order, as labels are listed everywhere (Utils/LabelOrder).
       const selectedLabels: Array<Label> = sortLabels<Label>(
-        props.labels.filter((label: Label) => {
+        (props.labels || []).filter((label: Label) => {
           return selectedIds.includes(label.id!.toString());
         }),
       );

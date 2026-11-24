@@ -232,7 +232,7 @@ Criteria decide when the monitor is online, degraded or offline, and when it ope
 
 ### Evaluate over a period of time
 
-**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. It is available for **Is Online** and every numeric filter type. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, All Values, Any Value) over the window set by **For the last (in minutes)** — instead of the value from the latest check. On an **Is Online** filter, the window is how long the agent may stay silent before the server counts as offline.
+**Evaluate this criteria over a period of time** is a separate checkbox on the criteria form rather than a filter condition. It is available for **Is Online** and every numeric filter type. Turn it on to compare an aggregate — chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, Percentile, All Values, Any Value, Count, Percentage, Status Changes) over the window set by **For the last** — instead of the value from the latest check. On an **Is Online** filter, the window is how long the agent may stay silent before the server counts as offline.
 
 **All Values** only matches once the window is genuinely covered by data. A monitor that has just been created, or one whose checks stopped being recorded, does not have enough history to say anything about the last N minutes, so the criteria waits rather than matching on the one reading it does have. **Any Value** is the setting for "tell me the moment a single check breaches" and still fires immediately.
 

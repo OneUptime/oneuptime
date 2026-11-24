@@ -104,6 +104,8 @@ Voeg een `<match>`-sectie toe die records naar OneUptime stuurt. Vervang `YOUR_S
 
 `json_array true` stuurt elke chunk van de buffer als één JSON-array, en `flush_interval 10s` stuurt de buffer elke 10 seconden. `chunk_limit_size 900k` houdt elk request onder 1 MB, het meeste dat OneUptime op dit endpoint aanneemt.
 
+De standaard van Fluentd werkt ook: zonder `content_type` en `json_array true` stuurt Fluentd JSON gescheiden door regeleinden, één record per regel, en OneUptime leest elke regel als het record dat het is, met `compress gzip` of zonder.
+
 `@type file` bewaart de batches die nog verstuurd moeten worden in de map die `path` noemt, zodat een herstart van Fluentd er geen verliest; een buffer in het geheugen, de standaard van Fluentd, verliest wat hij vasthoudt. De gebruiker van Fluentd moet in die map kunnen schrijven: `/var/log/fluent` is die van fluent-package, `/var/log/td-agent` die van td-agent en `/fluentd/log` die van de image `fluent/fluentd`. `total_limit_size 512m` bewaart daar hooguit 512 MB; is hij vol, dan neemt Fluentd geen records meer aan tot er een batch is verstuurd.
 
 `retryable_response_codes 429,502,503,504` stuurt een batch opnieuw als OneUptime het druk heeft (`429`) of herstart (`502`, `503`, `504`); zonder deze instelling gooit Fluentd een batch weg bij elk antwoord behalve `503`. `retry_max_interval 30s` wacht hoogstens 30 seconden tussen pogingen, en `retry_timeout 72h` gooit een batch weg die na 72 uur nog steeds niet verstuurd kan worden. Het filter `record_transformer` voegt de tijd toe die Fluentd elk record gaf, als `fluentd_time`: de HTTP-output stuurt alleen het record, en OneUptime leest de tijd van een log daaruit.

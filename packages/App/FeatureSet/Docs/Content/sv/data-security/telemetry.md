@@ -25,7 +25,7 @@ flowchart TB
     scrub --> ingest["Nya loggar maskeras<br/>innan de lagras"]
 ```
 
-Ett fynd som en rensningsregel täcker markeras som rensat: det som finns kvar av dessa data är gamla data som väntar på att lagringstiden ska ta slut, inte en läcka som fortfarande pågår. De två telemetrikontrollerna räknar bara det som ingen regel täcker, så deras problem blir löst när varje fynd är rensat (se [Telemetrikontroller](/docs/data-security/checks-and-issues#telemetri)).
+Ett fynd som en rensningsregel täcker markeras som rensat: det som OneUptime lagrar av dessa data är gamla data som väntar på att lagringstiden ska ta slut. Koden skriver dem dock fortfarande, så de två telemetrikontrollerna räknar fyndet som begränsat, inte åtgärdat: deras problem löses som **Begränsat vid inmatning** när varje fynd är rensat, och som **Åtgärdat i koden** först när en kodåtgärds nya version slutar skriva dessa data (se [Vad som händer med ett problem](/docs/data-security/checks-and-issues#vad-som-händer-med-ett-problem)).
 
 ## Vad som läses
 
@@ -141,7 +141,7 @@ Medan OneUptime AI arbetar med problem i Datasäkerhet (se [OneUptime AI i Datas
 - **Dessa data är en hemlighet**, till exempel ett lösenord, en token eller en nyckel.
 - **Regeln är bevisad** på posterna där dessa data sågs: Den dolde dessa data i varje värde som innehöll dem.
 - **Den ändrar inget annat där**: inget av de andra värdena på dess plats.
-- **Inget läser det den döljer**: ingen övervakare, instrumentpanel, sparad vy, inspelningsregel eller SLO, och inget som Säkerhetshändelser behöver.
+- **Inget läser det den döljer**: ingen monitor, instrumentpanel, sparad vy, inspelningsregel eller SLO, och inget som Säkerhetshändelser behöver.
 - **Den gäller för tjänsten** där dessa data sågs.
 
 Allt annat föreslås i stället, på **Datasäkerhet → AI** och på problemets sida, med hur regeln bevisades och vad som läser det den skulle dölja: personuppgifter, en regel som något läser, en som ändrar andra värden, en utan någon post att köras på, en för alla tjänster, ett mätvärdes pipelineregel, och varje plats där en person ångrade eller avfärdade en tidigare regel. En AI-regel för Datasäkerhet som sätter **Begränsa** till **Automatiskt** för ett problem låter också bevisade personuppgifter döljas på egen hand. Ingen regel låter en ändring som inte är bevisat säker köras på egen hand.

@@ -349,12 +349,31 @@ const SERVER_RETURNED: string = writeProbeFailureCause(
  */
 const TOO_OLD_FOR_ONE_TIME_CODES: string = writeProbeFailureCause(
   ProbeFailureCause.ProbeTooOldForOneTimeCodes,
-  { version: "17.0.1" },
 );
 
 // #9737: an API check whose body is not JSON, so its request was not sent.
 const REQUEST_BODY_NOT_JSON: string = writeProbeFailureCause(
   ProbeFailureCause.RequestBodyNotJson,
+);
+
+// #10737: an API step whose body only a newer probe sends, kept from an older one.
+const TOO_OLD_FOR_REQUEST_BODY: string = writeProbeFailureCause(
+  ProbeFailureCause.ProbeTooOldForRequestBody,
+);
+
+/*
+ * The two above as OneUptime wrote them before, naming a release that was
+ * not the one: 17.0.1 was never released, and 17.2.0 sends no such body.
+ * A result kept from then is still read, in the reader's language.
+ */
+const TOO_OLD_FOR_ONE_TIME_CODES_NAMING_RELEASE: string =
+  writeProbeFailureCause(
+    ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease,
+    { version: "17.0.1" },
+  );
+const TOO_OLD_FOR_REQUEST_BODY_NAMING_RELEASE: string = writeProbeFailureCause(
+  ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease,
+  { version: "17.2.0" },
 );
 
 const EVERY_STORED: ReadonlyArray<string> = [
@@ -370,6 +389,9 @@ const EVERY_STORED: ReadonlyArray<string> = [
   SERVER_RETURNED,
   TOO_OLD_FOR_ONE_TIME_CODES,
   REQUEST_BODY_NOT_JSON,
+  TOO_OLD_FOR_REQUEST_BODY,
+  TOO_OLD_FOR_ONE_TIME_CODES_NAMING_RELEASE,
+  TOO_OLD_FOR_REQUEST_BODY_NAMING_RELEASE,
 ];
 
 describe("the probe writes every cause from the table, byte for byte as it did by hand", () => {
@@ -1021,18 +1043,55 @@ describe("the other causes the checks write (#8656)", () => {
     },
   );
 
-  test("a step kept from a probe too old to make one-time codes (#9759)", () => {
+  test("a step kept from a probe too old to make one-time codes (#9759), naming no release", () => {
     expect(TOO_OLD_FOR_ONE_TIME_CODES).toBe(
-      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to the latest OneUptime release.",
     );
     expect(readProbeFailureCause(TOO_OLD_FOR_ONE_TIME_CODES)).toEqual({
       cause: ProbeFailureCause.ProbeTooOldForOneTimeCodes,
+      values: {},
+    });
+    expect(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: TOO_OLD_FOR_ONE_TIME_CODES,
+      }),
+    ).toBe(
+      "Diese Prüfung braucht einen Einmalcode, und diese Sonde ist zu alt, um einen zu erzeugen, daher wurde die Prüfung nicht ausgeführt. Aktualisieren Sie die Sonde auf das neueste OneUptime-Release.",
+    );
+  });
+
+  test("a result kept from before, naming a release, is still read in the reader's language", () => {
+    expect(TOO_OLD_FOR_ONE_TIME_CODES_NAMING_RELEASE).toBe(
+      "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17.0.1 or later.",
+    );
+    expect(
+      readProbeFailureCause(TOO_OLD_FOR_ONE_TIME_CODES_NAMING_RELEASE),
+    ).toEqual({
+      cause: ProbeFailureCause.ProbeTooOldForOneTimeCodesNamingRelease,
       values: { version: "17.0.1" },
     });
+    expect(
+      readProbeFailureCause(TOO_OLD_FOR_REQUEST_BODY_NAMING_RELEASE),
+    ).toEqual({
+      cause: ProbeFailureCause.ProbeTooOldForRequestBodyNamingRelease,
+      values: { version: "17.2.0" },
+    });
+    expect(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: TOO_OLD_FOR_REQUEST_BODY_NAMING_RELEASE,
+      }),
+    ).toContain("17.2.0");
     // A release holds no space: anything else in its place is not the sentence.
     expect(
       readProbeFailureCause(
         "This check needs a one-time code, and this probe is too old to make one, so the check did not run. Update the probe to OneUptime 17 point 1 or later.",
+      ),
+    ).toBeNull();
+    expect(
+      readProbeFailureCause(
+        "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to OneUptime the next release or later.",
       ),
     ).toBeNull();
   });
@@ -1056,6 +1115,28 @@ describe("the other causes the checks write (#8656)", () => {
       }),
     ).toBe(
       "Der Anfragetext ist kein gültiges JSON, daher wurde die Anfrage nicht gesendet. Korrigieren Sie den Anfragetext oder den Wert eines Monitor-Geheimnisses, das er verwendet.",
+    );
+  });
+
+  test("an API step whose body this probe is too old to send, kept from it (#10737), naming no release", () => {
+    expect(TOO_OLD_FOR_REQUEST_BODY).toBe(
+      "This probe is too old to send a request body that is a JSON array, a single value or text, so the check did not run. Update the probe to the latest OneUptime release.",
+    );
+    expect(readProbeFailureCause(TOO_OLD_FOR_REQUEST_BODY)).toEqual({
+      cause: ProbeFailureCause.ProbeTooOldForRequestBody,
+      values: {},
+    });
+    // The sentence whole and nothing more: a release after it is not it.
+    expect(
+      readProbeFailureCause(`${TOO_OLD_FOR_REQUEST_BODY} 17.2.1`),
+    ).toBeNull();
+    expect(
+      wordProbeFailureCause({
+        translator: dashboardTranslator("de"),
+        failureCause: TOO_OLD_FOR_REQUEST_BODY,
+      }),
+    ).toBe(
+      "Diese Sonde ist zu alt, um einen Anfragetext zu senden, der ein JSON-Array, ein einzelner Wert oder Text ist, daher wurde die Prüfung nicht ausgeführt. Aktualisieren Sie die Sonde auf das neueste OneUptime-Release.",
     );
   });
 

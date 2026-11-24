@@ -165,6 +165,7 @@ resource "oneuptime_monitor" "website" {
 | `request_type` | string | 網站、API | HTTP 方法：`GET`、`POST`、`PUT`、`DELETE`、`HEAD` 或 `PATCH`。未設定時伺服器使用 `GET`。 |
 | `request_headers` | map(string) | 網站、API | 要傳送的標頭：`{ "Accept" = "application/json" }`。 |
 | `request_body` | string | API | 文字形式的請求內文。 |
+| `request_body_format` | string | API | `request_body` 的傳送方式：`json`（預設）用於任意 JSON 值；`text` 用於依原樣傳送的內文，例如 XML 或表單欄位。 |
 | `do_not_follow_redirects` | bool | 網站、API | 在第一個回應處停止，而不是跟隨重新導向。 |
 | `allow_self_signed_certificates` | bool | 網站、API | 接受自我簽署的 TLS 憑證。 |
 | `tls_client_certificate` | string | 網站、API | 用於雙向 TLS 的用戶端憑證：PEM，或 `{{monitorSecrets.name}}` 引用。 |
@@ -287,7 +288,7 @@ criteria = [
 
 篩選器有 `check_on`（檢視什麼）、`filter_type`（如何比較）和 `value`（與什麼比較，寫成字串；對於 `True`、`False` 這類真假檢查則省略）。
 
-篩選器也可以判定一個時間區間，而不是最近一次檢查：設定 `evaluate_over_time = true`，在 `evaluate_over_time_minutes` 中設定區間長度，並在 `evaluate_over_time_type` 中設定如何讀取區間：`Average`、`Sum`、`Maximum Value`、`Minimum Value`、`All Values` 或 `Any Value`。
+篩選器也可以判定一個時間區間，而不是最近一次檢查：設定 `evaluate_over_time = true`，在 `evaluate_over_time_minutes` 中設定區間長度，並在 `evaluate_over_time_type` 中設定如何讀取區間：`Average`、`Sum`、`Maximum Value`、`Minimum Value`、`Percentile`、`All Values`、`Any Value`、`Count`、`Percentage` 或 `Status Changes`。`Percentile` 會將 `evaluate_over_time_percentile` 中的百分位數與篩選器的值比較（未設定時為 95）。`Count`、`Percentage` 與 `Status Changes` 會依探測器統計時間範圍內符合條件的檢查數、其所占百分比，或在符合與不符合之間變化的次數，並依 `evaluate_over_time_count_filter_type` 的設定將該數字與 `evaluate_over_time_count_value` 比較（未設定時為 `Greater Than` 0）。
 
 `All Values` 表示區間中的每次檢查都違反了規則，因此只有當區間被資料覆蓋時它才會相符：剛建立的監測器會等待區間填滿，而不是在第一次檢查時就相符。區間至少應為監測器 `monitoring_interval` 的兩倍；否則區間中只有一次檢查，「所有值」就和「任意值」意思相同。`Any Value` 在一次違反規則的檢查時就會相符，這是有意設計的。
 

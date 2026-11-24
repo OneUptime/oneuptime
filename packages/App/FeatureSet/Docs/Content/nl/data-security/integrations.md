@@ -93,6 +93,14 @@ Een opslag zonder eigenaren kan ze van OneUptime AI krijgen. Het leest wat er al
 
 Zie [Workflowtriggers](/docs/workflows/triggers) voor de velden die elke trigger doorgeeft.
 
+## Pull requests
+
+Een lek is het goedkoopst op te lossen voordat het wordt gemerged. In een repository die onder **Code** is gekoppeld en waarvoor productiebeoordelingen aan staan, heeft de beoordeling van elke pull request een gedeelte **Gevoelige gegevens**, gelezen uit de diff: code die persoonsgegevens of een geheim naar telemetrie schrijft, infrastructuurcode die een opslag openbaar maakt of de versleuteling, back-ups of logging ervan uitzet, en migraties die kolommen toevoegen voor persoonsgegevens, wachtwoorden of kaartgegevens. Elk punt noemt de controle van Gegevensbeveiliging waarvoor de wijziging zou zakken zodra ze is uitgerold, en je eigen gegevenstypen worden aan hun naamhints herkend, zoals de scans ze lezen. Zie [Productiebeoordeling van pull requests](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests).
+
+Wat Gegevensbeveiliging weet, maakt die punten scherper, in de opmerking van een privérepository en, in Code, voor wie de bevindingen van Gegevensbeveiliging mag lezen: waar de telemetrie van de service in de afgelopen 7 dagen hetzelfde soort gegevens bevatte, de opschoonregel die ze bij de opname maskeert, en de opslag die een resource is, met de gevoeligheid ervan. Een opslag gemarkeerd als **Bewust openbaar** geeft geen punt omdat hij openbaar is. De opmerking van een openbare repository zegt alleen wat de diff laat zien.
+
+**Lekken ontdekt vóór de merge**, op **Projectinstellingen → AI → AI-resultaten**, telt de lekken die beoordelingen in pull requests ontdekten, daar opgelost of nog niet, naast de problemen die de scans na het uitrollen van de code op dezelfde controles openden.
+
 ## OneUptime AI
 
 Twee acties op een probleem vragen OneUptime AI om hulp. Beide sturen OneUptime AI de titel en de ernst van het probleem, de naam, soort, regio en cloud-ID van de opslag, de gevoeligheid en gegevenstypen ervan, elk bij zijn naam (je eigen gegevenstypen bij de naam die je ze gaf), het bewijs, waarom de controle ertoe doet en de oplossing voor de cloud van de opslag - nooit de voorbeelden van een bevinding. Beide vallen onder de schakelaars en limieten van OneUptime AI van het project. Wat elk ervan verstuurt, wat het nooit verstuurt en op welk model het draait, staat op [OneUptime AI in Gegevensbeveiliging](/docs/data-security/ai).

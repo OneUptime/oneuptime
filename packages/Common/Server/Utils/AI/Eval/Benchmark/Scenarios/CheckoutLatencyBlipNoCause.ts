@@ -46,7 +46,7 @@ const scenario: BenchmarkScenario = {
     "Description: p95 latency of POST /api/checkout above 1,500 ms for 2 minutes (Checkout API monitor).",
     "Severity: High",
     "Current state: Created",
-    "Declared at: Sep 03 2026, 09:41 UTC",
+    "Declared at: Sep 3, 2026, 09:41 UTC",
     "Affected monitor: Checkout API",
     "Labels: payments, storefront",
     "",

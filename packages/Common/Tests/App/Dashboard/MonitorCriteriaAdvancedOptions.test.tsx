@@ -81,12 +81,8 @@ function alert(overrides: Partial<CriteriaAlert>): CriteriaAlert {
 }
 
 const DROPDOWNS: {
-  onCallPolicyDropdownOptions: [];
-  labelDropdownOptions: [];
   userDropdownOptions: [];
 } = {
-  onCallPolicyDropdownOptions: [],
-  labelDropdownOptions: [],
   userDropdownOptions: [],
 };
 

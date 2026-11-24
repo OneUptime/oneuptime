@@ -18,9 +18,9 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
-  ONE_TIME_CODE_PROBES_COPY,
+  PROBES_TOO_OLD_COPY,
   UPDATE_A_PROBE_DOCS_PATH,
-} from "../Monitor/OneTimeCodeProbes";
+} from "../Monitor/ProbesTooOld";
 import {
   PROBE_MISSED_FEATURE_COPY,
   PROBE_UPDATE_COPY,
@@ -50,6 +50,8 @@ export const PROBE_OLDER_THAN_SERVER_TEST_ID: string =
   "probe-older-than-server";
 export const PROBE_TOO_OLD_FOR_ONE_TIME_CODES_TEST_ID: string =
   "probe-too-old-for-one-time-codes";
+export const PROBE_TOO_OLD_FOR_ANY_REQUEST_BODY_TEST_ID: string =
+  "probe-too-old-for-any-request-body";
 export const PROBE_UPDATE_DOCS_TEST_ID: string = "probe-update-docs";
 export const PROBE_UPDATE_AVAILABLE_TEST_ID: string = "probe-update-available";
 
@@ -58,6 +60,7 @@ export const PROBE_MISSED_FEATURE_TEST_IDS: Readonly<
   Record<ProbeFeature, string>
 > = {
   [ProbeFeature.OneTimeCodes]: PROBE_TOO_OLD_FOR_ONE_TIME_CODES_TEST_ID,
+  [ProbeFeature.AnyRequestBody]: PROBE_TOO_OLD_FOR_ANY_REQUEST_BODY_TEST_ID,
 };
 
 /*
@@ -74,7 +77,8 @@ export const PROBE_MISSED_FEATURE_TEST_IDS: Readonly<
  * On the probe's page, under that, when the probe needs an update: that it
  * is older than the OneUptime it reports to, by that OneUptime's release
  * (ProbeReportedVersionUtil.getReleaseStatus), what it cannot do until it
- * is updated - a monitor that uses a one-time code secret fails its check
+ * is updated - a monitor that uses a one-time code secret, or an API
+ * monitor whose body is an array, a single value or text, fails its check
  * on it (getMissedFeatures) - and the docs that say how to update it. A
  * probe that is up to date, or whose release cannot be told, gets no line:
  * nothing is said that is not known.
@@ -132,7 +136,7 @@ const ProbeVersionElement: FunctionComponent<ComponentProps> = (
   } else if (oneTimeCodes === ProbeOneTimeCodes.TooOld) {
     version = (
       <span className="text-sm text-gray-900">
-        {translator.translateTemplate(ONE_TIME_CODE_PROBES_COPY.olderThan, {
+        {translator.translateTemplate(PROBES_TOO_OLD_COPY.olderThan, {
           version: FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE,
         })}
       </span>
@@ -211,7 +215,7 @@ const ProbeVersionElement: FunctionComponent<ComponentProps> = (
               className="inline-flex items-center gap-1 font-medium text-indigo-600 hover:underline"
               dataTestId={PROBE_UPDATE_DOCS_TEST_ID}
             >
-              {translator.translateText(ONE_TIME_CODE_PROBES_COPY.updateLink)}
+              {translator.translateText(PROBES_TOO_OLD_COPY.updateLink)}
               <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
             </Link>
           </div>

@@ -58,7 +58,7 @@ flowchart TB
 | Status pages | 状态页 | 每个页面会以其分区作为分组，连同它显示的监视器和心跳一起导入。你手动跟踪的项目会变成手动监视器。设有密码或 IP 白名单的页面会以私有方式导入。 |
 | Email subscribers | 状态页订阅者 | 在你确认可以迁移后，已确认的电子邮件订阅者会被导入，并订阅相同的资源。不会给任何人发送邮件，他们从 OneUptime 收到的每条更新都带有退订链接。 |
 
-- **status、expected status code、keyword 和 keyword absence 监视器** 会变成网站监视器；如果它们发送其他方法、标头或 JSON 正文，则变成 API 监视器。status 监视器在任何 2xx 应答时为正常，expected status code 监视器在它列出的状态码时为正常。
+- **status、expected status code、keyword 和 keyword absence 监视器** 会变成网站监视器；如果它们发送其他方法、标头或 正文，则变成 API 监视器。status 监视器在任何 2xx 应答时为正常，expected status code 监视器在它列出的状态码时为正常。
 - **Ping 和 TCP 监视器** 会变成 Ping 和端口监视器。**SMTP、POP 和 IMAP 监视器** 会变成对应端口的端口监视器：OneUptime 只检查端口是否响应，不检查邮件通信。
 - **DNS 监视器** 会变成针对其查询名称的 DNS 监视器，并询问同一台服务器。
 - **心跳** 会变成入站请求监视器，在周期加宽限时间内没有收到请求时判定为故障。每个监视器在 OneUptime 中都有新地址。

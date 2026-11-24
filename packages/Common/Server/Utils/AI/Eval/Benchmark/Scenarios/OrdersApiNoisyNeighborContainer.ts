@@ -93,7 +93,7 @@ const scenario: BenchmarkScenario = {
     "Description: p95 latency of GET /api/orders above 2,000 ms for 5 minutes (Orders API monitor).",
     "Severity: High",
     "Current state: Created",
-    "Declared at: Aug 19 2026, 02:14 UTC",
+    "Declared at: Aug 19, 2026, 02:14 UTC",
     "Affected monitor: Orders API",
     `Labels: orders, docker${LINKED_INFRASTRUCTURE}`,
     "",

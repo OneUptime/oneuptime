@@ -383,7 +383,7 @@ Un account può appartenere a molte organizzazioni, quindi puoi cancellare le im
 
 Per cancellare una sola persona, apri **Utenti**: la riga di ogni persona che puoi cancellare riporta **Impostazioni di accesso salvate**, e **Cancella impostazioni di accesso** nel suo menu cancella solo quelle di quella persona, con la stessa regola, dopo una domanda che elenca cosa viene rimosso.
 
-Ogni persona le cui impostazioni vengono cancellate riceve un'email con ciò che è stato rimosso e con l'avviso che ora accede con l'SSO, e i log di audit dei tuoi progetti registrano la cancellazione a tuo nome. Solo un **Proprietario del progetto** può cancellare, dopo aver effettuato l'accesso alla dashboard: mai con una chiave API.
+Ogni persona le cui impostazioni vengono cancellate riceve un'email con ciò che è stato rimosso e con l'avviso che ora accede con l'SSO, e i log di audit dei tuoi progetti registrano la cancellazione a tuo nome. Solo un **Proprietario del progetto** può cancellare, dopo aver effettuato l'accesso alla dashboard: mai con una chiave API. Cancellare ti chiede prima di [confermare che sei tu](/docs/introduction/your-account#confermare-che-sei-tu).
 
 ## Disattivare o eliminare un provider
 

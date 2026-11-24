@@ -103,7 +103,7 @@ import {
   PROBE_UPDATE_AVAILABLE_TEST_ID,
   PROBE_VERSION_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeVersion";
-import { UPDATE_A_PROBE_DOCS_PATH } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/OneTimeCodeProbes";
+import { UPDATE_A_PROBE_DOCS_PATH } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/ProbesTooOld";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Probe, {
   ProbeConnectionStatus,
@@ -320,12 +320,12 @@ describe("Custom Probes: each probe's release, and whether it is older than this
     expect(update?.getAttribute("target")).toBe("_blank");
   });
 
-  test("a probe that connected and says no release is older than 17.0.1, so an update is available", async () => {
+  test("a probe that connected and says no release is older than 17.1.0, so an update is available", async () => {
     await renderPage();
 
     const cell: HTMLElement = versionCellOf("Office LAN");
 
-    expect(cell).toHaveTextContent("Older than 17.0.1");
+    expect(cell).toHaveTextContent("Older than 17.1.0");
     expect(updateLinkIn(cell)).toHaveTextContent(
       `Update available: ${SERVER_VERSION}`,
     );

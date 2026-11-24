@@ -45,6 +45,14 @@ import {
   ProductionReviewTrigger,
   ProductionReviewWhere,
 } from "../../../Types/CodeRepository/ProductionReview";
+import {
+  ProductionReviewLeakJSON,
+  SensitiveDataAiNoteCode,
+  SensitiveDataLeakKind,
+  SensitiveDataSink,
+} from "../../../Types/CodeRepository/ProductionReviewSensitiveData";
+import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
+import SecuritySeverity from "../../../Types/SecuritySeverity";
 import Link from "../../../Types/Link";
 import Navigation from "../../../UI/Utils/Navigation";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
@@ -970,6 +978,225 @@ describe("the review: what production shows of the changed code", () => {
       );
     });
     expect(where.innerHTML).toBe("src/<wbr>payments/<wbr>charge.ts:88");
+  });
+});
+
+describe("the Sensitive data section (#10376)", () => {
+  beforeEach(() => {
+    goTo(`/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`);
+  });
+
+  function leak(
+    change: Partial<ProductionReviewLeakJSON> = {},
+  ): ProductionReviewLeakJSON {
+    return {
+      key: "email-key",
+      kind: SensitiveDataLeakKind.Telemetry,
+      checkId: "sensitive-data-in-telemetry",
+      sink: SensitiveDataSink.Log,
+      path: "services/checkout/src/signup.ts",
+      line: 11,
+      subject: "email",
+      where: "logger.info",
+      dataTypeIds: ["email-address"],
+      dataTypeNames: ["Email address"],
+      sensitivity: DataSensitivity.Confidential,
+      severity: SecuritySeverity.High,
+      isBlocking: false,
+      failsCheck: false,
+      text: "Writes an email address to a log: `email`, in `logger.info`.",
+      fix: "Leave `email` out, or write a hash of it when you need to tell values apart.",
+      isAiWorded: false,
+      suggestion: {
+        startLine: 11,
+        endLine: 11,
+        original: ['  logger.info("signup", { email });'],
+        replacement: ['  logger.info("signup");'],
+        isByAi: false,
+      },
+      ...change,
+    };
+  }
+
+  function bucket(): ProductionReviewLeakJSON {
+    return leak({
+      key: "bucket-key",
+      kind: SensitiveDataLeakKind.Infrastructure,
+      checkId: "public-read",
+      sink: undefined,
+      path: "infra/s3.tf",
+      line: 3,
+      subject: "acl",
+      where: "aws_s3_bucket.exports",
+      dataTypeIds: [],
+      dataTypeNames: [],
+      severity: SecuritySeverity.Critical,
+      isBlocking: true,
+      failsCheck: true,
+      text: "Sets `acl` to `public-read` on `aws_s3_bucket.exports` in Terraform, which makes the store readable by anyone on the internet.",
+      fix: "Set `acl` to `private`.",
+      suggestion: undefined,
+      production: {
+        store: {
+          dataStoreId: "8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1b",
+          name: "acme-card-exports",
+          sensitivity: DataSensitivity.Restricted,
+          dataTypeNames: ["Card number"],
+        },
+      },
+    });
+  }
+
+  test("comes first: each point by the check it is the early form of, where it is, whether it fails, the fix and the change", () => {
+    const review: HTMLElement = drawReview(
+      report({
+        sensitiveData: {
+          points: [bucket(), leak()],
+          moreCount: 0,
+          droppedCount: 0,
+          isFailOn: true,
+          isAiRead: false,
+        },
+      }),
+    );
+    const section: HTMLElement = screen.getByTestId(
+      "production-review-sensitive-data",
+    );
+
+    expect(review.firstElementChild).toBe(section);
+    expect(section).toHaveTextContent("Sensitive data in these changes");
+
+    const points: Array<HTMLElement> = within(section).getAllByTestId(
+      "production-review-sensitive-data-point",
+    );
+
+    expect(points).toHaveLength(2);
+    expect(points[0]).toHaveTextContent("Anyone on the internet can read it");
+    expect(points[0]).toHaveAttribute("data-fails-check", "true");
+    expect(
+      within(points[0]!).getByTestId(
+        "production-review-sensitive-data-fails-check",
+      ),
+    ).toHaveTextContent("Fails the check");
+    expect(points[1]).toHaveTextContent(
+      "Sensitive data is reaching your telemetry",
+    );
+    expect(points[1]).toHaveAttribute("data-fails-check", "false");
+    expect(points[1]).toHaveTextContent(
+      "services/checkout/src/signup.ts, line 11",
+    );
+    expect(points[1]).toHaveTextContent("Email address");
+    // Its words, its names of code drawn as code.
+    expect(
+      within(points[1]!).getAllByText("logger.info", { selector: "code" }),
+    ).toHaveLength(2);
+    expect(points[1]).toHaveTextContent("Fix Leave email out");
+
+    const change: HTMLElement = within(points[1]!).getByTestId(
+      "production-review-suggestion",
+    );
+
+    expect(change).toHaveTextContent("Suggested change");
+    expect(change).toHaveTextContent('- logger.info("signup", { email });');
+    expect(change).toHaveTextContent('+ logger.info("signup");');
+    expect(
+      within(section).getByTestId("production-review-sensitive-data-notes"),
+    ).toHaveTextContent("Found and worded by OneUptime's own rules.");
+  });
+
+  test("what production knows, for a reader of Data Security: where it was held, the scrub rule, the store", () => {
+    drawReview(
+      report({
+        sensitiveData: {
+          points: [
+            leak({
+              production: {
+                heldBefore: [
+                  {
+                    serviceId: SERVICE_ID,
+                    serviceName: "checkout-api",
+                    storeKind: "Logs",
+                    location: "attributes.user.email",
+                    dataTypeName: "Email address",
+                    lastSeenAt: minutesAgo(60),
+                  },
+                ],
+                maskedAtIngestBy: "Mask checkout emails",
+              },
+            }),
+            bucket(),
+          ],
+          moreCount: 0,
+          droppedCount: 0,
+          isFailOn: true,
+          isAiRead: true,
+        },
+      }),
+    );
+
+    const known: Array<HTMLElement> = screen.getAllByTestId(
+      "production-review-sensitive-data-production",
+    );
+
+    expect(known[0]).toHaveTextContent("Production has held this before");
+    expect(known[0]).toHaveTextContent("checkout-api");
+    expect(known[0]).toHaveTextContent("attributes.user.email");
+    expect(known[0]).toHaveTextContent(
+      "Masked at ingest by Mask checkout emails, but written by the code.",
+    );
+    expect(known[1]).toHaveTextContent(
+      "It is the store acme-card-exports, which holds Restricted data.",
+    );
+    expect(
+      within(known[1]!).getByRole("link", { name: "acme-card-exports" }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringContaining("8e9f0a1b-2c3d-4e4f-9a5b-6c7d8e9f0a1b"),
+    );
+    expect(
+      screen.getByTestId("production-review-sensitive-data-notes"),
+    ).toHaveTextContent(
+      "Found by OneUptime's rules, and worded by OneUptime AI.",
+    );
+  });
+
+  test("a point without what production knows - a reader who may not read Data Security - shows none of it", () => {
+    drawReview(
+      report({
+        sensitiveData: {
+          points: [leak()],
+          moreCount: 2,
+          droppedCount: 1,
+          isFailOn: false,
+          isAiRead: true,
+          aiNote: SensitiveDataAiNoteCode.DailyLimit,
+        },
+      }),
+    );
+
+    expect(
+      screen.queryByTestId("production-review-sensitive-data-production"),
+    ).toBeNull();
+
+    const notes: HTMLElement = screen.getByTestId(
+      "production-review-sensitive-data-notes",
+    );
+
+    expect(notes).toHaveTextContent(
+      "2 more points the rules found are not listed.",
+    );
+    expect(notes).toHaveTextContent(
+      "OneUptime AI read 1 more point as no leak, and left it out.",
+    );
+    expect(notes).toHaveTextContent(
+      "OneUptime AI already read this pull request, or this repository, as often as it may today.",
+    );
+  });
+
+  test("no point: no section", () => {
+    drawReview(report());
+
+    expect(screen.queryByTestId("production-review-sensitive-data")).toBeNull();
   });
 });
 

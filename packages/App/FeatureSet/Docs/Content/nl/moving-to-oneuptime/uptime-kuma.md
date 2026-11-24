@@ -56,7 +56,7 @@ Het rapport telt wat is aangemaakt en niet overgenomen, en toont elk item met ee
 | --- | --- | --- |
 | Monitors | Monitoren | Uit een back-up wordt elke monitor een monitor van hetzelfde soort, met hetzelfde adres, interval, dezelfde time-out en dezelfde statuscodes die als beschikbaar gelden. Uit de metriekpagina wordt elke monitor overgenomen met een controle om de vijf minuten: controleer ze na de import een voor een. |
 
-- **HTTP(S)- en trefwoordmonitoren** worden websitemonitoren, of API-monitoren als ze een andere methode, headers of een JSON-body sturen, met het trefwoord waar het hoort.
+- **HTTP(S)- en trefwoordmonitoren** worden websitemonitoren, of API-monitoren als ze een andere methode, headers of een body sturen, met het trefwoord waar het hoort.
 - **JSON-querymonitoren** worden API-monitoren, zonder de query: voeg die in OneUptime toe als criterium.
 - **Ping-, poort- en DNS-monitoren** worden ping-, poort- en DNS-monitoren.
 - **Pushmonitoren** worden inkomende-verzoekmonitoren, die uitvallen als er gedurende het interval en de nieuwe pogingen geen verzoek is gekomen. Elk heeft een nieuw adres in OneUptime.

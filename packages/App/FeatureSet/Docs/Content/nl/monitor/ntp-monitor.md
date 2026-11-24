@@ -119,7 +119,7 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 
 ### Over een periode evalueren
 
-**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder elk NTP-filter. Zet het aan om een venster van eerdere controles te beoordelen in plaats van de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 tot 60 minuten, onder **Voor de laatste (in minuten)**. Alleen controles die de server beantwoordde, hebben een stratum, een afwijking en een rootspreiding, dus een venster van stilte heeft geen gegevens voor die filters, en **Als geen gegevens** bepaalt wat er gebeurt.
+**Evalueer deze criteria over een bepaalde periode** is een selectievakje onder elk NTP-filter. Zet het aan om een venster van eerdere controles te beoordelen in plaats van de laatste: kies een aggregatie onder **Evalueren** en een venster, van 2 minuten tot 24 uur, onder **Voor de laatste**. Alleen controles die de server beantwoordde, hebben een stratum, een afwijking en een rootspreiding, dus een venster van stilte heeft geen gegevens voor die filters, en **Als geen gegevens** bepaalt wat er gebeurt.
 
 ### Voorbeeldcriteria
 

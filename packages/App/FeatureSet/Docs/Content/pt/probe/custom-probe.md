@@ -146,10 +146,10 @@ docker compose up -d oneuptime-probe
 kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<version>
 ```
 
-Substitua `<version>` pela versão a executar, como `17.0.1`, e escreva a mesma imagem em `oneuptime-probe.yaml`, para que ela continue ao aplicar o arquivo de novo.
+Substitua `<version>` pela versão a executar, como `17.1.0`, e escreva a mesma imagem em `oneuptime-probe.yaml`, para que ela continue ao aplicar o arquivo de novo.
 :::
 
-A página da sonda mostra a versão que ela executa, em **Status da sonda**. Uma sonda anterior à 17.0.1 não consegue gerar os códigos de um [segredo de código de uso único](/docs/monitor/monitor-secrets#entrar-com-um-código-de-uso-único): a página dela diz isso, assim como o formulário de um monitor que ela verifica.
+A página da sonda mostra a versão que ela executa, em **Status da sonda**. Uma sonda anterior à 17.1.0 não consegue gerar os códigos de um [segredo de código de uso único](/docs/monitor/monitor-secrets#entrar-com-um-código-de-uso-único): a página dela diz isso, assim como o formulário de um monitor que ela verifica. O mesmo vale para uma sonda antiga demais para enviar o corpo da requisição de um monitor de API que seja um array JSON, um único valor ou texto.
 
 ## Conectar através de um proxy
 

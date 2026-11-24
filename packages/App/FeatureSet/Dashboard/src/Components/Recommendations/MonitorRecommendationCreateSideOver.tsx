@@ -16,6 +16,9 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import CriteriaRecordPicker from "../Form/Monitor/CriteriaRecordPicker";
 import MonitorRecommendationSeverityMapper, {
   MonitorRecommendationSeverityOption,
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
@@ -59,8 +62,11 @@ export interface ComponentProps {
    * recommendation's name alone would list "High CPU" forty times.
    */
   monitorNames?: Array<string> | undefined;
-  onCallPolicyDropdownOptions: Array<DropdownOption>;
-  labelDropdownOptions: Array<DropdownOption>;
+  /*
+   * Whether the project has an on-call policy at all. Its policies and
+   * labels are searched on the server as they are picked (#10646).
+   */
+  hasOnCallPolicies: boolean;
   incidentSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   alertSeverityOptions: Array<MonitorRecommendationSeverityOption>;
   isCreating: boolean;
@@ -83,38 +89,6 @@ export interface ComponentProps {
     hasAcknowledgedBilling: boolean,
   ) => void;
 }
-
-type ToObjectIDArrayFunction = (
-  value: DropdownValue | Array<DropdownValue> | null,
-) => Array<ObjectID>;
-
-const toObjectIDArray: ToObjectIDArrayFunction = (
-  value: DropdownValue | Array<DropdownValue> | null,
-): Array<ObjectID> => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.map((item: DropdownValue) => {
-    return new ObjectID(item.toString());
-  });
-};
-
-type SelectedOptionsFunction = (
-  options: Array<DropdownOption>,
-  selected: Array<ObjectID>,
-) => Array<DropdownOption>;
-
-const selectedOptions: SelectedOptionsFunction = (
-  options: Array<DropdownOption>,
-  selected: Array<ObjectID>,
-): Array<DropdownOption> => {
-  return options.filter((option: DropdownOption) => {
-    return selected.some((id: ObjectID) => {
-      return id.toString() === option.value;
-    });
-  });
-};
 
 type SeverityList =
   | StateListType.IncidentSeverity
@@ -453,17 +427,14 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
             description="Executed when any of these monitors opens its alert or incident. This is the difference between a record being written and a person being woken up."
             required={true}
           />
-          <Dropdown
-            value={selectedOptions(
-              props.onCallPolicyDropdownOptions,
-              onCallPolicyIds,
-            )}
-            options={props.onCallPolicyDropdownOptions}
-            onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              setOnCallPolicyIds(toObjectIDArray(value));
-            }}
-            isMultiSelect={true}
+          <CriteriaRecordPicker
+            modelType={OnCallDutyPolicy}
+            ids={onCallPolicyIds}
             placeholder="Select On-Call Policies"
+            dataTestId="monitor-recommendations-onCallPolicyIds"
+            onChange={(ids: Array<ObjectID>) => {
+              setOnCallPolicyIds(ids);
+            }}
           />
           {onCallPolicyIds.length === 0 ? (
             <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
@@ -472,7 +443,7 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                 className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500"
               />
               <p className="text-xs text-amber-700">
-                {props.onCallPolicyDropdownOptions.length === 0
+                {!props.hasOnCallPolicies
                   ? translator.translateText(
                       "This project has no on-call policies. These monitors will record what happened, but nobody will be paged. You can add a policy later and edit these monitors.",
                     )
@@ -606,16 +577,14 @@ const MonitorRecommendationCreateSideOver: FunctionComponent<ComponentProps> = (
                 title="Labels"
                 description="Applied to the created monitors and to everything they open."
               />
-              <Dropdown
-                value={selectedOptions(props.labelDropdownOptions, labelIds)}
-                options={props.labelDropdownOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  setLabelIds(toObjectIDArray(value));
-                }}
-                isMultiSelect={true}
+              <CriteriaRecordPicker
+                modelType={Label}
+                ids={labelIds}
                 placeholder="Select Labels"
+                dataTestId="monitor-recommendations-labelIds"
+                onChange={(ids: Array<ObjectID>) => {
+                  setLabelIds(ids);
+                }}
               />
             </div>
           </div>

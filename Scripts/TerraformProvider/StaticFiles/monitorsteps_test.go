@@ -251,6 +251,7 @@ func monitorStepsFullUserList(t *testing.T) types.List {
 		"request_type":                   types.StringValue("POST"),
 		"request_headers":                monitorStepsTestStrMap(t, map[string]string{"Content-Type": "application/json", "X-Token": "abc"}),
 		"request_body":                   types.StringValue(`{"ping":"pong"}`),
+		"request_body_format":            types.StringValue("json"),
 		"do_not_follow_redirects":        types.BoolValue(true),
 		"allow_self_signed_certificates": types.BoolValue(true),
 		"tls_client_certificate":         types.StringValue("PEM-CERT"),
@@ -363,6 +364,7 @@ func TestMonitorStepsRoundTripFullyPopulated(t *testing.T) {
 	          "requestType": "POST",
 	          "requestHeaders": {"Content-Type": "application/json", "X-Token": "abc"},
 	          "requestBody": "{\"ping\":\"pong\"}",
+	          "requestBodyFormat": "json",
 	          "doNotFollowRedirects": true,
 	          "allowSelfSignedCertificates": true,
 	          "tlsClientCertificate": "PEM-CERT",
@@ -581,7 +583,7 @@ func TestMonitorStepsRoundTripMinimal(t *testing.T) {
 
 	// Spot-check that unset optionals really are null after the round trip.
 	stepAttrs := back.Elements()[0].(types.Object).Attributes()
-	for _, name := range []string{"request_type", "request_body", "port", "custom_code", "log_monitor", "request_headers"} {
+	for _, name := range []string{"request_type", "request_body", "request_body_format", "port", "custom_code", "log_monitor", "request_headers"} {
 		v := stepAttrs[name]
 		if !v.IsNull() {
 			t.Fatalf("step attribute %q should be null after round trip, got %s", name, v)

@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## 你會看到什麼
 
-- **概覽**：根據追蹤計算的請求、錯誤率與 p95 延遲。Container Apps 不會向 sidecar 公開複本的資源使用量，因此只有在你傳送帶有複本識別的 `container.cpu.utilization` 與 `container.memory.usage` 指標時，**CPU** 與 **記憶體** 圖格才會有資料。大多數團隊會把這些交給 Azure Monitor。
+- **概覽**：根據追蹤計算的請求、錯誤率與 p95 延遲。Container Apps 不會向 sidecar 公開複本的資源使用量，因此只有在你傳送帶有複本識別的 `container.cpu.utilization` 與 `container.memory.usage` 指標時，**CPU** 與 **記憶體** 圖格才會有資料。大多數團隊會把這些交給 Azure Monitor。在 **雲端 → 連線** 中連線訂用帳戶後，此分頁會多出一個 **Azure Monitor** 區段：無論應用程式傳送什麼，都會顯示 Azure 測得的 Container App 請求、回應時間、CPU、記憶體與重新啟動次數。在尚未讀取到任何 Container App 時，**設定檢查** 中的 **Azure Monitor 連線** 列會說明正在尋找的 Container App。
 - **執行個體**：每個複本一列，名稱取自偵測器設定的 `azure.container_app.instance.id`、你自己設定的 `service.instance.id`，或在只有主機偵測器執行時取自 `host.name`。
 - 依環境篩選的 **日誌**、**追蹤** 與 **指標**，以及 **服務** 下的個別服務檢視。
 

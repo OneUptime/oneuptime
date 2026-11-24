@@ -34,6 +34,7 @@
     "pageNotFoundMetaDescription": "De pagina die u zoekt is niet gevonden.",
     "required": "Vereist",
     "defaultValue": "Standaard",
+    "readOnly": "Alleen-lezen",
     "or": "of",
     "copy": "Kopiëren",
     "copied": "Gekopieerd!",

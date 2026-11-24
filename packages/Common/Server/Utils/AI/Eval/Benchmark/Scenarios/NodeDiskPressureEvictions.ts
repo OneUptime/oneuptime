@@ -45,7 +45,7 @@ const scenario: BenchmarkScenario = {
     "Description: 5xx on GET /resize above 5% and p95 latency above 2.5 s for 10 minutes (Image Resizer API monitor).",
     "Severity: SEV-2",
     "Current state: Created",
-    "Declared at: Jul 08 2026, 14:02 UTC",
+    "Declared at: Jul 8, 2026, 14:02 UTC",
     "Affected monitors: Image Resizer API",
     "Labels: media, kubernetes",
     "",

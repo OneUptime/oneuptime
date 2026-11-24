@@ -16,6 +16,7 @@
     "\\.(css|less|scss|sass)$": "<rootDir>/Tests/__mocks__/styleMock.js",
     "^uuid$": "<rootDir>/Tests/__mocks__/uuid.js",
     "^bullmq$": "<rootDir>/Tests/__mocks__/bullmq.js",
+    "^undici$": "<rootDir>/Tests/__mocks__/undici.js",
     "^locter$": "<rootDir>/Tests/__mocks__/locter.js",
     "^yaml$": "<rootDir>/Tests/__mocks__/yaml.js",
     "^otpauth$": "<rootDir>/node_modules/otpauth/dist/otpauth.node.cjs",

@@ -106,7 +106,7 @@ describe.each([false, true])(
       },
     );
 
-    it.each(["createdByUserId", "deletedByUserId", "invitationAcceptedAt"])(
+    it.each(["createdByUserId", "invitationAcceptedAt"])(
       "rejects the forbidden top-level select %s",
       async (column: string) => {
         await expect(
@@ -120,7 +120,7 @@ describe.each([false, true])(
       },
     );
 
-    it.each(["createdByUserId", "deletedByUserId"])(
+    it.each(["createdByUserId"])(
       "rejects count queries using the forbidden %s predicate without a select",
       async (column: string) => {
         await expect(

@@ -28,7 +28,6 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import ObjectID from "../../../Types/ObjectID";
-import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -42,9 +41,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the field dropped it: the next incident the monitor opened paged nobody.
  *
  * The two pickers search the server now (CriteriaRecordPicker) and hold
- * every saved id; ModelAPI answers from a project faked whole
- * (CappedListServer). The list the monitor form read still names what it
- * can at once, as `knownOptions`.
+ * every saved id, read by its id before they are drawn; ModelAPI answers
+ * from a project faked whole (CappedListServer). The monitor form no longer
+ * reads the project's first 10,000 policies and labels to name them
+ * (#10690).
  */
 
 const LATE_POLICY_ID: string = "e0000000-0000-4000-8000-0000000000aa";
@@ -57,13 +57,11 @@ const BEFORE_WB: number = LIMIT_PER_PROJECT + 50;
 
 let server: CappedListServer;
 let onChange: MockFunction;
-// What the monitor form read: the first 10,000 policies by name.
-let firstPolicies: Array<DropdownOption>;
 
 beforeEach(() => {
   server = new CappedListServer();
 
-  const policies: Array<OnCallDutyPolicy> = server.add(
+  server.add(
     OnCallDutyPolicy,
     namesSortingFirst(BEFORE_WB).map(
       (name: string): Record<string, unknown> => {
@@ -80,12 +78,6 @@ beforeEach(() => {
     { _id: ARCHIVED_LABEL_ID, name: "WB-retired", isArchived: true },
   ]);
   server.install();
-
-  firstPolicies = policies
-    .slice(0, LIMIT_PER_PROJECT)
-    .map((policy: OnCallDutyPolicy): DropdownOption => {
-      return { value: policy._id!.toString(), label: policy.name || "" };
-    });
 
   onChange = getJestMockFunction();
 });
@@ -108,8 +100,6 @@ async function renderIncidentForm(
           ...value,
         }}
         incidentSeverityDropdownOptions={[]}
-        onCallPolicyDropdownOptions={firstPolicies}
-        labelDropdownOptions={[]}
         userDropdownOptions={[]}
         onChange={(next: CriteriaIncident) => {
           onChange(next);
@@ -200,15 +190,18 @@ describe("the incident's on-call policies", () => {
     ]);
   });
 
-  test("one the form read already is named at once, without a read", async () => {
+  test("a saved one is drawn by its name, never its bare id", async () => {
     await renderIncidentForm({
-      onCallPolicyIds: [new ObjectID(String(firstPolicies[0]!.value))],
+      onCallPolicyIds: [new ObjectID(LATE_POLICY_ID)],
     });
 
-    expect(chipsIn("monitor-criteria-incident-onCallPolicyIds")).toEqual([
-      "AP000001",
-    ]);
-    expect(server.callsFor(OnCallDutyPolicy)).toHaveLength(0);
+    // A placeholder until it is named, then its name: never the id itself.
+    await waitFor(() => {
+      expect(chipsIn("monitor-criteria-incident-onCallPolicyIds")).toEqual([
+        "WB Payments Escalation",
+      ]);
+    });
+    expect(screen.queryByText(LATE_POLICY_ID)).not.toBeInTheDocument();
   });
 });
 
@@ -289,8 +282,6 @@ describe("the alert's", () => {
             onCallPolicyIds: [new ObjectID(LATE_POLICY_ID)],
           }}
           alertSeverityDropdownOptions={[]}
-          onCallPolicyDropdownOptions={firstPolicies}
-          labelDropdownOptions={[]}
           onChange={(next: CriteriaAlert) => {
             alertChanges(next);
           }}

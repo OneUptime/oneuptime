@@ -165,6 +165,7 @@ Elk item van `monitor_steps` is één ding om te controleren:
 | `request_type` | string | Website, API | De HTTP-methode: `GET`, `POST`, `PUT`, `DELETE`, `HEAD` of `PATCH`. De server gebruikt `GET` als hij niet is ingesteld. |
 | `request_headers` | map(string) | Website, API | Headers om mee te sturen: `{ "Accept" = "application/json" }`. |
 | `request_body` | string | API | De body van het verzoek, als tekst. |
+| `request_body_format` | string | API | Hoe `request_body` wordt verzonden: `json`, de standaard, voor elke JSON-waarde; `text` voor een body die precies zo wordt verzonden als hij is geschreven, zoals XML of formuliervelden. |
 | `do_not_follow_redirects` | bool | Website, API | Stoppen bij het eerste antwoord in plaats van omleidingen te volgen. |
 | `allow_self_signed_certificates` | bool | Website, API | Een zelfondertekend TLS-certificaat accepteren. |
 | `tls_client_certificate` | string | Website, API | Een clientcertificaat voor wederzijdse TLS: PEM, of een verwijzing `{{monitorSecrets.name}}`. |
@@ -287,7 +288,7 @@ criteria = [
 
 Een filter heeft `check_on` (waar hij naar kijkt), `filter_type` (hoe hij vergelijkt) en `value` (waarmee hij vergelijkt, als string; laat het weg bij controles op waar of onwaar zoals `True` en `False`).
 
-Een filter kan ook een tijdvenster beoordelen in plaats van de laatste controle: stel `evaluate_over_time = true` in, de lengte van het venster in `evaluate_over_time_minutes`, en in `evaluate_over_time_type` hoe het venster wordt gelezen: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `All Values` of `Any Value`.
+Een filter kan ook een tijdvenster beoordelen in plaats van de laatste controle: stel `evaluate_over_time = true` in, de lengte van het venster in `evaluate_over_time_minutes`, en in `evaluate_over_time_type` hoe het venster wordt gelezen: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage` of `Status Changes`. `Percentile` vergelijkt het percentiel uit `evaluate_over_time_percentile` met de waarde van het filter (95 als het niet is ingesteld). `Count`, `Percentage` en `Status Changes` tellen per sonde de controles van het venster die aan de voorwaarde voldeden, hun aandeel in procenten, of hoe vaak ze wisselden tussen wel en niet voldoen, en vergelijken dat getal met `evaluate_over_time_count_value` zoals `evaluate_over_time_count_filter_type` aangeeft (`Greater Than` 0 als het niet is ingesteld).
 
 `All Values` betekent dat elke controle in het venster de regel schond, dus het komt pas overeen als het venster met gegevens is gevuld: een monitor die net is aangemaakt, wacht tot zijn venster vol is in plaats van bij zijn eerste controle overeen te komen. Geef het een venster van minstens twee keer het `monitoring_interval` van de monitor; anders bevat het venster één controle, en betekent "alle waarden" hetzelfde als "een willekeurige waarde". `Any Value` komt bewust overeen bij één controle die de regel schendt.
 

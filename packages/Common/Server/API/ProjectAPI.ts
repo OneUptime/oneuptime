@@ -55,7 +55,9 @@ import {
   RecordNumbering,
 } from "../../Utils/Project/NextNumber";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import { ReauthenticationPurpose } from "../../Types/Accounts/Reauthentication";
 import ProjectSignInClearing from "../Utils/ProjectSignInClearing";
+import Reauthentication from "../Utils/Reauthentication/Reauthentication";
 import {
   CLEAR_PROJECT_PERSON_SIGN_IN_NOT_CLEARABLE_MESSAGE,
   CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE,
@@ -87,6 +89,18 @@ import ResolvedRecordRetentionAnswers, {
  * column is unbounded text, so the cap is here.
  */
 export const MAX_DELETION_REASON_LENGTH: number = 5000;
+
+/*
+ * A Project Owner who may count, list and clear their people's saved
+ * sign-in settings (ProjectAPI.assertSignInClearingOwner): the project in
+ * the path, the owner, and the request's props - the session the clears
+ * ask to have confirmed it's its person's (#10775).
+ */
+interface SignInClearingOwner {
+  projectId: ObjectID;
+  ownerUserId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}
 
 /*
  * Who may read the server's retention maximum for a project ("read"), and
@@ -519,14 +533,17 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
+          // Only reads: never asks the session to confirm it's theirs (#10775).
+          const caller: SignInClearingOwner =
             await ProjectAPI.assertSignInClearingOwner(req);
 
           Response.setNoCacheHeaders(res);
 
           const answer: SavedSignInSettingsAnswer = {
-            peopleCount:
-              await ProjectSignInClearing.countClearablePeople(caller),
+            peopleCount: await ProjectSignInClearing.countClearablePeople({
+              projectId: caller.projectId,
+              ownerUserId: caller.ownerUserId,
+            }),
           };
 
           return Response.sendJsonObjectResponse(
@@ -547,18 +564,22 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
      * this owner does not own, never a master admin, never the owner;
      * each person recorded in their projects' audit logs and emailed.
      * Refused while the project does not manage sign-in with SSO. It cannot
-     * be undone, and the card asks first. Takes no body.
+     * be undone: the card asks first, and the owner's session must have
+     * confirmed it's theirs (#10775). Takes no body.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/${PROJECT_CLEAR_SAVED_SIGN_IN_SETTINGS_ACTION}`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
-            await ProjectAPI.assertSignInClearingOwner(req);
+          const caller: SignInClearingOwner =
+            await ProjectAPI.assertSignInClearingOwnerConfirmed(req);
 
           const answer: ClearSavedSignInSettingsAnswer = {
-            peopleCleared: await ProjectSignInClearing.clearForProject(caller),
+            peopleCleared: await ProjectSignInClearing.clearForProject({
+              projectId: caller.projectId,
+              ownerUserId: caller.ownerUserId,
+            }),
           };
 
           return Response.sendJsonObjectResponse(
@@ -590,8 +611,11 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          // Who may ask, before anything of the body is read.
-          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
+          /*
+           * Who may ask, before anything of the body is read. Only reads:
+           * never asks the session to confirm it's theirs (#10775).
+           */
+          const caller: SignInClearingOwner =
             await ProjectAPI.assertSignInClearingOwner(req);
 
           const userIds: Array<ObjectID> =
@@ -624,15 +648,17 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
      * as the bulk clear clears a person - recorded in each of their
      * projects' audit logs as the owner's, and emailed. Refused, with the
      * rule and never which part of it, for anybody else. It cannot be
-     * undone, and the row asks first. Takes no body.
+     * undone: the row asks first, and the owner's session must have
+     * confirmed it's theirs (#10775). Answers how many it cleared - none
+     * when another clear of them came first (#10776). Takes no body.
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/:id/${PROJECT_CLEAR_PERSON_SAVED_SIGN_IN_SETTINGS_ACTION}`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const caller: { projectId: ObjectID; ownerUserId: ObjectID } =
-            await ProjectAPI.assertSignInClearingOwner(req);
+          const caller: SignInClearingOwner =
+            await ProjectAPI.assertSignInClearingOwnerConfirmed(req);
 
           const userIdParam: string = String(req.params["userId"] || "");
 
@@ -1403,10 +1429,11 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
    * (CallerPermission: a team's block is no grant) and never from
    * master-admin standing, which has the Admin Dashboard's clears instead.
    * The project in the path must be the one the request is authorized for.
+   * The clears ask more of them (assertSignInClearingOwnerConfirmed).
    */
   private static async assertSignInClearingOwner(
     req: ExpressRequest,
-  ): Promise<{ projectId: ObjectID; ownerUserId: ObjectID }> {
+  ): Promise<SignInClearingOwner> {
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
@@ -1434,6 +1461,39 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
       );
     }
 
-    return { projectId: projectId, ownerUserId: props.userId };
+    return { projectId: projectId, ownerUserId: props.userId, props: props };
+  }
+
+  /*
+   * Who may clear their people's sign-in settings (#10775): a Project Owner,
+   * as assertSignInClearingOwner reads them, whose session has confirmed
+   * it's its person's (Confirm It's You, Server/Utils/Reauthentication) -
+   * as a master admin's must before their clears (#10216). A clear strips
+   * people of their passwords, passkeys and second steps, and cannot be
+   * undone: a stolen or unattended owner session alone must never be enough.
+   *
+   * Asked of the two clears only, never of the count or the list, which
+   * only read; after the owner check, so nobody else is asked anything; and
+   * before anything is read or cleared, so the Dashboard's prompt can ask
+   * and send the same request again. Refused with the code the prompt acts
+   * on (ReauthenticationRequiredException) and the words of a change to how
+   * someone else signs in (AdminChange: "make this change"), the same words
+   * a master admin's clear is asked in; a request that names no session is
+   * told it needs one. The session is the owner's own: their password and
+   * second step, their passkey, or - for an account with neither - a Sign In
+   * Again its identity provider confirmed.
+   */
+  private static async assertSignInClearingOwnerConfirmed(
+    req: ExpressRequest,
+  ): Promise<SignInClearingOwner> {
+    const owner: SignInClearingOwner =
+      await ProjectAPI.assertSignInClearingOwner(req);
+
+    await Reauthentication.assertConfirmed(
+      owner.props,
+      ReauthenticationPurpose.AdminChange,
+    );
+
+    return owner;
   }
 }

@@ -1,5 +1,6 @@
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
+import { CriteriaFilter } from "../../Types/Monitor/CriteriaFilter";
 import CriteriaFilterValues from "../../Types/Monitor/CriteriaFilterValues";
 import MonitorCriteriaInstance from "../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
@@ -72,6 +73,7 @@ export default class MonitorStepsValuesUtil {
         MonitorRequestBody.getUnreadableError({
           monitorType: data.monitorType,
           requestBody: step?.data?.requestBody,
+          requestBodyFormat: step?.data?.requestBodyFormat,
         });
 
       if (requestBodyError) {
@@ -82,14 +84,97 @@ export default class MonitorStepsValuesUtil {
         step?.data?.monitorCriteria?.data?.monitorCriteriaInstanceArray || [];
 
       for (const criteriaInstance of criteriaInstances) {
-        const errors: Array<string> = CriteriaFilterValues.getUnreadableErrors({
-          criteriaName: criteriaInstance?.data?.name || "",
-          filterCondition: criteriaInstance?.data?.filterCondition,
-          filters: criteriaInstance?.data?.filters,
-        });
+        const criteriaName: string = criteriaInstance?.data?.name || "";
+
+        const errors: Array<string> = [
+          ...CriteriaFilterValues.getUnreadableErrors({
+            criteriaName: criteriaName,
+            filterCondition: criteriaInstance?.data?.filterCondition,
+            filters: criteriaInstance?.data?.filters,
+          }),
+          // Its recovery condition, when it has one (#10355).
+          ...(MonitorCriteriaInstance.hasRecoveryCondition(
+            criteriaInstance?.data,
+          )
+            ? CriteriaFilterValues.getUnreadableErrors({
+                criteriaName: criteriaName,
+                filterCondition:
+                  criteriaInstance?.data?.recoveryFilterCondition,
+                filters: criteriaInstance?.data?.recoveryFilters,
+                filtersPath: "recoveryFilters",
+                filterConditionPath: "recoveryFilterCondition",
+              })
+            : []),
+        ];
 
         if (errors.length > 0) {
           return errors[0]!;
+        }
+
+        /*
+         * A window no check can read: a count with a number that is not one,
+         * a share above 100%, a percentile outside 0 to 100, a count over
+         * more than a week of checks (#10355).
+         */
+        const windowError: string | null =
+          MonitorStepsValuesUtil.getWindowError({
+            criteriaInstance: criteriaInstance,
+            monitorType: data.monitorType,
+          });
+
+        if (windowError) {
+          return windowError;
+        }
+
+        /*
+         * Active hours that never open, or in a time zone nobody knows, would
+         * leave the criteria judged on no check at all.
+         */
+        const activeHoursError: string | null =
+          MonitorCriteriaInstance.getActiveHoursError(criteriaInstance?.data);
+
+        if (activeHoursError) {
+          return activeHoursError;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // The first window of a criteria's filters, or its recovery's, no check reads.
+  private static getWindowError(data: {
+    criteriaInstance: MonitorCriteriaInstance | undefined;
+    monitorType: MonitorType | undefined | null;
+  }): string | null {
+    const criteriaName: string = data.criteriaInstance?.data?.name || "";
+
+    const lists: Array<{ filters: Array<CriteriaFilter>; where: string }> = [
+      {
+        filters: data.criteriaInstance?.data?.filters || [],
+        where: `criteria "${criteriaName}"`,
+      },
+      {
+        filters: data.criteriaInstance?.data?.recoveryFilters || [],
+        where: `the recovery condition of criteria "${criteriaName}"`,
+      },
+    ];
+
+    for (const list of lists) {
+      for (const filter of list.filters) {
+        if (!filter || typeof filter !== "object") {
+          continue;
+        }
+
+        const error: string | null =
+          MonitorCriteriaInstance.getWindowValidationError({
+            filter: filter,
+            where: list.where,
+            monitorType: data.monitorType || undefined,
+          });
+
+        if (error) {
+          return error;
         }
       }
     }

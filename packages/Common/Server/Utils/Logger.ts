@@ -295,11 +295,14 @@ export default class logger {
         /*
          * The platform correctly REFUSING a request is not an ERROR. This one
          * guard reaches every logger.error call site in the product,
-         * including the three unconditional choke points — Response
-         * sendErrorResponse (which is the DOMINANT path: ~720 call sites
-         * answer 4xx directly and never throw, so this log line is the
-         * error's only report), the Express error handler, and the
-         * @CaptureSpan recorder.
+         * including the @CaptureSpan recorder. The two choke points that
+         * answer a client - Response.sendErrorResponse (~720 call sites
+         * answer 4xx directly and never throw) and the Express error
+         * handler - no longer bring a client's 4xx here: they log it at
+         * debug and count it by route, with a warn line a minute
+         * (ClientRefusalLog, #10768), since it came from anyone. What they
+         * still log here is everything they do not take for a client's:
+         * every 5xx, and a 4xx whose Exception declares another class.
          *
          * Deliberately NOT this.warn(): Logger.warn is gated on
          * DEBUG/INFO/WARN and config.example.env ships LOG_LEVEL=ERROR, so

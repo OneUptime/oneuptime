@@ -124,6 +124,15 @@ export interface SecurityBlockRequest {
    */
   source?: SecurityBlockSource | undefined;
   securityPlaybookRunId?: ObjectID | undefined;
+  /*
+   * OneUptime's own writes only (root props): the automatic response policy
+   * that blocks it (#10350), and whether its challenge is held as a block
+   * where an edge cannot challenge (SecurityBlockChallenge).
+   */
+  securityAutomaticResponsePolicyId?: ObjectID | undefined;
+  challengeFallsBackToBlock?: boolean | undefined;
+  // The policy's name, for the case's timeline: "The Scanners policy challenged ...".
+  securityAutomaticResponsePolicyName?: string | undefined;
   props: DatabaseCommonInteractionProps;
 }
 
@@ -177,6 +186,7 @@ const BLOCK_SELECT: {
   value: true;
   indicatorType: true;
   action: true;
+  challengeFallsBackToBlock: true;
   reach: true;
   state: true;
   expiresAt: true;
@@ -188,6 +198,7 @@ const BLOCK_SELECT: {
   value: true,
   indicatorType: true,
   action: true,
+  challengeFallsBackToBlock: true,
   reach: true,
   state: true,
   expiresAt: true,
@@ -220,6 +231,12 @@ export class Service extends ProjectReferencesService<Model> {
    * always checked.
    */
   private readonly checkedRecords: WeakSet<Model> = new WeakSet<Model>();
+
+  // The automatic response policy each record block() makes is made by, by name, for its timeline line.
+  private readonly policyNames: WeakMap<Model, string> = new WeakMap<
+    Model,
+    string
+  >();
 
   public constructor() {
     super(Model);
@@ -267,6 +284,25 @@ export class Service extends ProjectReferencesService<Model> {
 
       if (data.securityPlaybookRunId) {
         record.securityPlaybookRunId = data.securityPlaybookRunId;
+      }
+
+      if (data.securityAutomaticResponsePolicyId) {
+        record.securityAutomaticResponsePolicyId =
+          data.securityAutomaticResponsePolicyId;
+      }
+
+      if (
+        data.challengeFallsBackToBlock &&
+        record.action === SecurityBlockAction.Challenge
+      ) {
+        record.challengeFallsBackToBlock = true;
+      }
+
+      if (data.securityAutomaticResponsePolicyName?.trim()) {
+        this.policyNames.set(
+          record,
+          data.securityAutomaticResponsePolicyName.trim(),
+        );
       }
     }
 
@@ -964,6 +1000,7 @@ export class Service extends ProjectReferencesService<Model> {
                 });
               },
             ),
+          policyName: this.policyNames.get(onCreate.createBy.data),
         }),
         color: SecurityBlockTimeline.colors.added,
         userId:
@@ -1109,9 +1146,13 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     data["liftedAt"] = OneUptimeDate.getCurrentDate();
-    data["liftedByUserId"] = isPerson(updateBy.props)
-      ? updateBy.props.userId || null
-      : null;
+
+    // By its id column, so no other name of it is left to be stored instead.
+    RelationIdUtil.stamp(
+      data,
+      ["liftedByUserId", "liftedByUser"],
+      isPerson(updateBy.props) ? updateBy.props.userId || null : null,
+    );
   }
 
   @CaptureSpan()

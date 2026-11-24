@@ -188,7 +188,7 @@ Lo stesso drain personalizzato funziona su OneUptime Cloud, con `oneuptime.com` 
 Vercel mostra la risposta di OneUptime alle consegne del drain:
 
 - `403` con `x-vercel-signature` nel messaggio: Vercel non ha firmato la consegna con la chiave che invia. Per un drain personalizzato, controlla la sua intestazione `x-oneuptime-token` e imposta il suo segreto di firma sulla stessa chiave.
-- `401`: OneUptime non conosce nessun progetto con la chiave che il drain invia: è stata eliminata, oppure digitata male in entrambi i posti. Usa una chiave di **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**.
+- `401`: OneUptime non conosce nessun progetto con la chiave che il drain invia: è stata eliminata, oppure digitata male. Usa una chiave di **Impostazioni del progetto → Telemetria e APM → Chiavi di acquisizione**.
 - `422`: la chiave è stata disattivata. Riattivala nella stessa pagina, o usane un'altra.
 :::
 

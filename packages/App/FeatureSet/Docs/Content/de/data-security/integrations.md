@@ -93,6 +93,14 @@ Ein Datenspeicher ohne Eigentümer kann sie von OneUptime AI erhalten. Sie liest
 
 Siehe [Workflow-Auslöser](/docs/workflows/triggers) für die Felder, die jeder Auslöser weitergibt.
 
+## Pull Requests
+
+Ein Leck lässt sich am günstigsten beheben, bevor es gemergt wird. In einem unter **Code** verbundenen Repository mit eingeschalteten Produktionsprüfungen hat die Prüfung jedes Pull Requests einen Abschnitt **Sensible Daten**, aus seinem Diff gelesen: Code, der personenbezogene Daten oder ein Geheimnis in die Telemetrie schreibt, Infrastrukturcode, der einen Datenspeicher öffentlich macht oder seine Verschlüsselung, Backups oder Protokollierung abschaltet, und Migrationen, die Spalten für personenbezogene Daten, Passwörter oder Kartendaten hinzufügen. Jeder Punkt nennt die Prüfung der Datensicherheit, die die Änderung nicht bestehen würde, sobald sie ausgeliefert ist, und Ihre eigenen Datentypen werden an ihren Namenshinweisen erkannt, so wie die Scans sie lesen. Siehe [Produktionsprüfung von Pull Requests](/docs/ai/ai-agent#produktionsprüfung-von-pull-requests).
+
+Was die Datensicherheit weiß, macht diese Punkte schärfer, im Kommentar eines privaten Repositorys und in Code für alle, die die Funde der Datensicherheit lesen dürfen: wo die Telemetrie des Dienstes in den letzten 7 Tagen dieselbe Art von Daten enthielt, die Bereinigungsregel, die sie bei der Aufnahme maskiert, und der Datenspeicher, der eine Ressource ist, mit seiner Sensibilität. Ein als **Absichtlich öffentlich** markierter Datenspeicher ergibt keinen Punkt dafür, dass er öffentlich ist. Der Kommentar eines öffentlichen Repositorys sagt nur, was der Diff zeigt.
+
+**Vor dem Merge erkannte Lecks** unter **Projekteinstellungen → KI → KI-Ergebnisse** zählt die Lecks, die Prüfungen in Pull Requests erkannt haben, dort behoben oder noch nicht, neben den Problemen, die die Scans nach der Auslieferung des Codes zu denselben Prüfungen geöffnet haben.
+
 ## OneUptime AI
 
 Zwei Aktionen an einem Problem bitten OneUptime AI um Hilfe. Beide senden OneUptime AI Titel und Schweregrad des Problems, Name, Art, Region und Cloud-ID des Datenspeichers, seine Sensibilität und Datentypen, jeden mit seinem Namen - Ihre eigenen Datentypen mit dem Namen, den Sie ihnen gegeben haben -, den Beleg, warum die Prüfung wichtig ist, und die Behebung für die Cloud des Datenspeichers - nie die Stichproben eines Funds. Beide laufen unter den Schaltern und Grenzen des Projekts für OneUptime AI. Was jede sendet, was sie nie sendet und auf welchem Modell sie läuft, steht unter [OneUptime AI in der Datensicherheit](/docs/data-security/ai).

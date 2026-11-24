@@ -1,29 +1,17 @@
-import React, {
-  MutableRefObject,
-  ReactElement,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Label from "../../../Models/DatabaseModels/Label";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import IconProp from "../../../Types/Icon/IconProp";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
 import { sortLabels } from "../../../Utils/LabelOrder";
 import ModelAPI from "../../Utils/ModelAPI/ModelAPI";
 import { SharedNameFactsReads } from "../../Utils/SharedNameFactsReads";
-import ProjectUtil from "../../Utils/Project";
-import {
-  SharedNameFacts,
-  getSharedNameFacts,
-  getSharedNameSelect,
-} from "../../Utils/SharedNameOptions";
+import { SharedNameFacts } from "../../Utils/SharedNameOptions";
 import { SharedNameKind } from "../../../Types/Database/SharedNames";
 import PermissionGate, {
   ModelAction,
@@ -66,6 +54,22 @@ export const BulkLabelReads: {
   },
 };
 
+/*
+ * The labels Add Labels offers: the project's, searched on the server as
+ * they are typed (#10646) - not archived, which the dropdown leaves out of
+ * any archivable model's list (ArchivedValuePicker). Remove Labels offers
+ * the ones the items have, archived or not.
+ */
+export const BULK_ADD_LABELS_DROPDOWN: {
+  type: typeof Label;
+  labelField: string;
+  valueField: string;
+} = {
+  type: Label,
+  labelField: "name",
+  valueField: "_id",
+};
+
 export interface BulkLabelActionsConfig<T extends BaseModel> {
   modelType: { new (): T };
   /*
@@ -97,7 +101,6 @@ type BulkLabelMode = "add" | "remove";
 function useBulkLabelActions<T extends BaseModel>(
   config: BulkLabelActionsConfig<T>,
 ): BulkLabelActionsResult<T> {
-  const [labels, setLabels] = useState<Array<Label>>([]);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
@@ -114,55 +117,6 @@ function useBulkLabelActions<T extends BaseModel>(
   const [isLoadingRemoveLabels, setIsLoadingRemoveLabels] =
     useState<boolean>(false);
   const removeLabelsRequestRef: MutableRefObject<number> = useRef<number>(0);
-
-  useEffect(() => {
-    /*
-     * Without the guard the query went out as `projectId: null`, which is
-     * not "every project" — it is a filter nothing matches, so the add
-     * modal silently offered an empty dropdown. Skipping the request says
-     * the same thing without the round trip. Mirrors BulkOwnerActions.
-     */
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    if (!projectId) {
-      return;
-    }
-
-    const fetchLabels: () => Promise<void> = async (): Promise<void> => {
-      try {
-        const result: ListResult<Label> = await ModelAPI.getList<Label>({
-          modelType: Label,
-          /*
-           * The labels Add Labels offers: not archived - nobody adds an
-           * archived label to anything (Common/Utils/ArchivableValues).
-           * Remove Labels offers the ones the items have, archived or not.
-           */
-          query: {
-            projectId: projectId,
-            isArchived: false,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            name: true,
-            color: true,
-            // What tells labels of one name apart (SharedNameOptions, #10064).
-            ...getSharedNameSelect(Label),
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-        // By name: in natural order, as the server reads labels so (Utils/LabelOrder).
-        setLabels(result.data);
-      } catch {
-        // labels will remain empty; modal will show no options
-      }
-    };
-
-    fetchLabels();
-  }, []);
 
   const applyLabels: (
     labelIds: Array<string>,
@@ -465,24 +419,6 @@ function useBulkLabelActions<T extends BaseModel>(
     }
   };
 
-  const labelDropdownOptions: Array<DropdownOption> = labels.map(
-    (label: Label) => {
-      const option: DropdownOption = {
-        label: label.name || "",
-        value: label._id?.toString() || "",
-        // A label's name is its owner's, drawn as written.
-        isUserContent: true,
-        sharedName: getSharedNameFacts(label),
-      };
-
-      if (label.color) {
-        option.color = label.color;
-      }
-
-      return option;
-    },
-  );
-
   /*
    * Bulk actions are handed straight to the table's action bar, which never
    * looks at permissions - so a viewer on an otherwise gated table could still
@@ -581,7 +517,14 @@ function useBulkLabelActions<T extends BaseModel>(
                   "These labels will be added to each selected item.",
                 fieldType: FormFieldSchemaType.MultiSelectDropdown,
                 required: true,
-                dropdownOptions: labelDropdownOptions,
+                /*
+                 * Searched on the server as it is typed in, 50 by name
+                 * (EntityDropdown), and never an archived label - nobody
+                 * adds one to anything (ArchivedValuePicker). It read the
+                 * project's first 10,000 by name up front, so a label past
+                 * them could not be added (#10646).
+                 */
+                dropdownModal: BULK_ADD_LABELS_DROPDOWN,
               },
             ],
           }}

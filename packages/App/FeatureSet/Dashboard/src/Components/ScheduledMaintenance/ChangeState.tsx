@@ -873,8 +873,14 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                   quietDescription:
                     PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                 },
-                // Offered only to someone who may post a public note.
+                /*
+                 * Offered only to someone who may post a public note on
+                 * this event: their permissions, weighed by what the
+                 * server says of it - its labels and its owners
+                 * (RecordAccessScope, #10790) - as the state buttons are.
+                 */
                 noteModel: new ScheduledMaintenancePublicNote(),
+                noteGateOptions: recordGateOptions,
               },
             ),
             formType: FormType.Create,

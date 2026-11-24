@@ -217,10 +217,11 @@ describe("VMwareMonitorStepForm vCenter selection", () => {
     /*
      * `name` is the `vmware.vcenter.name` attribute the agent stamps on
      * every metric; the worker scopes on it. Using the row id here would
-     * match nothing.
+     * match nothing. The picker searches vCenters by it past its first
+     * page, and reads the step's own vCenter by it (#10646).
      */
     expect(stepFormSource).toContain(
-      "useInfrastructureResources<VMwareVCenter>({ modelType: VMwareVCenter,",
+      'useInfrastructureResources<VMwareVCenter>({ valueField: "name", searchFields: ["name"], heldValue: monitorStepVMwareMonitor.vcenterIdentifier, modelType: VMwareVCenter,',
     );
     /*
      * The option: its name, drawn as written, and "Unknown" in the reader's

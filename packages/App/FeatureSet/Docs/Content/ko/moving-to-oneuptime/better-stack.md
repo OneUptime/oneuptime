@@ -58,7 +58,7 @@ OneUptime에서 **프로젝트 설정** > **고급** > **다른 도구에서 가
 | Status pages | 상태 페이지 | 각 페이지는 섹션을 그룹으로 삼고, 보여 주는 모니터와 하트비트와 함께 가져옵니다. 직접 관리하는 항목은 수동 모니터가 됩니다. 비밀번호나 IP 허용 목록이 있는 페이지는 비공개로 가져옵니다. |
 | Email subscribers | 상태 페이지 구독자 | 확인된 이메일 구독자는 옮겨도 된다고 확인하면 가져오며, 같은 리소스를 구독합니다. 아무에게도 이메일을 보내지 않으며, OneUptime에서 받는 모든 업데이트에는 구독 취소 링크가 있습니다. |
 
-- **status, expected status code, keyword, keyword absence 모니터**는 웹사이트 모니터가 되고, 다른 메서드, 헤더 또는 JSON 본문을 보내면 API 모니터가 됩니다. status 모니터는 모든 2xx 응답에서 정상이고, expected status code 모니터는 지정한 코드에서 정상입니다.
+- **status, expected status code, keyword, keyword absence 모니터**는 웹사이트 모니터가 되고, 다른 메서드, 헤더 또는 본문을 보내면 API 모니터가 됩니다. status 모니터는 모든 2xx 응답에서 정상이고, expected status code 모니터는 지정한 코드에서 정상입니다.
 - **ping과 TCP 모니터**는 ping과 포트 모니터가 됩니다. **SMTP, POP, IMAP 모니터**는 해당 포트의 포트 모니터가 됩니다. OneUptime은 포트가 응답하는지만 검사하며, 메일 통신은 검사하지 않습니다.
 - **DNS 모니터**는 조회하는 이름의 DNS 모니터가 되며, 같은 서버에 질의합니다.
 - **하트비트**는 수신 요청 모니터가 되며, 기간과 유예 시간 동안 요청이 오지 않으면 장애가 됩니다. OneUptime에서는 각각 새 주소를 받습니다.

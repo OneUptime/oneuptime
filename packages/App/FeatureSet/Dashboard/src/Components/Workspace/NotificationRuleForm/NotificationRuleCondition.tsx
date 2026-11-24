@@ -8,6 +8,7 @@ import Dropdown, {
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
 import Input from "Common/UI/Components/Input/Input";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import PeoplePicker from "Common/UI/Components/PeoplePicker/PeoplePicker";
 import { getOwnersPeoplePickerConfig } from "Common/UI/Components/PeoplePicker/OwnersFormField";
 import {
@@ -46,15 +47,12 @@ import NotificationRuleCondition, {
 import PolicyNameConditionSwitch, {
   PolicyNameConditionMatch,
 } from "Common/Types/Workspace/NotificationRules/PolicyNameConditionSwitch";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
-import Label from "Common/Models/DatabaseModels/Label";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
-import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import Team from "Common/Models/DatabaseModels/Team";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -68,7 +66,14 @@ import {
   POLICY_NAME_SWITCH_ACTION,
   VALUE_NOT_FOUND_NAME,
 } from "./NotificationRuleConditionWords";
-import MonitorConditionPicker from "./MonitorConditionPicker";
+import RecordConditionPicker, {
+  RecordConditionKind,
+  getRecordConditionKind,
+} from "./RecordConditionPicker";
+import {
+  usePoliciesNamedByWords,
+  useTeamIdsAmong,
+} from "./ConditionRecordReads";
 
 /*
  * ONE CONDITION OF A WORKSPACE RULE, AS A LINE OF A SENTENCE.
@@ -123,12 +128,11 @@ export interface ComponentProps {
   // How the rule combines its conditions: "And" for All, "Or" for Any.
   filterCondition?: FilterCondition | undefined;
   /*
-   * Not read by the condition: its monitors are searched on the server and
-   * read by their ids (MonitorConditionPicker). Kept for the callers that
-   * still hand them in.
+   * The short lists a value is picked from whole: states, severities,
+   * statuses, a security case's priorities. Monitors, labels, SLOs and
+   * policies are searched on the server, and the ones the condition holds
+   * read by their ids (RecordConditionPicker, #10646, #10689).
    */
-  monitors?: Array<Monitor> | undefined;
-  labels: Array<Label>;
   alertStates: Array<AlertState>;
   alertSeverities: Array<AlertSeverity>;
   incidentSeverities: Array<IncidentSeverity>;
@@ -137,13 +141,10 @@ export interface ComponentProps {
   // A security case rule's: the project's own case priorities and statuses.
   securityCasePriorities?: Array<SecurityCasePriority> | undefined;
   securityCaseStatuses?: Array<SecurityCaseStatus> | undefined;
-  // An SLO rule's: the project's SLOs, to pick the ones it is for.
-  serviceLevelObjectives?: Array<ServiceLevelObjective> | undefined;
-  // An on-call rule's: the project's policies, to pick the ones it is for.
-  onCallDutyPolicies?: Array<OnCallDutyPolicy> | undefined;
   /*
-   * The project's teams: which of the ids an owners condition holds are
-   * teams. The others are people.
+   * Teams the page knows already, among the ids an owners condition holds:
+   * the others are read by their ids as teams (useTeamIdsAmong, #10689),
+   * and the rest are people.
    */
   teams?: Array<Team> | undefined;
   monitorStatus: Array<MonitorStatus>;
@@ -227,8 +228,14 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     }
   }, [isValueFocusedOnDraw]);
 
-  // Teams picked while the form is open, which the page's list may not have.
+  /*
+   * Teams and people picked while the form is open: known by their pick,
+   * never read to tell which is which.
+   */
   const pickedTeamIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
+    new Set(),
+  );
+  const pickedPeopleIds: MutableRefObject<Set<string>> = useRef<Set<string>>(
     new Set(),
   );
 
@@ -308,16 +315,40 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     : undefined;
 
   /*
-   * What an On-Call Policy Name condition's words name today, among the
-   * project's policies, and the On-Call Policy condition that keeps
-   * matching exactly those (#7806). Nothing while the words are empty, or
-   * when the policies could not be read.
+   * What an On-Call Policy Name condition's words name today, and the
+   * On-Call Policy condition that keeps matching exactly those (#7806):
+   * among the policies whose name holds the words, searched on the server
+   * (#10689) - the project's first 10,000 by name never had one past them.
+   * Nothing while the words are empty, while they are read, or when the
+   * policies could not be read.
    */
+  const policiesNamedByWords: Array<OnCallDutyPolicy> | undefined =
+    usePoliciesNamedByWords(notificationRuleCondition);
+
   const policyNameMatch: PolicyNameConditionMatch | null =
     PolicyNameConditionSwitch.getMatch({
       condition: notificationRuleCondition,
-      policies: props.onCallDutyPolicies,
+      policies: policiesNamedByWords,
     });
+
+  /*
+   * Which of an owners condition's ids are teams (#10689): those the page
+   * knows and the ones picked here, and the others read by their ids - a
+   * team past the project's first 10,000 was taken for a person who left.
+   * Undefined while they are read.
+   */
+  const knownTeamIds: Set<string> = toLowerCaseIds([
+    ...(props.teams || []).map((team: Team): string => {
+      return team._id?.toString() || "";
+    }),
+    ...pickedTeamIds.current,
+  ]);
+  const ownerTeamIds: Set<string> | undefined = useTeamIdsAmong({
+    ids: valueIds,
+    knownTeamIds: knownTeamIds,
+    knownPeopleIds: pickedPeopleIds.current,
+    isNeeded: isPeopleValue,
+  });
 
   const policyCondition: NotificationRuleCondition | null = policyNameMatch
     ? PolicyNameConditionSwitch.toPolicyCondition(policyNameMatch)
@@ -380,18 +411,16 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     );
 
     if (isPeopleValue) {
-      const teamIds: Set<string> = toLowerCaseIds(
-        (props.teams || [])
-          .map((team: Team): string => {
-            return team._id?.toString() || "";
-          })
-          .filter((id: string): boolean => {
-            return Boolean(id);
-          }),
-      );
-
-      for (const id of pickedTeamIds.current) {
-        teamIds.add(id);
+      // Drawn once its teams are known: a team is never drawn as a person.
+      if (!ownerTeamIds) {
+        return (
+          <div
+            className="flex min-h-10 items-center"
+            data-testid={`notification-rule-condition-people-loading-${props.index || 0}`}
+          >
+            <InlineValueSkeleton />
+          </div>
+        );
       }
 
       return (
@@ -402,15 +431,23 @@ const NotificationRuleConditionFormElement: FunctionComponent<
           <div className="flex min-h-10 items-center">
             <PeoplePicker
               kinds={[PeoplePickerKind.User, PeoplePickerKind.Team]}
-              value={getOwnerPickerValue({ ids: valueIds, teamIds: teamIds })}
+              value={getOwnerPickerValue({
+                ids: valueIds,
+                teamIds: ownerTeamIds,
+              })}
               onChange={(next: PeoplePickerValue): void => {
                 const teams: Array<string> = next[PeoplePickerKind.Team] || [];
+                const people: Array<string> = next[PeoplePickerKind.User] || [];
 
                 for (const id of teams) {
                   pickedTeamIds.current.add(id.toLowerCase());
                 }
 
-                changeValue([...(next[PeoplePickerKind.User] || []), ...teams]);
+                for (const id of people) {
+                  pickedPeopleIds.current.add(id.toLowerCase());
+                }
+
+                changeValue([...people, ...teams]);
               }}
               addButtonText={OWNERS_PICKER_CONFIG.addButtonText}
               searchPlaceholder={OWNERS_PICKER_CONFIG.searchPlaceholder}
@@ -430,19 +467,27 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     }
 
     /*
-     * The monitors a condition picks are searched on the server, and the
-     * ones it holds are read by their ids (MonitorConditionPicker, #10646):
-     * a project's monitors read whole stopped at the first 10,000.
+     * The monitors, labels, SLOs and policies a condition picks are searched
+     * on the server, and the ones it holds are read by their ids
+     * (RecordConditionPicker, #10646, #10689): a project's records read
+     * whole stopped at the first 10,000.
      */
-    if (checkOn === NotificationRuleConditionCheckOn.Monitors) {
+    const recordKind: RecordConditionKind | undefined =
+      getRecordConditionKind(checkOn);
+
+    if (recordKind) {
       return (
         <div
           data-testid={`notification-rule-condition-value-${props.index || 0}`}
         >
-          <MonitorConditionPicker
+          <RecordConditionPicker
+            // Another field's records start a picker of their own.
+            key={checkOn}
+            kind={recordKind}
             id={`${rowId}-value`}
             ariaLabel={valueAriaLabel}
             ariaDescribedby={valueDescribedBy}
+            autoFocus={isValueFocusedOnDraw}
             ids={valueIds}
             onChange={(ids: Array<string>) => {
               changeValue(ids);
@@ -453,17 +498,16 @@ const NotificationRuleConditionFormElement: FunctionComponent<
     }
 
     if (isDropdownValue) {
+      // Never a record kind's: those are searched (RecordConditionPicker).
       const lists: ConditionValueLists = {
         checkOn: checkOn,
-        monitors: props.monitors || [],
-        labels: props.labels,
+        monitors: [],
+        labels: [],
         alertStates: props.alertStates,
         incidentStates: props.incidentStates,
         scheduledMaintenanceStates: props.scheduledMaintenanceStates,
         securityCasePriorities: props.securityCasePriorities,
         securityCaseStatuses: props.securityCaseStatuses,
-        serviceLevelObjectives: props.serviceLevelObjectives,
-        onCallDutyPolicies: props.onCallDutyPolicies,
         monitorStatus: props.monitorStatus,
         alertSeverities: props.alertSeverities,
         incidentSeverities: props.incidentSeverities,

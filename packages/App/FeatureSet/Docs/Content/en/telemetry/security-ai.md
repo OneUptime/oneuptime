@@ -8,6 +8,7 @@ OneUptime AI reads each security case the way an analyst would: its detections, 
 - [Work a case end to end](#work-a-case-end-to-end): Contain, check, fix and close, with a person approving what you choose.
 - [What OneUptime AI may do on a case](#what-oneuptime-ai-may-do-on-a-case): Off, Ask first or On its own, for each kind of step.
 - [When it hands a case to people](#when-it-hands-a-case-to-people): Why it stops, and who hears about it.
+- [Let OneUptime AI respond first](#let-oneuptime-ai-respond-first): Alert people only when OneUptime AI needs them.
 - [Run a playbook on a triage](#run-a-playbook-on-a-triage): Act on a case that reads as Likely Malicious.
 - [Draft a detection rule](#draft-a-detection-rule): Describe what to catch, and read the Sigma rule.
 - [Ask AI on Security pages](#ask-ai-on-security-pages): Questions about cases and events, in plain words.
@@ -184,6 +185,44 @@ The people on the case hear about it at once, or when nobody is on it, the peopl
 
 **Respond with AI** asks OneUptime AI to work the case again, from where the case stands.
 
+A case held while OneUptime AI responds first reaches people once, with the new case's notice and why OneUptime AI stopped: see [Let OneUptime AI respond first](#let-oneuptime-ai-respond-first).
+
+## Let OneUptime AI respond first
+
+Under **Let OneUptime AI respond first**, on **Products → Security Events → AI → Settings**, turn on **Respond first**: a new case a detection opens below the priority you pick then waits for OneUptime AI before anyone is alerted. It is offered while **Triage new cases** and **Work cases end to end** are on. It starts off and saves as you change it. Project Owner and Project Admin can change it.
+
+- **For cases below**: the priority a case must be below to be held. It is High until you pick another.
+- **Alert people anyway after**: how long a case is held at most, 5, 10, 15, 20 or 30 minutes. It starts at 10 minutes.
+
+While a case is held, the notice of the new case waits, and so do the **Page on-call** steps of the playbooks that start on it on their own. The case says **OneUptime AI is on it**, with when people are alerted, and **Page now** alerts them at once. A playbook run whose page waits is **Waiting for OneUptime AI**.
+
+The hold ends as soon as one of these happens:
+
+| When | Then |
+| --- | --- |
+| OneUptime AI contains the case and OneUptime checks every step that contains it, or the case is closed | Nobody is alerted. The channels that post new cases get one summary of what OneUptime AI did, and the page steps that waited are skipped |
+| OneUptime AI needs a person: it asks someone to approve a step, hands the case to people, or cannot start working it | Everyone the case was held from is alerted at once, with why and what OneUptime AI already did, and the page steps that waited page |
+| Its triage does not read the case as Likely Malicious, the case is marked Contained before OneUptime could check every step, or the hold time runs out | Everyone is alerted at once, with why |
+| Someone presses **Page now**, the case rises to the priority you picked, or **Respond first** or **Work cases end to end** is turned off | Everyone is alerted at once |
+| A person takes the case: **Take Over**, assigning it or moving it on | They have it. Nobody else is alerted, the channels hear of the new case, and the page steps that waited are skipped |
+
+A case is never held, and people are alerted as usual, when:
+
+- it is at your highest priority, or at or above the priority you picked;
+- 3 other cases opened in the 5 minutes before it, which looks like an active attack: the cases held then go to people too;
+- some of its data reads like instructions to an AI;
+- it is about an address, user or host of a case OneUptime AI resolved in the last 24 hours, since what it did did not hold;
+- OneUptime AI cannot triage or work it, such as when the project is out of AI credits;
+- a person opened it, or it is the test attack's case.
+
+The case's timeline says why it was not held, except for a case at or above the priority you picked, a case a person opened and the test attack's case. A response target's notices are never held.
+
+Blocking addresses and containing accounts and hosts ask first until you set them to **On its own** under **What OneUptime AI may do on a case**, and a case reaches people as soon as OneUptime AI asks. With **Block addresses** on **On its own**, confirmed by a Security Admin, it can contain a scanner with nobody alerted.
+
+### The weekly email
+
+Every Monday, Project Owners and Security Admins who can read security cases get one email of what OneUptime AI did on the project's security cases the week before: the cases it responded first to and how they ended, how soon the cases it worked were contained, the addresses it blocked and the blocks lifted again, the steps it asked people to approve and how soon they answered, and the steps people undid. It holds numbers only, and a link to **Products → Security Events → Overview**. A week OneUptime AI did nothing sends no email.
+
 ## The closing report
 
 When OneUptime AI closes a case, or asks a person to, it writes a closing report from what the case holds, not from the triage's words: what happened, the impact, what was done, what was fixed and what to watch. The report is the case's closing note, it is on the timeline, and the card shows it under **Closing report**. With **Close the case** on **Ask first**, the case waits for a person to approve the close, with the report to read first.
@@ -242,6 +281,14 @@ A Project Owner or someone with Manage Billing can add credits under **Project S
 
 :::details The card says text in the case reads like instructions to an AI
 Some of the case's data, such as an event message or a user name, was written to steer an AI. OneUptime AI read it as data and left the decision to you: read the detections and the evidence yourself before you close the case.
+:::
+
+:::details People were alerted while OneUptime AI was responding first
+The case's timeline says why the hold ended: OneUptime AI asked someone to approve a step, handed the case to people or did not finish within **Alert people anyway after**, or someone pressed **Page now**. A step that asks first reaches people as soon as OneUptime AI asks: see **What OneUptime AI may do on a case**.
+:::
+
+:::details A new case was not held
+Check that **Respond first** is on, and that the case is below the priority under **For cases below**. A case at your highest priority, a case a person opened and the test attack's case are never held. For any other reason, the case's timeline says why.
 :::
 
 :::details A playbook with the AI trigger did not run

@@ -92,9 +92,7 @@ import API from "Common/UI/Utils/API/API";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import { readLegacySerializedArray } from "Common/Utils/LegacySerializedArray";
 import { describeSearchValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
-import ModelAPI, {
-  ListResult as ModelListResult,
-} from "Common/UI/Utils/ModelAPI/ModelAPI";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import AnalyticsModelAPI, {
   ListResult,
 } from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -161,6 +159,7 @@ import {
   mayApplyInitialSavedView,
   resolveInitialSavedView,
 } from "../../Utils/InitialSavedView";
+import SavedViewReads, { FirstSavedViews } from "../Telemetry/SavedViewReads";
 import {
   buildSavedViewQueryForOverrides,
   buildSavedViewQueryOverBase,
@@ -329,7 +328,19 @@ export interface ComponentProps {
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
-const SAVED_VIEWS_LIMIT: number = 100;
+// What a saved view is read with: everything applying it sets.
+const LOG_SAVED_VIEW_SELECT: Select<LogSavedView> = {
+  name: true,
+  query: true,
+  timeRange: true,
+  columns: true,
+  sortField: true,
+  sortOrder: true,
+  pageSize: true,
+  isDefault: true,
+  createdByUserId: true,
+};
+const SAVED_VIEW_SEARCH_DEBOUNCE_MS: number = 250;
 /*
  * How long the first reads wait for the saved views before going ahead
  * without them (see awaitsInitialSavedView). The saved views are one small
@@ -802,6 +813,17 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
   const [isLiveEnabled, setIsLiveEnabled] = useState<boolean>(false);
   const [isLiveUpdating, setIsLiveUpdating] = useState<boolean>(false);
   const [savedViews, setSavedViews] = useState<Array<LogSavedView>>([]);
+  // How many saved views this page has: the list reads its first ones.
+  const [savedViewCount, setSavedViewCount] = useState<number>(0);
+  // What a search of the saved views found, past the first ones (#10646).
+  const [foundSavedViews, setFoundSavedViews] = useState<Array<LogSavedView>>(
+    [],
+  );
+  const savedViewSearchTimerRef: React.MutableRefObject<number | null> = useRef<
+    number | null
+  >(null);
+  const savedViewSearchSequenceRef: React.MutableRefObject<number> =
+    useRef<number>(0);
   /*
    * Seeded from the URL like every other carried field.
    *
@@ -1252,8 +1274,13 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
     // By value, like logQueryAttributes above.
   }, [logQueryScopeKey]);
 
+  // Every view the page knows: the ones read, and what a search found.
+  const knownSavedViews: Array<LogSavedView> = useMemo(() => {
+    return SavedViewReads.merge<LogSavedView>(savedViews, foundSavedViews);
+  }, [savedViews, foundSavedViews]);
+
   const savedViewOptions: Array<LogsSavedViewOption> = useMemo(() => {
-    return [...savedViews]
+    return [...knownSavedViews]
       .sort((left: LogSavedView, right: LogSavedView) => {
         if (Boolean(left.isDefault) !== Boolean(right.isDefault)) {
           return left.isDefault ? -1 : 1;
@@ -1268,62 +1295,140 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           isDefault: Boolean(savedView.isDefault),
         };
       });
-  }, [savedViews]);
+  }, [knownSavedViews]);
 
   const selectedSavedView: LogSavedView | undefined = useMemo(() => {
-    return savedViews.find((savedView: LogSavedView) => {
+    return knownSavedViews.find((savedView: LogSavedView) => {
       return savedView.id?.toString() === selectedSavedViewId;
     });
-  }, [savedViews, selectedSavedViewId]);
+  }, [knownSavedViews, selectedSavedViewId]);
+
+  // The view applied, for a read that must hold it.
+  const selectedSavedViewIdRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+  selectedSavedViewIdRef.current = selectedSavedViewId;
+
+  // This page's views: the project's, of this page's scope (issue #5549).
+  const getSavedViewsQuery: (projectId: ObjectID) => Query<LogSavedView> = (
+    projectId: ObjectID,
+  ): Query<LogSavedView> => {
+    return {
+      projectId: projectId,
+      scope: getSavedViewScopeQueryValue(props.savedViewScope!),
+    } as Query<LogSavedView>;
+  };
 
   // --- Fetch logs ---
 
-  const fetchSavedViews: () => Promise<void> =
-    useCallback(async (): Promise<void> => {
-      try {
-        setIsSavedViewLoading(true);
+  /*
+   * The first views by name, and what they do not hold (#10646): the view
+   * the link named (until it is applied), the one applied, any the caller
+   * names (a view just saved), and the page's default - each read by
+   * itself, so a view past the first ones is neither taken for one deleted
+   * nor dropped from the link.
+   */
+  const fetchSavedViews: (holdIds?: Array<string>) => Promise<void> =
+    useCallback(
+      async (holdIds?: Array<string>): Promise<void> => {
+        try {
+          setIsSavedViewLoading(true);
 
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+          const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-        // A panel with no saved views asks for none.
-        if (!projectId || !props.savedViewScope) {
-          setSavedViews([]);
-          return;
+          // A panel with no saved views asks for none.
+          if (!projectId || !props.savedViewScope) {
+            setSavedViews([]);
+            return;
+          }
+
+          const query: Query<LogSavedView> = getSavedViewsQuery(projectId);
+          const first: FirstSavedViews<LogSavedView> =
+            await SavedViewReads.readFirst<LogSavedView>({
+              modelType: LogSavedView,
+              query: query,
+              select: LOG_SAVED_VIEW_SELECT,
+            });
+          const held: Array<LogSavedView> =
+            await SavedViewReads.readHeld<LogSavedView>({
+              modelType: LogSavedView,
+              query: query,
+              select: LOG_SAVED_VIEW_SELECT,
+              known: first.views,
+              count: first.count,
+              ids: [
+                ...(hasAppliedInitialSavedView.current
+                  ? []
+                  : [initialUrlState?.savedViewId]),
+                selectedSavedViewIdRef.current,
+                ...(holdIds || []),
+              ],
+              readsDefault: true,
+            });
+
+          setSavedViews(SavedViewReads.merge<LogSavedView>(first.views, held));
+          setSavedViewCount(first.count);
+        } catch (err) {
+          setError(API.getFriendlyMessage(err));
+        } finally {
+          setIsSavedViewLoading(false);
+          setHasFetchedSavedViews(true);
         }
+      },
+      [props.savedViewScope],
+    );
 
-        const result: ModelListResult<LogSavedView> = await ModelAPI.getList({
-          modelType: LogSavedView,
-          query: {
-            projectId: projectId,
-            // This page's views only (issue #5549).
-            scope: getSavedViewScopeQueryValue(props.savedViewScope),
-          },
-          limit: SAVED_VIEWS_LIMIT,
-          skip: 0,
-          select: {
-            name: true,
-            query: true,
-            timeRange: true,
-            columns: true,
-            sortField: true,
-            sortOrder: true,
-            pageSize: true,
-            isDefault: true,
-            createdByUserId: true,
-          },
-          sort: {
-            name: SortOrder.Ascending,
-          },
-        });
-
-        setSavedViews(result.data);
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      } finally {
-        setIsSavedViewLoading(false);
-        setHasFetchedSavedViews(true);
+  /*
+   * What is typed into a saved-view search, searched on the server once
+   * this page has more views than were read (#10646).
+   */
+  const searchSavedViews: (text: string) => void = useCallback(
+    (text: string): void => {
+      if (savedViewSearchTimerRef.current !== null) {
+        window.clearTimeout(savedViewSearchTimerRef.current);
       }
-    }, [props.savedViewScope]);
+
+      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+      const trimmed: string = text.trim();
+
+      if (
+        !projectId ||
+        !props.savedViewScope ||
+        !trimmed ||
+        savedViewCount <= savedViews.length
+      ) {
+        return;
+      }
+
+      const sequence: number = ++savedViewSearchSequenceRef.current;
+
+      savedViewSearchTimerRef.current = window.setTimeout(() => {
+        SavedViewReads.search<LogSavedView>({
+          modelType: LogSavedView,
+          query: getSavedViewsQuery(projectId),
+          select: LOG_SAVED_VIEW_SELECT,
+          text: trimmed,
+        })
+          .then((found: Array<LogSavedView>) => {
+            if (sequence === savedViewSearchSequenceRef.current) {
+              setFoundSavedViews(found);
+            }
+          })
+          .catch(() => {
+            // The views read first are still listed.
+          });
+      }, SAVED_VIEW_SEARCH_DEBOUNCE_MS);
+    },
+    [props.savedViewScope, savedViewCount, savedViews.length],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (savedViewSearchTimerRef.current !== null) {
+        window.clearTimeout(savedViewSearchTimerRef.current);
+      }
+    };
+  }, []);
 
   type FetchOptions = {
     skipLoadingState?: boolean;
@@ -2146,14 +2251,14 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       return;
     }
 
-    const exists: boolean = savedViews.some((savedView: LogSavedView) => {
+    const exists: boolean = knownSavedViews.some((savedView: LogSavedView) => {
       return savedView.id?.toString() === selectedSavedViewId;
     });
 
     if (!exists) {
       setSelectedSavedViewId(null);
     }
-  }, [savedViews, selectedSavedViewId, hasFetchedSavedViews]);
+  }, [knownSavedViews, selectedSavedViewId, hasFetchedSavedViews]);
 
   /*
    * Live polling. The list and the histogram come from different endpoints,
@@ -3133,7 +3238,10 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           }}
           onSuccess={async (savedView: LogSavedView) => {
             setShowCreateSavedViewModal(false);
-            await fetchSavedViews();
+            // Held by its id, wherever its name sorts.
+            await fetchSavedViews(
+              savedView.id ? [savedView.id.toString()] : [],
+            );
             applySavedView(savedView);
           }}
           formProps={{
@@ -3364,9 +3472,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             setSelectedColumns(normalizeLogsTableColumns(columns));
           }}
           savedViews={offersSavedViews ? savedViewOptions : undefined}
+          savedViewCount={savedViewCount}
+          onSavedViewSearch={searchSavedViews}
           selectedSavedViewId={selectedSavedViewId}
           onSavedViewSelect={(viewId: string) => {
-            const savedView: LogSavedView | undefined = savedViews.find(
+            const savedView: LogSavedView | undefined = knownSavedViews.find(
               (item: LogSavedView) => {
                 return item.id?.toString() === viewId;
               },
@@ -3381,7 +3491,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             setShowCreateSavedViewModal(true);
           }}
           onEditSavedView={(viewId: string) => {
-            const savedView: LogSavedView | undefined = savedViews.find(
+            const savedView: LogSavedView | undefined = knownSavedViews.find(
               (item: LogSavedView) => {
                 return item.id?.toString() === viewId;
               },
@@ -3390,7 +3500,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             setSavedViewToEdit(savedView);
           }}
           onDeleteSavedView={(viewId: string) => {
-            const savedView: LogSavedView | undefined = savedViews.find(
+            const savedView: LogSavedView | undefined = knownSavedViews.find(
               (item: LogSavedView) => {
                 return item.id?.toString() === viewId;
               },

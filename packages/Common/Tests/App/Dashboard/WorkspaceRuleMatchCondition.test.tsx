@@ -92,8 +92,6 @@ function Harness(props: {
         props.onChange(value);
       }}
       eventType={NotificationRuleEventType.Incident}
-      monitors={[]}
-      labels={[]}
       alertStates={[]}
       alertSeverities={[]}
       incidentSeverities={[]}

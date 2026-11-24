@@ -102,6 +102,14 @@ export default interface ProbeApiIngestResponse {
    */
   seriesKeepingStatus?: Array<SeriesKeepingStatus> | undefined;
   /**
+   * A monitor that judges no series on its own, on a check no criteria
+   * matched, whose status a problem criteria set while its step has a
+   * recovery criteria (GroupedMonitorRecovery.judgeWholeMonitor, #10743):
+   * it keeps its status rather than go to its default status, until one of
+   * these recovery criteria matches. Unset otherwise.
+   */
+  statusKeptForRecoveryCriteriaIds?: Array<string> | undefined;
+  /**
    * The series behind a grouped monitor's status after this check, for
    * MonitorResource to keep for the next one (SeriesBehindStatus): an empty
    * list deletes what was kept. Unset when there is nothing to write.

@@ -157,6 +157,11 @@ export interface PlaybookStepContext {
    */
   isOneStepRun?: boolean | undefined;
   /*
+   * An automatic response policy's one-step run (#10350): a block it makes
+   * is the policy's (playbookName is the policy's name).
+   */
+  automaticResponsePolicyId?: ObjectID | undefined;
+  /*
    * A step OneUptime AI ran while working the case (#10352): a change of the
    * case reads as OneUptime AI's, and a block it makes is OneUptime AI's.
    */
@@ -1497,6 +1502,13 @@ export default class SecurityPlaybookActions {
       personId:
         context.isOneStepRun && context.triggeredByUserId
           ? context.triggeredByUserId
+          : undefined,
+      automaticResponse:
+        context.isOneStepRun && context.automaticResponsePolicyId
+          ? {
+              policyId: context.automaticResponsePolicyId,
+              policyName: context.playbookName,
+            }
           : undefined,
       // OneUptime AI's own block, working the case (#10352).
       ...(context.isOneUptimeAi

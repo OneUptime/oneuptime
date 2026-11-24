@@ -18,6 +18,7 @@ import Probe, {
 import Project from "Common/Models/DatabaseModels/Project";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageResource from "Common/Models/DatabaseModels/StatusPageResource";
+import RecordsById from "Common/UI/Utils/RecordsById";
 import {
   FirstOnCallPolicyCreate,
   buildFirstOnCallPolicy,
@@ -192,8 +193,30 @@ export const OWN_MONITORS_READ_LIMIT: number = 100;
 export const OTHER_MONITORS_READ_LIMIT: number =
   MONITORS_CHECKING_ADDRESS_READ_LIMIT;
 
-// How many status pages step 4 reads to offer (#7053).
+/*
+ * How many status pages step 4 reads first (#7053): enough to say whether
+ * the step is walked and which page it starts on. Its picker searches every
+ * page on the server (#10646).
+ */
 export const STATUS_PAGES_READ_LIMIT: number = 100;
+
+/*
+ * Step 4's picker: the project's live status pages, searched on the server
+ * as it is typed in, 50 by name (EntityDropdown). It offered the first 100
+ * read by name, archived ones among them, so a page past them could not be
+ * picked (#10646).
+ */
+export const WEBSITE_DOWN_STATUS_PAGE_PICKER: {
+  modelType: typeof StatusPage;
+  labelField: string;
+  valueField: string;
+  query: Record<string, unknown>;
+} = {
+  modelType: StatusPage,
+  labelField: "name",
+  valueField: "_id",
+  query: { isArchived: false },
+};
 
 export default class WebsiteDownApi {
   /*
@@ -793,10 +816,13 @@ export default class WebsiteDownApi {
   }
 
   /*
-   * STEP 4, SHOW IT TO CUSTOMERS? (#7053): the project's status pages, by
-   * name, that the server lets this person read - none archived, as an
-   * archived page is offline. Asked only of someone who may put a monitor
-   * on one (mayAddToStatusPage).
+   * STEP 4, SHOW IT TO CUSTOMERS? (#7053): the project's first status pages
+   * by name that the server lets this person read - none archived, as an
+   * archived page is offline, and asked for so, so archived pages never
+   * use up the read (#10646). They say whether the step is walked at all
+   * and which page it starts on; its picker searches every page as it is
+   * typed in (WEBSITE_DOWN_STATUS_PAGE_PICKER). Asked only of someone who
+   * may put a monitor on one (mayAddToStatusPage).
    */
   public static async loadStatusPages(): Promise<
     Array<WebsiteDownStatusPageChoice>
@@ -805,7 +831,10 @@ export default class WebsiteDownApi {
 
     const pages: ListResult<StatusPage> = await ModelAPI.getList<StatusPage>({
       modelType: StatusPage,
-      query: projectId ? { projectId: projectId } : {},
+      query: {
+        ...(projectId ? { projectId: projectId } : {}),
+        isArchived: false,
+      },
       limit: STATUS_PAGES_READ_LIMIT,
       skip: 0,
       select: { _id: true, name: true, isArchived: true },
@@ -822,10 +851,14 @@ export default class WebsiteDownApi {
   }
 
   /*
-   * The page of `statusPages` that shows the monitor, read from the records:
-   * the one the run put it on, if it still does, else the first that does.
+   * The status page that shows the monitor, read from the records: the one
+   * the run put it on, if it still does, else the first by name that does.
    * Null when none does - so a monitor already on a page makes the step
-   * done, and nothing is added twice.
+   * done, and nothing is added twice. The pages are read by their ids
+   * (#10646): a page past the ones the step read first is found too, where
+   * it used to be looked for only among them. An archived page is offline,
+   * and shows nobody anything. `statusPages` says only whether the project
+   * has a page: with none, nothing is read.
    */
   public static async findStatusPageShowing(data: {
     monitorId: string;
@@ -846,26 +879,48 @@ export default class WebsiteDownApi {
         sort: {},
       });
 
-    const showing: Set<string> = new Set<string>(
-      resources.data
-        .map((resource: StatusPageResource): string => {
-          return resource.statusPageId?.toString() || "";
-        })
-        .filter(Boolean),
-    );
+    const showingIds: Array<string> = resources.data
+      .map((resource: StatusPageResource): string => {
+        return resource.statusPageId?.toString() || "";
+      })
+      .filter(Boolean);
 
-    const preferred: WebsiteDownStatusPageChoice | undefined =
-      data.preferredStatusPageId && showing.has(data.preferredStatusPageId)
-        ? data.statusPages.find((page: WebsiteDownStatusPageChoice) => {
-            return page.id === data.preferredStatusPageId;
-          })
-        : undefined;
+    if (showingIds.length === 0) {
+      return null;
+    }
+
+    const pages: Array<StatusPage> = await RecordsById.read<StatusPage>({
+      modelType: StatusPage,
+      ids: showingIds,
+      query: { isArchived: false },
+      select: { _id: true, name: true },
+    });
+
+    const showing: Array<WebsiteDownStatusPageChoice> = pages
+      .map((page: StatusPage): WebsiteDownStatusPageChoice => {
+        return { id: page._id?.toString() || "", name: page.name || "" };
+      })
+      .filter((page: WebsiteDownStatusPageChoice): boolean => {
+        return Boolean(page.id);
+      })
+      .sort(
+        (
+          left: WebsiteDownStatusPageChoice,
+          right: WebsiteDownStatusPageChoice,
+        ): number => {
+          return left.name.localeCompare(right.name);
+        },
+      );
+
+    const preferredId: string = (data.preferredStatusPageId || "")
+      .trim()
+      .toLowerCase();
 
     return (
-      preferred ||
-      data.statusPages.find((page: WebsiteDownStatusPageChoice) => {
-        return showing.has(page.id);
+      showing.find((page: WebsiteDownStatusPageChoice): boolean => {
+        return Boolean(preferredId) && page.id.toLowerCase() === preferredId;
       }) ||
+      showing[0] ||
       null
     );
   }

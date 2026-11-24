@@ -118,6 +118,7 @@ import SecurityCaseResponse, {
 } from "../Utils/AI/Security/Response/SecurityCaseResponse";
 import SecurityCaseResponseDecisions from "../Utils/AI/Security/Response/SecurityCaseResponseDecisions";
 import SecurityCaseResponseStatus from "../Utils/AI/Security/Response/SecurityCaseResponseStatus";
+import SecurityCaseAiHold from "../Utils/SecurityCase/SecurityCaseAiHold";
 import SecurityCaseAiAction from "../../Models/DatabaseModels/SecurityCaseAiAction";
 import SecurityCaseAiActionService from "../Services/SecurityCaseAiActionService";
 import {
@@ -1299,6 +1300,63 @@ export default class SecurityCaseAPI extends BaseAPI<
           if (!isTakenOver) {
             throw new BadDataException(
               "OneUptime AI is not working this case.",
+            );
+          }
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+
+    /*
+     * Page now (#10353): the people OneUptime AI holds a new case's alerts
+     * from while it responds first are alerted at once, and the playbooks'
+     * Page On-Call steps that waited page (SecurityCaseAiHold). It alerts
+     * people, so it takes a case the person may change, as working the case
+     * does. Answers 400 when the case is not held - OneUptime AI resolved
+     * it, or people were alerted already.
+     */
+    this.router.post(
+      `${basePath}/:caseId/ai-response/page-now`,
+      UserMiddleware.getUserMiddleware,
+      UserMiddleware.requireUserAuthentication,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: new SecurityCase().getUpdatePermissions(),
+            errorMessage:
+              "Alerting people about a case OneUptime AI is on takes a role that can work security cases.",
+          });
+
+          const caseId: string | undefined = req.params["caseId"];
+
+          if (!caseId || !ObjectID.isValidUUID(caseId)) {
+            throw new BadDataException("A valid case ID is required.");
+          }
+
+          const securityCase: SecurityCase = await this.readCaseToChange({
+            caseId: new ObjectID(caseId),
+            projectId,
+            props,
+          });
+
+          const isPaged: boolean = await SecurityCaseAiHold.pageNow({
+            projectId,
+            securityCaseId: securityCase.id!,
+            userId: props.userId,
+          });
+
+          if (!isPaged) {
+            throw new BadDataException(
+              "OneUptime AI is not holding this case's alerts any more, so there is nobody left to alert.",
             );
           }
 

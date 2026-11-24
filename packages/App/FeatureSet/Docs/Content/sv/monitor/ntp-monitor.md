@@ -119,7 +119,7 @@ Kriterierna kontrolleras uppifrån och ned, och det första som matchar avgör v
 
 ### Utvärdering över en tidsperiod
 
-**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under varje NTP-filter. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för den senaste: välj en aggregering under **Utvärdera** och ett fönster, från 2 till 60 minuter, under **Under de senaste (i minuter)**. Bara kontroller som servern svarade på har ett stratum, en avvikelse och en rotspridning, så ett fönster av tystnad saknar data för de filtren, och **Om ingen data** avgör vad som händer.
+**Utvärdera dessa kriterier över en tidsperiod** är en kryssruta under varje NTP-filter. Slå på den för att bedöma ett fönster av tidigare kontroller i stället för den senaste: välj en aggregering under **Utvärdera** och ett fönster, från 2 minuter till 24 timmar, under **Under de senaste**. Bara kontroller som servern svarade på har ett stratum, en avvikelse och en rotspridning, så ett fönster av tystnad saknar data för de filtren, och **Om ingen data** avgör vad som händer.
 
 ### Exempel på kriterier
 

@@ -383,7 +383,7 @@ Ein Konto kann zu vielen Organisationen gehören, daher können Sie nur die Eins
 
 Um eine einzelne Person zu löschen, öffnen Sie **Benutzer**: In der Zeile jeder Person, deren Einstellungen Sie löschen dürfen, steht **Anmeldeeinstellungen gespeichert**, und **Anmeldeeinstellungen löschen** in ihrem Menü löscht nur die Einstellungen dieser Person, nach derselben Regel und nach einer Rückfrage, die auflistet, was entfernt wird.
 
-Jede Person, deren Einstellungen gelöscht wurden, erhält eine E-Mail darüber, was entfernt wurde und dass sie sich jetzt mit SSO anmeldet, und die Audit-Protokolle Ihrer Projekte verzeichnen das Löschen unter Ihrem Namen. Löschen kann nur ein **Projektinhaber**, der im Dashboard angemeldet ist, nie mit einem API-Schlüssel.
+Jede Person, deren Einstellungen gelöscht wurden, erhält eine E-Mail darüber, was entfernt wurde und dass sie sich jetzt mit SSO anmeldet, und die Audit-Protokolle Ihrer Projekte verzeichnen das Löschen unter Ihrem Namen. Löschen kann nur ein **Projektinhaber**, der im Dashboard angemeldet ist, nie mit einem API-Schlüssel. Vor dem Löschen werden Sie gebeten, [zu bestätigen, dass Sie es sind](/docs/introduction/your-account#bestätigen-dass-sie-es-sind).
 
 ## Einen Anbieter ausschalten oder löschen
 

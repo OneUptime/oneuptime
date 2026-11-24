@@ -9,6 +9,7 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import DnsRecordType from "../../../Types/Monitor/DnsMonitor/DnsRecordType";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorRequestBodyFormat from "../../../Types/Monitor/MonitorRequestBodyFormat";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
@@ -448,7 +449,32 @@ describe("a Website or API monitor", () => {
       "Content-Type": "application/json",
     });
     expect(step.data!.requestBody).toBe('{"ping":true}');
+    // JSON is the step's default: a JSON body's format goes unsaid.
+    expect(step.data!.requestBodyFormat).toBeUndefined();
     expect(step.data!.doNotFollowRedirects).toBe(true);
+  });
+
+  test("an API monitor sends a body that is not JSON as text, byte for byte (#10787)", () => {
+    for (const body of [
+      "<soap:Envelope><soap:Body><Ping/></soap:Body></soap:Envelope>",
+      "user=ops&remember=1",
+      "ping\n",
+    ]) {
+      const built: ToolImportBuiltMonitor = build({
+        monitorType: MonitorType.API,
+        destination: "https://api.example.com/soap",
+        httpMethod: HTTPMethod.POST,
+        requestHeaders: { "Content-Type": "text/xml; charset=utf-8" },
+        requestBody: body,
+        requestBodyFormat: MonitorRequestBodyFormat.Text,
+      });
+      const step: MonitorStep = stepOf(built);
+
+      // The form's own Save check refuses no text body.
+      expect(isValid(built)).toBe(true);
+      expect(step.data!.requestBody).toBe(body);
+      expect(step.data!.requestBodyFormat).toBe(MonitorRequestBodyFormat.Text);
+    }
   });
 
   test("a Website monitor loads with GET, or HEAD when the tool did, and sends nothing else", () => {
@@ -620,6 +646,12 @@ describe("the other monitor types", () => {
     const shapes: Array<Partial<ImportedMonitor>> = [
       {},
       { monitorType: MonitorType.API, httpMethod: HTTPMethod.DELETE },
+      {
+        monitorType: MonitorType.API,
+        httpMethod: HTTPMethod.POST,
+        requestBody: "<Ping/>",
+        requestBodyFormat: MonitorRequestBodyFormat.Text,
+      },
       { acceptedStatusCodes: [{ from: 100, to: 599 }] },
       {
         acceptedStatusCodes: [

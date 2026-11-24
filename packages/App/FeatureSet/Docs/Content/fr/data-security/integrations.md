@@ -93,6 +93,14 @@ Un magasin sans propriétaire peut en recevoir de OneUptime AI. Il lit ce qui d�
 
 Voir [Déclencheurs de flux de travail](/docs/workflows/triggers) pour les champs que transmet chaque déclencheur.
 
+## Pull requests
+
+Une fuite coûte le moins cher à corriger avant sa fusion. Dans un dépôt connecté sous **Code** avec les revues de production activées, la revue de chaque pull request a une section **Données sensibles**, lue dans son diff : du code qui écrit des données personnelles ou un secret dans la télémétrie, du code d'infrastructure qui rend public un magasin ou désactive son chiffrement, ses sauvegardes ou sa journalisation, et des migrations qui ajoutent des colonnes pour des données personnelles, des mots de passe ou des données de carte. Chaque point nomme le contrôle de Sécurité des données que le changement ferait échouer une fois livré, et vos propres types de données sont lus par leurs indices de nom, comme les analyses les lisent. Voir [Revue de production des pull requests](/docs/ai/ai-agent#revue-de-production-des-pull-requests).
+
+Ce que sait Sécurité des données rend ces points plus précis, dans le commentaire d'un dépôt privé et, dans Code, pour les personnes qui peuvent lire les détections de Sécurité des données : où la télémétrie du service a contenu le même type de données au cours des 7 derniers jours, la règle de nettoyage qui le masque à l'ingestion, et le magasin qu'est une ressource, avec sa sensibilité. Un magasin marqué **Public par conception** ne donne aucun point pour être public. Le commentaire d'un dépôt public ne dit que ce que montre le diff.
+
+**Fuites détectées avant la fusion**, dans **Paramètres du projet → IA → Résultats IA**, compte les fuites que les revues ont repérées dans des pull requests, corrigées là ou pas encore, à côté des problèmes que les analyses ont ouverts sur les mêmes contrôles après la livraison du code.
+
 ## OneUptime AI
 
 Deux actions sur un problème demandent de l'aide à OneUptime AI. Toutes deux envoient à OneUptime AI le titre et la gravité du problème, le nom, le type, la région et l'ID cloud du magasin de données, sa sensibilité et ses types de données, chacun par son nom (les vôtres par le nom que vous leur avez donné), la preuve, pourquoi le contrôle est important et la correction pour le cloud du magasin de données - jamais les échantillons d'une détection. Toutes deux s'exécutent selon les interrupteurs et les limites de OneUptime AI du projet. Ce que chacune envoie, ce qu'elle n'envoie jamais et le modèle sur lequel elle s'exécute figurent dans [OneUptime AI dans Sécurité des données](/docs/data-security/ai).

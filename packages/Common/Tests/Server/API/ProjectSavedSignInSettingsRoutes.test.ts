@@ -9,9 +9,12 @@ import {
 import ProjectSignInClearing from "../../../Server/Utils/ProjectSignInClearing";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import { confirmEverySession } from "../TestingUtils/ReauthenticationConfirmed";
+import { ReauthenticationPurpose } from "../../../Types/Accounts/Reauthentication";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import ReauthenticationRequiredException from "../../../Types/Exception/ReauthenticationRequiredException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
@@ -57,6 +60,13 @@ import {
  * member who is only an admin, never by master-admin standing, never for
  * another project's id - and that nothing is counted or cleared for
  * anybody else. The owner the rule runs for is the session's own person.
+ *
+ * The two clears also ask that session to have confirmed it's its
+ * person's (#10775, Confirm It's You), after the owner check and before
+ * anything is cleared; the count and the list, which only read, never ask.
+ * The check itself runs for real over HTTP in
+ * ProjectSignInClearingConfirmItsYouOverHttp.test.ts; here it is the spy
+ * confirmEverySession sets, so each route's order can be pinned.
  */
 
 jest.mock("../../../Server/Utils/Express", () => {
@@ -194,6 +204,7 @@ describe("the routes of an organization's own clear", () => {
   let clearSpy: jest.SpyInstance;
   let listSpy: jest.SpyInstance;
   let clearOneSpy: jest.SpyInstance;
+  let confirmSpy: jest.SpyInstance;
 
   beforeAll(() => {
     mockRouter.routes.length = 0;
@@ -223,6 +234,8 @@ describe("the routes of an organization's own clear", () => {
     clearOneSpy = jest
       .spyOn(ProjectSignInClearing, "clearMember")
       .mockResolvedValue(1);
+    // The owner's session has confirmed it's theirs (#10775), unless a test says not.
+    confirmSpy = confirmEverySession() as unknown as jest.SpyInstance;
 
     caller({ permissions: [Permission.ProjectOwner] });
   });
@@ -252,6 +265,8 @@ describe("the routes of an organization's own clear", () => {
     expect(clearSpy).not.toHaveBeenCalled();
     expect(listSpy).not.toHaveBeenCalled();
     expect(clearOneSpy).not.toHaveBeenCalled();
+    // Nobody who may not clear is even asked to confirm it's them (#10775).
+    expect(confirmSpy).not.toHaveBeenCalled();
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   }
 
@@ -595,4 +610,115 @@ describe("the routes of an organization's own clear", () => {
     );
     expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
+
+  /*
+   * CONFIRM IT'S YOU BEFORE A CLEAR (#10775): a stolen or unattended owner
+   * session alone must never strip the organization's people of their
+   * sign-in. The clears ask, the reads never do.
+   */
+  describe.each([
+    ["POST", CLEAR_ROUTE, "everyone the owner may clear"],
+    ["POST", CLEAR_PERSON_ROUTE, "one member"],
+  ])("%s %s (%s) asks first", (method: string, route: string) => {
+    const call: () => Promise<RouteCallResult> =
+      async (): Promise<RouteCallResult> => {
+        return await callRoute(
+          method as "GET" | "POST",
+          route,
+          projectId.toString(),
+          extraFor(route),
+        );
+      };
+
+    test("the session's own person, in the words of a change to how someone else signs in", async () => {
+      const result: RouteCallResult = await call();
+
+      expect(result.nextCallCount).toBe(0);
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+
+      const [props, purpose] = confirmSpy.mock.calls[0]! as [
+        DatabaseCommonInteractionProps,
+        ReauthenticationPurpose,
+      ];
+
+      expect(props.userId?.toString()).toBe(OWNER_ID.toString());
+      expect(props.tenantId?.toString()).toBe(projectId.toString());
+      expect(purpose).toBe(ReauthenticationPurpose.AdminChange);
+    });
+
+    test("an unconfirmed session is refused with the code the prompt acts on, and nothing is cleared", async () => {
+      confirmSpy.mockRejectedValue(
+        new ReauthenticationRequiredException(
+          ReauthenticationPurpose.AdminChange,
+        ),
+      );
+
+      const result: RouteCallResult = await call();
+
+      expect(result.thrownToNext).toBeInstanceOf(
+        ReauthenticationRequiredException,
+      );
+      expect(clearSpy).not.toHaveBeenCalled();
+      expect(clearOneSpy).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+
+    test("after the owner check: an admin who is no owner is refused as one, and never asked", async () => {
+      caller({ permissions: [Permission.ProjectAdmin] });
+
+      const result: RouteCallResult = await call();
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect((result.thrownToNext as Error).message).toBe(
+        CLEAR_PROJECT_SIGN_IN_OWNERS_ONLY_MESSAGE,
+      );
+      expectNothingDone();
+    });
+  });
+
+  test("a path that names no person is answered after the confirmation: nobody is read before the session confirmed", async () => {
+    confirmSpy.mockRejectedValue(
+      new ReauthenticationRequiredException(
+        ReauthenticationPurpose.AdminChange,
+      ),
+    );
+
+    const result: RouteCallResult = await callRoute(
+      "POST",
+      CLEAR_PERSON_ROUTE,
+      projectId.toString(),
+      { params: { userId: "everyone" } },
+    );
+
+    expect(result.thrownToNext).toBeInstanceOf(
+      ReauthenticationRequiredException,
+    );
+    expect(clearOneSpy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["GET", COUNT_ROUTE],
+    ["POST", PEOPLE_ROUTE],
+  ])(
+    "%s %s only reads, and never asks the session to confirm it's theirs",
+    async (method: string, route: string) => {
+      // Even a session that has not confirmed is answered.
+      confirmSpy.mockRejectedValue(
+        new ReauthenticationRequiredException(
+          ReauthenticationPurpose.AdminChange,
+        ),
+      );
+
+      const result: RouteCallResult = await callRoute(
+        method as "GET" | "POST",
+        route,
+        projectId.toString(),
+        extraFor(route),
+      );
+
+      expect(result.nextCallCount).toBe(0);
+      expect(confirmSpy).not.toHaveBeenCalled();
+      expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
+    },
+  );
 });
