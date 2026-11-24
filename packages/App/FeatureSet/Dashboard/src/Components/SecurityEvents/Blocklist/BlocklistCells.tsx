@@ -46,6 +46,7 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import {
   SecurityBlockReason,
+  isSecurityBlockHeldBackReason,
   readSecurityBlockReason,
   wordSecurityBlockReason,
 } from "Common/Types/SecurityBlocklist/SecurityBlockReason";
@@ -77,6 +78,33 @@ export function getEnforcementTone(
     default:
       return PillTone.Neutral;
   }
+}
+
+/*
+ * Whether a destination's row is a block held back because its address is
+ * protected now (#10640): OneUptime took it off on purpose, so its chip
+ * asks for a look - lift the block, or the protection - and is never the
+ * red of a destination that failed (#10804).
+ */
+export function isEnforcementHeldBack(
+  enforcement: Pick<SecurityBlockEnforcement, "state" | "errorReason">,
+): boolean {
+  return (
+    enforcement.state === SecurityBlockEnforcementState.Failed &&
+    isSecurityBlockHeldBackReason(
+      readSecurityBlockReason(enforcement.errorReason),
+    )
+  );
+}
+
+// The tone of a destination's chip: where the block stands there, a held-back block's amber.
+export function getEnforcementChipTone(
+  enforcement: Pick<SecurityBlockEnforcement, "state" | "errorReason">,
+  view: SecurityBlockEnforcementView,
+): PillTone {
+  return isEnforcementHeldBack(enforcement)
+    ? PillTone.Warning
+    : getEnforcementTone(view);
 }
 
 // What a destination's chip says on hover, in the reader's language.
@@ -301,7 +329,7 @@ export const BlockEnforcedAtCell: FunctionComponent<EnforcedAtCellProps> = (
             key={enforcement.destinationKey || enforcement.id?.toString()}
             text={enforcement.destinationName || ""}
             isUserContent={true}
-            tone={getEnforcementTone(view)}
+            tone={getEnforcementChipTone(enforcement, view)}
             tooltip={writeEnforcementTooltip(
               translator,
               enforcement,

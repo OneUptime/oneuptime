@@ -6,6 +6,11 @@ import {
   createTranslator,
   translationKey,
 } from "../Translator";
+import {
+  SecurityAddressProtection,
+  getSecurityProtectionLead,
+  getSecurityProtectionSentence,
+} from "./SecurityProtectedAddress";
 
 /*
  * WHY A DESTINATION OF THE BLOCKLIST IS NOT ENFORCING A BLOCK, IN THE
@@ -34,6 +39,12 @@ import {
  * The reconciler's own sentences around a destination's reason (#10629):
  * what a block's row says at a destination that could not take it, let it
  * go, be read or be written.
+ *
+ * And what a held-back block's rows say (#10640, #10804): the address is
+ * protected now, so OneUptime took the block off, then what protects it
+ * ({{protection}}, describeSecurityAddressProtection's sentence) - after
+ * how the block meets it ({{overlap}}: "35.205.11.0/24 holds
+ * 35.205.11.131.") when the two are not the same.
  */
 export const SECURITY_BLOCK_REASON_FRAMES: {
   notApplied: string;
@@ -43,6 +54,8 @@ export const SECURITY_BLOCK_REASON_FRAMES: {
   couldNotReadBack: string;
   couldNotWrite: string;
   notReady: string;
+  heldBack: string;
+  heldBackOverlapping: string;
 } = {
   notApplied: translationKey("Not applied: {{reason}}"),
   notRemoved: translationKey("Not removed: {{reason}}"),
@@ -58,6 +71,12 @@ export const SECURITY_BLOCK_REASON_FRAMES: {
   ),
   notReady: translationKey(
     "{{destination}} is not ready to hold blocks: {{error}}",
+  ),
+  heldBack: translationKey(
+    "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}",
+  ),
+  heldBackOverlapping: translationKey(
+    "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}",
   ),
 };
 
@@ -174,6 +193,116 @@ export function frameSecurityBlockFailure(data: {
         { parts: { error: carried } },
       )
     : null;
+}
+
+// A cloud resource's kind, when its protection does not name one: "the address of resource web-3".
+export const SECURITY_PROTECTED_RESOURCE_KIND: string =
+  translationKey("resource");
+
+// The values a sentence names, of those given: a reason keeps no value its sentence never says.
+function valuesNamedIn(
+  template: string,
+  values: Record<string, string>,
+): Record<string, string> {
+  const named: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(values)) {
+    if (template.includes(`{{${key}}}`)) {
+      named[key] = value;
+    }
+  }
+
+  return named;
+}
+
+/*
+ * What protects an address, as the sentences a reader's language words
+ * (#10804): the sentence of what protects it, and - when the block and
+ * what is protected are not the same - the one before it that says how
+ * they meet ("35.205.11.0/24 holds 35.205.11.131."). In English they read
+ * as describeSecurityAddressProtection writes them. The protection is as
+ * the reader may see it: whoever may not name a record leaves its name
+ * out before this (isSecurityProtectionWithheld).
+ */
+export function securityProtectionReasons(data: {
+  value: string;
+  protection: SecurityAddressProtection;
+}): {
+  overlap: SecurityBlockReason | null;
+  protection: SecurityBlockReason;
+} {
+  const values: Record<string, string> = {
+    value: data.value,
+    address: data.protection.protectedValue,
+    name: data.protection.name || data.protection.protectedValue,
+    where: data.protection.where || "",
+  };
+  const sentence: string = getSecurityProtectionSentence(data.protection);
+  const lead: string | null = getSecurityProtectionLead({
+    value: data.value,
+    protectedValue: data.protection.protectedValue,
+  });
+  // A kind the protection names is a product's own name, written as it is; none is the reader's word.
+  const kind: Record<string, string> = data.protection.kind
+    ? { kind: data.protection.kind }
+    : {};
+  const kindPart: Record<string, SecurityBlockReason> =
+    !data.protection.kind && sentence.includes("{{kind}}")
+      ? { kind: securityBlockReason(SECURITY_PROTECTED_RESOURCE_KIND) }
+      : {};
+
+  return {
+    overlap: lead ? securityBlockReason(lead, valuesNamedIn(lead, values)) : null,
+    protection: securityBlockReason(
+      sentence,
+      valuesNamedIn(sentence, { ...values, ...kind }),
+      { parts: kindPart },
+    ),
+  };
+}
+
+/*
+ * Why a block is held back now that what it blocks is protected (#10640),
+ * as its rows say it in the reader's language (#10804): "Held back:
+ * 35.205.11.131 is protected now, so OneUptime took the block off.
+ * 35.205.11.131 is one of your project's own addresses." Filled in
+ * English, it is the row's text and the case's timeline line.
+ */
+export function securityBlockHeldBackReason(data: {
+  value: string;
+  protection: SecurityAddressProtection;
+}): SecurityBlockReason {
+  const sentences: {
+    overlap: SecurityBlockReason | null;
+    protection: SecurityBlockReason;
+  } = securityProtectionReasons(data);
+
+  return sentences.overlap
+    ? securityBlockReason(
+        SECURITY_BLOCK_REASON_FRAMES.heldBackOverlapping,
+        { value: data.value },
+        {
+          parts: {
+            overlap: sentences.overlap,
+            protection: sentences.protection,
+          },
+        },
+      )
+    : securityBlockReason(
+        SECURITY_BLOCK_REASON_FRAMES.heldBack,
+        { value: data.value },
+        { parts: { protection: sentences.protection } },
+      );
+}
+
+// Whether a row's reason says its block is held back as protected now (#10640): not a failure.
+export function isSecurityBlockHeldBackReason(
+  reason: SecurityBlockReason | null | undefined,
+): boolean {
+  return (
+    reason?.template === SECURITY_BLOCK_REASON_FRAMES.heldBack ||
+    reason?.template === SECURITY_BLOCK_REASON_FRAMES.heldBackOverlapping
+  );
 }
 
 // A reason as a JSON column keeps it.
