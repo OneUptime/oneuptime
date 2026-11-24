@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "AI-körnings-ID",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "Godkänn och fortsätt",
   "Approved": "Godkänd",
   "Approved & started": "Godkänd och startad",
-  "Approved At": "Approved At",
+  "Approved At": "Godkänd den",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "Ungefärlig",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "Avfärda den här rekommendationen",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "Avfärdad",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "Avfärdad den",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "Gjort utan att fråga",
   "Enable Automatic Data Security AI": "Aktivera automatisk AI för datasäkerhet",
   "Expired At": "Utgången",
-  "Failed At": "Misslyckades",
   "First Approved By": "Först godkänd av",
   "First Approved By ID": "Först godkänd av (ID)",
   "How It Is Proven": "Så bevisas det",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "95:e percentilen av den här appens svarstid i varje minut, i genomsnitt över valt intervall, så som {{service}} mäter den.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produkten Säkerhetshändelser är avstängd på den här servern, så OneUptime AI slutade arbeta med ärendet.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produkten Säkerhetshändelser är avstängd på den här servern. En serveradministratör kan slå på den under Admin-instrumentpanel > Inställningar > Produkter.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} markerade"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} markerade",
+  "Change Failed At": "Ändring misslyckades"
 }

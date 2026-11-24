@@ -60922,7 +60922,6 @@
   "Done without asking": "Hecho sin preguntar",
   "Enable Automatic Data Security AI": "Activar la IA automática de seguridad de datos",
   "Expired At": "Caducado el",
-  "Failed At": "Falló el",
   "First Approved By": "Aprobado primero por",
   "First Approved By ID": "Aprobado primero por (ID)",
   "How It Is Proven": "Cómo se demuestra",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "El percentil 95 del tiempo de respuesta de esta aplicación en cada minuto, de media en el intervalo seleccionado, según lo mide {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "El producto Eventos de seguridad está desactivado en este servidor, así que OneUptime AI dejó de gestionar el caso.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "El producto Eventos de seguridad está desactivado en este servidor. Un administrador del servidor puede activarlo en Panel de administración > Ajustes > Productos.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} de {{total}} marcados"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} de {{total}} marcados",
+  "Change Failed At": "Cambio fallido el"
 }

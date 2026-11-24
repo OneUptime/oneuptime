@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "AI-uitvoerings-ID",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "Goedkeuren en doorgaan",
   "Approved": "Goedgekeurd",
   "Approved & started": "Goedgekeurd en gestart",
-  "Approved At": "Approved At",
+  "Approved At": "Goedgekeurd op",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "Bij benadering",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "Deze aanbeveling negeren",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "Genegeerd",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "Genegeerd op",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "Gedaan zonder te vragen",
   "Enable Automatic Data Security AI": "Automatische AI voor gegevensbeveiliging inschakelen",
   "Expired At": "Verlopen op",
-  "Failed At": "Mislukt op",
   "First Approved By": "Eerst goedgekeurd door",
   "First Approved By ID": "Eerst goedgekeurd door (ID)",
   "How It Is Proven": "Hoe het wordt bewezen",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Het 95e percentiel van de reactietijd van deze app per minuut, gemiddeld over het geselecteerde bereik, zoals {{service}} het meet.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server, dus OneUptime AI is gestopt met het behandelen van de zaak.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server. Een serverbeheerder kan het inschakelen via Beheerdashboard > Instellingen > Producten.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} van {{total}} geselecteerd"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} van {{total}} geselecteerd",
+  "Change Failed At": "Wijziging mislukt op"
 }

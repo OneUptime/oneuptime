@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "AI 執行 ID",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "核准並繼續",
   "Approved": "已核准",
   "Approved & started": "已核准並啟動",
-  "Approved At": "Approved At",
+  "Approved At": "核准時間",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "約略",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "忽略此建議",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "已忽略",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "忽略時間",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "未經詢問即完成",
   "Enable Automatic Data Security AI": "啟用資料安全自動 AI",
   "Expired At": "過期時間",
-  "Failed At": "失敗時間",
   "First Approved By": "首次核准者",
   "First Approved By ID": "首次核准者 ID",
   "How It Is Proven": "驗證方式",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "此應用程式每分鐘回應時間的第 95 百分位數，在所選範圍內取平均值，由 {{service}} 測量。",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "安全事件已在此伺服器上關閉，因此 OneUptime AI 已停止處理此案例。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "安全事件已在此伺服器上關閉。伺服器管理員可以在「管理員儀表板 > 設定 > 產品」中將其開啟。",
-  "{{ticked}} of {{total}} ticked": "已勾選 {{ticked}}/{{total}}"
+  "{{ticked}} of {{total}} ticked": "已勾選 {{ticked}}/{{total}}",
+  "Change Failed At": "變更失敗時間"
 }

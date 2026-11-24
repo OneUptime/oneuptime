@@ -60922,7 +60922,6 @@
   "Done without asking": "Done without asking",
   "Enable Automatic Data Security AI": "Enable Automatic Data Security AI",
   "Expired At": "Expired At",
-  "Failed At": "Failed At",
   "First Approved By": "First Approved By",
   "First Approved By ID": "First Approved By ID",
   "How It Is Proven": "How It Is Proven",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} of {{total}} ticked"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} of {{total}} ticked",
+  "Change Failed At": "Change Failed At"
 }

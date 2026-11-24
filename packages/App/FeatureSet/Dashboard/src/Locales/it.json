@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "ID esecuzione IA",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "Approva e continua",
   "Approved": "Approvato",
   "Approved & started": "Approvato e avviato",
-  "Approved At": "Approved At",
+  "Approved At": "Approvato il",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "Approssimativo",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "Ignora questa raccomandazione",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "Ignorato",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "Ignorato il",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "Fatto senza chiedere",
   "Enable Automatic Data Security AI": "Attiva l'IA automatica della sicurezza dei dati",
   "Expired At": "Scaduto il",
-  "Failed At": "Non riuscito il",
   "First Approved By": "Approvato per primo da",
   "First Approved By ID": "Approvato per primo da (ID)",
   "How It Is Proven": "Come viene dimostrato",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Il 95° percentile del tempo di risposta di questa app in ogni minuto, in media nell'intervallo selezionato, come lo misura {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Il prodotto Eventi di sicurezza è disattivato su questo server, quindi OneUptime AI ha smesso di gestire il caso.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Il prodotto Eventi di sicurezza è disattivato su questo server. Un amministratore del server può attivarlo in Dashboard amministratore > Impostazioni > Prodotti.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} di {{total}} selezionati"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} di {{total}} selezionati",
+  "Change Failed At": "Modifica non riuscita il"
 }

@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "AI-kjøre-ID",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "Godkjenn og fortsett",
   "Approved": "Godkjent",
   "Approved & started": "Godkjent og startet",
-  "Approved At": "Approved At",
+  "Approved At": "Godkjent den",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "Omtrentlig",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "Avvis denne anbefalingen",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "Avvist",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "Avvist den",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "Gjort uten å spørre",
   "Enable Automatic Data Security AI": "Slå på automatisk AI for datasikkerhet",
   "Expired At": "Utløpt den",
-  "Failed At": "Mislyktes den",
   "First Approved By": "Først godkjent av",
   "First Approved By ID": "Først godkjent av (ID)",
   "How It Is Proven": "Slik bevises det",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "Den 95. persentilen av svartiden til denne appen i hvert minutt, i gjennomsnitt over valgt periode, slik {{service}} måler den.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produktet Sikkerhetshendelser er slått av på denne serveren, så OneUptime AI sluttet å arbeide med saken.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhetshendelser er slått av på denne serveren. En serveradministrator kan slå det på under Admin-dashbord > Innstillinger > Produkter.",
-  "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} avkrysset"
+  "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} avkrysset",
+  "Change Failed At": "Endring mislyktes den"
 }

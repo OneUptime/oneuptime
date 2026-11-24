@@ -60922,7 +60922,6 @@
   "Done without asking": "確認なしで実行済み",
   "Enable Automatic Data Security AI": "データセキュリティの自動 AI を有効にする",
   "Expired At": "失効日時",
-  "Failed At": "失敗日時",
   "First Approved By": "最初の承認者",
   "First Approved By ID": "最初の承認者 ID",
   "How It Is Proven": "検証方法",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "このアプリの毎分の応答時間の 95 パーセンタイルを、選択した範囲で平均した値です（{{service}} の測定値）。",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "セキュリティイベントはこのサーバーでオフになっているため、OneUptime AI はケースへの対応をやめました。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。",
-  "{{ticked}} of {{total}} ticked": "{{total}} 件中 {{ticked}} 件を選択"
+  "{{ticked}} of {{total}} ticked": "{{total}} 件中 {{ticked}} 件を選択",
+  "Change Failed At": "変更の失敗日時"
 }

@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "AI रन ID",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "अनुमोदित करें और जारी रखें",
   "Approved": "स्वीकृत",
   "Approved & started": "स्वीकृत और शुरू",
-  "Approved At": "Approved At",
+  "Approved At": "स्वीकृति का समय",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "अनुमानित",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "यह सुझाव खारिज करें",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "खारिज",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "खारिज करने का समय",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "बिना पूछे किया गया",
   "Enable Automatic Data Security AI": "स्वचालित डेटा सुरक्षा AI चालू करें",
   "Expired At": "समाप्त होने का समय",
-  "Failed At": "विफल होने का समय",
   "First Approved By": "पहले स्वीकृत करने वाले",
   "First Approved By ID": "पहले स्वीकृत करने वाले की ID",
   "How It Is Proven": "यह कैसे साबित होता है",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "हर मिनट इस ऐप के प्रतिक्रिया समय का 95वाँ पर्सेंटाइल, चुनी गई सीमा पर औसत, जैसा {{service}} उसे मापता है।",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।",
-  "{{ticked}} of {{total}} ticked": "{{total}} में से {{ticked}} पर निशान लगा है"
+  "{{ticked}} of {{total}} ticked": "{{total}} में से {{ticked}} पर निशान लगा है",
+  "Change Failed At": "बदलाव विफल होने का समय"
 }

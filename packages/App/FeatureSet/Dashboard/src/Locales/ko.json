@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "AI 실행 ID",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "승인 후 계속",
   "Approved": "승인됨",
   "Approved & started": "승인 후 시작됨",
-  "Approved At": "Approved At",
+  "Approved At": "승인 시각",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "근사치",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "이 권장 사항 무시",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "무시됨",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "무시 시각",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "확인 없이 완료됨",
   "Enable Automatic Data Security AI": "데이터 보안 자동 AI 사용",
   "Expired At": "만료 일시",
-  "Failed At": "실패 일시",
   "First Approved By": "첫 승인자",
   "First Approved By ID": "첫 승인자 ID",
   "How It Is Proven": "검증 방법",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "분마다 이 앱 응답 시간의 95번째 백분위수를 선택한 기간에 걸쳐 평균한 값으로, {{service}}이(가) 측정한 값입니다.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "보안 이벤트가 이 서버에서 꺼져 있어 OneUptime AI가 케이스 처리를 멈췄습니다.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "보안 이벤트가 이 서버에서 꺼져 있습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다.",
-  "{{ticked}} of {{total}} ticked": "{{total}}개 중 {{ticked}}개 선택됨"
+  "{{ticked}} of {{total}} ticked": "{{total}}개 중 {{ticked}}개 선택됨",
+  "Change Failed At": "변경 실패 일시"
 }

@@ -7286,7 +7286,7 @@
   "AI Run": "AI Run",
   "AI Run Event": "AI Run Event",
   "AI Run Events": "AI Run Events",
-  "AI Run ID": "AI Run ID",
+  "AI Run ID": "ID запуска ИИ",
   "AI Runs": "AI Runs",
   "AI Suggest": "AI Suggest",
   "AI Task": "AI Task",
@@ -7882,7 +7882,7 @@
   "Approve & continue": "Подтвердить и продолжить",
   "Approved": "Одобрено",
   "Approved & started": "Одобрено и запущено",
-  "Approved At": "Approved At",
+  "Approved At": "Время одобрения",
   "Approved by User": "Approved by User",
   "Approved by User ID": "Approved by User ID",
   "Approximate": "Приблизительно",
@@ -9796,7 +9796,7 @@
   "Dismiss this recommendation": "Отклонить эту рекомендацию",
   "Dismissal Reason": "Dismissal Reason",
   "Dismissed": "Отклонено",
-  "Dismissed At": "Dismissed At",
+  "Dismissed At": "Время отклонения",
   "Dismissed by User": "Dismissed by User",
   "Dismissed by User ID": "Dismissed by User ID",
   "Display Description": "Display Description",
@@ -60922,7 +60922,6 @@
   "Done without asking": "Сделано без запроса",
   "Enable Automatic Data Security AI": "Включить автоматический ИИ для безопасности данных",
   "Expired At": "Время истечения",
-  "Failed At": "Время сбоя",
   "First Approved By": "Кто одобрил первым",
   "First Approved By ID": "ID пользователя, одобрившего первым",
   "How It Is Proven": "Как это подтверждается",
@@ -63070,5 +63069,6 @@
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "95-й перцентиль времени ответа этого приложения в каждую минуту, в среднем за выбранный период, по измерениям {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Продукт «События безопасности» отключён на этом сервере, поэтому OneUptime AI перестал работать над кейсом.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты».",
-  "{{ticked}} of {{total}} ticked": "Отмечено: {{ticked}} из {{total}}"
+  "{{ticked}} of {{total}} ticked": "Отмечено: {{ticked}} из {{total}}",
+  "Change Failed At": "Время сбоя изменения"
 }
