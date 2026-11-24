@@ -1,3 +1,4 @@
+import IncidentEpisodeMember from "../../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeRoleMember from "../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../../Models/DatabaseModels/IncidentRole";
@@ -7,6 +8,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+import IncidentEpisodeMemberService from "../../Services/IncidentEpisodeMemberService";
 import IncidentEpisodeRoleMemberService from "../../Services/IncidentEpisodeRoleMemberService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
 import IncidentRoleService from "../../Services/IncidentRoleService";
@@ -164,8 +166,9 @@ export default class OnCallPolicyIncidentRole {
 
   /*
    * The roles the person was given on the incident by the policies that
-   * paged them about it - their roles that a page gave, as far as the
-   * pages say: the roles the policies that paged them give. The first
+   * paged them about it, or about an episode it is in - their roles that a
+   * page gave, as far as the pages say: the roles the policies that paged
+   * them give. The first
    * person to change an incident's state becomes its Incident Commander
    * only while they hold no role on it (IncidentStateTimelineService); a
    * role a page gave them does not count, so somebody paged as a
@@ -192,6 +195,54 @@ export default class OnCallPolicyIncidentRole {
         isRoot: true,
       },
     });
+
+    /*
+     * And the pages about the episodes the incident is in: a role given on
+     * an episode is carried into each of its incidents
+     * (IncidentEpisodeRoleMemberService).
+     */
+    const episodeIds: Array<string> = (
+      await IncidentEpisodeMemberService.findBy({
+        query: {
+          projectId: data.projectId,
+          incidentId: data.incidentId,
+        },
+        select: {
+          incidentEpisodeId: true,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      })
+    )
+      .map((inEpisode: IncidentEpisodeMember): string => {
+        return inEpisode.incidentEpisodeId?.toString() || "";
+      })
+      .filter((episodeId: string): boolean => {
+        return Boolean(episodeId);
+      });
+
+    if (episodeIds.length > 0) {
+      pages.push(
+        ...(await UserOnCallLogService.findBy({
+          query: {
+            projectId: data.projectId,
+            triggeredByIncidentEpisodeId: QueryHelper.any(episodeIds),
+            userId: data.userId,
+          },
+          select: {
+            onCallDutyPolicyId: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        })),
+      );
+    }
 
     const policyIds: Array<string> = Array.from(
       new Set(

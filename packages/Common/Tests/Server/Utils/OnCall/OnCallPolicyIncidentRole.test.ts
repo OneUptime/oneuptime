@@ -1,3 +1,4 @@
+import IncidentEpisodeMember from "../../../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeRoleMember from "../../../../Models/DatabaseModels/IncidentEpisodeRoleMember";
 import IncidentMember from "../../../../Models/DatabaseModels/IncidentMember";
 import IncidentRole from "../../../../Models/DatabaseModels/IncidentRole";
@@ -6,6 +7,7 @@ import UserOnCallLog from "../../../../Models/DatabaseModels/UserOnCallLog";
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../../Server/Infrastructure/Semaphore";
+import IncidentEpisodeMemberService from "../../../../Server/Services/IncidentEpisodeMemberService";
 import IncidentEpisodeRoleMemberService from "../../../../Server/Services/IncidentEpisodeRoleMemberService";
 import IncidentMemberService from "../../../../Server/Services/IncidentMemberService";
 import IncidentRoleService from "../../../../Server/Services/IncidentRoleService";
@@ -413,6 +415,15 @@ describe("the roles pages gave a person on an incident", () => {
     return page;
   };
 
+  // The incident is in no episode unless a test says so.
+  let readEpisodes: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    readEpisodes = jest
+      .spyOn(IncidentEpisodeMemberService, "findBy")
+      .mockResolvedValue([]);
+  });
+
   test("are the roles of the policies that paged them about it, each once", async () => {
     const readPages: ReturnType<typeof jest.spyOn> = jest
       .spyOn(UserOnCallLogService, "findBy")
@@ -488,5 +499,60 @@ describe("the roles pages gave a person on an incident", () => {
       ).size,
     ).toBe(0);
     expect(readPolicies).not.toHaveBeenCalled();
+  });
+
+  test("count the pages about an episode the incident is in: its role is carried into the incident", async () => {
+    const inEpisode: IncidentEpisodeMember = new IncidentEpisodeMember();
+    inEpisode.incidentEpisodeId = EPISODE_ID;
+    readEpisodes.mockResolvedValue([inEpisode]);
+
+    const readPages: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserOnCallLogService, "findBy")
+      // Never paged about the incident itself...
+      .mockResolvedValueOnce([])
+      // ...but about its episode.
+      .mockResolvedValueOnce([pageBy(POLICY_ID)]);
+    jest
+      .spyOn(OnCallDutyPolicyService, "findBy")
+      .mockResolvedValue([policyRow(ROLE_ID)]);
+
+    const roleIds: Set<string> =
+      await OnCallPolicyIncidentRole.getRoleIdsGivenByPages({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        userId: DEANE_ID,
+      });
+
+    expect(Array.from(roleIds)).toEqual([ROLE_ID.toString()]);
+    expect(
+      (readEpisodes.mock.calls[0]![0] as { query: Record<string, unknown> })
+        .query,
+    ).toEqual({ projectId: PROJECT_ID, incidentId: INCIDENT_ID });
+
+    const episodeQuery: Record<string, unknown> = (
+      readPages.mock.calls[1]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(episodeQuery["projectId"]).toEqual(PROJECT_ID);
+    expect(episodeQuery["userId"]).toEqual(DEANE_ID);
+    expect(
+      Object.values(
+        (episodeQuery["triggeredByIncidentEpisodeId"] as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      ).flat(),
+    ).toEqual([EPISODE_ID.toString()]);
+  });
+
+  test("an incident in no episode reads no episode's pages", async () => {
+    const readPages: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(UserOnCallLogService, "findBy")
+      .mockResolvedValue([]);
+
+    await OnCallPolicyIncidentRole.getRoleIdsGivenByPages({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      userId: DEANE_ID,
+    });
+
+    expect(readPages).toHaveBeenCalledTimes(1);
   });
 });
