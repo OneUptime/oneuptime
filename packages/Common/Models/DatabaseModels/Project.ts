@@ -97,6 +97,14 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingAdmin,
     Permission.BillingMember,
     Permission.BillingViewer,
+    /*
+     * Security Admin reads the hourly limit of automatic blocks it sets
+     * (securityAutomaticResponseMaxBlocksPerHour, #10746): an update reaches
+     * only the records its caller may read, so without this its one change
+     * of the project would change nothing. Each column's own read list
+     * decides the rest.
+     */
+    Permission.SecurityAdmin,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   /*
@@ -715,6 +723,8 @@ export default class Project extends TenantModel {
       Permission.BillingAdmin,
       Permission.BillingMember,
       Permission.BillingViewer,
+      // Read by exactly who reads the project (PermissionCatalogueCoverage).
+      Permission.SecurityAdmin,
     ],
     update: [],
   })
@@ -3332,6 +3342,7 @@ export default class Project extends TenantModel {
       Permission.ReadProject,
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
+      Permission.SecurityAdmin,
     ],
     update: [
       Permission.ProjectOwner,

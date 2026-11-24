@@ -320,6 +320,18 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
   },
   {
+    file: "packages/Common/Server/Utils/DataSecurity/ExposureAssessmentReader.ts",
+    count: 1,
+    builtFrom:
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change to the exposed store (#10377)",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    count: 1,
+    builtFrom:
+      "the law names a draft's text is read for (LAW_NAMES_IN_TEXT), each a pattern literal of words and section numbers (#10377)",
+  },
+  {
     file: "packages/Common/Types/NoBreakSpaces.ts",
     count: 2,
     builtFrom:
@@ -348,6 +360,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
+  },
+  {
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
+    count: 1,
+    builtFrom:
+      "the redactor's own two email address patterns (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), pattern literals of bounded parts, as the Android agent's Kotlin writes them",
   },
   {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",

@@ -256,3 +256,34 @@ describe("the issue's two scenarios", () => {
     expect(located.request.text).toContain("redaction step");
   });
 });
+
+describe("a template's words, looked for in a repository's files", () => {
+  const FILES: Record<string, string> = {
+    "src/signup.ts": [
+      "logger.info(`(beta) signed up: ${user.email} at ${now}`);",
+      'logger.info("User " + user.email + " signed up");',
+    ].join("\n"),
+  };
+
+  function lineOf(template: string): number | null {
+    return (
+      findPlaceInFiles({
+        place: { template, recordCount: 1 },
+        files: FILES,
+      })?.line || null
+    );
+  }
+
+  test("finds the line holding its words in order, with anything between them", () => {
+    expect(lineOf("User <Email address> signed up")).toBe(2);
+  });
+
+  test("reads each word as written, never as a pattern", () => {
+    // "(beta)" and "up:" hold a pattern's characters; they are read as text.
+    expect(lineOf("(beta) signed up: <Email address> at <Date>")).toBe(1);
+  });
+
+  test("finds nothing for the same words out of order", () => {
+    expect(lineOf("signed up <Email address> User")).toBeNull();
+  });
+});

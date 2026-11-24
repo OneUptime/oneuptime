@@ -1,6 +1,7 @@
 import { JSONObject } from "../../../../Types/JSON";
 import LogScrubAction from "../../../../Types/Log/LogScrubAction";
 import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
+import { writeOwnValue } from "../../../../Utils/LookupTable";
 import { getScrubRulesOfRecord } from "../../../../Types/Telemetry/ScrubRuleScope";
 import { correlationIdAttributeKeys } from "../../../../Utils/Telemetry/CorrelationIdAttributes";
 import ScrubJsonKeysUtil, {
@@ -79,7 +80,7 @@ function copyTextAttributes(logRow: JSONObject): JSONObject {
     const value: unknown = (attributes as JSONObject)[key];
 
     if (typeof value === "string") {
-      copied[key] = value;
+      writeOwnValue(copied, key, value);
     }
   }
 

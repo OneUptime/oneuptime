@@ -37,6 +37,9 @@ import RecordOfProcessingDrafter, {
 } from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import RecordOfProcessingReader from "../Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../Utils/DataSecurity/RecordOfProcessingWriter";
+import StoreChangeAccess, {
+  STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+} from "../Utils/DataSecurity/StoreChangeAccess";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
 } from "../../Types/DataSecurity/DataCategory";
@@ -567,6 +570,17 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           props,
           dataStoreId,
+        });
+
+        /*
+         * The drafts are written into the store's record as OneUptime: only
+         * for who may change this store, by its own row - not whoever may
+         * edit some store in the project (TableHalfWriteGuard).
+         */
+        await StoreChangeAccess.assertMayChange({
+          dataStoreId,
+          props,
+          message: STORE_RECORD_CHANGE_REFUSED_MESSAGE,
         });
 
         const outcome: RecordDraftOutcome =
