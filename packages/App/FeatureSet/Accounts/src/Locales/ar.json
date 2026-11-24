@@ -724,6 +724,10 @@
   "Add one file at a time.": "أضف ملفًا واحدًا في كل مرة.",
   "This field holds up to {{count}} files. Remove one to add another.": "الحد الأقصى للملفات في هذا الحقل: {{count}}. أزل ملفًا لإضافة آخر.",
   "This field holds up to {{count}} files. Remove one to add another._one": "يحمل هذا الحقل ملفًا واحدًا. أزله لإضافة آخر.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "لم تتم إضافة «{{fileName}}»، فالحد الأقصى للملفات في هذا الحقل: {{count}}.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "لم تتم إضافة «{{fileName}}»، فهذا الحقل يحمل ملفًا واحدًا.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "الحد الأقصى للملفات في هذا الحقل: {{count}}، لذا لم تتم إضافة هذه الملفات: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "يحمل هذا الحقل ملفًا واحدًا، لذا لم تتم إضافة هذه الملفات: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "تنبيه",
     "danger": "خطر",
