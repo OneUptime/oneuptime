@@ -41,6 +41,27 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 const fetchTimeSeriesMock: MockFunction = getJestMockFunction();
 const fetchTableMock: MockFunction = getJestMockFunction();
 const metricChartsRenderMock: MockFunction = getJestMockFunction();
+const dataSourceTypeMock: MockFunction = getJestMockFunction();
+
+/*
+ * The type of each of the project's data sources, as the page reads them
+ * (DataSourceTypes): ds-prom is a Prometheus, ds-loki a Loki, ds-pg a
+ * PostgreSQL. A widget fills its variables the way its source reads them
+ * (issue #10326).
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Utils/DataSourceTypes",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getType: (...args: Array<any>) => {
+          return dataSourceTypeMock(...args);
+        },
+      },
+    };
+  },
+);
 
 /*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
@@ -124,6 +145,7 @@ import { DashboardValueTrendDirection } from "../../../Types/Dashboard/Dashboard
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
+import DataSourceType from "../../../Types/DataSource/DataSourceType";
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DataSourceQueryConfig from "../../../Types/DataSource/DataSourceQueryConfig";
 import DataSourceTableResult, {
@@ -585,6 +607,15 @@ const PUBLIC_DASHBOARD_CONTEXT: PublicDashboardContext = {
 
 beforeEach((): void => {
   jest.clearAllMocks();
+  dataSourceTypeMock.mockImplementation(async (id: unknown) => {
+    return (
+      {
+        "ds-prom": DataSourceType.Prometheus,
+        "ds-loki": DataSourceType.Loki,
+        "ds-pg": DataSourceType.PostgreSQL,
+      } as Record<string, DataSourceType>
+    )[String(id)];
+  });
   fetchTimeSeriesMock.mockResolvedValue(buildSeries([]));
   fetchTableMock.mockResolvedValue({
     columns: [],
@@ -902,13 +933,13 @@ describe("Data Source widget fetching", () => {
       expect(call.queryConfig.dataSourceId).toBe("ds-pg");
     });
 
-    test("a multi-select variable joins its values with regex alternation", async () => {
+    test("over a Prometheus, a multi-select variable matches any of its values, each as written, as Grafana's does", async () => {
       const clusterVariable: DashboardVariable = {
         id: "var-cluster",
         name: "cluster",
         type: DashboardVariableType.CustomList,
         isMultiSelect: true,
-        selectedValues: ["eu-1", "us-2"],
+        selectedValues: ["eu-1", "us.2"],
       };
 
       renderGaugeWidget(
@@ -929,11 +960,74 @@ describe("Data Source widget fetching", () => {
 
       expect(fetchTimeSeriesMock).toHaveBeenCalledTimes(1);
       expect(getFetchCalls(fetchTimeSeriesMock)[0]!.queryConfig.query).toBe(
-        'up{cluster=~"eu-1|us-2"}',
+        'up{cluster=~"(eu-1|us\\\\.2)"}',
+      );
+      expect(dataSourceTypeMock).toHaveBeenCalledWith("ds-prom");
+    });
+
+    test("over a Loki, a multi-select variable joins its values with regex alternation", async () => {
+      const clusterVariable: DashboardVariable = {
+        id: "var-cluster",
+        name: "cluster",
+        type: DashboardVariableType.CustomList,
+        isMultiSelect: true,
+        selectedValues: ["eu-1", "us-2"],
+      };
+
+      renderChartWidget(
+        {
+          queries: [
+            {
+              id: "q1",
+              dataSourceId: "ds-loki",
+              query: 'sum(count_over_time({cluster=~"{{cluster}}"}[5m]))',
+            },
+          ],
+        },
+        { variables: [clusterVariable] },
+      );
+
+      await waitFor((): void => {
+        expect(fetchTimeSeriesMock).toHaveBeenCalledTimes(1);
+      });
+
+      expect(getFetchCalls(fetchTimeSeriesMock)[0]!.queryConfig.query).toBe(
+        'sum(count_over_time({cluster=~"eu-1|us-2"}[5m]))',
       );
     });
 
-    test("an unresolved variable leaves its token intact for the connector to complain about", async () => {
+    test("over a Prometheus, a variable on All - nothing picked - matches every value, as Grafana's does", async () => {
+      const emptyVariable: DashboardVariable = {
+        id: "var-env",
+        name: "env",
+        type: DashboardVariableType.TextInput,
+      };
+
+      renderValueWidget(
+        {
+          query: { dataSourceId: "ds-prom", query: 'up{env="{{env}}"}' },
+          title: "Up",
+        },
+        { variables: [emptyVariable] },
+      );
+
+      await waitFor((): void => {
+        expect(
+          screen.getByText("No data for the selected time range"),
+        ).toBeInTheDocument();
+      });
+
+      expect(fetchTimeSeriesMock).toHaveBeenCalledTimes(1);
+      expect(getFetchCalls(fetchTimeSeriesMock)[0]!.queryConfig.query).toBe(
+        'up{env=~".*"}',
+      );
+    });
+
+    test("over a source of unknown type, an unresolved variable leaves its token intact for the connector to complain about", async () => {
+      dataSourceTypeMock.mockImplementation(async () => {
+        return undefined;
+      });
+
       const emptyVariable: DashboardVariable = {
         id: "var-env",
         name: "env",
@@ -958,6 +1052,27 @@ describe("Data Source widget fetching", () => {
       expect(getFetchCalls(fetchTimeSeriesMock)[0]!.queryConfig.query).toBe(
         'up{env="{{env}}"}',
       );
+    });
+
+    test("a query that names no variable is sent as written, and no type is read", async () => {
+      renderValueWidget(
+        {
+          query: { dataSourceId: "ds-prom", query: "sum(up)" },
+          title: "Up",
+        },
+        { variables: [ENV_VARIABLE] },
+      );
+
+      await waitFor((): void => {
+        expect(
+          screen.getByText("No data for the selected time range"),
+        ).toBeInTheDocument();
+      });
+
+      expect(getFetchCalls(fetchTimeSeriesMock)[0]!.queryConfig.query).toBe(
+        "sum(up)",
+      );
+      expect(dataSourceTypeMock).not.toHaveBeenCalled();
     });
   });
 
