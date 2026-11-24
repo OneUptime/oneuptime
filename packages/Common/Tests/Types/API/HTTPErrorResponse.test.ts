@@ -60,3 +60,59 @@ describe("HTTPErrorResponse", () => {
     expect(httpResponse.message).toBe("Data message");
   });
 });
+
+/*
+ * What an error answer says in words (#8413): a page draws statedMessage,
+ * never the JSON that `message` falls back to for a log line.
+ */
+describe("HTTPErrorResponse.statedMessage", () => {
+  it.each([
+    [{ message: "Pick a probe." }, "Pick a probe."],
+    [{ error: "Pick a probe." }, "Pick a probe."],
+    [{ data: "<html>502</html>" }, "<html>502</html>"],
+    [{ error: { message: "Pick a probe." } }, "Pick a probe."],
+    [{ error: { error: "Pick a probe." } }, "Pick a probe."],
+    [{ data: { rows: [] }, message: "Pick a probe." }, "Pick a probe."],
+  ])("reads the words of %j", (body: object, words: string) => {
+    const answer: HTTPErrorResponse = new HTTPErrorResponse(
+      400,
+      body as never,
+      {},
+    );
+
+    expect(answer.statedMessage).toBe(words);
+  });
+
+  it.each([
+    [{ error: { code: 42 } }],
+    [{ error: [1, 2, 3] }],
+    [{ error: 42 }],
+    [{ error: true }],
+    [{ message: "   " }],
+    [{ data: { rows: [] } }],
+    [{ data: null }],
+    [{}],
+  ])(
+    "states nothing for %j, where message has JSON or a number",
+    (body: object) => {
+      const answer: HTTPErrorResponse = new HTTPErrorResponse(
+        500,
+        body as never,
+        {},
+      );
+
+      expect(answer.statedMessage).toBe("");
+    },
+  );
+
+  it("keeps message as it was, for a log line", () => {
+    const answer: HTTPErrorResponse = new HTTPErrorResponse(
+      500,
+      { error: { code: 42 } },
+      {},
+    );
+
+    expect(answer.message).toBe('{"code":42}');
+    expect(answer.statedMessage).toBe("");
+  });
+});

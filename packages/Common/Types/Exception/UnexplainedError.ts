@@ -77,6 +77,31 @@ export const isErrorReference: (value: unknown) => value is string = (
   return true;
 };
 
+/*
+ * The reference an answer's body names (ERROR_REFERENCE_FIELD), or null:
+ * only eight hex digits are one (isErrorReference), so nothing else a body
+ * holds is ever said as a reference. Read from the body as it arrived, so
+ * a reference is kept however the rest of the body failed to read (#8413).
+ */
+export const readErrorReference: (body: unknown) => string | null = (
+  body: unknown,
+): string | null => {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return null;
+  }
+
+  let reference: unknown = undefined;
+
+  try {
+    reference = (body as Record<string, unknown>)[ERROR_REFERENCE_FIELD];
+  } catch {
+    // A body whose fields cannot be read names no reference.
+    return null;
+  }
+
+  return isErrorReference(reference) ? reference : null;
+};
+
 // The kinds of error nobody explained.
 export enum UnexplainedErrorKind {
   // The server failed, and named a reference for its logs.

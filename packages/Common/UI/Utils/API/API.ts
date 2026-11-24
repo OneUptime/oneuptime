@@ -25,6 +25,7 @@ import Exception from "../../../Types/Exception/Exception";
 import ProjectBlockedException from "../../../Types/Exception/ProjectBlockedException";
 import SessionEndedException from "../../../Types/Exception/SessionEndedException";
 import ReauthenticationRequiredException from "../../../Types/Exception/ReauthenticationRequiredException";
+import UnreadableAnswerException from "../../../Types/Exception/UnreadableAnswerException";
 import {
   ERROR_REFERENCE_FIELD,
   getUnexplainedServerErrorMessage,
@@ -792,11 +793,18 @@ class BaseAPI extends API {
        * wrote in a sentence of its own (the limit it holds a gzip body to)
        * is kept.
        */
+      /*
+       * What the answer says in words (statedMessage): an answer of a shape
+       * nobody expected - { error: { code: 42 } } - states nothing, and is
+       * read as one that says nothing, never drawn as its JSON (#8413).
+       */
+      const stated: string = err.statedMessage;
+
       if (
         err.statusCode === 413 &&
-        (isErrorPage(err.message) ||
-          isEmptyErrorPhrase(err.message) ||
-          isTooLargePhrase(err.message))
+        (isErrorPage(stated) ||
+          isEmptyErrorPhrase(stated) ||
+          isTooLargePhrase(stated))
       ) {
         return UNEXPLAINED_ERROR_MESSAGES.tooLarge;
       }
@@ -811,12 +819,12 @@ class BaseAPI extends API {
        */
       if (
         GATEWAY_DOWN_STATUSES.includes(err.statusCode) &&
-        (isErrorPage(err.message) || isEmptyErrorPhrase(err.message))
+        (isErrorPage(stated) || isEmptyErrorPhrase(stated))
       ) {
         return SERVER_DOWN_MESSAGE;
       }
 
-      return BaseAPI.explainServerMessage(err.message);
+      return BaseAPI.explainServerMessage(stated);
     }
 
     if (err instanceof Error) {
@@ -881,6 +889,14 @@ class BaseAPI extends API {
    * - an error with no message: the sentence for a page that failed.
    */
   private static explainThrownError(err: Error): string {
+    /*
+     * An answer the page could not read (#8413): the page's failure, said as
+     * the answer's kind - never in the words its code threw.
+     */
+    if (err instanceof UnreadableAnswerException) {
+      return BaseAPI.explainUnreadableAnswer(err);
+    }
+
     const message: string = (err.message || "").trim();
 
     if (
@@ -907,6 +923,31 @@ class BaseAPI extends API {
     }
 
     return BaseAPI.explainServerMessage(message);
+  }
+
+  /*
+   * What an answer the page could not read says to a person (#8413): the
+   * server's failure with its reference, when the answer named one; for a
+   * refusal or a failure (a 4xx or a 5xx), whatever such an answer says
+   * when nothing in it can be read - a failure the server did not explain,
+   * a gateway's server that is down, what was too large; and for a 2xx -
+   * the server answered and the page's code failed to read it - the page
+   * that failed. Never the words the page's code threw.
+   */
+  private static explainUnreadableAnswer(
+    err: UnreadableAnswerException,
+  ): string {
+    if (err.reference) {
+      return getUnexplainedServerErrorMessage(err.reference);
+    }
+
+    if (err.statusCode !== null && err.statusCode >= 400) {
+      return BaseAPI.getFriendlyMessage(
+        new HTTPErrorResponse(err.statusCode, {}, {}),
+      );
+    }
+
+    return UNEXPLAINED_ERROR_MESSAGES.page;
   }
 
   /*

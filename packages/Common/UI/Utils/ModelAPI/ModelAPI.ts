@@ -8,6 +8,7 @@ import ProjectUtil from "../Project";
 import BaseRequestOptions from "../API/RequestOptions";
 import RecordChanges, { RecordChangeKind } from "./RecordChanges";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AnswerReader from "../../../Types/API/AnswerReader";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPMethod from "../../../Types/API/HTTPMethod";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -273,12 +274,19 @@ export default class ModelAPI {
       const result: ModelAPIHttpResponse<TBaseModel> =
         apiResult as ModelAPIHttpResponse<TBaseModel>;
 
-      if ((result.data as any)["_miscData"]) {
-        result.miscData = (result.data as any)["_miscData"] as JSONObject;
-        delete (result.data as any)["_miscData"];
-      }
+      /*
+       * Read whatever the answer holds, as it always was: an update's answer
+       * is no record, and reads as an empty one. What throws while it is
+       * read is an answer the page could not read (AnswerReader, #8413).
+       */
+      result.data = AnswerReader.read(result, (): TBaseModel => {
+        if ((result.data as any)["_miscData"]) {
+          result.miscData = (result.data as any)["_miscData"] as JSONObject;
+          delete (result.data as any)["_miscData"];
+        }
 
-      result.data = BaseModel.fromJSONObject(result.data, data.modelType);
+        return BaseModel.fromJSONObject(result.data, data.modelType);
+      });
 
       if (data.formType === FormType.Create) {
         this.announceCreated({
@@ -429,9 +437,19 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      const list: Array<TBaseModel> = BaseModel.fromJSONArray(
-        result.data as JSONArray,
-        data.modelType,
+      /*
+       * The answer's rows, as models: an answer that holds none, or a row
+       * that will not read, is an answer the page could not read
+       * (AnswerReader, #8413), never "json is not iterable".
+       */
+      const list: Array<TBaseModel> = AnswerReader.read(
+        result,
+        (): Array<TBaseModel> => {
+          return BaseModel.fromJSONArray(
+            AnswerReader.getRows(result) as Array<JSONObject>,
+            data.modelType,
+          );
+        },
       );
 
       return {
@@ -496,9 +514,8 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      const count: number = result.data["count"] as number;
-
-      return count;
+      // A number, or an answer the page could not read (#8413): never undefined.
+      return AnswerReader.getCount(result);
     }
 
     this.checkStatusCode(result);
@@ -642,9 +659,20 @@ export default class ModelAPI {
       });
 
     if (result.isSuccess()) {
-      const baseModel: TBaseModel = BaseModel.fromJSONObject(
-        result.data as JSONObject,
-        data.modelType,
+      /*
+       * The record, as a model: a page of text answering 200 (a proxy's, a
+       * captive portal's) read as a record with no fields, and a value that
+       * will not read threw its own words. Both are an answer the page could
+       * not read now (AnswerReader, #8413).
+       */
+      const baseModel: TBaseModel = AnswerReader.read(
+        result,
+        (): TBaseModel => {
+          return BaseModel.fromJSONObject(
+            AnswerReader.getRecord(result),
+            data.modelType,
+          );
+        },
       );
 
       return baseModel;
