@@ -170,6 +170,18 @@ export function installGroupFixStubs(
   jest
     .spyOn(CodeTaskAccess, "canAskInRepository")
     .mockResolvedValue(true as never);
+  // Which ranked repositories the person may ask in: one read for all (#10921).
+  jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation((async (data: {
+      repositoryIds: Array<ObjectID | string>;
+    }) => {
+      return new Set<string>(
+        data.repositoryIds.map((id: ObjectID | string): string => {
+          return id.toString().toLowerCase();
+        }),
+      );
+    }) as never);
   jest.spyOn(DeclaredCodeOwner, "findCandidates").mockResolvedValue([
     {
       repository: {
