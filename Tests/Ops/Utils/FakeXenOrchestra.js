@@ -138,12 +138,15 @@ function createFakeXenOrchestra(options = {}) {
       if (lostPool) {
         body = withoutUnnamedPool(body);
       }
-      served.push({ index, scrape, nowSeconds, lostPool });
+      // When it was asked, on this machine's clock: what the collector
+      // stamps the one series served without a timestamp with.
+      const wallMs = Date.now();
+      served.push({ index, scrape, nowSeconds, lostPool, wallMs });
       return done(
         200,
         OPENMETRICS_CONTENT_TYPE,
         body,
-        `served=${index} scrape=${scrape} now=${nowSeconds}${lostPool ? " lost-pool" : ""}`,
+        `served=${index} scrape=${scrape} now=${nowSeconds} wall=${wallMs}${lostPool ? " lost-pool" : ""}`,
       );
     }
     return json(404, { error: "Not found" }, "not-found");
