@@ -417,14 +417,20 @@ export function decideCloudSavingsAi(data: {
     return ask(CloudSavingsAiReason.CannotBeUndone);
   }
 
-  // The smallest limit of the rules that would make it.
-  const limits: Array<number> = matching
-    .map(getCloudSavingsAiRuleLimit)
-    .filter((limit: number | null): limit is number => {
-      return limit !== null;
-    });
+  /*
+   * The smallest limit of the rules that would make it. A rule with none
+   * holds to the default: nothing is made without asking, unbounded.
+   */
+  const limit: number = Math.min(
+    ...matching.map((matched: CloudSavingsAiRuleFacts): number => {
+      return (
+        getCloudSavingsAiRuleLimit(matched) ??
+        CLOUD_SAVINGS_AI_DEFAULT_MONTHLY_LIMIT
+      );
+    }),
+  );
 
-  if (limits.length > 0 && data.saving.monthlySavings > Math.min(...limits)) {
+  if (data.saving.monthlySavings > limit) {
     return ask(CloudSavingsAiReason.OverLimit);
   }
 

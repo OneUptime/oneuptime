@@ -2,6 +2,7 @@ import CloudSavingsAction from "../../../Models/DatabaseModels/CloudSavingsActio
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
 import Includes from "../../../Types/BaseDatabase/Includes";
+import NotEqual from "../../../Types/BaseDatabase/NotEqual";
 import {
   CLOUD_COST_DEFAULT_CURRENCY,
   getMostCommonCloudCurrency,
@@ -86,6 +87,7 @@ export default class CloudSavingsSummaryReader {
       measuringCount: 0,
       promisedMonthly: 0,
       scheduledHoursThisMonth: 0,
+      changesCount: 0,
       waitingCount: 0,
       waitingForYouCount: 0,
     };
@@ -147,6 +149,17 @@ export default class CloudSavingsSummaryReader {
 
     summary.scheduledHoursThisMonth =
       Math.round(summary.scheduledHoursThisMonth * 10) / 10;
+
+    summary.changesCount = (
+      await CloudSavingsActionService.countBy({
+        query: {
+          projectId: data.projectId,
+          status: new NotEqual(CloudSavingsActionStatus.Proposed),
+          origin: new NotEqual(CloudSavingsActionOrigin.Schedule),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
 
     const waiting: Array<CloudSavingsAction> =
       await CloudSavingsActionService.findBy({

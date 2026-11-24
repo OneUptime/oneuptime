@@ -41,6 +41,11 @@ export interface CloudSavingsMeasureWindows {
   afterEnd: Date;
   // Full days in the after-window, 0 while there are none yet.
   afterDays: number;
+  /*
+   * The after-window can grow no more: the change was undone, and the day
+   * it was undone has settled on the bill.
+   */
+  isClosed: boolean;
 }
 
 export function getCloudSavingsMeasureWindows(data: {
@@ -71,6 +76,7 @@ export function getCloudSavingsMeasureWindows(data: {
     afterStart,
     afterEnd: afterDays > 0 ? afterEnd : afterStart,
     afterDays,
+    isClosed: undone !== null && undone.getTime() <= settled.getTime(),
   };
 }
 
@@ -121,7 +127,13 @@ export function judgeCloudSavings(data: {
     data.windows.afterDays < CLOUD_SAVINGS_MEASURE_DAYS ||
     !data.costs.isAccountReadThrough
   ) {
-    return ageInDays > CLOUD_SAVINGS_MEASURE_GIVE_UP_DAYS
+    // Undone too soon to prove, or never read in time: it never will be.
+    const willNever: boolean =
+      ageInDays > CLOUD_SAVINGS_MEASURE_GIVE_UP_DAYS ||
+      (data.windows.isClosed &&
+        data.windows.afterDays < CLOUD_SAVINGS_MEASURE_DAYS);
+
+    return willNever
       ? {
           measurement: CloudSavingsMeasurement.CannotMeasure,
           costBeforeDaily: round(costBeforeDaily),

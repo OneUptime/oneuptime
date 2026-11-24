@@ -165,6 +165,8 @@ export interface CloudSavingsSummary {
   promisedMonthly: number;
   // Hours off-hours schedules stopped resources for this month.
   scheduledHoursThisMonth: number;
+  // Changes made, undone or failed, of every kind but a schedule's stops.
+  changesCount: number;
   // Changes waiting for an approval, and those the reader may approve.
   waitingCount: number;
   waitingForYouCount: number;

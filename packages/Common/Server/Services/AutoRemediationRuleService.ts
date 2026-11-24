@@ -29,6 +29,8 @@ import {
 } from "../../Types/DataSecurity/DataSecurityAi";
 import {
   CLOUD_SAVINGS_AI_AUTONOMY_COLUMN,
+  CLOUD_SAVINGS_AI_DEFAULT_MONTHLY_LIMIT,
+  CLOUD_SAVINGS_AI_MONTHLY_LIMIT_COLUMN,
   CLOUD_SAVINGS_AI_RULE_COLUMNS,
   CLOUD_SAVINGS_AI_RULE_DEFAULT_AUTONOMY,
   getCloudSavingsAiRuleProblem,
@@ -291,6 +293,16 @@ export class Service extends ProjectReferencesService<Model> {
     ) {
       written[CLOUD_SAVINGS_AI_AUTONOMY_COLUMN] =
         CLOUD_SAVINGS_AI_RULE_DEFAULT_AUTONOMY;
+    }
+
+    // A rule says its limit: one left out is the default the form shows.
+    if (
+      written[CLOUD_SAVINGS_AI_MONTHLY_LIMIT_COLUMN] === undefined ||
+      written[CLOUD_SAVINGS_AI_MONTHLY_LIMIT_COLUMN] === null ||
+      written[CLOUD_SAVINGS_AI_MONTHLY_LIMIT_COLUMN] === ""
+    ) {
+      written[CLOUD_SAVINGS_AI_MONTHLY_LIMIT_COLUMN] =
+        CLOUD_SAVINGS_AI_DEFAULT_MONTHLY_LIMIT;
     }
 
     Service.assertCloudSavingRuleFits(written);
