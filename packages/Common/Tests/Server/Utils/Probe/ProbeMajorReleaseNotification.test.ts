@@ -17,6 +17,7 @@ import {
   NOTIFICATION_SMS_TURN_OFF,
 } from "../../../../Utils/Sms/NotificationSms";
 import { hasWhatsAppTemplate } from "../../../../Types/WhatsApp/WhatsAppEventTemplates";
+import { WhatsAppTemplateIds } from "../../../../Types/WhatsApp/WhatsAppTemplates";
 import { FIRST_PROBE_VERSION_WITH_ANY_REQUEST_BODY } from "../../../../Types/Probe/ProbeCapability";
 import { describe, expect, test } from "@jest/globals";
 
@@ -307,9 +308,74 @@ describe("the short channels", () => {
     expect(said).toContain("Update the probe to the latest OneUptime release.");
   });
 
-  test("WhatsApp has no approved template whose words are true of it: the setting offers no switch for it", () => {
+  /*
+   * WhatsApp delivers only templates Meta has approved, and the probe
+   * status template's words are not true of this: it has one of its own
+   * (#10913), so the setting offers WhatsApp for it.
+   */
+  test("WhatsApp: its own approved template, so the setting offers its switch", () => {
     expect(hasWhatsAppTemplate(ProbeMajorReleaseNotification.EVENT_TYPE)).toBe(
-      false,
+      true,
     );
+  });
+
+  test("WhatsApp: the line, from the template, every variable filled, and the probe's page as its link", () => {
+    const whatsApp: ProbeMajorReleaseNotificationContent["whatsAppMessage"] =
+      build().whatsAppMessage;
+
+    expect(whatsApp.templateKey).toBe(
+      WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification,
+    );
+    expect(whatsApp.templateLanguageCode).toBe("en");
+    expect(whatsApp.templateVariables).toEqual({
+      probe_name: "office-probe",
+      probe_version: "16.4.0",
+      major_releases_behind: "2 major releases",
+      server_version: "18.1.0",
+      probe_link: VIEW_PROBE_LINK,
+    });
+    expect(whatsApp.body).toBe(
+      `Probe office-probe runs 16.4.0, 2 major releases behind OneUptime 18.1.0, which it reports to. See what it misses and how to update it using ${VIEW_PROBE_LINK} on the OneUptime dashboard.`,
+    );
+    // Every variable the template names is filled: nothing is left in braces.
+    expect(whatsApp.body).not.toMatch(/\{\{.*?\}\}/);
+  });
+
+  test("WhatsApp: says one release, and what is known of a probe that says no version, as the short line does", () => {
+    const one: ProbeMajorReleaseNotificationContent["whatsAppMessage"] = build({
+      lag: ONE_BEHIND,
+    }).whatsAppMessage;
+
+    expect(one.templateVariables["major_releases_behind"]).toBe(
+      "1 major release",
+    );
+    expect(one.body).toContain(
+      "Probe office-probe runs 17.2.0, 1 major release behind OneUptime 18.0.0, which it reports to.",
+    );
+
+    const unknown: ProbeMajorReleaseNotificationContent["whatsAppMessage"] =
+      build({ lag: SAYS_NONE }).whatsAppMessage;
+
+    expect(unknown.templateVariables).toMatchObject({
+      probe_version: `a version older than ${FIRST_PROBE_VERSION_THAT_SAYS_ITS_RELEASE}`,
+      major_releases_behind: "at least 1 major release",
+      server_version: "18.0.0",
+    });
+    // The same words the SMS opens with.
+    expect(build({ lag: SAYS_NONE }).smsMessage.message).toContain(
+      `runs ${unknown.templateVariables["probe_version"]}, ${unknown.templateVariables["major_releases_behind"]} behind OneUptime 18.0.0`,
+    );
+  });
+
+  test("WhatsApp: a probe's name goes in as written, braces and all, and never makes a variable of the template", () => {
+    const whatsApp: ProbeMajorReleaseNotificationContent["whatsAppMessage"] =
+      build({ probeName: "edge {{probe_link}} probe" }).whatsAppMessage;
+
+    expect(whatsApp.templateVariables["probe_name"]).toBe(
+      "edge {{probe_link}} probe",
+    );
+    expect(
+      whatsApp.body.startsWith("Probe edge {{probe_link}} probe runs"),
+    ).toBe(true);
   });
 });
