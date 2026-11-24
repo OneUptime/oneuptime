@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: आपकी संरक्षित सूची में है, इसलिए इस पर कभी कार्रवाई नहीं होती",
   "{{target}}: one of the case's addresses": "{{target}}: केस के पतों में से एक",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: आपके अपने पतों में से एक, इसलिए इसे कभी ब्लॉक नहीं किया जाता",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: केस के पते की तरह उन्हीं टूल से वही अनुरोध भेजे",
   "{{target}}: the case is grouped on it": "{{target}}: केस इसी पर समूहित है",
   "{{target}}: undone at {{time}}": "{{target}}: {{time}} पर पूर्ववत किया गया",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: {{person}} ने {{time}} पर पूर्ववत किया",
