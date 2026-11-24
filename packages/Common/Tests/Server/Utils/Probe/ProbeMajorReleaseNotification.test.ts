@@ -346,7 +346,7 @@ describe("the short channels", () => {
       lag: ONE_BEHIND,
     }).whatsAppMessage;
 
-    expect(one.templateVariables["major_releases_behind"]).toBe(
+    expect(one.templateVariables?.["major_releases_behind"]).toBe(
       "1 major release",
     );
     expect(one.body).toContain(
@@ -363,7 +363,7 @@ describe("the short channels", () => {
     });
     // The same words the SMS opens with.
     expect(build({ lag: SAYS_NONE }).smsMessage.message).toContain(
-      `runs ${unknown.templateVariables["probe_version"]}, ${unknown.templateVariables["major_releases_behind"]} behind OneUptime 18.0.0`,
+      `runs ${unknown.templateVariables?.["probe_version"]}, ${unknown.templateVariables?.["major_releases_behind"]} behind OneUptime 18.0.0`,
     );
   });
 
@@ -371,7 +371,7 @@ describe("the short channels", () => {
     const whatsApp: ProbeMajorReleaseNotificationContent["whatsAppMessage"] =
       build({ probeName: "edge {{probe_link}} probe" }).whatsAppMessage;
 
-    expect(whatsApp.templateVariables["probe_name"]).toBe(
+    expect(whatsApp.templateVariables?.["probe_name"]).toBe(
       "edge {{probe_link}} probe",
     );
     expect(

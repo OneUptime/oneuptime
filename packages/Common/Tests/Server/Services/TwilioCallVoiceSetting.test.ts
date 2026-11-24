@@ -1,3 +1,4 @@
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import GlobalConfigService, {
@@ -42,7 +43,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * stored as none, and the voice travels with the account to every call.
  */
 
-type ServiceWithHooks<T> = {
+type ServiceWithHooks<T extends DatabaseBaseModel> = {
   onBeforeCreate(createBy: CreateBy<T>): Promise<OnCreate<T>>;
   onBeforeUpdate(updateBy: UpdateBy<T>): Promise<OnUpdate<T>>;
 };

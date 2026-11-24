@@ -45,7 +45,7 @@ function body(twiml: string): string {
 
 describe("the voice a <Say> names", () => {
   test.each(
-    CALL_VOICES.map((voice: CallVoice) => {
+    CALL_VOICES.map((voice: CallVoice): [string, CallVoice] => {
       return [voice.value, voice];
     }),
   )("%s, with the language it speaks", (_value: string, voice: CallVoice) => {
