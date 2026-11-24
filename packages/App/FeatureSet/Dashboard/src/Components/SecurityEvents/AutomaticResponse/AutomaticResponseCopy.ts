@@ -1,4 +1,5 @@
 import { SecurityBlockDuration } from "Common/Types/SecurityBlocklist/SecurityBlock";
+import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
 import {
   PluralTemplate,
   translationKey,
@@ -287,6 +288,18 @@ export const HOURLY_LIMIT_FIELD_TITLE: string = translationKey(
 export const HOURLY_LIMIT_FIELD_DESCRIPTION: string = translationKey(
   "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.",
 );
+
+// The Project column the card writes.
+export const HOURLY_LIMIT_COLUMN: string =
+  "securityAutomaticResponseMaxBlocksPerHour";
+
+/*
+ * The card's place in More settings: the key its folded header names it
+ * by, which the notice's link and the command palette open. Here, beside
+ * its words, so a page or a search reads it without the card's component.
+ */
+export const HOURLY_LIMIT_CARD_KEY: string =
+  getPageAnchorNameForTitle(HOURLY_LIMIT_TITLE) || "hourly-limit";
 
 export const OWN_POLICIES_TITLE: string = translationKey("Your Own Policy");
 export const OWN_POLICIES_DESCRIPTION: string = translationKey(

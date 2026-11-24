@@ -1,5 +1,7 @@
 import {
   AUTOMATIC_RESPONSE_TEST_IDS,
+  HOURLY_LIMIT_CARD_KEY,
+  HOURLY_LIMIT_COLUMN,
   HOURLY_LIMIT_DESCRIPTION,
   HOURLY_LIMIT_FIELD_DESCRIPTION,
   HOURLY_LIMIT_FIELD_TITLE,
@@ -21,19 +23,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
-
-// The Project column the card writes.
-export const HOURLY_LIMIT_COLUMN: string =
-  "securityAutomaticResponseMaxBlocksPerHour";
-
-// Its place in More settings: the key the folded header names it by, and the notice's link opens.
-export const HOURLY_LIMIT_CARD_KEY: string =
-  getPageAnchorNameForTitle(HOURLY_LIMIT_TITLE) || "hourly-limit";
 
 export interface ComponentProps {
   // A new limit was saved: the page reads what its notice and guardrails say again.

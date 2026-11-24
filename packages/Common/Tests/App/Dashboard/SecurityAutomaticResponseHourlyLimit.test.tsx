@@ -53,7 +53,7 @@ import * as AutomaticResponseApi from "../../../../App/FeatureSet/Dashboard/src/
 import {
   HOURLY_LIMIT_CARD_KEY,
   HOURLY_LIMIT_COLUMN,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
 import {
   AUTOMATIC_RESPONSE_TEST_IDS,
   CHANGE_LIMIT,
@@ -421,7 +421,10 @@ describe("Hourly Limit", () => {
     const reads: number = api.readAutomaticResponseOverview.mock.calls.length;
     const dialog: HTMLElement = await openDialog(fold);
 
-    expect(dialog).toHaveTextContent(HOURLY_LIMIT_FIELD_TITLE);
+    // The form loads the project before it draws the field.
+    await waitFor(() => {
+      expect(dialog).toHaveTextContent(HOURLY_LIMIT_FIELD_TITLE);
+    });
     expect(dialog).toHaveTextContent(HOURLY_LIMIT_FIELD_DESCRIPTION);
 
     await typeLimit(dialog, "120");
@@ -435,6 +438,12 @@ describe("Hourly Limit", () => {
         api.readAutomaticResponseOverview.mock.calls.length,
       ).toBeGreaterThan(reads);
     });
+    // The card says the new limit.
+    expect(await within(card()).findByText("120")).toBeInTheDocument();
+
+    // Folded again, its header names the project's own limit: a folded header draws its chips.
+    fireEvent.click(header(fold));
+    expect(header(fold)).toHaveAttribute("aria-expanded", "false");
     await waitFor(() => {
       expect(setChips(fold)).toEqual([`${HOURLY_LIMIT_TITLE}: 120`]);
     });

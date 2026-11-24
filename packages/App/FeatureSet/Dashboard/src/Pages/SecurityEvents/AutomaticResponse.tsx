@@ -9,6 +9,8 @@ import {
   AUTOMATIC_RESPONSE_TEST_IDS,
   CHANGE_LIMIT,
   CREATE_POLICY,
+  HOURLY_LIMIT_CARD_KEY,
+  HOURLY_LIMIT_COLUMN,
   HOURLY_LIMIT_TITLE,
   LIMIT_REACHED,
   LIMIT_REACHED_NOT_PAGED,
@@ -24,10 +26,7 @@ import {
   TURN_ON_WITHOUT_TRIAL,
   TURN_ON_WITHOUT_TRIAL_QUESTION,
 } from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseCopy";
-import AutomaticResponseHourlyLimitCard, {
-  HOURLY_LIMIT_CARD_KEY,
-  HOURLY_LIMIT_COLUMN,
-} from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard";
+import AutomaticResponseHourlyLimitCard from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseHourlyLimitCard";
 import { getPolicyDisplayName } from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponseModel";
 import AutomaticResponsePolicyCard from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponsePolicyCard";
 import AutomaticResponsePolicyModal from "../../Components/SecurityEvents/AutomaticResponse/AutomaticResponsePolicyModal";
