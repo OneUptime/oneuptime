@@ -18,6 +18,22 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 export const PROJECT_PICKER_ACTIVE_ROW_CLASS_NAME: string = "bg-indigo-50";
 
+/*
+ * The open project's mark (#8050): a check right after its name, as a
+ * picker marks what is picked, in the indigo of the keyboard's row, which
+ * the dark theme lightens (Theme.css). It never shrinks, so a long name
+ * cut short on a phone still shows it. Hidden from a screen reader, which
+ * hears the row's aria-current instead.
+ */
+export const PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME: string =
+  "flex flex-shrink-0 items-center";
+
+export const PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME: string =
+  "h-4 w-4 text-indigo-600";
+
+export const PROJECT_PICKER_OPEN_PROJECT_MARK_TEST_ID: string =
+  "project-picker-open-project";
+
 export interface ComponentProps {
   icon: IconProp;
   onProjectSelected: (project: Project) => void;
@@ -26,6 +42,8 @@ export interface ComponentProps {
   id: string;
   // The arrow keys (or the pointer) are on this row.
   isActive?: boolean | undefined;
+  // The project the person is in: marked, and aria-current.
+  isOpenProject?: boolean | undefined;
   // The row is drawn as the one the keyboard is on.
   showsActive?: boolean | undefined;
   onPointerOver?: (() => void) | undefined;
@@ -74,6 +92,11 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
       id={props.id}
       role="option"
       aria-selected={Boolean(props.isActive)}
+      /*
+       * The open project, for a screen reader ("current"): the keyboard's
+       * row is aria-selected, and starts here, but moves away from it.
+       */
+      aria-current={props.isOpenProject ? "true" : undefined}
       onMouseMove={() => {
         props.onPointerOver?.();
       }}
@@ -89,13 +112,26 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
         <span className="text-sm font-medium text-gray-700 truncate" dir="auto">
           <MatchedText text={title} search={props.searchText || ""} />
         </span>
+        {props.isOpenProject && (
+          <span
+            aria-hidden="true"
+            className={PROJECT_PICKER_OPEN_PROJECT_MARK_CLASS_NAME}
+            data-testid={PROJECT_PICKER_OPEN_PROJECT_MARK_TEST_ID}
+          >
+            <Icon
+              icon={IconProp.Check}
+              className={PROJECT_PICKER_OPEN_PROJECT_MARK_ICON_CLASS_NAME}
+            />
+          </span>
+        )}
         {/*
          * A master admin blocked it: still listed, so it is not a project
-         * that vanished, and opening it says why it cannot be used.
+         * that vanished, and opening it says why it cannot be used. At the
+         * row's end, on the page's side of it (ms-auto).
          */}
         {props.project.isBlocked && (
           <span
-            className="ml-auto flex-shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
+            className="ms-auto flex-shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
             data-testid="project-picker-blocked"
           >
             {translator.translateText("Blocked")}
