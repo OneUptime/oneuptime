@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useMemo,
+  useState,
+} from "react";
 import {
   TableColumn,
   TableColumnKind,
@@ -26,10 +31,22 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import MetricTypeSearch, {
+  MetricTypeSearchState,
+  useMetricTypeSearch,
+  useMetricTypesHeldIn,
+} from "../../Metrics/Utils/MetricTypeSearch";
 
 // Each column card's header: its letter and kind, and its Remove.
 export const TABLE_COLUMN_CARD_HEADER_TEST_ID: string =
   "table-column-card-header";
+
+// A metric column's Metric picker, by the column's id.
+export const getTableColumnMetricPickerTestId: (columnId: string) => string = (
+  columnId: string,
+): string => {
+  return `table-column-metric-picker-${columnId}`;
+};
 
 // The row under the cards: Add Metric and Add Formula.
 export const TABLE_COLUMNS_ADD_ROW_TEST_ID: string = "table-columns-add-row";
@@ -73,18 +90,144 @@ export const getTableColumnEditorDisplay: (data: {
   });
 };
 
+/*
+ * A metric column's picker's options (#10764): the metrics the board read -
+ * the project's first 10,000 by name, and the ones its widgets chart - then
+ * what the picker's search found on the server past them, then the metric
+ * the column holds. That one is named even when no list has it (a name the
+ * project sends no metric of any more), so a saved column never shows as no
+ * metric. Each name once.
+ */
+export const getTableColumnMetricOptions: (data: {
+  metricTypes: Array<MetricType>;
+  found: Array<MetricType>;
+  metricName: string | undefined;
+}) => Array<DropdownOption> = (data: {
+  metricTypes: Array<MetricType>;
+  found: Array<MetricType>;
+  metricName: string | undefined;
+}): Array<DropdownOption> => {
+  const names: Set<string> = new Set<string>();
+
+  for (const metricType of [...data.metricTypes, ...data.found]) {
+    if (metricType.name) {
+      names.add(metricType.name);
+    }
+  }
+
+  if (data.metricName) {
+    names.add(data.metricName);
+  }
+
+  return DropdownUtil.getDropdownOptionsFromArray(Array.from(names));
+};
+
+interface TableColumnMetricPickerProps {
+  columnId: string;
+  // The box typed into, named by the column's Metric label.
+  inputId: string;
+  metricName: string | undefined;
+  metricTypes: Array<MetricType>;
+  /*
+   * The metric picked, and what is known of it when the picker's search
+   * found it: its unit, for the column's thresholds.
+   */
+  onPick: (
+    metricName: string | undefined,
+    metricType: MetricType | undefined,
+  ) => void;
+}
+
+/*
+ * A metric column's Metric: the board's metrics, and the project's others
+ * searched on the server as the person types (#10764). The picker offered
+ * the board's first 10,000 metric types only, so a metric past them could
+ * be charted - the query picker searches - but not picked as a column.
+ * Each column searches on its own, so typing in one leaves the others be.
+ */
+const TableColumnMetricPicker: FunctionComponent<
+  TableColumnMetricPickerProps
+> = (props: TableColumnMetricPickerProps): ReactElement => {
+  const metricSearch: MetricTypeSearchState = useMetricTypeSearch();
+
+  const options: Array<DropdownOption> = useMemo((): Array<DropdownOption> => {
+    return getTableColumnMetricOptions({
+      metricTypes: props.metricTypes,
+      found: metricSearch.found,
+      metricName: props.metricName,
+    });
+  }, [props.metricTypes, metricSearch.found, props.metricName]);
+
+  const selected: DropdownOption | undefined = props.metricName
+    ? options.find((option: DropdownOption): boolean => {
+        return String(option.value) === props.metricName;
+      })
+    : undefined;
+
+  return (
+    <div data-testid={getTableColumnMetricPickerTestId(props.columnId)}>
+      <Dropdown
+        options={options}
+        value={selected}
+        placeholder="Pick a metric"
+        inputId={props.inputId}
+        onSearchTextChange={metricSearch.onSearchTextChange}
+        onChange={(
+          value: DropdownValue | Array<DropdownValue> | null,
+        ): void => {
+          const metricName: string | undefined = value
+            ? String(value)
+            : undefined;
+
+          props.onPick(
+            metricName,
+            metricName
+              ? metricSearch.found.find((metricType: MetricType): boolean => {
+                  return metricType.name === metricName;
+                })
+              : undefined,
+          );
+        }}
+      />
+    </div>
+  );
+};
+
 const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const columns: Array<TableColumn> = props.columns || [];
 
-  const metricNameOptions: Array<DropdownOption> =
-    DropdownUtil.getDropdownOptionsFromArray(
-      props.metricTypes.map((m: MetricType): string => {
-        return m.name || "";
-      }),
-    );
+  /*
+   * The metrics the board's list does not have that its columns hold
+   * (#10764): picked from a column's search, kept as they are picked, or
+   * read by their names - the board reads the metrics its widgets chart
+   * too, but a moment later, and only on the board. Their units are the
+   * columns' when none is typed.
+   */
+  const [readMetricTypes, setReadMetricTypes] = useState<Array<MetricType>>(
+    [],
+  );
+  const knownMetricTypes: Array<MetricType> = useMemo((): Array<MetricType> => {
+    return readMetricTypes.length > 0
+      ? [...props.metricTypes, ...readMetricTypes]
+      : props.metricTypes;
+  }, [props.metricTypes, readMetricTypes]);
+
+  const keepReadMetricTypes: (read: Array<MetricType>) => void = (
+    read: Array<MetricType>,
+  ): void => {
+    setReadMetricTypes((current: Array<MetricType>): Array<MetricType> => {
+      return MetricTypeSearch.merge(current, read);
+    });
+  };
+
+  useMetricTypesHeldIn({
+    holder: columns,
+    known: knownMetricTypes,
+    onRead: keepReadMetricTypes,
+  });
 
   const aggregationOptions: Array<DropdownOption> =
     DropdownUtil.getDropdownOptionsFromEnum(MetricsAggregationType);
@@ -196,12 +339,6 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
         const isFormula: boolean = column.kind === TableColumnKind.Formula;
         const showAsColumn: boolean = column.showAsColumn !== false;
 
-        const selectedMetricName: DropdownOption | undefined = column.metricName
-          ? metricNameOptions.find((o: DropdownOption): boolean => {
-              return String(o.value) === column.metricName;
-            })
-          : undefined;
-
         const selectedAggregation: DropdownOption | undefined =
           column.aggregation
             ? aggregationOptions.find((o: DropdownOption): boolean => {
@@ -282,19 +419,26 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
 
               {isMetric && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                  <label
+                    className="block text-xs font-medium text-gray-600 mb-1"
+                    htmlFor={`table-column-metric-${column.id}`}
+                  >
                     {translator.translateText("Metric")}
                   </label>
-                  <Dropdown
-                    options={metricNameOptions}
-                    value={selectedMetricName}
-                    placeholder="Pick a metric"
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
+                  <TableColumnMetricPicker
+                    columnId={column.id}
+                    inputId={`table-column-metric-${column.id}`}
+                    metricName={column.metricName}
+                    metricTypes={knownMetricTypes}
+                    onPick={(
+                      metricName: string | undefined,
+                      metricType: MetricType | undefined,
                     ): void => {
-                      updateColumn(index, {
-                        metricName: value ? String(value) : undefined,
-                      });
+                      if (metricType) {
+                        keepReadMetricTypes([metricType]);
+                      }
+
+                      updateColumn(index, { metricName });
                     }}
                   />
                 </div>
@@ -403,7 +547,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 thresholds={column.thresholds}
                 display={getTableColumnEditorDisplay({
                   column,
-                  metricTypes: props.metricTypes,
+                  metricTypes: knownMetricTypes,
                 })}
                 thresholdStyle={
                   props.thresholdStyle || TableThresholdStyle.Text
