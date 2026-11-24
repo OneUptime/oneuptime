@@ -2,7 +2,10 @@ import StackTraceParser, {
   ParsedStackTrace,
   StackFrame,
 } from "./StackTraceParser";
-import { normalizeExceptionText } from "./ExceptionSanitizer";
+import {
+  foldSeparatedNumbers,
+  normalizeExceptionText,
+} from "./ExceptionSanitizer";
 import {
   AppleCrashFrame,
   AppleCrashReport,
@@ -44,9 +47,25 @@ import { escapeRegExp } from "../../../Utils/RegExpEscape";
  *
  * Bounded: the stack trace is cut before it is parsed, and so is the message
  * before it is normalized; no regular expression runs over a frame's text.
+ *
+ * GROUPING V3 (#10620) is v2, but for an exception grouped by its message:
+ * the card numbers written in groups, Social Security numbers and phone
+ * numbers with separators the normalizer leaves in are taken out too
+ * (foldSeparatedNumbers), so "Invalid SSN 123-45-6789 on file" and "Invalid
+ * SSN 987-65-4321 on file" are one exception. For an exception grouped by
+ * its frames its key is v2's, and so are its text and fingerprint: the
+ * message is not read. New exceptions are grouped by v3; one that already
+ * exists keeps the
+ * fingerprint it was made under, found first (ExceptionUtil.
+ * getOccurrenceFingerprints), so nothing splits or merges: the values seen
+ * before keep landing where they always did, and the values seen since go
+ * to one exception.
  */
 
+// The version of grouping v2's text.
 export const EXCEPTION_GROUPING_VERSION: number = 2;
+// And of grouping v3's, where it differs from v2's.
+export const EXCEPTION_GROUPING_V3_VERSION: number = 3;
 
 // How much of a stack trace and of a message is read.
 export const MAX_GROUPING_STACK_TRACE_LENGTH: number = 64 * 1024;
@@ -70,6 +89,11 @@ export interface ExceptionGroupingKey {
   exceptionType: string;
   // One per frame ("module|function"), or the normalized message.
   parts: Array<string>;
+  /*
+   * The grouping version its text names: EXCEPTION_GROUPING_VERSION when
+   * left out, as every grouping v2 key is.
+   */
+  version?: number | undefined;
 }
 
 function isDigit(character: string): boolean {
@@ -411,6 +435,10 @@ export const FOLDED_VALUE_PLACEHOLDERS: ReadonlyArray<string> = [
   "<TID>",
   "<NUMBER>",
   "<n>",
+  // Grouping v3's (foldSeparatedNumbers).
+  "<CARD>",
+  "<SSN>",
+  "<PHONE>",
 ];
 
 const FOLDED_VALUE_PLACEHOLDER_REGEX: RegExp = new RegExp(
@@ -488,10 +516,35 @@ export function isChangedOnlyWhereFolded(
 }
 
 /*
- * The text a v2 fingerprint hashes: the version, the exception's service and
- * project (a fingerprint is unique per service, as v1's), the type, the basis
- * and the parts, one per line. The version keeps a v2 fingerprint from ever
- * equalling a v1 one.
+ * The grouping v3 key of an exception, from its grouping v2 key: the same,
+ * but for a message that holds a card number in groups, a Social Security
+ * number or a phone number, which are taken out of it (see the header).
+ */
+export function getExceptionGroupingKeyV3(
+  keyV2: ExceptionGroupingKey,
+): ExceptionGroupingKey {
+  if (keyV2.basis !== ExceptionGroupingBasis.Message) {
+    return keyV2;
+  }
+
+  /*
+   * Every message names v3, whatever it holds: what a scrub rule left of a
+   * message has nothing left to fold, and is compared with the message as
+   * it arrived (isChangedOnlyWhereFolded), which must be read the same way.
+   */
+  return {
+    ...keyV2,
+    parts: [foldSeparatedNumbers(keyV2.parts[0] || "")],
+    version: EXCEPTION_GROUPING_V3_VERSION,
+  };
+}
+
+/*
+ * The text a v2 (or v3) fingerprint hashes: the version, the exception's
+ * service and project (a fingerprint is unique per service, as v1's), the
+ * type, the basis and the parts, one per line. The version keeps a v2
+ * fingerprint from ever equalling a v1 one, and a v3 one from ever equalling
+ * a v2 one.
  */
 export function getExceptionGroupingText(data: {
   projectId: string;
@@ -499,7 +552,7 @@ export function getExceptionGroupingText(data: {
   key: ExceptionGroupingKey;
 }): string {
   return [
-    `grouping-v${EXCEPTION_GROUPING_VERSION}`,
+    `grouping-v${data.key.version ?? EXCEPTION_GROUPING_VERSION}`,
     data.projectId,
     data.primaryEntityId,
     data.key.exceptionType,
