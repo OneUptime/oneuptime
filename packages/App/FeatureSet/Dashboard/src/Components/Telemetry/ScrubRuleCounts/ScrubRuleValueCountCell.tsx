@@ -148,7 +148,8 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                     className="py-2 pe-4 text-start font-medium"
                     resize={serviceColumns.getResize(
                       "service",
-                      translator.translateText(SERVICE_HEADING),
+                      translator.translateText(SERVICE_HEADING) ||
+                        SERVICE_HEADING,
                       ColumnWidthKind.Name,
                     )}
                   >
@@ -158,7 +159,8 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                     className="py-2 pe-4 text-start font-medium"
                     resize={serviceColumns.getResize(
                       "version",
-                      translator.translateText(VERSION_HEADING),
+                      translator.translateText(VERSION_HEADING) ||
+                        VERSION_HEADING,
                       ColumnWidthKind.Text,
                     )}
                   >
@@ -168,7 +170,7 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                     className="py-2 pe-4 text-end font-medium"
                     resize={serviceColumns.getResize(
                       "count",
-                      translator.translateText(COUNT_HEADING),
+                      translator.translateText(COUNT_HEADING) || COUNT_HEADING,
                       ColumnWidthKind.Whole,
                     )}
                   >
@@ -178,11 +180,14 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                     className="py-2 text-start font-medium"
                     resize={serviceColumns.getResize(
                       "lastChanged",
-                      translator.translateText(LAST_CHANGED_HEADING),
+                      translator.translateText(LAST_CHANGED_HEADING) ||
+                        LAST_CHANGED_HEADING,
                       ColumnWidthKind.Whole,
                     )}
                   >
-                    <span>{translator.translateText(LAST_CHANGED_HEADING)}</span>
+                    <span>
+                      {translator.translateText(LAST_CHANGED_HEADING)}
+                    </span>
                   </ResizableHeaderCell>
                 </tr>
               </thead>
@@ -209,7 +214,9 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                             translator.translateText(NO_VERSION)}
                         </td>
                         <td className="py-2 pe-4 text-end tabular-nums text-gray-900">
-                          {service.valueCount.toLocaleString(getReaderNumberLocale())}
+                          {service.valueCount.toLocaleString(
+                            getReaderNumberLocale(),
+                          )}
                         </td>
                         <td className="py-2 text-gray-700">
                           {whenOf(service.lastChangedAt) || <TableEmptyValue />}
