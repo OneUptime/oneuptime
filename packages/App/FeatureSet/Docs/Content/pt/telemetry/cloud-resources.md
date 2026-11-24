@@ -640,6 +640,8 @@ Um recurso de uma [conta conectada](/docs/telemetry/cloud-accounts) recebe, na a
 
 Um namespace do Service Bus informa suas métricas uma vez por fila e tópico, e um namespace do Event Hubs uma vez por event hub. Onde elas se somam, uma linha da aba **Métricas** do namespace mostra o total delas, com **total das séries** embaixo. Um monitor criado a partir dessa linha também lê o total, assim como um monitor criado pela API ou pelo Terraform sem uma agregação. As outras linhas mostram **média das séries**, ou seja, a fila ou o event hub médio: uma latência e, em um intervalo de mais de 3 horas, uma quantidade que o namespace retém, como as mensagens em espera.
 
+A conexão lê as requisições de um Container App uma vez por categoria de código de status, para distinguir as respostas 5xx, e a linha das requisições as soma do mesmo jeito: mostra o total delas, assim como um monitor criado a partir dessa linha.
+
 > [!IMPORTANT]
 > O monitoramento da nuvem publica cada número minutos depois do momento que ele mede: de 10 a 20 minutos para o CloudWatch consultado como acima, poucos minutos para o Azure Monitor e o Cloud Monitoring. Ele é armazenado no momento que mede. Dê a um monitor sobre essas métricas uma janela maior que esse atraso (30 minutos para o CloudWatch, 15 para os outros), ou ele não vê dados e nunca dispara.
 

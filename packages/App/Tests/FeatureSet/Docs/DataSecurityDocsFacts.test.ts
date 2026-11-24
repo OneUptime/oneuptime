@@ -922,6 +922,15 @@ describe("Set Up Data Security", () => {
     const model: string = source(
       "Common/Models/DatabaseModels/DataSecuritySetting.ts",
     );
+    // A column the server writes for itself - the audit evidence it keeps (#10375) - is no setting.
+    const computed: Set<string> = new Set(
+      Array.from(
+        model.matchAll(/@TableColumn\(\{[^@]*?computed: true[^@]*?\}\)/g),
+        (match: RegExpMatchArray): string => {
+          return (match[0].match(/title: "([^"]+)"/) || [])[1] || "";
+        },
+      ),
+    );
     const titles: Array<string> = Array.from(
       model.matchAll(
         // A long description is written on the line below its key.
@@ -931,7 +940,11 @@ describe("Set Up Data Security", () => {
         // A severity's id column is the severity the form shows.
         return SEVERITY_ID_TITLES[match[1] as string] || (match[1] as string);
       },
-    );
+    ).filter((title: string): boolean => {
+      return !computed.has(title);
+    });
+
+    expect(computed).toEqual(new Set(["Audit Evidence"]));
 
     expect(
       settings.map((row: Array<string>): string => {

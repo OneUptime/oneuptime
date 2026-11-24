@@ -16,6 +16,10 @@ import { getAzureStoredMetricName } from "./CloudKeyMetrics";
  * splitByDimension), and so does the collector's azure_monitor receiver.
  * Their average is the average queue. The namespace's number is their sum,
  * as the namespace's readings and tiles add them up (CloudResourceReadings).
+ * So is a Container App's requests' (#10837): a connected subscription
+ * reads them once per status code category (2xx, 5xx), split by
+ * statusCodeCategory (AzureKeyMetric.splitBy), and the receiver once per
+ * revision, replica, status code and category.
  *
  * So these are read with Sum: the metrics Azure Monitor splits by EntityName
  * whose parts add up to the namespace's (Azure Monitor's metric reference
@@ -55,7 +59,7 @@ export interface CloudResourceSummedParts {
 interface SummedAzureMetrics {
   // ARM type, as CloudResourceCatalog spells it.
   type: string;
-  // What Azure Monitor's EntityName names on this type.
+  // What each series of its summed metrics is one of: EntityName's queue.
   parts: CloudResourceSummedParts;
   // Counts per period, as Azure Monitor names them.
   counts: ReadonlyArray<string>;
@@ -121,6 +125,16 @@ const SUMMED_AZURE_METRICS: ReadonlyArray<SummedAzureMetrics> = [
       "ConnectionsClosed",
     ],
     amounts: ["Size", "CaptureBacklog"],
+  },
+  {
+    type: "Microsoft.App/containerApps",
+    parts: {
+      each: "status code category",
+      one: "status code category",
+      all: "status code categories",
+    },
+    counts: ["Requests"],
+    amounts: [],
   },
 ];
 
