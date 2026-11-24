@@ -390,7 +390,7 @@ const RUNS_PATTERNS_A_PROJECT_WRITES: ReadonlyArray<string> = [
   "packages/Common/Types/Telemetry/ScrubRule.ts",
   "packages/Common/Utils/Grok/Grok.ts",
   "packages/Common/Utils/PromQL/PromQLRegex.ts",
-  "packages/App/FeatureSet/Telemetry/Services/MetricPipelineRuleService.ts",
+  "packages/Common/Server/Utils/Telemetry/MetricPipelineEngine.ts",
   "packages/App/FeatureSet/Telemetry/Utils/LogFilterEvaluator.ts",
 ];
 

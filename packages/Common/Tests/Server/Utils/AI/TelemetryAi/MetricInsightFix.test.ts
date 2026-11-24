@@ -316,6 +316,25 @@ beforeEach(() => {
     .mockImplementation(async (data: { repositoryId: ObjectID }) => {
       return askable.has(data.repositoryId.toString());
     });
+  // Every repository weighed at once, by the same set (#10764).
+  jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation(
+      async (data: { repositoryIds: Array<ObjectID | string> }) => {
+        return new Set<string>(
+          data.repositoryIds
+            .map((id: ObjectID | string): string => {
+              return id.toString();
+            })
+            .filter((id: string): boolean => {
+              return askable.has(id);
+            })
+            .map((id: string): string => {
+              return id.toLowerCase();
+            }),
+        );
+      },
+    );
 });
 
 afterEach(() => {

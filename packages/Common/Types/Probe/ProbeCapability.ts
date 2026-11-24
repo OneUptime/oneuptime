@@ -95,6 +95,17 @@ enum ProbeCapability {
    * probe, on any other custom probe (issue #10737).
    */
   AnyRequestBody = "anyRequestBody",
+  /*
+   * The probe hides the values of the Text monitor secrets filled into a
+   * step in every line it logs while it runs the step, at every log level
+   * (issue #10875): it reads them from the step (MonitorStep.
+   * secretValuesToHide) and its logger writes [REDACTED] wherever one stands
+   * (Common/Server/Utils/LogSecretValues). The server hands a step's values
+   * only to a probe that declares this. An older probe is handed nothing
+   * more than it was, runs every step as before, and writes what it always
+   * wrote to its own log: at LOG_LEVEL=DEBUG, each step's whole result.
+   */
+  HideSecretValuesInLogs = "hideSecretValuesInLogs",
 }
 
 // The first probe release that walks SNMP tables.

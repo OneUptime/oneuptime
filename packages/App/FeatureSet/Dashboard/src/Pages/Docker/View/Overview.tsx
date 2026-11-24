@@ -38,6 +38,7 @@ import GoldenMetricTile, {
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import { CONTAINER_HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ContainerHostMetricDescriptions";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -1339,11 +1340,13 @@ const DockerHostOverview: FunctionComponent<
      */
     const renderTitle: () => ReactElement = (): ReactElement => {
       return (
-        <div className="flex min-w-0 items-center gap-1">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {translator.translateText(params.title)}
-          </span>
-          <InfoTooltip label={params.title} text={params.description} />
+        <div className="flex min-w-0">
+          <WordsWithInfoTooltip
+            className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider"
+            text={translator.translateText(params.title) || params.title}
+            label={params.title}
+            description={params.description}
+          />
         </div>
       );
     };
@@ -1634,14 +1637,11 @@ const DockerHostOverview: FunctionComponent<
       return (
         <Card
           title={
-            <span className="inline-flex items-center gap-1.5">
-              {translator.translateText(title)}
-              <InfoTooltip
-                label={title}
-                text={description}
-                iconClassName="h-4 w-4"
-              />
-            </span>
+            <WordsWithInfoTooltip
+              text={translator.translateText(title) || title}
+              label={title}
+              description={description}
+            />
           }
           description={
             metric === "cpu"

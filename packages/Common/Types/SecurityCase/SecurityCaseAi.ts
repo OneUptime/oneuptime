@@ -431,7 +431,7 @@ export enum SecurityCaseAiActionReason {
   NeedsJudgement = "NeedsJudgement",
   // Left: the fix only looks done (no attack since, or too few): a person confirms it.
   FixLooksDone = "FixLooksDone",
-  // Left: OneUptime cannot check this fix yet (#10603).
+  // Left: OneUptime cannot check this fix, or could not read it back (#10603).
   FixNotChecked = "FixNotChecked",
   // Left: what it acts on is protected.
   ProtectedTarget = "ProtectedTarget",

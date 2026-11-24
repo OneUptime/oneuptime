@@ -287,6 +287,12 @@ const AddToDashboardModal: FunctionComponent<ComponentProps> = (
       titleField="name"
       descriptionField="description"
       isSearchEnabled={true}
+      /*
+       * The project's dashboards, searched on the server as the person types
+       * (#10764): the list read the first 10,000 and filtered them here, so a
+       * dashboard past them could not be picked.
+       */
+      searchesServer={true}
       noItemsMessage="No dashboards yet. Create a dashboard first, then add this chart to it."
       query={
         {

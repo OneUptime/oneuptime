@@ -27,6 +27,12 @@ import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource"
 import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
 import Route from "../../../Types/API/Route";
 import OneUptimeDate from "../../../Types/Date";
+import { createTranslator } from "../../../Types/Translator";
+import {
+  MomentRole,
+  wordMoment,
+  writeReaderMoment,
+} from "../../../Utils/MomentPhrases";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import {
   FIRST_STRONG_ISOLATE,
@@ -213,6 +219,18 @@ const written: (iso: string) => string = (iso: string): string => {
   return OneUptimeDate.getDateAsLocalFormattedString(new Date(iso));
 };
 
+/*
+ * A moment that goes on, as its line names it: with its own words, "at 14:02"
+ * today and "on 20 Nov at 14:02" on another day (#10622, Utils/MomentPhrases).
+ */
+const said: (iso: string) => string = (iso: string): string => {
+  return wordMoment({
+    role: MomentRole.At,
+    moment: writeReaderMoment(new Date(iso)),
+    translator: createTranslator(undefined),
+  });
+};
+
 beforeAll(async () => {
   const resources: Record<string, { translation: Record<string, string> }> = {
     en: { translation: EN },
@@ -341,7 +359,7 @@ describe("the Overview's card, at the logs budget during an attack", () => {
     expect(lines[0]).toHaveAttribute("data-ongoing", "true");
     expect(lines[0]).toHaveTextContent(Copy.YOUR_LOGS_SOURCE);
     expect(plain(lines[0]!.textContent)).toContain(
-      `Your daily logs budget was used up at ${written("2026-11-20T14:02:00.000Z")}. Logs since then were refused and not scanned.`,
+      `Your daily logs budget was used up ${said("2026-11-20T14:02:00.000Z")}. Logs since then were refused and not scanned.`,
     );
     expect(lines[0]).toHaveTextContent("in 1,200 requests was not stored.");
     expect(lines[1]).toHaveAttribute("data-signal", ProductType.Traces);
@@ -453,7 +471,10 @@ describe("Your logs", () => {
       SECURITY_LOGS_SOURCE_REFUSED_TEST_ID,
     );
 
-    expect(refused).toHaveTextContent("Your daily logs budget was used up at");
+    // Its moment brings its own words: "at 14:02" today, "on 20 Nov at 14:02" before.
+    expect(refused).toHaveTextContent(
+      /Your daily logs budget was used up (at|on .+ at) \S+/,
+    );
     expect(refused).toHaveTextContent(
       "Logs since then were refused and not scanned.",
     );

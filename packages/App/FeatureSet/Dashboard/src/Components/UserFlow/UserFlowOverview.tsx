@@ -4,7 +4,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import EmptyFigure, {
   isEmptyFigure,
 } from "Common/UI/Components/EmptyFigure/EmptyFigure";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import {
   getUserFlowPageText,
   UserFlowDirection,
@@ -103,17 +103,22 @@ function Tile(props: {
     >
       <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
         <Icon icon={props.icon} className="h-4 w-4 shrink-0 text-gray-400" />
+        {/*
+         * The (i) after the label's last word, on whichever line it ends
+         * (#7348, #8044): beside a label that wrapped, it stood at the
+         * tile's far edge.
+         */}
         <span
           className={USER_FLOW_TILE_LABEL_CLASS_NAME}
           data-testid={`${props.testId}-label`}
         >
-          {label}
+          <WordsWithInfoTooltip
+            text={label}
+            label={props.label}
+            description={props.tooltip}
+            infoDataTestId={`${props.testId}-info`}
+          />
         </span>
-        <InfoTooltip
-          label={label}
-          text={props.tooltip}
-          dataTestId={`${props.testId}-info`}
-        />
       </div>
       <p
         className={`${

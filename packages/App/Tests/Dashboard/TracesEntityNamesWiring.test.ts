@@ -441,13 +441,17 @@ describe("analytics split-by Service", () => {
 });
 
 describe("Insights tab", () => {
-  test("a carried scope id without a Service row is named, not shown raw", () => {
+  test("a carried scope id without a Service row is named, not shown raw (#10764)", () => {
+    // One lookup, for the recent trace rows; the scope's picker names its own.
     expect(count(TRACES_DASHBOARD, "useTelemetryEntityNames(")).toBe(1);
     expect(TRACES_DASHBOARD).not.toContain(
       "|| { value: serviceId, label: serviceId }",
     );
     expect(TRACES_DASHBOARD).toContain(
-      "label: getTraceEntityOptionLabel({ id: serviceId, entityNames, }),",
+      "<TelemetryServiceScopePicker serviceIds={selectedServiceIds}",
+    );
+    expect(readSource("../Telemetry/TelemetryServiceScope.ts")).toContain(
+      "TelemetryEntityNameResolver.resolve({ ids: others, projectId: projectId, entityTypes: TELEMETRY_SCOPE_OTHER_ENTITY_TYPES, });",
     );
   });
 

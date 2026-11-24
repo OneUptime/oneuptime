@@ -99,12 +99,18 @@ spec:
               value: "<probe-id>"
             - name: ONEUPTIME_URL
               value: "https://oneuptime.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 
 接著用 `kubectl apply -f oneuptime-probe.yaml` 套用它。
 :::
 
 主機網路（`--network host`、`network_mode: host`）讓探測器使用主機本身的網路，包括 IPv6。在不使用主機網路執行之前，請先閱讀 [監控 IPv6 目標](#監控-ipv6-目標)。
+
+不使用主機網路時，例如上方的 Kubernetes Deployment，或 Docker 的橋接網路，探測器的檢查會從主機自身的位址離開機器，而探測器在容器內看不到這個位址。`PROBE_HOST_IP_ADDRESSES` 把這個位址告訴它，讓 [安全事件](/docs/telemetry/security-events) 能將探測器的輪詢、探索與監控檢查認作它自己的工作。Kubernetes Deployment 從 `status.hostIPs` 設定它，其中包含雙堆疊節點的兩個位址；在早於 1.29 的 Kubernetes 上，請使用 `status.hostIP`。在 Docker 橋接網路上，請自行提供主機的位址，例如 `-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`。
 
 ### 確認它已連線
 
@@ -150,6 +156,22 @@ kubectl set image deployment/oneuptime-probe oneuptime-probe=oneuptime/probe:<ve
 :::
 
 探測器的頁面在 **探測器狀態** 下顯示它執行的版本。早於 17.1.0 的探測器無法產生[一次性驗證碼密鑰](/docs/monitor/monitor-secrets#使用一次性驗證碼登入)的驗證碼：它的頁面會說明這一點，它檢查的監測器的表單也會。過舊而無法傳送 JSON 陣列、單一值或文字形式的 API 監測器請求本文的探測器也是如此。
+
+當探測器落後 OneUptime 一個或更多主要版本時，它的擁有者會收到一次通知，說明它缺少什麼，並附上本節的連結；沒有擁有者的探測器會通知專案擁有者。只有當它落後於更新的主要版本，或在更新後再次落後時，才會再次通知他們。每個人在 **使用者設定 → 通知設定** 下的 **探測器落後一個主要版本** 中選擇接收方式：預設透過電子郵件。只落後幾個次要版本的探測器會在其頁面上顯示，不會通知任何人。
+
+## 探測器回報時傳送的內容
+
+探測器的每個請求都帶有它的 ID 與金鑰、它執行的版本以及它能做什麼，並且每分鐘回報一次它用來識別自己的位址。除了檢查結果，不會傳送關於您網路的任何其他內容。
+
+| 欄位 | 傳送時機 | OneUptime 如何使用 |
+| --- | --- | --- |
+| `probeVersion` | 每個請求 | 保存探測器執行的版本。它的頁面與 **自訂探測器** 會在它比 OneUptime 舊時顯示出來，並在它落後一個主要版本時通知其擁有者一次。 |
+| `probeCapabilities` | 每個請求 | 只把探測器能做的工作交給它。需要較新探測器才能執行的檢查會失敗，並附一句提示更新探測器。 |
+| `probeInterfaceAddresses` | 每分鐘一次 | 保存探測器網路介面上的位址，以及 `PROBE_HOST_IP_ADDRESSES` 提供給它的位址。[安全事件](/docs/telemetry/security-events) 據此在您的網路流量中辨識探測器自身的輪詢、探索與監控檢查，封鎖清單也從不封鎖這些位址。迴路、連結本機與多點傳送位址不會保留。 |
+
+OneUptime 也會保存探測器回報時所用的位址，即 OneUptime 看到的位址：如果您的網路有 NAT，就是 NAT 的位址。探測器的頁面會在 **探測器狀態** 下，以 **回報位址** 與 **介面位址** 向能讀取該探測器的人顯示這兩項，尚未回報過的探測器則兩項都不顯示。
+
+探測器對自身位址的說法只是它的片面之詞，任何持有其金鑰的人都能宣稱任何位址。因此安全事件從不僅憑位址就把流量擱置：它到達的每個主機與連接埠也必須是探測器被設定要到達的，超出的部分都會被回報，並註明該探測器。
 
 ## 透過 Proxy 連線
 
@@ -222,6 +244,10 @@ spec:
               value: "http://proxy.example.com:8080"
             - name: NO_PROXY
               value: "localhost,.internal.example.com"
+            - name: PROBE_HOST_IP_ADDRESSES
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIPs
 ```
 :::
 
@@ -327,6 +353,7 @@ Docker Engine 27 及更新版本會為該網路選擇一個 IPv6 子網路，並
 | `HTTP_PROXY_URL`、`HTTPS_PROXY_URL`、`NO_PROXY` | 無 | Proxy 設定：請參閱 [透過 Proxy 連線](#透過-proxy-連線)。 |
 | `PROBE_API_REQUEST_TIMEOUT_IN_MS` | `45000` | 探測器送往 OneUptime 的每個請求的期限。 |
 | `PROBE_API_SLOW_REQUEST_THRESHOLD_IN_MS` | `10000` | 送往 OneUptime 的請求慢於此值時記錄警告。 |
+| `PROBE_HOST_IP_ADDRESSES` | 無 | 不使用主機網路的探測器的主機 IP 位址，以逗號分隔：每次回報時與探測器自身的位址一起列出。請參閱 [執行探測器](#執行探測器)。 |
 
 ### 網路探索
 

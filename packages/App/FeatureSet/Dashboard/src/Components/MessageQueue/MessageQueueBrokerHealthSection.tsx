@@ -62,6 +62,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import Link from "Common/UI/Components/Link/Link";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -211,15 +212,16 @@ const SectionHeader: FunctionComponent<{ metricsRoute: Route }> = (props: {
 
   return (
     <div className="mb-3 flex items-center justify-between">
-      <div className="flex items-center gap-1">
-        <h2 className="text-base font-semibold text-gray-900">
-          {translator.translateText(BROKER_HEALTH_TITLE)}
-        </h2>
-        <InfoTooltip
+      {/* The (i) after the heading's last word (#7348, #8044). */}
+      <h2 className="min-w-0 text-base font-semibold text-gray-900">
+        <WordsWithInfoTooltip
+          text={
+            translator.translateText(BROKER_HEALTH_TITLE) || BROKER_HEALTH_TITLE
+          }
           label={BROKER_HEALTH_TITLE}
-          text={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.brokerHealth}
+          description={MESSAGE_QUEUE_METRIC_DESCRIPTIONS.brokerHealth}
         />
-      </div>
+      </h2>
       <AppLink
         to={props.metricsRoute}
         className="text-sm font-medium text-indigo-600 hover:underline"

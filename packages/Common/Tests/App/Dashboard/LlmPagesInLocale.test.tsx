@@ -234,7 +234,9 @@ describe.each(["de", "ru", "ja"])("in %s", (locale: string) => {
           route={
             new Route(`/dashboard/${PROJECT_ID}/llm/conversations/c%3Achat-1`)
           }
-          serviceNames={new Map<string, string>()}
+          serviceName={(): string => {
+            return "";
+          }}
         />
       </MemoryRouter>,
     );

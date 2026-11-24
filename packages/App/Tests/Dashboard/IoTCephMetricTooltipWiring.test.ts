@@ -72,6 +72,14 @@ function readCode(relativePath: string): string {
     .replace(WHITESPACE, " ");
 }
 
+/*
+ * Prettier sets a long attribute's braces apart (`text={ X || "X" }`) and a
+ * short one's not: compared without the spaces inside braces.
+ */
+function withoutBraceSpaces(code: string): string {
+  return code.replace(/\{ /g, "{").replace(/ \}/g, "}");
+}
+
 function count(code: string, pattern: RegExp): number {
   return (code.match(pattern) || []).length;
 }
@@ -200,6 +208,11 @@ describe("every description is used, and every reference exists", () => {
           'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
         );
       }
+      if (count(code, /<WordsWithInfoTooltip\b/g) > 0) {
+        expect(code).toContain(
+          'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";',
+        );
+      }
     },
   );
 });
@@ -278,8 +291,9 @@ describe("IoT fleet overview", () => {
     expect(code).toContain(
       'const ATTENTION_TITLE: string = translationKey("Devices needing attention");',
     );
+    // The (i) after the title's last word (WordsWithInfoTooltip, #8044).
     expect(code).toContain(
-      "{translator.translateText(ATTENTION_TITLE)} <InfoTooltip label={ATTENTION_TITLE} text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention} />",
+      "<WordsWithInfoTooltip text={translator.translateText(ATTENTION_TITLE) || ATTENTION_TITLE} label={ATTENTION_TITLE} description={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention} />",
     );
   });
 
@@ -303,8 +317,9 @@ describe("IoT fleet overview", () => {
     );
     expect(agentChip).toBeGreaterThan(chips.indexOf("{specChips.map("));
     expect(agentChip).toBeLessThan(chips.indexOf("{hasCountChips && "));
-    // The attention card title and this chip row's one (i) of two are the only (i)s here.
-    expect(count(code, INFO_TOOLTIP)).toBe(3);
+    // This chip row's one (i) of two are the only (i)s drawn beside a value here.
+    expect(count(code, INFO_TOOLTIP)).toBe(2);
+    expect(count(code, /<WordsWithInfoTooltip\b/g)).toBe(1);
   });
 
   /*
@@ -659,8 +674,9 @@ describe("Ceph cluster overview", () => {
       "export const CephMetricTitle",
       "export interface OsdStateCell",
     );
+    // Its (i) after its last word (WordsWithInfoTooltip, #8044).
     expect(title).toContain(
-      "{translator.translateText(props.title) || props.title} <InfoTooltip label={props.title} text={props.description} />",
+      "<WordsWithInfoTooltip text={translator.translateText(props.title) || props.title} label={props.title} description={props.description} />",
     );
   });
 
@@ -766,7 +782,7 @@ describe("Ceph cluster overview", () => {
 
     // Each word in the reader's language; the (i) names it as written.
     expect(cell).toContain(
-      "<span> {translator.translateText(props.cell.label) || props.cell.label} </span> <InfoTooltip label={props.cell.label} text={props.cell.description} />",
+      '<WordsWithInfoTooltip className="min-w-0" text={translator.translateText(props.cell.label) || props.cell.label} label={props.cell.label} description={props.cell.description} />',
     );
     expect(cell).toContain(
       "{translator.translateText(props.cell.sublabel) || props.cell.sublabel}",
@@ -898,10 +914,10 @@ describe("Ceph cluster overview", () => {
     expect(count(code, RATE_CHART)).toBe(2);
     // The header also names the chart's drag-to-zoom (issue #4105).
     expect(code).toMatch(
-      /\{translator\.translateText\("Client IOPS"\)\} <InfoTooltip label="Client IOPS" text=\{CEPH_METRIC_DESCRIPTIONS\.clientIops\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd"/,
+      /<WordsWithInfoTooltip className="min-w-0" text=\{ ?translator\.translateText\("Client IOPS"\) \|\| "Client IOPS" ?\} label="Client IOPS" description=\{CEPH_METRIC_DESCRIPTIONS\.clientIops\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd"/,
     );
     expect(code).toMatch(
-      /\{translator\.translateText\("Client Throughput"\)\} <InfoTooltip label="Client Throughput" text=\{CEPH_METRIC_DESCRIPTIONS\.clientThroughput\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd_bytes"/,
+      /<WordsWithInfoTooltip className="min-w-0" text=\{ ?translator\.translateText\("Client Throughput"\) \|\| "Client Throughput" ?\} label="Client Throughput" description=\{CEPH_METRIC_DESCRIPTIONS\.clientThroughput\} \/> <TimeRangeZoomHint revealOnHover=\{true\} className="ml-auto font-normal" \/> <\/div> <CephRateChart clusterName=\{clusterName\} series=\{\[ \{ metricName: "ceph_pool_rd_bytes"/,
     );
   });
 
@@ -1285,11 +1301,11 @@ describe("a pool's page", () => {
 
   test("each rate chart has a header with the pool's own (i)", () => {
     expect(count(page, RATE_CHART)).toBe(2);
-    expect(page).toContain(
-      '{translator.translateText("Client IOPS")} <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.poolClientIops} />',
+    expect(withoutBraceSpaces(page)).toContain(
+      'text={translator.translateText("Client IOPS") || "Client IOPS"} label="Client IOPS" description={CEPH_METRIC_DESCRIPTIONS.poolClientIops} />',
     );
-    expect(page).toContain(
-      '{translator.translateText("Client Throughput")} <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput} />',
+    expect(withoutBraceSpaces(page)).toContain(
+      'text={translator.translateText("Client Throughput") || "Client Throughput"} label="Client Throughput" description={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput} />',
     );
   });
 
@@ -1324,12 +1340,13 @@ describe("Ceph daemons, Insights and Clusters list", () => {
     const code: string = readCode(PAGES["cephInsights"]!);
 
     expect(count(code, RATE_CHART)).toBe(2);
-    expect(count(code, INFO_TOOLTIP)).toBe(2);
-    expect(code).toContain(
-      '{translator.translateText("Client IOPS")} <InfoTooltip label="Client IOPS" text={CEPH_METRIC_DESCRIPTIONS.clientIops} />',
+    expect(count(code, INFO_TOOLTIP)).toBe(0);
+    expect(count(code, /<WordsWithInfoTooltip\b/g)).toBe(2);
+    expect(withoutBraceSpaces(code)).toContain(
+      'text={translator.translateText("Client IOPS") || "Client IOPS"} label="Client IOPS" description={CEPH_METRIC_DESCRIPTIONS.clientIops} />',
     );
-    expect(code).toContain(
-      '{translator.translateText("Client Throughput")} <InfoTooltip label="Client Throughput" text={CEPH_METRIC_DESCRIPTIONS.clientThroughput} />',
+    expect(withoutBraceSpaces(code)).toContain(
+      'text={translator.translateText("Client Throughput") || "Client Throughput"} label="Client Throughput" description={CEPH_METRIC_DESCRIPTIONS.clientThroughput} />',
     );
   });
 

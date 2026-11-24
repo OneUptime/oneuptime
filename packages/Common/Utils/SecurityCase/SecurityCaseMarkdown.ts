@@ -786,6 +786,34 @@ export function taskDeletedMarkdown(data: { title: string }): MarkdownText {
 }
 
 /*
+ * What a case's timeline says about a person's own pull request linked to
+ * its Fix step (SecurityCasePullRequestService, #10604): linked, shipped,
+ * taken off. The pull request is named as its host names it
+ * ("acme/search#482"), linked to its page where it has one.
+ */
+export function pullRequestLinkedMarkdown(data: {
+  name: string;
+  url: string;
+}): MarkdownText {
+  return mdText`🔗 Linked the pull request ${FeedMarkdown.link(data.name, data.url)} as this case's fix. OneUptime follows it to its deploy, then checks the attack is turned away.`;
+}
+
+export function pullRequestShippedMarkdown(data: {
+  name: string;
+  url: string;
+  // What shipped it, as the deploy names itself: "version 2.4.1", "commit 1a2b3c4".
+  deploy: string;
+}): MarkdownText {
+  return mdText`🚀 The pull request ${FeedMarkdown.link(data.name, data.url)} shipped in ${data.deploy}.`;
+}
+
+export function pullRequestUnlinkedMarkdown(data: {
+  name: string;
+}): MarkdownText {
+  return mdText`🔗 Took the pull request **${data.name}** off this case.`;
+}
+
+/*
  * What a case's timeline says about its evidence
  * (SecurityCaseEvidenceService). A file's name is the uploader's, a link's
  * address points outside OneUptime: each is code, so neither turns into a

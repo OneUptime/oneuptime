@@ -144,7 +144,8 @@ export function decideRequests(input: RequestsInput): StepCheckResult {
     sentence(
       CHECK_REQUESTS_SINCE,
       {},
-      { times: { time: reading.windowStart } },
+      // Since when they are counted: "since 14:25" (#10622).
+      { times: { since: reading.windowStart } },
     ),
   ];
   const previousDoneSince: Date | null =

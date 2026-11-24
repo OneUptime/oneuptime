@@ -1718,6 +1718,44 @@ export default class QueryHelper {
     );
   }
 
+  /*
+   * Matches rows whose id column (a uuid) holds one of `ids`, sent as ONE
+   * array parameter: `= ANY(CAST(:ids AS uuid[]))`. `IN (:...ids)` (in,
+   * inOrNull) spends a bind value on every id, and Postgres takes at most
+   * 65,535 in one statement, so a list of every repository a person may read
+   * - however many a project has - is sent this way (#10764). With
+   * `orNull`, rows whose column is empty match too. Empty `ids` match no
+   * row - or, with `orNull`, only the empty ones.
+   */
+  public static anyOfIds(
+    ids: Array<string | ObjectID>,
+    options?: { orNull?: boolean | undefined },
+  ): FindWhereProperty<any> {
+    const values: Array<string> = ids.map((id: string | ObjectID): string => {
+      return id.toString();
+    });
+    const orNull: boolean = Boolean(options?.orNull);
+
+    if (values.length === 0) {
+      return Raw((alias: string) => {
+        return orNull ? `(${alias} IS NULL)` : `TRUE = FALSE`;
+      }, {});
+    }
+
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        const any: string = `${alias} = ANY(CAST(:${rid} AS uuid[]))`;
+
+        return orNull ? `(${any} OR ${alias} IS NULL)` : `(${any})`;
+      },
+      {
+        [rid]: values,
+      },
+    );
+  }
+
   public static notInOrNull(
     values: Array<string | ObjectID>,
   ): FindWhereProperty<any> {

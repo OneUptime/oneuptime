@@ -39,6 +39,9 @@ import {
 } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { PROBE_ON_NEW_MONITORS_COPY } from "../../../FeatureSet/Dashboard/src/Components/Probe/ProbeOnNewMonitorsCopy";
+import { PROBE_ADDRESSES_COPY } from "../../../FeatureSet/Dashboard/src/Components/Probe/ProbeAddressesCopy";
+import { PROBE_INTERFACE_ADDRESSES_FIELD } from "Common/Types/Probe/ProbeInterfaceAddresses";
+import { UPDATE_A_PROBE_DOCS_PATH } from "Common/Types/Probe/ProbeReportedVersion";
 import {
   getProbeDockerRunCommand,
   getProbeDockerRunCommandsThroughProxy,
@@ -104,6 +107,10 @@ const PROBE_SETUP_CARD: string =
   "App/FeatureSet/Dashboard/src/Components/Probe/CustomProbeDocumentation.tsx";
 const MONITORS_SIDE_MENU: string =
   "App/FeatureSet/Dashboard/src/Pages/Monitor/SideMenu.tsx";
+const NOTIFY_MAJOR_RELEASE_JOB: string =
+  "App/FeatureSet/Workers/Jobs/Probe/NotifyMajorReleaseBehind.ts";
+const NOTIFICATION_SETTINGS_PAGE: string =
+  "App/FeatureSet/Dashboard/src/Pages/UserSettings/NotificationSettings.tsx";
 
 // Where a constant a setting is bounded by may be declared.
 const CONSTANT_SOURCES: Array<string> = [
@@ -473,6 +480,15 @@ describe("the Custom Probes page: every setting the probe reads", () => {
           expect(defaultCell).toBe("`false`");
           expect(readSource(PROBE_PRIVATE_NETWORK)).toMatch(
             /configuredValue === "false"\s*\)\s*\{\s*return \{\s*\.\.\.base,\s*allowed: false,/,
+          );
+          continue;
+        }
+
+        if (name === "PROBE_HOST_IP_ADDRESSES") {
+          // A list, read by the shared rules: unset lists no host address (#10633).
+          expect(defaultCell).toBe("none");
+          expect(readSource(PROBE_CONFIG)).toContain(
+            `ProbeInterfaceAddressesUtil.readHostAddressesSetting(\n    process.env["PROBE_HOST_IP_ADDRESSES"],\n  );`,
           );
           continue;
         }
@@ -1634,5 +1650,162 @@ describe("the Incoming Request Ingress page", () => {
     expect(page).toContain(
       "`Probe ingress: probe ID not available, forwarding without it`",
     );
+  });
+});
+
+/*
+ * #10633: a probe without host networking - the page's Kubernetes
+ * Deployment, or Docker on a bridge network - is told its host's addresses,
+ * so Security Events knows its polling. The Deployment sets them from the
+ * Downward API, which no person types.
+ */
+describe("the Custom Probes page: a probe without host networking", () => {
+  const page: string = englishPage(CUSTOM_PROBE);
+
+  // Each Kubernetes manifest on the page, as its code block holds it.
+  function kubernetesManifests(): Array<string> {
+    return scanMarkdown(page)
+      .fences.filter((fence: DocsFence): boolean => {
+        return fence.code.includes("kind: Deployment");
+      })
+      .map((fence: DocsFence): string => {
+        return fence.code;
+      });
+  }
+
+  it("sets PROBE_HOST_IP_ADDRESSES from the Downward API in every Kubernetes Deployment the page gives", () => {
+    const manifests: Array<string> = kubernetesManifests();
+
+    expect(manifests.length).toBe(2);
+
+    for (const manifest of manifests) {
+      expect(manifest).toContain(
+        [
+          "            - name: PROBE_HOST_IP_ADDRESSES",
+          "              valueFrom:",
+          "                fieldRef:",
+          "                  fieldPath: status.hostIPs",
+        ].join("\n"),
+      );
+      // And never host networking: the setup works where a cluster forbids it.
+      expect(manifest).not.toContain("hostNetwork");
+    }
+  });
+
+  it("says why, what older Kubernetes uses instead of status.hostIPs, and how to give it on a Docker bridge network", () => {
+    const install: string = section(page, "## Install a probe");
+
+    expect(install).toContain(
+      "`PROBE_HOST_IP_ADDRESSES` tells it that address, so that [Security Events](/docs/telemetry/security-events) knows the probe's polling, discovery sweeps and monitor checks for its own work.",
+    );
+    expect(install).toContain(
+      "The Kubernetes Deployment sets it from `status.hostIPs`, which holds both addresses of a dual-stack node; on Kubernetes older than 1.29, use `status.hostIP`.",
+    );
+    expect(install).toContain("`-e PROBE_HOST_IP_ADDRESSES=192.168.1.20`");
+  });
+
+  it("reads the setting as the probe does: separated by commas, beside its interfaces' addresses", () => {
+    const config: string = readSource(PROBE_CONFIG);
+    const alive: string = readSource(PROBE_ALIVE_JOB);
+
+    expect(config).toContain('process.env["PROBE_HOST_IP_ADDRESSES"]');
+    expect(alive).toContain("ProbeInterfaceAddressesUtil.forCheckIn(");
+    expect(alive).toContain("hostAddresses,");
+    expect(
+      rowFor(
+        tableRows(section(page, "### Talking to OneUptime")),
+        "`PROBE_HOST_IP_ADDRESSES`",
+      )[2],
+    ).toBe(
+      "The host's IP addresses, separated by commas, for a probe without host networking: listed beside the probe's own each time it checks in. See [Run the probe](#run-the-probe).",
+    );
+  });
+});
+
+/*
+ * #10634: what a probe sends when it checks in, and why - its heartbeat's
+ * field among it - and where its page shows the addresses OneUptime knows it
+ * by.
+ */
+describe("the Custom Probes page: what a probe sends when it checks in", () => {
+  const page: string = englishPage(CUSTOM_PROBE);
+  const sends: string = section(
+    page,
+    "## What a probe sends when it checks in",
+  );
+
+  it("names the heartbeat's field, and each field every request carries, as the probe sends them", () => {
+    const rows: Array<Array<string>> = tableRows(sends);
+    const alive: string = readSource(PROBE_ALIVE_JOB);
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual([
+      "`probeVersion`",
+      "`probeCapabilities`",
+      `\`${PROBE_INTERFACE_ADDRESSES_FIELD}\``,
+    ]);
+    expect(PROBE_INTERFACE_ADDRESSES_FIELD).toBe("probeInterfaceAddresses");
+    expect(alive).toContain("[PROBE_INTERFACE_ADDRESSES_FIELD]:");
+    expect(alive).toMatch(/schedule: EVERY_MINUTE/);
+    expect(rowFor(rows, "`probeInterfaceAddresses`")[1]).toBe("Once a minute");
+    expect(rowFor(rows, "`probeVersion`")[1]).toBe("With every request");
+    expect(rowFor(rows, "`probeCapabilities`")[1]).toBe("With every request");
+  });
+
+  it("says why each is sent, and that the addresses are what the probe says of itself", () => {
+    expect(sends).toContain(
+      "[Security Events](/docs/telemetry/security-events) knows the probe's own polling, discovery sweeps and monitor checks in your network flows by them, and the blocklist never blocks them. Loopback, link-local and multicast addresses are left out.",
+    );
+    expect(sends).toContain(
+      "So Security Events never sets traffic aside for its address alone: each host and port it reached must also be one the probe is set to reach, and anything beyond that is reported, naming the probe.",
+    );
+  });
+
+  it("names the two addresses as the probe's page draws them, under Probe Status", () => {
+    const view: string = readSource(PROBE_VIEW_PAGE);
+
+    expect(PROBE_ADDRESSES_COPY.checkInTitle).toBe("Check-In Address");
+    expect(PROBE_ADDRESSES_COPY.interfacesTitle).toBe("Interface Addresses");
+    expect(view).toContain("title: PROBE_ADDRESSES_COPY.checkInTitle,");
+    expect(view).toContain("title: PROBE_ADDRESSES_COPY.interfacesTitle,");
+    expect(view).toContain('name="Probe Status"');
+    expect(sends).toContain(
+      "The probe's page shows both under **Probe Status**, as **Check-In Address** and **Interface Addresses**, to whoever can read the probe, and neither for a probe that has not checked in yet.",
+    );
+  });
+});
+
+/*
+ * #9977: a probe's owners are told once when it falls a major release
+ * behind OneUptime - or the Project Owners, when it has none - with the
+ * switch that says how, as Notification Settings draws it.
+ */
+describe("the Custom Probes page: a probe a major release behind", () => {
+  const page: string = englishPage(CUSTOM_PROBE);
+  const update: string = section(page, "## Update a probe");
+
+  it("says who is told, how often, and where each person chooses how", () => {
+    const job: string = readSource(NOTIFY_MAJOR_RELEASE_JOB);
+    const settings: string = readSource(NOTIFICATION_SETTINGS_PAGE);
+
+    expect(update).toContain(
+      "When a probe falls a major release or more behind OneUptime, its owners are told once, with what it misses and a link to this section; a probe with no owners tells the Project Owners.",
+    );
+    expect(update).toContain(
+      "Each person chooses how they hear of it with **Probe a major release behind**, under **User Settings → Notification Settings**: it starts on by email.",
+    );
+    expect(job).toContain("schedule: EVERY_DAY");
+    expect(job).toContain("OwnerNotificationDeliveries.planForOwnersOf({");
+    expect(settings).toMatch(
+      /SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION\]:\s*\{\s*label: "Probe a major release behind",/,
+    );
+  });
+
+  it("is where the links it sends lead", () => {
+    expect(UPDATE_A_PROBE_DOCS_PATH).toBe(`/${CUSTOM_PROBE}#update-a-probe`);
+    expect(page).toContain("\n## Update a probe\n");
   });
 });

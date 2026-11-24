@@ -15,7 +15,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -158,13 +158,11 @@ const NetworkDeviceLatencyMatrix: FunctionComponent<
          * column (the endpoint lists the project's own probes only).
          */
         title={
-          <span className="inline-flex items-center gap-1.5">
-            {MATRIX_TITLE}
-            <InfoTooltip
-              label={MATRIX_TITLE}
-              text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.latencyMatrix}
-            />
-          </span>
+          <WordsWithInfoTooltip
+            text={MATRIX_TITLE}
+            label={MATRIX_TITLE}
+            description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.latencyMatrix}
+          />
         }
         description="Latest response time each probe measured for every target — spot slow paths at a glance."
         buttons={[

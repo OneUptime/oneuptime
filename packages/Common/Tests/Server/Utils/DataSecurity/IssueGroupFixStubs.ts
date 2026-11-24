@@ -163,6 +163,10 @@ export function installGroupFixStubs(
   jest
     .spyOn(CodeTaskAccess, "listReadableRepositories")
     .mockResolvedValue([repositoryModel()] as never);
+  // Read by the ranked repositories' ids (#10764).
+  jest
+    .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
+    .mockResolvedValue([repositoryModel()] as never);
   jest
     .spyOn(CodeTaskAccess, "canAskInRepository")
     .mockResolvedValue(true as never);

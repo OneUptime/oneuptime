@@ -6,7 +6,7 @@ import useResizableColumns, {
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import Card from "Common/UI/Components/Card/Card";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import { WebVital, WebVitalByRoute, WebVitalRoute } from "./telemetryMetrics";
 import { formatVital, ratingClasses, ratingLabel } from "./WebVitalsCard";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -242,14 +242,11 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
       <Card
         title={
           props.description ? (
-            <span className="inline-flex items-center gap-1.5">
-              {title}
-              <InfoTooltip
-                label={title}
-                text={props.description}
-                iconClassName="h-4 w-4"
-              />
-            </span>
+            <WordsWithInfoTooltip
+              text={title}
+              label={title}
+              description={props.description}
+            />
           ) : (
             title
           )
