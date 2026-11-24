@@ -12,6 +12,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -121,6 +122,7 @@ export interface AffectedResourcesPayload {
   proxmoxClusters: Array<string> | undefined;
   openStackClouds: Array<string> | undefined;
   vmwareVCenters: Array<string> | undefined;
+  xcpNgPools: Array<string> | undefined;
   cephClusters: Array<string> | undefined;
   storageArrays: Array<string> | undefined;
   dockerSwarmClusters: Array<string> | undefined;
@@ -146,6 +148,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
+  xcpNgPools?: Array<XcpNgPool> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
@@ -271,6 +274,14 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     key: "vmwareVCenters",
     supportsLabels: true,
   },
+  XcpNgPool: {
+    label: "XCP-ng Pool",
+    pluralLabel: "XCP-ng Pools",
+    icon: IconProp.XcpNg,
+    modelType: XcpNgPool,
+    key: "xcpNgPools",
+    supportsLabels: true,
+  },
   CephCluster: {
     label: "Ceph Cluster",
     pluralLabel: "Ceph Clusters",
@@ -342,10 +353,10 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
 };
 
 /*
- * The default set. Proxmox / VMware / Ceph / Storage Array / Docker Swarm /
- * IoT / Database / Cloud Resource are deliberately NOT here: a page only
- * gets them by naming them in `resourceTypes`, because offering a type the
- * page's onChange handler does not write back would silently drop the
+ * The default set. Proxmox / VMware / XCP-ng / Ceph / Storage Array / Docker
+ * Swarm / IoT / Database / Cloud Resource are deliberately NOT here: a page
+ * only gets them by naming them in `resourceTypes`, because offering a type
+ * the page's onChange handler does not write back would silently drop the
  * user's selection on save.
  */
 const ALL_TYPES: Array<AffectedResourceType> = [
@@ -819,6 +830,9 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
         ...toItems(props.vmwareVCenters, "VMwareVCenter", cache, failed),
       );
     }
+    if (resourceTypes.includes("XcpNgPool")) {
+      items.push(...toItems(props.xcpNgPools, "XcpNgPool", cache, failed));
+    }
     if (resourceTypes.includes("CephCluster")) {
       items.push(...toItems(props.cephClusters, "CephCluster", cache, failed));
     }
@@ -867,6 +881,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.proxmoxClusters,
     props.openStackClouds,
     props.vmwareVCenters,
+    props.xcpNgPools,
     props.cephClusters,
     props.storageArrays,
     props.dockerSwarmClusters,
@@ -1463,6 +1478,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       proxmoxClusters: idsFor("ProxmoxCluster"),
       openStackClouds: idsFor("OpenStackCloud"),
       vmwareVCenters: idsFor("VMwareVCenter"),
+      xcpNgPools: idsFor("XcpNgPool"),
       cephClusters: idsFor("CephCluster"),
       storageArrays: idsFor("StorageArray"),
       dockerSwarmClusters: idsFor("DockerSwarmCluster"),

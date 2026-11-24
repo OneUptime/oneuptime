@@ -750,6 +750,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               _id: true,
               projectId: true,
             },
+            xcpNgPools: {
+              name: true,
+              _id: true,
+              projectId: true,
+            },
             cephClusters: {
               name: true,
               _id: true,
@@ -916,6 +921,11 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                   _id: true,
                   projectId: true,
                 },
+                xcpNgPools: {
+                  name: true,
+                  _id: true,
+                  projectId: true,
+                },
                 cephClusters: {
                   name: true,
                   _id: true,
@@ -974,6 +984,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     proxmoxClusters={item.proxmoxClusters || []}
                     openStackClouds={item.openStackClouds || []}
                     vmwareVCenters={item.vmwareVCenters || []}
+                    xcpNgPools={item.xcpNgPools || []}
                     cephClusters={item.cephClusters || []}
                     storageArrays={item.storageArrays || []}
                     dockerSwarmClusters={item.dockerSwarmClusters || []}

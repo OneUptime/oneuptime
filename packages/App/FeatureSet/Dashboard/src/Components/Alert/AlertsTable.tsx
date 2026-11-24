@@ -144,6 +144,7 @@ export const getAlertAffectedResources: GetAlertAffectedResourcesFunction = (
     proxmoxClusters: alert.proxmoxClusters || [],
     openStackClouds: alert.openStackClouds || [],
     vmwareVCenters: alert.vmwareVCenters || [],
+    xcpNgPools: alert.xcpNgPools || [],
     cephClusters: alert.cephClusters || [],
     storageArrays: alert.storageArrays || [],
     dockerSwarmClusters: alert.dockerSwarmClusters || [],
@@ -757,6 +758,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             _id: true,
             projectId: true,
           },
+          xcpNgPools: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
           cephClusters: {
             name: true,
             _id: true,
@@ -973,6 +979,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
                 projectId: true,
               },
               vmwareVCenters: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
+              xcpNgPools: {
                 name: true,
                 _id: true,
                 projectId: true,

@@ -55,6 +55,7 @@ describe("what a monitor can be linked to", () => {
       "ProxmoxCluster",
       "OpenStackCloud",
       "VMwareVCenter",
+      "XcpNgPool",
       "CephCluster",
       "StorageArray",
       "DockerSwarmCluster",
