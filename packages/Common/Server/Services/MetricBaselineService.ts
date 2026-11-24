@@ -1143,7 +1143,20 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         judgedDay: read.judgedDay,
       });
 
+      /*
+       * Rows of other days of the week, and none of this hour's own: with a
+       * retention under a week a series never holds one. It cannot hold the
+       * weeks either, so it is judged by the cell as below, not left learning
+       * for ever (#10985).
+       */
       if (!cell) {
+        baselines.readsCell =
+          baselines.readsCell ||
+          (mayReadCell &&
+            !MetricHourBaseline.keepsWeeksNeeded({
+              rows,
+              windowDays: read.windowDays,
+            }));
         continue;
       }
 

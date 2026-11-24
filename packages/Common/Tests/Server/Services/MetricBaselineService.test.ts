@@ -1722,6 +1722,57 @@ describe("MetricBaselineService", () => {
         expect(cellQueries()).toHaveLength(0);
       });
 
+      /*
+       * Kept under a week, a series never holds a row of the hour judged: its
+       * rows are of the other days of the week. It used to be skipped before
+       * anything asked whether its rows could hold the weeks, and learned for
+       * ever (#10985).
+       */
+      const FRIDAY: number = 4 * 24 + HOUR;
+      const DAYS_KEPT: Array<JSONObject> = [
+        {
+          ...pointRow({ day: "2026-11-27", keptUntil: "2026-12-01 09:30:00" }),
+          hourOfWeek: FRIDAY,
+        },
+      ];
+
+      test("an average kept under a week, none of its rows at the hour judged, is judged by the cell", async () => {
+        answerWith({ cell: [CELL], days: TWO_WEEKS, points: DAYS_KEPT });
+
+        expect(await readOne({ attributes: { state: "idle" } })).toMatchObject({
+          mean: 100,
+          isReliable: true,
+        });
+      });
+
+      test("one that reads only its own rows has none: no cell, and nothing of its own", async () => {
+        answerWith({ cell: [CELL], days: TWO_WEEKS, points: DAYS_KEPT });
+
+        expect(
+          await readOne(
+            { attributes: { monitorStepId: "step-1" } },
+            { readsOnlyItsOwnRows: true },
+          ),
+        ).toBeNull();
+        expect(cellQueries()).toHaveLength(0);
+      });
+
+      test("a young series with none of its rows at the hour judged learns: its own are on the way", async () => {
+        answerWith({
+          cell: [CELL],
+          days: TWO_WEEKS,
+          points: [
+            {
+              ...pointRow({ day: "2026-11-27" }),
+              hourOfWeek: FRIDAY,
+            },
+          ],
+        });
+
+        expect(await readOne({ attributes: { state: "idle" } })).toBeNull();
+        expect(cellQueries()).toHaveLength(0);
+      });
+
       test("one that reads only its own rows is judged by them once they hold two weeks", async () => {
         answerWith({ cell: [CELL], days: TWO_WEEKS, points: POINTS });
 

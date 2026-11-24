@@ -8,7 +8,9 @@ import MetricBaselineService, {
   BaselineSummary,
   MetricBaselineQuery,
   MetricBaselineRequest,
+  MetricSeriesBaselines,
 } from "../../../../../Server/Services/MetricBaselineService";
+import AggregatedModel from "../../../../../Types/BaseDatabase/AggregatedModel";
 import AggregationInterval from "../../../../../Types/BaseDatabase/AggregationInterval";
 import AggregationType from "../../../../../Types/BaseDatabase/AggregationType";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
@@ -27,6 +29,7 @@ import SnmpInterface from "../../../../../Types/Monitor/SnmpMonitor/SnmpInterfac
 import ObjectID from "../../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../../Types/Probe/ProbeMonitorResponse";
 import FilterCondition from "../../../../../Types/Filter/FilterCondition";
+import MetricSeriesFingerprint from "../../../../../Utils/Metrics/MetricSeriesFingerprint";
 import {
   afterEach,
   beforeEach,
@@ -38,26 +41,31 @@ import {
 import { SpyInstance } from "jest-mock";
 
 /*
- * AN SNMP INTERFACE'S UTILIZATION, JUDGED AGAINST ITS OWN STEP'S HISTORY
- * (#10985).
+ * AN SNMP INTERFACE'S UTILIZATION, JUDGED AGAINST ITS OWN HISTORY ON ITS OWN
+ * STEP (#10985).
  *
  * The anomaly condition used to read the monitor's hourly rollup, keyed by
  * the monitor alone: both steps of a two-step Network Device monitor, and
- * every port of a device, in one mean and spread. It now reads the rows its
- * step's checks wrote - of the interfaces in scope, the busiest of them each
- * minute, as the check takes the busiest. These pin what it asks for; that
- * the read does what it asks of a real ClickHouse is
+ * every port of a device, in one mean and spread. It now reads, once an hour
+ * a step, one series a port from the rows its step's checks wrote, and judges
+ * each in-scope port against its own. These pin what it asks for and how it
+ * judges the answer; that the read does what it asks of a real ClickHouse is
  * SnmpUtilizationBaselineClickhouseIntegration.test.ts.
  */
 
 const STEP_A: string = "0193a0a0-0000-7000-8000-00000010985a";
 const STEP_B: string = "0193a0a0-0000-7000-8000-00000010985b";
 
+// A step's scope on a monitor of this many steps, as the evaluator makes it.
 function scopeOf(stepId: string, stepCount: number): MonitorStepSeriesScope {
-  return {
+  return MonitorStepSeries.getScope({
     monitorStepId: stepId,
-    readsRowsWithoutStep: stepCount <= 1,
-  };
+    monitorSteps: {
+      data: {
+        monitorStepsInstanceArray: new Array(stepCount).fill({}),
+      },
+    } as never,
+  });
 }
 
 function port(input: {
@@ -118,7 +126,7 @@ function baselineOf(input: {
   isReliable?: boolean;
 }): BaselineSummary {
   return {
-    sampleCount: 840,
+    sampleCount: 168,
     mean: input.mean,
     stddev: input.stddev,
     median: input.mean,
@@ -131,301 +139,307 @@ function baselineOf(input: {
   };
 }
 
-function queryOf(request: MetricBaselineRequest): MetricBaselineQuery {
-  expect(request.query).toBeDefined();
-  return request.query!;
+// An hour's baselines of a step: one series a port, named as its rows name it.
+function seriesOf(
+  ports: Record<string, BaselineSummary>,
+  fallback: BaselineSummary | null = null,
+): MetricSeriesBaselines {
+  return {
+    series: new Map<string, BaselineSummary>(
+      Object.entries(ports).map(
+        ([name, baseline]: [string, BaselineSummary]): [
+          string,
+          BaselineSummary,
+        ] => {
+          return [
+            SnmpMonitorCriteria.getInterfaceSeriesFingerprint(name),
+            baseline,
+          ];
+        },
+      ),
+    ),
+    fallback,
+  };
 }
 
 describe("SnmpMonitorCriteria.getUtilizationBaselineQuery", () => {
-  describe("the step", () => {
-    test("a step of a monitor with several reads its own rows alone, and never the monitor's rollup", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          criteriaFilter: anomalyFilter(),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        });
-
-      expect(query).toEqual({
-        aggregationType: AggregationType.Max,
-        isNarrowedByAttributes: true,
-        interval: AggregationInterval.Minute,
-        scope: {
-          attributes: { [MONITOR_STEP_ID_ATTRIBUTE]: STEP_A },
-          groupByAttributeKeys: [],
-        },
-        readsOnlyItsOwnRows: true,
-      });
-    });
-
-    test("the step of a monitor with one also reads the rows written before rows named their step, and may fall back on the rollup", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 1),
-          criteriaFilter: anomalyFilter(),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        });
-
-      const stepFilter: unknown =
-        query?.scope?.attributes[MONITOR_STEP_ID_ATTRIBUTE];
-
-      expect(stepFilter).toBeInstanceOf(Includes);
-      expect((stepFilter as Includes).values).toEqual([STEP_A, ""]);
-      expect(query?.readsOnlyItsOwnRows).toBe(false);
-      expect(query?.aggregationType).toBe(AggregationType.Max);
-    });
-
-    test("it reads exactly what a step's windows read", () => {
-      for (const stepCount of [0, 1, 2, 5]) {
-        const scope: MonitorStepSeriesScope = scopeOf(STEP_B, stepCount);
-
-        expect(
-          SnmpMonitorCriteria.getUtilizationBaselineQuery({
-            stepScope: scope,
-            criteriaFilter: anomalyFilter(),
-            interfaces: [port({ name: "eth0", utilizationPercent: 3 })],
-          })?.scope?.attributes,
-        ).toEqual(MonitorStepSeries.toQueryAttributes(scope));
-      }
-    });
-
-    test("two steps never share a read", () => {
-      const first: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          criteriaFilter: anomalyFilter(),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        });
-      const second: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_B, 2),
-          criteriaFilter: anomalyFilter(),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        });
-
-      expect(first?.scope).not.toEqual(second?.scope);
-    });
-
-    test("with no step and nothing else narrowing it, the monitor's rollup is read as before", () => {
-      expect(
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: undefined,
-          criteriaFilter: anomalyFilter(),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        }),
-      ).toBeUndefined();
+  test("a step of a monitor with several reads its own rows alone, a series a port, and never the monitor's rollup", () => {
+    expect(
+      SnmpMonitorCriteria.getUtilizationBaselineQuery(scopeOf(STEP_A, 2)),
+    ).toEqual({
+      aggregationType: AggregationType.Max,
+      isNarrowedByAttributes: true,
+      interval: AggregationInterval.Minute,
+      scope: {
+        attributes: { [MONITOR_STEP_ID_ATTRIBUTE]: STEP_A },
+        groupByAttributeKeys: [SNMP_INTERFACE_NAME_ATTRIBUTE],
+      },
+      readsOnlyItsOwnRows: true,
     });
   });
 
-  describe("the interfaces", () => {
-    test("every interface, for an empty name or *: no interface narrows the read", () => {
-      for (const interfaceName of [undefined, "", "   ", "*", " * "]) {
-        const query: MetricBaselineQuery | undefined =
-          SnmpMonitorCriteria.getUtilizationBaselineQuery({
-            stepScope: scopeOf(STEP_A, 2),
-            criteriaFilter: anomalyFilter(interfaceName),
-            interfaces: [
-              port({ name: "Gi0/1", utilizationPercent: 40 }),
-              port({ name: "Gi0/2", utilizationPercent: 2 }),
-            ],
-          });
+  test("the step of a monitor with one also reads the rows written before rows named their step, and may fall back on the rollup", () => {
+    const query: MetricBaselineQuery =
+      SnmpMonitorCriteria.getUtilizationBaselineQuery(scopeOf(STEP_A, 1));
 
-        expect(
-          query?.scope?.attributes[SNMP_INTERFACE_NAME_ATTRIBUTE],
-        ).toBeUndefined();
-      }
-    });
+    const stepFilter: unknown =
+      query.scope?.attributes[MONITOR_STEP_ID_ATTRIBUTE];
 
-    test("a named interface reads that interface's rows, by the name its rows carry", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          // Typed in another case: the walk's name is what the rows say.
-          criteriaFilter: anomalyFilter("gi0/1"),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        });
+    expect(stepFilter).toBeInstanceOf(Includes);
+    expect((stepFilter as Includes).values).toEqual([STEP_A, ""]);
+    expect(query.readsOnlyItsOwnRows).toBe(false);
+    expect(query.scope?.groupByAttributeKeys).toEqual([
+      SNMP_INTERFACE_NAME_ATTRIBUTE,
+    ]);
+  });
 
-      expect(query?.scope?.attributes).toEqual({
-        [MONITOR_STEP_ID_ATTRIBUTE]: STEP_A,
-        [SNMP_INTERFACE_NAME_ATTRIBUTE]: "Gi0/1",
-      });
-    });
-
-    test("an interface matched by its alias is read by its name", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          criteriaFilter: anomalyFilter("Uplink to core"),
-          interfaces: [
-            port({
-              name: "TenGigabitEthernet1/0/1",
-              alias: "Uplink to core",
-              utilizationPercent: 60,
-            }),
-          ],
-        });
-
-      expect(query?.scope?.attributes[SNMP_INTERFACE_NAME_ATTRIBUTE]).toBe(
-        "TenGigabitEthernet1/0/1",
-      );
-    });
-
-    test("several interfaces a name matches are read together, each once, in order", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          criteriaFilter: anomalyFilter("uplink"),
-          interfaces: [
-            port({ name: "Gi0/2", alias: "uplink", utilizationPercent: 10 }),
-            port({ name: "Gi0/1", alias: "uplink", utilizationPercent: 20 }),
-            port({ name: "Gi0/2", alias: "uplink", utilizationPercent: 10 }),
-          ],
-        });
-
-      const names: unknown =
-        query?.scope?.attributes[SNMP_INTERFACE_NAME_ATTRIBUTE];
-
-      expect(names).toBeInstanceOf(Includes);
-      expect((names as Includes).values).toEqual(["Gi0/1", "Gi0/2"]);
-    });
-
-    test("an interface the walk gave no name is read as the rows that name none", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          criteriaFilter: anomalyFilter("Uplink"),
-          interfaces: [
-            port({ name: "", alias: "Uplink", utilizationPercent: 33 }),
-          ],
-        });
-
-      expect(query?.scope?.attributes[SNMP_INTERFACE_NAME_ATTRIBUTE]).toBe("");
-    });
-
-    test("a named interface with no step narrows the read by itself, and may fall back on the rollup", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: undefined,
-          criteriaFilter: anomalyFilter("Gi0/1"),
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 40 })],
-        });
-
-      expect(query?.scope?.attributes).toEqual({
-        [SNMP_INTERFACE_NAME_ATTRIBUTE]: "Gi0/1",
-      });
-      expect(query?.isNarrowedByAttributes).toBe(true);
-      expect(query?.readsOnlyItsOwnRows).toBe(false);
-    });
-
-    test("with nothing in scope, no interface narrows the read: an empty list would read them all", () => {
-      const query: MetricBaselineQuery | undefined =
-        SnmpMonitorCriteria.getUtilizationBaselineQuery({
-          stepScope: scopeOf(STEP_A, 2),
-          criteriaFilter: anomalyFilter("Gi0/9"),
-          interfaces: [],
-        });
+  test("it reads exactly the rows a step's windows read", () => {
+    for (const stepCount of [0, 1, 2, 5]) {
+      const scope: MonitorStepSeriesScope = scopeOf(STEP_B, stepCount);
 
       expect(
-        query?.scope?.attributes[SNMP_INTERFACE_NAME_ATTRIBUTE],
-      ).toBeUndefined();
+        SnmpMonitorCriteria.getUtilizationBaselineQuery(scope).scope
+          ?.attributes,
+      ).toEqual(MonitorStepSeries.toQueryAttributes(scope));
+    }
+  });
+
+  test("two steps never share a read", () => {
+    expect(
+      SnmpMonitorCriteria.getUtilizationBaselineQuery(scopeOf(STEP_A, 2)).scope,
+    ).not.toEqual(
+      SnmpMonitorCriteria.getUtilizationBaselineQuery(scopeOf(STEP_B, 2)).scope,
+    );
+  });
+
+  test("with no step, it reads every row of the monitor, still a series a port", () => {
+    expect(SnmpMonitorCriteria.getUtilizationBaselineQuery(undefined)).toEqual({
+      aggregationType: AggregationType.Max,
+      isNarrowedByAttributes: true,
+      interval: AggregationInterval.Minute,
+      scope: {
+        attributes: {},
+        groupByAttributeKeys: [SNMP_INTERFACE_NAME_ATTRIBUTE],
+      },
+      readsOnlyItsOwnRows: false,
     });
   });
 });
 
-describe("SnmpMonitorCriteria's anomaly condition, judged against each step's own history", () => {
-  let getBaselineSpy: SpyInstance<typeof MetricBaselineService.getBaseline>;
+describe("SnmpMonitorCriteria.getInterfaceSeriesFingerprint", () => {
+  test("is the fingerprint the baseline read gives a port's rows", () => {
+    for (const name of ["Gi0/1", "TenGigabitEthernet1/0/1", "eth0.100"]) {
+      expect(SnmpMonitorCriteria.getInterfaceSeriesFingerprint(name)).toBe(
+        MetricSeriesFingerprint.computeFingerprint(
+          MetricSeriesFingerprint.extractSeriesLabels({
+            sample: {
+              attributes: { [SNMP_INTERFACE_NAME_ATTRIBUTE]: name },
+            } as unknown as AggregatedModel,
+            attributeKeys: [SNMP_INTERFACE_NAME_ATTRIBUTE],
+          }),
+        ),
+      );
+    }
+  });
+
+  test("two ports never share one, and a port the walk gave no name has the rows' that name none", () => {
+    const fingerprints: Set<string> = new Set<string>(
+      ["Gi0/1", "Gi0/2", "gi0/1", ""].map((name: string): string => {
+        return SnmpMonitorCriteria.getInterfaceSeriesFingerprint(name);
+      }),
+    );
+
+    expect(fingerprints.size).toBe(4);
+    expect(SnmpMonitorCriteria.getInterfaceSeriesFingerprint(undefined)).toBe(
+      SnmpMonitorCriteria.getInterfaceSeriesFingerprint(""),
+    );
+    expect(SnmpMonitorCriteria.getInterfaceSeriesFingerprint("Gi0/1")).not.toBe(
+      MetricSeriesFingerprint.WholeMonitorFingerprint,
+    );
+  });
+});
+
+describe("SnmpMonitorCriteria's anomaly condition, each port judged against its own history on its own step", () => {
+  let getSeriesBaselinesSpy: SpyInstance<
+    typeof MetricBaselineService.getSeriesBaselines
+  >;
   let requests: Array<MetricBaselineRequest>;
 
   const projectId: ObjectID = ObjectID.generate();
   const monitorId: ObjectID = ObjectID.generate();
 
   /*
-   * A two-step monitor: a core switch whose busiest port runs at 70% and an
-   * access switch whose busiest runs at 5% - the baselines each step's own
-   * rows give. The monitor's rollup would have mixed them into one.
+   * A two-step monitor: a core switch, its uplink around 70% and a backup
+   * link around 3%, and an access switch whose ports run around 5%. The
+   * monitor's rollup would have put all of them in one mean and spread.
    */
-  const OWN_BASELINES: Record<string, BaselineSummary> = {
-    [STEP_A]: baselineOf({ mean: 70, stddev: 3 }),
-    [STEP_B]: baselineOf({ mean: 5, stddev: 1 }),
+  const STEP_BASELINES: Record<string, MetricSeriesBaselines> = {
+    [STEP_A]: seriesOf({
+      Uplink0: baselineOf({ mean: 70, stddev: 3 }),
+      Backup0: baselineOf({ mean: 3, stddev: 0.5 }),
+    }),
+    [STEP_B]: seriesOf({
+      Fa0: baselineOf({ mean: 5, stddev: 1 }),
+      Fa1: baselineOf({ mean: 5, stddev: 1 }),
+    }),
   };
 
   beforeEach(() => {
     requests = [];
-    getBaselineSpy = jest
-      .spyOn(MetricBaselineService, "getBaseline")
+    getSeriesBaselinesSpy = jest
+      .spyOn(MetricBaselineService, "getSeriesBaselines")
       .mockImplementation(
         async (
-          request: MetricBaselineRequest,
-        ): Promise<BaselineSummary | null> => {
+          request: MetricBaselineRequest & { query: MetricBaselineQuery },
+        ): Promise<MetricSeriesBaselines> => {
           requests.push(request);
 
           const step: unknown =
-            request.query?.scope?.attributes[MONITOR_STEP_ID_ATTRIBUTE];
+            request.query.scope?.attributes[MONITOR_STEP_ID_ATTRIBUTE];
 
-          return typeof step === "string"
-            ? OWN_BASELINES[step] || null
-            : // The monitor's rollup: both steps' samples, mixed.
-              baselineOf({ mean: 37.5, stddev: 32.5 });
+          return (
+            (typeof step === "string" && STEP_BASELINES[step]) || seriesOf({})
+          );
         },
       );
   });
 
   afterEach(() => {
-    getBaselineSpy.mockRestore();
+    getSeriesBaselinesSpy.mockRestore();
   });
 
   async function judge(input: {
     stepId: string;
-    stepCount: number;
-    utilizationPercent: number;
-    filterType?: FilterType;
+    stepCount?: number;
+    ports: Array<SnmpInterface>;
+    filter?: CriteriaFilter;
   }): Promise<string | null> {
     return await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
       dataToProcess: walk({
         projectId,
         monitorId,
         stepId: input.stepId,
-        interfaces: [
-          port({ name: "Gi0/1", utilizationPercent: input.utilizationPercent }),
-        ],
+        interfaces: input.ports,
       }),
-      criteriaFilter: anomalyFilter(undefined, input.filterType),
-      stepScope: scopeOf(input.stepId, input.stepCount),
+      criteriaFilter: input.filter || anomalyFilter(),
+      stepScope: scopeOf(input.stepId, input.stepCount ?? 2),
     });
   }
 
-  test("the same 75% is an anomaly on the access switch and normal on the core switch", async () => {
+  test("the same 75% is an anomaly on the access switch and normal on the core's uplink", async () => {
     const access: string | null = await judge({
       stepId: STEP_B,
-      stepCount: 2,
-      utilizationPercent: 75,
+      ports: [
+        port({ name: "Fa0", utilizationPercent: 75 }),
+        port({ name: "Fa1", utilizationPercent: 5 }),
+      ],
     });
     const core: string | null = await judge({
       stepId: STEP_A,
-      stepCount: 2,
-      utilizationPercent: 75,
+      ports: [
+        port({ name: "Uplink0", utilizationPercent: 75 }),
+        port({ name: "Backup0", utilizationPercent: 3 }),
+      ],
     });
 
-    expect(access).toContain("75.00%");
+    expect(access).toContain("SNMP interface Fa0 utilization 75.00%");
     expect(access).toContain("mean 5.00%");
     expect(core).toBeNull();
   });
 
-  test("the core switch dropping to 5% is anomalously low against its own history", async () => {
-    const core: string | null = await judge({
+  test("a quiet port gone busy is caught though the busiest port is at its usual level", async () => {
+    const result: string | null = await judge({
       stepId: STEP_A,
-      stepCount: 2,
-      utilizationPercent: 5,
-      filterType: FilterType.AnomalouslyLow,
+      ports: [
+        port({ name: "Uplink0", utilizationPercent: 71 }),
+        port({ name: "Backup0", utilizationPercent: 40 }),
+      ],
     });
 
-    expect(core).toContain("below");
-    expect(core).toContain("mean 70.00%");
+    expect(result).toContain("SNMP interface Backup0 utilization 40.00%");
+    expect(result).toContain("above its same-hour baseline");
+    expect(result).toContain("mean 3.00%");
   });
 
-  test("each read names its own step, the utilization series, the monitor and a minute's busiest", async () => {
-    await judge({ stepId: STEP_A, stepCount: 2, utilizationPercent: 75 });
-    await judge({ stepId: STEP_B, stepCount: 2, utilizationPercent: 75 });
+  test("the uplink dropping to 8% is anomalously low against its own history", async () => {
+    const result: string | null = await judge({
+      stepId: STEP_A,
+      ports: [
+        port({ name: "Uplink0", utilizationPercent: 8 }),
+        port({ name: "Backup0", utilizationPercent: 3 }),
+      ],
+      filter: anomalyFilter(undefined, FilterType.AnomalouslyLow),
+    });
+
+    expect(result).toContain("SNMP interface Uplink0 utilization 8.00%");
+    expect(result).toContain("below its same-hour baseline");
+  });
+
+  test("Anomalous reads either way; AnomalouslyHigh never a drop, AnomalouslyLow never a rise", async () => {
+    const dropped: Array<SnmpInterface> = [
+      port({ name: "Uplink0", utilizationPercent: 8 }),
+    ];
+    const rose: Array<SnmpInterface> = [
+      port({ name: "Backup0", utilizationPercent: 40 }),
+    ];
+
+    expect(
+      await judge({
+        stepId: STEP_A,
+        ports: dropped,
+        filter: anomalyFilter(undefined, FilterType.Anomalous),
+      }),
+    ).toContain("below");
+    expect(
+      await judge({
+        stepId: STEP_A,
+        ports: rose,
+        filter: anomalyFilter(undefined, FilterType.Anomalous),
+      }),
+    ).toContain("above");
+    expect(
+      await judge({
+        stepId: STEP_A,
+        ports: dropped,
+        filter: anomalyFilter(undefined, FilterType.AnomalouslyHigh),
+      }),
+    ).toBeNull();
+    expect(
+      await judge({
+        stepId: STEP_A,
+        ports: rose,
+        filter: anomalyFilter(undefined, FilterType.AnomalouslyLow),
+      }),
+    ).toBeNull();
+  });
+
+  test("with several ports outside their bands, the furthest is named and the others counted", async () => {
+    const result: string | null = await judge({
+      stepId: STEP_B,
+      ports: [
+        port({ name: "Fa0", utilizationPercent: 20 }),
+        port({ name: "Fa1", utilizationPercent: 90 }),
+      ],
+    });
+
+    expect(result).toMatch(/^SNMP interface Fa1 utilization 90\.00%/);
+    expect(result).toContain(
+      "1 more interface(s) are outside their own baselines too: Fa0.",
+    );
+  });
+
+  test("each read is the step's own: the utilization series of the monitor, a series a port, once for every port", async () => {
+    await judge({
+      stepId: STEP_A,
+      ports: [
+        port({ name: "Uplink0", utilizationPercent: 75 }),
+        port({ name: "Backup0", utilizationPercent: 3 }),
+      ],
+    });
+    await judge({
+      stepId: STEP_B,
+      ports: [port({ name: "Fa0", utilizationPercent: 75 })],
+    });
 
     expect(requests).toHaveLength(2);
 
@@ -437,96 +451,140 @@ describe("SnmpMonitorCriteria's anomaly condition, judged against each step's ow
       );
       expect(request.primaryEntityId).toBe(monitorId.toString());
       expect(request.projectId).toBe(projectId.toString());
-      expect(queryOf(request)).toMatchObject({
-        aggregationType: AggregationType.Max,
-        interval: AggregationInterval.Minute,
-        readsOnlyItsOwnRows: true,
-        scope: {
-          attributes: { [MONITOR_STEP_ID_ATTRIBUTE]: stepId },
-          groupByAttributeKeys: [],
-        },
-      });
+      expect(request.query).toEqual(
+        SnmpMonitorCriteria.getUtilizationBaselineQuery(scopeOf(stepId, 2)),
+      );
     }
   });
 
-  test("a step whose own history is still learning raises nothing, whatever it reads", async () => {
-    getBaselineSpy.mockResolvedValue(
-      baselineOf({ mean: 5, stddev: 1, isReliable: false }),
+  test("a port still learning raises nothing, while one with a history beside it is judged", async () => {
+    getSeriesBaselinesSpy.mockResolvedValue(
+      seriesOf({
+        New0: baselineOf({ mean: 5, stddev: 1, isReliable: false }),
+        Old0: baselineOf({ mean: 5, stddev: 1 }),
+      }),
     );
 
     expect(
-      await judge({ stepId: STEP_B, stepCount: 2, utilizationPercent: 99 }),
+      await judge({
+        stepId: STEP_B,
+        ports: [port({ name: "New0", utilizationPercent: 99 })],
+      }),
     ).toBeNull();
+    expect(
+      await judge({
+        stepId: STEP_B,
+        ports: [
+          port({ name: "New0", utilizationPercent: 99 }),
+          port({ name: "Old0", utilizationPercent: 50 }),
+        ],
+      }),
+    ).toContain("SNMP interface Old0 utilization 50.00%");
   });
 
-  test("a step with no history at all raises nothing", async () => {
-    getBaselineSpy.mockResolvedValue(null);
+  test("a port with no history at all raises nothing", async () => {
+    getSeriesBaselinesSpy.mockResolvedValue(seriesOf({}));
 
     expect(
-      await judge({ stepId: STEP_B, stepCount: 2, utilizationPercent: 99 }),
+      await judge({
+        stepId: STEP_B,
+        ports: [port({ name: "Fa0", utilizationPercent: 99 })],
+      }),
     ).toBeNull();
   });
 
-  test("a check judged without its step reads the monitor's rollup, as before", async () => {
-    const result: string | null =
-      await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
-        dataToProcess: walk({
-          projectId,
-          monitorId,
-          stepId: STEP_B,
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 75 })],
-        }),
-        criteriaFilter: anomalyFilter(),
-      });
+  test("the rollup the read falls back on judges every port that has no baseline of its own", async () => {
+    getSeriesBaselinesSpy.mockResolvedValue(
+      seriesOf({}, baselineOf({ mean: 20, stddev: 5 })),
+    );
 
-    expect(requests[0]?.query).toBeUndefined();
-    // Against both steps' samples the access switch's 75% looked normal.
-    expect(result).toBeNull();
+    expect(
+      await judge({
+        stepId: STEP_B,
+        stepCount: 1,
+        ports: [port({ name: "Fa0", utilizationPercent: 90 })],
+      }),
+    ).toContain("mean 20.00%");
+  });
+
+  test("a read that fails raises nothing, and throws nothing", async () => {
+    getSeriesBaselinesSpy.mockRejectedValue(new Error("ClickHouse is down"));
+
+    expect(
+      await judge({
+        stepId: STEP_B,
+        ports: [port({ name: "Fa0", utilizationPercent: 99 })],
+      }),
+    ).toBeNull();
+  });
+
+  test("a port that reported no utilization is not judged", async () => {
+    expect(
+      await judge({
+        stepId: STEP_B,
+        ports: [
+          port({ name: "Fa0", utilizationPercent: undefined }),
+          port({ name: "Fa1", utilizationPercent: 5 }),
+        ],
+      }),
+    ).toBeNull();
   });
 
   test("a static threshold reads no baseline at all", async () => {
-    const result: string | null =
-      await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
-        dataToProcess: walk({
-          projectId,
-          monitorId,
-          stepId: STEP_B,
-          interfaces: [port({ name: "Gi0/1", utilizationPercent: 75 })],
-        }),
-        criteriaFilter: {
-          checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
-          filterType: FilterType.GreaterThan,
-          value: 80,
-        },
-        stepScope: scopeOf(STEP_B, 2),
-      });
+    const result: string | null = await judge({
+      stepId: STEP_B,
+      ports: [port({ name: "Fa0", utilizationPercent: 75 })],
+      filter: {
+        checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
+        filterType: FilterType.GreaterThan,
+        value: 80,
+      },
+    });
 
     expect(result).toBeNull();
-    expect(getBaselineSpy).not.toHaveBeenCalled();
+    expect(getSeriesBaselinesSpy).not.toHaveBeenCalled();
   });
 
-  test("a criteria naming one interface is judged against that interface's history", async () => {
-    await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
-      dataToProcess: walk({
-        projectId,
-        monitorId,
+  test("a criteria naming a port by its alias judges that port alone", async () => {
+    const backupBusy: string | null = await judge({
+      stepId: STEP_A,
+      ports: [
+        port({ name: "Uplink0", utilizationPercent: 99 }),
+        port({ name: "Backup0", alias: "Backup", utilizationPercent: 40 }),
+      ],
+      filter: anomalyFilter("backup"),
+    });
+
+    expect(backupBusy).toContain("SNMP interface Backup0 utilization 40.00%");
+    expect(backupBusy).not.toContain("Uplink0");
+
+    expect(
+      await judge({
         stepId: STEP_A,
-        interfaces: [
-          port({ name: "Gi0/1", utilizationPercent: 75 }),
-          port({ name: "Gi0/2", alias: "Backup", utilizationPercent: 4 }),
+        ports: [
+          port({ name: "Uplink0", utilizationPercent: 99 }),
+          port({ name: "Backup0", alias: "Backup", utilizationPercent: 3 }),
         ],
+        filter: anomalyFilter("backup"),
       }),
-      criteriaFilter: anomalyFilter("backup"),
-      stepScope: scopeOf(STEP_A, 2),
-    });
-
-    expect(queryOf(requests[0]!).scope?.attributes).toEqual({
-      [MONITOR_STEP_ID_ATTRIBUTE]: STEP_A,
-      [SNMP_INTERFACE_NAME_ATTRIBUTE]: "Gi0/2",
-    });
+    ).toBeNull();
   });
 
-  test("an Interface Name of * fanned out per interface judges each interface against its own history", async () => {
+  /*
+   * A criteria fanned out per port is judged for the whole monitor first, and
+   * fans out only when that is met: the whole pass has to see any port's
+   * anomaly, and each port's own pass only its own.
+   */
+  test("an Interface Name of * is met when any port is outside its band, and each port it fans out to is judged against its own", async () => {
+    const ports: Array<SnmpInterface> = [
+      port({ name: "Uplink0", utilizationPercent: 71 }),
+      port({ name: "Backup0", alias: "Backup", utilizationPercent: 40 }),
+    ];
+
+    expect(
+      await judge({ stepId: STEP_A, ports, filter: anomalyFilter("*") }),
+    ).toContain("SNMP interface Backup0 utilization 40.00%");
+
     const criteriaInstance: MonitorCriteriaInstance =
       new MonitorCriteriaInstance();
     criteriaInstance.data = {
@@ -544,10 +602,7 @@ describe("SnmpMonitorCriteria's anomaly condition, judged against each step's ow
       projectId,
       monitorId,
       stepId: STEP_A,
-      interfaces: [
-        port({ name: "Gi0/1", utilizationPercent: 75 }),
-        port({ name: "Gi0/2", utilizationPercent: 4 }),
-      ],
+      interfaces: ports,
     });
 
     const entities: Array<FanOutEntity> =
@@ -558,20 +613,19 @@ describe("SnmpMonitorCriteria's anomaly condition, judged against each step's ow
 
     expect(entities).toHaveLength(2);
 
+    const verdicts: Array<string | null> = [];
+
     for (const entity of entities) {
-      await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
-        dataToProcess,
-        criteriaFilter: entity.narrowFilter(anomalyFilter("*")),
-        stepScope: scopeOf(STEP_A, 2),
-      });
+      verdicts.push(
+        await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+          dataToProcess,
+          criteriaFilter: entity.narrowFilter(anomalyFilter("*")),
+          stepScope: scopeOf(STEP_A, 2),
+        }),
+      );
     }
 
-    expect(
-      requests.map((request: MetricBaselineRequest): unknown => {
-        return queryOf(request).scope?.attributes[
-          SNMP_INTERFACE_NAME_ATTRIBUTE
-        ];
-      }),
-    ).toEqual(["Gi0/1", "Gi0/2"]);
+    expect(verdicts[0]).toBeNull();
+    expect(verdicts[1]).toContain("SNMP interface Backup0 utilization 40.00%");
   });
 });
