@@ -101,6 +101,8 @@ enum PageMap {
   SECURITY_EVENTS_SETTINGS_CASE_STATUSES = "SECURITY_EVENTS_SETTINGS_CASE_STATUSES",
   // Settings: when risk opens a case, and how much each entity matters.
   SECURITY_EVENTS_SETTINGS_RISK_SCORING = "SECURITY_EVENTS_SETTINGS_RISK_SCORING",
+  // Settings: erasing one person from the user vault, and each erasure's record (#10908).
+  SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS = "SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS",
   // Settings: the fields a project adds to its cases.
   SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS = "SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS",
   // Settings: ready-made text for a case's notes, and one template's page.
