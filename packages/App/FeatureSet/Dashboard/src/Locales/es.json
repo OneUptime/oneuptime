@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Los visitantes ven una tarjeta por cada incidente y otra por cada episodio, así que un incidente de un episodio aparece dos veces.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Los visitantes ven cada episodio como una sola tarjeta que enumera sus incidentes y lo que afectan.",
   "Page when the script timed out": "Página cuando se agotó el tiempo del script",
-  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script"
+  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Hay cuentas ajenas a las tuyas que pueden acceder a ese almacén de datos, así que también podrían acceder a la columna nueva.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Cualquiera en internet puede leer ese almacén de datos, así que también podría leer la columna nueva.",
+  "Data Security found {{types}} in its columns.": "Seguridad de datos encontró {{types}} en las columnas de la tabla.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Ese almacén de datos acepta conexiones desde internet, y la columna nueva estaría en él.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Ese almacén de datos no está cifrado en reposo, así que la columna nueva tampoco lo estaría.",
+  "The table already holds the same data": "La tabla ya contiene los mismos datos",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "La tabla {{table}} está en el almacén de datos {{store}}, que contiene datos de nivel {{sensitivity}}.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} almacenes de datos más del proyecto contienen una tabla con este nombre.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} almacén de datos más del proyecto contiene una tabla con este nombre."
 }

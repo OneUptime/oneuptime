@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।",
   "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
-  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}"
+  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "आपके खातों के बाहर के खाते उस डेटा स्टोर तक पहुंच सकते हैं, इसलिए वे नए कॉलम तक भी पहुंच सकेंगे।",
+  "Anyone on the internet can read that store, so they could read the new column too.": "इंटरनेट पर कोई भी उस डेटा स्टोर को पढ़ सकता है, इसलिए वह नया कॉलम भी पढ़ सकेगा।",
+  "Data Security found {{types}} in its columns.": "डेटा सुरक्षा को इस टेबल के कॉलम में ये डेटा प्रकार मिले: {{types}}।",
+  "That store accepts connections from the internet, and the new column would be in it.": "वह डेटा स्टोर इंटरनेट से कनेक्शन स्वीकार करता है, और नया कॉलम उसी में होगा।",
+  "That store is not encrypted at rest, so the new column would not be either.": "वह डेटा स्टोर संग्रहीत रहते हुए एन्क्रिप्टेड नहीं है, इसलिए नया कॉलम भी एन्क्रिप्टेड नहीं होगा।",
+  "The table already holds the same data": "टेबल में पहले से वही डेटा है",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "टेबल {{table}} डेटा स्टोर {{store}} में है, जिसमें {{sensitivity}} डेटा है।",
+  "{{count}} more stores of the project hold a table of this name.": "प्रोजेक्ट के {{count}} और डेटा स्टोर में इस नाम की टेबल है।",
+  "{{count}} more stores of the project hold a table of this name._one": "प्रोजेक्ट के {{count}} और डेटा स्टोर में इस नाम की टेबल है।"
 }

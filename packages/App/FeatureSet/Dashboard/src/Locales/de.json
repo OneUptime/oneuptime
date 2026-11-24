@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besucher sehen eine Karte für jeden Vorfall und eine weitere für jede Episode, sodass ein Vorfall in einer Episode zweimal erscheint.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besucher sehen jede Episode als eine Karte mit ihren Vorfällen und dem, was sie betreffen.",
   "Page when the script timed out": "Seite, als das Skript das Zeitlimit überschritt",
-  "Page {{number}} when the script timed out": "Seite {{number}}, als das Skript das Zeitlimit überschritt"
+  "Page {{number}} when the script timed out": "Seite {{number}}, als das Skript das Zeitlimit überschritt",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Konten außerhalb Ihrer eigenen können diesen Datenspeicher erreichen und könnten damit auch die neue Spalte erreichen.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Jeder im Internet kann diesen Datenspeicher lesen und könnte damit auch die neue Spalte lesen.",
+  "Data Security found {{types}} in its columns.": "Datensicherheit hat {{types}} in den Spalten der Tabelle gefunden.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Dieser Datenspeicher akzeptiert Verbindungen aus dem Internet, und die neue Spalte läge darin.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Dieser Datenspeicher ist im Ruhezustand nicht verschlüsselt, also wäre es die neue Spalte auch nicht.",
+  "The table already holds the same data": "Die Tabelle enthält bereits dieselben Daten",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "Die Tabelle {{table}} liegt im Datenspeicher {{store}}, der Daten der Stufe {{sensitivity}} enthält.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} weitere Datenspeicher des Projekts enthalten eine Tabelle mit diesem Namen.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} weiterer Datenspeicher des Projekts enthält eine Tabelle mit diesem Namen."
 }

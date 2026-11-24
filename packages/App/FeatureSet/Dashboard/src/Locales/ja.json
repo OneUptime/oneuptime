@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。",
   "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
-  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}"
+  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "自社以外のアカウントがこのデータストアにアクセスできるため、新しい列にもアクセスできることになります。",
+  "Anyone on the internet can read that store, so they could read the new column too.": "インターネット上の誰でもこのデータストアを読み取れるため、新しい列も読み取れることになります。",
+  "Data Security found {{types}} in its columns.": "データセキュリティは、このテーブルの列で {{types}} を検出しました。",
+  "That store accepts connections from the internet, and the new column would be in it.": "このデータストアはインターネットからの接続を受け入れており、新しい列もそこに置かれることになります。",
+  "That store is not encrypted at rest, so the new column would not be either.": "このデータストアは保存時に暗号化されていないため、新しい列も暗号化されないことになります。",
+  "The table already holds the same data": "テーブルがすでに保持している同じデータ",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "テーブル {{table}} は、{{sensitivity}} のデータを保持するデータストア {{store}} にあります。",
+  "{{count}} more stores of the project hold a table of this name.": "このプロジェクトでは、ほかに {{count}} 件のデータストアがこの名前のテーブルを保持しています。",
+  "{{count}} more stores of the project hold a table of this name._one": "このプロジェクトでは、ほかに {{count}} 件のデータストアがこの名前のテーブルを保持しています。"
 }

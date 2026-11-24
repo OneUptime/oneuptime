@@ -3650,6 +3650,17 @@ describe("Data Security Integrations", () => {
     expect(pullRequests).toContain(
       "**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**",
     );
+    // A migration's table (#10779): its store, for a private repository alone.
+    expect(sensitiveData).toContain("(await data.isRepositoryPrivate())");
+    expect(sensitiveData).toContain("DataAssetUsageService.findBy(");
+    expect(pullRequests).toContain(
+      "For a migration, in a private repository only, it names the store the table is in, what that store holds",
+    );
+    // An exception's message is telemetry too (#10778).
+    expect(types).toContain('Exception = "Exception",');
+    expect(pullRequests).toContain(
+      "in a log, a span, a metric, an exception's message or an error tracker's report",
+    );
   });
 
   it("says what OneUptime AI does on its own as Data Security → AI names it", () => {

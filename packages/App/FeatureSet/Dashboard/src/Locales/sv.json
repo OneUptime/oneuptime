@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besökare ser ett kort för varje incident och ett till för varje episod, så en incident i en episod visas två gånger.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besökare ser varje episod som ett kort som listar dess incidenter och vad de påverkar.",
   "Page when the script timed out": "Sida när skriptet fick timeout",
-  "Page {{number}} when the script timed out": "Sida {{number}} när skriptet fick timeout"
+  "Page {{number}} when the script timed out": "Sida {{number}} när skriptet fick timeout",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Konton utanför dina egna kan nå det datalagret och skulle därför också kunna nå den nya kolumnen.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Vem som helst på internet kan läsa det datalagret och skulle därför också kunna läsa den nya kolumnen.",
+  "Data Security found {{types}} in its columns.": "Datasäkerhet hittade {{types}} i tabellens kolumner.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Det datalagret accepterar anslutningar från internet, och den nya kolumnen skulle finnas i det.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Det datalagret är inte krypterat i vila, så den nya kolumnen skulle inte heller vara det.",
+  "The table already holds the same data": "Tabellen innehåller redan samma data",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "Tabellen {{table}} finns i datalagret {{store}}, som innehåller data på nivån {{sensitivity}}.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} datalager till i projektet innehåller en tabell med det här namnet.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} datalager till i projektet innehåller en tabell med det här namnet."
 }

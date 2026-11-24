@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "I visitatori vedono una scheda per ogni incidente e un'altra per ogni episodio, quindi un incidente di un episodio compare due volte.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "I visitatori vedono ogni episodio come un'unica scheda che elenca i suoi incidenti e ciò che interessano.",
   "Page when the script timed out": "Pagina quando lo script è andato in timeout",
-  "Page {{number}} when the script timed out": "Pagina {{number}} quando lo script è andato in timeout"
+  "Page {{number}} when the script timed out": "Pagina {{number}} quando lo script è andato in timeout",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Alcuni account esterni ai tuoi possono raggiungere quell'archivio dati, quindi potrebbero raggiungere anche la nuova colonna.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Chiunque su Internet può leggere quell'archivio dati, quindi potrebbe leggere anche la nuova colonna.",
+  "Data Security found {{types}} in its columns.": "Sicurezza dei dati ha trovato {{types}} nelle colonne della tabella.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Quell'archivio dati accetta connessioni da Internet, e la nuova colonna si troverebbe al suo interno.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Quell'archivio dati non è crittografato a riposo, quindi non lo sarebbe nemmeno la nuova colonna.",
+  "The table already holds the same data": "La tabella contiene già gli stessi dati",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "La tabella {{table}} si trova nell'archivio dati {{store}}, che contiene dati di livello {{sensitivity}}.",
+  "{{count}} more stores of the project hold a table of this name.": "Altri {{count}} archivi dati del progetto contengono una tabella con questo nome.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} altro archivio dati del progetto contiene una tabella con questo nome."
 }

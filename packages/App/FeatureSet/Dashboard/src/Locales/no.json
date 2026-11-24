@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøkende ser ett kort for hver hendelse og ett til for hver episode, så en hendelse i en episode vises to ganger.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøkende ser hver episode som ett kort som viser hendelsene i den og hva de påvirker.",
   "Page when the script timed out": "Side da skriptet fikk tidsavbrudd",
-  "Page {{number}} when the script timed out": "Side {{number}} da skriptet fikk tidsavbrudd"
+  "Page {{number}} when the script timed out": "Side {{number}} da skriptet fikk tidsavbrudd",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Kontoer utenfor dine egne kan nå det datalageret, så de ville også kunne nå den nye kolonnen.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Alle på internett kan lese det datalageret, så de ville også kunne lese den nye kolonnen.",
+  "Data Security found {{types}} in its columns.": "Datasikkerhet fant {{types}} i tabellens kolonner.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Det datalageret godtar tilkoblinger fra internett, og den nye kolonnen ville ligge i det.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Det datalageret er ikke kryptert ved lagring, så den nye kolonnen ville heller ikke være det.",
+  "The table already holds the same data": "Tabellen inneholder allerede de samme dataene",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "Tabellen {{table}} ligger i datalageret {{store}}, som inneholder data på nivået {{sensitivity}}.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} datalagre til i prosjektet inneholder en tabell med dette navnet.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} datalager til i prosjektet inneholder en tabell med dette navnet."
 }

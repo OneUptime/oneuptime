@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "访客会看到每个事件一张卡片，每个片段另一张卡片，因此片段中的事件会显示两次。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "访客会将每个片段看作一张卡片，其中列出该片段的事件及其影响范围。",
   "Page when the script timed out": "脚本超时时的页面",
-  "Page {{number}} when the script timed out": "脚本超时时的页面 {{number}}"
+  "Page {{number}} when the script timed out": "脚本超时时的页面 {{number}}",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "您账户之外的账户可以访问该数据存储，因此也能访问新列。",
+  "Anyone on the internet can read that store, so they could read the new column too.": "互联网上的任何人都可以读取该数据存储，因此也能读取新列。",
+  "Data Security found {{types}} in its columns.": "数据安全在该表的列中发现了 {{types}}。",
+  "That store accepts connections from the internet, and the new column would be in it.": "该数据存储接受来自互联网的连接，而新列将位于其中。",
+  "That store is not encrypted at rest, so the new column would not be either.": "该数据存储未进行静态加密，因此新列也不会加密。",
+  "The table already holds the same data": "该表已保存同类数据",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "表 {{table}} 位于数据存储 {{store}} 中，其中保存 {{sensitivity}} 数据。",
+  "{{count}} more stores of the project hold a table of this name.": "项目中另有 {{count}} 个数据存储包含同名的表。",
+  "{{count}} more stores of the project hold a table of this name._one": "项目中另有 {{count}} 个数据存储包含同名的表。"
 }

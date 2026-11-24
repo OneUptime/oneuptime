@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли.",
   "Page when the script timed out": "Страница в момент тайм-аута скрипта",
-  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта"
+  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "К этому хранилищу есть доступ у аккаунтов, не входящих в число ваших, поэтому они получили бы доступ и к новому столбцу.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Любой пользователь интернета может читать это хранилище, поэтому он смог бы прочитать и новый столбец.",
+  "Data Security found {{types}} in its columns.": "«Безопасность данных» нашла в столбцах таблицы: {{types}}.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Это хранилище принимает подключения из интернета, а новый столбец оказался бы в нём.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Это хранилище не зашифровано при хранении, поэтому новый столбец тоже не был бы зашифрован.",
+  "The table already holds the same data": "Таблица уже содержит такие же данные",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "Таблица {{table}} находится в хранилище {{store}}, в котором хранятся данные уровня {{sensitivity}}.",
+  "{{count}} more stores of the project hold a table of this name.": "Таблица с таким именем есть ещё в {{count}} хранилищах проекта.",
+  "{{count}} more stores of the project hold a table of this name._one": "Таблица с таким именем есть ещё в {{count}} хранилище проекта."
 }

@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Bezoekers zien een kaart voor elk incident en nog een voor elke episode, dus een incident in een episode staat er twee keer.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Bezoekers zien elke episode als één kaart met de incidenten erin en wat ze treffen.",
   "Page when the script timed out": "Pagina toen het script een time-out kreeg",
-  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg"
+  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Accounts buiten uw eigen accounts kunnen bij die opslag en zouden dus ook bij de nieuwe kolom kunnen.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Iedereen op internet kan die opslag lezen en zou dus ook de nieuwe kolom kunnen lezen.",
+  "Data Security found {{types}} in its columns.": "Gegevensbeveiliging vond {{types}} in de kolommen van de tabel.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Die opslag accepteert verbindingen vanaf internet, en de nieuwe kolom zou erin staan.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Die opslag is niet versleuteld in rust, dus de nieuwe kolom zou dat ook niet zijn.",
+  "The table already holds the same data": "De tabel bevat al dezelfde gegevens",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "De tabel {{table}} staat in de gegevensopslag {{store}}, die gegevens van niveau {{sensitivity}} bevat.",
+  "{{count}} more stores of the project hold a table of this name.": "Nog {{count}} gegevensopslagen van het project bevatten een tabel met deze naam.",
+  "{{count}} more stores of the project hold a table of this name._one": "Nog {{count}} gegevensopslag van het project bevat een tabel met deze naam."
 }

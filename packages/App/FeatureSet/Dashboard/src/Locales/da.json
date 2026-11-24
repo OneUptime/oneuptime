@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøgende ser et kort for hver hændelse og et for hver episode, så en hændelse i en episode vises to gange.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøgende ser hver episode som ét kort, der viser dens hændelser og det, de påvirker.",
   "Page when the script timed out": "Side, da scriptet fik timeout",
-  "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout"
+  "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "Konti uden for dine egne kan nå det datalager, så de ville også kunne nå den nye kolonne.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "Alle på internettet kan læse det datalager, så de ville også kunne læse den nye kolonne.",
+  "Data Security found {{types}} in its columns.": "Datasikkerhed fandt {{types}} i tabellens kolonner.",
+  "That store accepts connections from the internet, and the new column would be in it.": "Det datalager accepterer forbindelser fra internettet, og den nye kolonne ville ligge i det.",
+  "That store is not encrypted at rest, so the new column would not be either.": "Det datalager er ikke krypteret i hvile, så den nye kolonne ville heller ikke være det.",
+  "The table already holds the same data": "Tabellen indeholder allerede de samme data",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "Tabellen {{table}} ligger i datalageret {{store}}, som indeholder data på niveauet {{sensitivity}}.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} datalagre mere i projektet indeholder en tabel med dette navn.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} datalager mere i projektet indeholder en tabel med dette navn."
 }

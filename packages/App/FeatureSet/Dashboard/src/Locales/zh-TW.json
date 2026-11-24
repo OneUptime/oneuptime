@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪客會看到每個事件一張卡片，每個片段另一張卡片，因此片段中的事件會顯示兩次。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪客會將每個片段看作一張卡片，其中列出該片段的事件及其影響範圍。",
   "Page when the script timed out": "指令碼逾時時的頁面",
-  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}"
+  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "您的帳戶以外的帳戶可以存取該資料儲存區，因此也能存取新欄位。",
+  "Anyone on the internet can read that store, so they could read the new column too.": "網際網路上的任何人都能讀取該資料儲存區，因此也能讀取新欄位。",
+  "Data Security found {{types}} in its columns.": "資料安全在該資料表的欄位中發現了 {{types}}。",
+  "That store accepts connections from the internet, and the new column would be in it.": "該資料儲存區接受來自網際網路的連線，而新欄位將位於其中。",
+  "That store is not encrypted at rest, so the new column would not be either.": "該資料儲存區未進行靜態加密，因此新欄位也不會加密。",
+  "The table already holds the same data": "該資料表已保存同類資料",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "資料表 {{table}} 位於資料儲存區 {{store}} 中，其中保存 {{sensitivity}} 資料。",
+  "{{count}} more stores of the project hold a table of this name.": "專案中另有 {{count}} 個資料儲存區包含同名的資料表。",
+  "{{count}} more stores of the project hold a table of this name._one": "專案中另有 {{count}} 個資料儲存區包含同名的資料表。"
 }

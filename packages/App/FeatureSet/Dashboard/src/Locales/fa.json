@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "بازدیدکنندگان برای هر حادثه یک کارت و برای هر اپیزود کارتی دیگر می‌بینند، بنابراین حادثه‌ای که در یک اپیزود است دو بار نمایش داده می‌شود.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "بازدیدکنندگان هر اپیزود را در یک کارت می‌بینند که حوادث آن و آنچه را تحت تأثیر قرار داده‌اند فهرست می‌کند.",
   "Page when the script timed out": "صفحه هنگام تمام شدن مهلت اسکریپت",
-  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت"
+  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "حساب‌هایی خارج از حساب‌های شما به آن مخزن داده دسترسی دارند، پس به ستون جدید هم دسترسی خواهند داشت.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "هر کسی در اینترنت می‌تواند آن مخزن داده را بخواند، پس می‌تواند ستون جدید را هم بخواند.",
+  "Data Security found {{types}} in its columns.": "امنیت داده در ستون‌های این جدول {{types}} پیدا کرد.",
+  "That store accepts connections from the internet, and the new column would be in it.": "آن مخزن داده اتصال‌هایی از اینترنت را می‌پذیرد و ستون جدید هم در آن خواهد بود.",
+  "That store is not encrypted at rest, so the new column would not be either.": "آن مخزن داده در حالت سکون رمزگذاری نشده است، پس ستون جدید هم رمزگذاری نخواهد شد.",
+  "The table already holds the same data": "جدول از پیش همان داده را نگه می‌دارد",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "جدول {{table}} در مخزن داده {{store}} است که داده‌های سطح {{sensitivity}} را نگه می‌دارد.",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} مخزن دادهٔ دیگر در پروژه جدولی با این نام دارند.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} مخزن دادهٔ دیگر در پروژه جدولی با این نام دارد."
 }

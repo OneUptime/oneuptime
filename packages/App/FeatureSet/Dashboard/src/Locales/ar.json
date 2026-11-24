@@ -64057,5 +64057,14 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
   "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
-  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي"
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
+  "Accounts outside yours can reach that store, so they could reach the new column too.": "يمكن لحسابات خارج حساباتك الوصول إلى مخزن البيانات هذا، لذا سيكون بإمكانها الوصول إلى العمود الجديد أيضًا.",
+  "Anyone on the internet can read that store, so they could read the new column too.": "يمكن لأي شخص على الإنترنت قراءة مخزن البيانات هذا، لذا سيكون بإمكانه قراءة العمود الجديد أيضًا.",
+  "Data Security found {{types}} in its columns.": "عثر أمن البيانات على {{types}} في أعمدة هذا الجدول.",
+  "That store accepts connections from the internet, and the new column would be in it.": "يقبل مخزن البيانات هذا اتصالات من الإنترنت، وسيكون العمود الجديد فيه.",
+  "That store is not encrypted at rest, so the new column would not be either.": "مخزن البيانات هذا غير مشفّر أثناء التخزين، لذا لن يكون العمود الجديد مشفّرًا أيضًا.",
+  "The table already holds the same data": "يحتفظ الجدول بالفعل بالبيانات نفسها",
+  "The table {{table}} is in the store {{store}}, which holds {{sensitivity}} data.": "الجدول {{table}} موجود في مخزن البيانات {{store}}، الذي يحتفظ ببيانات من مستوى «{{sensitivity}}».",
+  "{{count}} more stores of the project hold a table of this name.": "{{count}} من مخازن البيانات الأخرى في المشروع تحتفظ بجدول بهذا الاسم.",
+  "{{count}} more stores of the project hold a table of this name._one": "{{count}} مخزن بيانات آخر في المشروع يحتفظ بجدول بهذا الاسم."
 }
