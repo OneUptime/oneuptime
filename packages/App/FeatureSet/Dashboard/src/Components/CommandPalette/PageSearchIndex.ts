@@ -75,6 +75,12 @@ export enum PageSearchGate {
    * shown only where OneUptime Cloud records them.
    */
   DashboardRecording = "dashboard-recording",
+  /*
+   * The Mobile Apps page, where the server offers the mobile app: not where
+   * its admins took it away (Admin Dashboard > Settings > Help and Support,
+   * #10866), as the settings menu lists no such page there.
+   */
+  MobileApp = "mobile-app",
 }
 
 // What someone must be allowed to do for an action to be offered.
@@ -829,6 +835,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Mobile Apps",
             icon: IconProp.DevicePhoneMobile,
             keywords: ["ios", "android", "push notifications", "phone app"],
+            gate: PageSearchGate.MobileApp,
           },
         ],
       },
