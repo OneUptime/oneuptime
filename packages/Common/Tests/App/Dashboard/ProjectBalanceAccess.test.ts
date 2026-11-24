@@ -418,9 +418,7 @@ describe("whether Add to Balance says a payment method is needed first", () => {
         continue;
       }
 
-      for (const paymentMethods of Object.values(
-        ProjectPaymentMethodsState,
-      )) {
+      for (const paymentMethods of Object.values(ProjectPaymentMethodsState)) {
         expect(
           isPaymentMethodNeededFirst({
             paymentMethods: paymentMethods,

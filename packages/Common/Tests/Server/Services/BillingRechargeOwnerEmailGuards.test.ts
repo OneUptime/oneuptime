@@ -111,8 +111,7 @@ const PROJECT_NAME: string = "Acme Production";
 const CUSTOMER_ID: string = "cus_test_recharge_guards";
 
 const SMS_FAILED_SUBJECT: string =
-  "ACTION REQUIRED: SMS and Call Recharge Failed for project - " +
-  PROJECT_NAME;
+  "ACTION REQUIRED: SMS and Call Recharge Failed for project - " + PROJECT_NAME;
 const AI_FAILED_SUBJECT: string =
   "ACTION REQUIRED: AI Balance Recharge Failed for project - " + PROJECT_NAME;
 const NO_PAYMENT_METHOD_MESSAGE: string =

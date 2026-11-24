@@ -723,9 +723,9 @@ describe("NotificationService.rechargeBalance (the Recharge button)", () => {
     ).rejects.toThrow("No payment methods found for the project.");
 
     expect(world.ownerEmails).toEqual([]);
-    expect(world.row.failedCallAndSMSBalanceChargeNotificationSentToOwners).toBe(
-      false,
-    );
+    expect(
+      world.row.failedCallAndSMSBalanceChargeNotificationSentToOwners,
+    ).toBe(false);
     expect(world.charges).toEqual([]);
     expect(world.row.smsOrCallCurrentBalanceInUSDCents).toBe(0);
   });

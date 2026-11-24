@@ -1,11 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  act,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React, { ReactElement, ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -1123,9 +1117,7 @@ describe("Billing page: choosing the payment method autopay charges", () => {
       countMock.mockResolvedValue(3);
 
       await act(async () => {
-        await (
-          lastTableProps?.["onFetchSuccess"] as () => Promise<void>
-        )();
+        await (lastTableProps?.["onFetchSuccess"] as () => Promise<void>)();
       });
 
       expect(ProjectPaymentMethods.getCount(projectId)).toBe(3);

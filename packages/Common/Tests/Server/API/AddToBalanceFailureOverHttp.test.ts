@@ -362,9 +362,9 @@ describe("POST /notification/recharge (the SMS and call balance) that fails", ()
     expect(answerWords(result)).toBe(NO_PAYMENT_METHOD_MESSAGE);
     expect(world.charges).toEqual([]);
     expect(world.ownerEmails).toEqual([]);
-    expect(world.row.failedCallAndSMSBalanceChargeNotificationSentToOwners).toBe(
-      false,
-    );
+    expect(
+      world.row.failedCallAndSMSBalanceChargeNotificationSentToOwners,
+    ).toBe(false);
     expect(world.row.smsOrCallCurrentBalanceInUSDCents).toBe(0);
   });
 

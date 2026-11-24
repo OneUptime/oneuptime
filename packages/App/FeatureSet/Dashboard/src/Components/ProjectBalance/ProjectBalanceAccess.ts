@@ -179,8 +179,7 @@ export const isPaymentMethodNeededFirst: (data: {
   marketplace: CloudMarketplace | null;
 }): boolean => {
   return (
-    !data.marketplace &&
-    data.paymentMethods === ProjectPaymentMethodsState.None
+    !data.marketplace && data.paymentMethods === ProjectPaymentMethodsState.None
   );
 };
 

@@ -784,9 +784,7 @@ describe.each(PAGES)(
       const dialog: HTMLElement = await openAddToBalance();
 
       await act(async () => {
-        fireEvent.click(
-          within(dialog).getByRole("button", { name: "Cancel" }),
-        );
+        fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
       });
 
       expect(screen.queryByRole("dialog")).toBeNull();

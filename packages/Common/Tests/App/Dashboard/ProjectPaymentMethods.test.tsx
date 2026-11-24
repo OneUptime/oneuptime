@@ -183,17 +183,16 @@ describe("what is known of a project's payment methods", () => {
 });
 
 describe("a page drawn with it", () => {
-  const OpenProjectState: () => React.ReactElement =
-    (): React.ReactElement => {
-      const state: ProjectPaymentMethodsState = useProjectPaymentMethods();
-      const count: number | undefined = useProjectPaymentMethodCount();
+  const OpenProjectState: () => React.ReactElement = (): React.ReactElement => {
+    const state: ProjectPaymentMethodsState = useProjectPaymentMethods();
+    const count: number | undefined = useProjectPaymentMethodCount();
 
-      return (
-        <p data-testid="payment-methods">
-          {state} {count === undefined ? "uncounted" : count}
-        </p>
-      );
-    };
+    return (
+      <p data-testid="payment-methods">
+        {state} {count === undefined ? "uncounted" : count}
+      </p>
+    );
+  };
 
   const NamedProjectCount: (props: {
     projectId: string | null;
