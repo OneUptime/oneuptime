@@ -195,17 +195,18 @@ For a store Data Security found, fill in **Purpose** and **Retention** in its **
 
 ### Stores OneUptime keeps for your security
 
-Three stores hold IP addresses on purpose, to protect your network: **Security Events**, **Network Flows** and **Security Address Vault**. The record lists each one your project has. OneUptime declares them rather than finding them: what they hold is known by design, so no scan reads them, no check applies to them, and holding these addresses never raises an issue, since it is what they are for. On **Data Stores** they are marked **Declared by OneUptime**, and the **Overview** and the framework scores leave them out.
+Four stores hold IP addresses and user names on purpose, to protect your network: **Security Events**, **Network Flows**, **Security Address Vault** and **Security User Vault**. The record lists each one your project has. OneUptime declares them rather than finding them: what they hold is known by design, so no scan reads them, no check applies to them, and holding these addresses and names never raises an issue, since it is what they are for. On **Data Stores** they are marked **Declared by OneUptime**, and the **Overview** and the framework scores leave them out.
 
 | Store | What it holds | Retention | Who can read it |
 | --- | --- | --- | --- |
 | Security Events | The IP addresses, user names and email addresses of who acted and what it touched | Your project's [telemetry retention](/docs/telemetry/data-retention), read whenever the record is, so a change shows at once | Project Owners, Project Admins, Security Admins, Security Members, Security Viewers and anyone with Read Security Event |
 | Network Flows | The IP addresses of who talked to whom | 30 days after a flow arrives | Whoever may read network devices |
 | Security Address Vault | The IP address behind each token an IP Address rule that hashes left in the logs and traces [Security Events](/docs/telemetry/security-events) reads | 30 days after an address was last seen | Only Security Events' scans, inside OneUptime: no person, page, export, API or AI tool |
+| Security User Vault | The user behind each token a rule that hashes left where [Security Events](/docs/telemetry/security-events) reads a user in your logs and traces | 30 days after a user was last seen | Only Security Events' scans, inside OneUptime: no person, page, export, API or AI tool |
 
 Each one's purpose is "Network and information security (GDPR Recital 49)". To write your own purpose or retention, use **Edit Record** in the store's **Settings**: a field left empty keeps OneUptime's.
 
-A store is listed while your project keeps its data: the vault while an enabled IP Address rule hashes logs or traces Security Events reads, and for 31 days after (see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). Once its data is gone the store is archived, and it comes back with your purpose and retention if the data does.
+A store is listed while your project keeps its data: the address vault while an enabled IP Address rule hashes logs or traces Security Events reads, the user vault while an enabled rule of any other pattern does, each for 31 days after (see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). Once its data is gone the store is archived, and it comes back with your purpose and retention if the data does.
 
 ## Next steps
 

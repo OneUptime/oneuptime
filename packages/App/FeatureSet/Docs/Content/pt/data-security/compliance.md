@@ -195,17 +195,18 @@ Em um repositório que a Segurança de dados encontrou, preencha **Finalidade** 
 
 ### Repositórios que o OneUptime guarda para a sua segurança
 
-Três repositórios guardam endereços IP de propósito, para proteger a sua rede: **Eventos de segurança**, **Network Flows** e **Cofre de endereços de segurança**. O registro lista cada um que o seu projeto tem. O OneUptime os declara em vez de encontrá-los: o que eles guardam é conhecido por projeto, então nenhuma varredura os lê, nenhuma verificação se aplica a eles e guardar esses endereços nunca é um problema, pois é para isso que existem. Eles mostram **Declarado pelo OneUptime** em **Repositórios de dados**, e a **Visão geral** e as pontuações das estruturas os deixam de fora.
+Quatro repositórios guardam endereços IP e nomes de usuário de propósito, para proteger a sua rede: **Eventos de segurança**, **Network Flows**, **Cofre de endereços de segurança** e **Cofre de usuários de segurança**. O registro lista cada um que o seu projeto tem. O OneUptime os declara em vez de encontrá-los: o que eles guardam é conhecido por projeto, então nenhuma varredura os lê, nenhuma verificação se aplica a eles e guardar esses endereços e nomes nunca é um problema, pois é para isso que existem. Eles mostram **Declarado pelo OneUptime** em **Repositórios de dados**, e a **Visão geral** e as pontuações das estruturas os deixam de fora.
 
 | Repositório | O que guarda | Retenção | Quem pode lê-lo |
 | --- | --- | --- | --- |
 | Eventos de segurança | Os endereços IP, nomes de usuário e endereços de e-mail de quem agiu e do que foi tocado | A [retenção de telemetria](/docs/telemetry/data-retention) do seu projeto, lida sempre que o registro é lido, então uma mudança vale na hora | Proprietários do projeto, Administradores do projeto, Administradores de segurança, Membros de segurança, Visualizadores de segurança e quem tiver Read Security Event |
 | Network Flows | Os endereços IP de quem se comunicou com quem | 30 dias depois de um fluxo chegar | Quem pode ler dispositivos de rede |
 | Cofre de endereços de segurança | O endereço IP por trás de cada token deixado por uma regra de endereço IP que aplica hash nos logs e traces que os [Eventos de segurança](/docs/telemetry/security-events) leem | 30 dias depois da última vez em que um endereço foi visto | Somente as varreduras de Eventos de segurança, dentro do OneUptime: nenhuma pessoa, página, exportação, API ou ferramenta de IA |
+| Cofre de usuários de segurança | O usuário por trás de cada token deixado por uma regra que aplica hash onde os [Eventos de segurança](/docs/telemetry/security-events) leem um usuário nos logs e traces | 30 dias depois da última vez em que um usuário foi visto | Somente as varreduras de Eventos de segurança, dentro do OneUptime: nenhuma pessoa, página, exportação, API ou ferramenta de IA |
 
 A finalidade de cada um é "Segurança das redes e da informação (considerando 49 do RGPD)". Para escrever a sua própria finalidade ou retenção, use **Editar registro** nas **Configurações** do repositório: um campo deixado em branco mantém a do OneUptime.
 
-Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, e por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
+Um repositório é listado enquanto o seu projeto guarda os dados dele: o cofre de endereços, enquanto uma regra de endereço IP ativada aplica hash aos logs ou traces que os Eventos de segurança leem, o cofre de usuários, enquanto uma regra ativada de qualquer outro padrão faz isso, e cada um por mais 31 dias (veja [Mascarar dados sensíveis](/docs/telemetry/drop-filters-and-scrub-rules#mascarar-dados-sensíveis)). Quando os dados dele acabam, o repositório é arquivado e volta com a sua finalidade e a sua retenção se os dados voltarem.
 
 ## Próximos passos
 

@@ -195,17 +195,18 @@ Vul voor een opslag die Gegevensbeveiliging heeft gevonden **Doel** en **Bewaart
 
 ### Opslag die OneUptime voor je beveiliging bewaart
 
-Drie opslagen bevatten met opzet IP-adressen, om je netwerk te beschermen: **Beveiligingsgebeurtenissen**, **Network Flows** en **Beveiligingsadreskluis**. Het register noemt elke opslag daarvan die je project heeft. OneUptime geeft ze op in plaats van ze te vinden: wat ze bevatten, is bij ontwerp bekend, dus geen scan leest ze, geen controle geldt voor ze, en dat ze deze adressen bevatten, is nooit een probleem, want daar zijn ze voor. Ze tonen **Opgegeven door OneUptime** onder **Gegevensopslagen**, en het **Overzicht** en de scores van de kaders laten ze weg.
+Vier opslagen bevatten met opzet IP-adressen en gebruikersnamen, om je netwerk te beschermen: **Beveiligingsgebeurtenissen**, **Network Flows**, **Beveiligingsadreskluis** en **Beveiligingsgebruikerskluis**. Het register noemt elke opslag daarvan die je project heeft. OneUptime geeft ze op in plaats van ze te vinden: wat ze bevatten, is bij ontwerp bekend, dus geen scan leest ze, geen controle geldt voor ze, en dat ze deze adressen en namen bevatten, is nooit een probleem, want daar zijn ze voor. Ze tonen **Opgegeven door OneUptime** onder **Gegevensopslagen**, en het **Overzicht** en de scores van de kaders laten ze weg.
 
 | Opslag | Wat erin staat | Bewaartermijn | Wie hem kan lezen |
 | --- | --- | --- | --- |
 | Beveiligingsgebeurtenissen | De IP-adressen, gebruikersnamen en e-mailadressen van wie iets deed en waar dat aan raakte | De [bewaartermijn voor telemetrie](/docs/telemetry/data-retention) van je project, gelezen telkens als het register wordt gelezen, zodat een wijziging meteen geldt | Projecteigenaren, Projectbeheerders, Beveiligingsbeheerders, Beveiligingsleden, Beveiligingskijkers en iedereen met Read Security Event |
 | Network Flows | De IP-adressen van wie met wie communiceerde | 30 dagen nadat een flow binnenkomt | Iedereen die netwerkapparaten mag lezen |
 | Beveiligingsadreskluis | Het IP-adres achter elk token dat een IP-adresregel die hasht achterliet in de logs en traces die [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) leest | 30 dagen nadat een adres voor het laatst is gezien | Alleen de scans van Beveiligingsgebeurtenissen, binnen OneUptime: geen persoon, pagina, export, API of AI-tool |
+| Beveiligingsgebruikerskluis | De gebruiker achter elk token dat een regel die hasht achterliet waar [Beveiligingsgebeurtenissen](/docs/telemetry/security-events) een gebruiker leest in de logs en traces | 30 dagen nadat een gebruiker voor het laatst is gezien | Alleen de scans van Beveiligingsgebeurtenissen, binnen OneUptime: geen persoon, pagina, export, API of AI-tool |
 
 Het doel van elk is "Netwerk- en informatiebeveiliging (overweging 49 AVG)". Om je eigen doel of bewaartermijn te schrijven, gebruik je **Register bewerken** in de **Instellingen** van de opslag: een veld dat je leeg laat, houdt dat van OneUptime.
 
-Een opslag staat erin zolang je project de gegevens ervan bewaart: de kluis zolang een ingeschakelde IP-adresregel logs of traces hasht die Beveiligingsgebeurtenissen leest, en nog 31 dagen daarna (zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Zodra de gegevens weg zijn, wordt de opslag gearchiveerd, en die komt terug met je doel en bewaartermijn als de gegevens terugkomen.
+Een opslag staat erin zolang je project de gegevens ervan bewaart: de adreskluis zolang een ingeschakelde IP-adresregel logs of traces hasht die Beveiligingsgebeurtenissen leest, de gebruikerskluis zolang een ingeschakelde regel met een ander patroon dat doet, en elk nog 31 dagen daarna (zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Zodra de gegevens weg zijn, wordt de opslag gearchiveerd, en die komt terug met je doel en bewaartermijn als de gegevens terugkomen.
 
 ## Volgende stappen
 
