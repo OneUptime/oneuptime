@@ -338,9 +338,13 @@ beforeEach(() => {
   jest
     .spyOn(UserService, "getUserMarkdownString")
     .mockResolvedValue("**Ana**" as never);
+  /*
+   * The team's people, by the ids on its member rows (#10970): who its add
+   * tells when the rule cannot be read, and who its removal tells.
+   */
   jest
-    .spyOn(TeamMemberService, "getUsersInTeam")
-    .mockResolvedValue([person()] as never);
+    .spyOn(TeamMemberService, "getUserIdsInTeams")
+    .mockResolvedValue([ANA] as never);
   /*
    * Who each rule pages is not read here (EscalationRuleReach, #10464):
    * every hook then tells as it always did - a team added to a rule its
@@ -355,9 +359,6 @@ beforeEach(() => {
       return true;
     },
   } as RuleMembers);
-  jest
-    .spyOn(TeamMemberService, "getUsersInTeams")
-    .mockResolvedValue([person()] as never);
   jest
     .spyOn(OnCallDutyPolicyScheduleService, "getCurrentUserIdInSchedule")
     .mockResolvedValue(ANA as never);

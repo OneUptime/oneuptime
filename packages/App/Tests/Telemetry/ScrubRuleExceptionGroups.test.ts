@@ -26,6 +26,7 @@ import TelemetryExceptionService from "Common/Server/Services/TelemetryException
 import KeyedExceptionFingerprint from "Common/Server/Utils/Telemetry/KeyedExceptionFingerprint";
 import {
   foldSeparatedNumbers,
+  foldSeparatedNumbersV4,
   normalizeExceptionText,
 } from "Common/Server/Utils/Telemetry/ExceptionSanitizer";
 import { FORMER_FINGERPRINT_OWNER_SQL } from "Common/Server/Utils/Telemetry/TelemetryExceptionRekey";
@@ -621,6 +622,8 @@ function fingerprintsOf(exception: ExceptionText): {
   keyed: string;
   v3: string;
   keyedV3: string;
+  v4: string;
+  keyedV4: string;
 } {
   const content: {
     exceptionType: string;
@@ -659,7 +662,7 @@ function fingerprintsOf(exception: ExceptionText): {
         key: getExceptionGroupingKey(content),
       }),
     }),
-    // Grouping v3's (#10620), what a new exception is made under.
+    // Grouping v3's (#10620), what a new exception was made under before v4.
     v3: ExceptionUtil.getFingerprintV3({
       projectId: PROJECT_ID,
       primaryEntityId: SERVICE_ID,
@@ -672,6 +675,20 @@ function fingerprintsOf(exception: ExceptionText): {
         primaryEntityId: SERVICE_ID,
         ...content,
       }).v3,
+    }),
+    // Grouping v4's (#10898), what a new exception is made under.
+    v4: ExceptionUtil.getFingerprintV4({
+      projectId: PROJECT_ID,
+      primaryEntityId: SERVICE_ID,
+      ...content,
+    }),
+    keyedV4: KeyedExceptionFingerprint.ofGroupingText({
+      projectId: PROJECT_ID,
+      text: ExceptionUtil.getGroupingTexts({
+        projectId: PROJECT_ID,
+        primaryEntityId: SERVICE_ID,
+        ...content,
+      }).v4,
     }),
   };
 }
@@ -850,7 +867,7 @@ describe("an exception found in a log, before and after a scrub rule", () => {
     test("added to an exception named in a log's attributes: one exception", async () => {
       await ingestLogException(exception, BEFORE);
       const before: StoredException = onlyException();
-      const fingerprints: { v3: string; keyedV3: string } =
+      const fingerprints: { v4: string; keyedV4: string } =
         fingerprintsOf(exception);
 
       logRules = [rule()];
@@ -862,17 +879,21 @@ describe("an exception found in a log, before and after a scrub rule", () => {
       expect(exceptionRows[1]!["message"]).not.toContain(value);
 
       /*
-       * Made under grouping v3, whose text folds an email address, a card
+       * Made under grouping v4, whose text folds an email address, a card
        * number, an SSN and a phone number: it keeps its fingerprint. A value
        * nothing folds was in the text its fingerprint hashes: it moved to the
        * private fingerprint, its old one kept by a row of its own (#10619).
        */
-      if (foldSeparatedNumbers(normalizeExceptionText(value)) !== value) {
-        expect(before.fingerprint).toBe(fingerprints.v3);
+      if (
+        foldSeparatedNumbersV4(
+          foldSeparatedNumbers(normalizeExceptionText(value)),
+        ) !== value
+      ) {
+        expect(before.fingerprint).toBe(fingerprints.v4);
         expect(movesWritten).toBe(0);
       } else {
-        expect(before.fingerprint).toBe(fingerprints.keyedV3);
-        expect(table.get(fingerprints.v3)?.formerFingerprintOf).toBe(before.id);
+        expect(before.fingerprint).toBe(fingerprints.keyedV4);
+        expect(table.get(fingerprints.v4)?.formerFingerprintOf).toBe(before.id);
       }
     });
 
@@ -953,8 +974,8 @@ describe("an exception found in a log, before and after a scrub rule", () => {
     ];
     await ingestLogException(CART_EXCEPTION, AFTER);
 
-    // Nothing hidden: grouped by v3, as an exception no rule touched.
-    expect(rowFingerprints()).toEqual([fingerprintsOf(CART_EXCEPTION).v3]);
+    // Nothing hidden: grouped by v4, as an exception no rule touched.
+    expect(rowFingerprints()).toEqual([fingerprintsOf(CART_EXCEPTION).v4]);
     expect(exceptionRows[0]!["message"]).toBe(CART_EXCEPTION.message);
   });
 });
@@ -1058,9 +1079,9 @@ describe("the fingerprint never gives away what a rule hid", () => {
     expect(guessesMatching(fingerprintsOf(ssnException("6789")).v2)).toEqual([
       "6789",
     ]);
-    // Grouping v3's, which a new exception is made under, folds the number.
+    // Grouping v4's, which a new exception is made under, folds the number.
     expect(rowFingerprints()).toEqual([
-      fingerprintsOf(ssnException("6789")).v3,
+      fingerprintsOf(ssnException("6789")).v4,
     ]);
     expect(guessesMatching(rowFingerprints()[0]!)).toEqual([]);
   });
@@ -1070,20 +1091,19 @@ describe("the fingerprint never gives away what a rule hid", () => {
     await ingestLogException(ssnException("6789"), AFTER);
 
     const fingerprint: string = onlyException().fingerprint;
-    const arrived: { v1: string; v2: string; v3: string } = fingerprintsOf(
-      ssnException("6789"),
-    );
+    const arrived: { v1: string; v2: string; v3: string; v4: string } =
+      fingerprintsOf(ssnException("6789"));
 
     expect(rowFingerprints()).toEqual([fingerprint]);
     expect(fingerprint).not.toBe(arrived.v1);
     expect(fingerprint).not.toBe(arrived.v2);
     expect(guessesMatching(fingerprint)).toEqual([]);
     /*
-     * Grouping v3's: its text holds <SSN>, the same for every number, so it
+     * Grouping v4's: its text holds <SSN>, the same for every number, so it
      * says nothing of this one (#10620), and needs no key.
      */
-    expect(fingerprint).toBe(arrived.v3);
-    expect(fingerprintsOf(ssnException("0000")).v3).toBe(fingerprint);
+    expect(fingerprint).toBe(arrived.v4);
+    expect(fingerprintsOf(ssnException("0000")).v4).toBe(fingerprint);
     expect(JSON.stringify(exceptionRows)).not.toContain("6789");
     expect(onlyException().message).toBe("Invalid SSN [REDACTED] on file");
   });
@@ -1095,7 +1115,7 @@ describe("the fingerprint never gives away what a rule hid", () => {
 
     expect(rowFingerprints()).toHaveLength(1);
     expect(guessesMatching(rowFingerprints()[0]!)).toEqual([]);
-    expect(rowFingerprints()[0]).toBe(fingerprintsOf(ssnException("6789")).v3);
+    expect(rowFingerprints()[0]).toBe(fingerprintsOf(ssnException("6789")).v4);
   });
 
   test("the same holds for a span's exception a trace rule hid part of", async () => {
@@ -1104,7 +1124,7 @@ describe("the fingerprint never gives away what a rule hid", () => {
 
     expect(guessesMatching(onlyException().fingerprint)).toEqual([]);
     expect(onlyException().fingerprint).toBe(
-      fingerprintsOf(ssnException("6789")).v3,
+      fingerprintsOf(ssnException("6789")).v4,
     );
     expect(JSON.stringify(exceptionRows)).not.toContain("6789");
   });
@@ -1128,11 +1148,11 @@ describe("the fingerprint never gives away what a rule hid", () => {
 });
 
 describe("span exceptions", () => {
-  test("with no trace rule, a span's exception is grouped as any new exception is, by v3, whatever the log rules", async () => {
+  test("with no trace rule, a span's exception is grouped as any new exception is, by v4, whatever the log rules", async () => {
     logRules = [EMAIL_RULE()];
     await ingestSpanException(CART_EXCEPTION, AFTER);
 
-    expect(rowFingerprints()).toEqual([fingerprintsOf(CART_EXCEPTION).v3]);
+    expect(rowFingerprints()).toEqual([fingerprintsOf(CART_EXCEPTION).v4]);
     expect(exceptionRows[0]!["message"]).toBe(CART_EXCEPTION.message);
   });
 
@@ -1157,11 +1177,11 @@ describe("span exceptions", () => {
     expect(exceptionRows[1]!["message"]).toBe("No cart for [REDACTED]");
   });
 
-  test("a new one whose text a trace rule hid is grouped under v3 when its text folds the value: an email address", async () => {
+  test("a new one whose text a trace rule hid is grouped under v4 when its text folds the value: an email address", async () => {
     traceRules = [traceRule({ patternType: TraceScrubPatternType.Email })];
     await ingestSpanException(CART_EXCEPTION, AFTER);
 
-    expect(rowFingerprints()).toEqual([fingerprintsOf(CART_EXCEPTION).v3]);
+    expect(rowFingerprints()).toEqual([fingerprintsOf(CART_EXCEPTION).v4]);
   });
 
   test("and under the keyed fingerprint when the value reaches the text it hashes: a name", async () => {
@@ -1177,7 +1197,7 @@ describe("span exceptions", () => {
     ];
     await ingestLogException(named, AFTER);
 
-    expect(rowFingerprints()).toEqual([fingerprintsOf(named).keyedV3]);
+    expect(rowFingerprints()).toEqual([fingerprintsOf(named).keyedV4]);
   });
 });
 
@@ -1650,9 +1670,9 @@ describe("an exception whose unkeyed fingerprint hashes what a rule now hides", 
  * values that change from call to call taken out. Before grouping v3 that
  * left in the numbers people write with separators, so every card, Social
  * Security or phone number made an exception of its own, and set off New
- * Exception. New exceptions are grouped by v3, which folds them; an
- * exception made before keeps the fingerprint it was made under, found
- * first, so nothing splits or merges on upgrade (#10620).
+ * Exception. New exceptions are grouped by v3 (#10620), and now by v4,
+ * which folds what v3 folds; an exception made before keeps the fingerprint
+ * it was made under, found first, so nothing splits or merges on upgrade.
  */
 describe("an exception whose message holds a card number in groups, an SSN or a phone number", () => {
   interface NumberCase {
@@ -1713,7 +1733,7 @@ describe("an exception whose message holds a card number in groups, an SSN or a 
 
       const exception: StoredException = onlyException();
       expect(exception.occuranceCount).toBe(3);
-      expect(exception.fingerprint).toBe(fingerprintsOf(first).v3);
+      expect(exception.fingerprint).toBe(fingerprintsOf(first).v4);
       expect(new Set(rowFingerprints()).size).toBe(1);
       expect(newExceptionsAround(BEFORE)).toBe(1);
     },
@@ -1742,11 +1762,11 @@ describe("an exception whose message holds a card number in groups, an SSN or a 
 
       // The values since: one exception, not one each; nothing merged into it.
       const since: StoredException | undefined = table.get(
-        fingerprintsOf(second).v3,
+        fingerprintsOf(second).v4,
       );
       expect(since).toBeDefined();
       expect(since!.occuranceCount).toBe(2);
-      expect(fingerprintsOf(third).v3).toBe(since!.fingerprint);
+      expect(fingerprintsOf(third).v4).toBe(since!.fingerprint);
       expect(exceptions()).toHaveLength(2);
     },
   );
@@ -1763,10 +1783,10 @@ describe("an exception whose message holds a card number in groups, an SSN or a 
     await ingestSpanException(second, AFTER);
 
     expect(fromBefore.occuranceCount).toBe(2);
-    expect(table.get(fingerprintsOf(second).v3)!.occuranceCount).toBe(1);
+    expect(table.get(fingerprintsOf(second).v4)!.occuranceCount).toBe(1);
   });
 
-  test("with a scrub rule hiding the number: one exception under v3, which needs no key, and no number stored", async () => {
+  test("with a scrub rule hiding the number: one exception under v4, which needs no key, and no number stored", async () => {
     logRules = [logRule({ patternType: LogScrubPatternType.SSN })];
 
     for (const text of textsOf(CASES[1]!)) {
@@ -1776,12 +1796,12 @@ describe("an exception whose message holds a card number in groups, an SSN or a 
     const exception: StoredException = onlyException();
     expect(exception.occuranceCount).toBe(3);
     expect(exception.fingerprint).toBe(
-      fingerprintsOf(textsOf(CASES[1]!)[0]!).v3,
+      fingerprintsOf(textsOf(CASES[1]!)[0]!).v4,
     );
     expect(JSON.stringify(exceptionRows)).not.toMatch(/\d{3}-\d{2}-\d{4}/);
   });
 
-  test("an exception grouped by its frames is grouped exactly as before: v3 reads no message", async () => {
+  test("an exception grouped by its frames is grouped exactly as before: neither v3 nor v4 reads its message", async () => {
     const framed: (ssn: string) => ExceptionText = (ssn: string) => {
       return {
         type: "TypeError",
@@ -1802,6 +1822,9 @@ describe("an exception whose message holds a card number in groups, an SSN or a 
     expect(fingerprintsOf(framed("123-45-6789")).v3).toBe(
       fingerprintsOf(framed("123-45-6789")).v2,
     );
+    expect(fingerprintsOf(framed("123-45-6789")).v4).toBe(
+      fingerprintsOf(framed("123-45-6789")).v2,
+    );
   });
 
   test("a message without such a number is one exception per message, as ever", async () => {
@@ -1816,4 +1839,260 @@ describe("an exception whose message holds a card number in groups, an SSN or a 
 
     expect(exceptions()).toHaveLength(2);
   });
+});
+
+/*
+ * Grouping v3 left in the message an international phone number, a 15-digit
+ * American Express card written 4-6-5 and a 19-digit card: every value made
+ * an exception of its own and set off New Exception again. New exceptions
+ * are grouped by v4, which folds them (#10898). An exception made before
+ * keeps the fingerprint it was made under - v3's, v2's, v1's, or the keyed
+ * one of each - found first, so it keeps the value it was made for: nothing
+ * splits and nothing merges.
+ */
+describe("an exception whose message holds an international phone number, an American Express card or a 19-digit card", () => {
+  interface WiderNumberCase {
+    name: string;
+    type: string;
+    messages: Array<string>;
+  }
+
+  const WIDER_CASES: Array<WiderNumberCase> = [
+    {
+      name: "an international phone number",
+      type: "SmsDeliveryError",
+      messages: [
+        "SMS to +44 20 7946 0958 was not delivered",
+        "SMS to +49 30 123456 was not delivered",
+        "SMS to +33 1 23 45 67 89 was not delivered",
+      ],
+    },
+    {
+      name: "an American Express card, written 4-6-5",
+      type: "PaymentDeclinedError",
+      messages: [
+        "card 3782 822463 10005 declined",
+        "card 3714 496353 98431 declined",
+        "card 3782-822463-10005 declined",
+      ],
+    },
+    {
+      name: "a 19-digit card",
+      type: "PaymentDeclinedError",
+      messages: [
+        "card 6011 1111 1111 1111 117 declined",
+        "card 6250 9460 0000 0016 228 declined",
+        "card 4111-1111-1111-1111-003 declined",
+      ],
+    },
+  ];
+
+  function widerTextsOf(numberCase: WiderNumberCase): Array<ExceptionText> {
+    return numberCase.messages.map((message: string): ExceptionText => {
+      return { type: numberCase.type, message };
+    });
+  }
+
+  test.each(WIDER_CASES)(
+    "$name: every value is one exception, from logs and spans alike, and New Exception fires once",
+    async (numberCase: WiderNumberCase) => {
+      const [first, second, third] = widerTextsOf(numberCase) as [
+        ExceptionText,
+        ExceptionText,
+        ExceptionText,
+      ];
+
+      // Under grouping v3, each value was an exception of its own.
+      expect(
+        new Set([
+          fingerprintsOf(first).v3,
+          fingerprintsOf(second).v3,
+          fingerprintsOf(third).v3,
+        ]).size,
+      ).toBe(3);
+
+      await ingestLogException(first, BEFORE);
+      await ingestSpanException(second, BEFORE + MINUTE_MS);
+      clearExistingV1FingerprintCache();
+      await ingestLogException(third, BEFORE + 2 * MINUTE_MS);
+
+      const exception: StoredException = onlyException();
+      expect(exception.occuranceCount).toBe(3);
+      expect(exception.fingerprint).toBe(fingerprintsOf(first).v4);
+      expect(fingerprintsOf(second).v4).toBe(exception.fingerprint);
+      expect(new Set(rowFingerprints()).size).toBe(1);
+      expect(newExceptionsAround(BEFORE)).toBe(1);
+    },
+  );
+
+  test.each(WIDER_CASES)(
+    "$name: an exception made under v3 for one value keeps it, and every value since goes to one new exception",
+    async (numberCase: WiderNumberCase) => {
+      const [first, second, third] = widerTextsOf(numberCase) as [
+        ExceptionText,
+        ExceptionText,
+        ExceptionText,
+      ];
+      // Made under grouping v3, one exception per value, before the upgrade.
+      seed(fingerprintsOf(first).v3, BEFORE);
+      const fromBefore: StoredException = onlyException();
+
+      await ingestSpanException(first, AFTER);
+      await ingestLogException(second, AFTER);
+      await ingestSpanException(third, AFTER + MINUTE_MS);
+      await ingestLogException(first, AFTER + MINUTE_MS);
+
+      // Its own value still lands on it: nothing split.
+      expect(fromBefore.occuranceCount).toBe(3);
+      expect(fromBefore.fingerprint).toBe(fingerprintsOf(first).v3);
+
+      // The values since: one exception, not one each; nothing merged into it.
+      const since: StoredException | undefined = table.get(
+        fingerprintsOf(second).v4,
+      );
+      expect(since).toBeDefined();
+      expect(since!.occuranceCount).toBe(2);
+      expect(fingerprintsOf(third).v4).toBe(since!.fingerprint);
+      expect(exceptions()).toHaveLength(2);
+      expect(newExceptionsAround(AFTER)).toBe(1);
+    },
+  );
+
+  test.each([
+    ["v1", "v1"],
+    ["v1's keyed one", "keyedV1"],
+    ["v2", "v2"],
+    ["v2's keyed one", "keyed"],
+    ["v3's keyed one", "keyedV3"],
+  ])(
+    "one made under %s keeps its value too",
+    async (_name: string, version: string) => {
+      const [first, second] = widerTextsOf(WIDER_CASES[0]!) as [
+        ExceptionText,
+        ExceptionText,
+      ];
+      const madeUnder: Record<string, string> = fingerprintsOf(
+        first,
+      ) as unknown as Record<string, string>;
+
+      seed(madeUnder[version]!, BEFORE);
+      const fromBefore: StoredException = onlyException();
+
+      await ingestSpanException(first, AFTER);
+      await ingestSpanException(second, AFTER);
+
+      expect(fromBefore.occuranceCount).toBe(2);
+      expect(fromBefore.fingerprint).toBe(madeUnder[version]);
+      expect(table.get(fingerprintsOf(second).v4)!.occuranceCount).toBe(1);
+      expect(exceptions()).toHaveLength(2);
+    },
+  );
+
+  test("two values that each made an exception before stay two: no exception that exists merges with another", async () => {
+    const [first, second, third] = widerTextsOf(WIDER_CASES[0]!) as [
+      ExceptionText,
+      ExceptionText,
+      ExceptionText,
+    ];
+    seed(fingerprintsOf(first).v3, BEFORE);
+    seed(fingerprintsOf(second).v2, BEFORE);
+    const [firstBefore, secondBefore] = exceptions() as [
+      StoredException,
+      StoredException,
+    ];
+
+    for (const text of [first, second, third, first, second]) {
+      await ingestLogException(text, AFTER);
+    }
+
+    expect(firstBefore.occuranceCount).toBe(3);
+    expect(secondBefore.occuranceCount).toBe(3);
+    expect(table.get(fingerprintsOf(third).v4)!.occuranceCount).toBe(1);
+    expect(exceptions()).toHaveLength(3);
+  });
+
+  test("with the US Phone Number rule hiding the last ten digits: one exception under v4, which needs no key, and none of them stored", async () => {
+    logRules = [logRule({ patternType: LogScrubPatternType.PhoneNumber })];
+    const texts: Array<ExceptionText> = [
+      "SMS to +44 207 946 0958 was not delivered",
+      "SMS to +44 207 946 0123 was not delivered",
+      "SMS to +49 301 234 5678 was not delivered",
+    ].map((message: string): ExceptionText => {
+      return { type: "SmsDeliveryError", message };
+    });
+
+    for (const text of texts) {
+      await ingestLogException(text, AFTER);
+    }
+
+    const exception: StoredException = onlyException();
+    expect(exception.occuranceCount).toBe(3);
+    expect(exception.fingerprint).toBe(fingerprintsOf(texts[0]!).v4);
+    expect(JSON.stringify(exceptionRows)).not.toMatch(/\d{3} \d{3} \d{4}/);
+    expect(movesWritten).toBe(0);
+  });
+
+  test("with a rule hiding a name beside the phone number: made under v4's keyed fingerprint, which no guess can be compared with", async () => {
+    logRules = [
+      logRule({
+        patternType: LogScrubPatternType.Custom,
+        customRegex: "Ada Lovelace",
+      }),
+    ];
+    const named: ExceptionText = {
+      type: "SmsDeliveryError",
+      message: "SMS to Ada Lovelace at +44 20 7946 0958 was not delivered",
+    };
+
+    await ingestLogException(named, AFTER);
+
+    expect(rowFingerprints()).toEqual([fingerprintsOf(named).keyedV4]);
+    expect(onlyException().message).toBe(
+      "SMS to [REDACTED] at +44 20 7946 0958 was not delivered",
+    );
+  });
+
+  test("an exception grouped by its frames is grouped exactly as before: v4 reads no message", async () => {
+    const framed: (phone: string) => ExceptionText = (phone: string) => {
+      return {
+        type: "TypeError",
+        message: `no code sent to ${phone}`,
+        stackTrace: [
+          `TypeError: no code sent to ${phone}`,
+          "    at sendCode (/app/src/notify/sms.ts:42:17)",
+        ].join("\n"),
+      };
+    };
+
+    await ingestSpanException(framed("+44 20 7946 0958"), AFTER);
+    await ingestSpanException(framed("+49 30 123456"), AFTER);
+
+    expect(onlyException().fingerprint).toBe(
+      fingerprintsOf(framed("+44 20 7946 0958")).v2,
+    );
+    expect(fingerprintsOf(framed("+44 20 7946 0958")).v4).toBe(
+      fingerprintsOf(framed("+44 20 7946 0958")).v2,
+    );
+  });
+
+  test.each([
+    ["order numbers", "Order 1234 5678 failed", "Order 8765 4321 failed"],
+    ["timestamps", "Job at UTC +1 2026 failed", "Job at UTC +2 2026 failed"],
+    ["version strings", "Build v1.2.3+4 failed", "Build v1.2.4+4 failed"],
+    ["ids", "Tenant t_8812 shard 3 failed", "Tenant t_8813 shard 4 failed"],
+    ["decimals", "Delta +51.507217 too big", "Delta +48.856613 too big"],
+    [
+      "too short for a phone number",
+      "Code +44 2079 failed",
+      "Code +49 3012 failed",
+    ],
+  ])(
+    "%s stay two exceptions, as they were",
+    async (_kind: string, first: string, second: string) => {
+      await ingestSpanException({ type: "JobError", message: first }, AFTER);
+      await ingestSpanException({ type: "JobError", message: second }, AFTER);
+
+      expect(exceptions()).toHaveLength(2);
+    },
+  );
 });
