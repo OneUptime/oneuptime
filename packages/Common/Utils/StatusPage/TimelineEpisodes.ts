@@ -23,7 +23,7 @@ import StatusPageIncidentGrouping from "./IncidentGrouping";
  * already shows - the episode - on the days it reached each resource.
  *
  * An episode with two incidents on one day is listed once that day: the day
- * lists each event once (DayUptimeGraphUtil.getDistinctIncidents).
+ * lists each event once (DayUptimeGraphUtil.getEventsOfDay).
  */
 
 // The key the overview's answer sends them under.

@@ -11,6 +11,11 @@ import Dictionary from "../../../Types/Dictionary";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import XML from "../../../Types/XML";
 import API from "../../../Utils/API";
+import StatusPageIncidentGrouping, {
+  INCIDENT_LIST_MODE_RESPONSE_KEY,
+  StatusPageIncidentListCards,
+  StatusPageIncidentListMode,
+} from "../../../Utils/StatusPage/IncidentGrouping";
 
 /*
  * A STATUS PAGE'S RSS FEED (/rss on the page's domain, /status-page/<id>/rss
@@ -23,6 +28,13 @@ import API from "../../../Utils/API";
  * with each read (getReadHeaders), so the page's IP allowlist and its
  * sign-in judge the reader, not the server that writes the feed. A feed
  * reader signs in nowhere, so a private page's feed lists nothing.
+ *
+ * Its incidents are laid out as the page lays them out (#10767,
+ * StatusPageIncidentGrouping): an item for each incident card and each
+ * episode card the Incidents page draws. Grouped by episode, an episode is
+ * one item that names its incidents, and they get none of their own; on a
+ * page that shows episodes only, the episodes are its items. The feed used
+ * to read the incident list alone, so a page of episodes had none.
  *
  * EACH ITEM IS DATED AS THE PAGE DATES IT: an incident by when it was
  * declared, an announcement by when it went up on the page, a scheduled
@@ -45,6 +57,16 @@ export interface StatusPageRssItem {
 
 export interface StatusPageRssShownLists {
   incidents: JSONArray;
+  /*
+   * The episodes the page lists, each with the incidents it holds while the
+   * page groups incidents by episode. Empty while it shows none.
+   */
+  episodes?: JSONArray | undefined;
+  /*
+   * How the page lays its incidents and episodes out, as its answers name
+   * it. Left out, each list is drawn on its own.
+   */
+  incidentListMode?: StatusPageIncidentListMode | undefined;
   announcements: JSONArray;
   scheduledMaintenanceEvents: JSONArray;
 }
@@ -113,17 +135,17 @@ export default class StatusPageRssFeed {
     return headers;
   }
 
-  // The three lists the page shows, read as the reader may read them.
+  // The lists the page shows, read as the reader may read them.
   public static async readShownLists(data: {
     req: ExpressRequest;
     statusPageId: string;
   }): Promise<StatusPageRssShownLists> {
     const headers: Dictionary<string> = StatusPageRssFeed.getReadHeaders(data);
 
-    const read: (route: string, key: string) => Promise<JSONArray> = async (
+    // A list's whole answer, or null when the page does not let it be read.
+    const read: (route: string) => Promise<JSONObject | null> = async (
       route: string,
-      key: string,
-    ): Promise<JSONArray> => {
+    ): Promise<JSONObject | null> => {
       const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
         await API.post({
           url: URL.fromString(StatusPageApiInternalUrl.toString()).addRoute(
@@ -134,29 +156,65 @@ export default class StatusPageRssFeed {
         });
 
       if (!(response instanceof HTTPResponse)) {
-        return [];
+        return null;
       }
 
-      const list: unknown = response.data?.[key];
-
-      return Array.isArray(list) ? (list as JSONArray) : [];
+      return response.data || null;
     };
 
-    const [incidents, announcements, scheduledMaintenanceEvents]: [
-      JSONArray,
-      JSONArray,
-      JSONArray,
+    const [incidents, episodes, announcements, scheduledMaintenanceEvents]: [
+      JSONObject | null,
+      JSONObject | null,
+      JSONObject | null,
+      JSONObject | null,
     ] = await Promise.all([
-      read("incidents", "incidents"),
-      read("announcements", "announcements"),
-      read("scheduled-maintenance-events", "scheduledMaintenanceEvents"),
+      read("incidents"),
+      read("episodes"),
+      read("announcements"),
+      read("scheduled-maintenance-events"),
     ]);
 
     return {
-      incidents: incidents,
-      announcements: announcements,
-      scheduledMaintenanceEvents: scheduledMaintenanceEvents,
+      incidents: StatusPageRssFeed.listOf(incidents, "incidents"),
+      episodes: StatusPageRssFeed.listOf(episodes, "episodes"),
+      incidentListMode: StatusPageRssFeed.readIncidentListMode(
+        incidents,
+        episodes,
+      ),
+      announcements: StatusPageRssFeed.listOf(announcements, "announcements"),
+      scheduledMaintenanceEvents: StatusPageRssFeed.listOf(
+        scheduledMaintenanceEvents,
+        "scheduledMaintenanceEvents",
+      ),
     };
+  }
+
+  // A list an answer holds under its key, or none.
+  public static listOf(answer: JSONObject | null, key: string): JSONArray {
+    const list: unknown = answer?.[key];
+
+    return Array.isArray(list) ? (list as JSONArray) : [];
+  }
+
+  /*
+   * The mode the incident or the episode list names. A server that predates
+   * it names none, and each list is then drawn on its own, as before.
+   */
+  public static readIncidentListMode(
+    ...answers: Array<JSONObject | null>
+  ): StatusPageIncidentListMode {
+    for (const answer of answers) {
+      const mode: unknown = answer?.[INCIDENT_LIST_MODE_RESPONSE_KEY];
+
+      if (mode !== undefined && mode !== null) {
+        return StatusPageIncidentGrouping.readMode(
+          mode,
+          StatusPageIncidentListMode.Separate,
+        );
+      }
+    }
+
+    return StatusPageIncidentListMode.Separate;
   }
 
   /*
@@ -169,7 +227,24 @@ export default class StatusPageRssFeed {
   }): Array<StatusPageRssItem> {
     const items: Array<StatusPageRssItem> = [];
 
-    for (const incident of data.lists.incidents as Array<JSONObject>) {
+    // The incident and episode cards the page's Incidents page draws.
+    const cards: StatusPageIncidentListCards<JSONObject, JSONObject> =
+      StatusPageIncidentGrouping.getCards<JSONObject, JSONObject>({
+        mode:
+          data.lists.incidentListMode || StatusPageIncidentListMode.Separate,
+        incidents: data.lists.incidents as Array<JSONObject>,
+        episodes: (data.lists.episodes || []) as Array<JSONObject>,
+        getIncidentId: (incident: JSONObject): string => {
+          return StatusPageRssFeed.text(incident["_id"]);
+        },
+        getEpisodeIncidentIds: (episode: JSONObject): Array<string> => {
+          return StatusPageIncidentGrouping.getEpisodeIncidentIdsFromJson(
+            episode,
+          );
+        },
+      });
+
+    for (const incident of cards.incidents) {
       items.push({
         title: `Incident: ${StatusPageRssFeed.text(incident["title"])}`,
         description: StatusPageRssFeed.text(incident["description"]),
@@ -177,6 +252,31 @@ export default class StatusPageRssFeed {
         date:
           StatusPageRssFeed.toDate(incident["declaredAt"]) ||
           StatusPageRssFeed.toDate(incident["createdAt"]),
+      });
+    }
+
+    /*
+     * An episode is an incident to the page's readers, opened at the
+     * incident's own address, as the page opens it. Grouped by episode, its
+     * description ends with the incidents it holds.
+     */
+    for (const episode of cards.episodes) {
+      const description: string = StatusPageRssFeed.text(
+        episode["description"],
+      );
+      const holds: string = StatusPageRssFeed.describeEpisodeIncidents(episode);
+
+      items.push({
+        title: `Incident: ${StatusPageRssFeed.text(episode["title"])}`,
+        description: holds
+          ? description
+            ? `${description}\n\n${holds}`
+            : holds
+          : description,
+        link: `${data.baseUrl}/incidents/${StatusPageRssFeed.text(episode["_id"])}`,
+        date:
+          StatusPageRssFeed.toDate(episode["declaredAt"]) ||
+          StatusPageRssFeed.toDate(episode["createdAt"]),
       });
     }
 
@@ -217,6 +317,28 @@ export default class StatusPageRssFeed {
 
       return b.date.getTime() - a.date.getTime();
     });
+  }
+
+  /*
+   * The incidents an episode holds, as its item says them while the page
+   * groups incidents by episode: "Related incidents: Website down, API down."
+   * Empty when it lists none.
+   */
+  public static describeEpisodeIncidents(episode: JSONObject): string {
+    const titles: Array<string> =
+      StatusPageIncidentGrouping.getEpisodeIncidentsFromJson(episode)
+        .map((incident: JSONObject): string => {
+          return StatusPageRssFeed.text(incident["title"]).trim();
+        })
+        .filter((title: string): boolean => {
+          return Boolean(title);
+        });
+
+    if (titles.length === 0) {
+      return "";
+    }
+
+    return `Related incidents: ${titles.join(", ")}.`;
   }
 
   /*

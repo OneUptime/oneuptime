@@ -9,6 +9,7 @@ import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import Dictionary from "../../../../Types/Dictionary";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import API, { APIRequestOptions } from "../../../../Utils/API";
+import { StatusPageIncidentListMode } from "../../../../Utils/StatusPage/IncidentGrouping";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
@@ -192,7 +193,7 @@ describe("StatusPageRssFeed.readShownLists", () => {
     jest.restoreAllMocks();
   });
 
-  test("reads the page's three lists as the reader, and keeps what each answers", async () => {
+  test("reads the page's lists as the reader, and keeps what each answers", async () => {
     const calls: Array<APIRequestOptions> = [];
 
     jest
@@ -242,6 +243,10 @@ describe("StatusPageRssFeed.readShownLists", () => {
 
     expect(read).toEqual({
       incidents: [{ _id: "i1" }],
+      // An answer without episodes lists none.
+      episodes: [],
+      // An answer without a mode, an older server's: each list on its own.
+      incidentListMode: StatusPageIncidentListMode.Separate,
       announcements: [],
       scheduledMaintenanceEvents: [{ _id: "s1" }],
     });
@@ -255,6 +260,7 @@ describe("StatusPageRssFeed.readShownLists", () => {
         .sort(),
     ).toEqual([
       "/status-page/announcements/page-id",
+      "/status-page/episodes/page-id",
       "/status-page/incidents/page-id",
       "/status-page/scheduled-maintenance-events/page-id",
     ]);
@@ -285,7 +291,314 @@ describe("StatusPageRssFeed.readShownLists", () => {
         req: reader({ forwardedFor: "198.51.100.7" }),
         statusPageId: "page-id",
       }),
-    ).toEqual(lists());
+    ).toEqual(
+      lists({
+        episodes: [],
+        incidentListMode: StatusPageIncidentListMode.Separate,
+      }),
+    );
+  });
+
+  test("reads the episode list and the page's mode, as the page does", async () => {
+    jest
+      .spyOn(API, "post")
+      .mockImplementation(
+        async (
+          options: APIRequestOptions,
+        ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+          const url: string = options.url.toString();
+
+          if (url.endsWith("/incidents/page-id")) {
+            return new HTTPResponse<JSONObject>(
+              200,
+              {
+                incidentListMode: "GroupedByEpisode",
+                incidents: [{ _id: "i1" }, { _id: "i2" }],
+              },
+              {},
+            );
+          }
+
+          if (url.endsWith("/episodes/page-id")) {
+            return new HTTPResponse<JSONObject>(
+              200,
+              {
+                incidentListMode: "GroupedByEpisode",
+                episodes: [{ _id: "e1", incidents: [{ _id: "i1" }] }],
+              },
+              {},
+            );
+          }
+
+          return new HTTPResponse<JSONObject>(200, {}, {});
+        },
+      );
+
+    const read: StatusPageRssShownLists =
+      await StatusPageRssFeed.readShownLists({
+        req: reader({ forwardedFor: "198.51.100.7" }),
+        statusPageId: "page-id",
+      });
+
+    expect(read.incidentListMode).toBe(
+      StatusPageIncidentListMode.GroupedByEpisode,
+    );
+    expect(read.episodes).toEqual([{ _id: "e1", incidents: [{ _id: "i1" }] }]);
+  });
+
+  test("a page that shows episodes only, whose incident list refuses, names its mode in the episode list", async () => {
+    jest
+      .spyOn(API, "post")
+      .mockImplementation(
+        async (
+          options: APIRequestOptions,
+        ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+          const url: string = options.url.toString();
+
+          if (url.endsWith("/incidents/page-id")) {
+            return new HTTPErrorResponse(
+              400,
+              { message: "Incidents are not enabled on this status page." },
+              {},
+            );
+          }
+
+          if (url.endsWith("/episodes/page-id")) {
+            return new HTTPResponse<JSONObject>(
+              200,
+              {
+                incidentListMode: "EpisodesOnly",
+                episodes: [{ _id: "e1" }],
+              },
+              {},
+            );
+          }
+
+          return new HTTPResponse<JSONObject>(200, {}, {});
+        },
+      );
+
+    const read: StatusPageRssShownLists =
+      await StatusPageRssFeed.readShownLists({
+        req: reader({ forwardedFor: "198.51.100.7" }),
+        statusPageId: "page-id",
+      });
+
+    expect(read.incidents).toEqual([]);
+    expect(read.incidentListMode).toBe(StatusPageIncidentListMode.EpisodesOnly);
+  });
+});
+
+describe("StatusPageRssFeed.readIncidentListMode", () => {
+  test.each([
+    [{ incidentListMode: "GroupedByEpisode" }, null, "GroupedByEpisode"],
+    [null, { incidentListMode: "EpisodesOnly" }, "EpisodesOnly"],
+    [
+      { incidentListMode: "Separate" },
+      { incidentListMode: "GroupedByEpisode" },
+      "Separate",
+    ],
+    [{}, {}, "Separate"],
+    [null, null, "Separate"],
+    [{ incidentListMode: "Unknown" }, null, "Separate"],
+  ])(
+    "reads %j and %j as %s",
+    (
+      incidents: JSONObject | null,
+      episodes: JSONObject | null,
+      expected: string,
+    ) => {
+      expect(StatusPageRssFeed.readIncidentListMode(incidents, episodes)).toBe(
+        expected,
+      );
+    },
+  );
+});
+
+/*
+ * The feed lays incidents out as the page's Incidents page does (#10767):
+ * an item for each card it draws, in every mode.
+ */
+describe("StatusPageRssFeed.buildItems: incidents as the page lays them out", () => {
+  const lone: JSONObject = {
+    _id: "incident-lone",
+    title: "Search is slow",
+    description: "Results take long.",
+    declaredAt: { _type: "DateTime", value: "2026-11-20T08:00:00.000Z" },
+  };
+
+  const website: JSONObject = {
+    _id: "incident-website",
+    title: "Website Monitor Outage",
+    declaredAt: { _type: "DateTime", value: "2026-11-21T09:00:00.000Z" },
+  };
+
+  const api: JSONObject = {
+    _id: "incident-api",
+    title: "API Monitor Outage",
+    declaredAt: { _type: "DateTime", value: "2026-11-21T09:01:00.000Z" },
+  };
+
+  const groupedOutage: JSONObject = {
+    _id: "episode-outage",
+    title: "Infrastructure Outage",
+    description: "Several services are down.",
+    declaredAt: { _type: "DateTime", value: "2026-11-21T08:59:00.000Z" },
+    incidents: [
+      { _id: "incident-api", title: "API Monitor Outage" },
+      { _id: "incident-website", title: "Website Monitor Outage" },
+    ],
+  };
+
+  const separateOutage: JSONObject = {
+    _id: "episode-outage",
+    title: "Infrastructure Outage",
+    description: "Several services are down.",
+    declaredAt: { _type: "DateTime", value: "2026-11-21T08:59:00.000Z" },
+  };
+
+  function itemsFor(
+    data: Partial<StatusPageRssShownLists>,
+  ): Array<StatusPageRssItem> {
+    return StatusPageRssFeed.buildItems({
+      lists: lists(data),
+      baseUrl: BASE_URL,
+    });
+  }
+
+  test("grouped: an episode of two is one item naming them, and the incident of no episode keeps its own", () => {
+    const items: Array<StatusPageRssItem> = itemsFor({
+      incidents: [lone, website, api],
+      episodes: [groupedOutage],
+      incidentListMode: StatusPageIncidentListMode.GroupedByEpisode,
+    });
+
+    expect(titles(items)).toEqual([
+      "Incident: Infrastructure Outage",
+      "Incident: Search is slow",
+    ]);
+
+    const outage: StatusPageRssItem = items[0]!;
+
+    expect(outage.link).toBe(`${BASE_URL}/incidents/episode-outage`);
+    expect(outage.description).toBe(
+      "Several services are down.\n\nRelated incidents: API Monitor Outage, Website Monitor Outage.",
+    );
+    expect(outage.date?.toISOString()).toBe("2026-11-21T08:59:00.000Z");
+  });
+
+  test("grouped: an episode that lists no incident is no item", () => {
+    expect(
+      titles(
+        itemsFor({
+          incidents: [lone],
+          episodes: [{ ...separateOutage, incidents: [] }],
+          incidentListMode: StatusPageIncidentListMode.GroupedByEpisode,
+        }),
+      ),
+    ).toEqual(["Incident: Search is slow"]);
+  });
+
+  test("grouped: an episode with no description of its own says only what it holds", () => {
+    const items: Array<StatusPageRssItem> = itemsFor({
+      incidents: [website],
+      episodes: [
+        {
+          _id: "episode-quiet",
+          title: "Login trouble",
+          incidents: [{ _id: "incident-website", title: "Website down" }],
+        },
+      ],
+      incidentListMode: StatusPageIncidentListMode.GroupedByEpisode,
+    });
+
+    expect(items).toHaveLength(1);
+    expect(items[0]!.description).toBe("Related incidents: Website down.");
+  });
+
+  test("separate: every incident and every episode is an item, as the page draws them", () => {
+    expect(
+      titles(
+        itemsFor({
+          incidents: [lone, website, api],
+          episodes: [separateOutage],
+          incidentListMode: StatusPageIncidentListMode.Separate,
+        }),
+      ).sort(),
+    ).toEqual(
+      [
+        "Incident: API Monitor Outage",
+        "Incident: Infrastructure Outage",
+        "Incident: Search is slow",
+        "Incident: Website Monitor Outage",
+      ].sort(),
+    );
+  });
+
+  test("an answer without a mode, an older server's, draws each list on its own", () => {
+    expect(
+      itemsFor({
+        incidents: [lone],
+        episodes: [separateOutage],
+      }),
+    ).toHaveLength(2);
+  });
+
+  test("episodes only: the episodes are its items, and their description is their own", () => {
+    const items: Array<StatusPageRssItem> = itemsFor({
+      incidents: [],
+      episodes: [separateOutage],
+      incidentListMode: StatusPageIncidentListMode.EpisodesOnly,
+    });
+
+    expect(titles(items)).toEqual(["Incident: Infrastructure Outage"]);
+    expect(items[0]!.description).toBe("Several services are down.");
+  });
+
+  test("incidents only: no episode is an item, whatever is handed in", () => {
+    expect(
+      titles(
+        itemsFor({
+          incidents: [lone],
+          episodes: [separateOutage],
+          incidentListMode: StatusPageIncidentListMode.IncidentsOnly,
+        }),
+      ),
+    ).toEqual(["Incident: Search is slow"]);
+  });
+
+  test("none: a page that shows neither has no incident item", () => {
+    expect(
+      itemsFor({
+        incidents: [lone],
+        episodes: [separateOutage],
+        incidentListMode: StatusPageIncidentListMode.None,
+      }),
+    ).toEqual([]);
+  });
+
+  test("an episode's item escapes as every item does", () => {
+    const xml: string = StatusPageRssFeed.render({
+      title: "Acme",
+      description: "Acme's status",
+      baseUrl: BASE_URL,
+      feedUrl: `${BASE_URL}/rss`,
+      items: itemsFor({
+        incidents: [],
+        episodes: [
+          {
+            ...separateOutage,
+            title: "Checkout & <payments>",
+            incidents: [{ _id: "x", title: "A ]]> B" }],
+          },
+        ],
+        incidentListMode: StatusPageIncidentListMode.GroupedByEpisode,
+      }),
+    });
+
+    expect(xml).toContain("Incident: Checkout &amp; &lt;payments&gt;");
+    expect(xml).not.toContain("<payments>");
+    expect(xml).not.toContain("A ]]> B");
   });
 });
 
