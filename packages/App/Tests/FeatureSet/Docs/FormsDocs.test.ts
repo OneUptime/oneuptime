@@ -22,6 +22,7 @@ jest.mock(
 import FormMessage from "../../../FeatureSet/Accounts/src/Utils/FormMessage";
 import FormsCopy, {
   FORM_QUESTION_TYPE_TEXT,
+  getFormQuestionTypeDescription,
 } from "../../../FeatureSet/Dashboard/src/Components/FormBuilder/FormsCopy";
 import {
   FormMappingRow,
@@ -142,6 +143,13 @@ import {
   neutralizeUntrustedPlainText,
 } from "Common/Utils/Markdown/UntrustedMarkdown";
 import Field from "Common/UI/Components/Forms/Types/Field";
+import { createTranslator, Translator } from "Common/Types/Translator";
+import {
+  dashboardTranslator,
+  readDashboardLocale,
+} from "Common/Tests/Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
+import { DOCS_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -784,7 +792,13 @@ describe("Forms docs", () => {
       const rows: Array<Array<string>> = firstTable(
         sectionOf(readPage(BUILDING_PAGE), 3, "Questions of the form's own"),
       );
+      const english: Translator = createTranslator(undefined, "en");
 
+      /*
+       * As the palette draws each one: the Multiple Files row's count is
+       * the one every such question takes (FORM_FILE_QUESTION_MAX_FILES),
+       * so the docs' plain number follows the constant (#8039).
+       */
       expect(
         rows.map((row: Array<string>): Array<string> => {
           return [row[0] as string, row[1] as string];
@@ -793,9 +807,22 @@ describe("Forms docs", () => {
         FORM_QUESTION_TYPES.map((type: CustomFieldType): Array<string> => {
           return [
             `**${FORM_QUESTION_TYPE_TEXT[type].title}**`,
-            FORM_QUESTION_TYPE_TEXT[type].description,
+            getFormQuestionTypeDescription({
+              type: type,
+              translateText: (text: string): string => {
+                return text;
+              },
+              translatePlural: english.translatePlural,
+            }),
           ];
         }),
+      );
+      expect(
+        rows.find((row: Array<string>): boolean => {
+          return row[0] === "**Multiple Files**";
+        })?.[1],
+      ).toBe(
+        `Up to ${FORM_FILE_QUESTION_MAX_FILES} files, such as screenshots and logs.`,
       );
 
       // And the API's spelling of the same types.
@@ -808,6 +835,52 @@ describe("Forms docs", () => {
 
       for (const type of FORM_QUESTION_TYPES) {
         expect(apiRow).toContain(`\`${type}\``);
+      }
+    });
+
+    /*
+     * Every language's Building a Form says what the palette says in that
+     * language for a Multiple Files question, its count the one every such
+     * question takes, in the reader's digits ("۱۰" in Persian): the docs
+     * write the number plainly, and follow the constant and the palette's
+     * words together (#8039).
+     */
+    it("say a Multiple Files question's count in every language, as the palette words it there", () => {
+      const title: string =
+        FORM_QUESTION_TYPE_TEXT[CustomFieldType.MultipleFiles].title;
+
+      expect(DOCS_LANGUAGES.length).toBeGreaterThanOrEqual(16);
+
+      for (const language of DOCS_LANGUAGES) {
+        const translator: Translator = dashboardTranslator(language);
+        const name: string = readDashboardLocale(language)[title] || title;
+        const row: string | undefined = readPage(BUILDING_PAGE, language)
+          .split("\n")
+          .find((line: string): boolean => {
+            return line.startsWith(`| **${name}** |`);
+          });
+
+        expect({ language, hasRow: row !== undefined }).toEqual({
+          language,
+          hasRow: true,
+        });
+
+        const drawn: string = withoutIsolateMarks(
+          getFormQuestionTypeDescription({
+            type: CustomFieldType.MultipleFiles,
+            translateText: (text: string): string => {
+              return translator.translateText(text) || text;
+            },
+            translatePlural: translator.translatePlural,
+          }),
+        ).replace(/[  ]/g, " ");
+
+        expect({ language, row: (row as string).split("|")[2]?.trim() }).toEqual(
+          { language, row: drawn },
+        );
+        expect(drawn).toContain(
+          translator.formatNumber(FORM_FILE_QUESTION_MAX_FILES),
+        );
       }
     });
 
