@@ -36,10 +36,13 @@ class RedactorTest {
         assertFalse(Redactor.passesLuhn("41a1"))
         assertTrue(Redactor.looksLikeCardNumber("4111111111111111"))
         assertFalse(Redactor.looksLikeCardNumber("1111111111111117"))
-        // A digit of another script is no card's, as the server's copy reads it: Kotlin's isDigit() takes it, and "١" - "0" is 1585.
-        assertFalse(Redactor.passesLuhn("\u0664\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661"))
-        assertFalse(Redactor.passesLuhn("411111111111111\u0661"))
-        assertFalse(Redactor.looksLikeCardNumber("411111111111111\uFF11"))
+        // A digit of any script is read by its value, as the card search reads it (#10877): "٤" is 4, "１" is 1.
+        assertTrue(Redactor.passesLuhn("\u0664\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661"))
+        assertTrue(Redactor.passesLuhn("411111111111111\u0661"))
+        assertTrue(Redactor.looksLikeCardNumber("411111111111111\uFF11"))
+        // Anything else is no digit: a letter, and a digit beyond the Basic Multilingual Plane (Adlam's one, U+1E951).
+        assertFalse(Redactor.looksLikeCardNumber("411111111111111x"))
+        assertFalse(Redactor.passesLuhn("411111111111111\uD83A\uDD51"))
     }
 
     @Test

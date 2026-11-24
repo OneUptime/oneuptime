@@ -440,12 +440,12 @@ describe("a Kotlin pattern reads a word's edge as the JVM and JavaScript do", ()
       });
     }
 
-    // The redactor's five: the card's start, the address, the credential, the token and the secret's value.
+    // The redactor's six: the card's start, the ASCII address and the address in any script, the credential, the token and the secret's value.
     expect(
       KOTLIN_PATTERNS.filter((pattern: FoundPattern): boolean => {
         return pattern.file === AGENT_REDACTOR;
       }),
-    ).toHaveLength(5);
+    ).toHaveLength(6);
   });
 
   test("none holds what Android's regular expressions read otherwise at a word's edge", () => {

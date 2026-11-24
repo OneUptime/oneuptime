@@ -69,18 +69,25 @@ describe("a card number", () => {
     expect(AndroidAgentRedactor.looksLikeCardNumber("1111111111111117")).toBe(
       false,
     );
-    // A digit of another script is no card's.
+    // A digit of any script is read by its value, as the card search reads it (#10877): "٤" is 4, "１" is 1.
     expect(
       AndroidAgentRedactor.passesLuhn(
         "\u0664\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661",
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(AndroidAgentRedactor.passesLuhn("411111111111111\u0661")).toBe(
-      false,
+      true,
     );
     expect(
       AndroidAgentRedactor.looksLikeCardNumber("411111111111111\uff11"),
-    ).toBe(false);
+    ).toBe(true);
+    // Anything else is no digit: a letter, and a digit beyond the Basic Multilingual Plane (Adlam's one, U+1E951).
+    expect(AndroidAgentRedactor.looksLikeCardNumber("411111111111111x")).toBe(
+      false,
+    );
+    expect(AndroidAgentRedactor.passesLuhn("411111111111111\u{1e951}")).toBe(
+      false,
+    );
   });
 
   test("beside another number is taken out", () => {
@@ -446,6 +453,7 @@ describe("its patterns", () => {
     const server: Map<string, JavaScriptPattern> = serverPatterns();
 
     expect([...agent.keys()].sort()).toEqual([
+      "ASCII_EMAIL_ADDRESS",
       "AUTHORIZATION",
       "CARD_START",
       "EMAIL_ADDRESS",
@@ -460,16 +468,20 @@ describe("its patterns", () => {
       }
 
       const caseInsensitive: boolean = kotlin.includes("(?i)");
+      // Unicode's own classes (\p{Nd}, \p{L}) read alike on the three engines, and JavaScript reads them under the u flag alone.
+      const unicode: boolean = kotlin.includes("\\p{") || kotlin.includes("\\P{");
 
       expect({
         name,
         source: server.get(name)?.source,
         caseInsensitive: server.get(name)?.flags.includes("i"),
+        unicode: server.get(name)?.flags.includes("u"),
       }).toEqual({
         name,
         // Kotlin turns (?i) on in the pattern, after its look-behind, and JavaScript with a flag; ICU refuses a bare "}" in a class.
         source: kotlin.split("(?i)").join("").split("\\}").join("}"),
         caseInsensitive,
+        unicode,
       });
     }
   });

@@ -180,13 +180,14 @@ val q = "Regex(" + "q"`;
         return literal.value;
       });
 
-    // The card's start, the address, the credential, the token and the secret's value.
-    expect(patterns).toHaveLength(5);
-    expect(patterns[0]).toContain("(?=([2-6]");
+    // The card's start, the ASCII address, the address in any script, the credential, the token and the secret's value.
+    expect(patterns).toHaveLength(6);
+    expect(patterns[0]).toContain(String.raw`(?=(\p{Nd}`);
     expect(patterns[1]).toContain("@[A-Za-z0-9-]{1,63}");
-    expect(patterns[2]).toContain("(bearer|basic)");
-    expect(patterns[3]).toContain("eyJ[A-Za-z0-9_-]{5}");
-    expect(patterns[4]).toContain("password|passwd");
+    expect(patterns[2]).toContain(String.raw`@[\p{L}\p{M}\p{Nd}-]{1,63}`);
+    expect(patterns[3]).toContain("(bearer|basic)");
+    expect(patterns[4]).toContain("eyJ[A-Za-z0-9_-]{5}");
+    expect(patterns[5]).toContain("password|passwd");
   });
 });
 
