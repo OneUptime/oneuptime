@@ -70,7 +70,7 @@ flowchart TB
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
 | Ваши собственные базы данных | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
-| OneUptime | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ, метрики, события безопасности, Network Flows, сейф адресов безопасности | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ, метрики |
+| OneUptime | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ, метрики, события безопасности, Network Flows, сейф адресов безопасности, сейф пользователей безопасности | Журналы, трассировки, исключения, записи сеансов, разговоры с ИИ, метрики |
 
 Каждое хранилище получает проверки, которые подходят к его виду. Хранилище, из содержимого которого нельзя взять образцы, всё равно проверяется: публичный бакет или незашифрованная база данных — это проблема, что бы в них ни лежало. События безопасности, Network Flows и сейф адресов безопасности принадлежат самому OneUptime, который ведёт их для вашей безопасности: они указаны, никогда не сканируются и не проверяются (см. [Хранилища, которые OneUptime ведёт для вашей безопасности](/docs/data-security/compliance#хранилища-которые-oneuptime-ведёт-для-вашей-безопасности)).
 

@@ -495,6 +495,56 @@ describe("signing in", () => {
     expect(lightOnlyColours()).toEqual([]);
   });
 
+  test("a second step the administrator requires, on a phone: Add to Authenticator App under the QR code", async () => {
+    const matchMedia: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(window, "matchMedia");
+
+    // A finger is the phone's pointer (#6651).
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      writable: true,
+      value: (query: string): MediaQueryList => {
+        return {
+          matches: query === "(pointer: coarse)",
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => {
+            return false;
+          },
+        } as MediaQueryList;
+      },
+    });
+
+    try {
+      loginAnswer = {
+        twoFactorEnrolmentRequired: true,
+        twoFactorAuthId: TOTP["_id"] as string,
+        twoFactorOtpUrl: "otpauth://totp/OneUptime:ada?secret=ABCDEFGH",
+      };
+      draw(<LoginPage />, "/accounts/login");
+
+      await signInWithPassword();
+
+      expect(await screen.findByTestId("qr-code")).toBeInTheDocument();
+      expect(screen.getByTestId("authenticator-app-link")).toBeInTheDocument();
+      expect(lightOnlyColours()).toEqual([]);
+    } finally {
+      if (matchMedia) {
+        Object.defineProperty(window, "matchMedia", matchMedia);
+      } else {
+        Object.defineProperty(window, "matchMedia", {
+          value: undefined,
+          configurable: true,
+          writable: true,
+        });
+      }
+    }
+  });
+
   test("the backup codes an enrolment minted, shown once", async () => {
     loginAnswer = {
       totpAuthList: [TOTP],

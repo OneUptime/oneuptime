@@ -214,17 +214,18 @@ Opbevaringen af en tjenestes telemetri, modtagerne og overførslerne udledes af 
 
 ### Datalagre, som OneUptime opbevarer for din sikkerhed
 
-Tre datalagre indeholder IP-adresser med vilje for at beskytte dit netværk: **Sikkerhedshændelser**, **Network Flows** og **Sikkerhedsadresseboks**. Fortegnelsen viser hvert af dem, som dit projekt har. OneUptime angiver dem i stedet for at finde dem: hvad de indeholder, er kendt fra starten, så ingen scanning læser dem, ingen kontrol gælder for dem, og at de indeholder disse adresser, er aldrig et problem, for det er det, de er til. De viser **Angivet af OneUptime** under **Datalagre**, og **Oversigt** og rammernes scorer udelader dem.
+Fire datalagre indeholder IP-adresser og brugernavne med vilje for at beskytte dit netværk: **Sikkerhedshændelser**, **Network Flows**, **Sikkerhedsadresseboks** og **Sikkerhedsbrugerboks**. Fortegnelsen viser hvert af dem, som dit projekt har. OneUptime angiver dem i stedet for at finde dem: hvad de indeholder, er kendt fra starten, så ingen scanning læser dem, ingen kontrol gælder for dem, og at de indeholder disse adresser og navne, er aldrig et problem, for det er det, de er til. De viser **Angivet af OneUptime** under **Datalagre**, og **Oversigt** og rammernes scorer udelader dem.
 
 | Datalager | Hvad det indeholder | Opbevaring | Hvem kan læse det |
 | --- | --- | --- | --- |
 | Sikkerhedshændelser | IP-adresser, brugernavne og e-mailadresser på den, der handlede, og det, der blev berørt | Dit projekts [opbevaring af telemetri](/docs/telemetry/data-retention), læst hver gang fortegnelsen læses, så en ændring gælder med det samme | Projektejere, Projektadministratorer, Sikkerhedsadministratorer, Sikkerhedsmedlemmer, Sikkerhedsseere og alle med Read Security Event |
 | Network Flows | IP-adresserne på dem, der kommunikerede med hinanden | 30 dage efter, at et flow ankommer | Alle, der må læse netværksenheder |
 | Sikkerhedsadresseboks | IP-adressen bag hvert token, som en IP-adresseregel, der hasher, efterlod i de logs og traces, [Sikkerhedshændelser](/docs/telemetry/security-events) læser | 30 dage efter, at en adresse sidst blev set | Kun scanningerne i Sikkerhedshændelser, inde i OneUptime: ingen person, side, eksport, API eller AI-værktøj |
+| Sikkerhedsbrugerboks | Brugeren bag hvert token, som en regel, der hasher, efterlod, hvor [Sikkerhedshændelser](/docs/telemetry/security-events) læser en bruger i dine logs og traces | 30 dage efter, at en bruger sidst blev set | Kun scanningerne i Sikkerhedshændelser, inde i OneUptime: ingen person, side, eksport, API eller AI-værktøj |
 
 Formålet med hvert af dem er "Net- og informationssikkerhed (GDPR betragtning 49)". Vil du skrive dit eget formål eller din egen opbevaring, så brug **Rediger fortegnelse** under datalagerets **Indstillinger**: et felt, der står tomt, beholder OneUptimes.
 
-Et datalager vises, så længe dit projekt opbevarer dets data: boksen, så længe en aktiveret IP-adresseregel hasher logs eller traces, som Sikkerhedshændelser læser, og i 31 dage derefter (se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Når dets data er væk, arkiveres datalageret, og det vender tilbage med dit formål og din opbevaring, hvis dataene gør det.
+Et datalager vises, så længe dit projekt opbevarer dets data: adresseboksen, så længe en aktiveret IP-adresseregel hasher logs eller traces, som Sikkerhedshændelser læser, og brugerboksen, så længe en aktiveret regel med et hvilket som helst andet mønster gør det, hver i 31 dage derefter (se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Når dets data er væk, arkiveres datalageret, og det vender tilbage med dit formål og din opbevaring, hvis dataene gør det.
 
 ## Konsekvensanalyser
 

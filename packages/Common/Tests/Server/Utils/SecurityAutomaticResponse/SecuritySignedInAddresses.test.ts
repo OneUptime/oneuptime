@@ -609,3 +609,101 @@ describe("how an address is written", () => {
     ).toContain("GROUP BY user");
   });
 });
+
+/*
+ * #10632: A HASHED USER IS STILL SOMEONE SIGNED IN. A Hash rule on user ids
+ * leaves a token where the app recorded its user, and Security Events'
+ * user vault names the user behind it on the events it stores - so an
+ * address a hashed user used is spared like any other: the requests read
+ * here hold the token, which is a user id like any, and the sign-ins the
+ * scans stored name the user. Redact or Mask leave no user to name, but
+ * someone signed in all the same.
+ */
+describe("hashed users", () => {
+  const TOKEN: string = "[HASHED:3f9a1c0e7b2d4a68]";
+
+  test("a request whose user id a Hash rule hid is a signed-in user: SignedIn, named by what the rule left", async () => {
+    spanRows = [{ user: TOKEN, lastSeen: "2026-12-21 09:00:00" }];
+
+    const result: SecuritySignedInAddressCheck = await check();
+
+    expect(result.state).toBe(SecuritySignedInAddressState.SignedIn);
+
+    if (result.state !== SecuritySignedInAddressState.SignedIn) {
+      return;
+    }
+
+    expect(result.users).toEqual([
+      {
+        name: TOKEN,
+        source: SecuritySignedInSource.Requests,
+        lastSeenAt: new Date("2026-12-21T09:00:00.000Z"),
+      },
+    ]);
+  });
+
+  test("the requests read are any with a user id: none is left out for being a token", async () => {
+    await check();
+
+    const spans: Statement = asked[0]!.statement;
+
+    expect(spans.query).toContain("!= ''");
+    expect(spans.query).not.toContain("HASHED");
+    expect(valuesOf(spans)).not.toContain("HASHED");
+  });
+
+  test("a sign-in the scans named from a hashed user counts, and so does one they could not name", async () => {
+    signInRows = [
+      { user: "mallory@acme.com", lastSeen: "2026-12-22 08:00:00" },
+      { user: TOKEN, lastSeen: "2026-12-21 08:00:00" },
+    ];
+
+    const result: SecuritySignedInAddressCheck = await check();
+
+    expect(result.state).toBe(SecuritySignedInAddressState.SignedIn);
+
+    if (result.state !== SecuritySignedInAddressState.SignedIn) {
+      return;
+    }
+
+    expect(
+      result.users.map((user: { name: string }): string => {
+        return user.name;
+      }),
+    ).toEqual(["mallory@acme.com", TOKEN]);
+  });
+
+  test("a request whose user a Redact rule hid is someone signed in all the same", async () => {
+    logRows = [{ user: "[REDACTED]", lastSeen: "2026-12-21 09:00:00" }];
+
+    expect((await check()).state).toBe(SecuritySignedInAddressState.SignedIn);
+  });
+
+  test("undo on doubt sees a hashed user seen from a blocked address", async () => {
+    spanRows = [
+      {
+        user: TOKEN,
+        lastSeen: "2026-12-22 09:00:00",
+        address0: ADDRESS,
+        address1: "",
+      },
+    ];
+
+    const result: SecuritySignedInManyCheck =
+      await SecuritySignedInAddresses.checkMany({
+        projectId: PROJECT_ID,
+        addresses: [
+          { value: ADDRESS, since: new Date("2026-12-22T08:00:00.000Z") },
+        ],
+        now: NOW,
+      });
+
+    expect(result.state).toBe(SecuritySignedInAddressState.SignedIn);
+
+    if (result.state !== SecuritySignedInAddressState.SignedIn) {
+      return;
+    }
+
+    expect(result.usersByAddress.get(ADDRESS)![0]!.name).toBe(TOKEN);
+  });
+});

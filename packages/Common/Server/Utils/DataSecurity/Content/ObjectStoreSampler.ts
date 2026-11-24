@@ -10,6 +10,10 @@ import {
   toPathPattern,
 } from "../../../../Utils/DataSecurity/PathPattern";
 import {
+  mergeShadowCounts,
+  ShadowCounts,
+} from "../../../../Utils/DataSecurity/ShadowCount";
+import {
   MAX_UNPLACED_LOCATION_LENGTH,
   UnplacedField,
 } from "../../../../Utils/DataSecurity/UnplacedFields";
@@ -610,6 +614,8 @@ export async function sampleObjectStore(
   const stats: Map<string, PatternStats> = new Map();
   const plaintextPasswordFields: Array<string> = [];
   const unplacedFields: Array<UnplacedField> = [];
+  // What the drafts run in shadow would find, by each pattern's fields (#10371).
+  const shadowCounts: ShadowCounts = {};
   const readNow: Map<string, StateEntry> = new Map();
 
   for (let index: number = 0; index < picks.length; index++) {
@@ -715,6 +721,12 @@ export async function sampleObjectStore(
       }
     }
 
+    mergeShadowCounts(
+      shadowCounts,
+      classification.shadowCounts,
+      `${pick.group.pattern}${LOCATION_SEPARATOR}`,
+    );
+
     for (const field of classification.plaintextPasswordFields) {
       const path: string = `${pick.group.pattern}${LOCATION_SEPARATOR}${field}`;
 
@@ -763,6 +775,10 @@ export async function sampleObjectStore(
 
   result.locations = findings.toLocations();
   result.unplacedFields = unplacedFields;
+
+  if ((options.shadowDetectors || []).length > 0) {
+    result.shadowCounts = shadowCounts;
+  }
   result.fingerprints = fingerprints.getFingerprints();
   result.plaintextPasswordFields = plaintextPasswordFields;
   result.warnings = warnings;

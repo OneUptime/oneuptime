@@ -92,6 +92,7 @@ import {
 } from "Common/Types/DataSecurity/DeclaredDataStore";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "Common/Types/NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityAddressVaultRetention";
+import { SECURITY_USER_VAULT_RETENTION_IN_DAYS } from "Common/Types/SecurityEvent/SecurityUserVaultRetention";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import NetworkFlow from "Common/Models/AnalyticsModels/NetworkFlow";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
@@ -160,6 +161,16 @@ import {
   MIN_UNPLACED_VALUES,
   valueShape,
 } from "Common/Utils/DataSecurity/UnplacedFields";
+import {
+  MIN_CANDIDATE_FIELDS,
+  MIN_CANDIDATE_STORES,
+} from "Common/Utils/DataSecurity/DataTypeCandidates";
+import {
+  DROPPED_DATA_TYPE_COOLDOWN_DAYS,
+  MAX_SCATTERED_MATCH_SHARE,
+  MIN_GROUP_MATCH_SHARE,
+  PROVING_HOURS,
+} from "Common/Utils/DataSecurity/DataTypeProposal";
 import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
@@ -1279,6 +1290,76 @@ describe("Sensitive Data Types", () => {
     expect(section(page, "## How a value is found")).toContain(
       "**Confirm** on one that is right makes it High",
     );
+  });
+
+  it("says how OneUptime AI finds a data type of your own, proves it on your scans and offers it, as the product does (#10371)", () => {
+    const unplaced: string = section(
+      page,
+      "### Fields no detector could place",
+    );
+    const finds: string = section(page, "## Data types OneUptime AI finds");
+    const own: string = section(page, "## Your own data types");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataTypesToReviewCopy.ts",
+    );
+
+    // A telemetry scan's unplaced attributes, as the scanner bounds them.
+    expect(unplaced).toContain(
+      `at most ${constant(
+        `${SERVER}/Telemetry/TelemetryUnplacedAttributes.ts`,
+        "MAX_UNPLACED_ATTRIBUTES_PER_SERVICE",
+      )} a service each scan`,
+    );
+
+    // A group, a draft and its proof, by the product's own numbers.
+    expect([MIN_CANDIDATE_FIELDS, MIN_CANDIDATE_STORES]).toEqual([3, 2]);
+    expect(finds).toContain(
+      "Three or more fields in two or more stores make a group",
+    );
+    expect(finds).toContain(
+      `at most ${constant(
+        "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery.ts",
+        "MAX_DRAFTS_PER_RUN",
+      )} at a time`,
+    );
+    expect(finds).toContain(
+      `for up to ${PROVING_HOURS} hours or one scan interval, whichever is longer`,
+    );
+    expect(finds).toContain(
+      `at least ${Math.round(MIN_GROUP_MATCH_SHARE * 100)}% of its fields' values and at most ${Math.round(MAX_SCATTERED_MATCH_SHARE * 100)}% of the other values`,
+    );
+    expect(finds).toContain(
+      `its group is not drafted again for ${DROPPED_DATA_TYPE_COOLDOWN_DAYS} days`,
+    );
+
+    // The sentence it quotes is the card's own, and so are its buttons.
+    expect(copy).toContain(
+      '"Matches {{share}} of the values in these {{count}} fields, and {{elsewhere}} of values elsewhere in the same stores."',
+    );
+    expect(finds).toContain(
+      '"Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores."',
+    );
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+      "Describe It",
+      "Fill In the Form",
+    ]) {
+      expect(copy).toContain(`translationKey("${label}")`);
+    }
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+    ]) {
+      expect(finds).toContain(`**${label}**`);
+    }
+
+    expect(own).toContain("**Describe It**");
+    expect(own).toContain("**Fill In the Form**");
   });
 
   /*
@@ -2510,7 +2591,7 @@ describe("Data Security Compliance", () => {
       header.slice(header.indexOf("purpose")),
     );
 
-    // The three stores, as the catalog has them: declared, never scanned, never checked.
+    // The four stores, as the catalog has them: declared, never scanned, never checked.
     const kinds: Array<DataStoreKindInfo> = DATA_STORE_KINDS.filter(
       (info: DataStoreKindInfo): boolean => {
         return info.isDeclared;
@@ -2558,7 +2639,10 @@ describe("Data Security Compliance", () => {
     }
 
     expect(declared).toContain(
-      "so no scan reads them, no check applies to them, and holding these addresses never raises an issue",
+      "Four stores hold IP addresses and user names on purpose, to protect your network:",
+    );
+    expect(declared).toContain(
+      "so no scan reads them, no check applies to them, and holding these addresses and names never raises an issue",
     );
 
     // What each holds.
@@ -2570,6 +2654,7 @@ describe("Data Security Compliance", () => {
       ["ip-address", "username", "email-address"],
       ["ip-address"],
       ["ip-address"],
+      ["username", "email-address"],
     ]);
     expect(stores[0]?.[1]).toBe(
       "The IP addresses, user names and email addresses of who acted and what it touched",
@@ -2578,13 +2663,16 @@ describe("Data Security Compliance", () => {
     expect(stores[2]?.[1]).toContain(
       "The IP address behind each token an IP Address rule that hashes left in the logs and traces",
     );
+    expect(stores[3]?.[1]).toBe(
+      "The user behind each token a rule that hashes left where [Security Events](/docs/telemetry/security-events) reads a user in your logs and traces",
+    );
 
     // Why, in GDPR's own terms.
     expect(declared).toContain(
       `Each one's purpose is "${DECLARED_STORE_PURPOSE}".`,
     );
 
-    // How long: the project's retention for security events, read now; the flows' and the vault's own.
+    // How long: the project's retention for security events, read now; the flows' and the vaults' own.
     expect(
       DECLARED_DATA_STORES.map((info: DeclaredDataStoreInfo): string => {
         return info.retentionBasis;
@@ -2593,6 +2681,7 @@ describe("Data Security Compliance", () => {
       DeclaredStoreRetentionBasis.SecurityEvents,
       DeclaredStoreRetentionBasis.NetworkFlows,
       DeclaredStoreRetentionBasis.AddressVault,
+      DeclaredStoreRetentionBasis.UserVault,
     ]);
     expect(declaring).toMatch(
       /SecurityEventRetention\.getRetentionInDays\(data\.projectId, \{\s*isFresh: true,/,
@@ -2611,6 +2700,14 @@ describe("Data Security Compliance", () => {
       getDeclaredRetentionText({
         basis: DeclaredStoreRetentionBasis.AddressVault,
         retentionInDays: SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+      })
+        .split(NO_BREAK_SPACE)
+        .join(" "),
+    );
+    expect(stores[3]?.[2]).toBe(
+      getDeclaredRetentionText({
+        basis: DeclaredStoreRetentionBasis.UserVault,
+        retentionInDays: SECURITY_USER_VAULT_RETENTION_IN_DAYS,
       })
         .split(NO_BREAK_SPACE)
         .join(" "),
@@ -2649,6 +2746,7 @@ describe("Data Security Compliance", () => {
       DeclaredStoreReaders.Roles,
       DeclaredStoreReaders.Roles,
       DeclaredStoreReaders.SecurityEventsScansOnly,
+      DeclaredStoreReaders.SecurityEventsScansOnly,
     ]);
     expect(declaring).toContain(
       "return [...new SecurityEvent().getReadPermissions()];",
@@ -2670,6 +2768,7 @@ describe("Data Security Compliance", () => {
     expect(stores[2]?.[3]).toBe(
       `${SECURITY_EVENTS_SCANS_ONLY_TEXT}: no person, page, export, API or AI tool`,
     );
+    expect(stores[3]?.[3]).toBe(stores[2]?.[3]);
 
     // The team's own words are kept; a field left empty keeps OneUptime's.
     expect(declaring).toContain(
@@ -2686,15 +2785,28 @@ describe("Data Security Compliance", () => {
       "use **Edit Record** in the store's **Settings**: a field left empty keeps OneUptime's.",
     );
 
-    // Listed while its data is kept: the vault for its days, and a day for the schedule.
+    /*
+     * Listed while its data is kept: each vault for its days, and a day for
+     * the schedule. The address vault while an IP Address rule hashes, the
+     * user vault while a rule of any other pattern does.
+     */
+    expect(SECURITY_USER_VAULT_RETENTION_IN_DAYS).toBe(
+      SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS,
+    );
     expect(declared).toContain(
-      `the vault while an enabled IP Address rule hashes logs or traces Security Events reads, and for ${
+      `the address vault while an enabled IP Address rule hashes logs or traces Security Events reads, the user vault while an enabled rule of any other pattern does, each for ${
         SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS +
         constant(
           `${SERVER}/DeclaredDataStores.ts`,
           "ADDRESS_VAULT_STORE_GRACE_IN_DAYS",
         )
       } days after`,
+    );
+    expect(declaring).toMatch(
+      /patternType: LogScrubPatternType\.IPAddress,\s*scrubAction: LogScrubAction\.Hash,/,
+    );
+    expect(declaring).toMatch(
+      /patternType: new NotEqual<LogScrubPatternType>\(\s*LogScrubPatternType\.IPAddress,?\s*\),\s*scrubAction: LogScrubAction\.Hash,/,
     );
     expect(declaring).toContain("data: { isArchived: true } as never,");
     expect(declaring).toContain(

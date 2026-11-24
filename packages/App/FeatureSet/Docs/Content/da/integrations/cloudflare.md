@@ -162,7 +162,7 @@ Blokering kræver skrivetilladelser på forbindelsens API-token:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Opretter sine to lister og tilføjer og fjerner deres adresser. |
 | `Zone > Zone WAF > Edit`, på hver zone, der skal blokeres i | Tilføjer sine brugerdefinerede regler og læser zonens egne. |
-| `Account > Account Firewall Access Rules > Edit` | Tilføjer og fjerner IP Access Rules på en plan uden en ledig liste eller en ledig brugerdefineret regel. |
+| `Account > Account Firewall Access Rules > Edit` | Tilføjer og fjerner IP Access Rules: på en plan uden en ledig liste eller en ledig brugerdefineret regel, og for et netværk, der udfordres ud fra dets ASN fra **Kampagner**. |
 
 :::steps
 ### Giv tokenet skrivetilladelser
@@ -183,6 +183,7 @@ Mens blokering er slået til, kører **Test forbindelse** de samme tjek: **How b
 | Listerne `oneuptime_block` og `oneuptime_challenge` | To IP-lister i kontoen, én til blokeringer og én til udfordringer. Deres beskrivelse nævner dit OneUptime-projekt. |
 | Én brugerdefineret regel pr. liste, i hver zone | `(ip.src in $oneuptime_block)` med handlingen Block og `(ip.src in $oneuptime_challenge)` med handlingen Managed Challenge. Deres beskrivelse siger, at OneUptime administrerer dem. |
 | Ét listeelement pr. blokering | Dets kommentar nævner sagen, og hvornår blokeringen slutter, f.eks. `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Én IP Access Rule pr. netværk, der udfordres ud fra dets ASN | Et helt netværk, der udfordres fra **Kampagner**, som en IP Access Rule, hvis mål er `asn`, og som alle planer har. Dens note siger det samme som et listeelements kommentar. Uden `Account > Account Firewall Access Rules > Edit` på tokenet bliver udfordringen ikke anvendt, og **Blokeringsliste** siger, hvilken tilladelse der skal tilføjes. |
 
 Hver regel kommer først blandt zonens brugerdefinerede regler, så den kører før dine: En Skip-regel fra dig kan ikke lukke en blokeret adresse forbi den. Når dine Skip-regler lukker adresser igennem, f.eks. dine monitorers eller en partners, nævner **Blokeringsstatus** dem. **Beskyt disse adresser** føjer dem til **Beskyttede entiteter**, som ingen kan blokere.
 

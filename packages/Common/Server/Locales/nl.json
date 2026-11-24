@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: op uw lijst met beschermde entiteiten, dus er wordt nooit op ingewerkt",
   "{{target}}: one of the case's addresses": "{{target}}: een van de adressen van de zaak",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: een van uw eigen adressen, dus het wordt nooit geblokkeerd",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: stuurde dezelfde aanvragen met dezelfde tools als het adres van de zaak",
   "{{target}}: the case is grouped on it": "{{target}}: de zaak is hierop gegroepeerd",
   "{{target}}: undone at {{time}}": "{{target}}: ongedaan gemaakt om {{time}}",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: ongedaan gemaakt door {{person}} om {{time}}",

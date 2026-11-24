@@ -317,6 +317,8 @@ GenAI-metrieken zoals `gen_ai.client.token.usage` en `gen_ai.client.operation.du
 
 AI-aanroepen worden opgeslagen als tracespans, dus de **Scrub-regels** en **Drop-filters** van de traces gelden ook voor hen: maskeer een attribuut, of laat een span vallen, voordat het wordt opgeslagen. Je vindt beide onder **Traces → Instellingen**. De e-mailkolom van de medewerker wordt gemaskeerd samen met het attribuut waaruit hij is gelezen, dus een regel die e-mailadressen maskeert, dekt hem ook.
 
+Een persoon die een opschoonregel verborg, wordt nooit als persoon getoond. **Gesprekken** en **Aanroepen** tonen het id van een aanroep als een regel het e-mailadres verborg maar het id heel liet, en **Verborgen door een opschoonregel** als een regel elke naam van de aanroep verborg, of de regel die nu redigeerde, maskeerde of hashte. **Aanroepen** toont op dezelfde manier een team dat een regel verborg.
+
 Prompts en antwoorden die als log-events worden gestuurd, worden opgeslagen als logs, dus voor hen gelden de **Scrub-regels** en **Drop-filters** van de logs, onder **Logboeken → Instellingen**: een regel die e-mailadressen in de traces maskeert, maskeert ze niet in log-events. Een gesprek toont ze alleen aan wie ook de logs van die app kan lezen, en wie dat kan, vindt ze ook op de pagina **Logboeken**.
 
 Hoe dan ook leest een regel elke tekst in een lijst of een gestructureerde waarde, zoals berichten die een instrumentatie als lijst in plaats van als JSON-tekst stuurt, en behoudt hij de vorm van de waarde: een e-mailadres in een prompt wordt gemaskeerd, waar het ook staat. Zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen).

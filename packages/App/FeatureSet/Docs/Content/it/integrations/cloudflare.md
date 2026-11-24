@@ -162,7 +162,7 @@ Il blocco richiede permessi di scrittura sul token API della connessione:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Crea le sue due liste, e ne aggiunge e rimuove gli indirizzi. |
 | `Zone > Zone WAF > Edit`, su ogni zona in cui bloccare | Aggiunge le sue regole personalizzate, e legge quelle della zona. |
-| `Account > Account Firewall Access Rules > Edit` | Aggiunge e rimuove IP Access Rules, su un piano senza una lista o una regola personalizzata libera. |
+| `Account > Account Firewall Access Rules > Edit` | Aggiunge e rimuove IP Access Rules: su un piano senza una lista o una regola personalizzata libera, e per una rete sottoposta a verifica tramite il suo ASN da **Campagne**. |
 
 :::steps
 ### Dare al token i permessi di scrittura
@@ -183,6 +183,7 @@ Finché il blocco è attivo, **Testa la connessione** esegue gli stessi controll
 | Le liste `oneuptime_block` e `oneuptime_challenge` | Due liste IP nell'account, una per i blocchi e una per le verifiche. La loro descrizione nomina il tuo progetto OneUptime. |
 | Una regola personalizzata per lista, in ogni zona | `(ip.src in $oneuptime_block)` con l'azione Block, e `(ip.src in $oneuptime_challenge)` con l'azione Managed Challenge. La loro descrizione dice che le gestisce OneUptime. |
 | Un elemento di lista per blocco | Il suo commento nomina il caso e quando finisce il blocco, ad esempio `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Una IP Access Rule per ogni rete sottoposta a verifica tramite il suo ASN | Un'intera rete sottoposta a verifica da **Campagne**, come IP Access Rule il cui target è `asn`, che ogni piano ha. La sua nota dice lo stesso del commento di un elemento di lista. Senza `Account > Account Firewall Access Rules > Edit` sul token, la verifica non viene applicata, e la **Blocklist** dice quale permesso aggiungere. |
 
 Ogni regola va per prima tra le regole personalizzate della zona, quindi viene eseguita prima delle tue: una tua regola Skip non può far passare un indirizzo bloccato. Quando le tue regole Skip lasciano passare degli indirizzi, come quelli dei tuoi monitor o di un partner, **Stato del blocco** li nomina. **Proteggi questi indirizzi** li aggiunge alle **Entità protette**, che nessuno può bloccare.
 

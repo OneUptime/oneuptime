@@ -108,10 +108,11 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 | **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
 | **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
 | **Antall**, **Prosentandel**, **Statusskifter** | Hvor mange sjekker som oppfylte betingelsen, andelen deres, eller hvor ofte de skiftet mellom å oppfylle den og ikke, sammenlignes med tallet som er satt under. |
+| **Forrige sjekk** | Denne sjekken sammenlignet med sondens forrige sjekk, slik det er satt under **Endring fra forrige sjekk**: for eksempel en svartid som ligger mer enn 50 % over den. Et filter som er sant eller usant, slår til ved sjekken som begynte å oppfylle betingelsen. |
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
-**Er tidsavbrudd for forespørsel** er ikke et tall OneUptime registrerer. OneUptime registrerer derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Eller OneUptime teller den med **Antall**, **Prosentandel** eller **Statusskifter**.
+**Er tidsavbrudd for forespørsel** er ikke et tall OneUptime registrerer. OneUptime registrerer derfor om filteret slo til ved hver sjekk, og vurderer vinduet ut fra den registreringen med **Alle verdier** eller **Minst én verdi**. Eller OneUptime teller den med **Antall**, **Prosentandel** eller **Statusskifter**. Med **Forrige sjekk** slår filteret til ved sjekken der det begynte å slå til.
 
 Gjør vinduet lengre enn overvåkingsintervallet, slik at det rommer flere sjekker: en monitor som sjekkes hvert 5. minutt, har bare én sjekk i et vindu på 5 minutter.
 

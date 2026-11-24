@@ -23,7 +23,8 @@ import path from "path";
  * NO DATA SECURITY SCAN READS A STORE ONEUPTIME DECLARES (#10398).
  *
  * Security Events, Network Flows and Security Events' address vault hold
- * IP addresses by design, and are declared, not scanned. So:
+ * IP addresses by design, and its user vault user ids (#10632): they are
+ * declared, not scanned. So:
  *
  *   - the hourly telemetry scan reads none of them: no source of it is of
  *     a declared kind;
@@ -32,9 +33,9 @@ import path from "path";
  *     refused, saying why;
  *   - declaring them reads none of what they hold: the declarer asks the
  *     security events and network flows tables only whether a row exists
- *     (existsBy, SELECT 1 ... LIMIT 1), and never reaches the vault, which
- *     only Security Events' scans and ingest's writer may
- *     (SecurityAddressVaultGuard).
+ *     (existsBy, SELECT 1 ... LIMIT 1), and never reaches either vault,
+ *     which only Security Events' scans and ingest's writers may
+ *     (SecurityAddressVaultGuard, SecurityUserVaultGuard).
  *
  * The last is read from the declarer's source, comments left out.
  */
@@ -162,6 +163,23 @@ describe("declaring them", () => {
     expect(code).toContain("getFixedDeclaredRetentionInDays");
   });
 
+  test("never reaches Security Events' user vault", () => {
+    const code: string = declarerCode();
+
+    for (const link of [
+      "SecurityUserVaultService",
+      "UserVault/SecurityUserVaultLookup",
+      "UserVault/SecurityUserVaultWriter",
+      'Models/AnalyticsModels/SecurityUserVault"',
+      "SecurityUserVaultV1",
+    ]) {
+      expect([link, code.includes(link)]).toEqual([link, false]);
+    }
+
+    // It asks the scrub rules whether ingest writes the vault, as ingest decides.
+    expect(code).toContain("isUserVaultWritten");
+  });
+
   test("reads the guard's own list of what may reach the vault", () => {
     // The guard holds every file that may; the declarer is none of them.
     const guard: string = fs.readFileSync(
@@ -174,5 +192,16 @@ describe("declaring them", () => {
 
     expect(guard).toContain("SecurityAddressVaultLookup.ts");
     expect(guard).not.toContain("DeclaredDataStores");
+
+    const userGuard: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "../SecurityEvent/UserVault/SecurityUserVaultGuard.test.ts",
+      ),
+      "utf8",
+    );
+
+    expect(userGuard).toContain("SecurityUserVaultLookup.ts");
+    expect(userGuard).not.toContain("DeclaredDataStores");
   });
 });

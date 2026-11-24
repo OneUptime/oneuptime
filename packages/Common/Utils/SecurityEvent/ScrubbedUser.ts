@@ -1,8 +1,12 @@
 import { JSONObject } from "../../Types/JSON";
+import { SECURITY_REQUEST_ATTRIBUTES } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
   ScrubPlaceholderKind,
   getScrubPlaceholderKind,
 } from "../../Types/Telemetry/ScrubRule";
+
+// Where a request's user is kept on its event: enduser.id.
+const REQUEST_USER_ATTRIBUTE: string = SECURITY_REQUEST_ATTRIBUTES.userId;
 
 /*
  * A USER A SCRUB RULE HID (#10435).
@@ -224,6 +228,102 @@ function readAttribute(attributes: unknown, key: string): string {
     : undefined;
 
   return typeof value === "string" ? value.trim() : "";
+}
+
+/*
+ * A USER SECURITY EVENTS NAMED BEHIND A HASH TOKEN (#10632).
+ *
+ * A Hash token stands for one user, and Security Events' user vault knows
+ * which, for the users a Hash rule hid where it reads one
+ * (Server/Utils/SecurityEvent/UserVault). A scan names the event's user by
+ * the vault, before the event is stored: the user is the account the
+ * token stood for, so rules, cases, playbooks and every check read it as
+ * any other user, and the marker that said a rule hid it is cleared. What
+ * the rule left is kept beside it, so the logs and traces that hold only
+ * the token can still be searched for it.
+ */
+export const HASHED_USER_ATTRIBUTES: Readonly<
+  Record<ScrubbedUserRole, string>
+> = {
+  [ScrubbedUserRole.Principal]: "oneuptime.principal_user_hashed_as",
+  [ScrubbedUserRole.Target]: "oneuptime.target_user_hashed_as",
+};
+
+// The roles, in the order an event's users are read.
+export const SCRUBBED_USER_ROLES: ReadonlyArray<ScrubbedUserRole> = [
+  ScrubbedUserRole.Principal,
+  ScrubbedUserRole.Target,
+];
+
+// What a rule left of an event's user of a role: its user as stored.
+export function readEventUserOfRole(
+  event: {
+    principalUser?: string | undefined;
+    targetUser?: string | undefined;
+  },
+  role: ScrubbedUserRole,
+): string {
+  return (
+    (role === ScrubbedUserRole.Principal
+      ? event.principalUser
+      : event.targetUser) || ""
+  ).trim();
+}
+
+/*
+ * The event names its user of a role after all: `named`, the user the
+ * vault holds behind what the rule left (`hashed`). The user, among the
+ * observables in the token's place, and the request's user when it was
+ * the token; the marker cleared, and what the rule left kept beside it.
+ */
+export function nameHashedEventUser(
+  event: {
+    principalUser?: string | undefined;
+    targetUser?: string | undefined;
+    observables?: Array<string> | undefined;
+    attributes: JSONObject;
+  },
+  data: { role: ScrubbedUserRole; hashed: string; named: string },
+): void {
+  const named: string = data.named.trim();
+
+  if (!named) {
+    return;
+  }
+
+  if (data.role === ScrubbedUserRole.Principal) {
+    event.principalUser = named;
+  } else {
+    event.targetUser = named;
+  }
+
+  const hashed: string = data.hashed.toLowerCase();
+  const observables: Array<string> = (event.observables || []).filter(
+    (observable: string): boolean => {
+      return observable.toLowerCase() !== hashed;
+    },
+  );
+
+  if (
+    !observables.some((observable: string): boolean => {
+      return observable.toLowerCase() === named.toLowerCase();
+    })
+  ) {
+    observables.push(named);
+  }
+
+  event.observables = observables;
+
+  // The request's user, as a span named it (TraceSignals, RequestFollowUp).
+  if (
+    data.role === ScrubbedUserRole.Principal &&
+    event.attributes[REQUEST_USER_ATTRIBUTE] === data.hashed
+  ) {
+    event.attributes[REQUEST_USER_ATTRIBUTE] = named;
+  }
+
+  clearEventUserScrubbed(event.attributes, data.role);
+  event.attributes[HASHED_USER_ATTRIBUTES[data.role]] = data.hashed;
 }
 
 // A user a scrub rule hid, as an event says it.

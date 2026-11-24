@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import {
   AWS_KEY_METRICS,
   AZURE_FIVE_MINUTE_GRAIN,
@@ -22,8 +23,10 @@ import {
   getAwsKeyMetrics,
   getAwsNamespaceOfType,
   getAwsProbeMetricNames,
+  getAzureDimensionAttribute,
   getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
+  getAzureKeyMetricSplit,
   getAzureReadMetricNames,
   getGcpStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
@@ -36,6 +39,9 @@ import { AzureMetricDefinition } from "../../../Server/Utils/CloudConnection/Azu
 import { CloudKeyMetricCondition } from "../../../Types/Cloud/CloudKeyMetricCondition";
 import {
   CLOUD_APP_PLATFORM_PROFILES,
+  CloudAppPlatformFigure,
+  CloudAppPlatformMetricRead,
+  CloudAppPlatformProfile,
   getCloudAppPlatformListReads,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformMetrics";
 import { APP_SERVICE_METRICS } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformResource";
@@ -71,6 +77,8 @@ interface AzureReferenceMetric {
   timeGrains: Array<string>;
   dsExport: boolean;
   advanced: boolean;
+  // Its dimensions, where a key metric of its type is read split by one.
+  dimensions?: Array<string>;
 }
 
 interface AzureReference {
@@ -525,6 +533,55 @@ describe("Azure key metrics, as Microsoft's supported-metrics tables document th
         expect(row.aggregations).toContain(metric.aggregation);
       }
     }
+  });
+
+  /*
+   * A key metric read split by a dimension of its own (#10837) is split by
+   * one Microsoft lists for it, and is a count, whose series add up to the
+   * whole it read before. A metric of its type with the dimension too is
+   * in the table's rows, so a call that split it by mistake would show.
+   */
+  test("a key metric read split alone is split by a dimension Microsoft's table lists for it, and is a count", () => {
+    const split: Array<string> = [];
+
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        if (!metric.splitBy) {
+          continue;
+        }
+
+        const row: AzureReferenceMetric | undefined = azureReferenceOf(
+          entry.type,
+        ).metrics[metric.name];
+
+        split.push(`${entry.type} ${metric.name} ${metric.splitBy}`);
+        expect({
+          type: entry.type,
+          metric: metric.name,
+          dimension: metric.splitBy,
+          documented: (row?.dimensions || []).includes(metric.splitBy),
+          count: row?.unit === "Count" && row.aggregations.includes("Total"),
+        }).toEqual({
+          type: entry.type,
+          metric: metric.name,
+          dimension: metric.splitBy,
+          documented: true,
+          count: true,
+        });
+      }
+    }
+
+    expect(split).toEqual([
+      "Microsoft.App/containerApps Requests statusCodeCategory",
+    ]);
+    // Its response time has the dimension too: read whole, in another call.
+    expect(
+      azureReferenceOf("Microsoft.App/containerApps").metrics["ResponseTime"]
+        ?.dimensions,
+    ).toContain("statusCodeCategory");
+    expect(
+      getAzureKeyMetricSplit("Microsoft.App/containerApps", "ResponseTime"),
+    ).toBeUndefined();
   });
 
   test("every key metric Microsoft marks No under DS Export is marked so, and the marks name no other but the kept ones", () => {
@@ -1282,7 +1339,13 @@ describe("a platform section reads its resource type's key metrics (#6793, #6794
     }
   });
 
-  test("a request count read by its response code is read by a label Cloud Monitoring documents for it", () => {
+  /*
+   * Cloud Run's and App Engine's by a label Google's list documents for the
+   * metric; a Container App's by the attribute its split series carry, of
+   * the dimension the connection splits its Requests by (#10837), which
+   * Microsoft's table lists for it.
+   */
+  test("a request count read by its response code is read by a label its provider documents for it", () => {
     const labelled: Array<[string, string]> = [];
 
     for (const profile of CLOUD_APP_PLATFORM_PROFILES) {
@@ -1292,6 +1355,36 @@ describe("a platform section reads its resource type's key metrics (#6793, #6794
         }
 
         labelled.push([read.storedName, read.errorLabel.attribute]);
+
+        if (profile.provider === "azure") {
+          const metric: string | null = getAzureKeyMetricOfStoredName(
+            profile.type,
+            read.storedName,
+          );
+          const dimension: string | undefined = getAzureKeyMetricSplit(
+            profile.type,
+            metric || "",
+          );
+
+          expect({
+            metric: read.storedName,
+            label: read.errorLabel.attribute,
+            dimension: dimension || null,
+            attribute: dimension ? getAzureDimensionAttribute(dimension) : null,
+            documented: (
+              azureReferenceOf(profile.type).metrics[metric || ""]
+                ?.dimensions || []
+            ).includes(dimension || ""),
+          }).toEqual({
+            metric: read.storedName,
+            label: read.errorLabel.attribute,
+            dimension: expect.any(String),
+            attribute: read.errorLabel.attribute,
+            documented: true,
+          });
+          continue;
+        }
+
         expect({
           metric: read.storedName,
           label: read.errorLabel.attribute,
@@ -1307,9 +1400,66 @@ describe("a platform section reads its resource type's key metrics (#6793, #6794
     }
 
     expect(labelled).toEqual([
+      ["azure_requests_total", "metadata_statuscodecategory"],
       ["run.googleapis.com/request_count", "response_code_class"],
       ["appengine.googleapis.com/http/server/response_count", "response_code"],
     ]);
+  });
+
+  /*
+   * An App Engine section's CPU and memory (#10838): the gae_app gauges
+   * Google's list documents, generally available - CPU utilization a ratio
+   * of 1 ("10^2.%"), shown as a percentage, memory usage in bytes - each
+   * averaged over the range, as the section's other gauges are.
+   */
+  test("an App Engine section's CPU and memory are Google's gae_app gauges, a ratio shown as a percentage and bytes", () => {
+    const profile: CloudAppPlatformProfile = CLOUD_APP_PLATFORM_PROFILES.find(
+      (each: CloudAppPlatformProfile) => {
+        return each.type === "gae_app";
+      },
+    )!;
+    const readOf: (storedName: string) => CloudAppPlatformMetricRead = (
+      storedName: string,
+    ): CloudAppPlatformMetricRead => {
+      return profile.reads({}).find((read: CloudAppPlatformMetricRead) => {
+        return read.storedName === storedName;
+      })!;
+    };
+    const cpu: CloudAppPlatformMetricRead = readOf(
+      "appengine.googleapis.com/system/cpu/utilization",
+    );
+    const memory: CloudAppPlatformMetricRead = readOf(
+      "appengine.googleapis.com/system/memory/usage",
+    );
+
+    expect([cpu.figure, cpu.aggregationType, cpu.scale]).toEqual([
+      CloudAppPlatformFigure.Cpu,
+      AggregationType.Avg,
+      100,
+    ]);
+    expect([memory.figure, memory.aggregationType, memory.scale]).toEqual([
+      CloudAppPlatformFigure.Memory,
+      AggregationType.Avg,
+      1,
+    ]);
+    expect(gcpReferenceOf(cpu.storedName)).toEqual(
+      expect.objectContaining({
+        launchStage: "GA",
+        kind: "GAUGE",
+        valueType: "DOUBLE",
+        unit: "10^2.%",
+        monitoredResources: ["gae_app"],
+      }),
+    );
+    expect(gcpReferenceOf(memory.storedName)).toEqual(
+      expect.objectContaining({
+        launchStage: "GA",
+        kind: "GAUGE",
+        valueType: "INT64",
+        unit: "By",
+        monitoredResources: ["gae_app"],
+      }),
+    );
   });
 
   test("an App Service slot is read for every metric its site's section shows, each one a diagnostic setting exports", () => {

@@ -10,6 +10,8 @@ import {
   AZURE_KEY_METRICS,
   AZURE_MAX_METRICS_PER_RESOURCE,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+  AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE,
+  AZURE_STATUS_CODE_CATEGORY_DIMENSION,
   AwsKeyMetric,
   AwsNamespaceKeyMetrics,
   AzureKeyMetric,
@@ -25,8 +27,10 @@ import {
   getAwsKeyMetrics,
   getAwsNamespaceOfType,
   getAwsStoredMetricName,
+  getAzureDimensionAttribute,
   getAzureKeyMetricNames,
   getAzureKeyMetricOfStoredName,
+  getAzureKeyMetricSplit,
   getAzureKeyMetrics,
   getAzureReadMetricNames,
   getAzureStoredMetricName,
@@ -626,6 +630,85 @@ describe("Azure metrics read at five minutes, and deprecated ones still read", (
   });
 });
 
+/*
+ * A key metric read split by a dimension of its own (#10837): a Container
+ * App's Requests by statusCodeCategory, so its page can say what share was
+ * answered with a 5xx - in a call of its own, which a stream never writes
+ * in the read's place.
+ */
+describe("Azure key metrics read split alone", () => {
+  test("a Container App's Requests are the only one, by statusCodeCategory, as the azure_monitor receiver names its attribute", () => {
+    const split: Array<string> = [];
+
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of entry.metrics) {
+        if (metric.splitBy) {
+          split.push(`${entry.type} ${metric.name} ${metric.splitBy}`);
+        }
+      }
+    }
+
+    expect(split).toEqual([
+      "Microsoft.App/containerApps Requests statusCodeCategory",
+    ]);
+    expect(AZURE_STATUS_CODE_CATEGORY_DIMENSION).toBe("statusCodeCategory");
+    expect(AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE).toBe(
+      "metadata_statuscodecategory",
+    );
+    expect(getAzureDimensionAttribute(" statusCodeCategory ")).toBe(
+      AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE,
+    );
+    expect(getAzureDimensionAttribute(AZURE_ENTITY_NAME_DIMENSION)).toBe(
+      AZURE_ENTITY_NAME_ATTRIBUTE,
+    );
+  });
+
+  test("is looked up whatever the casing of the type or the metric, and is nothing for any other", () => {
+    expect(
+      getAzureKeyMetricSplit("Microsoft.App/containerApps", "Requests"),
+    ).toBe(AZURE_STATUS_CODE_CATEGORY_DIMENSION);
+    expect(
+      getAzureKeyMetricSplit("microsoft.app/CONTAINERAPPS", " requests "),
+    ).toBe(AZURE_STATUS_CODE_CATEGORY_DIMENSION);
+    // ResponseTime has the dimension too, and is read whole.
+    expect(
+      getAzureKeyMetricSplit("Microsoft.App/containerApps", "ResponseTime"),
+    ).toBeUndefined();
+    expect(
+      getAzureKeyMetricSplit("Microsoft.Web/sites", "Requests"),
+    ).toBeUndefined();
+    // A namespace's split is its type's, not a metric's own.
+    expect(
+      getAzureKeyMetricSplit(
+        "Microsoft.ServiceBus/namespaces",
+        "IncomingMessages",
+      ),
+    ).toBeUndefined();
+    expect(
+      getAzureKeyMetricSplit("Microsoft.App/containerApps", ""),
+    ).toBeUndefined();
+    expect(getAzureKeyMetricSplit("", "Requests")).toBeUndefined();
+  });
+
+  test("a stream leaves it to the read, though a diagnostic setting exports it, and writes the type's others", () => {
+    const type: string = "Microsoft.App/containerApps";
+
+    expect(isAzureKeyMetricExportedByDiagnosticSettings(type, "Requests")).toBe(
+      true,
+    );
+    expect(isAzureStreamedKeyMetric(type, "Requests")).toBe(false);
+    expect(
+      isAzureStreamedKeyMetricStoredName(type, "azure_requests_total"),
+    ).toBe(false);
+    expect(isAzureStreamedKeyMetric(type, "ResponseTime")).toBe(true);
+    expect(isAzureStreamedKeyMetric(type, "WorkingSetBytes")).toBe(true);
+    // An App Service app's Requests, read whole, stay the stream's.
+    expect(isAzureStreamedKeyMetric("Microsoft.Web/sites", "Requests")).toBe(
+      true,
+    );
+  });
+});
+
 describe("Azure Service Bus and Event Hubs, split per queue", () => {
   test("only their namespaces are split, by EntityName, as the azure_monitor receiver names it", () => {
     const split: Array<string> = AZURE_KEY_METRICS.filter(
@@ -796,7 +879,10 @@ describe("Azure key metrics a diagnostic setting cannot export", () => {
         }).toEqual({
           type: entry.type,
           metric,
-          streamed: !marked && !entry.splitByDimension,
+          streamed:
+            !marked &&
+            !entry.splitByDimension &&
+            !getAzureKeyMetricSplit(entry.type, metric),
         });
       }
     }

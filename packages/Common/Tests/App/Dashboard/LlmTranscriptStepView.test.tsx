@@ -51,6 +51,7 @@ import {
 import { LlmMessagePartType } from "../../../Utils/Telemetry/LlmMessageParser";
 import { LlmAnswerIssue } from "../../../Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "../../../Types/Telemetry/LlmCallKind";
+import { LLM_USAGE_HIDDEN_GROUP_KEY } from "../../../Types/Telemetry/LlmUsageApi";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -137,6 +138,25 @@ describe("what the person said", () => {
         personLabel: "",
       }),
     ).toHaveTextContent("User");
+  });
+
+  /*
+   * A person a scrub rule hid speaks as "User" too (#10631): never the
+   * hidden key, nor what a rule left - whoever hands the step its person.
+   */
+  test.each([
+    [LLM_USAGE_HIDDEN_GROUP_KEY],
+    ["j***@***.com"],
+    ["[HASHED:3f9a1c0e7b2d4a68]"],
+    ["auth0|[HASHED:3f9a1c0e]"],
+  ])("a person a scrub rule hid (%s) is 'User'", (personLabel: string) => {
+    const element: HTMLElement = renderStep(
+      makeStep(LlmTranscriptStepType.UserMessage, { text: "Hi" }),
+      { personLabel },
+    );
+
+    expect(element.querySelector("span.font-medium")?.textContent).toBe("User");
+    expect(element).not.toHaveTextContent(personLabel);
   });
 
   test("an attachment is named, never loaded", () => {

@@ -88,6 +88,8 @@ Strömmen bär nyckelmätvärdena som anslutningen läser minut för minut. Läs
 
 En Service Bus- eller Event Hubs-namnrymd strömmar inga mätvärden. Läsningarna läser dess nyckelmätvärden för varje kö, topic och händelsehubb, och namnrymdens egna totaler summerar dem, medan en diagnostikinställning bara skickar namnrymdens totaler, och inte alls 4 av en Service Bus-namnrymds 6 nyckelmätvärden eller 2 av en Event Hubs-namnrymds 4. Så läsningarna skriver alla, med eller utan strömning, och inget meddelande räknas två gånger.
 
+En Container Apps `Requests` stannar också hos läsningarna: de läser dem en gång per statuskodkategori så att dess 5xx-svar kan skiljas ut, medan en diagnostikinställning bara skickar deras total.
+
 En logg arkiveras under sin resurs efter resursens ARM-id, som bärs som `cloud.resource_id`, och behåller sin kategori, åtgärd, resultat och egenskaper som attribut, till exempel `azure.category`.
 
 En post i aktivitetsloggen i kategorin `Administrative`, `Security` eller `Policy`, och en inloggnings-, gransknings- eller riskpost från Microsoft Entra ID, kommer hel, som loggens brödtext, även en som gäller en resursgrupp, en prenumeration eller klientorganisationen i stället för en resurs. Med [Hitta säkerhetshändelser i dina loggar](/docs/telemetry/security-events#hitta-säkerhetshändelser-i-dina-loggar) påslaget läses varje post som en säkerhetshändelse, precis som en från en loggpipeline, och lagras en gång, hur många vägar den än når OneUptime. Med **Varje prenumerations aktivitetslogg** påslaget ger kommandot varje prenumeration en diagnostikinställning som skickar dess aktivitetslogg till den första regionens händelsehubb, och kommandot för Microsoft Entra ID ger klientorganisationen en.

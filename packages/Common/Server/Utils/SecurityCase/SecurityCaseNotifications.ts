@@ -416,6 +416,8 @@ export function describeRunTrigger(
       return "Automatically, when AI triage read the case as Likely Malicious";
     case SecurityPlaybookTrigger.OneUptimeAi:
       return "By OneUptime AI, which is working the case";
+    case SecurityPlaybookTrigger.AutomaticResponse:
+      return "Automatically, by an automatic response policy";
     default:
       return "By hand";
   }

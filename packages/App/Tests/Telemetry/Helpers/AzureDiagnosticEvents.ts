@@ -68,6 +68,11 @@ export const EVENT_HUBS_ID: string = armId(
   "Microsoft.EventHub/namespaces",
   "eh-clicks",
 );
+export const CONTAINER_APP_ID: string = armId(
+  "rg-Apps",
+  "Microsoft.App/containerApps",
+  "cart",
+);
 
 function resource(data: {
   id: string;
@@ -155,6 +160,13 @@ export function streamContext(
           name: "eh-clicks",
           type: "Microsoft.EventHub/namespaces",
           group: "rg-Prod",
+          region: "eastus",
+        }),
+        resource({
+          id: CONTAINER_APP_ID,
+          name: "cart",
+          type: "Microsoft.App/containerApps",
+          group: "rg-Apps",
           region: "eastus",
         }),
       ].map((item: AzureStreamResource): [string, AzureStreamResource] => {
@@ -262,6 +274,24 @@ export function streamContext(
             name: "ServerErrors",
             aggregation: "Total",
             unit: "Count",
+            grain: "PT1M",
+          },
+        ],
+      ],
+      // Its Requests read split by statusCodeCategory (#10837); the rest whole.
+      [
+        "Microsoft.App/containerApps",
+        [
+          {
+            name: "Requests",
+            aggregation: "Total",
+            unit: "Count",
+            grain: "PT1M",
+          },
+          {
+            name: "ResponseTime",
+            aggregation: "Average",
+            unit: "Milliseconds",
             grain: "PT1M",
           },
         ],

@@ -4,6 +4,7 @@ import { DataStoreKind } from "./DataStoreKind";
 import { declaredDataStoreKey } from "./DataStoreKey";
 import { NETWORK_FLOW_RETENTION_IN_DAYS } from "../NetFlow/NetworkFlowRetention";
 import { SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS } from "../SecurityEvent/SecurityAddressVaultRetention";
+import { SECURITY_USER_VAULT_RETENTION_IN_DAYS } from "../SecurityEvent/SecurityUserVaultRetention";
 import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 
 /*
@@ -12,19 +13,22 @@ import { NO_BREAK_SPACE } from "../NoBreakSpaces";
  * A project that scrubs IP addresses out of its telemetry still keeps some,
  * on purpose, to protect its network: GDPR Recital 49 names that as a
  * legitimate interest. "You scrub IP addresses from your telemetry. Where
- * do you keep them, and why?" is what an auditor asks, so the record of
- * processing lists the three places OneUptime keeps them:
+ * do you keep them, and why?" is what an auditor asks - of user ids a Hash
+ * rule hides too - so the record of processing lists the places OneUptime
+ * keeps them:
  *
  *   - Security Events: every security event, with the addresses, user
  *     names and email addresses of who did it and what it touched
  *     (principalIp, targetIp, principalUser, targetUser, observables);
  *   - Network Flows: who talked to whom, by address (srcIp, dstIp);
  *   - Security Address Vault: the address behind each token an IP Address
- *     Hash rule left in the logs and traces Security Events reads (#10395).
+ *     Hash rule left in the logs and traces Security Events reads (#10395);
+ *   - Security User Vault: the user behind each token a Hash rule left
+ *     where Security Events reads a user in those logs and traces (#10632).
  *
  * What they hold is known by design, so they are declared, never scanned:
  * no content scan reads them, no check applies to them and none raises an
- * issue for holding addresses - holding them is their purpose. OneUptime
+ * issue for holding addresses or users - holding them is their purpose. OneUptime
  * fills in what it knows (the purpose, the retention each table keeps,
  * who can read it); the team can change the purpose and the retention, as
  * on any store, and theirs is kept.
@@ -46,6 +50,8 @@ export enum DeclaredStoreRetentionBasis {
   NetworkFlows = "network-flows",
   // From when an address was last seen (SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS).
   AddressVault = "address-vault",
+  // From when a user was last seen (SECURITY_USER_VAULT_RETENTION_IN_DAYS).
+  UserVault = "user-vault",
 }
 
 // Who can read a declared store.
@@ -119,7 +125,25 @@ export const DECLARED_DATA_STORES: ReadonlyArray<DeclaredDataStoreInfo> = [
     retentionBasis: DeclaredStoreRetentionBasis.AddressVault,
     readers: DeclaredStoreReaders.SecurityEventsScansOnly,
   }),
+  declared({
+    kind: DataStoreKind.SecurityUserVault,
+    dataTypeIds: [USERNAME, EMAIL_ADDRESS],
+    sensitivity: DataSensitivity.Confidential,
+    fields: ["userValue"],
+    retentionBasis: DeclaredStoreRetentionBasis.UserVault,
+    readers: DeclaredStoreReaders.SecurityEventsScansOnly,
+  }),
 ];
+
+// Whether a store is one of Security Events' vaults: kept from when its data was last seen.
+export function isVaultRetentionBasis(
+  basis: DeclaredStoreRetentionBasis | string | undefined | null,
+): boolean {
+  return (
+    basis === DeclaredStoreRetentionBasis.AddressVault ||
+    basis === DeclaredStoreRetentionBasis.UserVault
+  );
+}
 
 const DECLARED_BY_KIND: ReadonlyMap<string, DeclaredDataStoreInfo> = new Map(
   DECLARED_DATA_STORES.map(
@@ -137,7 +161,7 @@ export function getDeclaredDataStore(
 
 /*
  * The days a table keeps its data for whatever the project says: the
- * flows' and the vault's own. Security events follow the project's
+ * flows' and the vaults' own. Security events follow the project's
  * retention for them, read by the server (SecurityEventRetention).
  */
 export function getFixedDeclaredRetentionInDays(
@@ -148,6 +172,8 @@ export function getFixedDeclaredRetentionInDays(
       return NETWORK_FLOW_RETENTION_IN_DAYS;
     case DeclaredStoreRetentionBasis.AddressVault:
       return SECURITY_ADDRESS_VAULT_RETENTION_IN_DAYS;
+    case DeclaredStoreRetentionBasis.UserVault:
+      return SECURITY_USER_VAULT_RETENTION_IN_DAYS;
     default:
       return null;
   }
@@ -155,8 +181,9 @@ export function getFixedDeclaredRetentionInDays(
 
 /*
  * OneUptime's retention as the record writes it, in the English an auditor
- * files it under (the exports and the API): "15 days", or for the vault
- * "30 days after an address was last seen". The Dashboard says the same in
+ * files it under (the exports and the API): "15 days", or for a vault "30
+ * days after an address was last seen" or "30 days after a user was last
+ * seen". The Dashboard says the same in
  * the reader's language. The figure keeps its word on its line, joined by a
  * no-break space, so a narrow column never ends one line with "30" and
  * starts the next with "days".
@@ -169,11 +196,16 @@ export function getDeclaredRetentionText(data: {
     data.retentionInDays === 1 ? "day" : "days"
   }`;
 
-  return data.basis === DeclaredStoreRetentionBasis.AddressVault
-    ? `${days} after an address was last seen`
-    : days;
+  switch (data.basis) {
+    case DeclaredStoreRetentionBasis.AddressVault:
+      return `${days} after an address was last seen`;
+    case DeclaredStoreRetentionBasis.UserVault:
+      return `${days} after a user was last seen`;
+    default:
+      return days;
+  }
 }
 
-// "Only Security Events' scans": who reads the vault, in the exports.
+// "Only Security Events' scans": who reads a vault, in the exports.
 export const SECURITY_EVENTS_SCANS_ONLY_TEXT: string =
   "Only Security Events' scans, inside OneUptime";
