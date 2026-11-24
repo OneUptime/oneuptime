@@ -3,6 +3,8 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../Types/ObjectID";
 import AIService, {
   AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE,
+  AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
   AI_DATA_SECURITY_FINDING_VERDICTS_FEATURE,
   AI_DATA_SECURITY_IMPACT_ASSESSMENT_FEATURE,
@@ -103,6 +105,12 @@ export const DATA_SECURITY_AI_CALL_LABELS: Readonly<
   },
   get [DataSecurityAiFeature.DraftAuditEvidence](): string {
     return AI_DATA_SECURITY_AUDIT_EVIDENCE_FEATURE;
+  },
+  get [DataSecurityAiFeature.DraftDataTypes](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE;
+  },
+  get [DataSecurityAiFeature.DescribeDataType](): string {
+    return AI_DATA_SECURITY_DATA_TYPE_DESCRIBE_FEATURE;
   },
 };
 

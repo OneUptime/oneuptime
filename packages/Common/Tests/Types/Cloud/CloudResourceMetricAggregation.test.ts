@@ -13,6 +13,7 @@ import {
   AzureTypeKeyMetrics,
   getAwsStoredMetricName,
   getAzureKeyMetricNames,
+  getAzureKeyMetricSplit,
   getAzureStoredMetricName,
 } from "../../../Types/Cloud/CloudKeyMetrics";
 import {
@@ -39,6 +40,7 @@ import { describe, expect, test } from "@jest/globals";
 
 const SERVICE_BUS: string = "Microsoft.ServiceBus/namespaces";
 const EVENT_HUBS: string = "Microsoft.EventHub/namespaces";
+const CONTAINER_APP: string = "Microsoft.App/containerApps";
 
 // A read by the minute, as every range up to 3 hours is read.
 function aggregationOf(
@@ -242,6 +244,96 @@ describe("a namespace's metrics that arrive once per queue", () => {
   });
 });
 
+/*
+ * A Container App's Requests, read once per status code category since
+ * #10837 (AzureKeyMetric.splitBy), add up to the app's requests: its
+ * Metrics tab, the monitors on it and OneUptime AI read their Sum. The
+ * receiver splits them by revision, replica and status code too, which
+ * adds up the same. Its other metrics keep the average.
+ */
+describe("a Container App's requests, read once per status code category", () => {
+  test("its Requests' total and count add up, by any interval", () => {
+    for (const interval of Object.values(AggregationInterval)) {
+      expect(
+        aggregationOf(
+          CONTAINER_APP,
+          "azure_requests_total",
+          CloudProvider.Azure,
+          interval,
+        ),
+      ).toBe(AggregationType.Sum);
+      expect(
+        aggregationOf(
+          CONTAINER_APP,
+          "azure_requests_count",
+          CloudProvider.Azure,
+          interval,
+        ),
+      ).toBe(AggregationType.Sum);
+    }
+
+    // As Azure answers the type, and as ingest lowercases names.
+    expect(
+      aggregationOf("microsoft.app/containerapps", " AZURE_Requests_Total "),
+    ).toBe(AggregationType.Sum);
+    expect(
+      hasCloudResourceSummedMetrics({
+        provider: CloudProvider.Azure,
+        type: CONTAINER_APP,
+      }),
+    ).toBe(true);
+  });
+
+  test.each([
+    // Per request: an average of averages, never a sum.
+    "azure_responsetime_average",
+    // A replica's CPU and memory, its restarts and its network.
+    "azure_cpupercentage_average",
+    "azure_workingsetbytes_average",
+    "azure_restartcount_total",
+    "azure_rxbytes_total",
+    // A count's per-sample statistics do not add up to the app's.
+    "azure_requests_average",
+    "azure_requests_maximum",
+  ])("its %s keeps the average", (name: string) => {
+    expect(aggregationOf(CONTAINER_APP, name)).toBeUndefined();
+  });
+
+  test("its requests arrive once per status code category, the average category", () => {
+    expect(
+      getCloudResourceSummedParts({
+        provider: CloudProvider.Azure,
+        type: CONTAINER_APP,
+      }),
+    ).toEqual({
+      each: "status code category",
+      one: "status code category",
+      all: "status code categories",
+    });
+  });
+
+  test("every key metric the connection splits alone adds up, so a new one has to be decided on", () => {
+    const splitAlone: Array<string> = [];
+
+    for (const entry of AZURE_KEY_METRICS) {
+      for (const metric of getAzureKeyMetricNames(entry.type)) {
+        if (!getAzureKeyMetricSplit(entry.type, metric)) {
+          continue;
+        }
+
+        splitAlone.push(`${entry.type} ${metric}`);
+        expect([
+          entry.type,
+          metric,
+          aggregationOf(entry.type, getAzureStoredMetricName(metric, "total")),
+        ]).toEqual([entry.type, metric, AggregationType.Sum]);
+      }
+    }
+
+    expect(splitAlone).toEqual([`${CONTAINER_APP} Requests`]);
+  });
+});
+
 describe("every other resource keeps the average", () => {
   test("no other Azure type's key metric adds up", () => {
     for (const entry of AZURE_KEY_METRICS) {
@@ -249,15 +341,26 @@ describe("every other resource keeps the average", () => {
         continue;
       }
 
+      // A type with a metric split alone sums that one alone (above).
+      const splitAlone: boolean = getAzureKeyMetricNames(entry.type).some(
+        (metric: string): boolean => {
+          return Boolean(getAzureKeyMetricSplit(entry.type, metric));
+        },
+      );
+
       expect([
         entry.type,
         hasCloudResourceSummedMetrics({
           provider: CloudProvider.Azure,
           type: entry.type,
         }),
-      ]).toEqual([entry.type, false]);
+      ]).toEqual([entry.type, splitAlone]);
 
       for (const metric of getAzureKeyMetricNames(entry.type)) {
+        if (getAzureKeyMetricSplit(entry.type, metric)) {
+          continue;
+        }
+
         for (const aggregation of ["average", "total", "maximum", "count"]) {
           const storedName: string = getAzureStoredMetricName(
             metric,

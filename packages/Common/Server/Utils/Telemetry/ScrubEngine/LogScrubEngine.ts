@@ -13,7 +13,10 @@ import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
-import ScrubAction, { ScrubHashedAddressRecorder } from "../ScrubAction";
+import ScrubAction, {
+  ScrubHashedAddressRecorder,
+  ScrubHashedUserRecorder,
+} from "../ScrubAction";
 import {
   CompiledScrubRule,
   isNamedKeysRule,
@@ -50,6 +53,53 @@ import { countScrubbedValues, ScrubValueTally } from "./ScrubValueTally";
 export interface LogScrubOptions {
   // Count the values each rule changed: ingest does, a proof does not.
   countValues?: boolean | undefined;
+  /*
+   * Told what the rules did to a line, for Security Events' user vault
+   * (#10632): passed by ingest only for a batch whose logs Security Events
+   * reads and whose rules hash (SecurityUserVaultWriter.startBatch).
+   */
+  hashedUsers?: ScrubHashedUserRecorder | null | undefined;
+}
+
+/*
+ * A log row's top-level attributes whose values are text, copied: what a
+ * line said before any rule changed it, for the user vault (#10632). A
+ * list or a map is not copied - a rule rewrites it in place, and a user
+ * Security Events reads is a text.
+ */
+function copyTextAttributes(logRow: JSONObject): JSONObject {
+  const attributes: unknown = logRow["attributes"];
+  const copied: JSONObject = {};
+
+  if (!attributes || typeof attributes !== "object") {
+    return copied;
+  }
+
+  for (const key of Object.keys(attributes)) {
+    const value: unknown = (attributes as JSONObject)[key];
+
+    if (typeof value === "string") {
+      copied[key] = value;
+    }
+  }
+
+  return copied;
+}
+
+// Whether a rule changed any of a row's top-level text attributes.
+function changedTextAttributes(
+  before: JSONObject,
+  logRow: JSONObject,
+): boolean {
+  const attributes: unknown = logRow["attributes"];
+
+  if (!attributes || typeof attributes !== "object") {
+    return false;
+  }
+
+  return Object.keys(before).some((key: string): boolean => {
+    return (attributes as JSONObject)[key] !== before[key];
+  });
 }
 
 export default class LogScrubEngine {
@@ -329,6 +379,15 @@ export default class LogScrubEngine {
     // What each rule changed in this record, counted once it is scrubbed.
     const tally: ScrubValueTally = new ScrubValueTally();
 
+    // What the line said before any rule, for the user vault (#10632).
+    const bodyBefore: string | null =
+      options?.hashedUsers && typeof logRow["body"] === "string"
+        ? (logRow["body"] as string)
+        : null;
+    const attributesBefore: JSONObject | null = options?.hashedUsers
+      ? copyTextAttributes(logRow)
+      : null;
+
     // One for the record: its attributes, then its body.
     const allowance: ScrubNestedValuesAllowance =
       ScrubNestedValuesUtil.newRecordAllowance();
@@ -450,6 +509,32 @@ export default class LogScrubEngine {
           tally,
           recorder,
         });
+      }
+    }
+
+    /*
+     * A line the rules changed is told to the user vault's recorder, which
+     * reads its users as Security Events' log parsers do (#10632). One that
+     * throws is ignored: keeping a user can never cost a record.
+     */
+    if (
+      options?.hashedUsers &&
+      attributesBefore &&
+      ((bodyBefore !== null && bodyBefore !== logRow["body"]) ||
+        changedTextAttributes(attributesBefore, logRow))
+    ) {
+      try {
+        options.hashedUsers.recordScrubbedLogLine({
+          bodyBefore:
+            bodyBefore ??
+            (typeof logRow["body"] === "string"
+              ? (logRow["body"] as string)
+              : ""),
+          attributesBefore,
+          logRow,
+        });
+      } catch {
+        // The vault is worth having, never worth a record.
       }
     }
 

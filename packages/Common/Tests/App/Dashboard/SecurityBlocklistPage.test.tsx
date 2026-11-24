@@ -1699,10 +1699,12 @@ describe("a tab of each kind", () => {
     expect(getBlocklistTableId(BlocklistKind.Files)).toBe(
       "security-blocklist-table-Files",
     );
+    // A whole network challenged by its ASN from Campaigns is listed with the addresses (#10354).
     expect((capturedTable().query["indicatorType"] as Includes).values).toEqual(
       [
         SecurityBlockIndicatorType.IpAddress,
         SecurityBlockIndicatorType.IpRange,
+        SecurityBlockIndicatorType.Asn,
       ],
     );
   });

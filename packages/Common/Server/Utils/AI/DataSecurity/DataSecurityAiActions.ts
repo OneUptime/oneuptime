@@ -4,6 +4,7 @@ import {
   DataSecurityAiWork,
   isDataSecurityAiProposalKind,
 } from "../../../../Types/DataSecurity/DataSecurityAi";
+import AddDataTypeAction from "./Actions/AddDataTypeAction";
 import ConfirmFindingsAction from "./Actions/ConfirmFindingsAction";
 import CreateOwnerRuleAction from "./Actions/CreateOwnerRuleAction";
 import {
@@ -43,6 +44,7 @@ function actions(): Readonly<
     [DataSecurityAiProposalKind.ConfirmFindings]: ConfirmFindingsAction,
     [DataSecurityAiProposalKind.TurnOffDataType]: TurnOffDataTypeAction,
     [DataSecurityAiProposalKind.AddScanExclusion]: AddScanExclusionAction,
+    [DataSecurityAiProposalKind.AddDataType]: AddDataTypeAction,
   };
 }
 

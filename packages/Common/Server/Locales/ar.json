@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: في قائمة الكيانات المحمية لديك، لذا لا يُتخذ أي إجراء عليه أبدًا",
   "{{target}}: one of the case's addresses": "{{target}}: أحد عناوين الحالة",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: أحد عناوينك، لذا لا يُحظر أبدًا",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: أرسل الطلبات نفسها بالأدوات نفسها التي استخدمها عنوان الحالة",
   "{{target}}: the case is grouped on it": "{{target}}: الحالة مجمّعة حسبه",
   "{{target}}: undone at {{time}}": "{{target}}: تم التراجع في {{time}}",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: تراجع عنه {{person}} في {{time}}",

@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -65,6 +66,12 @@ import {
   truncateLlmText,
 } from "./LlmConversationFormat";
 import { LlmServiceNames, useLlmServiceNames } from "./useLlmServiceNames";
+import LlmHiddenByScrubRule from "./LlmHiddenByScrubRule";
+import {
+  LlmConversationPeople,
+  getLlmConversationPeople,
+  getLlmConversationSpeaker,
+} from "./LlmConversationPeople";
 
 /*
  * ONE CONVERSATION, TO READ OR TO REPLAY.
@@ -95,7 +102,7 @@ const NO_STEPS: Array<LlmTranscriptStep> = [];
 interface Fact {
   key: string;
   icon: IconProp;
-  text: string;
+  content: ReactNode;
 }
 
 export function getLlmConversationTitle(data: {
@@ -386,34 +393,53 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
     });
 
   const firstTraceId: string = steps[0]?.call.traceId || "";
-  const personLabel: string = transcript.users[0] || "";
+  /*
+   * Who it was with: the people named, then "Hidden by a scrub rule" when
+   * a rule hid anyone in it (#10631). Who speaks the person's messages:
+   * their name, or "User" where a rule hid anyone, as any message could be
+   * theirs (getLlmConversationSpeaker).
+   */
+  const people: LlmConversationPeople = getLlmConversationPeople(
+    transcript.users,
+  );
+  const personLabel: string = getLlmConversationSpeaker(transcript.users);
 
   const facts: Array<Fact> = [];
 
-  if (personLabel) {
+  if (people.names.length > 0 || people.hasHidden) {
     facts.push({
       key: "person",
       icon: IconProp.User,
-      text: transcript.users.join(", "),
+      content: (
+        <>
+          {people.names.join(", ")}
+          {people.names.length > 0 && people.hasHidden ? ", " : ""}
+          {people.hasHidden ? <LlmHiddenByScrubRule /> : <></>}
+        </>
+      ),
     });
   }
 
   if (appNames.length > 0) {
-    facts.push({ key: "app", icon: IconProp.Cube, text: appNames.join(", ") });
+    facts.push({
+      key: "app",
+      icon: IconProp.Cube,
+      content: appNames.join(", "),
+    });
   }
 
   if (transcript.models.length > 0) {
     facts.push({
       key: "models",
       icon: IconProp.Sparkles,
-      text: transcript.models.join(", "),
+      content: transcript.models.join(", "),
     });
   }
 
   facts.push({
     key: "started",
     icon: IconProp.Calendar,
-    text: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+    content: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
       new Date(transcript.startMs),
     ),
   });
@@ -421,13 +447,13 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
   facts.push({
     key: "duration",
     icon: IconProp.Clock,
-    text: formatLlmDuration(transcript.endMs - transcript.startMs),
+    content: formatLlmDuration(transcript.endMs - transcript.startMs),
   });
 
   facts.push({
     key: "answers",
     icon: IconProp.ChatBubbleLeftRight,
-    text: translator.translatePlural(
+    content: translator.translatePlural(
       { one: "{{count}} answer", other: "{{count}} answers" },
       transcript.answerCount,
     ),
@@ -437,7 +463,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
     facts.push({
       key: "cost",
       icon: IconProp.CurrencyDollar,
-      text: formatLlmCost(transcript.costUsd),
+      content: formatLlmCost(transcript.costUsd),
     });
   }
 
@@ -445,7 +471,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
     facts.push({
       key: "tokens",
       icon: IconProp.Hashtag,
-      text: translator.translateTemplate("{{tokens}} tokens", {
+      content: translator.translateTemplate("{{tokens}} tokens", {
         tokens: formatLlmTokens(
           transcript.inputTokens + transcript.outputTokens,
         ),
@@ -518,7 +544,7 @@ const LlmConversationView: FunctionComponent = (): ReactElement => {
                         icon={fact.icon}
                         className="h-4 w-4 flex-shrink-0 text-gray-400"
                       />
-                      <div className="truncate">{fact.text}</div>
+                      <div className="truncate">{fact.content}</div>
                     </div>
                   );
                 })}

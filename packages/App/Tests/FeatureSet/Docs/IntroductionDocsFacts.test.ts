@@ -4425,6 +4425,40 @@ describe("Your Account", () => {
     );
   });
 
+  /*
+   * Add to Authenticator App (#6651): drawn by the one component both setups
+   * draw - the profile's and the one a sign-in asks for - on a touch screen
+   * only, and named by the docs in both, as a phone's way in place of the QR
+   * code.
+   */
+  it("says a phone taps Add to Authenticator App, where the setup draws it", () => {
+    const setupCode: string = readSource(
+      COMMON_DIR,
+      "UI/Components/AuthenticatorAppSetupCode/AuthenticatorAppSetupCode.tsx",
+    );
+
+    expect(setupCode).toContain('translateText("Add to Authenticator App")');
+    expect(setupCode).toContain("useState<boolean>(prefersTouch)");
+    expect(dashboard("Pages/Global/UserProfile/TwoFactorAuth.tsx")).toContain(
+      "<AuthenticatorAppSetupCode",
+    );
+    expect(readSource(ACCOUNTS_DIR, "Pages/Login.tsx")).toContain(
+      "<AuthenticatorAppSetupCode",
+    );
+
+    expect(sectionOf(YOUR_ACCOUNT, "### Set it up")).toContain(
+      "On a phone, tap **Add to Authenticator App** instead of scanning: your app opens with your account filled in.",
+    );
+    expect(
+      sectionOf(
+        YOUR_ACCOUNT,
+        "### Set up two-factor authentication while signing in",
+      ),
+    ).toContain(
+      "On a phone, tap **Add to Authenticator App** instead of scanning.",
+    );
+  });
+
   it("creates, joins and leaves projects with the controls that do it", () => {
     const picker: string = dashboard("Components/Header/ProjectPicker.tsx");
     const fields: string = readSource(

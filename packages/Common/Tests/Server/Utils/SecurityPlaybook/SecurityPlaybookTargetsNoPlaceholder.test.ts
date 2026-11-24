@@ -16,6 +16,7 @@ import {
 } from "../../../../Types/SecurityCase/SecurityEntity";
 import {
   ONEUPTIME_PRINCIPAL,
+  getApiKeyPrincipal,
   getWorkflowPrincipal,
 } from "../../../../Types/SecurityEvent/OneUptimeActorPrincipal";
 import {
@@ -35,7 +36,9 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
  * a scrub rule hid user ids, that was "[REDACTED]" - everybody a rule hid at
  * once - or a mask several people share, or a Hash token no identity
  * provider knows; and once workflows had principals of their own, a
- * "workflow:<id>" or OneUptime itself. None is an account. The target rule
+ * "workflow:<id>" or OneUptime itself - and a project API key, once it was
+ * named "api-key:<id>" rather than by its name (#10630). None is an
+ * account. The target rule
  * leaves them all out - from what it is given now, from what a case stored
  * before this holds, and from what a step that waited for approval since
  * then was handed.
@@ -46,6 +49,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 );
 const CASE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444445");
 const WORKFLOW_ID: string = "0192f1a0-0000-7000-8000-00000000d001";
+const API_KEY_ID: string = "0192f1a0-0000-7000-8000-00000000d002";
 
 const REAL_USER: SecurityEntity = {
   type: SecurityEntityType.User,
@@ -72,6 +76,7 @@ const PLACEHOLDERS: Array<string> = [
 
 const OWN_ACTORS: Array<string> = [
   getWorkflowPrincipal(WORKFLOW_ID),
+  getApiKeyPrincipal(API_KEY_ID),
   ONEUPTIME_PRINCIPAL,
 ];
 
@@ -194,36 +199,43 @@ describe("SecurityPlaybookTargets.selectTargets, over a case stored before the r
     ).toEqual([]);
   });
 
-  test("a case about a workflow's mass delete offers no user to suspend", async () => {
-    const principal: string = getWorkflowPrincipal(WORKFLOW_ID);
-    const detection: SecurityDetection = new SecurityDetection();
-    detection.groupValue = principal;
-    detection.entities = [asUser(principal)] as unknown as JSONArray;
+  test.each([
+    ["a workflow's mass delete", getWorkflowPrincipal(WORKFLOW_ID)],
+    // #10630: a key's role change, grouped by principal, as a library rule does.
+    ["an API key's role change", getApiKeyPrincipal(API_KEY_ID)],
+  ])(
+    "a case about %s offers no user to suspend",
+    async (_about: string, principal: string) => {
+      const detection: SecurityDetection = new SecurityDetection();
+      detection.groupValue = principal;
+      detection.entities = [asUser(principal)] as unknown as JSONArray;
 
-    getJestSpyOn(SecurityDetectionService, "findBy").mockResolvedValue([
-      detection,
-    ] as never);
-    getJestSpyOn(
-      ThreatIntelIndicatorService,
-      "findActiveIndicatorsByValues",
-    ).mockResolvedValue([] as never);
-    getJestSpyOn(SecurityProtectedEntityService, "getRules").mockResolvedValue(
-      [] as never,
-    );
+      getJestSpyOn(SecurityDetectionService, "findBy").mockResolvedValue([
+        detection,
+      ] as never);
+      getJestSpyOn(
+        ThreatIntelIndicatorService,
+        "findActiveIndicatorsByValues",
+      ).mockResolvedValue([] as never);
+      getJestSpyOn(
+        SecurityProtectedEntityService,
+        "getRules",
+      ).mockResolvedValue([] as never);
 
-    const securityCase: SecurityCase = new SecurityCase();
-    securityCase._id = CASE_ID.toString();
-    securityCase.groupingKey = `entity:${principal}`;
-    securityCase.entities = [asUser(principal)] as unknown as JSONArray;
+      const securityCase: SecurityCase = new SecurityCase();
+      securityCase._id = CASE_ID.toString();
+      securityCase.groupingKey = `entity:${principal}`;
+      securityCase.entities = [asUser(principal)] as unknown as JSONArray;
 
-    expect(
-      await SecurityPlaybookTargets.selectTargets({
-        projectId: PROJECT_ID,
-        securityCase,
-        entityType: SecurityEntityType.User,
-      }),
-    ).toEqual([]);
-  });
+      expect(
+        await SecurityPlaybookTargets.selectTargets({
+          projectId: PROJECT_ID,
+          securityCase,
+          entityType: SecurityEntityType.User,
+        }),
+      ).toEqual([]);
+    },
+  );
 
   test("a hashed user is what the case is about, but no step can name it to Okta", () => {
     const token: string = ScrubHashToken.ofValue({

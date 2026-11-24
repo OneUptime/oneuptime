@@ -158,6 +158,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "A Hash token is your project's own.",
     // What Security Events' address vault keeps, and for how long (issue #10395).
     "Security Events can still name a hashed IP address.",
+    // What Security Events' user vault keeps, and for how long (issue #10632).
+    "Security Events can still name a hashed user.",
     // What a rule reads inside a list or a nested value (issue #6397).
     "Lists and nested values are read too.",
     // A JSON text a string holds, which a keys rule reads too (issue #8993).

@@ -94,6 +94,16 @@ export function describeRunTarget(
         );
       }
 
+      // Block the Whole Campaign (#10354): another address of the case's address's campaign.
+      if (target.reason === SecurityPlaybookTargetReason.InTheCampaign) {
+        return (
+          translator.translateText(
+            "Sent the same requests with the same tools as the case's address",
+          ) ||
+          "Sent the same requests with the same tools as the case's address"
+        );
+      }
+
       return target.reason === SecurityPlaybookTargetReason.ThreatIntel
         ? translator.translateText("Known to threat intel") ||
             "Known to threat intel"
