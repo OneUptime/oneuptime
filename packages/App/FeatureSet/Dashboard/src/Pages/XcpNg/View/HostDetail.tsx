@@ -48,10 +48,12 @@ import {
 } from "../../../Components/XcpNg/XcpNgResourceColumns";
 import {
   externalIdFromRouteParam,
-  fetchXcpNgInventoryRow,
-  fetchXcpNgRowsOnHost,
   getXcpNgDisplayName,
 } from "../Utils/XcpNgResourceUtils";
+import {
+  fetchXcpNgInventoryRow,
+  fetchXcpNgRowsOnHost,
+} from "../../../Components/XcpNg/XcpNgInventoryReads";
 import {
   XcpNgRowsOnHost,
   getXcpNgRowsOnHost,

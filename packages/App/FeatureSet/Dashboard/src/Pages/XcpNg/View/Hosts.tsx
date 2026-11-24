@@ -16,7 +16,7 @@ import {
   XcpNgPartRoutes,
   getXcpNgPartRoutes,
 } from "../../../Components/XcpNg/Part/XcpNgPartRoutes";
-import { fetchXcpNgInventoryRows } from "../Utils/XcpNgResourceUtils";
+import { fetchXcpNgInventoryRows } from "../../../Components/XcpNg/XcpNgInventoryReads";
 import { sortXcpNgByName } from "../Utils/XcpNgPartFacts";
 import React, {
   FunctionComponent,

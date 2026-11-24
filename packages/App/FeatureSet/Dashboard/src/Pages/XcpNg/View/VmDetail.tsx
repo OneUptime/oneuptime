@@ -36,10 +36,12 @@ import {
 } from "../../../Components/XcpNg/XcpNgPartCharts";
 import {
   externalIdFromRouteParam,
-  fetchXcpNgInventoryRow,
-  fetchXcpNgVirtualDisks,
   getXcpNgDisplayName,
 } from "../Utils/XcpNgResourceUtils";
+import {
+  fetchXcpNgInventoryRow,
+  fetchXcpNgVirtualDisks,
+} from "../../../Components/XcpNg/XcpNgInventoryReads";
 import { getXcpNgPartAttention } from "../Utils/XcpNgPartAttention";
 
 /*

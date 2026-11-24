@@ -10,7 +10,8 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
  * The ground the XCP-ng pool pages stand on (Pages/XcpNg/Utils/
  * XcpNgResourceUtils): figures in the reader's digits, an object's name and
  * route, the filter that picks one object's series, the unit a chart draws
- * a catalog unit in, and the inventory reads - what they ask the API for.
+ * a catalog unit in - and the inventory reads (Components/XcpNg/
+ * XcpNgInventoryReads), what they ask the API for.
  */
 
 interface ListRequest {
@@ -44,14 +45,16 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import {
-  XCP_NG_INVENTORY_SELECT,
-  XCP_NG_METRIC_STALE_MS,
-  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
-  externalIdFromRouteParam,
   fetchXcpNgInventoryRow,
   fetchXcpNgInventoryRows,
   fetchXcpNgRowsOnHost,
   fetchXcpNgVirtualDisks,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/XcpNg/XcpNgInventoryReads";
+import {
+  XCP_NG_INVENTORY_SELECT,
+  XCP_NG_METRIC_STALE_MS,
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  externalIdFromRouteParam,
   formatXcpNgBytes,
   formatXcpNgBytesForChart,
   formatXcpNgLoad,
