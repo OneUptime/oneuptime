@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "Parte de {{incident}}",
   "Show Incidents Grouped by Episode": "Mostrar incidentes agrupados por episodio",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Los visitantes ven una tarjeta por cada incidente y otra por cada episodio, así que un incidente de un episodio aparece dos veces.",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "Los visitantes ven cada episodio como una sola tarjeta que enumera sus incidentes y lo que afectan."
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Los visitantes ven cada episodio como una sola tarjeta que enumera sus incidentes y lo que afectan.",
+  "Page when the script timed out": "Página cuando se agotó el tiempo del script",
+  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script"
 }

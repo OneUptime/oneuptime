@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "属于 {{incident}}",
   "Show Incidents Grouped by Episode": "按片段分组显示事件",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "访客会看到每个事件一张卡片，每个片段另一张卡片，因此片段中的事件会显示两次。",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "访客会将每个片段看作一张卡片，其中列出该片段的事件及其影响范围。"
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "访客会将每个片段看作一张卡片，其中列出该片段的事件及其影响范围。",
+  "Page when the script timed out": "脚本超时时的页面",
+  "Page {{number}} when the script timed out": "脚本超时时的页面 {{number}}"
 }

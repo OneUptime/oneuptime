@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "Del af {{incident}}",
   "Show Incidents Grouped by Episode": "Vis hændelser grupperet efter episode",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøgende ser et kort for hver hændelse og et for hver episode, så en hændelse i en episode vises to gange.",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøgende ser hver episode som ét kort, der viser dens hændelser og det, de påvirker."
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøgende ser hver episode som ét kort, der viser dens hændelser og det, de påvirker.",
+  "Page when the script timed out": "Side, da scriptet fik timeout",
+  "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout"
 }

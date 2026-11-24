@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "Part of {{incident}}",
   "Show Incidents Grouped by Episode": "Show Incidents Grouped by Episode",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "Visitors see each episode as one card that lists its incidents and what they affect."
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Visitors see each episode as one card that lists its incidents and what they affect.",
+  "Page when the script timed out": "Page when the script timed out",
+  "Page {{number}} when the script timed out": "Page {{number}} when the script timed out"
 }

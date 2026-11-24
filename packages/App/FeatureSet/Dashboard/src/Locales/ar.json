@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "جزء من {{incident}}",
   "Show Incidents Grouped by Episode": "عرض الحوادث مجمّعة حسب الحلقة",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه."
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
+  "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي"
 }

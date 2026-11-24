@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "{{incident}} का हिस्सा",
   "Show Incidents Grouped by Episode": "घटनाएं एपिसोड के अनुसार समूहित करके दिखाएं",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।"
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।",
+  "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
+  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}"
 }

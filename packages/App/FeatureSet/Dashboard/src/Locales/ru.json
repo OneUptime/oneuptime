@@ -64055,5 +64055,7 @@
   "Part of {{incident}}": "Входит в {{incident}}",
   "Show Incidents Grouped by Episode": "Показывать инциденты, сгруппированные по эпизодам",
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
-  "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли."
+  "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли.",
+  "Page when the script timed out": "Страница в момент тайм-аута скрипта",
+  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта"
 }
