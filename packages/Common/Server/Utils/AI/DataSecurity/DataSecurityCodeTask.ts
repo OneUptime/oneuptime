@@ -89,6 +89,14 @@ export const DATA_SECURITY_GROUP_FIX_STARTED_MESSAGE: string =
 export const DATA_SECURITY_GROUP_FIX_NO_REPOSITORY_MESSAGE: string =
   "No repository was found for the code that declares these stores. Ask for the fix from the Issues list, and pick the repository.";
 
+// OneUptime asked for one issue's fix with no repository to work in (#10740).
+export const DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE: string =
+  "No repository was found for the code that declares this store. Ask for the fix from the issue, and pick the repository.";
+
+// What an issue says when a security playbook asked OneUptime AI for its fix (#10740).
+export const DATA_SECURITY_PLAYBOOK_FIX_FEED_MESSAGE: string =
+  "A security playbook asked OneUptime AI to open a fix for this issue as a pull request, in the code that declares its store.";
+
 export const DATA_SECURITY_FIX_SIGN_IN_MESSAGE: string =
   "Sign in to ask OneUptime AI for a fix.";
 
@@ -119,9 +127,17 @@ export function getDataSecurityFixPickRepositoryMessage(
 }
 
 export default class DataSecurityCodeTask {
+  /*
+   * Fix with AI on one issue: asked by a person, as the module comment
+   * says - or by OneUptime, for a security playbook's Fix the code with AI
+   * step on a case whose issue is in no group (#10740): with no person, it
+   * works only in the repository it was given - the one the issue's declared
+   * code points to, which must be the project's - the gate still decides,
+   * and the run names the case, so the case keeps its pull request.
+   */
   @CaptureSpan()
   public static async requestFix(data: {
-    // The person who asked, with their own permissions.
+    // The person who asked, with their own permissions; OneUptime's props for none.
     props: DatabaseCommonInteractionProps;
     projectId: ObjectID;
     // The issues the change is for: each one's timeline says it was asked for.
@@ -135,10 +151,13 @@ export default class DataSecurityCodeTask {
      * and no record.
      */
     buildMessage: () => Promise<DataSecurityAiCodeRequest>;
+    // The security case whose playbook asked, when OneUptime asks (#10740).
+    triggeredBySecurityCaseId?: ObjectID | undefined;
   }): Promise<DataSecurityFixResult> {
     const userId: ObjectID | undefined = data.props.userId || undefined;
 
-    if (!userId) {
+    // OneUptime asks for one issue at a time.
+    if (!userId && (!data.props.isRoot || data.issueIds.length !== 1)) {
       throw new BadDataException(DATA_SECURITY_FIX_SIGN_IN_MESSAGE);
     }
 
@@ -155,24 +174,39 @@ export default class DataSecurityCodeTask {
       return { message: blockerBeforeRepository.message };
     }
 
-    // 2. The repository, as the person may read it and ask in it.
-    const choice: RepositoryChoice =
-      await DataSecurityCodeTask.chooseRepository({
-        props: data.props,
+    // 2. The repository, as the person may read it and ask in it - or the one OneUptime was given.
+    let repository: CodeRepository | null = null;
+
+    if (userId) {
+      const choice: RepositoryChoice =
+        await DataSecurityCodeTask.chooseRepository({
+          props: data.props,
+          projectId: data.projectId,
+          code: data.code,
+          requestedRepositoryId: data.requestedRepositoryId,
+        });
+
+      if (!choice.repository) {
+        return choice.answer;
+      }
+
+      repository = choice.repository;
+    } else {
+      repository = await DataSecurityCodeTask.readGivenRepository({
         projectId: data.projectId,
-        code: data.code,
         requestedRepositoryId: data.requestedRepositoryId,
       });
 
-    if (!choice.repository) {
-      return choice.answer;
+      if (!repository?.id) {
+        return { message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE };
+      }
     }
 
     // 3. What stops AI working in it: its connection, and a Runner.
     const blocker: CodeTaskBlocker | null = await CodeTaskGate.getBlocker({
       props: data.props,
       projectId: data.projectId,
-      repository: choice.repository,
+      repository,
       canAsk: true,
     });
 
@@ -188,17 +222,25 @@ export default class DataSecurityCodeTask {
       );
     }
 
-    const run: AIRun = await CodeTaskRuns.start({
-      projectId: data.projectId,
-      userId,
-      repository: choice.repository,
-      message: request.text,
-      context: [],
-      // A task for one issue says so; one for several is about each (#10370).
-      ...(data.issueIds.length === 1
-        ? { triggeredByDataSecurityIssueId: data.issueIds[0]! }
-        : {}),
-    });
+    const run: AIRun = userId
+      ? await CodeTaskRuns.start({
+          projectId: data.projectId,
+          userId,
+          repository,
+          message: request.text,
+          context: [],
+          // A task for one issue says so; one for several is about each (#10370).
+          ...(data.issueIds.length === 1
+            ? { triggeredByDataSecurityIssueId: data.issueIds[0]! }
+            : {}),
+        })
+      : await CodeTaskRuns.startForDataSecurityIssue({
+          projectId: data.projectId,
+          repository,
+          message: request.text,
+          triggeredByDataSecurityIssueId: data.issueIds[0]!,
+          triggeredBySecurityCaseId: data.triggeredBySecurityCaseId,
+        });
 
     for (const issueId of data.issueIds) {
       await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
@@ -206,8 +248,10 @@ export default class DataSecurityCodeTask {
         dataSecurityIssueId: issueId,
         eventType: DataSecurityIssueFeedEventType.AiFixRequested,
         displayColor: Purple500,
-        feedInfoInMarkdown: DATA_SECURITY_FIX_FEED_MESSAGE,
-        userId,
+        feedInfoInMarkdown: userId
+          ? DATA_SECURITY_FIX_FEED_MESSAGE
+          : DATA_SECURITY_PLAYBOOK_FIX_FEED_MESSAGE,
+        ...(userId ? { userId } : {}),
       });
     }
 
@@ -215,6 +259,39 @@ export default class DataSecurityCodeTask {
       message: DATA_SECURITY_FIX_STARTED_MESSAGE,
       aiRunId: run.id?.toString(),
     };
+  }
+
+  /*
+   * The repository OneUptime was given, when it asks with no person: the
+   * project's own, by its id - never one of another project. Null for
+   * none.
+   */
+  private static async readGivenRepository(data: {
+    projectId: ObjectID;
+    requestedRepositoryId?: unknown;
+  }): Promise<CodeRepository | null> {
+    const requested: string =
+      typeof data.requestedRepositoryId === "string"
+        ? data.requestedRepositoryId.trim()
+        : "";
+
+    if (!ObjectID.isValidUUID(requested)) {
+      return null;
+    }
+
+    return await CodeRepositoryService.findOneBy({
+      query: { _id: requested, projectId: data.projectId },
+      select: {
+        _id: true,
+        name: true,
+        organizationName: true,
+        repositoryName: true,
+        repositoryHostedAt: true,
+        gitHubAppInstallationId: true,
+        codeRepositoryConnectionId: true,
+      },
+      props: { isRoot: true },
+    });
   }
 
   /*
@@ -278,26 +355,10 @@ export default class DataSecurityCodeTask {
 
       repository = choice.repository;
     } else {
-      const requested: string =
-        typeof data.requestedRepositoryId === "string"
-          ? data.requestedRepositoryId.trim()
-          : "";
-
-      repository = ObjectID.isValidUUID(requested)
-        ? await CodeRepositoryService.findOneBy({
-            query: { _id: requested, projectId: data.projectId },
-            select: {
-              _id: true,
-              name: true,
-              organizationName: true,
-              repositoryName: true,
-              repositoryHostedAt: true,
-              gitHubAppInstallationId: true,
-              codeRepositoryConnectionId: true,
-            },
-            props: { isRoot: true },
-          })
-        : null;
+      repository = await DataSecurityCodeTask.readGivenRepository({
+        projectId: data.projectId,
+        requestedRepositoryId: data.requestedRepositoryId,
+      });
 
       if (!repository?.id) {
         return { message: DATA_SECURITY_GROUP_FIX_NO_REPOSITORY_MESSAGE };

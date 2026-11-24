@@ -206,15 +206,20 @@ export default class CodeTaskOrigin {
   /*
    * A code fix asked for from a security case (#10347): Fix With AI, from
    * the case's playbook. Its run names the exception it fixes and the case
-   * it was asked from; the case is why it was asked.
+   * it was asked from; the case is why it was asked. So is a Code request
+   * OneUptime started for a case's Data Security issue in no group (#10740,
+   * CodeTaskRuns.startForDataSecurityIssue): no person asked it, and it
+   * names the case. A request a person typed is theirs, whatever it names.
    */
   public static isFixOfSecurityCase(run: {
     codeFixTaskType?: CodeFixTaskType | string | null | undefined;
     triggeredBySecurityCaseId?: ObjectID | null | undefined;
+    userId?: ObjectID | null | undefined;
   }): boolean {
     return (
       Boolean(run.triggeredBySecurityCaseId) &&
-      !CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType)
+      (!CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType) ||
+        !run.userId)
     );
   }
 
@@ -282,6 +287,11 @@ export default class CodeTaskOrigin {
     }
 
     if (CodeFixTaskTypeHelper.isCodeRequest(taskType)) {
+      // A request OneUptime started for a case's Data Security issue (#10740): the case is why.
+      if (CodeTaskOrigin.isFixOfSecurityCase(run)) {
+        return CodeTaskOrigin.describeSecurityCase(run, data.subjects);
+      }
+
       return {
         type: CodeTaskOriginType.Request,
         label: data.requesterName || "",
@@ -335,24 +345,7 @@ export default class CodeTaskOrigin {
      * its Fix step's check reads whether it shipped (#10347).
      */
     if (CodeTaskOrigin.isFixOfSecurityCase(run)) {
-      const securityCase: SecurityCase | undefined =
-        data.subjects.securityCases?.get(
-          run.triggeredBySecurityCaseId!.toString(),
-        );
-
-      return {
-        type: CodeTaskOriginType.SecurityCase,
-        label: securityCase
-          ? CodeTaskOrigin.shorten(
-              CodeTaskOrigin.numbered(
-                securityCase.caseNumberWithPrefix,
-                securityCase.caseNumber,
-                securityCase.title,
-              ),
-            )
-          : "",
-        recordId: run.triggeredBySecurityCaseId!.toString(),
-      };
+      return CodeTaskOrigin.describeSecurityCase(run, data.subjects);
     }
 
     if (run.triggeredByTelemetryExceptionId) {
@@ -467,6 +460,29 @@ export default class CodeTaskOrigin {
    * Whether the run's origin is named in its task context, so a list must
    * read that context to describe it.
    */
+  // The security case a fix was asked from, as its origin names it.
+  private static describeSecurityCase(
+    run: AIRun,
+    subjects: CodeTaskOriginSubjects,
+  ): CodeTaskOriginJSON {
+    const securityCase: SecurityCase | undefined =
+      subjects.securityCases?.get(run.triggeredBySecurityCaseId!.toString());
+
+    return {
+      type: CodeTaskOriginType.SecurityCase,
+      label: securityCase
+        ? CodeTaskOrigin.shorten(
+            CodeTaskOrigin.numbered(
+              securityCase.caseNumberWithPrefix,
+              securityCase.caseNumber,
+              securityCase.title,
+            ),
+          )
+        : "",
+      recordId: run.triggeredBySecurityCaseId!.toString(),
+    };
+  }
+
   public static needsTaskContext(run: AIRun): boolean {
     if (
       run.triggeredByTelemetryExceptionId ||

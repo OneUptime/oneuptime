@@ -477,7 +477,7 @@ describe("a playbook's Fix With AI step on a Data Security case", () => {
     securityCase.source = SecurityDetectionSource.DetectionRule;
 
     expect(
-      await SecurityPlaybookIssueGroupFix.fixGroupsOfCase({
+      await SecurityPlaybookIssueGroupFix.fixIssuesOfCase({
         projectId: new ObjectID(world.projectId),
         runId: new ObjectID(makeId()),
         playbookName: "Data exposure",
