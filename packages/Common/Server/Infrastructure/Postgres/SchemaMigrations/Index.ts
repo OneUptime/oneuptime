@@ -1174,6 +1174,8 @@ import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./18091
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
 import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
 import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
+import { AddFormSubmissionAlert1809187540760 } from "./1809187540760-AddFormSubmissionAlert";
+import { AddFormSubmissionAlertIndexAndKey1809187540770 } from "./1809187540770-AddFormSubmissionAlertIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2352,4 +2354,6 @@ export default [
   AddDataSecurityIssueResolution1809187510368,
   AddDataStoreFindingAiVerdicts1809187520372,
   AddDataSecurityComplianceDrafts1809187530375,
+  AddFormSubmissionAlert1809187540760,
+  AddFormSubmissionAlertIndexAndKey1809187540770,
 ];

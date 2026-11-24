@@ -133,6 +133,35 @@ const PaletteGroup: FunctionComponent<GroupProps> = (
   );
 };
 
+/*
+ * What the palette says of each target: the heading over its fields, the
+ * line when the project has none of its custom fields yet, and the page
+ * that makes them.
+ */
+interface PaletteTargetWords {
+  fieldsTitle: string;
+  noCustomFields: string;
+  customFieldsPage: PageMap;
+}
+
+const PALETTE_TARGET_WORDS: Record<FormTargetType, PaletteTargetWords> = {
+  [FormTargetType.Incident]: {
+    fieldsTitle: FormsCopy.paletteIncidentFields,
+    noCustomFields: FormsCopy.noCustomFieldsIncident,
+    customFieldsPage: PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS,
+  },
+  [FormTargetType.Alert]: {
+    fieldsTitle: FormsCopy.paletteAlertFields,
+    noCustomFields: FormsCopy.noCustomFieldsAlert,
+    customFieldsPage: PageMap.ALERTS_SETTINGS_CUSTOM_FIELDS,
+  },
+  [FormTargetType.ScheduledMaintenance]: {
+    fieldsTitle: FormsCopy.paletteScheduledMaintenanceFields,
+    noCustomFields: FormsCopy.noCustomFieldsScheduledMaintenance,
+    customFieldsPage: PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS,
+  },
+};
+
 const QuestionPalette: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -143,14 +172,10 @@ const QuestionPalette: FunctionComponent<ComponentProps> = (
   };
 
   const isFull: boolean = props.palette.isFull;
-  const isIncident: boolean = props.targetType === FormTargetType.Incident;
+  const words: PaletteTargetWords = PALETTE_TARGET_WORDS[props.targetType];
 
   const customFieldsRoute: Route = RouteUtil.populateRouteParams(
-    RouteMap[
-      isIncident
-        ? PageMap.INCIDENTS_SETTINGS_CUSTOM_FIELDS
-        : PageMap.SCHEDULED_MAINTENANCE_EVENTS_SETTINGS_CUSTOM_FIELDS
-    ] as Route,
+    RouteMap[words.customFieldsPage] as Route,
   );
 
   return (
@@ -190,11 +215,7 @@ const QuestionPalette: FunctionComponent<ComponentProps> = (
       </PaletteGroup>
 
       <PaletteGroup
-        title={tx(
-          isIncident
-            ? FormsCopy.paletteIncidentFields
-            : FormsCopy.paletteScheduledMaintenanceFields,
-        )}
+        title={tx(words.fieldsTitle)}
         dataTestId="form-palette-target-fields"
       >
         {props.palette.targetFields.map(
@@ -257,13 +278,7 @@ const QuestionPalette: FunctionComponent<ComponentProps> = (
           )
         ) : (
           <li className="px-2 py-1 text-xs text-gray-500">
-            <p>
-              {tx(
-                isIncident
-                  ? FormsCopy.noCustomFieldsIncident
-                  : FormsCopy.noCustomFieldsScheduledMaintenance,
-              )}
-            </p>
+            <p>{tx(words.noCustomFields)}</p>
             <Link
               className="mt-1 inline-block font-medium text-indigo-600 hover:text-indigo-500"
               to={customFieldsRoute}
