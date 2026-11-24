@@ -118,7 +118,7 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 
 ### Evaluering over en tidsperiode
 
-**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **DNS er tilkoblet** og **DNS-svartid (i ms)**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for den siste: velg en aggregering under **Evaluer** og et vindu, fra 2 minutter til 24 timer, under **For de siste**.
+**Evaluer disse kriteriene over en tidsperiode** er en avkrysningsboks under et filter, som tilbys for **DNS er tilkoblet**, **DNS-svartid (i ms)** og **Verdi for DNS-post**. Slå den på for å vurdere et vindu av tidligere sjekker i stedet for den siste: velg en aggregering under **Evaluer** og et vindu, fra 2 minutter til 24 timer, under **For de siste**. For **Verdi for DNS-post** er det eneste valget **Forrige sjekk**: se [Når DNS-svaret endrer seg](#når-dns-svaret-endrer-seg).
 
 | Aggregering | Samsvarer når |
 | --- | --- |
@@ -126,7 +126,7 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 | **Alle verdier** | Hver sjekk i vinduet oppfyller betingelsen. |
 | **Minst én verdi** | Minst én sjekk i vinduet oppfyller betingelsen. |
 | **Antall**, **Prosentandel**, **Statusskifter** | Hvor mange sjekker som oppfylte betingelsen, andelen deres, eller hvor ofte de skiftet mellom å oppfylle den og ikke, sammenlignes med tallet som er satt under. |
-| **Forrige sjekk** | Denne sjekken sammenlignet med sondens forrige sjekk, slik det er satt under **Endring fra forrige sjekk**: for eksempel en svartid som ligger mer enn 50 % over den. Et filter som er sant eller usant, slår til ved sjekken som begynte å oppfylle betingelsen. |
+| **Forrige sjekk** | Denne sjekken sammenlignet med sondens forrige sjekk, slik det er satt under **Endring fra forrige sjekk**: for eksempel en svartid som ligger mer enn 50 % over den. Et filter som er sant eller usant, slår til ved sjekken som begynte å oppfylle betingelsen. **Verdi for DNS-post** sammenligner hele svaret: se nedenfor. |
 
 **Alle verdier** samsvarer først når vinduet faktisk er dekket av data. En monitor som nettopp er opprettet, eller en der sjekkene sluttet å bli registrert, har ikke nok historikk til å si noe om de siste N minuttene, så kriteriet venter i stedet for å samsvare på den ene målingen det har. **Minst én verdi** er innstillingen for "si fra med en gang én enkelt sjekk overskrider grensen" og utløses fortsatt umiddelbart.
 
@@ -138,11 +138,26 @@ Kriterier sjekkes fra topp til bunn, og det første som samsvarer, avgjør hva s
 | **Utløser** | De manglende dataene regnes som problemet. | Sjekker der stillhet i seg selv er en feil. |
 | **Treat As Zero** | Vinduet sammenlignes som én enkelt null. | Tellere der ingen hendelser virkelig betyr null. |
 
+### Når DNS-svaret endrer seg
+
+For å få beskjed når svaret for et navn endrer seg, for eksempel en adresse som har flyttet, en e-postserver som er byttet ut, eller en post som er lagt til eller borte, sammenligner du **Verdi for DNS-post** med forrige sjekk:
+
+1. Legg til et filter med **Verdi for DNS-post** og **Ikke lik**.
+2. Kryss av for **Evaluer disse kriteriene over en tidsperiode**. **Forrige sjekk** er det eneste valget under **Evaluer** for dette filteret, og det trenger ingen verdi.
+3. Velg under **For de siste** hvor lenge siden forrige sjekk kan være: lengre enn overvåkingsintervallet.
+
+Svaret sammenlignes som en helhet: alle postene av typen, uten TTL-en deres. De samme postene i en annen rekkefølge er det samme svaret, og det er også et navn med andre store og små bokstaver, siden DNS-navn ikke skiller mellom store og små bokstaver. En post som er lagt til, fjernet eller endret, gir et annet svar. **Lik** slår til i motsatt tilfelle, for et svar som er det samme som ved forrige sjekk, for et kriterium som skal gjelde så lenge svaret er stabilt.
+
+Hver sondes svar sammenlignes med den samme sondens forrige svar, og hvert trinns med sitt eget, så et navn som svarer ulikt i ulike regioner, er ikke en endring. En sjekk som ikke får noe svar, fordi navnet ikke kan slås opp eller spørringen får tidsavbrudd, sammenlignes ikke: til det er filteret **DNS er tilkoblet**. Den neste sjekken som får et svar, sammenlignes med det siste svaret før den, hvis det ligger innenfor **For de siste**. Uten et forrige svar i vinduet, som ved monitorens første sjekk, avgjør **Hvis ingen data**, som ved enhver sammenligning med forrige sjekk.
+
+Hendelsen eller varselet sier hva svaret var og hva det er nå: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Eksempelkriterier
 
 | Mål | Filter | Betingelse | Verdi |
 | --- | --- | --- | --- |
 | Offline når navnet slutter å kunne slås opp | **DNS er tilkoblet** | **Usann** | — |
+| Varsle når svaret for et navn endrer seg | **Verdi for DNS-post**, vurdert over **Forrige sjekk** | **Ikke lik** | — |
 | Varsle når et navns eneste `A`-post endres | **Verdi for DNS-post** | **Ikke lik** | `93.184.216.34` |
 | Varsle når en `MX`-post peker utenfor domenet ditt | **Verdi for DNS-post** | **Inneholder ikke** | `example.com` |
 | Merk DNS som redusert når det er tregt | **DNS-svartid (i ms)** | **Større enn** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Behold standardkriteriet for offline øverst: **DNS er tilkoblet** / **Usann**.
 2. Under det legger du til et kriterium med **Verdi for DNS-post** / **Lik** / verdien du forventer, som merker monitoren som **I drift**.
 3. Under det igjen legger du til et kriterium med **DNS er tilkoblet** / **Sann**, som merker monitoren som **Offline** og erklærer en hendelse. Det samsvarer bare med svar som ikke har verdien.
+:::
+
+:::details Et kriterium som sammenligner svaret med forrige sjekk, slår til ved hver sjekk
+Serveren returnerer en annen del av en stor pulje av poster ved hver spørring, slik noen lastbalanserte navn gjør. Hvert av de svarene er et annet sett med poster. Spør i **DNS-server (valgfritt)** en server som returnerer hele puljen, eller sjekk i stedet for verdien du forventer med **Verdi for DNS-post** / **Lik**.
 :::
 
 :::details DNSSEC er gyldig samsvarer aldri

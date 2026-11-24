@@ -111,7 +111,7 @@ Per il secondo, attiva **Ripristina solo quando è soddisfatta una condizione pr
 
 ### Confrontare un controllo con il precedente
 
-**Controllo precedente** confronta ogni controllo con il controllo precedente della stessa sonda, e dello stesso disco per l'occupazione di un disco. **Nell'ultimo periodo di** indica quanto può essere vecchio quel controllo, quindi impostalo più lungo dell'intervallo di monitoraggio. È offerto per gli stessi filtri di **Conteggio**.
+**Controllo precedente** confronta ogni controllo con il controllo precedente della stessa sonda, e dello stesso disco per l'occupazione di un disco. **Nell'ultimo periodo di** indica quanto può essere vecchio quel controllo, quindi impostalo più lungo dell'intervallo di monitoraggio. È offerto per gli stessi filtri di **Conteggio**. È offerto anche per **Valore del record DNS**, dove confronta l'intera risposta DNS con quella del controllo precedente, con **Diverso da** o **Uguale a**: vedi [Quando la risposta DNS cambia](/docs/monitor/dns-monitor#quando-la-risposta-dns-cambia).
 
 Un valore misurato, come un tempo di risposta, corrisponde quando supera il controllo precedente di più della variazione impostata in **Variazione rispetto al controllo precedente**, con **Maggiore di**, o gli resta sotto di più di quella variazione, con **Minore di**. La variazione è un **Valore nell'unità del controllo**, come 200 ms, o una **Percentuale del controllo precedente**, come il 50%, e 0 corrisponde a qualsiasi aumento o calo. **Uguale a** e **Diverso da** confrontano con il valore precedente stesso.
 

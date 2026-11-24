@@ -111,7 +111,7 @@ For det andet skal du slå **Gendan kun, når en egen betingelse er opfyldt** ti
 
 ### Sammenlign en kontrol med den forrige
 
-**Forrige kontrol** sammenligner hver kontrol med den forrige kontrol fra samme sonde og, for en disks forbrug, fra samme disk. **For de seneste** er, hvor længe siden den kontrol højst må være, så gør den længere end overvågningsintervallet. Den tilbydes for de samme filtre som **Antal**.
+**Forrige kontrol** sammenligner hver kontrol med den forrige kontrol fra samme sonde og, for en disks forbrug, fra samme disk. **For de seneste** er, hvor længe siden den kontrol højst må være, så gør den længere end overvågningsintervallet. Den tilbydes for de samme filtre som **Antal**. Den tilbydes også for **DNS-postværdi**, hvor den sammenligner hele DNS-svaret med den forrige kontrols, med **Ikke lig med** eller **Lig med**: se [Når DNS-svaret ændrer sig](/docs/monitor/dns-monitor#når-dns-svaret-ændrer-sig).
 
 En målt værdi, fx en svartid, matcher, når den ligger mere end ændringen under **Ændring fra den forrige kontrol** over den forrige kontrol, med **Større end**, eller under den, med **Mindre end**. Ændringen er en **Værdi i kontrollens egen enhed**, fx 200 ms, eller en **Procent af den forrige kontrol**, fx 50 %, og 0 matcher enhver stigning eller ethvert fald. **Lig med** og **Ikke lig med** sammenligner med selve den forrige værdi.
 

@@ -111,7 +111,7 @@ For det andre slår du på **Gjenopprett bare når en egen betingelse er oppfylt
 
 ### Sammenligne en sjekk med den forrige
 
-**Forrige sjekk** sammenligner hver sjekk med den forrige sjekken fra samme sonde, og for en disks bruk fra samme disk. **For de siste** er hvor lenge siden den sjekken kan være, så sett den lengre enn overvåkingsintervallet. Den tilbys for de samme filtrene som **Antall**.
+**Forrige sjekk** sammenligner hver sjekk med den forrige sjekken fra samme sonde, og for en disks bruk fra samme disk. **For de siste** er hvor lenge siden den sjekken kan være, så sett den lengre enn overvåkingsintervallet. Den tilbys for de samme filtrene som **Antall**. Den tilbys også for **Verdi for DNS-post**, der den sammenligner hele DNS-svaret med svaret ved forrige sjekk, med **Ikke lik** eller **Lik**: se [Når DNS-svaret endrer seg](/docs/monitor/dns-monitor#når-dns-svaret-endrer-seg).
 
 En målt verdi, for eksempel en svartid, slår til når den ligger mer enn endringen under **Endring fra forrige sjekk** over den forrige sjekken, med **Større enn**, eller under den, med **Mindre enn**. Endringen er en **Verdi i sjekkens egen enhet**, for eksempel 200 ms, eller en **Prosent av forrige sjekk**, for eksempel 50 %, og 0 slår til ved enhver økning eller nedgang. **Lik** og **Ikke lik** sammenligner med selve den forrige verdien.
 

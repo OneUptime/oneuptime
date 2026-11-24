@@ -111,7 +111,7 @@ Pour le deuxième, activez **Se rétablir uniquement quand une condition propre 
 
 ### Comparer une vérification à la précédente
 
-**Vérification précédente** compare chaque vérification à la vérification précédente de la même sonde, et du même disque pour l'occupation d'un disque. **Pour les dernières** indique l'ancienneté maximale de cette vérification : choisissez donc une durée plus longue que l'intervalle de surveillance. Il est proposé pour les mêmes filtres que **Comptage**.
+**Vérification précédente** compare chaque vérification à la vérification précédente de la même sonde, et du même disque pour l'occupation d'un disque. **Pour les dernières** indique l'ancienneté maximale de cette vérification : choisissez donc une durée plus longue que l'intervalle de surveillance. Il est proposé pour les mêmes filtres que **Comptage**. Il est aussi proposé pour **Valeur de l'enregistrement DNS**, où il compare la réponse DNS entière à celle de la vérification précédente, avec **Différent de** ou **Égal à** : voir [Quand la réponse DNS change](/docs/monitor/dns-monitor#quand-la-réponse-dns-change).
 
 Une valeur mesurée, comme un temps de réponse, correspond quand elle dépasse la vérification précédente de plus que l'écart réglé sous **Écart par rapport à la vérification précédente**, avec **Supérieur à**, ou lui est inférieure de plus que cet écart, avec **Inférieur à**. L'écart est une **Valeur dans l'unité de la vérification**, comme 200 ms, ou un **Pourcentage de la vérification précédente**, comme 50 %, et 0 correspond à toute hausse ou baisse. **Égal à** et **Différent de** comparent à la valeur précédente elle-même.
 

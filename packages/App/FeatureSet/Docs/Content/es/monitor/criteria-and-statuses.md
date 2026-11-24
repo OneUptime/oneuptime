@@ -111,7 +111,7 @@ Para el segundo, active **Recuperarse solo cuando se cumpla una condición propi
 
 ### Comparar una comprobación con la anterior
 
-**Comprobación anterior** compara cada comprobación con la comprobación anterior de la misma sonda, y del mismo disco para el uso de un disco. **En el último período de** indica cuánto tiempo atrás puede estar esa comprobación, así que hazlo más largo que el intervalo de monitorización. Se ofrece para los mismos filtros que **Recuento**.
+**Comprobación anterior** compara cada comprobación con la comprobación anterior de la misma sonda, y del mismo disco para el uso de un disco. **En el último período de** indica cuánto tiempo atrás puede estar esa comprobación, así que hazlo más largo que el intervalo de monitorización. Se ofrece para los mismos filtros que **Recuento**. También se ofrece para **Valor del registro DNS**, donde compara la respuesta DNS entera con la de la comprobación anterior, con **Distinto de** o **Igual a**: consulte [Cuando cambia la respuesta DNS](/docs/monitor/dns-monitor#cuando-cambia-la-respuesta-dns).
 
 Un valor medido, como un tiempo de respuesta, coincide cuando supera la comprobación anterior en más que el cambio definido en **Cambio respecto a la comprobación anterior**, con **Mayor que**, o queda por debajo en más que ese cambio, con **Menor que**. El cambio es un **Valor en la unidad de la comprobación**, como 200 ms, o un **Porcentaje de la comprobación anterior**, como 50 %, y 0 coincide con cualquier subida o bajada. **Igual a** y **Distinto de** comparan con el propio valor anterior.
 

@@ -111,7 +111,7 @@ Zet bij het tweede **Alleen herstellen wanneer aan een eigen voorwaarde is volda
 
 ### Een controle met de vorige vergelijken
 
-**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**.
+**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**. Het wordt ook aangeboden voor **DNS-recordwaarde**, waar het het hele DNS-antwoord vergelijkt met dat van de vorige controle, met **Niet gelijk aan** of **Gelijk aan**: zie [Wanneer het DNS-antwoord verandert](/docs/monitor/dns-monitor#wanneer-het-dns-antwoord-verandert).
 
 Een gemeten waarde, zoals een reactietijd, voldoet wanneer die meer dan de verandering onder **Verschil met de vorige controle** boven de vorige controle ligt, met **Groter dan**, of eronder, met **Kleiner dan**. De verandering is een **Waarde in de eenheid van de controle**, zoals 200 ms, of een **Procent van de vorige controle**, zoals 50%, en 0 voldoet bij elke stijging of daling. **Gelijk aan** en **Niet gelijk aan** vergelijken met de vorige waarde zelf.
 
