@@ -23,7 +23,7 @@
 #   google-cloud   the schema maps every image and the reporting secret; the
 #                  chart takes every value the deployer passes (the app's name
 #                  and namespace too) and renders an Application with the
-#                  listing's deploy-info and no service account; the
+#                  listing's deploy-info and icon and no service account; the
 #                  reporting secret reaches the app; the tester renders laid
 #                  over the chart, as a verification run lays it, in the app's
 #                  image, and asks for OneUptime by the deployment's own host;
@@ -340,6 +340,8 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace google-cloud --version "$
     assert_present "google-cloud: renders the Application resource" "$GOOGLE_RENDER" "kind: Application"
     # The deployer refuses an Application without the listing's partner and product IDs.
     assert_present "google-cloud: the Application carries the listing's deploy-info" "$GOOGLE_RENDER" "marketplace.cloud.google.com/deploy-info"
+    # The listing's icon, as a PNG (base64 of the PNG signature), which the console shows with the app.
+    assert_present "google-cloud: the Application carries the listing's icon" "$GOOGLE_RENDER" "data:image/png;base64,iVBORw0KGgo"
     assert_absent "google-cloud: creates no service account" "$GOOGLE_RENDER" "kind: ServiceAccount"
     assert_absent "google-cloud: creates no RBAC" "$GOOGLE_RENDER" "kind: Role"
     assert_present "google-cloud: the app reads the reporting key from the reporting secret" "$GOOGLE_RENDER" "key: reporting-key"
