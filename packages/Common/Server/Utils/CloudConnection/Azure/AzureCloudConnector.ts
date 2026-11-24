@@ -88,6 +88,8 @@ import {
 import {
   AZURE_COST_MAX_PAGES,
   describeAzureCostFailure,
+  isAzureActualCostDue,
+  mergeAzureCostRecords,
   readAzureAdvisor,
   readAzureCosts,
 } from "./AzureCosts";
@@ -97,6 +99,7 @@ import {
   CloudCostState,
   getCloudCostResourceKey,
 } from "../../../../Types/Cloud/CloudCost";
+import { CloudCostBasis } from "../../../../Types/Cloud/CloudCostBasis";
 import { CloudCommitmentSummary } from "../../../../Types/Cloud/CloudCommitments";
 import { CloudResourceMetricStatus } from "../../../../Types/Cloud/CloudResourceMetricCollection";
 import AzureArm, {
@@ -1822,6 +1825,11 @@ export default class AzureCloudConnector implements CloudConnector {
       // When the subscriptions not reached may be read: set once one is put off.
       let putOffUntil: Date | null = null;
       let queued: number = 0;
+      // When each subscription's actual cost was last read: once a day.
+      const actualReadAt: Record<string, string> = {
+        ...(options.state.azureActualCostsReadAt || {}),
+      };
+      const readNow: Date = options.now ? options.now() : new Date();
 
       for (const subscriptionId of subscriptionIds) {
         if (putOffUntil) {
@@ -1838,8 +1846,18 @@ export default class AzureCloudConnector implements CloudConnector {
             ? options.firstReadWindow
             : { start: options.start, end: options.end };
 
+        /*
+         * Amortized cost at every read; actual cost once a day
+         * (isAzureActualCostDue), so the bases do not double the tenant's
+         * query units.
+         */
+        const isActualDue: boolean = isAzureActualCostDue({
+          lastReadAt: actualReadAt[subscriptionId.toLowerCase()],
+          now: readNow,
+        });
+
         try {
-          const read: {
+          const amortized: {
             records: CloudCostsResult["records"];
             complete: boolean;
           } = await readAzureCosts({
@@ -1848,10 +1866,30 @@ export default class AzureCloudConnector implements CloudConnector {
             start: window.start,
             end: window.end,
             regionsByResource,
+            type: "AmortizedCost",
           });
+          const actual: {
+            records: CloudCostsResult["records"];
+            complete: boolean;
+          } | null =
+            amortized.complete && isActualDue
+              ? await readAzureCosts({
+                  costs,
+                  subscriptionId,
+                  start: window.start,
+                  end: window.end,
+                  regionsByResource,
+                  type: "ActualCost",
+                })
+              : null;
 
-          if (read.complete) {
-            result.records.push(...read.records);
+          if (amortized.complete && (!actual || actual.complete)) {
+            result.records.push(
+              ...mergeAzureCostRecords({
+                amortized: amortized.records,
+                actual: actual?.records,
+              }),
+            );
             result.accounts.push({
               accountId: subscriptionId,
               state: CloudCostState.Reading,
@@ -1859,7 +1897,16 @@ export default class AzureCloudConnector implements CloudConnector {
               window.end.getTime() !== options.end.getTime()
                 ? { window }
                 : {}),
+              // Without actual cost, the billed figures keep what they had.
+              ...(actual
+                ? {}
+                : { bases: [CloudCostBasis.Amortized, CloudCostBasis.Net] }),
             });
+
+            if (actual) {
+              actualReadAt[subscriptionId.toLowerCase()] =
+                readNow.toISOString();
+            }
             continue;
           }
 
@@ -1924,6 +1971,23 @@ export default class AzureCloudConnector implements CloudConnector {
           } read from ${putOffUntil.toISOString()}, at the first read after it.`,
         );
       }
+
+      /*
+       * When each subscription's actual cost was read, for the next read: a
+       * week at most, so one that leaves the connection is forgotten.
+       */
+      options.state.azureActualCostsReadAt = Object.fromEntries(
+        Object.entries(actualReadAt).filter(
+          ([, at]: [string, string]): boolean => {
+            const time: number = Date.parse(at);
+
+            return (
+              Number.isFinite(time) &&
+              readNow.getTime() - time < 7 * 24 * 60 * 60 * 1000
+            );
+          },
+        ),
+      );
 
       return result;
     } catch (error) {

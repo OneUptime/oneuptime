@@ -31,16 +31,23 @@ import {
  *
  *   Cost Explorer GetCostAndUsage (AWS JSON 1.1, target
  *   AWSInsightsIndexService.GetCostAndUsage, in us-east-1 - cn-northwest-1
- *   for China):
+ *   for China), twice for a window:
  *     { TimePeriod: { Start, End }, Granularity: "DAILY",
- *       Metrics: ["UnblendedCost"], GroupBy: [SERVICE, REGION] -
- *       [LINKED_ACCOUNT, SERVICE] from an organization's management account,
- *       one call for every account - Filter: every record type but credits
- *       and refunds, NextPageToken }
+ *       Metrics: ["UnblendedCost", "AmortizedCost"], GroupBy: [SERVICE,
+ *       REGION] - [LINKED_ACCOUNT, SERVICE] from an organization's
+ *       management account, one call for every account - Filter: every
+ *       record type but credits and refunds, NextPageToken }
+ *     { ...the same, Metrics: ["NetAmortizedCost"], and no Filter }
  *     -> { ResultsByTime: [{ TimePeriod: { Start }, Groups: [{ Keys,
- *          Metrics: { UnblendedCost: { Amount, Unit } } }] }], NextPageToken }
- *   Cost Explorer charges $0.01 a request, so a read asks for its window
- *   once, a few pages at most, and only twice a day.
+ *          Metrics: { UnblendedCost: { Amount, Unit }, ... } }] }],
+ *          NextPageToken }
+ *   The first says what each day was billed (UnblendedCost: a Savings Plan
+ *   or reservation paid up front on the day it was bought) and amortized
+ *   (AmortizedCost: its fee spread over the hours and instances it covered),
+ *   both before credits and refunds; the second what it came to net
+ *   (NetAmortizedCost: amortized, less discounts, and with credits and
+ *   refunds counted). Cost Explorer charges $0.01 a request, so a read asks
+ *   for its window twice, a few pages at most, and only twice a day.
  *
  *   Cost Optimization Hub ListRecommendations (AWS JSON 1.0, target
  *   CostOptimizationHubService.ListRecommendations, us-east-1):
@@ -68,7 +75,8 @@ export const AWS_SAVINGS_MAX_PAGES: number = 10;
 
 /*
  * Credits and refunds are what a promotion or a correction paid, not what
- * the resources cost: left out, as a cost tool's default view does.
+ * the resources cost: left out of the billed and amortized figures, as a
+ * cost tool's default view does, and counted in the net one.
  */
 const COST_FILTER: JSONObject = {
   Not: {
@@ -78,6 +86,11 @@ const COST_FILTER: JSONObject = {
     },
   },
 };
+
+// Cost Explorer's metric of each basis (CloudCostBasis).
+export const AWS_BILLED_METRIC: string = "UnblendedCost";
+export const AWS_AMORTIZED_METRIC: string = "AmortizedCost";
+export const AWS_NET_METRIC: string = "NetAmortizedCost";
 
 // Where Cost Explorer and Cost Optimization Hub answer for the partition; null for GovCloud.
 export function getAwsCostRegion(homeRegion: string): string | null {
@@ -107,23 +120,57 @@ function readAmount(value: unknown): number {
 }
 
 /*
- * One window's daily costs: by service and Region for one account, by
- * account and service from an organization's management account.
+ * The metrics of one Cost Explorer request, as they answer each group of
+ * each day: what a request reads, and how it is filtered.
  */
-export async function readAwsCostAndUsage(data: {
+interface AwsCostMetricsRequest {
+  metrics: Array<string>;
+  // The record types it leaves out; none when absent.
+  filter?: JSONObject | undefined;
+}
+
+/*
+ * The two requests a window of costs takes: billed and amortized from one
+ * that leaves credits and refunds out, as a cost tool's default view does,
+ * and net from one that counts them - NetAmortizedCost, amortized less
+ * credits, refunds and discounts. Each is $0.01 a page.
+ */
+export const AWS_COST_REQUESTS: ReadonlyArray<AwsCostMetricsRequest> = [
+  {
+    metrics: [AWS_BILLED_METRIC, AWS_AMORTIZED_METRIC],
+    filter: COST_FILTER,
+  },
+  { metrics: [AWS_NET_METRIC] },
+];
+
+// One group of one day, keyed by what tells it apart, with each metric read.
+interface AwsCostGroup {
+  accountId: string;
+  day: string;
+  service: string;
+  region: string;
+  currency: string;
+  metrics: Record<string, number>;
+}
+
+/*
+ * Every group of a window for one request's metrics, followed to its last
+ * page: added into `groups` by account, day, service and Region.
+ * `complete` is false when it stopped at AWS_COST_MAX_PAGES.
+ */
+async function readAwsCostMetrics(data: {
   credentials: AwsCredentials;
   region: string;
-  // The account the costs are of, when they are not grouped by account.
   accountId: string;
   groupByAccount: boolean;
   start: Date;
   end: Date;
   options: CloudConnectorCallOptions;
   budget: CloudReadBudget;
-}): Promise<{ records: Array<CloudCostRecord>; complete: boolean }> {
-  const records: Array<CloudCostRecord> = [];
+  request: AwsCostMetricsRequest;
+  groups: Map<string, AwsCostGroup>;
+}): Promise<boolean> {
   let token: string = "";
-  let complete: boolean = false;
 
   for (let page: number = 0; page < AWS_COST_MAX_PAGES; page++) {
     const body: JSONObject = {
@@ -132,7 +179,7 @@ export async function readAwsCostAndUsage(data: {
         End: toCloudCostDay(data.end),
       },
       Granularity: "DAILY",
-      Metrics: ["UnblendedCost"],
+      Metrics: data.request.metrics,
       GroupBy: data.groupByAccount
         ? [
             { Type: "DIMENSION", Key: "LINKED_ACCOUNT" },
@@ -142,8 +189,11 @@ export async function readAwsCostAndUsage(data: {
             { Type: "DIMENSION", Key: "SERVICE" },
             { Type: "DIMENSION", Key: "REGION" },
           ],
-      Filter: COST_FILTER,
     };
+
+    if (data.request.filter) {
+      body["Filter"] = data.request.filter;
+    }
 
     if (token) {
       body["NextPageToken"] = token;
@@ -180,35 +230,106 @@ export async function readAwsCostAndUsage(data: {
             return readText(key);
           },
         );
-        const metric: JSONObject = readObject(
-          readObject(group["Metrics"])["UnblendedCost"],
-        );
-        const amount: number = readAmount(metric["Amount"]);
+        const metrics: JSONObject = readObject(group["Metrics"]);
+        const accountId: string = data.groupByAccount
+          ? keys[0] || ""
+          : data.accountId;
+        const service: string =
+          (data.groupByAccount ? keys[1] : keys[0]) || "";
+        const region: string = data.groupByAccount
+          ? ""
+          : readCostRegion(keys[1] || "");
 
-        if (amount === 0) {
-          continue;
+        for (const metricName of data.request.metrics) {
+          const metric: JSONObject = readObject(metrics[metricName]);
+          const amount: number = readAmount(metric["Amount"]);
+
+          if (amount === 0) {
+            continue;
+          }
+
+          const currency: string =
+            readText(metric["Unit"]) || CLOUD_COST_DEFAULT_CURRENCY;
+          const key: string = JSON.stringify([
+            accountId,
+            day,
+            service,
+            region,
+            currency,
+          ]);
+          const existing: AwsCostGroup = data.groups.get(key) || {
+            accountId,
+            day,
+            service,
+            region,
+            currency,
+            metrics: {},
+          };
+
+          existing.metrics[metricName] =
+            (existing.metrics[metricName] || 0) + amount;
+          data.groups.set(key, existing);
         }
-
-        records.push({
-          accountId: data.groupByAccount ? keys[0] || "" : data.accountId,
-          day,
-          service: (data.groupByAccount ? keys[1] : keys[0]) || "",
-          region: data.groupByAccount ? "" : readCostRegion(keys[1] || ""),
-          resourceId: "",
-          currency: readText(metric["Unit"]) || CLOUD_COST_DEFAULT_CURRENCY,
-          amount,
-        });
       }
     }
 
     const next: string = readText(answer.json["NextPageToken"]);
 
     if (!next || next === token) {
-      complete = true;
-      break;
+      return true;
     }
 
     token = next;
+  }
+
+  return false;
+}
+
+/*
+ * One window's daily costs on each basis: by service and Region for one
+ * account, by account and service from an organization's management
+ * account. A group one request answered and the other did not (a credit of
+ * a service with no usage that day) is a cost on the bases that saw it and
+ * nothing on the others.
+ */
+export async function readAwsCostAndUsage(data: {
+  credentials: AwsCredentials;
+  region: string;
+  // The account the costs are of, when they are not grouped by account.
+  accountId: string;
+  groupByAccount: boolean;
+  start: Date;
+  end: Date;
+  options: CloudConnectorCallOptions;
+  budget: CloudReadBudget;
+}): Promise<{ records: Array<CloudCostRecord>; complete: boolean }> {
+  const groups: Map<string, AwsCostGroup> = new Map();
+  let complete: boolean = true;
+
+  for (const request of AWS_COST_REQUESTS) {
+    const read: boolean = await readAwsCostMetrics({
+      ...data,
+      request,
+      groups,
+    });
+
+    complete = complete && read;
+  }
+
+  const records: Array<CloudCostRecord> = [];
+
+  for (const group of groups.values()) {
+    records.push({
+      accountId: group.accountId,
+      day: group.day,
+      service: group.service,
+      region: group.region,
+      resourceId: "",
+      currency: group.currency,
+      amount: group.metrics[AWS_BILLED_METRIC] || 0,
+      amortizedAmount: group.metrics[AWS_AMORTIZED_METRIC] || 0,
+      netAmount: group.metrics[AWS_NET_METRIC] || 0,
+    });
   }
 
   return { records, complete };

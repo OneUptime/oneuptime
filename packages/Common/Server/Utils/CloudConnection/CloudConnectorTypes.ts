@@ -4,6 +4,7 @@ import {
 } from "../../../Types/Cloud/CloudCost";
 import { CloudAddedMetric } from "../../../Types/Cloud/CloudAddedMetrics";
 import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
+import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import { CloudResourceRelationship } from "../../../Types/Cloud/CloudInventory";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudMonitoredResource } from "../../../Types/Cloud/CloudMonitoredResource";
@@ -299,6 +300,13 @@ export interface CloudConnectionPullState {
    * read Cost Management's limits stop part way reaches the rest next.
    */
   azureCommitmentsReadAt?: Record<string, string> | undefined;
+  /*
+   * Azure: per subscription (lower case), when its actual cost was last
+   * read. Its amortized cost is read at every read of costs, its actual
+   * cost once a day (isAzureActualCostDue), so the bases do not double the
+   * tenant's Cost Management query units.
+   */
+  azureActualCostsReadAt?: Record<string, string> | undefined;
   /*
    * AWS, with Costs per resource on: when Cost Explorer's resource-level
    * costs were last read in full - due again a day later, when the last
@@ -653,7 +661,7 @@ export function keepsAuditRecords(options: CloudChangesOptions): boolean {
 
 /*
  * One day's cost of one series of a connection's account, as the cloud's
- * billing reports it - before credits and refunds.
+ * billing reports it, on each basis (CloudCostBasis).
  */
 export interface CloudCostRecord {
   // The account billed for it: an AWS account, a subscription, a project.
@@ -667,7 +675,15 @@ export interface CloudCostRecord {
   // The resource, as getCloudCostResourceKey keeps it; "" when not one resource.
   resourceId: string;
   currency: string;
+  // Billed: before credits and refunds.
   amount: number;
+  /*
+   * Amortized - commitment fees spread over what they cover - and net -
+   * amortized, less credits, refunds and discounts. Absent means the same
+   * as billed: a cost a cloud draws no such line for.
+   */
+  amortizedAmount?: number | undefined;
+  netAmount?: number | undefined;
   /*
    * The cost's tags (labels, on Google Cloud): the ones its billing names
    * - a Google Cloud billing export's labels - else, for a cost billed to
@@ -705,6 +721,12 @@ export interface CloudCostAccountOutcome {
    * writer brings these days in line for it.
    */
   window?: { start: Date; end: Date } | undefined;
+  /*
+   * The bases this read brought for the account, when not all three: an
+   * Azure subscription read between its daily reads of actual cost brings
+   * amortized and net only. The writer keeps the others as they are.
+   */
+  bases?: Array<CloudCostBasis> | undefined;
 }
 
 export interface CloudCostsOptions extends CloudConnectorCallOptions {

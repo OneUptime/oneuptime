@@ -15,6 +15,10 @@ import {
   summarizeCloudAccountSavings,
 } from "../../../Types/Cloud/CloudCost";
 import { CloudCommitmentSummary } from "../../../Types/Cloud/CloudCommitments";
+import {
+  CloudCostBasis,
+  readCloudCostBases,
+} from "../../../Types/Cloud/CloudCostBasis";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   RESOURCE_COSTS_FIELD_KEY,
@@ -150,11 +154,12 @@ export const CLOUD_COST_ACCOUNT_MEMORY_MS: number = 45 * 24 * 60 * 60 * 1000;
 
 /*
  * Which reading of the costs this is (CloudConnectionPullState.costsVersion).
- * 2: each cost keeps its tags. A connection whose costs were read by an
- * older one reads them as far back as a first read does, once, so the
- * days already kept take their tags too.
+ * 2: each cost keeps its tags. 3: each cost keeps its amortized and net
+ * figures beside its billed one (CloudCostBasis). A connection whose costs
+ * were read by an older one reads them as far back as a first read does,
+ * once, so the days already kept take what the newer reading keeps too.
  */
-export const CLOUD_COSTS_READ_VERSION: number = 2;
+export const CLOUD_COSTS_READ_VERSION: number = 3;
 
 /*
  * The costs given the tags OneUptime holds for the resources they are
@@ -223,6 +228,16 @@ export interface CloudChangesLaneOutcome {
   recorded: number;
   // Security events the audit records made, while Cloud audit logs are on.
   securityEventsStored?: number | undefined;
+}
+
+/*
+ * Accounts a read of costs brought in line together: over the same days,
+ * on the same bases (every basis when none are named).
+ */
+export interface CloudCostAccountGroup {
+  window: { start: Date; end: Date };
+  accounts: Set<string>;
+  bases?: Array<CloudCostBasis> | undefined;
 }
 
 export interface CloudCostsLaneOutcome {
@@ -691,19 +706,18 @@ export default class CloudConnectionLanes {
   }
 
   /*
-   * The accounts a read wrote, by the days each was read over: an account's
-   * own first read covers more days than the read was asked for, and each
-   * group is brought in line over its own days - never over another's, which
-   * would take back the days it did not read.
+   * The accounts a read wrote, by the days each was read over and the bases
+   * it brought: an account's own first read covers more days than the read
+   * was asked for, and each group is brought in line over its own days -
+   * never over another's, which would take back the days it did not read -
+   * and on its own bases, the others kept as they are (an Azure
+   * subscription between its daily reads of actual cost).
    */
   public static groupCostAccountsByWindow(data: {
     outcomes: Array<CloudCostAccountOutcome>;
     window: { start: Date; end: Date };
-  }): Array<{ window: { start: Date; end: Date }; accounts: Set<string> }> {
-    const groups: Map<
-      string,
-      { window: { start: Date; end: Date }; accounts: Set<string> }
-    > = new Map();
+  }): Array<CloudCostAccountGroup> {
+    const groups: Map<string, CloudCostAccountGroup> = new Map();
 
     for (const outcome of data.outcomes) {
       if (outcome.state !== CloudCostState.Reading) {
@@ -711,11 +725,17 @@ export default class CloudConnectionLanes {
       }
 
       const window: { start: Date; end: Date } = outcome.window || data.window;
-      const key: string = `${window.start.getTime()}|${window.end.getTime()}`;
-      const group: {
-        window: { start: Date; end: Date };
-        accounts: Set<string>;
-      } = groups.get(key) || { window, accounts: new Set<string>() };
+      const bases: Array<CloudCostBasis> | undefined = readCloudCostBases(
+        outcome.bases,
+      );
+      const key: string = `${window.start.getTime()}|${window.end.getTime()}|${(
+        bases || []
+      ).join(",")}`;
+      const group: CloudCostAccountGroup = groups.get(key) || {
+        window,
+        accounts: new Set<string>(),
+        ...(bases ? { bases } : {}),
+      };
 
       group.accounts.add(outcome.accountId.trim().toLowerCase());
       groups.set(key, group);
@@ -1009,6 +1029,7 @@ export default class CloudConnectionLanes {
           window: group.window,
           records,
           accountsRead: group.accounts,
+          bases: group.bases,
           now: data.now,
         });
 
