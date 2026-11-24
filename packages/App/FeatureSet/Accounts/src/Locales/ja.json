@@ -731,5 +731,6 @@
     "note": "注記",
     "tip": "ヒント",
     "warning": "警告"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "エラースタック、コンポーネントスタック、個人情報を除去したページ URL、ブラウザーの詳細、OneUptime のビルド情報を含む診断ファイルをローカルにダウンロードします。Cookie、ブラウザーに保存されたデータ、フォームの内容を読み取ることはありません。共有する前に内容を確認してください。"
 }

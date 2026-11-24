@@ -58,6 +58,7 @@ export const HelpAndSupportCopy: {
   messagePlaceholder: string;
   linkHint: string;
   messageHint: string;
+  chatOnSlack: string;
   chatWithTeams: string;
   chatWithSupport: string;
   toggleShown: string;
@@ -132,6 +133,11 @@ export const HelpAndSupportCopy: {
   messageHint: translationKey(
     "Plain text, up to 1000 characters. Links and email addresses become links.",
   ),
+  /*
+   * Help's chat entry as the Dashboard names it, for the preview: worded as
+   * the Dashboard's own help.chatSlack in every language.
+   */
+  chatOnSlack: translationKey("Chat on Slack"),
   chatWithTeams: translationKey("Chat on Microsoft Teams"),
   chatWithSupport: translationKey("Chat with Support"),
   toggleShown: translationKey("Show it"),

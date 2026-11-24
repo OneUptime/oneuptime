@@ -65,7 +65,6 @@ import React, {
   useId,
   useState,
 } from "react";
-import { useTranslation } from "react-i18next";
 
 /*
  * ADMIN DASHBOARD > SETTINGS > HELP AND SUPPORT (#10864, #10865, #10866):
@@ -220,7 +219,14 @@ const HelpMenuPreview: FunctionComponent<{
   answer: HelpAndSupportAnswer;
 }> = (props: { answer: HelpAndSupportAnswer }): ReactElement => {
   const translator: Translator = useTranslator();
-  const { t } = useTranslation();
+  /*
+   * The Dashboard's words for its Help menu, as the rows above name them:
+   * the Admin Dashboard's own Help menu words them its own way in a few
+   * languages, and this is a picture of the Dashboard's.
+   */
+  const say: (key: string) => string = (key: string): string => {
+    return translator.translateText(key) || key;
+  };
   const settings: HelpAndSupportSettings = props.answer.settings;
   const feedback: HelpItemSetting = settings[HelpItem.GiveFeedback];
   const chat: ChatLink | null = getChatLink(settings);
@@ -235,21 +241,21 @@ const HelpMenuPreview: FunctionComponent<{
           {
             id: "give-feedback",
             icon: IconProp.ChatBubbleLeftRight,
-            title: translator.translateText("Give feedback") || "",
+            title: say("Give feedback"),
           },
         ]
       : []),
     {
       id: "keyboard-shortcuts",
       icon: IconProp.Keyboard,
-      title: translator.translateText("Keyboard shortcuts") || "",
+      title: say("Keyboard shortcuts"),
     },
     ...(getSupportEmailAddress(settings)
       ? [
           {
             id: "support-email",
             icon: IconProp.Email,
-            title: t("help.supportEmail"),
+            title: say(HELP_ITEM_COPY[HelpItem.SupportEmail].title),
           },
         ]
       : []),
@@ -265,14 +271,10 @@ const HelpMenuPreview: FunctionComponent<{
                   : IconProp.Chat,
             title:
               chat.kind === ChatKind.Slack
-                ? t("help.chatSlack")
+                ? say(HelpAndSupportCopy.chatOnSlack)
                 : chat.kind === ChatKind.MicrosoftTeams
-                  ? translator.translateText(
-                      HelpAndSupportCopy.chatWithTeams,
-                    ) || ""
-                  : translator.translateText(
-                      HelpAndSupportCopy.chatWithSupport,
-                    ) || "",
+                  ? say(HelpAndSupportCopy.chatWithTeams)
+                  : say(HelpAndSupportCopy.chatWithSupport),
           },
         ]
       : []),
@@ -281,7 +283,7 @@ const HelpMenuPreview: FunctionComponent<{
           {
             id: "request-demo",
             icon: IconProp.Window,
-            title: t("help.requestDemo"),
+            title: say(HELP_ITEM_COPY[HelpItem.RequestDemo].title),
           },
         ]
       : []),

@@ -731,5 +731,6 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下载一个本地诊断文件，其中包含错误堆栈、组件堆栈、已清理的页面 URL、浏览器信息和 OneUptime 版本。它从不读取 Cookie、浏览器保存的数据或表单内容。分享之前请先检查。"
 }
