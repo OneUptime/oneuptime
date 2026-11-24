@@ -1966,6 +1966,10 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
       why: "AWS's name for its application load balancer (ALB), a product's name",
     },
     {
+      name: "Classic Load Balancer",
+      why: "AWS's name for its first load balancer (ELB Classic), a product's name, as Security Events' Trusted Proxies names it (#10546)",
+    },
+    {
       name: "Share link",
       why: "the mobile app's button, which the app draws in English",
     },
