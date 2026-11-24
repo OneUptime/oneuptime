@@ -27,7 +27,7 @@ Pour le fournisseur propre à un seul projet, consultez [SSO](/docs/identity/sso
 :::steps
 ### Ouvrir la liste des fournisseurs
 
-Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard avec **Paramètres admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification unique**. La page liste les fournisseurs SAML de l'instance, puis ses fournisseurs OpenID Connect, et se termine par la carte **Exiger le SSO**.
+Connectez-vous en tant qu'administrateur principal et choisissez **Tableau de bord admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification unique**. La page liste les fournisseurs SAML de l'instance, puis ses fournisseurs OpenID Connect, et se termine par la carte **Exiger le SSO**.
 
 ### Créer le fournisseur
 

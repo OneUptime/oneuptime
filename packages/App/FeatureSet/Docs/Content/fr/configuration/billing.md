@@ -131,9 +131,9 @@ Les SMS, les appels téléphoniques et les messages WhatsApp et Telegram sont pa
 | OneUptime AI | **Paramètres du projet → IA → Crédits IA** |
 
 :::steps
-### Le recharger maintenant
+### Ajouter au solde maintenant
 
-Sur la carte **Solde actuel** de la page, cliquez sur **Recharger le solde**. Saisissez un montant de $20 à $1,000 et cliquez sur **Recharger**. Le montant est prélevé sur la carte du projet.
+Sur la carte **Solde actuel** de la page, cliquez sur **Ajouter au solde**. Saisissez un montant de $20 à $1,000 et cliquez sur **Ajouter au solde**. Le montant est prélevé sur la carte du projet.
 
 ### Ou le laisser se recharger
 
@@ -152,7 +152,7 @@ Quand un solde ne peut pas payer, le message n'est pas envoyé ou OneUptime AI s
 | Activer ou désactiver les SMS, les appels, WhatsApp ou Telegram | Propriétaire du projet, **Manage Billing** ou **Administrateur de la facturation** |
 | Ajouter un moyen de paiement | Propriétaire du projet, **Manage Billing** ou **Create Payment Method** |
 | Payer une facture | Propriétaire du projet, **Manage Billing** ou **Edit Invoices** |
-| Changer de forfait, recharger un solde ou modifier la recharge automatique | Propriétaire du projet ou **Manage Billing** |
+| Changer de forfait, ajouter à un solde ou modifier la recharge automatique | Propriétaire du projet ou **Manage Billing** |
 
 Un bouton que vous ne pouvez pas utiliser apparaît verrouillé et dit qui le peut. Voir [Utilisateurs, équipes et autorisations](/docs/permissions/index#équipes) pour les rôles de facturation.
 

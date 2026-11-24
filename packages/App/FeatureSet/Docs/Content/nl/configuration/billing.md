@@ -131,9 +131,9 @@ Sms-berichten, oproepen, WhatsApp- en Telegram-berichten worden uit het saldo va
 | OneUptime AI | **Projectinstellingen → AI → AI-tegoeden** |
 
 :::steps
-### Nu bijvullen
+### Nu geld toevoegen
 
-Klik op de kaart **Huidig saldo** van de pagina op **Saldo bijvullen**. Vul een bedrag van $20 tot $1,000 in en klik op **Bijvullen**. Het bedrag wordt van de kaart van het project afgeschreven.
+Klik op de kaart **Huidig saldo** van de pagina op **Aan saldo toevoegen**. Vul een bedrag van $20 tot $1,000 in en klik op **Aan saldo toevoegen**. Het bedrag wordt van de kaart van het project afgeschreven.
 
 ### Of automatisch laten bijvullen
 
@@ -152,7 +152,7 @@ Als een saldo niet kan betalen, wordt het bericht niet verstuurd of stopt OneUpt
 | Sms, oproepen, WhatsApp of Telegram aan of uit te zetten | Projecteigenaar, **Manage Billing** of **Factureringsbeheerder** |
 | Een betaalmethode toe te voegen | Projecteigenaar, **Manage Billing** of **Create Payment Method** |
 | Een factuur te betalen | Projecteigenaar, **Manage Billing** of **Edit Invoices** |
-| Het abonnement te wijzigen, een saldo bij te vullen of automatisch bijvullen te wijzigen | Projecteigenaar of **Manage Billing** |
+| Het abonnement te wijzigen, geld aan een saldo toe te voegen of automatisch bijvullen te wijzigen | Projecteigenaar of **Manage Billing** |
 
 Een knop die u niet mag gebruiken, verschijnt vergrendeld en zegt wie het wel mag. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index#teams) voor de factureringsrollen.
 

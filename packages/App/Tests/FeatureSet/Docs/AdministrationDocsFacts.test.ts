@@ -2459,7 +2459,7 @@ describe("Billing & Usage", () => {
     expect([...rows].sort()).toEqual([...drawn].sort());
   });
 
-  it("names the balances' recharge, its bounds and Auto Recharge's defaults", () => {
+  it("names adding to the balances, its bounds and Auto Recharge's defaults", () => {
     for (const api of [
       "Server/API/NotificationAPI.ts",
       "Server/API/AIBillingAPI.ts",
@@ -2479,18 +2479,28 @@ describe("Billing & Usage", () => {
     const settings: string = readDashboardSource(
       "Pages/Settings/NotificationSettings.tsx",
     );
+    /*
+     * Up to its amount field's type, after its bounds: the dialog's
+     * description is an element, whose closing </> holds a "/>".
+     */
     const dialog: string = between(
       settings,
-      'title={"Recharge Balance"}',
-      "/>",
+      "title={ADD_TO_BALANCE_TITLE}",
+      "fieldType: FormFieldSchemaType.Number",
     );
 
-    expect(dialog).toContain('submitButtonText={"Recharge"}');
+    // One verb from the card's button to the dialog's own (#7475).
+    expect(dialog).toContain("submitButtonText={ADD_TO_BALANCE_TITLE}");
     expect(capturedNumber(dialog, MIN_VALUE)).toBe(20);
     expect(capturedNumber(dialog, MAX_VALUE)).toBe(1000);
     expect(
       readDashboardSource("Components/ProjectBalance/ProjectBalanceAccess.ts"),
-    ).toContain('title: "Recharge Balance"');
+    ).toContain("title: ADD_TO_BALANCE_TITLE,");
+    expect(
+      readDashboardSource("Components/ProjectBalance/ProjectBalanceCopy.ts"),
+    ).toContain(
+      'ADD_TO_BALANCE_TITLE: string = translationKey("Add to Balance");',
+    );
     /*
      * Both balances draw one Auto Recharge card (Components/ProjectBalance/
      * AutoRechargeCard), its switch named as the guide names it.

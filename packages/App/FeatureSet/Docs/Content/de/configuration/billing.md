@@ -133,7 +133,7 @@ SMS-, Telefon-, WhatsApp- und Telegram-Nachrichten werden aus dem Guthaben des P
 :::steps
 ### Jetzt aufladen
 
-Klicken Sie auf der Karte **Aktuelles Guthaben** der Seite auf **Guthaben aufladen**. Geben Sie einen Betrag von $20 bis $1,000 ein und klicken Sie auf **Aufladen**. Der Betrag wird der Karte des Projekts belastet.
+Klicken Sie auf der Karte **Aktuelles Guthaben** der Seite auf **Guthaben aufladen**. Geben Sie einen Betrag von $20 bis $1,000 ein und klicken Sie auf **Guthaben aufladen**. Der Betrag wird der Karte des Projekts belastet.
 
 ### Oder automatisch aufladen lassen
 
