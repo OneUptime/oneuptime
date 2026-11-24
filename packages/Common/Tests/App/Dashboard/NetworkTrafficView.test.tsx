@@ -54,6 +54,7 @@ const apiPostMock: MockFunction = getJestMockFunction();
 const usagePostMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
 const updateByIdMock: MockFunction = getJestMockFunction();
+const getItemMock: MockFunction = getJestMockFunction();
 
 jest.mock("../../../UI/Components/Charts/Area/AreaChart", () => {
   return {
@@ -126,6 +127,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       },
       updateById: (...args: Array<unknown>): unknown => {
         return updateByIdMock(...args);
+      },
+      getItem: (...args: Array<unknown>): unknown => {
+        return getItemMock(...args);
       },
       getCommonHeaders: (): Record<string, string> => {
         return { tenantid: "10000000-0000-4000-8000-000000000001" };
@@ -269,6 +273,51 @@ function rowNamed(listTestId: string, text: string): HTMLElement {
   return row;
 }
 
+/*
+ * The project's devices, as "It is one of my devices" reads them (#10646):
+ * its picker searches them on the server, and the one picked is read again
+ * by its id just before its Other Addresses are written.
+ */
+function answerDevices(devices: Array<NetworkDevice>): void {
+  getListMock.mockResolvedValue({
+    data: devices,
+    count: devices.length,
+    skip: 0,
+    limit: 50,
+  });
+  getItemMock.mockImplementation(async (options: unknown) => {
+    const id: string = String((options as { id: ObjectID }).id);
+
+    return (
+      devices.find((device: NetworkDevice): boolean => {
+        return device._id?.toString() === id;
+      }) || null
+    );
+  });
+}
+
+/*
+ * A device in "It is one of my devices"'s picker: its name, and the address
+ * it is reached at drawn beside it, muted, as the searched picker draws
+ * what tells two of one name apart (#10646). It was one label,
+ * "core-router (192.0.2.1)", when the dialog listed the devices itself.
+ */
+async function deviceOption(
+  name: string,
+  address: string,
+): Promise<HTMLElement> {
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: (accessibleName: string): boolean => {
+      return accessibleName.startsWith(name);
+    },
+  });
+
+  expect(within(option).getByText(name)).toBeInTheDocument();
+  expect(within(option).getByText(address)).toBeInTheDocument();
+
+  return option;
+}
+
 function query(): URLSearchParams {
   return new URLSearchParams(window.location.search);
 }
@@ -282,6 +331,7 @@ beforeEach(() => {
   usagePostMock.mockResolvedValue({ data: { isAvailable: false } });
   getListMock.mockReset();
   updateByIdMock.mockReset();
+  getItemMock.mockReset();
   resetStandInCharts();
   answerWith(() => {
     return summary();
@@ -918,24 +968,19 @@ describe("the network's page and the addresses that are not devices yet", () => 
   });
 
   test("It is one of my devices: the address joins the device's Other Addresses, and the page reads again", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "core-router",
-          hostname: "192.0.2.1",
-          otherAddresses: "10.255.0.1",
-        }),
-        Object.assign(new NetworkDevice(), {
-          _id: OTHER_DEVICE_ID,
-          name: "edge-firewall",
-          hostname: "192.0.2.2",
-        }),
-      ],
-      count: 2,
-      skip: 0,
-      limit: 500,
-    });
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "core-router",
+        hostname: "192.0.2.1",
+        otherAddresses: "10.255.0.1",
+      }),
+      Object.assign(new NetworkDevice(), {
+        _id: OTHER_DEVICE_ID,
+        name: "edge-firewall",
+        hostname: "192.0.2.2",
+      }),
+    ]);
     updateByIdMock.mockResolvedValue({});
     await renderView({ kind: "network" });
     const requestsBefore: number = apiPostMock.mock.calls.length;
@@ -949,14 +994,16 @@ describe("the network's page and the addresses that are not devices yet", () => 
 
     const picker: HTMLElement = await within(modal).findByRole("combobox");
     fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
-    fireEvent.click(
-      await screen.findByRole("option", { name: "core-router (192.0.2.1)" }),
-    );
+    fireEvent.click(await deviceOption("core-router", "192.0.2.1"));
     fireEvent.click(
       within(modal).getByRole("button", { name: "Use this device" }),
     );
     await flush();
 
+    // The device is read again by its id, just before it is written.
+    expect(String((getItemMock.mock.calls[0]![0] as { id: ObjectID }).id)).toBe(
+      DEVICE_ID,
+    );
     expect(updateByIdMock).toHaveBeenCalledTimes(1);
     const update: { id: ObjectID; data: JSONObject } = updateByIdMock.mock
       .calls[0]![0] as { id: ObjectID; data: JSONObject };
@@ -972,18 +1019,13 @@ describe("the network's page and the addresses that are not devices yet", () => 
   });
 
   test("a device that could not be updated says why, and the dialog stays open", async () => {
-    getListMock.mockResolvedValue({
-      data: [
-        Object.assign(new NetworkDevice(), {
-          _id: DEVICE_ID,
-          name: "core-router",
-          hostname: "192.0.2.1",
-        }),
-      ],
-      count: 1,
-      skip: 0,
-      limit: 500,
-    });
+    answerDevices([
+      Object.assign(new NetworkDevice(), {
+        _id: DEVICE_ID,
+        name: "core-router",
+        hostname: "192.0.2.1",
+      }),
+    ]);
     updateByIdMock.mockRejectedValue(
       new Error("You do not have permission to edit this device."),
     );
@@ -996,9 +1038,7 @@ describe("the network's page and the addresses that are not devices yet", () => 
       key: "ArrowDown",
       code: "ArrowDown",
     });
-    fireEvent.click(
-      await screen.findByRole("option", { name: "core-router (192.0.2.1)" }),
-    );
+    fireEvent.click(await deviceOption("core-router", "192.0.2.1"));
     fireEvent.click(
       within(modal).getByRole("button", { name: "Use this device" }),
     );

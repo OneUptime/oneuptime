@@ -241,7 +241,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `recovery_filters` | list | فیلترهایی مثل فیلترهای `filters` که باید پیش از آنکه معیار از عمل بازایستد مطابقت داشته باشند، به جای اینکه به محض عدم مطابقت `filters` بازایستد. |
 | `recovery_filter_condition` | string | اینکه `recovery_filters` چگونه ترکیب می‌شوند: `All` (پیش‌فرض) یا `Any`. |
 | `active_hours` | object | معیار فقط در این `days` (دوشنبه `0` است، یکشنبه `6`)، از `from` تا `to` (`"08:00"`) ارزیابی می‌شود؛ بیرون از آن، مثل یک معیار غیرفعال نادیده گرفته می‌شود. |
-| `active_hours_timezone` | string | منطقهٔ زمانی‌ای که `active_hours` در آن خوانده می‌شود، مثل `Europe/Oslo`. آن را همراه با `active_hours` تنظیم کنید. |
+| `active_hours_timezone` | string | منطقه زمانی‌ای که `active_hours` در آن خوانده می‌شود، مثل `Europe/Oslo`. آن را همراه با `active_hours` تنظیم کنید. |
 | `change_monitor_status` | bool | اینکه آیا یک مطابقت وضعیت مانیتور را تغییر می‌دهد. |
 | `monitor_status_id` | string | ID آن `oneuptime_monitor_status` که باید به آن تغییر کند. وقتی `change_monitor_status` برابر `true` است آن را تعیین کنید. |
 | `create_incidents` | bool | اینکه آیا یک مطابقت حادثه باز می‌کند. |

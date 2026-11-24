@@ -800,7 +800,25 @@ describe("the AI Agent Circuit Breakers page", () => {
       "URL",
       "Request Body",
       "Request Headers",
+      "Allow self-signed certificates",
+      "CA certificate",
     ]);
+    /*
+     * A step's own certificate settings (#10440): folded under More fields
+     * and off unless set, so the endpoint's certificate is checked as ever
+     * and the page's steps leave them alone.
+     */
+    for (const argument of post.arguments.slice(3)) {
+      expect({ name: argument.name, isAdvanced: argument.isAdvanced }).toEqual({
+        name: argument.name,
+        isAdvanced: true,
+      });
+      expect({ name: argument.name, required: argument.required }).toEqual({
+        name: argument.name,
+        required: false,
+      });
+    }
+    expect(page).not.toContain("**Allow self-signed certificates**");
     expect(portTitles(post.outPorts)).toEqual(["Success", "Error"]);
     expect(post.outPorts[0]?.description).toContain("(2xx)");
     expect(page).toContain("Set its **URL** to your endpoint");
