@@ -34,6 +34,7 @@ import {
 import {
   APP_ENGINE_ERROR_LABEL,
   CLOUD_RUN_ERROR_LABEL,
+  CONTAINER_APP_ERROR_LABEL,
   CloudAppPlatformFigure,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudAppPlatformMetrics";
 import {
@@ -61,12 +62,14 @@ import {
  *     dimensions, account and Region - never unscoped;
  *   - one read per metric, stored name and set of those attributes, each a
  *     total of the last hour, grouped by them;
- *   - Cloud Run's and App Engine's 5xx are read with their requests,
- *     grouped by the label their response code is on (response_code_class,
- *     response_code), never guessed;
+ *   - a Container App's, Cloud Run's and App Engine's 5xx are read with
+ *     their requests, grouped by the label their response code is on
+ *     (metadata_statuscodecategory, #10837; response_code_class,
+ *     response_code), never guessed - and a share is of the requests whose
+ *     code was read;
  *   - nothing measured is never 0: a metric a resource did not report is
- *     unknown, a Container App's 5xx share too, and a read that fails says
- *     so.
+ *     unknown, a Container App's 5xx share too while its requests carry no
+ *     category, and a read that fails says so.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -516,16 +519,34 @@ describe("the reads a page takes", () => {
     ]);
   });
 
-  test("a Container App: its Requests and ResponseTime, and no 5xx read - its Requests are read whole", () => {
+  test("a Container App: its Requests once, by their status code category (#10837), and its mean ResponseTime", () => {
     expect(
       getCloudAppPlatformMetricReads([
         containerAppRow(CONTAINER_APP_ROW, "checkout"),
       ]).map((read: CloudAppPlatformGroupRead) => {
-        return [read.figure, read.storedName];
+        return [
+          read.figure,
+          read.storedName,
+          read.aggregationType,
+          read.errorLabel?.attribute || null,
+          read.keys,
+        ];
       }),
     ).toEqual([
-      [CloudAppPlatformFigure.Requests, "azure_requests_total"],
-      [CloudAppPlatformFigure.ResponseTime, "azure_responsetime_average"],
+      [
+        CloudAppPlatformFigure.Requests,
+        "azure_requests_total",
+        AggregationType.Sum,
+        "metadata_statuscodecategory",
+        [AZURE_ID],
+      ],
+      [
+        CloudAppPlatformFigure.ResponseTime,
+        "azure_responsetime_average",
+        AggregationType.Avg,
+        null,
+        [AZURE_ID],
+      ],
     ]);
   });
 
@@ -635,10 +656,76 @@ describe("a resource's hour, from the reads' groups", () => {
       });
 
     expect(Array.from(values.values())).toEqual([
-      { value: 720, serverErrors: 60 },
+      { value: 720, serverErrors: 60, classified: 720 },
       // Requests and no 5xx group: none was answered with one.
-      { value: 300, serverErrors: 0 },
+      { value: 300, serverErrors: 0, classified: 300 },
     ]);
+  });
+
+  test("a Container App's 5xx are its 5xx category's, of the requests that carry a category", () => {
+    const keys: Array<string> = [AZURE_ID];
+    const id: string = getPlatformResourceFilters(
+      containerAppRow(CONTAINER_APP_ROW, "checkout"),
+    )![AZURE_ID]!;
+    const other: string = getPlatformResourceFilters(
+      containerAppRow(CONTAINER_APP_ROW, "cart"),
+    )![AZURE_ID]!;
+    const category: (
+      resourceId: string,
+      name: string,
+      value: number,
+    ) => AggregatedModel = (
+      resourceId: string,
+      name: string,
+      value: number,
+    ): AggregatedModel => {
+      return group(
+        { [AZURE_ID]: resourceId, metadata_statuscodecategory: name },
+        value,
+      );
+    };
+    const values: Map<string, CloudAppPlatformGroupValue> =
+      readPlatformMetricGroups({
+        rows: [
+          category(id, "2xx", 900),
+          category(id, "4xx", 60),
+          category(id, "5xx", 40),
+          // Stored before the split: requests, with no category.
+          category(id, "", 500),
+          // Only requests stored whole.
+          category(other, "", 300),
+        ],
+        keys,
+        errorLabel: CONTAINER_APP_ERROR_LABEL,
+      });
+
+    expect(values.get(id)).toEqual({
+      value: 1500,
+      serverErrors: 40,
+      classified: 1000,
+    });
+    // No category on any of its requests: its errors are not known.
+    expect(values.get(other)).toEqual({ value: 300 });
+  });
+
+  test("a Container App's category is a server error's only when it is 5xx, however it is cased", () => {
+    expect(CONTAINER_APP_ERROR_LABEL.attribute).toBe(
+      "metadata_statuscodecategory",
+    );
+
+    for (const value of ["5xx", "5XX", " 5xx ", "500", "503", "599"]) {
+      expect([value, CONTAINER_APP_ERROR_LABEL.isServerError(value)]).toEqual([
+        value,
+        true,
+      ]);
+    }
+
+    for (const value of ["2xx", "3xx", "4xx", "499", "600", "5", "5xxx", ""]) {
+      expect([value, CONTAINER_APP_ERROR_LABEL.isServerError(value)]).toEqual([
+        value,
+        false,
+      ]);
+    }
   });
 
   test("App Engine's 5xx are its response codes from 500 to 599, never a 404, a 499 or a 600", () => {
@@ -658,8 +745,9 @@ describe("a resource's hour, from the reads' groups", () => {
         errorLabel: APP_ENGINE_ERROR_LABEL,
       });
 
+    // The row with no code counts, and says nothing of errors.
     expect(Array.from(values.values())).toEqual([
-      { value: 9 * 60, serverErrors: 3 * 60 },
+      { value: 9 * 60, serverErrors: 3 * 60, classified: 8 * 60 },
     ]);
   });
 
@@ -789,7 +877,9 @@ describe("a resource's hour, from the reads' groups", () => {
         values: new Map([
           [
             [CloudAppPlatformFigure.Requests, RUN_REQUESTS, ...keys].join("|"),
-            new Map([[signature, { value: 2000, serverErrors: 0 }]]),
+            new Map([
+              [signature, { value: 2000, serverErrors: 0, classified: 2000 }],
+            ]),
           ],
           [
             [CloudAppPlatformFigure.Latency, RUN_LATENCY, ...keys].join("|"),
@@ -809,7 +899,49 @@ describe("a resource's hour, from the reads' groups", () => {
     });
   });
 
-  test("a Container App: its requests and mean response time, and its 5xx share unknown, never 0", () => {
+  test("a Container App: its requests, its 5xx share of those with a category, and its mean response time (#10837)", () => {
+    const keys: Array<string> = [AZURE_ID];
+    const row: CloudResource = containerAppRow(CONTAINER_APP_ROW, "checkout");
+    const id: string = getPlatformResourceFilters(row)![AZURE_ID]!;
+
+    expect(
+      summarizePlatformSite({
+        site: row,
+        values: new Map([
+          [
+            [
+              CloudAppPlatformFigure.Requests,
+              "azure_requests_total",
+              ...keys,
+            ].join("|"),
+            // 400 of its 1,400 requests were stored before the split.
+            new Map([
+              [id, { value: 1400, serverErrors: 25, classified: 1000 }],
+            ]),
+          ],
+          [
+            [
+              CloudAppPlatformFigure.ResponseTime,
+              "azure_responsetime_average",
+              ...keys,
+            ].join("|"),
+            new Map([[id, { value: 42 }]]),
+          ],
+        ]),
+      }),
+    ).toEqual({
+      requests: 1400,
+      serverErrors: 25,
+      // 25 of the 1,000 with a category: never 25 of 1,400.
+      serverErrorRatePercent: 2.5,
+      responseTimeMs: 42,
+      latency: "average",
+      service: "Azure Monitor",
+      isAppService: false,
+    });
+  });
+
+  test("a Container App whose requests carry no category: its requests and mean response time, and its 5xx share unknown, never 0", () => {
     const keys: Array<string> = [AZURE_ID];
     const row: CloudResource = containerAppRow(CONTAINER_APP_ROW, "checkout");
     const id: string = getPlatformResourceFilters(row)![AZURE_ID]!;
@@ -900,6 +1032,71 @@ describe("a resource's hour, from the reads' groups", () => {
 
       expect(value!.value).toBeCloseTo(total, 6);
       expect(value!.serverErrors).toBeCloseTo(errors, 6);
+    }
+  });
+
+  test("a seeded sweep: however a Container App's requests split by category, and however many were stored with none, its share is its 5xx of those with one", () => {
+    const random: SeededRandom = seededRandom(10837);
+    const keys: Array<string> = [AZURE_ID];
+    const row: CloudResource = containerAppRow(CONTAINER_APP_ROW, "checkout");
+    const id: string = getPlatformResourceFilters(row)![AZURE_ID]!;
+
+    for (let draw: number = 0; draw < 200; draw++) {
+      const rows: Array<AggregatedModel> = [];
+      let total: number = 0;
+      let classified: number = 0;
+      let errors: number = 0;
+      let hasCategory: boolean = false;
+
+      for (const category of ["2xx", "3xx", "4xx", "5xx", ""]) {
+        for (let bucket: number = 0; bucket < random(3); bucket++) {
+          const count: number = random(1000);
+
+          total += count;
+          classified += category ? count : 0;
+          hasCategory = hasCategory || Boolean(category);
+          errors += category === "5xx" ? count : 0;
+          rows.push(
+            group(
+              { [AZURE_ID]: id, metadata_statuscodecategory: category },
+              count,
+            ),
+          );
+        }
+      }
+
+      const values: Map<string, CloudAppPlatformGroupValue> =
+        readPlatformMetricGroups({
+          rows: shuffled(rows, random),
+          keys,
+          errorLabel: CONTAINER_APP_ERROR_LABEL,
+        });
+      const summary: CloudAppPlatformSignals | null = summarizePlatformSite({
+        site: row,
+        values: new Map([
+          [
+            [
+              CloudAppPlatformFigure.Requests,
+              "azure_requests_total",
+              ...keys,
+            ].join("|"),
+            values,
+          ],
+        ]),
+      });
+
+      if (rows.length === 0) {
+        expect(summary!.requests).toBeNull();
+        expect(summary!.serverErrorRatePercent).toBeNull();
+        continue;
+      }
+
+      expect(summary!.requests).toBe(total);
+      expect(summary!.serverErrorRatePercent).toEqual(
+        classified > 0 ? (errors / classified) * 100 : null,
+      );
+      // Never 0 for requests none of which says its category.
+      expect(summary!.serverErrors).toEqual(hasCategory ? errors : null);
     }
   });
 });
@@ -1206,6 +1403,57 @@ describe("fetchCloudAppPlatformSignals: as the reader may read", () => {
     expect(
       result.signals.get("7c000000-0000-4000-8000-000000000001")!.requests,
     ).toBe(100);
+  });
+
+  test("a Container App on a page: its Requests read once, by its ARM id and their status code category, and its share of 5xx (#10837)", async () => {
+    const row: CloudResource = containerAppRow(CONTAINER_APP_ROW, "checkout");
+    const id: string = getPlatformResourceFilters(row)![AZURE_ID]!;
+    const server: Server = serve({
+      readable: [row],
+      groups: {
+        azure_requests_total: [
+          group({ [AZURE_ID]: id, metadata_statuscodecategory: "2xx" }, 760),
+          group({ [AZURE_ID]: id, metadata_statuscodecategory: "4xx" }, 32),
+          group({ [AZURE_ID]: id, metadata_statuscodecategory: "5xx" }, 8),
+        ],
+        azure_responsetime_average: [azureGroup(id, 64)],
+      },
+    });
+
+    const result: CloudAppPlatformSignalResult =
+      await fetchCloudAppPlatformSignals({
+        apps: [
+          app(4, {
+            cloudPlatform: "azure_container_apps",
+            name: "checkout",
+            platformCloudResourceId: CONTAINER_APP_ROW,
+          }),
+        ],
+        now: NOW,
+      });
+
+    // Its requests and its response time: no read of a 5xx metric of its own.
+    expect(server.aggregates).toHaveLength(2);
+
+    const requestsRead: AggregateCall = server.aggregates.find(
+      (call: AggregateCall): boolean => {
+        return call.aggregateBy.query["name"] === "azure_requests_total";
+      },
+    )!;
+    expect(requestsRead.aggregateBy.groupByAttributeKeys).toEqual([
+      AZURE_ID,
+      "metadata_statuscodecategory",
+    ]);
+
+    expect(result.signals.get("7c000000-0000-4000-8000-000000000004")).toEqual({
+      requests: 800,
+      serverErrors: 8,
+      serverErrorRatePercent: 1,
+      responseTimeMs: 64,
+      latency: "average",
+      service: "Azure Monitor",
+      isAppService: false,
+    });
   });
 
   test("a resource the reader may not read shows nothing, and its metrics are never asked for", async () => {
