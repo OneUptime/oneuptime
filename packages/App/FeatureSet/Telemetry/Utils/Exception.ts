@@ -693,6 +693,13 @@ export default class ExceptionUtil {
     arrived: ExceptionGroupingContent;
     stored: ExceptionGroupingContent;
     findsGroupsOfStoredText?: boolean | undefined;
+    /*
+     * For an exception found in a log: what the rules left of it before
+     * #11030, when that differs from what they leave now - a Phone Number
+     * or SSN rule hid its own pattern's matches alone then
+     * (withOwnPhoneAndSsnPatterns). See fingerprintsOfEarlierStoredText.
+     */
+    storedByEarlierRules?: ExceptionGroupingContent | undefined;
   }): OccurrenceFingerprints {
     const arrived: ExceptionFingerprintInput = {
       projectId: data.projectId,
@@ -804,7 +811,21 @@ export default class ExceptionUtil {
 
     // What a log was grouped by before #10434: the text the rules left.
     const ofStored: Array<string> = data.findsGroupsOfStoredText
-      ? [fingerprintSha256(storedV1Text), fingerprintSha256(storedTexts.v2)]
+      ? [
+          fingerprintSha256(storedV1Text),
+          fingerprintSha256(storedTexts.v2),
+          ...ExceptionUtil.fingerprintsOfEarlierStoredText({
+            projectId: data.projectId,
+            primaryEntityId: data.primaryEntityId,
+            earlier: data.storedByEarlierRules,
+            storedV1Text,
+            storedV2Text: storedTexts.v2,
+            rekeys,
+          }).filter((fingerprint: string): boolean => {
+            // One of what it arrived as is tried in its own place.
+            return !ofArrived.includes(fingerprint);
+          }),
+        ]
       : [];
     const storedOnly: Array<string> = Array.from(
       new Set<string>(
@@ -825,6 +846,92 @@ export default class ExceptionUtil {
         ? { fingerprintsOfStoredText: storedOnly }
         : {}),
     };
+  }
+
+  /*
+   * WHAT A LOG'S EXCEPTION WAS FOUND BY BEFORE #11030.
+   *
+   * Before #10434 an exception found in a log was grouped by the text the
+   * rules left of it, and it is still found by that (findsGroupsOfStoredText).
+   * #11030 widened what a Phone Number or SSN rule hides - an international
+   * number, a Social Security number set apart by dots, one in another
+   * script's digits - so what the rules leave now need not be what they left
+   * then, and such an exception would not be found: its next occurrence
+   * would make a new one, and New Exception fire again. So an occurrence
+   * also tries the fingerprints of the text the rules left before #11030
+   * (`earlier`), after those of what they leave now.
+   *
+   * Each hashes what the rules hide now - the number they hide since -
+   * unless the two texts differ only where the normalizer folds: an
+   * exception found under it is moved to the keyed fingerprint of the same
+   * text, as #10619 moves one, its old one kept merged into it (`rekeys`,
+   * filled here). That keyed one is tried right after it, so once the old
+   * one is retired, no occurrence carrying it any more, the exception is
+   * still found. Nothing visibly splits, and nothing fires.
+   *
+   * None when there is no earlier text, or it is what the rules leave now.
+   */
+  public static fingerprintsOfEarlierStoredText(data: {
+    projectId: ObjectID;
+    primaryEntityId: ObjectID;
+    earlier: ExceptionGroupingContent | undefined;
+    // What the rules leave now, as grouping v1 and v2 read it.
+    storedV1Text: string;
+    storedV2Text: string;
+    rekeys: Record<string, string>;
+  }): Array<string> {
+    if (!data.earlier) {
+      return [];
+    }
+
+    const earlier: ExceptionFingerprintInput = {
+      projectId: data.projectId,
+      primaryEntityId: data.primaryEntityId,
+      message: data.earlier.message,
+      stackTrace: data.earlier.stackTrace,
+      exceptionType: data.earlier.exceptionType,
+    };
+    const fingerprints: Array<string> = [];
+
+    for (const [text, storedText, keyedOf] of [
+      [
+        ExceptionUtil.getGroupingTextV1(earlier),
+        data.storedV1Text,
+        KeyedExceptionFingerprint.ofFirstGroupingText,
+      ],
+      [
+        ExceptionUtil.getGroupingTexts(earlier).v2,
+        data.storedV2Text,
+        KeyedExceptionFingerprint.ofGroupingText,
+      ],
+    ] as Array<
+      [string, string, (input: { projectId: ObjectID; text: string }) => string]
+    >) {
+      if (text === storedText) {
+        continue;
+      }
+
+      const fingerprint: string = fingerprintSha256(text);
+
+      fingerprints.push(fingerprint);
+
+      if (isChangedOnlyWhereFolded(text, storedText)) {
+        continue;
+      }
+
+      const keyed: string = keyedOf.call(KeyedExceptionFingerprint, {
+        projectId: data.projectId,
+        text,
+      });
+
+      fingerprints.push(keyed);
+
+      if (!(fingerprint in data.rekeys)) {
+        data.rekeys[fingerprint] = keyed;
+      }
+    }
+
+    return Array.from(new Set<string>(fingerprints));
   }
 
   /*

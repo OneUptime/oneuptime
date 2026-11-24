@@ -44,7 +44,11 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubField from "Common/Types/Log/LogScrubField";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import ObjectID from "Common/Types/ObjectID";
-import { ScrubRegExp } from "Common/Types/Telemetry/ScrubRule";
+import {
+  SCRUB_RULE_BUILT_IN_PATTERNS,
+  ScrubRegExp,
+  scrubRegExpFromBuiltIn,
+} from "Common/Types/Telemetry/ScrubRule";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
@@ -2099,4 +2103,248 @@ describe("an exception whose message holds an international phone number, an Ame
       expect(exceptions()).toHaveLength(2);
     },
   );
+});
+
+/*
+ * #11025, #11030: A PHONE NUMBER OR SSN RULE HIDES MORE, AND EVERY EXCEPTION
+ * KEEPS ITS OCCURRENCES.
+ *
+ * Since #11030 a Phone Number rule hides international numbers too, and an
+ * SSN rule one set apart by dots. An exception whose text holds one keeps
+ * its occurrences, its page and its history: one grouped under a
+ * fingerprint that hashes the number - grouping v1's, v2's or v3's, which
+ * leave an international number in - is moved on its next occurrence to the
+ * keyed fingerprint of the same text, its old one kept merged into it
+ * (#10619); one under v4, which folds the number, or a keyed one stays
+ * where it is. And one found in a log before #10434, grouped by what the
+ * rules left of it then, is found by what they left before #11030
+ * (fingerprintsOfEarlierStoredText) and moved the same way. Nothing is new,
+ * and New Exception does not fire.
+ */
+describe("a Phone Number or SSN rule hides more since #11030, and every exception keeps its occurrences", () => {
+  const smsException: ExceptionText = {
+    type: "SmsDeliveryError",
+    message: "SMS to +44 161 321 4567 was not delivered",
+  };
+  // What the Phone Number rule left of it before #11030: the US pattern hid the last ten digits.
+  const smsAsLeftBefore: ExceptionText = {
+    ...smsException,
+    message: "SMS to +44 [REDACTED] was not delivered",
+  };
+  const PHONE_LOG_RULE: () => unknown = (): unknown => {
+    return logRule({ patternType: LogScrubPatternType.PhoneNumber });
+  };
+  const PHONE_TRACE_RULE: () => unknown = (): unknown => {
+    return traceRule({ patternType: TraceScrubPatternType.PhoneNumber });
+  };
+  const SSN_RULE: () => unknown = (): unknown => {
+    return logRule({ patternType: LogScrubPatternType.SSN });
+  };
+
+  function exceptionWithId(id: string): StoredException {
+    const found: StoredException | undefined = Array.from(table.values()).find(
+      (entry: StoredException): boolean => {
+        return entry.id === id;
+      },
+    );
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  test("the rule hides the whole number now, where the US pattern left its calling code", () => {
+    const wide: ScrubRegExp = regexOf(
+      LogScrubRuleService,
+      LogScrubPatternType.PhoneNumber,
+    );
+
+    expect(
+      wide.replace(smsException.message, (): string => {
+        return "[REDACTED]";
+      }),
+    ).toBe("SMS to [REDACTED] was not delivered");
+    expect(
+      scrubRegExpFromBuiltIn(
+        SCRUB_RULE_BUILT_IN_PATTERNS[LogScrubPatternType.PhoneNumber]!,
+      ).replace(smsException.message, (): string => {
+        return "[REDACTED]";
+      }),
+    ).toBe(smsAsLeftBefore.message);
+  });
+
+  test.each([
+    ["v1", "keyedV1"],
+    ["v2", "keyed"],
+    ["v3", "keyedV3"],
+  ] as Array<[string, string]>)(
+    "a span's exception made under %s, which holds the number, moves to its keyed fingerprint: the same exception, its old one kept merged into it",
+    async (from: string, to: string) => {
+      const fingerprints: Record<string, string> = fingerprintsOf(
+        smsException,
+      ) as unknown as Record<string, string>;
+
+      seed(fingerprints[from]!, BEFORE);
+
+      const before: StoredException = onlyException();
+
+      traceRules = [PHONE_TRACE_RULE()];
+      await ingestSpanException(smsException, AFTER);
+
+      const exception: StoredException = exceptionWithId(before.id);
+
+      expect(exception).toBe(before);
+      expect(exception.fingerprint).toBe(fingerprints[to]);
+      expect(exception.occuranceCount).toBe(2);
+      expect(newExceptionsAround(AFTER)).toBe(0);
+      expect(rowFingerprints()).toEqual([fingerprints[to]]);
+      // The old fingerprint, kept as a row merged into it.
+      expect(table.get(fingerprints[from]!)!.formerFingerprintOf).toBe(
+        before.id,
+      );
+      expect(exceptions()).toEqual([before]);
+      expect(JSON.stringify(exceptionRows)).not.toContain("321 4567");
+
+      // Later occurrences, the rule or not, in another process: the same one.
+      clearExistingV1FingerprintCache();
+      traceRules = [];
+      await ingestSpanException(smsException, AFTER + MINUTE_MS);
+      clearExistingV1FingerprintCache();
+      traceRules = [PHONE_TRACE_RULE()];
+      await ingestSpanException(smsException, AFTER + 2 * MINUTE_MS);
+
+      expect(exception.occuranceCount).toBe(4);
+      expect(exceptions()).toEqual([before]);
+      expect(newExceptionsAround(AFTER + 2 * MINUTE_MS)).toBe(0);
+    },
+  );
+
+  test.each([["v4"], ["keyed"], ["keyedV3"], ["keyedV4"]] as Array<[string]>)(
+    "a span's exception made under %s stays where it is, and gets the occurrence",
+    async (version: string) => {
+      const fingerprints: Record<string, string> = fingerprintsOf(
+        smsException,
+      ) as unknown as Record<string, string>;
+
+      seed(fingerprints[version]!, BEFORE);
+
+      const before: StoredException = onlyException();
+
+      traceRules = [PHONE_TRACE_RULE()];
+      await ingestSpanException(smsException, AFTER);
+
+      expect(onlyException()).toBe(before);
+      expect(before.fingerprint).toBe(fingerprints[version]);
+      expect(before.occuranceCount).toBe(2);
+      expect(movesWritten).toBe(0);
+      expect(newExceptionsAround(AFTER)).toBe(0);
+    },
+  );
+
+  test("a new one is made under v4, which folds the number: no key needed, nothing given away", async () => {
+    traceRules = [PHONE_TRACE_RULE()];
+    await ingestSpanException(smsException, AFTER);
+
+    expect(onlyException().fingerprint).toBe(fingerprintsOf(smsException).v4);
+    expect(newExceptionsAround(AFTER)).toBe(1);
+  });
+
+  test.each([
+    ["v1", "keyedV1"],
+    ["v2", "keyed"],
+  ] as Array<[string, string]>)(
+    "a log's exception made before #10434 under %s of what the rules left then is found by it, and moves to its keyed fingerprint",
+    async (from: string, to: string) => {
+      const earlier: Record<string, string> = fingerprintsOf(
+        smsAsLeftBefore,
+      ) as unknown as Record<string, string>;
+
+      seed(earlier[from]!, BEFORE);
+
+      const before: StoredException = onlyException();
+
+      logRules = [PHONE_LOG_RULE()];
+      await ingestLogException(smsException, AFTER);
+
+      const exception: StoredException = exceptionWithId(before.id);
+
+      expect(exception).toBe(before);
+      expect(exception.fingerprint).toBe(earlier[to]);
+      expect(exception.occuranceCount).toBe(2);
+      expect(newExceptionsAround(AFTER)).toBe(0);
+      expect(table.get(earlier[from]!)!.formerFingerprintOf).toBe(before.id);
+      expect(exceptions()).toEqual([before]);
+      expect(JSON.stringify(exceptionRows)).not.toContain("+44");
+
+      // The next occurrence finds it through its old fingerprint.
+      clearExistingV1FingerprintCache();
+      await ingestLogException(smsException, AFTER + MINUTE_MS);
+      expect(exception.occuranceCount).toBe(3);
+
+      // And once that is retired, by the keyed one itself.
+      table.delete(earlier[from]!);
+      clearExistingV1FingerprintCache();
+      await ingestLogException(smsException, AFTER + 2 * MINUTE_MS);
+
+      expect(exception.occuranceCount).toBe(4);
+      expect(exceptions()).toEqual([before]);
+      expect(newExceptionsAround(AFTER + 2 * MINUTE_MS)).toBe(0);
+    },
+  );
+
+  test("a log's exception made before #10434 the old rule left whole is found by what it arrived as, and moves", async () => {
+    const berlin: ExceptionText = {
+      ...smsException,
+      message: "SMS to +49 30 81234567 was not delivered",
+    };
+
+    // The US pattern found nothing in it: what the rules left was what it said.
+    seed(fingerprintsOf(berlin).v1, BEFORE);
+
+    const before: StoredException = onlyException();
+
+    logRules = [PHONE_LOG_RULE()];
+    await ingestLogException(berlin, AFTER);
+
+    expect(exceptionWithId(before.id).fingerprint).toBe(
+      fingerprintsOf(berlin).keyedV1,
+    );
+    expect(before.occuranceCount).toBe(2);
+    expect(newExceptionsAround(AFTER)).toBe(0);
+  });
+
+  test("an SSN set apart by dots beside an email both rules hid: the log's exception of before #10434 is found by what they left then", async () => {
+    const ssnAndEmail: ExceptionText = {
+      type: "InvalidSsnError",
+      message: "SSN 536.22.8731 rejected for ada@example.com",
+    };
+    const asLeftBefore: ExceptionText = {
+      ...ssnAndEmail,
+      message: "SSN 536.22.8731 rejected for [REDACTED]",
+    };
+
+    seed(fingerprintsOf(asLeftBefore).v1, BEFORE);
+
+    const before: StoredException = onlyException();
+
+    logRules = [EMAIL_RULE(), SSN_RULE()];
+    await ingestLogException(ssnAndEmail, AFTER);
+
+    expect(exceptionWithId(before.id).fingerprint).toBe(
+      fingerprintsOf(asLeftBefore).keyedV1,
+    );
+    expect(before.occuranceCount).toBe(2);
+    expect(newExceptionsAround(AFTER)).toBe(0);
+    expect(exceptions()).toEqual([before]);
+    expect(JSON.stringify(exceptionRows)).not.toContain("536.22.8731");
+  });
+
+  test("a log's exception the rules leave as they did before #11030 is read once, as before", async () => {
+    seed(fingerprintsOf(CART_EXCEPTION).v4, BEFORE);
+
+    logRules = [EMAIL_RULE(), PHONE_LOG_RULE()];
+    await ingestLogException(CART_EXCEPTION, AFTER);
+
+    expect(onlyException().occuranceCount).toBe(2);
+    expect(movesWritten).toBe(0);
+  });
 });
