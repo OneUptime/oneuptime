@@ -20,7 +20,7 @@ import {
   isRouteMissingError,
 } from "../api/onCallCalendar";
 import { getServerUrl } from "../storage/serverUrl";
-import { getFriendlyErrorMessage } from "../utils/error";
+import { alertError } from "../utils/errorAlert";
 import {
   buildFeedLinks,
   toGoogleAddUrl,
@@ -213,7 +213,7 @@ export default function WhoIsOnCallScreen(): React.JSX.Element {
         return;
       }
 
-      Alert.alert("Could not fetch the link", getFriendlyErrorMessage(err));
+      alertError("Could not fetch the link", err);
     } finally {
       setSharingScheduleId(null);
     }
