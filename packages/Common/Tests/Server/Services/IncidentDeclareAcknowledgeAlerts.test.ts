@@ -128,6 +128,11 @@ type CarriedForward = {
    * declare here, which a person makes or which names no rule.
    */
   declaredByAlertIncidentRuleName: string | null;
+  /*
+   * Whether the alerts' owners become the incident's (#10867): the default
+   * for a declare from alerts, as these make it, and false without alerts.
+   */
+  carryOverAlertOwners: boolean;
 };
 
 /*
@@ -140,6 +145,7 @@ const NOTHING_CARRIED: CarriedForward = {
   acknowledgedAlertStateId: null,
   alertIdsToAcknowledge: [],
   declaredByAlertIncidentRuleName: null,
+  carryOverAlertOwners: false,
 };
 
 type AuthorizeArgs = {
@@ -771,6 +777,7 @@ function carried(
     acknowledgedAlertStateId: acknowledgedAlertStateId,
     alertIdsToAcknowledge: alertIdsToAcknowledge,
     declaredByAlertIncidentRuleName: null,
+    carryOverAlertOwners: alertIds.length > 0,
   };
 }
 
@@ -1215,6 +1222,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       acknowledgedAlertStateId: null,
       alertIdsToAcknowledge: [],
       declaredByAlertIncidentRuleName: null,
+      carryOverAlertOwners: true,
     });
   });
 
@@ -1433,6 +1441,7 @@ describe("IncidentService.onBeforeCreate with a request to acknowledge the alert
       acknowledgedAlertStateId: null,
       alertIdsToAcknowledge: [],
       declaredByAlertIncidentRuleName: null,
+      carryOverAlertOwners: true,
     });
     expect(counter).toHaveBeenCalledTimes(1);
 
