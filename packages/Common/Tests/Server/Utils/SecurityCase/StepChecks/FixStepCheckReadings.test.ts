@@ -1,10 +1,15 @@
 import ChangeEvent from "../../../../../Models/AnalyticsModels/ChangeEvent";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
+import SecurityCasePullRequest from "../../../../../Models/DatabaseModels/SecurityCasePullRequest";
+import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
+import SecurityCasePullRequestService from "../../../../../Server/Services/SecurityCasePullRequestService";
 import { Statement } from "../../../../../Server/Utils/AnalyticsDatabase/Statement";
-import {
+import FixChanges, {
+  FixChangesReading,
   getDeployLabel,
   readFixPullRequest,
+  readLinkedPullRequest,
   readServiceDeploy,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/FixChanges";
 import {
@@ -32,8 +37,12 @@ import {
   ChangeEventStatus,
 } from "../../../../../Utils/Telemetry/ChangeEventFields";
 import { FIX_ROUTE } from "../../../../Helpers/SecurityCaseFixStepChecks";
-import { PROJECT_ID, at } from "../../../../Helpers/SecurityCaseStepChecks";
-import { describe, expect, test } from "@jest/globals";
+import {
+  CASE_ID,
+  PROJECT_ID,
+  at,
+} from "../../../../Helpers/SecurityCaseStepChecks";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
  * How the Fix step's check (#10347) reads its evidence: the attack
@@ -425,5 +434,112 @@ describe("what shipped to the service, as the check reads it", () => {
       // A deploy recorded against a pull request that is not merged is no deploy of it.
       deployedAt: null,
     });
+    expect(readFixPullRequest(pullRequest).isLinked).toBe(false);
+  });
+
+  test("a pull request a person linked (#10604): read the same way, and said to be theirs", () => {
+    const linked: SecurityCasePullRequest = new SecurityCasePullRequest();
+
+    linked._id = "88888888-8888-4888-8888-888888888888";
+    linked.pullRequestNumber = 482;
+    linked.pullRequestUrl = URL.fromString(
+      "https://github.com/acme/search/pull/482",
+    );
+    linked.pullRequestState = PullRequestState.Merged;
+    linked.mergedAt = at(20);
+    linked.deployedAt = at(30);
+    linked.deployedVersion = " 2.4.1 ";
+    linked.deployedCommitSha = "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432";
+    linked.codeRepository = new CodeRepository();
+    linked.codeRepository.repositoryHostedAt = CodeRepositoryType.GitHub;
+
+    expect(readLinkedPullRequest(linked)).toEqual({
+      id: "88888888-8888-4888-8888-888888888888",
+      isLinked: true,
+      number: 482,
+      url: "https://github.com/acme/search/pull/482",
+      host: "GitHub",
+      state: PullRequestState.Merged,
+      mergedAt: at(20),
+      deployedAt: at(30),
+      deployedVersion: "2.4.1",
+      deployedCommitSha: "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432",
+    });
+
+    // Open again is no deploy of it, whatever the row still holds.
+    linked.pullRequestState = PullRequestState.Open;
+    expect(readLinkedPullRequest(linked).deployedAt).toBeNull();
+  });
+});
+
+describe("the case's fixes, read together", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("Fix With AI's pull requests and the ones people linked, in the case's project, as the system", async () => {
+    const ours: AIAgentTaskPullRequest = new AIAgentTaskPullRequest();
+    ours._id = "77777777-7777-4777-8777-777777777777";
+    ours.pullRequestNumber = 123;
+    ours.pullRequestState = PullRequestState.Open;
+
+    const theirs: SecurityCasePullRequest = new SecurityCasePullRequest();
+    theirs._id = "88888888-8888-4888-8888-888888888888";
+    theirs.pullRequestNumber = 482;
+    theirs.pullRequestState = PullRequestState.Open;
+
+    const aiFindBy: jest.SpiedFunction<
+      typeof AIAgentTaskPullRequestService.findBy
+    > = jest
+      .spyOn(AIAgentTaskPullRequestService, "findBy")
+      .mockResolvedValue([ours]);
+    const linkedFindBy: jest.SpiedFunction<
+      typeof SecurityCasePullRequestService.findBy
+    > = jest
+      .spyOn(SecurityCasePullRequestService, "findBy")
+      .mockResolvedValue([theirs]);
+
+    const reading: FixChangesReading = await FixChanges.read({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      serviceIds: [],
+      since: at(0),
+      now: at(300),
+    });
+
+    expect(
+      reading.pullRequests.map(
+        (pullRequest: { number: number | null; isLinked: boolean }) => {
+          return { number: pullRequest.number, isLinked: pullRequest.isLinked };
+        },
+      ),
+    ).toEqual([
+      { number: 123, isLinked: false },
+      { number: 482, isLinked: true },
+    ]);
+
+    for (const findBy of [aiFindBy, linkedFindBy]) {
+      expect(findBy.mock.calls[0]![0]).toMatchObject({
+        query: { projectId: PROJECT_ID, securityCaseId: CASE_ID },
+        props: { isRoot: true },
+      });
+    }
+  });
+
+  test("the linked ones that could not be read: the read fails, so the check says it cannot tell", async () => {
+    jest.spyOn(AIAgentTaskPullRequestService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(SecurityCasePullRequestService, "findBy")
+      .mockRejectedValue(new Error("connection refused"));
+
+    await expect(
+      FixChanges.read({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        serviceIds: [],
+        since: at(0),
+        now: at(300),
+      }),
+    ).rejects.toThrow("connection refused");
   });
 });

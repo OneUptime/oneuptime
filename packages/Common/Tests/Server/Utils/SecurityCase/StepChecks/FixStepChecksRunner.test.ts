@@ -1,6 +1,8 @@
+import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import Project from "../../../../../Models/DatabaseModels/Project";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../../../../Models/DatabaseModels/SecurityCaseFeed";
+import SecurityCasePullRequest from "../../../../../Models/DatabaseModels/SecurityCasePullRequest";
 import SecurityCaseStepCheck from "../../../../../Models/DatabaseModels/SecurityCaseStepCheck";
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCaseFeedService";
@@ -11,7 +13,10 @@ import SecurityPlaybookRunService from "../../../../../Server/Services/SecurityP
 import SecurityPlaybookService from "../../../../../Server/Services/SecurityPlaybookService";
 import SecurityCaseMatches from "../../../../../Server/Utils/SecurityCase/Context/SecurityCaseMatches";
 import SecurityCaseNotifications from "../../../../../Server/Utils/SecurityCase/SecurityCaseNotifications";
-import { ServiceDeploy } from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/FixChanges";
+import {
+  ServiceDeploy,
+  readLinkedPullRequest,
+} from "../../../../../Server/Utils/SecurityCase/StepChecks/Evidence/FixChanges";
 import FixStepState, {
   ROUTE_FIX_STEP_KEY,
   RouteFixState,
@@ -21,6 +26,9 @@ import SecurityCaseStepCheckRunner, {
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/SecurityCaseStepCheckRunner";
 import { StepCheckEvidence } from "../../../../../Server/Utils/SecurityCase/StepChecks/StepCheck";
 import { getStepCheck } from "../../../../../Server/Utils/SecurityCase/StepChecks/StepCheckRegistry";
+import URL from "../../../../../Types/API/URL";
+import CodeRepositoryType from "../../../../../Types/CodeRepository/CodeRepositoryType";
+import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import {
@@ -38,6 +46,7 @@ import SecurityEventRequestOutcome, {
 import ServiceType from "../../../../../Types/Telemetry/ServiceType";
 import {
   CHECK_FIX_CANNOT_NO_DEPLOYS,
+  CHECK_FIX_LINKED_PULL_REQUEST_OPEN,
   CHECK_FIX_ROUTE_NO_ATTEMPTS,
   CHECK_FIX_ROUTE_STILL_DATABASE,
   CHECK_FIX_ROUTE_STILL_THROUGH,
@@ -488,6 +497,95 @@ describe("attack requests before and after a deploy, through the real pipeline",
         return regression["stepKey"];
       }),
     ).toContain(KEY);
+  });
+});
+
+describe("a pull request a person linked, followed to its deploy (#10604)", () => {
+  // The row as SecurityCasePullRequestService kept it, and the follower then wrote it.
+  function linked(
+    overrides: Partial<SecurityCasePullRequest> = {},
+  ): SecurityCasePullRequest {
+    const row: SecurityCasePullRequest = new SecurityCasePullRequest();
+    row._id = "88888888-8888-4888-8888-888888888888";
+    row.pullRequestNumber = 482;
+    row.pullRequestUrl = URL.fromString(
+      "https://github.com/acme/search/pull/482",
+    );
+    row.pullRequestState = PullRequestState.Open;
+    row.codeRepository = new CodeRepository();
+    row.codeRepository.repositoryHostedAt = CodeRepositoryType.GitHub;
+    Object.assign(row, overrides);
+    return row;
+  }
+
+  test("not merged yet, then merged and shipped: the Fix step goes from saying so to Checked, once the attack is turned away after its deploy", async () => {
+    await run({
+      minute: 30,
+      evidence: {
+        attacks: BEFORE,
+        fixChanges: {
+          pullRequests: [readLinkedPullRequest(linked())],
+          hasDeployData: true,
+        },
+      },
+    });
+
+    expect(fixRow()?.state).toBe(SecurityCaseStepCheckState.NotDone);
+    expect(sentenceOf(fixRow())).toEqual({
+      template: CHECK_FIX_LINKED_PULL_REQUEST_OPEN,
+      values: { pullRequest: "#482" },
+    });
+
+    keepWritten();
+
+    // The follower saw it merge at 0:40 and matched it to the 1:00 deploy.
+    await run({
+      minute: 300,
+      evidence: {
+        attacks: [
+          ...BEFORE,
+          ...attacks(18, {
+            minute: 120,
+            outcome: SecurityEventRequestOutcome.Rejected,
+          }),
+        ],
+        fixChanges: {
+          pullRequests: [
+            readLinkedPullRequest(
+              linked({
+                pullRequestState: PullRequestState.Merged,
+                mergedAt: at(40),
+                deployedAt: at(60),
+                deployedVersion: "2.4.1",
+                deployedCommitSha: "9f8e7d6c5b4a39281706f5e4d3c2b1a098765432",
+              }),
+            ),
+          ],
+          hasDeployData: true,
+        },
+      },
+    });
+
+    const rewritten: JSONObject | undefined = recorded.rewritten.find(
+      (write: JSONObject): boolean => {
+        return (
+          ((write["data"] as JSONObject | undefined)?.["state"] as string) ===
+          SecurityCaseStepCheckState.Verified
+        );
+      },
+    );
+
+    expect(rewritten).toBeDefined();
+    expect(
+      ((rewritten!["data"] as JSONObject)["evidence"] as JSONObject)[
+        "sentence"
+      ],
+    ).toEqual({
+      template: CHECK_FIX_ROUTE_TURNED_AWAY,
+      values: { route: ROUTE, change: "2.4.1" },
+      times: { time: at(60).toISOString() },
+      count: 18,
+    });
   });
 });
 
