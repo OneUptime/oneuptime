@@ -156,13 +156,15 @@ return {
 
 Une exécution conserve jusqu'à 20 captures d'écran, chacune jusqu'à 10 Mo et 50 Mo au total. Une capture peut aussi apparaître dans l'incident ou l'alerte qu'ouvre une exécution en échec — sur sa page et dans les e-mails qui en parlent — en la plaçant dans la description d'incident ou d'alerte du moniteur. Voir [Afficher une capture d'écran](/docs/monitor/incident-alert-templating#afficher-une-capture-décran).
 
+Quand une exécution dépasse son temps, la sonde prend aussi une capture d'écran de chaque page que le script a encore ouverte, pour que vous voyiez où il s'est arrêté. La capture de la première page s'appelle `timed-out-page`, et celles des autres `timed-out-page-2`, `timed-out-page-3` et ainsi de suite, dans l'ordre où les pages ont été ouvertes. Le résumé du moniteur les affiche sous les noms « Page lorsque le script a expiré » et « Page 2 lorsque le script a expiré », et la description d'un incident ou d'une alerte peut les afficher comme toute autre capture. Elles comptent dans les limites ci-dessus, après les captures du script lui-même.
+
 Les captures d'écran d'une vérification sont conservées dans les journaux du moniteur lui-même, pas dans les journaux d'un incident ou d'une alerte, ni dans les changements de statut d'un moniteur : ceux-ci conservent le reste de la vérification, et chaque exécution dont les captures ont été omises l'indique (`areScreenshotsOmitted`). Les captures déjà enregistrées à ces endroits sont effacées après la mise à jour par une tâche qui s'exécute toutes les heures, petit à petit, jusqu'à ce qu'il n'en reste plus.
 
 > [!NOTE]
 > Sur une installation auto-hébergée, PostgreSQL réutilise l'espace laissé par les captures effacées, mais ne le rend pas au disque. Pour réduire la base de données une fois qu'elles sont effacées, exécutez `VACUUM FULL` sur les plus grosses tables pendant une fenêtre de maintenance, car il verrouille chaque table pendant qu'il la réécrit, ou utilisez `pg_repack`, qui ne le fait pas.
 
 :::details Renvoyer des captures d'écran (ancienne méthode)
-Pour la rétrocompatibilité, vous pouvez aussi renvoyer des captures d'écran dans la valeur de retour du script. Les captures renvoyées ainsi ne sont conservées **que** si le script se termine normalement — elles sont perdues s'il lève une erreur. Préférez le canal parallèle décrit plus haut quand vous voulez des preuves des échecs.
+Pour la rétrocompatibilité, vous pouvez aussi renvoyer des captures d'écran dans la valeur de retour du script. Les captures renvoyées ainsi ne sont conservées **que** si le script se termine normalement — elles sont perdues s'il lève une erreur ou dépasse son temps. Préférez le canal parallèle décrit plus haut quand vous voulez des preuves des échecs.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Les écouteurs d'événements ne peuvent pas franchir la frontière d'isolation.
 :::
 
 :::details L'exécution expire
-Attendez des éléments précis avec `page.waitForSelector(...)` et un `timeout` plus court que la limite du script lui-même, pour que l'exécution échoue sur l'étape lente, avec une erreur explicite.
+**Afficher plus de détails** dans le résumé du moniteur montre « Page lorsque le script a expiré », la page où se trouvait le script quand son temps s'est écoulé. Pour que l'exécution échoue sur l'étape lente elle-même, avec une erreur explicite, attendez des éléments précis avec `page.waitForSelector(...)` et un `timeout` plus court que la limite du script lui-même.
 :::
 
 :::details Une sonde auto-hébergée indique que l'exécutable du navigateur est introuvable

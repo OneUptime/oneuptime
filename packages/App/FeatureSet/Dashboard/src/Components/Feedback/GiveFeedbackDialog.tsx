@@ -16,6 +16,10 @@ import {
 import Icon from "Common/UI/Components/Icon/Icon";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
+import URL from "Common/Types/API/URL";
+import { isOneUptimeGitHubShown } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import HelpAndSupport from "Common/UI/Utils/HelpAndSupport";
+import Navigation from "Common/UI/Utils/Navigation";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import { getPageTrail, getPageTrailName } from "Common/UI/Utils/PageTrail";
 import ProductFeedback, {
@@ -94,10 +98,23 @@ const CATEGORY_WHEN_OPENED_FROM: Readonly<
   [GiveFeedbackOpenedFrom.CheckIn]: GiveFeedbackCategory.Idea,
 };
 
-// Opens the dialog, from anywhere in the dashboard.
+/*
+ * Opens the dialog, from anywhere in the dashboard - or, where the server's
+ * admins sent Give feedback to a page of their own (Admin Dashboard >
+ * Settings > Help and Support, #10865), that page, in a new tab.
+ */
 export const openGiveFeedback: (from: GiveFeedbackOpenedFrom) => void = (
   from: GiveFeedbackOpenedFrom,
 ): void => {
+  const giveFeedbackUrl: string | null = ProductFeedback.getGiveFeedbackUrl();
+
+  if (giveFeedbackUrl) {
+    Navigation.navigate(URL.fromStringLenient(giveFeedbackUrl), {
+      openInNewTab: true,
+    });
+    return;
+  }
+
   GlobalEvents.dispatchEvent(EventName.GIVE_FEEDBACK_OPEN, { from: from });
 };
 
@@ -152,10 +169,24 @@ const DESCRIPTIONS: Readonly<Record<GiveFeedbackDestination, string>> = {
   [GiveFeedbackDestination.ServerAdmins]: translationKey(
     "Tell this server's admins what's broken, confusing or missing.",
   ),
+  // The server's own team, at the address its admins chose (#10865).
+  [GiveFeedbackDestination.SupportTeamByEmail]: translationKey(
+    "Tell your support team what's broken, confusing or missing.",
+  ),
+  // Never shown: a page of the server's own opens instead of the dialog.
+  [GiveFeedbackDestination.SupportPage]: translationKey(
+    "Tell your support team what's broken, confusing or missing.",
+  ),
 };
 
 // Exactly what is sent with it, and to whom: one line, before anything is.
 const WHAT_IS_SENT: Readonly<Record<GiveFeedbackDestination, string>> = {
+  [GiveFeedbackDestination.SupportTeamByEmail]: translationKey(
+    "Sent to {{to}} with your name and email ({{email}}), your project, this page ({{page}}) and the version ({{version}}). Nothing is sent to OneUptime.",
+  ),
+  [GiveFeedbackDestination.SupportPage]: translationKey(
+    "Sent to {{to}} with your name and email ({{email}}), your project, this page ({{page}}) and the version ({{version}}). Nothing is sent to OneUptime.",
+  ),
   [GiveFeedbackDestination.OneUptimeTeam]: translationKey(
     "Sent to the OneUptime team with your name and email ({{email}}), your project, this page ({{page}}) and the version ({{version}}).",
   ),
@@ -287,6 +318,11 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
   const isOneUptimeTeam: boolean =
     destination === GiveFeedbackDestination.OneUptimeTeam;
   const version: string = ProductFeedback.getVersion();
+  // The address of the server's own it goes to, said before and after (#10865).
+  const supportTeamEmail: string | null = ProductFeedback.getGiveFeedbackTo();
+  // The public GitHub issue offered after it, unless the admins took it away.
+  const isGitHubOffered: boolean =
+    !isOneUptimeTeam && isOneUptimeGitHubShown(HelpAndSupport.getSettings());
 
   // The page as a person reads it: its trail, or the route where it has none.
   const pageName: string =
@@ -324,13 +360,17 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
                    */
                   isOneUptimeTeam
                     ? translator.translateText("Sent to the OneUptime team.")
-                    : sent.isEmailed
-                      ? translator.translateText(
-                          "Sent to this server's admins.",
-                        )
-                      : translator.translateText(
-                          "This server's admins can read it in the Admin Dashboard, under Feedback.",
-                        )
+                    : sent.isEmailed && supportTeamEmail
+                      ? translator.translateTemplate("Sent to {{to}}.", {
+                          to: supportTeamEmail,
+                        })
+                      : sent.isEmailed
+                        ? translator.translateText(
+                            "Sent to this server's admins.",
+                          )
+                        : translator.translateText(
+                            "This server's admins can read it in the Admin Dashboard, under Feedback.",
+                          )
                 }
               </p>
               {sent.isEmailed && sent.copyTo ? (
@@ -343,10 +383,12 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
               ) : (
                 <></>
               )}
-              {!isOneUptimeTeam ? (
+              {isGitHubOffered ? (
                 /*
                  * After what was said of where it went: a public issue the
-                 * person may also post, which says it is public (#7462).
+                 * person may also post, which says it is public (#7462) -
+                 * unless the server's admins took OneUptime's GitHub links
+                 * away (#10866).
                  */
                 <div className="pt-2">
                   <FeedbackGitHubLink
@@ -514,6 +556,7 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
               email: UserUtil.getEmail()?.toString() || EMPTY_VALUE_MARK,
               page: pageName,
               version: version || EMPTY_VALUE_MARK,
+              to: supportTeamEmail || EMPTY_VALUE_MARK,
             })}
           </span>
         </p>

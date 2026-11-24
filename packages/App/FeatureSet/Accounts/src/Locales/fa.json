@@ -737,5 +737,6 @@
     "note": "نکته",
     "tip": "نکته کاربردی",
     "warning": "هشدار"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "یک فایل عیب‌یابی محلی با پشته خطا، پشته اجزا، نشانی پاک‌سازی‌شده صفحه، جزئیات مرورگر و نسخه ساخت OneUptime دانلود کنید. این فایل هرگز کوکی‌ها، داده‌های ذخیره‌شده مرورگر یا محتوای فرم‌ها را نمی‌خواند. پیش از اشتراک‌گذاری آن را بررسی کنید."
 }

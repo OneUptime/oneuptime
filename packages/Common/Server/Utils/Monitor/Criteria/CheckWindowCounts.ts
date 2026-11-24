@@ -5,6 +5,7 @@ import CriteriaFilterMatchHistory, {
 } from "./CriteriaFilterMatchHistory";
 import WindowCoverage from "./WindowCoverage";
 import MetricService, {
+  MonitorCheckAttributeFilter,
   MonitorCheckComparison,
   MonitorCheckCondition,
   MonitorCheckSummaryRow,
@@ -26,6 +27,10 @@ import {
   CRITERIA_FILTER_MATCHED_VALUE,
 } from "../../../../Types/Monitor/CriteriaFilterMatchHistory";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
+import MonitorStepSeries, {
+  MONITOR_STEP_ID_ATTRIBUTE,
+  MonitorStepSeriesScope,
+} from "../../../../Types/Monitor/MonitorStepSeries";
 import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -69,6 +74,12 @@ import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
  * probes then agree as for any criteria. A monitor no probe checks (a
  * server, a probe status monitor) has one group.
  *
+ * And each step's (#10906): a series is read for the step being judged
+ * alone, by the step its rows name (MonitorStepSeries), so a monitor that
+ * checks a fast page and a slow one never counts one page's checks for the
+ * other. A match history needs no such filter: its filter key is the
+ * step's.
+ *
  * THIS CHECK
  *
  * A series row is written before the check is judged, and a monitor that
@@ -101,8 +112,11 @@ export interface CheckWindowJudgement {
 // Where a filter's checks are counted from.
 export interface CheckWindowSource {
   metricName: string;
-  // Rows whose attribute has this value: a match history's filter key.
-  attributes: Record<string, string>;
+  /*
+   * Rows whose attribute has this value, or one of these values: a match
+   * history's filter key, the step of a series.
+   */
+  attributes: MonitorCheckAttributeFilter;
   // The attributes a group is one value of.
   groupByAttributeKeys: Array<string>;
   condition: MonitorCheckCondition;
@@ -136,6 +150,12 @@ export default class CheckWindowCounts {
     criteriaFilter: CriteriaFilter;
     monitorType: MonitorType | undefined;
     monitorStepId: ObjectID | string;
+    /*
+     * The rows of a series the step's window reads (MonitorStepSeries): its
+     * own, and on a monitor with one step the rows that name none. Every row
+     * of the series when not given.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): CheckWindowSource | null {
     if (
       CriteriaFilterUtil.hasMatchHistory({
@@ -179,7 +199,7 @@ export default class CheckWindowCounts {
 
     return {
       metricName: metricName,
-      attributes: {},
+      attributes: CheckWindowCounts.getSeriesAttributes(data.stepScope),
       /*
        * Every disk's usage is one series: each disk is a group of its own,
        * read in the one statement with the others.
@@ -190,6 +210,24 @@ export default class CheckWindowCounts {
           : [PROBE_ID_ATTRIBUTE],
       condition: condition,
       isMatchHistory: false,
+    };
+  }
+
+  /*
+   * The rows of a series one step's window reads: the step's own, and on a
+   * monitor with one step those that name none (MonitorStepSeries). Every
+   * row with no step scope.
+   */
+  public static getSeriesAttributes(
+    stepScope: MonitorStepSeriesScope | undefined,
+  ): MonitorCheckAttributeFilter {
+    if (!stepScope) {
+      return {};
+    }
+
+    return {
+      [MONITOR_STEP_ID_ATTRIBUTE]:
+        MonitorStepSeries.getAttributeValues(stepScope),
     };
   }
 
@@ -266,6 +304,11 @@ export default class CheckWindowCounts {
     projectId: ObjectID;
     monitorId: ObjectID;
     monitorStepId: ObjectID | string;
+    /*
+     * The rows of a series the step's window reads (MonitorStepSeries): a
+     * step of a monitor with several counts its own checks alone.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
     monitorType: MonitorType | undefined;
     // The probe that made the check: its checks are counted on their own.
     probeId?: ObjectID | string | undefined;
@@ -303,6 +346,7 @@ export default class CheckWindowCounts {
       criteriaFilter: data.criteriaFilter,
       monitorType: data.monitorType,
       monitorStepId: data.monitorStepId,
+      stepScope: data.stepScope,
     });
 
     if (

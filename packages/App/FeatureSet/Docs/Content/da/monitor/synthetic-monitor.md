@@ -156,13 +156,15 @@ return {
 
 En kørsel gemmer op til 20 skærmbilleder, hvert på op til 10 MB og 50 MB i alt. Et skærmbillede kan også vises i den hændelse eller advarsel, en mislykket kørsel åbner — på dens side og i e-mailene om den — ved at placere det i monitorens hændelses- eller advarselsbeskrivelse. Se [Vis et skærmbillede](/docs/monitor/incident-alert-templating#vis-et-skærmbillede).
 
+Når en kørsel får timeout, tager sonden også et skærmbillede af hver side, scriptet stadig har åben, så du kan se, hvor det stoppede. Skærmbilledet af den første side hedder `timed-out-page`, og de andres `timed-out-page-2`, `timed-out-page-3` og så videre, i den rækkefølge siderne blev åbnet. Monitorens resumé viser dem som »Side, da scriptet fik timeout« og »Side 2, da scriptet fik timeout«, og en hændelses eller advarsels beskrivelse kan vise dem som ethvert andet skærmbillede. De tæller med i grænserne ovenfor, efter scriptets egne skærmbilleder.
+
 En kontrols skærmbilleder gemmes i monitorens egne logfiler, ikke i en hændelses eller en advarsels logfiler eller i en monitors statusændringer: de gemmer resten af kontrollen, og hver kørsel, hvis skærmbilleder er udeladt, siger det (`areScreenshotsOmitted`). Skærmbilleder, der allerede er gemt der, ryddes efter opgraderingen af et job, der kører hver time, lidt ad gangen, indtil der ikke er nogen tilbage.
 
 > [!NOTE]
 > På en selvhostet installation genbruger PostgreSQL den plads, de ryddede skærmbilleder efterlader, men giver den ikke tilbage til disken. For at gøre databasen mindre, når de er ryddet, skal du køre `VACUUM FULL` på de største tabeller i et vedligeholdelsesvindue, da den låser hver tabel, mens den skriver den om, eller bruge `pg_repack`, som ikke gør det.
 
 :::details Returnering af skærmbilleder (legacy)
-Af hensyn til bagudkompatibilitet kan du også returnere skærmbilleder fra scriptet som en del af returværdien. Skærmbilleder, der returneres på denne måde, gemmes **kun**, når scriptet afsluttes normalt — de går tabt, hvis scriptet kaster en fejl. Foretræk sidekanalmønstret ovenfor, når du vil have bevis på fejl.
+Af hensyn til bagudkompatibilitet kan du også returnere skærmbilleder fra scriptet som en del af returværdien. Skærmbilleder, der returneres på denne måde, gemmes **kun**, når scriptet afsluttes normalt — de går tabt, hvis scriptet kaster en fejl eller får timeout. Foretræk sidekanalmønstret ovenfor, når du vil have bevis på fejl.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Event listeners kan ikke krydse isolationsgrænsen. Brug `page.waitForEvent(...)
 :::
 
 :::details Kørslen får timeout
-Vent på bestemte elementer med `page.waitForSelector(...)` og en `timeout`, der er kortere end scriptets egen grænse, så kørslen mislykkes på det trin, der er langsomt, med en tydelig fejl.
+**Vis flere detaljer** i monitorens resumé viser »Side, da scriptet fik timeout«: den side, scriptet var på, da tiden løb ud. Vent på bestemte elementer med `page.waitForSelector(...)` og en `timeout`, der er kortere end scriptets egen grænse, så kørslen mislykkes på det trin, der er langsomt, med en tydelig fejl.
 :::
 
 :::details En selvhostet sonde siger, at browserens eksekverbare fil ikke blev fundet

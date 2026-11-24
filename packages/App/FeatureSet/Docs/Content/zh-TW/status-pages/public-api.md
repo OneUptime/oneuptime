@@ -70,6 +70,8 @@ flowchart TB
 
 **頁面回傳哪些事件。** 事件端點會回傳頁面上監測器的事件，扣除限定到其他狀態頁的事件；如果頁面只顯示限定到它自己的事件，還會扣除所有沒有限定到此頁面的事件（請參閱[每個受眾一個狀態頁](/docs/status-pages/one-status-page-per-audience)）。事件限定到哪些頁面，永遠不會出現在回應中。
 
+**頁面如何排列其事件。** 概覽以及事件和片段清單用 `incidentListMode` 說明頁面的模式：`GroupedByEpisode`、`Separate`、`IncidentsOnly`、`EpisodesOnly`，或者在兩者都不顯示的頁面的概覽上為 `None`。當頁面同時顯示事件與片段時，`episodes` 和 `activeEpisodes` 中的每個片段都帶有 `incidents`：頁面顯示的該片段的事件，最新的在前，每個都帶有 `_id`、`title`、`declaredAt`、`incidentSeverity`、`currentIncidentState` 和 `monitors`。此時以 ID 讀取的事件會帶有 `partOfEpisodes`：它所屬的每個片段，帶有 `_id` 和 `title`。依片段分組時（**依片段分組顯示事件** 開啟），頁面把片段繪製為一張卡片，並且不再為它的事件單獨繪製事件卡片，沒有任何這類事件的片段不會出現在清單中；`incidents` 和 `activeIncidents` 仍然包含頁面顯示的每個事件，所以忽略片段的讀取方不會漏掉任何事件。凡是事件或片段列出其 `monitors` 的地方，都只包含頁面自己的監測器。
+
 ## 讀取概覽
 
 概覽就是取得整個頁面的一個要求。它與狀態頁繪製的資料相同，最多是 15 秒前的資料。
@@ -140,7 +142,9 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 繪製運作率長條所用的資料，以及頁面的長條顏色規則。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 頁面顯示的未解決事件、它們的公開備註與狀態變化，以及專案的事件狀態。 |
 | `timelineIncidents` | 運作率長條時間範圍內的事件（包括已解決的），用於長條的提示說明。 |
-| `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同內容。 |
+| `timelineEpisodes` | 在顯示片段但不顯示事件的頁面上，運作率長條的提示說明與每天的對話框改為列出的內容：運作率長條時間範圍內每個事件背後的片段，對於頁面本來就會單獨顯示的它的每個事件，只帶有 `declaredAt` 和頁面的 `monitors`。在其他所有頁面上為空。 |
+| `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同內容。每個片段都帶有 `monitors`，即它所顯示的事件所在的頁面監測器；當頁面也顯示事件時，還帶有 `incidents`。 |
+| `incidentListMode` | 頁面如何排列其事件與片段：`GroupedByEpisode`、`Separate`、`IncidentsOnly`、`EpisodesOnly` 或 `None`。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即將開始或正在進行的維護事件，以及它們的公開備註與狀態變化。 |
 | `timelineScheduledMaintenanceEvents` | 運作率長條時間範圍內已經開始的維護事件（進行中或已結束），用於長條的提示說明與每天的對話框：僅限頁面顯示、且包含頁面某個監測器的事件，每個事件只列出頁面的監測器。 |
 | `activeAnnouncements` | 目前顯示中的公告：已經開始且尚未結束。 |
@@ -195,7 +199,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | --- | -------------- |
 | `overallStatus` | 頁面的整體狀態，與其橫幅顯示的一致：`name`、`color` 與 `isOperational`。頁面上所有資源都是 **未監控** 時為 `null`。 |
 | `resources` | 頁面顯示的每個資源，依頁面順序：它在頁面上的 `name`、包含上層群組的 `groupName`、它的 `currentStatus`、`isMonitored`，以及 `isUnderMaintenance`。 |
-| `activeIncidents` | 頁面顯示的未解決事件，每個都帶有它所影響資源的 `affectedResourceIds`。 |
+| `activeIncidents` | 頁面顯示的未解決事件，每個都帶有它所影響資源的 `affectedResourceIds`。在顯示片段但不顯示事件的頁面上，則是它的進行中片段，也就是其概覽作為進行中事件列出的片段。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中與即將到來的維護事件，每個都帶有它的 `affectedResourceIds`。 |
 
 頁面不顯示資源的狀態時，以及 `isMonitored` 為 `false` 時，該資源的 `currentStatus` 為 `null`：後者表示沒有任何東西檢查該資源，因為其監測器的監測已關閉，或其監測器群組中每個監測器的監測都已關閉，所以頁面將其顯示為 **未監控**；或者還沒有任何東西檢查過該資源，所以頁面將其顯示為 **尚未監控**。只要進行中的事件指定了該資源的某個監測器，或其監測器群組中的某個監測器，無論這些監測器處於什麼狀態，`isUnderMaintenance` 都為 `true`。
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | 端點 | 回應中的鍵 |
 | -------- | -------------------- |
-| 事件 | `incidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
-| 片段 | `episodes`、`episodePublicNotes`、`episodeStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup` |
+| 事件 | `incidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup`、`incidentListMode` |
+| 片段 | `episodes`、`episodePublicNotes`、`episodeStateTimelines`、`incidentStates`、`statusPageResources`、`monitorsInGroup`、`incidentListMode` |
 | 維護事件 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates`、`statusPageResources`、`monitorsInGroup` |
 | 公告 | `announcements`、`statusPageResources`、`monitorsInGroup` |
 
@@ -407,7 +411,7 @@ for incident in incidents:
 
 ## 讀取狀態頁的其他方式
 
-- **RSS。** 每個狀態頁都提供 `/rss`，這是其事件、公告與維護事件的訂閱來源，每個項目的日期都與頁面上的一致。請參閱[可嵌入的徽章與 RSS 訂閱來源](/docs/status-pages/index#可嵌入的徽章與-rss-訂閱來源)。
+- **RSS。** 每個狀態頁都提供 `/rss`，這是其事件與片段、公告與維護事件的訂閱來源，每個項目的日期都與頁面上的一致，其中的事件依頁面的方式排列。請參閱[可嵌入的徽章與 RSS 訂閱來源](/docs/status-pages/index#可嵌入的徽章與-rss-訂閱來源)。
 - **llms.txt。** 每個狀態頁都在 `/rss` 旁邊提供 `/llms.txt`，它會為 AI 代理指出 RSS 訂閱來源與概覽 JSON 的位置。
 - **MCP。** AI 代理可以透過 OneUptime 的 MCP 伺服器 `https://oneuptime.com/mcp` 讀取頁面，不需要 API 金鑰，只要把頁面 ID 或網域當作 `statusPageIdOrDomain` 傳入。此功能預設開啟；可在頁面側邊選單的 **進階 → MCP** 中以 **啟用 MCP 伺服器** 關閉。請參閱 [MCP 伺服器](/docs/ai/mcp-server)。
 - **REST API。** 若要建立或變更狀態頁、資源、訂閱者與公告，請使用 API 金鑰呼叫 [OneUptime API](/docs/api-reference/api-reference)。

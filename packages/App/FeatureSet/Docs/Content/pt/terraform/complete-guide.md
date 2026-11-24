@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+Já um ajuste que alguém adiciona no OneUptime às etapas de um monitor, e que a sua configuração não escreve, é uma diferença: o próximo plan mostra que `monitor_steps` muda, e o apply que vem a seguir remove o ajuste, como o plan diz. Para mantê-lo, escreva-o também na sua configuração.
+
 ## Rótulos e outras listas às quais o OneUptime também adiciona
 
 O OneUptime adiciona por conta própria a algumas listas de um registro: uma regra de rótulos adiciona seus rótulos aos registros com que corresponde, uma regra de plantão adiciona suas políticas aos incidentes e alertas com que corresponde, e as regras de monitores de um SLO vinculam os monitores com que correspondem. A referência diz isso de cada um desses atributos: "OneUptime adds to it too, on its own". Uma configuração que define uma delas mantém as entradas que lista e deixa o resto:

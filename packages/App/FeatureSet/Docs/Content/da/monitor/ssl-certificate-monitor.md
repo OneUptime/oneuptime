@@ -87,6 +87,8 @@ Kriterier afgør, hvornår certifikatet tæller som i orden, forringet eller fej
 
 **Dage til udløb** tæller hele dage: et certifikat, der udløber om 14 dage og 20 timer, har 14 dage tilbage. **Timer til udløb** tæller hele timer på samme måde.
 
+**Dage til udløb** tilbyder også **Evaluér disse kriterier over en periode**, og med **Forrige kontrol** sammenligner det hver kontrol med den samme sondes forrige. **Mindre end** med en **Værdi i kontrollens egen enhed** på `1` matcher, når de resterende dage er faldet med mere end én siden den forrige kontrol, som når certifikatet er blevet erstattet af et, der udløber før. **Større end** matcher, når de er steget, som når certifikatet er blevet fornyet. Se [Sammenlign en kontrol med den forrige](/docs/monitor/criteria-and-statuses#sammenlign-en-kontrol-med-den-forrige).
+
 Med to eller flere filtre afgør **Matchbetingelse**, om **Alle** skal matche, eller om **Enhver** af dem er nok. Et kriteriums **Handlinger** afgør, hvad det gør: ændrer monitorens status, opretter en advarsel, erklærer en hændelse eller flere af disse.
 
 ### Standardkriterier

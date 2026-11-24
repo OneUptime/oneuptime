@@ -84,7 +84,8 @@ export const MaxCapturedMetricAttributeValueLength: number = 1000;
  * The monitor's own identity, stamped by `buildMonitorMetricAttributes` and by
  * the custom-metric block itself. A script that could overwrite these would be
  * able to file its datapoints under a different monitor, or hide them from the
- * Custom Metrics tab.
+ * Custom Metrics tab - or, by the step every row names (#10906), under
+ * another step of its monitor.
  */
 const MonitorIdentityAttributeKeys: ReadonlyArray<string> = [
   "monitorId",
@@ -92,6 +93,12 @@ const MonitorIdentityAttributeKeys: ReadonlyArray<string> = [
   "monitorName",
   "probeName",
   "probeId",
+  /*
+   * MONITOR_STEP_ID_ATTRIBUTE, the step every row is stamped with, spelled
+   * out for the docs' facts test to read (CapturedMetricAttributeUtil.test
+   * holds the two to one name).
+   */
+  "monitorStepId",
   "isCustomMetric",
 ];
 

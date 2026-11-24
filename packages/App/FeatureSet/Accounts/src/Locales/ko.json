@@ -737,5 +737,6 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "오류 스택, 컴포넌트 스택, 민감 정보를 지운 페이지 URL, 브라우저 정보, OneUptime 빌드가 담긴 로컬 진단 파일을 내려받으세요. 쿠키, 저장된 브라우저 데이터, 양식 내용은 절대 읽지 않습니다. 공유하기 전에 검토하세요."
 }

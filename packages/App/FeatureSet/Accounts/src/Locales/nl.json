@@ -737,5 +737,6 @@
     "note": "Opmerking",
     "tip": "Tip",
     "warning": "Waarschuwing"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download een lokaal diagnosebestand met de foutstack, de componentstack, de opgeschoonde pagina-URL, browsergegevens en de OneUptime-build. Het leest nooit cookies, opgeslagen browsergegevens of formulierinhoud. Bekijk het voordat je het deelt."
 }

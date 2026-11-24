@@ -842,17 +842,15 @@ export default class ProductionReviewComposer {
       )}`,
     );
 
-    const item: string = `- ${lines
-      .map((line: MarkdownText): string => {
-        return line.toString();
-      })
-      .join("\n  ")}`;
+    // One list item: its lines under its bullet, each placed as written.
+    const item: MarkdownText = mdText`- ${FeedMarkdown.join(lines, "\n  ")}`;
 
     const diff: string = point.suggestion
       ? suggestionDiff(point.suggestion, "  ")
       : "";
 
-    return FeedMarkdown.asMarkdown(diff ? `${item}\n\n${diff}` : item);
+    // The suggested change's diff block, fenced where it was built.
+    return diff ? mdText`${item}\n\n${FeedMarkdown.asMarkdown(diff)}` : item;
   }
 
   /*

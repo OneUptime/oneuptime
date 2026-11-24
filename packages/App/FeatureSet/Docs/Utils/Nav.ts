@@ -1892,6 +1892,11 @@ const DocsNav: NavGroup[] = [
         title: "Session Length",
         url: "/docs/self-hosted/session-length",
       },
+      // Where the server sends its people for help, and what it hides (#10864-#10866).
+      {
+        title: "Help and Support",
+        url: "/docs/self-hosted/help-and-support",
+      },
       // What the daily update and security advisory check sends, and how to turn it off.
       {
         title: "Update and Security Checks",

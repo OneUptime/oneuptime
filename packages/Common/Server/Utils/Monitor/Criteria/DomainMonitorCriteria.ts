@@ -9,6 +9,7 @@ import DomainMonitorResponse from "../../../../Types/Monitor/DomainMonitor/Domai
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 
 export default class DomainMonitorCriteria {
   @CaptureSpan()
@@ -22,6 +23,11 @@ export default class DomainMonitorCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -38,6 +44,7 @@ export default class DomainMonitorCriteria {
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*

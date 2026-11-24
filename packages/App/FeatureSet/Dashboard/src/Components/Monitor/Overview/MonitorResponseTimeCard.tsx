@@ -8,6 +8,8 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import Probe from "Common/Models/DatabaseModels/Probe";
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
+import MonitorStepSeries from "Common/Types/Monitor/MonitorStepSeries";
+import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -33,6 +35,11 @@ export interface ComponentProps {
   metric: MonitorMetricType;
   // The probes attached to this monitor, to name each series.
   probes: Array<Probe>;
+  /*
+   * The monitor's steps: on a monitor with several, each step's checks are a
+   * line of their own (#10906).
+   */
+  monitorSteps?: MonitorSteps | undefined;
   // From the latest probe results; shown when the chart cannot be.
   responseTime: MonitorOverviewResponseTime | null;
 }
@@ -132,6 +139,15 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
   const title: string = getResponseTimeCardTitle(props.metric);
   const monitorIdString: string = props.monitorId.toString();
 
+  // The steps' ids, in order: a step added or moved relabels each line.
+  const stepKey: string = MonitorStepSeries.getStepCount(props.monitorSteps)
+    ? (props.monitorSteps?.data?.monitorStepsInstanceArray || [])
+        .map((step: { data?: { id?: string } | undefined }): string => {
+          return step.data?.id || "";
+        })
+        .join("|")
+    : "";
+
   // Ids and names: a renamed probe must relabel its series.
   const probeKey: string = props.probes
     .map((probe: Probe) => {
@@ -156,6 +172,7 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
        * the reader's language (#8282).
        */
       translator: translator,
+      monitorSteps: props.monitorSteps,
     });
 
     /*
@@ -177,6 +194,7 @@ const MonitorResponseTimeCard: FunctionComponent<ComponentProps> = (
     props.monitorType,
     props.metric,
     probeKey,
+    stepKey,
     translator.language,
   ]);
 

@@ -3855,6 +3855,66 @@ export default class StatusPage extends BaseModel {
   })
   public showEpisodeLabelsOnStatusPage?: boolean = undefined;
 
+  /*
+   * How the page lays out an incident that belongs to an episode it shows,
+   * while it shows both lists (showIncidentsOnStatusPage and
+   * showEpisodesOnStatusPage). On, the episode is one card that lists its
+   * incidents - the ones the page shows on their own - and the resources
+   * they affect, and those incidents get no card of their own; an incident
+   * in no episode the page shows keeps its own card
+   * (Common/Utils/StatusPage/IncidentGrouping). Off, every incident and
+   * every episode has a card of its own, as pages always had them.
+   *
+   * On for a new page. A page made before the setting existed keeps it off,
+   * so it shows what it always showed until someone turns it on
+   * (AddGroupIncidentsByEpisodeToStatusPage).
+   *
+   * Not plan-gated, like onlyShowScopedIncidents: it shows nothing the page
+   * does not show already, only how.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Show Incidents Grouped by Episode",
+    description:
+      "When on, an episode shows on the status page as one card that lists its incidents and the resources they affect, instead of a card for each of its incidents.",
+    defaultValue: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: true,
+    nullable: false,
+  })
+  public groupIncidentsByEpisode?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

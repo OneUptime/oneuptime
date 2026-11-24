@@ -154,6 +154,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "The status page ID.",
     "The base URL.",
     "Which incidents a page returns.",
+    // How the answers lay incidents out, grouped by episode or not (#10767).
+    "How a page lays its incidents out.",
     "RSS.",
     "llms.txt.",
     "MCP.",

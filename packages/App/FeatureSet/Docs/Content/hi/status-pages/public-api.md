@@ -70,6 +70,8 @@ flowchart TB
 
 **पृष्ठ कौन-सी घटनाएं लौटाता है।** घटनाओं का एंडपॉइंट पृष्ठ के मॉनिटरों की घटनाएं लौटाता है, उनमें से वे घटाकर जो दूसरे स्थिति पृष्ठों तक सीमित हैं, और अगर पृष्ठ सिर्फ़ अपने तक सीमित घटनाएं दिखाता है, तो वे सभी घटनाएं भी घटाकर जो इस पृष्ठ तक सीमित नहीं हैं (देखें [हर ऑडियंस के लिए एक स्थिति पृष्ठ](/docs/status-pages/one-status-page-per-audience))। कोई घटना किन पृष्ठों तक सीमित है, यह जवाब में कभी शामिल नहीं होता।
 
+**पृष्ठ अपनी घटनाओं को कैसे रखता है।** अवलोकन और घटना व एपिसोड की सूचियाँ पृष्ठ का मोड `incidentListMode` में बताती हैं: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly`, या उस पृष्ठ के अवलोकन पर `None` जो दोनों में से कुछ नहीं दिखाता। जब पृष्ठ घटनाएँ और एपिसोड दोनों दिखाता है, तो `episodes` और `activeEpisodes` में हर एपिसोड के साथ `incidents` होता है: उसकी वे घटनाएँ जो पृष्ठ दिखाता है, सबसे नई पहले, हर एक अपने `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState` और `monitors` के साथ। तब अपनी ID से पढ़ी गई घटना के साथ `partOfEpisodes` होता है: हर वह एपिसोड जिसका वह हिस्सा है, अपने `_id` और `title` के साथ। एपिसोड के अनुसार समूहित होने पर, यानी **घटनाएं एपिसोड के अनुसार समूहित करके दिखाएं** चालू होने पर, पृष्ठ एपिसोड को एक कार्ड के रूप में बनाता है और उसकी घटनाओं को घटना कार्डों से बाहर रखता है, और जिस एपिसोड में ऐसी कोई घटना नहीं है उसे सूचियों से बाहर रखा जाता है; `incidents` और `activeIncidents` में फिर भी पृष्ठ पर दिखने वाली हर घटना रहती है, इसलिए एपिसोड को अनदेखा करने वाला पाठक कोई घटना नहीं चूकता। जहाँ भी कोई घटना या एपिसोड अपने `monitors` बताता है, वे केवल पृष्ठ के अपने मॉनिटर होते हैं।
+
 ## अवलोकन पढ़ें
 
 अवलोकन पूरे पृष्ठ के लिए एक रिक्वेस्ट है। यह वही डेटा है जिसे स्थिति पृष्ठ बनाता है, और यह ज़्यादा से ज़्यादा 15 सेकंड पुराना होता है।
@@ -140,7 +142,9 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | वह डेटा जिससे अपटाइम बार बनते हैं, और पृष्ठ के बार रंग नियम। |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएं, उनके सार्वजनिक नोट और स्थिति बदलाव, और प्रोजेक्ट की घटना स्थितियां। |
 | `timelineIncidents` | अपटाइम बार की अवधि की घटनाएं, सुलझी हुई भी, बार के टूलटिप के लिए। |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | घटना एपिसोड के लिए यही सब। |
+| `timelineEpisodes` | ऐसे पृष्ठ पर जो एपिसोड दिखाता है पर घटनाएँ नहीं, वह जो अपटाइम बार के टूलटिप और हर दिन के डायलॉग इसके बजाय दिखाते हैं: बार की अवधि में हर घटना के पीछे का एपिसोड, उसकी हर उस घटना के केवल `declaredAt` और पृष्ठ के `monitors` के साथ जिसे पृष्ठ अपने-आप में दिखाता। बाकी हर पृष्ठ पर खाली। |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | घटना एपिसोड के लिए यही सब। हर एपिसोड के साथ `monitors` होते हैं, पृष्ठ के वे मॉनिटर जिन पर उसकी दिखने वाली घटनाएँ हैं, और जब पृष्ठ घटनाएँ भी दिखाता है, तो `incidents` भी। |
+| `incidentListMode` | पृष्ठ अपनी घटनाओं और एपिसोड को कैसे रखता है: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` या `None`। |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | रखरखाव इवेंट जो अभी आने वाले हैं या चल रहे हैं, उनके सार्वजनिक नोट और स्थिति बदलाव। |
 | `timelineScheduledMaintenanceEvents` | अपटाइम बार की अवधि के वे रखरखाव इवेंट जो शुरू हो चुके हैं, जारी या समाप्त, बार के टूलटिप और हर दिन के डायलॉग के लिए: पृष्ठ पर दिखने वाले इवेंट जिनमें पृष्ठ का कोई मॉनिटर शामिल है, हर एक के साथ केवल पृष्ठ के मॉनिटर। |
 | `activeAnnouncements` | अभी दिख रही घोषणाएं: शुरू हो चुकी और खत्म नहीं हुई। |
@@ -195,7 +199,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | --- | -------------- |
 | `overallStatus` | पृष्ठ की समग्र स्थिति, जैसी उसका बैनर दिखाता है: `name`, `color` और `isOperational`। जब पृष्ठ का हर संसाधन **निगरानी नहीं** होता, तो `null`। |
 | `resources` | पृष्ठ पर दिखने वाला हर संसाधन, उसी क्रम में: पृष्ठ पर उसका `name`, ऊपर के समूहों सहित उसका `groupName`, उसका `currentStatus`, `isMonitored`, और `isUnderMaintenance`। |
-| `activeIncidents` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएँ, हर एक के साथ उन संसाधनों के `affectedResourceIds` जिन्हें वह प्रभावित करती है। |
+| `activeIncidents` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएँ, हर एक के साथ उन संसाधनों के `affectedResourceIds` जिन्हें वह प्रभावित करती है।ऐसे पृष्ठ पर जो एपिसोड दिखाता है पर घटनाएँ नहीं, उसके सक्रिय एपिसोड, जिन्हें उसका अवलोकन उसकी सक्रिय घटनाओं के रूप में दिखाता है। |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | जारी और आने वाले रखरखाव इवेंट, हर एक के साथ उसके `affectedResourceIds`। |
 
 जब पृष्ठ किसी संसाधन की स्थिति नहीं दिखाता, और जब `isMonitored` `false` होता है, तो उसका `currentStatus` `null` होता है: तब संसाधन की कोई जाँच नहीं होती, क्योंकि उसके मॉनिटर की निगरानी बंद है या उसके मॉनिटर समूह के हर मॉनिटर की निगरानी बंद है, इसलिए पृष्ठ उसे **निगरानी नहीं** के रूप में दिखाता है, या अभी तक उसकी कोई जांच नहीं हुई, इसलिए पृष्ठ उसे **अभी तक निगरानी नहीं** के रूप में दिखाता है। जब तक कोई जारी इवेंट संसाधन के किसी मॉनिटर या उसके मॉनिटर समूह के किसी मॉनिटर का नाम लेता है, `isUnderMaintenance` `true` रहता है, चाहे वे मॉनिटर किसी भी स्थिति में हों।
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | एंडपॉइंट | जवाब में कुंजियां |
 | -------- | -------------------- |
-| घटनाएं | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| एपिसोड | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| घटनाएं | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| एपिसोड | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | रखरखाव इवेंट | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | घोषणाएं | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ for incident in incidents:
 
 ## स्थिति पृष्ठ पढ़ने के दूसरे तरीके
 
-- **RSS।** हर स्थिति पृष्ठ `/rss` देता है, जो उसकी घटनाओं, घोषणाओं और रखरखाव इवेंट का फ़ीड है, और हर आइटम पर वही तारीख़ होती है जो पृष्ठ पर है। देखें [embed होने वाला badge और RSS feed](/docs/status-pages/index#एम्बेड-करने-योग्य-बैज-और-rss-फ़ीड)।
+- **RSS।** हर स्थिति पृष्ठ `/rss` देता है, जो उसकी घटनाओं और एपिसोड, घोषणाओं और रखरखाव इवेंट का फ़ीड है, हर आइटम पर वही तारीख़ होती है जो पृष्ठ पर है, और उसकी घटनाएँ वैसे ही रखी जाती हैं जैसे पृष्ठ उन्हें रखता है। देखें [embed होने वाला badge और RSS feed](/docs/status-pages/index#एम्बेड-करने-योग्य-बैज-और-rss-फ़ीड)।
 - **llms.txt।** `/rss` के साथ ही हर स्थिति पृष्ठ `/llms.txt` भी देता है, जो AI एजेंटों को RSS फ़ीड और अवलोकन JSON का पता बताता है।
 - **MCP।** AI एजेंट OneUptime के MCP सर्वर `https://oneuptime.com/mcp` के ज़रिए बिना API कुंजी के पृष्ठ पढ़ सकते हैं, पृष्ठ की ID या डोमेन को `statusPageIdOrDomain` के रूप में देकर। यह डिफ़ॉल्ट रूप से चालू रहता है; इसे पृष्ठ के साइड मेन्यू में **उन्नत → MCP** के तहत **MCP सर्वर सक्षम करें** से बंद करें। देखें [MCP सर्वर](/docs/ai/mcp-server)।
 - **REST API।** स्थिति पृष्ठ, संसाधन, सब्सक्राइबर और घोषणाएं बनाने या बदलने के लिए, API कुंजी के साथ [OneUptime API](/docs/api-reference/api-reference) इस्तेमाल करें।

@@ -10,6 +10,7 @@ import {
 import IncomingMonitorRequest from "../../../../Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import Typeof from "../../../../Types/Typeof";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import CompareCriteria from "./CompareCriteria";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
@@ -27,6 +28,11 @@ export default class IncomingRequestCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
@@ -51,6 +57,7 @@ export default class IncomingRequestCriteria {
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*
