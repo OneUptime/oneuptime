@@ -29,8 +29,8 @@ import TimeoutException from "../../Types/Exception/TimeoutException";
  * How long past its time limit a run has to finish the work in flight when
  * its deadline passed - the page being written, the owner being told - and
  * return. Its cron lock waits as long for it (CronLock), and the queue fails
- * the job only once it has not returned by then (QueueWorker). Until it did,
- * a run that stopped at its deadline was failed in the same instant
+ * the job only once it has not returned by then (QueueWorker). Before this
+ * grace, a run that stopped at its deadline was failed in the same instant
  * ("Job Timeout"), so a backlog worked through over several runs read as a
  * failing job every run (OneUptime issue #11017).
  */

@@ -429,7 +429,8 @@ export default class QueueWorker {
    * limit is recorded as it settled: a backlog worked through over several
    * runs - each run stopping at its deadline, the next carrying on - is not
    * a failure. A job still going at the end of the grace is failed with a
-   * TimeoutException ("Job Timeout"), the reason its deadline passed with.
+   * TimeoutException ("Job Timeout") - the reason its deadline passed with,
+   * unless something ended the deadline earlier (CronLock, its lock lost).
    * Nothing cuts off work already in flight - a job that never checks its
    * deadline runs on as before, only failed.
    */
