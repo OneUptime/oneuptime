@@ -3037,13 +3037,13 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
     /*
      * An exception recorded before keeps its first fingerprint: v1's is tried
-     * first, then v2's, then v3's, each with its keyed one, and a new
-     * exception is made under v3's (`fingerprintV2`, the one it is made under).
+     * first, then v2's, v3's and v4's, each with its keyed one, and a new
+     * exception is made under v4's (`fingerprintV2`, the one it is made under).
      */
-    expect(exceptionUtil).toContain(
-      "const ofArrived: Array<string> = [v1, keyedV1, v2, keyedV2, v3, keyedV3];",
+    expect(exceptionUtil.replace(/\s+/g, " ")).toContain(
+      "const ofArrived: Array<string> = [ v1, keyedV1, v2, keyedV2, v3, keyedV3, v4, keyedV4, ];",
     );
-    expect(exceptionUtil).toContain("fingerprintV2: v3,");
+    expect(exceptionUtil).toContain("fingerprintV2: v4,");
     expect(exceptionUtil).toContain("chosen.set(key, candidate.v2);");
 
     const troubleshooting: string = section(page, "## Troubleshooting");

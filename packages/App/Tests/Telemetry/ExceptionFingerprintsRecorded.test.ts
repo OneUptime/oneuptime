@@ -390,6 +390,51 @@ if (RECORD) {
       }
     });
 
+    test("grouping v4: a new exception grouped by its message is made under a fingerprint no exception of before had, and one grouped by its frames under v2's, as before", () => {
+      const recordedFingerprints: Set<string> = new Set<string>();
+
+      for (const before of recorded.entries) {
+        for (const occurrence of occurrencesOf(before)) {
+          for (const fingerprint of occurrence.fingerprints
+            .fingerprintCandidates) {
+            recordedFingerprints.add(fingerprint);
+          }
+        }
+      }
+
+      let byMessage: number = 0;
+
+      for (const [index, entry] of now.entries()) {
+        const before: RecordedEntry = recorded.entries[index]!;
+
+        for (const then of occurrencesOf(before)) {
+          const current: OccurrenceFingerprints = occurrencesOf(entry).find(
+            (occurrence: { variant: string }): boolean => {
+              return occurrence.variant === then.variant;
+            },
+          )!.fingerprints;
+
+          if (before.v2Text === before.v3Text) {
+            // Grouped by its frames: v4 is v2, every fingerprint as it was.
+            expect(current).toEqual(then.fingerprints);
+            continue;
+          }
+
+          byMessage++;
+          expect({
+            name: entry.name,
+            new: recordedFingerprints.has(current.fingerprintV2),
+          }).toEqual({ name: entry.name, new: false });
+          // Two more fingerprints tried, after every one of before.
+          expect(current.fingerprintCandidates).toHaveLength(
+            then.fingerprints.fingerprintCandidates.length + 2,
+          );
+        }
+      }
+
+      expect(byMessage).toBeGreaterThan(400);
+    });
+
     test("the pairs a scrub rule split (#10618) are found by what they were found by", () => {
       for (const [index, entry] of now.entries()) {
         const before: RecordedEntry = recorded.entries[index]!;
