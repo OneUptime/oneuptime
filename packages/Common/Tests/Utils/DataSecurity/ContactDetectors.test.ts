@@ -23,6 +23,7 @@ import {
   TextMatch,
 } from "../../../Utils/DataSecurity/TextScanner";
 import AndroidAgentRedactor from "../../../Utils/Host/AndroidAgentRedactor";
+import { INTERNATIONAL_PHONE_NUMBERS } from "../../Helpers/InternationalPhoneNumbers";
 
 /*
  * CONTACT AND IDENTITY, AS THE SCANNER FINDS THEM.
@@ -516,6 +517,114 @@ describe("phone-number", () => {
   test("takes a bare national number only next to phone words", () => {
     expectFound("tel 0201234567", [found("phone-number", "0201234567", H)]);
     expectNothingOf("phone-number", ["id 0201234567", "0201234567"]);
+  });
+
+  /*
+   * #11025: a Phone Number scrub rule hides what these find with no word
+   * beside the value, so every international number grouping v4 takes for
+   * one is found whole - in parentheses, after a no-break space - and what
+   * only looks like one is not.
+   */
+  test.each(
+    INTERNATIONAL_PHONE_NUMBERS.map((phone: string) => {
+      return [phone];
+    }),
+  )("finds an international number as people write it: %s", (phone: string) => {
+    const matches: Array<Found> = scan(
+      `SMS to ${phone} was not delivered`,
+    ).filter((match: Found) => {
+      return match.dataTypeId === "phone-number";
+    });
+
+    expect(matches).toHaveLength(1);
+    // Whole: every digit of it, the "(" a calling code opens left aside.
+    expect(matches[0]!.value).toBe(phone.replace(/^\(/, ""));
+    expect(matches[0]!.confidence).not.toBe(L);
+  });
+
+  test("refuses what only looks like an international number", () => {
+    expectNothingOf("phone-number", [
+      // A decimal, a coordinate, a pair of them, an address.
+      "delta +51.507217 out of range",
+      "delta +12.345678",
+      "at +40.6894-074.0447/",
+      "at +48.8584 2.2945",
+      "at +51.507217, -0.127758",
+      "peer +192.168.100.200",
+      // A time zone's offset beside a date.
+      "at UTC +1 2026-11-24 10:15:00",
+      "at GMT +12 2026-11-24",
+      "at GMT+5 1999-12-31 23:59",
+      // A count, and groups of one.
+      "call +1 2 3 4 5 6 7 8 failed",
+      "call +44 20 7 9 4 6 0 9 5 8",
+      // Too short, or too long to be one.
+      "balance +1 000 000 left",
+      "call +44 2079",
+      "call +44 20 7946 0958 12 34",
+    ]);
+  });
+
+  test("a group of one is a phone number's right after the calling code, or in parentheses", () => {
+    expectFound("+33 1 23 45 67 89", [
+      found("phone-number", "+33 1 23 45 67 89", M),
+    ]);
+    expectFound("+44 (0) 20 7946 0123", [
+      found("phone-number", "+44 (0) 20 7946 0123", M),
+    ]);
+    expectFound("+81 (3) 1234-5678", [
+      found("phone-number", "+81 (3) 1234-5678", M),
+    ]);
+  });
+
+  test("dots set a number's groups apart only two or more at a time, and never beside a hyphen", () => {
+    expectFound("+44.20.8123.4567", [
+      found("phone-number", "+44.20.8123.4567", M),
+    ]);
+    expectFound("+1.415.555.2671", [
+      found("phone-number", "+1.415.555.2671", M),
+    ]);
+    expectNothingOf("phone-number", ["+44.2081234567", "+44.20.8123-4567"]);
+  });
+
+  test("a calling code in parentheses is found with the number, its closing one too", () => {
+    expectFound("(+44) 20 8123 4567", [
+      found("phone-number", "+44) 20 8123 4567", M),
+    ]);
+    // A ")" anywhere else is still unbalanced.
+    expectNothingOf("phone-number", [
+      "+44 20) 7946 0123",
+      "+44) 20) 7946 0123",
+    ]);
+  });
+
+  test("is found in a percent-encoded URL, placed on the characters it is written with (#11030)", () => {
+    expectFound("GET /callback?phone=%2B49%2030%2012345678&step=2", [
+      found("phone-number", "%2B49%2030%2012345678", H),
+    ]);
+    expectFound("/notify?to=%28415%29%20555-2671", [
+      found("phone-number", "%28415%29%20555-2671", M),
+    ]);
+    expectNothingOf("phone-number", [
+      "/assets/logo%2B2x.png",
+      "delta %2B51.507217",
+    ]);
+  });
+
+  test("is found in every script's digits, each read by its value (#11030)", () => {
+    expectFound("هاتف +٤٩ ٣٠ ١٢٣٤٥٦٧٨", [
+      found("phone-number", "+٤٩ ٣٠ ١٢٣٤٥٦٧٨", M),
+    ]);
+    expectFound("شماره +۴۹ ۳۰ ۱۲۳۴۵۶۷۸", [
+      found("phone-number", "+۴۹ ۳۰ ۱۲۳۴۵۶۷۸", M),
+    ]);
+    expectFound("電話 +８１ ３-１２３４-５６７８", [
+      found("phone-number", "+８１ ３-１２３４-５６７８", M),
+    ]);
+    expectFound("هاتف ٤١٥-٥٥٥-٢٦٧١", [
+      found("phone-number", "٤١٥-٥٥٥-٢٦٧١", M),
+    ]);
+    expectNothingOf("phone-number", ["دلتا +٥١.٥٠٧٢١٧", "+١ ٢ ٣ ٤ ٥ ٦ ٧ ٨"]);
   });
 
   test("refuses placeholder digit runs", () => {
