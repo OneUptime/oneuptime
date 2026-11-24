@@ -180,6 +180,10 @@ export const SECURITY_CASE_AI_ACTION_REASON_SENTENCES: Readonly<
   [SecurityCaseAiActionReason.NothingToFixInCode]: translationKey(
     "None of the case's requests threw an exception, so there is no code to fix.",
   ),
+  // The hand-off's own words for it (SECURITY_CASE_HAND_OFF_SENTENCES).
+  [SecurityCaseAiActionReason.ProductOff]: translationKey(
+    "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+  ),
   [SecurityCaseAiActionReason.EngineFailed]:
     translationKey("It did not finish."),
   [SecurityCaseAiActionReason.UndoneByPerson]:
