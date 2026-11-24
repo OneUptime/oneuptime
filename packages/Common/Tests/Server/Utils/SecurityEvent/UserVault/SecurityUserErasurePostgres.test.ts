@@ -21,6 +21,7 @@ import {
 import { SecurityEntityType } from "../../../../../Types/SecurityCase/SecurityEntity";
 import SecurityPlaybookRunStatus from "../../../../../Types/SecurityPlaybook/SecurityPlaybookRunStatus";
 import { SecurityUserErasureRequestStatus } from "../../../../../Types/SecurityEvent/SecurityUserErasure";
+import { detectionRuleMatchMarkdown } from "../../../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { getEntityCaseGroupingKey } from "../../../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import { ErasedName } from "../../../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import {
@@ -42,9 +43,11 @@ import { DataSource } from "typeorm";
  *
  *   - detections: the "<rule> — <name>" title, the group value, the
  *     entities and the kept events get the token - found by the name in a
- *     jsonb column's text, which only a real driver shows;
- *   - cases: the title, the entities and the grouping key, written with
- *     SQL of their own (so the audit log never keeps the name);
+ *     jsonb column's text, which only a real driver shows - and so does
+ *     their description, where OneUptime wrote the name as a value;
+ *   - cases: the title, the description, the entities and the grouping
+ *     key, written with SQL of their own (so the audit log never keeps the
+ *     name);
  *   - entity risk: the person's row deleted, everybody else's kept;
  *   - proposals: an action of OneUptime AI's waiting for approval to act on
  *     them withdrawn (Left, PersonErased), a playbook run waiting for
@@ -384,6 +387,79 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
       expect((await rowOf("SecurityCase", otherProjectCaseId))["title"]).toBe(
         `Repeated failed sign-ins for one account — ${ALICE}`,
       );
+    });
+
+    test("a detection's description, and the case's it opened, get the token where OneUptime wrote the name as a value", async () => {
+      /*
+       * What DetectionRuleEvaluator writes about a user: the correlation's
+       * sentence, then the observables. Written about the token, it is what
+       * the erasure must leave.
+       */
+      const description: (user: string) => string = (user: string): string => {
+        return detectionRuleMatchMarkdown({
+          ruleName: "New account on a server",
+          matchCount: 3,
+          windowStart: "2026-11-24T09:00:00Z",
+          windowEnd: "2026-11-24T09:15:00Z",
+          correlationSummary: `First principalUser in 7 days: ${user}, ${BOB}`,
+          sampleMessage: `Accepted password for ${aliceToken}`,
+          observables: [user, ADDRESS],
+        }).toString();
+      };
+
+      // Nothing but the description names her: it alone finds them.
+      const caseId: ObjectID = await insert("SecurityCase", {
+        projectId: projectId.toString(),
+        title: "New accounts on the build servers",
+        description: description(ALICE),
+      });
+      const detectionId: ObjectID = await insert("SecurityDetection", {
+        projectId: projectId.toString(),
+        securityCaseId: caseId.toString(),
+        title: "New account on a server",
+        description: description(ALICE),
+      });
+      // Only in other words, as a person would write it: stays.
+      const peopleCaseId: ObjectID = await insert("SecurityCase", {
+        projectId: projectId.toString(),
+        title: "Ask the help desk",
+        description: `Call ${ALICE} about her sign-ins. What happened: she lost her phone.`,
+      });
+
+      expect(
+        await SecurityUserErasureRecords.unnameDetections({ projectId, names }),
+      ).toEqual([caseId.toString()]);
+      expect(
+        await SecurityUserErasureRecords.unnameCases({ projectId, names }),
+      ).toEqual([caseId.toString()]);
+
+      const unnamed: string = description(aliceToken);
+
+      expect(unnamed).toContain(`: \\${aliceToken.slice(0, -1)}\\], ${BOB}.`);
+      expect(
+        (await rowOf("SecurityDetection", detectionId))["description"],
+      ).toBe(unnamed);
+
+      const securityCase: Record<string, unknown> = await rowOf(
+        "SecurityCase",
+        caseId,
+      );
+
+      expect(securityCase["description"]).toBe(unnamed);
+      expect(securityCase["version"]).toBe(2);
+      expect(JSON.stringify(securityCase)).not.toContain(ALICE);
+      // Another user the sentence lists keeps their name.
+      expect(securityCase["description"]).toContain(`, ${BOB}.`);
+
+      expect((await rowOf("SecurityCase", peopleCaseId))["version"]).toBe(1);
+
+      // Done again, nothing more is found.
+      expect(
+        await SecurityUserErasureRecords.unnameDetections({ projectId, names }),
+      ).toEqual([]);
+      expect(
+        await SecurityUserErasureRecords.unnameCases({ projectId, names }),
+      ).toEqual([]);
     });
 
     test("a case that only mentions the name in other words is left as people wrote it", async () => {
