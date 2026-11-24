@@ -22,6 +22,8 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
+import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -58,8 +60,13 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
+  /*
+   * The counts are still being read: the shape of the value that comes,
+   * announced as loading - not a dash, which says the rule changed
+   * nothing (Docs/ux/README.md#loading).
+   */
   if (props.isChecked === undefined) {
-    return <span className="text-sm text-gray-400">-</span>;
+    return <InlineValueSkeleton widthClassName="w-24" />;
   }
 
   if (props.isChecked === false) {
@@ -150,7 +157,9 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                           {service.valueCount.toLocaleString()}
                         </td>
                         <td className="py-2 text-gray-700">
-                          {whenOf(service.lastChangedAt)}
+                          {whenOf(service.lastChangedAt) || (
+                            <TableEmptyValue />
+                          )}
                         </td>
                       </tr>
                     );
