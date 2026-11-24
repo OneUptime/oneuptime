@@ -3,6 +3,7 @@ import { MAX_NETBIOS_MAX_HOSTS_OVERRIDE } from "./Utils/Discovery/NetbiosNameRes
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
+import { ProbeStartupMessages } from "Common/Types/Probe/ProbeConnectionRefusals";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
 import {
@@ -41,7 +42,7 @@ import ProbeInterfaceAddressesUtil, {
 } from "Common/Types/Probe/ProbeInterfaceAddresses";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
-  logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
+  logger.error(ProbeStartupMessages.noServerAddress);
   process.exit(1);
 }
 
@@ -75,7 +76,7 @@ export const PROBE_ID: ObjectID | null = process.env["PROBE_ID"]
   : null;
 
 if (!process.env["PROBE_KEY"]) {
-  logger.error("PROBE_KEY is not set");
+  logger.error(ProbeStartupMessages.noProbeKey);
   process.exit(1);
 }
 

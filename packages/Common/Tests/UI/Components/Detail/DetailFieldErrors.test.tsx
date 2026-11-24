@@ -267,9 +267,9 @@ describe("Detail: a throwing field renderer never takes down the page", () => {
       throwingField("title", "Episode Title", new Error("boom")),
     ]);
 
-    expect(container.textContent).not.toContain("Something went wrong");
+    expect(container.textContent).not.toContain("This page stopped working");
     expect(container.textContent).not.toContain(
-      "An unexpected error has occurred",
+      "Part of this page ran into a problem",
     );
   });
 });

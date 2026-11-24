@@ -662,7 +662,9 @@ export default class HeldPermissionsUtil {
     ]);
 
     if (titles.length === 0) {
-      return `${data.operation} on ${data.recordName} is not allowed: nobody may read it.`;
+      return `${data.recordName || "These"} records cannot be ${HeldPermissionsUtil.getOperationPastParticiple(
+        data.operation,
+      )} by anyone, because nobody may read them.`;
     }
 
     return `You do not have permissions to ${data.operation} ${
@@ -672,6 +674,40 @@ export default class HeldPermissionsUtil {
     } a record needs permission to read it too. You need one of these permissions: ${titles.join(
       ", ",
     )}`;
+  }
+
+  // An operation as a refusal says it was not done: "created", "updated".
+  public static getOperationPastParticiple(operation: string): string {
+    switch (operation) {
+      case "create":
+        return "created";
+      case "read":
+        return "read";
+      case "update":
+        return "updated";
+      case "delete":
+        return "deleted";
+      default:
+        return `${operation}d`;
+    }
+  }
+
+  /*
+   * An operation no permission allows on a table (#7276): its permission
+   * list for the operation is empty, so nobody may do it through the
+   * Dashboard or the API - OneUptime keeps such records itself (an alert's
+   * feed, an invoice). The database models (TablePermission) and the
+   * analytics models (AnalyticsDatabase/ModelPermission) refuse it in these
+   * words. It read "update on Alert Feed is not allowed.", the operation in
+   * lower case first.
+   */
+  public static getNobodyMayRefusal(data: {
+    recordName: string | null | undefined;
+    operation: string;
+  }): string {
+    return `${data.recordName || "These"} records cannot be ${HeldPermissionsUtil.getOperationPastParticiple(
+      data.operation,
+    )} through the Dashboard or the API: OneUptime keeps them itself.`;
   }
 
   // The *AllOperationalResources wildcard for an operation.

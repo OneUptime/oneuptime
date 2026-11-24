@@ -28,6 +28,7 @@
  *     with a probe's id and a wrong key. It used to have 50 MiB inflated and
  *     8,000,000 values counted first.
  */
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import FakeCounterRedis from "Common/Tests/Server/TestingUtils/Redis/FakeCounterRedis";
 import {
   WRONG_COMPONENT_KEYS_PER_ADDRESS,
@@ -624,7 +625,7 @@ describe("a probe that sends its key in the headers", () => {
 
     // The same refusal a wrong key in a body gets.
     expect(answer.status).toBe(400);
-    expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");
+    expect(answer.body["message"]).toBe(ProbeConnectionRefusals.wrongIdOrKey);
 
     expect(gzipReads).not.toHaveBeenCalled();
     expect(watched.inflated).toBe(0);
@@ -647,7 +648,7 @@ describe("a probe that sends its key in the headers", () => {
     });
 
     expect(answer.status).toBe(400);
-    expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");
+    expect(answer.body["message"]).toBe(ProbeConnectionRefusals.wrongIdOrKey);
     expect(gzipReads).not.toHaveBeenCalled();
     expect(mockRecorded).toEqual([]);
   });
@@ -737,7 +738,9 @@ describe("a probe that sends its key in the headers", () => {
       });
 
       expect(answer.status).toBe(400);
-      expect(answer.body["message"]).toBe("ProbeId or ProbeKey is missing");
+      expect(answer.body["message"]).toBe(
+        ProbeConnectionRefusals.missingIdOrKey,
+      );
     }
 
     expect(gzipReads).not.toHaveBeenCalled();
@@ -882,7 +885,7 @@ describe("an older probe, whose key is in its report alone", () => {
     });
 
     expect(answer.status).toBe(400);
-    expect(answer.body["message"]).toBe("Invalid Probe ID or Probe Key");
+    expect(answer.body["message"]).toBe(ProbeConnectionRefusals.wrongIdOrKey);
     expect(answer.connection).toBe("close");
     expect(watched.inflated).toBeLessThanOrEqual(MOST_INFLATED_BEFORE_THE_KEY);
     expect(watched.counted).toBe(0);
@@ -962,7 +965,7 @@ describe("a client without the right key", () => {
         return zlib.gzipSync(emptyObjects(7900000));
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "a decompression bomb: 50 MiB of zeros in 50 KB of gzip",
@@ -970,7 +973,7 @@ describe("a client without the right key", () => {
         return zlib.gzipSync(Buffer.alloc(50 * MIB));
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "50 MiB of white space, which holds no JSON value to count",
@@ -978,7 +981,7 @@ describe("a client without the right key", () => {
         return zlib.gzipSync(Buffer.alloc(50 * MIB - KIB, " "));
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "one string of 50 MiB: a single value",
@@ -992,7 +995,7 @@ describe("a client without the right key", () => {
         );
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "a body nested ten million deep",
@@ -1005,7 +1008,7 @@ describe("a client without the right key", () => {
         );
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "a probe's key and id at its start, deep nesting after them",
@@ -1020,7 +1023,7 @@ describe("a client without the right key", () => {
         );
       },
       encoding: "gzip",
-      message: "Invalid Probe ID or Probe Key",
+      message: ProbeConnectionRefusals.wrongIdOrKey,
     },
     {
       name: "a report that opens as a probe's, valid JSON, with a wrong key: 40 MiB",
@@ -1034,7 +1037,7 @@ describe("a client without the right key", () => {
         );
       },
       encoding: "gzip",
-      message: "Invalid Probe ID or Probe Key",
+      message: ProbeConnectionRefusals.wrongIdOrKey,
     },
     {
       name: "a report with the key further in than its start",
@@ -1048,7 +1051,7 @@ describe("a client without the right key", () => {
         );
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "16 million empty objects, deflate",
@@ -1056,7 +1059,7 @@ describe("a client without the right key", () => {
         return zlib.deflateSync(emptyObjects(16000000));
       },
       encoding: "deflate",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "a deflate bomb: 50 MiB of zeros",
@@ -1064,7 +1067,7 @@ describe("a client without the right key", () => {
         return zlib.deflateSync(Buffer.alloc(50 * MIB));
       },
       encoding: "deflate",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "24 MiB of empty objects, uncompressed",
@@ -1072,7 +1075,7 @@ describe("a client without the right key", () => {
         return emptyObjects(7900000);
       },
       encoding: "identity",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
     {
       name: "4 MiB of seeded noise, gzip: what compresses poorly arrives in full",
@@ -1086,7 +1089,7 @@ describe("a client without the right key", () => {
         return zlib.gzipSync(noise);
       },
       encoding: "gzip",
-      message: "ProbeId or ProbeKey is missing",
+      message: ProbeConnectionRefusals.missingIdOrKey,
     },
   ];
 
@@ -1139,7 +1142,7 @@ describe("a client without the right key", () => {
 
       // Only an opening that names a probe has its key looked up.
       expect(keyChecks()).toHaveLength(
-        message === "Invalid Probe ID or Probe Key" ? 2 : 0,
+        message === ProbeConnectionRefusals.wrongIdOrKey ? 2 : 0,
       );
       expect(gzipReads).not.toHaveBeenCalled();
     },
@@ -1153,7 +1156,7 @@ describe("a client without the right key", () => {
     });
 
     expect(answer.status).toBe(400);
-    expect(answer.body["message"]).toBe("ProbeId or ProbeKey is missing");
+    expect(answer.body["message"]).toBe(ProbeConnectionRefusals.missingIdOrKey);
   });
 
   test("an empty body, gzip announced, is refused as a body without a key is", async () => {
@@ -1163,7 +1166,7 @@ describe("a client without the right key", () => {
     });
 
     expect(answer.status).toBe(400);
-    expect(answer.body["message"]).toBe("ProbeId or ProbeKey is missing");
+    expect(answer.body["message"]).toBe(ProbeConnectionRefusals.missingIdOrKey);
   });
 
   test("a Content-Length past 50 MiB is refused before a byte is read", async () => {

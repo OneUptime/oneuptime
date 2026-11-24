@@ -173,7 +173,7 @@ const INSTALLATION_ID: string = "424242";
 const OAUTH_CODE: string = "github-oauth-code";
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const PLAN_ENVIRONMENT: Record<string, string> = {
   SUBSCRIPTION_PLAN_BASIC: "Free,price_free_month,price_free_year,0,0,1,0",

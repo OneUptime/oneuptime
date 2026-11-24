@@ -7,6 +7,7 @@ import ErrorExplanation, {
 } from "../ErrorMessage/ErrorExplanation";
 import Modal, { ModalSecondaryButton } from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
+import { sayRefusalWithValues } from "../../Utils/ErrorInSentence";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
 export interface ComponentProps {
@@ -94,9 +95,20 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
    * their message here: one nobody explained says what to do next, with
    * its reference (ErrorExplanation, #6836).
    */
+  /*
+   * A refusal with values in it - a monitor's type beside a template's - in
+   * the reader's language around its values (#7711): looked up whole, it is
+   * no key once its values are in, and read English in every Error dialog.
+   */
+  const refusal: string | null = sayRefusalWithValues(
+    props.description,
+    translator,
+  );
   const translatedDescription: string | ReactElement | undefined =
     isUnexplainedErrorMessage(props.description) ? (
       <ErrorExplanation message={props.description as string} />
+    ) : refusal !== null ? (
+      refusal
     ) : (
       translateValue(props.description)
     );

@@ -12,6 +12,7 @@ import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
 import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { ChannelVerificationMessages } from "../../Types/UserNotification/ChannelVerificationMessages";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import { WorkspacePayloadMarkdown } from "../../Types/Workspace/WorkspaceMessagePayload";
@@ -43,7 +44,7 @@ export default class UserMicrosoftTeamsAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItemToTest),
             );
           }
 
@@ -61,19 +62,16 @@ export default class UserMicrosoftTeamsAPI extends BaseAPI<
               },
             });
 
-          if (!item) {
+          /*
+           * Somebody else's method is answered exactly like one that does
+           * not exist (#7272): the answer never says whether an id is
+           * someone's.
+           */
+          if (!item || item.userId?.toString() !== sender.userId.toString()) {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Item not found"),
-            );
-          }
-
-          if (item.userId?.toString() !== sender.userId.toString()) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notFound),
             );
           }
 
@@ -111,7 +109,7 @@ export default class UserMicrosoftTeamsAPI extends BaseAPI<
             const message: string =
               err instanceof Error && err.message
                 ? err.message
-                : "Unknown error sending test Microsoft Teams message.";
+                : "The test message was not sent, and Microsoft Teams did not say why. Try again in a moment.";
 
             return Response.sendJsonObjectResponse(req, res, {
               ok: false,

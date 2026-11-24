@@ -92,7 +92,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("5a000000-0000-4000-8000-0000000000e1");
 
 const GROWTH_REFUSAL: string =
-  "Please upgrade your plan to Growth to access this feature";
+  "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 type SpyInstance = ReturnType<typeof getJestSpyOn>;
 
@@ -544,7 +544,7 @@ describe("the CRUD create path follows the same rule", () => {
   test("a member on that plan is refused with the plan's name", async () => {
     await expect(
       labelService().create({ data: newLabel(), props: ownerProps() }),
-    ).rejects.toThrow("Please upgrade your plan to Growth");
+    ).rejects.toThrow("This feature needs the Growth plan");
   });
 
   test("with billing off, both create, and no plan is read", async () => {

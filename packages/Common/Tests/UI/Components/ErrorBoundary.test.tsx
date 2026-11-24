@@ -1,12 +1,17 @@
 import ErrorBoundary, {
   CHUNK_LOAD_RELOAD_COOLDOWN_IN_MS,
   CHUNK_LOAD_RELOAD_STORAGE_KEY,
+  CRASH_SCREEN_WORDS,
   handleChunkLoadError,
   hasRecentlyReloadedForChunkLoadError,
   isChunkLoadError,
   markChunkLoadErrorReload,
 } from "../../../UI/Components/ErrorBoundary";
 import downloadFile from "../../../UI/Utils/DownloadFile";
+import {
+  isEmptyErrorPhrase,
+  meetsErrorMessageRule,
+} from "../../../Types/Exception/ErrorMessageRule";
 import { ErrorSupportBundle } from "../../../UI/Utils/ErrorSupportBundle";
 import NewVersion from "../../../UI/Utils/NewVersion/NewVersion";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -72,7 +77,10 @@ const ThrowInEffect: FunctionComponent = (): ReactElement => {
 };
 
 const FALLBACK_TEXT: string =
-  "An unexpected error has occurred. Please reload the page to continue";
+  "Part of this page ran into a problem. Reload the page to continue.";
+
+// The screen's title: what happened (#7270).
+const FALLBACK_TITLE: string = "This page stopped working";
 
 describe("ErrorBoundary", () => {
   const consoleErrorSpy: jest.SpyInstance = jest.spyOn(console, "error");
@@ -231,8 +239,37 @@ describe("ErrorBoundary", () => {
       );
 
       expect(
-        screen.queryByRole("heading", { name: "Something went wrong" }),
+        screen.queryByRole("heading", { name: FALLBACK_TITLE }),
       ).not.toBeNull();
+    });
+
+    /*
+     * #7270: the title was "Something went wrong", one of the empty
+     * phrases, over a sentence that said only that something failed. It
+     * says what happened, and what to do next, as sentences.
+     */
+    test("says what happened and what to do next, never an empty phrase", () => {
+      render(
+        <ErrorBoundary>
+          <ThrowOnRender />
+        </ErrorBoundary>,
+      );
+
+      const fallback: HTMLElement = screen.getByTestId(
+        "error-boundary-fallback",
+      );
+
+      expect(fallback.textContent).not.toContain("Something went wrong");
+      expect(fallback.textContent).not.toContain("An unexpected error");
+      expect(screen.getByTestId("error-boundary-title").textContent).toBe(
+        CRASH_SCREEN_WORDS.title,
+      );
+      expect(CRASH_SCREEN_WORDS).toEqual({
+        title: FALLBACK_TITLE,
+        message: FALLBACK_TEXT,
+      });
+      expect(isEmptyErrorPhrase(CRASH_SCREEN_WORDS.title)).toBe(false);
+      expect(meetsErrorMessageRule(CRASH_SCREEN_WORDS.message)).toBe(true);
     });
 
     test("shows the underlying error message for support", () => {
@@ -842,7 +879,7 @@ describe("ErrorBoundary chunk load recovery", () => {
     // The page's own loader while the next page arrives, never an error.
     expect(reloadMock).not.toHaveBeenCalled();
     expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
-    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.queryByText(FALLBACK_TITLE)).toBeNull();
   });
 
   test("auto-reloads when a lazy route fails to load", async () => {
@@ -865,7 +902,7 @@ describe("ErrorBoundary chunk load recovery", () => {
     // The user is never looking at a blank page, nor at an error.
     expect(screen.getByTestId("chunk-load-recovery")).toBeTruthy();
     expect(screen.queryByText(FALLBACK_TEXT)).toBeNull();
-    expect(screen.queryByText("Something went wrong")).toBeNull();
+    expect(screen.queryByText(FALLBACK_TITLE)).toBeNull();
   });
 
   test("says the page could not be loaded, without reloading, when a reload already happened", async () => {

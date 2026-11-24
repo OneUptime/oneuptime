@@ -30,6 +30,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { getPlanRequiredMessage } from "../../../Types/Billing/PlanRequiredRefusal";
 import { isAnalyticsPlanGatedColumnDefault } from "../../../Types/Billing/PlanGatedColumnDefault";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
@@ -650,9 +651,7 @@ export default class ModelPermission {
           )
         ) {
           throw new PaymentRequiredException(
-            "Please upgrade your plan to " +
-              requiredPlan +
-              " to access this feature",
+            getPlanRequiredMessage(requiredPlan),
           );
         }
       }
@@ -2156,7 +2155,10 @@ export default class ModelPermission {
 
       if (permissions.length === 0) {
         throw new NotAuthorizedException(
-          `${type} on ${new modelType().singularName} is not allowed.`,
+          HeldPermissionsUtil.getNobodyMayRefusal({
+            recordName: new modelType().singularName,
+            operation: type,
+          }),
         );
       }
 
@@ -2241,11 +2243,7 @@ export default class ModelPermission {
         getAllEnvVars(),
       )
     ) {
-      throw new PaymentRequiredException(
-        "Please upgrade your plan to " +
-          requiredPlan +
-          " to access this feature",
-      );
+      throw new PaymentRequiredException(getPlanRequiredMessage(requiredPlan));
     }
   }
 }

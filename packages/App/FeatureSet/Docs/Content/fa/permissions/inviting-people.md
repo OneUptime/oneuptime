@@ -132,8 +132,8 @@ flowchart TB
 
 ## عیب‌یابی
 
-:::details "This user has already been invited to this team"
-او از قبل در آن تیم است، به‌عنوان عضو یا با دعوتی که نپذیرفته است. برای دیدن تیم‌هایش او را در **کاربران** باز کنید، یا او را به تیم دیگری دعوت کنید.
+:::details "This person has already been invited to this team, or is a member of it"
+او از قبل در آن تیم است، به‌عنوان عضو یا با دعوتی که نپذیرفته است. برای دیدن تیم‌هایش او را در **کاربران** باز کنید، یا او را به تیم دیگری دعوت کنید. اگر هنوز نپیوسته است، **ارسال دوبارهٔ دعوت** در منوی ردیف او ایمیل دعوتش را دوباره می‌فرستد.
 :::
 
 :::details "You have reached the user limit for the free plan"

@@ -304,8 +304,13 @@ describe.each(apiComponents)(
 
       expect(result.executePort?.id).toBe("error");
       expect(result.returnValues["response-status"]).toBe(500);
-      /* getReturnValues falls back to a generic message so the port is never silent. */
-      expect(result.returnValues["error"]).toBe("Server Error.");
+      /*
+       * The port is never silent, and never says "Server Error.": what was
+       * refused, that the server said nothing, and what to check (#7268).
+       */
+      expect(result.returnValues["error"]).toBe(
+        "The request was refused with status 500. The server it was sent to did not say why. Check the step's URL, headers and body, then run the workflow again.",
+      );
     });
   },
 );
