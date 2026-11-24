@@ -6,6 +6,7 @@ import { JSONObject, ObjectType } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorSecretService from "Common/Server/Services/MonitorSecretService";
+import MonitorCheckSecretValues from "Common/Server/Utils/Monitor/MonitorCheckSecretValues";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorSecret from "Common/Models/DatabaseModels/MonitorSecret";
@@ -65,27 +66,14 @@ export default class MonitorUtil {
    * written, so the monitor's secrets apply only while the monitor is in the
    * test's project. A test of a monitor that is not saved yet (run from the
    * Create Monitor form) gets the secrets every monitor in the project may
-   * use.
+   * use. One rule, which the server also reads the test's check for when it
+   * comes back, to hide those secrets' values in it (#10825).
    */
   public static async loadMonitorSecretsForMonitorTest(data: {
     monitorId: ObjectID | undefined;
     projectId: ObjectID;
   }): Promise<Array<MonitorSecret>> {
-    if (!data.monitorId) {
-      return await MonitorSecretService.getSecretsForUnsavedMonitor({
-        projectId: data.projectId,
-      });
-    }
-
-    const secretsByMonitorId: Map<
-      string,
-      Array<MonitorSecret>
-    > = await MonitorSecretService.getSecretsForMonitors({
-      monitorIds: [data.monitorId],
-      projectId: data.projectId,
-    });
-
-    return secretsByMonitorId.get(data.monitorId.toString()) || [];
+    return await MonitorCheckSecretValues.loadSecretsForMonitorTest(data);
   }
 
   /*

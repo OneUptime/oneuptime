@@ -18,6 +18,7 @@ import {
   describeWorkflowRunAsGiver,
   readWorkflowRunAs,
 } from "../../../Types/Workflow/WorkflowRunAs";
+import { readOwnValue } from "../../LookupTable";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -578,8 +579,11 @@ export function getAuditChangeWords(
     return { named: said, unnamed: said };
   }
 
-  const words: { the: string; a: string } | undefined =
-    RECORD_WORDS[resourceType];
+  // The record's type as the audit log stored it: only a type the table lists.
+  const words: { the: string; a: string } | undefined = readOwnValue(
+    RECORD_WORDS,
+    resourceType,
+  );
 
   if (!words) {
     return null;

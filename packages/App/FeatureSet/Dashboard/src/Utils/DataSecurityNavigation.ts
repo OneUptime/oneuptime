@@ -47,8 +47,11 @@ export interface DataSecurityMenuItem {
   title: string;
   icon: IconProp;
   badge?: DataSecurityMenuBadge | undefined;
-  // A page under it that keeps it lit: one identity's, under Access.
-  activePage?: PageMap | undefined;
+  /*
+   * The pages under it that keep it lit: one identity's, under Access;
+   * Review Drafts and Audit Evidence, under Compliance.
+   */
+  activePages?: Array<PageMap> | undefined;
 }
 
 export interface DataSecurityMenuSection {
@@ -111,12 +114,16 @@ export const DATA_SECURITY_MENU: Array<DataSecurityMenuSection> = [
         page: PageMap.DATA_SECURITY_ACCESS,
         title: "Access",
         icon: IconProp.Key,
-        activePage: PageMap.DATA_SECURITY_IDENTITY_VIEW,
+        activePages: [PageMap.DATA_SECURITY_IDENTITY_VIEW],
       },
       {
         page: PageMap.DATA_SECURITY_COMPLIANCE,
         title: "Compliance",
         icon: IconProp.ClipboardDocumentCheck,
+        activePages: [
+          PageMap.DATA_SECURITY_REVIEW_DRAFTS,
+          PageMap.DATA_SECURITY_AUDIT_EVIDENCE,
+        ],
       },
     ],
   },
@@ -217,6 +224,7 @@ export const DATA_SECURITY_STORE_VIEW_PAGES: Array<PageMap> = [
   PageMap.DATA_SECURITY_STORE_VIEW_TIMELINE,
   PageMap.DATA_SECURITY_STORE_VIEW_OWNERS,
   PageMap.DATA_SECURITY_STORE_VIEW_SETTINGS,
+  PageMap.DATA_SECURITY_STORE_VIEW_IMPACT_ASSESSMENT,
   PageMap.DATA_SECURITY_STORE_VIEW_DELETE,
 ];
 

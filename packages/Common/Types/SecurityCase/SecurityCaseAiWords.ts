@@ -180,6 +180,10 @@ export const SECURITY_CASE_AI_ACTION_REASON_SENTENCES: Readonly<
   [SecurityCaseAiActionReason.NothingToFixInCode]: translationKey(
     "None of the case's requests threw an exception, so there is no code to fix.",
   ),
+  // The hand-off's own words for it (SECURITY_CASE_HAND_OFF_SENTENCES).
+  [SecurityCaseAiActionReason.ProductOff]: translationKey(
+    "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+  ),
   [SecurityCaseAiActionReason.EngineFailed]:
     translationKey("It did not finish."),
   [SecurityCaseAiActionReason.UndoneByPerson]:
@@ -217,6 +221,9 @@ export const SECURITY_CASE_HAND_OFF_SENTENCES: Readonly<
   [SecurityCaseHandOffReason.OutOfCredits]: translationKey(
     "The project is out of AI credits, or reached its daily AI limit.",
   ),
+  [SecurityCaseHandOffReason.ProductOff]: translationKey(
+    "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
+  ),
   [SecurityCaseHandOffReason.NotLikelyMalicious]: translationKey(
     "OneUptime AI's triage could not tell whether the case is real, so a person decides.",
   ),
@@ -253,6 +260,7 @@ export const SECURITY_CASE_AI_BREAKER_LIMIT: number =
 export type SecurityCaseResponseNotStartedCode =
   | "ai_disabled"
   | "response_disabled"
+  | "product_off"
   | "provider_missing"
   | "insufficient_ai_balance"
   | "project_daily_limit_reached"
@@ -275,6 +283,9 @@ export const SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES: Record<
   ),
   response_disabled: translationKey(
     "OneUptime AI does not work security cases in this project. Turn it on in Security Events → AI → Settings.",
+  ),
+  product_off: translationKey(
+    "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.",
   ),
   provider_missing: translationKey(
     "No LLM provider is set up for OneUptime AI. Add one in Project Settings → AI → LLM Providers.",

@@ -136,7 +136,7 @@ Under it, every step it took, asked about or left, the latest first, each with w
 
 ### A case it reads as benign or a false positive
 
-**Respond with AI** on a case the triage read as Likely Benign or Likely False Positive closes it as Benign Positive or False Positive, as **Close the case** allows. Once it is closed, OneUptime AI lifts the blocks the case made, as **Close the case** allows too, and offers the case's rule an exception for the value that set it off. The exception always waits for a person: **Approve** adds it, as you.
+**Respond with AI** on a case the triage read as Likely Benign or Likely False Positive closes it as Benign Positive or False Positive, as **Close the case** allows. Once it is closed, OneUptime AI lifts the blocks the case made, as **Close the case** allows too, and offers the case's rule an exception for the value that set it off. The exception always waits for a person: **Approve** adds it, as you. A person who reopens the case or takes it over first stops both, and while Security Events is switched off OneUptime AI leaves both for a person.
 
 ## What OneUptime AI may do on a case
 
@@ -177,6 +177,7 @@ OneUptime AI never stands down quietly. It hands the case to people, saying why 
 - what its next step acts on is protected;
 - it has acted on its own as often as it may in an hour;
 - AI is off for the project or for security cases, there is no LLM provider, or the project is out of AI credits or reached its daily AI limit;
+- Security Events is switched off on the server;
 - its triage could not tell whether the case is real;
 - a step it took does not hold, a step it started did not finish, or a person turned down or undid a step it took;
 - it cannot tell what to do next, or everything left on the case is a person's to do.
@@ -184,6 +185,8 @@ OneUptime AI never stands down quietly. It hands the case to people, saying why 
 The people on the case hear about it at once, or when nobody is on it, the people told about cases at its priority: **OneUptime AI handed a security case to people**, under **User Settings → Notification Settings**. A workspace notification rule for security cases posts it to its Slack or Microsoft Teams channel under **Handed to people by OneUptime AI**. **Take Over** hands the case over without telling anyone, since the person who pressed it has it.
 
 **Respond with AI** asks OneUptime AI to work the case again, from where the case stands.
+
+While Security Events is switched off on the server, OneUptime AI starts no new step on any case, and within a minute it hands every case it works to people. A step it already started finishes, or can be undone, as usual. Once Security Events is back on, it takes none of those cases up again by itself: **Respond with AI** does.
 
 A case held while OneUptime AI responds first reaches people once, with the new case's notice and why OneUptime AI stopped: see [Let OneUptime AI respond first](#let-oneuptime-ai-respond-first).
 

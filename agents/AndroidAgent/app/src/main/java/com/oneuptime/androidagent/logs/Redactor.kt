@@ -30,6 +30,22 @@ import java.util.regex.Matcher
  * timestamps and addresses in stack traces, which are what a crash is read
  * by.
  *
+ * A secret inside a longer word is left (x4111111111111111y is no card), and
+ * a word is made of ASCII letters, digits and "_": a letter of another
+ * script beside a secret makes it no part of one. Chinese and Japanese run
+ * their words together, so a card number or an address in their text is
+ * often written right against a letter (卡号4111111111111111,
+ * 邮箱jane@example.com). The patterns write those characters out rather than
+ * say \w, \b or \d. Android's regular expressions (ICU's) read those with the
+ * letters, marks and digits of every script, and \b looks past a combining
+ * mark or a zero-width space too, while the JVM, where the unit tests run,
+ * and JavaScript, where OneUptime runs its copy (AndroidAgentRedactor.ts),
+ * read them as ASCII: such a secret was kept on the device alone (#10835).
+ * Written out, the three read every text alike. A case-insensitive pattern
+ * turns that on only after its look-behind, because under (?i) Android's
+ * regular expressions count "ſ" and "K" (U+017F, U+212A) among the ASCII
+ * letters too.
+ *
  * Bounded: each pattern is linear, each reads the text with one matcher
  * (replaceEach says why), and the text is cut to [MAX_LENGTH] before any of
  * them runs.
@@ -43,48 +59,68 @@ object Redactor {
     const val TOKEN: String = "[token]"
     const val REDACTED: String = "[redacted]"
 
-    // 13 to 19 digits, each group separated by at most one space or dash, not inside a longer number or word.
-    private val CARD_CANDIDATE: Regex = Regex("""(?<![\w.])\d(?:[ -]?\d){12,18}(?![\w.])""")
+    /*
+     * Each place a payment card number may start, with the longest run of a
+     * card's digits from there that ends where one may end, captured in a
+     * look-ahead: 13 to 19 digits, the first a card network's (2 to 6), each
+     * group separated by at most one space or dash, neither end beside an
+     * ASCII letter, digit, "_" or ".". The match itself is empty, so the next
+     * one is looked for from the next character, and each group of a longer
+     * run of numbers is a place of its own: in "1 4111 1111 1111 1111" the
+     * card starts at the second group. redactCards then checks the run, and
+     * each shorter one from the same place that ends before one of its
+     * spaces or dashes: in "4111 1111 1111 1111 12/25" the card ends before
+     * the expiry's month.
+     *
+     * Read as one number with what stood beside it, such a card failed the
+     * Luhn check and was kept. On Android, a letter of another script right
+     * after the other number ended the run where a word's letter does, so
+     * the device found the card in "有效 4111111111111111 123元" by chance;
+     * it finds it now because each shorter run is checked (#10835).
+     */
+    private val CARD_START: Regex = Regex("""(?<![A-Za-z0-9_.])(?=([2-6](?:[ -]?[0-9]){12,18})(?![A-Za-z0-9_.]))""")
+    private val SEPARATORS: CharArray = charArrayOf(' ', '-')
 
     private val EMAIL_ADDRESS: Regex =
-        Regex("""(?<![\w.%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![\w-])""")
+        Regex("""(?<![A-Za-z0-9_.%+-])[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63})*\.[A-Za-z]{2,24}(?![A-Za-z0-9_-])""")
 
-    private val AUTHORIZATION: Regex = Regex("""(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}""")
+    private val AUTHORIZATION: Regex = Regex("""(?<![A-Za-z0-9_])(?i)(bearer|basic)\s+[A-Za-z0-9._~+/=-]{8,}""")
     private val SCHEMES: Set<String> = setOf("bearer", "basic")
 
     /*
      * A JSON Web Token, looked for once per run of the characters a token is
-     * made of. A token starts where \beyJ does: at the run's start, when the
-     * character before the run is no word character, or just after a "-" in
+     * made of. A token starts where "eyJ" is not inside a longer word: at the
+     * run's start (the look-behind says the character before the run is none
+     * of a token's, so no ASCII letter, digit or "_"), or just after a "-" in
      * the run. The match begins only where such a run begins, the atomic
-     * group settles on the first place in the run where \beyJ holds and keeps
-     * it, and the run's text before that place is the first group, which the
-     * replacement puts back. A later place in the same run has a shorter
-     * first segment and ends no better, so the same tokens are taken out as
-     * by \beyJ... tried from every word boundary, while a long run is read a
-     * bounded number of times rather than once more from each "eyJ" in it:
-     * that took 12 seconds on 100 KB of "-eyJ-" under Android 15, and four
-     * times as long for twice the text (#10786).
+     * group settles on the first of those places in the run where "eyJ" is,
+     * and keeps it, and the run's text before that place is the first group,
+     * which the replacement puts back. A later place in the same run has a
+     * shorter first segment and ends no better, so the same tokens are taken
+     * out as by (?<![A-Za-z0-9_])eyJ... tried from every place, while a long
+     * run is read a bounded number of times rather than once more from each
+     * "eyJ" in it: that took 12 seconds on 100 KB of "-eyJ-" under Android
+     * 15, and four times as long for twice the text (#10786).
      *
      * The server's copy (AndroidAgentRedactor.ts) does the same in
-     * JavaScript. This one differs in three places, for Android's regular
+     * JavaScript. This one differs in two places, for Android's regular
      * expressions (ICU):
      * - The atomic group. JavaScript has none, so the server's copy captures
      *   the run's text in a look-ahead and reads it again with \1. ICU takes
      *   \1 for nothing when it works out where a match may start, so it
      *   would start one only at an "e", and miss every token after a "-".
-     * - \b stays. It is each engine's own word boundary, and Android's counts
-     *   the letters of every script, so a token glued to "é" or "中" is kept
-     *   there, as it always was.
      * - Each segment is five characters and then any more, not {5,}. ICU
      *   keeps a place to go back to for each character a counted repeat
      *   reads. On a segment of about 250,000 characters it runs out of room,
      *   Android's matcher says it found nothing, and that token and every
      *   later one stay in the text.
+     *
+     * The look-ahead once said \beyJ, Android's own word boundary, so a token
+     * right after "中" or "é" was kept on the device alone (#10835).
      */
     private val JWT: Regex =
         Regex(
-            """(?<![A-Za-z0-9_-])(?>((?:[A-Za-z0-9_-]*?-)??)(?=\beyJ))eyJ[A-Za-z0-9_-]{5}[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{5}[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{5}[A-Za-z0-9_-]*""",
+            """(?<![A-Za-z0-9_-])(?>((?:[A-Za-z0-9_-]*?-)??)(?=eyJ))eyJ[A-Za-z0-9_-]{5}[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{5}[A-Za-z0-9_-]*\.[A-Za-z0-9_-]{5}[A-Za-z0-9_-]*""",
         )
 
     /*
@@ -93,15 +129,18 @@ object Redactor {
      * closing bracket. The name may be quoted, as in JSON, and may end in one
      * of the words ("db_password", "x-api-key", "accessToken").
      *
-     * The name starts where a word does, and what comes before the word is
-     * at most 40 characters: an open `[\w-]*` there backtracked over every
-     * position of a long word, and took minutes over a 256 KB line of
-     * letters. Bounded, each position costs at most 40 steps.
+     * The name starts where an ASCII word does (in "用户password=x" it is
+     * "password"), and what comes before the word is at most 40 characters:
+     * an open `[\w-]*` there backtracked over every position of a long word,
+     * and took minutes over a 256 KB line of letters. Bounded, each position
+     * costs at most 40 steps. Android's engine once counted every script's
+     * letters in that word, so a value after 40 Chinese characters with no
+     * space between was kept on the device alone (#10835).
      */
     private val SECRET_ASSIGNMENT: Regex =
         Regex(
             // The closing brace is escaped in its class too: Android's regex engine (ICU) refuses a bare one.
-            """(?i)((?<![\w-])["']?[\w-]{0,40}?(?:password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|session[_-]?id|cookie|authorization|credential|pin)["']?\s{0,8}[:=]\s{0,8})(\[(?:token|card number|email|credential|redacted)\]|"[^"]*"|'[^']*'|[^\s,;&)\]\}]+)""",
+            """(?<![A-Za-z0-9_-])(?i)(["']?[A-Za-z0-9_-]{0,40}?(?:password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key|session[_-]?id|cookie|authorization|credential|pin)["']?\s{0,8}[:=]\s{0,8})(\[(?:token|card number|email|credential|redacted)\]|"[^"]*"|'[^']*'|[^\s,;&)\]\}]+)""",
         )
 
     fun redact(text: String?): String {
@@ -124,16 +163,63 @@ object Redactor {
                 }
             }
         result = EMAIL_ADDRESS.replace(result, EMAIL)
-        result =
-            CARD_CANDIDATE.replaceEach(result) { match ->
-                val digits: String = match.group().filter { it.isDigit() }
-                if (looksLikeCardNumber(digits)) CARD else match.group()
-            }
+        result = redactCards(result)
         return result
     }
 
     /** Every JSON Web Token in the text replaced with [TOKEN], and nothing else changed. */
     internal fun redactTokens(text: String): String = JWT.replace(text, "\$1$TOKEN")
+
+    /*
+     * Every card number in the text replaced with [CARD], and nothing else
+     * changed: at each place one may start (CARD_START), the longest card
+     * from there. A place inside a card already taken out is passed over.
+     * The text is read once, with one matcher, as replaceEach reads it.
+     */
+    internal fun redactCards(text: String): String {
+        val matcher: Matcher = CARD_START.toPattern().matcher(text)
+        var result: StringBuilder? = null
+        var last = 0
+        while (matcher.find()) {
+            val start: Int = matcher.start()
+            if (start < last) {
+                continue
+            }
+            val length: Int = cardLength(matcher.group(1).orEmpty())
+            if (length > 0) {
+                val builder: StringBuilder = result ?: StringBuilder(text.length).also { result = it }
+                builder.append(text, last, start).append(CARD)
+                last = start + length
+            }
+        }
+        val builder: StringBuilder = result ?: return text
+        return builder.append(text, last, text.length).toString()
+    }
+
+    /*
+     * How much of [run] (a card's digits, single spaces or dashes between
+     * them) from its start is a card number: the whole run, or the longest
+     * part of it that ends before one of its spaces or dashes and passes.
+     * Zero when none does.
+     */
+    private fun cardLength(run: String): Int {
+        val digits: String = run.filter { it in '0'..'9' }
+        var end: Int = run.length
+        var count: Int = digits.length
+        while (count >= 13) {
+            if (looksLikeCardNumber(digits.substring(0, count))) {
+                return end
+            }
+            val separator: Int = run.lastIndexOfAny(SEPARATORS, end - 1)
+            if (separator < 0) {
+                return 0
+            }
+            // Everything between the separator and the end is the last group's digits.
+            count -= end - separator - 1
+            end = separator
+        }
+        return 0
+    }
 
     /*
      * Each match replaced with what [replacement] makes of it, the text read
@@ -166,9 +252,13 @@ object Redactor {
      */
     fun looksLikeCardNumber(digits: String): Boolean = digits.length in 13..19 && digits[0] in '2'..'6' && passesLuhn(digits)
 
-    /** The Luhn check every payment card number passes, and most other long numbers do not. */
+    /**
+     * The Luhn check every payment card number passes, and most other long
+     * numbers do not. ASCII digits only, as the server's copy reads them: a
+     * digit of another script ("٤") is no card's.
+     */
     fun passesLuhn(digits: String): Boolean {
-        if (digits.isEmpty() || digits.any { !it.isDigit() }) {
+        if (digits.isEmpty() || digits.any { it !in '0'..'9' }) {
             return false
         }
         var sum = 0

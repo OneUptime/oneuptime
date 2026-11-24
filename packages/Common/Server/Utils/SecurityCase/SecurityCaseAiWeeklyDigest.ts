@@ -177,7 +177,8 @@ export default class SecurityCaseAiWeeklyDigest {
   public static async sendAll(
     now: Date = OneUptimeDate.getCurrentDate(),
   ): Promise<number> {
-    const weekStart: Date = OneUptimeDate.addRemoveDays(
+    // The week before now: a length of time, the same in every zone (#8473).
+    const weekStart: Date = OneUptimeDate.addRemoveDurationInDays(
       now,
       -SECURITY_CASE_AI_DIGEST_WEEK_IN_DAYS,
     );
@@ -205,7 +206,7 @@ export default class SecurityCaseAiWeeklyDigest {
     projectId: ObjectID;
     now: Date;
   }): Promise<number> {
-    const weekStart: Date = OneUptimeDate.addRemoveDays(
+    const weekStart: Date = OneUptimeDate.addRemoveDurationInDays(
       data.now,
       -SECURITY_CASE_AI_DIGEST_WEEK_IN_DAYS,
     );

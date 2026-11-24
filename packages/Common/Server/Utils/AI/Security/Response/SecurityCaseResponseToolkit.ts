@@ -899,6 +899,25 @@ export default class SecurityCaseResponseToolkit {
     });
   }
 
+  /*
+   * A step OneUptime AI will not take, and why, on the case's log alone -
+   * for a caller that says so on the timeline in its own words: what follows
+   * a close of its own, left while Security Events is switched off
+   * (SecurityCaseResponseAfterClose, #10847). A later plan reads it as
+   * settled, so it is never taken up by itself.
+   */
+  public static async recordLeft(
+    data: ToolkitCase,
+    intent: ResponderIntent,
+    reason: SecurityCaseAiActionReason,
+  ): Promise<void> {
+    await this.record(
+      data,
+      { ...intent, decision: SecurityCaseAiDecisionKind.Leave, reason },
+      { status: SecurityCaseAiActionStatus.Left },
+    );
+  }
+
   // ---------- The log ----------
 
   private static getEvidence(

@@ -243,6 +243,26 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/AI/DataSecurity/DataSecurityIssueAnalysis.ts": {
     "DataSecurityIssueAnalysis.write DataSecurityIssue": Why.Automation,
   },
+  /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372),
+   * kept on the finding: its own note, never the finding's decision - a
+   * person decides, and the audit log records them doing it.
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts": {
+    "DataSecurityFindingVerdicts.judgeStore DataStoreFinding": Why.Automation,
+  },
+  /*
+   * OneUptime AI's own confirmation, where a rule allows it (#10372): the
+   * confirmation itself goes through the finding's hooks, and its
+   * proposal is on the store's timeline and in Done by AI with Undo; what
+   * follows it - High confidence, whose it is, when - is what the finding's
+   * service sets beside a person's own (Service.onUpdateSuccess).
+   */
+  "packages/Common/Server/Utils/AI/DataSecurity/Actions/ConfirmFindingsAction.ts":
+    {
+      "apply DataStoreFinding": Why.Derived,
+      "undo DataStoreFinding": Why.Derived,
+    },
   "packages/Common/Server/Services/AlertEpisodeOnCallRuleEngineService.ts": {
     "AlertEpisodeOnCallRuleEngineServiceClass.applyRulesToEpisode AlertEpisode":
       Why.Automation,
@@ -482,13 +502,18 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     },
   "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseLook.ts":
     {
-      "SecurityCaseResponseLook.look SecurityCase": Why.Bookkeeping,
+      "SecurityCaseResponseLook.setWhereItStands SecurityCase": Why.Bookkeeping,
       "SecurityCaseResponseLook.writeClosingReport SecurityCase":
         Why.Automation,
     },
   "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseNudge.ts":
     {
       "SecurityCaseResponseNudge.lookNow SecurityCase": Why.Bookkeeping,
+    },
+  // A closed case OneUptime AI is done with while Security Events is off (#10816).
+  "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseProductOff.ts":
+    {
+      "SecurityCaseResponseProductOff.stopCase SecurityCase": Why.Bookkeeping,
     },
   "packages/Common/Server/Utils/AI/Security/Response/SecurityCaseResponseToolkit.ts":
     {

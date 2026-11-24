@@ -143,7 +143,7 @@ SQL macros are written in UTC, so run your database sessions in UTC, or convert 
 
 ### Dashboard variables
 
-Write `{{name}}` anywhere in a query, and the widget puts the variable's value there before it sends the query. Several values of a multi-select variable are joined with `|`, which is what a PromQL or LogQL regular expression matcher needs: `job=~"{{job}}"`. A variable with nothing picked leaves the placeholder as written, so the error names it. [Dashboard Variables & Filters](/docs/dashboards/variables) shows how to add one.
+Write `{{name}}` anywhere in a query, and the widget puts the variable's value there before it sends the query. A query on this project's metrics or on a Prometheus is filled as Grafana's Prometheus data source fills it: in `job=~"{{job}}"`, several values of a multi-select variable match any one of them, each as written, and a variable with nothing picked matches every value. In any other query, several values are joined with `|`, which is what a LogQL regular expression matcher needs, and a variable with nothing picked is left as written, so the error names it. [Dashboard Variables & Filters](/docs/dashboards/variables) shows how to add one.
 
 ## Limits
 

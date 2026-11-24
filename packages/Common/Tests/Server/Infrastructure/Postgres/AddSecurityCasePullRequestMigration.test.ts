@@ -1,4 +1,4 @@
-import { AddSecurityCasePullRequest1809187520604 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187520604-AddSecurityCasePullRequest";
+import { AddSecurityCasePullRequest1809187540604 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187540604-AddSecurityCasePullRequest";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import SecurityCasePullRequest from "../../../../Models/DatabaseModels/SecurityCasePullRequest";
 import { describe, expect, test } from "@jest/globals";
@@ -34,7 +34,7 @@ async function recordQueries(
     },
   } as unknown as QueryRunner;
 
-  await new AddSecurityCasePullRequest1809187520604()[direction](queryRunner);
+  await new AddSecurityCasePullRequest1809187540604()[direction](queryRunner);
 
   return statements;
 }
@@ -53,7 +53,7 @@ function keyTo(statements: Array<string>, column: string): string {
   return found!;
 }
 
-describe("AddSecurityCasePullRequest1809187520604", () => {
+describe("AddSecurityCasePullRequest1809187540604", () => {
   test("a link goes with its case, its project and its repository, and outlives who made it", async () => {
     const up: Array<string> = await recordQueries("up");
 
@@ -146,7 +146,7 @@ describe("AddSecurityCasePullRequest1809187520604", () => {
     const migrations: Array<MigrationClass> =
       SchemaMigrations as unknown as Array<MigrationClass>;
     const index: number = migrations.indexOf(
-      AddSecurityCasePullRequest1809187520604,
+      AddSecurityCasePullRequest1809187540604,
     );
 
     expect(index).toBeGreaterThan(0);
@@ -157,6 +157,6 @@ describe("AddSecurityCasePullRequest1809187520604", () => {
         return Number(/(\d{13})$/.exec(migration.name)?.[1] || "0");
       });
 
-    expect(Math.max(...stamps)).toBeLessThan(1809187520604);
+    expect(Math.max(...stamps)).toBeLessThan(1809187540604);
   });
 });

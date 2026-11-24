@@ -184,7 +184,7 @@ pipeline:
 
 ## Send with the HTTP output
 
-Fluent Bit's [HTTP output](https://docs.fluentbit.io/manual/pipeline/outputs/http) can send to OneUptime's Fluentd endpoint instead, which reads each record as the [Fluentd page](/docs/telemetry/fluentd) describes. Set `format` to `json_lines`, as below, or to `json`: OneUptime reads both, compressed with `compress: gzip` or not. Fluent Bit's default format, `msgpack`, is refused.
+Fluent Bit's [HTTP output](https://docs.fluentbit.io/manual/pipeline/outputs/http) can send to OneUptime's Fluentd endpoint instead, which reads each record as the [Fluentd page](/docs/telemetry/fluentd) describes. Set `format` to `json_lines`, as below, or to `json` or `json_stream`: OneUptime reads all three, compressed with `compress: gzip` or not. Fluent Bit's default format, `msgpack`, is refused.
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

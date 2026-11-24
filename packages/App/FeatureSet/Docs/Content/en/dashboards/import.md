@@ -19,12 +19,12 @@ flowchart TB
     R --> P["The preview: each item<br/>and what it becomes"]
     P --> A["OneUptime AI, if you ask:<br/>one query at a time"]
     A --> P
-    P --> C["A dashboard,<br/>or Metrics monitors"]
+    P --> C["A dashboard,<br/>or monitors"]
 ```
 
 ## Before you begin
 
-- The imported widgets and monitors read this project's own metrics with PromQL. Send them with Prometheus remote write, OpenTelemetry or the Datadog Agent, and they keep the names they have there.
+- The imported widgets and monitors read this project's own metrics and logs. Send them with OpenTelemetry or the Datadog Agent, or with Prometheus remote write for metrics and Loki's push API for logs, and they keep the names they have there.
 - Importing a dashboard takes a role that can create dashboards, and importing alert rules a role that can create monitors.
 - A file can be up to 10 MB, and up to 500 of its panels or rules are read.
 
@@ -44,7 +44,7 @@ In Grafana, copy the JSON model from the dashboard's settings. In Datadog, expor
 Check what each panel and variable becomes, give the dashboard a name, and choose **Create Dashboard**. The new dashboard opens.
 :::
 
-Grafana's PromQL is kept as written: OneUptime fills in `$__interval`, `$__rate_interval` and `$__range` as Grafana does, and a variable on All matches every value. A Datadog query becomes PromQL over the metrics the Datadog Agent sent: `avg:system.cpu.user{host:web-1}` reads `system_cpu_user{host="web-1"}`.
+Grafana's PromQL is kept as written: OneUptime fills in `$__interval`, `$__rate_interval` and `$__range` as Grafana does, and a variable on All matches every value. A Datadog query becomes PromQL over the metrics the Datadog Agent sent: `avg:system.cpu.user{host:web-1}` reads `system_cpu_user{resource_host_name="web-1"}`, and `.as_count()` turns a count the Agent sent as a rate back into the number counted in each interval. A Datadog widget that lists logs becomes a **Log Stream**, and a timeseries that counts them a **Log Chart**, both over the logs the Datadog Agent sent and filtered by Datadog's search.
 
 ## Import alert rules
 
@@ -64,6 +64,8 @@ Untick any rule you do not want, pick what a firing rule opens under **When a ru
 
 Each rule becomes a Metrics monitor with one PromQL query, the rule's condition and its window. It opens an alert, or an incident, for each series that breaches, and resolves it when the series recovers. Its title and description come from the rule's summary or message, with the series' labels filled in.
 
+A Datadog anomaly or forecast monitor becomes a Metrics monitor with OneUptime's anomaly or forecast condition, and a Datadog log monitor a Logs monitor that counts the logs its search matches.
+
 ## How each item converts
 
 | Status | What it means |
@@ -72,7 +74,7 @@ Each rule becomes a Metrics monitor with one PromQL query, the rule's condition 
 | **Converted approximately** | It is created, and its notes say what differs. |
 | **Not converted** | Nothing is created for it, and its notes say why. |
 
-Recording rules, alert rules over logs, Datadog widgets that read logs, traces or events, and Datadog's anomaly, outlier and forecast monitors are not converted.
+Recording rules, Prometheus and Grafana alert rules over logs, Datadog widgets that read traces or events, Datadog's outlier and change monitors, and its monitors of anything but metrics and logs are not converted.
 
 ## Convert a query with OneUptime AI
 

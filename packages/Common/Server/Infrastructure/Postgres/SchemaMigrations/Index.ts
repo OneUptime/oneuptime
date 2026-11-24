@@ -1172,7 +1172,9 @@ import { AddSecurityCaseAiHoldUntilIndex1809187490010 } from "./1809187490010-Ad
 import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSecurityAutomaticResponse";
 import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
-import { AddSecurityCasePullRequest1809187520604 } from "./1809187520604-AddSecurityCasePullRequest";
+import { AddDataStoreFindingAiVerdicts1809187520372 } from "./1809187520372-AddDataStoreFindingAiVerdicts";
+import { AddDataSecurityComplianceDrafts1809187530375 } from "./1809187530375-AddDataSecurityComplianceDrafts";
+import { AddSecurityCasePullRequest1809187540604 } from "./1809187540604-AddSecurityCasePullRequest";
 
 export default [
   InitialMigration,
@@ -2349,5 +2351,7 @@ export default [
   AddSecurityAutomaticResponse1809187500000,
   AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
   AddDataSecurityIssueResolution1809187510368,
-  AddSecurityCasePullRequest1809187520604,
+  AddDataStoreFindingAiVerdicts1809187520372,
+  AddDataSecurityComplianceDrafts1809187530375,
+  AddSecurityCasePullRequest1809187540604,
 ];

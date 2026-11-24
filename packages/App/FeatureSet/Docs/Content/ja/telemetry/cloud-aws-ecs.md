@@ -321,7 +321,7 @@ aws ecs update-service \
 
 ## 得られるもの
 
-- **概要**: トレースから算出したリクエスト、エラー率、p95 レイテンシ、**CPU** と **メモリ** のタイル、**CPU 使用率の上位インスタンス**。タイルには、`awsecscontainermetrics` レシーバーの `ecs.task.cpu.utilized` と `ecs.task.memory.utilized`、またはタスクの識別子を持つ任意の `container.cpu.utilization` と `container.memory.usage` メトリクスが使われます。SDK direct はどちらも送りません。
+- **概要**: トレースから算出したリクエスト、エラー率、p95 レイテンシ、**CPU** と **メモリ** のタイル、**CPU 使用率の上位インスタンス**。タイルには、`awsecscontainermetrics` レシーバーの `ecs.task.cpu.utilized` と `ecs.task.memory.utilized`、またはタスクの識別子を持つ任意の `container.cpu.utilization` と `container.memory.usage` メトリクスが使われます。SDK direct はどちらも送りません。**クラウド → 接続** でアカウントを接続すると、このタブに **Amazon CloudWatch** セクションが加わり、アプリが何を送っていても、アプリのクラスターでそのタスク定義ファミリーを実行する ECS サービスについて CloudWatch が測定した CPU とメモリが表示されます。ECS は独自のリクエスト数を公開せず、リクエストはロード バランサーが数えるため、リクエストは引き続きトレースから得られます。そのようなサービスが読み取られていない間は、**セットアップ チェック** の **Amazon CloudWatch 接続** の行が探しているクラスターとファミリーを示します。
 - **インスタンス**: 実行中のタスクごとに一行。名前はタスク ID (`aws.ecs.task.arn` の末尾) で、最新の CPU、メモリ、最終確認時刻が表示されます。報告が途絶えたタスクは **古い** になります。
 - **ログ**、**トレース**、**メトリクス**: このアカウントとリージョンで `cloud.platform=aws_ecs` を持っていたすべてのデータ。
 - **サービス**: 同じタスクを `service.name` ごとに分けたもの。

@@ -136,7 +136,7 @@ Darunter steht jeder Schritt, den es ausgeführt, erfragt oder überlassen hat, 
 
 ### Ein Fall, den es als harmlos oder als Fehlalarm einschätzt
 
-**Mit KI reagieren** schließt einen Fall, den die Triage als Wahrscheinlich harmlos oder Wahrscheinlich Fehlalarm eingeschätzt hat, als Harmlos positiv oder Falsch positiv, soweit **Den Fall schließen** es erlaubt. Sobald er geschlossen ist, hebt OneUptime AI die Sperren auf, die der Fall gesetzt hat, ebenfalls soweit **Den Fall schließen** es erlaubt, und schlägt für die Regel des Falls eine Ausnahme für den Wert vor, der ihn ausgelöst hat. Die Ausnahme wartet immer auf eine Person: **Genehmigen** fügt sie hinzu, in Ihrem Namen.
+**Mit KI reagieren** schließt einen Fall, den die Triage als Wahrscheinlich harmlos oder Wahrscheinlich Fehlalarm eingeschätzt hat, als Harmlos positiv oder Falsch positiv, soweit **Den Fall schließen** es erlaubt. Sobald er geschlossen ist, hebt OneUptime AI die Sperren auf, die der Fall gesetzt hat, ebenfalls soweit **Den Fall schließen** es erlaubt, und schlägt für die Regel des Falls eine Ausnahme für den Wert vor, der ihn ausgelöst hat. Die Ausnahme wartet immer auf eine Person: **Genehmigen** fügt sie hinzu, in Ihrem Namen. Eine Person, die den Fall zuvor wieder öffnet oder übernimmt, verhindert beides, und solange das Produkt Sicherheitsereignisse ausgeschaltet ist, überlässt OneUptime AI beides einer Person.
 
 ## Was OneUptime AI in einem Fall tun darf
 
@@ -177,6 +177,7 @@ OneUptime AI zieht sich nie stillschweigend zurück. Es übergibt den Fall an Me
 - das Ziel seines nächsten Schritts geschützt ist;
 - es innerhalb einer Stunde so oft selbstständig gehandelt hat, wie es darf;
 - KI für das Projekt oder für Sicherheitsfälle ausgeschaltet ist, kein LLM-Anbieter vorhanden ist oder das Projekt kein KI-Guthaben mehr hat oder sein tägliches KI-Limit erreicht hat;
+- das Produkt Sicherheitsereignisse auf dem Server ausgeschaltet ist;
 - seine Triage nicht feststellen konnte, ob der Fall echt ist;
 - ein ausgeführter Schritt nicht hält, ein gestarteter Schritt nicht abgeschlossen wurde oder eine Person einen seiner Schritte abgelehnt oder rückgängig gemacht hat;
 - es nicht erkennen kann, was als Nächstes zu tun ist, oder alles, was im Fall noch offen ist, eine Person erledigen muss.
@@ -184,6 +185,8 @@ OneUptime AI zieht sich nie stillschweigend zurück. Es übergibt den Fall an Me
 Die Zuständigen des Falls erfahren es sofort, oder, wenn niemand zuständig ist, die Personen, die über Fälle seiner Priorität informiert werden: **OneUptime AI hat einen Sicherheitsfall an Menschen übergeben**, unter **Benutzereinstellungen → Benachrichtigungseinstellungen**. Eine Workspace-Benachrichtigungsregel für Sicherheitsfälle postet es in ihrem Kanal in Slack oder Microsoft Teams unter **Von OneUptime AI an Menschen übergebene Fälle**. **Übernehmen** übergibt den Fall, ohne jemanden zu benachrichtigen, denn die Person, die es gedrückt hat, hat ihn.
 
 **Mit KI reagieren** bittet OneUptime AI, den Fall erneut zu bearbeiten, ab dem Stand, an dem der Fall gerade ist.
+
+Solange das Produkt Sicherheitsereignisse auf dem Server ausgeschaltet ist, startet OneUptime AI in keinem Fall einen neuen Schritt und übergibt innerhalb einer Minute jeden Fall, den es bearbeitet, an Menschen. Ein Schritt, den es bereits gestartet hat, wird wie gewohnt abgeschlossen oder kann rückgängig gemacht werden. Sobald das Produkt wieder eingeschaltet ist, nimmt es keinen dieser Fälle von selbst wieder auf: Das tut **Mit KI reagieren**.
 
 Ein Fall, der zurückgehalten wird, während OneUptime AI zuerst reagiert, erreicht Personen ein einziges Mal, mit der Benachrichtigung über den neuen Fall und dem Grund, warum OneUptime AI aufgehört hat: siehe [OneUptime AI zuerst reagieren lassen](#oneuptime-ai-zuerst-reagieren-lassen).
 

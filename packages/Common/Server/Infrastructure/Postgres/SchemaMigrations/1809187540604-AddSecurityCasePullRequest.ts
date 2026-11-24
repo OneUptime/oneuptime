@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddSecurityCasePullRequest1809187520604 implements MigrationInterface {
-    name = 'AddSecurityCasePullRequest1809187520604'
+export class AddSecurityCasePullRequest1809187540604 implements MigrationInterface {
+    name = 'AddSecurityCasePullRequest1809187540604'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE "SecurityCasePullRequest" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "createdByActorType" character varying(100), "createdByActorId" uuid, "lastModifiedAt" TIMESTAMP WITH TIME ZONE, "lastModifiedByActorType" character varying(100), "lastModifiedByActorId" uuid, "lastModifiedByUserId" uuid, "projectId" uuid NOT NULL, "securityCaseId" uuid NOT NULL, "pullRequestUrl" text NOT NULL, "codeRepositoryId" uuid, "pullRequestNumber" integer, "repoOrganizationName" text, "repoName" character varying(100), "pullRequestState" character varying(100), "mergeCommitSha" character varying(100), "mergedAt" TIMESTAMP WITH TIME ZONE, "deployedAt" TIMESTAMP WITH TIME ZONE, "deployedVersion" character varying(100), "deployedCommitSha" character varying(100), "followedAt" TIMESTAMP WITH TIME ZONE, "createdByUserId" uuid, CONSTRAINT "PK_45298e1dadc49450bb2ef31e8ab" PRIMARY KEY ("_id"))`);
