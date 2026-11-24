@@ -868,7 +868,14 @@ export default class CloudflareBlockingFakeApi extends CloudflareFakeApi {
     const target: string = String(configuration["target"] || "");
     const value: string = String(configuration["value"] || "");
 
-    if (!value || !["ip", "ip6", "ip_range"].includes(target)) {
+    // An autonomous system is written "AS" and its number (#10354).
+    const asnPattern: RegExp = /^AS\d+$/;
+
+    if (
+      !value ||
+      !["ip", "ip6", "ip_range", "asn"].includes(target) ||
+      (target === "asn" && !asnPattern.test(value))
+    ) {
       return restError(400, 10014, "configuration.value is invalid");
     }
 
