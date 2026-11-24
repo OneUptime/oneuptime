@@ -1,5 +1,8 @@
 import { ResponseJSON } from "@clickhouse/client";
+import { TelemetryLeakFixPlace } from "../../../../Types/AI/FixProductionBaseline";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRuleType";
+import { METRIC_REDACT_REPLACEMENT } from "../../DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { Results } from "../../../Services/AnalyticsDatabaseService";
@@ -25,13 +28,13 @@ import {
 // Read while this module loads, which can be in the middle of the scanner's: see its module.
 import { TelemetrySampleSource } from "../../DataSecurity/Telemetry/TelemetrySampleSource";
 import {
+  appendRecordVersion,
   buildOccurrenceMatcher,
   buildTelemetryOccurrenceStatement,
   getOccurrencePrefilter,
   getOccurrenceReadLimit,
   OccurrencePlan,
   planOccurrenceRead,
-  SERVICE_VERSION_ATTRIBUTE_KEY,
   VERSIONED_OCCURRENCE_SOURCES,
 } from "../../DataSecurity/Telemetry/TelemetryFindingOccurrences";
 
@@ -49,6 +52,22 @@ import {
  *     seen in narrows them - and the version each record that still holds
  *     the data came from.
  *
+ * Every store's records name the version that wrote them (#10832): a
+ * service's logs, spans, AI calls, exceptions and metric data points under
+ * resource.service.version, and a RUM application's logs and spans there
+ * too (the browser SDK's service.version, the release its source maps are
+ * uploaded for), its sessions in their appVersion. A session replay store
+ * holds three kinds of record: each place is read from its own
+ * (planOccurrenceRead), and its traffic is counted in the kind most of its
+ * places are in.
+ *
+ * A metric pipeline rule counts nothing, so a metric place a rule hides is
+ * proven on the records too, where it can be: a Redact Attribute rule
+ * leaves its replacement under the key, so a data point of the new version
+ * that still carries it is a value the rule changed - the code still
+ * writes it. A rule that removes the attribute or drops the points leaves
+ * nothing to read, and such a place cannot be told.
+ *
  * Read as the system, every read pinned to its project and held to a time
  * limit it stops at with an error: a check that could not read is checked
  * again next time, never decided on half a picture. Nothing read leaves
@@ -58,37 +77,158 @@ import {
 // How long a count of a store's records may run, in seconds.
 export const LEAK_RECORD_COUNT_SECONDS: number = 30;
 
-// The stores whose records a code fix can be proven on: a service's logs, spans, AI calls and exceptions.
+/*
+ * The stores whose records a code fix can be proven on: every telemetry
+ * store - a service's logs, spans, AI calls, exceptions and metrics, and a
+ * RUM application's session replays (#10832).
+ */
 export const PROVABLE_LEAK_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.TelemetryLogs,
   DataStoreKind.TelemetryTraces,
   DataStoreKind.TelemetryAiConversations,
   DataStoreKind.TelemetryExceptions,
+  DataStoreKind.TelemetryMetrics,
+  DataStoreKind.TelemetrySessionReplays,
 ];
 
-// The source a store's records are read from, when they can be.
+// The source a store's records are read from, for a store of one kind of record.
 const SOURCE_OF_KIND: Partial<Record<DataStoreKind, TelemetrySampleSource>> = {
   [DataStoreKind.TelemetryLogs]: TelemetrySampleSource.Logs,
   [DataStoreKind.TelemetryTraces]: TelemetrySampleSource.Traces,
   [DataStoreKind.TelemetryAiConversations]:
     TelemetrySampleSource.AiConversations,
   [DataStoreKind.TelemetryExceptions]: TelemetrySampleSource.Exceptions,
+  [DataStoreKind.TelemetryMetrics]: TelemetrySampleSource.Metrics,
 };
 
+// A session replay store's kinds of record, in the order a tie between them is broken.
+const SESSION_REPLAY_SOURCES: ReadonlyArray<TelemetrySampleSource> = [
+  TelemetrySampleSource.RumLogs,
+  TelemetrySampleSource.RumSpans,
+  TelemetrySampleSource.RumSessions,
+];
+
 // What a store's records are called in a verdict's summary.
-const NOUN_OF_KIND: Partial<Record<DataStoreKind, string>> = {
-  [DataStoreKind.TelemetryLogs]: "logs",
-  [DataStoreKind.TelemetryTraces]: "spans",
-  [DataStoreKind.TelemetryAiConversations]: "AI calls",
-  [DataStoreKind.TelemetryExceptions]: "exceptions",
+const NOUN_OF_SOURCE: Readonly<Record<TelemetrySampleSource, string>> = {
+  [TelemetrySampleSource.Logs]: "logs",
+  [TelemetrySampleSource.Traces]: "spans",
+  [TelemetrySampleSource.AiConversations]: "AI calls",
+  [TelemetrySampleSource.Exceptions]: "exceptions",
+  [TelemetrySampleSource.Metrics]: "data points",
+  [TelemetrySampleSource.RumLogs]: "browser logs",
+  [TelemetrySampleSource.RumSpans]: "browser spans",
+  [TelemetrySampleSource.RumSessions]: "sessions",
 };
 
 export function isProvableLeakStoreKind(kind: string | undefined): boolean {
   return PROVABLE_LEAK_STORE_KINDS.includes(kind as DataStoreKind);
 }
 
-export function getLeakStoreNoun(kind: string | undefined): string {
-  return NOUN_OF_KIND[kind as DataStoreKind] || "records";
+/*
+ * The kind of record a store's traffic is counted in: its one kind, or -
+ * for a session replay store - the kind most of the places are read from
+ * (logs, then spans, then sessions on a tie). Null when none can be.
+ */
+export function getLeakTrafficSource(
+  kind: string | undefined,
+  locations: ReadonlyArray<string> = [],
+): TelemetrySampleSource | null {
+  const one: TelemetrySampleSource | undefined =
+    SOURCE_OF_KIND[kind as DataStoreKind];
+
+  if (one) {
+    return one;
+  }
+
+  if (kind !== DataStoreKind.TelemetrySessionReplays) {
+    return null;
+  }
+
+  const counts: Map<TelemetrySampleSource, number> = new Map();
+
+  for (const location of locations) {
+    const plan: OccurrencePlan | null = planOccurrenceRead(kind, location);
+
+    if (plan) {
+      counts.set(plan.source, (counts.get(plan.source) || 0) + 1);
+    }
+  }
+
+  let best: TelemetrySampleSource | null = null;
+
+  for (const source of SESSION_REPLAY_SOURCES) {
+    if ((counts.get(source) || 0) > (best ? counts.get(best) || 0 : 0)) {
+      best = source;
+    }
+  }
+
+  return best;
+}
+
+export function getLeakSourceNoun(source: TelemetrySampleSource): string {
+  return NOUN_OF_SOURCE[source] || "records";
+}
+
+export function getLeakStoreNoun(
+  kind: string | undefined,
+  locations: ReadonlyArray<string> = [],
+): string {
+  const source: TelemetrySampleSource | null = getLeakTrafficSource(
+    kind,
+    locations,
+  );
+
+  return source ? getLeakSourceNoun(source) : "records";
+}
+
+// The kind of record a place is read from, or null for a place no record has.
+export function getLeakPlaceSource(
+  kind: string | undefined,
+  location: string,
+): TelemetrySampleSource | null {
+  const plan: OccurrencePlan | null = planOccurrenceRead(kind, location);
+
+  return plan && VERSIONED_OCCURRENCE_SOURCES.has(plan.source)
+    ? plan.source
+    : null;
+}
+
+/*
+ * Whether the new version's records can tell about a place: one a record
+ * has, which no metric pipeline rule removes or drops before it is stored
+ * (#10832) - a Redact Attribute rule leaves its replacement to read.
+ */
+export function isReadableLeakPlace(
+  kind: string | undefined,
+  place: Pick<TelemetryLeakFixPlace, "location" | "metricRule">,
+): boolean {
+  if (
+    !isProvableLeakStoreKind(kind) ||
+    !getLeakPlaceSource(kind, place.location)
+  ) {
+    return false;
+  }
+
+  return (
+    !place.metricRule ||
+    place.metricRule.ruleType === MetricPipelineRuleType.RedactAttribute
+  );
+}
+
+// A place as it is read: its data type and location, and a Redact Attribute rule's replacement.
+export function toLeakPlaceToRead(
+  place: Pick<TelemetryLeakFixPlace, "dataTypeId" | "location" | "metricRule">,
+): LeakPlaceToRead {
+  const replacement: string =
+    place.metricRule?.ruleType === MetricPipelineRuleType.RedactAttribute
+      ? place.metricRule.replacement || METRIC_REDACT_REPLACEMENT
+      : "";
+
+  return {
+    dataTypeId: place.dataTypeId,
+    location: place.location,
+    ...(replacement ? { redactedAs: replacement } : {}),
+  };
 }
 
 // The values a set of rules changed in one service, and the versions they were changed in.
@@ -110,6 +250,12 @@ export interface LeakDataFound {
 export interface LeakPlaceToRead {
   dataTypeId: string;
   location: string;
+  /*
+   * What a metric pipeline Redact Attribute rule leaves in the value's
+   * place (#10832): a record that still carries it under the key holds a
+   * value the rule changed.
+   */
+  redactedAs?: string | undefined;
 }
 
 /*
@@ -234,25 +380,33 @@ export default class TelemetryLeakFixReads {
     );
   }
 
-  // How many of a store's records the service sent in the window - in one version when asked.
+  /*
+   * How many of a store's records the owner sent in the window - in one
+   * version when asked - in its one kind of record, or the kind given (a
+   * session replay store's: getLeakTrafficSource). A session is counted
+   * once however many times the table keeps it.
+   */
   public static buildRecordCountStatement(data: {
     projectId: ObjectID;
     kind: string;
+    source?: TelemetrySampleSource | null | undefined;
     serviceId: string;
     since: Date;
     until: Date;
     version?: string | undefined;
   }): { source: SourceDefinition; statement: Statement } | null {
-    const sourceName: TelemetrySampleSource | undefined =
-      SOURCE_OF_KIND[data.kind as DataStoreKind];
+    const sourceName: TelemetrySampleSource | null =
+      data.source || getLeakTrafficSource(data.kind);
 
     if (!sourceName) {
       return null;
     }
 
     const source: SourceDefinition = getTelemetrySource(sourceName);
-    const statement: Statement = SQL`SELECT count() AS records FROM `;
+    const statement: Statement = SQL`SELECT `;
 
+    statement.append(source.countExpression);
+    statement.append(" AS records FROM ");
     statement.append(tableOf(source.table));
     appendWhere(statement, source, {
       projectId: data.projectId,
@@ -262,9 +416,10 @@ export default class TelemetryLeakFixReads {
     appendOwnersIn(statement, source, [data.serviceId]);
 
     if (data.version && VERSIONED_OCCURRENCE_SOURCES.has(sourceName)) {
-      statement.append(" AND attributes[");
+      statement.append(" AND ");
+      appendRecordVersion(statement, sourceName);
       statement.append(
-        SQL`${{ type: TableColumnType.Text, value: SERVICE_VERSION_ATTRIBUTE_KEY }}] = ${{
+        SQL` = ${{
           type: TableColumnType.Text,
           value: data.version,
         }}`,
@@ -286,6 +441,8 @@ export default class TelemetryLeakFixReads {
   public static async countRecords(data: {
     projectId: ObjectID;
     kind: string;
+    // A session replay store's kind of record to count; any other store's is its own.
+    source?: TelemetrySampleSource | null | undefined;
     serviceId: string;
     since: Date;
     until: Date;
@@ -313,8 +470,11 @@ export default class TelemetryLeakFixReads {
 
   /*
    * The newest records at each place in the window - in one version when
-   * asked - and how many still hold the data, with their versions. A place
-   * whose records cannot be read (a metric's, a replay's) reads nothing.
+   * asked - and how many still hold the data, with their versions: the
+   * data itself, or the replacement a metric Redact Attribute rule left
+   * under the key. Each place is read from its own kind of record (a
+   * session replay store's place from its logs, spans or sessions); a
+   * place no record has reads nothing.
    */
   @CaptureSpan()
   public static async findDataAtPlaces(data: {
@@ -356,6 +516,7 @@ export default class TelemetryLeakFixReads {
 
       const source: SourceDefinition = getTelemetrySource(plan.source);
       const caps: TelemetrySampleCaps = capsOf(source, data.options);
+      const redactedAs: string = place.redactedAs || "";
       const statement: Statement = buildTelemetryOccurrenceStatement({
         projectId: data.projectId,
         since: data.since,
@@ -364,20 +525,34 @@ export default class TelemetryLeakFixReads {
         ownerId: data.serviceId,
         limit: getOccurrenceReadLimit(plan),
         caps,
-        prefilter: getOccurrencePrefilter({
-          dataTypeId: place.dataTypeId,
-          location: place.location,
-          options: data.options,
-        }),
+        /*
+         * A redacted value is no longer the data type's shape, so the
+         * database is not asked to narrow by it: every record with the key
+         * is read, and each value is looked at here.
+         */
+        prefilter: redactedAs
+          ? null
+          : getOccurrencePrefilter({
+              dataTypeId: place.dataTypeId,
+              location: place.location,
+              options: data.options,
+            }),
         serviceVersion: data.version,
         readsServiceVersion: true,
       });
-      const holdsTheData: (value: string) => string | null =
-        buildOccurrenceMatcher({
-          dataTypeId: place.dataTypeId,
-          location: place.location,
-          options: data.options,
-        });
+      const matches: (value: string) => string | null = buildOccurrenceMatcher({
+        dataTypeId: place.dataTypeId,
+        location: place.location,
+        options: data.options,
+      });
+      const holdsTheData: (value: string) => boolean = (
+        value: string,
+      ): boolean => {
+        return (
+          (redactedAs.length > 0 && value === redactedAs) ||
+          Boolean(matches(value))
+        );
+      };
 
       for (const row of await read({ source, statement })) {
         const values: Array<TelemetryRecordValue> =
@@ -388,8 +563,7 @@ export default class TelemetryLeakFixReads {
         if (
           values.some((value: TelemetryRecordValue): boolean => {
             return (
-              value.location === place.location &&
-              Boolean(holdsTheData(value.value))
+              value.location === place.location && holdsTheData(value.value)
             );
           })
         ) {

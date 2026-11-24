@@ -5,6 +5,7 @@ import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import { DataStoreFeedEventType } from "../../../../Models/DatabaseModels/DataStoreFeed";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import LogScrubRule from "../../../../Models/DatabaseModels/LogScrubRule";
+import MetricPipelineRule from "../../../../Models/DatabaseModels/MetricPipelineRule";
 import TraceScrubRule from "../../../../Models/DatabaseModels/TraceScrubRule";
 import FixProductionCheck from "../../../../Types/AI/FixProductionCheck";
 import {
@@ -32,6 +33,7 @@ import DataSecurityIssueResolution, {
 } from "../../../../Types/DataSecurity/DataSecurityIssueResolution";
 import DataSecurityIssueStatus from "../../../../Types/DataSecurity/DataSecurityIssueStatus";
 import { DataStoreKind } from "../../../../Types/DataSecurity/DataStoreKind";
+import MetricPipelineRuleType from "../../../../Types/Metrics/MetricPipelineRuleType";
 import ObjectID from "../../../../Types/ObjectID";
 import { MarkdownText, mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
@@ -39,6 +41,7 @@ import DataSecurityIssueService from "../../../Services/DataSecurityIssueService
 import DataStoreFindingService from "../../../Services/DataStoreFindingService";
 import DataStoreService from "../../../Services/DataStoreService";
 import LogScrubRuleService from "../../../Services/LogScrubRuleService";
+import MetricPipelineRuleService from "../../../Services/MetricPipelineRuleService";
 import TraceScrubRuleService from "../../../Services/TraceScrubRuleService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import DataSecurityIssueResolutions, {
@@ -51,9 +54,12 @@ import {
   CoveringScrubRule,
   findCoveringScrubRule,
   getScrubCoverage,
+  METRIC_REDACT_REPLACEMENT,
   ScrubCoverage,
 } from "../../DataSecurity/Telemetry/TelemetryScrubCoverage";
 import { getTelemetryStoreOwnerId } from "../../DataSecurity/Telemetry/TelemetryFindingOccurrences";
+// Read while this module loads, which can be in the middle of the scanner's: see its module.
+import { TelemetrySampleSource } from "../../DataSecurity/Telemetry/TelemetrySampleSource";
 import logger from "../../Logger";
 import DataSecurityFixTarget, {
   DataSecurityFixTargetRead,
@@ -73,8 +79,11 @@ import FixProductionVerifier, {
 import TelemetryLeakFixReads, {
   LeakDataFound,
   LeakValuesChanged,
+  getLeakPlaceSource,
   getLeakStoreNoun,
-  isProvableLeakStoreKind,
+  getLeakTrafficSource,
+  isReadableLeakPlace,
+  toLeakPlaceToRead,
 } from "./TelemetryLeakFixReads";
 import {
   TELEMETRY_LEAK_FIX_THRESHOLDS,
@@ -108,6 +117,14 @@ import {
  * coming back (watchVerifiedFixes) - the kept rules changing values again,
  * in any version, or the scan finding the data again where no rule is. The
  * issue then says which version brought it back, and opens again.
+ *
+ * Every telemetry store is proven by the version that shipped the fix
+ * (#10832): a service's metrics by the data points of its new version, a
+ * RUM application's session replays by its release - its logs' and spans'
+ * service.version, its sessions' appVersion - each kind of record read in
+ * the version only where its own records name it. A metric place a
+ * metric pipeline rule hides is read for a Redact Attribute rule's
+ * replacement under the key; one a rule removes or drops cannot be told.
  */
 
 const ROOT: { isRoot: true } = { isRoot: true };
@@ -119,6 +136,15 @@ export const MAX_LEAK_PLACES_PER_STORE: number = 200;
 interface StoreToWatch {
   store: DataStore;
   issueIds: Array<string>;
+}
+
+/*
+ * Whether one kind of record names the deploy's version, and its records
+ * of that version since the deploy - its traffic - when it does (#10832).
+ */
+export interface SourceVersion {
+  version?: string | undefined;
+  records?: number | undefined;
 }
 
 export default class TelemetryLeakFixWatch {
@@ -306,7 +332,7 @@ export default class TelemetryLeakFixWatch {
     let placeCount: number = 0;
     let unreadable: number = 0;
 
-    // One service's stores: its deploys ship the fix.
+    // One owner's stores - a service's, or a RUM application's - whose deploys ship the fix.
     for (const watched of stores) {
       if (getTelemetryStoreOwnerId(watched.store) !== serviceId) {
         continue;
@@ -322,15 +348,17 @@ export default class TelemetryLeakFixWatch {
           serviceId,
           now: data.now,
         });
+      // A place a metric rule removes or drops leaves nothing to read (#10832).
+      const readable: Array<TelemetryLeakFixPlace> = places.filter(
+        (place: TelemetryLeakFixPlace): boolean => {
+          return isReadableLeakPlace(kind, place);
+        },
+      );
 
       placeCount += places.length;
+      unreadable += places.length - readable.length;
 
-      if (!isProvableLeakStoreKind(kind)) {
-        unreadable += places.length;
-        continue;
-      }
-
-      if (places.length === 0) {
+      if (readable.length === 0) {
         continue;
       }
 
@@ -338,8 +366,14 @@ export default class TelemetryLeakFixWatch {
         await TelemetryLeakFixWatch.readRecordsBefore({
           projectId,
           kind,
+          source: getLeakTrafficSource(
+            kind,
+            readable.map((place: TelemetryLeakFixPlace): string => {
+              return place.location;
+            }),
+          ),
           serviceId,
-          places,
+          places: readable,
           mergedAt: data.mergedAt,
         });
 
@@ -347,7 +381,7 @@ export default class TelemetryLeakFixWatch {
         dataStoreId: watched.store.id!.toString(),
         kind,
         issueIds: watched.issueIds,
-        places,
+        places: readable,
         recordsBefore: before.records,
         recordsBeforeHour: before.hour.toISOString(),
       });
@@ -454,8 +488,9 @@ export default class TelemetryLeakFixWatch {
   /*
    * The places a store's issues found their data at: every finding their
    * checks count now, hidden at ingest or not, with the log or trace rules
-   * that hide it (a metric pipeline rule counts nothing, so it is no rule
-   * here).
+   * that hide it - whose counter tells - or the metric pipeline rule that
+   * does, which counts nothing (#10832): its type, and what a Redact
+   * Attribute rule leaves in the value's place, read under the key instead.
    */
   private static async readPlaces(data: {
     projectId: ObjectID;
@@ -511,6 +546,7 @@ export default class TelemetryLeakFixWatch {
         props: ROOT,
       });
     const places: Array<TelemetryLeakFixPlace> = [];
+    const metricRules: Map<string, CoveringScrubRule> = new Map();
 
     for (const finding of findings) {
       if (
@@ -535,6 +571,11 @@ export default class TelemetryLeakFixWatch {
           serviceId: data.serviceId,
         },
       );
+      const isMetricRule: boolean = Boolean(rule && rule.signal === "metric");
+
+      if (rule && isMetricRule) {
+        metricRules.set(rule.id, rule);
+      }
 
       places.push({
         findingId: finding.id.toString(),
@@ -547,10 +588,81 @@ export default class TelemetryLeakFixWatch {
         ...(finding.lastSeenAt
           ? { lastSeenAt: new Date(finding.lastSeenAt).toISOString() }
           : {}),
+        ...(rule && isMetricRule
+          ? { metricRule: { id: rule.id, ruleType: rule.patternType } }
+          : {}),
       });
     }
 
-    return places;
+    if (metricRules.size === 0) {
+      return places;
+    }
+
+    // What each Redact Attribute rule writes in the value's place.
+    const replacements: Map<string, string> =
+      await TelemetryLeakFixWatch.readRedactReplacements({
+        projectId: data.projectId,
+        ruleIds: Array.from(metricRules.values())
+          .filter((rule: CoveringScrubRule): boolean => {
+            return rule.patternType === MetricPipelineRuleType.RedactAttribute;
+          })
+          .map((rule: CoveringScrubRule): string => {
+            return rule.id;
+          }),
+      });
+
+    return places.map((place: TelemetryLeakFixPlace): TelemetryLeakFixPlace => {
+      if (
+        !place.metricRule ||
+        place.metricRule.ruleType !== MetricPipelineRuleType.RedactAttribute
+      ) {
+        return place;
+      }
+
+      return {
+        ...place,
+        metricRule: {
+          ...place.metricRule,
+          replacement:
+            replacements.get(place.metricRule.id.toLowerCase()) ||
+            METRIC_REDACT_REPLACEMENT,
+        },
+      };
+    });
+  }
+
+  // The replacement each metric Redact Attribute rule writes, by its id in lower case.
+  public static async readRedactReplacements(data: {
+    projectId: ObjectID;
+    ruleIds: ReadonlyArray<string>;
+  }): Promise<Map<string, string>> {
+    const replacements: Map<string, string> = new Map();
+
+    if (data.ruleIds.length === 0) {
+      return replacements;
+    }
+
+    const rules: Array<MetricPipelineRule> =
+      await MetricPipelineRuleService.findBy({
+        query: {
+          projectId: data.projectId,
+          _id: new Includes([...data.ruleIds]),
+        } as never,
+        select: { _id: true, redactReplacement: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: ROOT,
+      });
+
+    for (const rule of rules) {
+      const id: string = rule.id?.toString() || String(rule._id || "");
+
+      if (id && rule.redactReplacement) {
+        replacements.set(id.toLowerCase(), rule.redactReplacement);
+      }
+    }
+
+    return replacements;
   }
 
   /*
@@ -561,6 +673,8 @@ export default class TelemetryLeakFixWatch {
   private static async readRecordsBefore(data: {
     projectId: ObjectID;
     kind: string;
+    // The kind of record the store's traffic is counted in (getLeakTrafficSource).
+    source: TelemetrySampleSource | null;
     serviceId: string;
     places: ReadonlyArray<TelemetryLeakFixPlace>;
     mergedAt: Date;
@@ -583,6 +697,7 @@ export default class TelemetryLeakFixWatch {
       const records: number = await TelemetryLeakFixReads.countRecords({
         projectId: data.projectId,
         kind: data.kind,
+        source: data.source,
         serviceId: data.serviceId,
         since: hour,
         until: new Date(hour.getTime() + HOUR_IN_MS),
@@ -598,9 +713,11 @@ export default class TelemetryLeakFixWatch {
 
   /*
    * The deployed fix, measured: what its containing rules changed, what its
-   * records at the places no rule covers held, and its traffic - in its
-   * version when the service's telemetry names it, else from the rollout
-   * grace on.
+   * records at the places no rule covers held, and its traffic. Each kind of
+   * record is read in the deploy's version when its own records name it - a
+   * service's metrics may not, when its spans do - and else from the
+   * rollout grace on (#10832). The rules' counter is read by the version
+   * the service's spans and logs name, as it always was.
    */
   public static async measure(data: {
     fix: AIAgentTaskPullRequest;
@@ -609,10 +726,11 @@ export default class TelemetryLeakFixWatch {
     now: Date;
   }): Promise<TelemetryLeakMeasure> {
     const projectId: ObjectID = data.fix.projectId!;
+    const serviceId: string = data.baseline.serviceId;
     const version: string | undefined =
       await FixProductionVerifier.versionToRead({
         projectId,
-        serviceId: new ObjectID(data.baseline.serviceId),
+        serviceId: new ObjectID(serviceId),
         shipped: data.shipped,
         now: data.now,
       });
@@ -626,7 +744,7 @@ export default class TelemetryLeakFixWatch {
     const changed: LeakValuesChanged =
       await TelemetryLeakFixReads.readValuesChanged({
         projectId,
-        serviceId: data.baseline.serviceId,
+        serviceId,
         scrubRuleIds: ruleIds,
         since,
         version,
@@ -638,6 +756,24 @@ export default class TelemetryLeakFixWatch {
     )
       ? (await DataSecurityRunner.getScanSetup(projectId)).options
       : null;
+    const versions: Map<string, SourceVersion> = new Map();
+    const versionOf: (
+      kind: string,
+      source: TelemetrySampleSource,
+    ) => Promise<SourceVersion> = (
+      kind: string,
+      source: TelemetrySampleSource,
+    ): Promise<SourceVersion> => {
+      return TelemetryLeakFixWatch.readSourceVersion({
+        projectId,
+        serviceId,
+        kind,
+        source,
+        shipped: data.shipped,
+        now: data.now,
+        known: versions,
+      });
+    };
     const traffic: Array<TelemetryLeakTraffic> = [];
     let recordsRead: number = 0;
     let recordsWithData: number = 0;
@@ -647,33 +783,66 @@ export default class TelemetryLeakFixWatch {
         TelemetryLeakFixWatch.uncoveredPlacesOf(store);
 
       if (uncovered.length > 0 && options) {
-        const found: LeakDataFound =
-          await TelemetryLeakFixReads.findDataAtPlaces({
-            projectId,
-            kind: store.kind,
-            serviceId: data.baseline.serviceId,
-            places: uncovered,
-            since,
-            until: data.now,
-            version,
-            options,
-          });
+        // Each kind of record its places are in, read in its own version.
+        for (const [source, places] of TelemetryLeakFixWatch.placesBySource(
+          store.kind,
+          uncovered,
+        )) {
+          const sourceVersion: SourceVersion = await versionOf(
+            store.kind,
+            source,
+          );
+          const found: LeakDataFound =
+            await TelemetryLeakFixReads.findDataAtPlaces({
+              projectId,
+              kind: store.kind,
+              serviceId,
+              places: places.map(toLeakPlaceToRead),
+              since: FixProductionVerifier.sinceDeployWindowStart({
+                shipped: data.shipped,
+                version: sourceVersion.version,
+              }),
+              until: data.now,
+              version: sourceVersion.version,
+              options,
+            });
 
-        recordsRead += found.recordsRead;
-        recordsWithData += found.recordsWithData;
+          recordsRead += found.recordsRead;
+          recordsWithData += found.recordsWithData;
+        }
       }
 
+      const locations: Array<string> = store.places.map(
+        (place: TelemetryLeakFixPlace): string => {
+          return place.location;
+        },
+      );
+      const trafficSource: TelemetrySampleSource | null = getLeakTrafficSource(
+        store.kind,
+        locations,
+      );
+      const trafficVersion: SourceVersion = trafficSource
+        ? await versionOf(store.kind, trafficSource)
+        : {};
+
       traffic.push({
-        noun: getLeakStoreNoun(store.kind),
+        noun: getLeakStoreNoun(store.kind, locations),
         before: store.recordsBefore,
-        since: await TelemetryLeakFixReads.countRecords({
-          projectId,
-          kind: store.kind,
-          serviceId: data.baseline.serviceId,
-          since,
-          until: data.now,
-          version,
-        }),
+        since:
+          trafficVersion.records !== undefined
+            ? trafficVersion.records
+            : await TelemetryLeakFixReads.countRecords({
+                projectId,
+                kind: store.kind,
+                source: trafficSource,
+                serviceId,
+                since: FixProductionVerifier.sinceDeployWindowStart({
+                  shipped: data.shipped,
+                  version: trafficVersion.version,
+                }),
+                until: data.now,
+                version: trafficVersion.version,
+              }),
       });
     }
 
@@ -689,6 +858,74 @@ export default class TelemetryLeakFixWatch {
       ),
       traffic,
     };
+  }
+
+  /*
+   * Whether one kind of record names the deploy's version (#10832): some of
+   * its records since the deploy carry it - and then how many, its traffic.
+   * Asked once a measure for each kind; a deploy that names no version is
+   * read from the rollout grace on.
+   */
+  public static async readSourceVersion(data: {
+    projectId: ObjectID;
+    serviceId: string;
+    kind: string;
+    source: TelemetrySampleSource;
+    shipped: ShippedFix;
+    now: Date;
+    known: Map<string, SourceVersion>;
+  }): Promise<SourceVersion> {
+    const seen: SourceVersion | undefined = data.known.get(data.source);
+
+    if (seen) {
+      return seen;
+    }
+
+    let read: SourceVersion = {};
+
+    if (data.shipped.deployedVersion) {
+      const records: number = await TelemetryLeakFixReads.countRecords({
+        projectId: data.projectId,
+        kind: data.kind,
+        source: data.source,
+        serviceId: data.serviceId,
+        since: data.shipped.deployedAt,
+        until: data.now,
+        version: data.shipped.deployedVersion,
+      });
+
+      if (records > 0) {
+        read = { version: data.shipped.deployedVersion, records };
+      }
+    }
+
+    data.known.set(data.source, read);
+
+    return read;
+  }
+
+  // A store's places by the kind of record each is read from; a place no record has is left out.
+  public static placesBySource(
+    kind: string,
+    places: ReadonlyArray<TelemetryLeakFixPlace>,
+  ): Map<TelemetrySampleSource, Array<TelemetryLeakFixPlace>> {
+    const bySource: Map<
+      TelemetrySampleSource,
+      Array<TelemetryLeakFixPlace>
+    > = new Map();
+
+    for (const place of places) {
+      const source: TelemetrySampleSource | null = getLeakPlaceSource(
+        kind,
+        place.location,
+      );
+
+      if (source) {
+        bySource.set(source, [...(bySource.get(source) || []), place]);
+      }
+    }
+
+    return bySource;
   }
 
   public static ruleIdsOf(
@@ -1038,6 +1275,39 @@ export default class TelemetryLeakFixWatch {
 
     if (changed.valuesChanged > 0) {
       return changed.versions[0] ? { version: changed.versions[0] } : {};
+    }
+
+    /*
+     * A metric place a Redact Attribute rule hides is never seen again by
+     * the scan - the rule masks it first - so its records are read for the
+     * rule's replacement under the key (#10832).
+     */
+    const redacted: Array<TelemetryLeakFixPlace> = data.store.places.filter(
+      (place: TelemetryLeakFixPlace): boolean => {
+        return (
+          place.metricRule?.ruleType === MetricPipelineRuleType.RedactAttribute
+        );
+      },
+    );
+
+    if (redacted.length > 0) {
+      const options: ContentScanOptions = (
+        await DataSecurityRunner.getScanSetup(data.projectId)
+      ).options;
+      const masked: LeakDataFound =
+        await TelemetryLeakFixReads.findDataAtPlaces({
+          projectId: data.projectId,
+          kind: data.store.kind,
+          serviceId: data.serviceId,
+          places: redacted.map(toLeakPlaceToRead),
+          since: data.verifiedAt,
+          until: data.now,
+          options,
+        });
+
+      if (masked.recordsWithData > 0) {
+        return masked.versions[0] ? { version: masked.versions[0] } : {};
+      }
     }
 
     const findings: Array<DataStoreFinding> =

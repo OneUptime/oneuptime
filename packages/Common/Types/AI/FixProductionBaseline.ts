@@ -98,6 +98,22 @@ export interface TelemetryLeakFixPlace {
   scrubRuleIds: Array<string>;
   // ISO-8601: when the scan last saw it.
   lastSeenAt?: string | undefined;
+  /*
+   * The metric pipeline rule that hid a metric's place at ingest when the
+   * fix was followed (#10832). Such a rule counts nothing: a Redact
+   * Attribute rule's replacement is read under the key instead, and a
+   * rule that removes the attribute or drops the points leaves nothing to
+   * read.
+   */
+  metricRule?: TelemetryLeakFixMetricRule | undefined;
+}
+
+export interface TelemetryLeakFixMetricRule {
+  id: string;
+  // Its MetricPipelineRuleType: RedactAttribute, RemoveAttribute or Drop.
+  ruleType: string;
+  // What a Redact Attribute rule writes in the value's place.
+  replacement?: string | undefined;
 }
 
 // One telemetry store - a service's logs, its spans - the fix is for.
