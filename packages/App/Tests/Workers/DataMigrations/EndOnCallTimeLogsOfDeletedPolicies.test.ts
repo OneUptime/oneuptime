@@ -261,6 +261,8 @@ class StandInAuditLog implements PolicyDeletionReader {
   public asked: Array<Array<DeletedPolicy>> = [];
   public isKept: boolean = true;
   public failure: Error | null = null;
+  // The read it starts failing at, counted from 1: with `failure` set, the first.
+  public failsFromRead: number = 1;
   public existenceFailure: Error | null = null;
 
   public constructor(public deletions: Map<string, Array<Date>> = new Map()) {}
@@ -280,7 +282,7 @@ class StandInAuditLog implements PolicyDeletionReader {
   ): Promise<Map<string, Array<Date>>> => {
     this.asked.push([...policies]);
 
-    if (this.failure) {
+    if (this.failure && this.asked.length >= this.failsFromRead) {
       throw this.failure;
     }
 
@@ -771,7 +773,7 @@ describe("EndOnCallTimeLogsOfDeletedPolicies", () => {
         at(T0 + 10 * DAY),
       );
       expect(warnLogs).toEqual([
-        `${MIGRATION_NAME}: the audit log could not be read (ClickHouse is down), so no log was ended when it says its policy was deleted: each ended at the last time an on-call stint started on its policy, or at its own start.`,
+        `${MIGRATION_NAME}: the audit log could not be read (ClickHouse is down), so the logs it was not read for ended at the last time an on-call stint started on their policy, or at their own start, not when it says their policy was deleted.`,
       ]);
 
       // Its existence unknown: never asked.
@@ -879,6 +881,70 @@ describe("EndOnCallTimeLogsOfDeletedPolicies", () => {
     for (const log of database.logs) {
       expect(log.endsAt).toEqual(at(T0 + (count - 1) * MINUTE));
     }
+  });
+
+  test("an audit log that fails part-way: the pages read before keep its deletions, the rest end without it, and it is asked nothing more", async () => {
+    const policyA: string = idOf("bbbbbbb2", 2);
+    const policyB: string = idOf("bbbbbbb3", 3);
+
+    // A's logs fill the first page; B's the second and part of a third.
+    for (let index: number = 0; index < PAGE_SIZE; index++) {
+      database.add({
+        id: idOf("60000000", index + 1),
+        policyId: policyA,
+        startsAt: at(T0 + index * MINUTE),
+      });
+    }
+
+    for (let index: number = 0; index < PAGE_SIZE + 5; index++) {
+      database.add({
+        id: idOf("70000000", index + 1),
+        policyId: policyB,
+        startsAt: at(T0 + index * MINUTE),
+      });
+    }
+
+    const auditLog: StandInAuditLog = new StandInAuditLog(
+      new Map<string, Array<Date>>([
+        [
+          getPolicyKey({ projectId: PROJECT, policyId: policyA }),
+          [at(T0 + 40 * DAY)],
+        ],
+        [
+          getPolicyKey({ projectId: PROJECT, policyId: policyB }),
+          [at(T0 + 50 * DAY)],
+        ],
+      ]),
+    );
+    auditLog.failure = new Error("Code: 159. Timeout exceeded");
+    auditLog.failsFromRead = 2;
+
+    const summary: EndedSummary = await migration(auditLog).endLogs();
+
+    // Asked for the first page, failed on the second, never asked for the third.
+    expect(auditLog.asked).toEqual([
+      [{ projectId: PROJECT, policyId: policyA }],
+      [{ projectId: PROJECT, policyId: policyB }],
+    ]);
+    expect(summary.auditLog).toBe(AuditLogRead.Unreadable);
+
+    for (const log of database.logs) {
+      expect(log.endsAt).toEqual(
+        log.policyId === policyA
+          ? at(T0 + 40 * DAY)
+          : at(T0 + (PAGE_SIZE + 4) * MINUTE),
+      );
+    }
+
+    expect(summary.byEnd).toEqual({
+      [TimeLogEnd.PolicyDeleted]: PAGE_SIZE,
+      [TimeLogEnd.LastStintStarted]: PAGE_SIZE + 4,
+      [TimeLogEnd.OwnStart]: 1,
+    });
+    expect(EndOnCallTimeLogsOfDeletedPolicies.describe(summary)[0]).toEqual({
+      text: `${MIGRATION_NAME}: the audit log could not be read (Code: 159. Timeout exceeded), so the logs it was not read for ended at the last time an on-call stint started on their policy, or at their own start, not when it says their policy was deleted.`,
+      isWarning: true,
+    });
   });
 
   test("drawn at random: run twice, or twice at once, it ends exactly the open logs of deleted policies, within their policy's time, and changes nothing the second time", async () => {

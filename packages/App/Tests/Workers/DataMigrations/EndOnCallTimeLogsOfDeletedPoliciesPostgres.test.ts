@@ -69,7 +69,8 @@ import {
  * DATABASE_NAME, endpoint from ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_HOST
  * / _PORT (default localhost:5400).
  */
-const describePostgres: typeof describe =
+// describe.skip's type is the one both branches share.
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_ORPHANED_ON_CALL_TIME_LOGS_TESTS"] === "true"
     ? describe
     : describe.skip;

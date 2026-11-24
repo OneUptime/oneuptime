@@ -664,7 +664,7 @@ export default class EndOnCallTimeLogsOfDeletedPolicies extends DataMigrationBas
 
     if (summary.auditLog === AuditLogRead.Unreadable) {
       lines.push({
-        text: `${NAME}: the audit log could not be read (${summary.auditLogError || "no error given"}), so no log was ended when it says its policy was deleted: each ended at the last time an on-call stint started on its policy, or at its own start.`,
+        text: `${NAME}: the audit log could not be read (${summary.auditLogError || "no error given"}), so the logs it was not read for ended at the last time an on-call stint started on their policy, or at their own start, not when it says their policy was deleted.`,
         isWarning: true,
       });
     }
