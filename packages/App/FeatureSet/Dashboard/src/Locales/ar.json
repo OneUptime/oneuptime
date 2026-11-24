@@ -64064,6 +64064,8 @@
   "Consent is granted for the Microsoft 365 organization {{organization}}, so OneUptime can post to its teams' channels.": "مُنحت الموافقة لمؤسسة Microsoft 365 «{{organization}}»، لذا يستطيع OneUptime النشر في قنوات فرقها.",
   "Disconnect and Continue": "قطع الاتصال والمتابعة",
   "OneUptime disconnects this project from its Microsoft 365 organization first: it stops posting to that organization's channels, and every member's Microsoft Teams account is disconnected. Rules and summaries are kept. Then a Microsoft 365 admin of the other organization grants consent.": "يفصل OneUptime هذا المشروع عن مؤسسة Microsoft 365 الخاصة به أولًا: فيتوقف عن النشر في قنوات تلك المؤسسة، ويُفصل حساب Microsoft Teams لكل عضو. يُحتفظ بالقواعد والملخصات. ثم يمنح مسؤول Microsoft 365 في المؤسسة الأخرى الموافقة.",
+  "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 ذات معرّف المستأجر {{tenantId}}. سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
   "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams."
 }

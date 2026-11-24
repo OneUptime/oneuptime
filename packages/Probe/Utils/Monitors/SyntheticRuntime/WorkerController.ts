@@ -75,6 +75,20 @@ const CONTROLLER_BOOTSTRAP_TOTAL_BUDGET_IN_MS: number = Math.floor(
  */
 const CONTROLLER_TEARDOWN_TIMEOUT_IN_MS: number = 5_000;
 /*
+ * How long a run that ran out of time may spend on screenshots of the pages
+ * its script left open, all of them together (captureTimedOutPages). A page
+ * is drawn in well under a second; one that is not drawn by then is left
+ * out.
+ *
+ * The time comes out of the supervisor's startup allowance, as the teardown
+ * after it does: the supervisor gives a run its script timeout plus that
+ * allowance, and only start-up has spent any of the allowance by the time
+ * the script's deadline passes. These five seconds and the ten of teardown
+ * fit in what any start-up shorter than 105 of the allowance's 120 seconds
+ * leaves.
+ */
+const TIMED_OUT_PAGE_SCREENSHOT_TIMEOUT_IN_MS: number = 5_000;
+/*
  * How long a bootstrap attempt waits, once the controller document has
  * loaded, for that document's JavaScript to answer. An idle probe answers in
  * milliseconds.
@@ -188,6 +202,13 @@ export interface WorkerControllerOptions {
    * tests can prove the bound without waiting out the production value.
    */
   teardownTimeoutInMs?: number | undefined;
+  /*
+   * How long screenshots of the pages a timed-out script left open may take,
+   * all together, before the run reports without the ones still pending.
+   * Exposed so tests can prove the bound without waiting out the production
+   * value.
+   */
+  timedOutPageScreenshotTimeoutInMs?: number | undefined;
 }
 
 interface ControllerPayload {
@@ -365,6 +386,22 @@ export default class WorkerController {
 
         rawResult = await Promise.race([executionPromise, timeoutPromise]);
         if (rawResult === timeoutMarker) {
+          /*
+           * Before anything is torn down: the pages the script left open
+           * are the only record of where it stopped, and "timed out after
+           * 180000 ms" alone does not say. The sandbox was cut off above,
+           * so the script can no longer change what they show. The
+           * screenshots are extra: a run that cannot take them still
+           * reports its timeout.
+           */
+          try {
+            await broker.captureTimedOutPages({
+              timeoutInMs: this.getTimedOutPageScreenshotTimeoutInMs(options),
+            });
+          } catch {
+            // The run reports what it has.
+          }
+
           return this.withoutTotpCodes(
             {
               returnValue: undefined,
@@ -534,6 +571,18 @@ export default class WorkerController {
           SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS)
     ) {
       throw new Error("Synthetic runtime teardown timeout is invalid.");
+    }
+    // Bounded as the teardown is, and for the same reasons.
+    if (
+      options.timedOutPageScreenshotTimeoutInMs !== undefined &&
+      (!Number.isSafeInteger(options.timedOutPageScreenshotTimeoutInMs) ||
+        options.timedOutPageScreenshotTimeoutInMs <= 0 ||
+        options.timedOutPageScreenshotTimeoutInMs >
+          SYNTHETIC_MONITOR_WORKER_STARTUP_ALLOWANCE_IN_MS)
+    ) {
+      throw new Error(
+        "Synthetic runtime timed-out page screenshot timeout is invalid.",
+      );
     }
   }
 
@@ -833,6 +882,15 @@ export default class WorkerController {
     options: WorkerControllerOptions,
   ): number {
     return options.teardownTimeoutInMs ?? CONTROLLER_TEARDOWN_TIMEOUT_IN_MS;
+  }
+
+  private static getTimedOutPageScreenshotTimeoutInMs(
+    options: WorkerControllerOptions,
+  ): number {
+    return (
+      options.timedOutPageScreenshotTimeoutInMs ??
+      TIMED_OUT_PAGE_SCREENSHOT_TIMEOUT_IN_MS
+    );
   }
 
   private static getBootstrapTotalBudgetInMs(

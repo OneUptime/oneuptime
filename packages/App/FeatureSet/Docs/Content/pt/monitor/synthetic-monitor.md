@@ -156,13 +156,15 @@ return {
 
 Uma execução mantém até 20 capturas de tela, cada uma com até 10 MB e 50 MB no total. Uma captura também pode aparecer no incidente ou alerta aberto por uma execução que falhou (na página dele e nos e-mails sobre ele) se você a colocar na descrição de incidente ou de alerta do monitor. Veja [Mostrar uma captura de tela](/docs/monitor/incident-alert-templating#mostrar-uma-captura-de-tela).
 
+Quando uma execução esgota o tempo, a sonda também tira uma captura de tela de cada página que o script ainda tem aberta, para que você veja onde ele parou. A captura da primeira página se chama `timed-out-page`, e as das outras `timed-out-page-2`, `timed-out-page-3` e assim por diante, na ordem em que as páginas foram abertas. O resumo do monitor as mostra como “Página quando o tempo limite do script esgotou” e “Página 2 quando o tempo limite do script esgotou”, e a descrição de um incidente ou alerta pode mostrá-las como qualquer outra captura. Elas contam nos limites acima, depois das capturas do próprio script.
+
 As capturas de tela de uma verificação ficam nos registros do próprio monitor, não nos registros de um incidente ou de um alerta nem nas mudanças de status de um monitor: esses guardam o resto da verificação, e cada execução cujas capturas foram omitidas indica isso (`areScreenshotsOmitted`). Depois da atualização, uma tarefa que roda a cada hora apaga aos poucos as capturas já guardadas ali, até não restar nenhuma.
 
 > [!NOTE]
 > Em uma instalação auto-hospedada, o PostgreSQL reutiliza o espaço deixado pelas capturas apagadas, mas não o devolve ao disco. Para reduzir o banco de dados depois que elas forem apagadas, execute `VACUUM FULL` nas maiores tabelas durante uma janela de manutenção, já que ele bloqueia cada tabela enquanto a reescreve, ou use `pg_repack`, que não bloqueia.
 
 :::details Retornar capturas de tela (forma legada)
-Por compatibilidade, você também pode retornar capturas de tela do script como parte do valor de retorno. Capturas retornadas assim **só** são mantidas quando o script termina normalmente: elas se perdem se o script lançar um erro. Prefira o canal paralelo descrito acima quando quiser evidências das falhas.
+Por compatibilidade, você também pode retornar capturas de tela do script como parte do valor de retorno. Capturas retornadas assim **só** são mantidas quando o script termina normalmente: elas se perdem se o script lançar um erro ou esgotar o tempo. Prefira o canal paralelo descrito acima quando quiser evidências das falhas.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Listeners de eventos não conseguem atravessar a fronteira de isolamento. Use `p
 :::
 
 :::details A execução estoura o tempo
-Espere elementos específicos com `page.waitForSelector(...)` e um `timeout` menor que o limite do próprio script, para que a execução falhe na etapa lenta, com um erro claro.
+**Mostrar mais detalhes** no resumo do monitor mostra “Página quando o tempo limite do script esgotou”: a página em que o script estava quando o tempo dele acabou. Para que a execução falhe na própria etapa lenta, com um erro claro, espere elementos específicos com `page.waitForSelector(...)` e um `timeout` menor que o limite do próprio script.
 :::
 
 :::details Uma sonda auto-hospedada diz que não encontrou o executável do navegador
