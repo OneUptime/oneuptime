@@ -1,3 +1,6 @@
+import {
+  ProbeConnectionRefusals,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { PROBE_COLLECTION_MIDDLEWARES } from "../../Middleware/ProbeCollectionRequest";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
@@ -183,7 +186,7 @@ export function createOpenStackCollectionRouter(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Probe not found"),
+            new BadDataException(ProbeConnectionRefusals.unknownProbe),
           );
         }
 
@@ -241,7 +244,7 @@ export function createOpenStackCollectionRouter(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Probe not found"),
+            new BadDataException(ProbeConnectionRefusals.unknownProbe),
           );
         }
 
@@ -350,7 +353,7 @@ export function createOpenStackCollectionRouter(
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Probe not found"),
+            new BadDataException(ProbeConnectionRefusals.unknownProbe),
           );
         }
 

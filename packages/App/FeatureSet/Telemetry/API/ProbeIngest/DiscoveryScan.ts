@@ -1,3 +1,8 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+  getNotThisProbesJob,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
@@ -79,7 +84,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -91,8 +96,11 @@ router.post(
           excludeScanIds.length > MAX_EXCLUDED_SCAN_IDS)
       ) {
         throw new BadDataException(
-          `excludeScanIds must be an array of at most ${MAX_EXCLUDED_SCAN_IDS} scan IDs.`,
-        );
+                getUnreadableProbeReport({
+                  report: "a request for discovery scans",
+                  problem: `excludeScanIds is not a list of at most ${MAX_EXCLUDED_SCAN_IDS} scan IDs`,
+                }),
+              );
       }
 
       const excludedIds: Array<ObjectID> = [];
@@ -104,8 +112,11 @@ router.post(
             !ObjectID.isValidUUID(excludedId)
           ) {
             throw new BadDataException(
-              "excludeScanIds must contain only valid scan ID strings.",
-            );
+                    getUnreadableProbeReport({
+                      report: "a request for discovery scans",
+                      problem: "excludeScanIds holds something that is not a scan ID",
+                    }),
+                  );
           }
 
           excludedIds.push(new ObjectID(excludedId));
@@ -324,7 +335,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("scanId not found"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a discovery scan's result",
+              problem: "scanId is missing",
+            }),
+          ),
         );
       }
 
@@ -335,7 +351,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -378,7 +394,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Discovery scan not found"),
+          new BadDataException(getNotThisProbesJob("discovery scan")),
         );
       }
 

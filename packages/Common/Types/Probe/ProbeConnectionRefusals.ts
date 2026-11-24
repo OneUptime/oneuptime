@@ -57,6 +57,36 @@ export const ProbeConnectionRefusals: {
 };
 
 /*
+ * A report or a request whose body does not hold what the route reads, in
+ * the shape it reads it (#11057): a probe of another release than the
+ * server's. Said with what the probe sent and what is wrong with it, named
+ * as the probe's code names it, so whoever reads the probe's log can tell
+ * which part, and with what to do next. These read "syslogMessages not
+ * found in request body", "pingResult must be an object" and "scanId not
+ * found" before.
+ */
+export const getUnreadableProbeReport: (data: {
+  // What the probe sent: "a diagnostic's result", "syslog messages".
+  report: string;
+  // What is wrong with it: "networkDeviceDiagnosticId is missing".
+  problem: string;
+}) => string = (data: { report: string; problem: string }): string => {
+  return `This probe sent ${data.report} this OneUptime server cannot read (${data.problem}). ${UPDATE_THE_PROBE}`;
+};
+
+/*
+ * A result for a job the server has no record of this probe running: a
+ * diagnostic or a discovery scan that was cancelled or deleted while the
+ * probe ran it, or one of another probe's - the same words, so the answer
+ * never says whether the job is somebody else's (#11057).
+ */
+export const getNotThisProbesJob: (job: string) => string = (
+  job: string,
+): string => {
+  return `This ${job} is not one this probe was asked to run. It may have been cancelled or deleted, so its result was not kept.`;
+};
+
+/*
  * What the probe itself says when it cannot start or connect: in its own
  * log, before it stops or while it tries again.
  */

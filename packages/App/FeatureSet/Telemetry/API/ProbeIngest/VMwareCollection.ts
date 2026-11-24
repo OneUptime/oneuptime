@@ -1,3 +1,6 @@
+import {
+  ProbeConnectionRefusals,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { PROBE_COLLECTION_MIDDLEWARES } from "../../Middleware/ProbeCollectionRequest";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
@@ -124,7 +127,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -183,7 +186,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -273,7 +276,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 

@@ -791,7 +791,7 @@ describe("POST /probe/syslog: the messages are the receiving probe's", () => {
       }),
     );
 
-    expectRefused("Probe ID not found on syslog request");
+    expectRefused(ProbeConnectionRefusals.unknownProbe);
     expect(syslogService.processSyslogMessages).not.toHaveBeenCalled();
   });
 });
@@ -832,7 +832,7 @@ describe("POST /probe/network-flow: the flows are the receiving probe's", () => 
       }),
     );
 
-    expectRefused("Probe ID not found on network flow request");
+    expectRefused(ProbeConnectionRefusals.unknownProbe);
     expect(flowMatcher.getProbe).not.toHaveBeenCalled();
   });
 

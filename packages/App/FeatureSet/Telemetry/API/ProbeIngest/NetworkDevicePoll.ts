@@ -1,3 +1,7 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import ProbeSchedulingMiddleware from "../../Middleware/ProbeScheduling";
 import { ProbeExpressRequest } from "../../Types/Request";
@@ -162,7 +166,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -582,7 +586,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 
@@ -594,7 +598,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("networkDeviceId not found"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a network device's poll",
+              problem: "networkDeviceId is missing",
+            }),
+          ),
         );
       }
 
@@ -607,7 +616,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Neither snmpResponse nor isOnline found"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "a network device's poll",
+              problem: "it has neither snmpResponse nor isOnline",
+            }),
+          ),
         );
       }
 

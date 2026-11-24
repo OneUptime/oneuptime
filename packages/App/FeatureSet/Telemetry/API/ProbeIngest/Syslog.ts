@@ -1,3 +1,7 @@
+import {
+  ProbeConnectionRefusals,
+  getUnreadableProbeReport,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import ProbeAuthorization from "../../Middleware/ProbeAuthorization";
 import { ProbeExpressRequest } from "../../Types/Request";
 import ProbeRequest from "../../Utils/ProbeRequest";
@@ -38,7 +42,12 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("syslogMessages not found in request body"),
+          new BadDataException(
+            getUnreadableProbeReport({
+              report: "syslog messages",
+              problem: "syslogMessages is missing or empty",
+            }),
+          ),
         );
       }
 
@@ -49,7 +58,7 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe ID not found on syslog request"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 

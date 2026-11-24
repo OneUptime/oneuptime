@@ -1,3 +1,6 @@
+import {
+  ProbeConnectionRefusals,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import TelemetryIngestionDisabled from "Common/Server/Middleware/TelemetryIngestionDisabled";
 import OpenStackCloudConnectionTestService from "Common/Server/Services/OpenStackCloudConnectionTestService";
 import OpenStackCloudService from "Common/Server/Services/OpenStackCloudService";
@@ -450,7 +453,7 @@ describe("wiring", () => {
     async (uri: string) => {
       await call(uri, makeRequest({ probeId: null }));
 
-      expect(refusal()).toBe("Probe not found");
+      expect(refusal()).toBe(ProbeConnectionRefusals.unknownProbe);
     },
   );
 

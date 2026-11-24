@@ -1,3 +1,6 @@
+import {
+  getUnreadableProbeReport,
+} from "Common/Types/Probe/ProbeConnectionRefusals";
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import NetworkDeviceDiagnosticService from "Common/Server/Services/NetworkDeviceDiagnosticService";
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
@@ -668,7 +671,12 @@ describe("receiving a walk's result", () => {
       const error: BadDataException = responseUtil.sendErrorResponse.mock
         .calls[0]![2] as BadDataException;
       expect(error).toBeInstanceOf(BadDataException);
-      expect(error.message).toBe("snmpWalkResult must be an object");
+      expect(error.message).toBe(
+        getUnreadableProbeReport({
+          report: "a diagnostic's result",
+          problem: "snmpWalkResult is not an object",
+        }),
+      );
     },
   );
 

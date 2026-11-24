@@ -238,10 +238,16 @@ router.post(
         return Response.sendErrorResponse(req, res, error);
       }
 
+      /*
+       * Read by the inbound email provider, and by whoever looks at its
+       * delivery log: what happened, and where the reason is.
+       */
       return Response.sendErrorResponse(
         req,
         res,
-        new BadDataException("Failed to process incoming email"),
+        new BadDataException(
+          "OneUptime could not queue this email for processing. The reason is in the OneUptime server's logs for this request.",
+        ),
       );
     }
   },

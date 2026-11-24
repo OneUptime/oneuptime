@@ -93,6 +93,20 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/UI/Components/Forms/ModelForm.tsx",
   "packages/Common/Server/Services/MonitorTemplateService.ts",
   "packages/Common/Server/API/MonitorTemplateAPI.ts",
+  // The probe's other ingest routes, and the inbound email webhook (#11057).
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/DiscoveryScan.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/IncomingEmail.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Monitor.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/NetworkDeviceDiagnostic.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/NetworkDevicePoll.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/NetworkFlow.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/OpenStackChecks.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/OpenStackCollection.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/PacketCapture.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts",
+  "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts",
+  // A project's Send Test Email (#7268).
+  "packages/App/FeatureSet/Notification/API/SMTPConfig.ts",
 ];
 
 /*
