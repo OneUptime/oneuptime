@@ -533,13 +533,21 @@ describe("undo on doubt", () => {
    * link or as emphasis reads as it was typed and links nowhere.
    */
   test("the owners' message names the policy and who signed in as text, never as Markdown", async () => {
-    manyCheck.usersByAddress.set(ADDRESS, [
-      {
-        name: "**Jane** <jane@example.com>",
-        source: SecuritySignedInSource.Requests,
-        lastSeenAt: new Date(Date.now() - 60 * 1000),
-      },
-    ]);
+    manyCheck = {
+      state: SecuritySignedInAddressState.SignedIn,
+      usersByAddress: new Map([
+        [
+          ADDRESS,
+          [
+            {
+              name: "**Jane** <jane@example.com>",
+              source: SecuritySignedInSource.Requests,
+              lastSeenAt: new Date(Date.now() - 60 * 1000),
+            },
+          ],
+        ],
+      ]),
+    };
     actions = [
       makeAction({
         policyName: "[Scanners](https://example.com/phish)",
