@@ -968,6 +968,8 @@ describe("EvaluateOverTime", () => {
         monitorId: MONITOR_ID,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        // No step: every row of the series, as before #10906.
+        stepScope: undefined,
       });
     }
 

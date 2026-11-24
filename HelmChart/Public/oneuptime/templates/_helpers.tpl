@@ -31,6 +31,28 @@ Tests/Ops/HelmEnvValuesQuoted.test.js holds every env value of the chart to it.
 {{- end -}}
 
 {{/*
+The app.kubernetes.io/name label of a resource the chart names after its own
+app (ClickHouse's), for that resource's metadata.labels:
+  app.kubernetes.io/name: {{ include "oneuptime.appNameLabel" (dict "name" "clickhouse" "root" $) }}
+It is that name, except in the Google Cloud Marketplace edition
+(enterpriseMarketplace.provider "google-cloud"), where it is the app's name,
+quoted so that a name of digits stays a string. Google's deployer labels
+every resource without an app.kubernetes.io/name with the app's name, and
+the console's Applications page lists an app's components by that label: a
+resource labelled "clickhouse" was left out of the list and of the app's
+status (#10989). Selectors and pod labels keep the name, so Services and
+StatefulSets select the same pods, and a StatefulSet's selector, which
+cannot change, stays as it was.
+*/}}
+{{- define "oneuptime.appNameLabel" -}}
+{{- if eq ((.root.Values.enterpriseMarketplace).provider | default "") "google-cloud" -}}
+{{- .root.Release.Name | quote -}}
+{{- else -}}
+{{- .name -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 The password of a database you run yourself (externalPostgres.password,
 externalValkey.password, externalClickhouse.password), as the chart stores it
 in the Secret the pods read it from:

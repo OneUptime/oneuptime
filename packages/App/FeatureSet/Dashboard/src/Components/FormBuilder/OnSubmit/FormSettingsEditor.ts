@@ -10,6 +10,7 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import {
+  AlertFormTargetSettings,
   FormTargetSettingReferenceModel,
   FormTargetSettings,
   IncidentFormTargetSettings,
@@ -48,6 +49,11 @@ import getOwnersFormField from "Common/UI/Components/PeoplePicker/OwnersFormFiel
  * Owners are one people picker, people and teams in one list, as everywhere
  * else owners are picked; it keeps the people in ownerUserIds and the teams
  * in ownerTeamIds.
+ *
+ * An alert form (#10760) starts from its defaults - the title, the
+ * severity, the state an alert starts in and its one monitor - then what is
+ * always attached (labels, on-call policies), then its owners: an incident
+ * form's steps, without a template, which alerts do not have.
  */
 
 export const FORM_SETTINGS_STEP_DEFAULTS: string = "defaults";
@@ -86,6 +92,49 @@ export const FORM_SETTINGS_PICKED_MODELS: Partial<
   [FormTargetSettingReferenceModel.Label]: Label,
   [FormTargetSettingReferenceModel.OnCallDutyPolicy]: OnCallDutyPolicy,
   [FormTargetSettingReferenceModel.StatusPage]: StatusPage,
+};
+
+type SingleSelectFunction = (data: {
+  key: string;
+  title: string;
+  description: string;
+  stepId: string;
+  model: FormTargetSettingReferenceModel;
+}) => Field<JSONObject>;
+
+/*
+ * One record picked from the server - an alert's monitor - searched by name
+ * as it is typed in, however many the project has. The one the setting
+ * holds is read by its id; one deleted since reads "Deleted".
+ */
+const singleSelect: SingleSelectFunction = (data: {
+  key: string;
+  title: string;
+  description: string;
+  stepId: string;
+  model: FormTargetSettingReferenceModel;
+}): Field<JSONObject> => {
+  const modelType: DatabaseBaseModelType | undefined =
+    FORM_SETTINGS_PICKED_MODELS[data.model];
+
+  if (!modelType) {
+    throw new Error(`No picker for ${data.model}.`);
+  }
+
+  return {
+    field: { [data.key]: true },
+    title: data.title,
+    description: data.description,
+    fieldType: FormFieldSchemaType.Dropdown,
+    dropdownModal: {
+      type: modelType,
+      labelField: "name",
+      valueField: "_id",
+      notFoundLabel: FormsCopy.deletedRecord,
+    },
+    required: false,
+    stepId: data.stepId,
+  };
 };
 
 type MultiSelectFunction = (data: {
@@ -206,6 +255,65 @@ export const getFormSettingsFields: GetFormSettingsFieldsFunction = (data: {
       stepId: FORM_SETTINGS_STEP_OWNERS,
     }),
   ];
+
+  if (data.targetType === FormTargetType.Alert) {
+    const heldAlert: AlertFormTargetSettings = readFormTargetSettings({
+      targetType: FormTargetType.Alert,
+      value: data.settings,
+    }) as AlertFormTargetSettings;
+
+    return [
+      defaultTitle,
+      {
+        field: { alertSeverityId: true },
+        title: FormsCopy.defaultSeverity,
+        description: FormsCopy.defaultSeverityDescription,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: toSingleSelectOptions({
+          records: lists[FormTargetSettingReferenceModel.AlertSeverity],
+          model: FormTargetSettingReferenceModel.AlertSeverity,
+          heldId: heldAlert.alertSeverityId,
+        }),
+        required: false,
+        stepId: FORM_SETTINGS_STEP_DEFAULTS,
+      },
+      {
+        field: { alertStateId: true },
+        title: FormsCopy.initialState,
+        description: FormsCopy.initialStateDescription,
+        fieldType: FormFieldSchemaType.Dropdown,
+        dropdownOptions: toSingleSelectOptions({
+          records: lists[FormTargetSettingReferenceModel.AlertState],
+          model: FormTargetSettingReferenceModel.AlertState,
+          heldId: heldAlert.alertStateId,
+        }),
+        required: false,
+        stepId: FORM_SETTINGS_STEP_DEFAULTS,
+      },
+      singleSelect({
+        key: "monitorId",
+        title: FormsCopy.defaultMonitor,
+        description: FormsCopy.defaultMonitorDescription,
+        stepId: FORM_SETTINGS_STEP_DEFAULTS,
+        model: FormTargetSettingReferenceModel.Monitor,
+      }),
+      multiSelect({
+        key: "labelIds",
+        title: FormsCopy.alwaysLabels,
+        description: FormsCopy.alwaysLabelsDescription,
+        stepId: FORM_SETTINGS_STEP_ATTACH,
+        model: FormTargetSettingReferenceModel.Label,
+      }),
+      multiSelect({
+        key: "onCallDutyPolicyIds",
+        title: FormsCopy.onCallPolicies,
+        description: FormsCopy.alertOnCallPoliciesDescription,
+        stepId: FORM_SETTINGS_STEP_ATTACH,
+        model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
+      }),
+      ...owners,
+    ];
+  }
 
   if (data.targetType === FormTargetType.ScheduledMaintenance) {
     return [
@@ -331,12 +439,40 @@ export const getFormSettingsInitialValues: GetFormSettingsInitialValuesFunction 
       value: data.settings,
     });
 
+    if (data.targetType === FormTargetType.Alert) {
+      const settings: AlertFormTargetSettings = read as AlertFormTargetSettings;
+
+      const alertValues: JSONObject = {
+        defaultTitle: settings.defaultTitle || "",
+        labelIds: settings.labelIds || [],
+        onCallDutyPolicyIds: settings.onCallDutyPolicyIds || [],
+        ownerUserIds: settings.ownerUserIds || [],
+        ownerTeamIds: settings.ownerTeamIds || [],
+      };
+
+      for (const key of ["alertSeverityId", "alertStateId", "monitorId"]) {
+        const id: unknown = (settings as Record<string, unknown>)[key];
+
+        if (typeof id === "string" && id) {
+          alertValues[key] = id;
+        }
+      }
+
+      return alertValues;
+    }
+
+    const maintenanceOrIncident:
+      | IncidentFormTargetSettings
+      | ScheduledMaintenanceFormTargetSettings = read as
+      | IncidentFormTargetSettings
+      | ScheduledMaintenanceFormTargetSettings;
+
     const values: JSONObject = {
-      defaultTitle: read.defaultTitle || "",
-      monitorIds: read.monitorIds || [],
-      labelIds: read.labelIds || [],
-      ownerUserIds: read.ownerUserIds || [],
-      ownerTeamIds: read.ownerTeamIds || [],
+      defaultTitle: maintenanceOrIncident.defaultTitle || "",
+      monitorIds: maintenanceOrIncident.monitorIds || [],
+      labelIds: maintenanceOrIncident.labelIds || [],
+      ownerUserIds: maintenanceOrIncident.ownerUserIds || [],
+      ownerTeamIds: maintenanceOrIncident.ownerTeamIds || [],
     };
 
     if (data.targetType === FormTargetType.ScheduledMaintenance) {
@@ -433,13 +569,15 @@ export const packFormSettingsValues: PackFormSettingsValuesFunction = (data: {
           "ownerUserIds",
           "ownerTeamIds",
         ]
-      : [
-          "monitorIds",
-          "labelIds",
-          "onCallDutyPolicyIds",
-          "ownerUserIds",
-          "ownerTeamIds",
-        ];
+      : data.targetType === FormTargetType.Alert
+        ? ["labelIds", "onCallDutyPolicyIds", "ownerUserIds", "ownerTeamIds"]
+        : [
+            "monitorIds",
+            "labelIds",
+            "onCallDutyPolicyIds",
+            "ownerUserIds",
+            "ownerTeamIds",
+          ];
 
   for (const key of listKeys) {
     const ids: Array<string> = readChoices(values[key]);
@@ -459,7 +597,12 @@ export const packFormSettingsValues: PackFormSettingsValuesFunction = (data: {
     return settings;
   }
 
-  for (const key of ["incidentSeverityId", "incidentTemplateId"]) {
+  const idKeys: Array<string> =
+    data.targetType === FormTargetType.Alert
+      ? ["alertSeverityId", "alertStateId", "monitorId"]
+      : ["incidentSeverityId", "incidentTemplateId"];
+
+  for (const key of idKeys) {
     const id: string | undefined = readChoice(values[key]);
 
     if (id) {

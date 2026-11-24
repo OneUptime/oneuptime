@@ -13,6 +13,7 @@ import {
   SecurityBlockState,
   isSecurityBlockDuration,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import FeedMarkdown, { mdText } from "../../../Utils/Markdown/FeedMarkdown";
 import {
   automaticResponseLiftedOnDoubtMarkdown,
   describeSignedInUserNames,
@@ -284,11 +285,14 @@ export default class SecurityAutomaticResponseDoubt {
     const told: number = await SecurityAutomaticResponseOwners.tell({
       projectId: data.projectId,
       subject: `${action.policyName || "Automatic response"} policy lifted its block of ${action.value}`,
-      messageInMarkdown: [
-        `The ${action.policyName || "automatic response"} policy blocked \`${action.value}\`, and a signed-in user was seen from it since: ${describeSignedInUserNames(names)}.`,
-        ``,
-        `It lifted the block at once. An address someone signed in uses, such as an office's or a customer's, should not be blocked automatically. Open the case to see what the address did, and Security Events -> Playbooks -> Automatic Response to see what the policy does.`,
-      ].join("\n"),
+      // A policy's and people's names are text, never Markdown.
+      messageInMarkdown: FeedMarkdown.join(
+        [
+          mdText`The ${action.policyName || "automatic response"} policy blocked \`${action.value}\`, and a signed-in user was seen from it since: ${describeSignedInUserNames(names)}.`,
+          mdText`It lifted the block at once. An address someone signed in uses, such as an office's or a customer's, should not be blocked automatically. Open the case to see what the address did, and Security Events -> Playbooks -> Automatic Response to see what the policy does.`,
+        ],
+        "\n\n",
+      ).toString(),
     });
 
     if (action.securityCaseId) {

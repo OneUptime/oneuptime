@@ -527,16 +527,23 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
     customFields: customFields,
   });
 
+  /*
+   * A severity question starts on the form's own severity, as the public
+   * page's does (the target handler's getDefaultOptionValues): an
+   * incident's or an alert's, whichever the form creates.
+   */
   const defaultOptionValues: Partial<Record<string, string>> = {};
-  const incidentSeverityId: unknown = (
-    readFormTargetSettings({
-      targetType: targetType,
-      value: form.targetSettings,
-    }) as JSONObject
-  )["incidentSeverityId"];
+  const storedSettings: JSONObject = readFormTargetSettings({
+    targetType: targetType,
+    value: form.targetSettings,
+  }) as JSONObject;
 
-  if (typeof incidentSeverityId === "string") {
-    defaultOptionValues["incidentSeverityId"] = incidentSeverityId;
+  for (const key of ["incidentSeverityId", "alertSeverityId"]) {
+    const severityId: unknown = storedSettings[key];
+
+    if (typeof severityId === "string") {
+      defaultOptionValues[key] = severityId;
+    }
   }
 
   const statusText: string = isDirty

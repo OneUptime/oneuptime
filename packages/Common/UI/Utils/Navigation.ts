@@ -471,6 +471,12 @@ abstract class Navigation {
         );
       }
 
+      // A page loaded in full in place of this one, which Back then skips.
+      if (options.replace) {
+        window.location.replace(finalUrl);
+        return;
+      }
+
       window.location.href = finalUrl;
       return;
     }

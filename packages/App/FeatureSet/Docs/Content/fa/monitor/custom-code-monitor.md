@@ -167,7 +167,7 @@ return {
 
 برخی نام‌های ویژگی متعلق به خود OneUptime هستند و اسکریپت نمی‌تواند آن‌ها را بنویسد. اگر اسکریپت شما یکی از آن‌ها را تنظیم کند، آن ویژگی کنار گذاشته می‌شود — خود متریک همچنان ثبت می‌شود — و هشداری با نام آن کلید در لاگ‌های سرور OneUptime نوشته می‌شود. این‌ها عبارت‌اند از:
 
-- هویت مانیتور: `monitorId`، `projectId`، `monitorName`، `probeName`، `probeId`، `isCustomMetric`.
+- هویت مانیتور: `monitorId`، `projectId`، `monitorName`، `probeName`، `probeId`، `monitorStepId`، `isCustomMetric`.
 - هر چیزی در فضای‌نام‌های `oneuptime.` یا `resource.` — این‌ها شناسه‌هایی را دارند که OneUptime هنگام دریافت داده می‌زند.
 - ویژگی‌های هویت منبع: `service.name`، `host.name`، `k8s.cluster.name`، `iot.fleet.name`، `proxmox.cluster.name`، `openstack.cloud.name`، `vmware.vcenter.name`، `ceph.cluster.name`، `storage.array.name` و `docker.swarm.cluster.name`.
 

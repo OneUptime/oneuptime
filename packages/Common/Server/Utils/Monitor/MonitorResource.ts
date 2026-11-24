@@ -1342,6 +1342,25 @@ export default class MonitorResourceUtil {
        */
       const checkWrittenAt: Date = OneUptimeDate.getCurrentDate();
 
+      /*
+       * The step this result was actually produced for. A probe result carries
+       * the monitorStepId it ran, and a monitor can have several steps whose
+       * criteria differ - so the step must be looked up, not assumed to be the
+       * first one. The lookup used to be performed and its result thrown away,
+       * which silently evaluated every result against step 0's criteria and fed
+       * step 0's id into checkProbeAgreement (so agreement compared this
+       * result against other probes' logs for the wrong step).
+       *
+       * Decided before the check's rows are written: each row names the step
+       * it is judged as, so a window of one step reads that step's checks
+       * alone (#10906).
+       */
+      const monitorStep: MonitorStep | undefined =
+        MonitorResourceUtil.findStepToJudge({
+          monitorSteps: monitor.monitorSteps,
+          dataToProcess: dataToProcess,
+        });
+
       try {
         await MonitorMetricUtil.saveMonitorMetrics({
           monitorId: monitor.id!,
@@ -1351,6 +1370,7 @@ export default class MonitorResourceUtil {
           monitorName: monitorName || undefined,
           monitorLabels: monitor.labels || undefined,
           monitorCustomFields: monitor.customFields || undefined,
+          monitorStepId: monitorStep?.id,
           /*
            * A monitor that counts a window's checks of a series counts this
            * one too, read from the series right after (#10355).
@@ -1445,21 +1465,6 @@ export default class MonitorResourceUtil {
         criteriaInstanceAlertMap[criteriaInstance.data?.id || ""] =
           criteriaInstance;
       }
-
-      /*
-       * The step this result was actually produced for. A probe result carries
-       * the monitorStepId it ran, and a monitor can have several steps whose
-       * criteria differ - so the step must be looked up, not assumed to be the
-       * first one. The lookup used to be performed and its result thrown away,
-       * which silently evaluated every result against step 0's criteria and fed
-       * step 0's id into checkProbeAgreement (so agreement compared this
-       * result against other probes' logs for the wrong step).
-       */
-      const monitorStep: MonitorStep | undefined =
-        MonitorResourceUtil.findStepToJudge({
-          monitorSteps: monitorSteps,
-          dataToProcess: dataToProcess,
-        });
 
       logger.debug(
         `Monitor Step: ${monitorStep ? monitorStep.id : "undefined"} (reported: ${(dataToProcess as ProbeMonitorResponse).monitorStepId})`,

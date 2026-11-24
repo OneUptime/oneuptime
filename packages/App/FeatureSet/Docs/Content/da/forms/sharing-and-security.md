@@ -140,7 +140,7 @@ Hver anmodning passerer disse tjek, i denne rækkefølge:
 5. Den skal komme fra en af formularens private brugere, logget ind, når formularen er sat til **Kun personer, der logger ind** — se [Kun personer, der logger ind](#kun-personer-der-logger-ind).
 6. En indsendelse skal bestå captchaen, når instansen har captcha slået til.
 7. Hvert svar skal være inden for størrelsesgrænserne og passe til sit spørgsmål — se [Byg en formular](/docs/forms/building#størrelsesgrænser).
-8. Det, svarene og indstillingerne danner, skal kunne oprettes: en hændelse skal have en alvorlighed, en begivenhed en slutning efter sin start.
+8. Det, svarene og indstillingerne danner, skal kunne oprettes: en hændelse eller en advarsel skal have en alvorlighed, en begivenhed en slutning efter sin start.
 9. En indsendelse skal passe inden for formularens timekvote — se [Hastighedsgrænser](#hastighedsgrænser).
 10. Dens filer skal passe inden for formularens timekvote for filer, lige før de gemmes.
 
@@ -244,6 +244,10 @@ Den ClamAV, der følger med OneUptime, henter sine signaturer fra `database.clam
 Formularen spørger ikke om en alvorlighed, dens indstillinger nævner ingen — eller den nævnte blev slettet — og dens hændelsesskabelon angiver heller ingen. Vælg en alvorlighed på formularens side **Ved indsendelse**. Se [Ingen alvorlighed, ingen hændelse](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-hændelse).
 :::
 
+:::details Denne formular kan ikke oprette en advarsel, fordi den ikke har nogen alvorlighed
+Advarselsformularen spørger ikke om en alvorlighed, og dens indstillinger nævner ingen — eller den nævnte blev slettet. Vælg en alvorlighed på formularens side **Ved indsendelse**. Se [Sådan bliver en indsendelse til en advarsel](/docs/forms/on-submit#sådan-bliver-en-indsendelse-til-en-advarsel).
+:::
+
 :::details En indsendelse afvises
 Beskeden siger, hvad der er galt: et påkrævet svar mangler eller er kun mellemrum, et svar er for langt eller passer ikke til sit spørgsmål, e-mailadressen er ikke én almindelig adresse, eller et vedligeholdelsesvindue slutter, før det starter. "Captcha-verifikationen mislykkedes. Prøv igen." betyder, at captchaen ikke blev bestået eller er udløbet: løs den igen. På en selvhostet installation, hvor hver indsendelse fejler captchaen, skal du tjekke, at `CAPTCHA_SITE_KEY` og `CAPTCHA_SECRET_KEY` begge er angivet.
 :::
@@ -261,7 +265,7 @@ Det er med vilje: hændelser fra en formular oprettes skjulte, og vedligeholdels
 :::
 
 :::details Ingen blev tilkaldt
-En formulars hændelse kører de vagtpolitikker, dens indstillinger og dens skabelon nævner, og hvad dine vagtregler tilføjer, som enhver anden hændelse. Uden nogen af dem tilkaldes ingen. Tilføj en vagtpolitik på formularens side **Ved indsendelse**, eller skriv en vagtregel, der matcher dens hændelser — på en etiket, formularen altid tilføjer, for eksempel.
+En formulars hændelse kører de vagtpolitikker, dens indstillinger og dens skabelon nævner, og hvad dine vagtregler tilføjer, som enhver anden hændelse; en formulars advarsel de politikker, dens indstillinger nævner, og hvad dine vagtregler for advarsler tilføjer. Uden nogen af dem tilkaldes ingen. En advarsel, der starter i en senere tilstand, som **Bekræftet**, tilkalder med vilje ingen. Tilføj en vagtpolitik på formularens side **Ved indsendelse**, eller skriv en vagtregel, der matcher dens hændelser eller advarsler — på en etiket, formularen altid tilføjer, for eksempel.
 :::
 
 ## Næste trin

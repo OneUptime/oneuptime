@@ -129,6 +129,8 @@ async function renderPlayer(
   ): ReactElement => {
     return <Board entry={playing} />;
   },
+  // Where the player is drawn: a route of a stand-in app, or a box of its own.
+  container?: HTMLElement | undefined,
 ): Promise<Rendered> {
   const clock: PlaylistFakeClock = new PlaylistFakeClock(T0);
   const onExit: Mock<Callback> = jest.fn<Callback>();
@@ -152,6 +154,7 @@ async function renderPlayer(
       onOpenPlaylist={onOpenPlaylist}
       onOpenPlaylists={onOpenPlaylists}
     />,
+    container ? { container: container } : undefined,
   );
 
   await flush();
@@ -376,6 +379,53 @@ describe("the player on screen", () => {
 
     expect(document.body.style.overflow).toBe("");
     expect(released).toHaveBeenCalled();
+  });
+
+  /*
+   * The page under the player was still under Tab and a screen reader's
+   * cursor: a keyboard went from the player's last button onto the
+   * header's links, out of sight behind it (#10409 found it, building the
+   * dashboards' full screen on the player's way of covering the page). Its
+   * header, product bar and footer are inert while the player is up; the
+   * app's own layers - beside the page in its <main>, and the notes beside
+   * the app in its root - are not.
+   */
+  test("keeps the page under it out of reach, and the app's own layers in reach", async () => {
+    document.body.innerHTML = `
+      <div id="root">
+        <div data-testid="master">
+          <header data-testid="app-header"><a href="#home">Home</a></header>
+          <div data-testid="page-content">
+            <main id="main-content">
+              <div data-testid="command-palette"><button type="button">Search</button></div>
+              <div id="player-route"></div>
+            </main>
+            <footer data-testid="app-footer"><a href="#docs">Docs</a></footer>
+          </div>
+        </div>
+        <div data-testid="notes"><button type="button">Close note</button></div>
+      </div>
+    `;
+
+    await renderPlayer(
+      round([OVERVIEW, CLUSTERS]),
+      undefined,
+      document.getElementById("player-route")!,
+    );
+
+    expect(screen.getByTestId("app-header")).toHaveAttribute("inert");
+    expect(screen.getByTestId("app-footer")).toHaveAttribute("inert");
+    expect(screen.getByTestId("command-palette")).not.toHaveAttribute("inert");
+    expect(screen.getByTestId("notes")).not.toHaveAttribute("inert");
+    expect(screen.getByTestId("playlist-player")).not.toHaveAttribute("inert");
+
+    cleanup();
+    await flush();
+
+    expect(screen.getByTestId("app-header")).not.toHaveAttribute("inert");
+    expect(screen.getByTestId("app-footer")).not.toHaveAttribute("inert");
+
+    document.body.innerHTML = "";
   });
 });
 

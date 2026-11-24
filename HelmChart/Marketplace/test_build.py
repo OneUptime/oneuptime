@@ -518,6 +518,7 @@ class BuildTest(unittest.TestCase):
             "schema.yaml",
             "chart/oneuptime/Chart.yaml",
             "chart/oneuptime/templates/application.yaml",
+            "chart/oneuptime/logo.png",
             "apptest/deployer/schema.yaml",
             "apptest/deployer/oneuptime/templates/tester.yaml",
             "postgres/Dockerfile",
@@ -589,6 +590,26 @@ class GoogleCloudDeployerTest(unittest.TestCase):
         self.assertEqual(info["product_id"], service.group(1))
         self.assertEqual(info["partner_id"], service.group(2))
         self.assertEqual(info["partner_name"], "OneUptime")
+
+    def test_the_application_carries_the_listing_s_icon(self) -> None:
+        # Google asked for it (case 77498377, 24 November 2026): the console shows it with the app.
+        application: str = (self.out / "chart/oneuptime/templates/application.yaml").read_text()
+        self.assertRegex(
+            application,
+            r'(?m)^    kubernetes-engine\.cloud\.google\.com/icon: >-\n'
+            r'      data:image/png;base64,\{\{ \.Files\.Get "logo\.png" \| b64enc \}\}$',
+        )
+
+        # A listing image as Google takes one: a PNG with a transparent background, square or
+        # horizontal, 130 to 512 px a side, at most 256 kB.
+        logo: bytes = (self.out / "chart/oneuptime/logo.png").read_bytes()
+        self.assertEqual(logo[:8], b"\x89PNG\r\n\x1a\n")
+        width: int = int.from_bytes(logo[16:20], "big")
+        height: int = int.from_bytes(logo[20:24], "big")
+        self.assertTrue(130 <= height <= width <= 512, f"{width} x {height}")
+        self.assertLessEqual(len(logo), 256 * 1024)
+        color_type: int = logo[25]
+        self.assertTrue(color_type in (4, 6) or b"tRNS" in logo, "no transparency")
 
     def test_the_tester_runs_in_the_app_image_and_adds_nothing_else(self) -> None:
         tester: Path = self.out / "apptest/deployer/oneuptime"

@@ -87,6 +87,8 @@ Kriterier avgör när certifikatet räknas som i ordning, försämrat eller tras
 
 **Dagar till utgång** räknar hela dagar: ett certifikat som går ut om 14 dagar och 20 timmar har 14 dagar kvar. **Timmar till utgång** räknar hela timmar på samma sätt.
 
+**Dagar till utgång** erbjuder också **Utvärdera dessa kriterier över en tidsperiod**, och med **Föregående kontroll** jämför den varje kontroll med samma sonds föregående. **Mindre än** med ett **Värde i kontrollens egen enhet** på `1` matchar när de återstående dagarna har sjunkit med mer än en sedan föregående kontroll, som när certifikatet har ersatts av ett som går ut tidigare. **Större än** matchar när de har ökat, som när certifikatet har förnyats. Se [Jämföra en kontroll med den föregående](/docs/monitor/criteria-and-statuses#jämföra-en-kontroll-med-den-föregående).
+
 Med två eller fler filter avgör **Matchningsvillkor** om **Alla** måste matcha eller om **Valfri** av dem räcker. Ett kriteriums **Åtgärder** avgör vad det gör: ändrar monitorns status, skapar ett larm, deklarerar en incident eller flera av dessa.
 
 ### Standardkriterier

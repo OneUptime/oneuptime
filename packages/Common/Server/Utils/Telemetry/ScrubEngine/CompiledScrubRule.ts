@@ -2,7 +2,6 @@ import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   compileScrubRuleCustomRegex,
-  SCRUB_RULE_BUILT_IN_PATTERNS,
   SCRUB_RULE_SENSITIVE_KEY_REGEX,
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
@@ -12,8 +11,7 @@ import {
   readScrubRuleKeys,
   ScrubRuleKeyMatcher,
 } from "../../../../Types/Telemetry/ScrubRuleKeys";
-import { readOwnValue } from "../../../../Utils/LookupTable";
-import ScrubIpAddress from "../../../../Utils/Telemetry/ScrubIpAddress";
+import { compileBuiltInScrubPattern } from "../../../../Utils/Telemetry/ScrubBuiltInPatterns";
 
 /*
  * A SCRUB RULE AS INGEST RUNS IT, COMPILED ONCE (#10366).
@@ -113,22 +111,14 @@ export function getScrubRuleRegex(rule: ScrubEngineRule): ScrubRegExp | null {
     return NO_TEXT;
   }
 
-  // What Data Security calls an IP address, found by its own detectors.
-  if (patternType === LogScrubPatternType.IPAddress) {
-    return ScrubIpAddress.toScrubRegExp();
-  }
-
   /*
-   * The saved rule's own word: a pattern type no table lists matches
-   * nothing (a plain read answered "constructor" with a function).
+   * A built-in pattern, as every place a rule runs compiles it
+   * (Utils/Telemetry/ScrubBuiltInPatterns): what Data Security calls an IP
+   * address, an email address or a card number found by its own detectors
+   * too, in the readings they read (#10935, #10936, #10960). Null for a
+   * pattern type no table lists.
    */
-  const builtIn: RegExp | undefined = readOwnValue(
-    SCRUB_RULE_BUILT_IN_PATTERNS,
-    patternType,
-  );
-
-  // An instance of its own, so lastIndex is independent per use.
-  return builtIn ? scrubRegExpFromBuiltIn(builtIn) : null;
+  return compileBuiltInScrubPattern(patternType);
 }
 
 /*

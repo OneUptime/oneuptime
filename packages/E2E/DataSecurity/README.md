@@ -16,8 +16,10 @@ An offline harness for Data Security's pages, mounted from the product's real ro
 | An identity         | `/data-security/access/:id`          | What it reaches and through what; Last Used and what it means; a traced service's page; Persian; a phone, dark                                                                                                  |
 | Issues              | `/data-security/issues`              | On a phone                                                                                                                                                                                                      |
 | An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links; its AI card; OneUptime AI's analysis, at 1280 and on a phone                                                |
+| A telemetry issue   | `/data-security/issues/:id`          | Where each finding sits and its records, the data marked and masked; Scrub It says the rule it makes, whose records it changes and what reads the data first; a Security Viewer; German, Persian                |
 | An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                                                                                                                               |
 | AI                  | `/data-security/ai`                  | What OneUptime AI proposes, made and left alone, and the rule that decided; the AI rules; Approve shows the change first; at 1280 and on a phone                                                                |
+| Compliance          | `/data-security/compliance`          | A framework without a score says why; the record of processing: each store that holds personal data, what it holds and who can reach it; a new project's                                                        |
 | Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                                                                                                                                      |
 | Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                                                                                                                                            |
 
@@ -72,7 +74,19 @@ server refuses it.
 
 Besides the tables above, it models Compliance's scores (worked out from the stores and their open
 issues with the catalog's own `scoreComplianceFramework`, as the server does), an owner rule, the
-project's members, the probe picker, a flow's stores at both ends and a content scan's details.
+project's members, the probe picker, a flow's stores at both ends and a content scan's details. It
+also models:
+
+- the record of processing on Compliance: a row for each store that holds personal data, with its data
+  types by the catalog's names, as the server writes it. The project keeps none of the stores
+  OneUptime declares, because it doesn't use Security Events;
+- what Scrub It says before it makes its rule (#10433): the rule it plans for the finding's service,
+  proven on the finding's records (counts only), and a monitor that groups the checkout service's
+  failed requests by client address, which would read what the rule hides. Asked again, it names the
+  rule it made, or the team's own rule for phone numbers;
+- the IP Address rules that hide addresses from Security Events (#10396): none. Security Events reads
+  none of the project's logs or spans, so Scrub It redacts an IP address rather than hashing it. A
+  Security Viewer, who may not read scrub rules, is refused, as the server refuses them.
 
 `DataSecurityLayout.spec.ts` holds the pages to the UI review: every list fits a laptop's card beside
 the side menu in German and Persian with the busy data set, the Overview's figures line up and its day

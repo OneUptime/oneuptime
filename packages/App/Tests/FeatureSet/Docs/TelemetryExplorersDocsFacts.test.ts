@@ -99,6 +99,7 @@ import {
   ExceptionGroupingKey,
   getExceptionGroupingKey,
   getExceptionGroupingKeyV3,
+  getExceptionGroupingKeyV4,
 } from "Common/Server/Utils/Telemetry/ExceptionGrouping";
 import LogExceptionExtractor from "Common/Server/Utils/Telemetry/LogExceptionExtractor";
 import { extractOneuptimeLabelNames } from "Common/Server/Utils/Telemetry/OneuptimeLabel";
@@ -1164,9 +1165,12 @@ describe("Logs Explorer (telemetry/logs-explorer)", () => {
       "Server/Services/LogSavedViewService.ts",
     );
 
-    // The viewer asks for, and saves to, its own page.
+    /*
+     * The viewer asks for, and saves to, its own page: every read of its
+     * views, the first ones and any held past them (#10646), by that query.
+     */
     expect(dashboardViewer).toContain(
-      "scope: getSavedViewScopeQueryValue(props.savedViewScope),",
+      "scope: getSavedViewScopeQueryValue(props.savedViewScope!),",
     );
     expect(dashboardViewer).toContain("savedView.scope = scope;");
     // The Logs page has its views; a cluster's and a host's tab have theirs.
@@ -2962,7 +2966,40 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     };
 
     expect(page).toContain(
-      "A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above, with card numbers written in groups, Social Security numbers and phone numbers taken out too, so `Invalid SSN 123-45-6789 on file` and `Invalid SSN 987-65-4321 on file` are one exception. Exceptions recorded before this grouping keep theirs.",
+      "A new exception is grouped by its type and the functions and files of your own code in its stack trace instead: line numbers, library frames and the message are left out, so variants thrown from the same code are one exception. Without a stack trace, its message groups it, as above, with card numbers written in groups, Social Security numbers and phone numbers, international ones included, taken out too, so `Invalid SSN 123-45-6789 on file` and `Invalid SSN 987-65-4321 on file` are one exception, and so are `call +44 20 7946 0958 failed` and `call +49 30 123456 failed`. Exceptions recorded before this grouping keep theirs.",
+    );
+
+    // Grouping v4 (#10898): the page's two phone numbers are one exception.
+    const v4KeyOf: (message: string) => ExceptionGroupingKey = (
+      message: string,
+    ): ExceptionGroupingKey => {
+      return getExceptionGroupingKeyV4(
+        getExceptionGroupingKeyV3(
+          getExceptionGroupingKey({ exceptionType: "Error", message }),
+        ),
+      );
+    };
+    expect(v4KeyOf("call +44 20 7946 0958 failed")).toEqual(
+      v4KeyOf("call +49 30 123456 failed"),
+    );
+    // Which v3 kept apart; and the SSNs stay one under v4 too.
+    expect(
+      getExceptionGroupingKeyV3(
+        getExceptionGroupingKey({
+          exceptionType: "Error",
+          message: "call +44 20 7946 0958 failed",
+        }),
+      ),
+    ).not.toEqual(
+      getExceptionGroupingKeyV3(
+        getExceptionGroupingKey({
+          exceptionType: "Error",
+          message: "call +49 30 123456 failed",
+        }),
+      ),
+    );
+    expect(v4KeyOf("Invalid SSN 123-45-6789 on file")).toEqual(
+      v4KeyOf("Invalid SSN 987-65-4321 on file"),
     );
 
     // Grouping v3 (#10620): the page's two messages are one exception.
@@ -3037,13 +3074,13 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     );
     /*
      * An exception recorded before keeps its first fingerprint: v1's is tried
-     * first, then v2's, then v3's, each with its keyed one, and a new
-     * exception is made under v3's (`fingerprintV2`, the one it is made under).
+     * first, then v2's, v3's and v4's, each with its keyed one, and a new
+     * exception is made under v4's (`fingerprintV2`, the one it is made under).
      */
-    expect(exceptionUtil).toContain(
-      "const ofArrived: Array<string> = [v1, keyedV1, v2, keyedV2, v3, keyedV3];",
+    expect(exceptionUtil.replace(/\s+/g, " ")).toContain(
+      "const ofArrived: Array<string> = [ v1, keyedV1, v2, keyedV2, v3, keyedV3, v4, keyedV4, ];",
     );
-    expect(exceptionUtil).toContain("fingerprintV2: v3,");
+    expect(exceptionUtil).toContain("fingerprintV2: v4,");
     expect(exceptionUtil).toContain("chosen.set(key, candidate.v2);");
 
     const troubleshooting: string = section(page, "## Troubleshooting");
@@ -3080,8 +3117,46 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     const troubleshooting: string = section(page, "## Troubleshooting");
 
     expect(troubleshooting).toContain(
-      "Once a new occurrence arrives, the split exception's page says which exception it was split from: **Merge Exceptions** there makes them one again, without OneUptime AI. The older of the two is kept, and **Unmerge** undoes it.",
+      "Once a new occurrence arrives, both are marked **Split** in the exceptions list, and each one's page names the other: **Merge Exceptions** there makes them one again, without OneUptime AI. The older of the two is kept, and **Unmerge** undoes it.",
     );
+
+    /*
+     * Both are marked in the list (#10897): the split one by its row, the
+     * one it was split from by the read of the exceptions split from the
+     * page's rows; the pill says Split.
+     */
+    const badges: string = readDashboardSource(
+      "Components/Exceptions/ExceptionIssueBadges.tsx",
+    );
+    const row: string = readDashboardSource(
+      "Components/Exceptions/ExceptionRow.tsx",
+    );
+    const viewer: string = readDashboardSource(
+      "Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const listRead: string = readDashboardSource(
+      "Components/Exceptions/ExceptionListRead.ts",
+    );
+    const splitPairs: string = readDashboardSource(
+      "Utils/ExceptionSplitPairs.ts",
+    );
+    expect(badges).toContain('translator.translateText("Split")');
+    expect(row).toContain("<ExceptionSplitPill />");
+    expect(viewer).toContain("readSplitPairExceptionIds(exceptions)");
+    expect(listRead).toContain("splitFromTelemetryExceptionId: true,");
+    expect(splitPairs.replace(/\s+/g, " ")).toContain(
+      "query: { splitFromTelemetryExceptionId: new Includes(rowIds) }",
+    );
+
+    // And each one's page names the other: the older one's too.
+    expect(explorer).toContain("splitInto={splitInto}");
+    expect(explorer.replace(/\s+/g, " ")).toContain(
+      "splitFromTelemetryExceptionId: props.telemetryExceptionId,",
+    );
+    expect(notice).toContain(
+      'template="A scrub rule split {{exception}} from this exception. Once the rule hid part of what it says, its occurrences were counted there instead of here."',
+    );
+    expect(notice).toContain("mergeSplitExceptions(");
 
     // Recorded when an occurrence lands on the split one, never merged by it.
     expect(exceptionUtil).toContain(

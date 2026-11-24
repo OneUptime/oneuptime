@@ -167,7 +167,7 @@ return {
 
 Некоторые имена атрибутов принадлежат самому OneUptime, и скрипт не может их записывать. Если ваш скрипт задаёт такой атрибут, он отбрасывается (сама метрика всё равно записывается), а в серверные логи OneUptime пишется предупреждение с именем ключа. Это:
 
-- Идентификация монитора: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- Идентификация монитора: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - Всё в пространствах имён `oneuptime.` и `resource.`: в них хранятся идентификаторы, которые OneUptime проставляет при приёме данных.
 - Атрибуты идентификации ресурса: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` и `docker.swarm.cluster.name`.
 

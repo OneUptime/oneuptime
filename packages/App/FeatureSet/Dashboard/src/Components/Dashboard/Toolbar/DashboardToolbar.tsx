@@ -73,6 +73,27 @@ export const DASHBOARD_TOOLBAR_EDIT_STATE_TEST_ID: string =
   "dashboard-toolbar-edit-state";
 
 /*
+ * The row's last box (issue #10409): Full Screen - or, full screen, Fill the
+ * Screen and Exit Full Screen - then the ⋯ menu.
+ */
+export const DASHBOARD_TOOLBAR_SCREEN_TEST_ID: string =
+  "dashboard-toolbar-screen";
+export const DASHBOARD_FULL_SCREEN_BUTTON_TEST_ID: string =
+  "dashboard-full-screen";
+export const DASHBOARD_EXIT_FULL_SCREEN_BUTTON_TEST_ID: string =
+  "dashboard-exit-full-screen";
+export const DASHBOARD_FILL_SCREEN_BUTTON_TEST_ID: string =
+  "dashboard-fill-screen";
+
+/*
+ * The square buttons at the row's end - Full Screen, Fill the Screen and
+ * the ⋯ menu's - one look: an icon in a quiet box, its name in its tooltip
+ * and read out.
+ */
+export const DASHBOARD_TOOLBAR_SQUARE_BUTTON_CLASS_NAME: string =
+  "flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+
+/*
  * The block that holds the icon and the name: a container, so the line in
  * it lays itself out by the block's width, not the window's.
  */
@@ -98,7 +119,26 @@ export interface ComponentProps {
   onEditClick: () => void;
   onSaveClick: () => void;
   onCancelEditClick: () => void;
+  /*
+   * Full Screen (issue #10409): the dashboard alone, over the whole window,
+   * its toolbar and board still working. A square button at the row's end,
+   * in view and edit mode alike, and an item of the ⋯ menu.
+   */
   onFullScreenClick: () => void;
+  /*
+   * Whether the dashboard is shown full screen. The row's end then holds
+   * Exit Full Screen (Escape does the same), and Fill the Screen where the
+   * browser could fill the screen and does not yet (canFillScreen).
+   */
+  isFullScreen?: boolean | undefined;
+  onExitFullScreenClick?: (() => void) | undefined;
+  canFillScreen?: boolean | undefined;
+  onFillScreenClick?: (() => void) | undefined;
+  /*
+   * ⋯ -> Open in New Tab: this dashboard, full screen, in a tab of its own.
+   * Left out, the menu has no Open in New Tab.
+   */
+  onOpenInNewTabClick?: (() => void) | undefined;
   dashboardMode: DashboardMode;
   /*
    * Whether the board being edited differs from the one editing started
@@ -843,17 +883,75 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
             )}
 
             {/*
-             * More menu: Edit, Share and Full Screen (always visible in view
-             * mode). Last of the row; on a phone, beside the name.
+             * The screen's controls, then the ⋯ menu: last of the row, in
+             * view and edit mode alike, and on a phone beside the name.
+             * Full Screen is a square like the ⋯ menu's, and its words are
+             * in the menu too. Full screen, the way back says its words -
+             * Exit Full Screen, with the Escape that does the same - and
+             * Fill the Screen asks for the browser's own full screen where
+             * the browser could and has not yet.
              */}
-            {!isEditMode && (
-              <div className="shrink-0">
+            <div
+              className="flex shrink-0 items-center gap-1.5"
+              data-testid={DASHBOARD_TOOLBAR_SCREEN_TEST_ID}
+            >
+              {props.isFullScreen ? (
+                <>
+                  {props.canFillScreen && props.onFillScreenClick ? (
+                    <button
+                      type="button"
+                      className={DASHBOARD_TOOLBAR_SQUARE_BUTTON_CLASS_NAME}
+                      title={translator.translateText("Fill the Screen")}
+                      aria-label={translator.translateText("Fill the Screen")}
+                      onClick={props.onFillScreenClick}
+                      data-testid={DASHBOARD_FILL_SCREEN_BUTTON_TEST_ID}
+                    >
+                      <Icon
+                        icon={IconProp.Expand}
+                        className="w-4 h-4 text-gray-500"
+                      />
+                    </button>
+                  ) : (
+                    <></>
+                  )}
+                  <Button
+                    title="Exit Full Screen"
+                    icon={IconProp.Collapse}
+                    buttonStyle={ButtonStyleType.NORMAL}
+                    buttonSize={ButtonSize.Small}
+                    shortcutHint="Esc"
+                    isTitleHiddenOnPhone={true}
+                    onClick={props.onExitFullScreenClick}
+                    dataTestId={DASHBOARD_EXIT_FULL_SCREEN_BUTTON_TEST_ID}
+                  />
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className={DASHBOARD_TOOLBAR_SQUARE_BUTTON_CLASS_NAME}
+                  title={translator.translateText("Full Screen")}
+                  aria-label={translator.translateText("Full Screen")}
+                  onClick={props.onFullScreenClick}
+                  data-testid={DASHBOARD_FULL_SCREEN_BUTTON_TEST_ID}
+                >
+                  <Icon
+                    icon={IconProp.Expand}
+                    className="w-4 h-4 text-gray-500"
+                  />
+                </button>
+              )}
+
+              {/*
+               * More menu: Edit, Share, Full Screen and Open in New Tab, in
+               * view mode.
+               */}
+              {!isEditMode && (
                 <MoreMenu
                   menuIcon={IconProp.EllipsisHorizontal}
                   elementToBeShownInsteadOfButton={
                     <button
                       type="button"
-                      className="flex items-center justify-center rounded-lg w-8 h-8 bg-gray-50 border border-gray-200/60 hover:bg-gray-100 transition-colors cursor-pointer"
+                      className={DASHBOARD_TOOLBAR_SQUARE_BUTTON_CLASS_NAME}
                       title={translator.translateText("More dashboard options")}
                       aria-label={translator.translateText(
                         "More dashboard options",
@@ -894,15 +992,36 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                   ) : (
                     <></>
                   )}
-                  <MoreMenuItem
-                    text={"Full Screen"}
-                    icon={IconProp.Expand}
-                    key={"fullscreen"}
-                    onClick={props.onFullScreenClick}
-                  />
+                  {props.isFullScreen ? (
+                    <MoreMenuItem
+                      text={"Exit Full Screen"}
+                      icon={IconProp.Collapse}
+                      key={"exit-full-screen"}
+                      onClick={() => {
+                        props.onExitFullScreenClick?.();
+                      }}
+                    />
+                  ) : (
+                    <MoreMenuItem
+                      text={"Full Screen"}
+                      icon={IconProp.Expand}
+                      key={"fullscreen"}
+                      onClick={props.onFullScreenClick}
+                    />
+                  )}
+                  {props.onOpenInNewTabClick ? (
+                    <MoreMenuItem
+                      text={"Open in New Tab"}
+                      icon={IconProp.ExternalLink}
+                      key={"open-in-new-tab"}
+                      onClick={props.onOpenInNewTabClick}
+                    />
+                  ) : (
+                    <></>
+                  )}
                 </MoreMenu>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 

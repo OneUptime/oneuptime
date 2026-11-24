@@ -19,6 +19,11 @@ import {
   getProductName,
   isProductRenamed,
 } from "Common/UI/Utils/ProductBranding";
+import {
+  HelpPageLink,
+  getHelpPageLink,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
@@ -112,17 +117,32 @@ const DashboardFooter: () => JSX.Element = () => {
     },
   ];
 
+  /*
+   * Help and Support: OneUptime's support page by default, the server's own
+   * help page where its admins set one, or nothing where they hid it (Admin
+   * Dashboard > Settings > Help and Support, #10864). A renamed installation
+   * leaves OneUptime's out, as it always did, and shows its own.
+   */
+  const helpPage: HelpPageLink | null = getHelpPageLink(useHelpAndSupport(), {
+    isProductRenamed: isRenamed,
+  });
+
+  const helpLinks: Array<FooterLink> = helpPage
+    ? [
+        {
+          title: (
+            <span className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-500">
+              <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
+              {t("footer.helpSupport")}
+            </span>
+          ),
+          to: URL.fromStringLenient(helpPage.url),
+          openInNewTab: true,
+        },
+      ]
+    : [];
+
   const oneUptimeLinks: Array<FooterLink> = [
-    {
-      title: (
-        <span className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-500">
-          <Icon icon={IconProp.Help} className="h-3.5 w-3.5" />
-          {t("footer.helpSupport")}
-        </span>
-      ),
-      to: URL.fromString("https://oneuptime.com/support"),
-      openInNewTab: true,
-    },
     {
       title: (
         <span className="inline-flex items-center gap-1.5 text-gray-500 hover:text-gray-500">
@@ -143,6 +163,7 @@ const DashboardFooter: () => JSX.Element = () => {
         links={[
           ...(isRenamed ? [] : editionLinks),
           ...updateLinks,
+          ...helpLinks,
           ...(isRenamed ? [] : oneUptimeLinks),
           {
             title: (

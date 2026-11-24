@@ -9,6 +9,7 @@ import {
   ServiceNameLabelKeys,
 } from "../../../../Server/Utils/Monitor/SeriesResourceLabels";
 import { JSONObject } from "../../../../Types/JSON";
+import { MONITOR_STEP_ID_ATTRIBUTE } from "../../../../Types/Monitor/MonitorStepSeries";
 import { readOwnValue } from "../../../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
 import { describe, expect, test } from "@jest/globals";
@@ -45,12 +46,22 @@ describe("CapturedMetricAttributeUtil", () => {
         "monitorName",
         "probeName",
         "probeId",
+        "monitorStepId",
         "isCustomMetric",
       ]) {
         expect(CapturedMetricAttributeUtil.isReservedAttributeKey(key)).toBe(
           true,
         );
       }
+    });
+
+    test("refuses the step every row of a check is stamped with, by its one name (#10906)", () => {
+      // A script that wrote it could file its datapoints under another step.
+      expect(
+        CapturedMetricAttributeUtil.isReservedAttributeKey(
+          MONITOR_STEP_ID_ATTRIBUTE,
+        ),
+      ).toBe(true);
     });
 
     test("refuses the whole oneuptime.* namespace, not just the keys that collide today", () => {

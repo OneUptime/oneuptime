@@ -120,6 +120,7 @@ export const ON_CALL_SETUP_COPY: {
   phoneNone: string;
   pushNone: string;
   pushHelp: string;
+  pushHelpWithoutApp: string;
   useThisBrowser: string;
   getTheApp: string;
   appRecheckHint: string;
@@ -237,6 +238,11 @@ export const ON_CALL_SETUP_COPY: {
   pushHelp: translationKey(
     "Get pages on your phone with the OneUptime On-Call app, or in this browser.",
   ),
+  /*
+   * The same, where the server's admins took the mobile app away (Admin
+   * Dashboard > Settings > Help and Support, #10866): this browser only.
+   */
+  pushHelpWithoutApp: translationKey("Get pages in this browser."),
   useThisBrowser: translationKey("Use this browser"),
   getTheApp: translationKey("Get the app"),
   appRecheckHint: translationKey(

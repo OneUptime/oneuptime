@@ -27,6 +27,17 @@ import {
 import ProductFeedback, {
   useProductFeedbackSettings,
 } from "Common/UI/Utils/ProductFeedback";
+import {
+  ChatKind,
+  ChatLink,
+  HelpAndSupportSettings,
+  getChatLink,
+  getRequestDemoUrl,
+  getSupportEmailAddress,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -86,10 +97,22 @@ export const useHelpEntries: (
   openedFrom: HowOneUptimeWorksOpenedFrom,
 ) => HelpEntries = (openedFrom: HowOneUptimeWorksOpenedFrom): HelpEntries => {
   const { t, i18n } = useTranslation();
+  const translator: Translator = useTranslator();
   const language: string | undefined =
     i18n?.resolvedLanguage || i18n?.language || undefined;
   // Give feedback appears once the server says it takes feedback.
   useProductFeedbackSettings();
+  /*
+   * Where the server sends its people for help (Admin Dashboard > Settings
+   * > Help and Support, #10864): OneUptime's support address, community
+   * Slack and demo by default, or the server's own address and chat, or
+   * none of them.
+   */
+  const helpAndSupport: HelpAndSupportSettings = useHelpAndSupport();
+  const supportEmail: string | null = getSupportEmailAddress(helpAndSupport);
+  const chat: ChatLink | null = getChatLink(helpAndSupport);
+  const requestDemoUrl: string | null = getRequestDemoUrl(helpAndSupport);
+  const giveFeedbackUrl: string | null = ProductFeedback.getGiveFeedbackUrl();
 
   return {
     learn: [
@@ -139,23 +162,32 @@ export const useHelpEntries: (
        * Tell OneUptime what was hard, from any page (#6832): kept on this
        * server, and on OneUptime Cloud emailed to the OneUptime team, on a
        * self-hosted one to its admins where it has an Admin Notification
-       * Email (#8893; the dialog says which). Only where the server takes
-       * feedback.
+       * Email (#8893; the dialog says which), or to the address of the
+       * server's own its admins chose (#10865). Only where the server takes
+       * feedback and offers Give feedback. Where its admins sent it to a page
+       * of their own, it opens that page instead of the dialog.
        */
-      ...(ProductFeedback.isOn()
+      ...(ProductFeedback.isGiveFeedbackOffered()
         ? [
-            {
-              id: "give-feedback",
-              title: t("help.giveFeedback", "Give feedback"),
-              icon: IconProp.ChatBubbleLeftRight,
-              onSelect: () => {
-                openGiveFeedback(
-                  openedFrom === HowOneUptimeWorksOpenedFrom.PhoneMenu
-                    ? GiveFeedbackOpenedFrom.PhoneMenu
-                    : GiveFeedbackOpenedFrom.Help,
-                );
-              },
-            } as HelpEntry,
+            giveFeedbackUrl
+              ? ({
+                  id: "give-feedback",
+                  title: t("help.giveFeedback", "Give feedback"),
+                  icon: IconProp.ChatBubbleLeftRight,
+                  url: URL.fromStringLenient(giveFeedbackUrl),
+                } as HelpEntry)
+              : ({
+                  id: "give-feedback",
+                  title: t("help.giveFeedback", "Give feedback"),
+                  icon: IconProp.ChatBubbleLeftRight,
+                  onSelect: () => {
+                    openGiveFeedback(
+                      openedFrom === HowOneUptimeWorksOpenedFrom.PhoneMenu
+                        ? GiveFeedbackOpenedFrom.PhoneMenu
+                        : GiveFeedbackOpenedFrom.Help,
+                    );
+                  },
+                } as HelpEntry),
           ]
         : []),
       /*
@@ -179,28 +211,81 @@ export const useHelpEntries: (
           GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
         },
       },
-      {
-        id: "support-email",
-        title: t("help.supportEmail"),
-        icon: IconProp.Email,
-        url: URL.fromString("mailto:support@oneuptime.com"),
-      },
-      {
-        id: "chat-slack",
-        title: t("help.chatSlack"),
-        icon: IconProp.Slack,
-        url: URL.fromString(
-          "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA",
-        ),
-      },
-      {
-        id: "request-demo",
-        title: t("help.requestDemo"),
-        icon: IconProp.Window,
-        url: URL.fromString("https://oneuptime.com/enterprise/demo"),
-      },
+      ...(supportEmail
+        ? [
+            {
+              id: "support-email",
+              title: t("help.supportEmail"),
+              icon: IconProp.Email,
+              url: URL.fromStringLenient(`mailto:${supportEmail}`),
+            } as HelpEntry,
+          ]
+        : []),
+      ...(chat
+        ? [
+            {
+              id: "chat-slack",
+              title: getChatTitle(chat, t("help.chatSlack"), translator),
+              icon: CHAT_ICONS[chat.kind],
+              url: URL.fromStringLenient(chat.url),
+            } as HelpEntry,
+          ]
+        : []),
+      ...(requestDemoUrl
+        ? [
+            {
+              id: "request-demo",
+              title: t("help.requestDemo"),
+              icon: IconProp.Window,
+              url: URL.fromStringLenient(requestDemoUrl),
+            } as HelpEntry,
+          ]
+        : []),
     ],
   };
+};
+
+// The mark a chat's entry is drawn with: Slack's and Teams' own, or a bubble.
+export const CHAT_ICONS: Readonly<Record<ChatKind, IconProp>> = {
+  [ChatKind.Slack]: IconProp.Slack,
+  [ChatKind.MicrosoftTeams]: IconProp.MicrosoftTeams,
+  [ChatKind.Other]: IconProp.Chat,
+};
+
+/*
+ * What a chat's entry says. OneUptime's community and a Slack workspace of
+ * the server's own are Chat on Slack, as it always read; a Microsoft Teams
+ * link says Teams; any other chat - Mattermost, Google Chat, a help desk's
+ * chat - is Chat with Support.
+ */
+export const CHAT_WITH_TEAMS_TITLE: string = translationKey(
+  "Chat on Microsoft Teams",
+);
+export const CHAT_WITH_SUPPORT_TITLE: string =
+  translationKey("Chat with Support");
+
+export const getChatTitle: (
+  chat: ChatLink,
+  slackTitle: string,
+  translator: Translator,
+) => string = (
+  chat: ChatLink,
+  slackTitle: string,
+  translator: Translator,
+): string => {
+  switch (chat.kind) {
+    case ChatKind.Slack:
+      return slackTitle;
+    case ChatKind.MicrosoftTeams:
+      return (
+        translator.translateText(CHAT_WITH_TEAMS_TITLE) || CHAT_WITH_TEAMS_TITLE
+      );
+    default:
+      return (
+        translator.translateText(CHAT_WITH_SUPPORT_TITLE) ||
+        CHAT_WITH_SUPPORT_TITLE
+      );
+  }
 };
 
 const Help: () => JSX.Element = (): ReactElement => {

@@ -13,7 +13,9 @@ import {
 } from "Common/Types/Form/FormField";
 import { FormCustomFieldDefinition } from "Common/Types/Form/FormPublic";
 import {
+  AlertFormTargetSettings,
   FormTargetSettingReferenceModel,
+  FormTargetSettings,
   IncidentFormTargetSettings,
   ScheduledMaintenanceFormTargetSettings,
 } from "Common/Types/Form/FormTargetSettings";
@@ -383,11 +385,173 @@ const yesNoRow: YesNoRowFunction = (data: {
   };
 };
 
+type AnsweredOrSetRowFunction = (data: {
+  fields: Array<FormField>;
+  key: string;
+  title: string;
+  // What applies when no answer gives one: a setting's value, or a warning.
+  fallback: FormMappingLine;
+}) => FormMappingRow;
+
+/*
+ * A field an answer gives, else a setting: the answer alone when the
+ * question is required, the answer and then what applies if it is left
+ * empty when it is not, and only what applies when the form does not ask.
+ * A warning stays a warning wherever it is said.
+ */
+const answeredOrSetRow: AnsweredOrSetRowFunction = (data: {
+  fields: Array<FormField>;
+  key: string;
+  title: string;
+  fallback: FormMappingLine;
+}): FormMappingRow => {
+  const asked: Array<FormMappingLine> | null = answerLines({
+    fields: data.fields,
+    key: data.key,
+  });
+
+  const lines: Array<FormMappingLine> = asked
+    ? isRequired(data.fields, data.key)
+      ? asked
+      : [
+          ...asked,
+          {
+            ...data.fallback,
+            kind:
+              data.fallback.kind === FormMappingLineKind.Warning
+                ? FormMappingLineKind.Warning
+                : FormMappingLineKind.Fallback,
+          },
+        ]
+    : [data.fallback];
+
+  return { key: data.key, title: data.title, lines: lines };
+};
+
+type AlertRowsFunction = (data: {
+  fields: Array<FormField>;
+  settings: AlertFormTargetSettings;
+  lists: FormReferenceLists;
+  customFields: Array<FormCustomFieldDefinition>;
+}) => Array<FormMappingRow>;
+
+/*
+ * An alert form's rows (#10760), as AlertFormTarget makes the alert: its
+ * severity from an answer or the form's - neither, and submissions are
+ * refused - its one monitor likewise, the state it starts in from the form
+ * (the usual starting state when it names none), and no status page row:
+ * an alert never shows on one.
+ */
+const alertRows: AlertRowsFunction = (data: {
+  fields: Array<FormField>;
+  settings: AlertFormTargetSettings;
+  lists: FormReferenceLists;
+  customFields: Array<FormCustomFieldDefinition>;
+}): Array<FormMappingRow> => {
+  const severityName: string | undefined = nameRecord({
+    lists: data.lists,
+    model: FormTargetSettingReferenceModel.AlertSeverity,
+    id: data.settings.alertSeverityId,
+  });
+
+  const monitorNames: Array<NamedRecord> = nameRecords({
+    lists: data.lists,
+    model: FormTargetSettingReferenceModel.Monitor,
+    ids: data.settings.monitorId ? [data.settings.monitorId] : [],
+  });
+
+  return [
+    titleRow({ fields: data.fields, defaultTitle: data.settings.defaultTitle }),
+    askedOrNotRow({
+      fields: data.fields,
+      key: "description",
+      title: "Description",
+    }),
+    {
+      ...answeredOrSetRow({
+        fields: data.fields,
+        key: "alertSeverityId",
+        title: "Severity",
+        fallback: severityName
+          ? { kind: FormMappingLineKind.Value, text: severityName }
+          : {
+              kind: FormMappingLineKind.Warning,
+              text: FormsCopy.noAlertSeverityWarning,
+              isCopy: true,
+            },
+      }),
+      key: "severity",
+    },
+    answeredOrSetRow({
+      fields: data.fields,
+      key: "monitor",
+      title: "Monitor",
+      fallback:
+        monitorNames.length > 0
+          ? {
+              kind: FormMappingLineKind.Value,
+              text: recordsText(monitorNames),
+              names: monitorNames,
+            }
+          : notSet,
+    }),
+    recordsRow({
+      fields: data.fields,
+      key: "labels",
+      title: "Labels",
+      lists: data.lists,
+      model: FormTargetSettingReferenceModel.Label,
+      ids: data.settings.labelIds,
+    }),
+    askedOrNotRow({
+      fields: data.fields,
+      key: "impactStartedAt",
+      title: "Impact Started At",
+    }),
+    settingRow({
+      key: "initialState",
+      title: FormsCopy.initialState,
+      lists: data.lists,
+      model: FormTargetSettingReferenceModel.AlertState,
+      ids: data.settings.alertStateId ? [data.settings.alertStateId] : [],
+      empty: {
+        kind: FormMappingLineKind.Value,
+        text: FormsCopy.usualStartingState,
+        isCopy: true,
+      },
+    }),
+    settingRow({
+      key: "onCallPolicies",
+      title: FormsCopy.onCallPolicies,
+      lists: data.lists,
+      model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
+      ids: data.settings.onCallDutyPolicyIds,
+    }),
+    ownersRow({
+      lists: data.lists,
+      userIds: data.settings.ownerUserIds,
+      teamIds: data.settings.ownerTeamIds,
+    }),
+    customFieldsRow({ fields: data.fields, customFields: data.customFields }),
+    {
+      key: "otherAnswers",
+      title: FormsCopy.otherAnswersRow,
+      lines: [
+        {
+          kind: FormMappingLineKind.Value,
+          text: FormsCopy.otherAnswersAlert,
+          isCopy: true,
+        },
+      ],
+    },
+  ];
+};
+
 export type GetFormMappingRowsFunction = (data: {
   targetType: FormTargetType;
   fields: Array<FormField>;
   // Read with readFormTargetSettings for the target.
-  settings: IncidentFormTargetSettings | ScheduledMaintenanceFormTargetSettings;
+  settings: FormTargetSettings;
   reference: FormReferenceData;
   customFields: Array<FormCustomFieldDefinition>;
 }) => Array<FormMappingRow>;
@@ -396,11 +560,20 @@ export type GetFormMappingRowsFunction = (data: {
 export const getFormMappingRows: GetFormMappingRowsFunction = (data: {
   targetType: FormTargetType;
   fields: Array<FormField>;
-  settings: IncidentFormTargetSettings | ScheduledMaintenanceFormTargetSettings;
+  settings: FormTargetSettings;
   reference: FormReferenceData;
   customFields: Array<FormCustomFieldDefinition>;
 }): Array<FormMappingRow> => {
   const lists: FormReferenceLists = data.reference.lists;
+
+  if (data.targetType === FormTargetType.Alert) {
+    return alertRows({
+      fields: data.fields,
+      settings: data.settings as AlertFormTargetSettings,
+      lists: lists,
+      customFields: data.customFields,
+    });
+  }
 
   if (data.targetType === FormTargetType.ScheduledMaintenance) {
     const settings: ScheduledMaintenanceFormTargetSettings =

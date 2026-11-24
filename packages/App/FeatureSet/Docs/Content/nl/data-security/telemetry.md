@@ -9,6 +9,7 @@ Er is niets in te stellen: de telemetrie van elke service wordt elk uur gescand,
 - [Hoe een scan bemonstert](#hoe-een-scan-bemonstert): De nieuwste records van elke service, elk uur.
 - [Opschonen](#opschonen): Verberg een bevinding bij de inname, in de service waarin ze is gevonden.
 - [Zelf ingedamd](#zelf-ingedamd): Een geheim verborgen zonder dat iemand ergens op drukt, waar bewezen is dat dat veilig is.
+- [In de code oplossen](#in-de-code-oplossen): Eén pull request die een service al zijn lekken laat stoppen.
 - [Deze metriek verwerpen](#deze-metriek-verwerpen): Sla de metrieken waarvan de naam gevoelige gegevens bevat niet meer op.
 - [Wat telt als opgeschoond](#wat-telt-als-opgeschoond): Wanneer een opschoonregel een bevinding al dekt.
 :::
@@ -99,7 +100,7 @@ Klik op **Opschonen**. Een dialoogvenster zegt wat de regel zou doen voordat er 
 
 ### Herstel ook de code
 
-De regel verbergt nieuwe gegevens voordat ze worden opgeslagen. Gegevens die al zijn opgeslagen, blijven staan tot hun bewaartermijn afloopt, dus herstel de code die ze schrijft: de bevinding noemt de service en het attribuut.
+De regel verbergt nieuwe gegevens voordat ze worden opgeslagen. Gegevens die al zijn opgeslagen, blijven staan tot hun bewaartermijn afloopt, dus herstel de code die ze schrijft: de bevinding noemt de service en het attribuut. **Oplossen met AI** bij het probleem opent één pull request voor elk lek van de service: zie [In de code oplossen](#in-de-code-oplossen).
 :::
 
 De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email address in log attributes of checkout", of "Data Security: Password or secret in db.password of checkout" voor een regel die zijn attribuut noemt, en staat bij je andere opschoonregels (zie [Dropfilters en opschoonregels](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Het is de smalste regel die de gegevens van de bevinding verbergt, de eerste van deze die past:
@@ -112,7 +113,7 @@ De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email addres
 | Een gegevenstype dat door de woorden eromheen te onderscheiden is, zoals een routingnummer | Zijn vorm, alleen in het attribuut waarin het is gevonden |
 | Een gegevenstype dat op de naam van het veld wordt gevonden, zoals de naam van een persoon onder `customer_name`, of een waarde onder een sleutel die een geheim noemt | Een regel **Benoemde attributen**, die de hele waarde van dat attribuut verbergt |
 | Een waarde onder een sleutel die gevoelig lijkt, waar niets smallers haar verbergt | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
-| Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut met de vorm van het gegevenstype vervangt door `[REDACTED]`, of elke waarde van het attribuut wanneer geen patroon het gegevenstype vindt |
+| Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut die het gegevenstype bevatten vervangt door `[REDACTED]`. Voor een IP-adres, een e-mailadres of een kaartnummer is het filter **Komt overeen met patroontype** met dat type, dat vindt wat een regel voor logs of traces met dat **Patroontype** vindt, waaronder IPv6-adressen en waarden die procentgecodeerd of in een ander schrift staan. Voor een ander gegevenstype is het het eigen patroon van het type, en wanneer geen patroon het gegevenstype vindt, vervangt de regel elke waarde van het attribuut |
 
 ### Bewezen op de records waarin het werd gezien
 
@@ -158,11 +159,53 @@ Een wijziging die OneUptime AI zelf maakte:
 
 Nieuwe bevindingen in een service waarvan het probleem al openstaat, worden op dezelfde manier ingedamd zodra de scan van elk uur ze vindt.
 
+## In de code oplossen
+
+Een scrub-regel verbergt nieuwe gegevens bij inname, maar de code schrijft ze nog steeds. **Oplossen met AI** bij een telemetrieprobleem vraagt OneUptime AI om één pull request die de service elk lek laat stoppen dat OneUptime nog in zijn telemetrie ziet: dat van dit probleem en de andere van de service, ook die bij inname zijn ingedamd. Een dialoogvenster laat zien wat de pull request gaat doen voordat er iets begint, en **Pull request openen** vraagt precies dat.
+
+:::steps
+### Zoeken waar elk lek wordt geschreven
+
+Voordat OneUptime AI begint, leest Gegevensbeveiliging de records waarin elk lek is gezien opnieuw, binnen OneUptime, en bewaart alleen waar de code ze heeft geschreven:
+
+- **Een span of een AI-aanroep**: het bestand, de regel en de functie die zijn attributen `code.*` noemen, en de naam van de span.
+- **Een uitzondering**: zijn eigen bovenste frames, die in de code van de service.
+- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`.
+- **Een metriek**: de naam van de metriek.
+- **Elk lek**: zijn attribuutsleutel, zoals `user.email`, die de code meestal letterlijk schrijft.
+
+### De repository kiezen
+
+De pull request gaat naar de repository met de bestanden die de records noemen, gezocht zoals de bestanden van een stacktrace. Een lek waarvan de records geen bestand noemen, gaat naar waar de andere lekken van de service zijn, anders naar de repository met de naam van de service, of naar de enige van het project. In een repository met meerdere services werkt OneUptime AI in de map van de service: de map die die bestanden delen, anders de map die de productiereviews van de service gebruiken. Als niets beslist, kies je zelf, uit de repository's waarin je OneUptime AI mag laten werken.
+
+### De pull request openen
+
+Het dialoogvenster zegt hoe de code verandert, somt elk lek op met waar het wordt geschreven, en noemt de repository, waarom het deze is, en de bestanden waarbij OneUptime AI begint. **Pull request openen** vraagt precies dat plan: is er sinds het openen een lek gevonden of opgelost, dan begint er niets en wordt het plan opnieuw getoond.
+:::
+
+Hoe de code verandert, hangt af van op hoeveel plaatsen de gegevens worden geschreven:
+
+| Waar de gegevens worden geschreven | Wat de pull request doet |
+| --- | --- |
+| Op drie plaatsen of minder | Past de code op elke plaats aan: laat de waarde weg, of maskeert of hasht die voordat ze wordt verstuurd |
+| Op meer dan drie plaatsen | Voegt één redactiestap toe, met een test, waar de service zijn telemetrie instelt, in plaats van elke plaats aan te passen |
+| Waar je scrub-regels ze al bij inname verbergen | Voegt die redactiestap ook voor die sleutels toe, zodat de code doet wat de inname doet |
+
+Eén pull request lost één service in één repository op: een service waarvan de lekken in twee repository's worden geschreven, krijgt er in elk één. Zolang hij wordt geschreven, verwijst **Oplossen met AI** bij elk probleem van de service ernaar, en wordt er geen tweede gestart.
+
+OneUptime AI krijgt de plaatsen, sleutels, gegevenstypen en sjablonen, nooit een waarde van je gegevens, een gemaskeerd voorbeeld of een record, en de codeeragent leest niets van je telemetrie terwijl hij werkt. De beschrijving van de pull request somt de lekken op en linkt naar de problemen die hij oplost, en citeert nooit een record.
+
+Elk probleem dat de pull request oplost, bewaart hem: de kaart **Zo lost u het op** zegt of hij wordt geschreven, open, samengevoegd of gesloten is, met links naar de pull request en de taak, en na het samenvoegen wat productie liet zien. De tijdlijn van het probleem zegt wanneer hij werd geopend. Het probleem wordt opgelost als **Hersteld in de code** zodra de nieuwe versie van de service de gegevens niet meer schrijft (zie [Wat er met een probleem gebeurt](/docs/data-security/checks-and-issues#wat-er-met-een-probleem-gebeurt)).
+
+Een geheim heeft meer nodig dan een codecorrectie: de code stopt alleen nieuwe kopieën, en het geheim werkt nog. De pull request, de tijdlijn van het probleem en de kaart **Zo lost u het op** zeggen dat het moet worden geroteerd, en de kaart somt op waar het is gezien.
+
+Met **Aan nieuwe problemen werken** aan stelt OneUptime AI ook uit zichzelf de correctie van elke service voor, de riskantste service eerst, onder **Gegevensbeveiliging → AI** en bij het riskantste probleem van de service. Standaard wacht die op jou. Een AI-regel van Gegevensbeveiliging die **Herstel** voor het riskantste probleem van de service op **Automatisch** zet, opent de pull request zonder te vragen, in een repository waarover iets heeft beslist. **Max. open fix-pull-requests** van de repository begrenst beide: bij de grens wacht een pull request die een regel zou openen op jou, en gaat er geen nieuwe correctie-pull-request open totdat er een is samengevoegd of gesloten.
+
 ## Deze metriek verwerpen
 
 Geen regel haalt de gegevens uit de naam van een metriek, dus tot de code die de metriek een naam geeft is gerepareerd, blijven de gegevens binnenkomen. **Deze metriek verwerpen** op een bevinding in de naam van een metriek stopt het opslaan van de metrieken waarvan de naam ze bevat, ten koste van hun gegevens, en gebeurt dus alleen als je erom vraagt:
 
-- **De metrieken van één service.** Het maakt een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding: elk nieuw datapunt van een metriek waarvan de naam dat gegevenstype bevat, wordt verworpen voordat het wordt opgeslagen. Het filter is het patroon dat **Opschonen** voor het type gebruikt, dus een type dat geen patroon kan vinden, zoals de naam van een persoon, kan niet worden verworpen, en het dialoogvenster zegt waarom.
+- **De metrieken van één service.** Het maakt een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding: elk nieuw datapunt van een metriek waarvan de naam dat gegevenstype bevat, wordt verworpen voordat het wordt opgeslagen. Het filter is het eigen patroon van het gegevenstype, toegepast op de naam van de metriek, dus een type dat geen patroon kan vinden, zoals de naam van een persoon, kan niet worden verworpen, en het dialoogvenster zegt waarom.
 - **Gezegd voordat het gebeurt.** Het dialoogvenster zegt dat die datapunten voorgoed verloren gaan, hoeveel van de metrieken van de service die de afgelopen dag zijn geschreven zo'n naam hebben, wat ze leest en dus geen nieuwe gegevens meer krijgt, dat wat al is opgeslagen blijft tot de bewaartermijn afloopt, en hoe je het ongedaan maakt. Er wordt niets verworpen voordat je aanvinkt dat je het begrijpt.
 - **Wat ze leest, en wat ermee gebeurt.** Het dialoogvenster noemt, elk als link, elke monitor, elk dashboard met de widgets erop die die metrieken lezen, elke metriek-SLO van de service en elke opnameregel voor metrieken die ze leest. Monitoren kunnen niet meer waarschuwen op hun waarden, widgets tonen geen nieuwe gegevens, SLO's tellen er geen nieuwe gebeurtenissen meer uit, en de uitvoermetrieken van opnameregels bevatten ze niet meer. Onder elke opnameregel noemt het ook wat de uitvoermetriek van de regel leest, en wat op zijn beurt die van hen leest, tot drie uitvoermetrieken verder in de keten. De link van een widget opent zijn dashboard bij die widget. Wat je niet kunt zien, wordt geteld, maar nooit bij naam genoemd.
 - **Namens jou, en vastgelegd.** De regel wordt gemaakt met je eigen machtiging om pipelineregels voor metrieken te maken: Projecteigenaren en Projectbeheerders kunnen hem maken, en ook een team dat pipelineregels voor metrieken mag maken. De auditlogboeken leggen vast wie hem heeft gemaakt.
@@ -181,7 +224,7 @@ Een bevinding wordt alleen als opgeschoond gemarkeerd wanneer de inname er een i
 - **Een regel die op de records van de bevinding is bewezen.** Een regel die OneUptime maakte en bewees op de records waarin een bevinding werd gezien, dekt die bevinding, wat zijn patroon ook is, zolang het de regel is die werd bewezen: wijzig zijn patroon, zijn attributen, zijn actie, zijn velden of zijn service, en hij dekt haar niet meer.
 - **Een regel Benoemde attributen** dekt een bevinding in een attribuut dat hij noemt, of in een attribuut dat eronder genest is.
 - **Je eigen aangepaste patronen tellen verder nooit.** Een **Aangepaste reguliere expressie** die je zelf schreef, dekt een bevinding alleen als ze precies het patroon is dat **Opschonen** voor haar type maakt. Een bevinding bewaart alleen gemaskeerde voorbeelden, waarop geen patroon kan worden uitgeprobeerd, dus OneUptime kan niet bewijzen dat je patroon de gegevens verbergt, en een bevinding die ten onrechte opgeschoond heet, is een lek waar niemand naar kijkt.
-- **Het attribuut van een metriek.** Een pipelineregel voor metrieken van het type **Kenmerk weglakken** of **Kenmerk verwijderen** op de sleutel van dat attribuut, voor de service van de bevinding of voor het hele project, dekt haar als de regel geen filter heeft, of precies het filter dat **Opschonen** maakt. Een filter dat je zelf schreef, telt nooit, om dezelfde reden.
+- **Het attribuut van een metriek.** Een pipelineregel voor metrieken van het type **Kenmerk weglakken** of **Kenmerk verwijderen** op de sleutel van dat attribuut, voor de service van de bevinding of voor het hele project, dekt haar als de regel geen filter heeft, of precies het filter dat **Opschonen** maakt. Een filter dat je zelf schreef, telt nooit, om dezelfde reden. Een regel die **Opschonen** voor een IP-adres, een e-mailadres of een kaartnummer maakte voordat het filter **Komt overeen met patroontype** was, gaat bij de upgrade over op dat filter, zodat de regel ook IPv6-adressen verbergt en zijn bevinding dekt.
 - **De naam van een metriek.** Een pipelineregel voor metrieken van het type **Verwijderen** voor de service van de bevinding of voor het hele project dekt haar als de regel precies het filter heeft dat **Deze metriek verwerpen** maakt, of helemaal geen filter, waarmee hij geen enkele metriek van de service opslaat. Zo'n regel zonder filter dekt elke bevinding in die metrieken.
 
 Een regel die uit staat, of die niets opschoont, telt nooit. De dekking wordt na elke scan opnieuw bepaald, dus een regel die je met de hand toevoegt of verwijdert, verandert binnen het uur wat als opgeschoond is gemarkeerd.

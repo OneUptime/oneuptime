@@ -134,7 +134,13 @@ El zoom solo funciona en modo de lectura; en modo de edición, arrastrar mueve y
 
 ## Pantalla completa
 
-**⋯ → Pantalla completa** muestra los widgets del panel en toda la pantalla, para una pantalla mural o una reunión. Pulsa Esc para salir.
+La pantalla completa muestra solo el panel, en toda la pantalla: su barra de herramientas y sus widgets, sin la barra superior, el menú lateral ni la ruta de navegación alrededor. Todo funciona como en la página del panel, y para las mismas personas: editar, añadir y quitar widgets, el intervalo de tiempo, la actualización automática y las variables.
+
+- **Pantalla completa**, el botón cuadrado al final de la barra de herramientas del panel, o **⋯ → Pantalla completa** muestra el panel en pantalla completa. Tu navegador también pasa a pantalla completa, donde lo permite.
+- **Abrir en una pestaña nueva**, en el menú **⋯** del panel o en el menú **⋯** de una fila de la lista **Paneles**, abre el panel en pantalla completa en una pestaña propia. En esa pestaña, **Llenar la pantalla** pone también tu navegador en pantalla completa.
+- **Salir de pantalla completa**, o Esc, vuelve a la página del panel y saca también tu navegador de la pantalla completa. Después de **Llenar la pantalla**, el primer Esc solo saca tu navegador de la pantalla completa.
+
+Un panel en pantalla completa tiene su propia dirección, que termina en `?view=full-screen`: guárdala en marcadores o ábrela en una pantalla mural, y el panel se abre en pantalla completa. Para mostrar varios paneles uno tras otro en una pantalla, usa una [lista de reproducción](/docs/dashboards/playlists).
 
 ## Consejos para paneles que envejecen bien
 

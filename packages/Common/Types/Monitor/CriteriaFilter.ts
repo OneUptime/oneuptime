@@ -1527,7 +1527,13 @@ export class CriteriaFilterUtil {
        */
       checkOn === CheckOn.ConnectedProbes ||
       checkOn === CheckOn.DisconnectedProbes ||
-      checkOn === CheckOn.ProbesBehind
+      checkOn === CheckOn.ProbesBehind ||
+      /*
+       * Written each check since #10905, so a certificate's days left can be
+       * compared with the previous check: down by more than one is a
+       * certificate replaced by one that expires sooner, up is a renewal.
+       */
+      checkOn === CheckOn.ExpiresInDays
     );
   }
 }

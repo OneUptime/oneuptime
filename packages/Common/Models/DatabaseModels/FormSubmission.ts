@@ -1,3 +1,4 @@
+import Alert from "./Alert";
 import Form from "./Form";
 import Incident from "./Incident";
 import Project from "./Project";
@@ -27,7 +28,8 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 /*
  * One submission of a form: which form it came through, every answer it
  * gave (worded as the form asked it then), who the submitter said they
- * were, and what it created - an incident or a scheduled maintenance event.
+ * were, and what it created - an incident, an alert or a scheduled
+ * maintenance event.
  * createdAt is when it was sent.
  *
  * Only the form's public submit route writes these, as root, so the create
@@ -38,8 +40,9 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * answers may describe a private incident. So it is read by the project's
  * owners and admins, and by whoever is given Read Form Submission on
  * purpose - not by everyone who can read incidents. Everybody else reads
- * what a submission created on the incident or the event itself, where the
- * answers are on a private note, under that record's own access rules.
+ * what a submission created on the incident, the alert or the event
+ * itself, where the answers are on a private note, under that record's own
+ * access rules.
  *
  * Deleting the form deletes its submissions. Deleting what a submission
  * created keeps the submission, pointing at nothing.
@@ -81,7 +84,7 @@ const DELETE_PERMISSIONS: Array<Permission> = [
   pluralName: "Form Submissions",
   icon: IconProp.ClipboardDocumentCheck,
   tableDescription:
-    "The submissions made through this project's forms: every answer, the name and email the submitter gave, and the incident or maintenance event each one created.",
+    "The submissions made through this project's forms: every answer, the name and email the submitter gave, and the incident, alert or maintenance event each one created.",
 })
 export default class FormSubmission extends BaseModel {
   @ColumnAccessControl({
@@ -256,7 +259,7 @@ export default class FormSubmission extends BaseModel {
     allowedValues: Object.values(FormTargetType),
     title: "Created",
     description:
-      "What the submission created: Incident, or ScheduledMaintenance (a maintenance event).",
+      "What the submission created: Incident, Alert, or ScheduledMaintenance (a maintenance event).",
     example: FormTargetType.Incident,
   })
   @Column({
@@ -277,7 +280,7 @@ export default class FormSubmission extends BaseModel {
     modelType: Incident,
     title: "Incident",
     description:
-      "The incident this submission created. Empty for a form that schedules maintenance, and once that incident is deleted.",
+      "The incident this submission created. Empty for a form that creates alerts or schedules maintenance, and once that incident is deleted.",
   })
   @ManyToOne(
     () => {
@@ -305,7 +308,7 @@ export default class FormSubmission extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Incident ID",
     description:
-      "ID of the incident this submission created. Empty for a form that schedules maintenance, and once that incident is deleted.",
+      "ID of the incident this submission created. Empty for a form that creates alerts or schedules maintenance, and once that incident is deleted.",
     example: "e5f6a7b8-c9d0-4e1f-8a3b-4c5d6e7f8a9b",
   })
   @Column({
@@ -326,7 +329,7 @@ export default class FormSubmission extends BaseModel {
     modelType: ScheduledMaintenance,
     title: "Maintenance Event",
     description:
-      "The maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
+      "The maintenance event this submission created. Empty for a form that creates incidents or alerts, and once that event is deleted.",
   })
   @ManyToOne(
     () => {
@@ -354,7 +357,7 @@ export default class FormSubmission extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Maintenance Event ID",
     description:
-      "ID of the maintenance event this submission created. Empty for a form that creates incidents, and once that event is deleted.",
+      "ID of the maintenance event this submission created. Empty for a form that creates incidents or alerts, and once that event is deleted.",
     example: "b8c9d0e1-f2a3-4b4c-9d5e-6f7a8b9c0d1e",
   })
   @Column({
@@ -363,4 +366,53 @@ export default class FormSubmission extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public scheduledMaintenanceId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [...READ_PERMISSIONS],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "alertId",
+    type: TableColumnType.Entity,
+    modelType: Alert,
+    title: "Alert",
+    description:
+      "The alert this submission created. Empty for a form that creates incidents or schedules maintenance, and once that alert is deleted.",
+  })
+  @ManyToOne(
+    () => {
+      return Alert;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "alertId" })
+  public alert?: Alert = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [...READ_PERMISSIONS],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Alert ID",
+    description:
+      "ID of the alert this submission created. Empty for a form that creates incidents or schedules maintenance, and once that alert is deleted.",
+    example: "c4d5e6f7-a8b9-4c0d-8e1f-2a3b4c5d6e7f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public alertId?: ObjectID = undefined;
 }

@@ -1,6 +1,7 @@
 import DataToProcess from "../DataToProcess";
 import CompareCriteria from "./CompareCriteria";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import { JSONObject } from "../../../../Types/JSON";
 import {
   CheckOn,
@@ -25,6 +26,11 @@ export default class APIRequestCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     // Server Monitoring Checks
 
@@ -48,6 +54,7 @@ export default class APIRequestCriteria {
             ? (input.criteriaFilter.serverMonitorOptions as JSONObject)
             : undefined,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*

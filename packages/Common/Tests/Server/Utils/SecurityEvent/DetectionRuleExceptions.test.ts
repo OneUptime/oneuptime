@@ -30,6 +30,10 @@ import {
   DetectionRuleExceptionShape,
 } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import { getApiKeyPrincipal } from "../../../../Types/SecurityEvent/OneUptimeActorPrincipal";
+import {
+  clearLinearRegExpCache,
+  getCachedPatternCount,
+} from "../../../../Utils/LinearRegExp/PatternCache";
 import { getJestSpyOn } from "../../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -584,6 +588,58 @@ describe("an exception that names an API key by its name", () => {
     expect(
       doesDetectionRuleExceptionValueMatchText(undefined, "terraform"),
     ).toBe(false);
+  });
+
+  /*
+   * The value is a project's people's to write, so it runs on the
+   * linear-time matcher (PatternsAProjectWritesGuard). On JavaScript's own
+   * engine, a value of forty stars against a name of five thousand letters
+   * that almost matches would not answer in any time a test waits for: the
+   * work grew with the name to the power of the value's stars.
+   */
+  test("a value of many stars runs on the linear-time matcher, however long the name it almost matches", () => {
+    clearLinearRegExpCache();
+    const stars: string = `${"*a".repeat(40)}*b`;
+    const almost: string = "a".repeat(5000);
+
+    expect(doesDetectionRuleExceptionValueMatchText(stars, almost)).toBe(false);
+    expect(doesDetectionRuleExceptionValueMatchText(stars, `${almost}b`)).toBe(
+      true,
+    );
+    // Compiled once, into the linear-time matcher's cache, and read from it after.
+    expect(getCachedPatternCount()).toBe(1);
+    expect(doesDetectionRuleExceptionValueMatchText(stars, "ab")).toBe(false);
+    expect(getCachedPatternCount()).toBe(1);
+  });
+
+  test("a star spans every character, newlines too, and what is between the stars is read as written", () => {
+    expect(
+      doesDetectionRuleExceptionValueMatchText(
+        "deploy*bot",
+        "deploy\nthe\nbot",
+      ),
+    ).toBe(true);
+    expect(
+      doesDetectionRuleExceptionValueMatchText("ci.*.key", "ci.prod.key"),
+    ).toBe(true);
+    expect(
+      doesDetectionRuleExceptionValueMatchText("ci.*.key", "cixprodxkey"),
+    ).toBe(false);
+    expect(
+      doesDetectionRuleExceptionValueMatchText("(a|b)*", "(a|b)-key"),
+    ).toBe(true);
+    expect(doesDetectionRuleExceptionValueMatchText("(a|b)*", "a-key")).toBe(
+      false,
+    );
+    expect(doesDetectionRuleExceptionValueMatchText("[ab]*", "a-key")).toBe(
+      false,
+    );
+    expect(doesDetectionRuleExceptionValueMatchText("\\d*", "\\d-key")).toBe(
+      true,
+    );
+    expect(doesDetectionRuleExceptionValueMatchText("\\d*", "1-key")).toBe(
+      false,
+    );
   });
 
   test("only an exception that names users can name a key", () => {

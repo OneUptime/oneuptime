@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} grupos",
     "noResourcesTitle": "Nada para mostrar ainda",
     "noResourcesDescription": "Esta página ainda não mostra nenhum serviço.",
-    "noResourcesPreviewDescription": "Os visitantes veem este aviso até você adicionar recursos. Adicione monitores ou grupos a esta página de status em Recursos, no painel."
+    "noResourcesPreviewDescription": "Os visitantes veem este aviso até você adicionar recursos.",
+    "noResourcesPreviewLink": "Adicionar recursos no painel"
   },
   "eventItem": {
     "affectedResources": "Recursos afetados",
@@ -485,6 +486,9 @@
   "No options available": "Nenhuma opção disponível",
   "No matches found": "Nenhuma correspondência encontrada",
   "{{eventType}} state changed to {{state}}": "{{eventType}}: estado alterado para {{state}}",
+  "{{count}} related incidents": "{{count}} incidentes relacionados",
+  "{{count}} related incidents_one": "{{count}} incidente relacionado",
+  "Part of {{incident}}": "Parte de {{incident}}",
   "Use at least {{minimum}} characters.": "Use pelo menos {{minimum}} caracteres.",
   "Try a few unrelated words.": "Experimente algumas palavras sem relação entre si.",
   "Password meets requirements": "A senha atende aos requisitos",

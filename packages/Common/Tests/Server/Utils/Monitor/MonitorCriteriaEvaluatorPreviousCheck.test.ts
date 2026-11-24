@@ -196,6 +196,8 @@ async function check(input: {
       dataToProcess: input.dataToProcess,
       probeName: undefined,
       monitorName: input.monitor.name,
+      // Each row names the step it is judged as, as MonitorResource writes it.
+      monitorStepId: input.monitorStep.id,
     });
   }
 
@@ -347,7 +349,7 @@ describe("MonitorCriteriaEvaluator: a check compared with the one before it", ()
           metricName: string;
           windowStart: Date;
           before: Date;
-          attributes?: Record<string, string> | undefined;
+          attributes?: Record<string, string | Array<string>> | undefined;
           groupByAttributeKeys: Array<string>;
         }): Promise<Array<MonitorPreviousCheckRow>> => {
           const before: number =
@@ -363,8 +365,14 @@ describe("MonitorCriteriaEvaluator: a check compared with the one before it", ()
               row.time.getTime() < data.windowStart.getTime() ||
               row.time.getTime() >= before ||
               Object.entries(data.attributes || {}).some(
-                ([key, value]: [string, string]): boolean => {
-                  return row.attributes[key] !== value;
+                ([key, value]: [string, string | Array<string>]): boolean => {
+                  /*
+                   * A list is any of its values, a missing key read as "",
+                   * as the statement's map reads it: the step (#10906).
+                   */
+                  return Array.isArray(value)
+                    ? !value.includes(row.attributes[key] ?? "")
+                    : row.attributes[key] !== value;
                 },
               )
             ) {

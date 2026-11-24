@@ -847,6 +847,7 @@ describe("Custom Code Monitor", () => {
       "monitorName",
       "probeName",
       "probeId",
+      "monitorStepId",
       "isCustomMetric",
     ]);
 
