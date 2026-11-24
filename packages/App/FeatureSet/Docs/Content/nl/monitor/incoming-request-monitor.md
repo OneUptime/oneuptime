@@ -393,7 +393,7 @@ Een herstel lost alleen de incidenten en waarschuwingen op van het criterium dat
 **Max. incidenten per verzoek** begrenst het uitlezen, niet alleen het aanmaken. Sleutels voorbij de grens zijn ook onzichtbaar voor het herstel, dus in een payload met meer verschillende sleutels dan de grens sluit een waarschuwing die voorbij die grens `resolved` meldt, haar incident niet.
 
 > [!NOTE]
-> Een monitor met een criterium dat groepeert op een veld van de payload toetst elk verzoek dat hij krijgt, één tegelijk en in de volgorde van binnenkomst, dus een vlaag waarschuwingen en herstellen opent en lost het incident en de waarschuwing van elke waarde op. Tot 1.000 verzoeken, of 16 MB ervan, wachten op hun toetsing; daarboven worden de oudste wachtende overgeslagen, en de kaart **Monitorsamenvatting** zegt hoeveel. Een monitor zonder groepering toetst alleen het nieuwste van de verzoeken die op hem wachten.
+> Een monitor met een criterium dat groepeert op een veld van de payload toetst elk verzoek dat hij krijgt, één tegelijk en in de volgorde van binnenkomst, dus een vlaag waarschuwingen en herstellen opent en lost het incident en de waarschuwing van elke waarde op. Tot 1.000 verzoeken, of 16 MB ervan, wachten op hun toetsing; daarboven worden de oudste wachtende overgeslagen, en de kaart **Monitorsamenvatting** zegt hoeveel. Ze noemt ook de grens die werd bereikt, en een zelf gehoste installatie kan beide wijzigen: zie [Opmerkingen voor zelfhosting](#opmerkingen-voor-zelfhosting). Een monitor zonder groepering toetst alleen het nieuwste van de verzoeken die op hem wachten.
 
 > [!NOTE]
 > Bevat **Veld dat herstel aangeeft** een `[*]` maar **Een apart incident openen voor elke…** niet, dan is een verzoek pas hersteld als elk element van die array dat zegt. Met `requestBody.alerts[*].status` en `resolved` wordt een incident dat gegroepeerd is op `requestBody.groupLabels.alertname` opgelost zodra elke waarschuwing van een verzoek is opgelost, en blijft het open zolang er nog een actief is.
@@ -521,6 +521,18 @@ Klik op **Abonnement bevestigen** in de kaart **Monitorsamenvatting** op het **O
 :::details De afzender krijgt een 500
 Het verzoek zegt `Content-Type: application/json`, maar de body is geen JSON-object of -array. Stuur geldige JSON, of een ander contenttype.
 :::
+
+## Opmerkingen voor zelfhosting
+
+Een monitor die groepeert op een veld van de payload houdt elk verzoek in Valkey tot het aan de beurt is. Op een zelf gehoste installatie begrenzen drie instellingen dat. Met Docker Compose zet u ze in `config.env`; met Helm onder `incomingRequests` in de waarden van de chart, die de app- en workerpods dezelfde geeft:
+
+| Instelling | Helm-waarde | Standaard | Bereik | Wat het begrenst |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` tot `100000` | De verzoeken die één monitor laat wachten. Daarboven worden de oudste wachtende overgeslagen. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` tot `512` | De megabytes aan verzoeken die één monitor laat wachten. Daarboven worden de oudste wachtende overgeslagen. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` tot `1000` | De verzoeken die één job toetst voordat de job van de monitor opnieuw in de wachtrij komt, achter elke job die al wacht. |
+
+Verhoog de eerste twee voor afzenders die in hardere vlagen sturen, zoals een core-switch die uitvalt en in één keer duizenden waarschuwingen afvuurt, en verlaag de tweede voor een kleine Valkey. Als verzoeken worden overgeslagen, zegt de kaart **Monitorsamenvatting** welke grens werd bereikt. Een waarde die geen geheel getal binnen het bereik is, wordt niet gebruikt: de standaard wel, en de app schrijft een melding in het log die de instelling noemt.
 
 ## Volgende stappen
 

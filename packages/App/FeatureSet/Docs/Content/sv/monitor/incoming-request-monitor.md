@@ -393,7 +393,7 @@ En återhämtning löser bara incidenterna och larmen för det kriterium som lä
 **Max antal incidenter per förfrågan** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
 
 > [!NOTE]
-> En monitor med ett kriterium som grupperar efter ett fält i innehållet utvärderar varje förfrågan den tar emot, en i taget och i den ordning de kom, så en skur av larm och återhämtningar öppnar och löser varje värdes incident och larm. Upp till 1 000 förfrågningar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. En monitor utan gruppering utvärderar bara den nyaste av förfrågningarna som väntar på den.
+> En monitor med ett kriterium som grupperar efter ett fält i innehållet utvärderar varje förfrågan den tar emot, en i taget och i den ordning de kom, så en skur av larm och återhämtningar öppnar och löser varje värdes incident och larm. Upp till 1 000 förfrågningar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. Det anger också vilken gräns som nåddes, och en installation med egen drift kan ändra båda: se [Anteckningar om egen drift](#anteckningar-om-egen-drift). En monitor utan gruppering utvärderar bara den nyaste av förfrågningarna som väntar på den.
 
 > [!NOTE]
 > Om **Fält som signalerar återhämtning** innehåller `[*]` men **Öppna en separat incident för varje…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.
@@ -521,6 +521,18 @@ Klicka på **Bekräfta prenumeration** på kortet **Monitor-sammanfattning** på
 :::details Avsändaren får en 500
 Förfrågan säger `Content-Type: application/json`, men kroppen är inte ett JSON-objekt eller en JSON-matris. Skicka giltig JSON, eller en annan innehållstyp.
 :::
+
+## Anteckningar om egen drift
+
+En monitor som grupperar efter ett fält i innehållet håller varje förfrågan i Valkey tills det är dess tur. På en installation med egen drift begränsar tre inställningar det. Med Docker Compose anger du dem i `config.env`; med Helm under `incomingRequests` i chartets värden, som ger app- och worker-poddarna samma:
+
+| Inställning | Helm-värde | Standard | Intervall | Vad den begränsar |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` till `100000` | Förfrågningarna en monitor låter vänta. Därutöver hoppas de äldsta väntande över. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` till `512` | Megabyten förfrågningar en monitor låter vänta. Därutöver hoppas de äldsta väntande över. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` till `1000` | Förfrågningarna ett jobb utvärderar innan monitorns jobb köas igen, bakom varje jobb som redan väntar. |
+
+Höj de två första för avsändare som skickar i kraftigare skurar, som en kärnswitch som går ner och utlöser tusentals larm på en gång, och sänk den andra för en liten Valkey. När förfrågningar hoppas över anger kortet **Monitor-sammanfattning** vilken gräns som nåddes. Ett värde som inte är ett heltal inom sitt intervall används inte: standardvärdet används, och appen loggar ett meddelande som namnger inställningen.
 
 ## Nästa steg
 

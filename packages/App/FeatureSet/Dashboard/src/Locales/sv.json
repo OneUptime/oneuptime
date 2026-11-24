@@ -63686,5 +63686,7 @@
   "OneUptime AI's Scrub Rule Input Hash": "Inmatningshash för OneUptime AI:s scrub-regler",
   "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler",
   "View Alerts": "Visa larm",
-  "View Incidents": "Visa incidenter"
+  "View Incidents": "Visa incidenter",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Fler förfrågningar väntade på att utvärderas än de {{limit}} som den här monitorn sparar, så de äldsta av dem hoppades över. En incident eller ett larm som en överhoppad förfrågan skulle ha öppnat eller löst kan saknas eller fortfarande vara öppet.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Förfrågningarna som väntade på att utvärderas tog upp mer än de {{size}} MB som den här monitorn sparar, så de äldsta av dem hoppades över. En incident eller ett larm som en överhoppad förfrågan skulle ha öppnat eller löst kan saknas eller fortfarande vara öppet."
 }

@@ -19,6 +19,7 @@ import fs from "fs";
 import i18next from "i18next";
 import path from "path";
 import * as React from "react";
+import type { SpyInstance } from "jest-mock";
 import { initReactI18next } from "react-i18next";
 import EvaluationLogList, {
   isSkippedRequestsEvent,
@@ -73,6 +74,11 @@ const OVER_LIMIT: string =
   "More requests were waiting to be evaluated than this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
 const AFTER_FAILURES: string =
   "A request is skipped once evaluating it has failed {{attempts}} times. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
+// Which limit skipped them, as it was (#10652).
+const OVER_REQUEST_LIMIT: string =
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
+const OVER_BYTE_LIMIT: string =
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.";
 
 // A requests-skipped event, as MonitorResourceUtil writes it.
 function skippedRequests(
@@ -291,6 +297,30 @@ describe("a requests-skipped event", () => {
     );
   });
 
+  test("says which limit was reached, and what it was", () => {
+    render(
+      <EvaluationLogList
+        evaluationSummary={summary({
+          events: [
+            skippedRequests(20, OVER_REQUEST_LIMIT, { limit: 5000 }),
+            skippedRequests(10, OVER_BYTE_LIMIT, { size: 64 }),
+          ],
+        })}
+      />,
+    );
+
+    const [requests, bytes] = warnings();
+
+    expect(
+      asRead(within(requests!).getByTestId("requests-skipped-message")),
+    ).toBe(
+      "More requests were waiting to be evaluated than the 5000 this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+    );
+    expect(asRead(within(bytes!).getByTestId("requests-skipped-message"))).toBe(
+      "The requests waiting to be evaluated took more than the 64 MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.",
+    );
+  });
+
   test("a summary that says only that requests were skipped is still drawn", () => {
     render(
       <EvaluationLogList
@@ -369,7 +399,7 @@ describe("a requests-skipped event", () => {
 
 describe("where to look, when the page knows the monitor", () => {
   test("links to the monitor's incidents and alerts", () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});
 
@@ -481,7 +511,7 @@ describe.each([...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
       expect(locale[label]).toBeTruthy();
       expect(locale[label]).not.toBe(label);
       expect(
-        within(overLimit!).getByRole("button", { name: locale[label] }),
+        within(overLimit!).getByRole("button", { name: locale[label]! }),
       ).toBeInTheDocument();
     }
 
@@ -490,5 +520,37 @@ describe.each([...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
         exact: false,
       }),
     ).not.toBeInTheDocument();
+  });
+
+  test("which limit was reached reads in the language's words, the limit as it was", async () => {
+    await readIn(language);
+
+    render(
+      <EvaluationLogList
+        evaluationSummary={summary({
+          events: [
+            skippedRequests(20, OVER_REQUEST_LIMIT, { limit: 5000 }),
+            skippedRequests(10, OVER_BYTE_LIMIT, { size: 64 }),
+          ],
+        })}
+      />,
+    );
+
+    const [requests, bytes] = warnings();
+
+    for (const english of [OVER_REQUEST_LIMIT, OVER_BYTE_LIMIT]) {
+      expect(locale[english]).toBeTruthy();
+      expect(locale[english]).not.toBe(english);
+    }
+
+    expect(
+      asRead(within(requests!).getByTestId("requests-skipped-message")),
+    ).toBe(asRead(locale[OVER_REQUEST_LIMIT]!.replace("{{limit}}", "5000")));
+    expect(asRead(within(bytes!).getByTestId("requests-skipped-message"))).toBe(
+      asRead(locale[OVER_BYTE_LIMIT]!.replace("{{size}}", "64")),
+    );
+    expect(
+      asRead(within(bytes!).getByTestId("requests-skipped-message")),
+    ).toMatch(/64 ?MB/);
   });
 });

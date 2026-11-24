@@ -393,7 +393,7 @@ Una recuperación resuelve solo los incidentes y las alertas del criterio que la
 **Máximo de incidentes por solicitud** limita la extracción, no solo la creación. Las claves que superan el límite también son invisibles para la recuperación, así que, en una carga útil con más claves distintas que el límite, una alerta que informe `resolved` por encima de él no cerrará su incidente.
 
 > [!NOTE]
-> Un monitor con un criterio que agrupa por un campo de la carga evalúa cada solicitud que recibe, una a la vez y en el orden en que llegaron, así que una ráfaga de alertas y recuperaciones abre y resuelve el incidente y la alerta de cada valor. Hasta 1.000 solicitudes, o 16 MB de ellas, esperan a ser evaluadas; pasado eso, se omiten las más antiguas en espera, y la tarjeta **Resumen del monitor** dice cuántas. Un monitor sin agrupación evalúa solo la más reciente de las solicitudes que lo esperan.
+> Un monitor con un criterio que agrupa por un campo de la carga evalúa cada solicitud que recibe, una a la vez y en el orden en que llegaron, así que una ráfaga de alertas y recuperaciones abre y resuelve el incidente y la alerta de cada valor. Hasta 1.000 solicitudes, o 16 MB de ellas, esperan a ser evaluadas; pasado eso, se omiten las más antiguas en espera, y la tarjeta **Resumen del monitor** dice cuántas. También indica el límite que se alcanzó, y una instalación autoalojada puede cambiar ambos: consulte [Notas para instalaciones autoalojadas](#notas-para-instalaciones-autoalojadas). Un monitor sin agrupación evalúa solo la más reciente de las solicitudes que lo esperan.
 
 > [!NOTE]
 > Si **Campo que indica la recuperación** contiene `[*]` pero **Abrir un incidente separado para cada…** no, una solicitud solo se ha recuperado cuando todos los elementos de ese array lo dicen. Con `requestBody.alerts[*].status` y `resolved`, un incidente agrupado por `requestBody.groupLabels.alertname` se resuelve cuando todas las alertas de una solicitud están resueltas, y sigue abierto mientras alguna siga activa.
@@ -521,6 +521,18 @@ Haga clic en **Confirmar suscripción** en la tarjeta **Resumen del monitor** de
 :::details El emisor recibe un 500
 La solicitud dice `Content-Type: application/json` pero su cuerpo no es un objeto ni un array JSON. Envíe JSON válido, o un tipo de contenido distinto.
 :::
+
+## Notas para instalaciones autoalojadas
+
+Un monitor que agrupa por un campo de la carga guarda cada solicitud en Valkey hasta que le llega su turno. En una instalación autoalojada, tres ajustes lo limitan. Con Docker Compose, defínalos en `config.env`; con Helm, en `incomingRequests` dentro de los valores del chart, que da los mismos a los pods de la aplicación y de los workers:
+
+| Ajuste | Valor de Helm | Predeterminado | Rango | Qué limita |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` a `100000` | Las solicitudes que un monitor mantiene en espera. Pasado ese límite, se omiten las más antiguas en espera. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` a `512` | Los megabytes de solicitudes que un monitor mantiene en espera. Pasado ese límite, se omiten las más antiguas en espera. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` a `1000` | Las solicitudes que un trabajo evalúa antes de que el trabajo del monitor vuelva a la cola, detrás de cada trabajo que ya espera. |
+
+Suba los dos primeros para remitentes que envían ráfagas más fuertes, como un switch de núcleo que se cae y dispara miles de alertas a la vez, y baje el segundo para un Valkey pequeño. Cuando se omiten solicitudes, la tarjeta **Resumen del monitor** dice qué límite se alcanzó. Un valor que no es un número entero dentro de su rango no se usa: se usa el predeterminado, y la aplicación registra una advertencia que nombra el ajuste.
 
 ## Próximos pasos
 

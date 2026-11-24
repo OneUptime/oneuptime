@@ -63686,5 +63686,7 @@
   "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
   "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール",
   "View Alerts": "アラートを表示",
-  "View Incidents": "インシデントを表示"
+  "View Incidents": "インシデントを表示",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "このモニターが保持する {{limit}} 件を超えるリクエストが評価を待っていたため、最も古いものがスキップされました。スキップされたリクエストが開いたり解決したりするはずだったインシデントやアラートは、存在しないか、開いたままになっている可能性があります。",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "評価を待っているリクエストが、このモニターが保持する {{size}} MB を超えたため、最も古いものがスキップされました。スキップされたリクエストが開いたり解決したりするはずだったインシデントやアラートは、存在しないか、開いたままになっている可能性があります。"
 }

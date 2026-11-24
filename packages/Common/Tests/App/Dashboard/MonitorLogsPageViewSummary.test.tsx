@@ -21,6 +21,7 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Monitoring Logs > View Summary, on the real page (Pages/Monitor/View/Logs)
@@ -920,7 +921,7 @@ describe("Monitoring Logs on the other push monitors", () => {
    * skipped (#10582) says it as a warning, with where to look (#10653).
    */
   test("View Summary says requests skipped before a check as a warning, with links to the monitor's incidents and alerts", async () => {
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: SpyInstance<typeof Navigation.navigate> = jest
       .spyOn(Navigation, "navigate")
       .mockImplementation((): void => {});
 

@@ -63686,5 +63686,7 @@
   "OneUptime AI's Scrub Rule Input Hash": "Invoerhash van de scrub-regels van OneUptime AI",
   "OneUptime AI's Scrub Rules": "Scrub-regels van OneUptime AI",
   "View Alerts": "Waarschuwingen bekijken",
-  "View Incidents": "Incidenten bekijken"
+  "View Incidents": "Incidenten bekijken",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Er wachtten meer verzoeken op evaluatie dan de {{limit}} die deze monitor bewaart, dus de oudste zijn overgeslagen. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "De verzoeken die op evaluatie wachtten, namen meer in dan de {{size}} MB die deze monitor bewaart, dus de oudste zijn overgeslagen. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan."
 }

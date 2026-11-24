@@ -393,7 +393,7 @@ En genopretning løser kun hændelserne og advarslerne fra det kriterium, der l�
 **Maks. hændelser pr. anmodning** begrænser udtrækningen, ikke kun oprettelsen. Nøgler ud over loftet er også usynlige for løsningen, så i en payload med flere særskilte nøgler end loftet lukker en advarsel, der melder `resolved` ud over loftet, ikke sin hændelse.
 
 > [!NOTE]
-> En monitor med et kriterium, der grupperer efter et felt i indholdet, evaluerer hver anmodning, den modtager, én ad gangen og i den rækkefølge, de kom, så en byge af advarsler og genopretninger åbner og løser hver værdis hændelse og advarsel. Op til 1.000 anmodninger, eller 16 MB af dem, venter på at blive evalueret; derudover springes de ældste ventende over, og kortet **Monitor-resumé** siger hvor mange. En monitor uden gruppering evaluerer kun den nyeste af de anmodninger, der venter på den.
+> En monitor med et kriterium, der grupperer efter et felt i indholdet, evaluerer hver anmodning, den modtager, én ad gangen og i den rækkefølge, de kom, så en byge af advarsler og genopretninger åbner og løser hver værdis hændelse og advarsel. Op til 1.000 anmodninger, eller 16 MB af dem, venter på at blive evalueret; derudover springes de ældste ventende over, og kortet **Monitor-resumé** siger hvor mange. Det nævner også den grænse, der blev nået, og en selvhostet installation kan ændre begge: se [Noter om selvhosting](#noter-om-selvhosting). En monitor uden gruppering evaluerer kun den nyeste af de anmodninger, der venter på den.
 
 > [!NOTE]
 > Hvis **Felt, der signalerer genopretning** indeholder `[*]`, men **Åbn en separat hændelse for hver…** ikke gør, er en anmodning først ovre, når hvert element i det array siger det. Med `requestBody.alerts[*].status` og `resolved` løses en hændelse grupperet efter `requestBody.groupLabels.alertname`, når alle en anmodnings advarsler er løst, og den forbliver åben, så længe én stadig er aktiv.
@@ -521,6 +521,18 @@ Klik på **Bekræft abonnement** i kortet **Monitor-resumé** på monitorens **O
 :::details Afsenderen får en 500
 Anmodningen siger `Content-Type: application/json`, men dens brødtekst er ikke et JSON-objekt eller et JSON-array. Send gyldig JSON eller en anden indholdstype.
 :::
+
+## Noter om selvhosting
+
+En monitor, der grupperer efter et felt i indholdet, holder hver anmodning i Valkey, indtil det er dens tur. På en selvhostet installation begrænser tre indstillinger det. Med Docker Compose sætter du dem i `config.env`; med Helm under `incomingRequests` i chartets værdier, som giver app- og worker-pods de samme:
+
+| Indstilling | Helm-værdi | Standard | Interval | Hvad den begrænser |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` til `100000` | De anmodninger, én monitor lader vente. Derudover springes de ældste ventende over. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` til `512` | De megabyte anmodninger, én monitor lader vente. Derudover springes de ældste ventende over. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` til `1000` | De anmodninger, ét job evaluerer, før monitorens job sættes i kø igen, bag hvert job, der allerede venter. |
+
+Hæv de to første for afsendere, der sender i kraftigere byger, som en core-switch, der går ned og udløser tusindvis af advarsler på én gang, og sænk den anden for en lille Valkey. Når anmodninger springes over, siger kortet **Monitor-resumé**, hvilken grænse der blev nået. En værdi, der ikke er et helt tal i sit interval, bruges ikke: standarden gør, og appen logger en meddelelse, der nævner indstillingen.
 
 ## Næste trin
 

@@ -393,7 +393,7 @@ Un rétablissement ne résout que les incidents et les alertes du critère qui l
 **Incidents max par requête** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont aussi invisibles pour le rétablissement : dans une charge utile portant plus de clés différentes que le plafond, une alerte qui signale `resolved` au-delà de celui-ci ne fermera pas son incident.
 
 > [!NOTE]
-> Un moniteur dont un critère regroupe par un champ de la charge utile évalue chaque requête qu'il reçoit, une à la fois et dans l'ordre d'arrivée : une rafale d'alertes et de rétablissements ouvre et résout donc l'incident et l'alerte de chaque valeur. Jusqu'à 1 000 requêtes, ou 16 Mo, attendent d'être évaluées ; au-delà, les plus anciennes en attente sont sautées, et la carte **Résumé du moniteur** indique combien. Un moniteur sans regroupement n'évalue que la plus récente des requêtes qui l'attendent.
+> Un moniteur dont un critère regroupe par un champ de la charge utile évalue chaque requête qu'il reçoit, une à la fois et dans l'ordre d'arrivée : une rafale d'alertes et de rétablissements ouvre et résout donc l'incident et l'alerte de chaque valeur. Jusqu'à 1 000 requêtes, ou 16 Mo, attendent d'être évaluées ; au-delà, les plus anciennes en attente sont sautées, et la carte **Résumé du moniteur** indique combien. Elle indique aussi la limite atteinte, et une installation auto-hébergée peut modifier les deux : voir [Notes pour l'auto-hébergement](#notes-pour-lauto-hébergement). Un moniteur sans regroupement n'évalue que la plus récente des requêtes qui l'attendent.
 
 > [!NOTE]
 > Si **Champ qui signale le rétablissement** contient `[*]` mais pas **Ouvrir un incident distinct pour chaque…**, une requête n'est rétablie que lorsque chaque élément de ce tableau le dit. Avec `requestBody.alerts[*].status` et `resolved`, un incident regroupé par `requestBody.groupLabels.alertname` se résout dès que chaque alerte d'une requête est résolue, et reste ouvert tant qu'une alerte est encore déclenchée.
@@ -521,6 +521,18 @@ Cliquez sur **Confirmer l'abonnement** dans la carte **Résumé du moniteur** de
 :::details L'expéditeur reçoit un 500
 La requête annonce `Content-Type: application/json` mais son corps n'est pas un objet ou un tableau JSON. Envoyez un JSON valide, ou un autre type de contenu.
 :::
+
+## Notes pour l'auto-hébergement
+
+Un moniteur qui regroupe par un champ de la charge utile garde chaque requête dans Valkey jusqu'à son tour. Sur une installation auto-hébergée, trois paramètres le limitent. Avec Docker Compose, définissez-les dans `config.env` ; avec Helm, sous `incomingRequests` dans les valeurs du chart, qui donnent les mêmes aux pods de l'application et des workers :
+
+| Paramètre | Valeur Helm | Par défaut | Plage | Ce qu'il limite |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` à `100000` | Les requêtes qu'un moniteur garde en attente. Au-delà, les plus anciennes en attente sont sautées. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` à `512` | Les mégaoctets de requêtes qu'un moniteur garde en attente. Au-delà, les plus anciennes en attente sont sautées. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` à `1000` | Les requêtes qu'une tâche évalue avant que la tâche du moniteur soit remise en file, derrière chaque tâche déjà en attente. |
+
+Augmentez les deux premiers pour des expéditeurs qui envoient par rafales plus fortes, comme un commutateur de cœur de réseau qui tombe et déclenche des milliers d'alertes d'un coup, et baissez le deuxième pour un petit Valkey. Quand des requêtes sont sautées, la carte **Résumé du moniteur** indique la limite atteinte. Une valeur qui n'est pas un nombre entier dans sa plage n'est pas utilisée : la valeur par défaut l'est, et l'application journalise un avertissement qui nomme le paramètre.
 
 ## Prochaines étapes
 

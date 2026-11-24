@@ -393,7 +393,7 @@ Un rientro risolve solo gli incidenti e gli avvisi del criterio che lo legge: qu
 **Numero massimo di incidenti per richiesta** limita l'estrazione, non solo la creazione. Anche per il ripristino le chiavi oltre il limite sono invisibili, quindi in un payload con più chiavi distinte del limite, un avviso che riporta `resolved` oltre quel limite non chiuderà il suo incidente.
 
 > [!NOTE]
-> Un monitor con un criterio che raggruppa per un campo del payload valuta ogni richiesta che riceve, una alla volta e nell'ordine in cui sono arrivate, quindi una raffica di avvisi e rientri apre e risolve l'incidente e l'avviso di ogni valore. Fino a 1.000 richieste, o 16 MB, attendono di essere valutate; oltre, le più vecchie in attesa vengono saltate, e la scheda **Riepilogo del monitor** dice quante. Un monitor senza raggruppamento valuta solo la più recente delle richieste che lo attendono.
+> Un monitor con un criterio che raggruppa per un campo del payload valuta ogni richiesta che riceve, una alla volta e nell'ordine in cui sono arrivate, quindi una raffica di avvisi e rientri apre e risolve l'incidente e l'avviso di ogni valore. Fino a 1.000 richieste, o 16 MB, attendono di essere valutate; oltre, le più vecchie in attesa vengono saltate, e la scheda **Riepilogo del monitor** dice quante. Indica anche il limite raggiunto, e un'installazione self-hosted può modificarli entrambi: vedete [Note per l'installazione self-hosted](#note-per-linstallazione-self-hosted). Un monitor senza raggruppamento valuta solo la più recente delle richieste che lo attendono.
 
 > [!NOTE]
 > Se **Campo che segnala il ripristino** contiene `[*]` ma **Apri un incidente separato per ogni…** no, una richiesta è ripristinata solo quando ogni elemento di quell'array lo dice. Con `requestBody.alerts[*].status` e `resolved`, un incidente raggruppato per `requestBody.groupLabels.alertname` si risolve quando tutti gli avvisi di una richiesta sono risolti, e resta aperto finché uno è ancora attivo.
@@ -521,6 +521,18 @@ Fate clic su **Conferma sottoscrizione** nella scheda **Riepilogo del monitor** 
 :::details Il mittente riceve un 500
 La richiesta dichiara `Content-Type: application/json` ma il suo corpo non è un oggetto né un array JSON. Inviate JSON valido, oppure un tipo di contenuto diverso.
 :::
+
+## Note per l'installazione self-hosted
+
+Un monitor che raggruppa per un campo del payload tiene ogni richiesta in Valkey finché non arriva il suo turno. In un'installazione self-hosted, tre impostazioni lo limitano. Con Docker Compose impostatele in `config.env`; con Helm, sotto `incomingRequests` nei valori del chart, che dà le stesse ai pod dell'app e dei worker:
+
+| Impostazione | Valore Helm | Predefinito | Intervallo | Cosa limita |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | da `10` a `100000` | Le richieste che un monitor tiene in attesa. Oltre, le più vecchie in attesa vengono saltate. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | da `1` a `512` | I megabyte di richieste che un monitor tiene in attesa. Oltre, le più vecchie in attesa vengono saltate. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | da `1` a `1000` | Le richieste che un job valuta prima che il job del monitor torni in coda, dietro ogni job già in attesa. |
+
+Alzate le prime due per mittenti che inviano raffiche più forti, come uno switch di core che cade e fa scattare migliaia di avvisi in una volta, e abbassate la seconda per un Valkey piccolo. Quando delle richieste vengono saltate, la scheda **Riepilogo del monitor** dice quale limite è stato raggiunto. Un valore che non è un numero intero nel suo intervallo non viene usato: si usa quello predefinito, e l'app registra un avvertimento che nomina l'impostazione.
 
 ## Passi successivi
 

@@ -63686,5 +63686,7 @@
   "OneUptime AI's Scrub Rule Input Hash": "Хеш входных данных правил очистки OneUptime AI",
   "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI",
   "View Alerts": "Просмотреть оповещения",
-  "View Incidents": "Просмотреть инциденты"
+  "View Incidents": "Просмотреть инциденты",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запросов, ожидающих проверки, было больше предела в {{limit}}, который хранит этот монитор, поэтому самые старые из них пропущены. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запросы, ожидающие проверки, заняли больше предела в {{size}} MB, который хранит этот монитор, поэтому самые старые из них пропущены. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми."
 }

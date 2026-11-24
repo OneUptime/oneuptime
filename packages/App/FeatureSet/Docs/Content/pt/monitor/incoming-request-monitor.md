@@ -393,7 +393,7 @@ Uma recuperação resolve apenas os incidentes e alertas do critério que a lê:
 **Máximo de incidentes por requisição** limita a extração, não só a criação. As chaves além do limite também ficam invisíveis para a recuperação, então, em um payload com mais chaves distintas que o limite, um alerta que informe `resolved` além dele não vai fechar o incidente dele.
 
 > [!NOTE]
-> Um monitor com um critério que agrupa por um campo do payload avalia cada requisição que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas e recuperações abre e resolve o incidente e o alerta de cada valor. Até 1.000 requisições, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Um monitor sem agrupamento avalia apenas a mais recente das requisições que o esperam.
+> Um monitor com um critério que agrupa por um campo do payload avalia cada requisição que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas e recuperações abre e resolve o incidente e o alerta de cada valor. Até 1.000 requisições, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Ele também indica o limite atingido, e uma instalação auto-hospedada pode alterar os dois: veja [Notas para instalações auto-hospedadas](#notas-para-instalações-auto-hospedadas). Um monitor sem agrupamento avalia apenas a mais recente das requisições que o esperam.
 
 > [!NOTE]
 > Se **Campo que sinaliza a recuperação** contém `[*]` mas **Abrir um incidente separado para cada…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.
@@ -521,6 +521,18 @@ Clique em **Confirmar assinatura** no cartão **Resumo do monitor** na **Visão 
 :::details O remetente recebe 500
 A requisição diz `Content-Type: application/json`, mas o corpo dela não é um objeto nem um array JSON. Envie um JSON válido, ou um tipo de conteúdo diferente.
 :::
+
+## Notas para instalações auto-hospedadas
+
+Um monitor que agrupa por um campo do payload mantém cada requisição no Valkey até chegar a sua vez. Em uma instalação auto-hospedada, três configurações limitam isso. Com Docker Compose, defina-as em `config.env`; com Helm, em `incomingRequests` nos valores do chart, que dá as mesmas aos pods do app e dos workers:
+
+| Configuração | Valor do Helm | Padrão | Intervalo | O que limita |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` a `100000` | As requisições que um monitor mantém em espera. Além disso, as mais antigas em espera são puladas. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` a `512` | Os megabytes de requisições que um monitor mantém em espera. Além disso, as mais antigas em espera são puladas. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` a `1000` | As requisições que um job avalia antes de o job do monitor voltar à fila, atrás de cada job que já espera. |
+
+Aumente as duas primeiras para remetentes que enviam rajadas mais fortes, como um switch de núcleo que cai e dispara milhares de alertas de uma vez, e diminua a segunda para um Valkey pequeno. Quando requisições são puladas, o cartão **Resumo do monitor** diz qual limite foi atingido. Um valor que não é um número inteiro dentro do seu intervalo não é usado: o padrão é, e o app registra um aviso que nomeia a configuração.
 
 ## Próximos passos
 

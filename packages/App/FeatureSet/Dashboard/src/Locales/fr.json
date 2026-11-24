@@ -63686,5 +63686,7 @@
   "OneUptime AI's Scrub Rule Input Hash": "Empreinte des entrées des règles de masquage d'OneUptime AI",
   "OneUptime AI's Scrub Rules": "Règles de masquage d'OneUptime AI",
   "View Alerts": "Voir les alertes",
-  "View Incidents": "Voir les incidents"
+  "View Incidents": "Voir les incidents",
+  "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Plus de requêtes attendaient d'être évaluées que les {{limit}} que ce moniteur conserve, donc les plus anciennes ont été ignorées. Un incident ou une alerte qu'une requête ignorée aurait ouvert ou résolu peut manquer ou être encore ouvert.",
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Les requêtes en attente d'évaluation occupaient plus que les {{size}} MB que ce moniteur conserve, donc les plus anciennes ont été ignorées. Un incident ou une alerte qu'une requête ignorée aurait ouvert ou résolu peut manquer ou être encore ouvert."
 }
