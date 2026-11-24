@@ -5,9 +5,11 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Components/SecurityEvents/Blocklist/BlocklistCopy";
 import {
   AUTOMATIC_RESPONSE_TITLE,
+  CHANGE_LIMIT,
   CREATE_POLICY,
   DELETE_POLICY,
   EDIT_POLICY,
+  HOURLY_LIMIT_TITLE,
   FIRST_BLOCK_FIELD_TITLE,
   MODE_OFF,
   MODE_ON,
@@ -32,8 +34,11 @@ import {
 } from "../../../FeatureSet/Dashboard/src/Utils/SecurityEventsNavigation";
 import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import { SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES } from "Common/Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRules";
+import { MORE_SETTINGS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import {
   SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MAX,
+  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN,
   SECURITY_AUTOMATIC_RESPONSE_READY_POLICIES,
   SECURITY_AUTOMATIC_RESPONSE_TRIAL_DAYS,
   SECURITY_SIGNED_IN_ADDRESS_LOOKBACK_DAYS,
@@ -48,7 +53,11 @@ import {
   SecurityBlockAction,
   SecurityBlockDuration,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
-import { getDetectionRuleLibraryEntry } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
+import {
+  DetectionRuleLibraryEntry,
+  SCANNING_FOR_SENSITIVE_FILES_RULE_ID,
+  getDetectionRuleLibraryEntry,
+} from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { DETECTION_REAL_TIME_RULES_MAX } from "Common/Types/SecurityEvent/RealTimeDetection";
 import { automaticResponseBlockedMarkdown } from "Common/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseMarkdown";
 import { describe, expect, it } from "@jest/globals";
@@ -140,10 +149,11 @@ describe("Automatic Response docs: the ready policies", () => {
       "SQL injection attempts",
       "Path traversal attempts",
       "Log4Shell exploit attempt",
+      "Scanning for sensitive files",
       "Many Cloudflare managed rule hits from one address",
     ]);
     expect(text).toContain(
-      "SQL injection, path traversal and Log4Shell attempts, and many Cloudflare managed rule hits from one address",
+      "SQL injection, path traversal and Log4Shell attempts, scanning for sensitive files such as `/.env`, `/.git/config` and `/wp-admin`, and many Cloudflare managed rule hits from one address",
     );
     expect(
       SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES[
@@ -177,7 +187,7 @@ describe("Automatic Response docs: the guardrails", () => {
       )} for an address blocked again within ${SECURITY_REPEAT_OFFENDER_WINDOW_DAYS} days.`,
     );
     expect(text).toContain(
-      `At most ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} automatic blocks an hour.`,
+      `At most ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} automatic blocks an hour, or the limit you set.`,
     );
     // Known-Bad Addresses climbs the ladder from its own first length.
     const knownBad: SecurityAutomaticResponsePolicyDefinition =
@@ -192,6 +202,58 @@ describe("Automatic Response docs: the guardrails", () => {
     expect(text).toContain(
       `${knownBad.name} starts at ${lengthOf(knownBad.duration)}.`,
     );
+  });
+});
+
+/*
+ * #10745: the Scanners policy's rule for sensitive files, said as the rule
+ * counts - refused or not-found requests, three different paths from one
+ * address within five minutes - so a reader knows a site's own admin pages
+ * never count.
+ */
+describe("Automatic Response docs: scanning for sensitive files", () => {
+  it("says what the rule counts, as the rule is defined", () => {
+    const text: string = flat(page());
+    const rule: DetectionRuleLibraryEntry = getDetectionRuleLibraryEntry(
+      SCANNING_FOR_SENSITIVE_FILES_RULE_ID,
+    )!;
+
+    expect(rule.matchCountThreshold).toBe(3);
+    expect(rule.evaluationIntervalInMinutes).toBe(5);
+    expect(rule.groupByField).toBe("principalIp");
+    expect(text).toContain(
+      "Scanning for sensitive files counts only the requests your site refused or does not have, and only when one address asks for three or more different files or admin pages within five minutes.",
+    );
+    expect(text).toContain(
+      "A page your site serves never counts, so a WordPress site's own admins load `/wp-admin` and `/wp-login.php` as often as they like.",
+    );
+  });
+});
+
+/*
+ * #10746: the hourly limit is the project's own - who sets it, its range
+ * and where - as the code holds it, and the troubleshooting says how to
+ * raise it, in the page's own words.
+ */
+describe("Automatic Response docs: the hourly limit a project sets", () => {
+  it("names who sets it, its range and the card it is set on, under More settings", () => {
+    const text: string = flat(page());
+
+    expect(SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN).toBe(1);
+    expect(SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MAX).toBe(500);
+    expect(text).toContain(
+      `A Security Admin, Project Admin or Project Owner can set the limit from ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN} to ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MAX}, under **${MORE_SETTINGS_SECTION_TITLE}** at the foot of the page: **${HOURLY_LIMIT_TITLE}**.`,
+    );
+    expect(text).toContain("A new limit holds from the next detection on.");
+  });
+
+  it("tells a project at its limit how to raise it, with the notice's own button", () => {
+    const text: string = flat(page());
+
+    expect(text).toContain(
+      `Your policies reached your hourly limit of automatic blocks, ${SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR} unless someone changed it, and paged your security owners.`,
+    );
+    expect(text).toContain(`click **${CHANGE_LIMIT}** beside the notice`);
   });
 });
 

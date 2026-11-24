@@ -238,6 +238,10 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `description` | string | توضیحی که داشبورد نشان می‌دهد. |
 | `filter_condition` | string (الزامی) | `All`: همهٔ فیلترها باید مطابقت داشته باشند. `Any`: یکی کافی است. |
 | `filters` | list (الزامی) | شرط‌ها، دست‌کم یکی: [مرجع فیلترها](#مرجع-فیلترها) را ببینید. |
+| `recovery_filters` | list | فیلترهایی مثل فیلترهای `filters` که باید پیش از آنکه معیار از عمل بازایستد مطابقت داشته باشند، به جای اینکه به محض عدم مطابقت `filters` بازایستد. |
+| `recovery_filter_condition` | string | اینکه `recovery_filters` چگونه ترکیب می‌شوند: `All` (پیش‌فرض) یا `Any`. |
+| `active_hours` | object | معیار فقط در این `days` (دوشنبه `0` است، یکشنبه `6`)، از `from` تا `to` (`"08:00"`) ارزیابی می‌شود؛ بیرون از آن، مثل یک معیار غیرفعال نادیده گرفته می‌شود. |
+| `active_hours_timezone` | string | منطقهٔ زمانی‌ای که `active_hours` در آن خوانده می‌شود، مثل `Europe/Oslo`. آن را همراه با `active_hours` تنظیم کنید. |
 | `change_monitor_status` | bool | اینکه آیا یک مطابقت وضعیت مانیتور را تغییر می‌دهد. |
 | `monitor_status_id` | string | ID آن `oneuptime_monitor_status` که باید به آن تغییر کند. وقتی `change_monitor_status` برابر `true` است آن را تعیین کنید. |
 | `create_incidents` | bool | اینکه آیا یک مطابقت حادثه باز می‌کند. |
@@ -284,15 +288,87 @@ criteria = [
 ]
 ```
 
+### کی بازیابی می‌شود و کی ارزیابی می‌شود
+
+این معیار سایت را فقط در ساعت‌های کاری اسلو، دوشنبه تا جمعه، ارزیابی می‌کند و آن را offline نگه می‌دارد تا وقتی که ۱۰ دقیقه به همهٔ بررسی‌ها پاسخ داده باشد:
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## مرجع فیلترها
 
 هر فیلتر `check_on` (به چه چیزی نگاه کند)، `filter_type` (چگونه مقایسه کند) و `value` (با چه چیزی مقایسه کند، به‌صورت رشته؛ برای بررسی‌های درست‌یا‌نادرست مانند `True` و `False` آن را ننویسید) دارد.
 
-یک فیلتر می‌تواند به‌جای آخرین بررسی، یک بازهٔ زمانی را هم بسنجد: `evaluate_over_time = true` را تعیین کنید، طول بازه را در `evaluate_over_time_minutes`، و در `evaluate_over_time_type` اینکه بازه چگونه خوانده شود: `Average`، `Sum`، `Maximum Value`، `Minimum Value`، `Percentile`، `All Values`، `Any Value`، `Count`، `Percentage` یا `Status Changes`. `Percentile` صدک `evaluate_over_time_percentile` را با مقدار فیلتر مقایسه می‌کند (اگر تنظیم نشود ۹۵). `Count`، `Percentage` و `Status Changes` برای هر پراب، بررسی‌هایی از بازه را که شرط را برآورده کردند، سهم آن‌ها به درصد، یا دفعاتی که بین برآوردن و برآورده نکردن آن تغییر کردند می‌شمارند و آن عدد را همان‌طور که `evaluate_over_time_count_filter_type` می‌گوید با `evaluate_over_time_count_value` مقایسه می‌کنند (اگر تنظیم نشود `Greater Than` ۰).
+یک فیلتر می‌تواند به‌جای آخرین بررسی، یک بازهٔ زمانی را هم بسنجد: `evaluate_over_time = true` را تعیین کنید، طول بازه را در `evaluate_over_time_minutes`، و در `evaluate_over_time_type` اینکه بازه چگونه خوانده شود: `Average`، `Sum`، `Maximum Value`، `Minimum Value`، `Percentile`، `All Values`، `Any Value`، `Count`، `Percentage`، `Status Changes` یا `Previous Check`. `Percentile` صدک `evaluate_over_time_percentile` را با مقدار فیلتر مقایسه می‌کند (اگر تنظیم نشود ۹۵). `Count`، `Percentage` و `Status Changes` برای هر پراب، بررسی‌هایی از بازه را که شرط را برآورده کردند، سهم آن‌ها به درصد، یا دفعاتی که بین برآوردن و برآورده نکردن آن تغییر کردند می‌شمارند و آن عدد را همان‌طور که `evaluate_over_time_count_filter_type` می‌گوید با `evaluate_over_time_count_value` مقایسه می‌کنند (اگر تنظیم نشود `Greater Than` ۰).
 
 `All Values` یعنی همهٔ بررسی‌های بازه قاعده را نقض کرده‌اند، پس فقط وقتی مطابقت دارد که بازه با داده پوشیده شده باشد: مانیتوری که تازه ساخته شده است به‌جای مطابقت در نخستین بررسی، منتظر پر شدن بازه‌اش می‌ماند. بازه‌ای دست‌کم دو برابر `monitoring_interval` مانیتور به آن بدهید؛ وگرنه بازه یک بررسی را در خود دارد، و «همهٔ مقدارها» همان معنای «هر مقداری» را می‌دهد. `Any Value` عمداً با یک بررسیِ ناقضِ قاعده مطابقت دارد.
 
 `evaluate_over_time_no_data_policy` می‌گوید فیلتر تا وقتی بازه دادهٔ کافی ندارد چه کند: `Ignore` (پیش‌فرض) مطابقت ندارد، `Trigger` نبود داده را مانند یک heartbeat خرابی به حساب می‌آورد، و `Treat As Zero` بازه را به‌صورت یک صفر تنها مقایسه می‌کند.
+
+`Previous Check` هر بررسی را با بررسی قبلی همان پراب مقایسه می‌کند که حداکثر `evaluate_over_time_minutes` پیش از آن انجام شده باشد. یک مقدار اندازه‌گیری‌شده `value` نمی‌گیرد: `filter_type` آن را با مقدار قبلی که به اندازهٔ `evaluate_over_time_change_value` جابه‌جا شده مقایسه می‌کند، رو به بالا برای `Greater Than` و رو به پایین برای `Less Than`، به صورت `Amount` با یکای خود بررسی یا `Percentage` از مقدار قبلی، همان‌طور که `evaluate_over_time_change_type` می‌گوید (اگر تنظیم نشود `Amount` ۰: هر افزایش یا کاهشی). فیلتری که درست یا نادرست است روی بررسی‌ای مطابقت دارد که شروع به برآوردن شرط کرد. بدون بررسی قبلی، `evaluate_over_time_no_data_policy` تصمیم می‌گیرد.
+
+این معیار وقتی بررسی‌ای بیش از دو برابرِ بررسی قبلی طول بکشد یک هشدار باز می‌کند:
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### یک فیلتر چه چیزی را می‌تواند بررسی کند
 

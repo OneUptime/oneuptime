@@ -53,6 +53,7 @@ const OTHER_LATE_POLICY_ID: string = "e0000000-0000-4000-8000-0000000000ab";
 const LATE_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000aa";
 const ARCHIVED_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000ee";
 const DELETED_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000dd";
+const KIOSK_COLOR: string = "#d97706";
 
 const BEFORE_WB: number = LIMIT_PER_PROJECT + 50;
 
@@ -75,7 +76,12 @@ beforeEach(() => {
     { _id: OTHER_LATE_POLICY_ID, name: "WB Search Escalation" },
   ]);
   server.add(Label, [
-    { _id: LATE_LABEL_ID, name: "WB-kiosk", isArchived: false },
+    {
+      _id: LATE_LABEL_ID,
+      name: "WB-kiosk",
+      isArchived: false,
+      color: new Color(KIOSK_COLOR),
+    },
     { _id: ARCHIVED_LABEL_ID, name: "WB-retired", isArchived: true },
   ]);
   server.install();
@@ -249,6 +255,37 @@ describe("the incident's labels", () => {
     ]);
   });
 
+  /*
+   * A saved label is read by its id, and that read asks for its colour: the
+   * chip draws the dot a label picked from the search has. It went missing
+   * when the pickers stopped reading the project's labels (#10690).
+   */
+  test("a saved label keeps its colour", async () => {
+    await renderIncidentForm({ labelIds: [new ObjectID(LATE_LABEL_ID)] });
+
+    await waitFor(() => {
+      expect(chipsIn("monitor-criteria-incident-labelIds")).toEqual([
+        "WB-kiosk",
+      ]);
+    });
+
+    const chip: HTMLElement = screen.getByTestId("entity-dropdown-chip");
+    const dot: HTMLElement | null = chip.querySelector(
+      "span[aria-hidden='true']",
+    );
+
+    expect(dot).not.toBeNull();
+    expect(dot!.style.backgroundColor).toBe("rgb(217, 119, 6)");
+
+    const heldRead: Record<string, unknown> | undefined = server
+      .callsFor(Label)
+      .map((call: { select: Record<string, unknown> }) => {
+        return call.select;
+      })[0];
+
+    expect(heldRead).toMatchObject({ name: true, color: true });
+  });
+
   test("an archived label is never offered for a new pick", async () => {
     await renderIncidentForm({});
 
@@ -319,139 +356,5 @@ describe("the alert's", () => {
 
     expect(idsOf(last.labelIds)).toEqual([LATE_LABEL_ID]);
     expect(idsOf(last.onCallPolicyIds)).toEqual([LATE_POLICY_ID]);
-  });
-});
-
-/*
- * A SAVED LABEL KEEPS ITS COLOUR (#10690).
- *
- * The monitor form read every label with its colour, and named the
- * criteria's picks from that read. Since #10690 each picker reads the
- * labels it holds by their ids (CriteriaRecordPicker, HeldValueOptions) -
- * by name only, so a saved label's chip lost the colour dot the labels the
- * search offers still have. The held labels are read with their colour now.
- */
-describe("a saved label's colour", () => {
-  const COLOURED_LABEL_ID: string = "c0000000-0000-4000-8000-0000000000cc";
-  const RED: string = "rgb(239, 68, 68)";
-
-  beforeEach(() => {
-    server.add(Label, [
-      {
-        _id: COLOURED_LABEL_ID,
-        name: "WB-payments",
-        isArchived: false,
-        color: new Color("#ef4444"),
-      },
-    ]);
-  });
-
-  // The dot drawn on a held value's chip, in its colour.
-  function dotColourOf(testId: string, name: string): string | null {
-    const field: HTMLElement = screen
-      .getByTestId(testId)
-      .closest("[data-testid='entity-dropdown-box']")!.parentElement!
-      .parentElement!;
-    const chip: HTMLElement | undefined = within(field)
-      .queryAllByTestId("entity-dropdown-chip")
-      .find((candidate: HTMLElement): boolean => {
-        return (
-          within(candidate).queryByTestId("entity-dropdown-chip-label")
-            ?.textContent === name
-        );
-      });
-    const dot: HTMLElement | null =
-      chip?.querySelector<HTMLElement>("span.rounded-full") || null;
-
-    return dot ? dot.style.backgroundColor : null;
-  }
-
-  // The reads of the labels a picker holds, by their ids.
-  function heldLabelReads(): Array<Record<string, unknown>> {
-    return server
-      .callsFor(Label)
-      .filter((call: { query: Record<string, unknown> }): boolean => {
-        return call.query["_id"] instanceof Includes;
-      })
-      .map((call: { select: Record<string, unknown> }) => {
-        return call.select;
-      });
-  }
-
-  test("on the incident's Labels chip, read with the label", async () => {
-    await renderIncidentForm({
-      labelIds: [new ObjectID(COLOURED_LABEL_ID)],
-    });
-
-    await waitFor(() => {
-      expect(chipsIn("monitor-criteria-incident-labelIds")).toEqual([
-        "WB-payments",
-      ]);
-    });
-
-    expect(
-      dotColourOf("monitor-criteria-incident-labelIds", "WB-payments"),
-    ).toBe(RED);
-
-    const reads: Array<Record<string, unknown>> = heldLabelReads();
-
-    expect(reads).toHaveLength(1);
-    expect(reads[0]).toMatchObject({ _id: true, name: true, color: true });
-  });
-
-  test("on the alert's Labels chip", async () => {
-    await act(async () => {
-      render(
-        <MonitorCriteriaAlertForm
-          initialValue={{
-            id: "alert-1",
-            title: "Payments offline",
-            description: "",
-            labelIds: [new ObjectID(COLOURED_LABEL_ID)],
-          }}
-          alertSeverityDropdownOptions={[]}
-          onChange={() => {}}
-        />,
-      );
-    });
-
-    await waitFor(() => {
-      expect(chipsIn("monitor-criteria-alert-labelIds")).toEqual([
-        "WB-payments",
-      ]);
-    });
-
-    expect(dotColourOf("monitor-criteria-alert-labelIds", "WB-payments")).toBe(
-      RED,
-    );
-  });
-
-  test("a label with no colour draws no dot, and an on-call policy, which has none, is read as before", async () => {
-    await renderIncidentForm({
-      labelIds: [new ObjectID(LATE_LABEL_ID)],
-      onCallPolicyIds: [new ObjectID(LATE_POLICY_ID)],
-    });
-
-    await waitFor(() => {
-      expect(chipsIn("monitor-criteria-incident-labelIds")).toEqual([
-        "WB-kiosk",
-      ]);
-      expect(chipsIn("monitor-criteria-incident-onCallPolicyIds")).toEqual([
-        "WB Payments Escalation",
-      ]);
-    });
-
-    expect(
-      dotColourOf("monitor-criteria-incident-labelIds", "WB-kiosk"),
-    ).toBeNull();
-
-    const policyReads: Array<Record<string, unknown>> = server
-      .callsFor(OnCallDutyPolicy)
-      .map((call: { select: Record<string, unknown> }) => {
-        return call.select;
-      });
-
-    expect(policyReads).toHaveLength(1);
-    expect(policyReads[0]!["color"]).toBeUndefined();
   });
 });

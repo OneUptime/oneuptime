@@ -3664,7 +3664,7 @@ describe(`${SERVER}`, () => {
     /*
      * What Evaluate offers a server's numeric filter, in the order the
      * dropdown lists it (#10355): the aggregates, a percentile, every or
-     * any check, and the counts.
+     * any check, the counts, and the previous check (#10821).
      */
     expect(
       CommonCriteriaFilterUtil.getEvaluateOverTimeTypeByCriteriaFilter(
@@ -3686,9 +3686,10 @@ describe(`${SERVER}`, () => {
       EvaluateOverTimeType.Count,
       EvaluateOverTimeType.Percentage,
       EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
     expect(page).toContain(
-      "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, Percentile, All Values, Any Value, Count, Percentage, Status Changes)",
+      "chosen under **Evaluate** (Average, Sum, Maximum Value, Minimum Value, Percentile, All Values, Any Value, Count, Percentage, Status Changes, Previous Check)",
     );
     expect(
       tableBody(sectionOf(SERVER, "### Evaluate over a period of time")).map(

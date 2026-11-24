@@ -2063,14 +2063,16 @@ describe("the Metrics monitor", () => {
     ).toEqual(CommonCriteriaFilterUtil.getMetricAggregationTypes());
     /*
      * The six a metric rule reduces its points with. Percentile and the
-     * counts came with #10355 for a check's own window; a Metrics monitor's
-     * query reads its percentiles itself, and counting is #10824.
+     * counts came with #10355, and a comparison with the previous check
+     * with #10821, for a check's own window; a Metrics monitor's query reads
+     * its percentiles itself, and counting is #10824.
      */
     expect(CommonCriteriaFilterUtil.getMetricAggregationTypes()).toEqual(
       Object.values(EvaluateOverTimeType).filter(
         (type: EvaluateOverTimeType): boolean => {
           return (
             type !== EvaluateOverTimeType.Percentile &&
+            type !== EvaluateOverTimeType.PreviousCheck &&
             !CommonCriteriaFilterUtil.isCountedWindowType(type)
           );
         },

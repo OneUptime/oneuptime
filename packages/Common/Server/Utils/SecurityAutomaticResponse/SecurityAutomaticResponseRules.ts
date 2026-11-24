@@ -36,8 +36,9 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * that, a rule is left on its schedule and the policy's page says so.
  *
  *   Scanners           SQL injection, path traversal and Log4Shell
- *                      attempts, and many Cloudflare managed rule hits
- *                      from one address (T1190, T1595.002);
+ *                      attempts, scanning for sensitive files (#10745),
+ *                      and many Cloudflare managed rule hits from one
+ *                      address (T1190, T1595.002, T1595.003);
  *   Password Guessing  brute force from one address, password spraying,
  *                      and failed sign-ins then a success from the same
  *                      address (T1110);
@@ -67,6 +68,8 @@ export const SECURITY_AUTOMATIC_RESPONSE_LIBRARY_RULES: Readonly<
     "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52",
     // Log4Shell exploit attempt.
     "866b7566-304e-442b-b1ad-ca08264af493",
+    // Scanning for sensitive files: /.env, /.git/config, /wp-admin (#10745).
+    "37aac329-ce8b-4ced-9255-4ae49d564451",
     // Many Cloudflare managed rule hits from one address.
     "00146e5e-0b2d-4e09-ad97-91f6f54715fc",
   ],
@@ -182,15 +185,27 @@ export default class SecurityAutomaticResponseRules {
    * that), and past 50 real-time rules a rule stays on its schedule. Never
    * throws: the policy is on either way, and its page says where each rule
    * stands.
+   *
+   * `libraryRuleIds` keeps it to some of the policy's rules: a rule the
+   * library gave a policy that is on already (#10745), added without
+   * touching the rules its project has made its own since - one it deleted
+   * stays deleted.
    */
   @CaptureSpan()
   public static async runInRealTime(data: {
     projectId: ObjectID;
     kind: unknown;
+    libraryRuleIds?: ReadonlyArray<string> | undefined;
   }): Promise<void> {
     try {
       const entries: Array<DetectionRuleLibraryEntry> =
-        getSecurityAutomaticResponseLibraryEntries(data.kind);
+        getSecurityAutomaticResponseLibraryEntries(data.kind).filter(
+          (entry: DetectionRuleLibraryEntry): boolean => {
+            return (
+              !data.libraryRuleIds || data.libraryRuleIds.includes(entry.id)
+            );
+          },
+        );
 
       if (entries.length === 0) {
         return;

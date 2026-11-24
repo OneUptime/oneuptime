@@ -229,6 +229,7 @@ describe("CriteriaFilterUtil", () => {
           EvaluateOverTimeType.Count,
           EvaluateOverTimeType.Percentage,
           EvaluateOverTimeType.StatusChanges,
+          EvaluateOverTimeType.PreviousCheck,
         ]);
       },
     );
@@ -260,6 +261,7 @@ describe("CriteriaFilterUtil", () => {
           EvaluateOverTimeType.Count,
           EvaluateOverTimeType.Percentage,
           EvaluateOverTimeType.StatusChanges,
+          EvaluateOverTimeType.PreviousCheck,
         ]);
       },
     );
@@ -295,6 +297,7 @@ describe("CriteriaFilterUtil", () => {
           EvaluateOverTimeType.Count,
           EvaluateOverTimeType.Percentage,
           EvaluateOverTimeType.StatusChanges,
+          EvaluateOverTimeType.PreviousCheck,
         ]);
       }
     });
@@ -554,6 +557,7 @@ describe("CriteriaFilterUtil", () => {
         EvaluateOverTimeType.Count,
         EvaluateOverTimeType.Percentage,
         EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
     });
 
