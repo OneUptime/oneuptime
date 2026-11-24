@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "Hersteld in de code, gedeployed in versie {{version}}, geverifieerd op {{time}}.",
   "Fixed in code, deployed, verified {{time}}.": "Hersteld in de code, gedeployed, geverifieerd op {{time}}.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "Hersteld in de infrastructuurcode, toegepast, geverifieerd op {{time}}.",
-  "The leak came back after its fix was verified.": "Het lek kwam terug nadat de fix was geverifieerd."
+  "The leak came back after its fix was verified.": "Het lek kwam terug nadat de fix was geverifieerd.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "Een scrub-regel heeft deze uitzondering van {{exception}} afgesplitst. Sinds de regel een deel van de tekst verbergt, worden haar voorvallen hier geteld in plaats van daar.",
+  "Exceptions merged": "Uitzonderingen samengevoegd",
+  "Former Fingerprint Of Exception": "Vorige vingerafdruk van uitzondering",
+  "Former Fingerprint Of Exception ID": "ID van de uitzondering van de vorige vingerafdruk",
+  "Merge Exceptions": "Uitzonderingen samenvoegen",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "Voeg ze samen om elk voorval weer als één uitzondering te tellen. De oudste blijft behouden, en je kunt ze later weer splitsen.",
+  "Someone who can edit exceptions can merge them into one.": "Iemand die uitzonderingen mag bewerken, kan ze samenvoegen tot één.",
+  "Split From Exception": "Afgesplitst van uitzondering",
+  "Split From Exception ID": "ID van de uitzondering waarvan is afgesplitst"
 }

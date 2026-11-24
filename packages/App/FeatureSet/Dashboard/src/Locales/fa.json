@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "در کد اصلاح شد، در نسخه {{version}} مستقر شد و در {{time}} تأیید شد.",
   "Fixed in code, deployed, verified {{time}}.": "در کد اصلاح شد، مستقر شد و در {{time}} تأیید شد.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "در کد زیرساخت اصلاح شد، اعمال شد و در {{time}} تأیید شد.",
-  "The leak came back after its fix was verified.": "نشت برگشت، پس از آنکه اصلاح آن تأیید شده بود."
+  "The leak came back after its fix was verified.": "نشت برگشت، پس از آنکه اصلاح آن تأیید شده بود.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "یک قاعدهٔ پالایش این استثنا را از {{exception}} جدا کرد. از وقتی قاعده بخشی از متن آن را پنهان کرد، رخدادهایش به‌جای آنجا اینجا شمرده شده است.",
+  "Exceptions merged": "استثناها ادغام شدند",
+  "Former Fingerprint Of Exception": "اثر انگشت پیشین استثنا",
+  "Former Fingerprint Of Exception ID": "شناسهٔ استثنای اثر انگشت پیشین",
+  "Merge Exceptions": "ادغام استثناها",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "آن‌ها را ادغام کنید تا هر رخداد دوباره یک استثنا شمرده شود. استثنای قدیمی‌تر نگه داشته می‌شود و بعداً می‌توانید آن‌ها را جدا کنید.",
+  "Someone who can edit exceptions can merge them into one.": "کسی که اجازهٔ ویرایش استثناها را دارد می‌تواند آن‌ها را در یکی ادغام کند.",
+  "Split From Exception": "جداشده از استثنا",
+  "Split From Exception ID": "شناسهٔ استثنایی که از آن جدا شد"
 }

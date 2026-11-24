@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "Fixed in code, deployed in version {{version}}, verified {{time}}.",
   "Fixed in code, deployed, verified {{time}}.": "Fixed in code, deployed, verified {{time}}.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "Fixed in infrastructure code, applied, verified {{time}}.",
-  "The leak came back after its fix was verified.": "The leak came back after its fix was verified."
+  "The leak came back after its fix was verified.": "The leak came back after its fix was verified.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.",
+  "Exceptions merged": "Exceptions merged",
+  "Former Fingerprint Of Exception": "Former Fingerprint Of Exception",
+  "Former Fingerprint Of Exception ID": "Former Fingerprint Of Exception ID",
+  "Merge Exceptions": "Merge Exceptions",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.",
+  "Someone who can edit exceptions can merge them into one.": "Someone who can edit exceptions can merge them into one.",
+  "Split From Exception": "Split From Exception",
+  "Split From Exception ID": "Split From Exception ID"
 }

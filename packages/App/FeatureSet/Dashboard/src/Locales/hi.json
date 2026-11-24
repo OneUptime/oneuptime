@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "कोड में ठीक किया गया, संस्करण {{version}} में डिप्लॉय किया गया, {{time}} को सत्यापित किया गया।",
   "Fixed in code, deployed, verified {{time}}.": "कोड में ठीक किया गया, डिप्लॉय किया गया, {{time}} को सत्यापित किया गया।",
   "Fixed in infrastructure code, applied, verified {{time}}.": "इंफ्रास्ट्रक्चर कोड में ठीक किया गया, लागू किया गया, {{time}} को सत्यापित किया गया।",
-  "The leak came back after its fix was verified.": "सुधार के सत्यापित होने के बाद लीक लौट आया।"
+  "The leak came back after its fix was verified.": "सुधार के सत्यापित होने के बाद लीक लौट आया।",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "एक स्क्रब नियम ने इस अपवाद को {{exception}} से अलग कर दिया। जब से नियम ने इसके पाठ का कुछ हिस्सा छिपाया, इसकी घटनाएं वहां के बजाय यहां गिनी गईं।",
+  "Exceptions merged": "अपवाद मिला दिए गए",
+  "Former Fingerprint Of Exception": "अपवाद का पिछला फ़िंगरप्रिंट",
+  "Former Fingerprint Of Exception ID": "पिछले फ़िंगरप्रिंट वाले अपवाद की ID",
+  "Merge Exceptions": "अपवाद मिलाएं",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "हर घटना को फिर से एक अपवाद के रूप में गिनने के लिए इन्हें मिलाएं। पुराना अपवाद रखा जाता है, और आप इन्हें बाद में अलग कर सकते हैं।",
+  "Someone who can edit exceptions can merge them into one.": "जो अपवाद संपादित कर सकता है, वह इन्हें एक में मिला सकता है।",
+  "Split From Exception": "जिस अपवाद से अलग किया गया",
+  "Split From Exception ID": "जिस अपवाद से अलग किया गया उसकी ID"
 }

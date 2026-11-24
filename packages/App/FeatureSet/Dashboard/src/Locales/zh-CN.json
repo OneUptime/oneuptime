@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "已在代码中修复，已在版本 {{version}} 中部署，已于 {{time}} 验证。",
   "Fixed in code, deployed, verified {{time}}.": "已在代码中修复，已部署，已于 {{time}} 验证。",
   "Fixed in infrastructure code, applied, verified {{time}}.": "已在基础设施代码中修复，已应用，已于 {{time}} 验证。",
-  "The leak came back after its fix was verified.": "修复经验证后，泄露再次出现。"
+  "The leak came back after its fix was verified.": "修复经验证后，泄露再次出现。",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "一条清理规则将此异常从 {{exception}} 中拆分出来。自该规则隐藏了其部分内容起，它的出现便计入这里，而不是那里。",
+  "Exceptions merged": "异常已合并",
+  "Former Fingerprint Of Exception": "异常的旧指纹",
+  "Former Fingerprint Of Exception ID": "旧指纹所属异常 ID",
+  "Merge Exceptions": "合并异常",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "合并后，所有出现将重新计为一个异常。保留较早的那个，之后可以取消合并。",
+  "Someone who can edit exceptions can merge them into one.": "可以编辑异常的人可以将它们合并为一个。",
+  "Split From Exception": "拆分自的异常",
+  "Split From Exception ID": "拆分自的异常 ID"
 }

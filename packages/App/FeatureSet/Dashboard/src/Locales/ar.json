@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "أُصلح في التعليمات البرمجية، ونُشر في الإصدار {{version}}، وتُحقّق منه في {{time}}.",
   "Fixed in code, deployed, verified {{time}}.": "أُصلح في التعليمات البرمجية، ونُشر، وتُحقّق منه في {{time}}.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "أُصلح في التعليمات البرمجية للبنية التحتية، وطُبّق، وتُحقّق منه في {{time}}.",
-  "The leak came back after its fix was verified.": "عاد التسريب بعد التحقق من إصلاحه."
+  "The leak came back after its fix was verified.": "عاد التسريب بعد التحقق من إصلاحه.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "فصلت قاعدة تنقية هذا الاستثناء عن {{exception}}. منذ أن أخفت القاعدة جزءًا من نصه، تُحسب مرات ظهوره هنا بدلًا من هناك.",
+  "Exceptions merged": "دُمجت الاستثناءات",
+  "Former Fingerprint Of Exception": "البصمة السابقة للاستثناء",
+  "Former Fingerprint Of Exception ID": "معرّف استثناء البصمة السابقة",
+  "Merge Exceptions": "دمج الاستثناءات",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "ادمجهما لتُحسب كل مرة ظهور استثناءً واحدًا من جديد. يُبقى على الأقدم، ويمكنك إلغاء الدمج لاحقًا.",
+  "Someone who can edit exceptions can merge them into one.": "يمكن لمن يملك صلاحية تعديل الاستثناءات أن يدمجهما في استثناء واحد.",
+  "Split From Exception": "مفصول عن الاستثناء",
+  "Split From Exception ID": "معرّف الاستثناء المفصول عنه"
 }

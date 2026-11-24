@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "Исправлено в коде, развёрнуто в версии {{version}}, проверено {{time}}.",
   "Fixed in code, deployed, verified {{time}}.": "Исправлено в коде, развёрнуто, проверено {{time}}.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "Исправлено в коде инфраструктуры, применено, проверено {{time}}.",
-  "The leak came back after its fix was verified.": "Утечка вернулась после того, как её исправление было подтверждено."
+  "The leak came back after its fix was verified.": "Утечка вернулась после того, как её исправление было подтверждено.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "Правило очистки отделило это исключение от {{exception}}. С тех пор как правило скрыло часть его текста, его появления учитываются здесь, а не там.",
+  "Exceptions merged": "Исключения объединены",
+  "Former Fingerprint Of Exception": "Прежний отпечаток исключения",
+  "Former Fingerprint Of Exception ID": "ID исключения с прежним отпечатком",
+  "Merge Exceptions": "Объединить исключения",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "Объедините их, чтобы снова учитывать каждое появление как одно исключение. Сохраняется более старое, а разъединить их можно позже.",
+  "Someone who can edit exceptions can merge them into one.": "Объединить их в одно может тот, кому разрешено изменять исключения.",
+  "Split From Exception": "Отделено от исключения",
+  "Split From Exception ID": "ID исключения, от которого отделено"
 }

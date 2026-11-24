@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "コードで修正、バージョン {{version}} でデプロイ済み、{{time}} に検証済み。",
   "Fixed in code, deployed, verified {{time}}.": "コードで修正、デプロイ済み、{{time}} に検証済み。",
   "Fixed in infrastructure code, applied, verified {{time}}.": "インフラのコードで修正、適用済み、{{time}} に検証済み。",
-  "The leak came back after its fix was verified.": "修正の検証後、漏洩が再発しました。"
+  "The leak came back after its fix was verified.": "修正の検証後、漏洩が再発しました。",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "スクラブルールにより、この例外は {{exception}} から分割されました。ルールが内容の一部を隠して以降、発生はそちらではなくこちらで数えられています。",
+  "Exceptions merged": "例外を統合しました",
+  "Former Fingerprint Of Exception": "例外の以前のフィンガープリント",
+  "Former Fingerprint Of Exception ID": "以前のフィンガープリントの例外 ID",
+  "Merge Exceptions": "例外を統合",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "統合すると、すべての発生を再び 1 つの例外として数えます。古い方が残り、後で統合を解除できます。",
+  "Someone who can edit exceptions can merge them into one.": "例外を編集できるユーザーは、これらを 1 つに統合できます。",
+  "Split From Exception": "分割元の例外",
+  "Split From Exception ID": "分割元の例外 ID"
 }

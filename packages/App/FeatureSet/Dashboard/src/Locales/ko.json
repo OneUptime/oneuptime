@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "코드에서 수정됨, 버전 {{version}}(으)로 배포됨, {{time}}에 검증됨.",
   "Fixed in code, deployed, verified {{time}}.": "코드에서 수정됨, 배포됨, {{time}}에 검증됨.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "인프라 코드에서 수정됨, 적용됨, {{time}}에 검증됨.",
-  "The leak came back after its fix was verified.": "수정이 검증된 후 유출이 다시 발생했습니다."
+  "The leak came back after its fix was verified.": "수정이 검증된 후 유출이 다시 발생했습니다.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "스크럽 규칙이 이 예외를 {{exception}}에서 분리했습니다. 규칙이 내용 일부를 숨긴 뒤로 발생이 그곳이 아닌 이곳에서 집계되었습니다.",
+  "Exceptions merged": "예외를 병합했습니다",
+  "Former Fingerprint Of Exception": "예외의 이전 지문",
+  "Former Fingerprint Of Exception ID": "이전 지문의 예외 ID",
+  "Merge Exceptions": "예외 병합",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "병합하면 모든 발생을 다시 하나의 예외로 집계합니다. 더 오래된 예외가 유지되며, 나중에 병합을 해제할 수 있습니다.",
+  "Someone who can edit exceptions can merge them into one.": "예외를 편집할 수 있는 사람이 하나로 병합할 수 있습니다.",
+  "Split From Exception": "분리 원본 예외",
+  "Split From Exception ID": "분리 원본 예외 ID"
 }

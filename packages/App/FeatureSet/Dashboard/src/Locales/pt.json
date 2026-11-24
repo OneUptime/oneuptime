@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "Corrigido no código, implantado na versão {{version}}, verificado em {{time}}.",
   "Fixed in code, deployed, verified {{time}}.": "Corrigido no código, implantado, verificado em {{time}}.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "Corrigido no código de infraestrutura, aplicado, verificado em {{time}}.",
-  "The leak came back after its fix was verified.": "O vazamento voltou depois que a correção foi verificada."
+  "The leak came back after its fix was verified.": "O vazamento voltou depois que a correção foi verificada.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "Uma regra de mascaramento separou esta exceção de {{exception}}. Desde que a regra ocultou parte do texto dela, suas ocorrências passaram a ser contadas aqui em vez de lá.",
+  "Exceptions merged": "Exceções mescladas",
+  "Former Fingerprint Of Exception": "Impressão digital anterior da exceção",
+  "Former Fingerprint Of Exception ID": "ID da exceção da impressão digital anterior",
+  "Merge Exceptions": "Mesclar exceções",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "Mescle-as para contar novamente cada ocorrência como uma única exceção. A mais antiga é mantida, e você pode desfazer a mesclagem depois.",
+  "Someone who can edit exceptions can merge them into one.": "Alguém que possa editar exceções pode mesclá-las em uma só.",
+  "Split From Exception": "Separada da exceção",
+  "Split From Exception ID": "ID da exceção da qual foi separada"
 }

@@ -36,6 +36,74 @@ import {
 
 export const MERGE_ROUTE_PREFIX: string = "/telemetry-exception/merge";
 export const UNMERGE_ROUTE_PREFIX: string = "/telemetry-exception/unmerge";
+// A pair a scrub rule split before #10434, merged from the split one (#10618).
+export const MERGE_SPLIT_ROUTE_PREFIX: string =
+  "/telemetry-exception/merge-split";
+
+/*
+ * What an exception's page reads of the exception a scrub rule split it
+ * from: enough to name it, and to tell whether the two are merged already.
+ */
+export const SPLIT_FROM_EXCEPTION_SELECT: {
+  _id: true;
+  exceptionType: true;
+  message: true;
+  firstSeenAt: true;
+  mergedIntoTelemetryExceptionId: true;
+} = {
+  _id: true,
+  exceptionType: true,
+  message: true,
+  firstSeenAt: true,
+  mergedIntoTelemetryExceptionId: true,
+};
+
+/*
+ * Whether an exception's page says a scrub rule split it from another and
+ * offers to merge them (#10618): ingest recorded the pair, the one it was
+ * split from could be read, and neither is merged into the other - nor this
+ * one into anything, when its page says that instead. Pure, for the tests.
+ */
+export function isSplitNoticeShown(data: {
+  exception: {
+    id?: { toString: () => string } | null | undefined;
+    splitFromTelemetryExceptionId?: unknown;
+    mergedIntoTelemetryExceptionId?: unknown;
+  };
+  splitFrom:
+    | {
+        id?: { toString: () => string } | null | undefined;
+        mergedIntoTelemetryExceptionId?:
+          | { toString: () => string }
+          | null
+          | undefined;
+      }
+    | null
+    | undefined;
+}): boolean {
+  if (
+    !data.exception.splitFromTelemetryExceptionId ||
+    data.exception.mergedIntoTelemetryExceptionId ||
+    !data.splitFrom?.id
+  ) {
+    return false;
+  }
+
+  const ownId: string = data.exception.id?.toString().toLowerCase() || "";
+  const mergedInto: string =
+    data.splitFrom.mergedIntoTelemetryExceptionId?.toString().toLowerCase() ||
+    "";
+
+  return !ownId || mergedInto !== ownId;
+}
+
+/*
+ * Merge an exception a scrub rule split with the one it was split from: the
+ * server keeps the older of the two (TelemetryExceptionMerge.mergeSplit).
+ */
+export async function mergeSplitException(id: string): Promise<JSONObject> {
+  return post(`${MERGE_SPLIT_ROUTE_PREFIX}/${id}`, {});
+}
 
 /*
  * What an exception's page reads of the exceptions merged into it: their

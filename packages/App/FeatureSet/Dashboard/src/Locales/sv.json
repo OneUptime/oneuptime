@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "Åtgärdat i koden, deployat i version {{version}}, verifierat {{time}}.",
   "Fixed in code, deployed, verified {{time}}.": "Åtgärdat i koden, deployat, verifierat {{time}}.",
   "Fixed in infrastructure code, applied, verified {{time}}.": "Åtgärdat i infrastrukturkoden, tillämpat, verifierat {{time}}.",
-  "The leak came back after its fix was verified.": "Läckan kom tillbaka efter att korrigeringen verifierats."
+  "The leak came back after its fix was verified.": "Läckan kom tillbaka efter att korrigeringen verifierats.",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "En scrub-regel delade upp det här undantaget från {{exception}}. Sedan regeln dolde en del av texten har dess förekomster räknats här i stället för där.",
+  "Exceptions merged": "Undantag ihopslagna",
+  "Former Fingerprint Of Exception": "Tidigare fingeravtryck för undantag",
+  "Former Fingerprint Of Exception ID": "ID för undantaget med det tidigare fingeravtrycket",
+  "Merge Exceptions": "Slå ihop undantag",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "Slå ihop dem för att räkna varje förekomst som ett undantag igen. Det äldsta behålls, och du kan dela upp dem senare.",
+  "Someone who can edit exceptions can merge them into one.": "Någon som får redigera undantag kan slå ihop dem till ett.",
+  "Split From Exception": "Avdelat från undantag",
+  "Split From Exception ID": "ID för undantaget det delades upp från"
 }

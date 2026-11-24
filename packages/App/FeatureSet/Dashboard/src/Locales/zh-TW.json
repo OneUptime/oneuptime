@@ -62976,5 +62976,14 @@
   "Fixed in code, deployed in version {{version}}, verified {{time}}.": "已在程式碼中修正，已在版本 {{version}} 中部署，已於 {{time}} 驗證。",
   "Fixed in code, deployed, verified {{time}}.": "已在程式碼中修正，已部署，已於 {{time}} 驗證。",
   "Fixed in infrastructure code, applied, verified {{time}}.": "已在基礎架構程式碼中修正，已套用，已於 {{time}} 驗證。",
-  "The leak came back after its fix was verified.": "修正經驗證後，外洩再次出現。"
+  "The leak came back after its fix was verified.": "修正經驗證後，外洩再次出現。",
+  "A scrub rule split this exception from {{exception}}. Once the rule hid part of what it says, its occurrences were counted here instead of there.": "一條清理規則將此例外從 {{exception}} 中拆分出來。自該規則隱藏了其部分內容起，它的出現便計入這裡，而不是那裡。",
+  "Exceptions merged": "例外已合併",
+  "Former Fingerprint Of Exception": "例外的舊指紋",
+  "Former Fingerprint Of Exception ID": "舊指紋所屬例外 ID",
+  "Merge Exceptions": "合併例外",
+  "Merge them to count every occurrence as one exception again. The older one is kept, and you can unmerge them later.": "合併後，所有出現將重新計為一個例外。保留較早的那個，之後可以取消合併。",
+  "Someone who can edit exceptions can merge them into one.": "可以編輯例外的人可以將它們合併為一個。",
+  "Split From Exception": "拆分自的例外",
+  "Split From Exception ID": "拆分自的例外 ID"
 }
