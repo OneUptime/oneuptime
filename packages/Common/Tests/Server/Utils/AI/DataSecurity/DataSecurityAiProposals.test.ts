@@ -9,6 +9,7 @@ import DataStoreFeedService from "../../../../../Server/Services/DataStoreFeedSe
 import ProjectService from "../../../../../Server/Services/ProjectService";
 import { DataSecurityAiAction } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiAction";
 import DataSecurityAiActions from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiActions";
+import DataSecurityIssueGroupTimelines from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines";
 import DataSecurityAiProposals, {
   DISMISS_PERMISSION_MESSAGE,
   DISMISS_REASON_REQUIRED_MESSAGE,
@@ -554,6 +555,50 @@ describe("dismissing a proposal", () => {
     await expect(
       dismissAs({ ...person(ALICE), isMasterAdmin: true }, undefined),
     ).rejects.toThrow(DISMISS_REASON_REQUIRED_MESSAGE);
+  });
+
+  test("a group's fix tells each issue it was for that it was dismissed, and by whom (#10741)", async () => {
+    const groupId: ObjectID = new ObjectID(
+      "10741000-0000-4000-8000-0000000000b1",
+    );
+    const told: SpyInstance<typeof DataSecurityIssueGroupTimelines.onDismissed> =
+      jest
+        .spyOn(DataSecurityIssueGroupTimelines, "onDismissed")
+        .mockResolvedValue(2);
+
+    row = proposalRow({
+      dataSecurityIssueId: undefined,
+      dataStoreId: undefined,
+      dataSecurityIssueGroupId: groupId,
+      kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
+      plan: { groupId: groupId.toString(), issueIds: [] },
+    });
+
+    await dismissAs(
+      { ...person(ALICE), isMasterAdmin: true },
+      "We fix the CDN's buckets by hand next week.",
+    );
+
+    expect(told).toHaveBeenCalledTimes(1);
+    expect(told.mock.calls[0]![0]).toMatchObject({
+      projectId: PROJECT_ID,
+      userId: ALICE,
+      proposal: { dataSecurityIssueGroupId: groupId },
+    });
+    // The group's proposal has no issue or store of its own to write on.
+    expect(issueFeed).not.toHaveBeenCalled();
+    expect(storeFeed).not.toHaveBeenCalled();
+  });
+
+  test("an issue's own proposal tells no group", async () => {
+    const told: SpyInstance<typeof DataSecurityIssueGroupTimelines.onDismissed> =
+      jest
+        .spyOn(DataSecurityIssueGroupTimelines, "onDismissed")
+        .mockResolvedValue(0);
+
+    await dismissAs({ ...person(ALICE), isMasterAdmin: true }, "No.");
+
+    expect(told).not.toHaveBeenCalled();
   });
 });
 
