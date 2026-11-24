@@ -257,8 +257,9 @@ export default class StatusPageRssFeed {
 
     /*
      * An episode is an incident to the page's readers, opened at the
-     * incident's own address, as the page opens it. Grouped by episode, its
-     * description ends with the incidents it holds.
+     * incident's own address, as the page opens it. While the page shows
+     * incidents too, its description ends with the incidents it holds, as
+     * its page lists them; grouped, those get no item of their own.
      */
     for (const episode of cards.episodes) {
       const description: string = StatusPageRssFeed.text(
@@ -321,8 +322,9 @@ export default class StatusPageRssFeed {
 
   /*
    * The incidents an episode holds, as its item says them while the page
-   * groups incidents by episode: "Related incidents: Website down, API down."
-   * Empty when it lists none.
+   * shows incidents too: "Related incidents: Website down, API down."
+   * Empty when it lists none - on a page that shows episodes only, an
+   * episode carries no incidents (EPISODE_INCIDENTS_KEY).
    */
   public static describeEpisodeIncidents(episode: JSONObject): string {
     const titles: Array<string> =

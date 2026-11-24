@@ -535,6 +535,33 @@ describe("StatusPageRssFeed.buildItems: incidents as the page lays them out", ()
     );
   });
 
+  test("separate: an episode's item names the incidents it holds, as its page lists them, and they keep their own items (#9181)", () => {
+    // Not grouped, the answer still carries an episode's incidents.
+    const items: Array<StatusPageRssItem> = itemsFor({
+      incidents: [lone, website, api],
+      episodes: [groupedOutage],
+      incidentListMode: StatusPageIncidentListMode.Separate,
+    });
+
+    expect(items).toHaveLength(4);
+
+    const outage: StatusPageRssItem = items.find(
+      (item: StatusPageRssItem): boolean => {
+        return item.title === "Incident: Infrastructure Outage";
+      },
+    )!;
+
+    expect(outage.description).toBe(
+      "Several services are down.\n\nRelated incidents: API Monitor Outage, Website Monitor Outage.",
+    );
+    expect(titles(items)).toEqual(
+      expect.arrayContaining([
+        "Incident: API Monitor Outage",
+        "Incident: Website Monitor Outage",
+      ]),
+    );
+  });
+
   test("an answer without a mode, an older server's, draws each list on its own", () => {
     expect(
       itemsFor({

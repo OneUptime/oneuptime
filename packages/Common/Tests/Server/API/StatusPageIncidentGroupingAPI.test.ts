@@ -1314,7 +1314,7 @@ describe("StatusPageAPI groups incidents by episode on the pages that ask for it
 
   describe("pages that do not group keep what they show", () => {
     it.each(pageCases([SEPARATE_PAGE, EPISODES_ONLY_PAGE]))(
-      "%s lists its episodes as it always did, without their incidents",
+      "%s lists the episodes it always did",
       async (_label: string, pageId: string) => {
         const list: JSONObject = await getJson({
           route: EPISODES_ROUTE,
@@ -1328,14 +1328,50 @@ describe("StatusPageAPI groups incidents by episode on the pages that ask for it
         expect(sorted(idsOf(list["episodes"]))).toEqual(
           sorted([EPISODE_OUTAGE, EPISODE_MIXED, EPISODE_HIDDEN_ONLY]),
         );
-
-        for (const episode of list["episodes"] as JSONArray) {
-          expect(episode as JSONObject).not.toHaveProperty(
-            EPISODE_INCIDENTS_KEY,
-          );
-        }
       },
     );
+
+    it("separate, each episode carries the incidents of it the page shows, for its own page to list (#9181)", async () => {
+      const list: JSONObject = await getJson({
+        route: EPISODES_ROUTE,
+        params: pageParams(SEPARATE_PAGE),
+      });
+
+      expect(listedIncidentIds(find(list["episodes"], EPISODE_OUTAGE))).toEqual(
+        [OUTAGE_DATABASE, OUTAGE_API, OUTAGE_WEBSITE],
+      );
+      expect(listedIncidentIds(find(list["episodes"], EPISODE_MIXED))).toEqual([
+        MIX_SHOWN,
+      ]);
+      // Hidden from status pages, its incidents are listed nowhere.
+      expect(
+        find(list["episodes"], EPISODE_HIDDEN_ONLY)![EPISODE_INCIDENTS_KEY],
+      ).toEqual([]);
+
+      const text: string = JSON.stringify(list);
+
+      expect(text).not.toContain(titleOf(QUIET_FIRST));
+      expect(text).not.toContain(titleOf(OUTAGE_PRIVATE));
+      expect(text).not.toContain(titleOf(OUTAGE_INTERNAL_ONLY));
+      expect(text).not.toContain(INTERNAL_MONITOR);
+    });
+
+    it("showing episodes only, no episode names an incident: the page shows none on its own", async () => {
+      const list: JSONObject = await getJson({
+        route: EPISODES_ROUTE,
+        params: pageParams(EPISODES_ONLY_PAGE),
+      });
+
+      for (const episode of list["episodes"] as JSONArray) {
+        expect(episode as JSONObject).not.toHaveProperty(EPISODE_INCIDENTS_KEY);
+      }
+
+      const text: string = JSON.stringify(list);
+
+      for (const incidentId of SHOWN_INCIDENTS) {
+        expect(text).not.toContain(titleOf(incidentId));
+      }
+    });
 
     it.each(pageCases([SEPARATE_PAGE, EPISODES_ONLY_PAGE]))(
       "%s names an episode's resources from the incidents of it the page shows, as its overview always did",
@@ -1394,7 +1430,7 @@ describe("StatusPageAPI groups incidents by episode on the pages that ask for it
       );
     });
 
-    it("separate, its active episodes carry no incidents, as before", async () => {
+    it("separate, its active episodes are the ones it always showed, each carrying the incidents of it the page shows", async () => {
       const overview: JSONObject = await getJson({
         route: OVERVIEW_ROUTE,
         params: pageParams(SEPARATE_PAGE),
@@ -1402,6 +1438,27 @@ describe("StatusPageAPI groups incidents by episode on the pages that ask for it
 
       expect(sorted(idsOf(overview["activeEpisodes"]))).toEqual(
         sorted([EPISODE_OUTAGE, EPISODE_MIXED]),
+      );
+      expect(
+        listedIncidentIds(find(overview["activeEpisodes"], EPISODE_OUTAGE)),
+      ).toEqual([OUTAGE_DATABASE, OUTAGE_API, OUTAGE_WEBSITE]);
+      expect(
+        listedIncidentIds(find(overview["activeEpisodes"], EPISODE_MIXED)),
+      ).toEqual([MIX_SHOWN]);
+      // Its incidents keep their own cards: every one is still listed.
+      expect(sorted(idsOf(overview["activeIncidents"]))).toEqual(
+        sorted(SHOWN_INCIDENTS),
+      );
+    });
+
+    it("showing episodes only, its active episodes name no incident", async () => {
+      const overview: JSONObject = await getJson({
+        route: OVERVIEW_ROUTE,
+        params: pageParams(EPISODES_ONLY_PAGE),
+      });
+
+      expect((overview["activeEpisodes"] as JSONArray).length).toBeGreaterThan(
+        0,
       );
 
       for (const episode of overview["activeEpisodes"] as JSONArray) {
@@ -1523,17 +1580,22 @@ describe("StatusPageAPI groups incidents by episode on the pages that ask for it
 
   describe("an incident's own page and an episode's", () => {
     it.each([
-      [OUTAGE_WEBSITE, [EPISODE_OUTAGE]],
-      [MIX_SHOWN, [EPISODE_MIXED]],
-      [LONE, []],
-      [UNDER_HIDDEN_EPISODE, []],
+      [GROUPED_PAGE, OUTAGE_WEBSITE, [EPISODE_OUTAGE]],
+      [GROUPED_PAGE, MIX_SHOWN, [EPISODE_MIXED]],
+      [GROUPED_PAGE, LONE, []],
+      [GROUPED_PAGE, UNDER_HIDDEN_EPISODE, []],
+      // Not grouped, the incident's page names its episode all the same (#9181).
+      [SEPARATE_PAGE, OUTAGE_WEBSITE, [EPISODE_OUTAGE]],
+      [SEPARATE_PAGE, MIX_SHOWN, [EPISODE_MIXED]],
+      [SEPARATE_PAGE, LONE, []],
+      [SEPARATE_PAGE, UNDER_HIDDEN_EPISODE, []],
     ])(
-      "grouped, incident %s names the episodes it is part of: %j",
-      async (incidentId: string, episodeIds: Array<string>) => {
+      "on page %s, incident %s names the episodes it is part of: %j",
+      async (pageId: string, incidentId: string, episodeIds: Array<string>) => {
         const detail: JSONObject = await getJson({
           route: INCIDENT_DETAIL_ROUTE,
           params: {
-            statusPageIdOrDomain: GROUPED_PAGE,
+            statusPageIdOrDomain: pageId,
             incidentId: incidentId,
           },
         });
@@ -1552,17 +1614,53 @@ describe("StatusPageAPI groups incidents by episode on the pages that ask for it
       },
     );
 
-    it.each(pageCases([SEPARATE_PAGE, INCIDENTS_ONLY_PAGE]))(
-      "%s names no episode on an incident's page, as it did before",
-      async (_label: string, pageId: string) => {
-        const detail: JSONObject = await getJson({
-          route: INCIDENT_DETAIL_ROUTE,
-          params: { statusPageIdOrDomain: pageId, incidentId: OUTAGE_WEBSITE },
-        });
+    it("a page that shows incidents only names no episode on an incident's page", async () => {
+      const detail: JSONObject = await getJson({
+        route: INCIDENT_DETAIL_ROUTE,
+        params: {
+          statusPageIdOrDomain: INCIDENTS_ONLY_PAGE,
+          incidentId: OUTAGE_WEBSITE,
+        },
+      });
 
-        expect(detail[PART_OF_EPISODES_RESPONSE_KEY]).toEqual([]);
-      },
-    );
+      expect(detail[PART_OF_EPISODES_RESPONSE_KEY]).toEqual([]);
+      expect(JSON.stringify(detail)).not.toContain(
+        episodeTitleOf(EPISODE_OUTAGE),
+      );
+    });
+
+    it("separate, an episode opened by its link lists the incidents it groups (#9181)", async () => {
+      const detail: JSONObject = await getJson({
+        route: EPISODE_DETAIL_ROUTE,
+        params: {
+          statusPageIdOrDomain: SEPARATE_PAGE,
+          episodeId: EPISODE_OUTAGE,
+        },
+      });
+
+      expect(idsOf(detail["episodes"])).toEqual([EPISODE_OUTAGE]);
+      expect(
+        listedIncidentIds(find(detail["episodes"], EPISODE_OUTAGE)),
+      ).toEqual([OUTAGE_DATABASE, OUTAGE_API, OUTAGE_WEBSITE]);
+      expect(JSON.stringify(detail)).not.toContain(titleOf(OUTAGE_PRIVATE));
+      expect(JSON.stringify(detail)).not.toContain(INTERNAL_MONITOR);
+    });
+
+    it("showing episodes only, an episode opened by its link names no incident", async () => {
+      const detail: JSONObject = await getJson({
+        route: EPISODE_DETAIL_ROUTE,
+        params: {
+          statusPageIdOrDomain: EPISODES_ONLY_PAGE,
+          episodeId: EPISODE_OUTAGE,
+        },
+      });
+
+      expect(idsOf(detail["episodes"])).toEqual([EPISODE_OUTAGE]);
+      expect(find(detail["episodes"], EPISODE_OUTAGE)).not.toHaveProperty(
+        EPISODE_INCIDENTS_KEY,
+      );
+      expect(JSON.stringify(detail)).not.toContain(titleOf(OUTAGE_WEBSITE));
+    });
 
     it("grouped, an episode opened by its link lists its incidents", async () => {
       const detail: JSONObject = await getJson({

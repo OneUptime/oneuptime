@@ -4679,8 +4679,9 @@ export default class StatusPageAPI extends BaseAPI<
    * page shows are on (StatusPageEpisodeIncidents), what its card names its
    * resources from - never a monitor only a hidden, private or out-of-scope
    * incident of it is on, nor one the page does not list. While the page
-   * groups incidents by episode, each carries those incidents too
-   * (EPISODE_INCIDENTS_KEY), serialized as every incident the page shows is.
+   * shows incidents too, grouped or not, each carries those incidents
+   * (EPISODE_INCIDENTS_KEY), serialized as every incident the page shows is:
+   * grouped, its card lists them, and either way its own page does (#9181).
    */
   private serializeEpisodesForStatusPage(data: {
     episodes: Array<IncidentEpisode>;
@@ -4688,9 +4689,10 @@ export default class StatusPageAPI extends BaseAPI<
     incidentListMode: StatusPageIncidentListMode;
     monitorsOnStatusPage: Array<ObjectID>;
   }): JSONArray {
-    const isGrouped: boolean = StatusPageIncidentGrouping.isGroupedByEpisode(
-      data.incidentListMode,
-    );
+    const listsIncidents: boolean =
+      StatusPageIncidentGrouping.linksIncidentsAndEpisodes(
+        data.incidentListMode,
+      );
 
     const episodesJson: JSONArray = BaseModel.toJSONArray(
       data.episodes,
@@ -4712,7 +4714,7 @@ export default class StatusPageAPI extends BaseAPI<
           },
         );
 
-      if (isGrouped) {
+      if (listsIncidents) {
         episodeObj[EPISODE_INCIDENTS_KEY] = StatusPageEpisodeIncidents.toJSON({
           incidents: incidents,
           serialize: (list: Array<Incident>): JSONArray => {
@@ -5024,17 +5026,18 @@ export default class StatusPageAPI extends BaseAPI<
       await this.getIncidentStatesForStatusPage(statusPage.projectId!);
 
     /*
-     * Grouped by episode, an incident of an episode the page shows has no
-     * card of its own: its page names the episodes it is part of, so a
-     * reader who lands on it - from the uptime history, or a subscriber's
-     * message - can open the card it is listed in.
+     * While the page shows episodes too, an incident's page names the
+     * episodes it is part of, as each episode's page lists its incidents
+     * (#9181). Grouped by episode, such an incident has no card of its own,
+     * so a reader who lands on it - from the uptime history, or a
+     * subscriber's message - can open the card it is listed in.
      */
     let partOfEpisodes: Array<ShownEpisodeOfIncident> = [];
 
     if (
       incidentId &&
       incidents.length > 0 &&
-      StatusPageIncidentGrouping.isGroupedByEpisode(incidentListMode)
+      StatusPageIncidentGrouping.linksIncidentsAndEpisodes(incidentListMode)
     ) {
       partOfEpisodes =
         await StatusPageEpisodeIncidents.getShownEpisodesOfIncident({
@@ -5070,7 +5073,7 @@ export default class StatusPageAPI extends BaseAPI<
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };
 
-    // An incident read by its id: the episodes it is part of, grouped.
+    // An incident read by its id: the episodes of it the page shows.
     if (incidentId) {
       response[PART_OF_EPISODES_RESPONSE_KEY] = partOfEpisodes.map(
         (episode: ShownEpisodeOfIncident): JSONObject => {

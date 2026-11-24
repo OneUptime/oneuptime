@@ -221,6 +221,27 @@ describe("StatusPageIncidentGrouping - what each mode draws", () => {
       );
     },
   );
+
+  /*
+   * #9181: an episode's page lists its incidents, and an incident's page
+   * names its episode, whenever the page shows both - grouped or not - and
+   * never on a page that shows one kind only: that page names nothing of
+   * the other.
+   */
+  test.each([
+    [StatusPageIncidentListMode.None, false],
+    [StatusPageIncidentListMode.IncidentsOnly, false],
+    [StatusPageIncidentListMode.EpisodesOnly, false],
+    [StatusPageIncidentListMode.Separate, true],
+    [StatusPageIncidentListMode.GroupedByEpisode, true],
+  ])(
+    "%s: an episode's page lists its incidents, and an incident's names its episode: %s",
+    (mode: StatusPageIncidentListMode, links: boolean) => {
+      expect(StatusPageIncidentGrouping.linksIncidentsAndEpisodes(mode)).toBe(
+        links,
+      );
+    },
+  );
 });
 
 describe("StatusPageIncidentGrouping.getCards", () => {

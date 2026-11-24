@@ -58,16 +58,17 @@ export const INCIDENT_LIST_MODE_RESPONSE_KEY: string = "incidentListMode";
 
 /*
  * The key an episode lists its incidents under in those answers, while the
- * page groups incidents by episode: the incidents of it the page shows,
- * newest first.
+ * page shows both incidents and episodes (linksIncidentsAndEpisodes): the
+ * incidents of it the page shows, newest first.
  */
 export const EPISODE_INCIDENTS_KEY: string = "incidents";
 
 /*
  * The key an incident's own answer (the incident read by its id) names the
- * episodes it is part of under, while the page groups incidents by episode:
- * each episode the page shows that holds it, by its _id and title. Such an
- * incident has no card of its own, so its page says where it is listed.
+ * episodes it is part of under, while the page shows both incidents and
+ * episodes: each episode the page shows that holds it, by its _id and title.
+ * Grouped, such an incident has no card of its own, so its page says where
+ * it is listed.
  */
 export const PART_OF_EPISODES_RESPONSE_KEY: string = "partOfEpisodes";
 
@@ -158,6 +159,19 @@ export default class StatusPageIncidentGrouping {
 
   public static isGroupedByEpisode(mode: StatusPageIncidentListMode): boolean {
     return mode === StatusPageIncidentListMode.GroupedByEpisode;
+  }
+
+  /*
+   * Whether an episode's page lists its incidents and an incident's page
+   * names its episodes: while the page shows both, grouped or not (#9181).
+   * Either way the page already shows every incident it would list, each on
+   * a card of its own or in its episode's; a page that shows episodes only
+   * names no incident, and one that shows incidents only names no episode.
+   */
+  public static linksIncidentsAndEpisodes(
+    mode: StatusPageIncidentListMode,
+  ): boolean {
+    return this.showsIncidents(mode) && this.showsEpisodes(mode);
   }
 
   /*

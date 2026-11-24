@@ -351,11 +351,17 @@ function respondForMode(mode: string | undefined): void {
         return refused("Episodes are not enabled on this status page.");
       }
 
+      /*
+       * As the server answers: an episode carries its incidents while the
+       * page shows both lists, grouped or not (#9181).
+       */
       return ok(
         episodesAnswer(mode, [
           episodeJson({
             incidents:
-              mode === "GroupedByEpisode" ? OUTAGE_INCIDENTS : undefined,
+              mode === "GroupedByEpisode" || mode === "Separate"
+                ? OUTAGE_INCIDENTS
+                : undefined,
           }),
         ]),
       );
@@ -598,7 +604,7 @@ describe("the Incidents tab, grouped by episode", () => {
 });
 
 describe("the Incidents tab of a page that does not group keeps what it shows", () => {
-  test("separate: a card for every incident and another for the episode, which lists none", async () => {
+  test("separate: a card for every incident and another for the episode, whose card lists none though the answer carries them", async () => {
     respondForMode("Separate");
     await renderPage(IncidentList as PageComponent);
 
@@ -718,6 +724,88 @@ describe("an incident's own page and an episode's", () => {
       "API Monitor Outage",
       "Website Monitor Outage",
     ]);
+  });
+
+  /*
+   * #9181: not grouped, an episode's own page lists the incidents it groups
+   * all the same, each opening its own page - and each of those names the
+   * episode back.
+   */
+  test("separate, an episode's own page lists the incidents it groups, open, each opening its page", async () => {
+    window.history.replaceState({}, "", `/incidents/${OUTAGE}`);
+
+    mockRespondToPost = (url: string): PostResponse => {
+      if (url.includes("/incidents/")) {
+        return ok({ ...incidentsAnswer("Separate"), incidents: [] });
+      }
+
+      return ok(
+        episodesAnswer("Separate", [
+          episodeJson({ incidents: OUTAGE_INCIDENTS }),
+        ]),
+      );
+    };
+
+    await renderPage(IncidentDetail as PageComponent);
+
+    const card: HTMLElement = cardOf("Infrastructure Outage");
+
+    expect(
+      within(card).getByTestId("event-item-related-events-toggle"),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(relatedTitles(card)).toEqual([
+      "Database Monitor Outage",
+      "API Monitor Outage",
+      "Website Monitor Outage",
+    ]);
+    expect(
+      within(card)
+        .getAllByTestId("event-item-related-event-link")
+        .map((link: HTMLElement): string | null => {
+          return link.getAttribute("href");
+        }),
+    ).toEqual([
+      `/incidents/${OUTAGE_DATABASE}`,
+      `/incidents/${OUTAGE_API}`,
+      `/incidents/${OUTAGE_WEBSITE}`,
+    ]);
+  });
+
+  test("separate, an incident's page names its episode too", async () => {
+    window.history.replaceState({}, "", `/incidents/${OUTAGE_API}`);
+
+    mockRespondToPost = (): PostResponse => {
+      return ok({
+        ...incidentsAnswer("Separate"),
+        incidents: [OUTAGE_INCIDENTS[1]!],
+        partOfEpisodes: [{ _id: OUTAGE, title: "Infrastructure Outage" }],
+      });
+    };
+
+    await renderPage(IncidentDetail as PageComponent);
+
+    expect(screen.getByTestId("event-item-part-of")).toHaveTextContent(
+      "Part of Infrastructure Outage",
+    );
+  });
+
+  test("episodes only, an episode's own page names no incident", async () => {
+    window.history.replaceState({}, "", `/incidents/${OUTAGE}`);
+
+    mockRespondToPost = (url: string): PostResponse => {
+      if (url.includes("/incidents/")) {
+        return refused("Incidents are not enabled on this status page.");
+      }
+
+      return ok(episodesAnswer("EpisodesOnly", [episodeJson({})]));
+    };
+
+    await renderPage(IncidentDetail as PageComponent);
+
+    const card: HTMLElement = cardOf("Infrastructure Outage");
+
+    expect(within(card).queryByTestId("event-item-related-events")).toBeNull();
+    expect(card).not.toHaveTextContent("Website Monitor Outage");
   });
 });
 

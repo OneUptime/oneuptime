@@ -85,9 +85,10 @@ type GetIncidentEventItemFunctionProps = {
   isPreviewPage: boolean;
   isSummary: boolean;
   /*
-   * On a page that groups incidents by episode, the episodes the page shows
-   * that hold this incident: it has no card of its own there, so its page
-   * says where it is listed ("Part of Infrastructure Outage").
+   * On a page that shows episodes too, the episodes the page shows that
+   * hold this incident, which its page names ("Part of Infrastructure
+   * Outage") as each episode's page lists its incidents (#9181). Grouped by
+   * episode, it has no card of its own: this says where it is listed.
    */
   partOfEpisodes?: Array<PartOfEpisode> | undefined;
 };
@@ -109,9 +110,11 @@ const getIncidentRoute: (data: {
 };
 
 /*
- * The incidents an episode's card lists on a page that groups incidents by
- * episode: each its own row, with its state and when it was declared,
- * opening its own page. Folded on a list, open on the episode's own page.
+ * The incidents an episode lists: each its own row, with its state and when
+ * it was declared, opening its own page. Its own page lists them whenever
+ * the page shows incidents too (#9181), open; a list's card, folded, only
+ * on a page that groups incidents by episode (Pages/Incidents/List,
+ * Pages/Overview).
  */
 const getRelatedIncidents: (data: {
   incidents: Array<Incident>;
@@ -529,9 +532,9 @@ type GetEpisodeEventItemFunctionProps = {
   isSummary: boolean;
   statusPageId?: ObjectID | undefined;
   /*
-   * On a page that groups incidents by episode, the incidents of the
-   * episode the page shows (Utils/IncidentGrouping): its card lists them,
-   * folded on a list and open on its own page.
+   * On a page that shows incidents too, the incidents of the episode the
+   * page shows (Utils/IncidentGrouping): its own page lists them, open, and
+   * on a page that groups incidents by episode, its card on a list, folded.
    */
   incidents?: Array<Incident> | undefined;
 };
@@ -867,8 +870,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
   const [isEpisode, setIsEpisode] = useState<boolean>(false);
 
   /*
-   * On a page that groups incidents by episode: the episodes an incident is
-   * part of, and the incidents an episode lists (Utils/IncidentGrouping).
+   * On a page that shows both incidents and episodes: the episodes an
+   * incident is part of, and the incidents an episode lists
+   * (Utils/IncidentGrouping, #9181).
    */
   const [partOfEpisodes, setPartOfEpisodes] = useState<Array<PartOfEpisode>>(
     [],
