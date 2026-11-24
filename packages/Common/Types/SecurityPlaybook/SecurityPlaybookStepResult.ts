@@ -36,6 +36,12 @@ export enum SecurityPlaybookTargetReason {
    * says to block, blocked from there with one click (#10342).
    */
   OnTheCase = "On the Case",
+  /*
+   * A person blocked the whole campaign of one of the case's addresses
+   * (#10354): another address that sent the same requests with the same
+   * tools, blocked with the case's own in one approval.
+   */
+  InTheCampaign = "In the Campaign",
 }
 
 export enum SecurityPlaybookTargetState {

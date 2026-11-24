@@ -44,7 +44,7 @@ import MonitorIncident from "./MonitorIncident";
  * for (issue #6400).
  *
  * So when monitoring is turned off - the monitor's own switch, a list's
- * Disable, a monitor group's Turn off monitoring, the API - those are
+ * Disable, a monitor group's Turn monitoring off, the API - those are
  * resolved: exactly the open incidents and alerts a check that no longer
  * met their criteria would have resolved (MonitorAutoResolveTemplates, and
  * MonitorIncident / MonitorAlert's own isAutoResolveConfigured...). Each

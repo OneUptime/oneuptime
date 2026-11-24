@@ -70,7 +70,7 @@ O cartão **Seus logs**, no topo de **Conexões**, não precisa de instalação.
 | Fortinet FortiGate | Detecções de IPS e antivírus, tráfego negado, logins de VPN e de administradores, e alterações de configuração do próprio syslog do FortiGate |
 | Cisco ASA | Conexões negadas, detecções de ameaças e do IPS, logins de VPN e de administradores, e comandos do Cisco ASA e do Firepower Threat Defense |
 | Logs de auditoria do Kubernetes | Mudanças no cluster, shells abertos em pods, secrets lidos e requisições recusadas |
-| Ataques web | Requisições no log de acesso de um servidor web que tentam injeção de SQL, path traversal ou Log4Shell |
+| Ataques web | Requisições no log de acesso de um servidor web que tentam injeção de SQL, path traversal ou Log4Shell, e requisições de arquivos sensíveis, como `/.env` ou `/.git/config`, que seu site recusou ou não tem |
 
 Seus logs continuam como estão. Só as linhas que importam para a segurança viram eventos: nunca cada página que um servidor web serviu, nem cada leitura de uma API.
 

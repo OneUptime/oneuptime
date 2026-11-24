@@ -22,6 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A task belongs to the repository it works in, so the repository decides:
@@ -369,5 +370,320 @@ describe("who may read a repository's tasks", () => {
     expect(CodeTaskAccess.mayReadTasksWithoutRepository({ isRoot: true })).toBe(
       true,
     );
+  });
+});
+
+/*
+ * #10764: the repositories a person may read were the first 500 by name,
+ * and everything built on that list inherited the cap. They are read
+ * whole, a page at a time; what a page holds is read by its ids; and who
+ * may ask AI is weighed for many repositories in one read a batch.
+ */
+describe("every repository the caller may read, however many", () => {
+  // The caller's repositories, as the database would page them.
+  function repositoriesNamed(count: number): Array<CodeRepository> {
+    const rows: Array<CodeRepository> = [];
+
+    for (let index: number = 0; index < count; index++) {
+      const value: CodeRepository = new CodeRepository();
+      value._id = ObjectID.generate().toString();
+      value.name = `repository-${String(index).padStart(6, "0")}`;
+      rows.push(value);
+    }
+
+    return rows;
+  }
+
+  test("all of them are read, past the 500th - a page at a time, as the caller, by name", async () => {
+    const all: Array<CodeRepository> = repositoriesNamed(10650);
+    const reads: Array<{
+      skip: number;
+      limit: number;
+      props: unknown;
+      sort: unknown;
+      select: unknown;
+    }> = [];
+
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (data: {
+        skip: number;
+        limit: number;
+        props: unknown;
+        sort: unknown;
+        select: unknown;
+      }) => {
+        reads.push(data);
+
+        return all.slice(
+          Number(data.skip),
+          Number(data.skip) + Number(data.limit),
+        );
+      }) as never);
+
+    const caller: DatabaseCommonInteractionProps = callerWith([
+      row(Permission.ReadCodeRepository),
+    ]);
+    const read: Array<CodeRepository> =
+      await CodeTaskAccess.listReadableRepositories({
+        props: caller,
+        projectId: PROJECT_ID,
+      });
+
+    expect(read).toHaveLength(10650);
+    expect(read[10649]!.name).toBe("repository-010649");
+    expect(
+      reads.map((page: { skip: number; limit: number }) => {
+        return [page.skip, page.limit];
+      }),
+    ).toEqual([
+      [0, 10000],
+      [10000, 10000],
+    ]);
+
+    for (const page of reads) {
+      expect(page.props).toBe(caller);
+      expect(page.sort).toEqual({ name: "ASC" });
+      expect(page.select).toEqual(CODE_TASK_REPOSITORY_SELECT);
+    }
+  });
+
+  test("their ids alone, for a list's scope - every one of them", async () => {
+    const all: Array<CodeRepository> = repositoriesNamed(700);
+    let select: unknown = null;
+
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (data: {
+        skip: number;
+        limit: number;
+        select: unknown;
+      }) => {
+        select = data.select;
+        return all.slice(
+          Number(data.skip),
+          Number(data.skip) + Number(data.limit),
+        );
+      }) as never);
+
+    const ids: Array<ObjectID> = await CodeTaskAccess.readReadableRepositoryIds(
+      {
+        props: callerWith([row(Permission.ReadCodeRepository)]),
+        projectId: PROJECT_ID,
+      },
+    );
+
+    expect(select).toEqual({ _id: true });
+    expect(
+      ids.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual(
+      all.map((repository: CodeRepository): string => {
+        return repository._id!;
+      }),
+    );
+  });
+
+  test("one page of them, by name, as the caller - for a reader that stops once it has what it needs", async () => {
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
+    const caller: DatabaseCommonInteractionProps = callerWith([
+      row(Permission.ReadCodeRepository),
+    ]);
+
+    await CodeTaskAccess.readReadableRepositoriesPage({
+      props: caller,
+      projectId: PROJECT_ID,
+      skip: 500,
+      limit: 500,
+    });
+
+    expect(findBy.mock.calls[0]![0]).toMatchObject({
+      skip: 500,
+      limit: 500,
+      props: caller,
+      sort: { name: "ASC" },
+    });
+  });
+});
+
+describe("repositories read by their ids", () => {
+  test("in batches of 500, as the caller, in this project - each id once, one that is not an id left out", async () => {
+    const ids: Array<string> = [];
+
+    for (let index: number = 0; index < 1100; index++) {
+      ids.push(ObjectID.generate().toString());
+    }
+
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
+    const caller: DatabaseCommonInteractionProps = callerWith([
+      row(Permission.ReadCodeRepository),
+    ]);
+
+    await CodeTaskAccess.listReadableRepositoriesByIds({
+      props: caller,
+      projectId: PROJECT_ID,
+      repositoryIds: [...ids, ids[0]!.toUpperCase(), "not-an-id", ""],
+    });
+
+    expect(
+      findBy.mock.calls.map((call: Array<unknown>): number => {
+        return (call[0] as { limit: number }).limit;
+      }),
+    ).toEqual([500, 500, 100]);
+
+    for (const call of findBy.mock.calls) {
+      const data: {
+        query: Record<string, unknown>;
+        props: unknown;
+      } = call[0] as { query: Record<string, unknown>; props: unknown };
+
+      expect(data.props).toBe(caller);
+      expect((data.query["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+    }
+  });
+
+  test("no ids reads nothing", async () => {
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
+
+    expect(
+      await CodeTaskAccess.listReadableRepositoriesByIds({
+        props: callerWith([row(Permission.ReadCodeRepository)]),
+        projectId: PROJECT_ID,
+        repositoryIds: [],
+      }),
+    ).toEqual([]);
+    expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+describe("who may ask AI, of many repositories at once", () => {
+  test("the repositories an edit would reach, read in one read a batch through the query an edit is allowed on", async () => {
+    const ids: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 600; index++) {
+      ids.push(ObjectID.generate());
+    }
+
+    const updatable: SpyInstance<typeof ModelPermission.getUpdatableQuery> =
+      jest.spyOn(ModelPermission, "getUpdatableQuery");
+    jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockImplementation((async (data: { props: { isRoot?: boolean } }) => {
+        // As OneUptime, through the query the caller's edit is allowed on.
+        expect(data.props.isRoot).toBe(true);
+        const allowed: CodeRepository = new CodeRepository();
+        allowed._id = ids[1]!.toString().toUpperCase();
+        return [allowed];
+      }) as never);
+
+    const askable: Set<string> = await CodeTaskAccess.listAskableRepositoryIds({
+      props: callerWith([row(Permission.ProjectMember)]),
+      projectId: PROJECT_ID,
+      repositoryIds: ids,
+    });
+
+    // Two batches; what they allow, lower-cased.
+    expect(updatable).toHaveBeenCalledTimes(2);
+    expect(askable).toEqual(
+      new Set<string>([ids[1]!.toString().toLowerCase()]),
+    );
+  });
+
+  test("someone who may change no repository, or whose plan holds none, may ask in none - and nothing is read", async () => {
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
+      .spyOn(CodeRepositoryService, "findBy")
+      .mockResolvedValue([]);
+
+    expect(
+      (
+        await CodeTaskAccess.listAskableRepositoryIds({
+          props: callerWith([row(Permission.ReadCodeRepository)]),
+          projectId: PROJECT_ID,
+          repositoryIds: [REPOSITORY_ID],
+        })
+      ).size,
+    ).toBe(0);
+
+    jest
+      .spyOn(ModelPermission, "getUpdatableQuery")
+      .mockRejectedValue(new PaymentRequiredException("Upgrade your plan."));
+
+    expect(
+      (
+        await CodeTaskAccess.listAskableRepositoryIds({
+          props: callerWith([row(Permission.ProjectMember)]),
+          projectId: PROJECT_ID,
+          repositoryIds: [REPOSITORY_ID],
+        })
+      ).size,
+    ).toBe(0);
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  test("anything else that goes wrong is not taken for a refusal", async () => {
+    jest
+      .spyOn(ModelPermission, "getUpdatableQuery")
+      .mockRejectedValue(new Error("Database is down"));
+
+    await expect(
+      CodeTaskAccess.listAskableRepositoryIds({
+        props: callerWith([row(Permission.ProjectMember)]),
+        projectId: PROJECT_ID,
+        repositoryIds: [REPOSITORY_ID],
+      }),
+    ).rejects.toThrow("Database is down");
+  });
+
+  test("the repositories kept are those in the set, in the order given", async () => {
+    const first: ObjectID = ObjectID.generate();
+    const second: ObjectID = ObjectID.generate();
+    const third: ObjectID = ObjectID.generate();
+
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockResolvedValue(
+        new Set<string>([
+          third.toString().toLowerCase(),
+          first.toString().toLowerCase(),
+        ]),
+      );
+
+    const kept: Array<{ id: string }> =
+      await CodeTaskAccess.keepAskableRepositories<{ id: string }>({
+        props: callerWith([row(Permission.ProjectMember)]),
+        projectId: PROJECT_ID,
+        repositories: [
+          { id: first.toString().toUpperCase() },
+          { id: second.toString() },
+          { id: third.toString() },
+        ],
+        getId: (repository: { id: string }): string => {
+          return repository.id;
+        },
+      });
+
+    expect(kept).toEqual([
+      { id: first.toString().toUpperCase() },
+      { id: third.toString() },
+    ]);
+    expect(
+      await CodeTaskAccess.keepAskableRepositories<{ id: string }>({
+        props: callerWith([row(Permission.ProjectMember)]),
+        projectId: PROJECT_ID,
+        repositories: [],
+        getId: (repository: { id: string }): string => {
+          return repository.id;
+        },
+      }),
+    ).toEqual([]);
   });
 });

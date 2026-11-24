@@ -3,6 +3,7 @@ import DataStore from "../../../../Models/DatabaseModels/DataStore";
 import DataStoreAccess from "../../../../Models/DatabaseModels/DataStoreAccess";
 import DataStoreFinding from "../../../../Models/DatabaseModels/DataStoreFinding";
 import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import { MAX_DESCRIBE_SENTENCE_LENGTH } from "../../../../Types/DataSecurity/DataTypeDescribe";
 import {
   CheckRemediation,
   DataSecurityCheckInfo,
@@ -93,6 +94,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import { findInstructionLikePhrase } from "../../../../Utils/AI/InstructionLikeText";
 import PromptText from "../../../../Utils/AI/PromptText";
 import {
+  isValueShape,
   MAX_FIELD_NEIGHBOURS,
   MAX_FIELD_SHAPES,
   MAX_NEIGHBOUR_LENGTH,
@@ -4208,6 +4210,167 @@ export function buildAuditEvidencePrompt(data: {
 }
 
 /*
+ * ---------------------------------------------------------------------------
+ * The company's own data types (#10371)
+ * ---------------------------------------------------------------------------
+ *
+ * Two drafts of a data type: from a group of fields scans could not place,
+ * by their names and the shapes of their values - and from a sentence a
+ * person wrote, with the shapes of their examples. Never a value, nor an
+ * example: a shape is OneUptime's, made from a value by plain code
+ * (UnplacedFields.valueShape), in the scan or in the person's browser, and
+ * read again here (isValueShape) so nothing else passes as one.
+ */
+
+// The most fields of a group, and of the data types it knows, a draft is told.
+export const MAX_DATA_TYPE_GROUP_FIELDS: number = 30;
+export const MAX_KNOWN_DATA_TYPE_NAMES: number = 400;
+// The most example shapes, and the longest sentence, a person's draft is told.
+export const MAX_DATA_TYPE_EXAMPLE_SHAPES: number = 10;
+export const MAX_DATA_TYPE_SENTENCE_LENGTH: number =
+  MAX_DESCRIBE_SENTENCE_LENGTH;
+// The longest pattern a draft asked for again is told it wrote.
+const MAX_PREVIOUS_PATTERN_LENGTH: number = 500;
+
+// One field of a group a data type is drafted from, and its store's kind.
+export interface AiDataTypeGroupField {
+  storeKind: string;
+  field: UnplacedField;
+}
+
+// A draft asked for once more: its pattern, and what was wrong with it.
+export interface AiDataTypeDraftRetry {
+  pattern: string;
+  // OneUptime's own words (DRAFT_PROBLEM_WORDS).
+  problem: string;
+}
+
+// The data types OneUptime knows, by name: a project's own are its text.
+function knownDataTypeFacts(
+  names: ReadonlyArray<string>,
+  marks: AiInputMarks,
+): Array<string> {
+  return dataTypeNames(
+    names.slice(0, MAX_KNOWN_DATA_TYPE_NAMES),
+    "knownDataTypes",
+    marks,
+  );
+}
+
+function previousDraftFacts(
+  retry: AiDataTypeDraftRetry | undefined,
+  marks: AiInputMarks,
+): JSONObject | undefined {
+  if (!retry) {
+    return undefined;
+  }
+
+  return {
+    // The model's own pattern, held to a length like any text it is told.
+    pattern: customerText(
+      retry.pattern,
+      MAX_PREVIOUS_PATTERN_LENGTH,
+      "previousDraft.pattern",
+      marks,
+    ),
+    problem: retry.problem.slice(0, MAX_ISSUE_VALUE_LENGTH),
+  };
+}
+
+/*
+ * A group of fields scans could not place (DataTypeCandidates), for a data
+ * type to be drafted from: each field's store's kind, location, the names
+ * beside it and the shapes of its values - as a field suggestion tells a
+ * field (unplacedFieldFacts) - and the data types OneUptime knows.
+ */
+export function buildDraftDataTypePrompt(data: {
+  instructions: string;
+  fields: ReadonlyArray<AiDataTypeGroupField>;
+  storeCount: number;
+  knownDataTypes: ReadonlyArray<string>;
+  retry?: AiDataTypeDraftRetry | undefined;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+
+  return prompt({
+    feature: DataSecurityAiFeature.DraftDataTypes,
+    instructions: data.instructions,
+    facts: withoutEmpty({
+      stores: Math.max(0, Math.floor(data.storeCount)),
+      fields: data.fields
+        .slice(0, MAX_DATA_TYPE_GROUP_FIELDS)
+        .map((entry: AiDataTypeGroupField, index: number): JSONObject => {
+          const facts: JSONObject = unplacedFieldFacts(
+            entry.field,
+            "",
+            index,
+            marks,
+          );
+
+          // A group's fields are told by place: there is no field to answer by.
+          delete facts["ref"];
+
+          return {
+            store: customerText(
+              entry.storeKind,
+              MAX_WORD_LENGTH,
+              `fields[${index}].store`,
+              marks,
+            ),
+            ...facts,
+          };
+        }),
+      knownDataTypes: knownDataTypeFacts(data.knownDataTypes, marks),
+      previousDraft: previousDraftFacts(data.retry, marks),
+    }),
+    marks,
+  });
+}
+
+/*
+ * Describe It (#10371): a person's sentence, for a data type to be drafted
+ * from, and the shapes of their examples - each read again as a shape, so
+ * an example cannot pass as one - and the data types OneUptime knows.
+ */
+export function buildDescribeDataTypePrompt(data: {
+  instructions: string;
+  sentence: string;
+  exampleShapes: ReadonlyArray<string>;
+  knownDataTypes: ReadonlyArray<string>;
+  retry?: AiDataTypeDraftRetry | undefined;
+}): DataSecurityAiPrompt {
+  const marks: AiInputMarks = new AiInputMarks();
+  const shapes: Array<string> = [];
+
+  for (const shape of data.exampleShapes) {
+    if (shapes.length >= MAX_DATA_TYPE_EXAMPLE_SHAPES) {
+      break;
+    }
+
+    if (isValueShape(shape) && !shapes.includes(shape)) {
+      shapes.push(shape);
+    }
+  }
+
+  return prompt({
+    feature: DataSecurityAiFeature.DescribeDataType,
+    instructions: data.instructions,
+    facts: withoutEmpty({
+      description: customerText(
+        data.sentence,
+        MAX_DATA_TYPE_SENTENCE_LENGTH,
+        "description",
+        marks,
+      ),
+      exampleShapes: shapes,
+      knownDataTypes: knownDataTypeFacts(data.knownDataTypes, marks),
+      previousDraft: previousDraftFacts(data.retry, marks),
+    }),
+    marks,
+  });
+}
+
+/*
  * Whether a value is a prompt this file made: for the one call
  * (DataSecurityAiCall) to refuse anything else that reached it past the
  * type, and for tests.
@@ -4274,6 +4437,8 @@ const DataSecurityAiInput: {
   buildRecordDraftPrompt: typeof buildRecordDraftPrompt;
   buildImpactAssessmentPrompt: typeof buildImpactAssessmentPrompt;
   buildAuditEvidencePrompt: typeof buildAuditEvidencePrompt;
+  buildDraftDataTypePrompt: typeof buildDraftDataTypePrompt;
+  buildDescribeDataTypePrompt: typeof buildDescribeDataTypePrompt;
   isDataSecurityAiPrompt: typeof isDataSecurityAiPrompt;
   isDataSecurityAiCodeRequest: typeof isDataSecurityAiCodeRequest;
 } = {
@@ -4316,6 +4481,8 @@ const DataSecurityAiInput: {
   buildRecordDraftPrompt,
   buildImpactAssessmentPrompt,
   buildAuditEvidencePrompt,
+  buildDraftDataTypePrompt,
+  buildDescribeDataTypePrompt,
   isDataSecurityAiPrompt,
   isDataSecurityAiCodeRequest,
 };

@@ -30,7 +30,9 @@ import {
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/MetricNameUsers";
 import {
   buildDroppedNameMatcher,
+  buildMetricNamesWithAttributeStatement,
   buildServiceMetricNamesStatement,
+  findMetricScrubRuleReaders,
   getDropMetricImpact,
   MAX_METRIC_NAMES_COUNTED,
 } from "../../../../../Server/Utils/DataSecurity/Telemetry/TelemetryMetricDrop";
@@ -71,6 +73,7 @@ import {
 import MetricPipelineRuleType from "../../../../../Types/Metrics/MetricPipelineRuleType";
 import ObjectID from "../../../../../Types/ObjectID";
 import SliType from "../../../../../Types/ServiceLevelObjective/SliType";
+import { TelemetryFieldReaderKind } from "../../../../../Types/Telemetry/TelemetryFieldReaders";
 
 /*
  * DROP THIS METRIC (issue #9757).
@@ -1115,5 +1118,198 @@ describe("what dropping would do, before it is asked for", () => {
     expect(statement.query).toMatch(
       /WHERE projectId = \{p\d+:String\} AND primaryEntityId = \{p\d+:String\} AND bucketTime >= \{p\d+:DateTime64\(9\)\} AND bucketTime <= \{p\d+:DateTime64\(9\)\} AND retentionDate >= now\(\) LIMIT \{p\d+:Int32\}/,
     );
+  });
+
+  /*
+   * #10753: a Redact Attribute rule for a finding in a metric's attribute
+   * changes that attribute's values in every metric of the service that
+   * carries it, so what reads those metrics - the monitors, dashboards,
+   * SLOs and recording rules Drop This Metric lists - is what reads what
+   * the rule hides. OneUptime AI's plan keeps them counted by kind; a rule
+   * something reads, or whose readers are not known, waits for a person.
+   */
+  describe("what reads what a metric attribute's scrub rule would change", () => {
+    let carrying: Array<string>;
+
+    beforeEach(() => {
+      carrying = ["http.server.duration"];
+      jest
+        .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+        .mockImplementation((async (statement: Statement): Promise<Results> => {
+          statements.push(statement);
+
+          return {
+            json: (): Promise<unknown> => {
+              return Promise.resolve({
+                data: carrying.map((metricName: string): JSONObject => {
+                  return { metricName };
+                }),
+              });
+            },
+          } as unknown as Results;
+        }) as never);
+    });
+
+    async function readersOf(
+      props: DatabaseCommonInteractionProps = { isRoot: true },
+    ): Promise<Partial<Record<TelemetryFieldReaderKind, number>> | undefined> {
+      return await findMetricScrubRuleReaders({
+        projectId: PROJECT_ID,
+        serviceId: CHECKOUT.toString(),
+        attributeKey: "user.email",
+        props,
+        now: NOW,
+      });
+    }
+
+    test("counted by kind: what reads the service's metrics that carry the attribute, and nothing that reads only others", async () => {
+      expect(await readersOf()).toEqual({
+        [TelemetryFieldReaderKind.Monitor]: 1,
+        [TelemetryFieldReaderKind.Dashboard]: 1,
+        [TelemetryFieldReaderKind.SavedView]: 0,
+        [TelemetryFieldReaderKind.RecordingRule]: 1,
+        [TelemetryFieldReaderKind.ServiceLevelObjective]: 1,
+      });
+    });
+
+    test("the read: the service's data points of the last day that carry the attribute, every value bound", async () => {
+      await readersOf();
+
+      const [names] = statements;
+
+      expect(statements).toHaveLength(1);
+      // The data points themselves: the rollup keeps no attributes.
+      expect(names!.query).toMatch(
+        /^SELECT DISTINCT name AS metricName FROM (?:\w+\.)?MetricItemV3 WHERE /,
+      );
+      expect(names!.query).toMatch(
+        /AND has\(attributeKeys, \{p\d+:String\}\) LIMIT \{p\d+:Int32\}/,
+      );
+      expect(names!.query).toMatch(/primaryEntityId IN \(/);
+      expect(names!.query).not.toContain("user.email");
+      expect(names!.query).not.toContain(CHECKOUT.toString());
+      expect(Object.values(names!.query_params)).toEqual(
+        expect.arrayContaining([
+          PROJECT_ID.toString(),
+          "user.email",
+          MAX_METRIC_NAMES_COUNTED + 1,
+        ]),
+      );
+      expect(names!.query).toContain("max_execution_time = 20");
+    });
+
+    test("counted whether or not the asker may read them: a reader the plan cannot name is a reader still", async () => {
+      serve(
+        MonitorService,
+        () => {
+          return monitors;
+        },
+        new NotAuthorizedException(
+          "You do not have permission to read Monitor.",
+        ),
+      );
+
+      expect(await readersOf(READER)).toMatchObject({
+        [TelemetryFieldReaderKind.Monitor]: 1,
+        [TelemetryFieldReaderKind.Dashboard]: 1,
+      });
+    });
+
+    test("more metrics carry it than are read: every metric of the service is taken as one, so no reader is missed", async () => {
+      carrying = [];
+
+      for (let i: number = 0; i <= MAX_METRIC_NAMES_COUNTED; i++) {
+        carrying.push(`m.${i}`);
+      }
+
+      expect(await readersOf()).toEqual({
+        [TelemetryFieldReaderKind.Monitor]: 2,
+        [TelemetryFieldReaderKind.Dashboard]: 2,
+        [TelemetryFieldReaderKind.SavedView]: 0,
+        [TelemetryFieldReaderKind.RecordingRule]: 2,
+        // Not the other service's SLO of the same metric: its points are not changed.
+        [TelemetryFieldReaderKind.ServiceLevelObjective]: 2,
+      });
+    });
+
+    test("no metric carries it: nothing reads what it would change - every kind checked", async () => {
+      carrying = [];
+
+      expect(await readersOf()).toEqual({
+        [TelemetryFieldReaderKind.Monitor]: 0,
+        [TelemetryFieldReaderKind.Dashboard]: 0,
+        [TelemetryFieldReaderKind.SavedView]: 0,
+        [TelemetryFieldReaderKind.RecordingRule]: 0,
+        [TelemetryFieldReaderKind.ServiceLevelObjective]: 0,
+      });
+    });
+
+    test("not known when the metrics' names cannot be read: none is said, so the rule waits", async () => {
+      jest
+        .spyOn(AnalyticsDatabaseService.prototype, "executeQuery")
+        .mockRejectedValue(new Error("Code: 159. Timeout exceeded."));
+      const warn: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((): void => {});
+
+      expect(await readersOf()).toBeUndefined();
+      expect(warn).toHaveBeenCalled();
+    });
+
+    test("not known when a kind of reader cannot be read", async () => {
+      jest.spyOn(logger, "warn").mockImplementation((): void => {});
+      jest
+        .spyOn(MetricRecordingRuleService, "findBy")
+        .mockRejectedValue(new Error("Connection terminated unexpectedly"));
+
+      expect(await readersOf()).toBeUndefined();
+    });
+
+    test("a test stands in for the read of the names, handed the very statement", async () => {
+      const handed: Array<Statement> = [];
+
+      const readers:
+        | Partial<Record<TelemetryFieldReaderKind, number>>
+        | undefined = await findMetricScrubRuleReaders({
+        projectId: PROJECT_ID,
+        serviceId: CHECKOUT.toString(),
+        attributeKey: "user.email",
+        props: { isRoot: true },
+        now: NOW,
+        readMetricNames: async (
+          statement: Statement,
+        ): Promise<Array<string>> => {
+          handed.push(statement);
+
+          return [JANE];
+        },
+      });
+
+      expect(statements).toEqual([]);
+      expect(handed[0]!.query).toContain("has(attributeKeys, ");
+      // Jane's signups: a monitor, and an SLO of this service; no dashboard or rule reads them.
+      expect(readers).toMatchObject({
+        [TelemetryFieldReaderKind.Monitor]: 1,
+        [TelemetryFieldReaderKind.Dashboard]: 0,
+        [TelemetryFieldReaderKind.ServiceLevelObjective]: 1,
+        [TelemetryFieldReaderKind.RecordingRule]: 0,
+      });
+    });
+
+    test("the window's bounds are bound like the rest; the limit is at least one", () => {
+      const statement: Statement = buildMetricNamesWithAttributeStatement({
+        projectId: PROJECT_ID,
+        serviceId: CHECKOUT.toString(),
+        attributeKey: "user.email",
+        since: new Date("2026-11-18T12:00:00.000Z"),
+        until: NOW,
+        limit: 0,
+      });
+
+      expect(statement.query).toMatch(
+        /WHERE projectId = \{p\d+:String\} AND time >= \{p\d+:DateTime64\(9\)\} AND time <= \{p\d+:DateTime64\(9\)\} AND retentionDate >= now\(\)/,
+      );
+      expect(Object.values(statement.query_params)).toContain(1);
+    });
   });
 });

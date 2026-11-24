@@ -34,8 +34,8 @@ import {
   SecurityBlockAction,
   SecurityBlockSource,
   SecurityBlockState,
-  SecurityBlockValue,
-  readSecurityBlockValue,
+  SecurityBlockIndicatorValue,
+  readSecurityBlockIndicator,
 } from "../../../../../../Types/SecurityBlocklist/SecurityBlock";
 import {
   SecurityBlockDestinationProvider,
@@ -153,7 +153,10 @@ function addBlock(data: {
   action?: SecurityBlockAction | undefined;
   hasCase?: boolean | undefined;
 }): SecurityBlock {
-  const read: SecurityBlockValue = readSecurityBlockValue(data.value)!;
+  // An address, a range, or a whole network by its ASN (#10354).
+  const read: SecurityBlockIndicatorValue = readSecurityBlockIndicator(
+    data.value,
+  )!;
   const block: SecurityBlock = new SecurityBlock();
 
   block._id = blockId(data.index).toString();
@@ -517,6 +520,65 @@ describe("drift: a rule turned off at Cloudflare", () => {
     expect(rowOf(1)?.state).toBe(SecurityBlockEnforcementState.Applied);
     expect(rowOf(1)?.error || null).toBeNull();
     expect(storedStatus().setupDoneFor).toBe(at(7).toISOString());
+  });
+});
+
+describe("a whole network by its ASN (#10354)", () => {
+  test("a challenge of an ASN is an IP Access Rule whose target is asn, Applied within one pass, never a list item", async () => {
+    addBlock({
+      index: 1,
+      value: "AS14061",
+      action: SecurityBlockAction.Challenge,
+    });
+
+    await pass(2);
+
+    expect(api.accessRules).toEqual([
+      expect.objectContaining({
+        target: "asn",
+        value: "AS14061",
+        mode: "managed_challenge",
+      }),
+    ]);
+    expect(api.listNamed("oneuptime_challenge")!.items).toEqual([]);
+
+    const row: SecurityBlockEnforcement = rowOf(1)!;
+    expect(row.state).toBe(SecurityBlockEnforcementState.Applied);
+    expect(row.providerRef).toBe(api.accessRules[0]!.id);
+  });
+
+  test("lifted, its rule is taken away within one pass", async () => {
+    addBlock({
+      index: 1,
+      value: "AS14061",
+      action: SecurityBlockAction.Challenge,
+    });
+    await pass(2);
+
+    blocks.get(blockId(1).toString())!.state = SecurityBlockState.Lifted;
+    await pass(3);
+
+    expect(api.accessRules).toEqual([]);
+    expect(rowOf(1)?.state).toBe(SecurityBlockEnforcementState.Removed);
+  });
+
+  test("a rule removed at Cloudflare by hand is put back on the next pass", async () => {
+    addBlock({
+      index: 1,
+      value: "AS14061",
+      action: SecurityBlockAction.Challenge,
+    });
+    await pass(2);
+
+    api.accessRules = [];
+    await pass(3);
+
+    expect(
+      api.accessRules.map((rule: { value: string }): string => {
+        return rule.value;
+      }),
+    ).toEqual(["AS14061"]);
+    expect(rowOf(1)?.state).toBe(SecurityBlockEnforcementState.Applied);
   });
 });
 

@@ -33,15 +33,38 @@ export interface HeldValueOptions {
   remember: (options: Array<DropdownOption>) => void;
 }
 
-// What a held value is read with: its name, and how it is marked.
+/*
+ * The column a model's records are drawn in the colour of - a label's
+ * colour - or undefined for one without: the same column the picker's own
+ * search reads (EntityDropdown), so a held value's chip has the dot a
+ * picked one has. Held labels lost theirs when the monitor criteria moved
+ * to searched pickers (#10690).
+ */
+export const getHeldValueColorField: (modelType: {
+  new (): BaseModel;
+}) => string | undefined = (modelType: {
+  new (): BaseModel;
+}): string | undefined => {
+  try {
+    return new modelType().getFirstColorColumn() || undefined;
+  } catch {
+    // A model that cannot be made to be asked has no colour to read.
+    return undefined;
+  }
+};
+
+// What a held value is read with: its name, its colour, and how it is marked.
 export const getHeldValueSelect: (modelType: {
   new (): BaseModel;
 }) => Select<BaseModel> = (modelType: {
   new (): BaseModel;
 }): Select<BaseModel> => {
+  const colorField: string | undefined = getHeldValueColorField(modelType);
+
   return {
     _id: true,
     name: true,
+    ...(colorField ? { [colorField]: true } : {}),
     ...ArchivedValuePicker.getSelectedValueSelect(modelType),
     ...getSharedNameSelect(modelType),
   } as Select<BaseModel>;
@@ -92,8 +115,12 @@ export const toHeldValueOption: (
 export const useHeldValueOptions: (data: {
   modelType: { new (): BaseModel };
   ids: Array<string>;
-  // Unset: the name, whether it is archived and what tells twins apart.
+  /*
+   * Unset: the name, the colour, whether it is archived and what tells
+   * twins apart (getHeldValueSelect).
+   */
   select?: Select<BaseModel> | undefined;
+  // Unset: the model's colour column, when it has one.
   colorField?: string | undefined;
   // In words to look up: never a name as written.
   notFoundLabel: string;
@@ -141,7 +168,7 @@ export const useHeldValueOptions: (data: {
         for (const record of records) {
           const option: DropdownOption | null = toHeldValueOption(
             record,
-            data.colorField,
+            data.colorField || getHeldValueColorField(data.modelType),
           );
 
           if (option) {

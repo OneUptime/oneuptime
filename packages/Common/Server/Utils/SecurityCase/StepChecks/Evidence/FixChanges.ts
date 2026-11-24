@@ -1,5 +1,6 @@
 import ChangeEvent from "../../../../../Models/AnalyticsModels/ChangeEvent";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import SecurityCasePullRequest from "../../../../../Models/DatabaseModels/SecurityCasePullRequest";
 import Service from "../../../../../Models/DatabaseModels/Service";
 import InBetween from "../../../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../../../Types/BaseDatabase/Includes";
@@ -17,6 +18,7 @@ import {
   shortCommitSha,
 } from "../../../../../Utils/Telemetry/ChangeEventFields";
 import AIAgentTaskPullRequestService from "../../../../Services/AIAgentTaskPullRequestService";
+import SecurityCasePullRequestService from "../../../../Services/SecurityCasePullRequestService";
 import ChangeEventService from "../../../../Services/ChangeEventService";
 import ServiceService from "../../../../Services/ServiceService";
 import QueryHelper from "../../../../Types/Database/QueryHelper";
@@ -24,16 +26,18 @@ import QueryHelper from "../../../../Types/Database/QueryHelper";
 /*
  * WHAT SHIPPED TO THE SERVICE BEHIND A CASE'S ROUTE (#10347): the fixes
  * OneUptime AI opened for the case (AIAgentTaskPullRequest.securityCaseId:
- * Fix With AI's pull requests) with whether each merged and which deploy
- * carried it (FixProductionVerifier matches the merge commit to a recorded
- * deploy), and the deploys of the services that answered the case's
- * requests since the case opened - recorded deploys, and the new versions
- * the services' own telemetry reported (ChangeEventSource.ServiceVersion).
+ * Fix With AI's pull requests) and the ones people linked to it themselves
+ * (SecurityCasePullRequest, #10604), with whether each merged and which
+ * deploy carried it (FixProductionVerifier and SecurityCasePullRequest
+ * Follower match the merge commit to a recorded deploy), and the deploys of
+ * the services that answered the case's requests since the case opened -
+ * recorded deploys, and the new versions the services' own telemetry
+ * reported (ChangeEventSource.ServiceVersion).
  *
  * A deploy alone is not a fix: the Fix step's check proves one only by the
  * attack being turned away after it (FixRouteStepCheck). A fix a person
  * shipped without a pull request on the case counts once its deploy is
- * recorded, as Fix With AI's does.
+ * recorded, as a linked one does.
  */
 
 // The most pull requests and deploys read.
@@ -46,9 +50,11 @@ export const FIX_CHANGES_MAX_DEPLOYS: number = 50;
  */
 export const FIX_CHANGES_DEPLOY_DATA_LOOKBACK_DAYS: number = 90;
 
-// One of OneUptime AI's fixes for the case, as its pull request stands.
+// One of the case's fixes, as its pull request stands.
 export interface FixPullRequest {
   id: string;
+  // A person linked it to the case (#10604); else OneUptime AI opened it.
+  isLinked: boolean;
   number: number | null;
   // Its page on the code host, https; "" when it has none.
   url: string;
@@ -159,6 +165,31 @@ export function readFixPullRequest(
 
   return {
     id: row._id?.toString() || row.id?.toString() || "",
+    isLinked: false,
+    number:
+      typeof row.pullRequestNumber === "number" ? row.pullRequestNumber : null,
+    url: HTTPS_ADDRESS.test(url) ? url : "",
+    host: CodeHost.getFacts(row.codeRepository?.repositoryHostedAt).name,
+    state: row.pullRequestState || "",
+    mergedAt: readDate(row.mergedAt),
+    deployedAt:
+      row.pullRequestState === PullRequestState.Merged
+        ? readDate(row.deployedAt)
+        : null,
+    deployedVersion: (row.deployedVersion || "").trim(),
+    deployedCommitSha: (row.deployedCommitSha || "").trim(),
+  };
+}
+
+// A pull request a person linked to the case, as the check reads it (#10604).
+export function readLinkedPullRequest(
+  row: SecurityCasePullRequest,
+): FixPullRequest {
+  const url: string = row.pullRequestUrl?.toString() || "";
+
+  return {
+    id: row._id?.toString() || row.id?.toString() || "",
+    isLinked: true,
     number:
       typeof row.pullRequestNumber === "number" ? row.pullRequestNumber : null,
     url: HTTPS_ADDRESS.test(url) ? url : "",
@@ -200,12 +231,37 @@ export default class FixChanges {
         return new ObjectID(id);
       });
 
-    const [pullRequests, deployRows, services]: [
+    const [pullRequests, linkedPullRequests, deployRows, services]: [
       Array<AIAgentTaskPullRequest>,
+      Array<SecurityCasePullRequest>,
       Array<ChangeEvent>,
       Array<Service>,
     ] = await Promise.all([
       AIAgentTaskPullRequestService.findBy({
+        query: {
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+        },
+        select: {
+          _id: true,
+          pullRequestNumber: true,
+          pullRequestUrl: true,
+          pullRequestState: true,
+          mergedAt: true,
+          deployedAt: true,
+          deployedVersion: true,
+          deployedCommitSha: true,
+          codeRepository: {
+            repositoryHostedAt: true,
+          },
+        },
+        sort: { createdAt: SortOrder.Ascending },
+        skip: 0,
+        limit: FIX_CHANGES_MAX_PULL_REQUESTS,
+        props: { isRoot: true },
+      }),
+      // The ones people linked themselves (#10604).
+      SecurityCasePullRequestService.findBy({
         query: {
           projectId: data.projectId,
           securityCaseId: data.securityCaseId,
@@ -298,7 +354,10 @@ export default class FixChanges {
     }
 
     return {
-      pullRequests: pullRequests.map(readFixPullRequest),
+      pullRequests: [
+        ...pullRequests.map(readFixPullRequest),
+        ...linkedPullRequests.map(readLinkedPullRequest),
+      ],
       deploys,
       hasDeployData,
       serviceNames,

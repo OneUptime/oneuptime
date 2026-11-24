@@ -133,6 +133,7 @@ Ouvrez **Produits → Événements de sécurité → Événements**. Les événe
 Indiquez le format avec `?format=`, avec l'en-tête `x-oneuptime-security-event-format` ou avec un champ `"format"` de premier niveau. Si vous l'omettez, le format de chaque événement est déterminé séparément, si bien qu'un même webhook peut mêler détections et événements bruts.
 
 - Le corps peut être un événement, un tableau d'événements ou `{ "events": [...] }`.
+- Un lot peut être compressé avec gzip et envoyé avec `Content-Encoding: gzip` : il est lu comme le même lot non compressé. La sortie `http` de Fluent Bit compresse avec `compress gzip`, le sink `http` de Vector avec `compression = "gzip"` et la sortie `http` de Logstash avec `http_compression => true`. Seul le JSON est lu compressé : un corps compressé de tout autre type est refusé avec `400`.
 - L'en-tête `x-oneuptime-service-name` nomme le service de télémétrie auquel appartiennent les événements. Sans lui, ils appartiennent au service nommé d'après le produit ou le fournisseur du premier événement, ou à `Security Events`.
 - Rien n'est écarté faute de correspondance : chaque champ de la source arrive dans les attributs de l'événement.
 
@@ -174,6 +175,7 @@ Pour envoyer des journaux de sécurité que vous collectez déjà, par exemple c
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ La page **Guide de configuration**, sous **Connexions**, contient ces extraits a
 
 ### Trouver des événements de sécurité dans vos journaux
 
-La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes et attaque web qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
+La carte **Vos journaux**, en haut de **Connexions**, fait des journaux que vous envoyez déjà à OneUptime une source. Avec **Trouver des événements de sécurité dans vos journaux** activé, les nouveaux journaux du projet sont lus chaque minute, et chaque connexion SSH ou Windows, commande sudo, entrée d'audit d'un cloud, enregistrement CEF ou LEEF d'un produit de sécurité, enregistrement d'un pare-feu Palo Alto Networks, FortiGate ou Cisco ASA, entrée d'audit Kubernetes, attaque web et requête refusée visant un fichier sensible qu'ils contiennent est stocké comme événement de sécurité. Voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started#trouver-des-événements-de-sécurité-dans-vos-journaux) pour ce que couvre chaque type.
 
 Chaque type parvient à OneUptime sous forme de journaux ordinaires :
 
@@ -298,6 +300,8 @@ Une règle d'adresse IP qui efface ou masque vos journaux ou vos traces cache l'
 
 Une règle qui hache garde l'adresse pour les Événements de sécurité, donc l'événement la nomme, sauf si son jeton a plus de 30 jours ou a été créé avant que les jetons aient une clé : voir [Masquer les données sensibles](/docs/telemetry/drop-filters-and-scrub-rules#masquer-les-données-sensibles). Pour trouver ces événements, recherchez `@oneuptime.request.client_address_hidden:scrub-rule`. Ce que la règle a laissé à la place de l'adresse, comme `[REDACTED]`, se trouve dans `oneuptime.request.client_address_scrubbed`. Pour une destination, recherchez `@oneuptime.target_address_hidden:scrub-rule`.
 
+Une règle de détection qui compte par adresse devrait compter par `principalIp` ou `targetIp`, comme le font les règles de la Bibliothèque de règles : ces champs nomment l'adresse derrière le jeton d'une règle qui hache. Le champ d'adresse propre à un format, comme `openstack.audit.initiator_address` ou `asa.src_ip`, ne contient qu'une adresse que le journal a écrite : il reste donc vide partout où une règle de masquage en a caché une.
+
 Une règle qui efface ou masque un utilisateur le cache de la même façon : là où l'événement nommerait l'utilisateur, **Utilisateur source** ou **Utilisateur cible** dit qu'une règle de masquage l'a caché. Là où les Événements de sécurité lisent un utilisateur, une règle qui hache leur garde l'utilisateur : le `enduser.id` ou le `user.id` d'une requête, l'utilisateur d'un appel d'IA et l'utilisateur que nomme une ligne de journal, comme le principal d'un journal d'audit cloud. Ainsi, l'événement nomme l'utilisateur derrière le jeton, un dossier le concernant nomme le compte, et un playbook peut agir sur lui comme sur tout autre utilisateur. Ce que la règle a laissé se trouve dans `oneuptime.principal_user_hashed_as` ou `oneuptime.target_user_hashed_as`, pour retrouver l'utilisateur dans vos journaux et vos traces, qui ne contiennent que le jeton. Un jeton pour lequel aucun utilisateur n'est gardé, comme un jeton créé avant que les jetons aient une clé, reste l'utilisateur de l'événement : les règles le comptent comme un seul compte, et aucun playbook n'agit sur lui.
 
 ## Explorer les événements de sécurité
@@ -333,7 +337,16 @@ Un événement lu dans une ligne de journal écrite au sein d'une requête trac�
 
 ### Campaigns
 
-**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier.
+**Campagnes** liste chaque adresse qui a envoyé des requêtes d'attaque sur une seule ligne, avec les types d'attaque, les outils et les requêtes qu'elle a envoyés, et combien sont passées. Les adresses dont les requêtes ont atteint votre application viennent en premier. Une ligne que votre liste de blocage contient déjà indique jusqu'à quand elle est bloquée ou soumise à un défi, et nomme la plage ou le réseau qui la contient.
+
+Pour bloquer plusieurs attaquants à la fois, sélectionnez leurs lignes et cliquez sur **Bloquer des adresses**. Une seule boîte de dialogue liste chaque adresse qu'elle bloque et chaque adresse qu'elle exclut, avec la raison : déjà bloquée, l'une des vôtres ou une adresse protégée, une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou une adresse que OneUptime n'a pas pu vérifier. Elle bloque pendant 24 heures sauf si vous choisissez une autre durée, ou soumet à un défi avec **Défi à la place**, et chaque blocage rejoint votre [liste de blocage](/docs/telemetry/security-cases#liste-de-blocage) en votre nom.
+
+**Regrouper par réseau** place les adresses d'un même réseau sur une seule ligne : par son ASN quand les événements de votre connexion [Cloudflare](/docs/integrations/cloudflare) en nomment un, et sinon par son /24 en IPv4 ou son /48 en IPv6. La ligne d'un ASN liste les plages depuis lesquelles ses adresses ont envoyé des requêtes. **Soumettre ce réseau à un défi** indique ce qu'il va faire, où et pendant combien de temps avant de le faire : 24 heures sauf si vous choisissez une autre durée, et l'échelon suivant de l'échelle pour un réseau déjà soumis à un défi. Cloudflare garde une plage dans sa liste de défis, et un ASN sous forme d'IP Access Rule, que chaque forfait possède.
+
+- Un réseau qui contient une adresse qu'un utilisateur connecté a utilisée au cours des 30 derniers jours, ou l'une des vôtres, n'est jamais soumis à un défi, et la boîte de dialogue nomme qui ou quoi.
+- Une plage plus large qu'un /24 (un /48 en IPv6), et un ASN entier, demandent un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet. La ligne d'un ASN propose aussi chacune de ses plages, que toute personne qui peut bloquer peut soumettre à un défi.
+- Quand OneUptime ne peut pas savoir qui utilise un réseau, parce que c'est un ASN entier ou qu'une règle de masquage cache les adresses des clients, seul un Administrateur de la sécurité, un Administrateur du projet ou un Propriétaire du projet peut le soumettre à un défi, après avoir coché qu'il le sait.
+- Rien n'est bloqué ni soumis à un défi tant que les Événements de sécurité sont désactivés sur le serveur.
 
 ### Corréler
 

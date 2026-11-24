@@ -625,6 +625,7 @@ let blockerInRepository: CodeTaskBlocker | null;
 let readableSpy: jest.SpyInstance;
 let readableOneSpy: jest.SpyInstance;
 let canAskSpy: jest.SpyInstance;
+let askableSpy: jest.SpyInstance;
 let gateSpy: jest.SpyInstance;
 
 let storeRow: DataStore | null;
@@ -697,6 +698,7 @@ function readsMade(): number {
     readableSpy,
     readableOneSpy,
     canAskSpy,
+    askableSpy,
     gateSpy,
   ].reduce((sum: number, spy: jest.SpyInstance) => {
     return sum + spy.mock.calls.length;
@@ -966,6 +968,25 @@ beforeEach(() => {
     .spyOn(CodeTaskAccess, "canAskInRepository")
     .mockImplementation((async (data: { repositoryId: ObjectID }) => {
       return !notAskable.has(data.repositoryId.toString());
+    }) as never);
+  // Many repositories weighed at once, by the same marks (#10764).
+  askableSpy = jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation((async (data: {
+      repositoryIds: Array<ObjectID | string>;
+    }) => {
+      return new Set<string>(
+        data.repositoryIds
+          .map((id: ObjectID | string): string => {
+            return id.toString();
+          })
+          .filter((id: string): boolean => {
+            return !notAskable.has(id);
+          })
+          .map((id: string): string => {
+            return id.toLowerCase();
+          }),
+      );
     }) as never);
   gateSpy = jest
     .spyOn(CodeTaskGate, "getBlocker")
@@ -2682,9 +2703,10 @@ describe("Explain and Fix With AI", () => {
       projectId: PROJECT_ID,
       props: { userId: USER_ID },
     });
-    expect(canAskSpy.mock.calls[0]![0]).toMatchObject({
+    // Every repository the caller may read is weighed at once (#10764).
+    expect(askableSpy.mock.calls[0]![0]).toMatchObject({
       projectId: PROJECT_ID,
-      repositoryId: repository.id,
+      repositoryIds: [repository.id!.toString()],
       props: { userId: USER_ID },
     });
     // Asked first with no repository, then for the one the task works in.

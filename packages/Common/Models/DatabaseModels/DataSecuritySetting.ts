@@ -211,6 +211,49 @@ export default class DataSecuritySetting extends BaseModel {
   })
   public isTelemetryScanEnabled?: boolean = undefined;
 
+  /*
+   * The names-and-addresses model (Server/Utils/DataSecurity/Model): a
+   * small open model that runs inside the scanner, on OneUptime's workers
+   * and on probes, and reads free text for people's names and street
+   * addresses. It is not OneUptime AI: no value leaves the scanner, and no
+   * prompt is built, so the AI switches do not govern it.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Find Names And Street Addresses",
+    description:
+      "Content scans read free text for people's names and street addresses with a small model that runs inside the scanner. No value leaves the scanner.",
+    defaultValue: true,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public isModelScanEnabled?: boolean = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    canReadOnRelationQuery: true,
+    title: "Find Names And Street Addresses In Telemetry",
+    description:
+      "With Find Names And Street Addresses on, the hourly telemetry scan also reads log bodies, exception messages and AI conversations with the model.",
+    defaultValue: false,
+    isDefaultValueColumn: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isTelemetryModelScanEnabled?: boolean = undefined;
+
   @ColumnAccessControl(editableColumnAccess)
   @TableColumn({
     type: TableColumnType.Boolean,

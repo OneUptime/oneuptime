@@ -27,6 +27,25 @@ flowchart TB
 
 De fleste beskeder kan bekræfte tilkaldet: e-mails, sms'er og beskeder i WhatsApp, Telegram, Slack, Microsoft Teams og Mattermost har et bekræftelseslink, og et opkald beder dig trykke 1. Kan du ikke tage et tilkald, kan du eskalere det fra de samme beskeder, og et opkald beder dig trykke 2: politikken tilkalder straks sit næste niveau, og du bliver ikke tilkaldt om det igen. Se [Eskalér et tilkald](/docs/on-call/escalation-rules#eskalér-et-tilkald). Hvert tilkald, du får, står under **Brugerindstillinger → Vagtlogs**, hvor **Vis tidslinje** viser hver sendt besked, og om den blev leveret.
 
+### Hvad et opkald siger
+
+Et opkald siger, hvem det er fra, hvad der er sket, hvor alvorligt det er, og hvilket nummer det har, derefter hvilken tast der gør hvad og til sidst titlen. Du kan trykke på en tast når som helst, også mens opkaldet stadig taler. Trykker du ikke på nogen, siger opkaldet detaljerne og tasterne én gang til, venter 10 sekunder og lægger på, og tilkaldet forbliver ubekræftet:
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+Opkaldet nævner dit projekt. Et opkald, der ikke hører til et projekt, for eksempel en bekræftelseskode, nævner OneUptime eller det navn, din selvhostede installation bruger. En titel på mere end cirka 100 tegn afkortes efter et helt ord, og OneUptime gemmer hele titlen. Bogstaverne i et nummer som `INC-42` siges ét ad gangen, så stemmen aldrig læser dem som et ord. Opkald er altid på engelsk.
+
 ## Én rækkefølge til alt
 
 **Brugerindstillinger → Sådan når man mig** åbner med din rækkefølge: nummererede trin, som hvert kald prøver efter tur, for hændelser, advarsler og episoder af enhver alvorlighed. Hvert trin er et tidspunkt, for eksempel med det samme eller efter 5 minutter, med de bekræftede metoder, der sendes samtidig da. Et senere trin sendes kun, hvis ingen har bekræftet kaldet inden da.

@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: в вашем списке защищённых сущностей, поэтому с ним ничего не делается",
   "{{target}}: one of the case's addresses": "{{target}}: один из адресов кейса",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: один из ваших собственных адресов, поэтому он никогда не блокируется",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: отправлял те же запросы теми же инструментами, что и адрес кейса",
   "{{target}}: the case is grouped on it": "{{target}}: по нему сгруппирован кейс",
   "{{target}}: undone at {{time}}": "{{target}}: отменено в {{time}}",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: отменено, {{person}}, в {{time}}",

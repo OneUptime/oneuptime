@@ -133,6 +133,7 @@ Endepunktet svarer `200` så snart hendelsene står i kø. En hendelse sendt ute
 Angi formatet med `?format=`, med hodet `x-oneuptime-security-event-format` eller med et felt `"format"` på øverste nivå. Utelater du det, bestemmes formatet for hver hendelse for seg, så én webhook kan blande deteksjoner med rå hendelser.
 
 - Body kan være én hendelse, en matrise av hendelser eller `{ "events": [...] }`.
+- En batch kan være gzip-komprimert og sendes med `Content-Encoding: gzip`: den leses som den samme batchen ukomprimert. I Fluent Bit komprimerer `http`-utgangen med `compress gzip`, i Vector `http`-sinken med `compression = "gzip"`, og i Logstash `http`-utgangen med `http_compression => true`. Bare JSON leses komprimert: en komprimert body av en hvilken som helst annen type avvises med `400`.
 - Hodet `x-oneuptime-service-name` angir telemetritjenesten hendelsene hører til. Uten det hører de til tjenesten som er oppkalt etter produktet eller leverandøren til den første hendelsen, eller til `Security Events`.
 - Ingenting forkastes fordi det ikke lot seg tilordne: hvert felt fra kilden havner i hendelsens attributter.
 
@@ -174,6 +175,7 @@ For å sende sikkerhetslogger du allerede samler inn, for eksempel auditd, syslo
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ Siden **Oppsettveiledning**, under **Tilkoblinger**, har disse kodesnuttene med 
 
 ### Finn sikkerhetshendelser i loggene dine
 
-Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH- eller Windows-pålogging, sudo-kommando, revisjonsoppføring fra en sky, CEF- eller LEEF-oppføring fra et sikkerhetsprodukt, oppføring fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-brannmur, Kubernetes-revisjonsoppføring og hvert webangrep i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
+Kortet **Loggene dine**, øverst på **Tilkoblinger**, gjør loggene du allerede sender til OneUptime, til en kilde. Med **Finn sikkerhetshendelser i loggene dine** slått på leses prosjektets nye logger hvert minutt, og hver SSH- eller Windows-pålogging, sudo-kommando, revisjonsoppføring fra en sky, CEF- eller LEEF-oppføring fra et sikkerhetsprodukt, oppføring fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-brannmur, Kubernetes-revisjonsoppføring, hvert webangrep og hver avvist forespørsel om en sensitiv fil i dem lagres som en sikkerhetshendelse. Se [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started#finn-sikkerhetshendelser-i-loggene-dine) for hva hver type dekker.
 
 Hver type når OneUptime som vanlige logger:
 
@@ -298,6 +300,8 @@ En IP-adresseregel som sletter eller maskerer loggene eller trasene dine, skjule
 
 En regel som hasher, lagrer adressen for Sikkerhetshendelser, så hendelsen navngir den, med mindre tokenet er eldre enn 30 dager eller ble laget før tokener hadde en nøkkel: se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data). Søk etter `@oneuptime.request.client_address_hidden:scrub-rule` for å finne disse hendelsene. Det regelen la igjen i stedet for adressen, som `[REDACTED]`, står i `oneuptime.request.client_address_scrubbed`. Søk etter `@oneuptime.target_address_hidden:scrub-rule` for en destinasjon.
 
+En deteksjonsregel som teller per adresse, bør telle per `principalIp` eller `targetIp`, som navngir adressen bak tokenet fra en regel som hasher, slik regelbibliotekets regler gjør. Et formats eget adressefelt, for eksempel `openstack.audit.initiator_address` eller `asa.src_ip`, inneholder bare en adresse som sto i loggen, så det forblir tomt overalt der en scrub-regel skjulte en.
+
 En regel som sletter eller maskerer en bruker, skjuler den på samme måte: Der hendelsen ville navngitt brukeren, sier **Kildebruker** eller **Målbruker** at en scrub-regel skjulte den. Der Sikkerhetshendelser leser en bruker, lagrer en regel som hasher, brukeren for den: en forespørsels `enduser.id` eller `user.id`, et AI-kalls bruker og en bruker som en logglinje navngir, som principal i en revisjonslogg fra skyen. Så hendelsen navngir brukeren bak tokenet, en sak om brukeren navngir kontoen, og en playbook kan handle på den som på enhver annen bruker. Det regelen la igjen, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finne brukeren i loggene og trasene dine, som bare inneholder tokenet. Et token som ingen bruker er lagret for, som et som ble laget før tokener hadde en nøkkel, forblir hendelsens bruker: Regler teller det som én konto, og ingen playbook handler på det.
 
 ## Utforsk sikkerhetshendelser
@@ -333,7 +337,16 @@ En hendelse lest fra en logglinje som ble skrevet inne i en sporet forespørsel,
 
 ### Campaigns
 
-**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først.
+**Kampanjer** viser hver adresse som sendte angrepsforespørsler som én rad, med angrepstypene, verktøyene og forespørslene den sendte, og hvor mange som kom gjennom. Adressene med forespørsler som nådde appen din, kommer først. En rad som blokkeringslisten din allerede holder, sier til når den er blokkert eller utfordret, og nevner området eller nettverket som holder den.
+
+For å blokkere flere angripere samtidig velger du radene deres og trykker på **Blokker adresser**. Én dialog viser hver adresse den blokkerer og hver adresse den utelater, med grunnen: allerede blokkert, en av dine egne eller en beskyttet, en som en pålogget bruker har brukt de siste 30 dagene, eller en som OneUptime ikke kunne kontrollere. Den blokkerer i 24 timer med mindre du velger en annen varighet, eller utfordrer med **Utfordre i stedet**, og hver blokkering havner på [blokkeringslisten](/docs/telemetry/security-cases#blokkeringsliste) din som din.
+
+**Grupper etter nettverk** samler adressene fra ett nettverk på én rad: etter ASN-en der hendelsene fra [Cloudflare](/docs/integrations/cloudflare)-tilkoblingen din oppgir en, og ellers etter /24 for IPv4 eller /48 for IPv6. Raden til en ASN viser områdene adressene sendte fra. **Utfordre dette nettverket** sier hva det vil gjøre, hvor og hvor lenge, før det gjør det: 24 timer med mindre du velger en annen varighet, og neste trinn på stigen for et nettverk som er utfordret før. Cloudflare holder et område i utfordringslisten sin, og en ASN som en IP Access Rule, som alle planer har.
+
+- Et nettverk som inneholder en adresse en pålogget bruker har brukt de siste 30 dagene, eller en av dine egne, blir aldri utfordret, og dialogen nevner hvem eller hva.
+- Et område som er bredere enn et /24 (et /48 for IPv6), og en hel ASN, krever en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier. Raden til en ASN tilbyr også hvert av områdene, som alle som kan blokkere, kan utfordre.
+- Når OneUptime ikke kan se hvem som bruker et nettverk, fordi det er en hel ASN eller fordi en scrub-regel skjuler klientadresser, kan bare en Sikkerhetsadministrator, en Prosjektadministrator eller en Prosjekteier utfordre det, etter å ha krysset av for at de vet det.
+- Ingenting blir blokkert eller utfordret så lenge Sikkerhetshendelser er slått av på serveren.
 
 ### Korreler
 

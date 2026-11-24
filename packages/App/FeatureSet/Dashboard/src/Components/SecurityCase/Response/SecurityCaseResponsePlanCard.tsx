@@ -16,6 +16,22 @@ import {
   liftBlockFromCase,
   loadAddressBlocking,
 } from "./SecurityCaseAddressBlocks";
+import BlockWholeCampaignModal from "./BlockWholeCampaignModal";
+import {
+  readCampaignOfCaseAddress,
+  readRepeatOffenders,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentApi";
+import {
+  BLOCK_WHOLE_CAMPAIGN,
+  SECURITY_CAMPAIGN_TEST_IDS,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentCopy";
+import {
+  splitCampaignChecks,
+  writeCampaignOfAddressLine,
+  writeRepeatOffenderLine,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentModel";
+import { SecurityRepeatOffenderSummary } from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import { SecurityCampaignOfCaseAddress } from "Common/Types/SecurityEvent/SecurityCampaignContainment";
 import { ADD_EXCEPTION_DESCRIPTION } from "../../SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import { SecurityCaseValueLists } from "../SecurityCaseValues";
 import {
@@ -53,8 +69,20 @@ import {
   BLOCK_STARTED_TOAST,
   LIFTED_FROM_PLAN_REASON,
   RESPONSE_BLOCKED,
+  UNLINKED_PULL_REQUEST_TOAST,
 } from "./SecurityCaseResponseCopy";
 import { readCaseBlocklist } from "../../SecurityEvents/Blocklist/BlocklistApi";
+import {
+  FixPullRequestList,
+  LinkPullRequestButton,
+  LinkPullRequestModal,
+} from "./SecurityCaseFixPullRequests";
+import {
+  FIX_PULL_REQUEST_SELECT,
+  canLinkPullRequest,
+  getFixPullRequestName,
+  isRouteFixStep,
+} from "./SecurityCaseFixPullRequestsModel";
 import {
   StepCheckLinkTarget,
   canConfirmStep,
@@ -99,6 +127,8 @@ import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import { isSecurityCaseTaken } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanInputs";
 import SecurityCaseStepCheck from "Common/Models/DatabaseModels/SecurityCaseStepCheck";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import { SECURITY_CASE_PULL_REQUESTS_MAX } from "Common/Types/SecurityCase/SecurityCasePullRequestLink";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
@@ -119,7 +149,11 @@ import {
   SecurityEntityType,
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import { getSecurityBlockExpiry } from "Common/Types/SecurityBlocklist/SecurityBlock";
+import {
+  SecurityBlockDuration,
+  getSecurityBlockExpiry,
+  readSecurityBlockValue,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import { getCaseBlockableAddresses } from "Common/Utils/SecurityCase/ResponsePlan/BlockableAddresses";
 import {
@@ -222,6 +256,11 @@ export interface ComponentProps {
 interface PlanData {
   tasks: Array<SecurityCaseTask>;
   playbooks: Array<SecurityPlaybook>;
+  /*
+   * The pull requests people linked to the case's Fix step (#10604); none
+   * when they could not be read, which leaves the step as it is.
+   */
+  pullRequests: Array<SecurityCasePullRequest>;
   // What OneUptime found of the steps; none when they could not be read.
   checks: Array<SecurityCaseStepCheck>;
   isChecksUnread: boolean;
@@ -240,6 +279,17 @@ interface PlanData {
    * step is then one done by hand.
    */
   addressBlocking: ResponseAddressBlocking | undefined;
+  /*
+   * The case's addresses blocked before it opened (#10354), by address as
+   * blocks write it: none for an address never blocked before, and none at
+   * all when the blocklist could not be read.
+   */
+  repeatOffenders: Map<string, SecurityRepeatOffenderSummary>;
+}
+
+// An address as blocks write it, the key the plan's per-address reads keep.
+function addressKey(address: string): string {
+  return readSecurityBlockValue(address)?.value || address.trim();
 }
 
 const PHASE_HEADING_CLASS_NAME: string =
@@ -304,6 +354,11 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const [exceptionFor, setExceptionFor] = useState<ResponseAction | null>(null);
   // The steps whose How We Know is open.
   const [openHowWeKnow, setOpenHowWeKnow] = useState<Array<string>>([]);
+  // Link Pull Request's dialog, and the link being taken off (#10604).
+  const [isLinkingPullRequest, setIsLinkingPullRequest] =
+    useState<boolean>(false);
+  const [removingPullRequestId, setRemovingPullRequestId] =
+    useState<string>("");
 
   const caseUpdateGate: PermissionGateResult = PermissionGate.check(
     new SecurityCase(),
@@ -320,6 +375,15 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const runGate: PermissionGateResult = PermissionGate.check(
     new SecurityPlaybookRun(),
     ModelAction.Create,
+  );
+  // A person's own fix, linked to the Fix step and taken off it (#10604).
+  const pullRequestLinkGate: PermissionGateResult = PermissionGate.check(
+    new SecurityCasePullRequest(),
+    ModelAction.Create,
+  );
+  const pullRequestUnlinkGate: PermissionGateResult = PermissionGate.check(
+    new SecurityCasePullRequest(),
+    ModelAction.Delete,
   );
   // A block from the plan is a one-step run that writes the blocklist (#10342): it takes both.
   const blockCreateGate: PermissionGateResult = PermissionGate.check(
@@ -376,12 +440,13 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     latestReadRef.current = readNumber;
 
     try {
-      const [tasks, playbooks, runs, checks, blocklist]: [
+      const [tasks, playbooks, runs, checks, blocklist, pullRequests]: [
         ListResult<SecurityCaseTask>,
         ListResult<SecurityPlaybook>,
         ListResult<SecurityPlaybookRun>,
         { rows: Array<SecurityCaseStepCheck>; isUnread: boolean },
         ResponseBlocklist | null,
+        Array<SecurityCasePullRequest>,
       ] = await Promise.all([
         ModelAPI.getList<SecurityCaseTask>({
           modelType: SecurityCaseTask,
@@ -442,6 +507,24 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         ).catch((): null => {
           return null;
         }),
+        // Links that cannot be read - or a reader who may not read them - leave the Fix step as it is.
+        ModelAPI.getList<SecurityCasePullRequest>({
+          modelType: SecurityCasePullRequest,
+          query: { securityCaseId: new ObjectID(caseIdText) },
+          select: FIX_PULL_REQUEST_SELECT,
+          sort: { createdAt: SortOrder.Ascending },
+          skip: 0,
+          limit: SECURITY_CASE_PULL_REQUESTS_MAX,
+        }).then(
+          (
+            result: ListResult<SecurityCasePullRequest>,
+          ): Array<SecurityCasePullRequest> => {
+            return result.data || [];
+          },
+          (): Array<SecurityCasePullRequest> => {
+            return [];
+          },
+        ),
       ]);
 
       // The blocklist that cannot be read leaves the block step as one done by hand.
@@ -471,13 +554,27 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           return undefined;
         });
 
+      /*
+       * Its addresses blocked before it opened (#10354): a blocklist that
+       * cannot be read - or a reader who may not read it - says nothing of it.
+       */
+      const repeatOffenders: Map<string, SecurityRepeatOffenderSummary> =
+        await readRepeatOffenders({
+          securityCaseId: new ObjectID(caseIdText),
+          addresses: blockableAddressesRef.current,
+        }).catch((): Map<string, SecurityRepeatOffenderSummary> => {
+          return new Map();
+        });
+
       if (readNumber === latestReadRef.current) {
         setData({
           tasks: tasks.data,
           playbooks: playbooks.data,
+          pullRequests,
           checks: checks.rows,
           isChecksUnread: checks.isUnread,
           addressBlocking,
+          repeatOffenders,
           blocklist,
           ...readPlaybookRuns(
             runs.data.map(
@@ -504,6 +601,78 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     void load();
   }, [load, props.refreshToggle, blockableAddressesKey]);
+
+  /*
+   * The campaign of each of the case's addresses (#10354): the other
+   * addresses that sent the same requests with the same tools, which Block
+   * the Whole Campaign offers. Read once for the case's addresses - and
+   * again after a block of one - never on each of the plan's live reloads:
+   * it reads the window's events. Only for a person who may block from the
+   * case.
+   */
+  const [campaigns, setCampaigns] = useState<
+    Map<string, SecurityCampaignOfCaseAddress>
+  >(new Map());
+  const [campaignsReadToggle, setCampaignsReadToggle] = useState<number>(0);
+  const [wholeCampaign, setWholeCampaign] = useState<{
+    campaign: SecurityCampaignOfCaseAddress;
+    suggestedDuration: SecurityBlockDuration;
+    isCaseAddressBlocked: boolean;
+  } | null>(null);
+  const mayBlockCampaigns: boolean =
+    runGate.isAllowed && blockCreateGate.isAllowed;
+
+  useEffect(() => {
+    if (!mayBlockCampaigns || blockableAddresses.length === 0) {
+      setCampaigns(new Map());
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    void Promise.all(
+      blockableAddresses.map(
+        async (
+          address: string,
+        ): Promise<[string, SecurityCampaignOfCaseAddress | null]> => {
+          return [
+            addressKey(address),
+            await readCampaignOfCaseAddress({
+              securityCaseId: new ObjectID(caseIdText),
+              address,
+            }).catch((): null => {
+              return null;
+            }),
+          ];
+        },
+      ),
+    ).then(
+      (read: Array<[string, SecurityCampaignOfCaseAddress | null]>): void => {
+        if (!isCurrent) {
+          return;
+        }
+
+        const found: Map<string, SecurityCampaignOfCaseAddress> = new Map();
+
+        for (const [key, campaign] of read) {
+          if (campaign) {
+            found.set(key, campaign);
+          }
+        }
+
+        setCampaigns(found);
+      },
+    );
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    caseIdText,
+    blockableAddressesKey,
+    mayBlockCampaigns,
+    campaignsReadToggle,
+  ]);
 
   // A colleague ticking a step off - or a task changed on the Tasks page - reads it again.
   useEffect(() => {
@@ -550,6 +719,19 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           {
             eventType,
             modelType: SecurityPlaybookRun,
+            tenantId: projectId,
+          },
+          () => {
+            void load();
+          },
+        );
+      }),
+      // A colleague's linked pull request, or OneUptime seeing it merge or ship (#10604).
+      ...eventTypes.map((eventType: ModelEventType): (() => void) => {
+        return Realtime.listenToModelEvent<SecurityCasePullRequest>(
+          {
+            eventType,
+            modelType: SecurityCasePullRequest,
             tenantId: projectId,
           },
           () => {
@@ -629,6 +811,38 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   });
 
   const isClosed: boolean = stage === SecurityCaseStage.Closed;
+
+  // Takes a linked pull request off the case: the Fix step reads the rest (#10604).
+  const removePullRequest: (
+    row: SecurityCasePullRequest,
+  ) => Promise<void> = async (row: SecurityCasePullRequest): Promise<void> => {
+    const id: string = row._id?.toString() || row.id?.toString() || "";
+
+    if (!id || removingPullRequestId) {
+      return;
+    }
+
+    setRemovingPullRequestId(id);
+    setActionError("");
+
+    try {
+      await ModelAPI.deleteItem<SecurityCasePullRequest>({
+        modelType: SecurityCasePullRequest,
+        id: new ObjectID(id),
+      });
+
+      Toast.success(
+        translator.translateTemplate(UNLINKED_PULL_REQUEST_TOAST, {
+          pullRequest: getFixPullRequestName(row),
+        }),
+      );
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    } finally {
+      setRemovingPullRequestId("");
+    }
+  };
 
   /*
    * Blocks the step's address through the playbook engine (#10342): at
@@ -913,7 +1127,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     step: ResponseStep,
   ): ReactElement => {
     const check: NonNullable<ResponseStep["check"]> = step.check!;
-    const isInline: boolean = isCheckExplainedInline(check.state);
+    const isInline: boolean = isCheckExplainedInline(check);
     const isOpen: boolean = openHowWeKnow.includes(step.key);
     const docsUrl: URL | null = getStepCheckDocsUrl(check.evidence.docsPath);
     const facts: ReactElement =
@@ -1070,6 +1284,34 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const actionLock: string | undefined = step.action
       ? getActionLock(step.action)
       : undefined;
+    // The route's Fix step takes a person's own pull request (#10604).
+    const isRouteFix: boolean = isRouteFixStep(step);
+    const canLink: boolean = canLinkPullRequest({
+      step,
+      isClosed,
+      isAllowed: pullRequestLinkGate.isAllowed,
+      linkedCount: data.pullRequests.length,
+      max: SECURITY_CASE_PULL_REQUESTS_MAX,
+    });
+    /*
+     * A block step's address (#10354): blocked before the case opened -
+     * the line says when and from which case, and its Block offers the
+     * ladder's next step - and its campaign, which Block the Whole Campaign
+     * blocks in one go.
+     */
+    const stepAddress: string = step.address ? addressKey(step.address) : "";
+    const repeat: SecurityRepeatOffenderSummary | undefined = stepAddress
+      ? data.repeatOffenders.get(stepAddress)
+      : undefined;
+    const repeatLine: string | null = repeat
+      ? writeRepeatOffenderLine({ summary: repeat, translator })
+      : null;
+    const campaign: SecurityCampaignOfCaseAddress | undefined = stepAddress
+      ? campaigns.get(stepAddress)
+      : undefined;
+    const campaignCount: number = campaign
+      ? splitCampaignChecks(campaign.addresses).blocking.length
+      : 0;
 
     return (
       <li
@@ -1159,7 +1401,66 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             ) : (
               <></>
             )}
+            {repeatLine ? (
+              <p
+                className="text-xs text-amber-700"
+                data-testid={SECURITY_CAMPAIGN_TEST_IDS.repeatLine}
+              >
+                {repeatLine}
+              </p>
+            ) : (
+              <></>
+            )}
+            {campaign && campaignCount > 0 && !isClosed ? (
+              <p
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600"
+                data-testid={SECURITY_CAMPAIGN_TEST_IDS.campaignLine}
+              >
+                <span className="min-w-0 break-words">
+                  {writeCampaignOfAddressLine({
+                    count: campaignCount,
+                    days: campaign.windowInDays,
+                    translator,
+                  })}
+                </span>
+                <Button
+                  title={BLOCK_WHOLE_CAMPAIGN}
+                  buttonStyle={ButtonStyleType.LINK}
+                  buttonSize={ButtonSize.Small}
+                  disabled={
+                    actionLock !== undefined ||
+                    isWorking ||
+                    Boolean(workingStepKey)
+                  }
+                  tooltip={actionLock || undefined}
+                  dataTestId={SECURITY_CAMPAIGN_TEST_IDS.blockWholeCampaign}
+                  onClick={() => {
+                    setWholeCampaign({
+                      campaign,
+                      suggestedDuration:
+                        repeat?.suggestedDuration ||
+                        SecurityBlockDuration.OneDay,
+                      isCaseAddressBlocked: Boolean(step.addressBlock),
+                    });
+                  }}
+                />
+              </p>
+            ) : (
+              <></>
+            )}
             {step.check ? renderCheck(step) : <></>}
+            {isRouteFix ? (
+              <FixPullRequestList
+                rows={data.pullRequests}
+                canRemove={!isClosed && pullRequestUnlinkGate.isAllowed}
+                removingId={removingPullRequestId}
+                onRemove={(row: SecurityCasePullRequest) => {
+                  void removePullRequest(row);
+                }}
+              />
+            ) : (
+              <></>
+            )}
             {isHighlighted ? (
               <p
                 className="text-xs text-indigo-700"
@@ -1224,9 +1525,22 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               )}
             </div>
           </div>
-          {(step.action || canConfirm || (step.copyValue && !step.isDone)) &&
+          {(step.action ||
+            canConfirm ||
+            canLink ||
+            (step.copyValue && !step.isDone)) &&
           !isClosed ? (
             <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+              {canLink ? (
+                <LinkPullRequestButton
+                  isDisabled={Boolean(workingStepKey) || props.isWorking}
+                  onClick={() => {
+                    setIsLinkingPullRequest(true);
+                  }}
+                />
+              ) : (
+                <></>
+              )}
               {canConfirm ? (
                 <Button
                   title={STEP_CHECK_CONFIRM}
@@ -1261,6 +1575,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                   address={step.action.entity?.value || ""}
                   lockReason={actionLock}
                   mayBlockUntilLifted={mayBlockUntilLifted}
+                  suggestedDuration={repeat?.suggestedDuration}
                   isWorking={
                     isWorking || Boolean(workingStepKey) || props.isWorking
                   }
@@ -1462,6 +1777,21 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
         </div>
       </Card>
 
+      {isLinkingPullRequest ? (
+        <LinkPullRequestModal
+          securityCaseId={props.caseId}
+          onClose={() => {
+            setIsLinkingPullRequest(false);
+          }}
+          onLinked={() => {
+            setIsLinkingPullRequest(false);
+            void load();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       {exceptionFor ? (
         <AddRuleExceptionModal
           detectionRuleId={exceptionFor.detectionRuleId}
@@ -1472,6 +1802,27 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           }}
           onSuccess={() => {
             setExceptionFor(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {wholeCampaign ? (
+        <BlockWholeCampaignModal
+          securityCaseId={props.caseId}
+          campaign={wholeCampaign.campaign}
+          suggestedDuration={wholeCampaign.suggestedDuration}
+          isCaseAddressBlocked={wholeCampaign.isCaseAddressBlocked}
+          onClose={() => {
+            setWholeCampaign(null);
+          }}
+          onStarted={() => {
+            setWholeCampaign(null);
+            setCampaignsReadToggle((toggle: number): number => {
+              return toggle + 1;
+            });
+            void load();
           }}
         />
       ) : (

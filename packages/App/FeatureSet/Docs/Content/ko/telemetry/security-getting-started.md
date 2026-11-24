@@ -70,7 +70,7 @@ flowchart LR
 | Fortinet FortiGate | FortiGate 자체 syslog의 IPS 및 바이러스 백신 탐지 결과, 거부된 트래픽, VPN 및 관리자 로그인, 구성 변경 |
 | Cisco ASA | Cisco ASA와 Firepower Threat Defense의 거부된 연결, 위협 탐지 및 IPS 탐지 결과, VPN 및 관리자 로그인, 명령 |
 | Kubernetes 감사 로그 | 클러스터 변경, Pod에서 열린 셸, 읽힌 시크릿, 거부된 요청 |
-| 웹 공격 | 웹 서버의 액세스 로그 중 SQL 인젝션, 경로 탐색 또는 Log4Shell을 시도하는 요청 |
+| 웹 공격 | 웹 서버의 액세스 로그 중 SQL 인젝션, 경로 탐색 또는 Log4Shell을 시도하는 요청과, `/.env` 나 `/.git/config` 같은 민감한 파일에 대한 요청 중 사이트가 거부했거나 사이트에 없는 요청 |
 
 로그는 그대로 남습니다. 보안에 중요한 줄만 이벤트가 되며, 웹 서버가 제공한 모든 페이지나 API의 모든 읽기가 이벤트가 되지는 않습니다.
 

@@ -106,6 +106,10 @@ import SecurityCaseStepCheckState from "../../../Types/SecurityCase/SecurityCase
 import { createTranslator } from "../../../Types/Translator";
 import { wordStepCheckSentence } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckSentences";
 import {
+  WrittenMoment,
+  writeMomentInTimezone,
+} from "../../../Utils/MomentPhrases";
+import {
   SecurityPlaybookApprovalAsk as SecurityPlaybookApprovalAskWords,
   SecurityPlaybookApprovalText,
   getSecurityPlaybookApprovalText,
@@ -412,6 +416,8 @@ export function describeRunTrigger(
       return "Automatically, when AI triage read the case as Likely Malicious";
     case SecurityPlaybookTrigger.OneUptimeAi:
       return "By OneUptime AI, which is working the case";
+    case SecurityPlaybookTrigger.AutomaticResponse:
+      return "Automatically, by an automatic response policy";
     default:
       return "By hand";
   }
@@ -2716,11 +2722,10 @@ export default class SecurityCaseNotifications {
             sentence: evidence.sentence,
             translator: english,
             // In the recipient's own time zone, as a due time is.
-            writeTime: (time: Date): string => {
-              return OneUptimeDate.getDateAsFormattedStringInTimezone({
-                date: time,
+            writeMoment: (time: Date): WrittenMoment => {
+              return writeMomentInTimezone({
+                time,
                 timezone: recipient.timezone || "UTC",
-                use12HourFormat: false,
               });
             },
           }),

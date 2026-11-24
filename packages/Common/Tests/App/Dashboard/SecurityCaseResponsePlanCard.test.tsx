@@ -1065,7 +1065,8 @@ describe("what OneUptime found when it checked a step", () => {
     expect(
       screen.getByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.regressed),
     ).toHaveTextContent(
-      /35\.196\.249\.14 got through again at .+: the block is not holding\./,
+      // Its moment brings its own words: "at 20:10" today, "on 17 Nov at 20:10" before (#10622).
+      /35\.196\.249\.14 got through again (at|on .+ at) .+: the block is not holding\./,
     );
     expect(
       within(stepOf(BLOCK_KEY)).getByTestId(

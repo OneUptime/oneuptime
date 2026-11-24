@@ -7,7 +7,7 @@ import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import { useCardRuledBodyClassName } from "Common/UI/Components/Card/CardSurface";
 import Link from "Common/UI/Components/Link/Link";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { getThresholdBarColor } from "../../Infrastructure/ResourceTable";
@@ -89,13 +89,13 @@ const VMwareHostBusiestVirtualMachines: FunctionComponent<ComponentProps> = (
     <div className="mb-6" data-testid="vmware-host-busiest-vms">
       <Card
         title={
-          <span className="inline-flex items-center gap-1">
-            {title}
-            <InfoTooltip
-              label={title}
-              text={VMWARE_METRIC_DESCRIPTIONS.hostPageBusiestVirtualMachines}
-            />
-          </span>
+          <WordsWithInfoTooltip
+            text={title}
+            label={title}
+            description={
+              VMWARE_METRIC_DESCRIPTIONS.hostPageBusiestVirtualMachines
+            }
+          />
         }
         description="The running VMs on this host using the most CPU in the latest inventory."
       >

@@ -222,6 +222,8 @@ Innstillingene for Datasikkerhet er ett sett per prosjekt, i seksjonen **Innstil
 | **Kontrollkonfigurasjon** | På | Kjører kontrollene på hvert datalager. Når den er av, åpnes, endres eller lukkes ingen problemer. |
 | **Skann innhold** | På | Tar prøver av innholdet i datalagre der innholdstillatelsen er gitt. |
 | **Skann telemetri** | På | Tar prøver av prosjektets logger, traser, målinger, unntak, avspillinger og AI-samtaler. |
+| **Finn navn og gateadresser** | På | Leser fritekst etter personnavn og gateadresser med en liten modell inne i skanneren. Det er ikke OneUptime AI, og teksten forlater aldri skanneren. Se [Navn og gateadresser i fritekst](/docs/data-security/data-types#navn-og-gateadresser-i-fritekst). |
+| **Finn navn og gateadresser i telemetri** | Av | Telemetriskanningen hver time leser også loggtekster, unntaksmeldinger og AI-samtaler med modellen, opptil ett minutt i timen. Bare mens innstillingen over er på. |
 | **Behold maskerte prøver** | På | Beholder opptil tre maskerte prøver med hvert funn. Av beholder bare tellinger. |
 | **Åpne sikkerhetssaker** | På | Åpner en sikkerhetssak, gruppert etter datalager, når et kritisk problem åpnes. |
 | **Opprett varsler** | Av | Oppretter et varsel, som tilkaller den som har vakt, når et kritisk problem åpnes. |

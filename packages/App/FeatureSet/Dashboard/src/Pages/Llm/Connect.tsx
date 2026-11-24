@@ -490,9 +490,7 @@ const LlmConnectPage: FunctionComponent<PageComponentProps> = (
           onPickWay={(key: LlmConnectWayKey) => {
             pickWay(key, false);
           }}
-          serviceName={(serviceId: string): string => {
-            return serviceNames.names.get(serviceId) || "";
-          }}
+          serviceName={serviceNames.nameOf}
           refreshToken={refreshCounter + knownVersion}
         />
 

@@ -25,6 +25,7 @@ import Search from "../../../Types/BaseDatabase/Search";
 import { DropdownValue } from "../../../UI/Components/Dropdown/Dropdown";
 import EntityDropdown from "../../../UI/Components/EntityDropdown/EntityDropdown";
 import { withSearchIn } from "../../../UI/Components/EntityDropdown/EntityDropdownQuery";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -252,5 +253,81 @@ describe("a dropdown by id, with none of the new props", () => {
     expect(read.limit).toBe(1);
     // Its id and its name: no value column and no description to read.
     expect(Object.keys(read.select).sort()).toEqual(["_id", "name"]);
+  });
+});
+
+/*
+ * #10764: the server's answer to a search was narrowed again in the
+ * browser, to the options whose name held what was typed - so a record the
+ * server found by another of its searchFields (an item by its key, a code
+ * repository by its organization) was dropped from the list whenever it had
+ * a name of its own. The answer to the search typed now is listed as it
+ * came; only an answer to an earlier search, while the next one is on its
+ * way, is still narrowed to what was typed.
+ */
+describe("the server's answer to a search", () => {
+  test("lists a record found by another search field, though its name holds no word of the search", async () => {
+    await renderInventoryPicker({ value: [] });
+
+    await act(async () => {
+      fireEvent.focus(screen.getByTestId("inventory-picker"));
+      fireEvent.change(screen.getByTestId("inventory-picker"), {
+        target: { value: "k8s.pod/checkout" },
+      });
+    });
+
+    // Its name, "checkout-7d9f", is not what was typed: its key is.
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: /checkout-7d9f/,
+    });
+
+    expect(option).toHaveTextContent("Pod");
+  });
+
+  test("an answer to an earlier search is narrowed to what is typed now, until the next answer comes", async () => {
+    await renderInventoryPicker({ value: [] });
+
+    await act(async () => {
+      fireEvent.focus(screen.getByTestId("inventory-picker"));
+      fireEvent.change(screen.getByTestId("inventory-picker"), {
+        target: { value: "k8s.pod" },
+      });
+    });
+
+    await screen.findByRole("option", { name: /checkout-7d9f/ });
+
+    // The next search's answer is held back: the earlier one is all there is.
+    let release: () => void = (): void => {
+      return undefined;
+    };
+    const held: Promise<void> = new Promise<void>((done: () => void) => {
+      release = done;
+    });
+    const list: CappedListServer["list"] = server.list.bind(server);
+
+    jest.spyOn(ModelAPI, "getList").mockImplementation((async (
+      options: Parameters<CappedListServer["list"]>[0],
+    ) => {
+      await held;
+      return list(options);
+    }) as never);
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId("inventory-picker"), {
+        target: { value: "node" },
+      });
+    });
+
+    // "checkout-7d9f" was the answer to "k8s.pod": it is not offered for "node".
+    expect(screen.queryByRole("option", { name: /checkout-7d9f/ })).toBeNull();
+
+    await act(async () => {
+      release();
+    });
+
+    // The answer to "node" (found by its key) as it came.
+    expect(
+      await screen.findByRole("option", { name: /ip-10-0-0-1/ }),
+    ).toBeInTheDocument();
   });
 });

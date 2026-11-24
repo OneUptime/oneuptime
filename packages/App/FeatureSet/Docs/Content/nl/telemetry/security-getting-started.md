@@ -70,7 +70,7 @@ De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd
 | Fortinet FortiGate | IPS- en antivirusbevindingen, geweigerd verkeer, VPN- en beheerdersaanmeldingen en configuratiewijzigingen uit de eigen syslog van FortiGate |
 | Cisco ASA | Geweigerde verbindingen, bevindingen van dreigingsdetectie en IPS, VPN- en beheerdersaanmeldingen en opdrachten van Cisco ASA en Firepower Threat Defense |
 | Kubernetes-auditlogs | Wijzigingen aan het cluster, shells die in pods worden geopend, gelezen secrets en geweigerde verzoeken |
-| Webaanvallen | Verzoeken in het toegangslog van een webserver die SQL-injectie, path traversal of Log4Shell proberen |
+| Webaanvallen | Verzoeken in het toegangslog van een webserver die SQL-injectie, path traversal of Log4Shell proberen, en verzoeken om gevoelige bestanden zoals `/.env` of `/.git/config` die uw site heeft geweigerd of niet heeft |
 
 Uw logs blijven zoals ze zijn. Alleen de regels die voor beveiliging tellen, worden gebeurtenissen: nooit elke pagina die een webserver heeft geleverd, of elke leesactie op een API.
 

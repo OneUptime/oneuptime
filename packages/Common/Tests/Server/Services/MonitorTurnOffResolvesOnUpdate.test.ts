@@ -523,7 +523,7 @@ describe("what onUpdateSuccess resolves", () => {
 /*
  * Every path that turns monitoring off writes the same column through
  * MonitorService, so they all reach the hooks above. The monitor group's
- * Turn off monitoring is one of them (MonitorGroupService), and so is
+ * Turn monitoring off is one of them (MonitorGroupService), and so is
  * Microsoft Teams' Disable Monitoring action.
  */
 describe("the hook is the one place", () => {

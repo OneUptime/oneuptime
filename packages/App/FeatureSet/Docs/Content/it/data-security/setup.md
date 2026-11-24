@@ -222,6 +222,8 @@ Le impostazioni di Sicurezza dei dati sono un unico insieme per progetto, nella 
 | **Controlla la configurazione** | Attivo | Esegue i controlli su ogni archivio. Se è disattivata, nessun problema si apre, cambia o si chiude. |
 | **Scansiona contenuto** | Attivo | Campiona il contenuto degli archivi dove è stato concesso il permesso sul contenuto. |
 | **Scansiona telemetria** | Attivo | Campiona i log, le tracce, le metriche, le eccezioni, i replay e le conversazioni IA del progetto. |
+| **Individua nomi e indirizzi stradali** | Attivo | Cerca nel testo libero nomi di persone e indirizzi stradali con un piccolo modello all'interno dello scanner. Non è OneUptime AI, e il testo non lascia mai lo scanner. Vedi [Nomi e indirizzi stradali nel testo libero](/docs/data-security/data-types#nomi-e-indirizzi-stradali-nel-testo-libero). |
+| **Individua nomi e indirizzi stradali nella telemetria** | Disattivato | La scansione oraria della telemetria legge con il modello anche i corpi dei log, i messaggi di eccezione e le conversazioni IA, fino a un minuto ogni ora. Solo finché l'impostazione precedente è attiva. |
 | **Conserva campioni mascherati** | Attivo | Conserva fino a tre campioni mascherati con ogni risultato. Se è disattivata, conserva solo i conteggi. |
 | **Apri casi di sicurezza** | Attivo | Apre un caso di sicurezza, raggruppato per archivio, quando si apre un problema Critico. |
 | **Genera avvisi** | Disattivato | Genera un avviso, che chiama chi è di reperibilità, quando si apre un problema Critico. |

@@ -108,10 +108,11 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 | **Todos os valores** | Cada verificação na janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação na janela atende à condição. |
 | **Contagem**, **Porcentagem**, **Mudanças de status** | Quantas verificações atenderam à condição, a proporção delas ou quantas vezes passaram de atendê-la para não atendê-la é comparado com o número definido abaixo. |
+| **Verificação anterior** | Esta verificação, comparada com a verificação anterior da sonda conforme definido em **Variação em relação à verificação anterior**: um tempo de resposta mais de 50% acima dela, por exemplo. Um filtro verdadeiro ou falso corresponde na verificação que começou a atender à condição. |
 
 A opção **Todos os valores** só corresponde quando a janela está realmente coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise no momento em que uma única verificação ultrapassar o limite" e continua disparando imediatamente.
 
-**Tempo limite da requisição esgotado** não é um número que o OneUptime registre, por isso ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. Também pode contá-lo com **Contagem**, **Porcentagem** ou **Mudanças de status**.
+**Tempo limite da requisição esgotado** não é um número que o OneUptime registre, por isso ele registra se o filtro correspondeu em cada verificação e avalia a janela a partir desse registro com **Todos os valores** ou **Qualquer valor**. Também pode contá-lo com **Contagem**, **Porcentagem** ou **Mudanças de status**. Com **Verificação anterior**, o filtro corresponde na verificação em que começou a corresponder.
 
 Escolha uma janela mais longa que o intervalo de monitoramento, para que ela contenha várias verificações: um monitor verificado a cada 5 minutos tem uma única verificação em qualquer janela de 5 minutos.
 

@@ -244,38 +244,43 @@ describe("MetricsViewer filtering still uses ids", () => {
   });
 });
 
-describe("MetricsDashboard scope dropdown names carried entities", () => {
-  test("resolves selected ids through the generic resolver", () => {
+describe("MetricsDashboard scope picker names carried entities (#10764)", () => {
+  const SCOPE_PICKER: string = readSource(
+    "Components",
+    "Telemetry",
+    "TelemetryServiceScopePicker.tsx",
+  );
+  const SCOPE_READS: string = readSource(
+    "Components",
+    "Telemetry",
+    "TelemetryServiceScope.ts",
+  );
+
+  test("the scope is the searched picker, handed the ids the scope holds", () => {
     expect(METRICS_DASHBOARD).toContain(
-      'import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
+      "<TelemetryServiceScopePicker serviceIds={selectedServiceIds}",
     );
-    expect(METRICS_DASHBOARD).toContain(
-      "useTelemetryEntityNames( unnamedSelectedServiceIds, )",
-    );
+    // No list of the project's first services to offer or to name from.
+    expect(METRICS_DASHBOARD).not.toContain("serviceOptions");
+    expect(METRICS_DASHBOARD).not.toContain("<Dropdown");
+    expect(SCOPE_PICKER).toContain("<EntityDropdown modelType={Service}");
   });
 
-  test("only looks up UUID selections the service list does not already name", () => {
-    expect(METRICS_DASHBOARD).not.toContain(
-      "useTelemetryEntityNames(selectedServiceIds)",
+  test("a held id that is no service is named by its own table, through the generic resolver", () => {
+    expect(SCOPE_READS).toContain(
+      "TelemetryEntityNameResolver.resolve({ ids: others, projectId: projectId, entityTypes: TELEMETRY_SCOPE_OTHER_ENTITY_TYPES, });",
     );
-    expect(METRICS_DASHBOARD).toContain(
-      "const unnamedSelectedServiceIds: Array<string> = useMemo(() => { return getMetricsUnnamedScopeIds({ selectedIds: selectedServiceIds, knownIds: serviceOptions.map((option: DropdownOption): string => { return option.value.toString(); }), }); }, [selectedServiceIds, serviceOptions]);",
-    );
-    // Exactly one lookup on the page.
-    expect(METRICS_DASHBOARD.split("useTelemetryEntityNames(").length - 1).toBe(
-      1,
-    );
+    // The Service table is read by id first, so it is never asked again.
+    expect(SCOPE_READS).toContain("return type !== ServiceType.OpenTelemetry;");
   });
 
-  test("the fallback pill label is the resolved name, not the raw id", () => {
+  test("the picker is drawn once what the scope holds is named, never its raw id", () => {
+    expect(SCOPE_PICKER).toContain(
+      "if (!held.options && props.serviceIds.length > 0) {",
+    );
+    expect(SCOPE_READS).toContain("named.set(id, getNotFoundOption(id));");
     expect(METRICS_DASHBOARD).not.toContain(
       "{ value: serviceId, label: serviceId }",
-    );
-    expect(METRICS_DASHBOARD).toContain(
-      "label: getMetricsScopeFallbackLabel({ id: serviceId, nameMap: selectedEntityNames, }),",
-    );
-    expect(METRICS_DASHBOARD).toContain(
-      "[selectedServiceIds, serviceOptions, selectedEntityNames]",
     );
   });
 

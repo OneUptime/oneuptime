@@ -27,6 +27,25 @@ flowchart TB
 
 大多數訊息都可以確認呼叫：郵件、簡訊，以及 WhatsApp、Telegram、Slack、Microsoft Teams 和 Mattermost 訊息都帶有確認連結，電話會請你按 1。如果你無法處理某次呼叫，可以透過同樣的訊息升級它，電話會請你按 2：策略會立即呼叫下一級，你也不會再因此被呼叫。參見 [升級呼叫](/docs/on-call/escalation-rules#升級呼叫) 。你收到的每次呼叫都列在 **使用者設定 → 待命日誌** 下，其中 **檢視時間軸** 會顯示它傳送的每則訊息以及是否已送達。
 
+### 電話會說什麼
+
+電話會先說明來自誰、發生了什麼、嚴重程度和編號，接著說明每個按鍵的作用，最後說出標題。即使電話還在播報，你也可以隨時按鍵。如果你一個鍵也不按，電話會把詳情和按鍵說明再說一遍，等待 10 秒後掛斷，這次呼叫將維持未確認狀態，例如：
+
+```text
+This is a call from Acme Production.
+A new Critical Incident has been created: I N C 42.
+Press 1 to acknowledge, or 2 to escalate.
+Checkout API is down for customers in Europe.
+(5 seconds)
+A new Critical Incident has been created: I N C 42.
+Checkout API is down for customers in Europe.
+Press 1 to acknowledge, or 2 to escalate.
+(10 seconds)
+You did not press a key, so this incident is not acknowledged. Good bye.
+```
+
+電話會說出你的專案名稱。不屬於某個專案的電話（例如驗證碼電話）會說出 OneUptime，或你自行託管的安裝所使用的名稱。超過大約 100 個字元的標題會在一個完整的單字之後截斷，完整標題保留在 OneUptime 中。像 `INC-42` 這樣的編號中的字母會逐一讀出，這樣語音就不會把它們讀成一個單字。電話一律使用英語。
+
 ## 所有呼叫用一個聯絡順序
 
 **使用者設定 → 如何聯絡我** 開啟時顯示您的聯絡順序：在任何嚴重程度的事件、警示和事件群組中，每次呼叫都會依序嘗試的編號步驟。每一步是一個時間（例如立即或 5 分鐘後），以及屆時一起送出的已驗證通知方式。只有到那時仍無人確認呼叫，後面的步驟才會送出。

@@ -9,7 +9,9 @@ import {
   queueDataSecurityEvaluation,
   queueDataSecurityFieldSuggestions,
   queueDataSecurityFindingVerdicts,
+  queueDataTypeDiscovery,
 } from "./DataSecurityJobs";
+import DataTypeProving from "./DataTypeProving";
 import { withPendingFields } from "./FieldSuggestionState";
 import {
   ContentScanResult,
@@ -160,6 +162,20 @@ export default class DataSecurityFindingWriter {
     });
 
     await this.pruneOldFindings(input.dataStoreId, now);
+
+    /*
+     * What the data types being proven here would have found (#10371):
+     * counts, kept on their proposals - never a finding.
+     */
+    if (result.shadowCounts) {
+      await DataTypeProving.recordStoreScan({
+        projectId: input.projectId,
+        dataStoreId: input.dataStoreId,
+        result,
+        scannedAt: now,
+      });
+    }
+
     await queueDataSecurityEvaluation(input.projectId);
 
     /*
@@ -179,6 +195,8 @@ export default class DataSecurityFindingWriter {
         projectId: input.projectId,
         dataStoreId: input.dataStoreId,
       });
+      // The same unknown shape in many stores is a data type of its own (#10371).
+      await queueDataTypeDiscovery(input.projectId);
     }
 
     /*
@@ -386,6 +404,7 @@ export default class DataSecurityFindingWriter {
         isFreeText: classification.isFreeText,
         isNameHinted: classification.nameHinted,
         isFoundByName: classification.foundByName,
+        isFoundByModel: classification.foundByModel === true,
         locationKind: location.locationKind,
         lastSeenAt: data.now,
         isAiSuggested: classification.isAiSuggested === true,

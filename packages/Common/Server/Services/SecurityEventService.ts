@@ -35,6 +35,14 @@ import {
   SecurityAttackCampaign,
   readSecurityAttackCampaign,
 } from "../../Types/SecurityEvent/SecurityAttackCampaign";
+import { SECURITY_ATTACK_NETWORK_ADDRESSES_MAX } from "../../Types/SecurityEvent/SecurityAttackNetwork";
+import {
+  SECURITY_CAMPAIGN_OF_ADDRESS_TARGETS,
+  SECURITY_CAMPAIGN_OF_ADDRESS_USER_AGENTS,
+  SecurityCampaignOfAddressRead,
+  SecurityCampaignOfAddressRow,
+} from "../../Types/SecurityEvent/SecurityCampaignContainment";
+import { CLOUDFLARE_ATTRIBUTES } from "../../Utils/SecurityEvent/Connectors/CloudflareNormalizer";
 import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import { CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE } from "../../Utils/SecurityEvent/ScrubbedAddress";
 import { assertDetectionReadFits } from "../Utils/SecurityEvent/Watchlists/SecurityWatchlistMatch";
@@ -240,6 +248,26 @@ export interface SecurityEventLogResource {
 
 // The most values one activity lookup reads.
 export const OBSERVABLE_ACTIVITY_MAX_VALUES: number = 50;
+
+/*
+ * The texts of an array a grouped read returned, each once and exactly as
+ * stored - a later read matches them as written - blank ones left out.
+ */
+function readStringArray(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const texts: Array<string> = [];
+
+  for (const item of value) {
+    if (typeof item === "string" && item.trim() && !texts.includes(item)) {
+      texts.push(item);
+    }
+  }
+
+  return texts;
+}
 
 function readDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === "") {
@@ -912,6 +940,11 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     limit: number;
     // The sources the reader may read; none: every one (findObservableActivity).
     serviceFilter?: TelemetryServiceFilter | undefined;
+    /*
+     * The most rows a read may ask for: the page's 100 by address, or the
+     * addresses grouped by network (#10354), which reads more of them.
+     */
+    maxLimit?: number | undefined;
   }): Promise<Array<SecurityAttackCampaign>> {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -921,7 +954,16 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       this.database!.getDatasourceOptions().database!;
     const limit: number = Math.max(
       1,
-      Math.min(SECURITY_ATTACK_CAMPAIGNS_MAX, Math.trunc(data.limit)),
+      Math.min(
+        Math.max(
+          SECURITY_ATTACK_CAMPAIGNS_MAX,
+          Math.min(
+            data.maxLimit || SECURITY_ATTACK_CAMPAIGNS_MAX,
+            SECURITY_ATTACK_NETWORK_ADDRESSES_MAX,
+          ),
+        ),
+        Math.trunc(data.limit),
+      ),
     );
 
     const statement: Statement = SQL`SELECT principalIp AS sourceIp, count() AS requestCount, countIf(requestOutcome = ${{
@@ -960,7 +1002,19 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     }}] = ${{
       type: TableColumnType.Text,
       value: CLIENT_ADDRESS_HIDDEN_BY_SCRUB_RULE,
-    }}) AS hiddenAddressCount FROM `;
+    }}) AS hiddenAddressCount, anyIf(attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asn,
+    }}], attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asn,
+    }}] != '') AS asn, anyIf(attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asnName,
+    }}], attributes[${{
+      type: TableColumnType.Text,
+      value: CLOUDFLARE_ATTRIBUTES.asnName,
+    }}] != '') AS asnName FROM `;
     statement.append(`${databaseName}.${this.model.tableName}`);
     statement.append(
       SQL` WHERE projectId = ${{
@@ -1003,6 +1057,160 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
         };
       },
     );
+  }
+
+  /*
+   * THE CAMPAIGN OF ONE ADDRESS (#10354): the other addresses whose web
+   * attacks over the window share its tools and its targets - a request of
+   * theirs carried one of the address's user agents, exactly, to one of
+   * the requests it sent - the most requests first, at most `limit`. What
+   * a case about the address offers to block as a whole. Nothing when the
+   * address's own requests named no user agent or no target: OneUptime
+   * then cannot say what the campaign is. Every value is a bound parameter.
+   */
+  public async findCampaignOfAddress(data: {
+    projectId: ObjectID;
+    // The address's spellings, as events may hold it (getSecurityAddressSpellings).
+    spellings: Array<string>;
+    startTime: Date;
+    endTime: Date;
+    limit: number;
+    serviceFilter?: TelemetryServiceFilter | undefined;
+  }): Promise<SecurityCampaignOfAddressRead> {
+    const spellings: Array<string> = Array.from(
+      new Set(
+        data.spellings
+          .map((spelling: string): string => {
+            return spelling.trim();
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    if (spellings.length === 0) {
+      return { userAgents: [], targetCount: 0, addresses: [] };
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+    const userAgent: Statement = SQL`attributes[${{
+      type: TableColumnType.Text,
+      value: SECURITY_REQUEST_ATTRIBUTES.userAgent,
+    }}]`;
+    const inWindow: (statement: Statement) => void = (
+      statement: Statement,
+    ): void => {
+      statement.append(
+        SQL` WHERE projectId = ${{
+          type: TableColumnType.ObjectID,
+          value: data.projectId,
+        }} AND time >= ${{
+          type: TableColumnType.DateTime64,
+          value: data.startTime,
+        }} AND time <= ${{
+          type: TableColumnType.DateTime64,
+          value: data.endTime,
+        }} AND classUid = ${{
+          type: TableColumnType.Number,
+          value: HTTP_ACTIVITY_CLASS_UID,
+        }}`,
+      );
+    };
+
+    // What the address sent: its tools and its requests.
+    const own: Statement = SQL`SELECT groupUniqArrayIf(${{
+      type: TableColumnType.Number,
+      value: SECURITY_CAMPAIGN_OF_ADDRESS_USER_AGENTS,
+    }})(`;
+    own.append(userAgent);
+    own.append(", ");
+    own.append(userAgent);
+    own.append(
+      SQL` != '') AS userAgents, groupUniqArrayIf(${{
+        type: TableColumnType.Number,
+        value: SECURITY_CAMPAIGN_OF_ADDRESS_TARGETS,
+      }})(substring(targetResource, 1, 300), targetResource != '') AS targets FROM `,
+    );
+    own.append(`${databaseName}.${this.model.tableName}`);
+    inWindow(own);
+    own.append(
+      SQL` AND principalIp IN ${{
+        type: TableColumnType.ArrayText,
+        value: spellings,
+      }}`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(own, data.serviceFilter || {});
+    own.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    const ownRows: Array<JSONObject> = await this.readRows(own);
+    const userAgents: Array<string> = readStringArray(
+      ownRows[0]?.["userAgents"],
+    );
+    const targets: Array<string> = readStringArray(ownRows[0]?.["targets"]);
+
+    if (userAgents.length === 0 || targets.length === 0) {
+      return { userAgents, targetCount: targets.length, addresses: [] };
+    }
+
+    // The other addresses that sent one of those requests with one of those tools.
+    const others: Statement = SQL`SELECT principalIp AS sourceIp, count() AS requestCount, uniq(targetResource) AS sharedTargetCount, max(time) AS lastSeen FROM `;
+    others.append(`${databaseName}.${this.model.tableName}`);
+    inWindow(others);
+    others.append(
+      SQL` AND principalIp != '' AND principalIp NOT IN ${{
+        type: TableColumnType.ArrayText,
+        value: spellings,
+      }} AND `,
+    );
+    others.append(userAgent);
+    others.append(
+      SQL` IN ${{
+        type: TableColumnType.ArrayText,
+        value: userAgents,
+      }} AND substring(targetResource, 1, 300) IN ${{
+        type: TableColumnType.ArrayText,
+        value: targets,
+      }}`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      others,
+      data.serviceFilter || {},
+    );
+    others.append(
+      SQL` GROUP BY sourceIp ORDER BY requestCount DESC, sourceIp ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)) + 1,
+      }}`,
+    );
+    others.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
+
+    return {
+      userAgents,
+      targetCount: targets.length,
+      addresses: (await this.readRows(others)).map(
+        (row: JSONObject): SecurityCampaignOfAddressRow => {
+          return {
+            address: String(row["sourceIp"] ?? ""),
+            requestCount: Number(row["requestCount"] || 0),
+            sharedTargetCount: Number(row["sharedTargetCount"] || 0),
+            lastSeen: readDate(row["lastSeen"])?.toISOString() || "",
+          };
+        },
+      ),
+    };
+  }
+
+  private async readRows(statement: Statement): Promise<Array<JSONObject>> {
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return (response.data || []) as Array<JSONObject>;
   }
 
   /*

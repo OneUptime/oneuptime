@@ -535,20 +535,26 @@ describe("the repositories the person chooses from", () => {
   test("several the person may read: the answer lists those they may ask in, and nothing starts", async () => {
     codeRepositories.rows.push(repositoryRow(WEBSITE_ID, "website"));
 
-    // The website is one their team may read, but not change (its labels, CodeTaskAccess).
-    const canAsk: typeof CodeTaskAccess.canAskInRepository =
-      CodeTaskAccess.canAskInRepository.bind(CodeTaskAccess);
+    /*
+     * The website is one their team may read, but not change (its labels,
+     * CodeTaskAccess) - weighed with every other repository they may read
+     * in one read (listAskableRepositoryIds, #10764).
+     */
+    const listAskable: typeof CodeTaskAccess.listAskableRepositoryIds =
+      CodeTaskAccess.listAskableRepositoryIds.bind(CodeTaskAccess);
     jest
-      .spyOn(CodeTaskAccess, "canAskInRepository")
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
       .mockImplementation(
         async (data: {
           props: DatabaseCommonInteractionProps;
           projectId: ObjectID;
-          repositoryId: ObjectID;
-        }): Promise<boolean> => {
-          return data.repositoryId.toString() === WEBSITE_ID
-            ? false
-            : await canAsk(data);
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Set<string>> => {
+          const askable: Set<string> = await listAskable(data);
+
+          askable.delete(WEBSITE_ID.toLowerCase());
+
+          return askable;
         },
       );
 

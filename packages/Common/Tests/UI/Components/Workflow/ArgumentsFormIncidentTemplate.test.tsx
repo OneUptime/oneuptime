@@ -1,8 +1,9 @@
 /*
  * Create One Incident's settings, as the person building the workflow sees
- * them: an Incident Template picked from the project's templates, and a
- * JSON Object that is required until one is picked - then it only holds
- * what should differ from the template.
+ * them: an Incident Template picked from the project's templates - searched
+ * on the server, the one a step holds read by its ID (#10764) - and a JSON
+ * Object that is required until one is picked - then it only holds what
+ * should differ from the template.
  *
  * The form, its fields and the step's own state are the real thing; only
  * the API is stood in for. The step's JSON Object is drawn here as the JSON
@@ -133,9 +134,20 @@ function renderStep(args: JSONObject = {}): RenderedStep {
   return { onFormChange, onErrors };
 }
 
+// The box typed into while no template is picked.
 async function templatePicker(): Promise<HTMLElement> {
   return await waitFor(() => {
     return screen.getByRole("combobox", { name: /^Incident Template/ });
+  });
+}
+
+// Opens the list of templates, as a person does: into the box.
+async function openTemplates(): Promise<void> {
+  const picker: HTMLElement = await templatePicker();
+
+  await act(async () => {
+    fireEvent.focus(picker);
+    fireEvent.click(picker);
   });
 }
 
@@ -155,12 +167,14 @@ describe("Create One Incident's Incident Template", () => {
   test("offers the project's incident templates by name, listed through the API", async () => {
     renderStep();
 
-    const picker: HTMLElement = await templatePicker();
+    await openTemplates();
 
-    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
-
-    expect(await screen.findByText("Checkout degraded")).toBeInTheDocument();
-    expect(screen.getByText("Database failover")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: /Checkout degraded/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: /Database failover/ }),
+    ).toBeInTheDocument();
 
     const listed: Array<string> = (
       ModelAPI.getList as unknown as Mock<
@@ -180,10 +194,15 @@ describe("Create One Incident's Incident Template", () => {
   test("a picked template is stored as its ID", async () => {
     const { onFormChange } = renderStep();
 
-    const picker: HTMLElement = await templatePicker();
+    await openTemplates();
 
-    fireEvent.keyDown(picker, { key: "ArrowDown", code: "ArrowDown" });
-    fireEvent.click(await screen.findByText("Checkout degraded"));
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: /Checkout degraded/,
+    });
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
 
     await waitFor(() => {
       expect(lastArguments(onFormChange)[INCIDENT_TEMPLATE_ARGUMENT_ID]).toBe(
@@ -192,12 +211,11 @@ describe("Create One Incident's Incident Template", () => {
     });
   });
 
-  test("a step that has one shows it by name", async () => {
+  test("a step that has one shows it by name, read by its ID", async () => {
     renderStep({ [INCIDENT_TEMPLATE_ARGUMENT_ID]: CHECKOUT_TEMPLATE_ID });
 
-    await templatePicker();
-
     expect(await screen.findByText("Checkout degraded")).toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(CHECKOUT_TEMPLATE_ID);
   });
 });
 
@@ -217,7 +235,8 @@ describe("JSON Object is required until a template is picked", () => {
       [INCIDENT_TEMPLATE_ARGUMENT_ID]: CHECKOUT_TEMPLATE_ID,
     });
 
-    await templatePicker();
+    // The template the step holds, named.
+    await screen.findByText("Checkout degraded");
 
     expect(
       screen.getByText(/^Optional\. Incident represented as JSON\./),

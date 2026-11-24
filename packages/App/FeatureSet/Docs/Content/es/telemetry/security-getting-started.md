@@ -70,7 +70,7 @@ La tarjeta **Tus registros**, en la parte superior de **Conexiones**, no necesit
 | Fortinet FortiGate | Hallazgos de IPS y antivirus, tráfico denegado, inicios de sesión de VPN y de administradores, y cambios de configuración del propio syslog de FortiGate |
 | Cisco ASA | Conexiones denegadas, hallazgos de detección de amenazas y de IPS, inicios de sesión de VPN y de administradores, y comandos de Cisco ASA y Firepower Threat Defense |
 | Registros de auditoría de Kubernetes | Cambios en el clúster, shells abiertos en pods, secretos leídos y solicitudes rechazadas |
-| Ataques web | Solicitudes del registro de acceso de un servidor web que intentan inyección SQL, recorrido de rutas o Log4Shell |
+| Ataques web | Solicitudes del registro de acceso de un servidor web que intentan inyección SQL, recorrido de rutas o Log4Shell, y solicitudes de archivos sensibles como `/.env` o `/.git/config` que su sitio rechazó o no tiene |
 
 Sus registros quedan como están. Solo las líneas que importan para la seguridad se convierten en eventos: nunca cada página que sirvió un servidor web ni cada lectura de una API.
 

@@ -506,7 +506,8 @@ describe("a burst of client refusals thrown in decorated methods, with traces ex
 });
 
 interface Lines {
-  status: number;
+  // As RequestBodyOverHttp reads it: null when no answer came back.
+  status: number | null;
   error: number;
   warn: number;
 }
