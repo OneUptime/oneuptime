@@ -1224,10 +1224,14 @@ describe("a namespace's totals", () => {
       }),
     ).toBe(AggregationType.Sum);
 
+    const serviceBus: RegExp = /Service.?Bus/;
+    const eventHubs: RegExp = /Event.?Hubs/;
+
     for (const language of ["en", ...TRANSLATED_LANGUAGES]) {
       const lines: Array<string> = readPage(language, RESOURCES).split("\n");
+      // The namespaces' sentence: the one line naming both, as above.
       const at: number = lines.findIndex((line: string): boolean => {
-        return /Service.?Bus/.test(line) && /Event.?Hubs/.test(line);
+        return serviceBus.test(line) && eventHubs.test(line);
       });
       const next: string = lines[at + 2] || "";
 

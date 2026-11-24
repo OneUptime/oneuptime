@@ -1413,10 +1413,11 @@ describe("a platform section reads its resource type's key metrics (#6793, #6794
    * averaged over the range, as the section's other gauges are.
    */
   test("an App Engine section's CPU and memory are Google's gae_app gauges, a ratio shown as a percentage and bytes", () => {
-    const profile: CloudAppPlatformProfile =
-      CLOUD_APP_PLATFORM_PROFILES.find((each: CloudAppPlatformProfile) => {
+    const profile: CloudAppPlatformProfile = CLOUD_APP_PLATFORM_PROFILES.find(
+      (each: CloudAppPlatformProfile) => {
         return each.type === "gae_app";
-      })!;
+      },
+    )!;
     const readOf: (storedName: string) => CloudAppPlatformMetricRead = (
       storedName: string,
     ): CloudAppPlatformMetricRead => {

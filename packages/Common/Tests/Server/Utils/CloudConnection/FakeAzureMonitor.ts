@@ -210,9 +210,7 @@ export function createFakeAzureMonitor(
 
       // A split's series a value each, its dimension named as Azure names it.
       const values: Array<string | null> =
-        data.call.splitBy && options.splitValues
-          ? options.splitValues
-          : [null];
+        data.call.splitBy && options.splitValues ? options.splitValues : [null];
 
       return {
         name: { value: metric, localizedValue: metric },

@@ -915,7 +915,9 @@ describe("a resource's hour, from the reads' groups", () => {
               ...keys,
             ].join("|"),
             // 400 of its 1,400 requests were stored before the split.
-            new Map([[id, { value: 1400, serverErrors: 25, classified: 1000 }]]),
+            new Map([
+              [id, { value: 1400, serverErrors: 25, classified: 1000 }],
+            ]),
           ],
           [
             [
@@ -1443,17 +1445,15 @@ describe("fetchCloudAppPlatformSignals: as the reader may read", () => {
       "metadata_statuscodecategory",
     ]);
 
-    expect(result.signals.get("7c000000-0000-4000-8000-000000000004")).toEqual(
-      {
-        requests: 800,
-        serverErrors: 8,
-        serverErrorRatePercent: 1,
-        responseTimeMs: 64,
-        latency: "average",
-        service: "Azure Monitor",
-        isAppService: false,
-      },
-    );
+    expect(result.signals.get("7c000000-0000-4000-8000-000000000004")).toEqual({
+      requests: 800,
+      serverErrors: 8,
+      serverErrorRatePercent: 1,
+      responseTimeMs: 64,
+      latency: "average",
+      service: "Azure Monitor",
+      isAppService: false,
+    });
   });
 
   test("a resource the reader may not read shows nothing, and its metrics are never asked for", async () => {

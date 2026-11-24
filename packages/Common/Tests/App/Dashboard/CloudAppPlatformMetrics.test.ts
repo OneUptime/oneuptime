@@ -132,7 +132,11 @@ describe("a request count read by its response code", () => {
   test("a Cloud Monitoring rate is scaled to a minute's count, its 5xx by its own label", () => {
     const run: ReturnType<typeof readCloudAppPlatformSplit> =
       readCloudAppPlatformSplit({
-        points: [point(0, "2xx", 3), point(0, "4xx", 0.25), point(0, "5xx", 0.5)],
+        points: [
+          point(0, "2xx", 3),
+          point(0, "4xx", 0.25),
+          point(0, "5xx", 0.5),
+        ],
         errorLabel: CLOUD_RUN_ERROR_LABEL,
         scale: 60,
       });
@@ -207,13 +211,11 @@ describe("a request count read by its response code", () => {
           errorLabel: CONTAINER_APP_ERROR_LABEL,
           scale: 1,
         });
-      const summary: CloudAppPlatformSummary = summarizeCloudAppPlatformSeries(
-        {
-          [CloudAppPlatformFigure.Requests]: split.requests,
-          [CloudAppPlatformFigure.ServerErrors]: split.serverErrors,
-          [CloudAppPlatformFigure.ClassifiedRequests]: split.classifiedRequests,
-        },
-      );
+      const summary: CloudAppPlatformSummary = summarizeCloudAppPlatformSeries({
+        [CloudAppPlatformFigure.Requests]: split.requests,
+        [CloudAppPlatformFigure.ServerErrors]: split.serverErrors,
+        [CloudAppPlatformFigure.ClassifiedRequests]: split.classifiedRequests,
+      });
 
       expect(summary.requests).toBe(points.length > 0 ? total : null);
       expect(summary.serverErrorRatePercent).toEqual(
@@ -318,7 +320,10 @@ describe("what each platform's section and list read", () => {
           return read.figure;
         },
       ),
-    ).toEqual([CloudAppPlatformFigure.Requests, CloudAppPlatformFigure.Latency]);
+    ).toEqual([
+      CloudAppPlatformFigure.Requests,
+      CloudAppPlatformFigure.Latency,
+    ]);
   });
 
   test("six tiles lay out two rows of three until all fit on one, five on one row from 64rem", () => {

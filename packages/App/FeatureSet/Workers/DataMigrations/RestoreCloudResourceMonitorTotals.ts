@@ -10,7 +10,10 @@ import { AZURE_MONITOR_RESOURCE_ID_ATTRIBUTE } from "Common/Types/Cloud/CloudMon
 import { JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
-import FeedMarkdown, { MarkdownText, mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "Common/Utils/Markdown/FeedMarkdown";
 import MetricQueryCloudAggregation, {
   MetricQueryAggregationRestore,
   MetricQueryCloudResource,

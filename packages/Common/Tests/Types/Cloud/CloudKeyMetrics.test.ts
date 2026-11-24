@@ -693,9 +693,9 @@ describe("Azure key metrics read split alone", () => {
   test("a stream leaves it to the read, though a diagnostic setting exports it, and writes the type's others", () => {
     const type: string = "Microsoft.App/containerApps";
 
-    expect(
-      isAzureKeyMetricExportedByDiagnosticSettings(type, "Requests"),
-    ).toBe(true);
+    expect(isAzureKeyMetricExportedByDiagnosticSettings(type, "Requests")).toBe(
+      true,
+    );
     expect(isAzureStreamedKeyMetric(type, "Requests")).toBe(false);
     expect(
       isAzureStreamedKeyMetricStoredName(type, "azure_requests_total"),

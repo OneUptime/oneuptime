@@ -12,7 +12,10 @@ import FeedMarkdown, {
 } from "Common/Utils/Markdown/FeedMarkdown";
 import { MetricQueryAggregationRestore } from "Common/Utils/Metrics/MetricQueryCloudAggregation";
 
-export { NAMES_AN_AZURE_RESOURCE, PAGE_SIZE } from "./RestoreCloudResourceMonitorTotals";
+export {
+  NAMES_AN_AZURE_RESOURCE,
+  PAGE_SIZE,
+} from "./RestoreCloudResourceMonitorTotals";
 
 /*
  * Metrics monitors on a Service Bus or Event Hubs namespace read its
