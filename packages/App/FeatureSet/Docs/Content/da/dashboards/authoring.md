@@ -134,7 +134,13 @@ Zoom virker kun i visningstilstand; i redigeringstilstand flytter og tilpasser t
 
 ## Fuld skærm
 
-**⋯ → Fuld skærm** viser dashboardets widgets på hele skærmen, til en vægskærm eller et møde. Tryk på Esc for at forlade den.
+Fuld skærm viser kun dashboardet, på hele skærmen: dets værktøjslinje og dets widgets, uden topbjælke, sidemenu eller brødkrummesti omkring. Alt virker som på dashboardets side, og for de samme personer: redigering, tilføjelse og fjernelse af widgets, tidsintervallet, automatisk opdatering og variablerne.
+
+- **Fuld skærm**, den firkantede knap for enden af dashboardets værktøjslinje, eller **⋯ → Fuld skærm** viser dashboardet i fuld skærm. Din browser går også i fuld skærm, hvor den tillader det.
+- **Åbn i ny fane**, i dashboardets menu **⋯** eller i en rækkes menu **⋯** på listen **Dashboards**, åbner dashboardet i fuld skærm i sin egen fane. I den fane sætter **Fyld skærmen** også din browser i fuld skærm.
+- **Afslut fuld skærm**, eller Esc, går tilbage til dashboardets side og tager også din browser ud af fuld skærm. Efter **Fyld skærmen** tager det første Esc kun din browser ud af fuld skærm.
+
+Et dashboard i fuld skærm har sin egen adresse, som slutter med `?view=full-screen`: gem den som bogmærke eller åbn den på en vægskærm, og dashboardet åbner i fuld skærm. Brug en [playliste](/docs/dashboards/playlists) for at vise flere dashboards efter hinanden på en skærm.
 
 ## Tips til dashboards, der ældes godt
 

@@ -183,6 +183,14 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import ModelImportExport from "Common/Utils/ModelImportExport";
 import { SLO_METRIC_SLO_NAME_ATTRIBUTE } from "Common/Utils/Slo/SloMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import {
+  DASHBOARD_FULL_SCREEN_VIEW,
+  DASHBOARD_VIEW_LINK_PARAMETER,
+} from "Common/Utils/Dashboard/DashboardFullScreenLink";
+import {
+  DashboardFullScreenKeyAction,
+  getDashboardFullScreenKeyAction,
+} from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Utils/DashboardFullScreenKeys";
 import { afterEach, describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -1144,6 +1152,63 @@ describe("Authoring a Dashboard, against the product", () => {
       `${bold("Discard Changes")} goes back to the dashboard as it was saved, and ${bold(
         "Keep Editing",
       )} returns to your work`,
+    );
+  });
+
+  /*
+   * A dashboard shown full screen (#10409): the toolbar's controls, the
+   * Dashboards list's row action, the key that leaves it and its address,
+   * as the page names them.
+   */
+  it("says how full screen opens, in this tab and in a new one, how it closes, and its address, as the product does it", () => {
+    const toolbar: string = readSource(TOOLBAR);
+    const list: string = readSource(DASHBOARDS_LIST);
+    const fullScreen: string = sectionOf(page, "## Full screen");
+
+    // The toolbar: its ⋯ menu's items, and the row's end.
+    for (const item of ["Full Screen", "Exit Full Screen", "Open in New Tab"]) {
+      expect(toolbar).toContain(`text={"${item}"}`);
+    }
+    expect(toolbar).toContain('translator.translateText("Full Screen")');
+    expect(toolbar).toContain('translator.translateText("Fill the Screen")');
+    expect(
+      new RegExp('<Button\\s+title="Exit Full Screen"').test(toolbar),
+    ).toBe(true);
+    expect(toolbar).toContain('shortcutHint="Esc"');
+
+    // Each row's ⋯ menu on the Dashboards list.
+    expect(list).toContain('title: "Open in New Tab"');
+    expect(list).toContain("placement: ActionButtonPlacement.MoreMenu");
+
+    for (const label of [
+      "Full Screen",
+      "⋯ → Full Screen",
+      "Open in New Tab",
+      "Dashboards",
+      "Fill the Screen",
+      "Exit Full Screen",
+    ]) {
+      expect({ label, named: fullScreen.includes(bold(label)) }).toEqual({
+        label,
+        named: true,
+      });
+    }
+
+    // Escape leaves it, as the page says.
+    expect(
+      getDashboardFullScreenKeyAction({
+        event: { key: "Escape" },
+        hasOpenLayer: false,
+        isBrowserFullScreen: false,
+      }),
+    ).toBe(DashboardFullScreenKeyAction.Exit);
+    expect(fullScreen).toContain(
+      `${bold("Exit Full Screen")}, or Esc, goes back to the dashboard's page`,
+    );
+
+    // Its address, as a link to it names it.
+    expect(fullScreen).toContain(
+      `\`?${DASHBOARD_VIEW_LINK_PARAMETER}=${DASHBOARD_FULL_SCREEN_VIEW}\``,
     );
   });
 
