@@ -1025,6 +1025,15 @@ test.describe("the Alerts list of the screenshot", () => {
     outlineStyle: string;
     // Each box from its item to its cell that clips above or below it.
     clippedAboveOrBelow: Array<string>;
+    /*
+     * Each box from its item to its cell that clips at its sides, and how
+     * far outside the link its clip lets the ring be drawn, at the link's
+     * start and at its end (the least of them): a box that clips at the
+     * link's own edge cuts that side of the ring off (#6862).
+     */
+    clippedSideways: Array<string>;
+    ringRoomAtStart: number;
+    ringRoomAtEnd: number;
     linkRectCount: number;
     linkLeft: number;
     linkRight: number;
@@ -1068,13 +1077,42 @@ test.describe("the Alerts list of the screenshot", () => {
       const item: Element = element.parentElement as Element;
       const row: Element = element.firstElementChild as Element;
       const clipped: Array<string> = [];
+      const clippedSideways: Array<string> = [];
+      const isRightToLeft: boolean =
+        getComputedStyle(item).direction === "rtl";
+      const linkBox: DOMRect = element.getBoundingClientRect();
+      let ringRoomAtStart: number = Number.POSITIVE_INFINITY;
+      let ringRoomAtEnd: number = Number.POSITIVE_INFINITY;
       let box: Element | null = item;
 
       while (box) {
-        const overflowY: string = getComputedStyle(box).overflowY;
+        const style: CSSStyleDeclaration = getComputedStyle(box);
+        const overflowY: string = style.overflowY;
 
         if (overflowY !== "visible") {
           clipped.push(`${box.tagName.toLowerCase()}: ${overflowY}`);
+        }
+
+        /*
+         * A box that clips at its sides clips at its padding box: inside
+         * its borders, outside its padding.
+         */
+        if (style.overflowX !== "visible") {
+          const boxRect: DOMRect = box.getBoundingClientRect();
+          const clipLeft: number =
+            boxRect.left + parseFloat(style.borderLeftWidth || "0");
+          const clipRight: number =
+            boxRect.right - parseFloat(style.borderRightWidth || "0");
+          const roomLeft: number = linkBox.left - clipLeft;
+          const roomRight: number = clipRight - linkBox.right;
+          const roomAtStart: number = isRightToLeft ? roomRight : roomLeft;
+          const roomAtEnd: number = isRightToLeft ? roomLeft : roomRight;
+
+          clippedSideways.push(
+            `${box.tagName.toLowerCase()}: ${style.overflowX}, ${roomAtStart.toFixed(1)}px before, ${roomAtEnd.toFixed(1)}px after`,
+          );
+          ringRoomAtStart = Math.min(ringRoomAtStart, roomAtStart);
+          ringRoomAtEnd = Math.min(ringRoomAtEnd, roomAtEnd);
         }
 
         if (box === holder) {
@@ -1120,6 +1158,9 @@ test.describe("the Alerts list of the screenshot", () => {
         isFocusVisible: element.matches(":focus-visible"),
         outlineStyle: getComputedStyle(element).outlineStyle,
         clippedAboveOrBelow: clipped,
+        clippedSideways: clippedSideways,
+        ringRoomAtStart: ringRoomAtStart,
+        ringRoomAtEnd: ringRoomAtEnd,
         linkRectCount: rects.length,
         linkLeft: rects[0] ? rects[0].left : 0,
         linkRight: rects[0] ? rects[0].right : 0,
@@ -1138,16 +1179,41 @@ test.describe("the Alerts list of the screenshot", () => {
   }
 
   /*
+   * Chrome draws a focused link's ring two pixels wide, just outside the
+   * link. Every box between the link and its cell that clips at its sides
+   * lets it be drawn there, at the link's start and at its end: the item
+   * clipped at the link's own start edge, and cut the ring's start side off
+   * - the left on an English page, the right on a Persian one - and both
+   * sides of a name that fills the column (#6862).
+   */
+  const RING_WIDTH_IN_PX: number = 2;
+
+  function expectRingWholeAtItsSides(focused: FocusedLink): void {
+    // The item still clips at its sides: the ring's room is inside its clip.
+    expect(focused.clippedSideways.length).toBeGreaterThan(0);
+    expect({
+      clippedSideways: focused.clippedSideways,
+      ringRoomAtStart: focused.ringRoomAtStart >= RING_WIDTH_IN_PX,
+      ringRoomAtEnd: focused.ringRoomAtEnd >= RING_WIDTH_IN_PX,
+    }).toEqual({
+      clippedSideways: focused.clippedSideways,
+      ringRoomAtStart: true,
+      ringRoomAtEnd: true,
+    });
+  }
+
+  /*
    * A resource's link with a short name, tabbed onto: its ring shows whole
-   * above and below it, round its icon (or a service's colour) and name and
-   * no wider, on its item's one line; and a click past its name's end is
-   * its row's.
+   * above and below it and at its sides, round its icon (or a service's
+   * colour) and name and no wider, on its item's one line; and a click past
+   * its name's end is its row's.
    */
   function expectRingRoundIconAndName(focused: FocusedLink): void {
     expect(focused.isFocusVisible).toBe(true);
     expect(focused.outlineStyle).not.toBe("none");
     // Nothing from its item to its cell cuts its ring off above or below.
     expect(focused.clippedAboveOrBelow).toEqual([]);
+    expectRingWholeAtItsSides(focused);
     // Its item still clips across, and is still a box of its own.
     expect(focused.itemOverflowX).toBe("clip");
     expect(focused.itemDisplay).toBe("flow-root");
@@ -1213,6 +1279,68 @@ test.describe("the Alerts list of the screenshot", () => {
       expectRingRoundIconAndName(focused);
 
       await screenshot(page, `alerts-${language}-${width}-resource-focused`);
+    });
+  }
+
+  /*
+   * A name long enough to fill its column - a monitor's, cut short in
+   * "..." - is a link as wide as its item: the clip cut its ring off at
+   * both sides (#6862). The ring shows at both now, and the name is where
+   * it always stood: 8px past its icon, one line, cut at its own end.
+   */
+  for (const [language, width] of [
+    ["en", 1280],
+    ["fa", 1280],
+  ] as Array<[string, number]>) {
+    test(`a long resource name tabbed onto shows its focus ring at both sides, its name where it stood (${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        language === "en" ? ALERTS : `${ALERTS}?lang=${language}`,
+        width,
+      );
+
+      const link: Locator = rows(page)
+        .first()
+        .getByRole("link", { name: FIRST_MONITOR });
+      const layout: NameLayout = await nameLayout(link);
+
+      // Long enough to fill its column, as the name of the screenshot is.
+      expect(layout.isCutShort).toBe(true);
+      expect(layout.endsInEllipsis).toBe(true);
+      expect(layout.lineLefts).toHaveLength(1);
+      // Its words where they stood: 8px from its icon, inside its item.
+      if (language === "en") {
+        expect(layout.lineLefts[0]! - layout.iconRight).toBeGreaterThanOrEqual(
+          7,
+        );
+        expect(layout.lineLefts[0]! - layout.iconRight).toBeLessThanOrEqual(9);
+      } else {
+        expect(layout.iconLeft - layout.nameRight).toBeGreaterThanOrEqual(7);
+        expect(layout.iconLeft - layout.nameRight).toBeLessThanOrEqual(9);
+      }
+      expect(layout.nameRight).toBeLessThanOrEqual(layout.itemRight + 1);
+      expect(layout.nameLeft).toBeGreaterThanOrEqual(layout.itemLeft - 1);
+
+      await tabTo(page, link);
+
+      const focused: FocusedLink = await focusedLinkOf(link);
+
+      expect(focused.isFocusVisible).toBe(true);
+      expect(focused.outlineStyle).not.toBe("none");
+      expect(focused.clippedAboveOrBelow).toEqual([]);
+      expectRingWholeAtItsSides(focused);
+      // The item still cuts its line short, at the column's edge.
+      expect(focused.itemOverflowX).toBe("clip");
+      expect(Math.round(focused.itemHeight)).toBe(24);
+
+      await screenshot(
+        page,
+        `alerts-${language}-${width}-long-resource-focused`,
+      );
     });
   }
 
@@ -2248,18 +2376,35 @@ test.describe("a row's labels, one under another, in natural order", () => {
 
     /*
      * The ring is drawn inside the link's box, and the box inside the
-     * column's clip: a ring outside it lost its left side at the edge.
+     * column - inside any box between it and its cell that clips, and
+     * inside the cell's padding: a ring outside it lost its left side at
+     * the edge. (A list's cell leaves the clip to its items, #6862, so the
+     * box it stays inside may be the cell's own.)
      */
     const ring: { shadow: string; left: number; clipLeft: number } =
       await more.evaluate((element: Element) => {
+        const cell: Element = element.closest("td") as Element;
         let clip: Element | null = element.parentElement;
-        while (clip && getComputedStyle(clip).overflowX !== "clip") {
+        while (
+          clip &&
+          clip !== cell &&
+          getComputedStyle(clip).overflowX !== "clip"
+        ) {
           clip = clip.parentElement;
         }
+        const clipBox: DOMRect | null = clip
+          ? clip.getBoundingClientRect()
+          : null;
+        const clipLeft: number =
+          clip === cell && clipBox
+            ? clipBox.left + parseFloat(getComputedStyle(cell).paddingLeft)
+            : clipBox
+              ? clipBox.left
+              : -1;
         return {
           shadow: getComputedStyle(element).boxShadow,
           left: element.getBoundingClientRect().left,
-          clipLeft: clip ? clip.getBoundingClientRect().left : -1,
+          clipLeft: clipLeft,
         };
       });
 
