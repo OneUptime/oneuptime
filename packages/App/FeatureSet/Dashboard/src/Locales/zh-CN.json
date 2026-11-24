@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "脚本超时时的页面",
   "Page {{number}} when the script timed out": "脚本超时时的页面 {{number}}",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "此功能需要 {{plan}} 套餐或更高套餐。请在 项目设置 > 账单和发票 > 账单 中升级项目的套餐，然后重试。",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} “{{value}}” 已存在。请为 {{field}} 选择其他值，然后重试。"
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} “{{value}}” 已存在。请为 {{field}} 选择其他值，然后重试。",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "监视器模板无法同步 “{{field}}”。请从模板提供的模板同步设置中选择，然后重新保存。",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "模板同步设置需要模板的监视器类型。请先选择监视器类型，然后重新选择同步设置。",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "此监视器模板在此项目中不存在，或者您无权访问。请重新加载页面，然后重试。",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此监视器模板没有监视器类型，因此无法同步其监视器。请使用监视器类型重新创建该模板。",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此监视器模板不属于任何项目，因此无法将监视器关联到它。请在此项目中重新创建该模板。"
 }

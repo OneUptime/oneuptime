@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
   "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "इस सुविधा के लिए {{plan}} योजना या उससे ऊपर की योजना चाहिए। प्रोजेक्ट सेटिंग्स > बिलिंग और चालान > बिलिंग में प्रोजेक्ट की योजना अपग्रेड करें, फिर दोबारा कोशिश करें।",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" पहले से मौजूद है। {{field}} के लिए कोई दूसरा मान चुनें, फिर दोबारा कोशिश करें।"
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" पहले से मौजूद है। {{field}} के लिए कोई दूसरा मान चुनें, फिर दोबारा कोशिश करें।",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "मॉनिटर टेम्पलेट \"{{field}}\" को सिंक नहीं कर सकता। टेम्पलेट जो टेम्पलेट सिंक सेटिंग्स देता है, उनमें से चुनें, फिर दोबारा सहेजें।",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "टेम्पलेट सिंक सेटिंग्स के लिए टेम्पलेट का मॉनिटर प्रकार चाहिए। पहले मॉनिटर प्रकार चुनें, फिर सिंक सेटिंग्स दोबारा चुनें।",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "यह मॉनिटर टेम्पलेट इस प्रोजेक्ट में मौजूद नहीं है, या आपके पास इसकी पहुंच नहीं है। पेज दोबारा लोड करें, फिर दोबारा कोशिश करें।",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "इस मॉनिटर टेम्पलेट का कोई मॉनिटर प्रकार नहीं है, इसलिए इसके मॉनिटर सिंक नहीं किए जा सकते। मॉनिटर प्रकार के साथ टेम्पलेट फिर से बनाएं।",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "यह मॉनिटर टेम्पलेट किसी प्रोजेक्ट में नहीं है, इसलिए इससे कोई मॉनिटर लिंक नहीं किया जा सकता। इस प्रोजेक्ट में टेम्पलेट फिर से बनाएं।"
 }

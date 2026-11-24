@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "Side, da scriptet fik timeout",
   "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Denne funktion kræver {{plan}}-planen eller højere. Opgrader projektets plan under Projektindstillinger > Fakturering og fakturaer > Fakturering, og prøv så igen.",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" findes allerede. Vælg en anden værdi for {{field}}, og prøv så igen."
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" findes allerede. Vælg en anden værdi for {{field}}, og prøv så igen.",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitorskabelon kan ikke synkronisere \"{{field}}\". Vælg blandt de indstillinger for skabelonsynkronisering, skabelonen tilbyder, og gem så igen.",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Indstillingerne for skabelonsynkronisering kræver skabelonens monitortype. Vælg først monitortypen, og vælg så synkroniseringsindstillingerne igen.",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Denne monitorskabelon findes ikke i dette projekt, eller du har ikke adgang til den. Genindlæs siden, og prøv så igen.",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Denne monitorskabelon har ingen monitortype, så dens monitorer kan ikke synkroniseres. Opret skabelonen igen med en monitortype.",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Denne monitorskabelon hører ikke til noget projekt, så ingen monitor kan knyttes til den. Opret skabelonen igen i dette projekt."
 }

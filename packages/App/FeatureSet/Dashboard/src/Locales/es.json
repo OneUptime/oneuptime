@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "Página cuando se agotó el tiempo del script",
   "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Esta función requiere el plan {{plan}} o superior. Mejore el plan del proyecto en Ajustes del proyecto > Facturación y facturas > Facturación y vuelva a intentarlo.",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" ya existe. Elija otro valor para {{field}} y vuelva a intentarlo."
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" ya existe. Elija otro valor para {{field}} y vuelva a intentarlo.",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Una plantilla de monitor no puede sincronizar \"{{field}}\". Elija entre los ajustes de sincronización que ofrece la plantilla y vuelva a guardar.",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Los ajustes de sincronización de la plantilla necesitan el tipo de monitor de la plantilla. Elija primero el tipo de monitor y luego vuelva a elegir los ajustes de sincronización.",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Esta plantilla de monitor no existe en este proyecto o no tiene acceso a ella. Vuelva a cargar la página e inténtelo de nuevo.",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Esta plantilla de monitor no tiene tipo de monitor, así que sus monitores no se pueden sincronizar. Vuelva a crear la plantilla con un tipo de monitor.",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Esta plantilla de monitor no pertenece a ningún proyecto, así que no se le puede vincular ningún monitor. Vuelva a crear la plantilla en este proyecto."
 }

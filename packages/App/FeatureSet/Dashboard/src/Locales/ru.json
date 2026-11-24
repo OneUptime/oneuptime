@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "Страница в момент тайм-аута скрипта",
   "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Для этой функции нужен план {{plan}} или выше. Повысьте план проекта в Настройки проекта > Биллинг и счета > Биллинг, затем повторите попытку.",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» уже существует. Выберите другое значение для {{field}} и повторите попытку."
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» уже существует. Выберите другое значение для {{field}} и повторите попытку.",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Шаблон монитора не может синхронизировать «{{field}}». Выберите из настроек синхронизации, которые предлагает шаблон, и сохраните снова.",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Для настроек синхронизации шаблона нужен тип монитора шаблона. Сначала выберите тип монитора, затем снова выберите настройки синхронизации.",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Этого шаблона монитора нет в этом проекте, или у вас нет к нему доступа. Перезагрузите страницу и повторите попытку.",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "У этого шаблона монитора нет типа монитора, поэтому его мониторы нельзя синхронизировать. Создайте шаблон заново с типом монитора.",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Этот шаблон монитора не относится ни к одному проекту, поэтому к нему нельзя привязать монитор. Создайте шаблон заново в этом проекте."
 }

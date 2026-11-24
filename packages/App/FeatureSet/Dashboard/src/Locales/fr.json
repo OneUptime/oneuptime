@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "Page lorsque le script a expiré",
   "Page {{number}} when the script timed out": "Page {{number}} lorsque le script a expiré",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Cette fonctionnalité nécessite le forfait {{plan}} ou supérieur. Passez le projet à un forfait supérieur dans Paramètres du projet > Facturation et factures > Facturation, puis réessayez.",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} « {{value}} » existe déjà. Choisissez une autre valeur pour {{field}}, puis réessayez."
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} « {{value}} » existe déjà. Choisissez une autre valeur pour {{field}}, puis réessayez.",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modèle de moniteur ne peut pas synchroniser « {{field}} ». Choisissez parmi les paramètres de synchronisation que propose le modèle, puis enregistrez à nouveau.",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Les paramètres de synchronisation du modèle nécessitent le type de moniteur du modèle. Choisissez d'abord le type de moniteur, puis choisissez à nouveau les paramètres de synchronisation.",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Ce modèle de moniteur n'existe pas dans ce projet, ou vous n'y avez pas accès. Rechargez la page, puis réessayez.",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Ce modèle de moniteur n'a pas de type de moniteur : ses moniteurs ne peuvent donc pas être synchronisés. Recréez le modèle avec un type de moniteur.",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Ce modèle de moniteur n'appartient à aucun projet : aucun moniteur ne peut donc y être lié. Recréez le modèle dans ce projet."
 }

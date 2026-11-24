@@ -89,6 +89,10 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Probe/Config.ts",
   "packages/Probe/Services/Register.ts",
   "packages/Probe/Index.ts",
+  // Files whose every message became a sentence, kept so (#7276, #7711).
+  "packages/Common/UI/Components/Forms/ModelForm.tsx",
+  "packages/Common/Server/Services/MonitorTemplateService.ts",
+  "packages/Common/Server/API/MonitorTemplateAPI.ts",
 ];
 
 /*

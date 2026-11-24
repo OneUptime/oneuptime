@@ -543,7 +543,7 @@ describe("MonitorTemplateService bulk sync coverage", () => {
         props: { isRoot: true },
       }),
     ).rejects.toThrow(
-      'Field "monitorName" is not syncable from a monitor template',
+      'A monitor template cannot sync "monitorName". Choose from the template sync settings the template offers, then save again.',
     );
   });
 });

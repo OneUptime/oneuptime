@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "صفحه هنگام تمام شدن مهلت اسکریپت",
   "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "این قابلیت به طرح {{plan}} یا بالاتر نیاز دارد. طرح پروژه را در تنظیمات پروژه > صورت‌حساب و فاکتورها > صورت‌حساب ارتقا دهید و سپس دوباره امتحان کنید.",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» از قبل وجود دارد. برای {{field}} مقدار دیگری انتخاب کنید و سپس دوباره امتحان کنید."
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» از قبل وجود دارد. برای {{field}} مقدار دیگری انتخاب کنید و سپس دوباره امتحان کنید.",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "قالب مانیتور نمی‌تواند «{{field}}» را همگام‌سازی کند. از میان تنظیمات همگام‌سازی قالب که قالب ارائه می‌دهد انتخاب کنید و سپس دوباره ذخیره کنید.",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "تنظیمات همگام‌سازی قالب به نوع مانیتور قالب نیاز دارد. اول نوع مانیتور را انتخاب کنید و سپس تنظیمات همگام‌سازی را دوباره انتخاب کنید.",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "این قالب مانیتور در این پروژه وجود ندارد یا به آن دسترسی ندارید. صفحه را دوباره بارگذاری کنید و سپس دوباره امتحان کنید.",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "این قالب مانیتور نوع مانیتور ندارد، پس مانیتورهایش همگام‌سازی نمی‌شوند. قالب را با یک نوع مانیتور دوباره بسازید.",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "این قالب مانیتور به هیچ پروژه‌ای تعلق ندارد، پس هیچ مانیتوری را نمی‌توان به آن پیوند داد. قالب را در این پروژه دوباره بسازید."
 }

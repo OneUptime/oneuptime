@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
   "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "この機能には {{plan}} プラン以上が必要です。「プロジェクト設定 > 請求と請求書 > 請求」でプロジェクトのプランをアップグレードしてから、もう一度お試しください。",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} 「{{value}}」 はすでに存在します。{{field}} に別の値を指定してから、もう一度お試しください。"
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} 「{{value}}」 はすでに存在します。{{field}} に別の値を指定してから、もう一度お試しください。",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "モニターテンプレートは「{{field}}」を同期できません。テンプレートが提供する同期設定から選んでから、もう一度保存してください。",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "テンプレートの同期設定には、テンプレートのモニターの種類が必要です。先にモニターの種類を選んでから、同期設定を選び直してください。",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "このモニターテンプレートはこのプロジェクトに存在しないか、アクセス権がありません。ページを再読み込みしてから、もう一度お試しください。",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "このモニターテンプレートにはモニターの種類がないため、そのモニターを同期できません。モニターの種類を指定してテンプレートを作り直してください。",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "このモニターテンプレートはどのプロジェクトにも属していないため、モニターを関連付けられません。このプロジェクトでテンプレートを作り直してください。"
 }

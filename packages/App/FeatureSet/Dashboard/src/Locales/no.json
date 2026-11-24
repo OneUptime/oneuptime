@@ -64071,5 +64071,10 @@
   "Page when the script timed out": "Side da skriptet fikk tidsavbrudd",
   "Page {{number}} when the script timed out": "Side {{number}} da skriptet fikk tidsavbrudd",
   "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Denne funksjonen krever {{plan}}-abonnementet eller høyere. Oppgrader prosjektets abonnement under Prosjektinnstillinger > Fakturering og fakturaer > Fakturering, og prøv så igjen.",
-  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" finnes allerede. Velg en annen verdi for {{field}}, og prøv så igjen."
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" finnes allerede. Velg en annen verdi for {{field}}, og prøv så igjen.",
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitormal kan ikke synkronisere \"{{field}}\". Velg blant innstillingene for malsynkronisering som malen tilbyr, og lagre så på nytt.",
+  "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Innstillingene for malsynkronisering trenger malens monitortype. Velg monitortypen først, og velg så synkroniseringsinnstillingene på nytt.",
+  "This monitor template does not exist in this project, or you do not have access to it. Reload the page, then try again.": "Denne monitormalen finnes ikke i dette prosjektet, eller du har ikke tilgang til den. Last inn siden på nytt, og prøv så igjen.",
+  "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Denne monitormalen har ingen monitortype, så monitorene dens kan ikke synkroniseres. Opprett malen på nytt med en monitortype.",
+  "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Denne monitormalen hører ikke til noe prosjekt, så ingen monitor kan kobles til den. Opprett malen på nytt i dette prosjektet."
 }
