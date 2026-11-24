@@ -114,7 +114,9 @@ export const getCodeRepositoryChoiceQuery: (data: {
 }): Record<string, unknown> => {
   return {
     ...(data.group ? { [CODE_REPOSITORY_CHOICE_GROUP_KEY]: data.group } : {}),
-    ...(data.isAskableOnly ? { [CODE_REPOSITORY_CHOICE_ASKABLE_KEY]: true } : {}),
+    ...(data.isAskableOnly
+      ? { [CODE_REPOSITORY_CHOICE_ASKABLE_KEY]: true }
+      : {}),
     ...(data.isCodeReadableOnly
       ? { [CODE_REPOSITORY_CHOICE_CODE_READABLE_KEY]: true }
       : {}),
@@ -162,7 +164,11 @@ const CodeRepositorySearchField: FunctionComponent<ComponentProps> = (
       modelAPI={CodeRepositoryChoicesAPI}
       labelField="name"
       valueField="_id"
-      query={getCodeRepositoryChoiceQuery(props)}
+      query={getCodeRepositoryChoiceQuery({
+        group: props.group,
+        isAskableOnly: props.isAskableOnly,
+        isCodeReadableOnly: props.isCodeReadableOnly,
+      })}
       options={props.options}
       enableLabelsTab={false}
       isMultiSelect={false}
