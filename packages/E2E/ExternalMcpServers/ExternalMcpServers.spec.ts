@@ -7,7 +7,7 @@ import { describePageLanguages } from "../SuiteHelpers/LocaleChunks";
  * Project Settings -> AI -> External MCP Servers, end to end in a browser,
  * on the real pages (ExternalMcpServers/Fixture/Fixture.js): the MCP servers
  * outside OneUptime - AWS, Azure, GitHub, a team's own - whose tools
- * OneUptime AI may use while it investigates and fixes.
+ * OneUptime AI may use in Ask AI and while it investigates and fixes.
  *
  * The maintainer asked for a way to add them in project settings, as simply
  * as possible. So a server is a name, its address and how OneUptime signs
@@ -237,7 +237,7 @@ test.describe("Project Settings > AI > External MCP Servers", () => {
     ).toBeVisible();
     await expect(
       page.getByText(
-        "MCP servers outside OneUptime whose tools OneUptime AI may use while it investigates and fixes, such as AWS, Azure or GitHub.",
+        "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.",
       ),
     ).toBeVisible();
 
