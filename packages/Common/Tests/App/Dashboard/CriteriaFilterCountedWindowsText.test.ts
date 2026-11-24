@@ -228,6 +228,7 @@ describe("the form's choices", () => {
       EvaluateOverTimeType.Count,
       EvaluateOverTimeType.Percentage,
       EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
   });
 
@@ -245,6 +246,7 @@ describe("the form's choices", () => {
       EvaluateOverTimeType.Count,
       EvaluateOverTimeType.Percentage,
       EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
   });
 
@@ -259,7 +261,7 @@ describe("the form's choices", () => {
     ).not.toContain(EvaluateOverTimeType.Count);
   });
 
-  test("only the types that came with #10355 say what they do under their names", () => {
+  test("only the types that came with #10355 and #10821 say what they do under their names", () => {
     const described: Array<string> =
       CriteriaFilterUtil.getEvaluateOverTimeTypeOptions(
         SLOW,
@@ -277,6 +279,7 @@ describe("the form's choices", () => {
       EvaluateOverTimeType.Count,
       EvaluateOverTimeType.Percentage,
       EvaluateOverTimeType.StatusChanges,
+      EvaluateOverTimeType.PreviousCheck,
     ]);
     expect(Object.keys(EVALUATE_OVER_TIME_TYPE_DESCRIPTIONS).sort()).toEqual(
       [...described].sort(),
