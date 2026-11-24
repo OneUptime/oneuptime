@@ -15,12 +15,14 @@ import com.oneuptime.androidagent.device.DefaultDeviceName
 import com.oneuptime.androidagent.dropbox.DropBoxDecoder
 import com.oneuptime.androidagent.dropbox.DropBoxEntry
 import com.oneuptime.androidagent.dropbox.DropBoxFinding
+import com.oneuptime.androidagent.dropbox.JavaStackParser
 import com.oneuptime.androidagent.dropbox.NativeFrameParser
 import com.oneuptime.androidagent.dropbox.ThreadTraceParser
 import com.oneuptime.androidagent.logs.LogcatLineParser
 import com.oneuptime.androidagent.logs.LogcatParse
 import com.oneuptime.androidagent.logs.LogcatUid
 import com.oneuptime.androidagent.logs.Redactor
+import com.oneuptime.androidagent.logsession.LogSessionNote
 import java.util.Random
 import java.util.TimeZone
 import org.junit.Assert.assertEquals
@@ -452,6 +454,26 @@ class OnDeviceParsersTest {
             assertEquals(text, Redactor.redact(text))
         }
         assertTrue((System.nanoTime() - started) / 1_000_000 < 10_000)
+    }
+
+    /*
+     * The parsers read a line as the JVM's unit tests do: a Java class name
+     * by Java's own rule, an app's text whole whatever character it holds,
+     * and Android's own headers in ASCII (#10876).
+     */
+    @Test
+    fun parsersReadALineAsTheTestsDoOnAndroid() {
+        assertEquals("com.example.Ошибка", JavaStackParser.parse("com.example.Ошибка: Платёж отклонён\n\tat a.B.c(B.java:1)", 1024)!!.type)
+        assertEquals("例え.パッケージ.エラー\$内部", JavaStackParser.parse("例え.パッケージ.エラー\$内部: x", 1024)!!.type)
+        assertNull(JavaStackParser.parse("Ошибка: x", 1024))
+        val zone: TimeZone = TimeZone.getTimeZone("UTC")
+        for (inside in listOf("\u000B", "\u000C", "\u0085", "\u2028", "\u2029")) {
+            assertEquals("a${inside}b", JavaStackParser.parse("java.lang.Error: a${inside}b", 1024)!!.message)
+            assertEquals("a${inside}b", (LogcatLineParser.parse("1795076845.927   580   974 I Tag: a${inside}b", 0L, zone) as LogcatParse.Entry).line.message)
+        }
+        assertEquals(LogcatParse.Unrecognized, LogcatLineParser.parse("1795076845.927   ٥٨٠   974 I Tag: m", 0L, zone))
+        assertEquals("a b", LogSessionNote.clean("a\u3000b"))
+        assertEquals("a\uFEFFb", LogSessionNote.clean("a\uFEFFb"))
     }
 
     @Test
