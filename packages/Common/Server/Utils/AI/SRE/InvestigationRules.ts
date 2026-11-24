@@ -66,7 +66,8 @@ import { AiContextRule, readAiContext } from "../../../../Types/AI/AiContext";
  *
  * The code repositories it may read are named the same way
  * (getIncidentCodeRepositoryAllowance, CodeRepositoryAllowance): with no
- * rule, or a matching rule that names none, every connected repository; with
+ * rule, a matching rule that names none, or no matching rule at all (an
+ * investigation started by hand), every connected repository; with
  * matching rules that name some, those - and none when the rules cannot be
  * read, for the same reason.
  *
@@ -450,6 +451,21 @@ export default class InvestigationRules {
       }
     }
 
+    return this.getCodeRepositoryAllowanceOfMatches(matchingRules);
+  }
+
+  /*
+   * The repositories the matching rules allow - and with none matching,
+   * every connected one: only a person starts an investigation no rule
+   * matches, and no rule speaks to it (see the note at the top).
+   */
+  private static getCodeRepositoryAllowanceOfMatches(
+    matchingRules: Array<AutoRemediationRule>,
+  ): CodeRepositoryAllowance {
+    if (matchingRules.length === 0) {
+      return EVERY_CODE_REPOSITORY;
+    }
+
     return getCodeRepositoryAllowance({
       rulesSetUp: true,
       matchingRules,
@@ -489,10 +505,7 @@ export default class InvestigationRules {
       }
     }
 
-    return getCodeRepositoryAllowance({
-      rulesSetUp: true,
-      matchingRules,
-    });
+    return this.getCodeRepositoryAllowanceOfMatches(matchingRules);
   }
 
   // The same, for an alert.
