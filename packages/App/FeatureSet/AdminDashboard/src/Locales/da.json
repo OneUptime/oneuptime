@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Skift til visuel editor",
   "Visual": "Visuel",
   "Drop image to upload": "Slip billedet for at uploade det",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" blev ikke uploadet. {{error}}",
+  "Uploading {{fileName}}…": "Uploader {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Skriv direkte i den visuelle editor — brug værktøjslinjen til formatering.",
   "Switch to {{markdown}} to view or edit the raw source.": "Skift til {{markdown}} for at se eller redigere kildeteksten.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "I en liste skal du trykke på {{indentKey}} for at rykke et punkt ind og {{outdentKey}} for at rykke det ud, eller bruge knapperne Ryk ind og Ryk ud. Uden for en liste flytter {{tabKey}} til næste felt.",

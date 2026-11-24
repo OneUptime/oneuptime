@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "시각적 편집기로 전환",
   "Visual": "시각적 편집",
   "Drop image to upload": "이미지를 놓으면 업로드됩니다",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" 파일은 업로드되지 않았습니다. {{error}}",
+  "Uploading {{fileName}}…": "{{fileName}} 업로드 중…",
   "Type directly in the visual editor — use the toolbar to format.": "시각적 편집기에 바로 입력하고, 서식은 도구 모음으로 지정하세요.",
   "Switch to {{markdown}} to view or edit the raw source.": "원본을 보거나 편집하려면 {{markdown}}(으)로 전환하세요.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "목록에서는 {{indentKey}}로 항목을 들여쓰고 {{outdentKey}}로 내어쓰거나, 들여쓰기·내어쓰기 버튼을 사용하세요. 목록 밖에서는 {{tabKey}}로 다음 필드로 이동합니다.",

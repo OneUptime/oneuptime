@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Naar visuele editor wisselen",
   "Visual": "Visueel",
   "Drop image to upload": "Laat de afbeelding los om te uploaden",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" is niet geüpload. {{error}}",
+  "Uploading {{fileName}}…": "{{fileName}} wordt geüpload…",
   "Type directly in the visual editor — use the toolbar to format.": "Typ direct in de visuele editor — gebruik de werkbalk voor de opmaak.",
   "Switch to {{markdown}} to view or edit the raw source.": "Schakel over naar {{markdown}} om de bron te bekijken of te bewerken.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "Druk in een lijst op {{indentKey}} om een item in te springen en op {{outdentKey}} om het uit te springen, of gebruik de knoppen Inspringen en Uitspringen. Buiten een lijst gaat {{tabKey}} naar het volgende veld.",

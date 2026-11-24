@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Перейти к визуальному редактору",
   "Visual": "Визуальный",
   "Drop image to upload": "Отпустите изображение, чтобы загрузить",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "Файл «{{fileName}}» не загружен. {{error}}",
+  "Uploading {{fileName}}…": "Загрузка {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Пишите прямо в визуальном редакторе — для форматирования используйте панель инструментов.",
   "Switch to {{markdown}} to view or edit the raw source.": "Переключитесь на {{markdown}}, чтобы увидеть или изменить исходный текст.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "В списке нажмите {{indentKey}}, чтобы сдвинуть пункт вправо, и {{outdentKey}}, чтобы сдвинуть влево, или используйте кнопки отступа. Вне списка {{tabKey}} переходит к следующему полю.",
