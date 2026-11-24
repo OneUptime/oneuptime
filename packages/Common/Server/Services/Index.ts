@@ -495,6 +495,7 @@ import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityUserErasureRequestService from "./SecurityUserErasureRequestService";
 import SecurityBlockService from "./SecurityBlockService";
 import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
 import SecurityBlocklistFeedService from "./SecurityBlocklistFeedService";
@@ -1127,6 +1128,7 @@ const services: Array<BaseService> = [
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,
+  SecurityUserErasureRequestService,
   SecurityBlockService,
   SecurityBlockEnforcementService,
   SecurityBlocklistFeedService,
