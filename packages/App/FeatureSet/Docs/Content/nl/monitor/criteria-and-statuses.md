@@ -87,6 +87,7 @@ Met **Evalueer deze criteria over een bepaalde periode** aangevinkt bepaalt **Ev
 | **Aantal** | Het aantal controles dat aan de voorwaarde voldeed zich verhoudt zoals ingesteld onder **Overeenkomende controles**: bijvoorbeeld **Groter dan** 30. |
 | **Percentage** | Hun aandeel in de controles van het venster zich verhoudt zoals ingesteld onder **Aandeel overeenkomende controles**: bijvoorbeeld **Groter dan** 10%. |
 | **Statuswijzigingen** | Het aantal keren dat de controles wisselden tussen wel en niet voldoen aan de voorwaarde zich verhoudt zoals ingesteld onder **Aantal wijzigingen**. Een apparaat dat uitvalt en weer terugkomt, wisselt twee keer. |
+| **Vorige controle** | Deze controle, vergeleken met de vorige controle van dezelfde sonde: bijvoorbeeld een reactietijd die meer dan 50% hoger ligt, of een site die nu plat ligt en eerder niet. Zie [Een controle met de vorige vergelijken](#een-controle-met-de-vorige-vergelijken). |
 
 Een zin onder de instellingen van het venster leest het filter terug zoals het is ingesteld: ‘Controleer: "Is online" is onwaar bij meer dan 30 controles in de afgelopen 8 uur’.
 
@@ -107,6 +108,20 @@ Een Ping-monitor controleert elke minuut een access point op kantoor. Voordat ve
 | Access point is online | **Is online** is **Waar** | Niet over een periode | **Operationeel** |
 
 Zet bij het tweede **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** aan met **Statuswijzigingen**, **Kleiner dan of gelijk aan** 1, **Voor de laatste** 1 uur: het instabiliteitsincident blijft open tot het access point een uur stabiel is geweest, in plaats van te sluiten in de eerste minuut dat het bereikbaar is. Om te waarschuwen als het in 8 uur meer dan 30 pings mist, stel je het tweede criterium in plaats daarvan in op **Aantal**, **Groter dan** 30, **Voor de laatste** 8 uur.
+
+### Een controle met de vorige vergelijken
+
+**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**.
+
+Een gemeten waarde, zoals een reactietijd, voldoet wanneer die meer dan de verandering onder **Verschil met de vorige controle** boven de vorige controle ligt, met **Groter dan**, of eronder, met **Kleiner dan**. De verandering is een **Waarde in de eenheid van de controle**, zoals 200 ms, of een **Procent van de vorige controle**, zoals 50%, en 0 voldoet bij elke stijging of daling. **Gelijk aan** en **Niet gelijk aan** vergelijken met de vorige waarde zelf.
+
+Een filter dat waar of onwaar is, zoals **Is online**, en een filter op de body, een header of een expressie voldoen bij de controle die aan de voorwaarde begon te voldoen: **Is online** op **Onwaar** voldoet bij de controle waarbij de site uitviel, en pas weer bij de volgende uitval.
+
+In beide gevallen voldoet het bij één controle, en bij de volgende houdt het criterium op te werken. Wilt u dat het de status vasthoudt die het zet, of zijn incident open laat, geef het dan een eigen herstelvoorwaarde: zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt).
+
+Zonder vorige controle in het venster, zoals bij de eerste controle van de monitor, voor een net toegevoegde sonde of na een onderbreking, beslist **Als geen gegevens**: **Ignore** voldoet niet, **Trigger** voldoet, en **Treat As Zero** vergelijkt alsof de vorige controle 0 las, of niet aan de voorwaarde voldeed.
+
+De zin onder de instellingen van het venster leest het terug: ‘Controleer: "Reactietijd (in ms)" ligt meer dan 50% boven de vorige controle’, of ‘Controleer: "Is online" is onwaar bij deze controle, maar niet bij de vorige’.
 
 ## Wanneer een criterium herstelt
 
