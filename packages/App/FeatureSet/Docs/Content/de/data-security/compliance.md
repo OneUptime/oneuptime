@@ -7,7 +7,9 @@ Datensicherheit bewertet neun Rahmenwerke anhand dessen, was ihre Scans gefunden
 - [Wie ein Rahmenwerk bewertet wird](#wie-ein-rahmenwerk-bewertet-wird): Erfüllte, nicht erfüllte und nicht bewertete Anforderungen.
 - [Auf der Seite einer Ressource](#auf-der-seite-einer-ressource): Die Compliance eines Clusters, eines Hosts, einer Datenbank, eines Dienstes oder einer Cloud-Ressource und was dort ausgeschaltet ist.
 - [Anforderungen und ihre Prüfungen](#anforderungen-und-ihre-prüfungen): Jede Anforderung und die Prüfungen, die als Beleg für sie dienen.
-- [Verzeichnis von Verarbeitungstätigkeiten](#verzeichnis-von-verarbeitungstätigkeiten): GDPR Artikel 30, geschrieben aus Ihren Datenspeichern.
+- [Verzeichnis von Verarbeitungstätigkeiten](#verzeichnis-von-verarbeitungstätigkeiten): GDPR Artikel 30, geschrieben aus Ihren Datenspeichern, mit den Entwürfen von OneUptime AI zum Bestätigen.
+- [Datenschutz-Folgenabschätzungen](#datenschutz-folgenabschätzungen): Eine Datenschutz-Folgenabschätzung für jeden Datenspeicher, der eine braucht.
+- [Audit-Belege](#audit-belege): Was ein Auditor unter jeder Anforderung liest, exportiert mit Ihrem Verzeichnis und dem Problemverlauf.
 :::
 
 ## Die Rahmenwerke
@@ -185,13 +187,30 @@ GDPR Artikel 30 verlangt, dass Sie ein Verzeichnis Ihrer Verarbeitungstätigkeit
 | Umgebung | Die Tags oder der Name des Datenspeichers, oder was Sie festlegen |
 | Sensibilität, Kategorien und Datentypen | Was die Scans gefunden haben, oder die Sensibilität, die Sie festlegen |
 | Eigentümer | Die Eigentümer des Datenspeichers, Personen und die Mitglieder seiner Teams |
-| Zweck | Was Sie unter **Zweck** des Datenspeichers eintragen: warum er personenbezogene Daten enthält. Für die Datenspeicher, die OneUptime für Ihre Sicherheit führt, trägt OneUptime ihn ein |
-| Aufbewahrung | Was Sie unter **Aufbewahrung** des Datenspeichers eintragen: wie lange Daten darin aufbewahrt werden. Für die Datenspeicher, die OneUptime für Ihre Sicherheit führt, trägt OneUptime sie ein |
+| Zweck | Was Sie unter **Zweck** des Datenspeichers eintragen oder bestätigen: warum er personenbezogene Daten enthält. Für die Datenspeicher, die OneUptime für Ihre Sicherheit führt, trägt OneUptime ihn ein |
+| Aufbewahrung | Was Sie unter **Aufbewahrung** des Datenspeichers eintragen oder bestätigen: wie lange Daten darin aufbewahrt werden. Für die Datenspeicher, die OneUptime für Ihre Sicherheit führt, trägt OneUptime sie ein, und für die Telemetrie eines Dienstes aus der Telemetrie-Aufbewahrung Ihres Projekts |
 | Wer lesen darf | Wer einen Datenspeicher lesen darf, den OneUptime für Ihre Sicherheit führt |
 | Rahmenwerke | Die Rahmenwerke, die seine Datentypen in den Geltungsbereich bringen |
 | Deklariert von | OneUptime, für die Datenspeicher, die es für Ihre Sicherheit führt |
+| Rechtsgrundlage | Was Sie eintragen oder bestätigen: die Rechtsgrundlage des Datenspeichers nach GDPR Artikel 6, eine von Einwilligung, Vertrag, rechtlicher Verpflichtung, lebenswichtigen Interessen, Wahrnehmung einer Aufgabe im öffentlichen Interesse und berechtigten Interessen. Berechtigte Interessen für die Datenspeicher, die OneUptime für Ihre Sicherheit führt |
+| Betroffene Personen | Was Sie eintragen oder bestätigen: um wen es in den Daten des Datenspeichers geht, etwa Kunden, Benutzer, Beschäftigte oder Patienten |
+| Empfänger | Aus den Datenflüssen des Datenspeichers ermittelt: die externen Hosts und KI-Anbieter, an die seine Daten gesendet werden, und die Datenspeicher, die eine Kopie davon enthalten |
+| Übermittlungen | Ermittelt aus der Region des Datenspeichers, den Regionen, in die seine Cloud ihn kopiert, und den Regionen seiner Kopien, abgeglichen mit den Ländern der betroffenen Personen: jede Übermittlung aus diesen Ländern heraus, oder warum sie nicht bekannt ist |
+| Datenschutz-Folgenabschätzung | Ob der Datenspeicher eine Datenschutz-Folgenabschätzung braucht und wie es um sie steht: nicht erforderlich, erforderlich, entworfen oder bearbeitet |
+| Wartet auf Prüfung | Die Felder, deren Entwurf auf eine Person wartet. Ein Entwurf steht nie im Verzeichnis und nie in seinen Exporten, bevor ihn jemand bestätigt |
 
-Füllen Sie für einen Datenspeicher, den Datensicherheit gefunden hat, **Zweck** und **Aufbewahrung** in seinen **Einstellungen** aus: Kein Scan kann sie wissen. Das Verzeichnis und die Bewertungen liefert auch die API der Datensicherheit, unter `/data-security/record-of-processing`, `/data-security/compliance` und, für eine einzelne Ressource, `/data-security/resource-compliance`, für jeden, der Datenspeicher lesen darf (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#api-terraform-und-mcp)).
+Für einen Datenspeicher, den Datensicherheit gefunden hat, kann kein Scan wissen, warum er personenbezogene Daten enthält, wie lange, auf welcher Grundlage oder über wen: Tragen Sie es in seinen **Einstellungen** ein, oder bestätigen Sie die Entwürfe von OneUptime AI. Das Verzeichnis und die Bewertungen liefert auch die API der Datensicherheit, unter `/data-security/record-of-processing`, `/data-security/compliance` und, für eine einzelne Ressource, `/data-security/resource-compliance`, für jeden, der Datenspeicher lesen darf (siehe [Integrationen der Datensicherheit](/docs/data-security/integrations#api-terraform-und-mcp)).
+
+### Entwürfe von OneUptime AI
+
+OneUptime AI entwirft **Zweck**, **Aufbewahrung**, **Rechtsgrundlage** und **Betroffene Personen** eines Datenspeichers aus dem, was Datensicherheit über ihn weiß: den gefundenen Datentypen, seinem Namen, seinen Tags und seiner Beschreibung, den Diensten, die ihn nutzen, und wofür sie laut ihren Teams da sind, wohin seine Daten gehen und wo sie liegen. Sie sieht nie einen Wert Ihrer Daten (siehe [OneUptime AI in der Datensicherheit](/docs/data-security/ai)).
+
+- **Ein Entwurf trägt die Markierung Entwurf** und sagt, warum, mit den Fakten, auf denen er beruht, einen Klick entfernt. Er steht nicht im Verzeichnis, bis Sie **Bestätigen** drücken oder ihn mit **Bearbeiten** in Ihre eigenen Worte fassen.
+- **Ihre Worte werden nie durch einen Entwurf ersetzt.** Ein Feld, das Sie geschrieben haben, wird nie neu entworfen. Ein Entwurf, den Sie bestätigt haben, wird nur neu entworfen, wenn sich ein Fakt ändert, auf dem er beruht, und dann wird er vorgeschlagen, nicht übernommen: markiert mit **Änderung vorgeschlagen**, mit dem, was sich geändert hat, **Neuen Entwurf verwenden** und **Aktuellen Wert behalten**.
+- **Entwürfe prüfen** auf der Karte **Verarbeitungsverzeichnis** führt nacheinander durch die Datenspeicher, deren Entwürfe auf Sie warten. Die **Einstellungen** eines Datenspeichers haben dieselben Felder, mit **Mit OneUptime AI entwerfen** für die leeren.
+- **Von sich aus** entwirft OneUptime AI einmal täglich die leeren Felder der riskantesten Datenspeicher, solange **An neuen Problemen arbeiten** unter **Datensicherheit → KI** eingeschaltet ist, wie Ihre KI-Regeln es erlauben.
+
+Die Aufbewahrung der Telemetrie eines Dienstes, die Empfänger und die Übermittlungen werden von einfachem Code ermittelt, nie entworfen. Die Entwürfe sind ein Ausgangspunkt, keine Rechtsberatung: Lassen Sie sie von der Person prüfen, die für Ihre Compliance verantwortlich ist.
 
 ### Datenspeicher, die OneUptime für Ihre Sicherheit führt
 
@@ -206,6 +225,32 @@ Drei Datenspeicher enthalten IP-Adressen mit Absicht, um Ihr Netzwerk zu schütz
 Der Zweck jedes dieser Datenspeicher ist „Netz- und Informationssicherheit (Erwägungsgrund 49 DSGVO)“. Um Ihren eigenen Zweck oder Ihre eigene Aufbewahrung einzutragen, nutzen Sie **Verzeichnis bearbeiten** in den **Einstellungen** des Datenspeichers: Ein leer gelassenes Feld behält das von OneUptime.
 
 Ein Datenspeicher wird aufgeführt, solange Ihr Projekt seine Daten aufbewahrt: der Tresor, solange eine aktivierte IP-Adressen-Regel Protokolle oder Traces hasht, die Sicherheitsereignisse liest, und noch 31 Tage danach (siehe [Sensible Daten bereinigen](/docs/telemetry/drop-filters-and-scrub-rules#sensible-daten-bereinigen)). Sind seine Daten weg, wird der Datenspeicher archiviert, und er kehrt mit Ihrem Zweck und Ihrer Aufbewahrung zurück, wenn die Daten zurückkehren.
+
+## Datenschutz-Folgenabschätzungen
+
+GDPR Artikel 35 verlangt eine Datenschutz-Folgenabschätzung vor einer Verarbeitung, die voraussichtlich ein hohes Risiko mit sich bringt. Datensicherheit sagt, welche Datenspeicher eine brauchen: jeder Datenspeicher, der Daten besonderer Kategorien enthält, etwa Gesundheitsdaten, Daten über viele Personen (etwa 100.000 Datensätze oder mehr) oder Daten, die die Länder der betroffenen Personen verlassen.
+
+Die **Folgenabschätzung** eines Datenspeichers, in seinem Menü unter **Einstellungen**, sagt, warum der Datenspeicher eine braucht, oder dass er keine braucht. **Folgenabschätzung entwerfen** bittet OneUptime AI um die vier Teile, die Artikel 35(7) verlangt, aus dem Verzeichnis des Datenspeichers, seinen offenen und kürzlich behobenen Problemen, wie exponiert er ist, wie viele ihn erreichen können und seiner Verschlüsselung:
+
+| Teil | Artikel |
+| --- | --- |
+| Die Verarbeitung und ihre Zwecke | Art. 35(7)(a) |
+| Notwendigkeit und Verhältnismäßigkeit | Art. 35(7)(b) |
+| Risiken für die betroffenen Personen | Art. 35(7)(c) |
+| Maßnahmen zur Bewältigung der Risiken | Art. 35(7)(d) |
+
+Jeder Teil sagt, wer ihn wann geschrieben hat, mit den Fakten, auf denen ein entworfener Teil beruht. **Bearbeiten** macht einen Teil zu Ihrem, und er wird nie neu entworfen; **Erneut entwerfen** entwirft nur die Teile, die niemand bearbeitet hat. Ein Teil, der auf inzwischen geänderten Fakten beruht, sagt das. **PDF exportieren** und **Markdown exportieren** laden die Folgenabschätzung herunter.
+
+## Audit-Belege
+
+**Audit-Belege**, für das Rahmenwerk, das Sie unter **Datensicherheit → Compliance** auswählen, zeigt, was ein Auditor unter jeder seiner Anforderungen liest, über die letzten 30, 90, 180 oder 365 Tage:
+
+- die Datenspeicher in seinem Geltungsbereich und wie seine Prüfungen stehen;
+- die Probleme seiner Prüfungen, die im Zeitraum geöffnet und behoben wurden, und wie schnell sie behoben wurden;
+- die darunter akzeptierten Risiken, mit ihren Gründen und ihrem Ablauf;
+- die Ressourcen, die es ausgeschaltet haben, und warum.
+
+**Belege entwerfen** bittet OneUptime AI um einen Absatz unter jeder Anforderung, gebunden an diese Fakten; **Bearbeiten** macht einen Absatz zu Ihrem, und er wird nie neu entworfen. Eine Anforderung ohne Absatz zeigt ihre Belege, wie sie sind. **PDF exportieren** und **Markdown exportieren** laden die Belege mit zwei Anhängen herunter: dem Verarbeitungsverzeichnis der Datenspeicher im Geltungsbereich und dem Problemverlauf, den sie zitieren.
 
 ## Nächste Schritte
 
