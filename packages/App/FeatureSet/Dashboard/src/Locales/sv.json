@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Hålls tillbaka: {{value}} är skyddad nu, så OneUptime tog bort blockeringen. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Hålls tillbaka: {{value}} är skyddad nu, så OneUptime tog bort blockeringen. {{protection}}",
   "Hourly Limit": "Timgräns",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Hur många hela dagar SSL-certifikatet som sonden fick har kvar innan det går ut. Talet sjunker med ett om dagen och hoppar upp när certifikatet förnyas.",
   "Sensitive files": "Känsliga filer",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Ange timgränsen som ett heltal blockeringar från 1 till 500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Det högsta antalet automatiska blockeringar dina policyer gör i timmen, innan de stoppar och larmar dina säkerhetsansvariga.",

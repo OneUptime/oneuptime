@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{protection}}",
   "Hourly Limit": "प्रति घंटे की सीमा",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "प्रोब को मिले SSL प्रमाणपत्र की समय-सीमा खत्म होने में कितने पूरे दिन बचे हैं। यह हर दिन एक घटता है और प्रमाणपत्र नवीनीकृत होने पर ऊपर उछलता है।",
   "Sensitive files": "संवेदनशील फ़ाइलें",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "प्रति घंटे की सीमा को 1 से 500 के बीच ब्लॉक की एक पूर्ण संख्या पर सेट करें।",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "आपकी नीतियाँ एक घंटे में अधिकतम कितने स्वचालित ब्लॉक करती हैं, इसके बाद वे रुककर आपके सुरक्षा ज़िम्मेदारों को पेज करती हैं।",

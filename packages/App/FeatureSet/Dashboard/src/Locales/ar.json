@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "مُعلَّق: {{value}} أصبح محميًا الآن، لذا أزال OneUptime الحظر. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "مُعلَّق: {{value}} أصبح محميًا الآن، لذا أزال OneUptime الحظر. {{protection}}",
   "Hourly Limit": "الحد الساعي",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "كم يومًا كاملًا بقي لشهادة SSL التي قُدّمت للمسبار قبل أن تنتهي صلاحيتها. ينقص يومًا كل يوم، ويقفز إلى الأعلى عند تجديد الشهادة.",
   "Sensitive files": "ملفات حساسة",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "اضبط الحد الساعي على عدد صحيح من الحظورات بين 1 و500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "أقصى عدد من الحظورات التلقائية تنفّذه سياساتك في الساعة، قبل أن تتوقف وتستدعي مسؤولي الأمان لديك.",

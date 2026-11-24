@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Zurückgehalten: {{value}} ist jetzt geschützt, daher hat OneUptime die Sperre aufgehoben. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Zurückgehalten: {{value}} ist jetzt geschützt, daher hat OneUptime die Sperre aufgehoben. {{protection}}",
   "Hourly Limit": "Stundenlimit",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "Wie viele ganze Tage das SSL-Zertifikat, das die Sonde erhalten hat, noch hat, bevor es abläuft. Der Wert sinkt jeden Tag um eins und springt nach oben, wenn das Zertifikat erneuert wird.",
   "Sensitive files": "Sensible Dateien",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Legen Sie das Stundenlimit als ganze Zahl von Sperren zwischen 1 und 500 fest.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Wie viele automatische Sperren Ihre Richtlinien höchstens pro Stunde setzen, bevor sie aufhören und Ihre Sicherheitsverantwortlichen alarmieren.",

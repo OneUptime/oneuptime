@@ -2769,8 +2769,57 @@ describe("the complete guide", () => {
     expect(jsonSubset).toContain(
       "func jsonIsSubset(plan, actual interface{}) bool",
     );
+
+    /*
+     * A monitor's steps: what the server writes of its own is no change
+     * (monitorStepsUnsetValues), checked against what its own code answers
+     * (Scripts/TerraformProvider/Tests/MonitorStepsServerDefaultsCases).
+     */
+    const drift: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/monitorstepsdrift.go",
+    );
+
     expect(readRepoFile(MONITOR_STEPS_GO)).toContain(
-      "return jsonIsSubset(theirsPlain, minePlain), diags",
+      "return monitorStepsHoldsOnlyWhatIsWritten(theirsPlain, minePlain), diags",
+    );
+    expect(drift).toContain(
+      "var monitorStepsUnsetValues = map[monitorStepsLevel]map[string]interface{}{",
+    );
+    for (const serverDefault of [
+      '"requestType": "GET"',
+      '"isEnabled":           true',
+      '"recoveryFilterCondition": "All"',
+    ]) {
+      expect(drift).toContain(serverDefault);
+    }
+    expect(
+      section(COMPLETE_GUIDE, "## Drift, and what does not cause it"),
+    ).toContain(
+      "- **Defaults the server adds** to a monitor's steps, or to a JSON value, are not a difference from what you wrote.",
+    );
+  });
+
+  it("is right that a setting added in OneUptime to a monitor's steps shows in the plan, and the apply removes it (#10907)", () => {
+    const drift: string = readRepoFile(
+      "Scripts/TerraformProvider/StaticFiles/monitorstepsdrift.go",
+    );
+
+    expect(
+      section(COMPLETE_GUIDE, "## Drift, and what does not cause it"),
+    ).toContain(
+      "A setting someone adds in OneUptime to a monitor's steps, which your configuration does not write, is a difference, though: the next plan shows `monitor_steps` changing, and the apply that follows removes the setting, as the plan says.",
+    );
+
+    // A key the server holds and the configuration does not write passes only as its unset value.
+    expect(drift).toContain(
+      "func monitorStepsIsUnset(level monitorStepsLevel, key string, value interface{}, held map[string]interface{}) bool {",
+    );
+    // The state a read and an apply keep: the configuration's steps, and the setting.
+    expect(drift).toContain(
+      "func MonitorStepsKeepWritten(ctx context.Context, prior types.List, held types.List) types.List {",
+    );
+    expect(readRepoFile(RESOURCE_GENERATOR)).toContain(
+      "MonitorStepsKeepWritten(ctx, ${fieldName}.ListValue, mappedSteps)",
     );
   });
 });

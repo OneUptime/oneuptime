@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "معلق: {{value}} اکنون محافظت‌شده است، پس OneUptime مسدودسازی را برداشت. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "معلق: {{value}} اکنون محافظت‌شده است، پس OneUptime مسدودسازی را برداشت. {{protection}}",
   "Hourly Limit": "سقف ساعتی",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "گواهی SSL که به پراب داده شد چند روز کامل تا انقضا فرصت دارد. هر روز یکی کم می‌شود و با تمدید گواهی بالا می‌پرد.",
   "Sensitive files": "فایل‌های حساس",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "سقف ساعتی را روی عددی صحیح از ۱ تا ۵۰۰ مسدودسازی تنظیم کنید.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "بیشترین تعداد مسدودسازی خودکاری که سیاست‌های شما در یک ساعت انجام می‌دهند، پیش از آنکه متوقف شوند و مسئولان امنیت شما را فرا بخوانند.",

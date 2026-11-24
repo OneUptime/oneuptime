@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "보류됨: {{value}}이(가) 이제 보호되므로 OneUptime이 차단을 해제했습니다. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "보류됨: {{value}}이(가) 이제 보호되므로 OneUptime이 차단을 해제했습니다. {{protection}}",
   "Hourly Limit": "시간당 한도",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "프로브가 받은 SSL 인증서가 만료되기까지 남은 온전한 일수입니다. 하루에 하나씩 줄고, 인증서가 갱신되면 껑충 올라갑니다.",
   "Sensitive files": "민감한 파일",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "시간당 한도는 1에서 500 사이의 정수 차단 수로 설정하세요.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "정책이 멈추고 보안 담당자를 호출하기 전까지 한 시간에 만드는 자동 차단의 최대 수입니다.",

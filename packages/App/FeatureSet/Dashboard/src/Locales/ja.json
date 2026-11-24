@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "保留: {{value}} は現在保護されているため、OneUptime はブロックを解除しました。{{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "保留: {{value}} は現在保護されているため、OneUptime はブロックを解除しました。{{protection}}",
   "Hourly Limit": "1 時間あたりの上限",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "プローブが受け取った SSL 証明書の有効期限までに残っている丸一日の日数です。毎日ひとつずつ減り、証明書が更新されると跳ね上がります。",
   "Sensitive files": "機密ファイル",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "1 時間あたりの上限は、1 から 500 までの整数のブロック数で指定してください。",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "ポリシーが 1 時間に行える自動ブロックの最大数です。超えると停止し、セキュリティ担当者を呼び出します。",

@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "已暫緩：{{value}} 現在受保護，因此 OneUptime 撤下了封鎖。{{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "已暫緩：{{value}} 現在受保護，因此 OneUptime 撤下了封鎖。{{protection}}",
   "Hourly Limit": "每小時上限",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "探測器收到的 SSL 憑證在到期前還剩多少整天。它每天減少一天，憑證續期後會跳升。",
   "Sensitive files": "敏感檔案",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "請將每小時上限設為 1 到 500 之間的整數次封鎖。",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "你的政策每小時最多進行的自動封鎖次數，超過後會停止並呼叫你的安全負責人。",

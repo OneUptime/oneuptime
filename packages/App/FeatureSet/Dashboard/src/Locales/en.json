@@ -63639,6 +63639,7 @@
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}",
   "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}",
   "Hourly Limit": "Hourly Limit",
+  "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.": "How many whole days the SSL certificate the probe was served has left before it expires. It drops by one a day, and jumps up when the certificate is renewed.",
   "Sensitive files": "Sensitive files",
   "Set the hourly limit to a whole number of blocks from 1 to 500.": "Set the hourly limit to a whole number of blocks from 1 to 500.",
   "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "The most automatic blocks your policies make in an hour, before they stop and page your security owners.",
