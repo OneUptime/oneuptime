@@ -1,5 +1,4 @@
 import MonitorProbeService, {
-  CLAIM_CANDIDATES_PER_MONITOR_PROBE,
   PENDING_MONITOR_PROBE_COUNT_CAP,
   Service as MonitorProbeServiceType,
 } from "../../../Server/Services/MonitorProbeService";
@@ -48,10 +47,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * cache.
  *
  * So: the monitor claim's read is a range of the index that stops at its
- * LIMIT, and after each claim the rows it stepped over are SET ASIDE
- * (Utils/Probe/ClaimSetAside) - moved SET_ASIDE_FOR_MINUTES on, plus a
- * spread - judged again by the very predicate the claim hands rows out by,
- * so a row the claim would hand out is never moved. Lifting a pause makes a
+ * LIMIT, and when a claim stepped over rows (its one statement says so,
+ * #10819) they are SET ASIDE (Utils/Probe/ClaimSetAside) - moved
+ * SET_ASIDE_FOR_MINUTES on, plus a spread - judged again by the very
+ * predicate the claim hands rows out by, so a row the claim would hand out
+ * is never moved. Lifting a pause makes a
  * monitor due at once, and so does turning a device's polling back on.
  *
  * These pin the statements' shapes, their parameters, that the claim and
@@ -132,8 +132,18 @@ describe("the monitor claim reads only what it hands out", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * What the claim's one statement answers (#10819): a row per monitor probe
+   * it claimed, each with the flag that says whether it stepped over a due
+   * row nothing may probe - or, with nothing claimed, one row with no _id,
+   * for the flag.
+   */
+  const NOTHING_CLAIMED_STEPPED_OVER: Array<Record<string, unknown>> = [
+    { _id: null, steppedOver: true },
+  ];
+
   async function claim(
-    candidates: Array<Record<string, unknown>>,
+    answer: Array<Record<string, unknown>>,
     laterRows?: (
       statement: CapturedStatement,
     ) => Array<Record<string, unknown>> | undefined,
@@ -144,7 +154,7 @@ describe("the monitor claim reads only what it hands out", () => {
     const service: MonitorProbeServiceType = new MonitorProbeServiceType();
     const statements: Array<CapturedStatement> = captureClaimQueries(
       service,
-      candidates,
+      answer,
       laterRows,
     );
 
@@ -155,6 +165,16 @@ describe("the monitor claim reads only what it hands out", () => {
     return { statements, claimed };
   }
 
+  // The rows the claim claims, as its statement writes them.
+  function readOf(sql: string): string {
+    return between(sql, 'WITH "claimable" AS (', '"schedule" AS (');
+  }
+
+  // Its check for a due row it stepped over that nothing may probe.
+  function steppedOverCheckOf(sql: string): string {
+    return between(sql, '"flags" AS (', ') AS "steppedOver"');
+  }
+
   /*
    * `nextPingAt <= now ORDER BY nextPingAt ASC LIMIT n` is a range of the
    * (probeId, isEnabled, nextPingAt) btree in its own order: Postgres reads
@@ -163,7 +183,7 @@ describe("the monitor claim reads only what it hands out", () => {
    */
   test("its read is a range of the scheduler index, oldest first, that stops at its limit", async () => {
     const { statements } = await claim([]);
-    const read: string = normalizeSql(statements[0]!.sql);
+    const read: string = readOf(normalizeSql(statements[0]!.sql));
 
     expect(read).toContain('WHERE mp."probeId" = $1');
     expect(read).toContain('AND mp."isEnabled" = true');
@@ -171,33 +191,64 @@ describe("the monitor claim reads only what it hands out", () => {
     expect(read).toContain('ORDER BY mp."nextPingAt" ASC LIMIT $3');
     expect(read).not.toContain("NULLS FIRST");
     expect(read).not.toMatch(/"nextPingAt" IS NULL OR/);
-    expect(statements[0]!.parameters[2]).toBe(
-      10 * CLAIM_CANDIDATES_PER_MONITOR_PROBE,
-    );
+    // The batch the probe asked for: claims made at once each lock their own.
+    expect(statements[0]!.parameters[2]).toBe(10);
   });
 
-  test("its read hands back each candidate's nextPingAt, so the set-aside knows what was stepped over", async () => {
+  test("its statement hands back each claimed row's due time, so the set-aside knows what was stepped over", async () => {
     const { statements } = await claim([]);
+    const sql: string = normalizeSql(statements[0]!.sql);
 
-    expect(normalizeSql(statements[0]!.sql)).toMatch(
-      /^SELECT mp\."_id", mp\."nextPingAt", m\."monitoringInterval" FROM/,
+    expect(readOf(sql)).toContain(
+      'SELECT mp."_id", mp."nextPingAt" AS "dueAt", m."monitoringInterval"',
+    );
+    expect(sql).toContain(
+      'RETURNING mp."_id", c."dueAt", c."monitoringInterval"',
+    );
+    expect(sql).toMatch(
+      /SELECT c\."_id", c\."dueAt", c\."monitoringInterval", c\."scheduled", f\."steppedOver" FROM "flags" f LEFT JOIN "claimed" c ON true ORDER BY c\."dueAt" ASC NULLS FIRST$/,
     );
   });
 
-  test("sets aside after the claim, in a statement of its own", async () => {
+  /*
+   * A probe with nothing to set aside pays no statement for it: the claim's
+   * own statement says whether it stepped over anything.
+   */
+  test("runs no set-aside when the statement stepped over nothing", async () => {
     const { statements, claimed } = await claim([
       {
         _id: FIRST_ID,
-        nextPingAt: new Date("2026-11-13T10:00:00.000Z"),
+        dueAt: new Date("2026-11-13T10:00:00.000Z"),
         monitoringInterval: "* * * * *",
+        scheduled: true,
+        steppedOver: false,
       },
     ]);
 
-    expect(statements).toHaveLength(3);
-    expect(normalizeSql(statements[1]!.sql)).toContain(
-      'UPDATE "MonitorProbe" AS mp SET "lastPingAt" = $1::timestamptz',
+    expect(statements).toHaveLength(1);
+    expect(
+      claimed.map((id: ObjectID) => {
+        return id.toString();
+      }),
+    ).toEqual([FIRST_ID]);
+  });
+
+  test("sets aside after the claim, in a statement of its own, when it stepped over something", async () => {
+    const { statements, claimed } = await claim([
+      {
+        _id: FIRST_ID,
+        dueAt: new Date("2026-11-13T10:00:00.000Z"),
+        monitoringInterval: "* * * * *",
+        scheduled: true,
+        steppedOver: true,
+      },
+    ]);
+
+    expect(statements).toHaveLength(2);
+    expect(normalizeSql(statements[0]!.sql)).toContain(
+      'UPDATE "MonitorProbe" AS mp SET "lastPingAt" = $2',
     );
-    expect(normalizeSql(statements[2]!.sql)).toContain('"unprobeable" AS (');
+    expect(normalizeSql(statements[1]!.sql)).toContain('"unprobeable" AS (');
     expect(
       claimed.map((id: ObjectID) => {
         return id.toString();
@@ -206,7 +257,7 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("sets aside even when nothing could be claimed: then every due row was stepped over", async () => {
-    const { statements, claimed } = await claim([]);
+    const { statements, claimed } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
 
     expect(statements).toHaveLength(2);
 
@@ -220,19 +271,23 @@ describe("the monitor claim reads only what it hands out", () => {
     expect(claimed).toEqual([]);
   });
 
-  test("looks only at rows due before the first candidate: exactly what the read stepped over", async () => {
+  test("looks only at rows due before the first row claimed: exactly what the read stepped over", async () => {
     const firstDueAt: Date = new Date("2026-11-13T09:58:00.000Z");
 
     const { statements } = await claim([
       {
         _id: FIRST_ID,
-        nextPingAt: firstDueAt,
+        dueAt: firstDueAt,
         monitoringInterval: "* * * * *",
+        scheduled: true,
+        steppedOver: true,
       },
       {
         _id: SECOND_ID,
-        nextPingAt: new Date("2026-11-13T09:59:00.000Z"),
+        dueAt: new Date("2026-11-13T09:59:00.000Z"),
         monitoringInterval: "* * * * *",
+        scheduled: true,
+        steppedOver: true,
       },
     ]);
 
@@ -249,12 +304,14 @@ describe("the monitor claim reads only what it hands out", () => {
     );
   });
 
-  test("reads a candidate's nextPingAt handed back as text as well", async () => {
+  test("reads a claimed row's due time handed back as text as well", async () => {
     const { statements } = await claim([
       {
         _id: FIRST_ID,
-        nextPingAt: "2026-11-13T09:58:00.000Z",
+        dueAt: "2026-11-13T09:58:00.000Z",
         monitoringInterval: "* * * * *",
+        scheduled: true,
+        steppedOver: true,
       },
     ]);
 
@@ -268,9 +325,14 @@ describe("the monitor claim reads only what it hands out", () => {
     );
   });
 
-  test("a candidate without a readable nextPingAt falls back to everything due", async () => {
+  test("a claimed row without a readable due time falls back to everything due", async () => {
     const { statements } = await claim([
-      { _id: FIRST_ID, nextPingAt: "not a time", monitoringInterval: null },
+      {
+        _id: FIRST_ID,
+        dueAt: "not a time",
+        monitoringInterval: null,
+        steppedOver: true,
+      },
     ]);
 
     const setAside: CapturedStatement = findStatement(
@@ -285,16 +347,23 @@ describe("the monitor claim reads only what it hands out", () => {
 
   /*
    * The invariant that makes set-aside safe: a row the claim would hand out
-   * is never one it moves. Both statements are built from one definition
+   * is never one it moves, and the claim's check for what it stepped over
+   * asks the same question. All three are built from one definition
    * (getProbeableSql); this fails the moment they drift apart.
    */
   test("judges each row by the claim's own rule, word for word", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
+    const claimSql: string = normalizeSql(statements[0]!.sql);
 
     const readPredicate: string = between(
-      normalizeSql(statements[0]!.sql),
+      readOf(claimSql),
       'AND mp."nextPingAt" <= $2 AND ',
       " ORDER BY",
+    );
+    const checkPredicate: string = between(
+      steppedOverCheckOf(claimSql),
+      'WHERE ( ',
+      " ) IS NOT TRUE",
     );
     const setAsidePredicate: string = between(
       normalizeSql(statements[1]!.sql),
@@ -302,6 +371,7 @@ describe("the monitor claim reads only what it hands out", () => {
       " ) IS NOT TRUE",
     );
 
+    expect(unnumbered(checkPredicate)).toBe(unnumbered(readPredicate));
     expect(unnumbered(setAsidePredicate)).toBe(unnumbered(readPredicate));
 
     // And it is the whole rule: the four pause flags and the project's.
@@ -319,8 +389,30 @@ describe("the monitor claim reads only what it hands out", () => {
     }
   });
 
-  test("binds the served subscription statuses, the shared list, to the set-aside too", async () => {
+  /*
+   * The check reads only what the read stepped over - the rows due before
+   * the first one it claimed - at most SET_ASIDE_PER_CLAIM of them, oldest
+   * first, by index lookups: joined to Monitor without a LIMIT, the range
+   * was planned as a scan of the whole table. And a legacy row with no
+   * nextPingAt counts too: the set-aside makes it due.
+   */
+  test("its check for what it stepped over reads at most SET_ASIDE_PER_CLAIM rows before the first claimed, and legacy rows", async () => {
     const { statements } = await claim([]);
+    const check: string = steppedOverCheckOf(normalizeSql(statements[0]!.sql));
+
+    expect(check).toContain(
+      'AND mp."nextPingAt" < COALESCE( (SELECT min("dueAt") FROM "claimable"), $2 + INTERVAL \'1 millisecond\' ) ORDER BY mp."nextPingAt" ASC LIMIT $8 ) mp',
+    );
+    expect(check).toContain('LEFT JOIN "Monitor" m ON mp."monitorId" = m."_id"');
+    expect(check).toContain('LEFT JOIN "Project" p ON mp."projectId" = p."_id"');
+    expect(check).toContain(
+      'OR EXISTS ( SELECT 1 FROM "MonitorProbe" mp WHERE mp."probeId" = $1 AND mp."isEnabled" = true AND mp."nextPingAt" IS NULL )',
+    );
+    expect(statements[0]!.parameters[7]).toBe(SET_ASIDE_PER_CLAIM);
+  });
+
+  test("binds the served subscription statuses, the shared list, to the set-aside too", async () => {
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
     const setAside: CapturedStatement = statements[1]!;
 
     expect(
@@ -337,7 +429,7 @@ describe("the monitor claim reads only what it hands out", () => {
    * row would never be moved and would sit at the head for good.
    */
   test("moves a row whose monitor or project is missing, too", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
     const sql: string = normalizeSql(statements[1]!.sql);
 
     expect(sql).toContain('LEFT JOIN "Monitor" m ON mp."monitorId" = m."_id"');
@@ -347,7 +439,7 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("locks only the rows it moves, skipping any another writer holds, for one statement", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
     const setAside: CapturedStatement = statements[1]!;
     const sql: string = normalizeSql(setAside.sql);
 
@@ -360,7 +452,7 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("moves a row a quarter of an hour on, plus a spread, and leaves lastPingAt alone", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
     const setAside: CapturedStatement = statements[1]!;
     const sql: string = normalizeSql(setAside.sql);
 
@@ -375,7 +467,7 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("moves no more than SET_ASIDE_PER_CLAIM rows at once", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
     const setAside: CapturedStatement = statements[1]!;
 
     expect(setAside.parameters[3]).toBe(SET_ASIDE_PER_CLAIM);
@@ -384,7 +476,7 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("makes a legacy row with no nextPingAt due now instead of leaving it out for good", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
     const sql: string = normalizeSql(statements[1]!.sql);
     const unscheduled: string = between(
       sql,
@@ -400,8 +492,9 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("binds exactly what its statement numbers", async () => {
-    const { statements } = await claim([]);
+    const { statements } = await claim(NOTHING_CLAIMED_STEPPED_OVER);
 
+    expectPlaceholdersMatchParameters(statements[0]!);
     expectPlaceholdersMatchParameters(statements[1]!);
     expect(statements[1]!.parameters[0]).toBe(PROBE_ID.toString());
   });
@@ -415,8 +508,10 @@ describe("the monitor claim reads only what it hands out", () => {
       [
         {
           _id: FIRST_ID,
-          nextPingAt: new Date("2026-11-13T10:00:00.000Z"),
+          dueAt: new Date("2026-11-13T10:00:00.000Z"),
           monitoringInterval: "* * * * *",
+          scheduled: true,
+          steppedOver: true,
         },
       ],
       (statement: CapturedStatement) => {
@@ -441,13 +536,16 @@ describe("the monitor claim reads only what it hands out", () => {
   });
 
   test("runs another set-aside round while a round moves a full batch, up to the cap", async () => {
-    const { statements } = await claim([], (statement: CapturedStatement) => {
-      return normalizeSql(statement.sql).includes('"unprobeable" AS (')
-        ? [{ setAside: SET_ASIDE_PER_CLAIM, madeDue: 0 }]
-        : undefined;
-    });
+    const { statements } = await claim(
+      NOTHING_CLAIMED_STEPPED_OVER,
+      (statement: CapturedStatement) => {
+        return normalizeSql(statement.sql).includes('"unprobeable" AS (')
+          ? [{ setAside: SET_ASIDE_PER_CLAIM, madeDue: 0 }]
+          : undefined;
+      },
+    );
 
-    // The read, then every round the cap allows: no claim statement.
+    // The claim's statement, then every round the cap allows.
     expect(statements).toHaveLength(1 + SET_ASIDE_ROUNDS_PER_CLAIM);
     expect(SET_ASIDE_ROUNDS_PER_CLAIM).toBeGreaterThan(1);
   });
@@ -455,15 +553,20 @@ describe("the monitor claim reads only what it hands out", () => {
   test("stops at the first round that moves less than a full batch", async () => {
     let round: number = 0;
 
-    const { statements } = await claim([], (statement: CapturedStatement) => {
-      if (!normalizeSql(statement.sql).includes('"unprobeable" AS (')) {
-        return undefined;
-      }
+    const { statements } = await claim(
+      NOTHING_CLAIMED_STEPPED_OVER,
+      (statement: CapturedStatement) => {
+        if (!normalizeSql(statement.sql).includes('"unprobeable" AS (')) {
+          return undefined;
+        }
 
-      round++;
+        round++;
 
-      return [{ setAside: round === 1 ? SET_ASIDE_PER_CLAIM : 3, madeDue: 0 }];
-    });
+        return [
+          { setAside: round === 1 ? SET_ASIDE_PER_CLAIM : 3, madeDue: 0 },
+        ];
+      },
+    );
 
     expect(statements).toHaveLength(3);
   });
@@ -471,15 +574,20 @@ describe("the monitor claim reads only what it hands out", () => {
   test("a full batch of legacy rows made due is a reason for another round too", async () => {
     let round: number = 0;
 
-    const { statements } = await claim([], (statement: CapturedStatement) => {
-      if (!normalizeSql(statement.sql).includes('"unprobeable" AS (')) {
-        return undefined;
-      }
+    const { statements } = await claim(
+      NOTHING_CLAIMED_STEPPED_OVER,
+      (statement: CapturedStatement) => {
+        if (!normalizeSql(statement.sql).includes('"unprobeable" AS (')) {
+          return undefined;
+        }
 
-      round++;
+        round++;
 
-      return [{ setAside: 0, madeDue: round === 1 ? SET_ASIDE_PER_CLAIM : 0 }];
-    });
+        return [
+          { setAside: 0, madeDue: round === 1 ? SET_ASIDE_PER_CLAIM : 0 },
+        ];
+      },
+    );
 
     expect(statements).toHaveLength(3);
   });

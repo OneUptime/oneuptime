@@ -5,6 +5,7 @@ import {
   CapturedStatement,
   captureClaimQueries,
   expectPlaceholdersMatchParameters,
+  normalizeSql,
 } from "../TestingUtils/PastDueMonitoringClaimSql";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -34,12 +35,27 @@ const PROBE_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
 
 const MONITOR_PROBE_ID: string = "11111111-1111-4111-8111-111111111111";
 
+// The statement that gives rows of a schedule new to the process their next run.
+const SCHEDULES_NEW_INTERVALS: string =
+  'SET "nextPingAt" = schedule."nextPingAt"';
+
+function scheduleStatementOf(
+  statements: Array<CapturedStatement>,
+): CapturedStatement | undefined {
+  return statements.find((statement: CapturedStatement): boolean => {
+    return normalizeSql(statement.sql).includes(SCHEDULES_NEW_INTERVALS);
+  });
+}
+
 /*
- * Drive one claim and hand back the nextPingAt the claim would write.
+ * Drive one claim, on a fresh process, and hand back the nextPingAt the
+ * monitor ends up with.
  *
- * The claim binds [currentDate, ids, nextPingAts, probeId, limit], each
- * next run as an ISO string, so the first monitor's computed schedule is
- * the first entry of parameter index 2.
+ * The claim's one statement (#10819) writes a schedule the process has not
+ * seen a minute on - its seventh parameter - and the statement after it
+ * gives each such row its real next run: [ids, next runs as ISO strings,
+ * the claim's time, the minute it wrote]. No such statement: the minute
+ * stands (no schedule, or one that cannot be read).
  */
 async function claimAndReadNextPingAt(
   monitoringInterval: string | null,
@@ -57,10 +73,16 @@ async function claimAndReadNextPingAt(
     limit: 25,
   });
 
-  expect(statements.length).toBeGreaterThanOrEqual(2);
+  expect(statements.length).toBeGreaterThanOrEqual(1);
 
-  const update: CapturedStatement = statements[1]!;
-  const nextPingAts: Array<string> = update.parameters[2] as Array<string>;
+  const claim: CapturedStatement = statements[0]!;
+  const update: CapturedStatement | undefined = scheduleStatementOf(statements);
+
+  if (!update) {
+    return { nextPingAt: claim.parameters[6] as Date, now: before, update: claim };
+  }
+
+  const nextPingAts: Array<string> = update.parameters[1] as Array<string>;
 
   expect(nextPingAts).toHaveLength(1);
 
@@ -304,12 +326,14 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
     });
   });
 
-  describe("the SQL contract is unchanged", () => {
+  describe("the SQL contract", () => {
     test("placeholders still match parameters after the interval change", async () => {
       /*
-       * The claim binds [currentDate, ids, nextPingAts, probeId, limit].
-       * Touching the loop that builds the schedule is exactly how that
-       * numbering gets broken.
+       * The claim binds [probeId, now, limit, statuses, schedules, their
+       * next runs, the minute on, the set-aside batch]; the statement after
+       * it [ids, next runs, the claim's time, the minute]. Touching the
+       * loop that builds the schedule is exactly how that numbering gets
+       * broken.
        */
       const service: MonitorProbeServiceType = new MonitorProbeServiceType();
 
@@ -364,20 +388,101 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
 
       expect(claimed).toHaveLength(3);
 
-      const update: CapturedStatement = statements[1]!;
+      /*
+       * The claim's statement writes every row it claims a next run: its
+       * schedule's, or a minute on - the seventh parameter, a minute after
+       * the claim's time, the second.
+       */
+      const claim: CapturedStatement = statements[0]!;
+      expect(normalizeSql(claim.sql)).toContain(
+        '"nextPingAt" = COALESCE(s."nextPingAt", $7::timestamptz)',
+      );
+      expect(
+        (claim.parameters[6] as Date).getTime() -
+          (claim.parameters[1] as Date).getTime(),
+      ).toBe(60 * 1000);
 
-      // [currentDate, ids, 3 next runs, probeId, limit]
-      expect(update.parameters).toHaveLength(5);
-      expect(update.parameters[1]).toHaveLength(3);
+      // Then only "5m", the one readable schedule, gets its own next run.
+      const update: CapturedStatement = scheduleStatementOf(statements)!;
+      expect(update.parameters[0]).toEqual([MONITOR_PROBE_ID]);
+      expect(update.parameters[1]).toHaveLength(1);
+      expect(
+        isNaN(new Date((update.parameters[1] as Array<string>)[0]!).getTime()),
+      ).toBe(false);
+    });
 
-      const nextPingAts: Array<string> = update.parameters[2] as Array<string>;
+    /*
+     * The fix-up writes over the minute the claim gave a row only while the
+     * row still holds exactly that: a monitor made due again meanwhile
+     * (makeDueNowForMonitors), or claimed again by the time it runs, keeps
+     * what it was given since.
+     */
+    test("the next run of a schedule new to the process is written only where the claim's minute still stands", async () => {
+      const service: MonitorProbeServiceType = new MonitorProbeServiceType();
+      const statements: Array<CapturedStatement> = captureClaimQueries(
+        service,
+        [{ _id: MONITOR_PROBE_ID, monitoringInterval: "*/5 * * * *" }],
+      );
 
-      expect(nextPingAts).toHaveLength(3);
+      await service.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 25,
+      });
 
-      for (const nextPingAt of nextPingAts) {
-        expect(typeof nextPingAt).toBe("string");
-        expect(isNaN(new Date(nextPingAt).getTime())).toBe(false);
-      }
+      const claim: CapturedStatement = statements[0]!;
+      const update: CapturedStatement = scheduleStatementOf(statements)!;
+      const sql: string = normalizeSql(update.sql);
+
+      expect(sql).toContain('AND mp."lastPingAt" = $3::timestamptz');
+      expect(sql).toContain('AND mp."nextPingAt" = $4::timestamptz');
+      expect(update.parameters[2]).toEqual(claim.parameters[1]);
+      expect(update.parameters[3]).toEqual(claim.parameters[6]);
+      expectPlaceholdersMatchParameters(update);
+    });
+
+    /*
+     * Once a process has seen a schedule, the claim's own statement writes
+     * it: the next claim binds each known schedule with its next run, and
+     * needs no second statement (#10819).
+     */
+    test("a schedule the process has seen is written by the claim's own statement", async () => {
+      const service: MonitorProbeServiceType = new MonitorProbeServiceType();
+      const first: Array<CapturedStatement> = captureClaimQueries(service, [
+        { _id: MONITOR_PROBE_ID, monitoringInterval: "*/5 * * * *" },
+      ]);
+
+      await service.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 25,
+      });
+
+      // Nothing known yet: two empty arrays.
+      expect(first[0]!.parameters[4]).toEqual([]);
+      expect(first[0]!.parameters[5]).toEqual([]);
+
+      jest.restoreAllMocks();
+
+      const second: Array<CapturedStatement> = captureClaimQueries(service, [
+        {
+          _id: MONITOR_PROBE_ID,
+          monitoringInterval: "*/5 * * * *",
+          scheduled: true,
+        },
+      ]);
+
+      await service.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 25,
+      });
+
+      expect(second[0]!.parameters[4]).toEqual(["*/5 * * * *"]);
+      const nextRun: Date = new Date(
+        (second[0]!.parameters[5] as Array<string>)[0]!,
+      );
+      expect(nextRun.getSeconds()).toBe(0);
+      expect(nextRun.getMinutes() % 5).toBe(0);
+      expect(scheduleStatementOf(second)).toBeUndefined();
+      expect(second).toHaveLength(1);
     });
 
     /*
@@ -414,9 +519,10 @@ describe("claimMonitorProbesForProbing computes the schedule the customer asked 
 
       expect(resolveSpy).toHaveBeenCalledTimes(2);
 
-      const nextPingAts: Array<string> = statements[1]!
-        .parameters[2] as Array<string>;
+      const nextPingAts: Array<string> = scheduleStatementOf(statements)!
+        .parameters[1] as Array<string>;
 
+      expect(nextPingAts).toHaveLength(3);
       expect(nextPingAts[0]).toBe(nextPingAts[1]);
     });
 
