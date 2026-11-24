@@ -4062,6 +4062,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    id: "xcp-ng",
+    title: "XCP-ng",
+    productPage: PageMap.XCP_NG_POOLS,
+    icon: IconProp.XcpNg,
+    iconColor: "blue",
+    sections: [
+      {
+        title: "XCP-ng",
+        pages: [
+          allListPage(PageMap.XCP_NG_POOLS, "All Pools"),
+          documentation(PageMap.XCP_NG_DOCUMENTATION),
+        ],
+      },
+      ...resourceSettingsSections({
+        ownerRules: PageMap.XCP_NG_SETTINGS_OWNER_RULES,
+        labelRules: PageMap.XCP_NG_SETTINGS_LABEL_RULES,
+        rulesAuditLogs: PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS,
+        archived: PageMap.XCP_NG_POOLS_ARCHIVED,
+      }),
+    ],
+  },
+  {
     id: "ceph",
     title: "Ceph",
     productPage: PageMap.CEPH_CLUSTERS,
