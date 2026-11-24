@@ -337,6 +337,7 @@ import "./Jobs/SecurityCases/SendSecurityCaseNotification";
 import "./Jobs/SecurityCases/CloseSecurityCaseSourceAlerts";
 import "./Jobs/SecurityCases/CheckResponseTargets";
 import "./Jobs/SecurityCases/CheckResponseSteps";
+import "./Jobs/SecurityCases/FollowLinkedPullRequests";
 import "./Jobs/SecurityCases/WorkCasesWithAi";
 import "./Jobs/SecurityCases/ReviewAiHolds";
 import "./Jobs/SecurityCases/SendAiWeeklyDigest";
