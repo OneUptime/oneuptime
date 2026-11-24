@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "脚本超时时的页面",
   "Page {{number}} when the script timed out": "脚本超时时的页面 {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "在 MCP 服务器 {{server}} 上调用 {{tool}}",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "OneUptime 之外的 MCP 服务器（如 AWS、Azure 或 GitHub），OneUptime AI 在“询问 AI”中以及调查和修复事件与警报时可以使用其工具。",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 之外的 MCP 服务器，OneUptime AI 在“询问 AI”中以及调查和修复时可以使用其工具，例如 AWS、Azure 或 GitHub。",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "将下方的参数发送到 OneUptime 之外的 {{server}}。OneUptime 无法撤销在那里做出的更改。",
+  "Sent to the server": "发送到服务器的内容",
+  "Used a tool of an MCP server that may change something": "使用了可能会做出更改的 MCP 服务器工具",
+  "Using a tool of an MCP server that may change something": "正在使用可能会做出更改的 MCP 服务器工具",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}} 没有说明 {{tool}} 是否会更改内容，因此 OneUptime 会先询问。"
 }

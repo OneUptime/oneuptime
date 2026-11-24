@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
   "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "MCP サーバー {{server}} の {{tool}} を呼び出す",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "OneUptime の外部にある MCP サーバー（AWS、Azure、GitHub など）で、OneUptime AI が「AI に質問」と、インシデントやアラートの調査と修正に使えるツールを提供します。",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime の外部にある MCP サーバーで、OneUptime AI が「AI に質問」と調査・修正に使えるツールを提供します（AWS、Azure、GitHub など）。",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "以下の引数を OneUptime の外部にある {{server}} に送信します。そこで変更された内容を OneUptime は元に戻せません。",
+  "Sent to the server": "サーバーへの送信内容",
+  "Used a tool of an MCP server that may change something": "変更を加える可能性がある MCP サーバーのツールを使いました",
+  "Using a tool of an MCP server that may change something": "変更を加える可能性がある MCP サーバーのツールを使っています",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}} は {{tool}} が何かを変更するかどうかを示していないため、OneUptime が先に確認します。"
 }

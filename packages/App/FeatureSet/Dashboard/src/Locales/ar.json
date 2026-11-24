@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
   "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 ذات معرّف المستأجر {{tenantId}}. سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "هذا المشروع مرتبط بمؤسسة Microsoft 365 «{{organization}}». سجّل الدخول بحسابك هناك لتُقرّ بالحوادث وتتلقى الرسائل من OneUptime باسمك، في Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "استدعاء {{tool}} على خادم MCP {{server}}",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "خوادم MCP خارج OneUptime - مثل AWS أو Azure أو GitHub - يمكن لـ OneUptime AI استخدام أدواتها في «اسأل الذكاء الاصطناعي» وأثناء التحقيق في الحوادث والتنبيهات وإصلاحها.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "خوادم MCP خارج OneUptime يمكن لـ OneUptime AI استخدام أدواتها في «اسأل الذكاء الاصطناعي» وأثناء التحقيق والإصلاح، مثل AWS أو Azure أو GitHub.",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "يرسل الوسائط أدناه إلى {{server}}، خارج OneUptime. لا يستطيع OneUptime التراجع عمّا يتغيّر هناك.",
+  "Sent to the server": "المُرسَل إلى الخادم",
+  "Used a tool of an MCP server that may change something": "استُخدمت أداة من خادم MCP قد تغيّر أشياء",
+  "Using a tool of an MCP server that may change something": "جارٍ استخدام أداة من خادم MCP قد تغيّر أشياء",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "لا يذكر {{server}} ما إذا كان {{tool}} يغيّر شيئًا، لذلك يسأل OneUptime أولًا."
 }

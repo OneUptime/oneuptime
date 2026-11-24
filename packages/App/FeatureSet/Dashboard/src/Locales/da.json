@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "Side, da scriptet fik timeout",
   "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "Kald {{tool}} på MCP-serveren {{server}}",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "MCP-servere uden for OneUptime – f.eks. AWS, Azure eller GitHub – hvis værktøjer OneUptime AI må bruge i Spørg AI, og når den undersøger og retter hændelser og advarsler.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "MCP-servere uden for OneUptime, hvis værktøjer OneUptime AI må bruge i Spørg AI, og når den undersøger og retter, f.eks. AWS, Azure eller GitHub.",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "Sender argumenterne nedenfor til {{server}}, uden for OneUptime. OneUptime kan ikke fortryde det, der ændres der.",
+  "Sent to the server": "Sendt til serveren",
+  "Used a tool of an MCP server that may change something": "Brugte et værktøj på en MCP-server, der kan ændre ting",
+  "Using a tool of an MCP server that may change something": "Bruger et værktøj på en MCP-server, der kan ændre ting",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}} oplyser ikke, om {{tool}} ændrer noget, så OneUptime spørger først."
 }

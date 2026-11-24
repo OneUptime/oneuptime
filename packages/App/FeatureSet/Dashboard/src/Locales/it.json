@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "Pagina quando lo script è andato in timeout",
   "Page {{number}} when the script timed out": "Pagina {{number}} quando lo script è andato in timeout",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "Chiama {{tool}} sul server MCP {{server}}",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "Server MCP esterni a OneUptime, come AWS, Azure o GitHub, i cui strumenti OneUptime AI può usare in Chiedi all'IA e per indagare e correggere incidenti e avvisi.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "Server MCP esterni a OneUptime i cui strumenti OneUptime AI può usare in Chiedi all'IA e per indagare e correggere, come AWS, Azure o GitHub.",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "Invia gli argomenti qui sotto a {{server}}, fuori da OneUptime. OneUptime non può annullare ciò che vi viene modificato.",
+  "Sent to the server": "Inviato al server",
+  "Used a tool of an MCP server that may change something": "Ha usato uno strumento di un server MCP che può modificare",
+  "Using a tool of an MCP server that may change something": "Uso di uno strumento di un server MCP che può modificare",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}} non indica se {{tool}} modifica qualcosa, quindi OneUptime chiede prima."
 }

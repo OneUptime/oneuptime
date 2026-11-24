@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "صفحه هنگام تمام شدن مهلت اسکریپت",
   "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با شناسه مستأجر {{tenantId}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با نام {{organization}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "این پروژه به سازمان Microsoft 365 با نام {{organization}} وصل است. با حساب خود در آنجا وارد شوید تا در Microsoft Teams با نام خودتان رخدادها را تأیید کنید و پیام‌های OneUptime را دریافت کنید.",
+  "Call {{tool}} on MCP server {{server}}": "فراخوانی {{tool}} روی سرور MCP {{server}}",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "سرورهای MCP بیرون از OneUptime — مانند AWS، Azure یا GitHub — که OneUptime AI در «پرسش از هوش مصنوعی» و هنگام بررسی و اصلاح حوادث و هشدارها می‌تواند از ابزارهایشان استفاده کند.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "سرورهای MCP بیرون از OneUptime که OneUptime AI در «پرسش از هوش مصنوعی» و هنگام بررسی و اصلاح می‌تواند از ابزارهایشان استفاده کند، مانند AWS، Azure یا GitHub.",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "آرگومان‌های زیر را به {{server}}، بیرون از OneUptime، می‌فرستد. OneUptime نمی‌تواند آنچه را آنجا تغییر می‌کند برگرداند.",
+  "Sent to the server": "فرستاده‌شده به سرور",
+  "Used a tool of an MCP server that may change something": "از ابزار یک سرور MCP که ممکن است چیزی را تغییر دهد استفاده کرد",
+  "Using a tool of an MCP server that may change something": "در حال استفاده از ابزار یک سرور MCP که ممکن است چیزی را تغییر دهد",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}} نمی‌گوید که آیا {{tool}} چیزی را تغییر می‌دهد یا نه، پس OneUptime اول می‌پرسد."
 }

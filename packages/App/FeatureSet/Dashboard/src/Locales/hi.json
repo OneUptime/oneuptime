@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
   "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "MCP सर्वर {{server}} पर {{tool}} कॉल करें",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "OneUptime के बाहर के MCP सर्वर — जैसे AWS, Azure या GitHub — जिनके टूल OneUptime AI ‘AI से पूछें’ में और घटनाओं और अलर्ट की जाँच और सुधार करते समय उपयोग कर सकता है।",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime के बाहर के MCP सर्वर, जिनके टूल OneUptime AI ‘AI से पूछें’ में और जाँच और सुधार करते समय उपयोग कर सकता है, जैसे AWS, Azure या GitHub।",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "नीचे दिए गए आर्ग्युमेंट OneUptime के बाहर {{server}} को भेजता है। वहाँ जो बदलता है, उसे OneUptime पहले जैसा नहीं कर सकता।",
+  "Sent to the server": "सर्वर को भेजा गया",
+  "Used a tool of an MCP server that may change something": "बदलाव कर सकने वाले MCP सर्वर के टूल का उपयोग किया",
+  "Using a tool of an MCP server that may change something": "बदलाव कर सकने वाले MCP सर्वर के टूल का उपयोग हो रहा है",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}} नहीं बताता कि {{tool}} कुछ बदलता है या नहीं, इसलिए OneUptime पहले पूछता है।"
 }

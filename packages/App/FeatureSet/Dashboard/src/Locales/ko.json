@@ -64072,5 +64072,13 @@
   "Page when the script timed out": "스크립트 시간 초과 시점의 페이지",
   "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}",
   "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization with tenant ID {{tenantId}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
-  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams."
+  "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.": "This project is connected to the Microsoft 365 organization {{organization}}. Sign in with your account there to acknowledge incidents and get messages from OneUptime as yourself, in Microsoft Teams.",
+  "Call {{tool}} on MCP server {{server}}": "MCP 서버 {{server}}에서 {{tool}} 호출",
+  "MCP servers outside OneUptime - such as AWS, Azure or GitHub - whose tools OneUptime AI may use in Ask AI and while it investigates and fixes incidents and alerts.": "OneUptime 외부의 MCP 서버(AWS, Azure, GitHub 등)로, OneUptime AI가 'AI에게 질문'에서, 그리고 인시던트와 경고를 조사하고 수정할 때 그 도구를 사용할 수 있습니다.",
+  "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.": "OneUptime 외부의 MCP 서버로, OneUptime AI가 'AI에게 질문'에서, 그리고 조사하고 수정할 때 그 도구를 사용할 수 있습니다(AWS, Azure, GitHub 등).",
+  "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.": "아래 인수를 OneUptime 외부의 {{server}}(으)로 보냅니다. 그곳에서 변경된 내용은 OneUptime이 되돌릴 수 없습니다.",
+  "Sent to the server": "서버로 보내는 내용",
+  "Used a tool of an MCP server that may change something": "변경할 수 있는 MCP 서버의 도구를 사용함",
+  "Using a tool of an MCP server that may change something": "변경할 수 있는 MCP 서버의 도구를 사용하는 중",
+  "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.": "{{server}}이(가) {{tool}}이(가) 무언가를 변경하는지 알려 주지 않으므로 OneUptime이 먼저 확인합니다."
 }
