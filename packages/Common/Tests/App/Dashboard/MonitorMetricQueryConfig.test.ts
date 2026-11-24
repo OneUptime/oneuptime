@@ -9,8 +9,12 @@ import Probe from "../../../Models/DatabaseModels/Probe";
 import AggregateModel from "../../../Types/BaseDatabase/AggregatedModel";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import MonitorMetricType from "../../../Types/Monitor/MonitorMetricType";
+import MonitorStep from "../../../Types/Monitor/MonitorStep";
+import { MONITOR_STEP_ID_ATTRIBUTE } from "../../../Types/Monitor/MonitorStepSeries";
+import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import { Translator } from "../../../Types/Translator";
 import MonitorMetricTypeUtil from "../../../Utils/Monitor/MonitorMetricType";
 
 /*
@@ -48,6 +52,65 @@ const aggregateWith: (attributes: unknown) => AggregateModel = (
   attributes: unknown,
 ): AggregateModel => {
   return { attributes: attributes } as unknown as AggregateModel;
+};
+
+// A monitor's steps: two URLs, or one.
+const stepsOf: (count: number) => {
+  monitorSteps: MonitorSteps;
+  steps: Array<MonitorStep>;
+} = (
+  count: number,
+): { monitorSteps: MonitorSteps; steps: Array<MonitorStep> } => {
+  const steps: Array<MonitorStep> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    steps.push(new MonitorStep());
+  }
+
+  const monitorSteps: MonitorSteps = new MonitorSteps();
+  monitorSteps.data = {
+    monitorStepsInstanceArray: steps,
+    defaultMonitorStatusId: undefined,
+  };
+
+  return { monitorSteps, steps };
+};
+
+// A reader of German, or of Persian, whose line takes a bullet between facts.
+const readerOf: (language: string) => Translator = (
+  language: string,
+): Translator => {
+  const words: Record<string, string> = {
+    "Step {{number}}": language === "de" ? "Schritt {{number}}" : "گام {{number}}",
+  };
+
+  return {
+    language: language,
+    translateText: (text: string | undefined): string | undefined => {
+      return text ? words[text] || text : text;
+    },
+    hasTranslation: (text: string): boolean => {
+      return Boolean(words[text]);
+    },
+    translateTemplate: (
+      template: string,
+      values?: Record<string, unknown>,
+    ): string => {
+      return (words[template] || template).replace(
+        "{{number}}",
+        String(values?.["number"]),
+      );
+    },
+    translatePlural: (): string => {
+      return "";
+    },
+    translateTerm: (text: string | undefined): string => {
+      return text || "";
+    },
+    formatNumber: (value: number): string => {
+      return String(value);
+    },
+  } as unknown as Translator;
 };
 
 describe("buildMonitorMetricQueryConfig", () => {
@@ -128,6 +191,60 @@ describe("buildMonitorMetricQueryConfig", () => {
 
     expect(config.getSeries!(aggregateWith({ probeId: LONDON_ID })).title).toBe(
       "London",
+    );
+  });
+
+  test("on a monitor with several steps, its series resolver names each step's line", () => {
+    const { monitorSteps, steps } = stepsOf(2);
+
+    const config: MetricQueryConfigData = buildMonitorMetricQueryConfig({
+      monitorId: MONITOR_ID,
+      projectId: PROJECT_ID,
+      monitorType: MonitorType.Website,
+      metric: MonitorMetricType.ResponseTime,
+      probes: PROBES,
+      monitorSteps: monitorSteps,
+    });
+
+    expect(
+      config.getSeries!(
+        aggregateWith({
+          probeId: LONDON_ID,
+          [MONITOR_STEP_ID_ATTRIBUTE]: steps[1]!.id.toString(),
+        }),
+      ).title,
+    ).toBe("London \u00B7 Step 2");
+  });
+
+  test("MonitorMetrics and the overview's card hand the builder the monitor's steps", () => {
+    const read: (...segments: Array<string>) => string = (
+      ...segments: Array<string>
+    ): string => {
+      return fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "..",
+          "App",
+          "FeatureSet",
+          "Dashboard",
+          "src",
+          ...segments,
+        ),
+        "utf8",
+      );
+    };
+
+    expect(read("Components", "Monitor", "MonitorMetrics.tsx")).toContain(
+      "monitorSteps: monitorSteps,",
+    );
+    expect(
+      read("Components", "Monitor", "Overview", "MonitorResponseTimeCard.tsx"),
+    ).toContain("monitorSteps: props.monitorSteps,");
+    expect(read("Pages", "Monitor", "View", "Index.tsx")).toContain(
+      "monitorSteps={monitor.monitorSteps}\n              responseTime=",
     );
   });
 
@@ -224,6 +341,112 @@ describe("resolveSeriesTitle", () => {
         probes: [],
       }).title,
     ).toBe("eth0");
+  });
+
+  describe("a monitor with several steps (#10906)", () => {
+    test("each step's line of a probe is named by its step, counted from 1", () => {
+      const { monitorSteps, steps } = stepsOf(3);
+
+      steps.forEach((step: MonitorStep, index: number) => {
+        expect(
+          resolveSeriesTitle({
+            data: aggregateWith({
+              probeId: OHIO_ID,
+              [MONITOR_STEP_ID_ATTRIBUTE]: step.id.toString(),
+            }),
+            monitorType: MonitorType.API,
+            monitorMetricType: MonitorMetricType.ResponseTime,
+            probes: PROBES,
+            monitorSteps: monitorSteps,
+          }).title,
+        ).toBe(`Ohio \u00B7 Step ${index + 1}`);
+      });
+    });
+
+    test("in the reader's words, with the separator their line takes", () => {
+      const { monitorSteps, steps } = stepsOf(2);
+      const data: AggregateModel = aggregateWith(
+        JSON.stringify({
+          probeId: OHIO_ID,
+          [MONITOR_STEP_ID_ATTRIBUTE]: steps[1]!.id.toString(),
+        }),
+      );
+
+      expect(
+        resolveSeriesTitle({
+          data: data,
+          monitorType: MonitorType.API,
+          monitorMetricType: MonitorMetricType.ResponseTime,
+          probes: PROBES,
+          monitorSteps: monitorSteps,
+          translator: readerOf("de"),
+        }).title,
+      ).toBe("Ohio \u00B7 Schritt 2");
+
+      // Persian writes its zero as a dot: its line takes a bullet.
+      expect(
+        resolveSeriesTitle({
+          data: data,
+          monitorType: MonitorType.API,
+          monitorMetricType: MonitorMetricType.ResponseTime,
+          probes: PROBES,
+          monitorSteps: monitorSteps,
+          translator: readerOf("fa"),
+        }).title,
+      ).toBe("Ohio \u2022 \u06AF\u0627\u0645 2");
+    });
+
+    test("a monitor with one step, a row that names no step, or a step since removed: the probe alone", () => {
+      const one: { monitorSteps: MonitorSteps; steps: Array<MonitorStep> } =
+        stepsOf(1);
+      const two: { monitorSteps: MonitorSteps; steps: Array<MonitorStep> } =
+        stepsOf(2);
+
+      for (const [monitorSteps, attributes] of [
+        [
+          one.monitorSteps,
+          {
+            probeId: OHIO_ID,
+            [MONITOR_STEP_ID_ATTRIBUTE]: one.steps[0]!.id.toString(),
+          },
+        ],
+        [two.monitorSteps, { probeId: OHIO_ID }],
+        [
+          two.monitorSteps,
+          {
+            probeId: OHIO_ID,
+            [MONITOR_STEP_ID_ATTRIBUTE]: ObjectID.generate().toString(),
+          },
+        ],
+        [undefined, { probeId: OHIO_ID, [MONITOR_STEP_ID_ATTRIBUTE]: "x" }],
+      ] as Array<[MonitorSteps | undefined, Record<string, string>]>) {
+        expect(
+          resolveSeriesTitle({
+            data: aggregateWith(attributes),
+            monitorType: MonitorType.API,
+            monitorMetricType: MonitorMetricType.ResponseTime,
+            probes: PROBES,
+            monitorSteps: monitorSteps,
+          }).title,
+        ).toBe("Ohio");
+      }
+    });
+
+    test("a series named by its metric is named by its step too", () => {
+      const { monitorSteps, steps } = stepsOf(2);
+
+      expect(
+        resolveSeriesTitle({
+          data: aggregateWith({
+            [MONITOR_STEP_ID_ATTRIBUTE]: steps[0]!.id.toString(),
+          }),
+          monitorType: MonitorType.API,
+          monitorMetricType: MonitorMetricType.ResponseTime,
+          probes: PROBES,
+          monitorSteps: monitorSteps,
+        }).title,
+      ).toBe(`${fallbackTitle} \u00B7 Step 1`);
+    });
   });
 
   test("a server series with neither falls back to the metric title", () => {
