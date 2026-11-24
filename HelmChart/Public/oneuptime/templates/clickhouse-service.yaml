@@ -6,7 +6,7 @@ metadata:
   name: {{ .Release.Name }}-clickhouse
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/name: {{ include "oneuptime.appNameLabel" (dict "name" "clickhouse" "root" $) }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: clickhouse
     app.kubernetes.io/part-of: clickhouse
@@ -47,7 +47,7 @@ metadata:
   name: {{ .Release.Name }}-clickhouse-headless
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/name: {{ include "oneuptime.appNameLabel" (dict "name" "clickhouse" "root" $) }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: clickhouse
     app.kubernetes.io/part-of: clickhouse
@@ -90,7 +90,7 @@ metadata:
   name: {{ .Release.Name }}-clickhouse
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/name: {{ include "oneuptime.appNameLabel" (dict "name" "clickhouse" "root" $) }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: clickhouse
     app.kubernetes.io/part-of: clickhouse

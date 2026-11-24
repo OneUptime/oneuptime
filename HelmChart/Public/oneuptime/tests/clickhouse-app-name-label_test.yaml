@@ -1,0 +1,156 @@
+# ClickHouse's app.kubernetes.io/name label (#10989).
+#
+# The chart labels ClickHouse's resources app.kubernetes.io/name: clickhouse.
+# In the Google Cloud Marketplace edition (enterpriseMarketplace.provider
+# "google-cloud") the resources themselves are labelled with the app's name
+# instead: Google's deployer labels every resource without that label with the
+# app's name, and the console lists an app's components by it, so ClickHouse
+# was missing from the list and from the app's status. Selectors, pod labels
+# and the volume claim template keep "clickhouse": the Services and the
+# StatefulSet select the same pods, and a StatefulSet's selector and volume
+# claim templates cannot change.
+suite: clickhouse app name label
+release:
+  name: myapp
+  namespace: myns
+tests:
+  - it: labels the StatefulSet clickhouse by default
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+
+  - it: labels the Services clickhouse by default
+    templates:
+      - templates/clickhouse-service.yaml
+    asserts:
+      # The client Service, then the headless one.
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+        documentIndex: 1
+
+  - it: labels the StatefulSet clickhouse on the other marketplaces
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    set:
+      enterpriseMarketplace.provider: aws
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+
+  - it: labels the StatefulSet with the app's name on Google Cloud
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: myapp
+
+  - it: keeps the StatefulSet's selector, pod labels and volume claim template on Google Cloud
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: clickhouse
+      - equal:
+          path: spec.template.metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+      - equal:
+          path: spec.volumeClaimTemplates[0].metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+
+  - it: labels both Services with the app's name on Google Cloud, and keeps their selectors
+    templates:
+      - templates/clickhouse-service.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    asserts:
+      # The client Service, then the headless one.
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: myapp
+        documentIndex: 0
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: clickhouse
+        documentIndex: 0
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: myapp
+        documentIndex: 1
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: clickhouse
+        documentIndex: 1
+
+  - it: labels the service account with the app's name on Google Cloud, if one is created
+    templates:
+      - templates/clickhouse-service.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    documentSelector:
+      path: kind
+      value: ServiceAccount
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: myapp
+
+  - it: labels the ConfigMap with the app's name on Google Cloud
+    templates:
+      - templates/clickhouse-configmap.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: myapp
+
+  - it: labels the ClickHouse Secret with the app's name on Google Cloud
+    templates:
+      - templates/secrets.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    documentSelector:
+      path: metadata.name
+      value: myapp-clickhouse
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: myapp
+
+  - it: labels the ClickHouse Secret clickhouse by default
+    templates:
+      - templates/secrets.yaml
+    documentSelector:
+      path: metadata.name
+      value: myapp-clickhouse
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: clickhouse
+
+  - it: writes an app name of digits as a string on Google Cloud
+    release:
+      name: "2026"
+    templates:
+      - templates/clickhouse-statefulset.yaml
+    set:
+      enterpriseMarketplace.provider: google-cloud
+    asserts:
+      - equal:
+          path: metadata.labels["app.kubernetes.io/name"]
+          value: "2026"
