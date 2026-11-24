@@ -302,7 +302,7 @@ Zeichnen Sie zwei Dinge auf den Server-Spans Ihrer App auf, damit ihre Adressen 
 
 #### Vertrauenswürdige Proxys
 
-Sicherheitsereignisse übernimmt von einem Proxy, wer sein Client war, wenn seine Adresse diese ist:
+Sicherheitsereignisse glaubt einem Proxy, wer sein Client war, wenn seine Adresse eine der folgenden ist:
 
 | Vertrauenswürdig | Warum |
 | --- | --- |

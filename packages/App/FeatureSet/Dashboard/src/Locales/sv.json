@@ -63692,7 +63692,7 @@
   "Never trusted automatically": "Aldrig betrodda automatiskt",
   "None in your connected cloud accounts.": "Inga i dina anslutna molnkonton.",
   "Not every one is listed here.": "Alla visas inte här.",
-  "Not trusted while the switch is off.": "Inte betrodd medan reglaget är av.",
+  "Not trusted while the switch is off.": "Inte betrodda medan reglaget är av.",
   "Off: an attack that comes through one of them is blamed on the load balancer itself.": "Av: En attack som kommer genom en av dem tillskrivs själva lastbalanseraren.",
   "Private addresses": "Privata adresser",
   "Security Events trusts these as proxies without your listing them.": "Säkerhetshändelser litar på dessa som proxyservrar utan att du listar dem.",

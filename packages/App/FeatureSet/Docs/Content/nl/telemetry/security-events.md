@@ -302,7 +302,7 @@ Leg twee dingen vast op de serverspans van je app, zodat de adressen geverifieer
 
 #### Vertrouwde proxy's
 
-Beveiligingsgebeurtenissen gelooft een proxy over wie zijn client was, als zijn adres dit is:
+Beveiligingsgebeurtenissen gelooft een proxy over wie zijn client was, als zijn adres een van de volgende is:
 
 | Vertrouwd | Waarom |
 | --- | --- |
@@ -329,9 +329,9 @@ log_format main '$remote_addr - $remote_user [$time_local] "$request" '
                 '"$http_user_agent" "$http_x_forwarded_for"';
 ```
 
-Een regel zegt nooit wat zijn velden zijn, dus het laatste veld wordt pas als `X-Forwarded-For` gelezen zodra je **Logboeken eindigen op X-Forwarded-For** aanzet, op **Toegangslogboeken** onder **Meer instellingen**, en dan alleen:
+Een logregel zegt nooit wat zijn velden zijn, dus het laatste veld wordt pas als `X-Forwarded-For` gelezen zodra je **Logboeken eindigen op X-Forwarded-For** aanzet, op **Toegangslogboeken** onder **Meer instellingen**, en dan alleen:
 
-- als het eerste veld van de regel een proxy is die je vertrouwt: een regel van een client die je webserver rechtstreeks bereikte, is van die client;
+- als het eerste veld van de logregel een proxy is die je vertrouwt: een logregel van een client die je webserver rechtstreeks bereikte, is van die client;
 - in het combined-formaat, met precies één veld tussen aanhalingstekens na de user agent en niets daarna;
 - als dat veld `-` is of een lijst adressen waarvan het laatste geen poort heeft.
 
