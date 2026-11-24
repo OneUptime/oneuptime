@@ -2,7 +2,7 @@
 
 Ett avbrott utlöser sällan bara ett larm. När den primära databasen faller bort går monitorn för replikeringsfördröjning igång, monitorn för API:ts felfrekvens går igång, och SLO:n för kassans svarstid börjar bränna — tre larm, ett problem. Att länka de larmen till incidenten säger just det: incidenten är där insatsen sker, och varje larm visar vilken incident som förklarar det.
 
-En länk är bara en länk. Larmet behåller sitt eget tillstånd, sina ägare, jourpolicyer, anteckningar och sitt flöde; incidenten behåller sina. Länkning slår inte ihop och kopierar ingenting, och bekräftar, löser eller tystar aldrig i sig ett larm. (Att deklarera en ny incident från larm är annorlunda: den nya incidenten förifylls från dem, som [beskrivs nedan](#deklarera-en-incident-från-larm), och om du inte kryssar ur rutan på formuläret bekräftas larmen medan du deklarerar den, vilket stoppar deras eskalering — se [Bekräfta larmen medan du deklarerar](#bekräfta-larmen-medan-du-deklarerar).) Två projektreglage, påslagna i nya projekt, tar med sig de länkade larmen när incidenten bekräftas och löses — se [längre ner](#håll-larmens-tillstånd-i-takt-med-incidenten).
+En länk är bara en länk. Larmet behåller sitt eget tillstånd, sina ägare, jourpolicyer, anteckningar och sitt flöde; incidenten behåller sina. Länkning slår inte ihop och kopierar ingenting, och bekräftar, löser eller tystar aldrig i sig ett larm. (Att deklarera en ny incident från larm är annorlunda: den nya incidenten förifylls från dem och börjar med deras ägare, som [beskrivs nedan](#deklarera-en-incident-från-larm), och om du inte kryssar ur rutan på formuläret bekräftas larmen medan du deklarerar den, vilket stoppar deras eskalering — se [Bekräfta larmen medan du deklarerar](#bekräfta-larmen-medan-du-deklarerar).) Två projektreglage, påslagna i nya projekt, tar med sig de länkade larmen när incidenten bekräftas och löses — se [längre ner](#håll-larmens-tillstånd-i-takt-med-incidenten).
 
 :::cards
 - [Länka larm till en incident](#länka-larm-från-en-incident): Från incidenten, från ett larm eller många på en gång.
@@ -119,11 +119,12 @@ Vilken du än använder hamnar du på det vanliga formuläret **Deklarera ny inc
 | **Incidentallvar**     | Det allvarligaste larmets allvarlighetsgrad, översatt till en allvarlighetsgrad för incidenter. En allvarlighetsgrad för incidenter med samma namn, oavsett versaler och gemener, vinner. Annars tar OneUptime allvarlighetsgraden för incidenter på samma plats i ordningen av allvarlighetsgrader, eller den sista om du har färre allvarlighetsgrader för incidenter. |
 | **Berörda resurser**   | Varje monitor, värd, Kubernetes-kluster, Docker-värd, Podman-värd och tjänst från de valda larmen, sammanslagna. Monitorerna hamnar under **Monitorer**, resten under **Andra påverkade resurser**. Andra resurser, som SLO:er eller VMware-, Proxmox- och Ceph-kluster, kopieras inte — lägg till dem själv om incidenten påverkar dem. |
 | **Etiketter**          | Varje etikett från varje valt larm.                                                                                                                                                                                                                                                    |
-| **Privat incident**    | Påslagen om något av larmen är privat. Formuläret säger det, och larmens ägare blir ägare av incidenten — se nedan.                                                                                                                                                                     |
+| **Ägare**              | Varje person och varje team som äger något av larmen, var och en en gång — men inte en person som har lämnat projektet. Bannern nämner dem. Se [Larmens ägare äger incidenten](#larmens-ägare-äger-incidenten). |
+| **Privat incident**    | Påslagen om något av larmen är privat. Formuläret säger det — se nedan.                                                                                                                                                                                                                |
 
 "Allvarligast" följer ordningen av dina allvarlighetsgrader för larm: den första allvarlighetsgraden för larm i listan är den allvarligaste. Med allvarlighetsgraderna som varje projekt börjar med blir ett larm **Hög** en **Kritisk incident** och ett larm **Låg** en **Stor incident**.
 
-Allt går att redigera innan du skickar. **Etiketter** och **Privat incident** finns under **Fler fält** på formulärets första steg, vars hopfällda rubrik visar var och en av dem medan den är satt.
+Allt går att redigera innan du skickar. **Etiketter**, **Privat incident** och **Ägare** finns under **Fler fält** på formulärets första steg, vars hopfällda rubrik visar var och en av dem medan den är satt.
 
 **Ett larm som redan har en incident flaggas.** Med **Deklarera incident** på varje larms sida kan två jourhavande som larmas av samma avbrott deklarera det var för sig. Därför markerar bannern som listar larmen varje larm som redan är länkat till en incident — "(already linked to Incident INC-42)", med en länk till den incidenten — och lägger till en anmärkning, formulerad efter hur många av larmen som är länkade:
 
@@ -137,7 +138,7 @@ Incidentlänkarna öppnas i en ny flik, så att du kan kontrollera den befintlig
 
 **Larmens monitorer förifylls som påverkade monitorer.** Som för varje incident som deklareras för hand pausas den aktiva övervakningen av incidentens monitorer tills incidenten är löst. Ta bort en monitor från **Monitorer** i steget **Berörda resurser** innan du skickar, om den ska fortsätta kontrolleras.
 
-**Ett privat larm ger en privat incident.** Är något av larmen privat börjar **Privat incident** påslagen, och bannern som listar larmen säger det. En privat incident är bara synlig för sina ägare, Projektägare och Projektadministratörer, så OneUptime ser till att personerna som kunde se larmen kan se incidenten: när den har deklarerats läggs ägarna till varje larm som den deklarerades från — användare och team — till som ägare av incidenten, utan att meddelas. De läggs till precis efter att incidentens Slack- och Microsoft Teams-kanaler har skapats, så att de bjuds in till de kanalerna som vilken annan ägare som helst. Du är också ägare, som för varje incident som du deklarerar. Samma sak händer när en sekretessregel för incidenter gör den nya incidenten privat. Stänger du av **Privat incident** innan du skickar och ingen sekretessregel gäller, är incidenten inte privat och inga ägare kopieras.
+**Ett privat larm ger en privat incident.** Är något av larmen privat börjar **Privat incident** påslagen, och bannern som listar larmen säger det. En privat incident är bara synlig för sina ägare, Projektägare och Projektadministratörer — och larmens ägare är dess ägare från början, så att personerna som kunde se larmen kan se incidenten, om du inte tar bort dem. Du är också ägare, som för varje incident som du deklarerar.
 
 ```mermaid title="Vad som händer när du deklarerar från larm"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 När du skickar kontrollerar servern larmen innan den skapar något: högst 50 av dem, vart och ett ett larm i det här projektet som du får se, och du måste få länka larm till incidenter. Misslyckas en kontroll avvisas begäran och ingen incident skapas — så ett felaktigt larm-ID förbrukar aldrig ett incidentnummer. När incidenten finns — och när dess sekretessregler har körts, så att länkarna vet om den är privat — länkas varje larm innan begäran returneras, så att incidentens sida **Länkade larm** redan listar dem. Misslyckas en enskild länk — för att larmet togs bort ett ögonblick tidigare, till exempel — deklareras incidenten ändå och de andra larmen länkas ändå.
 
 Incidentens flöde får en enda post **Larm länkat** som listar larmen, skriven efter **Incident skapad**, i stället för en per larm — se [Flödet, Slack och Microsoft Teams](#flödet-slack-och-microsoft-teams).
+
+### Larmens ägare äger incidenten
+
+Personerna som arbetar med larmen är personerna som arbetar med incidenten, så den börjar med dem. Fältet **Ägare** under **Fler fält** börjar med varje person och varje team som äger något av larmen — var och en en gång, efter en incidentmalls ägare om du deklarerar från en mall — och bannern som listar larmen nämner dem: "Larmets ägare äger också incidenten. Ändra dem under Fler fält innan du deklarerar." Ta bort någon av dem, eller lägg till andra, innan du skickar; incidentens ägare är då exakt det som fältet innehåller, privat incident eller inte. Sammanfattningen listar dem tillsammans med de ägarregler som kommer att lägga till fler.
+
+- **En person som har lämnat projektet förs inte över**, och inte heller en vars inbjudan aldrig accepterades. Ett team som har tagits bort äger inte längre larmet, så det förs inte heller över.
+- **De meddelas en gång.** Larmens ägare läggs till som varje ägare som en incident börjar med läggs till — precis efter att dess Slack- och Microsoft Teams-kanaler har skapats, så att de bjuds in till de kanalerna, och innan dess avisering **Incident skapad** skickas — så de får höra om incidenten genom den aviseringen, enligt sina egna aviseringsregler, och får inget meddelande om att de har "lagts till som ägare" utöver det. En ägare som också läggs till av en ägarregel, eller väljs två gånger, läggs till en gång.
+- **Om du inte får lägga till incidentägare** kan du ändå deklarera incidenten: fältet lämnas som det var, OneUptime lägger själv till larmens ägare när incidenten deklareras, och bannern säger "Larmets ägare äger också incidenten när den har deklarerats." Den säger samma sak, utan att nämna dem, när du inte får se vem som äger larmen.
+- **Larm utan ägare** lägger inte till någon, och bannern säger ingenting om ägare.
+
+En incident som deklareras från larm på något annat sätt får också larmens ägare: via API:t (se [Deklarera via API:t](#deklarera-via-apit)), genom en [incidentregel](/docs/alerts/settings#incidentregler) och med `/oneuptime incident` i ett larms [Slack](/docs/workspace-connections/slack)- eller [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-kanal. Att länka ett larm till en incident som redan finns kopierar inga ägare.
 
 ### Bekräfta larmen medan du deklarerar
 
@@ -180,7 +192,7 @@ Larmen bekräftas i bakgrunden, precis efter att de har länkats, några åt gå
 
 ### Deklarera via API:t
 
-`POST /api/incident` tar emot ID:na för larmen som ska länkas i `miscDataProps`, under `alertIdsToLink`, och om de larmen ska bekräftas under `acknowledgeAlertsToLink`:
+`POST /api/incident` tar emot ID:na för larmen som ska länkas i `miscDataProps`, under `alertIdsToLink`, om de larmen ska bekräftas under `acknowledgeAlertsToLink`, och om deras ägare blir incidentens under `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - API-nyckeln inte får bekräfta varje larm som inte har bekräftats än — det kräver **Create Alert State Timeline**, med etiketter och ett ägaromfång som når vart och ett av de larmen, precis som när vart och ett av dem bekräftas.
 
 En API-nyckel är inte en användare, så larm som bekräftas med en tillskrivs ingen, precis som dess länkar inte har någon **Länkad av**.
+
+`carryOverAlertOwners` är valfritt och påslaget om du inte skickar `false`: varje person och varje team som äger något av larmen blir ägare av incidenten så snart den finns, som i formuläret — en person som har lämnat projektet hoppas över — och får veta det en gång, genom dess avisering **Incident skapad**. De läggs till av OneUptime, så API-nyckeln behöver ingen behörighet att lägga till ägare för dem. Skicka `false` för att välja ägarna själv, i `ownerUsers` och `ownerTeams`. Det avvisas med en 400 när det är något annat än `true` eller `false`, och när det är `true` utan `alertIdsToLink`.
 
 ## Länka och avlänka via API:t
 

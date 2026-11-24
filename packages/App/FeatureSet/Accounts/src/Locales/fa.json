@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "توکن کپچا وجود ندارد. لطفاً تأیید را کامل کنید.",
   "Captcha verification failed. Please try again.": "تأیید کپچا ناموفق بود. لطفاً دوباره تلاش کنید.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "این فرم نمی‌تواند حادثه‌ای ایجاد کند، زیرا شدتی برای آن تعیین نشده است. لطفاً به تیمی که آن را به اشتراک گذاشته اطلاع دهید.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "این فرم نمی‌تواند هشداری ایجاد کند، زیرا شدتی برای آن تعیین نشده است. لطفاً به تیمی که آن را به اشتراک گذاشته اطلاع دهید.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "در حال حاضر امکان پذیرش ارسال‌ها وجود ندارد. لطفاً چند دقیقه دیگر دوباره تلاش کنید.",
   "This form is receiving too many files right now. Please try again later.": "این فرم در حال حاضر فایل‌های بیش از حدی دریافت می‌کند. لطفاً بعداً دوباره تلاش کنید.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "در حال حاضر بررسی ویروس فایل‌ها ممکن نیست، به همین دلیل پذیرفته نشدند. لطفاً چند دقیقهٔ دیگر دوباره تلاش کنید.",

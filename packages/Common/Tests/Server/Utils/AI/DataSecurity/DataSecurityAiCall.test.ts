@@ -513,6 +513,8 @@ describe("every call runs on the project's own model", () => {
       // The company's own data types (#10371), drafted and described: the one call.
       DataSecurityAiModelSource.ProjectProvider,
       DataSecurityAiModelSource.ProjectProvider,
+      // A service's telemetry leaks (#10367): the coding agent, as Fix with AI's.
+      DataSecurityAiModelSource.CodeAgent,
     ]);
   });
 });

@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "कैप्चा टोकन मौजूद नहीं है। कृपया सत्यापन पूरा करें।",
   "Captcha verification failed. Please try again.": "कैप्चा सत्यापन विफल रहा। कृपया फिर से कोशिश करें।",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "इस फ़ॉर्म से घटना नहीं बनाई जा सकती क्योंकि इसमें कोई गंभीरता सेट नहीं है। कृपया उस टीम को बताएं जिसने इसे साझा किया है।",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "इस फ़ॉर्म से अलर्ट नहीं बनाया जा सकता क्योंकि इसमें कोई गंभीरता सेट नहीं है। कृपया उस टीम को बताएं जिसने इसे साझा किया है।",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "अभी सबमिशन स्वीकार नहीं किए जा सकते। कृपया कुछ मिनट बाद फिर से कोशिश करें।",
   "This form is receiving too many files right now. Please try again later.": "इस फ़ॉर्म को अभी बहुत अधिक फ़ाइलें मिल रही हैं। कृपया बाद में फिर से कोशिश करें।",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "अभी फ़ाइलों की वायरस जाँच नहीं हो पा रही है, इसलिए वे स्वीकार नहीं की गईं। कृपया कुछ मिनट बाद फिर से कोशिश करें।",

@@ -434,7 +434,7 @@ describe.each(KINDS)("the messages that page about $name", (kind: Kind) => {
     }) as GatherInput;
 
     expect(gather.introMessage).toBe(
-      `To acknowledge this ${kind.noun}, press 1. If you can't take it, press 2 to escalate.`,
+      "Press 1 to acknowledge, or 2 to escalate.",
     );
     expect(gather.numDigits).toBe(1);
   });

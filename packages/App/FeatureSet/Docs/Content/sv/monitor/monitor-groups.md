@@ -125,6 +125,8 @@ Klicka på **Lägg till monitor**. Under listrutan med monitorer klickar du på 
 Välj gruppen. **Visningsnamn**, namnet som besökare läser, tar gruppens namn tills du skriver ett eget. Klicka på **Lägg till monitor**: raden visas på sidan med gruppens status.
 :::
 
+En rad som visar en monitor kan visa en grupp i stället: öppna dess **Redigera resurs**, pennan på raden, och klicka på **Visa en monitorgrupp i stället.** under listrutan. På en grupps rad öppnas **Redigera resurs** med gruppen vald, och **Visa en monitor i stället.** riktar raden mot en monitor. När du sparar töms det raden visade tidigare: en rad visar en monitor eller en monitorgrupp, aldrig båda.
+
 På statussidan står raden för varje monitor i gruppen:
 
 - **Dess status.** Det är gruppens: den värsta bland dess monitorer med påslagen övervakning. När övervakningen är avstängd för alla visar raden **Inte övervakad** och räknas varken in i rubriken ovanför den eller i sidans samlade status.

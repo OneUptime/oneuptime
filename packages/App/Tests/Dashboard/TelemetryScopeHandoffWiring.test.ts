@@ -142,10 +142,12 @@ describe("the Logs explorer's first URL write is never narrower than the link", 
     const gate: string = "if (!selectedSavedViewId || !hasFetchedSavedViews) {";
     /*
      * The flag also has to be a dependency, or the effect never re-runs to do
-     * the pruning it was gated out of and a genuinely stale id survives.
+     * the pruning it was gated out of and a genuinely stale id survives. The
+     * views it prunes against are every one the page knows: those read, and
+     * those a search found past them (#10646).
      */
     const deps: string =
-      "}, [savedViews, selectedSavedViewId, hasFetchedSavedViews]);";
+      "}, [knownSavedViews, selectedSavedViewId, hasFetchedSavedViews]);";
 
     const gateAt: number = source.indexOf(gate);
     const depsAt: number = source.indexOf(deps);
@@ -159,7 +161,7 @@ describe("the Logs explorer's first URL write is never narrower than the link", 
      */
     const pruneEffect: string = source.slice(gateAt, depsAt);
 
-    expect(pruneEffect).toContain("savedViews.some(");
+    expect(pruneEffect).toContain("knownSavedViews.some(");
     expect(pruneEffect).toContain("setSelectedSavedViewId(null);");
   });
 

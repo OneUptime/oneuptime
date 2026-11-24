@@ -664,6 +664,7 @@
   "Captcha token is missing. Please complete the verification challenge.": "Captcha token is missing. Please complete the verification challenge.",
   "Captcha verification failed. Please try again.": "Captcha verification failed. Please try again.",
   "This form cannot create an incident because it has no severity. Please let the team that shared it know.": "This form cannot create an incident because it has no severity. Please let the team that shared it know.",
+  "This form cannot create an alert because it has no severity. Please let the team that shared it know.": "This form cannot create an alert because it has no severity. Please let the team that shared it know.",
   "Submissions cannot be accepted right now. Please try again in a few minutes.": "Submissions cannot be accepted right now. Please try again in a few minutes.",
   "This form is receiving too many files right now. Please try again later.": "This form is receiving too many files right now. Please try again later.",
   "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.": "Files cannot be checked for viruses right now, so they were not accepted. Please try again in a few minutes.",

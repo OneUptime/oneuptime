@@ -2,7 +2,7 @@
 
 Een storing levert zelden één waarschuwing op. Als de primaire database omvalt, gaat de monitor voor replicatievertraging af, gaat de monitor voor het foutpercentage van de API af, en begint de SLO voor de latentie van de checkout te branden — drie waarschuwingen, één probleem. Die waarschuwingen aan het incident koppelen zegt precies dat: het incident is waar de respons plaatsvindt, en elke waarschuwing laat zien welk incident haar verklaart.
 
-Een koppeling is alleen een koppeling. De waarschuwing houdt haar eigen status, eigenaren, bereikbaarheidsbeleid, notities en feed; het incident houdt de zijne. Koppelen voegt niets samen en kopieert niets, en bevestigt, lost op of dempt op zichzelf nooit een waarschuwing. (Een nieuw incident melden vanuit waarschuwingen is anders: het nieuwe incident wordt ermee vooraf ingevuld, zoals [hieronder beschreven](#een-incident-melden-vanuit-waarschuwingen), en tenzij je het vakje op het formulier uitvinkt, worden de waarschuwingen bevestigd terwijl je meldt, wat hun escalatie stopt — zie [De waarschuwingen bevestigen terwijl je meldt](#de-waarschuwingen-bevestigen-terwijl-je-meldt).) Twee projectschakelaars, die in nieuwe projecten aanstaan, nemen de gekoppelde waarschuwingen mee terwijl het incident wordt bevestigd en opgelost — zie [verderop](#waarschuwingsstatussen-gelijk-houden-met-het-incident).
+Een koppeling is alleen een koppeling. De waarschuwing houdt haar eigen status, eigenaren, bereikbaarheidsbeleid, notities en feed; het incident houdt de zijne. Koppelen voegt niets samen en kopieert niets, en bevestigt, lost op of dempt op zichzelf nooit een waarschuwing. (Een nieuw incident melden vanuit waarschuwingen is anders: het nieuwe incident wordt ermee vooraf ingevuld en begint met hun eigenaren, zoals [hieronder beschreven](#een-incident-melden-vanuit-waarschuwingen), en tenzij je het vakje op het formulier uitvinkt, worden de waarschuwingen bevestigd terwijl je meldt, wat hun escalatie stopt — zie [De waarschuwingen bevestigen terwijl je meldt](#de-waarschuwingen-bevestigen-terwijl-je-meldt).) Twee projectschakelaars, die in nieuwe projecten aanstaan, nemen de gekoppelde waarschuwingen mee terwijl het incident wordt bevestigd en opgelost — zie [verderop](#waarschuwingsstatussen-gelijk-houden-met-het-incident).
 
 :::cards
 - [Waarschuwingen aan een incident koppelen](#waarschuwingen-koppelen-vanuit-een-incident): Vanuit het incident, vanuit een waarschuwing, of veel tegelijk.
@@ -119,11 +119,12 @@ Welke je ook gebruikt, je komt op het gebruikelijke formulier **Nieuw incident m
 | **Ernst van incident** | De ernst van de ernstigste waarschuwing, vertaald naar een incidenternst. Een incidenternst met dezelfde naam, ongeacht hoofdletters, wint. Anders neemt OneUptime de incidenternst op dezelfde positie in de volgorde van ernstniveaus, of de laatste als je minder incidenternstniveaus hebt. |
 | **Getroffen middelen** | Elke monitor, host, Kubernetes-cluster, Docker-host, Podman-host en service van de geselecteerde waarschuwingen, samengevoegd. De monitoren komen onder **Monitoren**, de rest onder **Andere getroffen resources**. Andere middelen, zoals SLO's of VMware-, Proxmox- en Ceph-clusters, worden niet gekopieerd — voeg ze zelf toe als het incident ze treft. |
 | **Labels**             | Elk label van elke geselecteerde waarschuwing.                                                                                                                                                                                                                                         |
-| **Privé-incident**     | Aan als een van de waarschuwingen privé is. Het formulier zegt dat, en de eigenaren van de waarschuwingen worden eigenaar van het incident — zie hieronder.                                                                                                                             |
+| **Eigenaren**          | Elke persoon en elk team die eigenaar is van een van de waarschuwingen, elk één keer — maar geen persoon die het project heeft verlaten. De banner noemt ze. Zie [De eigenaren van de waarschuwingen zijn eigenaar van het incident](#de-eigenaren-van-de-waarschuwingen-zijn-eigenaar-van-het-incident). |
+| **Privé-incident**     | Aan als een van de waarschuwingen privé is. Het formulier zegt dat — zie hieronder.                                                                                                                                                                                                    |
 
 "Ernstigste" volgt de volgorde van je waarschuwingsernstniveaus: het eerste ernstniveau voor waarschuwingen in de lijst is het ernstigste. Met de ernstniveaus waarmee elk project begint, wordt een waarschuwing **Hoog** een **Kritiek incident** en een waarschuwing **Laag** een **Belangrijk incident**.
 
-Alles is bewerkbaar voordat je verstuurt. **Labels** en **Privé-incident** staan onder **Meer velden** op de eerste stap van het formulier, waarvan de ingeklapte kop elk van beide toont zolang het is ingesteld.
+Alles is bewerkbaar voordat je verstuurt. **Labels**, **Privé-incident** en **Eigenaren** staan onder **Meer velden** op de eerste stap van het formulier, waarvan de ingeklapte kop elk ervan toont zolang het is ingesteld.
 
 **Een waarschuwing die al een incident heeft, wordt gemarkeerd.** Met **Incident melden** op de pagina van elke waarschuwing kunnen twee responders die door dezelfde storing worden opgeroepen, haar elk melden. Daarom markeert de banner die de waarschuwingen noemt elke waarschuwing die al aan een incident gekoppeld is — "(already linked to Incident INC-42)", met een link naar dat incident — en voegt hij een opmerking toe, geformuleerd naar hoeveel van de waarschuwingen gekoppeld zijn:
 
@@ -137,7 +138,7 @@ De links naar incidenten openen in een nieuw tabblad, zodat je het bestaande inc
 
 **De monitoren van de waarschuwingen worden vooraf ingevuld als getroffen monitoren.** Zoals bij elk incident dat met de hand wordt gemeld, pauzeert de actieve bewaking van de monitoren van het incident tot het incident is opgelost. Haal een monitor weg uit **Monitoren** in de stap **Getroffen middelen** voordat je verstuurt, als hij moet blijven worden gecontroleerd.
 
-**Een privéwaarschuwing maakt een privé-incident.** Is een van de waarschuwingen privé, dan begint **Privé-incident** aangezet, en de banner die de waarschuwingen noemt, zegt dat. Een privé-incident is alleen zichtbaar voor zijn eigenaren, Projecteigenaars en Projectbeheerders, dus OneUptime zorgt ervoor dat de mensen die de waarschuwingen konden zien, het incident kunnen zien: zodra het is gemeld, worden de eigenaren van elke waarschuwing waarvandaan werd gemeld — gebruikers en teams — als eigenaar van het incident toegevoegd, zonder melding. Ze worden toegevoegd net nadat de Slack- en Microsoft Teams-kanalen van het incident zijn aangemaakt, zodat ze voor die kanalen worden uitgenodigd zoals elke andere eigenaar. Jij bent ook eigenaar, zoals bij elk incident dat je meldt. Hetzelfde gebeurt als een privacyregel voor incidenten het nieuwe incident privé maakt. Zet je **Privé-incident** uit voordat je verstuurt en geldt er geen privacyregel, dan is het incident niet privé en worden er geen eigenaren gekopieerd.
+**Een privéwaarschuwing maakt een privé-incident.** Is een van de waarschuwingen privé, dan begint **Privé-incident** aangezet, en de banner die de waarschuwingen noemt, zegt dat. Een privé-incident is alleen zichtbaar voor zijn eigenaren, Projecteigenaars en Projectbeheerders — en de eigenaren van de waarschuwingen zijn vanaf het begin zijn eigenaren, zodat de mensen die de waarschuwingen konden zien, het incident kunnen zien, tenzij je ze eruit haalt. Jij bent ook eigenaar, zoals bij elk incident dat je meldt.
 
 ```mermaid title="Wat er gebeurt als je vanuit waarschuwingen meldt"
 sequenceDiagram
@@ -155,6 +156,17 @@ sequenceDiagram
 Als je verstuurt, controleert de server de waarschuwingen voordat hij iets aanmaakt: maximaal 50, elk een waarschuwing in dit project die je mag zien, en je moet waarschuwingen aan incidenten mogen koppelen. Mislukt een controle, dan wordt het verzoek geweigerd en wordt er geen incident aangemaakt — een verkeerde waarschuwings-id verbruikt dus nooit een incidentnummer. Zodra het incident bestaat — en zodra zijn privacyregels zijn uitgevoerd, zodat de koppelingen weten of het privé is — wordt elke waarschuwing gekoppeld voordat het verzoek terugkeert, zodat de pagina **Gekoppelde waarschuwingen** van het incident ze al toont. Mislukt één koppeling — omdat de waarschuwing een moment eerder werd verwijderd bijvoorbeeld — dan wordt het incident toch gemeld en worden de andere waarschuwingen toch gekoppeld.
 
 De feed van het incident krijgt één item **Waarschuwing gekoppeld** dat de waarschuwingen noemt, geschreven na **Incident aangemaakt**, in plaats van één per waarschuwing — zie [De feed, Slack en Microsoft Teams](#de-feed-slack-en-microsoft-teams).
+
+### De eigenaren van de waarschuwingen zijn eigenaar van het incident
+
+De mensen die aan de waarschuwingen werken, zijn de mensen die aan het incident werken, dus begint het met hen. Het veld **Eigenaren**, onder **Meer velden**, begint met elke persoon en elk team die eigenaar is van een van de waarschuwingen — elk één keer, na de eigenaren van een incidentsjabloon als je vanuit een sjabloon meldt — en de banner die de waarschuwingen noemt, noemt ze: "De eigenaren van de waarschuwing zijn ook eigenaar van het incident. Wijzig ze onder Meer velden voordat u het meldt." Haal er voor het versturen uit wie je wilt, of voeg anderen toe; de eigenaren van het incident zijn dan precies wat het veld bevat, privé-incident of niet. De samenvatting noemt ze, met de eigenaarsregels die er meer zullen toevoegen.
+
+- **Een persoon die het project heeft verlaten, wordt niet overgenomen**, net zomin als iemand wiens uitnodiging nooit is geaccepteerd. Een team dat is verwijderd, is geen eigenaar meer van de waarschuwing en wordt dus ook niet overgenomen.
+- **Ze worden één keer ingelicht.** De eigenaren van de waarschuwingen worden toegevoegd zoals elke eigenaar waarmee een incident begint — net nadat de Slack- en Microsoft Teams-kanalen ervan zijn aangemaakt, zodat ze voor die kanalen worden uitgenodigd, en voordat de melding **Incident aangemaakt** ervan uitgaat — dus horen ze van het incident via die melding, volgens hun eigen meldingsregels, en krijgen ze daarbovenop geen bericht "als eigenaar toegevoegd". Een eigenaar die ook door een eigenaarsregel wordt toegevoegd, of twee keer wordt gekozen, wordt één keer toegevoegd.
+- **Als je geen eigenaren aan incidenten mag toevoegen**, kun je het incident toch melden: het veld blijft zoals het was, OneUptime voegt de eigenaren van de waarschuwingen zelf toe bij het melden, en de banner zegt "De eigenaren van de waarschuwing zijn ook eigenaar van het incident, zodra het is gemeld." Hij zegt hetzelfde, zonder ze te noemen, als je niet mag lezen wie eigenaar is van de waarschuwingen.
+- **Waarschuwingen zonder eigenaren** voegen niemand toe, en de banner zegt niets over eigenaren.
+
+Een incident dat op een andere manier vanuit waarschuwingen wordt gemeld, krijgt ook de eigenaren van de waarschuwingen: via de API (zie [Melden via de API](#melden-via-de-api)), door een [incidentregel](/docs/alerts/settings#incidentregels), en met `/oneuptime incident` in het [Slack](/docs/workspace-connections/slack)- of [Microsoft Teams](/docs/workspace-connections/microsoft-teams)-kanaal van een waarschuwing. Een waarschuwing koppelen aan een incident dat al bestaat, kopieert geen eigenaren.
 
 ### De waarschuwingen bevestigen terwijl je meldt
 
@@ -180,7 +192,7 @@ De waarschuwingen worden op de achtergrond bevestigd, net nadat ze zijn gekoppel
 
 ### Melden via de API
 
-`POST /api/incident` accepteert de id's van de waarschuwingen die moeten worden gekoppeld in `miscDataProps`, onder `alertIdsToLink`, en of die waarschuwingen moeten worden bevestigd onder `acknowledgeAlertsToLink`:
+`POST /api/incident` accepteert de id's van de waarschuwingen die moeten worden gekoppeld in `miscDataProps`, onder `alertIdsToLink`, of die waarschuwingen moeten worden bevestigd onder `acknowledgeAlertsToLink`, en of hun eigenaren die van het incident worden onder `carryOverAlertOwners`:
 
 ```bash
 curl -X POST https://oneuptime.com/api/incident \
@@ -208,6 +220,8 @@ curl -X POST https://oneuptime.com/api/incident \
 - de API-sleutel niet elke waarschuwing mag bevestigen die nog niet bevestigd is — daarvoor is **Create Alert State Timeline** nodig, met labels en een eigenaarsbereik die elk van die waarschuwingen bereiken, zoals bij het bevestigen van elk ervan.
 
 Een API-sleutel is geen gebruiker, dus waarschuwingen die ermee worden bevestigd, worden aan niemand toegeschreven, net zoals de koppelingen ervan geen **Gekoppeld door** hebben.
+
+`carryOverAlertOwners` is optioneel, en aan tenzij je `false` stuurt: elke persoon en elk team die eigenaar is van een van de waarschuwingen, wordt eigenaar van het incident zodra het bestaat, zoals op het formulier — een persoon die het project heeft verlaten, wordt overgeslagen — en hoort er één keer van, via de melding **Incident aangemaakt** ervan. Ze worden door OneUptime toegevoegd, dus de API-sleutel heeft voor hen geen machtiging nodig om eigenaren toe te voegen. Stuur `false` om de eigenaren zelf te kiezen, in `ownerUsers` en `ownerTeams`. Het wordt met een 400 geweigerd als het iets anders is dan `true` of `false`, en als het `true` is zonder `alertIdsToLink`.
 
 ## Koppelen en ontkoppelen via de API
 

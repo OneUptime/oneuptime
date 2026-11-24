@@ -159,12 +159,19 @@ AI_EVAL_LLM_API_KEY=... npm run benchmark -- --llm-type=Anthropic --model=claude
 The benchmark runs the real in-house Code agent (`InHouseCodeAgent`) - its prompt, its tools, its loop and its
 limits - with the model you name, on tasks shaped like the work customers hand Code, each in a repository of its own:
 
-| Task                        | What it is                                                                                     |
-| --------------------------- | ---------------------------------------------------------------------------------------------- |
-| `discount-bug-in-long-file` | An exception's stack trace into a 2,000-line file, whose cause is a function far from the line. |
-| `failing-slug-tests`        | CI is red on two cases of a helper; the fix belongs in the code, never in the test.            |
-| `rename-across-files`       | An API renamed a field, and four pages and emails across the repository still read the old one. |
-| `slow-suite-retry-bug`      | The suite takes about two and a half minutes, longer than a command gets unless it asks.       |
+| Task                                               | What it is                                                                                                           |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `discount-bug-in-long-file`                        | An exception's stack trace into a 2,000-line file, whose cause is a function far from the line.                      |
+| `failing-slug-tests`                               | CI is red on two cases of a helper; the fix belongs in the code, never in the test.                                  |
+| `rename-across-files`                              | An API renamed a field, and four pages and emails across the repository still read the old one.                      |
+| `slow-suite-retry-bug`                             | The suite takes about two and a half minutes, longer than a command gets unless it asks.                             |
+| `fix-leaks-user-email-on-a-span-and-in-a-log-line` | A service writes a user's email on a span and in a log line; one change fixes both, where each is written.           |
+| `fix-leaks-customer-email-in-twenty-places`        | A service writes a customer's email in twenty places; one redaction step with a test fixes them, never twenty edits. |
+
+The two `fix-leaks-` tasks come from Data Security's eval set of recorded findings (`TelemetryLeakEvalSet`, #10367):
+each is handed the request the product builds from where the records say each leak is written, never a value. Its
+hidden test checks that the data no longer reaches the telemetry and the rest still does; where one redaction step is
+the fix, the call sites must be left alone and a test of the step added.
 
 Each task's check runs after the agent, from outside the repository, so the agent can neither read nor change it: a
 hidden test of the fix, the repository's own tests, and that a test the task says to keep was kept. It writes one row a
@@ -248,12 +255,13 @@ offline, and fails if a check before the card reads anything the eval does not a
 input is built by the feature's own builder, `DataSecurityAiInput`, so a change to a prompt is measured as it ships.
 Each answer is scored by words a check reads, never by a judge:
 
-| Feature         | A case passes when                                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Explain with AI | The explanation says each fact the case names, and none of the words a right answer never says, such as what a planted instruction in a store's name asked for. |
-| Field suggestions | The answer, read as the product reads it, gives at least 75% of the fields the type the case expects, or none.     |
-| Fix with AI     | Handed the request Fix with AI gives the coding agent, with the files it names, the model's changed files match what the fix needs and nothing it must not. This measures the request; the Code agent benchmark measures the agent's loop. |
-| Ask AI          | Handed the rows its Data Security tools read, the answer names what the case names.                                    |
+| Feature               | A case passes when                                                                                                                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Explain with AI       | The explanation says each fact the case names, and none of the words a right answer never says, such as what a planted instruction in a store's name asked for.                                                                            |
+| Field suggestions     | The answer, read as the product reads it, gives at least 75% of the fields the type the case expects, or none.                                                                                                                             |
+| Fix with AI           | Handed the request Fix with AI gives the coding agent, with the files it names, the model's changed files match what the fix needs and nothing it must not. This measures the request; the Code agent benchmark measures the agent's loop. |
+| Ask AI                | Handed the rows its Data Security tools read, the answer names what the case names.                                                                                                                                                        |
+| Fix leaks in the code | Handed the request built from the case's recorded findings, as the product builds it, the model's changed files match what the fix needs: each leak changed where a few places write it, or one redaction step where many do.              |
 
 ```
 npm run ai-data-security-eval -- --list
@@ -263,7 +271,8 @@ AI_EVAL_LLM_API_KEY=... npm run ai-data-security-eval -- --llm-type=Anthropic --
 
 A feature's score is the share of its cases that pass; with `--repeat`, a case passes when more than half its runs
 pass. `--enforce-thresholds` exits 1 when a feature scores under its threshold (`DATA_SECURITY_EVAL_THRESHOLDS` in
-`DataSecurityEval.ts`). Options: `--feature=<id>[,<id>]` (`ExplainIssue`, `FixIssue`, `SuggestFieldTypes`, `AskAi`),
+`DataSecurityEval.ts`). Options: `--feature=<id>[,<id>]` (`ExplainIssue`, `FixIssue`, `SuggestFieldTypes`, `AskAi`,
+`FixTelemetryLeaks` and the others in `DataSecurityAiFeatures.ts`),
 `--case=<id>[,<id>]`, `--changed-files=<path>` (only the features the files listed in it change), `--repeat=<k>` and
 `--report-markdown=<path>`. Every answer and score goes to `./ai-data-security-eval-results.json`.
 

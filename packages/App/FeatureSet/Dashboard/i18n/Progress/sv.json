@@ -316,6 +316,7 @@
     "Slug",
     "Snapshots",
     "Span",
+    "Span {{name}}",
     "Span: {{id}}",
     "Spans",
     "Spec",

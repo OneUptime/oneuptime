@@ -66,7 +66,7 @@ Logoet beholder højden på det OneUptime-logo, det erstatter, og et bredt logo 
 
 ## Hvad du kan tilføje
 
-**Tilføj et spørgsmål** viser fire grupper: formularens egne **Spørgsmål**, **Hændelsesfelter** eller **Felter for planlagt vedligeholdelse** for det, formularen opretter, **Brugerdefinerede felter** og **Indsender**.
+**Tilføj et spørgsmål** viser fire grupper: formularens egne **Spørgsmål**, **Hændelsesfelter**, **Advarselsfelter** eller **Felter for planlagt vedligeholdelse** for det, formularen opretter, **Brugerdefinerede felter** og **Indsender**.
 
 ### Formularens egne spørgsmål
 
@@ -92,7 +92,7 @@ Et spørgsmål af typen **Fil** eller **Flere filer** tager filer fra indsendere
 
 ### Felter på det, formularen opretter
 
-Felterne på en hændelse, eller på en vedligeholdelseshændelse, som en indsender kan besvare. Svaret bliver feltets værdi.
+Felterne på en hændelse, en advarsel eller en vedligeholdelseshændelse, som en indsender kan besvare. Svaret bliver feltets værdi.
 
 | Hændelsesfelt | Besvares med |
 | --- | --- |
@@ -100,6 +100,15 @@ Felterne på en hændelse, eller på en vedligeholdelseshændelse, som en indsen
 | **Beskrivelse** | Formateret tekst, op til 20.000 tegn. |
 | **Alvorlighed** | En af dine hændelsesalvorligheder. |
 | **Monitorer** | Enhver af de monitorer, du tilbyder — hændelsens berørte monitorer. |
+| **Etiketter** | Enhver af de etiketter, du tilbyder. |
+| **Påvirkning startede** | En dato og et klokkeslæt: hvornår problemet startede, som indsenderen husker det. |
+
+| Advarselsfelt | Besvares med |
+| --- | --- |
+| **Titel** | Én linje, op til 500 tegn. |
+| **Beskrivelse** | Formateret tekst, op til 20.000 tegn. |
+| **Alvorlighed** | En af dine advarselsalvorligheder. |
+| **Monitor** | En af de monitorer, du tilbyder — advarslens monitor. En advarsel handler om én monitor. |
 | **Etiketter** | Enhver af de etiketter, du tilbyder. |
 | **Påvirkning startede** | En dato og et klokkeslæt: hvornår problemet startede, som indsenderen husker det. |
 
@@ -115,11 +124,11 @@ Felterne på en hændelse, eller på en vedligeholdelseshændelse, som en indsen
 
 Hvert felt kan kun spørges om én gang; listen markerer dem, der allerede er på formularen, med **Tilføjet**. Et felt, formularen ikke spørger om — eller som efterlades tomt — udfyldes fra formularens [indstillinger Ved indsendelse](/docs/forms/on-submit).
 
-**Tilbudte valg.** En offentlig side må ikke vise hele dit projekt for fremmede, så et felt, der besvares ved at vælge poster, tilbyder kun dem, du vælger. **Monitorer**, **Etiketter** og **Statussider** viser præcis de valg, du tilbyder, og spørges ikke om, før du tilbyder mindst ét. **Alvorlighed** tilbyder alle hændelsesalvorligheder, medmindre du indsnævrer den, da alvorligheder ikke er hemmelige. Svar uden for de tilbudte valg afvises.
+**Tilbudte valg.** En offentlig side må ikke vise hele dit projekt for fremmede, så et felt, der besvares ved at vælge poster, tilbyder kun dem, du vælger. **Monitorer**, **Monitor**, **Etiketter** og **Statussider** viser præcis de valg, du tilbyder, og spørges ikke om, før du tilbyder mindst ét. **Alvorlighed** tilbyder alle hændelsesalvorligheder, eller alle advarselsalvorligheder på en advarselsformular, medmindre du indsnævrer den, da alvorligheder ikke er hemmelige. Svar uden for de tilbudte valg afvises.
 
 ### Brugerdefinerede felter
 
-Dine brugerdefinerede felter for hændelser — eller for planlagt vedligeholdelse, på en vedligeholdelsesformular — hvert et spørgsmål, hvis svar bliver feltets værdi. Spørgsmålet tager sin type og sine muligheder fra det brugerdefinerede felt og starter med dets navn som spørgsmål og dets beskrivelse som hjælpetekst, som du kan ændre. Et brugerdefineret felt af typen **Fil** eller **Flere filer** stilles som et filspørgsmål, og dets filer havner i feltet.
+Dine brugerdefinerede felter for hændelser — eller for advarsler, på en advarselsformular, og for planlagt vedligeholdelse, på en vedligeholdelsesformular — hvert et spørgsmål, hvis svar bliver feltets værdi. Spørgsmålet tager sin type og sine muligheder fra det brugerdefinerede felt og starter med dets navn som spørgsmål og dets beskrivelse som hjælpetekst, som du kan ændre. Et brugerdefineret felt af typen **Fil** eller **Flere filer** stilles som et filspørgsmål, og dets filer havner i feltet.
 
 En formular spørger kun om de brugerdefinerede felter, du føjer til den, uanset hvad **Vis ved oprettelse** siger: hvert felt, en formular spørger om, viser sit navn, sin beskrivelse og sine muligheder for alle med linket. Når et brugerdefineret felt slettes, bliver dets spørgsmål på formularen, men spørges ikke længere om, og dets kort siger det — slet spørgsmålet. Et felt, der oprettes igen med samme navn, er et nyt felt: tilføj det igen.
 
@@ -231,6 +240,7 @@ Efter indsendelsen siger siden "Tak — dit svar er sendt." og giver nummeret p�
 | Svar | Grænse |
 | --- | --- |
 | En hændelses **Titel** | 500 tegn, uden at tælle mellemrum i hver ende. |
+| En advarsels **Titel** | 500 tegn, uden at tælle mellemrum i hver ende. |
 | En vedligeholdelseshændelses **Titel** | 100 tegn. |
 | **Beskrivelse** | 20.000 tegn. |
 | Ethvert andet tekstsvar | 10.000 tegn. |

@@ -117,6 +117,15 @@ class ProcParsersTest {
     }
 
     @Test
+    fun `a field ends at a space or a tab, and a digit is ASCII's, as the kernel writes them`() {
+        assertEquals(1024L, MemInfoParser.parse("MemTotal:\t1 kB")["MemTotal"])
+        assertEquals(LoadAverage(0.5, 0.4, 0.3), LoadAverageParser.parse("0.5\t0.4 0.3 1/2 3"))
+        // Android's \d read a digit of any script, which the kernel never writes, and the JVM's did not (#10876).
+        assertNull(MemInfoParser.parse("MemTotal: ١٢ kB")["MemTotal"])
+    }
+
+
+    @Test
     fun `mounts are read with their escaped spaces, and the last mount at a path wins`() {
         val text =
             """

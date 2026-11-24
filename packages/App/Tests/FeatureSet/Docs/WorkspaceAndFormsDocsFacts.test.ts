@@ -2672,6 +2672,8 @@ describe("Forms, against the builder, the Share page and the public page", () =>
     for (const key of [
       "paletteQuestions",
       "paletteIncidentFields",
+      // An alert form's fields (#10760).
+      "paletteAlertFields",
       "paletteScheduledMaintenanceFields",
       "paletteCustomFields",
       "paletteSubmitter",
@@ -2693,6 +2695,7 @@ describe("Forms, against the builder, the Share page and the public page", () =>
       FormsCopy.addQuestionTitle,
       FormsCopy.paletteQuestions,
       FormsCopy.paletteIncidentFields,
+      FormsCopy.paletteAlertFields,
       FormsCopy.paletteScheduledMaintenanceFields,
       FormsCopy.paletteCustomFields,
       FormsCopy.paletteSubmitter,

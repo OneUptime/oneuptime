@@ -38,7 +38,10 @@ import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateT
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
-import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY,
+} from "../../../Types/Incident/IncidentAlertLink";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -98,6 +101,8 @@ const NOTHING_CARRIED: Record<string, unknown> = {
   acknowledgedAlertStateId: null,
   alertIdsToAcknowledge: [],
   declaredByAlertIncidentRuleName: null,
+  // No alerts: no alert owners to carry over.
+  carryOverAlertOwners: false,
 };
 
 type HookFunction = (...args: Array<unknown>) => Promise<unknown>;
@@ -377,6 +382,98 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
       (result.carryForward as { alertIdsToLink: Array<ObjectID> })
         .alertIdsToLink,
     ).toHaveLength(1);
+  });
+
+  /*
+   * #10867: an incident declared from alerts is owned by the alerts'
+   * owners - every way it is declared - unless the declaration says
+   * otherwise (the dashboard does, once its Owners field holds them).
+   */
+  describe("carrying over the alerts' owners", () => {
+    type Carried = { carryOverAlertOwners: boolean };
+
+    test("is on for an incident declared from alerts, unless asked otherwise", async () => {
+      const result: OnCreate<Incident> = await onBeforeCreate({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+      });
+
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
+        true,
+      );
+    });
+
+    test("is on when the declaration asks for it in so many words", async () => {
+      const result: OnCreate<Incident> = await onBeforeCreate({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+        [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: true,
+      });
+
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
+        true,
+      );
+    });
+
+    test("is off when the declaration says false: the dashboard's Owners field holds them", async () => {
+      const result: OnCreate<Incident> = await onBeforeCreate({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+        [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: false,
+      });
+
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
+        false,
+      );
+    });
+
+    test("a null value is no value: the default stands", async () => {
+      const result: OnCreate<Incident> = await onBeforeCreate({
+        [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+        [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: null,
+      });
+
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
+        true,
+      );
+    });
+
+    test("is off for an incident declared from no alerts, and false is accepted there", async () => {
+      const result: OnCreate<Incident> = await onBeforeCreate({
+        [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: false,
+      });
+
+      expect(result.carryForward).toEqual(NOTHING_CARRIED);
+      expect(counter).toHaveBeenCalledTimes(1);
+    });
+
+    test("true without alerts is refused before an incident number is taken", async () => {
+      await expect(
+        onBeforeCreate({ [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: true }),
+      ).rejects.toThrow(
+        `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} only applies when the incident is declared from alerts: send the alert ids in ${INCIDENT_ALERT_IDS_TO_LINK_KEY}.`,
+      );
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["text", "false"],
+      ["a number", 0],
+      ["a list", [true]],
+      ["an object", { carry: true }],
+    ])(
+      "%s is refused before an incident number is taken",
+      async (_label: string, value: unknown) => {
+        await expect(
+          onBeforeCreate({
+            [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
+            [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: value as never,
+          }),
+        ).rejects.toThrow(
+          `${INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY} must be true or false.`,
+        );
+
+        expect(counter).not.toHaveBeenCalled();
+      },
+    );
   });
 });
 
@@ -771,7 +868,7 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
     });
   });
 
-  describe("a private incident takes on the alerts' owners", () => {
+  describe("an incident takes on the alerts' owners", () => {
     const alertIds: Array<ObjectID> = [
       new ObjectID(ALERT_ID),
       new ObjectID(ALERT_ID_2),
@@ -827,18 +924,104 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       expect(copyOwners).toHaveBeenCalledTimes(1);
     });
 
-    test("a public incident keeps its owners as they are", async () => {
+    /*
+     * #10867: the alerts' owners own the incident whether or not it is
+     * private - they are the people working what it is about.
+     */
+    test("a public incident takes on the owners too", async () => {
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds, carryOverAlertOwners: true },
+        createdIncident(USER_ID, false),
+      );
+      await settle();
+
+      expect(copyOwners).toHaveBeenCalledTimes(1);
+      expect(copyOwners).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: alertIds,
+      });
+    });
+
+    test("a carry-forward that does not say carries them over: it is the default", async () => {
       await onCreateSuccess(
         { alertIdsToLink: alertIds },
         createdIncident(USER_ID, false),
       );
       await settle();
 
-      expect(copyOwners).not.toHaveBeenCalled();
+      expect(copyOwners).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      ["a public incident", false],
+      ["a private incident", true],
+    ])(
+      "%s declared with carryOverAlertOwners false takes on no alert owner: the Owners field said who",
+      async (_label: string, isPrivate: boolean) => {
+        await onCreateSuccess(
+          { alertIdsToLink: alertIds, carryOverAlertOwners: false },
+          createdIncident(USER_ID, isPrivate),
+          userProps(Permission.ProjectMember),
+        );
+        await settle();
+
+        expect(copyOwners).not.toHaveBeenCalled();
+      },
+    );
+
+    /*
+     * Added before the owner rules run and the held "Incident Created"
+     * notification is let go: the alerts' owners are told of the incident
+     * by it, once, as every owner it starts with is.
+     */
+    test("the owners are added before the owner rules run, and before the owners handed over", async () => {
+      const ownerRules: jest.SpyInstance = jest
+        .spyOn(IncidentOwnerRuleEngineService, "applyRulesToIncident")
+        .mockResolvedValue(undefined as never);
+      const addOwners: jest.SpyInstance = jest
+        .spyOn(IncidentService, "addOwners")
+        .mockResolvedValue({
+          userIds: [],
+          teamIds: [],
+          notAdded: [],
+        } as never);
+
+      const incident: Incident = createdIncident(USER_ID, false);
+
+      await callHook<Incident>(
+        IncidentService,
+        "onCreateSuccess",
+        {
+          createBy: {
+            data: incident,
+            props: userProps(Permission.ProjectMember),
+            miscDataProps: { ownerUsers: [OTHER_USER_ID] },
+          },
+          carryForward: { alertIdsToLink: alertIds },
+        },
+        incident,
+      );
+      await settle();
+
+      const copyOrder: number = copyOwners.mock.invocationCallOrder[0]!;
+
+      expect(copyOrder).toBeLessThan(addOwners.mock.invocationCallOrder[0]!);
+      expect(copyOrder).toBeLessThan(ownerRules.mock.invocationCallOrder[0]!);
     });
 
     test("an incident declared without alerts never copies owners", async () => {
       await onCreateSuccess(null, createdIncident(USER_ID, true));
+      await settle();
+
+      expect(copyOwners).not.toHaveBeenCalled();
+    });
+
+    test("an incident declared without alerts copies none whatever the carry-forward says", async () => {
+      await onCreateSuccess(
+        { alertIdsToLink: [], carryOverAlertOwners: true },
+        createdIncident(USER_ID, false),
+      );
       await settle();
 
       expect(copyOwners).not.toHaveBeenCalled();
@@ -867,7 +1050,7 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
 
       expect(errorLog).toHaveBeenCalledWith(
         expect.stringContaining(
-          "Adding the owners of the alerts a private incident was declared from failed",
+          "Adding the owners of the alerts an incident was declared from failed",
         ),
         expect.anything(),
       );

@@ -26,6 +26,11 @@ import {
   DataSecurityMetricUserWidget,
   DataSecurityFindingOccurrences,
   DataSecurityFixResult,
+  DataSecurityIssueCodeFixJSON,
+  DataSecurityIssueCodeFixResult,
+  DataSecuritySecretSighting,
+  DataSecurityTelemetryFixPlanJSON,
+  DataSecurityTelemetryFixPlanResult,
   DataSecurityOverview,
   DataSecurityDeclaredStoreResponse,
   DataSecurityAuditEvidenceResponse,
@@ -38,10 +43,12 @@ import {
   DataSecurityResponseAvailability,
   DataSecurityResponseResult,
   DataSecurityScrubImpact,
+  DataSecurityScrubProofSummary,
   DataSecurityScrubResult,
   DataSecurityScrubRulePlan,
   DataSecurityScrubSignal,
 } from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { readScrubRuleKeys } from "Common/Types/Telemetry/ScrubRuleKeys";
 import { readTelemetryFieldReaders } from "Common/Types/Telemetry/TelemetryFieldReaders";
 import {
   DataStoreResourceKind,
@@ -62,6 +69,14 @@ import {
   DataSecurityIssueGroupFixResultJSON,
 } from "Common/Types/DataSecurity/DataSecurityIssueGroupFix";
 import { DataSecurityResponseAction } from "Common/Types/DataSecurity/DataSecurityResponseAction";
+import {
+  readTelemetryLeakFixIssue,
+  readTelemetryLeakFixLeak,
+  readTelemetryLeakList,
+  readTelemetryLeakTexts,
+  TelemetryLeakFixIssue,
+  TelemetryLeakFixLeak,
+} from "Common/Types/DataSecurity/TelemetryLeakFix";
 import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
 import { ImpactAssessmentPart } from "Common/Types/DataSecurity/ImpactAssessment";
 import {
@@ -184,6 +199,42 @@ async function post(route: string, data: JSONObject = {}): Promise<JSONObject> {
   return body && typeof body === "object" && !Array.isArray(body)
     ? (body as JSONObject)
     : {};
+}
+
+// The counts a planned rule's proof is said in (#10366).
+const SCRUB_PROOF_COUNTS: ReadonlyArray<keyof DataSecurityScrubProofSummary> = [
+  "recordsRead",
+  "findingRecordsRead",
+  "valuesWithData",
+  "valuesStillWithData",
+  "otherValues",
+  "otherValuesChanged",
+];
+
+/*
+ * What a planned rule was proven on, as the server answers it: counts,
+ * never a value. One missing or no count, and there is no proof.
+ */
+function readScrubProof(
+  value: JSONValue | undefined,
+): DataSecurityScrubProofSummary | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const proof: Partial<DataSecurityScrubProofSummary> = {};
+
+  for (const name of SCRUB_PROOF_COUNTS) {
+    const count: number | null = readCount((value as JSONObject)[name]);
+
+    if (count === null) {
+      return null;
+    }
+
+    proof[name] = count;
+  }
+
+  return proof as DataSecurityScrubProofSummary;
 }
 
 function readIds(value: JSONValue | undefined): Array<string> {
@@ -506,6 +557,33 @@ export default class DataSecurityApi {
       if (ObjectID.isValidUUID(textOf(rule["serviceId"]))) {
         plan.serviceId = textOf(rule["serviceId"]);
         plan.serviceName = textOf(rule["serviceName"]);
+      }
+
+      /*
+       * What the dialog says of the rule beside its action: why an IP
+       * Address rule hashes rather than redacts (#10396), the attributes it
+       * names, and what it was proven on (#10366). A key that is no text is
+       * no key, and a proof with a count that is no count is none: the
+       * dialog never says a rule was proven when it cannot say on what.
+       */
+      if (rule["hashesForSecurityEvents"] === true) {
+        plan.hashesForSecurityEvents = true;
+      }
+
+      const attributeKeys: Array<string> = readScrubRuleKeys(
+        Array.isArray(rule["attributeKeys"]) ? rule["attributeKeys"] : [],
+      );
+
+      if (attributeKeys.length > 0) {
+        plan.attributeKeys = attributeKeys;
+      }
+
+      const proof: DataSecurityScrubProofSummary | null = readScrubProof(
+        rule["proof"],
+      );
+
+      if (proof) {
+        plan.proof = proof;
       }
 
       impact.rule = plan;
@@ -895,14 +973,70 @@ export default class DataSecurityApi {
     )) as unknown as DataSecurityAiInputResponse;
   }
 
+  /*
+   * Fix with AI on an issue. For a service's telemetry issue (#10367) it
+   * names the plan the person was shown, and a plan that changed since
+   * starts nothing and comes back to show again.
+   */
   public static async fixIssueWithAi(
     issueId: ObjectID,
     codeRepositoryId?: ObjectID | undefined,
+    expectedPlanFingerprint?: string | undefined,
   ): Promise<DataSecurityFixResult> {
     return (await post(
       DATA_SECURITY_API_ROUTES.fixIssueWithAi(issueId.toString()),
-      codeRepositoryId ? { codeRepositoryId: codeRepositoryId.toString() } : {},
+      {
+        ...(codeRepositoryId
+          ? { codeRepositoryId: codeRepositoryId.toString() }
+          : {}),
+        ...(expectedPlanFingerprint ? { expectedPlanFingerprint } : {}),
+      },
     )) as unknown as DataSecurityFixResult;
+  }
+
+  /*
+   * What Fix with AI on a telemetry issue would do now (#10367): one pull
+   * request for every open leak of the issue's service, with where each is
+   * written and the files OneUptime AI starts from - or why there is none.
+   */
+  public static async getIssueFixPlan(
+    issueId: ObjectID,
+  ): Promise<DataSecurityTelemetryFixPlanResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(issueId.toString()),
+    );
+
+    return {
+      plan: readTelemetryFixPlan(answer["plan"]),
+      ...(typeof answer["message"] === "string"
+        ? { message: answer["message"] }
+        : {}),
+    };
+  }
+
+  /*
+   * Where the issue's fix in code stands, for the reader (#10367): its
+   * pull request and its state - and for a secret, where it was seen.
+   */
+  public static async getIssueCodeFix(
+    issueId: ObjectID,
+  ): Promise<DataSecurityIssueCodeFixResult> {
+    const answer: JSONObject = await post(
+      DATA_SECURITY_API_ROUTES.issueCodeFix(issueId.toString()),
+    );
+    const fix: unknown = answer["fix"];
+
+    return {
+      fix:
+        fix && typeof fix === "object" && !Array.isArray(fix)
+          ? (fix as unknown as DataSecurityIssueCodeFixJSON)
+          : null,
+      secretSightings: Array.isArray(answer["secretSightings"])
+        ? (answer[
+            "secretSightings"
+          ] as unknown as Array<DataSecuritySecretSighting>)
+        : [],
+    };
   }
 
   /*
@@ -971,4 +1105,47 @@ export default class DataSecurityApi {
         : {}),
     })) as unknown as DataSecurityIssueGroupFixResultJSON;
   }
+}
+
+/*
+ * A telemetry fix's plan as the server sent it (#10367), read defensively:
+ * its leaks and issues each read whole, or left out - null for none.
+ */
+export function readTelemetryFixPlan(
+  value: unknown,
+): DataSecurityTelemetryFixPlanJSON | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const plan: DataSecurityTelemetryFixPlanJSON =
+    value as unknown as DataSecurityTelemetryFixPlanJSON;
+  const leaks: Array<TelemetryLeakFixLeak> = readTelemetryLeakList(
+    plan.leaks,
+    readTelemetryLeakFixLeak,
+    100,
+  );
+  const issues: Array<TelemetryLeakFixIssue> = readTelemetryLeakList(
+    plan.issues,
+    readTelemetryLeakFixIssue,
+    100,
+  );
+
+  if (typeof plan.fingerprint !== "string" || leaks.length === 0) {
+    return null;
+  }
+
+  return {
+    ...plan,
+    leaks,
+    issues,
+    startFiles: readTelemetryLeakTexts(plan.startFiles, 20, 500),
+    redactionKeys: readTelemetryLeakTexts(plan.redactionKeys, 100, 500),
+    redactionDataTypes: readTelemetryLeakTexts(
+      plan.redactionDataTypes,
+      100,
+      200,
+    ),
+    repositories: Array.isArray(plan.repositories) ? plan.repositories : [],
+  };
 }
