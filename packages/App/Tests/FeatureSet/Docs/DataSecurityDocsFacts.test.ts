@@ -150,6 +150,16 @@ import {
   valueShape,
 } from "Common/Utils/DataSecurity/UnplacedFields";
 import {
+  MIN_CANDIDATE_FIELDS,
+  MIN_CANDIDATE_STORES,
+} from "Common/Utils/DataSecurity/DataTypeCandidates";
+import {
+  DROPPED_DATA_TYPE_COOLDOWN_DAYS,
+  MAX_SCATTERED_MATCH_SHARE,
+  MIN_GROUP_MATCH_SHARE,
+  PROVING_HOURS,
+} from "Common/Utils/DataSecurity/DataTypeProposal";
+import {
   DataStoreAccessLevel,
   DataStorePrincipalType,
 } from "Common/Types/DataSecurity/DataStoreAccess";
@@ -1255,6 +1265,76 @@ describe("Sensitive Data Types", () => {
     expect(section(page, "## How a value is found")).toContain(
       "**Confirm** on one that is right makes it High",
     );
+  });
+
+  it("says how OneUptime AI finds a data type of your own, proves it on your scans and offers it, as the product does (#10371)", () => {
+    const unplaced: string = section(
+      page,
+      "### Fields no detector could place",
+    );
+    const finds: string = section(page, "## Data types OneUptime AI finds");
+    const own: string = section(page, "## Your own data types");
+    const copy: string = source(
+      "App/FeatureSet/Dashboard/src/Components/DataSecurity/DataTypesToReviewCopy.ts",
+    );
+
+    // A telemetry scan's unplaced attributes, as the scanner bounds them.
+    expect(unplaced).toContain(
+      `at most ${constant(
+        `${SERVER}/Telemetry/TelemetryUnplacedAttributes.ts`,
+        "MAX_UNPLACED_ATTRIBUTES_PER_SERVICE",
+      )} a service each scan`,
+    );
+
+    // A group, a draft and its proof, by the product's own numbers.
+    expect([MIN_CANDIDATE_FIELDS, MIN_CANDIDATE_STORES]).toEqual([3, 2]);
+    expect(finds).toContain(
+      "Three or more fields in two or more stores make a group",
+    );
+    expect(finds).toContain(
+      `at most ${constant(
+        "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery.ts",
+        "MAX_DRAFTS_PER_RUN",
+      )} at a time`,
+    );
+    expect(finds).toContain(
+      `for up to ${PROVING_HOURS} hours or one scan interval, whichever is longer`,
+    );
+    expect(finds).toContain(
+      `at least ${Math.round(MIN_GROUP_MATCH_SHARE * 100)}% of its fields' values and at most ${Math.round(MAX_SCATTERED_MATCH_SHARE * 100)}% of the other values`,
+    );
+    expect(finds).toContain(
+      `its group is not drafted again for ${DROPPED_DATA_TYPE_COOLDOWN_DAYS} days`,
+    );
+
+    // The sentence it quotes is the card's own, and so are its buttons.
+    expect(copy).toContain(
+      '"Matches {{share}} of the values in these {{count}} fields, and {{elsewhere}} of values elsewhere in the same stores."',
+    );
+    expect(finds).toContain(
+      '"Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores."',
+    );
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+      "Describe It",
+      "Fill In the Form",
+    ]) {
+      expect(copy).toContain(`translationKey("${label}")`);
+    }
+
+    for (const label of [
+      "Data Types to Review",
+      "Add Data Type",
+      "Not a Data Type",
+    ]) {
+      expect(finds).toContain(`**${label}**`);
+    }
+
+    expect(own).toContain("**Describe It**");
+    expect(own).toContain("**Fill In the Form**");
   });
 
   it("gives the scanner's own windows, context and field thresholds", () => {

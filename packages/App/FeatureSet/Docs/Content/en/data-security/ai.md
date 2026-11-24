@@ -49,6 +49,8 @@ Data Security reads your data itself, inside its scans, and keeps none of it. Wh
 | **Fix the cause** | The check the group's issues fail, what their stores share, and the module or files that declare them, as a request to the coding agent; each store the pull request fixes: its name, kind, region and cloud ID, and its issue; and the repository's own code, which the coding agent reads to make the change | No: a person asks, from a group on **Issues** or by approving OneUptime AI's proposal, in a repository they may change in **Code**; or a security playbook's **Fix the code with AI** step. A rule whose **Fix** is set to **Automatically** opens it on its own |
 | **Scrub rules for what Scrub It cannot cover** | Each finding's data type, its category and whether it is found by its values or by a field's name; where it sits, the attribute or the log body, and the names of the attributes beside it; the shapes of its values, such as `AA-9999` for the value `AB-1234`, and how many values were read | Yes: a telemetry issue OneUptime AI contains starts it, for the data no rule of Scrub It's can hide, while **Work on new issues** is on |
 | **Sensitive data in pull requests** | What the rules found in the pull request's diff: the file and line, the name written, the kind of data it names and the check it would fail; the diff of those files and the pull request's title, with what looks like a secret, an email address or an IP address left out; never what production holds: where your telemetry held the data, a store's name or what a store holds, nor a sample of what was found, not even a masked one | Yes: a pull request's [production review](/docs/ai/ai-agent#production-review-of-pull-requests) starts it, when its rules find sensitive data in the change |
+| **Data types found in your stores** | Fields no detector placed that share a shape and a name across your stores: the names of those fields and of the fields beside them, and the kind of store each is in; the shapes of their values, such as `AA-9999` for the value `AB-1234`, and how many values were read; the names of the data types OneUptime already knows. Never a value, nor a masked one | Yes: a content scan that kept such fields starts it, when three or more fields in two or more stores share a shape and a name no detector knows |
+| **Describe It** | The sentence the person wrote on the data type form, and the shapes of their examples, such as `AA-9999` for the example `AB-1234`; never the examples themselves, which Test It runs in your browser | No: a person asks, with **Describe It** on the data type form |
 
 **Analysis on request**, **Analysis of new issues** and **Ask AI** also read your team's [AI context](/docs/ai/ai-context) first, when it has one: the notes your team wrote for OneUptime AI about your systems.
 
@@ -82,6 +84,7 @@ The owner proposals keep the same as Explain with AI: their calls' rows name the
 Every Data Security AI feature runs on the model your project chose:
 
 - The analysis and the field suggestions run on the provider an AI rule picks for the work, else your project's default LLM provider, else the server's own.
+- The data types found in your stores and **Describe It** run on your project's default LLM provider, else the server's own.
 - **Fix with AI**'s coding agent runs on the provider an AI rule picks, else one of your project's own providers, else the server's own.
 - **Ask AI** runs on the provider picked in the chat, else your project's default.
 - A pull request's sensitive data read runs on the provider the repository picks for its production reviews, else your project's default LLM provider, else the server's own.
@@ -90,7 +93,7 @@ A self-hosted model runs all of them: Ollama, vLLM, or any OpenAI-compatible end
 
 ### With AI off
 
-With **Enable AI** off in **Project Settings → AI → AI Features**, OneUptime AI sends nothing, and Data Security keeps working as before: every page, check, scan and integration. No analysis and no AI button appear on an issue, and no field is asked about after a scan.
+With **Enable AI** off in **Project Settings → AI → AI Features**, OneUptime AI sends nothing, and Data Security keeps working as before: every page, check, scan and integration. No analysis and no AI button appear on an issue, no field is asked about after a scan, and no data type is drafted from your fields.
 
 ## How it is measured
 
