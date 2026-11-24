@@ -1,7 +1,7 @@
-import { MASTER_PAGE_MAIN_CONTENT_ID } from "Common/UI/Components/MasterPage/MasterPage";
 import { getFrontmostEscapeLayer } from "Common/UI/Components/Tooltip/TooltipEscape";
-import { PageInertScope, usePageInert } from "Common/UI/Utils/PageInert";
+import { usePageInert } from "Common/UI/Utils/PageInert";
 import { usePageScrollLock } from "Common/UI/Utils/PageScrollLock";
+import { getCoveredPageInertScope } from "./CoveredPage";
 import {
   MutableRefObject,
   RefObject,
@@ -36,7 +36,7 @@ import {
  *     reader stay on the dashboard. The app's own layers are not - the
  *     command palette, Ask AI and the dialogs any page opens, beside the
  *     page in its <main>, and the notes beside the app in its root
- *     (getDashboardFullScreenInertScope);
+ *     (CoveredPage);
  *   - Escape leaves it (DashboardFullScreenKeys), as does Exit Full Screen;
  *   - opened with Full Screen, it asks the browser for its own full screen
  *     too, where the browser allows it, so one press fills the screen and
@@ -49,20 +49,6 @@ import {
  * The address says which view a tab shows; the page keeps it
  * (DashboardFullScreenAddress) and is told through onFullScreenChange.
  */
-
-// The element the Dashboard's app is drawn in (src/Index.tsx, views/index.ejs).
-export const DASHBOARD_APP_ROOT_ID: string = "root";
-
-/*
- * How far the page behind a dashboard shown full screen goes inert: up to
- * the app's root, past the app's own layers in its <main>.
- */
-export function getDashboardFullScreenInertScope(): PageInertScope {
-  return {
-    boundary: document.getElementById(DASHBOARD_APP_ROOT_ID),
-    keepChildrenOf: [document.getElementById(MASTER_PAGE_MAIN_CONTENT_ID)],
-  };
-}
 
 export interface UseDashboardFullScreenInput {
   // Whether the dashboard is shown full screen: what its address names.
@@ -130,7 +116,7 @@ const useDashboardFullScreen: (
 
   // The page behind stays still, and out of reach.
   usePageScrollLock(isFullScreen);
-  usePageInert(isFullScreen, viewRef, getDashboardFullScreenInertScope);
+  usePageInert(isFullScreen, viewRef, getCoveredPageInertScope);
 
   // The browser's full screen, as it comes and goes - by a button, or by its own Escape.
   useEffect(() => {
