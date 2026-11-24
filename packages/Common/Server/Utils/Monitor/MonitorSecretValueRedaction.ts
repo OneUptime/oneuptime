@@ -38,8 +38,11 @@ import { REDACTED } from "../LogRedaction";
  *     character escaped and the next not, as Chrome writes a URL, and a
  *     JSON text inside a JSON string, as an echo server returns the body it
  *     was sent;
- *   - without the tabs and line breaks a URL parser drops, and without the
- *     spaces around it;
+ *   - without the tabs and line breaks a URL parser drops, without the
+ *     spaces around it, and with a backslash in a URL's path written as
+ *     the slash a parser writes there. (A parser also drops the "." and
+ *     ".." segments of a path; a value that holds "/./" or "/../" is not
+ *     looked for without them.);
  *   - in base64, where a client sends it so (an Authorization: Basic
  *     header): wherever the value starts in the encoded bytes, and with or
  *     without padding, in the standard and the URL-safe alphabets.
@@ -1265,17 +1268,44 @@ export default class MonitorSecretValueRedaction {
 
   /*
    * A value as it is looked for in a text: as it was written, and as a URL
-   * parser leaves it - without tabs and line breaks, and without what
-   * surrounds it - each folded, each long enough to be hidden.
+   * parser leaves it - without tabs and line breaks, without what surrounds
+   * it, and with each backslash a slash, as it writes one in the path of an
+   * http or https URL - each folded, each long enough to be hidden.
+   *
+   * And each as the readings of a text read it (readEscaped), one level and
+   * two: a value that holds what reads as an escape ("%19", "\n", "&amp;")
+   * keeps it as written where a URL leaves it so, while a character beside
+   * it is escaped ("Zq%20%19"), and the reading of that text reads both.
    */
   private static getTextForms(value: string): Array<string> {
     const forms: Array<string> = [];
 
+    const add: (form: string) => void = (form: string): void => {
+      if (
+        MonitorSecretValueRedaction.isLongEnoughToHide(form) &&
+        !forms.includes(form)
+      ) {
+        forms.push(form);
+      }
+    };
+
+    const asParsed: string = value.replace(/[\t\n\r]/g, "");
+    // A path ends at its query or fragment: a backslash after it stays.
+    const pathEnd: number = asParsed.search(/[?#]/);
+    const asPath: string =
+      pathEnd === -1
+        ? asParsed.split("\\").join("/")
+        : asParsed.slice(0, pathEnd).split("\\").join("/") +
+          asParsed.slice(pathEnd);
+
     for (const written of [
       value,
       value.trim(),
-      value.replace(/[\t\n\r]/g, ""),
-      value.replace(/[\t\n\r]/g, "").trim(),
+      asParsed,
+      asParsed.trim(),
+      asPath,
+      asPath.trim(),
+      asParsed.split("\\").join("/"),
     ]) {
       if (!MonitorSecretValueRedaction.isLongEnoughToHide(written)) {
         continue;
@@ -1283,8 +1313,20 @@ export default class MonitorSecretValueRedaction {
 
       const folded: string = MonitorSecretValueRedaction.fold(written);
 
-      if (!forms.includes(folded)) {
-        forms.push(folded);
+      add(folded);
+
+      let read: string = folded;
+
+      for (let level: number = 0; level < ESCAPE_LEVELS; level++) {
+        const reading: TextReading | null =
+          MonitorSecretValueRedaction.readEscaped(read);
+
+        if (!reading) {
+          break;
+        }
+
+        read = reading.text;
+        add(read);
       }
     }
 
