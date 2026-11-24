@@ -10,6 +10,7 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionDefinition,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
@@ -523,6 +524,7 @@ describe("what the command is written from", () => {
   const securityKey: string = configFieldName(DATA_SECURITY_FIELD_KEY);
   const responseKey: string = configFieldName(DATA_SECURITY_RESPONSE_FIELD_KEY);
   const scopeKey: string = configFieldName(READ_SCOPE_FIELD_KEY);
+  const checksKey: string = configFieldName(SECURITY_CASE_CHECKS_FIELD_KEY);
 
   test("the form's picks, as it would save them", () => {
     expect(
@@ -537,6 +539,8 @@ describe("what the command is written from", () => {
       dataSecurityResponse: "block",
       // AWS's alone, and off on every other cloud (#10344).
       wafBlocklist: "off",
+      // AWS's alone too: Azure has no IAM users of AWS's to read back (#10900).
+      securityCaseChecks: "off",
     });
     // Nothing picked yet: the one account, every setting off.
     expect(readFormCommandSettings(GCP, {})).toEqual({
@@ -544,6 +548,20 @@ describe("what the command is written from", () => {
       dataSecurity: "off",
       dataSecurityResponse: "off",
       wafBlocklist: "off",
+      securityCaseChecks: "off",
+    });
+    // Security case checks picked on AWS: the command grants the reads.
+    expect(
+      readFormCommandSettings(AWS, {
+        [AUTH_METHOD_FIELD]: CloudConnectionAuthMethod.AwsRole,
+        [checksKey]: "on",
+      }),
+    ).toEqual({
+      scope: CloudConnectionSetupScope.Account,
+      dataSecurity: "off",
+      dataSecurityResponse: "off",
+      wafBlocklist: "off",
+      securityCaseChecks: "on",
     });
   });
 
@@ -560,6 +578,11 @@ describe("what the command is written from", () => {
       { [securityKey]: " content ", [responseKey]: " block " },
       { [securityKey]: "everything", [responseKey]: "on" },
       { [scopeKey]: " organization " },
+      // Security case checks, as a picker holds them and as typed.
+      { [checksKey]: { label: "On", value: "on" } },
+      { [checksKey]: " on " },
+      { [checksKey]: "On" },
+      { [checksKey]: true },
     ];
 
     for (const values of forms) {
@@ -596,7 +619,13 @@ describe("what the command is written from", () => {
       dataSecurity: "configuration",
       dataSecurityResponse: "block",
       wafBlocklist: "off",
+      securityCaseChecks: "off",
     });
+    // Security case checks are kept too: the access key's user joins their group.
+    expect(
+      readFormCommandSettings(AWS, { ...values, [checksKey]: "on" })
+        .securityCaseChecks,
+    ).toBe("on");
     // Blocking addresses in AWS WAF is kept too: the access key's command grants it.
     expect(
       readFormCommandSettings(AWS, {
@@ -607,7 +636,7 @@ describe("what the command is written from", () => {
     expect(readFormScope(AWS, values)).toBe(CloudConnectionSetupScope.Account);
   });
 
-  test("the first step folds the settings that change the command under it - Data Security's two and the blocklist's; the Credentials step's More fields keeps the rest", () => {
+  test("the first step folds the settings that change the command under it - Data Security's two, the blocklist's and, on AWS, Security case checks; the Credentials step's More fields keeps the rest", () => {
     for (const definition of CloudConnectionCatalog) {
       const command: Array<string> = getCommandSettingFields(definition).map(
         (field: CloudConnectionField): string => {
@@ -628,11 +657,18 @@ describe("what the command is written from", () => {
         });
 
       // Blocking addresses in AWS WAF, Azure WAF or Cloud Armor changes the command on every cloud.
-      expect(command).toEqual([
-        DATA_SECURITY_FIELD_KEY,
-        DATA_SECURITY_RESPONSE_FIELD_KEY,
-        WAF_BLOCKLIST_FIELD_KEY,
-      ]);
+      expect({ cloud: definition.provider, command }).toEqual({
+        cloud: definition.provider,
+        command: [
+          DATA_SECURITY_FIELD_KEY,
+          DATA_SECURITY_RESPONSE_FIELD_KEY,
+          WAF_BLOCKLIST_FIELD_KEY,
+          // Reading IAM users back for security cases, AWS's (#10900).
+          ...(definition.provider === CloudProvider.AWS
+            ? [SECURITY_CASE_CHECKS_FIELD_KEY]
+            : []),
+        ],
+      });
       // Every folded setting in one of the two, none in both, in the catalog's order.
       expect([...credentials, ...command].sort()).toEqual([...folded].sort());
       expect(

@@ -27,7 +27,7 @@ For a single project's own provider, see [SSO](/docs/identity/sso).
 :::steps
 ### Open the provider list
 
-Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
+Sign in as a master admin and choose **Admin Dashboard** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
 
 ### Create the provider
 

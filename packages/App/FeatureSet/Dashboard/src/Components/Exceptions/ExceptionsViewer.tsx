@@ -204,6 +204,10 @@ import {
   EXCEPTION_LIST_SELECT,
   readEveryMatchingException,
 } from "./ExceptionListRead";
+import {
+  idOf,
+  readSplitPairExceptionIds,
+} from "../../Utils/ExceptionSplitPairs";
 import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
@@ -749,6 +753,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     null,
   );
   const [isListStatsLoading, setIsListStatsLoading] = useState<boolean>(false);
+  /*
+   * The page's rows that are one of a pair a scrub rule split, by id: each
+   * says Split (ExceptionSplitPairs, #10897).
+   */
+  const [splitPairIds, setSplitPairIds] = useState<Set<string>>(
+    new Set<string>(),
+  );
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(initialUrlState.page);
   const [pageSize, setPageSize] = useState<number>(initialUrlState.pageSize);
@@ -1816,6 +1827,32 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       isCancelled = true;
     };
   }, [exceptions, listWindow]);
+
+  /*
+   * Which of the page's rows are one of a pair a scrub rule split (#10897),
+   * read once its rows are in: two small reads (ExceptionSplitPairs). Best
+   * effort: the rows show without Split when they fail.
+   */
+  useEffect(() => {
+    if (exceptions.length === 0) {
+      setSplitPairIds(new Set<string>());
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void readSplitPairExceptionIds(exceptions).then(
+      (ids: Set<string>): void => {
+        if (!isCancelled) {
+          setSplitPairIds(ids);
+        }
+      },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [exceptions]);
 
   useEffect(() => {
     if (holdsReads) {
@@ -2987,6 +3024,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
             isStatsLoading={isListStatsLoading && !listStats}
             // Only All mixes statuses; a tab of one needs no word on each row.
             showStatus={status === "all"}
+            isSplitPair={splitPairIds.has(idOf(exception))}
           />
         );
       }}

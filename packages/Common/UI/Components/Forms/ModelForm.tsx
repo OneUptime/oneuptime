@@ -84,7 +84,16 @@ import Permission from "../../../Types/Permission";
 import Typeof from "../../../Types/Typeof";
 import { isRecordNameAsWritten } from "../../../Utils/DefaultRecordNames";
 import { compareNaturally } from "../../../Utils/NaturalOrder";
-import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
+import { withDuplicateNameNotice } from "./Utils/DuplicateNameField";
+import ProjectUtil from "../../Utils/Project";
+import { getProjectNameRule } from "../../../Types/Database/ProjectNameRule";
+import React, {
+  MutableRefObject,
+  ReactElement,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   composedValue,
   translatableTerm,
@@ -1906,6 +1915,36 @@ const ModelForm: <TBaseModel extends BaseModel>(
    */
   const hasFieldsToRender: boolean = fields.length > 0;
 
+  /*
+   * The name field of a kind with a name of its own in a project warns as
+   * it takes a name another record has, and says the server's refusal of
+   * one under it (#10761, Utils/DuplicateNameField). On an edit, the
+   * record's own name is no rename.
+   */
+  const nameRuleColumn: string | null =
+    getProjectNameRule(model)?.column || null;
+  const originalName: unknown = nameRuleColumn
+    ? (itemToEdit as unknown as Record<string, unknown> | null)?.[
+        nameRuleColumn
+      ]
+    : undefined;
+  const fieldsToRender: Fields<TBaseModel> = useMemo(() => {
+    return withDuplicateNameNotice({
+      fields: fields,
+      model: model,
+      isInProject: Boolean(ProjectUtil.getCurrentProjectId()),
+      modelIdToEdit:
+        props.formType === FormType.Update ? props.modelIdToEdit : null,
+      originalName:
+        props.formType === FormType.Update ? originalName : undefined,
+    });
+  }, [
+    fields,
+    String(originalName ?? ""),
+    props.formType,
+    props.modelIdToEdit?.toString(),
+  ]);
+
   if (ruleCriteriaFormLoadError && !hasFieldsToRender) {
     return (
       <ChunkLoadRecovery
@@ -1988,7 +2027,7 @@ const ModelForm: <TBaseModel extends BaseModel>(
         )}
         onFormStepChange={props.onFormStepChange}
         onIsLastFormStep={props.onIsLastFormStep}
-        fields={fields}
+        fields={fieldsToRender}
         steps={props.steps}
         onChange={(
           values: FormValues<TBaseModel>,

@@ -3,6 +3,12 @@ import logger from "Common/Server/Utils/Logger";
 import OneUptimeDate from "Common/Types/Date";
 import { createHash } from "crypto";
 import { IncomingRequestIngestJobData } from "../Services/Queue/TelemetryQueueService";
+import {
+  INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR,
+  INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR_SETTING,
+  INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR,
+  INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR_SETTING,
+} from "../Config";
 
 /*
  * EVERY REQUEST AN INCOMING REQUEST MONITOR RECEIVED THAT NO WORKER HAS
@@ -41,11 +47,14 @@ import { IncomingRequestIngestJobData } from "../Services/Queue/TelemetryQueueSe
  *                                              monitor's log.
  *
  * Bounded: a monitor keeps at most MAX_PENDING_REQUESTS_PER_MONITOR waiting
- * requests and MAX_PENDING_BYTES_PER_MONITOR of them. Past either, the
- * oldest waiting are skipped - never the newest, which is always evaluated,
- * and never the oldest of all, which a job may be evaluating - and counted,
- * so the monitor's log says how many were skipped (skippedOverLimit). Every
- * push re-arms both keys' expiry.
+ * requests and MAX_PENDING_BYTES_PER_MONITOR of them - 1,000 and 16 MB
+ * unless a self-hosted install sets its own (Telemetry/Config, #10652).
+ * Past either, the oldest waiting are skipped - never the newest, which is
+ * always evaluated, and never the oldest of all, which a job may be
+ * evaluating - and counted, with which limit skipped them and that limit as
+ * it was, so the monitor's log says how many were skipped, and why
+ * (skippedOverLimit, skippedOverRequestLimit, skippedOverByteLimit,
+ * requestLimit, byteLimit). Every push re-arms both keys' expiry.
  *
  * A request is removed only once it was evaluated, superseded by a newer one
  * (a monitor that evaluates only its newest), or skipped, so a worker that
@@ -68,8 +77,21 @@ export interface PendingIncomingRequest {
 }
 
 export interface SkippedIncomingRequests {
-  // Skipped because more were waiting than a monitor keeps.
+  /*
+   * Skipped because more were waiting than a monitor keeps: every one,
+   * whichever limit skipped it.
+   */
   overLimit: number;
+  /*
+   * Of those, the ones the request limit skipped and the ones the byte
+   * limit skipped (#10652), with each limit as it was when it skipped them.
+   * A release before #10652 counted only overLimit: what it skipped is in
+   * neither part.
+   */
+  overRequestLimit?: number | undefined;
+  requestLimit?: number | undefined;
+  overByteLimit?: number | undefined;
+  byteLimit?: number | undefined;
   // Skipped after evaluating them failed MAX_ATTEMPTS times.
   afterFailures: number;
 }
@@ -79,10 +101,21 @@ export interface PushedIncomingRequest {
   waiting: number;
   // How many older ones this push skipped to stay within the limits.
   skipped: number;
+  // Of those, how many the request limit skipped, and how many the byte limit.
+  skippedOverRequestLimit: number;
+  skippedOverByteLimit: number;
+}
+
+// How many requests, and how many bytes of them, a monitor keeps waiting.
+export interface PendingRequestLimits {
+  maxRequests: number;
+  maxBytes: number;
 }
 
 const LIST_KEY_PREFIX: string = "incoming-request:pending:";
 const REQUESTS_KEY_PREFIX: string = "incoming-request:pending-requests:";
+
+export const BYTES_PER_MEGABYTE: number = 1024 * 1024;
 
 /*
  * A burst far beyond what a monitor is sent at once - a switch down that
@@ -91,9 +124,25 @@ const REQUESTS_KEY_PREFIX: string = "incoming-request:pending-requests:";
  * two minutes. The bytes bound a sender of large requests: 16 MB is a few
  * thousand typical webhooks, and one request larger than that is still kept
  * whole - it is the newest when it arrives.
+ *
+ * Those are the defaults. A self-hosted install sets its own, within bounds
+ * (Telemetry/Config, #10652); these are the values this server uses.
  */
-export const MAX_PENDING_REQUESTS_PER_MONITOR: number = 1000;
-export const MAX_PENDING_BYTES_PER_MONITOR: number = 16 * 1024 * 1024;
+export const DEFAULT_MAX_PENDING_REQUESTS_PER_MONITOR: number =
+  INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR_SETTING.defaultValue;
+export const DEFAULT_MAX_PENDING_BYTES_PER_MONITOR: number =
+  INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR_SETTING.defaultValue *
+  BYTES_PER_MEGABYTE;
+
+export const MAX_PENDING_REQUESTS_PER_MONITOR: number =
+  INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR;
+export const MAX_PENDING_BYTES_PER_MONITOR: number =
+  INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR * BYTES_PER_MEGABYTE;
+
+const CONFIGURED_LIMITS: PendingRequestLimits = {
+  maxRequests: MAX_PENDING_REQUESTS_PER_MONITOR,
+  maxBytes: MAX_PENDING_BYTES_PER_MONITOR,
+};
 
 /*
  * Every push re-arms it, and an empty list is deleted, so this only has to
@@ -127,9 +176,14 @@ const FORGET_REQUEST: string =
 /*
  * Push a request behind the monitor's others, skip the oldest waiting past
  * either limit - keeping the oldest of all, which a job may be evaluating,
- * and this one, the newest - count what was skipped, and re-arm both keys'
- * expiry. ARGV: id, payload, max requests, max bytes, ttl. Returns how many
- * are waiting and how many were skipped.
+ * and this one, the newest - count what was skipped, and which limit
+ * skipped it, with that limit as it is (#10652), and re-arm both keys'
+ * expiry. A request skipped while both are past is the request limit's.
+ * Which limit skipped them is a part of how many were skipped over a limit
+ * (skippedOverLimit, which every release counts): with none of those left
+ * to say, a part an earlier release left behind is dropped first. ARGV: id,
+ * payload, max requests, max bytes, ttl. Returns how many are waiting, how
+ * many were skipped, and how many of them each limit skipped.
  */
 const PUSH_SCRIPT: string =
   FORGET_REQUEST +
@@ -140,7 +194,14 @@ const PUSH_SCRIPT: string =
   "local maxRequests = tonumber(ARGV[3]) " +
   "local maxBytes = tonumber(ARGV[4]) " +
   "local skipped = 0 " +
+  "local skippedOverRequestLimit = 0 " +
+  "local skippedOverByteLimit = 0 " +
   "while waiting > 2 and (waiting > maxRequests or bytes > maxBytes) do " +
+  "if waiting > maxRequests then " +
+  "skippedOverRequestLimit = skippedOverRequestLimit + 1 " +
+  "else " +
+  "skippedOverByteLimit = skippedOverByteLimit + 1 " +
+  "end " +
   "local oldest = redis.call('LPOP', KEYS[1]) " +
   "local skippedId = redis.call('LPOP', KEYS[1]) " +
   "redis.call('LPUSH', KEYS[1], oldest) " +
@@ -149,10 +210,40 @@ const PUSH_SCRIPT: string =
   "waiting = waiting - 1 " +
   "skipped = skipped + 1 " +
   "end " +
-  "if skipped > 0 then redis.call('HINCRBY', KEYS[2], 'skippedOverLimit', skipped) end " +
+  "if skipped > 0 then " +
+  "if redis.call('HEXISTS', KEYS[2], 'skippedOverLimit') == 0 then " +
+  "redis.call('HDEL', KEYS[2], 'skippedOverRequestLimit', 'skippedOverByteLimit', 'requestLimit', 'byteLimit') " +
+  "end " +
+  "redis.call('HINCRBY', KEYS[2], 'skippedOverLimit', skipped) " +
+  "end " +
+  "if skippedOverRequestLimit > 0 then " +
+  "redis.call('HINCRBY', KEYS[2], 'skippedOverRequestLimit', skippedOverRequestLimit) " +
+  "redis.call('HSET', KEYS[2], 'requestLimit', ARGV[3]) " +
+  "end " +
+  "if skippedOverByteLimit > 0 then " +
+  "redis.call('HINCRBY', KEYS[2], 'skippedOverByteLimit', skippedOverByteLimit) " +
+  "redis.call('HSET', KEYS[2], 'byteLimit', ARGV[4]) " +
+  "end " +
   "redis.call('EXPIRE', KEYS[1], ARGV[5]) " +
   "redis.call('EXPIRE', KEYS[2], ARGV[5]) " +
-  "return {waiting, skipped}";
+  "return {waiting, skipped, skippedOverRequestLimit, skippedOverByteLimit}";
+
+// What was skipped and not yet said, in the order the replies below give it.
+const SKIPPED_FIELDS: Array<string> = [
+  "skippedOverLimit",
+  "skippedAfterFailures",
+  "skippedOverRequestLimit",
+  "skippedOverByteLimit",
+  "requestLimit",
+  "byteLimit",
+];
+
+const READ_SKIPPED: string =
+  "local notes = redis.call('HMGET', KEYS[2], " +
+  SKIPPED_FIELDS.map((field: string): string => {
+    return `'${field}'`;
+  }).join(", ") +
+  ") ";
 
 /*
  * The request at ARGV[1] (0 the oldest, -1 the newest), with its failures,
@@ -160,21 +251,22 @@ const PUSH_SCRIPT: string =
  * whose request is gone - its hash evicted or expired apart from the list -
  * can never be evaluated: it is removed, counted as lost, and the next one
  * read. Returns {id, payload, failures, waiting, skippedOverLimit,
- * skippedAfterFailures, lost}, or {false, ..., lost} when none is waiting.
+ * skippedAfterFailures, lost, skippedOverRequestLimit, skippedOverByteLimit,
+ * requestLimit, byteLimit}, or {false, ..., lost, ...} when none is waiting.
  */
 const PEEK_SCRIPT: string =
   DELETE_WHEN_DONE +
   "local lost = 0 " +
   "while true do " +
   "local id = redis.call('LINDEX', KEYS[1], tonumber(ARGV[1])) " +
-  "local notes = redis.call('HMGET', KEYS[2], 'skippedOverLimit', 'skippedAfterFailures') " +
+  READ_SKIPPED +
   "if not id then " +
   "deleteWhenDone() " +
-  "return {false, false, false, 0, notes[1], notes[2], lost} " +
+  "return {false, false, false, 0, notes[1], notes[2], lost, notes[3], notes[4], notes[5], notes[6]} " +
   "end " +
   "local values = redis.call('HMGET', KEYS[2], id, 'failures:' .. id) " +
   "if values[1] then " +
-  "return {id, values[1], values[2], redis.call('LLEN', KEYS[1]), notes[1], notes[2], lost} " +
+  "return {id, values[1], values[2], redis.call('LLEN', KEYS[1]), notes[1], notes[2], lost, notes[3], notes[4], notes[5], notes[6]} " +
   "end " +
   "redis.call('LREM', KEYS[1], 1, id) " +
   "redis.call('HDEL', KEYS[2], 'failures:' .. id) " +
@@ -225,18 +317,30 @@ const COUNT_FAILURE_SCRIPT: string =
   "return redis.call('HINCRBY', KEYS[2], 'failures:' .. ARGV[1], 1)";
 
 /*
- * The monitor's log has said ARGV[1] requests were skipped over the limit
- * and ARGV[2] after failing: take them off what is left to say.
+ * The monitor's log has said ARGV[1] requests were skipped over a limit,
+ * ARGV[2] after failing, and, of the first, ARGV[3] by the request limit and
+ * ARGV[4] by the byte limit: take them off what is left to say. A limit
+ * goes once the requests it skipped are all said, and which limit skipped
+ * them goes once nothing skipped over a limit is left to say.
  */
 const ACKNOWLEDGE_SKIPPED_SCRIPT: string =
   DELETE_WHEN_DONE +
-  "local fields = {'skippedOverLimit', 'skippedAfterFailures'} " +
+  "local fields = {'skippedOverLimit', 'skippedAfterFailures', 'skippedOverRequestLimit', 'skippedOverByteLimit'} " +
   "for index, field in ipairs(fields) do " +
   "local said = tonumber(ARGV[index]) " +
   "if said and said > 0 then " +
   "local left = redis.call('HINCRBY', KEYS[2], field, -said) " +
   "if left <= 0 then redis.call('HDEL', KEYS[2], field) end " +
   "end " +
+  "end " +
+  "if redis.call('HEXISTS', KEYS[2], 'skippedOverLimit') == 0 then " +
+  "redis.call('HDEL', KEYS[2], 'skippedOverRequestLimit', 'skippedOverByteLimit') " +
+  "end " +
+  "if redis.call('HEXISTS', KEYS[2], 'skippedOverRequestLimit') == 0 then " +
+  "redis.call('HDEL', KEYS[2], 'requestLimit') " +
+  "end " +
+  "if redis.call('HEXISTS', KEYS[2], 'skippedOverByteLimit') == 0 then " +
+  "redis.call('HDEL', KEYS[2], 'byteLimit') " +
   "end " +
   "deleteWhenDone() " +
   "return 1";
@@ -249,6 +353,10 @@ type PeekReply = [
   string | null,
   string | null,
   number,
+  string | null,
+  string | null,
+  string | null,
+  string | null,
 ];
 
 export default class IncomingRequestPendingStore {
@@ -280,8 +388,11 @@ export default class IncomingRequestPendingStore {
     secretKey: string;
     requestId: string;
     payload: IncomingRequestIngestJobData;
+    // What the monitor keeps waiting: this server's limits unless given.
+    limits?: PendingRequestLimits | undefined;
   }): Promise<PushedIncomingRequest> {
     const secretKeyHash: string = this.getSecretKeyHash(data.secretKey);
+    const limits: PendingRequestLimits = data.limits || CONFIGURED_LIMITS;
 
     const reply: unknown = await this.getConnectedClient().eval(
       PUSH_SCRIPT,
@@ -290,18 +401,19 @@ export default class IncomingRequestPendingStore {
       this.getRequestsKey(secretKeyHash),
       data.requestId,
       JSON.stringify(data.payload),
-      String(MAX_PENDING_REQUESTS_PER_MONITOR),
-      String(MAX_PENDING_BYTES_PER_MONITOR),
+      String(limits.maxRequests),
+      String(limits.maxBytes),
       String(TTL_SECONDS),
     );
 
-    const [waiting, skipped]: Array<unknown> = Array.isArray(reply)
-      ? reply
-      : [];
+    const [waiting, skipped, overRequestLimit, overByteLimit]: Array<unknown> =
+      Array.isArray(reply) ? reply : [];
 
     return {
       waiting: Number(waiting) || 0,
       skipped: Number(skipped) || 0,
+      skippedOverRequestLimit: Number(overRequestLimit) || 0,
+      skippedOverByteLimit: Number(overByteLimit) || 0,
     };
   }
 
@@ -323,17 +435,19 @@ export default class IncomingRequestPendingStore {
   public static async getSkipped(
     secretKeyHash: string,
   ): Promise<SkippedIncomingRequests> {
-    const [overLimit, afterFailures]: Array<string | null> =
-      await this.getConnectedClient().hmget(
-        this.getRequestsKey(secretKeyHash),
-        "skippedOverLimit",
-        "skippedAfterFailures",
-      );
+    const notes: Array<string | null> = await this.getConnectedClient().hmget(
+      this.getRequestsKey(secretKeyHash),
+      ...SKIPPED_FIELDS,
+    );
 
-    return {
-      overLimit: this.toCount(overLimit),
-      afterFailures: this.toCount(afterFailures),
-    };
+    return this.toSkipped({
+      overLimit: notes[0],
+      afterFailures: notes[1],
+      overRequestLimit: notes[2],
+      overByteLimit: notes[3],
+      requestLimit: notes[4],
+      byteLimit: notes[5],
+    });
   }
 
   // Remove a request once it was evaluated. Returns whether it was waiting.
@@ -416,6 +530,8 @@ export default class IncomingRequestPendingStore {
         this.getRequestsKey(secretKeyHash),
         String(Math.max(0, skipped.overLimit)),
         String(Math.max(0, skipped.afterFailures)),
+        String(Math.max(0, skipped.overRequestLimit || 0)),
+        String(Math.max(0, skipped.overByteLimit || 0)),
       );
     } catch (err) {
       logger.warn(
@@ -471,6 +587,10 @@ export default class IncomingRequestPendingStore {
         overLimit,
         afterFailures,
         lost,
+        overRequestLimit,
+        overByteLimit,
+        requestLimit,
+        byteLimit,
       ]: PeekReply = reply;
 
       if (Number(lost) > 0) {
@@ -483,10 +603,14 @@ export default class IncomingRequestPendingStore {
         return null;
       }
 
-      const skipped: SkippedIncomingRequests = {
-        overLimit: this.toCount(overLimit),
-        afterFailures: this.toCount(afterFailures),
-      };
+      const skipped: SkippedIncomingRequests = this.toSkipped({
+        overLimit,
+        afterFailures,
+        overRequestLimit,
+        overByteLimit,
+        requestLimit,
+        byteLimit,
+      });
 
       try {
         const payload: unknown = JSON.parse(payloadJson);
@@ -519,6 +643,46 @@ export default class IncomingRequestPendingStore {
   private static toCount(value: unknown): number {
     const count: number = Number(value);
     return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
+  }
+
+  /*
+   * What was skipped, as the hash keeps it. Which limit skipped them is a
+   * part of how many were skipped over a limit, so neither part says more
+   * than that, and the request limit's is read first, as the push counts
+   * it. A part with no limit beside it - its limit expired apart from it -
+   * is left out, and what it held reads as skipped by a limit unnamed.
+   */
+  private static toSkipped(notes: {
+    overLimit: unknown;
+    afterFailures: unknown;
+    overRequestLimit: unknown;
+    overByteLimit: unknown;
+    requestLimit: unknown;
+    byteLimit: unknown;
+  }): SkippedIncomingRequests {
+    const overLimit: number = this.toCount(notes.overLimit);
+    const requestLimit: number = this.toCount(notes.requestLimit);
+    const byteLimit: number = this.toCount(notes.byteLimit);
+    const overRequestLimit: number = requestLimit
+      ? Math.min(overLimit, this.toCount(notes.overRequestLimit))
+      : 0;
+    const overByteLimit: number = byteLimit
+      ? Math.min(
+          overLimit - overRequestLimit,
+          this.toCount(notes.overByteLimit),
+        )
+      : 0;
+
+    return {
+      overLimit: overLimit,
+      afterFailures: this.toCount(notes.afterFailures),
+      ...(overRequestLimit > 0
+        ? { overRequestLimit: overRequestLimit, requestLimit: requestLimit }
+        : {}),
+      ...(overByteLimit > 0
+        ? { overByteLimit: overByteLimit, byteLimit: byteLimit }
+        : {}),
+    };
   }
 
   private static getConnectedClient(): ClientType {

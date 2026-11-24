@@ -39,7 +39,7 @@ Em **Como devemos contatar você?**, clique em **Baixar o app**, escaneie o cód
 
 ![O passo "Como devemos contatar você?", com "Ativar SMS e chamadas" destacado](screen:paging-reach-you)
 
-Projetos novos começam com SMS e chamadas desativados. Se você é o proprietário do projeto, clique em **Ativar SMS e chamadas**; qualquer outra pessoa vê quem pode fazer isso. No OneUptime Cloud, se o saldo for de 1.00 USD ou menos, clique em **Adicionar saldo**, informe de 20 a 1.000 USD em **Valor (USD)** e clique em **Recarregar**.
+Projetos novos começam com SMS e chamadas desativados. Se você é o proprietário do projeto, clique em **Ativar SMS e chamadas**; qualquer outra pessoa vê quem pode fazer isso. No OneUptime Cloud, se o saldo for de 1.00 USD ou menos, clique em **Adicionar ao saldo**, informe de 20 a 1.000 USD em **Valor (USD)** e clique em **Adicionar ao saldo**.
 
 ### Adicionar seu número de telefone
 

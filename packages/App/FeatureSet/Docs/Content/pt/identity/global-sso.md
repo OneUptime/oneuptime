@@ -27,7 +27,7 @@ Para o provedor próprio de um único projeto, veja [SSO](/docs/identity/sso).
 :::steps
 ### Abrir a lista de provedores
 
-Faça login como administrador mestre e abra o Admin Dashboard com **Configurações de admin** no seu menu de usuário. Depois vá para **Configurações** > **Login único**. A página lista os provedores SAML da instância, depois os provedores OpenID Connect, e termina com o cartão **Exigir SSO**.
+Faça login como administrador mestre e escolha **Painel do administrador** no seu menu de usuário. Depois vá para **Configurações** > **Login único**. A página lista os provedores SAML da instância, depois os provedores OpenID Connect, e termina com o cartão **Exigir SSO**.
 
 ### Criar o provedor
 

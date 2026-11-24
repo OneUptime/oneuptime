@@ -105,13 +105,13 @@ Gå til **Monitorer**, og klikk på **Opprett monitor**. Velg **Innkommende fore
 
 ### Åpne én hendelse per varsel
 
-Åpne **Innstillinger** i det samme kriteriet, og slå på **Group incidents and alerts by a payload field**. Fyll den ut som nedenfor, slik at hvert varsel får sin egen hendelse, og gjenopprettingen løser den:
+Åpne **Innstillinger** i det samme kriteriet, og slå på **Grupper hendelser og varsler etter et felt i payloaden**. Fyll den ut som nedenfor, slik at hvert varsel får sin egen hendelse, og gjenopprettingen løser den:
 
 | Felt | Verdi |
 | --- | --- |
-| **Open a separate incident for each…** | `requestBody.alert_key` |
-| **Field that signals recovery** | `requestBody.transition` |
-| **Value that means recovered** | `Recovered` |
+| **Åpne en egen hendelse for hver…** | `requestBody.alert_key` |
+| **Felt som signaliserer gjenoppretting** | `requestBody.transition` |
+| **Verdi som betyr gjenopprettet** | `Recovered` |
 
 ### Få monitoren tilkoblet igjen
 
@@ -227,7 +227,7 @@ Test deretter fra Datadog: åpne en monitor som nevner webhooken, klikk på **Te
 - Datadog-monitoren må også varsle webhooken om gjenopprettingene sine. En melding som nevner webhooken bare for varsler, inne i en betingelse, sender ingen gjenoppretting.
 - Med malen åpner du kjøringen til gjenopprettingen i **Kjøringer**: det siste steget sier hvorfor. Gjenopprettingens `alert_cycle_key` må være varselets, så behold `$ALERT_CYCLE_KEY` slik det står i nyttelasten.
 - Med monitoren trenger hendelsen i kriteriet **Løs hendelse automatisk**, under **Flere felt**.
-- **Value that means recovered** må være nøyaktig `Recovered`. Sammenligningen skiller mellom store og små bokstaver.
+- **Verdi som betyr gjenopprettet** må være nøyaktig `Recovered`. Sammenligningen skiller mellom store og små bokstaver.
 - `alert_key` i gjenopprettingen må være varselets: behold `$ALERT_ID $ALERT_SCOPE` slik det står i nyttelasten.
 :::
 

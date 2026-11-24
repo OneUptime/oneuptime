@@ -11,6 +11,7 @@ import {
 } from "./ProjectPickerMenuPlacement";
 import { createProjectSearch, ProjectSearch } from "./ProjectSearch";
 import IconProp from "../../../../Types/Icon/IconProp";
+import ObjectID from "../../../../Types/ObjectID";
 import Project from "../../../../Models/DatabaseModels/Project";
 import React, {
   FunctionComponent,
@@ -27,6 +28,12 @@ export interface ComponentProps {
   projects: Array<Project>;
   selectedProjectIcon: IconProp;
   selectedProjectName: string;
+  /*
+   * The open project, by its id (#8050): its row is marked, and the list
+   * opened from the keyboard starts on it. By id, never by name: two
+   * projects may share one.
+   */
+  selectedProjectId?: ObjectID | string | null | undefined;
   onCreateProjectButtonClicked: () => void;
   onProjectSelected: (project: Project) => void;
   hideCreateProjectButton?: boolean | undefined;
@@ -92,6 +99,18 @@ interface PickerRow {
   open: () => void;
 }
 
+/*
+ * Whether a project is the open one: by its id, so the second of two
+ * projects called "Test Project" is never marked for the first. A picker
+ * told no open project marks none.
+ */
+export const isOpenProject: (
+  project: Project,
+  openProjectId: string,
+) => boolean = (project: Project, openProjectId: string): boolean => {
+  return Boolean(openProjectId) && project.id?.toString() === openProjectId;
+};
+
 const ProjectPicker: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -107,10 +126,14 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
   /*
    * The row the arrow keys are on (aria-activedescendant on the search
-   * box): the first row until a key or the pointer moves it, and the first
-   * again whenever the search changes what is listed.
+   * box), once a key or the pointer has moved it. Until then the list
+   * starts on the open project, and a search on its best match: its first
+   * row (startRowId, below).
    */
   const [activeRowId, setActiveRowId] = useState<string | undefined>(undefined);
+
+  // The open project's id, read once per draw: each row compares its own.
+  const openProjectId: string = props.selectedProjectId?.toString() || "";
 
   // The list was opened from the keyboard: the search box takes the focus.
   const [openedFromKeyboard, setOpenedFromKeyboard] = useState<boolean>(false);
@@ -125,6 +148,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setDropdownVisible(isComponentVisible);
     setSearchText("");
+    // Each opening starts on the open project again (startRowId).
     setActiveRowId(undefined);
 
     if (!isComponentVisible) {
@@ -191,13 +215,55 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
       : []),
   ];
 
+  /*
+   * The open project's row, while it is listed (#8050). With 14 projects,
+   * nothing said which one was open, and the keyboard started on the first
+   * row wherever the person was.
+   */
+  const openProjectIndex: number = openProjectId
+    ? listedProjects.findIndex((project: Project): boolean => {
+        return isOpenProject(project, openProjectId);
+      })
+    : -1;
+  const openProjectRowId: string | undefined =
+    openProjectIndex >= 0
+      ? ids.projectRow(listedProjects[openProjectIndex]!, openProjectIndex)
+      : undefined;
+
+  /*
+   * Where the keyboard starts: on the open project while nothing is typed,
+   * and on a search's best match, its first row, once something is.
+   */
+  const startRowId: string | undefined = searchText.trim()
+    ? undefined
+    : openProjectRowId;
+
   const activeIndex: number = Math.max(
     0,
     rows.findIndex((row: PickerRow): boolean => {
-      return row.id === activeRowId;
+      return row.id === (activeRowId ?? startRowId);
     }),
   );
   const activeRow: PickerRow | undefined = rows[activeIndex];
+
+  /*
+   * The open project in view as the list opens, however it was opened: the
+   * list shows six and a half rows, and someone in many projects opened it
+   * to find where they are. Once per opening, so the list never jumps back
+   * while the person scrolls it.
+   */
+  useEffect(() => {
+    if (!isComponentVisible || !openProjectRowId) {
+      return;
+    }
+
+    const element: HTMLElement | null =
+      document.getElementById(openProjectRowId);
+
+    if (element && typeof element.scrollIntoView === "function") {
+      element.scrollIntoView({ block: "nearest" });
+    }
+  }, [isComponentVisible]);
 
   // Keep the keyboard's row in view as it moves through a long list.
   useEffect(() => {
@@ -388,7 +454,10 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
               listedProjectCount={listedProjects.length}
               onFilter={(value: string) => {
                 setSearchText(value);
-                // A new search starts on its first row: its best match.
+                /*
+                 * A new search starts on its first row, its best match;
+                 * a search cleared, on the open project again.
+                 */
                 setActiveRowId(undefined);
               }}
             >
@@ -401,6 +470,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                       key={rowId}
                       id={rowId}
                       isActive={rowId === activeRow?.id}
+                      isOpenProject={isOpenProject(project, openProjectId)}
                       showsActive={isSearchFocused}
                       onPointerOver={() => {
                         setActiveRowId(rowId);

@@ -268,6 +268,14 @@ Incident Severity with the same name already exists.
 
 Une mise à jour qui renvoie à un enregistrement son propre nom, quelle que soit la casse, n'est pas un renommage : les enregistrements qui partageaient un nom auparavant peuvent donc toujours être modifiés, et renommés pour se distinguer, mais jamais vers le nom d'un autre enregistrement. Pour les équipes, les étiquettes, les politiques d'astreinte et les plannings d'astreinte, `GET /api/shared-names/team` (ou `label`, `on-call-policy`, `on-call-schedule`) indique lesquels partagent un nom : `{"groups": [["<id>", "<id>"]]}`, chaque groupe réunissant les ID, que votre clé peut lire, des enregistrements dont les noms se lisent de la même façon. Les étiquettes et les politiques d'astreinte archivées sont laissées de côté.
 
+Un projet qui exige des noms uniques, comme le fait un nouveau projet, soumet à la même règle la plupart des autres types que vous nommez, dont les moniteurs, les groupes de moniteurs, les sondes, les modèles, les clés d'API et les pipelines, avec les mêmes codes. Le `requireUniqueNames` du projet dit s'il le fait, et un Propriétaire du projet ou un Administrateur du projet le modifie dans les paramètres du projet, dans le tableau de bord :
+
+```text
+Another monitor in this project is already called API Health Check, and the project requires unique names. Pick another name.
+```
+
+Un tel refus contient aussi `takenById`, l'ID de l'enregistrement qui porte le nom, quand votre clé peut le lire. Les enregistrements qui partageaient un nom avant que le projet exige des noms uniques le gardent jusqu'à ce qu'ils soient renommés, et une même mise à jour ne peut pas donner le même nom à plusieurs enregistrements d'un même type. `GET /api/unique-names/check?tableName=Monitor&name=API%20Health%20Check` indique si un nom est pris avant que vous l'envoyiez, et `GET /api/unique-names/duplicates` liste les noms que le projet porte plusieurs fois, type par type.
+
 #### Des valeurs qu'un autre enregistrement porte déjà
 
 Certaines valeurs qui ne sont pas un nom appartiennent aussi à un seul enregistrement chacune : le domaine d'une page d'état, d'un tableau de bord ou d'un formulaire, un domaine de projet, l'identifiant d'un hôte ou d'un cluster Kubernetes, l'URL de connexion d'un fournisseur SSO et la permission d'une clé d'API, entre autres. Une création, ou une mise à jour qui change l'une d'elles, vers une valeur que porte déjà un autre enregistrement est refusée par un `400` qui le dit :

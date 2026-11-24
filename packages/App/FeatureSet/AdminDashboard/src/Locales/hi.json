@@ -41,7 +41,7 @@
     "userProjects": "परियोजनाएँ",
     "enterpriseLicenses": "एंटरप्राइज़ लाइसेंस",
     "enterpriseLicense": "लाइसेंस",
-    "projects": "परियोजनाएँ",
+    "projects": "प्रोजेक्ट",
     "project": "परियोजना",
     "projectUsers": "उपयोगकर्ता",
     "projectUser": "उपयोगकर्ता",
@@ -96,7 +96,7 @@
   },
   "navbar": {
     "users": "उपयोगकर्ता",
-    "projects": "परियोजनाएँ",
+    "projects": "प्रोजेक्ट",
     "more": "अधिक",
     "settings": "सेटिंग्स"
   },
@@ -313,7 +313,7 @@
       "selectProjectFirst": "टीम चुनने के लिए पहले कोई परियोजना चुनें।"
     },
     "projects": {
-      "title": "परियोजनाएँ",
+      "title": "प्रोजेक्ट",
       "cardTitle": "परियोजनाएँ",
       "listDescription": "इस सर्वर के सभी प्रोजेक्ट। किसी प्रोजेक्ट के उपयोगकर्ता, टीमें और सेटिंग्स प्रबंधित करने के लिए उसे खोलें।",
       "emptyMessage": "अभी तक कोई प्रोजेक्ट नहीं।"
@@ -497,7 +497,7 @@
       "title": "साइन आउट करें"
     },
     "sendEmail": {
-      "title": "घोषणा ईमेल भेजें",
+      "title": "ईमेल भेजें",
       "testCardTitle": "परीक्षण ईमेल भेजें",
       "testCardDescription": "सभी उपयोगकर्ताओं को भेजने से पहले पूर्वावलोकन के लिए एकल ईमेल पते पर परीक्षण घोषणा ईमेल भेजें।",
       "allCardTitle": "सभी उपयोगकर्ताओं को ईमेल भेजें",
@@ -514,7 +514,7 @@
       "confirmButton": "हाँ, सभी उपयोगकर्ताओं को भेजें"
     },
     "moreEmail": {
-      "title": "घोषणा ईमेल भेजें",
+      "title": "ईमेल भेजें",
       "cardTitle": "घोषणा ईमेल भेजें",
       "cardDescription": "सभी पंजीकृत उपयोगकर्ताओं को भेजने के लिए एक घोषणा ईमेल लिखें। आप यह देखने के लिए पहले एक परीक्षण ईमेल भेज सकते हैं कि यह कैसा दिखता है।",
       "sendTestButton": "परीक्षण ईमेल भेजें",
@@ -536,7 +536,7 @@
       "confirmButton": "हाँ, सभी उपयोगकर्ताओं को भेजें"
     },
     "settings": {
-      "title": "एडमिन सेटिंग्स",
+      "title": "सेटिंग्स",
       "authentication": {
         "signUpCardTitle": "साइन अप",
         "signUpCardDescription": "इस सर्वर पर कौन खाता बना सकता है।",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "वर्कर को ज़्यादा मेमोरी और CPU दें, और ऐप के लॉग में बार-बार विफल होने वाले जॉब देखें।",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "यह सर्वर OneUptime {{current}} चला रहा है। {{latest}} आ चुका है।",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "पहले बैकअप लें, फिर अपडेट करें: Docker Compose पर npm run update, Kubernetes पर helm upgrade।",
-  "Finish it on the Server setup page.": "इसे सर्वर सेटअप पेज पर पूरा करें।",
+  "Finish it on the Server Setup page.": "इसे सर्वर सेटअप पेज पर पूरा करें।",
   "Products on this server": "इस सर्वर पर उत्पाद",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "चुनें कि इस सर्वर का हर प्रोजेक्ट क्या पेश करता है। बंद किया गया उत्पाद हर प्रोजेक्ट के मेनू, मुख्य पृष्ठ और खोज से हट जाता है, और उसके पेज बताते हैं कि वह बंद है।",
   "Start from": "इनमें से किसी से शुरू करें",

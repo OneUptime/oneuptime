@@ -154,6 +154,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "An IP Address rule that redacts or masks says what it costs Security Events.",
     // What an IP Address rule hides and keeps (issue #10393).
     "An IP Address rule hides the addresses that are personal data.",
+    // What an Email Address rule hides: in any script, percent-encoded (issues #10935, #10960).
+    "An Email Address rule hides what Data Security calls an email address.",
+    // What a Credit Card Number rule hides: in any script's digits (issue #10960).
+    "A Credit Card Number rule hides what Data Security calls a card number.",
     // A Hash token's key, and the tokens made before it (issue #10394).
     "A Hash token is your project's own.",
     // What Security Events' address vault keeps, and for how long (issue #10395).

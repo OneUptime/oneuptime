@@ -3,6 +3,7 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import {
   CLOUD_CONNECTION_DATA_SECURITY_LEVELS,
   CLOUD_CONNECTION_DATA_SECURITY_RESPONSES,
+  CLOUD_CONNECTION_SECURITY_CASE_CHECKS_CHOICES,
   CLOUD_CONNECTION_WAF_BLOCKLIST_CHOICES,
   CloudConnectionAuthMethod,
   CloudConnectionAuthMethodDefinition,
@@ -11,10 +12,12 @@ import {
   CloudConnectionDataSecurityResponse,
   CloudConnectionDefinition,
   CloudConnectionField,
+  CloudConnectionSecurityCaseChecks,
   CloudConnectionWafBlocklist,
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionFieldsForMethod,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
@@ -27,6 +30,9 @@ import {
   AWS_ORGANIZATION_ACTION_GROUP,
   AWS_READ_ONLY_ACTIONS,
   AWS_SCOPED_READ_RESOURCES,
+  AWS_SECURITY_CASE_CHECKS_ACTIONS,
+  AWS_SECURITY_CASE_CHECKS_GROUP_NAME,
+  AWS_SECURITY_CASE_CHECKS_POLICY_NAME,
   AWS_WAF_BLOCKLIST_EVIDENCE_ACTIONS,
   AWS_WAF_BLOCKLIST_IP_SET_ACTIONS,
   AWS_WAF_BLOCKLIST_LIST_ACTIONS,
@@ -103,7 +109,11 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  *   - Block addresses in Cloud Armor (#10349): the
  *     oneuptimeCloudArmorBlocklist custom role - security policies,
  *     their operations, the project's tier and its address groups - and
- *     the Compute Engine and Network Security APIs it calls.
+ *     the Compute Engine and Network Security APIs it calls;
+ *   - Security case checks (#10900, AWS only): the seven reads a security
+ *     case makes of an IAM user its CloudTrail events name, in a policy
+ *     of their own - a group of their own for the access key's user - and
+ *     nothing else.
  *
  * Then: every setting that changes a command is one the form asks with the
  * command (changesSetupCommand), and only those; what the words beside a
@@ -152,6 +162,8 @@ interface CommandChoice {
   dataSecurityResponse: CloudConnectionDataSecurityResponse;
   // Off or on everywhere; on AWS also "on, and I add the rule in code".
   wafBlocklist: CloudConnectionWafBlocklist;
+  // AWS only (#10900): off when absent, as a connection saved before it reads.
+  securityCaseChecks?: CloudConnectionSecurityCaseChecks | undefined;
 }
 
 // Data Security's choices, each with the blocklist's given.
@@ -182,6 +194,19 @@ const WAF_CHOICES: Array<CommandChoice> =
     },
   );
 
+// AWS's: each of those with Security case checks off, and on (#10900).
+const AWS_CHOICES: Array<CommandChoice> = WAF_CHOICES.flatMap(
+  (choice: CommandChoice): Array<CommandChoice> => {
+    return CLOUD_CONNECTION_SECURITY_CASE_CHECKS_CHOICES.map(
+      (
+        securityCaseChecks: CloudConnectionSecurityCaseChecks,
+      ): CommandChoice => {
+        return { ...choice, securityCaseChecks };
+      },
+    );
+  },
+);
+
 // Azure WAF's and Cloud Armor's: off or on, as their form offers it.
 const POLICY_WAF_CHOICES: Array<CommandChoice> = (
   ["off", "rule"] as Array<CloudConnectionWafBlocklist>
@@ -192,8 +217,13 @@ const POLICY_WAF_CHOICES: Array<CommandChoice> = (
 // The choices of a way's cloud, as its form offers them.
 function choicesOf(way: CommandWay): Array<CommandChoice> {
   return way.definition.provider === CloudProvider.AWS
-    ? WAF_CHOICES
+    ? AWS_CHOICES
     : POLICY_WAF_CHOICES;
+}
+
+// Whether a choice lets security cases read IAM users back.
+function checksCases(choice: CommandChoice): boolean {
+  return choice.securityCaseChecks === "on";
 }
 
 function describeWay(way: CommandWay, choice?: CommandChoice): string {
@@ -202,7 +232,12 @@ function describeWay(way: CommandWay, choice?: CommandChoice): string {
     way.method,
     way.scope,
     ...(choice
-      ? [choice.dataSecurity, choice.dataSecurityResponse, choice.wafBlocklist]
+      ? [
+          choice.dataSecurity,
+          choice.dataSecurityResponse,
+          choice.wafBlocklist,
+          `security case checks ${choice.securityCaseChecks || "off"}`,
+        ]
       : []),
   ].join(" / ");
 }
@@ -231,6 +266,11 @@ function savedConfig(way: CommandWay, choice: CommandChoice): JSONObject {
     [DATA_SECURITY_RESPONSE_FIELD_KEY]: choice.dataSecurityResponse,
     ...(has(WAF_BLOCKLIST_FIELD_KEY)
       ? { [WAF_BLOCKLIST_FIELD_KEY]: choice.wafBlocklist }
+      : {}),
+    ...(has(SECURITY_CASE_CHECKS_FIELD_KEY)
+      ? {
+          [SECURITY_CASE_CHECKS_FIELD_KEY]: choice.securityCaseChecks || "off",
+        }
       : {}),
   };
 }
@@ -341,11 +381,13 @@ const POLICY_DOCUMENT: string = " --policy-document '";
 
 /*
  * The groups the access key's user may take policies through: Data
- * Security's, and the project's own for the blocklist's AWS WAF writes.
+ * Security's, the project's own for the blocklist's AWS WAF writes, and
+ * Security case checks'.
  */
 const AWS_GROUPS: Array<string> = [
   AWS_DATA_SECURITY_GROUP_NAME,
   getAwsWafBlocklistGroupName(EXTERNAL_ID),
+  AWS_SECURITY_CASE_CHECKS_GROUP_NAME,
 ];
 
 interface GroupReading {
@@ -772,6 +814,12 @@ function awsNeeds(
             })
           : []),
         ...awsWafStatements(choice),
+        // Each acts on an IAM user and nothing else, so on every one.
+        ...(checksCases(choice)
+          ? AWS_SECURITY_CASE_CHECKS_ACTIONS.map((action: string): string => {
+              return `${action} on *`;
+            })
+          : []),
       ]),
     ).sort(),
     policies: [
@@ -779,6 +827,7 @@ function awsNeeds(
       ...(reads ? [AWS_DATA_SECURITY_POLICY_NAME] : []),
       ...(responds ? [AWS_DATA_SECURITY_RESPONSE_POLICY_NAME] : []),
       ...(blocks ? [AWS_WAF_BLOCKLIST_POLICY_NAME] : []),
+      ...(checksCases(choice) ? [AWS_SECURITY_CASE_CHECKS_POLICY_NAME] : []),
     ].sort(),
   };
 }
@@ -931,6 +980,13 @@ describe("every way the form writes a command, with every choice", () => {
     expect(CHOICES).toHaveLength(6);
     // AWS's blocklist: off, OneUptime adds its rule, the rule is added in code.
     expect(WAF_CHOICES).toHaveLength(18);
+    // And each with Security case checks off and on.
+    expect(AWS_CHOICES).toHaveLength(36);
+    expect(
+      AWS_CHOICES.filter((choice: CommandChoice): boolean => {
+        return checksCases(choice);
+      }),
+    ).toHaveLength(18);
     // Azure WAF's and Cloud Armor's: off or on.
     expect(POLICY_WAF_CHOICES).toHaveLength(12);
   });
@@ -961,8 +1017,8 @@ describe("every way the form writes a command, with every choice", () => {
       }
     }
 
-    // Three AWS ways with eighteen choices each, four others with twelve.
-    expect(checked).toBe(3 * 18 + 4 * 12);
+    // Three AWS ways with thirty-six choices each, four others with twelve.
+    expect(checked).toBe(3 * 36 + 4 * 12);
   });
 
   test("a choice only adds: every line of the command with every setting off is still there, in order, but an organization's template, which carries the policies", () => {
@@ -1009,7 +1065,7 @@ describe("every way the form writes a command, with every choice", () => {
       );
     })!;
 
-    for (const choice of WAF_CHOICES) {
+    for (const choice of AWS_CHOICES) {
       const template: JSONObject = JSON.parse(
         commandFor(organization, choice).split(LINE_BREAK)[1]!,
       ) as JSONObject;
@@ -1035,11 +1091,30 @@ describe("every way the form writes a command, with every choice", () => {
             : choice.dataSecurity === "configuration"
               ? ", and its data stores' configuration"
               : "",
+          // Reading IAM users back only reads: the role still "can only read".
+          checksCases(choice)
+            ? ", and which keys, console passwords, policies, groups and MFA devices its IAM users have"
+            : "",
           mayAlso.length > 0 ? `; it may also ${mayAlso.join(", and ")}` : "",
           ".",
         ].join(""),
       });
+      // CloudFormation holds a template's description to 1,024 characters.
+      expect(description.length).toBeLessThanOrEqual(1024);
     }
+
+    expect(
+      JSON.parse(
+        commandFor(organization, {
+          dataSecurity: "off",
+          dataSecurityResponse: "off",
+          wafBlocklist: "off",
+          securityCaseChecks: "on",
+        }).split(LINE_BREAK)[1]!,
+      )["Description"],
+    ).toBe(
+      "OneUptime: a role that can only read this account's metrics, resources, changes and health events, and which keys, console passwords, policies, groups and MFA devices its IAM users have.",
+    );
 
     // A role that may only fix data stores says so as it always has.
     expect(
@@ -1210,6 +1285,108 @@ describe("every way the form writes a command, with every choice", () => {
       ),
     ).toContain(getAwsWafBlocklistGroupName(EXTERNAL_ID));
   });
+
+  test("Security case checks (#10900) is in every AWS command once on - the role's fifth policy, every member account's, the access key's group - and in no other cloud's", () => {
+    for (const way of WAYS) {
+      const isAws: boolean = way.definition.provider === CloudProvider.AWS;
+
+      // Azure and Google Cloud have no such setting: asked for it anyway, they write what they always did.
+      if (!isAws) {
+        expect(
+          getCloudConnectionSetupCommand(way.definition.provider, way.method, {
+            ...ROLE_SETUP,
+            scope: way.scope,
+            securityCaseChecks: "on",
+          }),
+        ).toBe(
+          getCloudConnectionSetupCommand(way.definition.provider, way.method, {
+            ...ROLE_SETUP,
+            scope: way.scope,
+          }),
+        );
+        continue;
+      }
+
+      const off: CommandChoice = {
+        dataSecurity: "off",
+        dataSecurityResponse: "off",
+        wafBlocklist: "off",
+      };
+      const on: CommandChoice = { ...off, securityCaseChecks: "on" };
+      const offCommand: string = commandFor(way, off);
+      const onCommand: string = commandFor(way, on);
+      const grant: CommandGrant = readCommand(way, onCommand);
+      const holders: Array<string> =
+        way.method === CloudConnectionAuthMethod.AwsAccessKey
+          ? ["user"]
+          : way.scope === CloudConnectionSetupScope.Organization
+            ? ["members' role", "role"]
+            : ["role"];
+
+      expect(offCommand).not.toContain(AWS_SECURITY_CASE_CHECKS_POLICY_NAME);
+
+      for (const holder of holders) {
+        expect({
+          way: describeWay(way, on),
+          holder,
+          policies: grant.policies[holder],
+        }).toEqual({
+          way: describeWay(way, on),
+          holder,
+          policies: expect.arrayContaining([
+            AWS_SECURITY_CASE_CHECKS_POLICY_NAME,
+          ]),
+        });
+
+        for (const action of AWS_SECURITY_CASE_CHECKS_ACTIONS) {
+          expect(grant.grants[holder]).toContain(`${action} on *`);
+        }
+      }
+
+      // The command with it on is the one with it off, and its lines added: nothing else moves.
+      const added: Array<string> = onCommand
+        .split(LINE_BREAK)
+        .filter((line: string): boolean => {
+          return !offCommand.split(LINE_BREAK).includes(line);
+        });
+
+      if (way.method === CloudConnectionAuthMethod.AwsAccessKey) {
+        expect(added).toEqual([
+          `aws iam create-group --group-name ${AWS_SECURITY_CASE_CHECKS_GROUP_NAME} > /dev/null 2>&1 || true`,
+          `aws iam put-group-policy --group-name ${AWS_SECURITY_CASE_CHECKS_GROUP_NAME} --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":${JSON.stringify(AWS_SECURITY_CASE_CHECKS_ACTIONS)},"Resource":"*"}]}'`,
+          `aws iam add-user-to-group --user-name ${CLOUD_CONNECTION_READ_ONLY_NAME} --group-name ${AWS_SECURITY_CASE_CHECKS_GROUP_NAME}`,
+        ]);
+        // The user's own inline policy stays what it was: IAM holds those to 2,048 characters.
+        expect(
+          onCommand.split(LINE_BREAK).filter((line: string): boolean => {
+            return line.startsWith(AWS_USER_POLICY);
+          }),
+        ).toEqual(
+          offCommand.split(LINE_BREAK).filter((line: string): boolean => {
+            return line.startsWith(AWS_USER_POLICY);
+          }),
+        );
+        // And the key is made last, after every grant.
+        expect(onCommand.split(LINE_BREAK).pop()).toBe(
+          `aws iam create-access-key --user-name ${CLOUD_CONNECTION_READ_ONLY_NAME}`,
+        );
+        continue;
+      }
+
+      const roleLine: string = `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":${JSON.stringify(AWS_SECURITY_CASE_CHECKS_ACTIONS)},"Resource":"*"}]}'`;
+
+      expect(
+        added.filter((line: string): boolean => {
+          return !line.startsWith('{"AWSTemplateFormatVersion"');
+        }),
+      ).toEqual([roleLine]);
+
+      // Put before the role's ARN is printed, which the person pastes back.
+      const lines: Array<string> = onCommand.split(LINE_BREAK);
+
+      expect(lines.indexOf(roleLine)).toBe(lines.length - 2);
+    }
+  });
 });
 
 describe("the settings a command is written from, as a connection keeps them", () => {
@@ -1224,11 +1401,12 @@ describe("the settings a command is written from, as a connection keeps them", (
       settings.dataSecurity,
       settings.dataSecurityResponse,
       settings.wafBlocklist,
+      settings.securityCaseChecks,
     ];
   };
 
   test("each value the form saves reads as itself", () => {
-    for (const choice of WAF_CHOICES) {
+    for (const choice of AWS_CHOICES) {
       for (const scope of [
         CloudConnectionSetupScope.Account,
         CloudConnectionSetupScope.Organization,
@@ -1239,21 +1417,47 @@ describe("the settings a command is written from, as a connection keeps them", (
             [DATA_SECURITY_FIELD_KEY]: choice.dataSecurity,
             [DATA_SECURITY_RESPONSE_FIELD_KEY]: choice.dataSecurityResponse,
             [WAF_BLOCKLIST_FIELD_KEY]: choice.wafBlocklist,
+            [SECURITY_CASE_CHECKS_FIELD_KEY]: choice.securityCaseChecks!,
           }),
         ).toEqual([
           scope,
           choice.dataSecurity,
           choice.dataSecurityResponse,
           choice.wafBlocklist,
+          choice.securityCaseChecks,
         ]);
       }
     }
   });
 
+  test("Security case checks are on only as the form saves them: anything else, or nothing, is off", () => {
+    for (const value of [
+      "On",
+      " on ",
+      "ON",
+      "yes",
+      "true",
+      "off",
+      "",
+      true,
+      1,
+      null,
+      ["on"],
+      { value: "on" },
+    ] as Array<JSONValue>) {
+      expect({
+        value,
+        read: read({ [SECURITY_CASE_CHECKS_FIELD_KEY]: value })[4],
+      }).toEqual({ value, read: "off" });
+    }
+
+    expect(read({ [SECURITY_CASE_CHECKS_FIELD_KEY]: "on" })[4]).toBe("on");
+  });
+
   test("nothing kept, or anything else, is the one account with every setting off", () => {
-    expect(read(undefined)).toEqual(["account", "off", "off", "off"]);
-    expect(read(null)).toEqual(["account", "off", "off", "off"]);
-    expect(read({})).toEqual(["account", "off", "off", "off"]);
+    expect(read(undefined)).toEqual(["account", "off", "off", "off", "off"]);
+    expect(read(null)).toEqual(["account", "off", "off", "off", "off"]);
+    expect(read({})).toEqual(["account", "off", "off", "off", "off"]);
 
     const others: Array<JSONValue> = [
       "Organization",
@@ -1282,8 +1486,13 @@ describe("the settings a command is written from, as a connection keeps them", (
           [DATA_SECURITY_FIELD_KEY]: value,
           [DATA_SECURITY_RESPONSE_FIELD_KEY]: value,
           [WAF_BLOCKLIST_FIELD_KEY]: value,
+          [SECURITY_CASE_CHECKS_FIELD_KEY]: value,
         }),
-      }).toEqual({ value, read: ["account", "off", "off", "off"] });
+      }).toEqual({
+        value,
+        // "on" is what the form saves for Security case checks, and nothing else's.
+        read: ["account", "off", "off", "off", value === "on" ? "on" : "off"],
+      });
     }
   });
 
@@ -1313,7 +1522,10 @@ describe("the settings a command is written from, as a connection keeps them", (
           [DATA_SECURITY_FIELD_KEY]: "off",
           [DATA_SECURITY_RESPONSE_FIELD_KEY]: "off",
           ...(way.definition.provider === CloudProvider.AWS
-            ? { [WAF_BLOCKLIST_FIELD_KEY]: "off" }
+            ? {
+                [WAF_BLOCKLIST_FIELD_KEY]: "off",
+                [SECURITY_CASE_CHECKS_FIELD_KEY]: "off",
+              }
             : {}),
         },
       ]) {
@@ -1369,6 +1581,26 @@ describe("the settings a command is written from, as a connection keeps them", (
       `--policy-name ${AWS_WAF_BLOCKLIST_POLICY_NAME} `,
     );
     expect(withWaf).toContain("wafv2:UpdateWebACL");
+    expect(withWaf).not.toContain(AWS_SECURITY_CASE_CHECKS_POLICY_NAME);
+
+    const withChecks: string | undefined = getCloudConnectionSetupCommand(
+      way.definition.provider,
+      way.method,
+      {
+        ...ROLE_SETUP,
+        ...getCloudConnectionCommandSettings({
+          authMethod: way.method,
+          [SECURITY_CASE_CHECKS_FIELD_KEY]: "on",
+        }),
+      },
+    );
+
+    expect(withChecks).toContain(
+      `--policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} `,
+    );
+    expect(withChecks).toContain("iam:ListMFADevices");
+    expect(withChecks).not.toContain(AWS_DATA_SECURITY_POLICY_NAME);
+    expect(withChecks).not.toContain(AWS_WAF_BLOCKLIST_POLICY_NAME);
   });
 });
 
@@ -1443,10 +1675,11 @@ describe("every setting that changes a command is asked with it, and no other", 
     }
   });
 
-  test("they are what to read, Data Security's two settings and the blocklist's on every cloud", () => {
+  test("they are what to read, Data Security's two settings and the blocklist's on every cloud, and Security case checks on AWS", () => {
     for (const definition of CloudConnectionCatalog) {
-      expect(
-        definition.configFields
+      expect({
+        cloud: definition.provider,
+        fields: definition.configFields
           .filter((field: CloudConnectionField): boolean => {
             return Boolean(field.changesSetupCommand);
           })
@@ -1454,14 +1687,19 @@ describe("every setting that changes a command is asked with it, and no other", 
             return field.key;
           })
           .sort(),
-      ).toEqual(
-        [
+      }).toEqual({
+        cloud: definition.provider,
+        fields: [
           DATA_SECURITY_FIELD_KEY,
           DATA_SECURITY_RESPONSE_FIELD_KEY,
           READ_SCOPE_FIELD_KEY,
           WAF_BLOCKLIST_FIELD_KEY,
+          // Reading IAM users back is AWS's (#10900).
+          ...(definition.provider === CloudProvider.AWS
+            ? [SECURITY_CASE_CHECKS_FIELD_KEY]
+            : []),
         ].sort(),
-      );
+      });
       // No secret is a command's setting: a secret is pasted after it runs.
       expect(
         definition.secretFields.filter(

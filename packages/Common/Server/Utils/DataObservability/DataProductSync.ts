@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import DataProduct from "../../../Models/DatabaseModels/DataProduct";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -138,6 +139,8 @@ export default class DataProductSync {
       await MonitorService.updateOneById({
         id: liveMonitorId,
         data: { name, monitorSteps: steps } as never,
+        // A name OneUptime picked: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
         props: data.props,
       });
 
@@ -153,6 +156,8 @@ export default class DataProductSync {
 
     const created: Monitor = await MonitorService.create({
       data: monitor,
+      // A name OneUptime picked: numbered, not refused, if it is taken.
+      miscDataProps: getNumbersTakenNameData(),
       props: data.props,
     });
 
@@ -198,6 +203,8 @@ export default class DataProductSync {
       await ServiceLevelObjectiveService.updateOneById({
         id: liveSloId,
         data: { name, targetPercentage: target } as never,
+        // A name OneUptime picked: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
         props: data.props,
       });
 
@@ -217,6 +224,8 @@ export default class DataProductSync {
     const created: ServiceLevelObjective =
       await ServiceLevelObjectiveService.create({
         data: slo,
+        // A name OneUptime picked: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
         props: data.props,
       });
 

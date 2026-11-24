@@ -1517,6 +1517,25 @@ alerts:
 telemetry:
   disableIngestion: false
 
+# Incoming Request monitors whose criteria group by a payload field evaluate
+# every request they receive, in order: each waits in Valkey until its
+# monitor's job reaches it. How many requests, and how many megabytes of them,
+# one monitor keeps waiting - past either, the oldest waiting are skipped, and
+# the monitor's next evaluation says how many, and which limit skipped them -
+# and how many one job evaluates before the monitor's job is queued again,
+# behind every job already waiting. The defaults suit most installs: raise the
+# first two for senders that burst harder (one core switch down that fires
+# thousands of alerts), and lower the second for a small Valkey. Every pod
+# that takes requests or works the queues gets the same values.
+incomingRequests:
+  # Requests one monitor keeps waiting: a whole number from 10 to 100000.
+  maxPendingRequestsPerMonitor: 1000
+  # Megabytes of requests one monitor keeps waiting: 1 to 512.
+  maxPendingMegabytesPerMonitor: 16
+  # Requests one job evaluates before the monitor's job is queued again:
+  # 1 to 1000.
+  maxRequestsPerJob: 100
+
 # The products every project on this server offers, as the server starts
 # (SERVER_PRODUCTS): everything, monitoring-and-status-pages,
 # incident-response, or the products to keep on by key, comma-separated

@@ -170,6 +170,36 @@ describe("a token's user, worked out of a value before and after the rules", () 
     ).toEqual({ token: tokenOf("5f7c8ec7c33c"), user: "5f7c8ec7c33c" });
   });
 
+  /*
+   * #10935: an Email Address Hash rule hashes an address written in a
+   * percent-encoded URL as the address it reads as, so its token is the
+   * plain address's: the vault keeps that address as the user.
+   */
+  test("an email address a Hash rule read decoded, kept as the address it reads as", () => {
+    expect(
+      readHashedUserPair({
+        projectId: PROJECT_ID,
+        before: "mallory%40acme.com",
+        after: tokenOf("mallory@acme.com"),
+      }),
+    ).toEqual({ token: tokenOf("mallory@acme.com"), user: "mallory@acme.com" });
+    expect(
+      readHashedUserPair({
+        projectId: PROJECT_ID,
+        before: "user=mallory%40acme.com",
+        after: `user=${tokenOf("mallory@acme.com")}`,
+      }),
+    ).toEqual({ token: tokenOf("mallory@acme.com"), user: "mallory@acme.com" });
+    // A token of neither reading is no pair.
+    expect(
+      readHashedUserPair({
+        projectId: PROJECT_ID,
+        before: "mallory%40acme.com",
+        after: tokenOf("eve@acme.com"),
+      }),
+    ).toBeNull();
+  });
+
   test("spaces around what a rule hashed are no part of the user", () => {
     expect(
       readHashedUserPair({

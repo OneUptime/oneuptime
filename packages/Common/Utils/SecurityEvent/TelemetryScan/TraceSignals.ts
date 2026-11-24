@@ -19,13 +19,17 @@ import {
   readLogFunction,
 } from "../LogParsers/SecurityLogLine";
 import {
+  RESPONSE_CONTENT_TYPE_KEYS,
+  RESPONSE_SIZE_KEYS,
   WEB_ATTACK_KIND_ATTRIBUTE,
-  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WEB_ATTACK_MARKERS,
   WEB_HTTP_ACTIVITY_CLASS_UID,
   WebAttackKind,
   buildWebAttackMessage,
+  markSensitiveFileRequest,
+  outcomeForSensitiveFile,
   readWebAttackKind,
+  severityForSensitiveFile,
   severityForWebAttack,
 } from "../LogParsers/WebAttackLogParser";
 import {
@@ -34,7 +38,12 @@ import {
 } from "../RequestOutcome";
 import {
   SENSITIVE_FILE_PROBE_WORDS,
-  readSensitiveFileProbe,
+  SENSITIVE_FILE_SECRET_WORDS,
+  SensitiveFileAnswer,
+  SensitiveFileRequest,
+  readBodySize,
+  readContentType,
+  readSensitiveFileRequest,
 } from "../SensitiveFileProbe";
 import {
   CLIENT_ADDRESS_ATTRIBUTE_KEYS,
@@ -66,7 +75,9 @@ import {
  *     nothing about its requests is still covered;
  *   - a request for a well-known sensitive file or admin page - /.env,
  *     /.git/config, /wp-admin - that the app refused or does not have, its
- *     answer a 4xx status (#10745, SensitiveFileProbe);
+ *     answer a 4xx status (#10745, SensitiveFileProbe), or a file that
+ *     holds secrets it answered, read for what it sent: the file itself,
+ *     a leak, or its own page (#10912);
  *   - a request whose URL names a cloud metadata address
  *     (169.254.169.254, metadata.google.internal ...): somebody trying to
  *     make the server fetch its own credentials (server-side request
@@ -171,6 +182,8 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   userAgent: ReadonlyArray<string>;
   userId: ReadonlyArray<string>;
   serverAddress: ReadonlyArray<string>;
+  responseBodySize: ReadonlyArray<string>;
+  responseContentType: ReadonlyArray<string>;
 } = {
   url: ["url.full", "http.url", "url.original"],
   path: ["url.path", "http.target"],
@@ -192,6 +205,12 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   userAgent: ["user_agent.original", "http.user_agent"],
   userId: ["enduser.id", "user.id"],
   serverAddress: ["server.address", "net.peer.name", "http.host"],
+  /*
+   * What the answer carried (#10912), when the instrumentation records it:
+   * what tells a sensitive file the app served from its own page.
+   */
+  responseBodySize: RESPONSE_SIZE_KEYS,
+  responseContentType: RESPONSE_CONTENT_TYPE_KEYS,
 };
 
 /*
@@ -251,6 +270,15 @@ export function getTraceScanUrlMarkers(): Array<string> {
  */
 export function getTraceScanSensitiveFileWords(): Array<string> {
   return [...SENSITIVE_FILE_PROBE_WORDS];
+}
+
+/*
+ * The words of a path that holds secrets in a server span's URL (#10912):
+ * read with a 2xx, so a request for /.env the app answered is read for
+ * what it sent - and still never a WordPress site's own admin pages.
+ */
+export function getTraceScanSecretFileWords(): Array<string> {
+  return [...SENSITIVE_FILE_SECRET_WORDS];
 }
 
 export function readTraceAttribute(
@@ -530,18 +558,37 @@ export function buildTraceWebAttackEvent(
   }
 
   const attackKind: WebAttackKind | null = readWebAttackKind(request.target);
-  const sensitivePath: string | null = attackKind
+  /*
+   * No attack string: a request for a sensitive file, refused or not there
+   * (#10745), or for a file that holds secrets, read for what the app sent
+   * (#10912) - its size and its type, when the span records them.
+   */
+  const response: { bodySize: number | null; contentType: string } = {
+    bodySize: readBodySize(
+      readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.responseBodySize),
+    ),
+    contentType: readContentType(
+      readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.responseContentType),
+    ),
+  };
+  const sensitive: SensitiveFileRequest | null = attackKind
     ? null
-    : readSensitiveFileProbe({
+    : readSensitiveFileRequest({
         target: request.target,
         statusCode: request.statusCode,
+        ...response,
       });
 
-  if (!attackKind && !sensitivePath) {
+  if (!attackKind && !sensitive) {
     return null;
   }
 
   const kind: WebAttackKind = attackKind || WebAttackKind.SensitiveFile;
+  const sensitiveAttributes: JSONObject = {};
+
+  if (sensitive) {
+    markSensitiveFileRequest(sensitiveAttributes, sensitive, response);
+  }
 
   return buildTelemetrySecurityEvent({
     kind: SecurityTelemetrySourceKind.Traces,
@@ -551,12 +598,15 @@ export function buildTraceWebAttackEvent(
     classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
     activityName: request.method,
     statusName: statusNameOf(request.statusCode),
-    severity: severityForWebAttack(kind, request.outcome),
+    severity: sensitive
+      ? severityForSensitiveFile(sensitive.answer)
+      : severityForWebAttack(kind, request.outcome),
     message: buildWebAttackMessage({
       kind,
       method: request.method,
       target: request.target,
       statusCode: request.statusCode,
+      isServed: sensitive?.answer === SensitiveFileAnswer.File,
     }),
     principalIp: request.clientIp,
     principalUser: request.userId,
@@ -564,14 +614,14 @@ export function buildTraceWebAttackEvent(
     attributes: {
       ...request.attributes,
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
-      ...(sensitivePath
-        ? { [WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]: sensitivePath }
-        : {}),
+      ...sensitiveAttributes,
     },
     traceId: span.traceId,
     spanId: span.spanId,
     sessionId: span.sessionId,
-    requestOutcome: request.outcome,
+    requestOutcome: sensitive
+      ? outcomeForSensitiveFile(sensitive.answer, request.outcome)
+      : request.outcome,
     resourceId: span.serviceId,
     resourceType: span.serviceType,
   });

@@ -23,8 +23,8 @@ Clique na sua foto, no canto superior direito do painel.
 
 | Item | O que faz |
 | --- | --- |
-| **Perfil** | Abre **Perfil do usuário**: seu nome, seu e-mail, seu fuso horário, seu idioma, sua foto e a segurança do seu login. |
-| **Configurações de admin** | Abre o Admin Dashboard. Só os administradores principais de uma instalação auto-hospedada o veem. |
+| **Perfil do usuário** | Abre **Perfil do usuário**: seu nome, seu e-mail, seu fuso horário, seu idioma, sua foto e a segurança do seu login. |
+| **Painel do administrador** | Abre o Admin Dashboard. Só os administradores principais de uma instalação auto-hospedada o veem. |
 | **Tema** | Define o tema do painel: **Claro**, **Escuro** ou **Sistema**, que é claro ou escuro conforme a configuração do seu dispositivo. |
 | **Sair** | Encerra sua sessão, na hora, em todos os servidores do OneUptime. Onde o seu administrador configurou, encerra também a sua sessão no provedor de identidade. |
 
@@ -35,7 +35,7 @@ Clique na sua foto, no canto superior direito do painel.
 :::steps
 ### Abrir seu perfil
 
-Clique na sua foto, no canto superior direito, e escolha **Perfil**. A página **Visão geral** abre no cartão **Informações básicas**: seu nome, seu e-mail, seu fuso horário e seu idioma.
+Clique na sua foto, no canto superior direito, e escolha **Perfil do usuário**. A página **Visão geral** abre no cartão **Informações básicas**: seu nome, seu e-mail, seu fuso horário e seu idioma.
 
 ### Editar seus dados
 

@@ -497,7 +497,7 @@
       "title": "Logg ut"
     },
     "sendEmail": {
-      "title": "Send kunngjørings-e-post",
+      "title": "Send e-post",
       "testCardTitle": "Send test-e-post",
       "testCardDescription": "Send en test-kunngjørings-e-post til én e-postadresse for å forhåndsvise hvordan den ser ut før du sender til alle brukere.",
       "allCardTitle": "Send e-post til alle brukere",
@@ -514,7 +514,7 @@
       "confirmButton": "Ja, send til alle brukere"
     },
     "moreEmail": {
-      "title": "Send kunngjørings-e-post",
+      "title": "Send e-post",
       "cardTitle": "Send kunngjørings-e-post",
       "cardDescription": "Lag en kunngjørings-e-post som skal sendes til alle registrerte brukere. Du kan sende en test-e-post først for å forhåndsvise.",
       "sendTestButton": "Send test-e-post",
@@ -536,7 +536,7 @@
       "confirmButton": "Ja, send til alle brukere"
     },
     "settings": {
-      "title": "Admin-innstillinger",
+      "title": "Innstillinger",
       "authentication": {
         "signUpCardTitle": "Registrering",
         "signUpCardDescription": "Hvem som kan opprette en konto på denne serveren.",
@@ -2525,7 +2525,7 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Gi workerne mer minne og CPU, og se i appens logg etter jobber som stadig feiler.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Denne serveren kjører OneUptime {{current}}. {{latest}} er ute.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Ta en sikkerhetskopi, og oppdater deretter: npm run update på Docker Compose, helm upgrade på Kubernetes.",
-  "Finish it on the Server setup page.": "Fullfør det på siden Serveroppsett.",
+  "Finish it on the Server Setup page.": "Fullfør det på siden Serveroppsett.",
   "Products on this server": "Produkter på denne serveren",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Velg hva hvert prosjekt på denne serveren tilbyr. Et produkt som er slått av, forsvinner fra hvert prosjekts meny, Hjem og Søk, og sidene til produktet sier at det er slått av.",
   "Start from": "Start med",

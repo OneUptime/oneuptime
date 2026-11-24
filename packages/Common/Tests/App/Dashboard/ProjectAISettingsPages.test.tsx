@@ -764,12 +764,12 @@ describe("AI Credits page", () => {
     );
   }
 
-  test("keeps the balance and recharge settings", async () => {
+  test("keeps the balance and its Auto Recharge, and Add to Balance", async () => {
     openAiCredits();
 
     expect(await findText("Current Balance")).toBeInTheDocument();
     expect(screen.getByText("Auto Recharge")).toBeInTheDocument();
-    expect(screen.getByText("Recharge Balance")).toBeInTheDocument();
+    expect(screen.getByText("Add to Balance")).toBeInTheDocument();
   });
 
   test("no longer shows the switches that moved to AI Features", async () => {
