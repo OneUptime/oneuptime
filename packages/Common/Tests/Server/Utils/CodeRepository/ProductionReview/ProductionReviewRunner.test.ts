@@ -2014,7 +2014,9 @@ describe("ProductionReviewRunner: a merge request on GitLab, a pull request on F
     const status: { body?: string | undefined } | undefined =
       connected.host.requests.find(
         (request: { method: string; url: string }) => {
-          return request.method === "POST" && request.url.includes("/statuses/");
+          return (
+            request.method === "POST" && request.url.includes("/statuses/")
+          );
         },
       );
 

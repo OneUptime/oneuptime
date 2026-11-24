@@ -180,7 +180,6 @@
   "packages/Common/Server/API/BillingPaymentMethodAPI.ts": 10,
   "packages/Common/Server/API/CephResourceAPI.ts": 3,
   "packages/Common/Server/API/CodeFixRunAPI.ts": 2,
-  "packages/Common/Server/API/CodeTaskAPI.ts": 2,
   "packages/Common/Server/API/CommonAPI.ts": 2,
   "packages/Common/Server/API/DashboardAPI.ts": 15,
   "packages/Common/Server/API/DataSourceAPI.ts": 4,

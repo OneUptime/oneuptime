@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "التبديل إلى المحرر المرئي",
   "Visual": "مرئي",
   "Drop image to upload": "أفلت الصورة لرفعها",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "لم يتم رفع «{{fileName}}». {{error}}",
+  "Uploading {{fileName}}…": "جارٍ رفع {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "اكتب مباشرة في المحرر المرئي، واستخدم شريط الأدوات للتنسيق.",
   "Switch to {{markdown}} to view or edit the raw source.": "انتقل إلى {{markdown}} لعرض المصدر الخام أو تعديله.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "في قائمة، اضغط {{indentKey}} لزيادة المسافة البادئة لعنصر و{{outdentKey}} لإنقاصها، أو استخدم زرّي «زيادة المسافة البادئة» و«إنقاص المسافة البادئة». وخارج القائمة، ينقلك {{tabKey}} إلى الحقل التالي.",

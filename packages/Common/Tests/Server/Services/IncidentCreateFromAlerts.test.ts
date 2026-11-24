@@ -397,9 +397,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        true,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(true);
     });
 
     test("is on when the declaration asks for it in so many words", async () => {
@@ -408,9 +406,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: true,
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        true,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(true);
     });
 
     test("is off when the declaration says false: the dashboard's Owners field holds them", async () => {
@@ -419,9 +415,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: false,
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        false,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(false);
     });
 
     test("a null value is no value: the default stands", async () => {
@@ -430,9 +424,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: null,
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        true,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(true);
     });
 
     test("is off for an incident declared from no alerts, and false is accepted there", async () => {

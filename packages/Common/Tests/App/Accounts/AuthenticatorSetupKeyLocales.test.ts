@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { AUTHENTICATOR_APP_WORDS } from "../../Helpers/AuthenticatorAppWords";
 
 /*
  * The words of the authenticator app's setup - its QR code and the setup key
@@ -12,8 +13,12 @@ import path from "path";
  * two-factor authentication sets it up, most often in their own language (the
  * issue was reported from a German one). So on them the words are translated
  * through, in the words the rest of that screen uses: the QR code is called
- * what the scan instruction above it calls it, and the authenticator app what
- * the code field below it calls it. The copy button says what it says in the
+ * what the scan instruction above it calls it, and the authenticator app by
+ * the language's one word for it - the choice, the scan instruction, the
+ * code field and the setup key alike, and as the Dashboard says it
+ * (AuthenticatorAppWords, #10915). Hindi's sign-in page said three words for
+ * it, and this suite wanted the setup key's one while the Dashboard's
+ * Security pages wanted another. The copy button says what it says in the
  * Dashboard.
  */
 
@@ -82,28 +87,14 @@ const SETUP_KEYS: Array<string> = [
 const COPY_KEYS: Array<string> = ["Copy", "Copied!", "Copy failed"];
 
 /*
- * The authenticator app, as each language's code field names it - its stem
- * where the setup key's sentence inflects it ("в приложении-аутентификаторе",
- * the Russian prepositional).
+ * The authenticator app, as each language names it on every two-factor
+ * screen (AuthenticatorAppWords): in the form a sentence needs, such as
+ * the Russian prepositional "в приложении-аутентификаторе".
  */
-const AUTHENTICATOR_APP: Record<string, string> = {
-  de: "Authenticator-App",
-  fr: "application d'authentification",
-  es: "aplicación de autenticación",
-  it: "app di autenticazione",
-  pt: "aplicação de autenticação",
-  nl: "authenticator-app",
-  da: "godkendelsesapp",
-  no: "autentiseringsapp",
-  sv: "autentiseringsapp",
-  ru: "приложени",
-  ja: "認証アプリ",
-  ko: "인증 앱",
-  "zh-CN": "身份验证器应用",
-  "zh-TW": "驗證器應用程式",
-  hi: "प्रमाणक ऐप",
-  fa: "اپلیکیشن احراز هویت",
-  ar: "تطبيق المصادقة",
+const authenticatorAppIn: (language: string) => RegExp = (
+  language: string,
+): RegExp => {
+  return AUTHENTICATOR_APP_WORDS[language]!.word;
 };
 
 // A sentence's end in each script, and a question's.
@@ -133,12 +124,14 @@ const wordsOf: (tree: LocaleTree, key: string) => string = (
   return typeof value === "string" ? value : "";
 };
 
-const enrolmentWordOf: (
+type EnrolmentKey =
+  | "scanInstruction"
+  | "codeFieldDescription"
+  | "authenticatorApp";
+
+const enrolmentWordOf: (tree: LocaleTree, key: EnrolmentKey) => string = (
   tree: LocaleTree,
-  key: "scanInstruction" | "codeFieldDescription",
-) => string = (
-  tree: LocaleTree,
-  key: "scanInstruction" | "codeFieldDescription",
+  key: EnrolmentKey,
 ): string => {
   const login: LocaleTree = tree["login"] as LocaleTree;
   const enrolment: LocaleTree = login["twoFactorEnrolment"] as LocaleTree;
@@ -216,14 +209,36 @@ describe("the setup key's words on the sign-in pages", () => {
   );
 
   test.each(LANGUAGES)(
-    "call the authenticator app what the code field calls it, in %s",
+    "call the authenticator app by the language's one word, from the choice to the setup key, in %s",
     (language: string) => {
       const locale: LocaleTree = readLocale(ACCOUNTS_LOCALES, language);
-      const app: string = AUTHENTICATOR_APP[language] as string;
+      const app: RegExp = authenticatorAppIn(language);
 
-      expect(enrolmentWordOf(locale, "codeFieldDescription")).toContain(app);
-      expect(wordsOf(locale, ENTER_KEY)).toContain(app);
-      expect(wordsOf(locale, ADD_TO_APP)).toContain(app);
+      for (const key of [
+        "authenticatorApp",
+        "scanInstruction",
+        "codeFieldDescription",
+      ] as Array<EnrolmentKey>) {
+        expect({ key, words: enrolmentWordOf(locale, key) }).toEqual({
+          key,
+          words: expect.stringMatching(app),
+        });
+      }
+
+      expect(wordsOf(locale, ENTER_KEY)).toMatch(app);
+      expect(wordsOf(locale, ADD_TO_APP)).toMatch(app);
+    },
+  );
+
+  // The Dashboard draws the same component, so it names the app the same way.
+  test.each(LANGUAGES)(
+    "the Dashboard's setup key names the authenticator app the same way, in %s",
+    (language: string) => {
+      const dashboard: LocaleTree = readLocale(DASHBOARD_LOCALES, language);
+      const app: RegExp = authenticatorAppIn(language);
+
+      expect(wordsOf(dashboard, ENTER_KEY)).toMatch(app);
+      expect(wordsOf(dashboard, ADD_TO_APP)).toMatch(app);
     },
   );
 

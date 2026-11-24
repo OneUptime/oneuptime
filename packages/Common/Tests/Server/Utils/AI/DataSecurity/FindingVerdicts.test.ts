@@ -78,7 +78,9 @@ function nextId(): ObjectID {
   );
 }
 
-function waitingFinding(more: Partial<DataStoreFinding> = {}): DataStoreFinding {
+function waitingFinding(
+  more: Partial<DataStoreFinding> = {},
+): DataStoreFinding {
   const row: DataStoreFinding = new DataStoreFinding(nextId());
   row.dataStoreId = STORE_ID;
   row.dataTypeId = "credit-card-number";
@@ -166,7 +168,9 @@ function judge(): Promise<FindingVerdictOutcome> {
 function sentData(call: number = 0): JSONObject {
   const request: DataSecurityAiCallRequest = askSpy.mock.calls[call]![0];
 
-  return JSON.parse(request.prompt.messages[1]!.content as string) as JSONObject;
+  return JSON.parse(
+    request.prompt.messages[1]!.content as string,
+  ) as JSONObject;
 }
 
 function writtenVerdicts(): Array<{
@@ -184,7 +188,9 @@ function writtenVerdicts(): Array<{
     return {
       id: write.id.toString(),
       verdict: write.data["aiVerdict"],
-      record: readDataStoreFindingVerdictRecord(write.data["aiVerdictAnalysis"]),
+      record: readDataStoreFindingVerdictRecord(
+        write.data["aiVerdictAnalysis"],
+      ),
       data: write.data,
     };
   });
@@ -241,12 +247,12 @@ beforeEach(() => {
   updateSpy = jest
     .spyOn(DataStoreFindingService, "updateOneById")
     .mockResolvedValue(undefined as never);
+  jest.spyOn(DataStoreFindingService, "updateBy").mockResolvedValue(0 as never);
   jest
-    .spyOn(DataStoreFindingService, "updateBy")
-    .mockResolvedValue(0 as never);
-  jest.spyOn(DataSecurityAiEngine, "readRules").mockImplementation((async () => {
-    return rules;
-  }) as never);
+    .spyOn(DataSecurityAiEngine, "readRules")
+    .mockImplementation((async () => {
+      return rules;
+    }) as never);
   jest
     .spyOn(DataSecurityAiEngine, "readDataTypes")
     .mockImplementation((async () => {
@@ -295,10 +301,22 @@ describe("a Low finding the team dismissed four times elsewhere", () => {
   test("arrives with a Not sensitive verdict that cites those four decisions", async () => {
     const finding: DataStoreFinding = waitingFinding();
     const four: Array<DataStoreFinding> = [
-      decision(DataStoreFindingDecision.NotSensitive, "public.orders.order_number", 1),
-      decision(DataStoreFindingDecision.NotSensitive, "sales.orders.orderNumber", 2),
+      decision(
+        DataStoreFindingDecision.NotSensitive,
+        "public.orders.order_number",
+        1,
+      ),
+      decision(
+        DataStoreFindingDecision.NotSensitive,
+        "sales.orders.orderNumber",
+        2,
+      ),
       decision(DataStoreFindingDecision.NotSensitive, "shop.OrderNumber", 3),
-      decision(DataStoreFindingDecision.NotSensitive, "eu.orders.order_number", 4),
+      decision(
+        DataStoreFindingDecision.NotSensitive,
+        "eu.orders.order_number",
+        4,
+      ),
     ];
 
     answer = answerWith([
@@ -317,9 +335,9 @@ describe("a Low finding the team dismissed four times elsewhere", () => {
 
     // OneUptime AI was told the four decisions, with their reasons, and no value.
     const sent: JSONObject = sentData();
-    const told: Array<JSONObject> = (
-      (sent["findings"] as Array<JSONObject>)[0]!["precedent"] as Array<JSONObject>
-    );
+    const told: Array<JSONObject> = (sent["findings"] as Array<JSONObject>)[0]![
+      "precedent"
+    ] as Array<JSONObject>;
 
     expect(told).toHaveLength(4);
     expect(told[0]).toMatchObject({
@@ -423,7 +441,11 @@ describe("OneUptime AI confirms on its own only where a rule says so", () => {
   function confirmedTwice(): DataStoreFinding {
     const finding: DataStoreFinding = waitingFinding();
 
-    decision(DataStoreFindingDecision.Confirmed, "public.orders.order_number", 1);
+    decision(
+      DataStoreFindingDecision.Confirmed,
+      "public.orders.order_number",
+      1,
+    );
     decision(DataStoreFindingDecision.Confirmed, "eu.orders.order_number", 2);
     answer = answerWith([
       {
@@ -480,7 +502,9 @@ describe("OneUptime AI confirms on its own only where a rule says so", () => {
 
       const outcome: FindingVerdictOutcome = await judge();
 
-      expect(writtenVerdicts()[0]!.verdict).toBe(DataStoreFindingVerdict.Confirm);
+      expect(writtenVerdicts()[0]!.verdict).toBe(
+        DataStoreFindingVerdict.Confirm,
+      );
       expect(outcome.confirmedOnItsOwn).toBe(0);
       expect(proposeSpy).not.toHaveBeenCalled();
       expect(updateSpy).not.toHaveBeenCalled();
@@ -661,9 +685,9 @@ describe("what is judged, and when", () => {
   });
 
   test("in the project's language", async () => {
-    (ProjectLanguage.getLanguage as unknown as jest.SpyInstance).mockResolvedValue(
-      "de",
-    );
+    (
+      ProjectLanguage.getLanguage as unknown as jest.SpyInstance
+    ).mockResolvedValue("de");
     waitingFinding();
     answer = answerWith([
       { ref: "F1", verdict: DataStoreFindingVerdict.CannotTell },

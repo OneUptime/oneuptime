@@ -148,15 +148,20 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
 );
 
 /*
- * Group by cause (#10370): the reader's own choice, kept in this browser -
- * unset, it starts on once one group holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE
- * issues.
+ * Group by cause (#10370): the reader's own choice, kept in this browser
+ * for each project - unset, it starts on once one of the project's groups
+ * holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE issues, so a choice made in one
+ * project does not decide another's.
  */
-const GROUP_BY_CAUSE_KEY: string = "data-security-issues-group-by-cause";
+function getGroupByCauseKey(): string {
+  return `data-security-issues-group-by-cause-${
+    ProjectUtil.getCurrentProjectId()?.toString() || "none"
+  }`;
+}
 
 function readGroupByCauseChoice(): boolean | null {
   try {
-    const value: unknown = LocalStorage.getItem(GROUP_BY_CAUSE_KEY);
+    const value: unknown = LocalStorage.getItem(getGroupByCauseKey());
 
     return value === true || value === "true"
       ? true
@@ -170,7 +175,7 @@ function readGroupByCauseChoice(): boolean | null {
 
 function keepGroupByCauseChoice(value: boolean): void {
   try {
-    LocalStorage.setItem(GROUP_BY_CAUSE_KEY, value ? "true" : "false");
+    LocalStorage.setItem(getGroupByCauseKey(), value ? "true" : "false");
   } catch {
     // A browser that keeps nothing still switches: for this visit.
   }

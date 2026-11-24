@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "Switch to visual editor",
   "Visual": "Visual",
   "Drop image to upload": "Drop image to upload",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "\"{{fileName}}\" was not uploaded. {{error}}",
+  "Uploading {{fileName}}…": "Uploading {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "Type directly in the visual editor — use the toolbar to format.",
   "Switch to {{markdown}} to view or edit the raw source.": "Switch to {{markdown}} to view or edit the raw source.",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.",

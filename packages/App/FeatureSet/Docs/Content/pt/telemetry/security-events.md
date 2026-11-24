@@ -289,6 +289,55 @@ Cada evento é salvo com campos tipados e o payload de origem:
 
 Os eventos armazenados antes do OneUptime 14.0.84 deixam vazios os campos de processo e nomeiam seu processo apenas como `principalProcess`, o processo que agiu. Eles não são preenchidos depois: mantêm o que tinham ao serem armazenados até o fim da retenção.
 
+### Qual endereço um evento indica
+
+Um evento indica o endereço de onde veio uma requisição somente quando o remetente da requisição não poderia tê-lo escrito. Esse endereço é verificado e se torna o **IP de origem** do evento: as regras de detecção o contam, a inteligência de ameaças o compara e o **Plano de resposta** de um caso oferece bloqueá-lo. Qualquer outro endereço que uma requisição indique é apenas declarado: o evento o guarda como **IP declarado**, e nada o conta nem o bloqueia.
+
+- O endereço da própria conexão é verificado: o `network.peer.address` de um span de servidor, ou o primeiro campo de uma linha do log de acesso de um servidor web. Ninguém pode escrevê-lo em uma requisição.
+- Atrás de um proxy em que você confia, o endereço da conexão é o do proxy, e o cliente é o endereço que o proxy encaminhou em `X-Forwarded-For`. Cada proxy acrescenta o endereço de onde recebeu a conexão, então o OneUptime lê o cabeçalho a partir da direita e pega o primeiro endereço que não é um proxy em que você confia. O que um remetente escreve no cabeçalho fica à esquerda e continua sendo uma declaração.
+- Um endereço que uma requisição indica sobre si mesma é declarado: `client.address`, que a instrumentação preenche a partir da esquerda do cabeçalho, o resto de `X-Forwarded-For` e `Forwarded`.
+
+Um endereço declarado nunca é bloqueado a partir de um caso: qualquer um pode enviar `X-Forwarded-For: 192.0.2.44`, e um bloqueio cortaria quem quer que seja 192.0.2.44. Um evento com apenas um endereço declarado tem um **Plano de resposta** que pede que você encontre o verdadeiro nos logs do seu balanceador de carga ou firewall.
+
+Registre duas coisas nos spans de servidor do seu app para que os endereços dele sejam verificados: o endereço da própria conexão, `network.peer.address`, que as instrumentações HTTP do OpenTelemetry definem, e, atrás de um proxy, o cabeçalho `X-Forwarded-For`, que elas registram como `http.request.header.x-forwarded-for` assim que você o lista em `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Um log de acesso JSON é lido da mesma forma: o campo de cliente dele, como `remote_addr`, é o endereço da conexão, e o campo `http_x_forwarded_for` é o cabeçalho.
+
+#### Proxies confiáveis
+
+O Eventos de segurança confia que um proxy diga quem foi o cliente dele quando o endereço dele é:
+
+| Confiável | Por quê |
+| --- | --- |
+| Privado, de loopback ou link-local, como `10.0.0.5` | Sempre: ninguém o tem na internet, então é um balanceador de carga ou um ingress dentro da sua rede |
+| Listado em **Proxies confiáveis** | Você o listou |
+| Nos intervalos publicados de uma borda que você conectou, como [Cloudflare](/docs/integrations/cloudflare) | Enquanto a conexão existir |
+| Um dos seus próprios balanceadores de carga de aplicação | A menos que você o desative |
+
+**Eventos de segurança → Conexões → Mais configurações** contém **Proxies confiáveis**, a lista que você escreve, e **Confiáveis automaticamente**, que mostra o resto e o porquê. Liste um proxy em **Proxies confiáveis**, um endereço ou intervalo por linha, quando o endereço dele é público e nada mais confia nele: uma CDN que você não conectou, um balanceador de carga que chega ao seu app pela internet, ou um proxy reverso como o nginx em um servidor com endereço público na frente do seu app. Até você fazer isso, todo ataque por ele é atribuído ao proxy. Atrás de um Application Load Balancer externo global do Google Cloud, as conexões do seu app vêm dos front-ends do Google: liste `35.191.0.0/16` e `130.211.0.0/22`.
+
+Os seus próprios balanceadores de carga de aplicação são os que as suas [contas de nuvem conectadas](/docs/telemetry/cloud-accounts) listam: AWS Application Load Balancers, AWS Classic Load Balancers cujos listeners são todos HTTP ou HTTPS, Google Cloud Application Load Balancers e Azure Application Gateways, pelos endereços públicos deles. Cada um acrescenta a `X-Forwarded-For` o cliente que encaminha. Um balanceador de carga do Google Cloud acrescenta o próprio endereço depois do endereço do cliente, e um Application Gateway chega a um backend público a partir do próprio endereço, então sem eles todo ataque por um deles seria atribuído ao balanceador de carga. **Seus balanceadores de carga**, em **Confiáveis automaticamente**, os lista, e um Proprietário do projeto, Administrador do projeto ou Administrador de segurança pode desativá-lo.
+
+Nada mais seu é confiável automaticamente: nem seus hosts, nós do Kubernetes, sondas ou máquinas virtuais, nem um gateway NAT, nem um Network, Gateway ou Azure Load Balancer. Eles não encaminham ninguém, ou repassam uma requisição como ela chegou, então o que roda neles poderia indicar qualquer cliente: uma requisição que um monitor envia com cabeçalhos próprios, um pod, um notebook atrás do gateway. Se um deles for o seu proxy, adicione-o a **Proxies confiáveis**. Um ingress do Kubernetes é confiável como o balanceador de carga que ele é: um ingress do GKE é um Google Cloud Application Load Balancer, um ingress do Application Gateway no AKS um Application Gateway, e um ingress do EKS da classe `alb` um AWS Application Load Balancer. Um controlador de ingress dentro do seu cluster encaminha a partir de um endereço privado, que é sempre confiável.
+
+Uma mudança em qualquer um deles entra em vigor em até um minuto, e um novo balanceador de carga passa a ser confiável em até cinco.
+
+#### Logs de acesso que terminam com X-Forwarded-For
+
+Atrás de um balanceador de carga, muitos servidores web registram o endereço encaminhado por último, como faz o próprio formato `main` do nginx:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Uma linha nunca diz o que são os campos dela, então o último campo só é lido como `X-Forwarded-For` depois que você ativa **Logs terminam com X-Forwarded-For**, em **Logs de acesso** dentro de **Mais configurações**, e apenas:
+
+- quando o primeiro campo da linha é um proxy em que você confia: uma linha de um cliente que chegou ao seu servidor web diretamente é desse cliente;
+- no formato combined, com exatamente um campo entre aspas depois do user agent e nada depois dele;
+- quando esse campo é `-` ou uma lista de endereços cujo último não tem porta.
+
+Deixe desativado quando o seu formato termina com outro cabeçalho que contém um endereço, como `X-Real-IP`, ou quando o seu servidor web escreve cabeçalhos sem escapar as aspas deles, como faz o `morgan` do Express: o próprio user agent de uma requisição poderia então acrescentar um campo. Um log de acesso JSON não precisa de nenhuma opção, já que os campos dele têm nome.
+
 ### Ocultado por uma regra de limpeza
 
 Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o endereço de onde veio um ataque antes que Eventos de segurança os leia. O evento é guardado mesmo assim, sem endereço, e onde quer que fosse nomear o endereço, diz que uma regra de mascaramento o ocultou:
@@ -550,6 +599,8 @@ O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra
 | Força bruta: 5 logins com falha de um IP | `principalIp` | Vazio | 5 |
 | Password spraying: um IP falhando em 5 contas diferentes | `principalIp` | `principalUser` | 5 |
 | Varredura de portas: um IP alcançando 20 portas diferentes | `principalIp` | `targetPort` | 20 |
+
+Uma regra com um **Campo de agrupamento** que precisa de mais de um evento em um grupo, por um limite acima de 1 ou um **Campo de contagem distinta**, deixa de fora os eventos que não têm valor para o campo dela: contados, todos se somariam como um único valor, cada login com falha sem endereço como um único endereço IP. Uma regra que dispara a cada evento continua disparando para eles. **Regras de detecção** diz, abaixo do nome de uma regra, quantos dos eventos correspondentes do último dia ela não conseguiu contar, e a linha abre o porquê: quantos não tinham valor e quantos deles uma regra de mascaramento ocultou, com **Abrir regras de mascaramento**. Uma regra que não conseguiu contar nada do que encontrou não pode disparar, e o **Status** dela diz **Requer atenção**. **Executar em eventos passados** diz o mesmo para o período que lê.
 
 ### Quando uma regra roda
 

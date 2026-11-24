@@ -2895,6 +2895,8 @@
   "Switch to visual editor": "切換到視覺化編輯器",
   "Visual": "視覺化",
   "Drop image to upload": "放開即可上傳圖片",
+  "\"{{fileName}}\" was not uploaded. {{error}}": "「{{fileName}}」未上傳。{{error}}",
+  "Uploading {{fileName}}…": "正在上傳 {{fileName}}…",
   "Type directly in the visual editor — use the toolbar to format.": "直接在視覺化編輯器中輸入 — 用工具列設定格式。",
   "Switch to {{markdown}} to view or edit the raw source.": "切換到 {{markdown}} 可檢視或編輯原始文字。",
   "In a list, press {{indentKey}} to indent an item and {{outdentKey}} to outdent it, or use the Indent and Outdent buttons. Outside a list, {{tabKey}} moves to the next field.": "在清單中，按 {{indentKey}} 縮排項目，按 {{outdentKey}} 取消縮排，或使用縮排和取消縮排按鈕。在清單外，{{tabKey}} 會移到下一個欄位。",
