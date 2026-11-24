@@ -12,11 +12,11 @@ Cada envio por um formulário cria um registro no seu projeto: um **incidente**,
 
 ## O que acontece ao enviar
 
-```mermaid title="De um envio a um incidente ou a um evento de manutenção"
+```mermaid title="De um envio a um incidente, a um alerta ou a um evento de manutenção"
 flowchart TB
     submit["Enviar"] --> checks["Proteções e<br/>verificação das respostas"]
     checks --> fields["Cada campo: a resposta,<br/>senão as configurações Ao enviar,<br/>senão o modelo de incidente"]
-    fields --> record["O incidente ou o<br/>evento de manutenção"]
+    fields --> record["O incidente, o alerta ou o<br/>evento de manutenção"]
     record --> note["Uma nota privada: quem enviou,<br/>e as outras respostas"]
     record --> runs["Regras, políticas de plantão<br/>e fluxos de trabalho são executados"]
 ```

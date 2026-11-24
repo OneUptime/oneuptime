@@ -12,11 +12,11 @@ Ogni invio tramite un modulo crea un record nel tuo progetto: un **incidente**, 
 
 ## Cosa succede all'invio
 
-```mermaid title="Da un invio a un incidente o a un evento di manutenzione"
+```mermaid title="Da un invio a un incidente, a un avviso o a un evento di manutenzione"
 flowchart TB
     submit["Invia"] --> checks["Protezioni e<br/>controllo delle risposte"]
     checks --> fields["Ogni campo: la risposta,<br/>altrimenti le impostazioni All'invio,<br/>altrimenti il modello di incidente"]
-    fields --> record["L'incidente o<br/>l'evento di manutenzione"]
+    fields --> record["L'incidente, l'avviso o<br/>l'evento di manutenzione"]
     record --> note["Una nota privata: chi l'ha inviato,<br/>e le altre risposte"]
     record --> runs["Vengono eseguite regole, policy<br/>di reperibilità e flussi di lavoro"]
 ```

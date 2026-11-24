@@ -12,11 +12,11 @@ Hver innsending via et skjema oppretter én post i prosjektet ditt: en **hendels
 
 ## Hva som skjer ved innsending
 
-```mermaid title="Fra en innsending til en hendelse eller en vedlikeholdshendelse"
+```mermaid title="Fra en innsending til en hendelse, et varsel eller en vedlikeholdshendelse"
 flowchart TB
     submit["Send inn"] --> checks["Beskyttelser og<br/>sjekk av svarene"]
     checks --> fields["Hvert felt: svaret,<br/>ellers innstillingene Ved innsending,<br/>ellers hendelsesmalen"]
-    fields --> record["Hendelsen eller<br/>vedlikeholdshendelsen"]
+    fields --> record["Hendelsen, varselet eller<br/>vedlikeholdshendelsen"]
     record --> note["Et privat notat: hvem som sendte det,<br/>og de andre svarene"]
     record --> runs["Regler, vaktpolicyer<br/>og arbeidsflyter kjører"]
 ```

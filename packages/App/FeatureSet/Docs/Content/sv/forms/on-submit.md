@@ -12,11 +12,11 @@ Varje inlämning via ett formulär skapar en post i ditt projekt: en **incident*
 
 ## Vad som händer vid inlämning
 
-```mermaid title="Från en inlämning till en incident eller en underhållshändelse"
+```mermaid title="Från en inlämning till en incident, ett larm eller en underhållshändelse"
 flowchart TB
     submit["Skicka"] --> checks["Skydd och<br/>kontroll av svaren"]
     checks --> fields["Varje fält: svaret,<br/>annars inställningarna Vid inlämning,<br/>annars incidentmallen"]
-    fields --> record["Incidenten eller<br/>underhållshändelsen"]
+    fields --> record["Incidenten, larmet eller<br/>underhållshändelsen"]
     record --> note["En privat anteckning: vem som skickade den,<br/>och de andra svaren"]
     record --> runs["Regler, jourpolicyer<br/>och arbetsflöden körs"]
 ```

@@ -12,11 +12,11 @@ Elke inzending via een formulier maakt één record aan in je project: een **inc
 
 ## Wat er gebeurt bij verzenden
 
-```mermaid title="Van een inzending naar een incident of een onderhoudsgebeurtenis"
+```mermaid title="Van een inzending naar een incident, een waarschuwing of een onderhoudsgebeurtenis"
 flowchart TB
     submit["Verzenden"] --> checks["Beveiligingen en<br/>controle van de antwoorden"]
     checks --> fields["Elk veld: het antwoord,<br/>anders de instellingen Bij verzenden,<br/>anders het incidentsjabloon"]
-    fields --> record["Het incident of de<br/>onderhoudsgebeurtenis"]
+    fields --> record["Het incident, de waarschuwing of de<br/>onderhoudsgebeurtenis"]
     record --> note["Een privénotitie: wie het inzond,<br/>en de andere antwoorden"]
     record --> runs["Regels, bereikbaarheidsbeleid<br/>en workflows worden uitgevoerd"]
 ```

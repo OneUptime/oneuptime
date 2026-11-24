@@ -12,11 +12,11 @@ Every submission through a form creates one record in your project: an **inciden
 
 ## What happens on Submit
 
-```mermaid title="From a submission to an incident or a maintenance event"
+```mermaid title="From a submission to an incident, an alert or a maintenance event"
 flowchart TB
     submit["Submit"] --> checks["Protections and<br/>answer checks"]
     checks --> fields["Each field: the answer,<br/>else the On Submit settings,<br/>else the incident template"]
-    fields --> record["The incident or<br/>maintenance event"]
+    fields --> record["The incident, alert or<br/>maintenance event"]
     record --> note["A private note: who sent it,<br/>and the other answers"]
     record --> runs["Rules, on-call policies<br/>and workflows run"]
 ```

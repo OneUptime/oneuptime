@@ -12,11 +12,11 @@ Chaque soumission via un formulaire crée un enregistrement dans votre projet : 
 
 ## Ce qui se passe à la soumission
 
-```mermaid title="D'une soumission à un incident ou un événement de maintenance"
+```mermaid title="D'une soumission à un incident, une alerte ou un événement de maintenance"
 flowchart TB
     submit["Soumettre"] --> checks["Protections et<br/>vérification des réponses"]
     checks --> fields["Chaque champ : la réponse,<br/>sinon les paramètres,<br/>sinon le modèle d'incident"]
-    fields --> record["L'incident ou<br/>l'événement de maintenance"]
+    fields --> record["L'incident, l'alerte ou<br/>l'événement de maintenance"]
     record --> note["Une note privée : qui l'a envoyée,<br/>et les autres réponses"]
     record --> runs["Les règles, politiques d'astreinte<br/>et flux de travail s'exécutent"]
 ```

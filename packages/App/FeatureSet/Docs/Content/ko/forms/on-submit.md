@@ -12,11 +12,11 @@
 
 ## 제출하면 일어나는 일
 
-```mermaid title="제출에서 인시던트나 유지 관리 이벤트까지"
+```mermaid title="제출에서 인시던트, 경고 또는 유지 관리 이벤트까지"
 flowchart TB
     submit["제출"] --> checks["보호와<br/>답변 확인"]
     checks --> fields["각 필드: 답변,<br/>없으면 제출 시 설정,<br/>없으면 인시던트 템플릿"]
-    fields --> record["인시던트 또는<br/>유지 관리 이벤트"]
+    fields --> record["인시던트, 경고 또는<br/>유지 관리 이벤트"]
     record --> note["비공개 메모: 보낸 사람과<br/>나머지 답변"]
     record --> runs["규칙, 온콜 정책,<br/>워크플로가 실행됨"]
 ```

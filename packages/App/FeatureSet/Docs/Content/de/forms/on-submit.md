@@ -12,11 +12,11 @@ Jede Einreichung über ein Formular erstellt einen Datensatz in Ihrem Projekt: e
 
 ## Was beim Absenden passiert
 
-```mermaid title="Von einer Einreichung zu einem Vorfall oder einem Wartungsereignis"
+```mermaid title="Von einer Einreichung zu einem Vorfall, einer Warnung oder einem Wartungsereignis"
 flowchart TB
     submit["Absenden"] --> checks["Schutzmaßnahmen und<br/>Prüfung der Antworten"]
     checks --> fields["Jedes Feld: die Antwort,<br/>sonst die Einstellungen,<br/>sonst die Vorfallsvorlage"]
-    fields --> record["Der Vorfall oder das<br/>Wartungsereignis"]
+    fields --> record["Der Vorfall, die Warnung oder<br/>das Wartungsereignis"]
     record --> note["Eine private Notiz: wer eingereicht hat,<br/>und die übrigen Antworten"]
     record --> runs["Regeln, Bereitschaftsrichtlinien<br/>und Workflows laufen"]
 ```

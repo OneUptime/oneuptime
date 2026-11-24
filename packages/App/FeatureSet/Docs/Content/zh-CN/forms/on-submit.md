@@ -12,11 +12,11 @@
 
 ## 提交时会发生什么
 
-```mermaid title="从提交到事件或维护事件"
+```mermaid title="从提交到事件、警报或维护事件"
 flowchart TB
     submit["提交"] --> checks["保护措施与<br/>回答检查"]
     checks --> fields["每个字段：回答，<br/>否则用提交时设置，<br/>否则用事件模板"]
-    fields --> record["事件或<br/>维护事件"]
+    fields --> record["事件、警报或<br/>维护事件"]
     record --> note["私密备注：谁提交的，<br/>以及其他回答"]
     record --> runs["规则、值班策略<br/>和工作流开始运行"]
 ```
