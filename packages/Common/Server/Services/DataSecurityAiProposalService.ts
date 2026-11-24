@@ -32,6 +32,17 @@ export interface DataSecurityAiProposalTransitionSet {
   expiredAt?: Date | undefined;
   failedAt?: Date | undefined;
   failureMessage?: string | undefined;
+  /*
+   * A data type that was being proven, offered (#10371): its plan with the
+   * proof it is shown with, and its words.
+   */
+  plan?: JSONObject | undefined;
+  planFingerprint?: string | undefined;
+  title?: string | undefined;
+  changeMarkdown?: string | undefined;
+  reasonMarkdown?: string | undefined;
+  proofMarkdown?: string | undefined;
+  undoMarkdown?: string | undefined;
 }
 
 // The first of two approvals: who, when, and the plan it was given to.
@@ -181,6 +192,36 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
       .andWhere('"firstApprovedPlanFingerprint" = :planFingerprint', {
         planFingerprint: data.planFingerprint,
       })
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
+   * What a data type's proof counted so far (#10371), written while it is
+   * being proven, and only on the version it was read at: of two stores'
+   * scans recording at once, one writes and the other reads it again. The
+   * version moves with every write. Returns the rows changed - 0 when it
+   * changed since it was read, or is proven no more.
+   */
+  @CaptureSpan()
+  public async attemptProvingResult(data: {
+    proposalId: ObjectID;
+    atVersion: number;
+    result: JSONObject;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        result: data.result,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"_id" = :id', { id: data.proposalId.toString() })
+      .andWhere('"status" = :status', {
+        status: DataSecurityAiProposalStatus.Proving,
+      })
+      .andWhere('"version" = :version', { version: data.atVersion })
       .andWhere('"deletedAt" IS NULL')
       .execute();
 

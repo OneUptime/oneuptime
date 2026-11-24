@@ -1,6 +1,10 @@
 import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { JSONObject } from "../../../Types/JSON";
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
+import {
+  ShadowCounts,
+  ShadowScanDetector,
+} from "../../../Utils/DataSecurity/ShadowCount";
 import { ScanDetector } from "../../../Utils/DataSecurity/TextScanner";
 import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
@@ -77,6 +81,13 @@ export interface ContentScanOptions {
    * project, so two projects' fingerprints can never be compared.
    */
   fingerprintKey: string;
+  /*
+   * Data types OneUptime AI drafted from this store's unplaced fields, run
+   * in shadow (#10371, Utils/DataSecurity/ShadowCount): each field the scan
+   * reads is counted for them - how many of its values each would find -
+   * and they make no finding. Absent for most scans.
+   */
+  shadowDetectors?: Array<ShadowScanDetector> | undefined;
 }
 
 export interface ContentScanResult {
@@ -105,6 +116,12 @@ export interface ContentScanResult {
    * FieldSuggestion). At most MAX_UNPLACED_FIELDS_PER_SCAN.
    */
   unplacedFields?: Array<UnplacedField> | undefined;
+  /*
+   * What the drafts the scan ran in shadow would find (shadowDetectors),
+   * by draft: counts and locations, never a value. Recorded on their
+   * proposals (DataTypeProving), never as findings.
+   */
+  shadowCounts?: ShadowCounts | undefined;
 }
 
 // The most entries a scan's read log keeps.
