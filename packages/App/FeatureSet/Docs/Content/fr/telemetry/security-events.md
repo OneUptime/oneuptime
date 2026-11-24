@@ -304,6 +304,8 @@ Une règle de détection qui compte par adresse devrait compter par `principalIp
 
 Une règle qui efface ou masque un utilisateur le cache de la même façon : là où l'événement nommerait l'utilisateur, **Utilisateur source** ou **Utilisateur cible** dit qu'une règle de masquage l'a caché. Là où les Événements de sécurité lisent un utilisateur, une règle qui hache leur garde l'utilisateur : le `enduser.id` ou le `user.id` d'une requête, l'utilisateur d'un appel d'IA et l'utilisateur que nomme une ligne de journal, comme le principal d'un journal d'audit cloud. Ainsi, l'événement nomme l'utilisateur derrière le jeton, un dossier le concernant nomme le compte, et un playbook peut agir sur lui comme sur tout autre utilisateur. Ce que la règle a laissé se trouve dans `oneuptime.principal_user_hashed_as` ou `oneuptime.target_user_hashed_as`, pour retrouver l'utilisateur dans vos journaux et vos traces, qui ne contiennent que le jeton. Un jeton pour lequel aucun utilisateur n'est gardé, comme un jeton créé avant que les jetons aient une clé, reste l'utilisateur de l'événement : les règles le comptent comme un seul compte, et aucun playbook n'agit sur lui.
 
+Le panneau de l'événement le dit sous l'utilisateur qu'il nomme dans **Utilisateur source** et **Utilisateur cible** : « Haché dans vos journaux sous la forme … », ou « Haché dans vos traces sous la forme … » pour un événement lu dans vos traces, où … est le jeton. Le jeton est un lien qui le recherche dans vos journaux ou vos traces, d'un jour avant l'événement à un jour après. Un utilisateur effacé sur demande affiche **Effacée sur demande** à la place, et l'événement montre son jeton : voir [Effacer une personne](#effacer-une-personne).
+
 ## Explorer les événements de sécurité
 
 **Événements** est un explorateur de télémétrie comme ceux des journaux et des traces : un graphique des événements de la fenêtre par gravité, une barre latérale de facettes, la liste, et un panneau avec chaque champ et attribut de l'événement que vous ouvrez. La fenêtre, les filtres et la recherche sont tous dans l'URL, donc une vue filtrée se partage et survit à un rechargement.
@@ -685,6 +687,30 @@ Tout ce qui, dans Événements de sécurité, lit des événements passés ne li
 - Une chasse dont la **Plage temporelle** dépasse la conservation des événements ne trouve rien de plus ancien, et son formulaire le dit.
 
 **Paramètres du projet → Télémétrie & APM → Rétention des données** liste les règles activées qui remontent plus loin que sa **Conservation par défaut (jours)**. Pour les couvrir, conservez les événements plus longtemps, avec **Modifier la rétention** sous une règle, ou raccourcissez la durée d'une règle à ce qui est conservé. OneUptime conserve 15 jours sauf si vous le changez, car la conservation fixe ce que coûte votre télémétrie et combien de temps les données personnelles des événements, comme les adresses et les noms d'utilisateur, sont gardées. Une nouvelle conservation s'applique aux événements qui arrivent à partir de ce moment, donc les règles voient plus loin à mesure que ces événements vieillissent.
+
+## Effacer une personne
+
+Quand quelqu'un vous demande d'effacer ses données, par exemple au titre de l'article 17 du RGPD, effacez-le dans **Événements de sécurité → Paramètres → Demandes d'effacement**. Sélectionnez **Effacer la personne** et saisissez son ID utilisateur ou son adresse e-mail tels que vos journaux les contenaient avant que votre règle de nettoyage Hash ne les masque, ou le jeton qu'un événement affiche à leur place. Une adresse e-mail est aussi effacée en minuscules. Indiquez votre propre référence dans **Référence**, comme le numéro de ticket de la demande, jamais le nom de la personne.
+
+Ce que fait la demande :
+
+- En moins d'une minute, la personne n'est plus nommée. Le coffre des utilisateurs refuse désormais ses jetons, si bien qu'aucun événement, cas ou playbook ne la nomme plus, même quand un événement ultérieur porte le même jeton : cet événement garde le jeton comme utilisateur, comme pour tout jeton sans utilisateur conservé. Conserver un jeton qui revient nommerait de nouveau la personne, ce qu'elle vous a justement demandé de cesser.
+- En quelques minutes, la demande supprime les entrées du coffre la concernant et remet le jeton à sa place dans les événements qui la nommaient via le coffre : **Utilisateur source**, **Utilisateur cible**, les observables et les attributs. Elle la retire des titres, entités et événements conservés des cas et des détections, ainsi que du risque des entités.
+- Une exécution de playbook ou une action d'OneUptime AI qui attend une approbation pour agir sur elle est retirée, et dit pourquoi.
+
+Chaque demande affiche son statut, **En file d'attente**, **Effacement en cours**, **Effacée** ou **Échec**, et ce qu'elle a changé : les entrées du coffre supprimées, les événements et cas qui ne la nomment plus et les propositions retirées. L'effacement commence deux minutes après le dépôt de la demande, une fois qu'aucun serveur OneUptime ne nomme plus la personne, et une demande n'affiche **Effacée** que lorsque chaque changement a été appliqué. Une demande qui échoue est retentée ; après cinq tentatives, elle affiche **Échec** avec la raison, et les propriétaires du projet reçoivent un e-mail. La personne n'est toujours pas nommée, et déposer de nouveau la demande la relance.
+
+Ce qu'elle laisse :
+
+- Ce que des personnes ont écrit : notes, notes de clôture, tâches, preuves, champs personnalisés et ce qu'OneUptime AI a écrit sur un cas.
+- Les événements qui nommaient la personne parce que vos journaux la contenaient en clair, ainsi que vos journaux et traces eux-mêmes, qui ne contiennent que le jeton.
+- Les événements Detection Finding qu'une règle a écrits à son sujet, dont le message et les observables peuvent la nommer, jusqu'à ce que votre rétention de télémétrie les supprime.
+- Les notifications déjà envoyées, les incidents et alertes qu'une détection a ouverts, l'activité d'un cas, les exports, les sauvegardes et le journal d'audit.
+- Sur un OneUptime auto-hébergé dont le `ENCRYPTION_SECRET` a changé, les jetons créés avant le changement : effacez chacun par le jeton qu'un événement affiche.
+
+La demande conserve qui l'a déposée et quand, votre référence et les jetons de la personne, grâce auxquels le coffre continue de les refuser. L'ID utilisateur ou l'adresse e-mail est stocké chiffré, là où aucune page, aucun export ni aucune API ne peut le lire, et effacé une fois l'effacement terminé ; ClickHouse ne reçoit jamais que les jetons. Les demandes ne peuvent être ni modifiées ni supprimées : elles sont votre trace de l'effacement.
+
+Les propriétaires et administrateurs du projet, les administrateurs de la sécurité et toute personne disposant de **Create Security Erasure Request**, comme votre délégué à la protection des données, peuvent déposer une demande, depuis la page ou via `/security-user-erasure-request` de l'API. Chaque rôle de sécurité peut les lire.
 
 ## Dépannage
 

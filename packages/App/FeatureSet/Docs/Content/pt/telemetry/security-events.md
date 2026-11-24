@@ -304,6 +304,8 @@ Uma regra de detecção que conta por endereço deve contar por `principalIp` ou
 
 Uma regra que apaga ou mascara um usuário o oculta da mesma forma: onde o evento nomearia o usuário, **Usuário de origem** ou **Usuário de destino** diz que uma regra de mascaramento o ocultou. Onde Eventos de segurança lê um usuário, uma regra que aplica hash guarda o usuário para ele: o `enduser.id` ou o `user.id` de uma requisição, o usuário de uma chamada de IA e o usuário que uma linha de log nomeia, como o principal de um log de auditoria da nuvem. Assim, o evento nomeia o usuário por trás do token, um caso sobre ele nomeia a conta, e um playbook pode agir sobre ela como sobre qualquer outro usuário. O que a regra deixou fica em `oneuptime.principal_user_hashed_as` ou em `oneuptime.target_user_hashed_as`, para você encontrar o usuário nos seus logs e traces, que guardam só o token. Um token sem usuário guardado, como um criado antes de os tokens terem uma chave, continua sendo o usuário do evento: as regras o contam como uma só conta, e nenhum playbook age sobre ele.
 
+O painel do evento indica isso sob o usuário que ele nomeia em **Usuário de origem** e **Usuário de destino**: “Com hash nos seus registros como …”, ou “Com hash nos seus traços como …” para um evento lido dos seus traces, em que … é o token. O token é um link que o procura nos seus logs ou traces, de um dia antes do evento a um dia depois. Um usuário apagado a pedido mostra **Apagada a pedido** em vez disso, e o evento mostra o token dele: veja [Apagar uma pessoa](#apagar-uma-pessoa).
+
 ## Explorar os eventos de segurança
 
 **Eventos** é um explorador de telemetria como os de logs e traces: um gráfico dos eventos da janela por gravidade, uma barra lateral de facetas, a lista e um painel com cada campo e atributo do evento que você abrir. A janela, os filtros e a pesquisa ficam todos na URL, então uma visualização filtrada pode ser compartilhada e sobrevive a um recarregamento.
@@ -685,6 +687,30 @@ Tudo em Eventos de segurança que lê eventos passados lê só os eventos ainda 
 - Uma caçada cujo **Intervalo de tempo** é maior do que o tempo em que os eventos são mantidos não encontra nada mais antigo, e seu formulário diz isso.
 
 **Configurações do projeto → Telemetria e APM → Retenção de dados** lista as regras ativas que olham mais para trás do que sua **Retenção Padrão (Dias)**. Para cobri-las, mantenha os eventos por mais tempo, com **Alterar retenção** sob uma regra, ou encurte o intervalo de uma regra para o que é mantido. O OneUptime mantém 15 dias, a menos que você mude, porque a retenção define quanto sua telemetria custa e por quanto tempo os dados pessoais dos eventos, como endereços e nomes de usuário, são mantidos. Uma nova retenção vale para os eventos que chegam a partir de então, então as regras veem mais para trás conforme esses eventos envelhecem.
+
+## Apagar uma pessoa
+
+Quando alguém pedir que você apague os dados dele, por exemplo nos termos do artigo 17 do RGPD, apague a pessoa em **Eventos de segurança → Configurações → Solicitações de apagamento**. Selecione **Apagar pessoa** e informe o ID de usuário ou o endereço de e-mail como os seus logs o continham antes de sua regra de limpeza Hash ocultá-lo, ou o token que um evento mostra no lugar dele. Um endereço de e-mail também é apagado em minúsculas. Adicione sua própria referência em **Referência**, como o número do ticket da solicitação, nunca o nome da pessoa.
+
+O que a solicitação faz:
+
+- Em até um minuto, a pessoa deixa de ser nomeada. A partir daí, o cofre de usuários recusa os tokens dela, então nenhum evento, caso ou playbook a nomeia de novo, mesmo quando um evento posterior traz o mesmo token: esse evento mantém o token como seu usuário, como qualquer token sem usuário guardado. Guardar um token que volta nomearia a pessoa de novo, que é justamente o que ela pediu para você parar.
+- Em poucos minutos, exclui as entradas do cofre sobre ela e coloca o token de volta no lugar dela nos eventos que a nomeavam pelo cofre: **Usuário de origem**, **Usuário de destino**, os observáveis e os atributos. Remove-a dos títulos, entidades e eventos guardados de casos e detecções, e do risco de entidades.
+- Uma execução de playbook ou uma ação da OneUptime AI que aguarda aprovação para agir sobre ela é retirada, e diz por quê.
+
+Cada solicitação mostra seu status, **Na fila**, **Apagando**, **Apagada** ou **Falhou**, e o que mudou: as entradas do cofre excluídas, os eventos e casos que deixaram de nomeá-la e as propostas retiradas. O apagamento começa dois minutos após o registro da solicitação, quando nenhum servidor do OneUptime nomeia mais a pessoa, e uma solicitação mostra **Apagada** só quando cada mudança foi aplicada. Uma solicitação que falha é tentada de novo; após cinco tentativas, mostra **Falhou** com o motivo, e os proprietários do projeto recebem um e-mail. A pessoa continua sem ser nomeada, e registrar a solicitação de novo a tenta outra vez.
+
+O que deixa:
+
+- O que as pessoas escreveram: notas, notas de encerramento, tarefas, evidências, campos personalizados e o que a OneUptime AI escreveu sobre um caso.
+- Eventos que nomeavam a pessoa porque seus logs a continham em claro, e os próprios logs e traces, que contêm apenas o token.
+- Os eventos Detection Finding que uma regra escreveu sobre ela, cuja mensagem e observáveis podem nomeá-la, até que a retenção de telemetria os exclua.
+- Notificações já enviadas, incidentes e alertas que uma detecção abriu, a atividade de um caso, exportações, backups e o log de auditoria.
+- Em um OneUptime auto-hospedado cujo `ENCRYPTION_SECRET` mudou, os tokens criados antes da mudança: apague cada um pelo token que um evento mostra.
+
+A solicitação guarda quem a registrou e quando, sua referência e os tokens da pessoa, com os quais o cofre continua a recusá-la. O ID de usuário ou endereço de e-mail é armazenado criptografado, onde nenhuma página, exportação ou API pode lê-lo, e é apagado quando o apagamento termina; o ClickHouse só recebe os tokens. As solicitações não podem ser editadas nem excluídas: são o seu registro do apagamento.
+
+Proprietários e administradores do projeto, administradores de segurança e qualquer pessoa com **Create Security Erasure Request**, como seu encarregado de proteção de dados, podem registrar uma solicitação, pela página ou por `/security-user-erasure-request` da API. Todas as funções de segurança podem lê-las.
 
 ## Solução de problemas
 

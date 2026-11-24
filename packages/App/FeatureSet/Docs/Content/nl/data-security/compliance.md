@@ -227,6 +227,8 @@ Het doel van elk is "Netwerk- en informatiebeveiliging (overweging 49 AVG)". Om 
 
 Een opslag staat erin zolang je project de gegevens ervan bewaart: de adreskluis zolang een ingeschakelde IP-adresregel logs of traces hasht die Beveiligingsgebeurtenissen leest, de gebruikerskluis zolang een ingeschakelde regel met een ander patroon dat doet, en elk nog 31 dagen daarna (zie [Gevoelige gegevens opschonen](/docs/telemetry/drop-filters-and-scrub-rules#gevoelige-gegevens-opschonen)). Zodra de gegevens weg zijn, wordt de opslag gearchiveerd, en die komt terug met je doel en bewaartermijn als de gegevens terugkomen.
 
+Om één persoon te wissen uit “Beveiligingsgebruikerskluis”, en uit de events en cases die hen daardoor noemen, dient u een wisverzoek in: zie [Een persoon wissen](/docs/telemetry/security-events#een-persoon-wissen).
+
 ## Effectbeoordelingen
 
 Artikel 35 van de AVG vraagt om een gegevensbeschermingseffectbeoordeling vóór een verwerking die waarschijnlijk een hoog risico inhoudt. Gegevensbeveiliging zegt welke opslagen er een nodig hebben: een opslag met bijzondere persoonsgegevens, zoals gezondheidsgegevens, gegevens over veel personen (ongeveer 100.000 records of meer), of gegevens die de landen van de betrokkenen verlaten.

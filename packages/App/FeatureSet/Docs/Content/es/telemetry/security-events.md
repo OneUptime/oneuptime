@@ -304,6 +304,8 @@ Una regla de detección que cuenta por dirección debería contar por `principal
 
 Una regla que borra o enmascara un usuario lo oculta del mismo modo: allí donde el evento nombraría al usuario, **Usuario de origen** o **Usuario de destino** dice que una regla de depuración lo ocultó. Donde Eventos de seguridad lee un usuario, una regla que aplica hash le guarda el usuario: el `enduser.id` o el `user.id` de una solicitud, el usuario de una llamada de IA y el usuario que nombra una línea de registro, como la entidad principal de un registro de auditoría de la nube. Así, el evento nombra al usuario detrás del token, un caso sobre él nombra la cuenta y un playbook puede actuar sobre ella como sobre cualquier otro usuario. Lo que dejó la regla está en `oneuptime.principal_user_hashed_as` o en `oneuptime.target_user_hashed_as`, para que encuentres al usuario en tus registros y trazas, que solo contienen el token. Un token sin usuario guardado, como uno creado antes de que los tokens tuvieran una clave, sigue siendo el usuario del evento: las reglas lo cuentan como una sola cuenta y ningún playbook actúa sobre él.
 
+El panel del evento lo indica bajo el usuario que nombra en **Usuario de origen** y **Usuario de destino**: «Con hash en sus registros como …», o «Con hash en sus trazas como …» en un evento leído de sus trazas, donde … es el token. El token es un enlace que lo busca en sus registros o trazas, desde un día antes del evento hasta un día después. Un usuario borrado a petición muestra **Borrada a petición** en su lugar, y el evento muestra su token: consulte [Borrar a una persona](#borrar-a-una-persona).
+
 ## Explorar los eventos de seguridad
 
 **Eventos** es un explorador de telemetría como los de registros y trazas: un gráfico de los eventos de la ventana por gravedad, una barra lateral de facetas, la lista y un panel con cada campo y atributo del evento que abras. La ventana, los filtros y la búsqueda viven en la URL, así que una vista filtrada se puede compartir y sobrevive a una recarga.
@@ -685,6 +687,30 @@ Todo lo que en Eventos de seguridad lee eventos pasados lee solo los eventos que
 - Una cacería cuyo **Intervalo de tiempo** es más largo que lo que se conservan los eventos no encuentra nada más antiguo, y su formulario lo dice.
 
 **Ajustes del proyecto → Telemetría y APM → Retención de datos** lista las reglas activadas que miran más atrás que su **Retención predeterminada (días)**. Para cubrirlas, conserva los eventos más tiempo, con **Cambiar retención** bajo una regla, o acorta el intervalo de una regla a lo que se conserva. OneUptime conserva 15 días salvo que lo cambies, porque la retención fija lo que cuesta tu telemetría y cuánto tiempo se guardan los datos personales de los eventos, como direcciones y nombres de usuario. Una nueva retención se aplica a los eventos que llegan desde entonces, así que las reglas ven más atrás a medida que esos eventos envejecen.
+
+## Borrar a una persona
+
+Cuando alguien le pida que borre sus datos, por ejemplo en virtud del artículo 17 del RGPD, bórrelo en **Eventos de seguridad → Ajustes → Solicitudes de borrado**. Seleccione **Borrar persona** e introduzca su ID de usuario o su dirección de correo electrónico tal como la tenían sus registros antes de que su regla de depuración Hash la ocultara, o el token que un evento muestra en su lugar. Una dirección de correo electrónico también se borra en minúsculas. Añada su propia referencia en **Referencia**, como el número de ticket de la solicitud, nunca el nombre de la persona.
+
+Qué hace la solicitud:
+
+- En menos de un minuto, la persona deja de ser nombrada. Desde entonces, la bóveda de usuarios rechaza sus tokens, así que ningún evento, caso o playbook vuelve a nombrarla, aunque un evento posterior lleve el mismo token: ese evento conserva el token como su usuario, como cualquier token sin usuario guardado. Guardar un token que vuelve nombraría de nuevo a la persona, que es justo lo que le pidió que dejara de hacer.
+- En pocos minutos, elimina las entradas de la bóveda sobre ella y vuelve a poner el token en su lugar en los eventos que la nombraban a través de la bóveda: **Usuario de origen**, **Usuario de destino**, los observables y los atributos. La quita de los títulos, entidades y eventos guardados de los casos y las detecciones, y del riesgo de entidades.
+- Una ejecución de playbook o una acción de OneUptime AI que espera aprobación para actuar sobre ella se retira, e indica por qué.
+
+Cada solicitud muestra su estado, **En cola**, **Borrando**, **Borrada** o **Fallido**, y lo que cambió: las entradas de la bóveda eliminadas, los eventos y casos que dejaron de nombrarla y las propuestas retiradas. El borrado empieza dos minutos después de presentar la solicitud, cuando ningún servidor de OneUptime nombra ya a la persona, y una solicitud muestra **Borrada** solo cuando se ha aplicado cada cambio. Una solicitud que falla se vuelve a intentar; tras cinco intentos muestra **Fallido** con el motivo, y los propietarios del proyecto reciben un correo electrónico. La persona sigue sin ser nombrada, y presentar de nuevo la solicitud la reintenta.
+
+Qué deja:
+
+- Lo que escribieron las personas: notas, notas de cierre, tareas, evidencias, campos personalizados y lo que OneUptime AI escribió sobre un caso.
+- Los eventos que nombraban a la persona porque sus registros la tenían en claro, y sus propios registros y trazas, que solo contienen el token.
+- Los eventos Detection Finding que una regla escribió sobre ella, cuyo mensaje y observables pueden nombrarla, hasta que su retención de telemetría los elimine.
+- Las notificaciones ya enviadas, los incidentes y alertas que abrió una detección, la actividad de un caso, las exportaciones, las copias de seguridad y el registro de auditoría.
+- En un OneUptime autoalojado cuyo `ENCRYPTION_SECRET` cambió, los tokens creados antes del cambio: borre cada uno por el token que muestra un evento.
+
+La solicitud conserva quién la presentó y cuándo, su referencia y los tokens de la persona, con los que la bóveda sigue rechazándola. El ID de usuario o la dirección de correo electrónico se guarda cifrado, donde ninguna página, exportación ni API puede leerlo, y se borra cuando termina el borrado; ClickHouse solo recibe los tokens. Las solicitudes no se pueden editar ni eliminar: son su registro del borrado.
+
+Los propietarios y administradores del proyecto, los administradores de seguridad y cualquiera con **Create Security Erasure Request**, como su delegado de protección de datos, pueden presentar una solicitud, desde la página o mediante `/security-user-erasure-request` de la API. Todos los roles de seguridad pueden leerlas.
 
 ## Solución de problemas
 
