@@ -23,6 +23,7 @@ import {
   GROUPS_MADE,
   GROUPS_MADE_AUTOMATICALLY,
   GROUPS_TITLE,
+  GROUP_RULES_DESCRIPTION,
   GROUP_RULES_TITLE,
   MADE_BY_ONEUPTIME,
   MAKE_GROUPS_NOW,
@@ -489,18 +490,52 @@ const CloudCostViewPage: FunctionComponent<
             },
           },
         ]}
+        /*
+         * Two steps: what the group is and whose spend it is, then which
+         * costs are its own - and, folded, whether it is shared and how.
+         */
+        formSteps={[
+          { title: "Cost Group", id: "group" },
+          { title: "Rules", id: "rules" },
+        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
+            stepId: "group",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "Payments",
             validation: { minLength: 1 },
           },
           {
+            field: { team: true },
+            title: "Team",
+            stepId: "group",
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Team,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: false,
+            description:
+              "The team whose spend this is. The group's page shows its spend alone, to share with the team.",
+          },
+          {
+            field: { description: true },
+            title: "Description",
+            stepId: "group",
+            collapsibleSection: moreFields,
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "What this group is.",
+          },
+          {
             field: { rules: true },
             title: GROUP_RULES_TITLE,
+            stepId: "rules",
+            description: GROUP_RULES_DESCRIPTION,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
             getCustomElement: (
@@ -521,29 +556,9 @@ const CloudCostViewPage: FunctionComponent<
             },
           },
           {
-            field: { team: true },
-            title: "Team",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: Team,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            description:
-              "The team whose spend this is. Its members who may read the cloud's spend can open the group.",
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            collapsibleSection: moreFields,
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "What this group is.",
-          },
-          {
             field: { isShared: true },
             title: "Shared",
+            stepId: "rules",
             collapsibleSection: moreFields,
             fieldType: FormFieldSchemaType.Toggle,
             required: false,
@@ -553,10 +568,13 @@ const CloudCostViewPage: FunctionComponent<
           {
             field: { sharedSplit: true },
             title: "Split",
+            stepId: "rules",
             collapsibleSection: moreFields,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: SPLIT_OPTIONS,
             required: false,
+            description:
+              "How its costs are split: evenly, by each group's share of spend, by fixed percentages, or by Kubernetes namespace.",
             showIf: (values: FormValues<CloudCostGroup>): boolean => {
               return Boolean(values.isShared);
             },
@@ -564,6 +582,7 @@ const CloudCostViewPage: FunctionComponent<
           {
             field: { sharedPercentages: true },
             title: "Percentages",
+            stepId: "rules",
             collapsibleSection: moreFields,
             fieldType: FormFieldSchemaType.CustomComponent,
             required: false,
@@ -602,6 +621,7 @@ const CloudCostViewPage: FunctionComponent<
           {
             field: { kubernetesCluster: true },
             title: "Kubernetes Cluster",
+            stepId: "rules",
             collapsibleSection: moreFields,
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownModal: {

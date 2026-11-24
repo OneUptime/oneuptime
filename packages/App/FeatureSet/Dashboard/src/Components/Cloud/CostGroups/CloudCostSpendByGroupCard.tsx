@@ -128,7 +128,7 @@ const CloudCostSpendByGroupCard: FunctionComponent<ComponentProps> = (
                   downloadFile({
                     content: toCloudCostAllocationCsv(allocation),
                     filename: getExportFilename({
-                      label: allocation.viewName || "cost-view",
+                      label: allocation.viewName || allocation.viewId,
                       extension: "csv",
                       exportedAt: new Date(allocation.readAt),
                     }),

@@ -204,7 +204,7 @@ export function toCloudCostAllocationWindow(data: {
 
   if (days > CLOUD_COST_ALLOCATION_MAX_DAYS) {
     throw new BadDataException(
-      `A cost read covers at most ${CLOUD_COST_ALLOCATION_MAX_DAYS} days, which is as far back as costs are kept. Choose a shorter window.`,
+      `A cost read covers at most ${CLOUD_COST_ALLOCATION_MAX_DAYS}\u00A0days, which is as far back as costs are kept. Choose a shorter window.`,
     );
   }
 

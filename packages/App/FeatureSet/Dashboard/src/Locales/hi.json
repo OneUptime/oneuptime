@@ -64313,7 +64313,6 @@
   "The same as the period before": "The same as the period before",
   "The services, accounts, tags and owners of the spend no group takes. Add one to a group to sort it.": "The services, accounts, tags and owners of the spend no group takes. Add one to a group to sort it.",
   "The tag whose values each get a group.": "The tag whose values each get a group.",
-  "The team whose spend this is. Its members who may read the cloud's spend can open the group.": "The team whose spend this is. Its members who may read the cloud's spend can open the group.",
   "The team, product or cost center the group is.": "The team, product or cost center the group is.",
   "These rules cannot be saved yet. Check each condition.": "These rules cannot be saved yet. Check each condition.",
   "This period": "This period",
@@ -64338,7 +64337,6 @@
   "Write each group's rules, or let OneUptime make a group per tag value or per owner team.": "Write each group's rules, or let OneUptime make a group per tag value or per owner team.",
   "Write each group's rules: accounts, services, tags, owners and labels.": "Write each group's rules: accounts, services, tags, owners and labels.",
   "Your own groups": "Your own groups",
-  "cost-view": "cost-view",
   "{{amount}} a month": "{{amount}} a month",
   "{{amount}} is in no group.": "{{amount}} is in no group.",
   "{{amount}} not split: idle capacity, or what no group takes": "{{amount}} not split: idle capacity, or what no group takes",
@@ -64353,5 +64351,7 @@
   "{{group}} above takes every cost these rules match, so this group gets nothing. Move it up, or narrow the earlier group's rules.": "{{group}} above takes every cost these rules match, so this group gets nothing. Move it up, or narrow the earlier group's rules.",
   "{{total}} of 100%": "{{total}} of 100%",
   "Cost Views": "Cost Views",
-  "Custom Line Item": "Custom Line Item"
+  "Custom Line Item": "Custom Line Item",
+  "How its costs are split: evenly, by each group's share of spend, by fixed percentages, or by Kubernetes namespace.": "How its costs are split: evenly, by each group's share of spend, by fixed percentages, or by Kubernetes namespace.",
+  "The team whose spend this is. The group's page shows its spend alone, to share with the team.": "The team whose spend this is. The group's page shows its spend alone, to share with the team."
 }

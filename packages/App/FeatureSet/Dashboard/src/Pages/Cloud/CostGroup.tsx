@@ -374,24 +374,25 @@ const CloudCostGroupPage: FunctionComponent<
         <Fragment>
           <CloudStatStrip testId="cloud-cost-group-strip" tiles={tiles} />
           {group.isShared && spend.group.sharedOut !== 0 ? (
-            <p
-              className="text-sm text-gray-600"
+            <div
+              className="space-y-0.5 text-sm text-gray-600"
               data-testid="cloud-cost-group-split"
             >
-              {translator.translateTemplate(SPLIT_ACROSS, {
-                amount: money(spend.group.sharedOut),
-              })}
+              <p>
+                {translator.translateTemplate(SPLIT_ACROSS, {
+                  amount: money(spend.group.sharedOut),
+                })}
+              </p>
               {Math.abs(spend.group.total) >= 0.005 ? (
-                <>
-                  {" "}
+                <p>
                   {translator.translateTemplate(SPLIT_KEPT, {
                     amount: money(spend.group.total),
                   })}
-                </>
+                </p>
               ) : (
                 <></>
               )}
-            </p>
+            </div>
           ) : (
             <></>
           )}

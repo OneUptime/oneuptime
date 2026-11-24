@@ -244,18 +244,37 @@ const CloudCostGroups: FunctionComponent<
             },
           },
         ]}
+        /*
+         * Two steps: what the view is called, then how its groups are made
+         * (and, for a group per tag value, which tag).
+         */
+        formSteps={[
+          { title: "Cost View", id: "view" },
+          { title: "Groups", id: "groups" },
+        ]}
         formFields={[
           {
             field: { name: true },
             title: "Name",
+            stepId: "view",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "By team",
             validation: { minLength: 2 },
           },
           {
+            field: { description: true },
+            title: "Description",
+            stepId: "view",
+            collapsibleSection: moreViewFields,
+            fieldType: FormFieldSchemaType.LongText,
+            required: false,
+            placeholder: "What this view sorts the spend by.",
+          },
+          {
             field: { grouping: true },
             title: "Groups",
+            stepId: "groups",
             fieldType: FormFieldSchemaType.Dropdown,
             dropdownOptions: GROUPING_OPTIONS,
             required: true,
@@ -265,6 +284,7 @@ const CloudCostGroups: FunctionComponent<
           {
             field: { tagKey: true },
             title: "Tag Key",
+            stepId: "groups",
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: tagKeys[0] || "team",
@@ -272,14 +292,6 @@ const CloudCostGroups: FunctionComponent<
             showIf: (values: FormValues<CloudCostView>): boolean => {
               return values.grouping === CloudCostViewGrouping.TagValue;
             },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            collapsibleSection: moreViewFields,
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "What this view sorts the spend by.",
           },
         ]}
       />

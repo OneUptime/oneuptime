@@ -94,7 +94,7 @@ A shared group's costs are split day by day with each month's shares, so a month
 A cluster's nodes are billed by your cloud, while the cluster's own cost engine says what each namespace used. To charge each team for its workloads inside a shared cluster:
 
 1. Make a group whose rules match the cluster's nodes, for example **Tag** `eks:cluster-name` **is any of** `prod`.
-2. Make it **Shared**, split by **Kubernetes namespaces**, and pick the **Kubernetes Cluster**.
+2. Make it **Shared**, choose **Split by Kubernetes namespaces**, and pick the **Kubernetes Cluster**.
 3. Give the teams' groups rules that read the namespaces' labels, which count as tags. For example, **Tag** `team` **is any of** `payments`, or **Kubernetes namespace** **starts with** `payments-`.
 
 Each month, the nodes' costs are split by what each namespace cost in the cluster's [cost engine](/docs/telemetry/kubernetes-cost), and each namespace's part goes to the first group whose rules match it. Idle capacity, and a namespace no group takes, stay with the cluster's group. The cluster's own priced costs are never added to your bill, so nothing is counted twice.
@@ -111,7 +111,7 @@ Under **Cloud → Spend → Cost Groups → Custom Line Items**, add a charge or
 
 - **Cloud → Spend → Costs**: under **Where the money goes**, choose **Cost groups** and a view. Each group's spend, against the period before.
 - **A view's page**: what each group was charged, with its shared costs, what no rule matches, and **Download CSV** for the month's chargeback.
-- **A group's page**: its spend day by day, the services, resources and accounts it is charged for most, and its rules. Link a group to its **Team**, and its members who may read the cloud's spend can open the page and see only that group's spend.
+- **A group's page**: its spend day by day, the services, resources and accounts it is charged for most, and its rules. It shows that group's spend alone, so link the group to its **Team** and send the team its page: anyone who may read the cloud's spend can open it.
 
 ## API, CLI and MCP
 
@@ -139,3 +139,33 @@ The answer has each group's `total` and what it is made of (`cloud`, `lineItems`
 - A view holds at most 500 groups. A view by tag makes groups for the 500 costliest values.
 - A group has at most 25 rules, a rule 20 conditions, and a condition 200 values.
 - Costs are kept for 400 days, so a view reads at most 400 days.
+
+## Troubleshooting
+
+:::details A group gets nothing
+Its rules may match no cost yet, or an earlier group takes every cost they match. Its row under **Groups** then names that group: drag this one above it, or narrow the earlier group's rules.
+:::
+
+:::details A cost is in the wrong group
+A cost falls into the first group whose rules match it. Drag the group it belongs to above the group that takes it, or narrow that group's rules.
+:::
+
+:::details A rule on a tag matches nothing
+A cost keeps the tags it had when it was read: a Google Cloud billing export's labels, else the tags of the resource it is billed to, which on AWS needs [Costs per resource](/docs/telemetry/cloud-costs#costs-per-resource). A tag's key is matched as written.
+:::
+
+:::details A view by tag or by owner team misses a group
+OneUptime makes the missing groups every hour: one for each tag value of the last 400 days' costs, or each team that owns cloud resources, up to 500 groups. Press **Make Groups Now** on the view's page to make them at once.
+:::
+
+:::details The figures leave an account out
+A view's figures are in the currency most of your accounts are billed in. An account billed in another is left out of them, and so is a line item in another currency.
+:::
+
+## Next steps
+
+:::cards
+- [Cloud Costs and Savings](/docs/telemetry/cloud-costs): What your connected accounts cost, and how to spend less.
+- [Label and Owner Rules](/docs/configuration/label-and-owner-rules): Give resources owner teams and labels for the rules to read.
+- [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost): What each Kubernetes workload costs.
+:::
