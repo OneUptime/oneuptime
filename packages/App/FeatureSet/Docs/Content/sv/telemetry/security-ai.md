@@ -136,7 +136,7 @@ Under det finns varje steg som den utförde, frågade om eller lämnade, det sen
 
 ### Ett ärende som den läser som ofarligt eller falskt positivt
 
-**Agera med AI** på ett ärende som AI-bedömningen läste som Troligen ofarlig eller Troligen falskt positiv stänger det som Benign Positive eller False Positive, som **Stäng ärendet** tillåter. När det är stängt häver OneUptime AI de blockeringar som ärendet gjorde, som **Stäng ärendet** också tillåter, och erbjuder ärendets regel ett undantag för värdet som utlöste den. Undantaget väntar alltid på en person: **Godkänn** lägger till det, i ditt namn.
+**Agera med AI** på ett ärende som AI-bedömningen läste som Troligen ofarlig eller Troligen falskt positiv stänger det som Benign Positive eller False Positive, som **Stäng ärendet** tillåter. När det är stängt häver OneUptime AI de blockeringar som ärendet gjorde, som **Stäng ärendet** också tillåter, och erbjuder ärendets regel ett undantag för värdet som utlöste den. Undantaget väntar alltid på en person: **Godkänn** lägger till det, i ditt namn. En person som öppnar ärendet igen eller tar över det först stoppar båda, och så länge produkten Säkerhetshändelser är avstängd lämnar OneUptime AI båda åt en person.
 
 ## Vad OneUptime AI får göra i ett ärende
 

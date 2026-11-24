@@ -16,6 +16,22 @@ import {
   liftBlockFromCase,
   loadAddressBlocking,
 } from "./SecurityCaseAddressBlocks";
+import BlockWholeCampaignModal from "./BlockWholeCampaignModal";
+import {
+  readCampaignOfCaseAddress,
+  readRepeatOffenders,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentApi";
+import {
+  BLOCK_WHOLE_CAMPAIGN,
+  SECURITY_CAMPAIGN_TEST_IDS,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentCopy";
+import {
+  splitCampaignChecks,
+  writeCampaignOfAddressLine,
+  writeRepeatOffenderLine,
+} from "../../SecurityEvents/Campaigns/CampaignContainmentModel";
+import { SecurityRepeatOffenderSummary } from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import { SecurityCampaignOfCaseAddress } from "Common/Types/SecurityEvent/SecurityCampaignContainment";
 import { ADD_EXCEPTION_DESCRIPTION } from "../../SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import { SecurityCaseValueLists } from "../SecurityCaseValues";
 import {
@@ -119,7 +135,11 @@ import {
   SecurityEntityType,
   readSecurityEntities,
 } from "Common/Types/SecurityCase/SecurityEntity";
-import { getSecurityBlockExpiry } from "Common/Types/SecurityBlocklist/SecurityBlock";
+import {
+  SecurityBlockDuration,
+  getSecurityBlockExpiry,
+  readSecurityBlockValue,
+} from "Common/Types/SecurityBlocklist/SecurityBlock";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import { getCaseBlockableAddresses } from "Common/Utils/SecurityCase/ResponsePlan/BlockableAddresses";
 import {
@@ -240,6 +260,17 @@ interface PlanData {
    * step is then one done by hand.
    */
   addressBlocking: ResponseAddressBlocking | undefined;
+  /*
+   * The case's addresses blocked before it opened (#10354), by address as
+   * blocks write it: none for an address never blocked before, and none at
+   * all when the blocklist could not be read.
+   */
+  repeatOffenders: Map<string, SecurityRepeatOffenderSummary>;
+}
+
+// An address as blocks write it, the key the plan's per-address reads keep.
+function addressKey(address: string): string {
+  return readSecurityBlockValue(address)?.value || address.trim();
 }
 
 const PHASE_HEADING_CLASS_NAME: string =
@@ -471,6 +502,18 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           return undefined;
         });
 
+      /*
+       * Its addresses blocked before it opened (#10354): a blocklist that
+       * cannot be read - or a reader who may not read it - says nothing of it.
+       */
+      const repeatOffenders: Map<string, SecurityRepeatOffenderSummary> =
+        await readRepeatOffenders({
+          securityCaseId: new ObjectID(caseIdText),
+          addresses: blockableAddressesRef.current,
+        }).catch((): Map<string, SecurityRepeatOffenderSummary> => {
+          return new Map();
+        });
+
       if (readNumber === latestReadRef.current) {
         setData({
           tasks: tasks.data,
@@ -478,6 +521,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           checks: checks.rows,
           isChecksUnread: checks.isUnread,
           addressBlocking,
+          repeatOffenders,
           blocklist,
           ...readPlaybookRuns(
             runs.data.map(
@@ -504,6 +548,78 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     void load();
   }, [load, props.refreshToggle, blockableAddressesKey]);
+
+  /*
+   * The campaign of each of the case's addresses (#10354): the other
+   * addresses that sent the same requests with the same tools, which Block
+   * the Whole Campaign offers. Read once for the case's addresses - and
+   * again after a block of one - never on each of the plan's live reloads:
+   * it reads the window's events. Only for a person who may block from the
+   * case.
+   */
+  const [campaigns, setCampaigns] = useState<
+    Map<string, SecurityCampaignOfCaseAddress>
+  >(new Map());
+  const [campaignsReadToggle, setCampaignsReadToggle] = useState<number>(0);
+  const [wholeCampaign, setWholeCampaign] = useState<{
+    campaign: SecurityCampaignOfCaseAddress;
+    suggestedDuration: SecurityBlockDuration;
+    isCaseAddressBlocked: boolean;
+  } | null>(null);
+  const mayBlockCampaigns: boolean =
+    runGate.isAllowed && blockCreateGate.isAllowed;
+
+  useEffect(() => {
+    if (!mayBlockCampaigns || blockableAddresses.length === 0) {
+      setCampaigns(new Map());
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    void Promise.all(
+      blockableAddresses.map(
+        async (
+          address: string,
+        ): Promise<[string, SecurityCampaignOfCaseAddress | null]> => {
+          return [
+            addressKey(address),
+            await readCampaignOfCaseAddress({
+              securityCaseId: new ObjectID(caseIdText),
+              address,
+            }).catch((): null => {
+              return null;
+            }),
+          ];
+        },
+      ),
+    ).then(
+      (read: Array<[string, SecurityCampaignOfCaseAddress | null]>): void => {
+        if (!isCurrent) {
+          return;
+        }
+
+        const found: Map<string, SecurityCampaignOfCaseAddress> = new Map();
+
+        for (const [key, campaign] of read) {
+          if (campaign) {
+            found.set(key, campaign);
+          }
+        }
+
+        setCampaigns(found);
+      },
+    );
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    caseIdText,
+    blockableAddressesKey,
+    mayBlockCampaigns,
+    campaignsReadToggle,
+  ]);
 
   // A colleague ticking a step off - or a task changed on the Tasks page - reads it again.
   useEffect(() => {
@@ -1070,6 +1186,25 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
     const actionLock: string | undefined = step.action
       ? getActionLock(step.action)
       : undefined;
+    /*
+     * A block step's address (#10354): blocked before the case opened -
+     * the line says when and from which case, and its Block offers the
+     * ladder's next step - and its campaign, which Block the Whole Campaign
+     * blocks in one go.
+     */
+    const stepAddress: string = step.address ? addressKey(step.address) : "";
+    const repeat: SecurityRepeatOffenderSummary | undefined = stepAddress
+      ? data.repeatOffenders.get(stepAddress)
+      : undefined;
+    const repeatLine: string | null = repeat
+      ? writeRepeatOffenderLine({ summary: repeat, translator })
+      : null;
+    const campaign: SecurityCampaignOfCaseAddress | undefined = stepAddress
+      ? campaigns.get(stepAddress)
+      : undefined;
+    const campaignCount: number = campaign
+      ? splitCampaignChecks(campaign.addresses).blocking.length
+      : 0;
 
     return (
       <li
@@ -1156,6 +1291,53 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
             )}
             {step.isBlockHelpShown && step.copyValue && !step.isDone ? (
               <BlockHelp address={step.copyValue} />
+            ) : (
+              <></>
+            )}
+            {repeatLine ? (
+              <p
+                className="text-xs text-amber-700"
+                data-testid={SECURITY_CAMPAIGN_TEST_IDS.repeatLine}
+              >
+                {repeatLine}
+              </p>
+            ) : (
+              <></>
+            )}
+            {campaign && campaignCount > 0 && !isClosed ? (
+              <p
+                className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600"
+                data-testid={SECURITY_CAMPAIGN_TEST_IDS.campaignLine}
+              >
+                <span className="min-w-0 break-words">
+                  {writeCampaignOfAddressLine({
+                    count: campaignCount,
+                    days: campaign.windowInDays,
+                    translator,
+                  })}
+                </span>
+                <Button
+                  title={BLOCK_WHOLE_CAMPAIGN}
+                  buttonStyle={ButtonStyleType.LINK}
+                  buttonSize={ButtonSize.Small}
+                  disabled={
+                    actionLock !== undefined ||
+                    isWorking ||
+                    Boolean(workingStepKey)
+                  }
+                  tooltip={actionLock || undefined}
+                  dataTestId={SECURITY_CAMPAIGN_TEST_IDS.blockWholeCampaign}
+                  onClick={() => {
+                    setWholeCampaign({
+                      campaign,
+                      suggestedDuration:
+                        repeat?.suggestedDuration ||
+                        SecurityBlockDuration.OneDay,
+                      isCaseAddressBlocked: Boolean(step.addressBlock),
+                    });
+                  }}
+                />
+              </p>
             ) : (
               <></>
             )}
@@ -1261,6 +1443,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                   address={step.action.entity?.value || ""}
                   lockReason={actionLock}
                   mayBlockUntilLifted={mayBlockUntilLifted}
+                  suggestedDuration={repeat?.suggestedDuration}
                   isWorking={
                     isWorking || Boolean(workingStepKey) || props.isWorking
                   }
@@ -1472,6 +1655,27 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
           }}
           onSuccess={() => {
             setExceptionFor(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {wholeCampaign ? (
+        <BlockWholeCampaignModal
+          securityCaseId={props.caseId}
+          campaign={wholeCampaign.campaign}
+          suggestedDuration={wholeCampaign.suggestedDuration}
+          isCaseAddressBlocked={wholeCampaign.isCaseAddressBlocked}
+          onClose={() => {
+            setWholeCampaign(null);
+          }}
+          onStarted={() => {
+            setWholeCampaign(null);
+            setCampaignsReadToggle((toggle: number): number => {
+              return toggle + 1;
+            });
+            void load();
           }}
         />
       ) : (

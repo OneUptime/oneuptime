@@ -133,14 +133,14 @@ describe("MetricService.summarizeMonitorChecks", () => {
     expect(statements[1]!.query).toContain("GROUP BY g0, g1");
   });
 
-  test.each([
+  test.each<["gt" | "gte" | "lt" | "lte" | "eq" | "ne", string]>([
     ["gt", ">"],
     ["gte", ">="],
     ["lt", "<"],
     ["lte", "<="],
     ["eq", "="],
     ["ne", "!="],
-  ] as const)(
+  ])(
     "the comparison %s is written as %s, with its number a parameter",
     async (
       comparison: "gt" | "gte" | "lt" | "lte" | "eq" | "ne",

@@ -114,7 +114,7 @@ Tofaktorgodkendelse gælder, når du logger ind med din adgangskode eller et lin
 
 ### Opsæt det
 
-For en godkendelsesapp scanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtaster den 6-cifrede kode, den viser, og klikker på **Bekræft og afslut**. En USB- eller NFC-nøgle giver du et navn og følger din browsers vejledning. Tofaktorgodkendelse er derefter slået til, og kortet viser **Aktiveret**. Fra dit næste login med adgangskode eller et link i en e-mail beder OneUptime om dit andet trin.
+For en godkendelsesapp scanner du QR-koden med en app som 1Password, Google Authenticator eller Microsoft Authenticator, indtaster den 6-cifrede kode, den viser, og klikker på **Bekræft og afslut**. På en telefon trykker du i stedet for at scanne på **Tilføj til godkendelsesapp**: din app åbner med din konto udfyldt. En USB- eller NFC-nøgle giver du et navn og følger din browsers vejledning. Tofaktorgodkendelse er derefter slået til, og kortet viser **Aktiveret**. Fra dit næste login med adgangskode eller et link i en e-mail beder OneUptime om dit andet trin.
 
 ### Gem dine backupkoder
 
@@ -127,7 +127,7 @@ Har du allerede en app under **Godkendelsesapps** eller en nøgle under **Sikker
 
 Når en administrator kræver tofaktorgodkendelse, og du endnu ikke har opsat noget, beder dit næste login med adgangskode eller et link i en e-mail dig om at opsætte det, før du bliver lukket ind. Vælg **Autentifikator-app** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**:
 
-- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**.
+- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**. På en telefon kan du i stedet for at scanne trykke på **Tilføj til godkendelsesapp**.
 - **Sikkerhedsnøgle**: Klik på **Registrer sikkerhedsnøgle**, og følg din browsers vejledning. Rør ved en USB- eller NFC-nøgle, eller brug din telefons eller computers fingeraftryk, ansigt eller skærmlås.
 
 Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er logget ind. **Vælg en anden måde** går tilbage til valget. En browser, der ikke kan registrere en sikkerhedsnøgle, fx på en side uden HTTPS, tilbyder kun autentifikator-appen.

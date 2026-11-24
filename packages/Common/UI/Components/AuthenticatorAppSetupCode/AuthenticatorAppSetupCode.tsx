@@ -1,10 +1,14 @@
+import Button, { ButtonStyleType } from "../Button/Button";
 import CopyTextButton from "../CopyTextButton/CopyTextButton";
 import Icon from "../Icon/Icon";
 import QRCodeElement from "../QR/QR";
 import IconProp from "../../../Types/Icon/IconProp";
+import AuthenticatorAppHandOff from "../../Utils/AuthenticatorAppHandOff";
+import prefersTouch from "../../Utils/PrefersTouch";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import {
+  getTotpAuthenticatorAppLink,
   getTotpSetupKey,
   getTotpSetupKeyGroups,
 } from "../../../Utils/TotpSetupKey";
@@ -69,6 +73,14 @@ export function copySelectedKeyWhole(
  * since most people scan; when the code cannot be drawn, the key is shown in
  * its place, so setting up never comes to a dead end. The mobile app's
  * enrolment shows the same key (TwoFactorEnrolmentScreen).
+ *
+ * Issue #6651: a phone cannot scan its own screen either, so on a touch
+ * screen Add to Authenticator App hands the enrolment to the authenticator
+ * app on the device, filled in (AuthenticatorAppHandOff), as the mobile app
+ * does. It is the same URL the code holds, opened by the press, never put in
+ * a link. The code and the key stay: the authenticator may be on another
+ * device, or no app on this one may answer. Not on a desktop, where the
+ * otpauth:// scheme usually opens nothing.
  */
 const AuthenticatorAppSetupCode: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -76,6 +88,8 @@ const AuthenticatorAppSetupCode: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isKeyShown, setIsKeyShown] = useState<boolean>(false);
   const [hasQRCodeFailed, setHasQRCodeFailed] = useState<boolean>(false);
+  // Whether the reader's main pointer is a finger: a phone or a tablet.
+  const [isOnATouchScreen] = useState<boolean>(prefersTouch);
   const keyPanelId: string = React.useId();
   const setupKeyElement: MutableRefObject<HTMLElement | null> =
     useRef<HTMLElement | null>(null);
@@ -83,6 +97,9 @@ const AuthenticatorAppSetupCode: FunctionComponent<ComponentProps> = (
   const setupKey: string = getTotpSetupKey(props.otpUrl);
   const isKeyPanelOpen: boolean =
     Boolean(setupKey) && (isKeyShown || hasQRCodeFailed);
+  const authenticatorAppLink: string = isOnATouchScreen
+    ? getTotpAuthenticatorAppLink(props.otpUrl)
+    : "";
 
   return (
     <div className="flex w-full flex-col items-center">
@@ -92,6 +109,27 @@ const AuthenticatorAppSetupCode: FunctionComponent<ComponentProps> = (
           setHasQRCodeFailed(true);
         }}
       />
+
+      {/*
+       * Under the code, or the notice of one that could not be drawn: the
+       * first thing a phone can do with this enrolment. Its box gives it the
+       * width of the setup, and a finger 44px to press.
+       */}
+      {authenticatorAppLink && (
+        <div className="mt-4 flex w-full flex-col">
+          <Button
+            title={translator.translateText("Add to Authenticator App")}
+            isTitleTranslated={true}
+            buttonStyle={ButtonStyleType.NORMAL}
+            icon={IconProp.ExternalLink}
+            dataTestId="authenticator-app-link"
+            className="[@media(pointer:coarse)]:min-h-11"
+            onClick={() => {
+              AuthenticatorAppHandOff.open(authenticatorAppLink);
+            }}
+          />
+        </div>
+      )}
 
       {/*
        * The disclosure pattern: the button stays where it is, says whether

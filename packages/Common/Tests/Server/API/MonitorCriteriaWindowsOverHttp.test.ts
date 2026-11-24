@@ -86,6 +86,7 @@ const BAD_DATA: number = 400;
 const FLAPPING: CriteriaFilter = {
   checkOn: CheckOn.IsOnline,
   filterType: FilterType.False,
+  value: undefined,
   evaluateOverTime: true,
   evaluateOverTimeOptions: {
     timeValueInMinutes: 60,
@@ -110,6 +111,7 @@ const SLOW_P95: CriteriaFilter = {
 const STEADY_FOR_AN_HOUR: CriteriaFilter = {
   checkOn: CheckOn.IsOnline,
   filterType: FilterType.False,
+  value: undefined,
   evaluateOverTime: true,
   evaluateOverTimeOptions: {
     timeValueInMinutes: 60,
@@ -188,6 +190,7 @@ const STORED_STEPS: JSONObject = stepsWith(
       {
         checkOn: CheckOn.IsOnline,
         filterType: FilterType.False,
+        value: undefined,
       },
     ],
     recoveryFilters: undefined,

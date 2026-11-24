@@ -45,7 +45,10 @@ import AzureArm, {
  *      regional data plane instead of Resource Manager's limits. Resources
  *      read with the same metrics in the same window share batches; a
  *      resource alone, a split read, a global resource and Azure
- *      Government are asked a resource at a time. A batch Azure refuses is
+ *      Government are asked a resource at a time - but for a key metric
+ *      the catalog splits alone (a Container App's Requests by
+ *      statusCodeCategory, #10837), whose batch's filter asks every
+ *      resource of the type alike (batchesSplit). A batch Azure refuses is
  *      asked a resource at a time instead, and the caller stops asking for
  *      such batches for a day (batchRefusals).
  *   3. How many at once. AZURE_METRIC_CONCURRENCY calls at once in all,
@@ -109,10 +112,16 @@ export interface AzureMetricCallGroup<T extends AzureMetricToRead> {
   grain: string;
   window: MetricWindow;
   metrics: Array<T>;
-  // A read split by a dimension: a resource a call, never a batch.
+  // A read split by a dimension: a resource a call, never a batch...
   splitBy?: string | undefined;
   top?: number | undefined;
   orderBy?: string | undefined;
+  /*
+   * ...but a key metric's own split (AzureKeyMetric.splitBy): every metric
+   * of the group has the dimension, as the catalog documents it, so a
+   * batch's one filter asks each resource of it alike.
+   */
+  batchesSplit?: boolean | undefined;
   // Whether a split answered at its `top` says the resource has more than were read.
   reportsCapped?: boolean | undefined;
 }
@@ -703,7 +712,7 @@ export class AzureMetricReader {
     return (
       this.batchSignInFailure === undefined &&
       !piece.isSingle &&
-      !piece.group.splitBy &&
+      (!piece.group.splitBy || Boolean(piece.group.batchesSplit)) &&
       this.arm.canBatchMetrics(place.region) &&
       this.canBatch(place)
     );
@@ -762,6 +771,10 @@ export class AzureMetricReader {
               return `${metric.name.toLowerCase()}:${metric.aggregation.toLowerCase()}`;
             })
             .join(","),
+          // A split batch's filter, top and order are its resources' alike.
+          piece.group.splitBy || "",
+          String(piece.group.top ?? ""),
+          piece.group.orderBy || "",
         ].join("\n");
         const batch: {
           group: AzureMetricCallGroup<T>;
@@ -830,6 +843,13 @@ export class AzureMetricReader {
               interval: call.group.grain,
               start: call.group.window.start,
               end: call.group.window.end,
+              ...(call.group.splitBy
+                ? {
+                    splitBy: call.group.splitBy,
+                    top: call.group.top,
+                    orderBy: call.group.orderBy,
+                  }
+                : {}),
             }),
           };
         }

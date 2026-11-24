@@ -30,6 +30,7 @@ import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/Monitor
 import { SeriesResolvedResourceIds } from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import Dictionary from "../../../../Types/Dictionary";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../../Types/JSON";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
@@ -156,6 +157,43 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
   };
 }
 
+/*
+ * A resource table's lookup, as the database answers it: the staged rows
+ * the query names, each with the name it was found by. One lookup can name
+ * the identifiers of every series of a create pass
+ * (SeriesResourceLinker.resolveManySeries, #10315), so a row says which
+ * name it has; a row staged without one stands for whatever name is asked
+ * for, once for each name, as every lookup used to find it. A lookup by id
+ * answers with the rows as staged.
+ */
+function lookupOf(
+  rows: () => Array<{ _id: string; name?: string }>,
+  nameColumn: string,
+): () => Promise<never> {
+  return (async (args: unknown): Promise<never> => {
+    const asked: unknown = (args as { query: JSONObject }).query[nameColumn];
+
+    if (!(asked instanceof Includes)) {
+      return rows() as never;
+    }
+
+    const names: Array<string> = asked.values.map((value: unknown): string => {
+      return String(value);
+    });
+    const found: Array<JSONObject> = [];
+
+    for (const row of rows()) {
+      for (const name of names) {
+        if (row.name === undefined || row.name === name) {
+          found.push({ _id: row._id, [nameColumn]: name });
+        }
+      }
+    }
+
+    return found as never;
+  }) as never;
+}
+
 describe("Incidents link the resources their series identifies", () => {
   let createdIncidents: Array<Incident> = [];
 
@@ -219,46 +257,66 @@ describe("Incidents link the resources their series identifies", () => {
       .spyOn(NetworkDeviceOwnerUserService, "getDeviceOwnersForMonitor")
       .mockResolvedValue({ ownerUserIds: [], ownerTeamIds: [] });
 
-    jest.spyOn(HostService, "findBy").mockImplementation(async () => {
-      return hostRows as never;
-    });
-    jest.spyOn(ServiceService, "findBy").mockImplementation(async () => {
-      return serviceRows as never;
-    });
-    jest
-      .spyOn(KubernetesClusterService, "findBy")
-      .mockImplementation(async () => {
-        return kubernetesClusterRows as never;
-      });
-    jest.spyOn(DockerHostService, "findBy").mockImplementation(async () => {
-      return dockerHostRows as never;
-    });
-    jest.spyOn(PodmanHostService, "findBy").mockImplementation(async () => {
-      return podmanHostRows as never;
-    });
-    jest.spyOn(ProxmoxClusterService, "findBy").mockImplementation(async () => {
-      return proxmoxClusterRows as never;
-    });
-    jest.spyOn(VMwareVCenterService, "findBy").mockImplementation(async () => {
-      return vmwareVCenterRows as never;
-    });
-    jest.spyOn(CephClusterService, "findBy").mockImplementation(async () => {
-      return cephClusterRows as never;
-    });
-    jest.spyOn(StorageArrayService, "findBy").mockImplementation(async () => {
-      return storageArrayRows as never;
-    });
-    jest
-      .spyOn(DockerSwarmClusterService, "findBy")
-      .mockImplementation(async () => {
-        return dockerSwarmClusterRows as never;
-      });
-    jest.spyOn(IoTFleetService, "findBy").mockImplementation(async () => {
-      return iotFleetRows as never;
-    });
-    jest.spyOn(DatabaseServerService, "findBy").mockImplementation(async () => {
-      return databaseServerRows as never;
-    });
+    jest.spyOn(HostService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return hostRows;
+      }, "hostIdentifier"),
+    );
+    jest.spyOn(ServiceService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return serviceRows;
+      }, "name"),
+    );
+    jest.spyOn(KubernetesClusterService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return kubernetesClusterRows;
+      }, "clusterIdentifier"),
+    );
+    jest.spyOn(DockerHostService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return dockerHostRows;
+      }, "hostIdentifier"),
+    );
+    jest.spyOn(PodmanHostService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return podmanHostRows;
+      }, "hostIdentifier"),
+    );
+    jest.spyOn(ProxmoxClusterService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return proxmoxClusterRows;
+      }, "name"),
+    );
+    jest.spyOn(VMwareVCenterService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return vmwareVCenterRows;
+      }, "name"),
+    );
+    jest.spyOn(CephClusterService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return cephClusterRows;
+      }, "name"),
+    );
+    jest.spyOn(StorageArrayService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return storageArrayRows;
+      }, "name"),
+    );
+    jest.spyOn(DockerSwarmClusterService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return dockerSwarmClusterRows;
+      }, "name"),
+    );
+    jest.spyOn(IoTFleetService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return iotFleetRows;
+      }, "name"),
+    );
+    jest.spyOn(DatabaseServerService, "findBy").mockImplementation(
+      lookupOf(() => {
+        return databaseServerRows;
+      }, "name"),
+    );
 
     jest
       .spyOn(IncidentService, "create")
@@ -535,8 +593,10 @@ describe("Incidents link the resources their series identifies", () => {
       const includes: { values?: Array<string> } = query["hostIdentifier"] as {
         values?: Array<string>;
       };
-      const name: string = String((includes.values || [])[0]);
-      return [{ _id: hostByName[name] }];
+      // Every name asked for: one lookup may ask for every series' host.
+      return (includes.values || []).map((name: string) => {
+        return { _id: hostByName[String(name)], hostIdentifier: String(name) };
+      });
     }) as never);
 
     await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({

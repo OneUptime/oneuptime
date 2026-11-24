@@ -294,6 +294,18 @@ const TASK_STATE_READERS: Record<string, Classification> = {
       ".filter((task: AIRun): boolean => { return !isHidden(task); })",
     ],
   },
+  /*
+   * A Data Security issue group's pull request, on its list and its fix
+   * plan (#10370): where its task stands, for the person, read only once
+   * the rule lets them see the task.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueGroupFix.ts": {
+    kind: "asksTheRule",
+    mustContain: [
+      "await CodeTaskThread.findTasksHiddenFrom({ projectId: data.projectId, taskIds: [task.id], reader: data.props, });",
+      'return { taskId: "", state: DeclaredCodeChangeState.Hidden };',
+    ],
+  },
   // A finding's Fix with AI: the task already on its way, for the person.
   "packages/Common/Server/Utils/AI/TelemetryAi/TelemetryAiFix.ts": {
     kind: "asksTheRule",

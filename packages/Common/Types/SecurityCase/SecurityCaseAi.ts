@@ -441,6 +441,11 @@ export enum SecurityCaseAiActionReason {
   NoBlockDestination = "NoBlockDestination",
   // Left: none of the case's requests threw an exception to fix in code.
   NothingToFixInCode = "NothingToFixInCode",
+  /*
+   * Left: Security Events is switched off on the server (#10816) - what
+   * follows a close of OneUptime AI's own is left for a person (#10847).
+   */
+  ProductOff = "ProductOff",
   // Failed: the engine could not do it.
   EngineFailed = "EngineFailed",
   // Undone: a person took it back.

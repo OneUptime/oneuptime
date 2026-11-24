@@ -165,6 +165,11 @@ export interface GroupedMetricFleet {
   metricTypes: Array<MetricType>;
   // A read's answer, as ClickHouse sends it (format JSON), by readKey.
   valueAnswers: Map<string, Buffer>;
+  /*
+   * The same answer as JSONCompactEachRowWithNames, by readKey: how a read
+   * grouped by attribute keys asks for it (#10316).
+   */
+  valueRowAnswers: Map<string, Buffer>;
   // An arrival read's answer, by metric name.
   arrivalAnswers: Map<string, Buffer>;
   openAlerts: Array<OpenFleetAlert>;
@@ -756,6 +761,34 @@ function toAnswer(input: {
   );
 }
 
+/*
+ * The same answer as JSONCompactEachRowWithNames: the names, then each row's
+ * values in their order, a line each, as ClickHouse writes it.
+ */
+function toRowsAnswer(input: {
+  meta: Array<{ name: string; type: string }>;
+  rows: Array<JSONObject>;
+}): Buffer {
+  const names: Array<string> = input.meta.map(
+    (column: { name: string }): string => {
+      return column.name;
+    },
+  );
+  const lines: Array<string> = [JSON.stringify(names)];
+
+  for (const row of input.rows) {
+    lines.push(
+      JSON.stringify(
+        names.map((name: string): unknown => {
+          return row[name];
+        }),
+      ),
+    );
+  }
+
+  return Buffer.from(`${lines.join("\n")}\n`, "utf8");
+}
+
 export function buildGroupedMetricFleet(
   options: GroupedMetricFleetOptions,
 ): GroupedMetricFleet {
@@ -865,6 +898,7 @@ export function buildGroupedMetricFleet(
   }
 
   const valueAnswers: Map<string, Buffer> = new Map();
+  const valueRowAnswers: Map<string, Buffer> = new Map();
   const valueRowCounts: Map<string, number> = new Map();
 
   for (const [key, rows] of valueRows) {
@@ -873,17 +907,14 @@ export function buildGroupedMetricFleet(
       return String(right["time"]).localeCompare(String(left["time"]));
     });
 
-    valueAnswers.set(
-      key,
-      toAnswer({
-        meta: [
-          { name: "value", type: "Nullable(Float64)" },
-          { name: "time", type: "DateTime64(9)" },
-          { name: "attributes", type: "Map(String, String)" },
-        ],
-        rows: rows,
-      }),
-    );
+    const meta: Array<{ name: string; type: string }> = [
+      { name: "value", type: "Nullable(Float64)" },
+      { name: "time", type: "DateTime64(9)" },
+      { name: "attributes", type: "Map(String, String)" },
+    ];
+
+    valueAnswers.set(key, toAnswer({ meta: meta, rows: rows }));
+    valueRowAnswers.set(key, toRowsAnswer({ meta: meta, rows: rows }));
     valueRowCounts.set(key, rows.length);
   }
 
@@ -919,6 +950,7 @@ export function buildGroupedMetricFleet(
     monitor: buildMonitor(step, Boolean(options.startsDegraded)),
     metricTypes: buildMetricTypes(),
     valueAnswers: valueAnswers,
+    valueRowAnswers: valueRowAnswers,
     arrivalAnswers: arrivalAnswers,
     openAlerts: buildOpenAlerts({
       series: series,

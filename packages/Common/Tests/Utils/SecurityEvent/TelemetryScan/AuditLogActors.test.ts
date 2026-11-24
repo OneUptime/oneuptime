@@ -390,7 +390,7 @@ describe("when the audit log does not say who", () => {
     );
   });
 
-  test("a person and a key are named as they always were", () => {
+  test("a person is named as they always were, and a key by its id (#10630)", () => {
     expect(
       getAuditActorPrincipal({
         ...NOBODY,
@@ -406,7 +406,7 @@ describe("when the audit log does not say who", () => {
         apiKeyId: KEY_ID,
         apiKeyName: "terraform",
       }),
-    ).toBe("terraform");
+    ).toBe(`api-key:${KEY_ID}`);
     expect(
       buildMassDeleteEvent(
         deletes(

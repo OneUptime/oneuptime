@@ -341,6 +341,27 @@ export default class TelemetryExceptionAPI extends BaseAPI<
     );
 
     /*
+     * Merge an exception a scrub rule split before #10434 with the one it
+     * was split from, the older one kept (TelemetryExceptionMerge.
+     * mergeSplit, #10618): what the split exception's page offers, without
+     * OneUptime AI. Takes permission to edit both, as any merge does.
+     */
+    this.router.post(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/merge-split/:telemetryExceptionId`,
+      UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Exceptions),
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          await this.mergeSplitException(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
      * Aggregated dashboard summary for the Exceptions overview page.
      * Returns counts, top/recent exceptions, and per-service summaries
      * in a single round-trip with one SQL GROUP BY for service aggregation.
@@ -438,6 +459,24 @@ export default class TelemetryExceptionAPI extends BaseAPI<
       mergedTelemetryExceptionIds,
       props,
     });
+
+    return Response.sendJsonObjectResponse(req, res, {
+      telemetryExceptionId: result.telemetryExceptionId,
+      merged: result.merged as unknown as JSONArray,
+    });
+  }
+
+  private async mergeSplitException(
+    req: ExpressRequest,
+    res: ExpressResponse,
+  ): Promise<void> {
+    // Refused before anything is read.
+    const telemetryExceptionId: ObjectID = this.readExceptionId(req);
+    const props: DatabaseCommonInteractionProps =
+      await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+    const result: ExceptionMergeResult =
+      await TelemetryExceptionMerge.mergeSplit({ telemetryExceptionId, props });
 
     return Response.sendJsonObjectResponse(req, res, {
       telemetryExceptionId: result.telemetryExceptionId,

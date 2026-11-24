@@ -143,7 +143,7 @@ SQL-macro's worden in UTC geschreven, dus laat je databasesessies in UTC draaien
 
 ### Dashboardvariabelen
 
-Schrijf `{{name}}` ergens in een query, en de widget zet daar de waarde van de variabele neer voordat hij de query verstuurt. Meerdere waarden van een variabele met meervoudige selectie worden samengevoegd met `|`, wat een reguliere-expressiematcher in PromQL of LogQL nodig heeft: `job=~"{{job}}"`. Een variabele zonder gekozen waarde laat de plaatsaanduiding staan zoals hij geschreven is, zodat de fout hem noemt. [Dashboard-variabelen en filters](/docs/dashboards/variables) laat zien hoe je er een toevoegt.
+Schrijf `{{name}}` ergens in een query, en de widget zet daar de waarde van de variabele neer voordat hij de query verstuurt. Een query op de metrics van dit project of op een Prometheus wordt ingevuld zoals de Prometheus-gegevensbron van Grafana hem invult: in `job=~"{{job}}"` passen meerdere waarden van een variabele met meervoudige selectie op elk van die waarden, elk zoals hij geschreven is, en past een variabele zonder gekozen waarde op elke waarde. In elke andere query worden meerdere waarden samengevoegd met `|`, wat een reguliere-expressiematcher in LogQL nodig heeft, en laat een variabele zonder gekozen waarde de plaatsaanduiding staan zoals hij geschreven is, zodat de fout hem noemt. [Dashboard-variabelen en filters](/docs/dashboards/variables) laat zien hoe je er een toevoegt.
 
 ## Limieten
 

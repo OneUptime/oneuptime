@@ -1,4 +1,9 @@
 import { JSONObject, JSONValue } from "../JSON";
+import {
+  SecurityBlockAction,
+  readSecurityAsnNumber,
+  readSecurityBlockAsn,
+} from "../SecurityBlocklist/SecurityBlock";
 import SecurityEventRequestOutcome, {
   SECURITY_EVENT_REQUEST_OUTCOMES_IN_ORDER,
 } from "./SecurityEventRequestOutcome";
@@ -23,9 +28,26 @@ export const SECURITY_ATTACK_CAMPAIGNS_MAX_DAYS: number = 31;
 
 export const HTTP_ACTIVITY_CLASS_UID: number = 4002;
 
-export interface SecurityAttackCampaign {
-  // The address the requests came from; '' when it was not known.
-  sourceIp: string;
+/*
+ * The block on the project's Blocklist that holds a campaign's address or a
+ * network now (#10354): the address itself, a range around it, or the
+ * network's ASN - so a row says it is blocked already, and Block Addresses
+ * leaves it out.
+ */
+export interface SecurityAttackCampaignBlock {
+  // As blocks are written: "35.205.11.131", "35.205.11.0/24", "AS14061".
+  value: string;
+  action: SecurityBlockAction;
+  // ISO; null when it stays until someone lifts it.
+  expiresAt: string | null;
+}
+
+/*
+ * What every row of the Campaigns page counts, whether it is one address
+ * or a network of them (#10354): how many requests, how far they got, what
+ * kinds of attack, which tools, which requests, and when.
+ */
+export interface SecurityAttackActivity {
   requestCount: number;
   rejectedCount: number;
   reachedAppCount: number;
@@ -47,6 +69,21 @@ export interface SecurityAttackCampaign {
    * the campaign with no address has any. Absent when none did.
    */
   hiddenAddressCount?: number | undefined;
+  // The block that holds it now, when one does and the reader may read the Blocklist (#10354).
+  block?: SecurityAttackCampaignBlock | undefined;
+}
+
+export interface SecurityAttackCampaign extends SecurityAttackActivity {
+  // The address the requests came from; '' when it was not known.
+  sourceIp: string;
+  /*
+   * The network the address belongs to by its autonomous system, as
+   * Cloudflare's events carry it (#10339): "AS14061", and its name
+   * ("DIGITALOCEAN-ASN"). Absent when none of its events carry one -
+   * OneUptime has no ASN data of its own (RequestLocation.ts).
+   */
+  asn?: string | undefined;
+  asnName?: string | undefined;
 }
 
 export interface SecurityAttackCampaignsResult {
@@ -58,9 +95,9 @@ export interface SecurityAttackCampaignsResult {
   isTruncated: boolean;
 }
 
-// The requests a campaign got past the app's front door.
+// The requests a campaign, or a network's campaigns, got past the app's front door.
 export function getCampaignGotThroughCount(
-  campaign: SecurityAttackCampaign,
+  campaign: SecurityAttackActivity,
 ): number {
   return (
     campaign.reachedAppCount +
@@ -86,7 +123,7 @@ export function isCampaignAddressHidden(
 
 // Requests that were never followed into a trace.
 export function getCampaignNotFollowedCount(
-  campaign: SecurityAttackCampaign,
+  campaign: SecurityAttackActivity,
 ): number {
   return Math.max(
     0,
@@ -127,23 +164,64 @@ function readText(value: JSONValue | undefined): string {
   return typeof value === "string" ? value : "";
 }
 
-// A campaign from a row of the grouped read, or from the wire.
-export function readSecurityAttackCampaign(
+/*
+ * An ASN as a row carries it: digits alone from Cloudflare's events
+ * ("14061"), or as blocks write it from the wire ("AS14061").
+ */
+export function readCampaignAsn(value: JSONValue | undefined): string | null {
+  if (typeof value === "number") {
+    return readSecurityAsnNumber(String(value));
+  }
+
+  return readSecurityBlockAsn(value) || readSecurityAsnNumber(value);
+}
+
+// The block that holds a row, from the wire; null for none.
+export function readSecurityAttackCampaignBlock(
+  value: JSONValue | undefined,
+): SecurityAttackCampaignBlock | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const json: JSONObject = value as JSONObject;
+  const blocked: string = readText(json["value"]).trim();
+
+  if (!blocked) {
+    return null;
+  }
+
+  const expiresAt: string = readText(json["expiresAt"]).trim();
+
+  return {
+    value: blocked,
+    action:
+      json["action"] === SecurityBlockAction.Challenge
+        ? SecurityBlockAction.Challenge
+        : SecurityBlockAction.Block,
+    expiresAt: expiresAt || null,
+  };
+}
+
+// What a row of either kind counts, from a row of the grouped read or the wire.
+export function readSecurityAttackActivity(
   row: JSONObject,
-): SecurityAttackCampaign {
+): SecurityAttackActivity {
   const worstOutcome: string = readText(row["worstOutcome"]);
   const hiddenAddressCount: number = readNumber(row["hiddenAddressCount"]);
+  const block: SecurityAttackCampaignBlock | null =
+    readSecurityAttackCampaignBlock(row["block"]);
 
   return {
     ...(hiddenAddressCount > 0 ? { hiddenAddressCount } : {}),
-    sourceIp: readText(row["sourceIp"]),
+    ...(block ? { block } : {}),
     requestCount: readNumber(row["requestCount"]),
     rejectedCount: readNumber(row["rejectedCount"]),
     reachedAppCount: readNumber(row["reachedAppCount"]),
     erroredCount: readNumber(row["erroredCount"]),
     reachedDatabaseCount: readNumber(row["reachedDatabaseCount"]),
     worstOutcome:
-      worstOutcome ||
+      (worstOutcome as SecurityEventRequestOutcome) ||
       outcomeFromRank(readNumber(row["worstOutcomeRank"])) ||
       "",
     maxSeverityId: readNumber(row["maxSeverityId"]),
@@ -153,5 +231,20 @@ export function readSecurityAttackCampaign(
     sampleTargets: readStrings(row["sampleTargets"]),
     firstSeen: readText(row["firstSeen"]),
     lastSeen: readText(row["lastSeen"]),
-  } as SecurityAttackCampaign;
+  };
+}
+
+// A campaign from a row of the grouped read, or from the wire.
+export function readSecurityAttackCampaign(
+  row: JSONObject,
+): SecurityAttackCampaign {
+  const asn: string | null = readCampaignAsn(row["asn"]);
+  const asnName: string = asn ? readText(row["asnName"]).trim() : "";
+
+  return {
+    ...readSecurityAttackActivity(row),
+    sourceIp: readText(row["sourceIp"]),
+    ...(asn ? { asn } : {}),
+    ...(asnName ? { asnName } : {}),
+  };
 }

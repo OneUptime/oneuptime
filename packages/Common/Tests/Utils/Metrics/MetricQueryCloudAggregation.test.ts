@@ -46,6 +46,7 @@ const VIRTUAL_MACHINE: string = azureId(
   "Microsoft.Compute/virtualMachines",
   "web-01",
 );
+const CONTAINER_APP: string = azureId("Microsoft.App/containerApps", "cart");
 // A queue of the namespace, named by its own id: no namespace.
 const QUEUE: string = `${SERVICE_BUS}/queues/orders`;
 
@@ -1202,6 +1203,114 @@ describe("restoreResourceTotals: a stored monitor that read the namespace's numb
       MetricQueryCloudAggregation.restoreResourceTotals(monitor)[0]
         ?.metricVariable,
     ).toBeUndefined();
+  });
+});
+
+/*
+ * A Container App's requests, read once per status code category since
+ * #10837: a monitor that read them with the average read the app's number
+ * while they were read whole, and the average category since. They move to
+ * Sum as a namespace's did - each by the migration of its own release
+ * (onlyTypes), which says why in its own words.
+ */
+describe("restoreResourceTotals: a Container App's requests, and each migration's own types", () => {
+  const REQUESTS: string = getAzureStoredMetricName("Requests", "total");
+  const RESPONSE_TIME: string = getAzureStoredMetricName(
+    "ResponseTime",
+    "average",
+  );
+
+  test("its requests read with the average, by the minute, move to Sum; its response time stays", () => {
+    const monitor: MonitorStepMetricMonitor = metricMonitor([
+      query({
+        metricName: REQUESTS,
+        attributes: onResource(CONTAINER_APP),
+        aggregationType: AggregationType.Avg,
+      }),
+      query({
+        metricName: RESPONSE_TIME,
+        attributes: onResource(CONTAINER_APP),
+        aggregationType: AggregationType.Avg,
+        variable: "b",
+      }),
+    ]);
+
+    expect(MetricQueryCloudAggregation.restoreResourceTotals(monitor)).toEqual([
+      {
+        metricVariable: "a",
+        metricName: REQUESTS,
+        resource: {
+          provider: CloudProvider.Azure,
+          type: "Microsoft.App/containerApps",
+          name: "cart",
+        },
+        from: AggregationType.Avg,
+        to: AggregationType.Sum,
+      },
+    ]);
+    expect(aggregationsOf(monitor)).toEqual([
+      AggregationType.Sum,
+      AggregationType.Avg,
+    ]);
+  });
+
+  test("given its types, a migration moves only theirs: a namespace's none of a Container App's, and the other way round", () => {
+    const build: () => MonitorStepMetricMonitor =
+      (): MonitorStepMetricMonitor => {
+        return metricMonitor([
+          query({
+            metricName: MESSAGES_IN,
+            attributes: onResource(SERVICE_BUS),
+            aggregationType: AggregationType.Avg,
+          }),
+          query({
+            metricName: REQUESTS,
+            attributes: onResource(CONTAINER_APP),
+            variable: "b",
+          }),
+        ]);
+      };
+    const namespaceOnly: MonitorStepMetricMonitor = build();
+    const containerAppOnly: MonitorStepMetricMonitor = build();
+
+    expect(
+      MetricQueryCloudAggregation.restoreResourceTotals(namespaceOnly, {
+        onlyTypes: [
+          "Microsoft.ServiceBus/namespaces",
+          "Microsoft.EventHub/namespaces",
+        ],
+      }).map((restored: MetricQueryAggregationRestore): string => {
+        return restored.resource.type;
+      }),
+    ).toEqual(["Microsoft.ServiceBus/namespaces"]);
+    expect(aggregationsOf(namespaceOnly)).toEqual([
+      AggregationType.Sum,
+      undefined,
+    ]);
+
+    // Spelled in any case: the catalog's spelling is compared.
+    expect(
+      MetricQueryCloudAggregation.restoreResourceTotals(containerAppOnly, {
+        onlyTypes: ["microsoft.app/CONTAINERAPPS"],
+      }).map((restored: MetricQueryAggregationRestore) => {
+        return [restored.resource.type, restored.metricVariable, restored.from];
+      }),
+    ).toEqual([["Microsoft.App/containerApps", "b", undefined]]);
+    expect(aggregationsOf(containerAppOnly)).toEqual([
+      AggregationType.Avg,
+      AggregationType.Sum,
+    ]);
+
+    // No types given: every type the catalog sums, as before.
+    expect(
+      MetricQueryCloudAggregation.restoreResourceTotals(build()).length,
+    ).toBe(2);
+    // None given at all: nothing moves.
+    expect(
+      MetricQueryCloudAggregation.restoreResourceTotals(build(), {
+        onlyTypes: [],
+      }),
+    ).toEqual([]);
   });
 });
 

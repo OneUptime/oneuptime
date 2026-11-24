@@ -90,7 +90,7 @@ Node.js 和 .NET 的 Azure 检测器写入的是 `azure.container_apps`、`azure
 实例已经列出，但概览中的 **CPU** 和 **内存** 磁贴以及 **实例** 中的 CPU 和内存列都是空的。这些数据来自指标而不是追踪：即 `container.cpu.utilization` 和 `container.memory.usage`（或 `container.memory.usage.total`）数据点，其资源带有与追踪相同的实例标识以及 `cloud.platform`。
 
 - **在 ECS 上**，sidecar Collector 中的 `awsecscontainermetrics` 接收器会以 `ecs.task.cpu.utilized` 和 `ecs.task.memory.utilized` 的形式提供它们。请把它保留在 `metrics` 管道中，并在该管道中同样保留 `resourcedetection`，否则指标到达时不带 `cloud.platform`，会被归档到别处。
-- **在 Cloud Run、Container Apps 和其他平台上**，平台不会向 sidecar 公开容器的使用情况。除非你自己发送这些指标，否则磁贴会保持为空：请改为查看请求磁贴。在 App Service 上，在 **云 → 连接** 中连接订阅后，应用页面会显示来自 **Azure Monitor** 的站点 CPU 时间和内存。
+- **在 Cloud Run、Container Apps 和其他平台上**，平台不会向 sidecar 公开容器的使用情况。除非你自己发送这些指标，否则磁贴会保持为空：请改为查看请求磁贴。在 App Service 上，在 **云 → 连接** 中连接订阅后，应用页面会显示来自 **Azure Monitor** 的站点 CPU 时间和内存。在 Container Apps、Cloud Run、App Engine 和 App Runner 上，同样在 **云 → 连接** 中连接账户后，应用页面会显示其云测得的 CPU 和内存，空磁贴随之让位。
 - **使用 SDK direct 时**，没有任何东西发送容器指标，因此磁贴为空是正常的。
 
 ## 环境显示已断开

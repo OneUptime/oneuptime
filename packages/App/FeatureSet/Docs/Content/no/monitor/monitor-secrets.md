@@ -85,6 +85,15 @@ Hvis en monitor viser til en hemmelighet den ikke kan bruke, blir henvisningen s
 
 Når sjekken av en API-, Nettsted- eller Ekstern statusside-monitor feiler, nevner feilen bare URL-ens skjema, vert og port, som `https://api.example.com`, så en hemmelighet i URL-en vises aldri.
 
+En sjekk kan også gi tilbake verdien av en hemmelighet: en nettleser siterer URL-en til en side den ikke kunne laste inn, et skript logger det det inneholder, og en server kan gjenta spørringen, hodene eller brødteksten den fikk. OneUptime skjuler verdien overalt der den står i det sjekken rapporterer: et skripts feil, loggmeldinger og resultat, et svars brødtekst og hoder, og feilårsaken for sjekken og for hvert forsøk. Dermed står verdien verken i monitorens logger, i sammendraget, i resultatet av en monitortest eller i rotårsaken til en hendelse eller et varsel. OneUptime skriver `[REDACTED]` i stedet og beholder resten, så en side på `https://app.example.com/login?token={{monitorSecrets.Token}}` som ikke lastes inn, rapporteres som `https://app.example.com/login?token=[REDACTED]`. Verdien blir funnet med store eller små bokstaver og uansett hvordan sjekken skrev den: prosentkodet, escapet i JSON eller HTML, eller i base64.
+
+OneUptime skjuler ikke:
+
+- En verdi på færre enn 4 tegn, mellomrom rundt den ikke medregnet. En så kort verdi er en del av vanlig tekst, som tall og ord.
+- Det et skjermbilde viser. Et skjermbilde er et bilde, så en hemmelighet som siden viser på skjermen, er med i det.
+
+Kriterier leser en sjekk slik den rapporteres. Skriv et kriterium mot teksten rundt en hemmelighet, som `ERR_NAME_NOT_RESOLVED` eller `token=`, i stedet for mot verdien av hemmeligheten: et kriterium vises for alle som kan lese monitoren.
+
 Når du tester en monitor før du lagrer den, fylles bare hemmeligheter som er tilgjengelige for **Alle monitorer**, inn, fordi en ny monitor ikke står på noen liste og ikke har noen etiketter ennå. Etter at du har lagret monitoren, bruker testene hver hemmelighet som monitoren kan bruke.
 
 ## Logg inn med en engangskode
@@ -144,6 +153,10 @@ Før en monitor er lagret, fylles bare hemmeligheter som er tilgjengelige for **
 
 :::details Et felt ignorerer hemmeligheten
 Bare feltene i tabellen ovenfor tar imot hemmeligheter. I ethvert annet felt sendes `{{monitorSecrets.NAME}}` som det er skrevet.
+:::
+
+:::details En sjekk viser `[REDACTED]` der det sto en verdi
+Verdien av en hemmelighet sto i det sjekken rapporterte, og OneUptime skjulte den. Teksten rundt, som `token=[REDACTED]`, viser hvor skriptet eller forespørselen brukte hemmeligheten.
 :::
 
 :::details Nettstedet avviser engangskoden

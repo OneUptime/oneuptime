@@ -58,12 +58,16 @@ const PROVIDER_WORD_FILES: ReadonlyArray<string> = [
  */
 const VENDOR_MEANING_KEYS: ReadonlyArray<string> = [
   "AI Provider",
+  // A recipient of a store's data, on its record of processing (#10375).
+  "AI provider",
   "Connections of AI / LLM observability to AI provider accounts (usage and cost) and to company AI tools (conversations), read on a schedule without any code.",
   "Cursor's Admin API gives usage and cost by person, not conversations, so Cursor is connected with your AI provider accounts.",
   "Sensitive data is being sent to an AI provider",
   "Sensitive data that reaches AI providers, or stores kept for AI.",
   "Sent to AI Providers",
   "Services whose prompts can carry this data to an AI provider. Confirmed when a scan found it in their AI conversations.",
+  // What a record of processing draft is sent (#10375): where a store's services send its data.
+  "The services seen using it and what their teams wrote they are for, the hosts and AI providers they send to, and copies of its data in other stores",
   "The services that read this store, where they send its data - other stores, outside hosts and AI providers - and the stores that hold copies of it.",
   "Your AI provider accounts",
 ];

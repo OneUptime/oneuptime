@@ -7,7 +7,9 @@ Sicurezza dei dati valuta nove framework in base a ciò che hanno trovato le sue
 - [Come viene valutato un framework](#come-viene-valutato-un-framework): Requisiti superati, non superati e non valutati.
 - [Nella pagina di una risorsa](#nella-pagina-di-una-risorsa): La conformità di un cluster, di un host, di un database, di un servizio o di una risorsa cloud, e ciò che è disattivato per quella risorsa.
 - [Requisiti e relativi controlli](#requisiti-e-relativi-controlli): Ogni requisito, e i controlli che ne sono la prova.
-- [Registro dei trattamenti](#registro-dei-trattamenti): L'articolo 30 del GDPR, scritto a partire dai tuoi archivi.
+- [Registro dei trattamenti](#registro-dei-trattamenti): L'articolo 30 del GDPR, scritto a partire dai tuoi archivi, con le bozze di OneUptime AI da confermare.
+- [Valutazioni d'impatto](#valutazioni-dimpatto): Una valutazione d'impatto sulla protezione dei dati per ogni archivio che ne ha bisogno.
+- [Prove di audit](#prove-di-audit): Ciò che un auditor legge sotto ogni requisito, esportato con il tuo registro e la cronologia dei problemi.
 :::
 
 ## I framework
@@ -185,27 +187,71 @@ L'articolo 30 del GDPR ti chiede di tenere un registro delle tue attività di tr
 | Ambiente | I tag o il nome dell'archivio, oppure ciò che imposti tu |
 | Sensibilità, categorie e tipi di dati | Ciò che hanno trovato le scansioni, oppure la sensibilità che imposti tu |
 | Proprietari | I proprietari dell'archivio, le persone e i membri dei suoi team |
-| Finalità | Ciò che scrivi nella **Finalità** dell'archivio: perché contiene dati personali. OneUptime la compila per gli archivi che conserva per la tua sicurezza |
-| Conservazione | Ciò che scrivi nella **Conservazione** dell'archivio: per quanto tempo vi vengono conservati i dati. OneUptime la compila per gli archivi che conserva per la tua sicurezza |
+| Finalità | Ciò che scrivi o confermi nella **Finalità** dell'archivio: perché contiene dati personali. OneUptime la compila per gli archivi che conserva per la tua sicurezza |
+| Conservazione | Ciò che scrivi o confermi nella **Conservazione** dell'archivio: per quanto tempo vi vengono conservati i dati. OneUptime la compila per gli archivi che conserva per la tua sicurezza, e per la telemetria di un servizio in base alla conservazione della telemetria del tuo progetto |
 | Chi può leggere | Chi può leggere un archivio che OneUptime conserva per la tua sicurezza |
 | Framework | I framework che i suoi tipi di dati fanno rientrare nell'ambito |
 | Dichiarato da | OneUptime, per gli archivi che conserva per la tua sicurezza |
+| Base giuridica | Ciò che scrivi o confermi: la base giuridica dell'archivio ai sensi dell'articolo 6 del GDPR, una tra consenso, contratto, obbligo legale, interessi vitali, compito di interesse pubblico e legittimo interesse. Legittimo interesse per gli archivi che OneUptime conserva per la tua sicurezza |
+| Interessati | Ciò che scrivi o confermi: a chi si riferiscono i dati dell'archivio, come clienti, utenti, dipendenti o pazienti |
+| Destinatari | Ricavati dai flussi di dati dell'archivio: gli host esterni e i fornitori di IA a cui vengono inviati i suoi dati, e gli archivi che ne contengono una copia |
+| Trasferimenti | Ricavati dalla regione dell'archivio, dalle regioni in cui il suo cloud lo copia e dalle regioni delle sue copie, confrontate con i paesi dei suoi interessati: ogni trasferimento fuori da quei paesi, o il motivo per cui non è noto |
+| Valutazione d'impatto | Se l'archivio ha bisogno di una valutazione d'impatto sulla protezione dei dati, e a che punto è: non necessaria, necessaria, redatta o modificata |
+| In attesa di revisione | I campi la cui bozza aspetta una persona. Una bozza non è mai nel registro, né nelle sue esportazioni, finché qualcuno non la conferma |
 
-Per un archivio trovato da Sicurezza dei dati, compila **Finalità** e **Conservazione** nelle sue **Impostazioni**: nessuna scansione può saperle. Il registro e i punteggi sono forniti anche dall'API di Sicurezza dei dati, in `/data-security/record-of-processing`, `/data-security/compliance` e, per una singola risorsa, `/data-security/resource-compliance`, a chiunque possa leggere gli archivi dati (vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations#api-terraform-e-mcp)).
+Per un archivio trovato da Sicurezza dei dati, nessuna scansione può sapere perché contiene dati personali, per quanto tempo, su quale base o a chi si riferiscono: scrivili nelle sue **Impostazioni**, oppure conferma le bozze di OneUptime AI. Il registro e i punteggi sono forniti anche dall'API di Sicurezza dei dati, in `/data-security/record-of-processing`, `/data-security/compliance` e, per una singola risorsa, `/data-security/resource-compliance`, a chiunque possa leggere gli archivi dati (vedi [Integrazioni di Sicurezza dei dati](/docs/data-security/integrations#api-terraform-e-mcp)).
+
+### Le bozze di OneUptime AI
+
+OneUptime AI redige **Finalità**, **Conservazione**, **Base giuridica** e **Interessati** di un archivio a partire da ciò che Sicurezza dei dati ne sa: i tipi di dati trovati, il suo nome, i tag e la descrizione, i servizi che lo usano e a cosa servono secondo i loro team, dove vanno i suoi dati e dove sono conservati. Non vede mai un valore dei tuoi dati (vedi [OneUptime AI in Sicurezza dei dati](/docs/data-security/ai)).
+
+- **Una bozza è segnata come Bozza** e dice perché, con i fatti su cui si basa a un clic di distanza. Non è nel registro finché non premi **Conferma**, o non la riscrivi con parole tue con **Modifica**.
+- **Le tue parole non vengono mai sostituite da una bozza.** Un campo che hai scritto non viene mai più redatto. Una bozza che hai confermato viene redatta di nuovo solo quando cambia un fatto su cui si basa, e allora viene proposta, non applicata: segnata come **Modifica proposta**, con ciò che è cambiato, **Usa la nuova bozza** e **Mantieni l'attuale**.
+- **Rivedi bozze**, nella scheda **Registro dei trattamenti**, mostra uno alla volta gli archivi le cui bozze ti aspettano. Le **Impostazioni** di un archivio hanno gli stessi campi, con **Redigi con OneUptime AI** per quelli vuoti.
+- **Da sola**, OneUptime AI redige una volta al giorno i campi vuoti degli archivi più rischiosi, mentre **Lavora sui nuovi problemi** è attivo in **Sicurezza dei dati → IA**, come consentono le tue regole IA.
+
+La conservazione della telemetria di un servizio, i destinatari e i trasferimenti vengono ricavati da semplice codice, mai redatti. Le bozze sono un punto di partenza, non una consulenza legale: falle verificare da chi risponde della tua conformità.
 
 ### Archivi che OneUptime conserva per la tua sicurezza
 
-Tre archivi contengono indirizzi IP di proposito, per proteggere la tua rete: **Eventi di sicurezza**, **Network Flows** e **Cassaforte indirizzi di sicurezza**. Il registro elenca ognuno di quelli che ha il tuo progetto. OneUptime li dichiara invece di trovarli: ciò che contengono è noto per progettazione, quindi nessuna scansione li legge, nessun controllo si applica a loro e il fatto che contengano questi indirizzi non è mai un problema, perché è il loro scopo. Portano l'indicazione **Dichiarato da OneUptime** in **Archivi dati**, e la **Panoramica** e i punteggi dei framework li lasciano fuori.
+Quattro archivi contengono indirizzi IP e nomi utente di proposito, per proteggere la tua rete: **Eventi di sicurezza**, **Network Flows**, **Cassaforte indirizzi di sicurezza** e **Cassaforte utenti di sicurezza**. Il registro elenca ognuno di quelli che ha il tuo progetto. OneUptime li dichiara invece di trovarli: ciò che contengono è noto per progettazione, quindi nessuna scansione li legge, nessun controllo si applica a loro e il fatto che contengano questi indirizzi e questi nomi non è mai un problema, perché è il loro scopo. Portano l'indicazione **Dichiarato da OneUptime** in **Archivi dati**, e la **Panoramica** e i punteggi dei framework li lasciano fuori.
 
 | Archivio | Cosa contiene | Conservazione | Chi può leggerlo |
 | --- | --- | --- | --- |
 | Eventi di sicurezza | Gli indirizzi IP, i nomi utente e gli indirizzi email di chi ha agito e di ciò che ha toccato | La [conservazione della telemetria](/docs/telemetry/data-retention) del tuo progetto, letta ogni volta che si legge il registro, così una modifica vale subito | Proprietari del progetto, Amministratori del progetto, Amministratori della sicurezza, Membri della sicurezza, Visualizzatori della sicurezza e chiunque abbia Read Security Event |
 | Network Flows | Gli indirizzi IP di chi ha comunicato con chi | 30 giorni dopo l'arrivo di un flusso | Chiunque possa leggere i dispositivi di rete |
 | Cassaforte indirizzi di sicurezza | L'indirizzo IP dietro ogni token lasciato da una regola di indirizzo IP che applica l'hash nei log e nelle tracce che legge [Eventi di sicurezza](/docs/telemetry/security-events) | 30 giorni dopo l'ultima volta in cui un indirizzo è stato visto | Solo le scansioni di Eventi di sicurezza, all'interno di OneUptime: nessuna persona, pagina, esportazione, API o strumento di IA |
+| Cassaforte utenti di sicurezza | L'utente dietro ogni token lasciato da una regola che applica l'hash dove [Eventi di sicurezza](/docs/telemetry/security-events) legge un utente nei log e nelle tracce | 30 giorni dopo l'ultima volta in cui un utente è stato visto | Solo le scansioni di Eventi di sicurezza, all'interno di OneUptime: nessuna persona, pagina, esportazione, API o strumento di IA |
 
 La finalità di ciascuno è «Sicurezza delle reti e dell'informazione (considerando 49 del GDPR)». Per scrivere una finalità o una conservazione tua, usa **Modifica registro** nelle **Impostazioni** dell'archivio: un campo lasciato vuoto mantiene quello di OneUptime.
 
-Un archivio è elencato finché il tuo progetto ne conserva i dati: la cassaforte, finché una regola di indirizzo IP attiva applica l'hash ai log o alle tracce che legge Eventi di sicurezza, e per altri 31 giorni (vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). Quando i suoi dati non ci sono più, l'archivio viene messo tra quelli archiviati, e torna con la tua finalità e la tua conservazione se tornano i dati.
+Un archivio è elencato finché il tuo progetto ne conserva i dati: la cassaforte degli indirizzi, finché una regola di indirizzo IP attiva applica l'hash ai log o alle tracce che legge Eventi di sicurezza, la cassaforte degli utenti, finché lo fa una regola attiva di qualsiasi altro modello, e ciascuna per altri 31 giorni (vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). Quando i suoi dati non ci sono più, l'archivio viene messo tra quelli archiviati, e torna con la tua finalità e la tua conservazione se tornano i dati.
+
+## Valutazioni d'impatto
+
+L'articolo 35 del GDPR richiede una valutazione d'impatto sulla protezione dei dati prima di un trattamento che può presentare un rischio elevato. Sicurezza dei dati indica quali archivi ne hanno bisogno: un archivio che contiene categorie particolari di dati, come i dati sanitari, dati su molte persone (circa 100.000 record o più), o dati che lasciano i paesi dei suoi interessati.
+
+La **Valutazione d'impatto** di un archivio, nel suo menu sotto **Impostazioni**, dice perché l'archivio ne ha bisogno, o che non ne ha bisogno. **Redigi la valutazione** chiede a OneUptime AI le quattro parti richieste dall'articolo 35, paragrafo 7, a partire dal registro dell'archivio, dai suoi problemi aperti e da quelli corretti di recente, da quanto è esposto, da quanti possono accedervi e dalla sua crittografia:
+
+| Parte | Articolo |
+| --- | --- |
+| Il trattamento e le sue finalità | Art. 35(7)(a) |
+| Necessità e proporzionalità | Art. 35(7)(b) |
+| Rischi per gli interessati | Art. 35(7)(c) |
+| Misure per affrontare i rischi | Art. 35(7)(d) |
+
+Ogni parte dice chi l'ha scritta e quando, con i fatti su cui si basa una parte redatta. **Modifica** rende tua una parte, che non viene mai più redatta; **Redigi di nuovo** redige solo le parti che nessuno ha modificato. Una parte scritta su fatti che da allora sono cambiati lo segnala. **Esporta PDF** ed **Esporta Markdown** scaricano la valutazione.
+
+## Prove di audit
+
+Le **Prove di audit**, nel framework che scegli in **Sicurezza dei dati → Conformità**, sono ciò che un auditor legge sotto ciascuno dei suoi requisiti, negli ultimi 30, 90, 180 o 365 giorni:
+
+- gli archivi nel suo ambito, e lo stato dei suoi controlli;
+- i problemi dei suoi controlli aperti e corretti nel periodo, e con quale rapidità sono stati corretti;
+- i rischi accettati sotto di esso, con i motivi e la scadenza;
+- le risorse che lo hanno disattivato, e perché.
+
+**Redigi le prove** chiede a OneUptime AI un paragrafo sotto ogni requisito, vincolato a quei fatti; **Modifica** rende tuo un paragrafo, che non viene mai più redatto. Un requisito senza paragrafo mostra le sue prove così come sono. **Esporta PDF** ed **Esporta Markdown** scaricano le prove con due appendici: il registro dei trattamenti degli archivi nell'ambito, e la cronologia dei problemi che citano.
 
 ## Passaggi successivi
 

@@ -88,6 +88,8 @@ Strømmen bærer nøkkelmålingene tilkoblingen leser minutt for minutt. Lesinge
 
 Et Service Bus- eller Event Hubs-navnerom strømmer ingen målinger. Lesingene leser nøkkelmålingene for hver kø, hvert topic og hver hendelseshub, og navnerommets egne totaler legger dem sammen, mens en diagnoseinnstilling bare sender navnerommets totaler, og ikke i det hele tatt 4 av et Service Bus-navneroms 6 nøkkelmålinger eller 2 av et Event Hubs-navneroms 4. Så lesingene skriver alle sammen, med eller uten strømming, og ingen melding telles to ganger.
 
+En Container Apps `Requests` blir også hos lesingene: de leser dem én gang per statuskodekategori, slik at 5xx-svarene kan skilles ut, mens en diagnoseinnstilling bare sender totalen.
+
 En logg arkiveres under ressursen sin etter ressursens ARM-ID, som bæres som `cloud.resource_id`, og beholder kategori, operasjon, resultat og egenskaper som attributter, for eksempel `azure.category`.
 
 En oppføring i aktivitetsloggen i kategorien `Administrative`, `Security` eller `Policy`, og en påloggings-, revisjons- eller risikooppføring fra Microsoft Entra ID, kommer hel, som loggens brødtekst, også en som gjelder en ressursgruppe, et abonnement eller leieren i stedet for en ressurs. Med [Finn sikkerhetshendelser i loggene dine](/docs/telemetry/security-events#finn-sikkerhetshendelser-i-loggene-dine) slått på leses hver som en sikkerhetshendelse, slik en fra en loggpipeline gjør, og lagres én gang, uansett hvor mange veier den når OneUptime. Med **Aktivitetsloggen til hvert abonnement** slått på gir kommandoen hvert abonnement en diagnoseinnstilling som sender aktivitetsloggen til hendelseshuben i den første regionen, og kommandoen for Microsoft Entra ID gir leieren en.

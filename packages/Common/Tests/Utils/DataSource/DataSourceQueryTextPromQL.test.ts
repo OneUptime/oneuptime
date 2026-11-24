@@ -2,9 +2,11 @@ import { describe, expect, test } from "@jest/globals";
 import DashboardVariable, {
   DashboardVariableType,
 } from "../../../Types/Dashboard/DashboardVariable";
+import DataSourceType from "../../../Types/DataSource/DataSourceType";
 import { PROJECT_METRICS_DATA_SOURCE_ID } from "../../../Types/DataSource/ProjectMetricsDataSource";
 import DataSourceQueryText from "../../../Utils/DataSource/DataSourceQueryText";
 import { parsePromQL } from "../../../Utils/PromQL/PromQLParser";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * A PromQL widget's variables, filled the way Grafana's Prometheus data
@@ -213,7 +215,7 @@ describe("which way a widget's query is filled", () => {
     ).toBe('up{instance=~".*"}');
   });
 
-  test("an outside data source keeps applyVariables, whatever its language", () => {
+  test("an outside data source of no known type keeps applyVariables, whatever its language", () => {
     expect(
       DataSourceQueryText.applyVariablesForSource({
         dataSourceId: "6c7a8b9c-0000-4000-8000-000000000001",
@@ -221,5 +223,135 @@ describe("which way a widget's query is filled", () => {
         variables: [variable({ name: "node" })],
       }),
     ).toBe("SELECT * FROM t WHERE host = '{{node}}'");
+  });
+
+  /*
+   * An outside Prometheus (Prometheus, Thanos, Mimir, VictoriaMetrics)
+   * reads a variable as Grafana's Prometheus data source does, as the
+   * project's own metrics do (issue #10326): a dashboard brought over from
+   * Grafana reads the same whichever Prometheus it points at.
+   */
+  const PROMETHEUS: string = "6c7a8b9c-0000-4000-8000-000000000002";
+
+  test("an outside Prometheus: a variable on All matches every value", () => {
+    expect(
+      DataSourceQueryText.applyVariablesForSource({
+        dataSourceId: PROMETHEUS,
+        dataSourceType: DataSourceType.Prometheus,
+        queryText: 'node_load1{instance="{{node}}"}',
+        variables: [variable({ name: "node" })],
+      }),
+    ).toBe('node_load1{instance=~".*"}');
+  });
+
+  test("an outside Prometheus: several values are an escaped alternation, one value as written", () => {
+    expect(
+      DataSourceQueryText.applyVariablesForSource({
+        dataSourceId: PROMETHEUS,
+        dataSourceType: DataSourceType.Prometheus,
+        queryText: 'up{namespace="{{namespace}}",job="{{job}}"}',
+        variables: [
+          variable({
+            name: "namespace",
+            isMultiSelect: true,
+            selectedValues: ["shop", "check.out"],
+          }),
+          variable({ name: "job", selectedValue: "api" }),
+        ],
+      }),
+    ).toBe('up{namespace=~"(shop|check\\\\.out)",job="api"}');
+  });
+
+  test("an outside Prometheus: a query with no variable, or with no variables given, comes back unchanged", () => {
+    for (const queryText of [
+      'sum by (job) (rate(http_requests_total{code=~"5.."}[5m]))',
+      "up",
+      'label_replace(up, "a", "$1", "instance", "(.*):.*")',
+    ]) {
+      for (const variables of [
+        [variable({ name: "node" })],
+        [],
+        undefined,
+      ] as Array<Array<DashboardVariable> | undefined>) {
+        expect(
+          DataSourceQueryText.applyVariablesForSource({
+            dataSourceId: PROMETHEUS,
+            dataSourceType: DataSourceType.Prometheus,
+            queryText,
+            variables,
+          }),
+        ).toBe(queryText);
+      }
+    }
+  });
+
+  test("an outside Loki, SQL or search source keeps applyVariables: several values joined with |, a variable with nothing picked left as written", () => {
+    const cluster: DashboardVariable = variable({
+      name: "cluster",
+      isMultiSelect: true,
+      selectedValues: ["eu-1", "us-2"],
+    });
+
+    for (const dataSourceType of [
+      DataSourceType.Loki,
+      DataSourceType.PostgreSQL,
+      DataSourceType.ClickHouse,
+      DataSourceType.Elasticsearch,
+      DataSourceType.RestApi,
+    ]) {
+      expect(
+        DataSourceQueryText.applyVariablesForSource({
+          dataSourceId: "6c7a8b9c-0000-4000-8000-000000000003",
+          dataSourceType,
+          queryText: '{cluster=~"{{cluster}}", node="{{node}}"}',
+          variables: [cluster, variable({ name: "node" })],
+        }),
+      ).toBe('{cluster=~"eu-1|us-2", node="{{node}}"}');
+    }
+  });
+
+  test("an outside Prometheus fills the same as the project's own metrics, for any variables", () => {
+    const random: SeededRandom = seededRandom(10326);
+    const values: Array<string> = ["a", "b.c", "d|e", "f\\g", 'h"i', "*", ""];
+    const queries: Array<string> = [
+      'up{job="{{v}}"}',
+      'up{job=~"{{v}}"}',
+      'up{job!="{{v}}"}',
+      'rate(x{a="{{v}}",b=~"pre-{{v}}"}[5m])',
+      'sum by ({{v}}) (up{job="{{v}}"})',
+      "up{job='{{v}}'}",
+    ];
+
+    for (let draw: number = 0; draw < 500; draw++) {
+      const picked: Array<string> = values.filter((): boolean => {
+        return random(2) === 1;
+      });
+      const isMultiSelect: boolean = random(2) === 1;
+      const v: DashboardVariable = variable({
+        name: "v",
+        isMultiSelect,
+        ...(isMultiSelect
+          ? { selectedValues: picked }
+          : picked[0]
+            ? { selectedValue: picked[0] }
+            : {}),
+      });
+      const queryText: string = queries[random(queries.length)] as string;
+
+      expect(
+        DataSourceQueryText.applyVariablesForSource({
+          dataSourceId: PROMETHEUS,
+          dataSourceType: DataSourceType.Prometheus,
+          queryText,
+          variables: [v],
+        }),
+      ).toBe(
+        DataSourceQueryText.applyVariablesForSource({
+          dataSourceId: PROJECT_METRICS_DATA_SOURCE_ID,
+          queryText,
+          variables: [v],
+        }),
+      );
+    }
   });
 });
