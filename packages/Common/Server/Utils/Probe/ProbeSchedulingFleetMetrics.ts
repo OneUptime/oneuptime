@@ -160,8 +160,14 @@ export function aggregateProbeScheduling(
     view.queueDepth += work?.waiting || 0;
     view.running += work?.running || 0;
     view.slots += work?.maxConcurrentRequests || 0;
-    view.slotWaitP95Ms = Math.max(view.slotWaitP95Ms, work?.slotWaitMs.p95 || 0);
-    view.slotWaitMaxMs = Math.max(view.slotWaitMaxMs, work?.slotWaitMs.max || 0);
+    view.slotWaitP95Ms = Math.max(
+      view.slotWaitP95Ms,
+      work?.slotWaitMs.p95 || 0,
+    );
+    view.slotWaitMaxMs = Math.max(
+      view.slotWaitMaxMs,
+      work?.slotWaitMs.max || 0,
+    );
     view.refusalsPerMinute +=
       ((work?.refused || 0) + (tests?.refused || 0)) * perMinute;
     view.monitorTestQueueDepth += tests?.waiting || 0;
@@ -354,7 +360,9 @@ export class ProbeSchedulingFleetMetrics {
 
       return aggregateProbeScheduling(snapshots, true);
     } catch (error) {
-      logger.debug("Could not read the App replicas' probe scheduling metrics.");
+      logger.debug(
+        "Could not read the App replicas' probe scheduling metrics.",
+      );
       logger.debug(error);
       return aggregateProbeScheduling([own], false);
     }

@@ -340,8 +340,7 @@ export default class AppMetrics {
    */
 
   private static probeSchedulingSlotWait: TelemetryHistogram | null = null;
-  private static probeSchedulingRefusedCounter: TelemetryCounter | null =
-    null;
+  private static probeSchedulingRefusedCounter: TelemetryCounter | null = null;
   private static probeDispatchLag: TelemetryHistogram | null = null;
   private static probeMonitorTestWait: TelemetryHistogram | null = null;
   private static probeSchedulingGaugesRegistered: boolean = false;
@@ -355,11 +354,10 @@ export default class AppMetrics {
    * monitor within seconds of it being due; one a whole interval late has
    * skipped a check.
    */
-  public static readonly PROBE_LATENESS_BUCKETS_IN_MS: ReadonlyArray<number> =
-    [
-      500, 1000, 2000, 5000, 10000, 15000, 20000, 30000, 45000, 60000, 90000,
-      120000, 300000, 600000, 1800000, 3600000,
-    ];
+  public static readonly PROBE_LATENESS_BUCKETS_IN_MS: ReadonlyArray<number> = [
+    500, 1000, 2000, 5000, 10000, 15000, 20000, 30000, 45000, 60000, 90000,
+    120000, 300000, 600000, 1800000, 3600000,
+  ];
 
   public static getProbeSchedulingSlotWait(): TelemetryHistogram {
     if (!this.probeSchedulingSlotWait) {
@@ -426,10 +424,7 @@ export default class AppMetrics {
   public static registerProbeSchedulingGauges(
     read: () => Array<{ lane: string; running: number; waiting: number }>,
   ): void {
-    if (
-      this.probeSchedulingGaugesRegistered ||
-      !Telemetry.isMetricsEnabled()
-    ) {
+    if (this.probeSchedulingGaugesRegistered || !Telemetry.isMetricsEnabled()) {
       return;
     }
 

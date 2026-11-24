@@ -117,8 +117,9 @@ export function computeConnectionShares(
 
   const probeSchedulingMaxConcurrentMonitorTestRequests: number = Math.min(
     poolSize,
-    positiveWholeNumber(input.probeSchedulingMaxConcurrentMonitorTestRequests) ??
-      defaultMonitorTestRequests(poolSize),
+    positiveWholeNumber(
+      input.probeSchedulingMaxConcurrentMonitorTestRequests,
+    ) ?? defaultMonitorTestRequests(poolSize),
   );
 
   // Both lanes of probe scheduling together.

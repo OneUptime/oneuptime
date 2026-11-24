@@ -236,7 +236,9 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       test("appears exactly once and binds the shared active list", async () => {
         const { select } = await captureClaim();
 
-        expect([...getBoundStatusList(select, column, PREDICATES_IN_CLAIM)].sort()).toEqual(
+        expect(
+          [...getBoundStatusList(select, column, PREDICATES_IN_CLAIM)].sort(),
+        ).toEqual(
           [...SubscriptionStatusUtil.getActiveSubscriptionStatuses()].sort(),
         );
       });
@@ -302,12 +304,10 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
         (await captureClaim([], "50" as unknown as number)).select
           .parameters[2],
       ).toBe(50);
-      expect(
-        (await captureClaim([], Number.NaN)).select.parameters[2],
-      ).toBe(1);
-      expect(
-        (await captureClaim([], 1_000_000)).select.parameters[2],
-      ).toBe(MAX_MONITOR_PROBES_PER_CLAIM);
+      expect((await captureClaim([], Number.NaN)).select.parameters[2]).toBe(1);
+      expect((await captureClaim([], 1_000_000)).select.parameters[2]).toBe(
+        MAX_MONITOR_PROBES_PER_CLAIM,
+      );
     });
 
     test("uses every bound parameter and no unbound placeholder", async () => {

@@ -49,7 +49,9 @@ describe("ProbeSchedulingMetrics", () => {
     expect(PROBE_SCHEDULING_METRICS_WINDOW_SECONDS).toBe(60);
     expect(SLOT_WAIT_BUCKETS_IN_MS).toContain(5000);
     expect(LATENESS_BUCKETS_IN_SECONDS).toContain(60);
-    expect(LATENESS_BUCKETS_IN_SECONDS[LATENESS_BUCKETS_IN_SECONDS.length - 1]).toBe(3600);
+    expect(
+      LATENESS_BUCKETS_IN_SECONDS[LATENESS_BUCKETS_IN_SECONDS.length - 1],
+    ).toBe(3600);
   });
 
   test("a fresh replica reports both lanes idle and nothing handed out", () => {
@@ -111,9 +113,10 @@ describe("ProbeSchedulingMetrics", () => {
     );
 
     const snapshot: ProbeSchedulingMetricsSnapshot = metrics.snapshot();
-    expect(snapshot.lanes[ProbeSchedulingLane.Work]!.slotWaitMs).toMatchObject(
-      { count: 2, max: 4800 },
-    );
+    expect(snapshot.lanes[ProbeSchedulingLane.Work]!.slotWaitMs).toMatchObject({
+      count: 2,
+      max: 4800,
+    });
     expect(snapshot.lanes[ProbeSchedulingLane.Work]).toMatchObject({
       refused: 3,
       refusedQueueFull: 1,

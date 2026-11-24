@@ -79,7 +79,11 @@ async function claimAndReadNextPingAt(
   const update: CapturedStatement | undefined = scheduleStatementOf(statements);
 
   if (!update) {
-    return { nextPingAt: claim.parameters[6] as Date, now: before, update: claim };
+    return {
+      nextPingAt: claim.parameters[6] as Date,
+      now: before,
+      update: claim,
+    };
   }
 
   const nextPingAts: Array<string> = update.parameters[1] as Array<string>;

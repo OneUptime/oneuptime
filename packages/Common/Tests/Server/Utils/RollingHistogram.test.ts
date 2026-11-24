@@ -17,7 +17,10 @@ import { afterEach, describe, expect, jest, test } from "@jest/globals";
 const BOUNDS: Array<number> = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000];
 
 // A clock the test moves by hand.
-function clockAt(startMs: number): { now: () => number; move: (ms: number) => void } {
+function clockAt(startMs: number): {
+  now: () => number;
+  move: (ms: number) => void;
+} {
   let current: number = startMs;
   return {
     now: (): number => {

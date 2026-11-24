@@ -141,9 +141,8 @@ describe("MonitorProbeSchedules", () => {
     const schedules: MonitorProbeSchedules = new MonitorProbeSchedules(
       realResolver(),
     );
-    const intervalInSeconds: SpyInstance<
-      typeof CronTab.getIntervalInSeconds
-    > = jest.spyOn(CronTab, "getIntervalInSeconds");
+    const intervalInSeconds: SpyInstance<typeof CronTab.getIntervalInSeconds> =
+      jest.spyOn(CronTab, "getIntervalInSeconds");
 
     expect(schedules.getIntervalInMs("* * * * *")).toBe(60_000);
     expect(schedules.getIntervalInMs("*/5 * * * *")).toBe(300_000);

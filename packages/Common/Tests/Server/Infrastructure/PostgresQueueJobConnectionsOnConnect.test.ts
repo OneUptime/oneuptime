@@ -99,7 +99,9 @@ describe("PostgresDatabase.connect() and the queue jobs' share of the pool", () 
       expect.stringContaining("so requests always have 10"),
     );
     expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining("PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS"),
+      expect.stringContaining(
+        "PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS",
+      ),
     );
   });
 });

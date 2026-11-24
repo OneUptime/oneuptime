@@ -687,7 +687,13 @@ describe("KeyedConcurrencyLimiter", () => {
       // busy-5 and busy-6 came first, but busy holds 4 and quiet none.
       busy[0]!.finish();
       await settle();
-      expect(order).toEqual(["busy-1", "busy-2", "busy-3", "busy-4", "quiet-1"]);
+      expect(order).toEqual([
+        "busy-1",
+        "busy-2",
+        "busy-3",
+        "busy-4",
+        "quiet-1",
+      ]);
 
       // quiet has nothing waiting: the next slot is busy's, so none idles.
       busy[1]!.finish();

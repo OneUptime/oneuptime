@@ -51,8 +51,7 @@ export const SLOT_WAIT_BUCKETS_IN_MS: ReadonlyArray<number> = [
  * check, up to an hour when they fell far behind.
  */
 export const LATENESS_BUCKETS_IN_SECONDS: ReadonlyArray<number> = [
-  0.5, 1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900, 1800,
-  3600,
+  0.5, 1, 2, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 300, 600, 900, 1800, 3600,
 ];
 
 export interface ProbeSchedulingLaneState {

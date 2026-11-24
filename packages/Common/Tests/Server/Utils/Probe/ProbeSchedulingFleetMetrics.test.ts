@@ -48,7 +48,11 @@ class FakeValkey implements ProbeSchedulingFleetClient {
     return hash;
   }
 
-  public async hset(key: string, field: string, value: string): Promise<number> {
+  public async hset(
+    key: string,
+    field: string,
+    value: string,
+  ): Promise<number> {
     this.hash(key).set(field, value);
     return 1;
   }
@@ -253,7 +257,10 @@ describe("ProbeSchedulingFleetMetrics", () => {
     const written: string | undefined = valkey.hashes
       .get(PROBE_SCHEDULING_METRICS_KEY)
       ?.get("app-7:42");
-    expect(JSON.parse(written!)).toMatchObject({ replica: "app-7:42", at: 1_000 });
+    expect(JSON.parse(written!)).toMatchObject({
+      replica: "app-7:42",
+      at: 1_000,
+    });
     expect(valkey.expiries.get(PROBE_SCHEDULING_METRICS_KEY)).toBe(300);
   });
 
@@ -367,9 +374,9 @@ describe("ProbeSchedulingFleetMetrics", () => {
       queueDepth: 0,
       dispatchLagP95Seconds: 0,
     });
-    expect(
-      valkey.hashes.get(PROBE_SCHEDULING_METRICS_KEY)!.has("gone"),
-    ).toBe(false);
+    expect(valkey.hashes.get(PROBE_SCHEDULING_METRICS_KEY)!.has("gone")).toBe(
+      false,
+    );
   });
 
   test("an entry that is not a replica's view is ignored and removed", async () => {

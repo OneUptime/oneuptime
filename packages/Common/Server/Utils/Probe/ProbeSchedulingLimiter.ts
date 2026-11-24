@@ -219,9 +219,11 @@ export class ProbeSchedulingLimiter {
     }
 
     this.metrics = metrics;
-    this.metrics.observe((lane: ProbeSchedulingLane): ProbeSchedulingLaneState => {
-      return this.laneState(lane);
-    });
+    this.metrics.observe(
+      (lane: ProbeSchedulingLane): ProbeSchedulingLaneState => {
+        return this.laneState(lane);
+      },
+    );
   }
 
   private lane(lane: ProbeSchedulingLane | undefined): KeyedConcurrencyLimiter {
