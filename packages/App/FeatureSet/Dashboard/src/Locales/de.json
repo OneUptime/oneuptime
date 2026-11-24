@@ -63078,5 +63078,14 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Das Produkt Sicherheitsereignisse ist auf diesem Server ausgeschaltet, deshalb hat OneUptime AI aufgehört, den Fall zu bearbeiten.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Das Produkt Sicherheitsereignisse ist auf diesem Server ausgeschaltet. Ein Server-Administrator kann es unter Admin-Dashboard > Einstellungen > Produkte einschalten.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} von {{total}} ausgewählt",
-  "Change Failed At": "Änderung fehlgeschlagen am"
+  "Change Failed At": "Änderung fehlgeschlagen am",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Eine benutzerdefinierte Sonde, die Ihnen gehört, läuft mit einer Version, die eine Hauptversion oder mehr älter ist als OneUptime. Wird einmal pro Hauptversion gesendet, mit dem, was der Sonde bis zu ihrer Aktualisierung fehlt.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Fügen Sie ein Teammitglied oder ein Team hinzu, damit diese benachrichtigt werden, wenn sich der Status dieser Sonde ändert oder sie eine Hauptversion zurückfällt. Bis dahin werden die Projektinhaber benachrichtigt.",
+  "Check-In Address": "Meldeadresse",
+  "Interface Addresses": "Schnittstellenadressen",
+  "Major Version Behind Notified For": "Benachrichtigt für Rückstand auf Hauptversion",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personen und Teams, die Eigentümer dieser Sonde sind. Sie werden benachrichtigt, wenn sich ihr Status ändert, und einmal, wenn sie eine Hauptversion hinter OneUptime zurückfällt.",
+  "Probe a major release behind": "Sonde eine Hauptversion zurück",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie."
 }

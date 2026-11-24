@@ -63078,5 +63078,14 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Продукт «События безопасности» отключён на этом сервере, поэтому OneUptime AI перестал работать над кейсом.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты».",
   "{{ticked}} of {{total}} ticked": "Отмечено: {{ticked}} из {{total}}",
-  "Change Failed At": "Время сбоя изменения"
+  "Change Failed At": "Время сбоя изменения",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Принадлежащий вам пользовательский зонд работает на версии, отстающей от OneUptime на основной выпуск или больше. Отправляется один раз для каждого основного выпуска и сообщает, чего зонду не хватает до обновления.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Добавьте коллегу или команду, чтобы они получали оповещение при изменении статуса этого зонда или при его отставании на основной выпуск. До тех пор оповещение получают владельцы проекта.",
+  "Check-In Address": "Адрес выхода на связь",
+  "Interface Addresses": "Адреса интерфейсов",
+  "Major Version Behind Notified For": "Оповещено об отставании на основной выпуск для",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Люди и команды, которые владеют этим зондом. Они получают оповещение при изменении его статуса и один раз — когда он отстаёт от OneUptime на основной выпуск.",
+  "Probe a major release behind": "Зонд отстаёт на основной выпуск",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Адреса сетевых интерфейсов этого зонда и, если они ему переданы, адреса его хоста — в том виде, в каком зонд перечисляет их при каждом выходе на связь. События безопасности откладывают в сторону собственные опросы, обнаружение и проверки мониторов зонда с этих адресов, а список блокировки никогда их не блокирует.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует."
 }

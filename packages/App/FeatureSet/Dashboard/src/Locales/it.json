@@ -63078,5 +63078,14 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Il prodotto Eventi di sicurezza è disattivato su questo server, quindi OneUptime AI ha smesso di gestire il caso.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Il prodotto Eventi di sicurezza è disattivato su questo server. Un amministratore del server può attivarlo in Dashboard amministratore > Impostazioni > Prodotti.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} di {{total}} selezionati",
-  "Change Failed At": "Modifica non riuscita il"
+  "Change Failed At": "Modifica non riuscita il",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "Una sonda personalizzata di tua proprietà esegue una versione più vecchia di una o più versioni principali rispetto a OneUptime. Inviata una volta per ogni versione principale, con ciò che manca alla sonda finché non viene aggiornata.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Aggiungi un collega o un team perché ricevano un avviso quando lo stato di questa sonda cambia o resta indietro di una versione principale. Fino ad allora ricevono l'avviso i proprietari del progetto.",
+  "Check-In Address": "Indirizzo di comunicazione",
+  "Interface Addresses": "Indirizzi delle interfacce",
+  "Major Version Behind Notified For": "Ritardo di versione principale notificato per",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Persone e team proprietari di questa sonda. Ricevono un avviso quando il suo stato cambia, e una volta quando resta indietro di una versione principale rispetto a OneUptime.",
+  "Probe a major release behind": "Sonda indietro di una versione principale",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Gli indirizzi delle interfacce di rete di questa sonda, e quelli del suo host quando le vengono indicati, come la sonda li elenca ogni volta che comunica. Eventi di sicurezza mette da parte le interrogazioni, le scoperte e i controlli dei monitor propri della sonda che partono da questi indirizzi, e la blocklist non li blocca mai.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "L'indirizzo da cui OneUptime vede comunicare questa sonda. La blocklist non lo blocca mai."
 }

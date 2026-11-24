@@ -63078,5 +63078,14 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produktet Sikkerhedshændelser er slået fra på denne server, så OneUptime AI holdt op med at arbejde med sagen.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produktet Sikkerhedshændelser er slået fra på denne server. En serveradministrator kan slå det til under Admin-dashboard > Indstillinger > Produkter.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} af {{total}} markeret",
-  "Change Failed At": "Ændring mislykkedes den"
+  "Change Failed At": "Ændring mislykkedes den",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "En tilpasset sonde, du ejer, kører en version, der er en hovedversion eller mere ældre end OneUptime. Sendes én gang for hver hovedversion med det, sonden mangler, indtil den bliver opdateret.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Tilføj en kollega eller et team, så de adviseres, når denne sondes status ændres, eller den kommer en hovedversion bagud. Indtil da adviseres projektejerne.",
+  "Check-In Address": "Meldeadresse",
+  "Interface Addresses": "Grænsefladeadresser",
+  "Major Version Behind Notified For": "Adviseret om hovedversion bagud for",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personer og teams, der ejer denne sonde. De adviseres, når dens status ændres, og én gang, når den kommer en hovedversion bagud for OneUptime.",
+  "Probe a major release behind": "Sonde en hovedversion bagud",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserne på denne sondes netværksgrænseflader og på dens vært, når den får dem oplyst, som sonden angiver dem, hver gang den melder sig. Sikkerhedshændelser lægger sondens egne forespørgsler, opdagelser og monitortjek fra disse adresser til side, og blokeringslisten blokerer dem aldrig.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Den adresse, OneUptime ser denne sonde melde sig fra. Blokeringslisten blokerer den aldrig."
 }

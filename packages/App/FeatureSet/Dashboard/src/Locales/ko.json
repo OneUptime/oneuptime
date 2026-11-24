@@ -63078,5 +63078,14 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "보안 이벤트가 이 서버에서 꺼져 있어 OneUptime AI가 케이스 처리를 멈췄습니다.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "보안 이벤트가 이 서버에서 꺼져 있습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다.",
   "{{ticked}} of {{total}} ticked": "{{total}}개 중 {{ticked}}개 선택됨",
-  "Change Failed At": "변경 실패 일시"
+  "Change Failed At": "변경 실패 일시",
+  "A custom probe you own runs a release a major release or more older than OneUptime. Sent once for each major release, with what the probe misses until it is updated.": "소유한 사용자 지정 프로브가 OneUptime보다 메이저 릴리스 하나 이상 오래된 버전으로 실행되고 있습니다. 메이저 릴리스마다 한 번, 업데이트될 때까지 프로브에 없는 기능과 함께 전송됩니다.",
+  "Add a teammate or a team so they are alerted when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "이 프로브의 상태가 변경되거나 메이저 릴리스 하나만큼 뒤처질 때 경고를 받을 수 있도록 팀원이나 팀을 추가하세요. 그때까지는 프로젝트 소유자가 경고를 받습니다.",
+  "Check-In Address": "체크인 주소",
+  "Interface Addresses": "인터페이스 주소",
+  "Major Version Behind Notified For": "메이저 릴리스 뒤처짐 알림 대상",
+  "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "이 프로브를 소유한 사람과 팀입니다. 상태가 변경되면 경고를 받고, OneUptime보다 메이저 릴리스 하나만큼 뒤처지면 한 번 경고를 받습니다.",
+  "Probe a major release behind": "프로브가 메이저 릴리스 하나 뒤처짐",
+  "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다."
 }
