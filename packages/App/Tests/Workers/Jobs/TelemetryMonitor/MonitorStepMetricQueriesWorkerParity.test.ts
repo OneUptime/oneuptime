@@ -82,6 +82,7 @@ import {
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
+  monitorXcpNg,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
@@ -348,6 +349,31 @@ const CASES: Array<WorkerCase> = [
           }) as string,
           bucketName: maybe(random, () => {
             return textOf(random);
+          }) as string,
+        }),
+      });
+    },
+  },
+  {
+    monitorType: MonitorType.XcpNg,
+    run: monitorXcpNg,
+    settings: (random: SeededRandom): JSONObject => {
+      return withoutUndefined({
+        // A pool's UUID as a person may paste it: in capitals, with spaces.
+        poolIdentifier: maybe(random, () => {
+          return random(2) === 0
+            ? textOf(random)
+            : ` ${textOf(random).toUpperCase()} `;
+        }) as string,
+        resourceFilters: withoutUndefined({
+          scope: maybe(random, () => {
+            return ["host", "vm", "sr", "vdi", " VM ", "  "][random(6)];
+          }) as string,
+          xcpNgId: maybe(random, () => {
+            return random(2) === 0 ? textOf(random).toUpperCase() : random(9);
+          }) as string,
+          hostName: maybe(random, () => {
+            return ` ${textOf(random).toUpperCase()} `;
           }) as string,
         }),
       });

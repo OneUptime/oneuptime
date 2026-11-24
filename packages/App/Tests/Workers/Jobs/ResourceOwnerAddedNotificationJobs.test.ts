@@ -180,6 +180,9 @@ import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayOwnerTeamService from "Common/Server/Services/StorageArrayOwnerTeamService";
 import StorageArrayOwnerUserService from "Common/Server/Services/StorageArrayOwnerUserService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import XcpNgPoolOwnerTeamService from "Common/Server/Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService from "Common/Server/Services/XcpNgPoolOwnerUserService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
 import IoTFleetOwnerTeamService from "Common/Server/Services/IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "Common/Server/Services/IoTFleetOwnerUserService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
@@ -232,6 +235,7 @@ import "../../../FeatureSet/Workers/Jobs/OpenStackCloudOwners/SendOwnerAddedNoti
 import "../../../FeatureSet/Workers/Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CephClusterOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/XcpNgPoolOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
@@ -506,6 +510,21 @@ const CASES: Array<JobCase> = [
     noun: "storage array",
     title: "Storage Array",
     path: "storage-arrays",
+  },
+  {
+    record: "XcpNgPool",
+    jobName: "XcpNgPoolOwner:SendOwnerAddedNotification",
+    kind: OwnerNotificationKind.XcpNgPoolOwnerAdded,
+    eventType:
+      NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
+    ownerTable: "XcpNgPoolOwnerUser",
+    recordIdColumn: "xcpNgPoolId",
+    teamService: XcpNgPoolOwnerTeamService,
+    userService: XcpNgPoolOwnerUserService,
+    recordService: XcpNgPoolService,
+    noun: "XCP-ng pool",
+    title: "XCP-ng Pool",
+    path: "xcp-ng",
   },
   {
     record: "IoTFleet",
@@ -1100,6 +1119,7 @@ describe("the events the owners are told through", () => {
           "VMwareVCenter",
           "CephCluster",
           "StorageArray",
+          "XcpNgPool",
           "IoTFleet",
           "CloudResource",
           "ServerlessFunction",
@@ -1153,7 +1173,7 @@ describe("the Workers", () => {
           return jobCase.kind;
         }),
       ).size,
-    ).toBe(26);
+    ).toBe(27);
   });
 });
 
