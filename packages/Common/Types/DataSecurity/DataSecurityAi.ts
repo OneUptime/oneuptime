@@ -15,8 +15,10 @@ import SecuritySeverity from "../SecuritySeverity";
  *   - Contain: stop the data spreading while the cause is fixed - a scrub
  *     rule for telemetry, and later a response action on a cloud store.
  *   - Fix: a pull request that fixes the cause in code.
- *   - Judge: a verdict on a finding, an owner for a store (#10374) - and
- *     the owner rule that keeps stores like it owned.
+ *   - Judge: a verdict on a finding (#10372), an owner for a store
+ *     (#10374) - and the owner rule that keeps stores like it owned - and
+ *     what the team's decisions say of its scans: a data type to turn off,
+ *     a location to leave out.
  *
  * Autonomy is a dial per kind of work (DataSecurityAiAutonomy): Off,
  * Suggest (a proposal waits for a person) or Without asking. The project's
@@ -40,9 +42,14 @@ import SecuritySeverity from "../SecuritySeverity";
  *     set back with one press;
  *   - a change of who can reach data runs without asking only where a rule
  *     names that very action, never by default;
- *   - deleting or dropping data, paging people, and changing who is told
+ *   - deleting or dropping data, paging people, changing who is told
  *     about a store - an owner, who gets its email and its issues, and to
- *     whom the wrong one leaks what the store holds (#10374) - always ask.
+ *     whom the wrong one leaks what the store holds (#10374) - and changing
+ *     what the scans look for (#10372) always ask;
+ *   - and OneUptime AI never marks a finding not sensitive, under any rule
+ *     (#10372): no kind of change below does it, and the finding's own
+ *     service refuses OneUptime's own write that would
+ *     (DataStoreFindingService).
  *
  * A riskier change - one that changes access, deletes or pages - needs two
  * people to approve it where the project asks for two
@@ -231,6 +238,12 @@ export enum DataSecurityAiChangeSafety {
    * ChangesAccess instead, and asks for the same reason.
    */
   ChangesCloudSettings = "ChangesCloudSettings",
+  /*
+   * Changes what the project's scans look for: a data type turned off, a
+   * location of a store left out (#10372). A scan that stops looking
+   * misses the real data that comes later, so a person always approves it.
+   */
+  ChangesWhatScansLookFor = "ChangesWhatScansLookFor",
 }
 
 // The changes that never run without asking, whatever a rule says.
@@ -240,6 +253,7 @@ export const DATA_SECURITY_AI_ALWAYS_ASKS: ReadonlyArray<DataSecurityAiChangeSaf
     DataSecurityAiChangeSafety.Pages,
     DataSecurityAiChangeSafety.ChangesWhoIsTold,
     DataSecurityAiChangeSafety.ChangesCloudSettings,
+    DataSecurityAiChangeSafety.ChangesWhatScansLookFor,
   ];
 
 /*
@@ -358,6 +372,24 @@ export enum DataSecurityAiProposalKind {
    * break, is left out.
    */
   FixIssueGroupInCloud = "FixIssueGroupInCloud",
+  /*
+   * OneUptime AI's Confirm verdicts on a store's findings that wait for a
+   * person (#10372), made on its own only where an AI rule sets Judge to
+   * Without asking: each counts as High, as a person's confirmation does,
+   * and Undo takes it back. For the store, no issue. There is no kind that
+   * marks a finding not sensitive: a person always does.
+   */
+  ConfirmFindings = "ConfirmFindings",
+  /*
+   * A built-in data type every finding of which the project marked not
+   * sensitive, turned off in its scans (#10372). For the project.
+   */
+  TurnOffDataType = "TurnOffDataType",
+  /*
+   * A location of a store every finding at which was marked not sensitive,
+   * left out of its scans (#10372). For the store.
+   */
+  AddScanExclusion = "AddScanExclusion",
 }
 
 // The kinds of change that fix a group of issues' cause, for the group alone (#10370).
@@ -395,6 +427,30 @@ export function isDataSecurityAiOwnerProposalKind(
 ): boolean {
   return (
     DATA_SECURITY_AI_OWNER_PROPOSAL_KINDS as ReadonlyArray<string | undefined>
+  ).includes(kind);
+}
+
+/*
+ * The kinds of change about the project's findings and what its scans look
+ * for (#10372): each is for a store or for the project, never an issue.
+ * The scans' tuning (TurnOffDataType, AddScanExclusion) always asks;
+ * ConfirmFindings is made only without asking, where a rule allows it - a
+ * verdict otherwise waits on its finding's row.
+ */
+export const DATA_SECURITY_AI_FINDING_PROPOSAL_KINDS: ReadonlyArray<DataSecurityAiProposalKind> =
+  [
+    DataSecurityAiProposalKind.ConfirmFindings,
+    DataSecurityAiProposalKind.TurnOffDataType,
+    DataSecurityAiProposalKind.AddScanExclusion,
+  ];
+
+export function isDataSecurityAiFindingProposalKind(
+  kind: DataSecurityAiProposalKind | string | undefined,
+): boolean {
+  return (
+    DATA_SECURITY_AI_FINDING_PROPOSAL_KINDS as ReadonlyArray<
+      string | undefined
+    >
   ).includes(kind);
 }
 
@@ -437,6 +493,21 @@ export const DATA_SECURITY_AI_PROPOSAL_KINDS: Readonly<
     kind: DataSecurityAiProposalKind.FixIssueGroupInCloud,
     work: DataSecurityAiWork.Fix,
     safety: DataSecurityAiChangeSafety.ChangesCloudSettings,
+  },
+  [DataSecurityAiProposalKind.ConfirmFindings]: {
+    kind: DataSecurityAiProposalKind.ConfirmFindings,
+    work: DataSecurityAiWork.Judge,
+    safety: DataSecurityAiChangeSafety.RecordsJudgement,
+  },
+  [DataSecurityAiProposalKind.TurnOffDataType]: {
+    kind: DataSecurityAiProposalKind.TurnOffDataType,
+    work: DataSecurityAiWork.Judge,
+    safety: DataSecurityAiChangeSafety.ChangesWhatScansLookFor,
+  },
+  [DataSecurityAiProposalKind.AddScanExclusion]: {
+    kind: DataSecurityAiProposalKind.AddScanExclusion,
+    work: DataSecurityAiWork.Judge,
+    safety: DataSecurityAiChangeSafety.ChangesWhatScansLookFor,
   },
 };
 

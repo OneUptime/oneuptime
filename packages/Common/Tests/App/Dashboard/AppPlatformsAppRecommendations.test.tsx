@@ -202,6 +202,22 @@ function stubNetwork(scenario: AppPageScenario): void {
         return { data, count: data.length, skip: 0, limit: 100 };
       },
     );
+
+  // No AWS account is connected: the ECS service's look-up ends there.
+  jest.spyOn(ModelAPI, "count").mockImplementation(async () => {
+    return 0;
+  });
+}
+
+// Let the page's reads - its platform's look-up among them - finish.
+async function settle(): Promise<void> {
+  for (let tick: number = 0; tick < 5; tick++) {
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void): void => {
+        setTimeout(resolve, 0);
+      });
+    });
+  }
 }
 
 async function renderAppPage(scenario: AppPageScenario): Promise<void> {
@@ -219,6 +235,7 @@ async function renderAppPage(scenario: AppPageScenario): Promise<void> {
   );
 
   await screen.findByTestId("cloud-app-header");
+  await settle();
 }
 
 function tab(name: string): HTMLElement {

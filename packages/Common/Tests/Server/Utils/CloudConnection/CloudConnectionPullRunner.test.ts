@@ -1831,10 +1831,12 @@ describe("a streaming account's readings, from its streams", () => {
  * #10407: an App Service app keeps the site it is tied to. An Azure read
  * lists, creates and archives sites - a site deleted from its subscription,
  * or moved, which gives it a new id - so once it has kept them, the
- * project's App Service apps are tied to their sites again. Never on
- * another cloud's read, and never at the cost of the read.
+ * project's App Service apps are tied to their sites again. Since #6794 a
+ * Google Cloud read does the same for Cloud Run and App Engine services and
+ * an AWS read for App Runner and ECS services: every cloud's read links.
+ * Never at the cost of the read.
  */
-describe("an Azure read ties the project's App Service apps to their sites", () => {
+describe("a read ties the project's apps to the cloud resources they run as", () => {
   async function runLinking(
     link: (data: { projectId: ObjectID }) => Promise<unknown>,
   ): Promise<CloudConnectionPullOutcome> {
@@ -1873,7 +1875,7 @@ describe("an Azure read ties the project's App Service apps to their sites", () 
     expect(order.indexOf("link")).toBeGreaterThan(order.indexOf("readings"));
   });
 
-  test("not on another cloud's read", async () => {
+  test("on every other cloud's read too: an AWS read lists App Runner and ECS services, a Google Cloud one Cloud Run and App Engine services (#6794)", async () => {
     for (const provider of [CloudProvider.AWS, CloudProvider.GCP]) {
       connection.provider = provider;
       const asked: Array<string> = [];
@@ -1883,7 +1885,10 @@ describe("an Azure read ties the project's App Service apps to their sites", () 
         return 0;
       });
 
-      expect({ provider, asked }).toEqual({ provider, asked: [] });
+      expect({ provider, asked }).toEqual({
+        provider,
+        asked: [PROJECT.toString()],
+      });
     }
   });
 

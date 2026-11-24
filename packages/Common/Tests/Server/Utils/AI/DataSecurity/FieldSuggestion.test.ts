@@ -7,8 +7,10 @@ import DataSecurityFieldSuggestion, {
 } from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestion";
 import {
   FIELD_SUGGESTION_SYSTEM_PROMPT,
+  getFieldSuggestionInstructions,
   MAX_FIELDS_PER_SUGGESTION_REQUEST,
 } from "../../../../../Server/Utils/AI/DataSecurity/FieldSuggestionPrompt";
+import ProjectLanguage from "../../../../../Server/Utils/Notification/ProjectLanguage";
 import { DATA_SECURITY_AI_DATA_RULE } from "../../../../../Server/Utils/AI/DataSecurity/DataSecurityAiInput";
 import AIService, {
   AI_DATA_SECURITY_FIELD_SUGGESTION_FEATURE,
@@ -20,7 +22,10 @@ import Queue from "../../../../../Server/Infrastructure/Queue";
 import DataSecurityFindingWriter, {
   CustomDataTypeSummary,
 } from "../../../../../Server/Utils/DataSecurity/DataSecurityFindingWriter";
-import { DATA_SECURITY_EVALUATE_PROJECT_JOB } from "../../../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import {
+  DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  DATA_SECURITY_JUDGE_FINDINGS_JOB,
+} from "../../../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import DataSecurityRunner from "../../../../../Server/Utils/DataSecurity/DataSecurityRunner";
 import {
   DataStoreLocationKind,
@@ -77,6 +82,7 @@ let saveSpy: jest.SpyInstance;
 let queueSpy: jest.SpyInstance;
 let infoSpy: jest.SpyInstance;
 let warnSpy: jest.SpyInstance;
+let projectLanguage: string;
 
 function field(location: string, shape: string = "AA-999999"): UnplacedField {
   return {
@@ -178,6 +184,7 @@ function suggest(): Promise<FieldSuggestionOutcome> {
 beforeEach(() => {
   findings = [];
   aiEnabled = true;
+  projectLanguage = "en";
   answer = answerWith([]);
   disabledDataTypeIds = [];
   customTypes = new Map();
@@ -242,6 +249,11 @@ beforeEach(() => {
   infoSpy = jest.spyOn(logger, "info").mockImplementation(() => {
     return undefined as never;
   });
+  jest
+    .spyOn(ProjectLanguage, "getLanguage")
+    .mockImplementation((async () => {
+      return projectLanguage;
+    }) as never);
   warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {
     return undefined as never;
   });
@@ -301,12 +313,30 @@ describe("asking OneUptime AI", () => {
     });
     expect(saved.pending).toEqual([tax, kunde, code]);
 
-    // The store's evaluation follows what was written.
+    /*
+     * The store's evaluation follows what was written, and OneUptime AI's
+     * verdicts on the suggestions, which wait for a person (#10372).
+     */
     expect(
       queueSpy.mock.calls.map((call: Array<unknown>) => {
         return call[2];
       }),
-    ).toEqual([DATA_SECURITY_EVALUATE_PROJECT_JOB]);
+    ).toEqual([
+      DATA_SECURITY_EVALUATE_PROJECT_JOB,
+      DATA_SECURITY_JUDGE_FINDINGS_JOB,
+    ]);
+  });
+
+  test("asks for the reasons in the project's language (#6105)", async () => {
+    projectLanguage = "de";
+    store = storeWith({ pending: [field("t.kundennr")], answers: {} });
+
+    await suggest();
+
+    expect(request().messages[0]!.content).toBe(
+      `${getFieldSuggestionInstructions("de")}\n\n${DATA_SECURITY_AI_DATA_RULE}`,
+    );
+    expect(request().messages[0]!.content).toContain("written in German");
   });
 
   test("one constrained call: no retries, no previews in the AI Logs, the system message first", async () => {

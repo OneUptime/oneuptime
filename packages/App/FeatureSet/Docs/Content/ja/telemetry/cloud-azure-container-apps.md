@@ -288,7 +288,7 @@ az containerapp env telemetry otlp add \
 
 ## 得られるもの
 
-- **概要**: トレースから算出したリクエスト、エラー率、p95 レイテンシ。Container Apps はレプリカのリソース使用量をサイドカーに公開しないため、**CPU** と **メモリ** のタイルは、レプリカの識別子を持つ `container.cpu.utilization` と `container.memory.usage` のメトリクスを送った場合にだけ埋まります。ほとんどのチームは、これを Azure Monitor に任せています。
+- **概要**: トレースから算出したリクエスト、エラー率、p95 レイテンシ。Container Apps はレプリカのリソース使用量をサイドカーに公開しないため、**CPU** と **メモリ** のタイルは、レプリカの識別子を持つ `container.cpu.utilization` と `container.memory.usage` のメトリクスを送った場合にだけ埋まります。ほとんどのチームは、これを Azure Monitor に任せています。**クラウド → 接続** でサブスクリプションを接続すると、このタブに **Azure Monitor** セクションが加わり、アプリが何を送っていても、Azure が測定した Container App のリクエスト、応答時間、CPU、メモリ、再起動が表示されます。どれも読み取られていない間は、**セットアップ チェック** の **Azure Monitor 接続** の行が探している Container App を示します。
 - **インスタンス**: レプリカごとに一行。名前には、検出器の `azure.container_app.instance.id`、自分で設定した場合は `service.instance.id`、ホスト検出器だけが動いた場合は `host.name` が使われます。
 - 環境に絞り込まれた **ログ**、**トレース**、**メトリクス** と、**サービス** でのサービスごとのビュー。
 
