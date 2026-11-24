@@ -133,6 +133,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 可以用 `?format=`、`x-oneuptime-security-event-format` 標頭，或最上層的 `"format"` 欄位指定格式。不指定時，每個事件的格式會個別判斷，所以一個 Webhook 可以混合傳送偵測和原始事件。
 
 - 內文可以是一個事件、一個事件陣列，或 `{ "events": [...] }`。
+- 一個批次可以用 gzip 壓縮，並帶上 `Content-Encoding: gzip` 傳送：它會被當作未壓縮的同一批次讀取。Fluent Bit 的 `http` 輸出用 `compress gzip` 壓縮，Vector 的 `http` 接收器用 `compression = "gzip"`，Logstash 的 `http` 輸出用 `http_compression => true`。只有 JSON 會以壓縮形式讀取：其他類型的壓縮內文會以 `400` 被拒絕。
 - `x-oneuptime-service-name` 標頭指定事件所屬的遙測服務。沒有它時，事件屬於以第一個事件的產品或供應商命名的服務，或屬於 `Security Events`。
 - 不會因為無法對應而捨棄任何內容：來源的每個欄位都會進入事件的屬性。
 
@@ -174,6 +175,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ curl -X POST "https://oneuptime.com/security-events/v1/ingest" \
 
 ### 在日誌中尋找安全性事件
 
-**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Palo Alto Networks、FortiGate 或 Cisco ASA 防火牆的記錄、Kubernetes 稽核記錄和 Web 攻擊都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
+**連線** 頂端的 **你的日誌** 會把您已經傳送到 OneUptime 的日誌變成一個來源。開啟 **在日誌中尋找安全事件** 後，專案的新日誌每分鐘都會被讀取，其中的每次 SSH 或 Windows 登入、sudo 命令、雲端稽核記錄、安全性產品的 CEF 或 LEEF 記錄、Palo Alto Networks、FortiGate 或 Cisco ASA 防火牆的記錄、Kubernetes 稽核記錄、Web 攻擊和被拒絕的敏感檔案請求都會儲存為安全性事件。各類內容的範圍請參閱 [安全性入門](/docs/telemetry/security-getting-started#在日誌中尋找安全性事件)。
 
 每一類都以一般日誌的形式到達 OneUptime：
 
@@ -297,6 +299,8 @@ Key Vault、儲存體帳戶和 Azure SQL 資料庫各自保留一份自己的稽
 - **概覽** 會指出隱藏安全性事件所讀取位址的規則，同樣提供 **開啟清理規則**。
 
 執行雜湊的規則會為安全性事件保存位址，因此事件會指出該位址，除非其權杖已超過 30 天，或是在權杖有金鑰之前產生的：請參閱[清理敏感資料](/docs/telemetry/drop-filters-and-scrub-rules#清理敏感資料)。要找到這些事件，請搜尋 `@oneuptime.request.client_address_hidden:scrub-rule`。規則在位址處留下的內容（例如 `[REDACTED]`）保存在 `oneuptime.request.client_address_scrubbed` 中。對於目標位址，請搜尋 `@oneuptime.target_address_hidden:scrub-rule`。
+
+按位址計數的偵測規則應按 `principalIp` 或 `targetIp` 計數，就像規則庫中的規則那樣：它們會指出執行雜湊的規則所產生權杖背後的位址。某種格式自身的位址欄位，例如 `openstack.audit.initiator_address` 或 `asa.src_ip`，只保存日誌寫下的位址，因此在清理規則隱藏了位址的地方，它會保持為空。
 
 清除或遮蓋使用者的規則也會以同樣的方式隱藏使用者：凡是事件原本應指出使用者的地方，**來源使用者** 或 **目標使用者** 都會說明是某條清理規則隱藏了該使用者。在安全性事件讀取使用者的位置，執行雜湊的規則會為安全性事件保存該使用者：請求的 `enduser.id` 或 `user.id` 、AI 呼叫的使用者，以及日誌行指出的使用者，例如雲端稽核記錄的主體。因此，事件會指出權杖背後的使用者，關於該使用者的案件會指出該帳戶，劇本也可以像對待其他任何使用者一樣對該帳戶採取行動。規則留下的內容保存在 `oneuptime.principal_user_hashed_as` 或 `oneuptime.target_user_hashed_as` 中，方便你在只包含權杖的日誌和追蹤中找到該使用者。沒有保存使用者的權杖，例如在權杖有金鑰之前產生的權杖，仍是事件的使用者：規則會把它算作一個帳戶，任何劇本都不會對它採取行動。
 

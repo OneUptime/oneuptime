@@ -19,12 +19,14 @@ import SecurityAutomaticResponse, {
   SecurityAutomaticResponseDecision,
   SecurityAutomaticResponseJobData,
   buildAutomaticResponseStep,
+  describeAutomaticResponseLimit,
   getFirstRequestAt,
   readSecurityAutomaticResponseJobData,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
 import ServerProducts from "../../../../Server/Utils/ServerProducts/ServerProducts";
 import ProductKey from "../../../../Types/Product/ProductKey";
 import { ServerProductOffReason } from "../../../../Types/Product/ServerProductOffReason";
+import SecurityAutomaticResponseLimit from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseLimit";
 import SecurityAutomaticResponseOwners from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseOwners";
 import SecurityRepeatOffenders from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import SecuritySignedInAddresses, {
@@ -83,7 +85,8 @@ jest.mock("../../../../Server/Utils/Logger");
  *   - never an address a signed-in user used, nor one OneUptime cannot
  *     tell about;
  *   - longer blocks for repeat offenders;
- *   - at most 50 automatic blocks an hour, then a page, once an hour;
+ *   - at most the project's hourly limit of automatic blocks - 50, or its
+ *     own (#10746) - then a page, once an hour;
  *   - a trial run records what it would have done and blocks nothing;
  *   - a policy that is on blocks through the playbook engine: a one-step
  *     run of the policy's, its step needing nobody's approval.
@@ -118,6 +121,9 @@ let detection: SecurityDetection | null;
 let latestDecision: SecurityAutomaticResponseAction | null;
 let liveBlocksThisHour: number;
 let trialBlocksThisHour: number;
+// The project's hourly limit, as SecurityAutomaticResponseLimit reads it (#10746).
+let projectLimit: number;
+let limitReads: Array<string>;
 let pagedThisHour: number;
 let created: Array<SecurityAutomaticResponseAction>;
 let updated: Array<{ id: ObjectID; data: JSONObject }>;
@@ -195,6 +201,8 @@ beforeEach(() => {
   latestDecision = null;
   liveBlocksThisHour = 0;
   trialBlocksThisHour = 0;
+  projectLimit = 50;
+  limitReads = [];
   pagedThisHour = 0;
   created = [];
   updated = [];
@@ -219,6 +227,12 @@ beforeEach(() => {
 
   jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest
+    .spyOn(SecurityAutomaticResponseLimit, "read")
+    .mockImplementation(async (projectId: ObjectID) => {
+      limitReads.push(projectId.toString());
+      return projectLimit;
+    });
   jest
     .spyOn(SecurityAutomaticResponsePolicyService, "findOneBy")
     .mockImplementation(async () => {
@@ -795,11 +809,14 @@ describe("at most 50 automatic blocks an hour", () => {
     expect(startedRuns).toHaveLength(0);
     expect(paged).toHaveLength(1);
     expect(paged[0]!.title).toBe(
-      "Automatic response stopped: 50 blocks in the last hour",
+      "Automatic response stopped at its limit of 50 automatic blocks an hour",
     );
     expect(created[0]!.pagedAt).toBeInstanceOf(Date);
+    expect(created[0]!.detail).toBe(
+      "The project's policies reached its limit of 50 automatic blocks an hour.",
+    );
     expect(timeline[0]).toBe(
-      "⚠️ The Scanners policy did not challenge `35.205.11.131`: your automatic response policies made 50 blocks in the last hour, the most they make in an hour, so they stopped. Your security owners were paged: an attack this large needs a person.",
+      "⚠️ The Scanners policy did not challenge `35.205.11.131`: your automatic response policies reached your project's limit of 50 automatic blocks an hour, so they stopped. Your security owners were paged: an attack this large needs a person.",
     );
   });
 
@@ -819,6 +836,211 @@ describe("at most 50 automatic blocks an hour", () => {
 
     expect((await decide())?.outcome).toBe(
       SecurityAutomaticResponseOutcome.Challenged,
+    );
+  });
+});
+
+/*
+ * A PROJECT'S OWN HOURLY LIMIT (#10746): a Security Admin sets it on the
+ * Automatic Response page, from 1 to 500, and every decision reads it as it
+ * is made, under the project's lock - so a limit changed in the middle of
+ * an hour holds from the next decision on.
+ */
+describe("the project's own hourly limit", () => {
+  test("is read for the decision's project, once a decision, under its lock", async () => {
+    const order: Array<string> = [];
+
+    jest.spyOn(Semaphore, "lock").mockImplementation((async () => {
+      order.push("lock");
+      return {} as SemaphoreMutex;
+    }) as never);
+    jest
+      .spyOn(SecurityAutomaticResponseLimit, "read")
+      .mockImplementation(async (projectId: ObjectID) => {
+        order.push(`limit:${projectId.toString()}`);
+        return projectLimit;
+      });
+
+    await decide();
+
+    expect(order).toEqual(["lock", `limit:${PROJECT_ID.toString()}`]);
+  });
+
+  test("at its lowest, 1: the hour's first block is made, and the next is stopped", async () => {
+    projectLimit = 1;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+
+    liveBlocksThisHour = 1;
+    latestDecision = null;
+
+    const stopped: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(stopped?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
+    expect(paged[0]!.title).toBe(
+      "Automatic response stopped at its limit of 1 automatic block an hour",
+    );
+    expect(timeline[timeline.length - 1]).toContain(
+      "reached your project's limit of 1 automatic block an hour",
+    );
+  });
+
+  test("at its highest, 500: the 500th block is made, the 501st is stopped", async () => {
+    projectLimit = 500;
+    liveBlocksThisHour = 499;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+
+    liveBlocksThisHour = 500;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
+    expect(paged[0]!.title).toBe(
+      "Automatic response stopped at its limit of 500 automatic blocks an hour",
+    );
+  });
+
+  test("raised to 120, the 51st block of the hour is made where the default would have stopped it", async () => {
+    projectLimit = 120;
+    liveBlocksThisHour = 50;
+
+    const decision: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(decision?.outcome).toBe(SecurityAutomaticResponseOutcome.Challenged);
+    expect(startedRuns).toHaveLength(1);
+    expect(paged).toHaveLength(0);
+  });
+
+  test("lowered to 10 in the middle of the hour, the policies stop at once, though the hour made fewer than 50", async () => {
+    liveBlocksThisHour = 30;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+
+    // A Security Admin lowers the limit: the next decision of the same hour stops.
+    projectLimit = 10;
+    liveBlocksThisHour = 31;
+    latestDecision = null;
+
+    const stopped: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(stopped?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
+    expect(stopped?.detail).toBe(
+      "The project's policies reached its limit of 10 automatic blocks an hour.",
+    );
+    // It says the limit it was held to, never that the hour made only 10.
+    expect(timeline[timeline.length - 1]).toBe(
+      "⚠️ The Scanners policy did not challenge `35.205.11.131`: your automatic response policies reached your project's limit of 10 automatic blocks an hour, so they stopped. Your security owners were paged: an attack this large needs a person.",
+    );
+    expect(paged).toHaveLength(1);
+  });
+
+  test("raised again in the same hour, they act again at the next detection, and nobody is paged twice", async () => {
+    projectLimit = 10;
+    liveBlocksThisHour = 10;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
+    expect(paged).toHaveLength(1);
+
+    // Raised: room again.
+    projectLimit = 40;
+    pagedThisHour = 1;
+    latestDecision = null;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+
+    // Reached again within the hour: stopped, and the owners were paged already.
+    liveBlocksThisHour = 40;
+    latestDecision = null;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
+    expect(paged).toHaveLength(1);
+    expect(timeline[timeline.length - 1]).toContain(
+      "reached your project's limit of 40 automatic blocks an hour",
+    );
+    expect(timeline[timeline.length - 1]).toContain(
+      "Your security owners were paged",
+    );
+  });
+
+  test("a policy in its trial run is held to the project's limit too, counting what it would have made", async () => {
+    policy = makePolicy({ mode: SecurityAutomaticResponseMode.TrialRun });
+    projectLimit = 5;
+    liveBlocksThisHour = 3;
+    trialBlocksThisHour = 2;
+
+    const decision: SecurityAutomaticResponseDecision | null = await decide();
+
+    expect(decision?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.StoppedAtLimit,
+    );
+    expect(decision?.detail).toBe(
+      "The project's policies would have reached its limit of 5 automatic blocks an hour.",
+    );
+    expect(paged).toHaveLength(0);
+    expect(timeline[0]).toBe(
+      "🧪 Trial run: the Scanners policy would not have challenged `35.205.11.131`: it would have reached your project's limit of 5 automatic blocks an hour, and paged your security owners.",
+    );
+
+    // One fewer: it would have challenged it.
+    trialBlocksThisHour = 1;
+
+    expect((await decide())?.outcome).toBe(
+      SecurityAutomaticResponseOutcome.Challenged,
+    );
+  });
+
+  test("the page names the project's limit and where to change it", async () => {
+    projectLimit = 25;
+    liveBlocksThisHour = 25;
+
+    await decide();
+
+    expect(paged[0]!.title).toBe(
+      "Automatic response stopped at its limit of 25 automatic blocks an hour",
+    );
+    expect(paged[0]!.descriptionInMarkdown).toContain(
+      "Your automatic response policies reached your project's limit of 25 automatic blocks an hour, so they stopped blocking. An attack this large needs a person.",
+    );
+    expect(paged[0]!.descriptionInMarkdown).toContain(
+      "or to change the limit under More settings",
+    );
+  });
+
+  test("a project's limit that cannot be read leaves the decision unmade: no block without a limit", async () => {
+    jest
+      .spyOn(SecurityAutomaticResponseLimit, "read")
+      .mockRejectedValue(new Error("database unavailable"));
+
+    await expect(decide()).rejects.toThrow("database unavailable");
+    expect(startedRuns).toHaveLength(0);
+    expect(created).toHaveLength(0);
+  });
+
+  test("a record says the limit it was held to, a trial run's what it would have reached", () => {
+    expect(
+      describeAutomaticResponseLimit({ limit: 50, isTrialRun: false }),
+    ).toBe(
+      "The project's policies reached its limit of 50 automatic blocks an hour.",
+    );
+    expect(describeAutomaticResponseLimit({ limit: 1, isTrialRun: true })).toBe(
+      "The project's policies would have reached its limit of 1 automatic block an hour.",
     );
   });
 });

@@ -2768,6 +2768,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "fail2ban",
               "challenge bots",
             ],
+            settings: [
+              /*
+               * Folded under the page's More settings (#10746): the result
+               * opens the fold at its card (HOURLY_LIMIT_CARD_KEY).
+               */
+              { name: "Hourly Limit", anchor: "hourly-limit" },
+            ],
           },
           {
             page: PageMap.SECURITY_BLOCKLIST,

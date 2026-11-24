@@ -70,7 +70,7 @@ Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installa
 | Fortinet FortiGate | IPS- och antivirusfynd, nekad trafik, VPN- och administratörsinloggningar samt konfigurationsändringar från FortiGates egen syslog |
 | Cisco ASA | Nekade anslutningar, fynd från hotidentifiering och IPS, VPN- och administratörsinloggningar samt kommandon från Cisco ASA och Firepower Threat Defense |
 | Kubernetes granskningsloggar | Ändringar i klustret, skal som öppnas i poddar, lästa hemligheter och nekade förfrågningar |
-| Webbattacker | Förfrågningar i en webbservers åtkomstlogg som försöker med SQL-injektion, path traversal eller Log4Shell |
+| Webbattacker | Förfrågningar i en webbservers åtkomstlogg som försöker med SQL-injektion, path traversal eller Log4Shell, och förfrågningar efter känsliga filer, till exempel `/.env` eller `/.git/config`, som din webbplats nekade eller inte har |
 
 Dina loggar förblir som de är. Bara raderna som spelar roll för säkerheten blir händelser: aldrig varje sida som en webbserver har levererat, eller varje läsning av ett API.
 

@@ -25,10 +25,12 @@ import SecurityBlocklistReconciler, {
   SECURITY_BLOCKLIST_FIRST_RETRY_IN_MS,
   SECURITY_BLOCKLIST_LONGEST_RETRY_IN_MS,
   SECURITY_BLOCKLIST_MAX_PROJECTS_PER_PASS,
+  SecurityBlockHeldBack,
   SecurityBlocklistDestinationPlan,
   SecurityBlocklistPassResult,
   describeSecurityBlockHeldBack,
   findSecurityBlocksHeldBack,
+  getSecurityBlockHeldBackReason,
   getHeldItemKey,
   getSecurityBlockEntryComment,
   getSecurityBlocklistRetryDelayInMs,
@@ -39,7 +41,21 @@ import SecurityBlocklistFeedProtection, {
   SecurityBlocklistFeedProtectionCheck,
 } from "../../../../Server/Utils/SecurityBlocklist/SecurityBlocklistFeedProtection";
 import { SecurityBlocklistFeedEntry } from "../../../../Types/SecurityBlocklist/SecurityBlocklistFeed";
-import { SecurityProtectedAddressSource } from "../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  SECURITY_PROTECTED_OWN_ADDRESS,
+  SecurityProtectedAddressSource,
+} from "../../../../Types/SecurityBlocklist/SecurityProtectedAddress";
+import {
+  SECURITY_BLOCK_REASON_FRAMES,
+  SecurityBlockReason,
+  fillSecurityBlockReason,
+  isSecurityBlockHeldBackReason,
+  readSecurityBlockReason,
+  wordSecurityBlockReason,
+} from "../../../../Types/SecurityBlocklist/SecurityBlockReason";
+import { Translator, createTranslator } from "../../../../Types/Translator";
+import fs from "fs";
+import path from "path";
 import TestSecurityBlockDestination from "../../../../Server/Utils/SecurityBlocklist/TestSecurityBlockDestination";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -2288,10 +2304,13 @@ describe("a challenge where a destination cannot challenge (#10350)", () => {
 describe("a block whose address became protected after it was made (#10640)", () => {
   let withheld: Array<string>;
   let isReadable: boolean;
+  // What protects a withheld value, when it is not the value itself: a range holds a host.
+  let protectedValues: Map<string, string>;
 
   beforeEach(() => {
     withheld = [];
     isReadable = true;
+    protectedValues = new Map();
     jest
       .spyOn(SecurityBlocklistFeedProtection, "check")
       .mockImplementation(
@@ -2316,7 +2335,8 @@ describe("a block whose address became protected after it was made (#10640)", ()
                   entry,
                   protection: {
                     source: SecurityProtectedAddressSource.Host,
-                    protectedValue: entry.value,
+                    protectedValue:
+                      protectedValues.get(entry.value) || entry.value,
                     name: "web-3",
                   },
                 };
@@ -2419,5 +2439,280 @@ describe("a block whose address became protected after it was made (#10640)", ()
         },
       }),
     ).toContain("Cloudflare");
+  });
+
+  /*
+   * #10804: a held-back row says why in the reader's language. Its
+   * English text stays as it was - the column, the logs and the case's
+   * timeline read it - and beside it the row keeps the same as a reason
+   * the Dashboard words (errorReason), as a destination's own reasons are
+   * kept (#10629).
+   */
+  describe("its row says why in the reader's language (#10804)", () => {
+    const germanLocale: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(
+        path.resolve(
+          __dirname,
+          "../../../../../App/FeatureSet/Dashboard/src/Locales/de.json",
+        ),
+        "utf8",
+      ),
+    ) as Record<string, unknown>;
+    const german: Translator = createTranslator(
+      (text: string): string | undefined => {
+        const wording: unknown = germanLocale[text];
+
+        return typeof wording === "string" ? wording : undefined;
+      },
+      "de",
+    );
+
+    // The German Dashboard's wording of a key: a locale that lacks it fails here first.
+    function germanWording(key: string): string {
+      const wording: unknown = germanLocale[key];
+
+      expect({ key, worded: typeof wording === "string" }).toEqual({
+        key,
+        worded: true,
+      });
+
+      return wording as string;
+    }
+
+    function fillByHand(
+      template: string,
+      values: Record<string, string>,
+    ): string {
+      let text: string = template;
+
+      for (const [key, value] of Object.entries(values)) {
+        text = text.split(`{{${key}}}`).join(value);
+      }
+
+      return text;
+    }
+
+    function reasonOf(
+      index: number,
+      destination: SecurityBlockDestination,
+    ): SecurityBlockReason | null {
+      return readSecurityBlockReason(rowOf(index, destination)?.errorReason);
+    }
+
+    test("a held-back row keeps why as a reason, read in German as the chip beside it is, its English unchanged", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+
+      await pass(2);
+      withheld = ["35.205.11.131"];
+      await pass(3);
+
+      const reason: SecurityBlockReason | null = reasonOf(1, edge);
+
+      expect(reason).not.toBeNull();
+      expect(isSecurityBlockHeldBackReason(reason)).toBe(true);
+      expect(reason!.template).toBe(SECURITY_BLOCK_REASON_FRAMES.heldBack);
+      expect(errorOf(1, edge)).toBe(
+        "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of your project's own addresses.",
+      );
+      expect(fillSecurityBlockReason(reason!)).toBe(errorOf(1, edge));
+      expect(wordSecurityBlockReason(reason!, german)).toBe(
+        fillByHand(germanWording(SECURITY_BLOCK_REASON_FRAMES.heldBack), {
+          value: "35.205.11.131",
+          protection: fillByHand(
+            germanWording(SECURITY_PROTECTED_OWN_ADDRESS),
+            { address: "35.205.11.131" },
+          ),
+        }),
+      );
+      // German, not English: the frame and what protects the address alike.
+      expect(wordSecurityBlockReason(reason!, german)).not.toContain(
+        "is protected now",
+      );
+      expect(wordSecurityBlockReason(reason!, german)).not.toContain(
+        "one of your project's own addresses",
+      );
+      // The record that protects it is never named, in any language.
+      expect(JSON.stringify(rowOf(1, edge)?.errorReason)).not.toContain(
+        "web-3",
+      );
+      // The case hears it once, in English, as before.
+      expect(
+        linesSaying("is not enforced at Cloudflare. Held back"),
+      ).toHaveLength(1);
+    });
+
+    test("a range that holds a protected address says how they meet, in the reader's language too", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.0/24" });
+
+      // A host comes up on an address the range holds.
+      withheld = ["35.205.11.0/24"];
+      protectedValues.set("35.205.11.0/24", "35.205.11.131");
+      await pass(2);
+
+      const reason: SecurityBlockReason | null = reasonOf(1, edge);
+
+      expect(reason?.template).toBe(
+        SECURITY_BLOCK_REASON_FRAMES.heldBackOverlapping,
+      );
+      expect(errorOf(1, edge)).toBe(
+        "Held back: 35.205.11.0/24 is protected now, so OneUptime took the block off. 35.205.11.0/24 holds 35.205.11.131. 35.205.11.131 is one of your project's own addresses.",
+      );
+
+      const worded: string = wordSecurityBlockReason(reason!, german);
+
+      expect(worded).toContain("35.205.11.0/24");
+      expect(worded).toContain("35.205.11.131");
+      expect(worded).not.toContain("holds 35.205.11.131");
+      expect(worded).not.toContain("is protected now");
+      expect(edge.getOneUptimeValues()).toEqual([]);
+    });
+
+    test("stays worded while what the project protects cannot be read: the row keeps the reason it had", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131" });
+
+      withheld = ["35.205.11.131"];
+      await pass(2);
+      const before: SecurityBlockReason | null = reasonOf(1, edge);
+      const writes: number = rowWrites.length;
+
+      isReadable = false;
+      await pass(3);
+
+      expect(reasonOf(1, edge)).toEqual(before);
+      expect(isSecurityBlockHeldBackReason(reasonOf(1, edge))).toBe(true);
+      expect(errorOf(1, edge)).toContain("Held back: ");
+      // Nothing it says changed, so nothing was written.
+      expect(
+        rowWrites.slice(writes).filter((write: { data: JSONObject }) => {
+          return (
+            write.data["errorReason"] !== undefined ||
+            write.data["error"] !== undefined
+          );
+        }),
+      ).toEqual([]);
+    });
+
+    test("a row held back before rows kept a reason gets one on the next pass that can read, its English and its case left as they were", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131", hasCase: true });
+
+      withheld = ["35.205.11.131"];
+      await pass(2);
+
+      // As an earlier version left it: the English, and no reason.
+      const row: SecurityBlockEnforcement = rowOf(1, edge)!;
+      const english: string = row.error!;
+      row.errorReason = undefined;
+      const lines: number = timelineLines().length;
+
+      // Unreadable: kept as it is, English only.
+      isReadable = false;
+      await pass(3);
+      expect(reasonOf(1, edge)).toBeNull();
+      expect(errorOf(1, edge)).toBe(english);
+
+      // Readable again: the reason is written, nothing else changes.
+      isReadable = true;
+      await pass(4);
+      expect(isSecurityBlockHeldBackReason(reasonOf(1, edge))).toBe(true);
+      expect(fillSecurityBlockReason(reasonOf(1, edge)!)).toBe(english);
+      expect(errorOf(1, edge)).toBe(english);
+      expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Failed);
+      expect(timelineLines()).toHaveLength(lines);
+    });
+
+    test("is held again once the address is no longer protected, its reason gone with its error", async () => {
+      const edge: TestSecurityBlockDestination =
+        new TestSecurityBlockDestination({
+          key: "Test:edge",
+          name: "Cloudflare",
+        });
+      enforceAt(edge);
+      addBlock({ index: 1, value: "35.205.11.131" });
+
+      withheld = ["35.205.11.131"];
+      await pass(2);
+      expect(reasonOf(1, edge)).not.toBeNull();
+
+      withheld = [];
+      await pass(3);
+
+      expect(stateOf(1, edge)).toBe(SecurityBlockEnforcementState.Applied);
+      expect(rowOf(1, edge)?.errorReason || null).toBeNull();
+      expect(errorOf(1, edge)).toBeNull();
+    });
+
+    test("the finder hands each block the reason and its English, the same sentence twice", () => {
+      const one: SecurityBlock = addBlock({
+        index: 1,
+        value: "35.205.11.131",
+      });
+      const two: SecurityBlock = addBlock({
+        index: 2,
+        value: "35.205.11.132",
+      });
+
+      const found: Map<string, SecurityBlockHeldBack> | null =
+        findSecurityBlocksHeldBack({
+          blocks: [one, two],
+          check: {
+            isReadable: true,
+            withheld: [
+              {
+                entry: { value: "35.205.11.131", family: 4 } as never,
+                protection: {
+                  source: SecurityProtectedAddressSource.Edge,
+                  protectedValue: "35.205.11.131",
+                  name: "Cloudflare",
+                },
+              },
+            ],
+          },
+        });
+
+      expect(found).not.toBeNull();
+      expect(Array.from(found!.keys())).toEqual([one.id!.toString()]);
+
+      const heldBack: SecurityBlockHeldBack = found!.get(one.id!.toString())!;
+
+      expect(heldBack.error).toBe(fillSecurityBlockReason(heldBack.reason!));
+      expect(heldBack.error).toBe(
+        "Held back: 35.205.11.131 is protected now, so OneUptime took the block off. 35.205.11.131 is one of Cloudflare's addresses, and Cloudflare is in front of your app: blocking it would take your site down.",
+      );
+      // An edge is no record of the project's: it is named.
+      expect(
+        getSecurityBlockHeldBackReason({
+          value: "35.205.11.131",
+          protection: {
+            source: SecurityProtectedAddressSource.Edge,
+            protectedValue: "35.205.11.131",
+            name: "Cloudflare",
+          },
+        }),
+      ).toEqual(heldBack.reason);
+    });
   });
 });
