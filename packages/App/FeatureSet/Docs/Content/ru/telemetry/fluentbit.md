@@ -184,7 +184,7 @@ pipeline:
 
 ## Отправка через выход HTTP
 
-[Выход HTTP](https://docs.fluentbit.io/manual/pipeline/outputs/http) Fluent Bit может отправлять и на адрес Fluentd в OneUptime, который читает каждую запись так, как описано на [странице Fluentd](/docs/telemetry/fluentd). Задайте в `format` значение `json_lines`, как ниже, или `json`: OneUptime читает оба, сжатые через `compress: gzip` или нет. Формат Fluent Bit по умолчанию, `msgpack`, отклоняется.
+[Выход HTTP](https://docs.fluentbit.io/manual/pipeline/outputs/http) Fluent Bit может отправлять и на адрес Fluentd в OneUptime, который читает каждую запись так, как описано на [странице Fluentd](/docs/telemetry/fluentd). Задайте в `format` значение `json_lines`, как ниже, `json` или `json_stream`: OneUptime читает все три, сжатые через `compress: gzip` или нет. Формат Fluent Bit по умолчанию, `msgpack`, отклоняется.
 
 ```yaml title="fluent-bit.yaml"
 pipeline:

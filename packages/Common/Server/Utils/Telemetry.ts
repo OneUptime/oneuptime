@@ -50,6 +50,7 @@ import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import ContextSpanProcessor from "./Telemetry/ContextSpanProcessor";
 import { createSpanExportProcessor } from "./Telemetry/SpanExportQueue";
 import ErrorClassResolver from "./Telemetry/ErrorClassResolver";
+import { isAnsweredAsClientRefusal } from "./ClientRefusal";
 import ErrorClass, {
   isNonActionableErrorClass,
   markErrorReported,
@@ -720,8 +721,8 @@ export default class Telemetry {
    *    (measured: 3 for a create with a missing field, 6 for a
    *    permission-denied get-list). Outer frames still set ERROR status and
    *    still carry the queryable exception.* attributes, so the trace shows
-   *    the full error path — only the duplicate EVENT and the duplicate LOG
-   *    are suppressed.
+   *    the full error path — only the duplicate EVENT, the duplicate LOG and
+   *    the duplicate COUNT are suppressed.
    *
    * 3. BUILDS THE EVENT ITSELF rather than calling span.recordException. The
    *    SDK reads `exception.code` BEFORE `exception.name` when deciding
@@ -731,8 +732,13 @@ export default class Telemetry {
    *    structurally instead of relying on every caller to normalize first.
    *
    * 4. COUNTS EVERYTHING. `oneuptime.fault.count` is incremented for every
-   *    class, suppressed or not, so suppression is never invisible. A metric
-   *    also outlives trace retention, which a span event does not.
+   *    class, suppressed or not, so suppression is never invisible - once
+   *    per thrown value, as 2 reports it. A metric also outlives trace
+   *    retention, which a span event does not.
+   *
+   * 5. LOGS A CLIENT'S REFUSAL INSIDE A REQUEST AT DEBUG (#10797), where the
+   *    request's answer logs and counts it already (logRecordedException).
+   *    Everything else is logged through logger.error, as before.
    *
    * Never throws: this is the universal catch path, and a throw here would
    * mask the original error.
@@ -756,8 +762,7 @@ export default class Telemetry {
         (exceptionAttributes["exception.message"] as string) || "";
 
       if (!alreadyReported) {
-        // Logger applies the same classification and demotes to WARN severity.
-        logger.error(exception);
+        this.logRecordedException(exception, errorClass);
       }
 
       /*
@@ -818,7 +823,14 @@ export default class Telemetry {
         });
       }
 
-      this.incrementFaultCounter(errorClass, exceptionType);
+      /*
+       * Once per thrown value, as the event and the log line are: counted on
+       * every frame it crossed, one refused request counted as many faults
+       * as its call stack was deep.
+       */
+      if (!alreadyReported) {
+        this.incrementFaultCounter(errorClass, exceptionType);
+      }
     } catch {
       // Enrichment failed on some exotic thrown value — still flag the span.
       try {
@@ -826,6 +838,54 @@ export default class Telemetry {
       } catch {
         // span may already be ended; nothing more we can do.
       }
+    }
+  }
+
+  /*
+   * The recorder's one log line for a thrown value.
+   *
+   * A CLIENT'S REFUSAL INSIDE AN HTTP REQUEST IS LOGGED AT DEBUG (#10797):
+   * a 4xx whose Exception declares the fault the client's, in words - at the
+   * status the request is answered with (isAnsweredAsClientRefusal). The
+   * request's answer logs it already, at debug, and counts it by route with
+   * a warn line a minute (Response.sendErrorResponse and the error handler:
+   * ClientRefusalLog, #10768); the span keeps its `fault` event and
+   * `oneuptime.fault.count` counts it. Through logger.error it printed a
+   * WARN-severity line under the ERROR gate for every refused request, from
+   * anyone, whenever OneUptime exported its own traces.
+   *
+   * Everything else goes to logger.error, as before, which applies the same
+   * classification and demotes a non-actionable class to WARN severity:
+   *
+   *   - a code fault or an infrastructure fault, anywhere: an error line;
+   *   - a 5xx, or a refusal with no words, even of a client's class: the
+   *     request's answer logs those at error too;
+   *   - outside a request - a worker job, a cron run, a probe check - a
+   *     client's class is a code fault (ErrorClassResolver), unless a site
+   *     declared it (asUserError()), whose WARN line is how an operator sees
+   *     a tenant's misconfiguration: nothing answers it, nothing else logs
+   *     it.
+   *
+   * Never throws: a logger mocked without `debug` costs the line, never the
+   * span's enrichment.
+   */
+  private static logRecordedException(
+    exception: unknown,
+    errorClass: ErrorClass,
+  ): void {
+    try {
+      if (
+        isNonActionableErrorClass(errorClass) &&
+        ErrorClassResolver.isInsideHttpRequest() &&
+        isAnsweredAsClientRefusal(exception)
+      ) {
+        logger.debug(exception);
+        return;
+      }
+
+      logger.error(exception);
+    } catch {
+      // A log line is never worth the span.
     }
   }
 
