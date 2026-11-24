@@ -154,7 +154,7 @@ class Outbox(
         const val DEFAULT_MAX_AGE_MILLIS: Long = 7L * 24 * 60 * 60_000
         private const val SUFFIX: String = ".json.gz"
         private const val TEMP_SUFFIX: String = ".tmp"
-        private val NAME: Regex = Regex("""^(\d{13})-(\d{6})\.([a-z]+)\.json\.gz$""")
+        private val NAME: Regex = Regex("""^([0-9]{13})-([0-9]{6})\.([a-z]+)\.json\.gz$""")
 
         fun gzip(bytes: ByteArray): ByteArray {
             val output = ByteArrayOutputStream()
