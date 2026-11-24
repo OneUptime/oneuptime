@@ -7,6 +7,7 @@ Datasikkerhet kjenner 143 typer sensitive data: kortnumre, bankkontoer, nasjonal
 - [Felt og kolonner](#felt-og-kolonner): Hvordan en hel kolonne eller et helt attributt vurderes.
 - [Hver datatype](#innebygde-datatyper): Alle 143, etter kategori.
 - [Dine egne datatyper](#dine-egne-datatyper): Ansatt-ID-er, polisenumre og boksen Test det.
+- [Datatyper som OneUptime AI finner](#datatyper-som-oneuptime-ai-finner): Dine egne datatyper, funnet i feltene som ingen detektor kunne plassere.
 :::
 
 ## Hvordan en verdi blir funnet
@@ -62,6 +63,8 @@ Et felt med et navn som sier at det inneholder et passord – `password`, `passw
 ### Felt som ingen detektor kunne plassere
 
 En kolonne eller et felt der navnet ikke peker på noen datatype og verdiene ikke treffer noen detektor, er ikke kjent som trygt: det kan være ditt eget kundenummer, eller en kolonne med navn på et annet språk. Med **Aktiver AI** slått på i prosjektet beholder en innholdsskanning slike felt, høyst 200 per skanning, og OneUptime AI blir spurt om hvilken av prosjektets datatyper hvert felt inneholder, høyst 40 felt fra et datalager om gangen. Den får feltets navn, navnene på feltene ved siden av og formene på verdiene - hver bokstav skrevet som `a` eller `A` og hvert siffer som `9`, så `AB-1234` blir `AA-9999` - aldri en verdi. Det spørres ikke om fritekst, felt med færre enn 5 verdier, små heltall og felt som er navngitt som en ID, et tidspunkt eller en status.
+
+En telemetriskanning beholder på samme måte attributtene som ingen detektor plasserte, fra en tjenestes logger, spans, metrikker og resten av telemetrien, høyst 50 per tjeneste i hver skanning. Den beholder aldri OneUptimes egne attributter, attributtene som OpenTelemetrys konvensjoner skriver på hver post for å si hvor den kommer fra, som tjenesten, verten eller poden, eller fritekst, som brødteksten i en logg.
 
 Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått av OneUptime AI** med begrunnelsen. Som ethvert funn med Lav konfidens teller det ikke før et menneske velger **Bekreft** på datalagerets side **Innhold**; **Merk som ikke sensitivt** avviser det. Det spørres ikke på nytt om et felt som har fått svar, på 30 dager, og aldri igjen om et felt et menneske har vurdert.
 
@@ -295,6 +298,32 @@ Under **Flere felt** gjør **Ignorer store/små bokstaver** at mønsteret treffe
 Et mønster kontrolleres når du lagrer det: det må kompilere, ikke treffe tom tekst og kjøre i tid som vokser lineært med teksten. Det kjøres av en matcher som aldri bruker backtracking, så ingen mønstre kan holde en skanning fast, uansett hvordan de er skrevet. En type tar høyst 50 nøkkelord og 50 feltnavn.
 
 En verdi av typen din er Middels alene og Høy med et nøkkelord i nærheten når den består en kontrollsum, og Lav alene og Middels med et nøkkelord når den ikke har noen. I en kolonne avgjør andelen verdier som treffer, som for alle typer.
+
+### Beskriv det
+
+Øverst i skjemaet for en ny datatype fyller **Beskriv det** ut skjemaet for deg. Skriv hvordan dataene ser ut, for eksempel "ansattnumrene våre ser ut som EMP-123456, noen ganger uten bindestrek", legg til noen eksempler hvis du vil, ett per linje, og velg **Fyll ut skjemaet**. OneUptime AI får setningen din og formene på eksemplene dine, aldri selve eksemplene: de blir i nettleseren din, der **Test det** viser hvor mange av dem mønsteret finner. Les det den fylte ut, endre det du vil, og lagre: ingenting lagres før du gjør det, og mønsteret kontrolleres som et du har skrevet selv. Beskriv det krever at **Aktiver AI** er slått på for prosjektet.
+
+## Datatyper som OneUptime AI finner
+
+Feltene som ingen detektor kunne plassere, inneholder ofte en datatype som er bedriftens egen, lagret mange steder under navn som sier det samme: et forsikringsselskaps polisenumre i kolonner med navnene `policy_no`, `policyNumber` og `police_nr`, i alle databasene. Med **Aktiver AI** slått på for prosjektet finner OneUptime AI en slik datatype i feltene skanningene dine beholdt, og spør deg først når dine egne skanninger har bevist den.
+
+:::steps
+### Den finner en gruppe felt
+
+Tre eller flere felt i to eller flere datalagre danner en gruppe når de fleste verdiene deres har én form, med eller uten skilletegnene mellom delene, og navnene deler et ord som sier hva de inneholder. En form uten sifre, en dato, et klokkeslett eller et desimaltall danner aldri en gruppe, og et ord som `id`, `no` eller `number` sier ingenting alene.
+
+### Den lager utkast til en datatype
+
+OneUptime AI lager et utkast til en datatype for hver nye gruppe, høyst 3 om gangen, ut fra feltenes navn og formene på verdiene, aldri ut fra en verdi. Utkastet må bestå det en lagret type må bestå, og finne formene det ble laget ut fra. Et utkast som ikke gjør det, blir bedt om én gang til, med årsaken.
+
+### De neste skanningene dine beviser den
+
+Utkastet kjører i den neste skanningen av hvert datalager i gruppen, i opptil 48 timer eller ett skanneintervall, det som er lengst. Det lager ingen funn: hver skanning teller hvor mange verdier det ville funnet, i gruppens felt og i alle andre felt i de samme datalagrene. Det tilbys når det finner minst 80 % av verdiene i feltene sine og høyst 1 % av de andre verdiene. Et felt et annet sted der det finner nesten hver verdi, inneholder de samme dataene under et annet navn: det nevnes, ikke telles mot utkastet.
+:::
+
+Hvert utkast telles samtidig også i en innsnevret utgave: utenfor gruppens felt finner et innsnevret utkast en verdi bare ved siden av et av nøkkelordene sine eller under et feltnavn som nevner det. Et utkast som finner for mye andre steder, tilbys innsnevret når det holder. Et utkast som ikke holder på noen av de to måtene, forkastes, og gruppen lages ikke utkast for igjen på 30 dager.
+
+Hver datatype den tilbyr, venter under **Datatyper til gjennomgang**, øverst på **Datasikkerhet → Innstillinger → Datatyper** og på **Datasikkerhet → KI**, med det skanningene dine telte, for eksempel "Treffer 98 % av verdiene i disse 11 feltene, og 0,1 % av verdiene andre steder i de samme datalagrene." **Legg til datatype** åpner skjemaet for en datatype utfylt med den, så du kan endre og teste den; lagrer du, legges typen til, og skanninger finner den fra neste kjøring. **Ikke en datatype** avviser den: den tilbys aldri igjen for de feltene. Å legge til en krever en rolle som kan opprette datatyper.
 
 ## Ikke sensitivt, og aldri sensitivt
 

@@ -49,6 +49,8 @@ A Segurança de dados lê os seus dados ela mesma, dentro das suas varreduras, e
 | **Corrigir a causa** | A verificação em que os problemas do grupo falham, o que seus repositórios de dados compartilham e o módulo ou os arquivos que os declaram, como uma solicitação ao agente de código; cada repositório de dados que o pull request corrige: nome, tipo, região e ID na nuvem, e seu problema; o agente de código então lê o próprio código do repositório para fazer a mudança | Não: uma pessoa pede, a partir de um grupo em **Problemas** ou aprovando a proposta do OneUptime AI, em um repositório que pode alterar em **Código**; ou a etapa **Fix the code with AI** de um playbook de segurança. Uma regra cuja **Correção** está definida como **Automaticamente** o abre sozinha |
 | **Regras de limpeza para o que o Limpar não consegue cobrir** | O tipo de dado de cada descoberta, sua categoria e se ele é encontrado pelos valores ou pelo nome de um campo; onde fica, o atributo ou o corpo do log, e os nomes dos atributos ao lado; as formas dos seus valores, como `AA-9999` para o valor `AB-1234`, e quantos valores foram lidos | Sim: um problema de telemetria que o OneUptime AI contém o inicia, para os dados que nenhuma regra do Limpar consegue ocultar, enquanto **Trabalhar em problemas novos** está ligado |
 | **Dados sensíveis em pull requests** | O que as regras encontraram no diff do pull request: o arquivo e a linha, o nome gravado, o tipo de dado que ele nomeia e a verificação em que falharia; o diff desses arquivos e o título do pull request, sem o que parece um segredo, um endereço de e-mail ou um endereço IP; nunca o que a produção contém: onde a sua telemetria conteve os dados, o nome de um repositório de dados ou o que ele contém, nem uma amostra do que foi encontrado, nem mesmo mascarada | Sim: a [revisão de produção](/docs/ai/ai-agent#revisão-de-produção-de-pull-requests) de um pull request a inicia, quando as regras dela encontram dados sensíveis na alteração |
+| **Tipos de dados encontrados nos seus repositórios** | Campos que nenhum detector classificou e que têm uma forma e um nome em comum nos seus repositórios: os nomes desses campos e dos campos ao lado, e o tipo de repositório em que cada um está; as formas dos seus valores, como `AA-9999` para o valor `AB-1234`, e quantos valores foram lidos; os nomes dos tipos de dados que o OneUptime já conhece. Nunca um valor, nem mesmo mascarado | Sim: uma varredura de conteúdo que guardou esses campos o inicia, quando três ou mais campos em dois ou mais repositórios têm uma forma e um nome em comum que nenhum detector conhece |
+| **Descrever** | A frase que a pessoa escreveu no formulário de um tipo de dados, e as formas dos exemplos, como `AA-9999` para o exemplo `AB-1234`; nunca os próprios exemplos, que Testar executa no seu navegador | Não: uma pessoa pede, com **Descrever** no formulário de um tipo de dados |
 
 **Explicar com IA** e **Pergunte à IA** também leem primeiro o [contexto de IA](/docs/ai/ai-context) da sua equipe, quando ela tem um: as notas que a sua equipe escreveu para o OneUptime AI sobre os seus sistemas. **Análise de problemas novos** também o lê.
 
@@ -82,6 +84,7 @@ As propostas de proprietários guardam o mesmo que Explicar com IA: as linhas da
 Cada recurso de IA da Segurança de dados roda no modelo que o seu projeto escolheu:
 
 - **Explicar com IA** e as sugestões de campos rodam no provedor que uma regra de IA escolhe para o trabalho; senão, no provedor de LLM padrão do seu projeto; senão, no próprio do servidor.
+- Os tipos de dados encontrados nos seus repositórios e **Descrever** rodam no provedor de LLM padrão do seu projeto, senão no do próprio servidor.
 - O agente de código de **Corrigir com IA** roda no provedor que uma regra de IA escolhe; senão, em um dos provedores do seu projeto; senão, no próprio do servidor.
 - **Pergunte à IA** roda no provedor escolhido no chat; senão, no padrão do seu projeto.
 - A leitura dos dados sensíveis de um pull request roda no provedor que o repositório escolhe para as revisões de produção dele; senão, no provedor de LLM padrão do seu projeto; senão, no próprio do servidor.
@@ -90,7 +93,7 @@ Um modelo auto-hospedado roda todos eles: Ollama, vLLM ou qualquer endpoint comp
 
 ### Com a IA desligada
 
-Com **Habilitar IA** desligado em **Configurações do projeto → IA → Recursos de IA**, o OneUptime AI não envia nada, e a Segurança de dados continua funcionando como antes: cada página, verificação, varredura e integração. Nenhum botão de IA aparece em um problema, e nada é perguntado sobre nenhum campo depois de uma varredura.
+Com **Habilitar IA** desligado em **Configurações do projeto → IA → Recursos de IA**, o OneUptime AI não envia nada, e a Segurança de dados continua funcionando como antes: cada página, verificação, varredura e integração. Nenhum botão de IA aparece em um problema, e nada é perguntado sobre nenhum campo depois de uma varredura. Nenhum tipo de dados é rascunhado a partir dos seus campos.
 
 ## Como é medido
 

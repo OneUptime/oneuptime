@@ -7,6 +7,7 @@ A Segurança de dados conhece 143 tipos de dados sensíveis: números de cartão
 - [Campos e colunas](#campos-e-colunas): Como uma coluna ou um atributo inteiro é avaliado.
 - [Cada tipo de dados](#tipos-de-dados-integrados): Todos os 143, por categoria.
 - [Seus próprios tipos de dados](#seus-próprios-tipos-de-dados): IDs de funcionário, números de apólice e a caixa Testar.
+- [Tipos de dados que o OneUptime AI encontra](#tipos-de-dados-que-o-oneuptime-ai-encontra): Seus próprios tipos de dados, encontrados nos campos que nenhum detector conseguiu classificar.
 :::
 
 ## Como um valor é encontrado
@@ -62,6 +63,8 @@ Um campo cujo nome diz que contém uma senha - `password`, `passwordHash`, `pwd`
 ### Campos que nenhum detector conseguiu classificar
 
 Uma coluna ou um campo cujo nome não aponta para nenhum tipo de dado, e cujos valores não correspondem a nenhum detector, não é conhecido como seguro: pode ser o seu próprio número de cliente, ou uma coluna com nome em outro idioma. Com **Habilitar IA** ativado no projeto, uma varredura de conteúdo guarda esses campos, no máximo 200 por varredura, e o OneUptime AI é perguntado sobre qual dos tipos de dados do projeto cada um contém, no máximo 40 campos de um repositório por vez. Ele recebe o nome do campo, os nomes dos campos ao lado e as formas dos seus valores - cada letra escrita como `a` ou `A` e cada dígito como `9`, então `AB-1234` vira `AA-9999` - nunca um valor. Texto livre, campos com menos de 5 valores, números inteiros pequenos e campos com nome de ID, de horário ou de status não são perguntados.
+
+Uma varredura de telemetria guarda da mesma forma os atributos que nenhum detector classificou, dos logs, spans, métricas e do resto da telemetria de um serviço, no máximo 50 por serviço a cada varredura. Ela nunca guarda os atributos próprios do OneUptime, nem os que as convenções do OpenTelemetry escrevem em cada registro para dizer de onde ele veio, como o serviço, o host ou o pod, nem texto livre, como o corpo de um log.
 
 Cada tipo que o OneUptime AI nomeia é uma descoberta com confiança Baixo, marcada como **Sugerido pela OneUptime AI** com o motivo. Como qualquer descoberta com confiança Baixo, ela não conta para nada até uma pessoa escolher **Confirmar** na página **Conteúdo** do repositório; **Marcar como não sensível** a recusa. Um campo que já teve resposta não é perguntado de novo por 30 dias, e um campo que uma pessoa avaliou nunca mais é perguntado.
 
@@ -295,6 +298,32 @@ Em **Mais campos**, **Ignorar maiúsculas e minúsculas** faz o padrão correspo
 Um padrão é verificado quando você o salva: ele precisa compilar, não corresponder a texto vazio e rodar em tempo proporcional ao texto. Ele é executado por um mecanismo de correspondência que nunca faz backtracking, então nenhum padrão consegue travar uma varredura, seja como for escrito. Um tipo aceita no máximo 50 palavras-chave e 50 nomes de campo.
 
 Um valor do seu tipo é Médio sozinho e Alto com uma palavra-chave próxima quando passa em uma soma de verificação, e Baixo sozinho e Médio com uma palavra-chave quando não tem nenhuma. Em uma coluna, quem decide é a parcela de valores que correspondem, como em todo tipo.
+
+### Descrever
+
+No topo do formulário de um novo tipo de dados, **Descrever** preenche o formulário para você. Escreva como são os dados, por exemplo "nossas matrículas de funcionário são como EMP-123456, às vezes sem o hífen", adicione alguns exemplos se quiser, um por linha, e escolha **Preencher o formulário**. O OneUptime AI recebe a sua frase e as formas dos seus exemplos, nunca os exemplos: eles ficam no seu navegador, onde **Testar** mostra quantos deles o padrão encontra. Leia o que ele preencheu, mude o que quiser e salve: nada é salvo até você salvar, e o padrão é verificado como um que você mesmo tivesse escrito. Descrever precisa de **Habilitar IA** ativado no projeto.
+
+## Tipos de dados que o OneUptime AI encontra
+
+Os campos que nenhum detector conseguiu classificar costumam guardar um tipo de dados próprio da sua empresa, mantido em muitos lugares com nomes que dizem a mesma coisa: os números de apólice de uma seguradora em colunas chamadas `policy_no`, `policyNumber` e `police_nr`, em todos os seus bancos de dados. Com **Habilitar IA** ativado no projeto, o OneUptime AI encontra um tipo de dados assim nos campos que suas varreduras guardaram, e só pergunta a você sobre ele depois que suas próprias varreduras o comprovaram.
+
+:::steps
+### Ele encontra um grupo de campos
+
+Três ou mais campos em dois ou mais repositórios formam um grupo quando a maioria dos seus valores tem uma mesma forma, com ou sem os separadores entre as partes, e seus nomes têm em comum uma palavra que diz o que eles guardam. Uma forma sem dígitos, uma data, um horário ou um número decimal nunca forma um grupo, e uma palavra como `id`, `no` ou `number` não diz nada sozinha.
+
+### Ele rascunha um tipo de dados
+
+O OneUptime AI rascunha um tipo de dados para cada grupo novo, no máximo 3 de cada vez, a partir dos nomes dos campos e das formas dos seus valores, nunca de um valor. O rascunho precisa passar pelas mesmas verificações de um tipo salvo e encontrar as formas a partir das quais foi rascunhado. Um rascunho que não passa é pedido mais uma vez, com o motivo.
+
+### Suas próximas varreduras o comprovam
+
+O rascunho roda na próxima varredura de cada repositório do seu grupo, por até 48 horas ou um intervalo de varredura, o que for maior. Ele não cria nenhuma detecção: cada varredura conta quantos valores ele encontraria, nos campos do grupo e em todos os outros campos dos mesmos repositórios. Ele é oferecido quando encontra pelo menos 80% dos valores dos seus campos e no máximo 1% dos outros valores. Um campo em outro lugar onde ele encontra quase todos os valores guarda os mesmos dados com outro nome: ele é citado, e não contado contra o rascunho.
+:::
+
+Cada rascunho também é contado, ao mesmo tempo, de forma restrita: fora dos campos do seu grupo, um rascunho restrito só encontra um valor ao lado de uma de suas palavras-chave ou sob um nome de campo que o nomeia. Um rascunho que encontra demais em outros lugares é oferecido restrito quando isso basta. Um rascunho que não basta de nenhuma das duas formas é descartado, e seu grupo não é rascunhado de novo por 30 dias.
+
+Cada tipo de dados que ele oferece espera em **Tipos de dados para revisar**, no topo de **Segurança de dados → Configurações → Tipos de dados** e em **Segurança de dados → IA**, com o que suas varreduras contaram, por exemplo "Corresponde a 98% dos valores destes 11 campos e a 0,1% dos valores em outros lugares dos mesmos repositórios." **Adicionar tipo de dados** abre o formulário de um tipo de dados preenchido com ele, para mudar e testar; salvá-lo adiciona o tipo, que as varreduras encontram a partir da próxima execução. **Não é um tipo de dados** o recusa: ele nunca mais é oferecido para esses campos. Adicioná-lo exige uma função que possa criar tipos de dados.
 
 ## Não sensível, e nunca sensível
 

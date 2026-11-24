@@ -7,6 +7,7 @@ Seguridad de datos conoce 143 clases de datos sensibles: números de tarjeta, cu
 - [Campos y columnas](#campos-y-columnas): Cómo se juzga una columna o un atributo entero.
 - [Cada tipo de datos](#tipos-de-datos-integrados): Los 143, por categoría.
 - [Tus propios tipos de datos](#tus-propios-tipos-de-datos): IDs de empleado, números de póliza y el cuadro Probarlo.
+- [Tipos de datos que encuentra OneUptime AI](#tipos-de-datos-que-encuentra-oneuptime-ai): Tus propios tipos de datos, encontrados en los campos que ningún detector pudo clasificar.
 :::
 
 ## Cómo se encuentra un valor
@@ -62,6 +63,8 @@ Un campo cuyo nombre dice que contiene una contraseña (`password`, `passwordHas
 ### Campos que ningún detector pudo ubicar
 
 Una columna o un campo cuyo nombre no apunta a ningún tipo de datos, y cuyos valores no coinciden con ningún detector, no se sabe que sea seguro: puede ser tu propio número de cliente, o una columna con nombre en otro idioma. Con **Habilitar IA** activado en el proyecto, un escaneo de contenido guarda esos campos, como máximo 200 por escaneo, y se pregunta a OneUptime AI qué tipo de datos del proyecto contiene cada uno, como máximo 40 campos de un almacén a la vez. Se le dice el nombre del campo, los nombres de los campos de al lado y las formas de sus valores (cada letra escrita como `a` o `A` y cada dígito como `9`, así que `AB-1234` es `AA-9999`), nunca un valor. No se pregunta por texto libre, campos con menos de 5 valores, números enteros pequeños ni campos con nombre de identificador, fecha o estado.
+
+Un escaneo de telemetría guarda del mismo modo los atributos que ningún detector clasificó, de los logs, spans, métricas y el resto de la telemetría de un servicio, como máximo 50 por servicio en cada escaneo. Nunca guarda los atributos propios de OneUptime, ni los que las convenciones de OpenTelemetry escriben en cada registro para decir de dónde viene, como el servicio, el host o el pod, ni texto libre, como el cuerpo de un log.
 
 Cada tipo que nombra OneUptime AI es un hallazgo de confianza Baja, marcado como **Sugerido por OneUptime AI** con su motivo. Como cualquier hallazgo de confianza Baja, no cuenta para nada hasta que una persona elige **Confirmar** en la página **Contenido** del almacén; **Marcar como no sensible** lo rechaza. No se vuelve a preguntar por un campo ya respondido durante 30 días, y nunca más por un campo que una persona haya juzgado.
 
@@ -295,6 +298,32 @@ En **Más campos**, **Ignorar mayúsculas y minúsculas** hace que el patrón co
 Un patrón se comprueba al guardarlo: debe compilar, no coincidir con texto vacío y ejecutarse en un tiempo proporcional al texto. Lo ejecuta un motor de coincidencia que nunca retrocede, así que ningún patrón puede bloquear un escaneo, se escriba como se escriba. Un tipo admite como máximo 50 palabras clave y 50 nombres de campo.
 
 Un valor de tu tipo tiene confianza Media por sí solo y Alta con una palabra clave cerca cuando supera una suma de comprobación, y Baja por sí solo y Media con una palabra clave cuando no tiene ninguna. En una columna, decide la proporción de valores que coinciden, como en todos los tipos.
+
+### Describirlo
+
+Arriba en el formulario de un tipo de datos nuevo, **Describirlo** rellena el formulario por ti. Escribe cómo son los datos, por ejemplo "nuestros ID de empleado son como EMP-123456, a veces sin el guion", añade algunos ejemplos si quieres, uno por línea, y elige **Rellenar el formulario**. OneUptime AI recibe tu frase y las formas de tus ejemplos, nunca los ejemplos: se quedan en tu navegador, donde **Probarlo** muestra cuántos de ellos encuentra su patrón. Lee lo que rellenó, cambia lo que quieras y guarda: no se guarda nada hasta que lo hagas, y el patrón se comprueba como uno que hubieras escrito tú. Describirlo necesita **Habilitar IA** activado en el proyecto.
+
+## Tipos de datos que encuentra OneUptime AI
+
+Los campos que ningún detector pudo clasificar a menudo contienen un tipo de datos propio de tu empresa, guardado en muchos sitios con nombres que dicen lo mismo: los números de póliza de una aseguradora en columnas llamadas `policy_no`, `policyNumber` y `police_nr`, en todas sus bases de datos. Con **Habilitar IA** activado en el proyecto, OneUptime AI encuentra un tipo de datos así en los campos que guardaron tus escaneos, y solo te pregunta por él cuando tus propios escaneos lo han demostrado.
+
+:::steps
+### Encuentra un grupo de campos
+
+Tres o más campos en dos o más almacenes forman un grupo cuando la mayoría de sus valores tienen una misma forma, con o sin los separadores entre sus partes, y sus nombres comparten una palabra que dice lo que contienen. Una forma sin dígitos, una fecha, una hora o un número decimal nunca forman un grupo, y una palabra como `id`, `no` o `number` no dice nada por sí sola.
+
+### Redacta un tipo de datos
+
+OneUptime AI redacta un tipo de datos para cada grupo nuevo, como máximo 3 a la vez, a partir de los nombres de los campos y las formas de sus valores, nunca de un valor. El borrador debe cumplir lo mismo que un tipo guardado y encontrar las formas a partir de las que se redactó. Un borrador que no lo cumple se vuelve a pedir una vez, con el motivo.
+
+### Tus próximos escaneos lo demuestran
+
+El borrador se ejecuta en el próximo escaneo de cada almacén de su grupo, durante un máximo de 48 horas o un intervalo de escaneo, lo que sea más largo. No crea ningún hallazgo: cada escaneo cuenta cuántos valores encontraría, en los campos del grupo y en todos los demás campos de los mismos almacenes. Se ofrece cuando encuentra al menos el 80% de los valores de sus campos y como máximo el 1% de los demás valores. Un campo de otro sitio donde encuentra casi todos los valores contiene los mismos datos con otro nombre: se nombra, no se cuenta en su contra.
+:::
+
+Cada borrador también se cuenta, a la vez, de forma restringida: fuera de los campos de su grupo, un borrador restringido solo encuentra un valor junto a una de sus palabras clave o bajo un nombre de campo que lo nombra. Un borrador que encuentra demasiado en otros sitios se ofrece restringido cuando eso basta. Un borrador que no basta de ninguna de las dos formas se descarta, y su grupo no se vuelve a redactar durante 30 días.
+
+Cada tipo de datos que ofrece espera en **Tipos de datos por revisar**, arriba en **Seguridad de datos → Ajustes → Tipos de datos** y en **Seguridad de datos → IA**, con lo que contaron tus escaneos, por ejemplo "Coincide con 98% de los valores de estos 11 campos, y con 0,1% de los valores en otras partes de los mismos almacenes." **Añadir tipo de datos** abre el formulario de un tipo de datos relleno con él, para cambiarlo y probarlo; guardarlo añade el tipo, que los escaneos encuentran desde su próxima ejecución. **No es un tipo de datos** lo rechaza: nunca se vuelve a ofrecer para esos campos. Añadirlo requiere un rol que pueda crear tipos de datos.
 
 ## No sensible, y nunca sensible
 

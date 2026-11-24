@@ -7,6 +7,7 @@ Datasäkerhet känner till 143 sorters känsliga data: kortnummer, bankkonton, n
 - [Fält och kolumner](#fält-och-kolumner): Hur en hel kolumn eller ett helt attribut bedöms.
 - [Varje datatyp](#inbyggda-datatyper): Alla 143, efter kategori.
 - [Dina egna datatyper](#dina-egna-datatyper): Anställnings-ID:n, försäkringsnummer och rutan Testa.
+- [Datatyper som OneUptime AI hittar](#datatyper-som-oneuptime-ai-hittar): Dina egna datatyper, hittade i de fält som ingen detektor kunde placera.
 :::
 
 ## Hur ett värde hittas
@@ -62,6 +63,8 @@ Ett fält vars namn säger att det innehåller ett lösenord - `password`, `pass
 ### Fält som ingen detektor kunde placera
 
 En kolumn eller ett fält vars namn inte pekar på någon datatyp, och vars värden inte matchar någon detektor, är inte känt som säkert: det kan vara ditt eget kundnummer, eller en kolumn som har ett namn på ett annat språk. Med projektets **Aktivera AI** påslaget sparar en innehållsskanning sådana fält, högst 200 per skanning, och OneUptime AI tillfrågas vilken av projektets datatyper varje fält innehåller, högst 40 fält från ett datalager åt gången. Den får fältets namn, namnen på fälten bredvid och formerna på dess värden - varje bokstav skriven som `a` eller `A` och varje siffra som `9`, så `AB-1234` blir `AA-9999` - aldrig ett värde. Fritext, fält med färre än 5 värden, små heltal och fält som heter som ett id, en tidpunkt eller en status frågas det inte om.
+
+En telemetriskanning behåller på samma sätt de attribut som ingen detektor placerade, från en tjänsts loggar, spans, mätvärden och resten av dess telemetri, högst 50 per tjänst vid varje skanning. Den behåller aldrig OneUptimes egna attribut, de attribut som OpenTelemetrys konventioner skriver på varje post för att säga var den kommer ifrån, som tjänsten, värden eller podden, eller fritext, som brödtexten i en logg.
 
 Varje typ som OneUptime AI nämner är ett fynd med Låg, markerat **Föreslagen av OneUptime AI** med sin motivering. Som varje fynd med Låg räknas det inte förrän en person väljer **Bekräfta** på datalagrets sida **Innehåll**; **Markera som inte känsligt** avvisar det. Ett fält som har fått svar frågas det inte om igen på 30 dagar, och ett fält som en person har bedömt aldrig igen.
 
@@ -295,6 +298,32 @@ Under **Fler fält** matchar **Ignorera skiftläge** mönstret oavsett om bokst�
 Ett mönster kontrolleras när du sparar det: det måste kompilera, inte matcha någon tom text och köras på en tid som växer linjärt med texten. Det körs av en matchare som aldrig backtrackar, så inget mönster kan hålla fast en skanning, hur det än är skrivet. En typ tar högst 50 nyckelord och 50 fältnamn.
 
 Ett värde av din typ får Medel ensamt och Hög med ett nyckelord nära sig när det klarar en kontrollsumma, och Låg ensamt och Medel med ett nyckelord när typen inte har någon. I en kolumn avgör andelen värden som matchar, som för varje typ.
+
+### Beskriv
+
+Överst i formuläret för en ny datatyp fyller **Beskriv** i formuläret åt dig. Skriv hur datan ser ut, till exempel "våra anställningsnummer ser ut som EMP-123456, ibland utan bindestreck", lägg till några exempel om du vill, ett per rad, och välj **Fyll i formuläret**. OneUptime AI får din mening och formerna på dina exempel, aldrig själva exemplen: de stannar i din webbläsare, där **Testa** visar hur många av dem mönstret hittar. Läs vad den fyllde i, ändra det du vill och spara: inget sparas förrän du gör det, och mönstret kontrolleras som ett du själv skrivit. Beskriv kräver att **Aktivera AI** är påslaget för projektet.
+
+## Datatyper som OneUptime AI hittar
+
+De fält som ingen detektor kunde placera innehåller ofta en datatyp som är ditt företags egen, sparad på många ställen under namn som säger samma sak: ett försäkringsbolags försäkringsnummer i kolumner som heter `policy_no`, `policyNumber` och `police_nr`, i alla dess databaser. Med **Aktivera AI** påslaget för projektet hittar OneUptime AI en sådan datatyp i de fält dina skanningar behöll, och frågar dig först när dina egna skanningar har bevisat den.
+
+:::steps
+### Den hittar en grupp fält
+
+Tre eller fler fält i två eller fler datalager bildar en grupp när de flesta av deras värden har en form, med eller utan avgränsarna mellan dess delar, och deras namn delar ett ord som säger vad de innehåller. En form utan siffror, ett datum, en tid eller ett decimaltal bildar aldrig en grupp, och ett ord som `id`, `no` eller `number` säger ingenting i sig.
+
+### Den utformar en datatyp
+
+OneUptime AI utformar en datatyp för varje ny grupp, högst 3 åt gången, utifrån fältens namn och formerna på deras värden, aldrig utifrån ett värde. Utkastet måste klara det en sparad typ måste klara och hitta de former det utformades utifrån. Ett utkast som inte gör det begärs en gång till, med orsaken.
+
+### Dina nästa skanningar bevisar den
+
+Utkastet körs i nästa skanning av varje datalager i dess grupp, i upp till 48 timmar eller ett skanningsintervall, beroende på vilket som är längst. Det skapar inget fynd: varje skanning räknar hur många värden det skulle hitta, i gruppens fält och i alla andra fält i samma datalager. Det erbjuds när det hittar minst 80 % av värdena i sina fält och högst 1 % av de övriga värdena. Ett fält på annat håll där det hittar nästan varje värde innehåller samma data under ett annat namn: det nämns och räknas inte mot utkastet.
+:::
+
+Varje utkast räknas samtidigt också i en snävare version: utanför gruppens fält hittar ett snävare utkast ett värde bara bredvid ett av sina nyckelord eller under ett fältnamn som nämner det. Ett utkast som hittar för mycket på annat håll erbjuds i den snävare versionen när det räcker. Ett utkast som inte räcker på något av de två sätten släpps, och dess grupp utformas inte igen på 30 dagar.
+
+Varje datatyp den erbjuder väntar under **Datatyper att granska**, överst på **Datasäkerhet → Inställningar → Datatyper** och på **Datasäkerhet → AI**, med det dina skanningar räknade, till exempel "Matchar 98 % av värdena i de här 11 fälten, och 0,1 % av värdena på andra ställen i samma datalager." **Lägg till datatyp** öppnar formuläret för en datatyp ifyllt med den, så att du kan ändra och testa den; när du sparar läggs typen till, och skanningar hittar den från nästa körning. **Inte en datatyp** avvisar den: den erbjuds aldrig igen för de fälten. Att lägga till en kräver en roll som får skapa datatyper.
 
 ## Inte känsligt, och aldrig känsligt
 

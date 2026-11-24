@@ -7,6 +7,7 @@ Datasikkerhed kender 143 slags følsomme data: kortnumre, bankkonti, nationale I
 - [Felter og kolonner](#felter-og-kolonner): Hvordan en hel kolonne eller attribut vurderes.
 - [Alle datatyper](#indbyggede-datatyper): Alle 143, efter kategori.
 - [Dine egne datatyper](#dine-egne-datatyper): Medarbejder-ID'er, policenumre og feltet Test det.
+- [Datatyper, som OneUptime AI finder](#datatyper-som-oneuptime-ai-finder): Dine egne datatyper, fundet i de felter, som ingen detektor kunne placere.
 :::
 
 ## Sådan findes en værdi
@@ -62,6 +63,8 @@ Et felt, hvis navn siger, at det indeholder en adgangskode - `password`, `passwo
 ### Felter, som ingen detektor kunne placere
 
 En kolonne eller et felt, hvis navn ikke peger på nogen datatype, og hvis værdier ikke matcher nogen detektor, vides ikke at være sikkert: det kan være dit eget kundenummer eller en kolonne navngivet på et andet sprog. Med projektets **Aktivér AI** slået til gemmer en indholdsscanning sådanne felter, højst 200 pr. scanning, og OneUptime AI bliver spurgt, hvilken af projektets datatyper hvert felt indeholder, højst 40 felter fra et datalager ad gangen. Den får feltets navn, navnene på felterne ved siden af og formerne på dets værdier - hvert bogstav skrevet som `a` eller `A` og hvert ciffer som `9`, så `AB-1234` bliver `AA-9999` - aldrig en værdi. Der spørges ikke om fritekst, felter med færre end 5 værdier, små heltal og felter navngivet som et id, et tidspunkt eller en status.
+
+En telemetriscanning gemmer på samme måde de attributter, som ingen detektor placerede, fra en tjenestes logs, spans, metrikker og resten af dens telemetri, højst 50 pr. tjeneste ved hver scanning. Den gemmer aldrig OneUptimes egne attributter, de attributter, som OpenTelemetrys konventioner skriver på hver post for at sige, hvor den kommer fra, såsom tjenesten, værten eller poden, eller fritekst, såsom brødteksten i en log.
 
 Hver type, OneUptime AI nævner, er et fund med Lav, markeret **Foreslået af OneUptime AI** med sin begrundelse. Som ethvert fund med Lav tæller det ikke, før et menneske vælger **Bekræft** på datalagerets side **Indhold**; **Markér som ikke følsom** afviser det. Der spørges ikke igen om et felt, der har fået svar, i 30 dage, og aldrig igen om et felt, som et menneske har vurderet.
 
@@ -295,6 +298,32 @@ Under **Flere felter** matcher **Ignorer store/små bogstaver** mønsteret uden 
 Et mønster kontrolleres, når du gemmer det: det skal kunne kompileres, må ikke matche tom tekst og skal køre på en tid, der vokser lineært med teksten. Det køres af en matcher, der aldrig backtracker, så intet mønster kan holde en scanning fast, uanset hvordan det er skrevet. En type kan have højst 50 nøgleord og 50 feltnavne.
 
 En værdi af din type er Middel alene og Høj med et nøgleord tæt på, når den består en kontrolsum, og Lav alene og Middel med et nøgleord, når den ikke har nogen. I en kolonne afgør andelen af værdier, der matcher, ligesom for alle typer.
+
+### Beskriv det
+
+Øverst i formularen for en ny datatype udfylder **Beskriv det** formularen for dig. Skriv, hvordan dataene ser ud, for eksempel "vores medarbejdernumre ser ud som EMP-123456, nogle gange uden bindestregen", tilføj nogle eksempler, hvis du vil, ét pr. linje, og vælg **Udfyld formularen**. OneUptime AI får din sætning og formerne af dine eksempler, aldrig selve eksemplerne: de bliver i din browser, hvor **Test det** viser, hvor mange af dem mønsteret finder. Læs, hvad den udfyldte, ret det, du vil, og gem: intet gemmes, før du gør det, og mønsteret kontrolleres som et, du selv har skrevet. Beskriv det kræver, at **Aktivér AI** er slået til for projektet.
+
+## Datatyper, som OneUptime AI finder
+
+De felter, som ingen detektor kunne placere, rummer ofte en datatype, der er din virksomheds egen, gemt mange steder under navne, der siger det samme: et forsikringsselskabs policenumre i kolonner med navnene `policy_no`, `policyNumber` og `police_nr` i alle dets databaser. Med **Aktivér AI** slået til for projektet finder OneUptime AI sådan en datatype i de felter, dine scanninger gemte, og spørger dig først, når dine egne scanninger har bevist den.
+
+:::steps
+### Den finder en gruppe felter
+
+Tre eller flere felter i to eller flere datalagre danner en gruppe, når de fleste af deres værdier har én form, med eller uden skilletegnene mellem dens dele, og deres navne deler et ord, der siger, hvad de indeholder. En form uden cifre, en dato, et klokkeslæt eller et decimaltal danner aldrig en gruppe, og et ord som `id`, `no` eller `number` siger intet i sig selv.
+
+### Den udkaster en datatype
+
+OneUptime AI udkaster en datatype for hver ny gruppe, højst 3 ad gangen, ud fra felternes navne og formerne af deres værdier, aldrig ud fra en værdi. Udkastet skal bestå det, en gemt type skal bestå, og finde de former, det blev udkastet ud fra. Et udkast, der ikke gør det, bliver bedt om én gang til, med årsagen.
+
+### Dine næste scanninger beviser den
+
+Udkastet kører i den næste scanning af hvert datalager i dets gruppe, i op til 48 timer eller ét scanningsinterval, alt efter hvad der er længst. Det laver intet fund: hver scanning tæller, hvor mange værdier det ville finde, i gruppens felter og i alle andre felter i de samme datalagre. Det tilbydes, når det finder mindst 80 % af sine felters værdier og højst 1 % af de øvrige værdier. Et felt et andet sted, hvor det finder næsten alle værdier, indeholder de samme data under et andet navn: det nævnes og tælles ikke imod udkastet.
+:::
+
+Hvert udkast tælles samtidig også i en indsnævret udgave: uden for gruppens felter finder et indsnævret udkast kun en værdi ved siden af et af sine nøgleord eller under et feltnavn, der nævner det. Et udkast, der finder for meget andre steder, tilbydes indsnævret, når det er nok. Et udkast, der ikke er nok på nogen af de to måder, droppes, og dets gruppe udkastes ikke igen i 30 dage.
+
+Hver datatype, den tilbyder, venter under **Datatyper til gennemsyn**, øverst på **Datasikkerhed → Indstillinger → Datatyper** og på **Datasikkerhed → AI**, med det, dine scanninger talte, for eksempel "Matcher 98 % af værdierne i disse 11 felter og 0,1 % af værdierne andre steder i de samme datalagre." **Tilføj datatype** åbner formularen for en datatype udfyldt med den, så du kan rette og teste den; når du gemmer, tilføjes typen, som scanninger finder fra deres næste kørsel. **Ikke en datatype** afviser den: den tilbydes aldrig igen for de felter. At tilføje en kræver en rolle, der må oprette datatyper.
 
 ## Ikke følsom og aldrig følsom
 

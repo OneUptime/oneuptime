@@ -49,6 +49,8 @@ Datasäkerhet läser själv dina data, i sina skanningar, och sparar ingenting a
 | **Åtgärda orsaken** | Kontrollen som gruppens problem inte klarar, det deras datalager har gemensamt och modulen eller filerna som deklarerar dem, som en begäran till kodagenten; varje datalager som pull requesten åtgärdar: dess namn, typ, region och moln-ID samt dess problem; kodagenten läser sedan lagringsplatsens egen kod för att göra ändringen | Nej: en person ber om det, från en grupp under **Problem** eller genom att godkänna förslaget från OneUptime AI, i en lagringsplats som personen får ändra i **Kod**; eller en säkerhetsplaybooks steg **Fix the code with AI**. En regel vars **Åtgärd** är satt till **Automatiskt** öppnar den av sig själv |
 | **Rensningsregler för det som Rensa inte kan täcka** | Varje fynds datatyp, dess kategori och om den hittas via sina värden eller via ett fälts namn; var den finns, attributet eller loggtexten, och namnen på attributen bredvid; formerna på dess värden, till exempel `AA-9999` för värdet `AB-1234`, och hur många värden som lästes | Ja: Ett telemetriproblem som OneUptime AI begränsar startar den, för de data som ingen regel från Rensa kan dölja, medan **Arbeta med nya problem** är påslaget |
 | **Känsliga data i pull requests** | Det som reglerna hittade i pull requestens diff: filen och raden, det skrivna namnet, den typ av data det nämner och den kontroll det skulle misslyckas med; diffen av de filerna och pull requestens titel, utan det som ser ut som en hemlighet, en e-postadress eller en IP-adress; aldrig det som produktionen innehåller: var din telemetri innehöll datan, ett datalagers namn eller vad ett datalager innehåller, och inte heller ett prov på det som hittades, inte ens ett maskerat | Ja: En pull requests [produktionsgranskning](/docs/ai/ai-agent#produktionsgranskning-av-pull-requests) startar den, när dess regler hittar känsliga data i ändringen |
+| **Datatyper som hittats i dina datalager** | Fält som ingen detektor placerade och som delar en form och ett namn i dina datalager: namnen på de fälten och på fälten bredvid dem, och vilken sorts datalager vart och ett finns i; formerna på deras värden, som `AA-9999` för värdet `AB-1234`, och hur många värden som lästes; namnen på de datatyper som OneUptime redan känner till. Aldrig ett värde, inte heller ett maskerat | Ja: en innehållsskanning som behöll sådana fält startar den, när tre eller fler fält i två eller fler datalager delar en form och ett namn som ingen detektor känner till |
+| **Beskriv** | Meningen som personen skrev i formuläret för en datatyp, och formerna på deras exempel, som `AA-9999` för exemplet `AB-1234`; aldrig själva exemplen, som Testa kör i din webbläsare | Nej: en person ber om den, med **Beskriv** i formuläret för en datatyp |
 
 **Förklara med AI** och **Fråga AI** läser också först ditt teams [AI-kontext](/docs/ai/ai-context), när det finns en: anteckningarna som ditt team har skrivit åt OneUptime AI om era system. **Analys av nya problem** läser den också.
 
@@ -82,6 +84,7 @@ När ett anrop misslyckas sparar Förklara med AI och fältförslagen inte ett o
 Varje AI-funktion i Datasäkerhet körs på den modell som ditt projekt valde:
 
 - **Förklara med AI** och fältförslagen körs på den leverantör som en AI-regel väljer för arbetet, annars på ditt projekts standard-LLM-leverantör, annars på serverns egen.
+- Datatyperna som hittats i dina datalager och **Beskriv** körs på projektets standard-LLM-leverantör, annars på serverns egen.
 - Kodagenten i **Åtgärda med AI** körs på den leverantör som en AI-regel väljer, annars på en av ditt projekts egna leverantörer, annars på serverns egen.
 - **Fråga AI** körs på den leverantör som valts i chatten, annars på ditt projekts standard.
 - Läsningen av en pull requests känsliga data körs på den leverantör som repositoriet väljer för sina produktionsgranskningar, annars på projektets standard-LLM-leverantör, annars på serverns egen.
@@ -90,7 +93,7 @@ En självhostad modell kör dem alla: Ollama, vLLM eller valfri OpenAI-kompatibe
 
 ### Med AI avstängd
 
-Med **Aktivera AI** avstängt under **Projektinställningar → AI → AI-funktioner** skickar OneUptime AI ingenting, och Datasäkerhet fortsätter att fungera som förut: varje sida, kontroll, skanning och integration. Ingen AI-knapp visas på ett problem, och inget fält efterfrågas efter en skanning.
+Med **Aktivera AI** avstängt under **Projektinställningar → AI → AI-funktioner** skickar OneUptime AI ingenting, och Datasäkerhet fortsätter att fungera som förut: varje sida, kontroll, skanning och integration. Ingen AI-knapp visas på ett problem, och inget fält efterfrågas efter en skanning. Ingen datatyp utformas heller utifrån dina fält.
 
 ## Hur det mäts
 

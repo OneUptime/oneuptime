@@ -7,6 +7,7 @@ Gegevensbeveiliging kent 143 soorten gevoelige gegevens: kaartnummers, bankreken
 - [Velden en kolommen](#velden-en-kolommen): Hoe een hele kolom of een heel attribuut wordt beoordeeld.
 - [Elk gegevenstype](#ingebouwde-gegevenstypen): Alle 143, per categorie.
 - [Je eigen gegevenstypen](#je-eigen-gegevenstypen): Personeelsnummers, polisnummers en het vak Testen.
+- [Gegevenstypen die OneUptime AI vindt](#gegevenstypen-die-oneuptime-ai-vindt): Uw eigen gegevenstypen, gevonden in de velden die geen detector kon plaatsen.
 :::
 
 ## Hoe een waarde wordt gevonden
@@ -62,6 +63,8 @@ Een veld waarvan de naam zegt dat het een wachtwoord bevat - `password`, `passwo
 ### Velden die geen detector kon plaatsen
 
 Een kolom of veld waarvan de naam naar geen enkel gegevenstype wijst en waarvan de waarden bij geen enkele detector passen, is niet als veilig bekend: het kan je eigen klantnummer zijn, of een kolom met een naam in een andere taal. Met **AI inschakelen** aan voor het project bewaart een inhoudsscan zulke velden, hoogstens 200 per scan, en wordt OneUptime AI gevraagd welk van de gegevenstypen van het project elk veld bevat, hoogstens 40 velden van een opslag tegelijk. Het krijgt de naam van het veld, de namen van de velden ernaast en de vormen van zijn waarden - elke letter geschreven als `a` of `A` en elk cijfer als `9`, dus `AB-1234` wordt `AA-9999` - nooit een waarde. Naar vrije tekst, velden met minder dan 5 waarden, kleine gehele getallen en velden die als ID, tijdstip of status zijn benoemd, wordt niet gevraagd.
+
+Een telemetriescan bewaart op dezelfde manier de attributen die geen detector plaatste, uit de logs, spans, metrics en de rest van de telemetrie van een service, hoogstens 50 per service per scan. Hij bewaart nooit de eigen attributen van OneUptime, niet de attributen die de conventies van OpenTelemetry op elk record schrijven om te zeggen waar het vandaan komt, zoals de service, de host of de pod, en geen vrije tekst, zoals de body van een log.
 
 Elk type dat OneUptime AI noemt, is een bevinding met Laag, gemarkeerd als **Voorgesteld door OneUptime AI** met de reden. Zoals elke bevinding met Laag telt ze nergens voor mee tot een mens **Bevestigen** kiest op de pagina **Inhoud** van de opslag; **Markeren als niet gevoelig** wijst haar af. Naar een veld dat een antwoord kreeg, wordt 30 dagen niet opnieuw gevraagd, en naar een veld dat een mens beoordeelde nooit meer.
 
@@ -295,6 +298,32 @@ Onder **Meer velden** laat **Hoofdletters negeren** het patroon overeenkomen ong
 Een patroon wordt gecontroleerd als je het opslaat: het moet compileren, mag geen lege tekst matchen en moet draaien in een tijd die in verhouding staat tot de tekst. Het wordt uitgevoerd door een matcher die nooit backtrackt, dus geen enkel patroon kan een scan ophouden, hoe het ook is geschreven. Een type heeft hoogstens 50 trefwoorden en 50 veldnamen.
 
 Een waarde van je type is op zichzelf Gemiddeld en met een trefwoord erbij Hoog als ze een controlesom doorstaat, en op zichzelf Laag en met een trefwoord Gemiddeld als er geen controlesom is. In een kolom beslist het aandeel van de waarden dat overeenkomt, zoals bij elk type.
+
+### Beschrijven
+
+Bovenaan het formulier van een nieuw gegevenstype vult **Beschrijven** het formulier voor u in. Schrijf hoe de gegevens eruitzien, bijvoorbeeld "onze personeelsnummers zien eruit als EMP-123456, soms zonder streepje", voeg desgewenst een paar voorbeelden toe, één per regel, en kies **Formulier invullen**. OneUptime AI krijgt uw zin en de vormen van uw voorbeelden, nooit de voorbeelden zelf: die blijven in uw browser, waar **Testen** laat zien hoeveel ervan het patroon vindt. Lees wat het invulde, wijzig wat u wilt en sla op: er wordt niets opgeslagen tot u dat doet, en het patroon wordt gecontroleerd als een patroon dat u zelf schreef. Beschrijven heeft **AI inschakelen** voor het project nodig.
+
+## Gegevenstypen die OneUptime AI vindt
+
+De velden die geen detector kon plaatsen, bevatten vaak een eigen gegevenstype van uw bedrijf, op veel plekken bewaard onder namen die hetzelfde zeggen: de polisnummers van een verzekeraar in kolommen met de namen `policy_no`, `policyNumber` en `police_nr`, in al zijn databases. Met **AI inschakelen** aan voor het project vindt OneUptime AI zo'n gegevenstype in de velden die uw scans bewaarden, en vraagt het u er pas naar wanneer uw eigen scans het hebben bewezen.
+
+:::steps
+### Het vindt een groep velden
+
+Drie of meer velden in twee of meer opslagen vormen een groep wanneer de meeste van hun waarden één vorm hebben, met of zonder de scheidingstekens tussen de delen, en hun namen een woord delen dat zegt wat ze bevatten. Een vorm zonder cijfer, een datum, een tijd of een decimaal getal vormt nooit een groep, en een woord als `id`, `no` of `number` zegt op zichzelf niets.
+
+### Het stelt een gegevenstype op
+
+OneUptime AI stelt voor elke nieuwe groep een gegevenstype op, hoogstens 3 tegelijk, uit de namen van de velden en de vormen van hun waarden, nooit uit een waarde. Het concept moet voldoen aan wat een opgeslagen type moet halen en de vormen vinden waaruit het is opgesteld. Een concept dat dat niet doet, wordt nog één keer gevraagd, met de reden.
+
+### Uw volgende scans bewijzen het
+
+Het concept draait in de volgende scan van elke opslag van zijn groep, hoogstens 48 uur of één scaninterval lang, wat het langst is. Het maakt geen bevinding: elke scan telt hoeveel waarden het zou vinden, in de velden van de groep en in elk ander veld van dezelfde opslagen. Het wordt aangeboden wanneer het minstens 80% van de waarden van zijn velden vindt en hoogstens 1% van de andere waarden. Een veld elders waarin het bijna elke waarde vindt, bevat dezelfde gegevens onder een andere naam: het wordt genoemd, niet tegen het concept geteld.
+:::
+
+Elk concept wordt tegelijk ook beperkt geteld: buiten de velden van zijn groep vindt een beperkt concept een waarde alleen naast een van zijn trefwoorden of onder een veldnaam die het noemt. Een concept dat elders te veel vindt, wordt beperkt aangeboden als dat genoeg is. Een concept dat op geen van beide manieren genoeg is, vervalt, en zijn groep wordt 30 dagen lang niet opnieuw opgesteld.
+
+Elk gegevenstype dat het aanbiedt, wacht onder **Te beoordelen gegevenstypen**, bovenaan **Gegevensbeveiliging → Instellingen → Gegevenstypen** en op **Gegevensbeveiliging → AI**, met wat uw scans telden, bijvoorbeeld "Komt overeen met 98% van de waarden in deze 11 velden, en met 0,1% van de waarden elders in dezelfde opslagen." **Gegevenstype toevoegen** opent het formulier van een gegevenstype, ingevuld met dit type, om te wijzigen en te testen; opslaan voegt het type toe, dat scans vanaf hun volgende run vinden. **Geen gegevenstype** wijst het af: het wordt nooit meer aangeboden voor die velden. Toevoegen vereist een rol die gegevenstypen mag maken.
 
 ## Niet gevoelig, en nooit gevoelig
 

@@ -49,6 +49,8 @@ Sicurezza dei dati legge i tuoi dati da sé, nelle sue scansioni, e non ne conse
 | **Correggi la causa** | Il controllo che i problemi del gruppo non superano, ciò che condividono i loro archivi dati e il modulo o i file che li dichiarano, come richiesta all'agente di codice; ogni archivio dati che la pull request corregge: nome, tipo, regione e ID cloud, e il suo problema; l'agente di codice legge poi il codice del repository per fare la modifica | No: lo chiede una persona, da un gruppo in **Problemi** o approvando la proposta di OneUptime AI, in un repository che può modificare in **Codice**; oppure il passaggio **Fix the code with AI** di un playbook di sicurezza. Una regola la cui **Correzione** è impostata su **Automaticamente** la apre da sola |
 | **Regole di pulizia per ciò che «Ripulisci» non può coprire** | Il tipo di dati di ogni risultato, la sua categoria e se viene trovato dai suoi valori o dal nome di un campo; dove si trova, l'attributo o il corpo del log, e i nomi degli attributi accanto; le forme dei suoi valori, come `AA-9999` per il valore `AB-1234`, e quanti valori sono stati letti | Sì: la avvia un problema di telemetria in cui OneUptime AI contiene la fuga, per i dati che nessuna regola «Ripulisci» può nascondere, mentre **Lavora sui nuovi problemi** è attivo |
 | **Dati sensibili nelle pull request** | Ciò che le regole hanno trovato nel diff della pull request: il file e la riga, il nome scritto, il tipo di dati che nomina e il controllo che non supererebbe; il diff di quei file e il titolo della pull request, senza ciò che sembra un segreto, un indirizzo email o un indirizzo IP; mai ciò che contiene la produzione: dove la tua telemetria ha contenuto i dati, il nome di un archivio o ciò che contiene un archivio, né un campione di ciò che è stato trovato, nemmeno mascherato | Sì: la avvia la [revisione di produzione](/docs/ai/ai-agent#revisione-di-produzione-delle-pull-request) di una pull request, quando le sue regole trovano dati sensibili nella modifica |
+| **Tipi di dati trovati nei tuoi archivi** | Campi che nessun rilevatore ha classificato e che condividono una forma e un nome nei tuoi archivi: i nomi di quei campi e dei campi accanto, e il tipo di archivio in cui si trova ciascuno; le forme dei loro valori, come `AA-9999` per il valore `AB-1234`, e quanti valori sono stati letti; i nomi dei tipi di dati che OneUptime conosce già. Mai un valore, nemmeno mascherato | Sì: una scansione del contenuto che ha conservato tali campi lo avvia, quando tre o più campi in due o più archivi condividono una forma e un nome che nessun rilevatore conosce |
+| **Descrivilo** | La frase che la persona ha scritto nel modulo di un tipo di dati, e le forme dei suoi esempi, come `AA-9999` per l'esempio `AB-1234`; mai gli esempi stessi, che Testalo esegue nel tuo browser | No: lo chiede una persona, con **Descrivilo** nel modulo di un tipo di dati |
 
 **Spiega con l'IA** e **Chiedi all'IA** leggono anche, per primo, il [contesto IA](/docs/ai/ai-context) del tuo team, quando ne ha uno: le note che il tuo team ha scritto per OneUptime AI sui tuoi sistemi. **Analisi dei nuovi problemi** lo legge anche.
 
@@ -82,6 +84,7 @@ Le proposte di proprietari conservano lo stesso di Spiega con l'IA: le righe del
 Ogni funzionalità IA di Sicurezza dei dati viene eseguita sul modello scelto dal tuo progetto:
 
 - **Spiega con l'IA** e i suggerimenti per i campi vengono eseguiti sul provider che una regola IA sceglie per il lavoro, altrimenti sul provider LLM predefinito del tuo progetto, altrimenti su quello del server.
+- I tipi di dati trovati nei tuoi archivi e **Descrivilo** vengono eseguiti sul provider LLM predefinito del tuo progetto, altrimenti su quello del server.
 - L'agente di programmazione di **Correggi con l'IA** viene eseguito sul provider che una regola IA sceglie, altrimenti su uno dei provider del tuo progetto, altrimenti su quello del server.
 - **Chiedi all'IA** viene eseguito sul provider scelto nella chat, altrimenti su quello predefinito del tuo progetto.
 - La lettura dei dati sensibili di una pull request viene eseguita sul provider che il repository sceglie per le sue revisioni di produzione, altrimenti sul provider LLM predefinito del tuo progetto, altrimenti su quello del server.
@@ -90,7 +93,7 @@ Un modello self-hosted le esegue tutte: Ollama, vLLM o qualsiasi endpoint compat
 
 ### Con l'IA disattivata
 
-Con **Abilita IA** disattivato in **Impostazioni del progetto → IA → Funzionalità IA**, OneUptime AI non invia nulla, e Sicurezza dei dati continua a funzionare come prima: ogni pagina, controllo, scansione e integrazione. Su un problema non compare alcun pulsante dell'IA, e dopo una scansione non viene chiesto nulla su alcun campo.
+Con **Abilita IA** disattivato in **Impostazioni del progetto → IA → Funzionalità IA**, OneUptime AI non invia nulla, e Sicurezza dei dati continua a funzionare come prima: ogni pagina, controllo, scansione e integrazione. Su un problema non compare alcun pulsante dell'IA, e dopo una scansione non viene chiesto nulla su alcun campo. E nessun tipo di dati viene redatto a partire dai tuoi campi.
 
 ## Come viene misurata
 

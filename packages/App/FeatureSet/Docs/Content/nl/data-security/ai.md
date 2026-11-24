@@ -49,6 +49,8 @@ Gegevensbeveiliging leest je gegevens zelf, in de eigen scans, en bewaart er nie
 | **Oorzaak oplossen** | De controle waarvoor de problemen van de groep zakken, wat hun gegevensopslag deelt en de module of bestanden die ze declareren, als verzoek aan de codeeragent; elke gegevensopslag die de pull request oplost: naam, soort, regio en cloud-ID, en het probleem ervan; de codeeragent leest daarna de eigen code van de repository om de wijziging te maken | Nee: een persoon vraagt het, vanuit een groep onder **Problemen** of door het voorstel van OneUptime AI goed te keuren, in een repository die hij in **Code** mag wijzigen; of de stap **Fix the code with AI** van een beveiligingsplaybook. Een regel waarvan **Herstel** op **Automatisch** staat, opent hem zelf |
 | **Opschoonregels voor wat Opschonen niet kan afdekken** | Het gegevenstype van elke bevinding, de categorie ervan en of het wordt gevonden aan de waarden of aan de naam van een veld; waar het staat, het attribuut of de logtekst, en de namen van de attributen ernaast; de vormen van de waarden, zoals `AA-9999` voor de waarde `AB-1234`, en hoeveel waarden er zijn gelezen | Ja: een telemetrieprobleem dat OneUptime AI indamt start het, voor de gegevens die geen regel van Opschonen kan verbergen, terwijl **Aan nieuwe problemen werken** aanstaat |
 | **Gevoelige gegevens in pull requests** | Wat de regels in de diff van de pull request vonden: het bestand en de regel, de geschreven naam, het soort gegevens dat die noemt en de controle waarvoor die zou zakken; de diff van die bestanden en de titel van de pull request, zonder wat op een geheim, een e-mailadres of een IP-adres lijkt; nooit wat productie bevat: waar je telemetrie de gegevens bevatte, de naam van een opslag of wat een opslag bevat, en ook geen voorbeeld van wat er gevonden is, zelfs geen gemaskeerd | Ja: de [productiebeoordeling](/docs/ai/ai-agent#productiebeoordeling-van-pull-requests) van een pull request start het, wanneer de regels ervan gevoelige gegevens in de wijziging vinden |
+| **Gegevenstypen gevonden in uw opslagen** | Velden die geen detector plaatste en die in uw opslagen een vorm en een naam delen: de namen van die velden en van de velden ernaast, en het soort opslag waarin elk staat; de vormen van hun waarden, zoals `AA-9999` voor de waarde `AB-1234`, en hoeveel waarden zijn gelezen; de namen van de gegevenstypen die OneUptime al kent. Nooit een waarde, ook geen gemaskeerde | Ja: een inhoudsscan die zulke velden bewaarde, start het, wanneer drie of meer velden in twee of meer opslagen een vorm en een naam delen die geen detector kent |
+| **Beschrijven** | De zin die de persoon op het formulier van een gegevenstype schreef, en de vormen van hun voorbeelden, zoals `AA-9999` voor het voorbeeld `AB-1234`; nooit de voorbeelden zelf, die Testen in uw browser uitvoert | Nee: een persoon vraagt erom, met **Beschrijven** op het formulier van een gegevenstype |
 
 **Uitleggen met AI** en **AI vragen** lezen ook eerst de [AI-context](/docs/ai/ai-context) van je team, als die er is: de notities die je team voor OneUptime AI over je systemen heeft geschreven. **Analyse van nieuwe problemen** leest die ook.
 
@@ -82,6 +84,7 @@ De eigenaarsvoorstellen bewaren hetzelfde als Uitleggen met AI: de rijen van hun
 Elke AI-functie van Gegevensbeveiliging draait op het model dat je project koos:
 
 - **Uitleggen met AI** en de veldsuggesties draaien op de provider die een AI-regel voor het werk kiest, anders op de standaard-LLM-provider van je project, anders op die van de server zelf.
+- De gegevenstypen gevonden in uw opslagen en **Beschrijven** draaien op de standaard-LLM-provider van uw project, anders op die van de server zelf.
 - De code-agent van **Oplossen met AI** draait op de provider die een AI-regel kiest, anders op een van de eigen providers van je project, anders op die van de server zelf.
 - **AI vragen** draait op de provider die in de chat is gekozen, anders op de standaard van je project.
 - Het lezen van de gevoelige gegevens van een pull request draait op de provider die de repository voor zijn productiebeoordelingen kiest, anders op de standaard-LLM-provider van je project, anders op die van de server zelf.
@@ -90,7 +93,7 @@ Een zelf gehost model draait ze allemaal: Ollama, vLLM of een OpenAI-compatibel 
 
 ### Met AI uit
 
-Met **AI inschakelen** uit in **Projectinstellingen → AI → AI-functies** verstuurt OneUptime AI niets, en blijft Gegevensbeveiliging werken zoals voorheen: elke pagina, controle, scan en integratie. Er verschijnt geen AI-knop op een probleem, en na een scan wordt naar geen enkel veld gevraagd.
+Met **AI inschakelen** uit in **Projectinstellingen → AI → AI-functies** verstuurt OneUptime AI niets, en blijft Gegevensbeveiliging werken zoals voorheen: elke pagina, controle, scan en integratie. Er verschijnt geen AI-knop op een probleem, en na een scan wordt naar geen enkel veld gevraagd. Er wordt ook geen gegevenstype uit uw velden opgesteld.
 
 ## Hoe het wordt gemeten
 

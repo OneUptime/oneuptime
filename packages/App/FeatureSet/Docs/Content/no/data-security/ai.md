@@ -49,6 +49,8 @@ Datasikkerhet leser dataene dine selv, i sine egne skanninger, og beholder ingen
 | **Rett årsaken** | Kontrollen gruppens problemer feiler, det datalagrene deres har til felles, og modulen eller filene som deklarerer dem, som en forespørsel til kodeagenten; hvert datalager pull-forespørselen retter: navn, type, region og sky-ID, og problemet; kodeagenten leser deretter kodelagerets egen kode for å gjøre endringen | Nei: en person ber om det, fra en gruppe under **Problemer** eller ved å godkjenne forslaget fra OneUptime AI, i et kodelager vedkommende kan endre i **Kode**; eller trinnet **Fix the code with AI** i en sikkerhetsplaybook. En regel der **Rettelse** er satt til **Automatisk**, åpner den av seg selv |
 | **Rensingsregler for det Rens ikke kan dekke** | Datatypen til hvert funn, kategorien og om den finnes ut fra verdiene eller ut fra navnet på et felt; hvor den ligger, attributtet eller loggteksten, og navnene på attributtene ved siden av; formene på verdiene, for eksempel `AA-9999` for verdien `AB-1234`, og hvor mange verdier som ble lest | Ja: Et telemetriproblem OneUptime AI begrenser, starter den, for dataene ingen av Rens' regler kan skjule, mens **Jobb med nye problemer** er slått på |
 | **Sensitive data i pull-forespørsler** | Det reglene fant i pull requestens diff: filen og linjen, navnet som ble skrevet, typen data det nevner og kontrollen det ville feilet; diffen av de filene og pull requestens tittel, uten det som ser ut som en hemmelighet, en e-postadresse eller en IP-adresse; aldri det produksjonen inneholder: hvor telemetrien din inneholdt dataene, et datalagers navn eller hva et datalager inneholder, og heller ingen prøve av det som ble funnet, ikke engang en maskert | Ja: En pull requests [produksjonsgjennomgang](/docs/ai/ai-agent#produksjonsgjennomgang-av-pull-requests) starter den, når reglene finner sensitive data i endringen |
+| **Datatyper funnet i datalagrene dine** | Felt som ingen detektor plasserte, og som deler en form og et navn på tvers av datalagrene dine: navnene på disse feltene og på feltene ved siden av, og hva slags datalager hvert av dem ligger i; formene på verdiene, som `AA-9999` for verdien `AB-1234`, og hvor mange verdier som ble lest; navnene på datatypene OneUptime allerede kjenner. Aldri en verdi, heller ikke en maskert | Ja: en innholdsskanning som beholdt slike felt, starter den, når tre eller flere felt i to eller flere datalagre deler en form og et navn som ingen detektor kjenner |
+| **Beskriv det** | Setningen personen skrev i skjemaet for en datatype, og formene på eksemplene, som `AA-9999` for eksemplet `AB-1234`; aldri selve eksemplene, som Test det kjører i nettleseren din | Nei: en person ber om den, med **Beskriv det** i skjemaet for en datatype |
 
 **Forklar med AI** og **Spør AI** leser også først teamets [AI-kontekst](/docs/ai/ai-context), når den finnes: notatene teamet ditt har skrevet for OneUptime AI om systemene deres. **Analyse av nye problemer** leser den også.
 
@@ -82,6 +84,7 @@ Eierforslagene tar vare på det samme som Forklar med AI: Radene for kallene der
 Hver AI-funksjon i Datasikkerhet kjører på modellen prosjektet ditt valgte:
 
 - **Forklar med AI** og feltforslagene kjører på leverandøren en AI-regel velger for jobben, ellers på prosjektets standard-LLM-leverandør, ellers på serverens egen.
+- Datatypene funnet i datalagrene dine og **Beskriv det** kjører på prosjektets standard LLM-leverandør, ellers på serverens egen.
 - Kodeagenten i **Fiks med AI** kjører på leverandøren en AI-regel velger, ellers på en av prosjektets egne leverandører, ellers på serverens egen.
 - **Spør AI** kjører på leverandøren som er valgt i chatten, ellers på prosjektets standard.
 - Lesingen av en pull requests sensitive data kjører på leverandøren repositoriet velger for produksjonsgjennomgangene sine, ellers på prosjektets standard-LLM-leverandør, ellers på serverens egen.
@@ -90,7 +93,7 @@ En selvhostet modell kjører dem alle: Ollama, vLLM eller et hvilket som helst O
 
 ### Med AI slått av
 
-Med **Aktiver AI** slått av under **Prosjektinnstillinger → KI → AI-funksjoner** sender OneUptime AI ingenting, og Datasikkerhet fortsetter å virke som før: hver side, kontroll, skanning og integrasjon. Ingen AI-knapp vises på et problem, og det spørres ikke om noe felt etter en skanning.
+Med **Aktiver AI** slått av under **Prosjektinnstillinger → KI → AI-funksjoner** sender OneUptime AI ingenting, og Datasikkerhet fortsetter å virke som før: hver side, kontroll, skanning og integrasjon. Ingen AI-knapp vises på et problem, og det spørres ikke om noe felt etter en skanning. Det lages heller ingen utkast til datatyper ut fra feltene dine.
 
 ## Slik måles det
 
