@@ -317,6 +317,8 @@ GenAI metrics such as `gen_ai.client.token.usage` and `gen_ai.client.operation.d
 
 AI calls are stored as trace spans, so the traces' **Scrub Rules** and **Drop Filters** apply to them: mask an attribute, or drop a span, before it is stored. Find both under **Traces → Settings**. The employee email column is scrubbed with the attribute it was read from, so a rule that masks emails covers it too.
 
+A person a scrub rule hid is never shown as one. **Conversations** and **Calls** show a call's ID when a rule hid its email but left the ID whole, and **Hidden by a scrub rule** where a rule hid every name the call has, whether it redacted, masked or hashed them. **Calls** shows a team a rule hid the same way.
+
 Prompts and answers sent as log events are stored as logs, so it is the logs' **Scrub Rules** and **Drop Filters** that apply to them, under **Logs → Settings**: a rule that masks emails on the traces does not mask them in log events. A conversation shows them only to whoever can also read that app's logs, and those readers can find them on the **Logs** page too.
 
 Either way, a rule reads every text inside a list or a structured value, such as messages an instrumentation sends as a list rather than as JSON text, and keeps the value's shape: an email address in a prompt is masked wherever it sits. See [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data).
