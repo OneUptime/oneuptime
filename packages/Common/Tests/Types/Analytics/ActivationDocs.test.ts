@@ -176,6 +176,15 @@ const HELPERS: Array<{
     entryPoints: ["recordDocsLinkOpened(", "openDocumentationLink("],
     events: [ProductEventName.DocsLinkOpened],
   },
+  /*
+   * A dotted word's definition opened (#7019): every defined term tells
+   * the page's listener, which the Dashboard sets to this helper.
+   */
+  {
+    file: "packages/Common/UI/Utils/GlossaryEvents.ts",
+    entryPoints: ["recordGlossaryDefinitionOpened"],
+    events: [ProductEventName.GlossaryDefinitionOpened],
+  },
 ];
 
 // Where a page of the product sends the event, if anywhere.
