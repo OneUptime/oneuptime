@@ -47,9 +47,9 @@ export const MonitorGroupMonitoringCopy: {
   mixedLine: translationKey(
     "Monitoring is off for {{off}} of {{total}} monitors in this group.",
   ),
-  turnOffButton: translationKey("Turn off monitoring"),
+  turnOffButton: translationKey("Turn monitoring off"),
   turnOnButton: translationKey("Turn monitoring on"),
-  turnOffConfirmTitle: translationKey("Turn off monitoring for this group?"),
+  turnOffConfirmTitle: translationKey("Turn monitoring off for this group?"),
   turnOffConfirmDescription: translationKey(
     "Nothing checks these monitors until monitoring is back on, so they open no incidents or alerts. Their open ones set to auto-resolve are resolved now.",
   ),

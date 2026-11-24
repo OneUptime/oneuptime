@@ -102,7 +102,7 @@ The **Overview** also has a **Used by** card: the status pages that show the gro
 
 The **Monitoring** card on a group's **Overview** turns monitoring off, or back on, for every monitor in the group at once.
 
-- **Turn off monitoring** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.
+- **Turn monitoring off** asks first. Nothing then checks the group's monitors until monitoring is turned back on, so they open no incidents or alerts, and the group shows **Disabled** in place of its status.
 - **Turn monitoring on** saves at once. Each monitor's next check sets its status again.
 
 Turning monitoring off also resolves the monitors' open incidents and alerts that are set to auto-resolve, as each monitor would have on recovery. Incidents and alerts declared by hand, or whose criteria do not auto-resolve, stay open. Turning off one monitor's monitoring, on its **Settings** page, does the same.

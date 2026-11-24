@@ -60,7 +60,7 @@ export const MonitoringSwitchCopy: {
   ),
   bannerTitle: translationKey("Monitoring is turned off"),
   turnOnButton: translationKey("Turn monitoring on"),
-  turnOffConfirmTitle: translationKey("Turn off monitoring?"),
+  turnOffConfirmTitle: translationKey("Turn monitoring off?"),
   /*
    * Turning monitoring off resolves the monitor's open incidents and alerts
    * that it would have resolved itself (Server/Utils/Monitor/MonitorTurnedOff).
@@ -68,7 +68,7 @@ export const MonitoringSwitchCopy: {
   turnOffConfirmDescription: translationKey(
     "Nothing checks this monitor until monitoring is back on, so it opens no incidents or alerts. Its open ones set to auto-resolve are resolved now.",
   ),
-  turnOffConfirmButton: translationKey("Turn off monitoring"),
+  turnOffConfirmButton: translationKey("Turn monitoring off"),
 };
 
 // The column the switch writes. The switch is on while it is false.
