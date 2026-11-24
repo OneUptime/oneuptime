@@ -10,6 +10,10 @@ import SecurityUserVaultService from "../../../Services/SecurityUserVaultService
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import { readHashTokens } from "./HashedUserPairs";
+import SecurityUserErasedTokens, {
+  ErasedTokens,
+  isTokenErased,
+} from "./SecurityUserErasedTokens";
 
 /*
  * SECURITY EVENTS' HALF OF THE USER VAULT (#10632): the scans name the
@@ -49,6 +53,11 @@ import { readHashTokens } from "./HashedUserPairs";
  * reads a user (UserVault/HashedUserPairs), and a token here is only ever
  * read from the event's own user, which the record would have named
  * unscrubbed: the vault names nothing the record did not say.
+ *
+ * A person erased from the vault on request (#10908) is never named again:
+ * a user holding any token of the project's erasure requests is left as
+ * the rule left it, even when a later event carries the token and even if
+ * the vault still held a row for it (SecurityUserErasedTokens).
  *
  * Only Security Events' scans call this (SecurityUserVaultGuard.test.ts).
  */
@@ -121,12 +130,38 @@ export default class SecurityUserVaultLookup {
       return 0;
     }
 
+    /*
+     * A person erased from the vault on request (#10908) is never named
+     * again, whatever the vault holds: a user with an erased token in it
+     * stays as the rule left it. When the erased tokens cannot be read,
+     * nobody is named.
+     */
+    const erased: ErasedTokens = await SecurityUserErasedTokens.getErasedTokens(
+      data.projectId,
+    );
+
+    if (erased === null) {
+      return 0;
+    }
+
+    const nameable: Array<PendingUser> = pending.filter(
+      (item: PendingUser): boolean => {
+        return !item.tokens.some((token: string): boolean => {
+          return isTokenErased(token, erased);
+        });
+      },
+    );
+
+    if (nameable.length === 0) {
+      return 0;
+    }
+
     let users: Map<string, string>;
 
     try {
       users = await SecurityUserVaultService.findUsersOfTokens({
         projectId: data.projectId,
-        tokens: pending.flatMap((item: PendingUser): Array<string> => {
+        tokens: nameable.flatMap((item: PendingUser): Array<string> => {
           return item.tokens;
         }),
       });
@@ -140,7 +175,7 @@ export default class SecurityUserVaultLookup {
 
     let named: number = 0;
 
-    for (const item of pending) {
+    for (const item of nameable) {
       const user: string | null = nameHashedUser(item.hashed, users);
 
       if (!user) {

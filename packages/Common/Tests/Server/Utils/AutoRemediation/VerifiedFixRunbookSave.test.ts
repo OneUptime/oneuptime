@@ -21,6 +21,7 @@ import RunbookService from "../../../../Server/Services/RunbookService";
 import VerifiedFixRunbookSave, {
   VerifiedFixRunbookSaved,
 } from "../../../../Server/Utils/AutoRemediation/VerifiedFixRunbookSave";
+import ServerSetColumns from "../../../../Server/Utils/Database/ServerSetColumns";
 import {
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPlanUtil,
@@ -239,6 +240,22 @@ describe("saving a verified fix as a runbook", () => {
       agentId: RUNNER_ID,
       timeoutInMs: 30000,
     });
+  });
+
+  /*
+   * The steps are OneUptime's, not the person's (GHSA-rfrx-38rq-44w6):
+   * marked so on the record the create writes, which RunbookService lets
+   * through for a person who may create runbooks but not write steps that
+   * run, while the runbook starts turned off
+   * (RunbookStepsThatRunThroughTheWrite drives that create).
+   */
+  test("marks the steps as OneUptime's, on a runbook that starts turned off", async () => {
+    await save();
+
+    const { data } = createdRunbooks[0]!;
+
+    expect(ServerSetColumns.getMarked(data)).toEqual(["steps"]);
+    expect(data.isEnabled).toBe(false);
   });
 
   test("the fix then names its runbook, and the incident's feed says so, without pinging its channel", async () => {

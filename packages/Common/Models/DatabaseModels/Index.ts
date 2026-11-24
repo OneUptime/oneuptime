@@ -261,6 +261,7 @@ import DataObservabilitySetting from "./DataObservabilitySetting";
 import DataAssetLineage from "./DataAssetLineage";
 import DataAlert from "./DataAlert";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
+import SecurityUserErasureRequest from "./SecurityUserErasureRequest";
 import SecurityBlock from "./SecurityBlock";
 import SecurityBlockEnforcement from "./SecurityBlockEnforcement";
 import SecurityBlockCloudWaf from "./SecurityBlockCloudWaf";
@@ -797,6 +798,7 @@ const AllModelTypes: Array<{
   DataAssetLineage,
   DataAlert,
   SecurityProtectedEntity,
+  SecurityUserErasureRequest,
   SecurityBlock,
   SecurityBlockEnforcement,
   SecurityBlockCloudWaf,

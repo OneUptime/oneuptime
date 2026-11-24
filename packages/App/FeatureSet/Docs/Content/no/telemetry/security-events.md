@@ -65,6 +65,7 @@ flowchart TB
 | **Notatmaler** | Innstillinger | Ferdig tekst til notatene teamet ditt skriver på sakene sine |
 | **Nummerering** | Innstillinger | Teksten foran saksnumrene, og nummeret den neste saken får |
 | **Risikovurdering** | Innstillinger | Om risikoen for en entitet åpner en sak, ved hvilken risiko, og hvor mye hver entitet betyr |
+| **Sletteforespørsler** | Innstillinger | Personer som er slettet på forespørsel, og hva hver sletting endret |
 
 **Deteksjoner**, **KI**, **Tilkoblinger** og **Innstillinger**, som settes opp én gang, er slått sammen til du åpner dem. Ny med sikkerhet? [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started) setter det opp med to klikk.
 
@@ -352,6 +353,8 @@ En regel som hasher, lagrer adressen for Sikkerhetshendelser, så hendelsen navn
 En deteksjonsregel som teller per adresse, bør telle per `principalIp` eller `targetIp`, som navngir adressen bak tokenet fra en regel som hasher, slik regelbibliotekets regler gjør. Et formats eget adressefelt, for eksempel `openstack.audit.initiator_address` eller `asa.src_ip`, inneholder bare en adresse som sto i loggen, så det forblir tomt overalt der en scrub-regel skjulte en.
 
 En regel som sletter eller maskerer en bruker, skjuler den på samme måte: Der hendelsen ville navngitt brukeren, sier **Kildebruker** eller **Målbruker** at en scrub-regel skjulte den. Der Sikkerhetshendelser leser en bruker, lagrer en regel som hasher, brukeren for den: en forespørsels `enduser.id` eller `user.id`, et AI-kalls bruker og en bruker som en logglinje navngir, som principal i en revisjonslogg fra skyen. Så hendelsen navngir brukeren bak tokenet, en sak om brukeren navngir kontoen, og en playbook kan handle på den som på enhver annen bruker. Det regelen la igjen, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finne brukeren i loggene og trasene dine, som bare inneholder tokenet. Et token som ingen bruker er lagret for, som et som ble laget før tokener hadde en nøkkel, forblir hendelsens bruker: Regler teller det som én konto, og ingen playbook handler på det.
+
+Hendelsens panel sier det under brukeren den nevner i **Kildebruker** og **Målbruker**: «Hashet i loggene dine som …», eller «Hashet i sporene dine som …» for en hendelse lest fra sporene dine, der … er tokenet. Tokenet er en lenke som søker etter det i loggene eller sporene dine, fra en dag før hendelsen til en dag etter. En bruker som er slettet på forespørsel, viser i stedet **Slettet på forespørsel**, og hendelsen viser tokenet deres: se [Slett en person](#slett-en-person).
 
 ## Utforsk sikkerhetshendelser
 
@@ -747,6 +750,30 @@ Alt i Sikkerhetshendelser som leser tidligere hendelser, leser bare hendelsene s
 - En hunt med et **Tidsintervall** som er lengre enn hendelsene oppbevares, finner ingenting eldre, og skjemaet dens sier det.
 
 **Prosjektinnstillinger → Telemetri og APM → Dataoppbevaring** viser de aktiverte reglene som ser lenger tilbake enn **Standard oppbevaring (dager)**. For å dekke dem, oppbevar hendelser lenger, med **Endre oppbevaring** under en regel, eller forkort tidsrommet til en regel til det som oppbevares. OneUptime oppbevarer 15 dager med mindre du endrer det, fordi oppbevaringen bestemmer hva telemetrien din koster og hvor lenge personopplysninger i hendelser, som adresser og brukernavn, oppbevares. En ny oppbevaring gjelder for hendelser som kommer inn fra da av, så reglene ser lenger tilbake etter hvert som de hendelsene blir eldre.
+
+## Slett en person
+
+Når noen ber deg slette dataene deres, for eksempel etter GDPR artikkel 17, sletter du dem i **Sikkerhetshendelser → Innstillinger → Sletteforespørsler**. Velg **Slett person**, og skriv inn bruker-ID-en eller e-postadressen slik loggene dine inneholdt den før Hash-skrubbregelen din skjulte den, eller tokenet en hendelse viser i stedet. En e-postadresse slettes også med små bokstaver. Legg inn din egen referanse under **Referanse**, for eksempel saksnummeret til forespørselen, aldri personens navn.
+
+Hva forespørselen gjør:
+
+- Innen et minutt slutter Sikkerhetshendelser å nevne personen. Brukerhvelvet avviser tokenene deres fra da av, så ingen hendelse, sak eller playbook nevner dem igjen, heller ikke når en senere hendelse har det samme tokenet: den hendelsen beholder tokenet som sin bruker, som for ethvert token uten en lagret bruker. Å lagre et token som kommer tilbake, ville nevne personen igjen, og det er nettopp det de har bedt deg slutte med.
+- Innen noen få minutter sletter den hvelvets oppføringer om dem og setter tokenet tilbake på deres plass i hendelsene som nevnte dem via hvelvet: **Kildebruker**, **Målbruker**, observablene og attributtene. Den fjerner dem fra titler, entiteter og lagrede hendelser i saker og deteksjoner, og fra entitetsrisiko.
+- En playbook-kjøring eller en handling fra OneUptime AI som venter på godkjenning for å handle på dem, trekkes tilbake og sier hvorfor.
+
+Hver forespørsel viser statusen sin, **I kø**, **Sletter**, **Slettet** eller **Mislyktes**, og hva den endret: de slettede hvelvoppføringene, hendelsene og sakene som ikke lenger nevner dem, og de tilbaketrukne forslagene. Slettingen starter to minutter etter at forespørselen er sendt inn, når ingen OneUptime-server lenger nevner personen, og en forespørsel viser **Slettet** først når hver endring er tatt i bruk. En forespørsel som mislykkes, prøves på nytt; etter fem forsøk viser den **Mislyktes** med årsaken, og prosjektets eiere får en e-post. Sikkerhetshendelser nekter fortsatt å nevne personen, og å sende inn forespørselen på nytt prøver igjen.
+
+Hva den lar være:
+
+- Det folk har skrevet: notater, avslutningsnotater, oppgaver, bevis, egendefinerte felt og det OneUptime AI har skrevet om en sak.
+- Hendelser som nevnte personen fordi loggene dine inneholdt dem i klartekst, og loggene og sporene dine selv, som bare inneholder tokenet.
+- Detection Finding-hendelsene en regel skrev om dem, der meldingen og observablene kan nevne dem, til telemetrioppbevaringen din sletter dem.
+- Allerede sendte varsler, insidenter og alarmer som en deteksjon åpnet, en saks aktivitet, eksporter, sikkerhetskopier og revisjonsloggen.
+- På en selvhostet OneUptime der `ENCRYPTION_SECRET` er endret, tokener laget før endringen: slett hvert av dem via tokenet en hendelse viser.
+
+Forespørselen lagrer hvem som sendte den inn og når, referansen din og personens tokener, som hvelvet fortsetter å avvise dem med. Bruker-ID-en eller e-postadressen lagres kryptert, der ingen side, eksport eller API kan lese den, og slettes når slettingen er ferdig; ClickHouse får bare tokenene. Forespørsler kan ikke redigeres eller slettes: de er din dokumentasjon på slettingen.
+
+Prosjekteiere, Prosjektadministratorer, Sikkerhetsadministratorer og alle med Create Security Erasure Request, for eksempel personvernombudet ditt, kan sende inn en forespørsel, fra siden eller via API-ets `/security-user-erasure-request`. Alle sikkerhetsroller kan lese dem.
 
 ## Feilsøking
 

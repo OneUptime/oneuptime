@@ -5309,6 +5309,26 @@ jobs:
           Tests/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskPostgres.test.ts
           --forceExit
 
+      # Erasing one person from Security Events' user vault (#10908) on
+      # copies of the migrated tables it changes, through the real SQL and
+      # services: detections, cases, entity risk and proposals take the
+      # token in the person's place (found by the name in a jsonb column's
+      # text), a waiting run is cancelled and an AI action withdrawn, a
+      # second run changes nothing; a request keeps what was typed
+      # encrypted and wipes it once over, and its claim is atomic.
+      - name: Test Security Events erasure requests on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_USER_ERASURE_TESTS: "true"
+          SECURITY_USER_ERASURE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_USER_ERASURE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_USER_ERASURE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/UserVault/SecurityUserErasurePostgres.test.ts
+          --forceExit
+
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -
       # rules written through the real settings service, members' notification
       # rules and methods seeded as rows, and every query the ee status service
