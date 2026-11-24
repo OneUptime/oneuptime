@@ -277,9 +277,9 @@ describe("MonitorEvaluationClock.getIntervalInMs: what an evaluation is weighed 
     const summary: MonitorEvaluationSummary = newSummary();
 
     MonitorEvaluationClock.begin(summary);
+    // No monitoringInterval: an Incoming Request monitor has none.
     MonitorEvaluationClock.schedule(summary, {
       monitorType: MonitorType.IncomingRequest,
-      monitoringInterval: undefined,
     });
     MonitorEvaluationClock.end(checkWith(summary));
 

@@ -7,6 +7,7 @@ import Route from "../../../Types/API/Route";
 import AnalyticsTableEngine from "../../../Types/AnalyticsDatabase/AnalyticsTableEngine";
 import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
+import AggregatedModel from "../../../Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "../../../Types/BaseDatabase/AggregatedResult";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import GenericObject from "../../../Types/GenericObject";
@@ -354,7 +355,7 @@ describe("AnalyticsDatabaseService.aggregateBy grouped by attribute keys", () =>
     expect(streamed.truncated).toBe(false);
     // A value ClickHouse wrote as text is read as a number, as before.
     expect(
-      streamed.data.every((row: GenericObject): boolean => {
+      streamed.data.every((row: AggregatedModel): boolean => {
         return row["value"] === null || typeof row["value"] === "number";
       }),
     ).toBe(true);
