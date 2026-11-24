@@ -187,7 +187,7 @@ Siden **Opsætningsvejledning**, under **Forbindelser**, har disse kodestykker m
 
 ### Find sikkerhedshændelser i dine logs
 
-Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost, hvert webangreb og hver afvist forespørgsel om en følsom fil i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
+Kortet **Dine logs**, øverst på **Forbindelser**, gør de logs, du allerede sender til OneUptime, til en kilde. Med **Find sikkerhedshændelser i dine logs** slået til læses projektets nye logs hvert minut, og hvert SSH- eller Windows-login, hver sudo-kommando, hver auditpost fra en cloud, hver CEF- eller LEEF-post fra et sikkerhedsprodukt, hver post fra en Palo Alto Networks-, FortiGate- eller Cisco ASA-firewall, hver Kubernetes-auditpost, hvert webangreb og hver forespørgsel om en følsom fil i dem gemmes som en sikkerhedshændelse. Se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started#find-sikkerhedshændelser-i-dine-logs) for, hvad hver slags dækker.
 
 Hver slags når OneUptime som almindelige logs:
 
@@ -335,13 +335,24 @@ Sidebjælken tæller vinduets begivenheder efter **Kilde**, **Alvorlighed**, **R
 
 En begivenhed læst fra en loglinje, der blev skrevet i en sporet forespørgsel, følges ind i den forespørgsel. Dens panel viser, hvor langt forespørgslen kom (**Afvist**, **Nåede appen**, **Fejlede** eller **Nåede databasen**), hvem der sendte den, og linker til dens trace, dens undtagelse, dens sessionsafspilning og selve loglinjen. En loglinje, en trace og en undtagelse, der er en del af et angreb, siger det også på deres egne sider.
 
+### En følsom fil leveret af dit websted
+
+En forespørgsel om en fil med hemmeligheder, såsom `/.env`, `/.git/config`, `/.aws/credentials` eller en kopi af `wp-config.php`, er et læk, når dit websted besvarede den med selve filen: Den, der spurgte, har nu filens adgangskoder, nøgler og tokens. En single-page-app besvarer hver sti, den ikke har, med sin egen side og status 200, så status 200 alene siger det aldrig. OneUptime læser, hvad svaret indeholdt:
+
+- En type, der ikke er en webside, såsom `text/plain` eller `application/octet-stream`: selve filen.
+- En webside, eller JSON for en fil, der ikke er JSON: dit websteds egen side.
+- Intet i svaret: intet blev taget.
+- En størrelse og ingen type, som en webservers adgangslog registrerer svaret: selve filen, når ingen anden sti fik den størrelse og dit websted svarer 404 for de stier, det ikke har, og dit websteds egen side, når den samme størrelse besvarede to forskellige stier. Når intet afgør det, bliver forespørgslen ikke til en begivenhed.
+
+En leveret fil får alvorligheden Kritisk, og regelbibliotekets regel **Sensitive file served** åbner en sag om den med trin til at fjerne filen og rotere det, den indeholder. Hver af disse forespørgsler tæller også med i **Scanning for sensitive files**, også dem fra en single-page-app. En administrationsside, dit websted leverer, såsom WordPress', er aldrig en af dem, og en `wp-config.php`, som WordPress kørte, er dit websteds egen side. Cloudflares firewallhændelser siger ikke, hvad din oprindelse sendte, så en forespørgsel, Cloudflare lod passere, tæller kun med i scanningen. En begivenheds panel viser, hvad dit websted sendte, under **Hvad der skete bagefter**.
+
 ### Campaigns
 
 **Kampagner** viser hver adresse, der sendte angrebsforespørgsler, som én række med angrebstyperne, værktøjerne og de forespørgsler, den sendte, og hvor mange der kom igennem. De adresser, hvis forespørgsler nåede din app, kommer først. En række, som din blokeringsliste allerede holder, siger, indtil hvornår den er blokeret eller udfordret, og nævner det interval eller netværk, der holder den.
 
 For at blokere flere angribere på én gang skal du vælge deres rækker og trykke på **Blokér adresser**. Én dialog viser hver adresse, den blokerer, og hver adresse, den udelader, med årsagen: allerede blokeret, en af dine egne eller en beskyttet, en, som en logget ind bruger har brugt i de seneste 30 dage, eller en, som OneUptime ikke kunne kontrollere. Den blokerer i 24 timer, medmindre du vælger en anden varighed, eller udfordrer med **Udfordr i stedet**, og hver blokering kommer på din [blokeringsliste](/docs/telemetry/security-cases#blokeringsliste) som din.
 
-**Gruppér efter netværk** samler adresserne fra ét netværk på én række: efter dets ASN, hvor hændelserne fra din [Cloudflare](/docs/integrations/cloudflare)-forbindelse nævner et, og ellers efter dets /24 for IPv4 eller dets /48 for IPv6. En ASN's række viser de intervaller, dens adresser sendte fra. **Udfordr dette netværk** siger, hvad det vil gøre, hvor og hvor længe, før det gør det: 24 timer, medmindre du vælger en anden varighed, og det næste trin på stigen for et netværk, der er blevet udfordret før. Cloudflare holder et interval i sin udfordringsliste og en ASN som en IP Access Rule, som alle planer har.
+**Gruppér efter netværk** samler adresserne fra ét netværk på én række: efter dets ASN, hvor hændelserne fra din [Cloudflare](/docs/integrations/cloudflare)-forbindelse nævner et, og ellers efter dets /24 for IPv4 eller dets /48 for IPv6. En ASN's række viser de intervaller, dens adresser sendte fra. **Udfordr dette netværk** siger, hvad det vil gøre, hvor og hvor længe, før det gør det: 24 timer, medmindre du vælger en anden varighed, og det næste trin på stigen for et netværk, der er blevet udfordret før. Cloudflare holder et interval i sin udfordringsliste og en ASN som en IP Access Rule, som alle planer har. **Vis anmodninger** på et netværks række åbner det, netværket sendte, i **Begivenheder**: for en ASN efter den ASN, dens Cloudflare-hændelser angiver, og for et interval som en søgning efter dets adresser, såsom `ip:203.0.113.*`, som du kan ændre.
 
 - Et netværk, der rummer en adresse, som en logget ind bruger har brugt i de seneste 30 dage, eller en af dine egne, bliver aldrig udfordret, og dialogen nævner hvem eller hvad.
 - Et interval, der er bredere end et /24 (et /48 for IPv6), og en hel ASN kræver en Sikkerhedsadministrator, en Projektadministrator eller en Projektejer. En ASN's række tilbyder også hvert af dens intervaller, som alle, der må blokere, kan udfordre.

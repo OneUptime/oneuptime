@@ -575,6 +575,7 @@
     "{{count}} app",
     "{{count}} appliance",
     "{{count}} bucket",
+    "{{count}} byte",
     "{{count}} client",
     "{{count}} cluster",
     "{{count}} commit",
