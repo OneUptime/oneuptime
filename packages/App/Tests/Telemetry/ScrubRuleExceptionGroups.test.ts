@@ -11,6 +11,7 @@ import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipel
 import LlmModelPriceService from "../../FeatureSet/Telemetry/Services/LlmModelPriceService";
 import ExceptionUtil, {
   GROUP_FINGERPRINT_LOOKUP_SQL,
+  RECORD_SPLIT_PAIR_SQL,
   clearExistingV1FingerprintCache,
 } from "../../FeatureSet/Telemetry/Utils/Exception";
 import * as FilterEvaluator from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
@@ -153,6 +154,8 @@ interface StoredException {
    * id, merged into it (#10619, TelemetryExceptionRekey).
    */
   formerFingerprintOf?: string | undefined;
+  // The exception a scrub rule split this one from (#10618), by its id.
+  splitFrom?: string | undefined;
 }
 
 let table: Map<string, StoredException>;
@@ -162,6 +165,8 @@ let made: number;
 // The moves to a private fingerprint written, and whether they fail.
 let movesWritten: number;
 let movesFail: boolean;
+// The statements that recorded a pair of exceptions a rule split.
+let splitRecords: Array<Array<unknown>>;
 let logRows: Array<JSONObject>;
 let spanRows: Array<JSONObject>;
 let exceptionRows: Array<JSONObject>;
@@ -390,6 +395,22 @@ function setupIngest(): void {
         if (sql.includes('INSERT INTO "TelemetryException"')) {
           storeUpsert(params);
           // No exception was resolved, so none is reopened.
+          return [];
+        }
+
+        if (sql === RECORD_SPLIT_PAIR_SQL) {
+          splitRecords.push(params);
+          const split: StoredException | undefined = table.get(
+            params[2] as string,
+          );
+          const from: StoredException | undefined = table.get(
+            params[3] as string,
+          );
+
+          if (split && from && !split.splitFrom && split !== from) {
+            split.splitFrom = from.id;
+          }
+
           return [];
         }
 
@@ -689,6 +710,7 @@ beforeEach(() => {
   made = 0;
   movesWritten = 0;
   movesFail = false;
+  splitRecords = [];
   logRows = [];
   spanRows = [];
   exceptionRows = [];
@@ -1185,6 +1207,65 @@ describe("exceptions a rule split before #10434", () => {
     expect(table.get(splitByTheRule)!.occuranceCount).toBe(2);
     expect(table.get(fromBeforeTheRule)!.occuranceCount).toBe(1);
     expect(newExceptionsAround(AFTER)).toBe(0);
+
+    // The pair is recorded on the split one, so its page offers Merge (#10618).
+    expect(table.get(splitByTheRule)!.splitFrom).toBe(
+      table.get(fromBeforeTheRule)!.id,
+    );
+    expect(table.get(fromBeforeTheRule)!.splitFrom).toBeUndefined();
+  });
+
+  test("the pair is recorded once, by an occurrence of either kind the rule changed, and nothing is merged", async () => {
+    const fromBeforeTheRule: string = fingerprintsOf(CART_EXCEPTION).v2;
+    const splitByTheRule: string = fingerprintsOf(REDACTED).v2;
+    seed(fromBeforeTheRule, BEFORE - 2 * HOUR_MS);
+    seed(splitByTheRule, BEFORE);
+
+    logRules = [EMAIL_RULE()];
+    await ingestLogException(CART_EXCEPTION, AFTER);
+    await ingestLogException(CART_EXCEPTION, AFTER + MINUTE_MS);
+    await ingestLogs([
+      logRecord({
+        at: AFTER + 2 * MINUTE_MS,
+        body: "No cart for ada@example.com",
+      }),
+    ]);
+
+    // One statement for the pair in this process, however many occurrences.
+    expect(splitRecords).toEqual([
+      [
+        PROJECT_ID.toString(),
+        SERVICE_ID.toString(),
+        splitByTheRule,
+        fromBeforeTheRule,
+      ],
+    ]);
+    // Both keep their own occurrences: only a person merges them.
+    expect(table.get(splitByTheRule)!.occuranceCount).toBe(3);
+    expect(table.get(fromBeforeTheRule)!.occuranceCount).toBe(1);
+  });
+
+  test("an exception first seen after the rule, with none from before it, is no split pair", async () => {
+    const splitByTheRule: string = fingerprintsOf(REDACTED).v2;
+    seed(splitByTheRule, BEFORE);
+
+    logRules = [EMAIL_RULE()];
+    await ingestLogException(CART_EXCEPTION, AFTER);
+
+    expect(splitRecords).toEqual([]);
+    expect(table.get(splitByTheRule)!.splitFrom).toBeUndefined();
+  });
+
+  test("an occurrence no rule changed records no pair: nothing tells it what a rule split", async () => {
+    const fromBeforeTheRule: string = fingerprintsOf(CART_EXCEPTION).v2;
+    const splitByTheRule: string = fingerprintsOf(REDACTED).v2;
+    seed(fromBeforeTheRule, BEFORE - 2 * HOUR_MS);
+    seed(splitByTheRule, BEFORE);
+
+    await ingestLogException(CART_EXCEPTION, AFTER);
+    await ingestSpanException(CART_EXCEPTION, AFTER);
+
+    expect(splitRecords).toEqual([]);
   });
 
   test("one first seen after the rule keeps its occurrences: the upgrade makes no new exception of it", async () => {

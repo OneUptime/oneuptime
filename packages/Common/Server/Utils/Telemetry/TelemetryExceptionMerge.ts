@@ -310,6 +310,9 @@ export default class TelemetryExceptionMerge {
         fingerprint: true,
         mergedIntoTelemetryExceptionId: true,
         formerFingerprintOfTelemetryExceptionId: true,
+        // Which exception a scrub rule split it from, and the older of the two.
+        splitFromTelemetryExceptionId: true,
+        firstSeenAt: true,
       },
       limit: data.ids.length,
       skip: 0,
@@ -434,6 +437,135 @@ export default class TelemetryExceptionMerge {
     );
 
     return rows || [];
+  }
+
+  /*
+   * MERGING A PAIR A SCRUB RULE SPLIT (#10618).
+   *
+   * Before #10434 a scrub rule that hid part of an exception found in logs
+   * split it: the rule's occurrences made an exception of their own. Ingest
+   * records the pair on the split one (splitFromTelemetryExceptionId), and
+   * its page offers to merge the two without OneUptime AI: this. The older
+   * of the two survives, its first seen being the real one - the one it was
+   * split from, nearly always - and the other is merged into it, by merge
+   * above, so both need permission to edit exceptions and the counts, seen
+   * times and Unmerge work as for any merge. Merged into another exception
+   * since, the one it was split from stands for that one. Only a person
+   * merges: nothing calls this but the request they make.
+   */
+  public static async mergeSplit(data: {
+    telemetryExceptionId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<ExceptionMergeResult> {
+    const splitId: string = data.telemetryExceptionId.toString();
+
+    const split: TelemetryException | undefined = (
+      await TelemetryExceptionMerge.readEditable({
+        ids: [data.telemetryExceptionId],
+        props: data.props,
+      })
+    ).find((exception: TelemetryException): boolean => {
+      return sameId(exception.id?.toString(), splitId);
+    });
+
+    if (!split) {
+      throw new NotAuthorizedException(
+        "You do not have permission to edit this exception, or it does not exist.",
+      );
+    }
+
+    if (!split.splitFromTelemetryExceptionId) {
+      throw new BadDataException(
+        "No scrub rule split this exception from another one.",
+      );
+    }
+
+    const splitFromId: string = split.splitFromTelemetryExceptionId.toString();
+    let other: TelemetryException | undefined = (
+      await TelemetryExceptionMerge.readEditable({
+        ids: [split.splitFromTelemetryExceptionId],
+        props: data.props,
+      })
+    )[0];
+
+    // Merged into this one already: nothing left to do.
+    if (
+      other &&
+      sameId(other.mergedIntoTelemetryExceptionId?.toString(), splitId)
+    ) {
+      return {
+        telemetryExceptionId: splitId,
+        merged: [
+          {
+            telemetryExceptionId: splitFromId,
+            outcome: ExceptionMergeOutcome.AlreadyMerged,
+          },
+        ],
+      };
+    }
+
+    // Merged into another one since: that one stands for it now.
+    if (other?.mergedIntoTelemetryExceptionId) {
+      other = (
+        await TelemetryExceptionMerge.readEditable({
+          ids: [other.mergedIntoTelemetryExceptionId],
+          props: data.props,
+        })
+      )[0];
+    }
+
+    if (!other || !other.id) {
+      throw new NotAuthorizedException(
+        "You do not have permission to edit the exception this one was split from, or it no longer exists.",
+      );
+    }
+
+    // Merged already, one way or the other: nothing left to do.
+    if (
+      sameId(
+        split.mergedIntoTelemetryExceptionId?.toString(),
+        other.id.toString(),
+      )
+    ) {
+      return {
+        telemetryExceptionId: other.id.toString(),
+        merged: [
+          {
+            telemetryExceptionId: splitId,
+            outcome: ExceptionMergeOutcome.AlreadyMerged,
+          },
+        ],
+      };
+    }
+
+    const survivor: TelemetryException = TelemetryExceptionMerge.olderOf(
+      other,
+      split,
+    );
+    const merged: TelemetryException = survivor === other ? split : other;
+
+    return TelemetryExceptionMerge.merge({
+      telemetryExceptionId: survivor.id!,
+      mergedTelemetryExceptionIds: [merged.id!],
+      props: data.props,
+    });
+  }
+
+  /*
+   * The older of an exception and the one a rule split from it, by first
+   * seen: the one it was split from when they were first seen at once, or
+   * either has no first seen.
+   */
+  public static olderOf(
+    splitFrom: Pick<TelemetryException, "firstSeenAt">,
+    split: Pick<TelemetryException, "firstSeenAt">,
+  ): typeof splitFrom {
+    const splitFromAt: number | null = time(splitFrom.firstSeenAt || null);
+    const splitAt: number | null = time(split.firstSeenAt || null);
+
+    return splitFromAt !== null && splitAt !== null && splitAt < splitFromAt
+      ? split
+      : splitFrom;
   }
 
   public static async merge(data: {

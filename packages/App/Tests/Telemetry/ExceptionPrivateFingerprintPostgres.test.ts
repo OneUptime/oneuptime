@@ -38,7 +38,12 @@ import { DataSource, EntityManager } from "Common/node_modules/typeorm";
  *   - the reads of the exception's occurrences follow the old one (its group
  *     fingerprints, and a session replay's exception groups);
  *   - nothing is split or merged, and the old fingerprint is never merged or
- *     unmerged on its own, but goes where its exception goes.
+ *     unmerged on its own, but goes where its exception goes;
+ *   - once no occurrence carries the old fingerprint, its row is deleted.
+ *
+ * And a pair of exceptions a scrub rule split before #10434 (#10618): the
+ * occurrence that lands on the split one records the pair on it, once, and
+ * Merge from its page keeps the older of the two, with Unmerge after.
  *
  * Opt in with RUN_POSTGRES_EXCEPTION_MERGE_TESTS=true against a Postgres
  * migrated to the current head, as ExceptionMergePostgres.test.ts does: the
@@ -135,7 +140,10 @@ describePostgres(
     }
 
     // An exception of its own, made by an ingest that no rule changed.
-    async function anotherException(fingerprint: string): Promise<Row> {
+    async function anotherException(
+      fingerprint: string,
+      occurredAt: Date = new Date(Date.now() - 60 * 1000),
+    ): Promise<Row> {
       await ingest([
         {
           fingerprint,
@@ -146,10 +154,42 @@ describePostgres(
           primaryEntityType: ServiceType.OpenTelemetry,
           exceptionType: "TypeError",
           message: `message of ${fingerprint}`,
-          occurredAt: new Date(Date.now() - 60 * 1000),
+          occurredAt,
         },
       ]);
       return read(fingerprint);
+    }
+
+    async function splitFromOf(fingerprint: string): Promise<string | null> {
+      const found: Array<{ splitFrom: string | null }> = await database.query(
+        `SELECT "splitFromTelemetryExceptionId"::text AS "splitFrom" FROM "${schema}"."TelemetryException" WHERE "fingerprint" = $1`,
+        [fingerprint],
+      );
+      return found[0]?.splitFrom || null;
+    }
+
+    /*
+     * An occurrence of a log a scrub rule changed, as ingest hands it over:
+     * tried under what the rule left first (`split`, the pre-#10434 grouping),
+     * then under what it said as it arrived (`asArrived`).
+     */
+    function splitOccurrence(data: {
+      split: string;
+      asArrived: string;
+      occurredAt?: Date | undefined;
+    }): TelemetryExceptionPayload {
+      return {
+        fingerprint: data.split,
+        fingerprintV2: data.asArrived,
+        fingerprintCandidates: [data.split, data.asArrived],
+        fingerprintsOfStoredText: [data.split],
+        projectId,
+        primaryEntityId: serviceId,
+        primaryEntityType: ServiceType.OpenTelemetry,
+        exceptionType: "TypeError",
+        message: "No cart for [REDACTED]",
+        occurredAt: data.occurredAt || new Date(Date.now() - 60 * 1000),
+      };
     }
 
     // The span exception from before #10434, under its unkeyed fingerprint.
@@ -245,10 +285,14 @@ describePostgres(
             fingerprint: string;
             mergedIntoTelemetryExceptionId: string | null;
             formerFingerprintOfTelemetryExceptionId: string | null;
+            splitFromTelemetryExceptionId: string | null;
+            firstSeenAt: Date | null;
           }> = await database.query(
             `SELECT "_id"::text AS "_id", "primaryEntityId"::text AS "primaryEntityId", "fingerprint",
                   "mergedIntoTelemetryExceptionId"::text AS "mergedIntoTelemetryExceptionId",
-                  "formerFingerprintOfTelemetryExceptionId"::text AS "formerFingerprintOfTelemetryExceptionId"
+                  "formerFingerprintOfTelemetryExceptionId"::text AS "formerFingerprintOfTelemetryExceptionId",
+                  "splitFromTelemetryExceptionId"::text AS "splitFromTelemetryExceptionId",
+                  "firstSeenAt"
            FROM "${schema}"."TelemetryException" WHERE "_id" = ANY($1::uuid[])`,
             [
               data.ids.map((id: ObjectID): string => {
@@ -272,6 +316,14 @@ describePostgres(
                 model.formerFingerprintOfTelemetryExceptionId = new ObjectID(
                   entry.formerFingerprintOfTelemetryExceptionId,
                 );
+              }
+              if (entry.splitFromTelemetryExceptionId) {
+                model.splitFromTelemetryExceptionId = new ObjectID(
+                  entry.splitFromTelemetryExceptionId,
+                );
+              }
+              if (entry.firstSeenAt) {
+                model.firstSeenAt = new Date(entry.firstSeenAt);
               }
               return model;
             },
@@ -524,6 +576,164 @@ describePostgres(
       await ingest([occurrence({ ruleHidIt: false })]);
       expect(await rows()).toHaveLength(1);
       expect((await read(KEYED)).occuranceCount).toBe(3);
+    });
+
+    /*
+     * A pair a scrub rule split before #10434 (#10618): the occurrence that
+     * lands on the split exception records the pair on it, and Merge from
+     * its page keeps the older one, as any merge, with Unmerge after.
+     */
+    test("an occurrence that lands on the exception a rule split records the one it was split from, once, and merges nothing", async () => {
+      const hour: number = 60 * 60 * 1000;
+      const fromBefore: Row = await anotherException(
+        "d".repeat(64),
+        new Date(Date.now() - 3 * hour),
+      );
+      const split: Row = await anotherException(
+        "e".repeat(64),
+        new Date(Date.now() - 2 * hour),
+      );
+      clearExistingV1FingerprintCache();
+
+      await ingest([
+        splitOccurrence({
+          split: split.fingerprint,
+          asArrived: fromBefore.fingerprint,
+        }),
+      ]);
+
+      expect(await splitFromOf(split.fingerprint)).toBe(fromBefore._id);
+      expect(await splitFromOf(fromBefore.fingerprint)).toBeNull();
+      // Each keeps its own occurrences.
+      expect((await read(split.fingerprint)).occuranceCount).toBe(2);
+      expect((await read(fromBefore.fingerprint)).occuranceCount).toBe(1);
+      expect(
+        (await read(split.fingerprint)).mergedIntoTelemetryExceptionId,
+      ).toBeNull();
+
+      // Recorded once: a later pair never changes what was written.
+      const another: Row = await anotherException("f".repeat(64));
+      await ExceptionUtil.recordSplitPair({
+        projectId: projectId.toString(),
+        primaryEntityId: serviceId.toString(),
+        splitFingerprint: split.fingerprint,
+        splitFromFingerprint: another.fingerprint,
+      });
+      expect(await splitFromOf(split.fingerprint)).toBe(fromBefore._id);
+
+      // Never between an exception and itself.
+      await ExceptionUtil.recordSplitPair({
+        projectId: projectId.toString(),
+        primaryEntityId: serviceId.toString(),
+        splitFingerprint: another.fingerprint,
+        splitFromFingerprint: another.fingerprint,
+      });
+      expect(await splitFromOf(another.fingerprint)).toBeNull();
+    });
+
+    test("Merge from the split exception's page keeps the older one, counts add up, and Unmerge gives the split one back", async () => {
+      const hour: number = 60 * 60 * 1000;
+      const fromBefore: Row = await anotherException(
+        "d".repeat(64),
+        new Date(Date.now() - 3 * hour),
+      );
+      const split: Row = await anotherException(
+        "e".repeat(64),
+        new Date(Date.now() - 2 * hour),
+      );
+      clearExistingV1FingerprintCache();
+      await ingest([
+        splitOccurrence({
+          split: split.fingerprint,
+          asArrived: fromBefore.fingerprint,
+        }),
+      ]);
+
+      const result: Awaited<
+        ReturnType<typeof TelemetryExceptionMerge.mergeSplit>
+      > = await TelemetryExceptionMerge.mergeSplit({
+        telemetryExceptionId: new ObjectID(split._id),
+        props: props(),
+      });
+
+      expect(result).toEqual({
+        telemetryExceptionId: fromBefore._id,
+        merged: [
+          {
+            telemetryExceptionId: split._id,
+            outcome: ExceptionMergeOutcome.Merged,
+          },
+        ],
+      });
+      expect(
+        (await read(split.fingerprint)).mergedIntoTelemetryExceptionId,
+      ).toBe(fromBefore._id);
+      expect((await read(fromBefore.fingerprint)).occuranceCount).toBe(3);
+
+      // Its next occurrence counts on both, as for any merge.
+      clearExistingV1FingerprintCache();
+      await ingest([
+        splitOccurrence({
+          split: split.fingerprint,
+          asArrived: fromBefore.fingerprint,
+        }),
+      ]);
+      expect((await read(fromBefore.fingerprint)).occuranceCount).toBe(4);
+
+      // Merging again changes nothing.
+      expect(
+        (
+          await TelemetryExceptionMerge.mergeSplit({
+            telemetryExceptionId: new ObjectID(split._id),
+            props: props(),
+          })
+        ).merged[0]!.outcome,
+      ).toBe(ExceptionMergeOutcome.AlreadyMerged);
+
+      expect(
+        (
+          await TelemetryExceptionMerge.unmerge({
+            telemetryExceptionId: new ObjectID(split._id),
+            props: props(),
+          })
+        ).outcome,
+      ).toBe(ExceptionUnmergeOutcome.Unmerged);
+      expect(
+        (await read(split.fingerprint)).mergedIntoTelemetryExceptionId,
+      ).toBeNull();
+      expect((await read(split.fingerprint)).occuranceCount).toBe(3);
+      expect((await read(fromBefore.fingerprint)).occuranceCount).toBe(1);
+    });
+
+    test("when the split one is the older, it is the one kept", async () => {
+      const hour: number = 60 * 60 * 1000;
+      const split: Row = await anotherException(
+        "e".repeat(64),
+        new Date(Date.now() - 3 * hour),
+      );
+      const fromBefore: Row = await anotherException(
+        "d".repeat(64),
+        new Date(Date.now() - 2 * hour),
+      );
+      clearExistingV1FingerprintCache();
+      await ingest([
+        splitOccurrence({
+          split: split.fingerprint,
+          asArrived: fromBefore.fingerprint,
+        }),
+      ]);
+
+      await TelemetryExceptionMerge.mergeSplit({
+        telemetryExceptionId: new ObjectID(split._id),
+        props: props(),
+      });
+
+      expect(
+        (await read(fromBefore.fingerprint)).mergedIntoTelemetryExceptionId,
+      ).toBe(split._id);
+      expect(
+        (await read(split.fingerprint)).mergedIntoTelemetryExceptionId,
+      ).toBeNull();
     });
   },
 );

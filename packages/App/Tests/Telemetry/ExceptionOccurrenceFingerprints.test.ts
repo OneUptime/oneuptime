@@ -12,6 +12,7 @@ import ExceptionUtil, {
   EXISTING_GROUP_CACHE_MAX_ENTRIES,
   ExceptionGroupingContent,
   GROUP_FINGERPRINT_LOOKUP_SQL,
+  RECORD_SPLIT_PAIR_SQL,
   GroupFingerprintCandidate,
   OccurrenceFingerprints,
   TelemetryExceptionPayload,
@@ -257,7 +258,15 @@ describe("an occurrence's fingerprints", () => {
         [arrived.v1]: arrived.keyedV1,
         [arrived.v2]: arrived.keyed,
       },
+      // An exception found under one of these is one a rule split (#10618).
+      fingerprintsOfStoredText: [stored.v1, stored.v2],
     });
+
+    // A span's copy names none: spans were never grouped by what a rule left.
+    expect(
+      occurrence({ arrived: CARD_ARRIVED, stored: CARD_STORED })
+        .fingerprintsOfStoredText,
+    ).toBeUndefined();
   });
 
   test("a rule hid only an address in a stack trace's message: made under v2 as it arrived, which leaves the message out, and kept under v1, which folds the address", () => {
@@ -333,8 +342,12 @@ describe("an occurrence's fingerprints", () => {
 
 // The fingerprints the mocked Postgres holds exceptions under.
 let existing: Set<string>;
+// Those only kept for an exception moved to a private fingerprint: where it went.
+let movedTo: Map<string, string>;
 let lookups: Array<Array<unknown>>;
 let lookupFails: boolean;
+// The pairs of exceptions a rule split, as recorded.
+let splitRecords: Array<Array<unknown>>;
 
 function mockPostgres(): void {
   jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
@@ -350,8 +363,11 @@ function mockPostgres(): void {
               return existing.has(fingerprint);
             })
             .map((fingerprint: string) => {
-              return { fingerprint, movedTo: null };
+              return { fingerprint, movedTo: movedTo.get(fingerprint) || null };
             });
+        }
+        if (sql === RECORD_SPLIT_PAIR_SQL) {
+          splitRecords.push(params);
         }
         return [];
       },
@@ -367,8 +383,10 @@ describe("which exception an occurrence with candidates belongs to", () => {
   beforeEach(() => {
     clearExistingV1FingerprintCache();
     existing = new Set<string>();
+    movedTo = new Map<string, string>();
     lookups = [];
     lookupFails = false;
+    splitRecords = [];
     mockPostgres();
   });
 
@@ -570,5 +588,77 @@ describe("which exception an occurrence with candidates belongs to", () => {
     expect(rows[0]!["fingerprint"]).toBe("v2");
     // Its v1 alone was tried, and no exception exists under it.
     expect(rows[1]!["fingerprint"]).toBe("fresh");
+  });
+
+  // A log's occurrence a rule changed, with what the rule left tried first.
+  const SPLIT: GroupFingerprintCandidate = {
+    projectId: "p",
+    primaryEntityId: "s",
+    v1: "v2",
+    v2: "v2",
+    candidates: ["stored-v1", "stored-v2", "v1", "v2", "keyed"],
+    storedOnly: ["stored-v1", "stored-v2"],
+  };
+
+  test("an occurrence that lands on an exception a rule split, while one exists under what it said as it arrived, records the pair on the split one (#10618)", async () => {
+    existing = new Set<string>(["stored-v2", "v2"]);
+
+    const chosen: Map<string, string> = await resolve([SPLIT]);
+
+    // It keeps landing where it has since the rule: nothing is merged.
+    expect(chosen.get(groupFingerprintKey(SPLIT))).toBe("stored-v2");
+    expect(splitRecords).toEqual([["p", "s", "stored-v2", "v2"]]);
+
+    // Once in a process, however many occurrences follow.
+    await resolve([SPLIT]);
+    expect(splitRecords).toHaveLength(1);
+  });
+
+  test("the one it was split from, since moved to a private fingerprint, is named by where it went", async () => {
+    existing = new Set<string>(["stored-v1", "v1"]);
+    movedTo.set("v1", "keyed-v1");
+
+    await resolve([SPLIT]);
+
+    expect(splitRecords).toEqual([["p", "s", "stored-v1", "keyed-v1"]]);
+  });
+
+  test("no pair without an exception from before the rule, nor for one found as it arrived", async () => {
+    existing = new Set<string>(["stored-v1"]);
+    await resolve([SPLIT]);
+
+    clearExistingV1FingerprintCache();
+    existing = new Set<string>(["v2", "keyed"]);
+    await resolve([SPLIT]);
+
+    expect(splitRecords).toEqual([]);
+  });
+
+  test("a failed record never fails the batch", async () => {
+    existing = new Set<string>(["stored-v2", "v2"]);
+    jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (
+          sql: string,
+          params: Array<unknown>,
+        ): Promise<unknown> => {
+          if (sql === RECORD_SPLIT_PAIR_SQL) {
+            throw new Error("deadlock detected");
+          }
+          return (params[1] as Array<string>)
+            .filter((fingerprint: string): boolean => {
+              return existing.has(fingerprint);
+            })
+            .map((fingerprint: string) => {
+              return { fingerprint, movedTo: null };
+            });
+        },
+      },
+    } as never);
+
+    const chosen: Map<string, string> = await resolve([SPLIT]);
+
+    expect(chosen.get(groupFingerprintKey(SPLIT))).toBe("stored-v2");
+    expect(logger.warn).toHaveBeenCalled();
   });
 });

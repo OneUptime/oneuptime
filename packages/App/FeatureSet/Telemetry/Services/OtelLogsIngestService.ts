@@ -2189,6 +2189,10 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
       ...(fingerprints.fingerprintRekeys
         ? { fingerprintRekeys: fingerprints.fingerprintRekeys }
         : {}),
+      // A pair a rule split before #10434 is recorded from it (#10618).
+      ...(fingerprints.fingerprintsOfStoredText
+        ? { fingerprintsOfStoredText: fingerprints.fingerprintsOfStoredText }
+        : {}),
       projectId: data.projectId,
       primaryEntityId: data.primaryEntityId,
       primaryEntityType: data.serviceMetadata.primaryEntityType,

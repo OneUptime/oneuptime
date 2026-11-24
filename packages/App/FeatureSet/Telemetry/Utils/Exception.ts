@@ -53,13 +53,18 @@ export interface ExceptionGroupingContent {
  *  - `fingerprintRekeys`, when a scrub rule changed it: each candidate that
  *    is an unkeyed hash of text the rule hid part of, with the private
  *    (keyed) fingerprint of the same text, which an exception found under
- *    it is moved to (#10619).
+ *    it is moved to (#10619);
+ *  - `fingerprintsOfStoredText`, for an exception found in a log that a rule
+ *    changed: the candidates made from the text the rules left and not from
+ *    what it said as it arrived. An exception found under one of them is
+ *    one a rule split from another before #10434 (#10618).
  */
 export interface OccurrenceFingerprints {
   fingerprint: string;
   fingerprintV2: string;
   fingerprintCandidates: Array<string>;
   fingerprintRekeys?: Record<string, string> | undefined;
+  fingerprintsOfStoredText?: Array<string> | undefined;
 }
 
 export interface TelemetryExceptionPayload {
@@ -73,6 +78,7 @@ export interface TelemetryExceptionPayload {
   fingerprintV2?: string | undefined;
   fingerprintCandidates?: Array<string> | undefined;
   fingerprintRekeys?: Record<string, string> | undefined;
+  fingerprintsOfStoredText?: Array<string> | undefined;
   projectId: ObjectID;
   primaryEntityId: ObjectID;
   primaryEntityType?: ServiceType;
@@ -136,6 +142,7 @@ const MAX_REFUSED_MOVES: number = 10000;
 export function clearExistingV1FingerprintCache(): void {
   existingGroupCache.clear();
   refusedMoves.clear();
+  recordedSplits.clear();
 }
 
 // Remembers what is known of a fingerprint, within the cap.
@@ -156,6 +163,23 @@ function rememberGroupMade(cacheKey: string, at: number): void {
 }
 
 /*
+ * The pairs of exceptions a rule split this process recorded already
+ * (recordSplitPair), by project, split exception and the one it was split
+ * from: each is recorded once, and the statement keeps a second process from
+ * changing what the first wrote. Capped, and cleared whole when full.
+ */
+const recordedSplits: Set<string> = new Set<string>();
+const MAX_RECORDED_SPLITS: number = 10000;
+
+/*
+ * Records that a scrub rule split the exception under $3 from the one under
+ * $4, in project $1 and resource $2, on the split one (#10618): once, never
+ * over a pair recorded before, and never for a row that only keeps a former
+ * fingerprint.
+ */
+export const RECORD_SPLIT_PAIR_SQL: string = `UPDATE "TelemetryException" AS s SET "splitFromTelemetryExceptionId" = u."_id", "updatedAt" = now() FROM "TelemetryException" AS u WHERE s."projectId" = $1 AND s."primaryEntityId" = $2 AND s."fingerprint" = $3 AND s."deletedAt" IS NULL AND s."splitFromTelemetryExceptionId" IS NULL AND s."formerFingerprintOfTelemetryExceptionId" IS NULL AND u."projectId" = $1 AND u."primaryEntityId" = $2 AND u."fingerprint" = $4 AND u."deletedAt" IS NULL AND u."formerFingerprintOfTelemetryExceptionId" IS NULL AND u."_id" <> s."_id"`;
+
+/*
  * The lookup of which fingerprints a batch tries an exception exists under,
  * one project's, in one indexed read: each with the fingerprint of the
  * exception a row keeps it for, when the row only keeps an exception's
@@ -168,6 +192,18 @@ function isMoveRefused(moveKey: string, now: number): boolean {
   const at: number | undefined = refusedMoves.get(moveKey);
 
   return at !== undefined && now - at < EXISTING_GROUP_CACHE_TTL_MS;
+}
+
+/*
+ * A pair of exceptions a scrub rule split before #10434, in one project and
+ * resource: the split one's fingerprint and that of the one it was split
+ * from (#10618).
+ */
+export interface ExceptionSplitPair {
+  projectId: string;
+  primaryEntityId: string;
+  splitFingerprint: string;
+  splitFromFingerprint: string;
 }
 
 /*
@@ -209,6 +245,11 @@ export interface GroupFingerprintCandidate {
    * `fingerprintRekeys`, #10619).
    */
   rekeys?: Record<string, string> | undefined;
+  /*
+   * Those of its candidates made from the text the scrub rules left only
+   * (its `fingerprintsOfStoredText`, #10618).
+   */
+  storedOnly?: Array<string> | undefined;
 }
 
 /*
@@ -232,6 +273,10 @@ export function groupFingerprintKey(
         return `${fingerprint}>${candidate.rekeys![fingerprint]}`;
       })
       .join("|")}`;
+  }
+
+  if (candidate.storedOnly) {
+    key = `${key}|stored:${candidate.storedOnly.join(",")}`;
   }
 
   return key;
@@ -596,21 +641,28 @@ export default class ExceptionUtil {
       rekeys[v3] = keyedV3;
     }
 
+    // What a log was grouped by before #10434: the text the rules left.
+    const ofStored: Array<string> = data.findsGroupsOfStoredText
+      ? [fingerprintSha256(storedV1Text), fingerprintSha256(storedTexts.v2)]
+      : [];
+    const storedOnly: Array<string> = Array.from(
+      new Set<string>(
+        ofStored.filter((fingerprint: string): boolean => {
+          return !ofArrived.includes(fingerprint);
+        }),
+      ),
+    );
+
     return {
       fingerprint: revealsV1 ? opens : v1,
       fingerprintV2: opens,
       fingerprintCandidates: Array.from(
-        new Set<string>([
-          ...(data.findsGroupsOfStoredText
-            ? [
-                fingerprintSha256(storedV1Text),
-                fingerprintSha256(storedTexts.v2),
-              ]
-            : []),
-          ...ofArrived,
-        ]),
+        new Set<string>([...ofStored, ...ofArrived]),
       ),
       ...(Object.keys(rekeys).length > 0 ? { fingerprintRekeys: rekeys } : {}),
+      ...(storedOnly.length > 0
+        ? { fingerprintsOfStoredText: storedOnly }
+        : {}),
     };
   }
 
@@ -736,6 +788,8 @@ export default class ExceptionUtil {
 
     // The exceptions to move to a private fingerprint, each once (#10619).
     const moves: Map<string, ExceptionMove> = new Map();
+    // The pairs of exceptions a rule split before #10434, each once (#10618).
+    const splits: Map<string, ExceptionSplitPair> = new Map();
     // And the occurrences that go wherever each one moves, by their key.
     const occurrencesOfMove: Map<string, Array<string>> = new Map();
 
@@ -756,6 +810,19 @@ export default class ExceptionUtil {
       );
 
       if (found !== undefined) {
+        const split: ExceptionSplitPair | null = ExceptionUtil.splitPairOf({
+          candidate,
+          found,
+          known,
+        });
+
+        if (split) {
+          splits.set(
+            `${split.projectId}|${split.splitFingerprint}|${split.splitFromFingerprint}`,
+            split,
+          );
+        }
+
         const movedTo: string | undefined = known.get(
           `${candidate.projectId}|${found}`,
         )?.movedTo;
@@ -796,6 +863,18 @@ export default class ExceptionUtil {
       rememberGroupMade(`${candidate.projectId}|${candidate.v2}`, now);
     }
 
+    for (const [splitKey, split] of splits) {
+      if (!recordedSplits.has(splitKey)) {
+        await ExceptionUtil.recordSplitPair(split);
+
+        if (recordedSplits.size >= MAX_RECORDED_SPLITS) {
+          recordedSplits.clear();
+        }
+
+        recordedSplits.add(splitKey);
+      }
+    }
+
     for (const [moveKey, move] of moves) {
       const fingerprint: string = await ExceptionUtil.moveToPrivateFingerprint(
         move,
@@ -812,6 +891,83 @@ export default class ExceptionUtil {
     }
 
     return chosen;
+  }
+
+  /*
+   * A PAIR OF EXCEPTIONS A SCRUB RULE SPLIT BEFORE #10434 (#10618).
+   *
+   * Before #10434 an exception found in a log was grouped by the text the
+   * rules left, so a rule that hid part of it split it from the exception
+   * it was: its occurrences since have made one of their own. Ingest still
+   * finds them there (findsGroupsOfStoredText), so the pair is known the
+   * moment an occurrence lands on one of the exceptions made under the text
+   * the rules left (`found`) while an exception also exists under what it
+   * said as it arrived: the first of those it tries, or, for one moved to a
+   * private fingerprint, where it moved. Null when there is no such pair.
+   */
+  public static splitPairOf(data: {
+    candidate: GroupFingerprintCandidate;
+    found: string;
+    known: Map<string, KnownGroup>;
+  }): ExceptionSplitPair | null {
+    const storedOnly: Array<string> = data.candidate.storedOnly || [];
+
+    if (!data.candidate.primaryEntityId || !storedOnly.includes(data.found)) {
+      return null;
+    }
+
+    for (const fingerprint of fingerprintsToTry(data.candidate)) {
+      if (storedOnly.includes(fingerprint)) {
+        continue;
+      }
+
+      const group: KnownGroup | undefined = data.known.get(
+        `${data.candidate.projectId}|${fingerprint}`,
+      );
+
+      if (group?.exists) {
+        const splitFrom: string = group.movedTo || fingerprint;
+
+        return splitFrom === data.found
+          ? null
+          : {
+              projectId: data.candidate.projectId,
+              primaryEntityId: data.candidate.primaryEntityId,
+              splitFingerprint: data.found,
+              splitFromFingerprint: splitFrom,
+            };
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Records a pair of exceptions a scrub rule split on the split one
+   * (RECORD_SPLIT_PAIR_SQL), so its page can offer to merge the two. Never
+   * merges them: only a person does. Never fails the batch: a pair that
+   * cannot be recorded now is recorded by a later occurrence.
+   */
+  public static async recordSplitPair(
+    split: ExceptionSplitPair,
+  ): Promise<void> {
+    try {
+      await TelemetryExceptionService.getRepository().manager.query(
+        RECORD_SPLIT_PAIR_SQL,
+        [
+          split.projectId,
+          split.primaryEntityId,
+          split.splitFingerprint,
+          split.splitFromFingerprint,
+        ],
+      );
+    } catch (err) {
+      logger.warn(
+        `Could not record which exception a scrub rule split exception ${split.splitFingerprint} of project ${split.projectId} from: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   /*
@@ -863,6 +1019,7 @@ export default class ExceptionUtil {
     fingerprintV2: unknown;
     fingerprintCandidates: unknown;
     fingerprintRekeys: unknown;
+    fingerprintsOfStoredText?: unknown;
   }): GroupFingerprintCandidate | null {
     if (typeof data.fingerprintV2 !== "string" || !data.fingerprintV2) {
       return null;
@@ -873,6 +1030,9 @@ export default class ExceptionUtil {
     );
     const rekeys: Record<string, string> | undefined = readRekeys(
       data.fingerprintRekeys,
+    );
+    const storedOnly: Array<string> | undefined = readCandidates(
+      data.fingerprintsOfStoredText,
     );
     const primaryEntityId: string = data.primaryEntityId
       ? String(data.primaryEntityId)
@@ -885,6 +1045,7 @@ export default class ExceptionUtil {
       ...(candidates ? { candidates } : {}),
       ...(primaryEntityId ? { primaryEntityId } : {}),
       ...(rekeys ? { rekeys } : {}),
+      ...(storedOnly && storedOnly.length > 0 ? { storedOnly } : {}),
     };
   }
 
@@ -960,6 +1121,7 @@ export default class ExceptionUtil {
         fingerprintV2: payload.fingerprintV2,
         fingerprintCandidates: payload.fingerprintCandidates,
         fingerprintRekeys: payload.fingerprintRekeys,
+        fingerprintsOfStoredText: payload.fingerprintsOfStoredText,
       });
     };
 
@@ -999,6 +1161,7 @@ export default class ExceptionUtil {
         delete resolved.fingerprintV2;
         delete resolved.fingerprintCandidates;
         delete resolved.fingerprintRekeys;
+        delete resolved.fingerprintsOfStoredText;
 
         return resolved;
       },
