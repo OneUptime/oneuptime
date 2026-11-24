@@ -125,12 +125,12 @@ Har du allerede en app under **Godkendelsesapps** eller en nøgle under **Sikker
 
 ### Opsæt tofaktorgodkendelse, når du logger ind
 
-Når en administrator kræver tofaktorgodkendelse, og du endnu ikke har opsat noget, beder dit næste login med adgangskode eller et link i en e-mail dig om at opsætte det, før du bliver lukket ind. Vælg **Autentifikator-app** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**:
+Når en administrator kræver tofaktorgodkendelse, og du endnu ikke har opsat noget, beder dit næste login med adgangskode eller et link i en e-mail dig om at opsætte det, før du bliver lukket ind. Vælg **Godkendelsesapp** eller **Sikkerhedsnøgle**, og klik på **Fortsæt**:
 
-- **Autentifikator-app**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**. På en telefon kan du i stedet for at scanne trykke på **Tilføj til godkendelsesapp**.
+- **Godkendelsesapp**: Scan QR-koden, indtast den 6-cifrede kode, din app viser, og klik på **Bekræft og log ind**. På en telefon kan du i stedet for at scanne trykke på **Tilføj til godkendelsesapp**.
 - **Sikkerhedsnøgle**: Klik på **Registrer sikkerhedsnøgle**, og følg din browsers vejledning. Rør ved en USB- eller NFC-nøgle, eller brug din telefons eller computers fingeraftryk, ansigt eller skærmlås.
 
-Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er logget ind. **Vælg en anden måde** går tilbage til valget. En browser, der ikke kan registrere en sikkerhedsnøgle, fx på en side uden HTTPS, tilbyder kun autentifikator-appen.
+Har du endnu ingen backupkoder, viser OneUptime dem derefter én gang, og du er logget ind. **Vælg en anden måde** går tilbage til valget. En browser, der ikke kan registrere en sikkerhedsnøgle, fx på en side uden HTTPS, tilbyder kun godkendelsesappen.
 
 > [!TIP]
 > Er du ved at løbe tør for backupkoder? **Generér nye koder** på samme side giver dig et nyt sæt, og de gamle koder holder op med at virke med det samme.
@@ -227,11 +227,11 @@ OneUptime sender en e-mail til den adresse, din konto havde, hver gang adressen 
 :::
 
 :::details Jeg har mistet min godkendelsesapp
-Ved det andet trin af login vælger du **Mistet adgangen til din autentifikator-app?** og indtaster en af dine backupkoder. Åbn derefter **Sikkerhed → Tofaktorgodkendelse**, og tilføj din nye app. Uden backupkoder beder du en administrator af din OneUptime-installation om at nulstille tofaktorgodkendelsen på din konto.
+Ved det andet trin af login vælger du **Mistet adgangen til din godkendelsesapp?** og indtaster en af dine backupkoder. Åbn derefter **Sikkerhed → Tofaktorgodkendelse**, og tilføj din nye app. Uden backupkoder beder du en administrator af din OneUptime-installation om at nulstille tofaktorgodkendelsen på din konto.
 :::
 
 :::details Login beder mig vente, før jeg prøver en ny kode
-Efter fem forkerte koder i træk venter hver næste kode, før den bliver tjekket: et minut, så to, så fire og så videre, op til en time. OneUptime tæller forkerte koder for din konto, uanset hvor de indtastes, sender dig en e-mail, når ventetiderne begynder, og tæller forfra, når du indtaster en rigtig kode. Vent og prøv igen, log ind med en sikkerhedsnøgle, eller vælg **Mistet adgangen til din autentifikator-app?** og indtast en backupkode. Hvis det ikke var dig, der indtastede de koder, kender nogen din adgangskode eller kan læse din e-mail, og den e-mail, OneUptime har sendt dig, fortæller hvilket af delene. Hvis de kan læse din e-mail, skal du først ændre adgangskoden til din e-mailkonto og fjerne enhver videresendelse, du ikke selv har sat op: en ny OneUptime-adgangskode alene forhindrer dem ikke i at bede om et nyt login-link. Nulstil derefter din adgangskode med **Glemt adgangskode?** på loginsiden, hvilket afslutter ventetiden og ugyldiggør ethvert login-link, der allerede er sendt.
+Efter fem forkerte koder i træk venter hver næste kode, før den bliver tjekket: et minut, så to, så fire og så videre, op til en time. OneUptime tæller forkerte koder for din konto, uanset hvor de indtastes, sender dig en e-mail, når ventetiderne begynder, og tæller forfra, når du indtaster en rigtig kode. Vent og prøv igen, log ind med en sikkerhedsnøgle, eller vælg **Mistet adgangen til din godkendelsesapp?** og indtast en backupkode. Hvis det ikke var dig, der indtastede de koder, kender nogen din adgangskode eller kan læse din e-mail, og den e-mail, OneUptime har sendt dig, fortæller hvilket af delene. Hvis de kan læse din e-mail, skal du først ændre adgangskoden til din e-mailkonto og fjerne enhver videresendelse, du ikke selv har sat op: en ny OneUptime-adgangskode alene forhindrer dem ikke i at bede om et nyt login-link. Nulstil derefter din adgangskode med **Glemt adgangskode?** på loginsiden, hvilket afslutter ventetiden og ugyldiggør ethvert login-link, der allerede er sendt.
 :::
 
 :::details Tiderne i dashboardet er en time forkerte

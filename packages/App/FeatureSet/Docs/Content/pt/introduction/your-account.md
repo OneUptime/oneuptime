@@ -64,7 +64,7 @@ Expanda **Segurança** no menu lateral de **Perfil do usuário**. Ela tem três 
 | --- | --- |
 | **Gerenciamento de senhas** | Definir uma senha nova. |
 | **Chaves de acesso** | Entrar sem senha, com sua digital, seu rosto, o bloqueio de tela ou uma chave de segurança. |
-| **Autenticação de dois fatores** | Pedir uma segunda etapa depois da senha ou de um link enviado por e-mail: um código de um aplicativo, ou uma chave de segurança. |
+| **Autenticação de dois fatores** | Pedir uma segunda etapa depois da senha ou de um link enviado por e-mail: um código de um app, ou uma chave de segurança. |
 
 ### Mudar sua senha
 
@@ -110,27 +110,27 @@ A autenticação de dois fatores vale quando você entra com sua senha ou com um
 :::steps
 ### Escolher sua segunda etapa
 
-Abra **Segurança → Autenticação de dois fatores** e clique em **Ativar a autenticação de dois fatores**. Escolha **Aplicativo autenticador** ou **Chave de segurança** e clique em **Continuar**.
+Abra **Segurança → Autenticação de dois fatores** e clique em **Ativar a autenticação de dois fatores**. Escolha **App autenticador** ou **Chave de segurança** e clique em **Continuar**.
 
 ### Configurá-la
 
-Para um aplicativo autenticador, escaneie o código QR com um aplicativo como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Em um celular, toque em **Adicionar à aplicação de autenticação** em vez de escanear: o aplicativo abre com sua conta já preenchida. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
+Para um app autenticador, escaneie o código QR com um app como 1Password, Google Authenticator ou Microsoft Authenticator, digite o código de 6 dígitos que ele mostra e clique em **Verificar e concluir**. Em um celular, toque em **Adicionar ao app autenticador** em vez de escanear: o app abre com sua conta já preenchida. Para uma chave USB ou NFC, dê um nome a ela e siga as instruções do navegador. A autenticação de dois fatores fica então ativada, e o cartão mostra **Habilitado**. A partir do seu próximo login com senha ou com um link enviado por e-mail, o OneUptime pede sua segunda etapa.
 
 ### Guardar seus códigos de backup
 
-Na primeira vez que você adiciona um aplicativo, uma chave ou uma chave de acesso, o OneUptime mostra **Seus códigos de backup**. Cada código permite entrar uma vez se você perder o aplicativo ou a chave. Copie-os ou baixe-os, marque a caixa dizendo que você os guardou e clique em **Concluído**.
+Na primeira vez que você adiciona um app, uma chave ou uma chave de acesso, o OneUptime mostra **Seus códigos de backup**. Cada código permite entrar uma vez se você perder o app ou a chave. Copie-os ou baixe-os, marque a caixa dizendo que você os guardou e clique em **Concluído**.
 :::
 
-Se você já tem um aplicativo em **Apps autenticadores** ou uma chave em **Chaves de segurança**, **Ativar a autenticação de dois fatores** só pede uma confirmação. Enquanto ela está ativada, seu último aplicativo, chave ou chave de acesso não pode ser removido: adicione outro antes ou desative a autenticação de dois fatores. Se o cartão mostrar **Configuração necessária**, a autenticação de dois fatores está ativada sem nada configurado, muitas vezes porque um administrador a exigiu: clique em **Concluir a configuração**, ou isso será pedido no seu próximo login.
+Se você já tem um app em **Apps autenticadores** ou uma chave em **Chaves de segurança**, **Ativar a autenticação de dois fatores** só pede uma confirmação. Enquanto ela está ativada, seu último app, chave ou chave de acesso não pode ser removido: adicione outro antes ou desative a autenticação de dois fatores. Se o cartão mostrar **Configuração necessária**, a autenticação de dois fatores está ativada sem nada configurado, muitas vezes porque um administrador a exigiu: clique em **Concluir a configuração**, ou isso será pedido no seu próximo login.
 
 ### Configurar a autenticação de dois fatores ao fazer login
 
-Quando um administrador exige a autenticação de dois fatores e você ainda não configurou nada, seu próximo login com uma senha ou um link enviado por e-mail pede que você a configure antes de deixar você entrar. Escolha **Aplicativo autenticador** ou **Chave de segurança** e clique em **Continuar**:
+Quando um administrador exige a autenticação de dois fatores e você ainda não configurou nada, seu próximo login com uma senha ou um link enviado por e-mail pede que você a configure antes de deixar você entrar. Escolha **App autenticador** ou **Chave de segurança** e clique em **Continuar**:
 
-- **Aplicativo autenticador**: escaneie o código QR, digite o código de 6 dígitos que seu aplicativo mostra e clique em **Verificar e iniciar sessão**. Em um celular, toque em **Adicionar à aplicação de autenticação** em vez de escanear.
+- **App autenticador**: escaneie o código QR, digite o código de 6 dígitos que seu app mostra e clique em **Verificar e iniciar sessão**. Em um celular, toque em **Adicionar ao app autenticador** em vez de escanear.
 - **Chave de segurança**: clique em **Registrar chave de segurança** e siga as instruções do navegador. Toque em uma chave USB ou NFC, ou use a impressão digital, o rosto ou o bloqueio de tela do seu celular ou computador.
 
-Se você ainda não tem códigos de backup, o OneUptime os mostra então uma única vez, e você está conectado. **Escolher outra forma** volta à escolha. Um navegador que não consegue registrar uma chave de segurança, como um em uma página sem HTTPS, oferece só o aplicativo autenticador.
+Se você ainda não tem códigos de backup, o OneUptime os mostra então uma única vez, e você está conectado. **Escolher outra forma** volta à escolha. Um navegador que não consegue registrar uma chave de segurança, como um em uma página sem HTTPS, oferece só o app autenticador.
 
 > [!TIP]
 > Seus códigos de backup estão acabando? **Gerar novos códigos** na mesma página dá a você um conjunto novo, e os códigos antigos param de funcionar na hora.
@@ -151,12 +151,12 @@ O mesmo acontece quando todos os projetos de que você faz parte exigem login ú
 Algumas alterações pedem primeiro que você confirme que é você, mesmo que já tenha entrado, para que ninguém possa fazê-las em um navegador em que você deixou a sessão aberta. O OneUptime pede isso antes de você:
 
 - alterar seu endereço de e-mail ou sua senha;
-- adicionar ou remover uma chave de acesso, uma chave de segurança ou um aplicativo autenticador;
+- adicionar ou remover uma chave de acesso, uma chave de segurança ou um app autenticador;
 - obter novos códigos de backup enquanto ainda tiver códigos não usados;
 - desativar a autenticação de dois fatores;
 - excluir sua conta.
 
-A janela **Confirme que é você** pede sua senha e, enquanto a autenticação de dois fatores estiver ativada, sua segunda etapa: um código do seu aplicativo autenticador, sua chave de segurança ou um dos seus códigos de backup. Com uma chave de acesso, clique em **Usar uma chave de acesso**. Se você entra apenas com login único, Google ou Microsoft, clique em **Entrar novamente**: o OneUptime faz seu provedor de identidade pedir que você entre de novo e depois traz você de volta à página. Em seguida, a alteração é feita. Se você entra apenas com o Vercel, que não pode confirmar que é você, escolha em vez disso **Entrar de outra forma** e entre com um link enviado para o seu e-mail.
+A janela **Confirme que é você** pede sua senha e, enquanto a autenticação de dois fatores estiver ativada, sua segunda etapa: um código do seu app autenticador, sua chave de segurança ou um dos seus códigos de backup. Com uma chave de acesso, clique em **Usar uma chave de acesso**. Se você entra apenas com login único, Google ou Microsoft, clique em **Entrar novamente**: o OneUptime faz seu provedor de identidade pedir que você entre de novo e depois traz você de volta à página. Em seguida, a alteração é feita. Se você entra apenas com o Vercel, que não pode confirmar que é você, escolha em vez disso **Entrar de outra forma** e entre com um link enviado para o seu e-mail.
 
 Depois que você confirma, não é perguntado de novo por 10 minutos nesse navegador. Cinco tentativas erradas encerram a sessão desse navegador, mas nunca bloqueiam sua conta: entre novamente e tente outra vez. O OneUptime envia um e-mail quando isso acontece, e sempre que um código de backup confirma que é você.
 
@@ -226,8 +226,8 @@ O seu endereço só muda quando você abre o link que o OneUptime enviou para o 
 O OneUptime envia um e-mail para o endereço que a sua conta tinha sempre que esse endereço muda: quando você abre o link enviado a um novo endereço, quando um administrador do servidor o altera ou quando o provedor de identidade da sua organização o altera. Se foi você quem fez a alteração, não há nada a fazer. Se não foi, alguém que conseguia entrar na sua conta a mudou para um endereço próprio: a partir do seu endereço antigo, fale com o administrador do seu servidor ou, no OneUptime Cloud, com support@oneuptime.com, que podem voltar o endereço. O e-mail mostra só uma parte do novo endereço e não tem nenhum link para desfazer a alteração: um link assim funcionaria para qualquer pessoa que leia a sua caixa de correio antiga.
 :::
 
-:::details Perdi meu aplicativo autenticador
-Na segunda etapa do login, escolha **Perdeu o acesso ao seu autenticador?** e digite um dos seus códigos de backup. Depois abra **Segurança → Autenticação de dois fatores** e adicione seu novo aplicativo. Sem códigos de backup, peça a um administrador da sua instalação do OneUptime para redefinir a autenticação de dois fatores da sua conta.
+:::details Perdi meu app autenticador
+Na segunda etapa do login, escolha **Perdeu o acesso ao seu autenticador?** e digite um dos seus códigos de backup. Depois abra **Segurança → Autenticação de dois fatores** e adicione seu novo app. Sem códigos de backup, peça a um administrador da sua instalação do OneUptime para redefinir a autenticação de dois fatores da sua conta.
 :::
 
 :::details O login pede que eu espere antes de tentar outro código
