@@ -85,14 +85,14 @@ export interface CloudAppAzureLink {
   // The site the app runs as, by name (getCloudAppSiteName).
   siteName: string;
   /*
-   * The deployment slot other than production the app runs in: Azure
-   * Monitor measures it as a resource of its own, which no connection
-   * reads, so nothing else is looked up.
+   * The deployment slot other than production the app runs in (#6793):
+   * Azure Monitor measures it as a resource of its own, and `site` is that
+   * slot (Microsoft.Web/sites/slots), never the site.
    */
   slot: string | null;
   // The subscription the app runs in, and where that was read from.
   subscription: CloudAppSubscription | null;
-  // The app's site, and how it was found.
+  // The app's site - or its slot, for an app of one - and how it was found.
   site: CloudResource | null;
   matchedBy: CloudAppSiteMatch | null;
   // Sites of the app's name in another subscription than its own.
@@ -117,10 +117,8 @@ export interface CloudAppAzureLink {
 
 // Which link of the chain from the app to Azure Monitor holds, or breaks.
 export enum CloudAppAzureMonitorState {
-  // Its site is found, and its connection reads it.
+  // Its site (or slot) is found, and its connection reads it.
   Connected = "connected",
-  // The app runs in a deployment slot other than production.
-  Slot = "slot",
   // The project has no Azure connection.
   NoConnection = "no-connection",
   // Azure connections exist; none reads the app's subscription.
@@ -143,17 +141,13 @@ export enum CloudAppAzureMonitorState {
 
 /*
  * Which link holds or breaks (see the top of this file), in the order the
- * chain is followed: the slot, the site and the connection that reads it,
+ * chain is followed: the site (or slot) and the connection that reads it,
  * else the subscription and its connection, else whether the subscription
  * holds the site.
  */
 export function getCloudAppAzureMonitorState(
   link: CloudAppAzureLink,
 ): CloudAppAzureMonitorState {
-  if (link.slot) {
-    return CloudAppAzureMonitorState.Slot;
-  }
-
   const health: CloudConnectionHealth | null = link.connection
     ? getCloudConnectionHealth(link.connection)
     : null;
@@ -429,11 +423,7 @@ export async function fetchCloudAppAzureLink(data: {
     sitesInSubscription: null,
   };
 
-  if (slot) {
-    return link;
-  }
-
-  // The site the server keeps on the app, else the one found here.
+  // The site (or slot) the server keeps on the app, else the one found here.
   const kept: CloudResource | null = await fetchKeptCloudAppSite(data.app);
 
   if (kept) {

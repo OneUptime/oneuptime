@@ -21,6 +21,7 @@ import {
   SecurityCaseAiActionStatus,
   SecurityCaseAiResponseState,
   SecurityCaseHandOffReason,
+  isSecurityCaseAiResponseActive,
 } from "../../../Types/SecurityCase/SecurityCaseAi";
 import {
   SECURITY_CASE_AI_HOLD_ATTACK_WINDOW_IN_MINUTES,
@@ -73,16 +74,16 @@ import SecurityCaseTriage, {
 } from "../AI/Security/SecurityCaseTriage";
 import logger from "../Logger";
 import ProductBrandingText from "../ProductBrandingText";
-import ServerProducts from "../ServerProducts/ServerProducts";
-import ProductKey from "../../../Types/Product/ProductKey";
 import SecurityPlaybookEngine from "../SecurityPlaybook/SecurityPlaybookEngine";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityCaseHandOff from "./SecurityCaseHandOff";
 import SecurityCaseNotifications, {
   isSetupTestCase,
 } from "./SecurityCaseNotifications";
 import SecurityCaseValues, {
   ProjectSecurityCaseValues,
 } from "./SecurityCaseValues";
+import SecurityEventsSwitch from "./SecurityEventsSwitch";
 
 /*
  * ONEUPTIME AI RESPONDS FIRST TO A SECURITY CASE (#10353): the server's
@@ -111,8 +112,11 @@ import SecurityCaseValues, {
  *   - Security Events switched off on the server (#10816) stops this work
  *     as it stops the product's: no case is held while it is off, and the
  *     next review - within a minute - hands every held case to people,
- *     saying why (isProductOff). Switched on again, a case is held only as
- *     it opens: nothing held before comes back.
+ *     saying why (isProductOff). A held case OneUptime AI works goes to
+ *     people with OneUptime AI's own hand-off, which ends the hold with the
+ *     same outcome: one notice, whichever every-minute job sees it first.
+ *     Switched on again, a case is held only as it opens: nothing held
+ *     before comes back.
  *
  * However it ends - one compare-and-set from Holding, so it ends once - the
  * case's timeline says how, the notice people were held from is sent or
@@ -755,6 +759,28 @@ export default class SecurityCaseAiHold {
       return null;
     }
 
+    /*
+     * Security Events switched off while OneUptime AI works the case
+     * (#10816): it stops working it too. Its hand-off ends the hold with
+     * this outcome (onHandedToPeople), so people get one notice, saying
+     * why, whether this review or OneUptime AI's own every-minute job
+     * (SecurityCaseResponseProductOff) sees the switch first.
+     */
+    let isHandedOver: boolean = false;
+
+    if (
+      review.outcome === SecurityCaseAiHoldOutcome.ProductOff &&
+      isSecurityCaseAiResponseActive(state.responseState)
+    ) {
+      isHandedOver = await SecurityCaseHandOff.handToPeople({
+        projectId: data.projectId,
+        securityCaseId: securityCase.id,
+        reason: SecurityCaseHandOffReason.ProductOff,
+        now,
+      });
+    }
+
+    // Once: a hand-off above that ended the hold leaves nothing to end here.
     const isEnded: boolean = await this.endHold({
       projectId: data.projectId,
       securityCaseId: securityCase.id,
@@ -763,7 +789,7 @@ export default class SecurityCaseAiHold {
       now,
     });
 
-    return isEnded ? review.outcome : null;
+    return isEnded || isHandedOver ? review.outcome : null;
   }
 
   /*
@@ -787,23 +813,12 @@ export default class SecurityCaseAiHold {
   /*
    * Whether Security Events is switched off on the server (#10816): then
    * no case is held, and every held case goes to people at the next
-   * review, within a minute, saying why. A read that fails answers "on",
-   * as ServerProducts does: switching a product off is never a lock.
+   * review, within a minute, saying why. Read as OneUptime AI working a
+   * case reads it (SecurityEventsSwitch): a read that fails answers "on",
+   * as ServerProducts does - switching a product off is never a lock.
    */
   public static async isProductOff(): Promise<boolean> {
-    try {
-      return Boolean(
-        await ServerProducts.getOffReasonOfServerWork(
-          ProductKey.SecurityEvents,
-        ),
-      );
-    } catch (error) {
-      logger.error(
-        "SecurityCaseAiHold: could not read whether Security Events is switched off; reading it as on:",
-      );
-      logger.error(error);
-      return false;
-    }
+    return await SecurityEventsSwitch.isOff();
   }
 
   // What a held case's review reads about it, and about OneUptime AI's work on it.
@@ -1058,6 +1073,25 @@ export default class SecurityCaseAiHold {
   }
 
   /*
+   * How a hold ends when OneUptime AI hands its case to people: a person
+   * who took the case over has it; Security Events switched off (#10816)
+   * ends it as the review would, saying so; any other reason is OneUptime
+   * AI's hand-off, whose reason the notice gives.
+   */
+  public static getHandOffOutcome(
+    reason: SecurityCaseHandOffReason,
+  ): SecurityCaseAiHoldOutcome {
+    switch (reason) {
+      case SecurityCaseHandOffReason.TakenOver:
+        return SecurityCaseAiHoldOutcome.TakenByPerson;
+      case SecurityCaseHandOffReason.ProductOff:
+        return SecurityCaseAiHoldOutcome.ProductOff;
+      default:
+        return SecurityCaseAiHoldOutcome.HandedOff;
+    }
+  }
+
+  /*
    * OneUptime AI handed the case to people (SecurityCaseHandOff, #10352): a
    * held case's hold ends with it - and the notice people were held from
    * is the one that tells them, with the hand-off's reason, so they are not
@@ -1087,9 +1121,7 @@ export default class SecurityCaseAiHold {
       return await this.endHold({
         projectId: data.projectId,
         securityCaseId: data.securityCaseId,
-        outcome: isTakenOver
-          ? SecurityCaseAiHoldOutcome.TakenByPerson
-          : SecurityCaseAiHoldOutcome.HandedOff,
+        outcome: this.getHandOffOutcome(data.reason),
         byUserId: isTakenOver ? data.byUserId : undefined,
       });
     } catch (error) {

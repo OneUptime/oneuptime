@@ -373,32 +373,39 @@ describe("Datadog's metric monitors", () => {
       "datadog-monitor-postgres-connections.json",
     );
 
+    // The Agent's host is the resource's: its series' label is resource_host_name.
     expect(monitors.items[0]?.rule?.title).toBe(
-      "[Postgres] Number of connections is approaching connection limit on {{host}}",
+      "[Postgres] Number of connections is approaching connection limit on {{resource_host_name}}",
     );
     expect(monitors.items[0]?.rule?.rollingTime).toBe(
       RollingTime.Past15Minutes,
     );
   });
 
-  test("an anomaly monitor is listed with why, and not offered to OneUptime AI", () => {
-    for (const name of [
-      "datadog-monitor-nginx-5xx.json",
-      "datadog-monitor-postgres-replication-delay.json",
-      "datadog-monitor-nginx-upstream-latency.json",
-    ]) {
-      const item: AlertImportItem | undefined = plan(name).items[0];
+  test("an outliers monitor is listed with why, and not offered to OneUptime AI", () => {
+    const monitors: AlertImportPlan = planAlertImport(
+      readImportSource({
+        text: JSON.stringify({
+          name: "A host out of line",
+          type: "query alert",
+          query:
+            "avg(last_15m):outliers(avg:system.cpu.user{*} by {host}, 'DBSCAN', 2) > 0",
+          options: {},
+        }),
+        accepts: ALERT_SOURCE_KINDS,
+      }),
+    );
+    const item: AlertImportItem | undefined = monitors.items[0];
 
-      expect(item?.status).toBe(ImportItemStatus.NotConverted);
-      expect(item?.notes).toEqual([
-        {
-          kind: ImportNoteKind.Reason,
-          text: DATADOG_FUNCTION_NOT_CONVERTED,
-          values: { function: "anomalies" },
-        },
-      ]);
-      expect(item?.aiCandidate).toBeUndefined();
-    }
+    expect(item?.status).toBe(ImportItemStatus.NotConverted);
+    expect(item?.notes).toEqual([
+      {
+        kind: ImportNoteKind.Reason,
+        text: DATADOG_FUNCTION_NOT_CONVERTED,
+        values: { function: "outliers" },
+      },
+    ]);
+    expect(item?.aiCandidate).toBeUndefined();
   });
 
   test("a monitor whose query PromQL cannot say is offered to OneUptime AI, for a monitor", () => {
@@ -481,7 +488,7 @@ describe("an alert's text", () => {
         threshold: 90,
         comparison: ">",
       }),
-    ).toBe("CPU on {{host}} is above 90. Check the host.");
+    ).toBe("CPU on {{resource_host_name}} is above 90. Check the host.");
     expect(notes).toEqual([
       {
         kind: ImportNoteKind.Info,

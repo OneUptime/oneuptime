@@ -4,22 +4,22 @@ An offline harness for Data Security's pages, mounted from the product's real ro
 (`Routes/DataSecurityRoutes`) under its real RouteMap pattern (`DATA_SECURITY_ROOT`,
 `/dashboard/:projectId/data-security/*`):
 
-| Page                | Route                                | What the spec does there                                                                                                                                         |
-| ------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Overview            | `/data-security`                     | The riskiest open issues first, each opening its issue; what OneUptime AI contained this week and what waits                                                     |
-| Data Stores         | `/data-security/stores`              | On a phone                                                                                                                                                       |
-| A store's Overview  | `/data-security/stores/:id`          | Its half-width cards' headers; its menu's Timeline                                                                                                               |
-| What's Inside       | `/data-security/stores/:id/inside`   | On a phone; OneUptime AI's suggestions on a line of their own, with their reason; Confirm                                                                        |
-| Who Can Reach It    | `/data-security/stores/:id/access`   | On a phone; access unused for 90 days marked; ARNs in monospace; each row opens its identity                                                                     |
-| A store's Timeline  | `/data-security/stores/:id/timeline` | Who changed what, its details; German; dark                                                                                                                      |
-| Access              | `/data-security/access`              | Every identity, the riskiest first, each opening its page; a new project's                                                                                       |
-| An identity         | `/data-security/access/:id`          | What it reaches and through what; Last Used and what it means; a traced service's page; Persian; a phone, dark                                                   |
-| Issues              | `/data-security/issues`              | On a phone                                                                                                                                                       |
-| An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links; its AI card; OneUptime AI's analysis, at 1280 and on a phone |
-| An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                                                                                |
-| AI                  | `/data-security/ai`                  | What OneUptime AI proposes, made and left alone, and the rule that decided; the AI rules; Approve shows the change first; at 1280 and on a phone                 |
-| Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                                                                                       |
-| Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                                                                                             |
+| Page                | Route                                | What the spec does there                                                                                                                                                                                        |
+| ------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview            | `/data-security`                     | The riskiest open issues first, each opening its issue; what OneUptime AI contained this week and what waits                                                                                                    |
+| Data Stores         | `/data-security/stores`              | On a phone                                                                                                                                                                                                      |
+| A store's Overview  | `/data-security/stores/:id`          | Its half-width cards' headers; its menu's Timeline                                                                                                                                                              |
+| What's Inside       | `/data-security/stores/:id/inside`   | On a phone; OneUptime AI's suggestions and verdicts across each finding's row, with their reasons and the decisions they rest on; Confirm; Mark as Not Sensitive from its draft, then Apply to Similar Findings |
+| Who Can Reach It    | `/data-security/stores/:id/access`   | On a phone; access unused for 90 days marked; ARNs in monospace; each row opens its identity                                                                                                                    |
+| A store's Timeline  | `/data-security/stores/:id/timeline` | Who changed what, its details; German; dark                                                                                                                                                                     |
+| Access              | `/data-security/access`              | Every identity, the riskiest first, each opening its page; a new project's                                                                                                                                      |
+| An identity         | `/data-security/access/:id`          | What it reaches and through what; Last Used and what it means; a traced service's page; Persian; a phone, dark                                                                                                  |
+| Issues              | `/data-security/issues`              | On a phone                                                                                                                                                                                                      |
+| An issue            | `/data-security/issues/:id`          | Fix it from here, its question and its result; the Open status; its case, alert and incident links; its AI card; OneUptime AI's analysis, at 1280 and on a phone                                                |
+| An issue's Timeline | `/data-security/issues/:id/timeline` | The response action the issue ran                                                                                                                                                                               |
+| AI                  | `/data-security/ai`                  | What OneUptime AI proposes, made and left alone, and the rule that decided; the AI rules; Approve shows the change first; at 1280 and on a phone                                                                |
+| Settings > Checks   | `/data-security/settings/checks`     | On a phone                                                                                                                                                                                                      |
+| Scan Settings       | `/data-security/settings/scanning`   | When an Issue Opens: incidents beside alerts, each with its severity                                                                                                                                            |
 
 `Fixture/server.js` bundles `Fixture/Fixture.js` with esbuild, serves it with the same Tailwind
 build, `tailwind.config`, `Theme.css` and Inter font production uses, and listens on
@@ -42,7 +42,8 @@ Stubbed:
 
 The data: four stores (a public S3 bucket of customer exports holding card numbers and email
 addresses, an RDS database, a BigQuery warehouse and a service's logs), their findings with masked
-samples, the bucket's access, scans and owners, five issues (one an accepted risk), and the bucket's
+samples - three of the database's with OneUptime AI's verdicts and the team's decisions they cite -
+the bucket's access, scans and owners, five issues (one an accepted risk), and the bucket's
 and its public-read issue's timelines. The public-read issue links to the security case, the alert
 and the incident it started, and the project's settings raise alerts and declare incidents, with two
 alert and two incident severities to pick from.

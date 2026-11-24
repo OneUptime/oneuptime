@@ -83,7 +83,10 @@ import {
   FLUENT_BIT_TAIL_DB,
   FLUENTD_RETRYABLE_RESPONSE_CODES,
 } from "../../../FeatureSet/Dashboard/src/Components/Telemetry/LogShipperSnippets";
-import { isNdjsonContentType } from "Common/Server/Utils/RequestBodyJson";
+import RequestBodyJson, {
+  isNdjsonContentType,
+} from "Common/Server/Utils/RequestBodyJson";
+import { LARGE_REQUEST_BODY_LIMIT } from "Common/Server/Utils/RequestBodyLimit";
 import FluentAPI from "../../../FeatureSet/Telemetry/API/Fluent";
 import OTelIngestAPI from "../../../FeatureSet/Telemetry/API/OTelIngest";
 import SyslogAPI from "../../../FeatureSet/Telemetry/API/Syslog";
@@ -1232,8 +1235,25 @@ describe("the Fluent Bit page", () => {
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/Fluent.ts")),
     ).toContain(
-      "RequestBodyAfterAuthentication.readBody( LARGE_REQUEST_BODY_LIMIT, { parseGzipJson: true, readLines: true }, );",
+      "RequestBodyAfterAuthentication.readBody( LARGE_REQUEST_BODY_LIMIT, { parseGzipJson: true, readLines: true, readJsonStream: true }, );",
     );
+
+    /*
+     * json_stream is records one after another, sent as application/json
+     * (#10796): no one JSON document, so the route reads it as JSON objects
+     * one after another (readJsonStream). json is one array, as before.
+     */
+    expect(
+      RequestBodyJson.parseStream(
+        Buffer.from(
+          '{"date":1795255200.5,"log":"a"}{"date":1795255201,"log":"b"}',
+        ),
+        LARGE_REQUEST_BODY_LIMIT,
+      ),
+    ).toEqual([
+      { date: 1795255200.5, log: "a" },
+      { date: 1795255201, log: "b" },
+    ]);
 
     // Each record's time, where the route reads one.
     expect(output).toContain("      json_date_key: timestamp\n");
@@ -1257,7 +1277,7 @@ describe("the Fluent Bit page", () => {
     );
 
     expect(englishPage(FLUENT_BIT)).toContain(
-      "Set `format` to `json_lines`, as below, or to `json`: OneUptime reads both, compressed with `compress: gzip` or not. Fluent Bit's default format, `msgpack`, is refused.",
+      "Set `format` to `json_lines`, as below, or to `json` or `json_stream`: OneUptime reads all three, compressed with `compress: gzip` or not. Fluent Bit's default format, `msgpack`, is refused.",
     );
   });
 
@@ -1580,7 +1600,9 @@ describe("the Fluentd page", () => {
     expect(isNdjsonContentType("application/x-ndjson")).toBe(true);
     expect(
       oneLine(readSource("App/FeatureSet/Telemetry/API/Fluent.ts")),
-    ).toContain("{ parseGzipJson: true, readLines: true }");
+    ).toContain(
+      "{ parseGzipJson: true, readLines: true, readJsonStream: true }",
+    );
   });
 
   it("sends the key and the service name in the headers OneUptime reads", () => {

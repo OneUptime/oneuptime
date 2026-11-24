@@ -85,6 +85,15 @@ Si un moniteur fait référence à un secret qu'il ne peut pas utiliser, la réf
 
 Quand la vérification d'un moniteur API, Site web ou Page de statut externe échoue, son erreur ne nomme l'URL que par son schéma, son hôte et son port, comme `https://api.example.com`, si bien qu'un secret dans l'URL n'est jamais affiché.
 
+Une vérification peut aussi renvoyer la valeur d'un secret : un navigateur cite l'URL d'une page qu'il n'a pas pu charger, un script journalise ce qu'il contient, et un serveur peut renvoyer la requête, les en-têtes ou le corps qu'il a reçus. OneUptime masque la valeur partout où elle apparaît dans ce que la vérification rapporte : l'erreur, les messages du journal et le résultat d'un script, le corps et les en-têtes d'une réponse, et la cause d'échec de la vérification et de chaque tentative. La valeur ne figure donc ni dans les journaux du moniteur, ni dans son résumé, ni dans le résultat d'un test de moniteur, ni dans la cause racine d'un incident ou d'une alerte. OneUptime écrit `[REDACTED]` à sa place et garde le reste : une page à `https://app.example.com/login?token={{monitorSecrets.Token}}` qui ne se charge pas est rapportée comme `https://app.example.com/login?token=[REDACTED]`. La valeur est trouvée quelle que soit la casse et quelle que soit la façon dont la vérification l'a écrite : encodée en pourcentage, échappée en JSON ou en HTML, ou en base64.
+
+OneUptime ne masque pas :
+
+- Une valeur de moins de 4 caractères, sans compter les espaces autour. Une valeur aussi courte fait partie du texte ordinaire, comme les nombres et les mots.
+- Ce que montre une capture d'écran. Une capture d'écran est une image : un secret que la page affiche à l'écran y figure.
+
+Les critères lisent une vérification telle qu'elle est rapportée. Écrivez un critère sur le texte autour d'un secret, comme `ERR_NAME_NOT_RESOLVED` ou `token=`, plutôt que sur la valeur du secret : un critère est visible par tous ceux qui peuvent lire le moniteur.
+
 Quand vous testez un moniteur avant de l'enregistrer, seuls les secrets disponibles pour **Tous les moniteurs** sont remplis, car un nouveau moniteur ne figure sur aucune liste et n'a pas encore d'étiquettes. Une fois le moniteur enregistré, les tests utilisent chaque secret que le moniteur peut utiliser.
 
 ## Se connecter avec un code à usage unique
@@ -144,6 +153,10 @@ Avant qu'un moniteur soit enregistré, seuls les secrets disponibles pour **Tous
 
 :::details Un champ ignore le secret
 Seuls les champs du tableau ci-dessus acceptent les secrets. Dans tout autre champ, `{{monitorSecrets.NAME}}` est envoyé tel qu'il est écrit.
+:::
+
+:::details Une vérification affiche `[REDACTED]` là où se trouvait une valeur
+La valeur d'un secret figurait dans ce que la vérification a rapporté, et OneUptime l'a masquée. Le texte autour, comme `token=[REDACTED]`, indique où le script ou la requête a utilisé le secret.
 :::
 
 :::details Le site refuse le code à usage unique

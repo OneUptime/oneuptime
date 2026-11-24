@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187520618, and moved
+ * AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618, and moved
  * into a migration of its own: "TelemetryException" already exists, and is
  * written by every telemetry batch that holds an exception, so its new
  * indexes are built online and its foreign keys added NOT VALID and then
@@ -20,11 +20,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *     split exception forgets the one it was split from when that one goes
  *     (ON DELETE SET NULL).
  */
-export class AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187520628
+export class AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628
   implements MigrationInterface
 {
   public name: string =
-    "AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187520628";
+    "AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys1809187540628";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

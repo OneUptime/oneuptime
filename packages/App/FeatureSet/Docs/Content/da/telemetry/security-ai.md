@@ -136,7 +136,7 @@ Under det står hvert trin, den udførte, spurgte om eller overlod, det nyeste f
 
 ### En sag, den læser som harmløs eller falsk positiv
 
-**Reagér med AI** på en sag, som vurderingen læste som Sandsynligvis harmløs eller Sandsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, som **Luk sagen** tillader. Når den er lukket, ophæver OneUptime AI de blokeringer, sagen lavede, som **Luk sagen** også tillader, og tilbyder sagens regel en undtagelse for den værdi, der udløste den. Undtagelsen venter altid på en person: **Godkend** tilføjer den i dit navn.
+**Reagér med AI** på en sag, som vurderingen læste som Sandsynligvis harmløs eller Sandsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, som **Luk sagen** tillader. Når den er lukket, ophæver OneUptime AI de blokeringer, sagen lavede, som **Luk sagen** også tillader, og tilbyder sagens regel en undtagelse for den værdi, der udløste den. Undtagelsen venter altid på en person: **Godkend** tilføjer den i dit navn. En person, der genåbner sagen eller overtager den først, forhindrer begge dele, og så længe produktet Sikkerhedshændelser er slået fra, overlader OneUptime AI begge dele til en person.
 
 ## Hvad OneUptime AI må gøre på en sag
 
@@ -177,6 +177,7 @@ OneUptime AI trækker sig aldrig stille tilbage. Den overdrager sagen til person
 - det, dens næste trin handler på, er beskyttet;
 - den har handlet selvstændigt så ofte, som den må på en time;
 - AI er slået fra for projektet eller for sikkerhedssager, der ikke er nogen LLM-udbyder, eller projektet er løbet tør for AI-kreditter eller har nået sin daglige AI-grænse;
+- produktet Sikkerhedshændelser er slået fra på serveren;
 - dens vurdering ikke kunne afgøre, om sagen er ægte;
 - et trin, den udførte, ikke holder, et trin, den startede, ikke blev færdigt, eller en person afviste eller fortrød et trin, den udførte;
 - den ikke kan afgøre, hvad den skal gøre nu, eller alt, hvad der er tilbage på sagen, skal gøres af en person.
@@ -184,6 +185,8 @@ OneUptime AI trækker sig aldrig stille tilbage. Den overdrager sagen til person
 Personerne på sagen hører om det med det samme, eller, når ingen er på sagen, de personer, der får besked om sager med dens prioritet: **OneUptime AI overdrog en sikkerhedssag til personer** under **Brugerindstillinger → Notifikationsindstillinger**. En notifikationsregel for arbejdsområdet for sikkerhedssager slår det op i sin Slack- eller Microsoft Teams-kanal under **Overdraget til personer af OneUptime AI**. **Overtag** overdrager sagen uden at give nogen besked, da den person, der trykkede på den, har sagen.
 
 **Reagér med AI** beder OneUptime AI om at arbejde med sagen igen fra der, hvor sagen står.
+
+Så længe produktet Sikkerhedshændelser er slået fra på serveren, starter OneUptime AI ikke noget nyt trin på nogen sag, og inden for et minut overdrager den hver sag, den arbejder med, til personer. Et trin, den allerede har startet, bliver færdigt eller kan fortrydes som sædvanligt. Når produktet er slået til igen, tager den ingen af de sager op igen af sig selv: Det gør **Reagér med AI**.
 
 En sag, der holdes tilbage, mens OneUptime AI reagerer først, når frem til folk én gang, med notifikationen om den nye sag og grunden til, at OneUptime AI stoppede: se [Lad OneUptime AI reagere først](#lad-oneuptime-ai-reagere-først).
 

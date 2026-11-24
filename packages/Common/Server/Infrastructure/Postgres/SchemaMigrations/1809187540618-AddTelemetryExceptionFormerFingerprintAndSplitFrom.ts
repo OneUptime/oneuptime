@@ -4,7 +4,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Generated with npm run generate-postgres-migration, then renumbered after
  * the last registered migration. Its indexes and foreign keys are built
  * online by AddTelemetryExceptionFormerFingerprintAndSplitFromIndexesAndKeys
- * 1809187520628.
+ * 1809187540628.
  *
  *   - "TelemetryException"."formerFingerprintOfTelemetryExceptionId": set on
  *     a row that only keeps the fingerprint an exception had before
@@ -17,11 +17,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  *
  * Two nullable columns with no default: adding them rewrites nothing.
  */
-export class AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187520618
+export class AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618
   implements MigrationInterface
 {
   public name: string =
-    "AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187520618";
+    "AddTelemetryExceptionFormerFingerprintAndSplitFrom1809187540618";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

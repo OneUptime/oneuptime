@@ -1,8 +1,13 @@
-import DataStoreFindingService from "../../../Server/Services/DataStoreFindingService";
+import DataStoreFindingService, {
+  ONLY_A_PERSON_MARKS_NOT_SENSITIVE_MESSAGE,
+} from "../../../Server/Services/DataStoreFindingService";
 import Queue from "../../../Server/Infrastructure/Queue";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
-import { DATA_SECURITY_EVALUATE_PROJECT_JOB } from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
+import {
+  DATA_SECURITY_EVALUATE_PROJECT_JOB,
+  DATA_SECURITY_TUNE_SCANS_JOB,
+} from "../../../Server/Utils/DataSecurity/DataSecurityJobs";
 import DataStoreFinding from "../../../Models/DatabaseModels/DataStoreFinding";
 import DataConfidence from "../../../Types/DataSecurity/DataConfidence";
 import { JSONObject } from "../../../Types/JSON";
@@ -13,7 +18,11 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * A person's verdict on a finding (DataStoreFindingService): Not Sensitive
  * and Confirm both queue the project's evaluation, and a confirmed finding
  * counts as High confidence - set as OneUptime's own write once the
- * update is written, since a person cannot set a confidence.
+ * update is written, since a person cannot set a confidence. When it was
+ * decided is kept, for OneUptime AI's precedent (#10372), and a decision
+ * is the person's, never OneUptime AI's own confirmation again. A mark of
+ * not sensitive has the scans' tuning looked at; and OneUptime's own
+ * write never marks a finding not sensitive, under any rule.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -74,24 +83,38 @@ async function update(
   return { data: by.data as unknown as JSONObject };
 }
 
-function confidenceWrites(): Array<[string, unknown]> {
-  return writeSpy.mock.calls.map((call: Array<unknown>): [string, unknown] => {
+function writes(): Array<{ id: string; data: JSONObject }> {
+  return writeSpy.mock.calls.map((call: Array<unknown>) => {
     const write: { id: ObjectID; data: JSONObject } = call[0] as {
       id: ObjectID;
       data: JSONObject;
     };
-    return [write.id.toString(), write.data["confidence"]];
+    return { id: write.id.toString(), data: write.data };
   });
 }
 
-function evaluationsQueued(): Array<unknown> {
+function confidenceWrites(): Array<[string, unknown]> {
+  return writes()
+    .filter((write: { data: JSONObject }): boolean => {
+      return write.data["confidence"] !== undefined;
+    })
+    .map((write: { id: string; data: JSONObject }): [string, unknown] => {
+      return [write.id, write.data["confidence"]];
+    });
+}
+
+function jobsQueued(jobName: string): Array<unknown> {
   return queueSpy.mock.calls
     .filter((call: Array<unknown>) => {
-      return call[2] === DATA_SECURITY_EVALUATE_PROJECT_JOB;
+      return call[2] === jobName;
     })
     .map((call: Array<unknown>) => {
       return (call[3] as JSONObject)["projectId"];
     });
+}
+
+function evaluationsQueued(): Array<unknown> {
+  return jobsQueued(DATA_SECURITY_EVALUATE_PROJECT_JOB);
 }
 
 beforeEach(() => {
@@ -156,6 +179,23 @@ describe("a person marks a finding not sensitive", () => {
     expect(evaluationsQueued()).toEqual([PROJECT_ID.toString()]);
   });
 
+  test("has OneUptime AI look at what it says of the scans, once per project", async () => {
+    rows = [row(PROJECT_ID), row(PROJECT_ID), row(OTHER_PROJECT_ID)];
+
+    await update({ isSuppressed: true, suppressedReason: "Test data." });
+
+    expect(jobsQueued(DATA_SECURITY_TUNE_SCANS_JOB)).toEqual([
+      PROJECT_ID.toString(),
+      OTHER_PROJECT_ID.toString(),
+    ]);
+  });
+
+  test("a confirmation looks at no tuning", async () => {
+    await update({ isConfirmed: true });
+
+    expect(jobsQueued(DATA_SECURITY_TUNE_SCANS_JOB)).toEqual([]);
+  });
+
   test("sensitive again clears the reason", async () => {
     const { data } = await update({
       isSuppressed: false,
@@ -166,10 +206,69 @@ describe("a person marks a finding not sensitive", () => {
   });
 });
 
+describe("when a decision was made, and whose it is", () => {
+  test("a confirmation and a mark of not sensitive are decided now, and are the person's", async () => {
+    const before: number = Date.now();
+
+    await update({ isConfirmed: true });
+    await update({ isSuppressed: true, suppressedReason: "Test data." });
+
+    const decided: Array<{ id: string; data: JSONObject }> = writes();
+
+    expect(decided).toHaveLength(2);
+
+    for (const write of decided) {
+      expect(write.data["isConfirmedByAi"]).toBe(false);
+      expect(write.data["decidedAt"]).toBeInstanceOf(Date);
+      expect(
+        (write.data["decidedAt"] as unknown as Date).getTime(),
+      ).toBeGreaterThanOrEqual(before);
+    }
+  });
+
+  test("a decision taken back is decided no more", async () => {
+    await update({ isSuppressed: false, suppressedReason: "Old reason." });
+    await update({ isConfirmed: false });
+
+    expect(writes()).toHaveLength(2);
+
+    for (const write of writes()) {
+      expect(write.data["decidedAt"]).toBeNull();
+      expect(write.data["isConfirmedByAi"]).toBe(false);
+    }
+  });
+});
+
+describe("OneUptime never marks a finding not sensitive on its own", () => {
+  test("its own write that would is refused, before anything is held", async () => {
+    await expect(update({ isSuppressed: true }, true)).rejects.toThrow(
+      ONLY_A_PERSON_MARKS_NOT_SENSITIVE_MESSAGE,
+    );
+    await expect(
+      update({ isSuppressed: true, suppressedReason: "AI says so." }, true),
+    ).rejects.toThrow(ONLY_A_PERSON_MARKS_NOT_SENSITIVE_MESSAGE);
+
+    expect(holdSpy).not.toHaveBeenCalled();
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(queueSpy).not.toHaveBeenCalled();
+  });
+
+  test("a person's own mark goes through, as before", async () => {
+    await expect(
+      update({ isSuppressed: true, suppressedReason: "Seed data." }),
+    ).resolves.toBeTruthy();
+  });
+
+  test("OneUptime may still take a mark back, or confirm", async () => {
+    await expect(update({ isSuppressed: false }, true)).resolves.toBeTruthy();
+    await expect(update({ isConfirmed: true }, true)).resolves.toBeTruthy();
+  });
+});
+
 describe("what a person's verdict is not", () => {
   test("OneUptime's own writes, and any other change, hold nothing and queue nothing", async () => {
     await update({ isConfirmed: true }, true);
-    await update({ isSuppressed: true }, true);
+    await update({ isSuppressed: false }, true);
     await update({ dataTypeName: "Email address" });
 
     expect(holdSpy).not.toHaveBeenCalled();

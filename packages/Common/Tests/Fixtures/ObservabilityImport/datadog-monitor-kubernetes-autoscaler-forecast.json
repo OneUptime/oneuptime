@@ -1,0 +1,34 @@
+{
+    "version": 2,
+    "created_at": "2024-05-15",
+    "last_updated_at": "2024-05-15",
+    "title": "Kubernetes Cluster Autoscaler too many unused nodes forecast",
+    "description": "The cluster autoscaler reports too many unused node.",
+    "definition": {
+        "id": 62557,
+        "name": "Kubernetes Cluster Autoscaler too many unused nodes forecast",
+        "type": "query alert",
+        "query": "max(next_12h):forecast(avg:cluster_autoscaler.cluster_autoscaler_unneeded_nodes_count{*} by {kube_cluster_name,env}, 'linear', 1, model='reactive', interval='30m', history='1mo') >= 500",
+        "message": "The cluster autoscaler reports too many unused nodes.\n\nCheck if the cluster autoscaler is in cooldown for scale down.\n\nCheck if there is any pending pod waiting for upcoming node.\n\nCheck if there is any pending pod causing an infinite scale up.",
+        "options": {
+            "thresholds": {
+                "critical": 500,
+                "critical_recovery": 400
+            },
+            "notify_audit": true,
+            "require_full_window": false,
+            "renotify_interval": 20,
+            "include_tags": true,
+            "escalation_message": "",
+            "avalanche_window": 20,
+            "new_group_delay": 60
+        },
+        "priority": null,
+        "restriction_policy": {
+            "bindings": []
+        }
+    },
+    "tags": [
+        "integration:kubernetes-cluster-autoscaler"
+    ]
+}

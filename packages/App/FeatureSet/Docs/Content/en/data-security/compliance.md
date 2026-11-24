@@ -7,7 +7,9 @@ Data Security scores nine frameworks from what its scans found. Each framework c
 - [How a framework is scored](#how-a-framework-is-scored): Passing, failing and not evaluated requirements.
 - [On a resource's page](#on-a-resources-page): One cluster's, host's, database's, service's or cloud resource's compliance, and what is turned off for it.
 - [Requirements and their checks](#requirements-and-their-checks): Every requirement, and the checks that are evidence for it.
-- [Record of processing](#record-of-processing): GDPR Article 30, written from your stores.
+- [Record of processing](#record-of-processing): GDPR Article 30, written from your stores, with OneUptime AI's drafts for you to confirm.
+- [Impact assessments](#impact-assessments): A data protection impact assessment for each store that needs one.
+- [Audit evidence](#audit-evidence): What an auditor reads under each requirement, exported with your record and issue history.
 :::
 
 ## The frameworks
@@ -185,13 +187,30 @@ GDPR Article 30 asks you to keep a record of your processing activities. Data Se
 | Environment | The store's tags or name, or what you set |
 | Sensitivity, categories and data types | What the scans found, or the sensitivity you set |
 | Owners | The store's owners, people and the members of its teams |
-| Purpose | What you write in the store's **Purpose**: why it holds personal data. OneUptime fills it in for the stores it keeps for your security |
-| Retention | What you write in the store's **Retention**: how long data is kept in it. OneUptime fills it in for the stores it keeps for your security |
+| Purpose | What you write or confirm in the store's **Purpose**: why it holds personal data. OneUptime fills it in for the stores it keeps for your security |
+| Retention | What you write or confirm in the store's **Retention**: how long data is kept in it. OneUptime fills it in for the stores it keeps for your security, and for a service's telemetry from your project's telemetry retention |
 | Who can read | Who can read a store OneUptime keeps for your security |
 | Frameworks | The frameworks its data types bring into scope |
 | Declared by | OneUptime, for the stores it keeps for your security |
+| Legal basis | What you write or confirm: the store's lawful basis under GDPR Article 6, one of consent, contract, legal obligation, vital interests, public task and legitimate interests. Legitimate interests for the stores OneUptime keeps for your security |
+| People it is about | What you write or confirm: who the store's data is about, such as customers, users, employees or patients |
+| Recipients | Worked out from the store's data flows: the external hosts and AI providers its data is sent to, and the stores holding a copy of it |
+| Transfers | Worked out from the store's region, the regions its cloud copies it to and its copies' regions, against the countries its people are in: each transfer out of those countries, or why it is not known |
+| Impact assessment | Whether the store needs a data protection impact assessment, and where it stands: not needed, needed, drafted or edited |
+| Waiting for review | The fields whose draft waits for a person. A draft is never in the record, nor in its exports, until someone confirms it |
 
-For a store Data Security found, fill in **Purpose** and **Retention** in its **Settings**: no scan can know them. The record and the scores are also answered by Data Security's API, at `/data-security/record-of-processing`, `/data-security/compliance` and, for one resource, `/data-security/resource-compliance`, for anyone who may read data stores (see [Data Security Integrations](/docs/data-security/integrations#api-terraform-and-mcp)).
+For a store Data Security found, no scan can know why it holds personal data, for how long, on what basis or about whom: write them in its **Settings**, or confirm OneUptime AI's drafts. The record and the scores are also answered by Data Security's API, at `/data-security/record-of-processing`, `/data-security/compliance` and, for one resource, `/data-security/resource-compliance`, for anyone who may read data stores (see [Data Security Integrations](/docs/data-security/integrations#api-terraform-and-mcp)).
+
+### OneUptime AI's drafts
+
+OneUptime AI drafts a store's **Purpose**, **Retention**, **Legal Basis** and **People It Is About** from what Data Security knows of it: the data types found, its name, tags and description, the services that use it and what their teams wrote they are for, where its data goes and where it is kept. It never sees a value of your data (see [OneUptime AI in Data Security](/docs/data-security/ai)).
+
+- **A draft is marked Draft** and says why, with the facts it rests on a click away. It is not in the record until you press **Confirm**, or **Edit** it into your own words.
+- **Your words are never drafted over.** A field you wrote is never drafted again. A draft you confirmed is drafted again only when a fact it rests on changes, and then it is proposed, not applied: marked **Change proposed**, with what changed, **Use New Draft** and **Keep Current**.
+- **Review Drafts**, on the **Record of Processing** card, walks through the stores whose drafts wait for you, one at a time. A store's **Settings** has the same fields, with **Draft with OneUptime AI** for its empty ones.
+- **On its own**, OneUptime AI drafts the empty fields of the riskiest stores once a day, while **Work on new issues** is on under **Data Security → AI**, as your AI rules allow.
+
+The retention of a service's telemetry, the recipients and the transfers are worked out by plain code, never drafted. The drafts are a starting point, not legal advice: have them checked by whoever answers for your compliance.
 
 ### Stores OneUptime keeps for your security
 
@@ -206,6 +225,32 @@ Three stores hold IP addresses on purpose, to protect your network: **Security E
 Each one's purpose is "Network and information security (GDPR Recital 49)". To write your own purpose or retention, use **Edit Record** in the store's **Settings**: a field left empty keeps OneUptime's.
 
 A store is listed while your project keeps its data: the vault while an enabled IP Address rule hashes logs or traces Security Events reads, and for 31 days after (see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). Once its data is gone the store is archived, and it comes back with your purpose and retention if the data does.
+
+## Impact assessments
+
+GDPR Article 35 asks for a data protection impact assessment before processing that is likely to be high risk. Data Security says which stores need one: a store that holds special category data, such as health data, data about many people (about 100,000 records or more), or data that leaves its people's countries.
+
+A store's **Impact Assessment**, in its menu under **Settings**, says why the store needs one, or that it does not. **Draft the Assessment** asks OneUptime AI for the four parts Article 35(7) asks for, from the store's record, its open issues and the ones fixed lately, how exposed it is, how many can reach it and its encryption:
+
+| Part | Article |
+| --- | --- |
+| The processing and its purposes | Art. 35(7)(a) |
+| Necessity and proportionality | Art. 35(7)(b) |
+| Risks to the people it is about | Art. 35(7)(c) |
+| Measures that address the risks | Art. 35(7)(d) |
+
+Each part says who wrote it and when, with the facts a drafted part rests on. **Edit** makes a part yours, and it is never drafted again; **Draft Again** drafts only the parts nobody edited. A part written over facts that changed since says so. **Export PDF** and **Export Markdown** download the assessment.
+
+## Audit evidence
+
+**Audit Evidence**, on the framework you pick on **Data Security → Compliance**, is what an auditor reads under each of its requirements, over the last 30, 90, 180 or 365 days:
+
+- the stores in its scope, and how its checks stand;
+- the issues of its checks opened and fixed in the period, and how fast they were fixed;
+- the risks accepted under it, with their reasons and expiry;
+- the resources that turned it off, and why.
+
+**Draft the Evidence** asks OneUptime AI for a paragraph under each requirement, held to those facts; **Edit** makes a paragraph yours, and it is never drafted again. A requirement with no paragraph shows its evidence as it is. **Export PDF** and **Export Markdown** download the evidence with two appendices: the record of processing of the stores in scope, and the issue history it cites.
 
 ## Next steps
 

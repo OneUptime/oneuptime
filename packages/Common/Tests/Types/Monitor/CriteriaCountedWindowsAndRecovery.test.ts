@@ -109,7 +109,7 @@ describe("CriteriaFilterUtil: counted windows and percentiles", () => {
     expect(CriteriaFilterUtil.isCountedWindowType(undefined)).toBe(false);
   });
 
-  test.each([
+  test.each<[CheckOn, MonitorType, boolean]>([
     [CheckOn.IsOnline, MonitorType.Ping, true],
     [CheckOn.IsOnline, MonitorType.Website, true],
     [CheckOn.ResponseTime, MonitorType.API, true],
@@ -126,7 +126,7 @@ describe("CriteriaFilterUtil: counted windows and percentiles", () => {
     // No series and no match history.
     [CheckOn.ResponseBody, MonitorType.SQLQuery, false],
     [CheckOn.IsValidCertificate, MonitorType.SSLCertificate, false],
-  ] as const)(
+  ])(
     "%s on a %s monitor can be counted: %p",
     (checkOn: CheckOn, monitorType: MonitorType, canCount: boolean) => {
       expect(CriteriaFilterUtil.canCountChecks(checkOn, monitorType)).toBe(
@@ -228,7 +228,7 @@ describe("CriteriaFilterUtil: counted windows and percentiles", () => {
 });
 
 describe("CriteriaFilterValues: the new window values written another way", () => {
-  test.each([
+  test.each<[string, EvaluateOverTimeType]>([
     ["Count", EvaluateOverTimeType.Count],
     ["count", EvaluateOverTimeType.Count],
     ["PERCENTAGE", EvaluateOverTimeType.Percentage],
@@ -236,12 +236,9 @@ describe("CriteriaFilterValues: the new window values written another way", () =
     ["status_changes", EvaluateOverTimeType.StatusChanges],
     ["flapping", EvaluateOverTimeType.StatusChanges],
     ["percentile", EvaluateOverTimeType.Percentile],
-  ] as const)(
-    "%p reads as %s",
-    (written: string, read: EvaluateOverTimeType) => {
-      expect(CriteriaFilterValues.readEvaluateOverTimeType(written)).toBe(read);
-    },
-  );
+  ])("%p reads as %s", (written: string, read: EvaluateOverTimeType) => {
+    expect(CriteriaFilterValues.readEvaluateOverTimeType(written)).toBe(read);
+  });
 
   test("a count's comparison is read like a condition: '>' is Greater Than", () => {
     const read: JSONObject = CriteriaFilterValues.readFilter({
@@ -509,7 +506,7 @@ describe("MonitorCriteriaInstance.getWindowValidationError", () => {
     expect(windowError(failedPings({ countValue: "30" as never }))).toBeNull();
   });
 
-  test.each([
+  test.each<[Record<string, unknown>, string]>([
     [{ countValue: -1 }, "needs a number to compare with, 0 or more."],
     [{ countValue: "many" }, "needs a number to compare with, 0 or more."],
     [
@@ -521,12 +518,9 @@ describe("MonitorCriteriaInstance.getWindowValidationError", () => {
       "needs a window: how many minutes of checks to count.",
     ],
     [{ countFilterType: FilterType.Contains }, "is compared with Greater Than"],
-  ] as const)(
-    "%p is refused: %s",
-    (options: Record<string, unknown>, error: string) => {
-      expect(windowError(failedPings(options as never))).toContain(error);
-    },
-  );
+  ])("%p is refused: %s", (options: Record<string, unknown>, error: string) => {
+    expect(windowError(failedPings(options as never))).toContain(error);
+  });
 
   test("a share is at most 100%", () => {
     expect(
