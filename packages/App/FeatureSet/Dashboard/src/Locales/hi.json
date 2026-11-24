@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "इस स्टोर का रिकॉर्ड OneUptime खुद भरता है।",
   "OneUptime keeps its records {{count}} days": "OneUptime इसके रिकॉर्ड {{count}} दिन रखता है",
   "OneUptime keeps its records {{count}} days_one": "OneUptime इसके रिकॉर्ड {{count}} दिन रखता है",
+  "Only in These Attributes": "केवल इन विशेषताओं में",
   "Open Store": "स्टोर खोलें",
   "Open issue": "खुली समस्या",
   "Outside host": "बाहरी होस्ट",
@@ -63339,6 +63340,8 @@
   "Proposed change": "प्रस्तावित बदलाव",
   "Prospects": "संभावित ग्राहक",
   "Public task": "सार्वजनिक कार्य",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "केवल इन विशेषताओं को पढ़ता है, हर पंक्ति में एक कुंजी, या खाली होने पर हर विशेषता। लॉग body \"स्क्रब करने के लिए फ़ील्ड\" के अनुसार पढ़ी जाती है।",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "केवल इन विशेषताओं को पढ़ता है, हर पंक्ति में एक कुंजी, या खाली होने पर हर विशेषता। स्पैन नाम और स्थिति संदेश \"स्क्रब करने के लिए फ़ील्ड\" के अनुसार पढ़े जाते हैं।",
   "Recipients (of data)": "प्राप्तकर्ता",
   "Record Drafts": "रिकॉर्ड ड्राफ़्ट",
   "Record of processing": "प्रोसेसिंग का रिकॉर्ड",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "इस आकलन में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "इस साक्ष्य में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "इस स्टोर के रिकॉर्ड में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
+  "e.g. db.password": "उदा. db.password",
   "some up to {{count}} days": "कुछ {{count}} दिन तक",
   "some up to {{count}} days_one": "कुछ {{count}} दिन तक",
   "the European Economic Area": "यूरोपीय आर्थिक क्षेत्र",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "वे लोग और टीमें जो इस प्रोब के स्वामी हैं। इसकी स्थिति बदलने पर उन्हें अलर्ट किया जाता है, और एक बार तब, जब यह OneUptime से एक मेजर रिलीज़ पीछे रह जाता है।",
   "Probe a major release behind": "प्रोब एक मेजर रिलीज़ पीछे",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "इस प्रोब के नेटवर्क इंटरफ़ेस के पते, और बताए जाने पर इसके होस्ट के पते, जैसे प्रोब हर बार चेक-इन करते समय उन्हें सूचीबद्ध करता है। सुरक्षा इवेंट इन पतों से आने वाली प्रोब की अपनी पोलिंग, डिस्कवरी और मॉनिटर जाँचों को अलग रख देते हैं, और ब्लॉकलिस्ट इन्हें कभी ब्लॉक नहीं करती।",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।"
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "वह पता जहाँ से OneUptime इस प्रोब को चेक-इन करते देखता है। ब्लॉकलिस्ट इसे कभी ब्लॉक नहीं करती।",
+  "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI के स्क्रब नियमों के इनपुट का हैश",
+  "OneUptime AI's Scrub Rules": "OneUptime AI के स्क्रब नियम"
 }

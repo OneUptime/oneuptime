@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime сам заполняет реестр этого хранилища.",
   "OneUptime keeps its records {{count}} days": "OneUptime хранит его записи {{count}} дн.",
   "OneUptime keeps its records {{count}} days_one": "OneUptime хранит его записи {{count}} день",
+  "Only in These Attributes": "Только в этих атрибутах",
   "Open Store": "Открыть хранилище",
   "Open issue": "Открытая проблема",
   "Outside host": "Внешний хост",
@@ -63339,6 +63340,8 @@
   "Proposed change": "Предлагаемое изменение",
   "Prospects": "Потенциальные клиенты",
   "Public task": "Задача в общественных интересах",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Читает только эти атрибуты, по одному ключу в строке, или все атрибуты, если поле пустое. Тело лога читается так, как задано в «Поля для очистки».",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Читает только эти атрибуты, по одному ключу в строке, или все атрибуты, если поле пустое. Имя спана и сообщение о статусе читаются так, как задано в «Поля для очистки».",
   "Recipients (of data)": "Получатели",
   "Record Drafts": "Черновики реестра",
   "Record of processing": "Реестр обработки",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "У вас есть несохранённые изменения в этой оценке. Если вы уйдёте сейчас, они будут потеряны.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "У вас есть несохранённые изменения в этих доказательствах. Если вы уйдёте сейчас, они будут потеряны.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "У вас есть несохранённые изменения в реестре этого хранилища. Если вы уйдёте сейчас, они будут потеряны.",
+  "e.g. db.password": "напр. db.password",
   "some up to {{count}} days": "некоторые — до {{count}} дн.",
   "some up to {{count}} days_one": "некоторые — до {{count}} дня",
   "the European Economic Area": "Европейская экономическая зона",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Люди и команды, которые владеют этим зондом. Они получают оповещение при изменении его статуса и один раз — когда он отстаёт от OneUptime на основной выпуск.",
   "Probe a major release behind": "Зонд отстаёт на основной выпуск",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Адреса сетевых интерфейсов этого зонда и, если они ему переданы, адреса его хоста — в том виде, в каком зонд перечисляет их при каждом выходе на связь. События безопасности откладывают в сторону собственные опросы, обнаружение и проверки мониторов зонда с этих адресов, а список блокировки никогда их не блокирует.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Адрес, с которого, по данным OneUptime, этот зонд выходит на связь. Список блокировки никогда его не блокирует.",
+  "OneUptime AI's Scrub Rule Input Hash": "Хеш входных данных правил очистки OneUptime AI",
+  "OneUptime AI's Scrub Rules": "Правила очистки OneUptime AI"
 }

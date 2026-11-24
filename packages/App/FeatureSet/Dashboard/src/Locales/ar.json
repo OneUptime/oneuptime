@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "يملأ OneUptime سجل هذا المخزن بنفسه.",
   "OneUptime keeps its records {{count}} days": "يحتفظ OneUptime بسجلاته لمدة {{count}} ي",
   "OneUptime keeps its records {{count}} days_one": "يحتفظ OneUptime بسجلاته لمدة {{count}} يوم",
+  "Only in These Attributes": "في هذه السمات فقط",
   "Open Store": "فتح المخزن",
   "Open issue": "مشكلة مفتوحة",
   "Outside host": "مضيف خارجي",
@@ -63339,6 +63340,8 @@
   "Proposed change": "التغيير المقترح",
   "Prospects": "العملاء المحتملون",
   "Public task": "المهمة العامة",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "يقرأ هذه السمات فقط، مفتاح واحد في كل سطر، أو كل السمات إن تُرك فارغًا. ويُقرأ نص السجل كما تحدده «الحقول المراد تنقيتها».",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "يقرأ هذه السمات فقط، مفتاح واحد في كل سطر، أو كل السمات إن تُرك فارغًا. ويُقرأ اسم الامتداد ورسالة الحالة كما تحددهما «الحقول المراد تنقيتها».",
   "Recipients (of data)": "المستلمون",
   "Record Drafts": "مسودات السجل",
   "Record of processing": "سجل المعالجة",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في هذا التقييم. إذا غادرت الآن، فستُفقد.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في هذه الأدلة. إذا غادرت الآن، فستُفقد.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في سجل هذا المخزن. إذا غادرت الآن، فستُفقد.",
+  "e.g. db.password": "مثل: db.password",
   "some up to {{count}} days": "بعضها حتى {{count}} ي",
   "some up to {{count}} days_one": "بعضها حتى {{count}} يوم",
   "the European Economic Area": "المنطقة الاقتصادية الأوروبية",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "الأشخاص والفرق الذين يملكون هذا المسبار. يُنبَّهون عند تغير حالته، ومرة واحدة عندما يتأخر عن OneUptime بإصدار رئيسي.",
   "Probe a major release behind": "مسبار متأخر بإصدار رئيسي",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "عناوين واجهات الشبكة لهذا المسبار، وعناوين مضيفه عندما تُعطى له، كما يسردها المسبار في كل مرة يتصل فيها. تضع الأحداث الأمنية جانبًا عمليات الاستطلاع والاكتشاف وفحوصات المراقبة الخاصة بالمسبار الصادرة من هذه العناوين، ولا تحظرها قائمة الحظر أبدًا.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "العنوان الذي يرى OneUptime أن هذا المسبار يتصل منه. لا تحظره قائمة الحظر أبدًا.",
+  "OneUptime AI's Scrub Rule Input Hash": "قيمة تجزئة مدخلات قواعد التنقية من OneUptime AI",
+  "OneUptime AI's Scrub Rules": "قواعد التنقية من OneUptime AI"
 }

@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "このデータストアの記録は OneUptime が自ら記入します。",
   "OneUptime keeps its records {{count}} days": "OneUptime がレコードを {{count}} 日間保持",
   "OneUptime keeps its records {{count}} days_one": "OneUptime がレコードを {{count}} 日間保持",
+  "Only in These Attributes": "これらの属性のみ",
   "Open Store": "データストアを開く",
   "Open issue": "オープンな問題",
   "Outside host": "外部ホスト",
@@ -63339,6 +63340,8 @@
   "Proposed change": "変更の提案",
   "Prospects": "見込み客",
   "Public task": "公共の利益のための職務",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "これらの属性のみを読み取ります (1 行に 1 つのキー)。空欄のときはすべての属性を読み取ります。ログ本文は「スクラブするフィールド」の指定どおりに読み取ります。",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "これらの属性のみを読み取ります (1 行に 1 つのキー)。空欄のときはすべての属性を読み取ります。スパン名とステータスメッセージは「スクラブするフィールド」の指定どおりに読み取ります。",
   "Recipients (of data)": "受領者",
   "Record Drafts": "記録の下書き",
   "Record of processing": "処理記録",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "この評価に保存されていない変更があります。今ページを離れると、変更は失われます。",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "この証拠に保存されていない変更があります。今ページを離れると、変更は失われます。",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "このデータストアの記録に保存されていない変更があります。今ページを離れると、変更は失われます。",
+  "e.g. db.password": "例: db.password",
   "some up to {{count}} days": "一部は最大 {{count}} 日",
   "some up to {{count}} days_one": "一部は最大 {{count}} 日",
   "the European Economic Area": "欧州経済領域",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "このプローブを所有するユーザーとチーム。ステータスが変わったとき、および OneUptime よりメジャーリリース 1 つ分遅れたときに 1 回、アラートが送られます。",
   "Probe a major release behind": "プローブがメジャーリリース 1 つ分遅れている",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスと、指定されている場合はそのホストのアドレスです。プローブがチェックインのたびに一覧で送るものです。セキュリティイベントは、これらのアドレスからのプローブ自身のポーリング、検出、モニターチェックを区別して脇に置き、ブロックリストはこれらを決してブロックしません。",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。"
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime から見た、このプローブのチェックイン元のアドレスです。ブロックリストはこれを決してブロックしません。",
+  "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI のスクラブルールの入力ハッシュ",
+  "OneUptime AI's Scrub Rules": "OneUptime AI のスクラブルール"
 }

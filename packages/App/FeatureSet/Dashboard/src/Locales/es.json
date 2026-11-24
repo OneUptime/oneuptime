@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime completa por sí mismo el registro de este almacén.",
   "OneUptime keeps its records {{count}} days": "OneUptime conserva sus registros {{count}} días",
   "OneUptime keeps its records {{count}} days_one": "OneUptime conserva sus registros {{count}} día",
+  "Only in These Attributes": "Solo en estos atributos",
   "Open Store": "Abrir almacén",
   "Open issue": "Problema abierto",
   "Outside host": "Host externo",
@@ -63339,6 +63340,8 @@
   "Proposed change": "Propuesta de cambio",
   "Prospects": "Clientes potenciales",
   "Public task": "Misión de interés público",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Lee solo estos atributos, una clave por línea, o todos los atributos si se deja vacío. El cuerpo del registro se lee según indique «Campos a depurar».",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Lee solo estos atributos, una clave por línea, o todos los atributos si se deja vacío. El nombre del span y el mensaje de estado se leen según indique «Campos a depurar».",
   "Recipients (of data)": "Destinatarios",
   "Record Drafts": "Borradores del registro",
   "Record of processing": "Registro de tratamiento",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "Tienes cambios sin guardar en esta evaluación. Si sales ahora, se perderán.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "Tienes cambios sin guardar en estas evidencias. Si sales ahora, se perderán.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "Tienes cambios sin guardar en el registro de este almacén. Si sales ahora, se perderán.",
+  "e.g. db.password": "p. ej. db.password",
   "some up to {{count}} days": "algunos hasta {{count}} días",
   "some up to {{count}} days_one": "algunos hasta {{count}} día",
   "the European Economic Area": "Espacio Económico Europeo",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personas y equipos propietarios de esta sonda. Se les alerta cuando cambia su estado, y una vez cuando se queda una versión principal por detrás de OneUptime.",
   "Probe a major release behind": "Sonda una versión principal atrás",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Las direcciones de las interfaces de red de esta sonda, y las de su host cuando se le indican, tal como la sonda las enumera cada vez que se comunica. Eventos de seguridad aparta los sondeos, las detecciones y las comprobaciones de monitores propios de la sonda que salen de ellas, y la lista de bloqueo nunca las bloquea.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "La dirección desde la que OneUptime ve comunicarse a esta sonda. La lista de bloqueo nunca la bloquea."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "La dirección desde la que OneUptime ve comunicarse a esta sonda. La lista de bloqueo nunca la bloquea.",
+  "OneUptime AI's Scrub Rule Input Hash": "Hash de entrada de las reglas de depuración de OneUptime AI",
+  "OneUptime AI's Scrub Rules": "Reglas de depuración de OneUptime AI"
 }

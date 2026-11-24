@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime vult het register van deze opslag zelf in.",
   "OneUptime keeps its records {{count}} days": "OneUptime bewaart de records {{count}} dagen",
   "OneUptime keeps its records {{count}} days_one": "OneUptime bewaart de records {{count}} dag",
+  "Only in These Attributes": "Alleen in deze attributen",
   "Open Store": "Opslag openen",
   "Open issue": "Openstaand probleem",
   "Outside host": "Externe host",
@@ -63339,6 +63340,8 @@
   "Proposed change": "Voorgestelde wijziging",
   "Prospects": "Potentiële klanten",
   "Public task": "Taak van algemeen belang",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Leest alleen deze attributen, één sleutel per regel, of alle attributen als het leeg is. De logbody wordt gelezen zoals ‘Te wissen velden’ aangeeft.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Leest alleen deze attributen, één sleutel per regel, of alle attributen als het leeg is. De spannaam en het statusbericht worden gelezen zoals ‘Te wissen velden’ aangeeft.",
   "Recipients (of data)": "Ontvangers",
   "Record Drafts": "Registerconcepten",
   "Record of processing": "Verwerkingsregister",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in deze effectbeoordeling. Als u nu weggaat, gaan ze verloren.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in dit bewijs. Als u nu weggaat, gaan ze verloren.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in het register van deze opslag. Als u nu weggaat, gaan ze verloren.",
+  "e.g. db.password": "bijv. db.password",
   "some up to {{count}} days": "sommige tot {{count}} dagen",
   "some up to {{count}} days_one": "sommige tot {{count}} dag",
   "the European Economic Area": "de Europese Economische Ruimte",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personen en teams die eigenaar zijn van deze sonde. Zij worden gewaarschuwd wanneer de status ervan verandert, en één keer wanneer deze een hoofdversie achter OneUptime raakt.",
   "Probe a major release behind": "Sonde een hoofdversie achter",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "De adressen op de netwerkinterfaces van deze sonde, en die van de host wanneer die aan de sonde worden doorgegeven, zoals de sonde ze bij elke melding opsomt. Beveiligingsgebeurtenissen zet de eigen polls, detecties en monitorcontroles van de sonde vanaf deze adressen apart, en de blokkeerlijst blokkeert ze nooit.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Het adres van waaruit OneUptime deze sonde ziet melden. De blokkeerlijst blokkeert het nooit."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Het adres van waaruit OneUptime deze sonde ziet melden. De blokkeerlijst blokkeert het nooit.",
+  "OneUptime AI's Scrub Rule Input Hash": "Invoerhash van de scrub-regels van OneUptime AI",
+  "OneUptime AI's Scrub Rules": "Scrub-regels van OneUptime AI"
 }

@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime füllt das Verzeichnis dieses Datenspeichers selbst aus.",
   "OneUptime keeps its records {{count}} days": "OneUptime bewahrt seine Datensätze {{count}} Tage auf",
   "OneUptime keeps its records {{count}} days_one": "OneUptime bewahrt seine Datensätze {{count}} Tag auf",
+  "Only in These Attributes": "Nur in diesen Attributen",
   "Open Store": "Datenspeicher öffnen",
   "Open issue": "Offenes Problem",
   "Outside host": "Externer Host",
@@ -63339,6 +63340,8 @@
   "Proposed change": "Vorgeschlagene Änderung",
   "Prospects": "Interessenten",
   "Public task": "Wahrnehmung einer Aufgabe im öffentlichen Interesse",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Liest nur diese Attribute, ein Schlüssel pro Zeile, oder alle, wenn das Feld leer ist. Den Protokollinhalt liest die Regel, wie „Zu bereinigende Felder“ es angibt.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Liest nur diese Attribute, ein Schlüssel pro Zeile, oder alle, wenn das Feld leer ist. Span-Namen und Statusmeldung liest die Regel, wie „Zu bereinigende Felder“ es angibt.",
   "Recipients (of data)": "Empfänger",
   "Record Drafts": "Verzeichnisentwürfe",
   "Record of processing": "Verarbeitungsverzeichnis",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an dieser Folgenabschätzung. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an diesen Belegen. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen am Verzeichnis dieses Datenspeichers. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
+  "e.g. db.password": "z. B. db.password",
   "some up to {{count}} days": "einige bis zu {{count}} Tage",
   "some up to {{count}} days_one": "einige bis zu {{count}} Tag",
   "the European Economic Area": "Europäischer Wirtschaftsraum",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personen und Teams, die Eigentümer dieser Sonde sind. Sie werden benachrichtigt, wenn sich ihr Status ändert, und einmal, wenn sie eine Hauptversion hinter OneUptime zurückfällt.",
   "Probe a major release behind": "Sonde eine Hauptversion zurück",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Die Adressen der Netzwerkschnittstellen dieser Sonde und die ihres Hosts, wenn sie ihr mitgeteilt werden, so wie die Sonde sie bei jeder Meldung auflistet. Sicherheitsereignisse stellt die eigenen Abfragen, Erkennungsscans und Monitorprüfungen der Sonde von diesen Adressen zurück, und die Sperrliste sperrt sie nie.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Die Adresse, von der aus sich diese Sonde aus Sicht von OneUptime meldet. Die Sperrliste sperrt sie nie.",
+  "OneUptime AI's Scrub Rule Input Hash": "Eingabe-Hash der Scrub-Regeln von OneUptime AI",
+  "OneUptime AI's Scrub Rules": "Scrub-Regeln von OneUptime AI"
 }

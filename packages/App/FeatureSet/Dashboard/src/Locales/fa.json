@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime سابقه این مخزن را خودش پر می‌کند.",
   "OneUptime keeps its records {{count}} days": "OneUptime رکوردهای آن را {{count}} روز نگه می‌دارد",
   "OneUptime keeps its records {{count}} days_one": "OneUptime رکوردهای آن را {{count}} روز نگه می‌دارد",
+  "Only in These Attributes": "فقط در این ویژگی‌ها",
   "Open Store": "باز کردن مخزن",
   "Open issue": "مسئله باز",
   "Outside host": "میزبان بیرونی",
@@ -63339,6 +63340,8 @@
   "Proposed change": "تغییر پیشنهادی",
   "Prospects": "مشتریان بالقوه",
   "Public task": "وظیفه عمومی",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "فقط این ویژگی‌ها را می‌خواند، در هر خط یک کلید، یا اگر خالی باشد همه ویژگی‌ها را. بدنه لاگ همان‌طور خوانده می‌شود که «فیلدهایی که باید پالایش شوند» می‌گوید.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "فقط این ویژگی‌ها را می‌خواند، در هر خط یک کلید، یا اگر خالی باشد همه ویژگی‌ها را. نام اسپن و پیام وضعیت همان‌طور خوانده می‌شوند که «فیلدهایی که باید پالایش شوند» می‌گوید.",
   "Recipients (of data)": "دریافت‌کنندگان",
   "Record Drafts": "پیش‌نویس‌های سابقه",
   "Record of processing": "سابقه پردازش",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در این ارزیابی دارید. اگر اکنون خارج شوید، از بین می‌روند.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در این شواهد دارید. اگر اکنون خارج شوید، از بین می‌روند.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در سابقه این مخزن دارید. اگر اکنون خارج شوید، از بین می‌روند.",
+  "e.g. db.password": "برای نمونه db.password",
   "some up to {{count}} days": "برخی تا {{count}} روز",
   "some up to {{count}} days_one": "برخی تا {{count}} روز",
   "the European Economic Area": "منطقه اقتصادی اروپا",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "افراد و تیم‌هایی که مالک این پراب هستند. هنگام تغییر وضعیت آن، و یک بار وقتی یک نسخهٔ اصلی از OneUptime عقب بیفتد، به آن‌ها هشدار داده می‌شود.",
   "Probe a major release behind": "پراب یک نسخهٔ اصلی عقب است",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "نشانی‌های رابط‌های شبکهٔ این پراب، و نشانی‌های میزبانش وقتی به آن داده شوند، همان‌طور که پراب هر بار هنگام اعلام حضور فهرستشان می‌کند. رویدادهای امنیتی نظرسنجی‌ها، کشف‌ها و بررسی‌های مانیتور خود پراب از این نشانی‌ها را کنار می‌گذارد و فهرست مسدودسازی هرگز آن‌ها را مسدود نمی‌کند.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "نشانی‌ای که OneUptime می‌بیند این پراب از آن اعلام حضور می‌کند. فهرست مسدودسازی هرگز آن را مسدود نمی‌کند.",
+  "OneUptime AI's Scrub Rule Input Hash": "هش ورودی قواعد پالایش OneUptime AI",
+  "OneUptime AI's Scrub Rules": "قواعد پالایش OneUptime AI"
 }
