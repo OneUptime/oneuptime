@@ -4751,6 +4751,16 @@
     "kind": "page"
   },
   {
+    "title": "Hourly Limit",
+    "where": [
+      "Security Events",
+      "Playbooks",
+      "Automatic Response"
+    ],
+    "path": "/dashboard/:projectId/security-events/automatic-response#hourly-limit",
+    "kind": "setting"
+  },
+  {
     "title": "Blocklist",
     "where": [
       "Security Events",
@@ -5032,6 +5042,23 @@
     "kind": "page"
   },
   {
+    "title": "Erasure Requests",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "erase person",
+      "right to erasure",
+      "gdpr",
+      "forget user",
+      "user vault",
+      "data subject request"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/erasure-requests",
+    "kind": "page"
+  },
+  {
     "title": "Overview",
     "where": [
       "Data Security"
@@ -5169,6 +5196,33 @@
       "record of processing"
     ],
     "path": "/dashboard/:projectId/data-security/compliance",
+    "kind": "page"
+  },
+  {
+    "title": "Review Drafts",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "record of processing",
+      "legal basis",
+      "retention",
+      "ropa"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance/review-drafts",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Evidence",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "auditor",
+      "soc 2 evidence",
+      "gdpr evidence"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance/audit-evidence",
     "kind": "page"
   },
   {

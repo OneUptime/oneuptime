@@ -24,10 +24,7 @@ import {
   readHashedEventUser,
   readHiddenEventUser,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
-import {
-  HashedUserSignal,
-  getSecurityEventSignal,
-} from "./SecurityEventTelemetryLinks";
+import { HashedUserSignal, getSecurityEventSignal } from "./SecurityEventSignal";
 
 /*
  * What one security event says, as data.

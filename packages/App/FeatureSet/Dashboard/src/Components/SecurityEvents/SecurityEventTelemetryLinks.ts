@@ -13,12 +13,9 @@ import {
   toLogsExplorerQueryParams,
   toTracesExplorerQueryParams,
 } from "Common/Utils/Telemetry/CrossSignalScope";
-import {
-  SECURITY_LOG_ID_ATTRIBUTE,
-  SECURITY_LOG_SOURCE_ATTRIBUTE,
-} from "Common/Types/SecurityEvent/SecurityLogFormat";
+import { SECURITY_LOG_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
-import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/SecurityTelemetrySource";
+import { HashedUserSignal, getSecurityEventSignal } from "./SecurityEventSignal";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import { buildTraceViewRoute } from "../../Utils/LogsCrossSignalPivot";
@@ -186,26 +183,7 @@ const TOKEN_IN_TEXT: RegExp = /\[HASHED:[0-9a-f]{16}\]/;
 // The span attribute a trace's search names: the request's user.
 export const TRACE_USER_ATTRIBUTE: string = SECURITY_REQUEST_ATTRIBUTES.userId;
 
-export enum HashedUserSignal {
-  Log = "log",
-  Trace = "trace",
-}
-
-// Which kind of record an event was read from: a trace's, or a log line's.
-export function getSecurityEventSignal(event: {
-  attributes?: unknown;
-}): HashedUserSignal {
-  const attributes: JSONObject = (
-    event.attributes && typeof event.attributes === "object"
-      ? event.attributes
-      : {}
-  ) as JSONObject;
-
-  return attributes[SECURITY_LOG_SOURCE_ATTRIBUTE] ===
-    SecurityTelemetrySourceKind.Traces
-    ? HashedUserSignal.Trace
-    : HashedUserSignal.Log;
-}
+export { HashedUserSignal, getSecurityEventSignal };
 
 export interface HashedUserSearch {
   // What the rule left in the user's place: the token, or a user with it inside.

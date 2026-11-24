@@ -81,7 +81,9 @@ jest.mock("../../../../UI/Utils/Translation", () => {
 
 type RecordedModalProps = {
   title: string;
+  description?: string | undefined;
   submitButtonText?: string | undefined;
+  submitButtonStyleType?: ButtonStyleType | undefined;
   onClose?: (() => void) | undefined;
 };
 
@@ -105,6 +107,7 @@ import PermissionGate from "../../../../UI/Utils/PermissionGate";
 import ModelAPI from "../../../../UI/Utils/ModelAPI/ModelAPI";
 import CustomRolePermission from "../../../../Models/DatabaseModels/CustomRolePermission";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
+import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 
 const ROWS: Array<Record<string, string>> = [
   { _id: "0c000000-0000-4000-8000-000000000001", permission: "AlertMember" },
@@ -138,6 +141,8 @@ function makeModelAPI(): typeof ModelAPI {
 function renderTable(options: {
   createFormTitle?: string | undefined;
   createFormSubmitButtonText?: string | undefined;
+  createFormDescription?: string | undefined;
+  createFormSubmitButtonStyle?: ButtonStyleType | undefined;
 }): void {
   render(
     <ModelTable<CustomRolePermission>
@@ -155,6 +160,8 @@ function renderTable(options: {
       isViewable={false}
       createFormTitle={options.createFormTitle}
       createFormSubmitButtonText={options.createFormSubmitButtonText}
+      createFormDescription={options.createFormDescription}
+      createFormSubmitButtonStyle={options.createFormSubmitButtonStyle}
       cardProps={{ title: "Permissions", description: "What this role gives." }}
       filters={[]}
       columns={[
@@ -273,5 +280,44 @@ describe("a table's create dialog title and button", () => {
 
     expect(create.title).toBe("Add a Role to Incident Responder");
     expect(create.submitButtonText).toBe("Add Role");
+  });
+
+  /*
+   * A create that can't be undone, such as erasing a person from Security
+   * Events (#10908), says what it does under its title and makes its button
+   * read as the serious action it is. Its Edit dialog stays as it was.
+   */
+  test("can say what it does, and style its button, on Create only", async () => {
+    renderTable({
+      createFormTitle: "Erase a Person",
+      createFormSubmitButtonText: "Erase Person",
+      createFormDescription: "This can't be undone.",
+      createFormSubmitButtonStyle: ButtonStyleType.DANGER,
+    });
+
+    const create: RecordedModalProps = await openCreate();
+
+    expect(create.description).toBe("This can't be undone.");
+    expect(create.submitButtonStyleType).toBe(ButtonStyleType.DANGER);
+
+    act(() => {
+      create.onClose?.();
+    });
+
+    recordedModalProps = [];
+
+    const edit: RecordedModalProps = await openEdit();
+
+    expect(edit.description).toBeUndefined();
+    expect(edit.submitButtonStyleType).toBeUndefined();
+  });
+
+  test("say nothing more, with the usual button, unless the page asks", async () => {
+    renderTable({});
+
+    const create: RecordedModalProps = await openCreate();
+
+    expect(create.description).toBeUndefined();
+    expect(create.submitButtonStyleType).toBeUndefined();
   });
 });
