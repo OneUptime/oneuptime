@@ -434,6 +434,37 @@ export default class AppMetrics {
     return this.addressVaultWriteCounter;
   }
 
+  // -- Security Events' user vault (#10632) -----------------------------
+
+  /*
+   * The bounded attributes the user vault's write counter carries, as the
+   * address vault's: the signal whose ingest wrote (log or trace) and how
+   * the write ended. Never a project, a token or a user.
+   */
+  public static readonly USER_VAULT_OUTCOME_ATTRIBUTE: string =
+    "oneuptime.security.user_vault.outcome";
+
+  private static userVaultWriteCounter: TelemetryCounter | null = null;
+
+  /*
+   * Users ingest handed Security Events' user vault, counted by how the
+   * write ended. A failed or skipped write never fails or delays the
+   * batch, whose records keep the token: the only loss is that Security
+   * Events cannot name those users, so this is where it shows.
+   */
+  public static getUserVaultWriteCounter(): TelemetryCounter {
+    if (!this.userVaultWriteCounter) {
+      this.userVaultWriteCounter = Telemetry.getCounter({
+        name: "oneuptime.security.user_vault.write.count",
+        description:
+          "Users a Hash scrub rule hid that ingest wrote to Security Events' user vault, partitioned by signal and outcome (written, failed, skipped).",
+        unit: "1",
+      });
+    }
+
+    return this.userVaultWriteCounter;
+  }
+
   // -- Live updates: who could read a record before a write -------------
 
   /*
