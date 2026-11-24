@@ -4729,6 +4729,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionMergePostgres.test.ts --forceExit
 
+      # An exception moved to a private fingerprint (#10619): one made before
+      # #10434 under an unkeyed hash of text a scrub rule now hides moves, on
+      # its next occurrence the rule changed, to the keyed fingerprint of the
+      # same text - once, whatever copies race to it - and keeps its id,
+      # state and counts. Its old fingerprint is kept by a row merged into
+      # it, which the reads of its earlier occurrences follow, until no
+      # occurrence carries it. And a pair a scrub rule split (#10618): Merge
+      # keeps the older one, with Unmerge after. Clones the migrated
+      # TelemetryException into an isolated schema, as the merge suite does.
+      - name: Test moving an exception to a private fingerprint on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EXCEPTION_MERGE_TESTS: "true"
+          EXCEPTION_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ExceptionPrivateFingerprintPostgres.test.ts --forceExit
+
       # A key used only over OTLP gRPC shows as used (#7887), end to end: the
       # production gRPC server on a loopback port, a real client's OTLP
       # export, the key resolved from Postgres and its lastUsedAt written by
