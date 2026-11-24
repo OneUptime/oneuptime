@@ -985,19 +985,10 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             },
           },
           {
-            field: {
-              twilioAccountSID: true,
-            },
-            title: "Twilio Account SID",
-            type: FieldType.Text,
-            contentClassName: TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
-            // One switch away in Customize Columns, last when switched on.
-            isHiddenByDefault: true,
-          },
-          {
             /*
              * The voice its calls speak with (#10948), one switch away in
              * Customize Columns: most configs keep the account's default.
+             * Before the account, which stays last.
              */
             field: {
               twilioCallVoice: true,
@@ -1016,6 +1007,16 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
             getExportValue: (item: ProjectCallSMSConfig): string => {
               return item.twilioCallVoice || "";
             },
+          },
+          {
+            field: {
+              twilioAccountSID: true,
+            },
+            title: "Twilio Account SID",
+            type: FieldType.Text,
+            contentClassName: TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME,
+            // One switch away in Customize Columns, last when switched on.
+            isHiddenByDefault: true,
           },
         ]}
       />
