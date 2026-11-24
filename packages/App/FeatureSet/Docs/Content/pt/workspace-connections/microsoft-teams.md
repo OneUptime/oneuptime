@@ -43,7 +43,7 @@ Uma organização do Microsoft 365 pode estar conectada a mais de um projeto, co
 :::steps
 ### Conceder o consentimento do administrador
 
-Vá para **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams** e clique em **Conceder Consentimento de Administrador**. Um administrador do Microsoft 365 entra e autoriza o app do OneUptime para a organização. Depois o cartão diz **Admin Consent Completed**. Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
+Vá para **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams** e clique em **Conceder Consentimento de Administrador**. Um administrador do Microsoft 365 entra e autoriza o app do OneUptime para a organização. Depois o cartão diz **Admin Consent Completed** e nomeia a organização, por exemplo Contoso (contoso.onmicrosoft.com). Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
 
 ### Conectar a sua conta
 
@@ -305,7 +305,7 @@ Quando as notas públicas do seu projeto precisam de aprovação e você ativa o
 - **Uninstall OneUptime from Microsoft Teams**, em **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams**, desconecta o projeto. O OneUptime para de publicar no Microsoft Teams, e os menus **Espaço de trabalho** deixam de listá-lo. As regras de notificação e os resumos são mantidos para quando você conectar de novo.
 
 > [!WARNING]
-> Desinstalar também desvincula a conta do Microsoft Teams de cada membro do projeto, e remove os métodos de notificação do Microsoft Teams e as regras de plantão que os usavam. Um projeto fica conectado a uma única organização do Microsoft 365: para movê-lo para outra, desinstale primeiro.
+> Desinstalar também desvincula a conta do Microsoft Teams de cada membro do projeto, e remove os métodos de notificação do Microsoft Teams e as regras de plantão que os usavam. Um projeto fica conectado a uma única organização do Microsoft 365: para movê-lo para outra, escolha em vez disso **Connect a Different Organization** no mesmo menu. Ele desinstala o OneUptime da mesma forma e depois pede o consentimento a um administrador do Microsoft 365 da outra organização.
 
 ## Solução de problemas
 
@@ -319,6 +319,10 @@ Quando a Microsoft devolve você sem uma conexão, a página de onde você come�
 
 :::details O bot diz que a minha conta não está conectada
 Pressione **Connect Microsoft Teams account** na resposta do bot para conectá-la em uma única etapa, ou vincule-a em **Configurações do usuário** > **Espaço de trabalho** > **Microsoft Teams** com **Connect my account with Microsoft Teams**. Em ambos os casos, você entra na organização à qual o projeto está conectado, como convidado se for convidado nela. Se você é convidado e já conectou a conta da sua própria organização, conecte-a novamente.
+:::
+
+:::details A Microsoft diz que a conta selecionada não existe no locatário
+Cada entrada da Microsoft de um projeto vai para a organização do Microsoft 365 à qual ele está conectado, que o cartão **Admin Consent Completed** nomeia. A Microsoft para na própria página uma conta que não está nessa organização (`AADSTS50020`) e não manda você de volta. Entre com a sua conta dessa organização. Para conectar o projeto à sua organização, escolha **Connect a Different Organization** no menu desse cartão e peça a um administrador do Microsoft 365 da sua organização que conceda o consentimento.
 :::
 
 :::details Todas as notificações falham em um servidor auto-hospedado
