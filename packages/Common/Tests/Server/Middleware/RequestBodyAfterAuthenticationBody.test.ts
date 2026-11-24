@@ -308,13 +308,24 @@ beforeAll(async () => {
     RequestBodyAfterAuthentication.readBody(LIMIT, { parseGzipJson: true }),
     answerWhatArrived,
   );
-  // As the Fluent route reads its batches: records a line at a time too.
+  // Records a line at a time too.
   app.post(
     "/after-lines",
     checkKey,
     RequestBodyAfterAuthentication.readBody(LIMIT, {
       parseGzipJson: true,
       readLines: true,
+    }),
+    answerWhatArrived,
+  );
+  // As the Fluent route reads its batches: JSON objects one after another too.
+  app.post(
+    "/after-stream",
+    checkKey,
+    RequestBodyAfterAuthentication.readBody(LIMIT, {
+      parseGzipJson: true,
+      readLines: true,
+      readJsonStream: true,
     }),
     answerWhatArrived,
   );
@@ -791,6 +802,228 @@ describe("readLines: newline-delimited JSON is read as its values, and text as i
   );
 });
 
+/*
+ * readJsonStream (#10796): Fluent Bit's http output with format json_stream
+ * sends its records' JSON one after another with no separator, as
+ * application/json. A JSON body is read as one document first, as without
+ * it; one that is no JSON document is read again, from the text already
+ * read, as JSON objects one after another - and one that is no such stream
+ * either keeps its 400.
+ */
+describe("readJsonStream: JSON objects one after another, sent as application/json, are read as records", () => {
+  const STREAM_RECORDS: Array<Record<string, unknown>> = [
+    { date: 1795255200.123456, log: "order placed", level: "info" },
+    { date: 1795255201.5, log: 'ü 中 {braces} in a "string"' },
+    { date: 1795255202, log: "declined", kubernetes: { pod_name: "web-1" } },
+  ];
+  // Each record's JSON appended to the last: flb_pack_msgpack_to_json_format.
+  const JSON_STREAM: Buffer = Buffer.from(
+    STREAM_RECORDS.map((record: Record<string, unknown>): string => {
+      return JSON.stringify(record);
+    }).join(""),
+  );
+
+  const encodings: Array<{ how: string; encode: (body: Buffer) => Sent }> = [
+    {
+      how: "as it is",
+      encode: (body: Buffer): Sent => {
+        return { how: "as it is", headers: JSON_TYPE, body: body };
+      },
+    },
+    {
+      how: "gzip",
+      encode: (body: Buffer): Sent => {
+        return {
+          how: "gzip",
+          headers: { ...JSON_TYPE, "content-encoding": "gzip" },
+          body: zlib.gzipSync(body),
+        };
+      },
+    },
+    {
+      how: "deflate",
+      encode: (body: Buffer): Sent => {
+        return {
+          how: "deflate",
+          headers: { ...JSON_TYPE, "content-encoding": "deflate" },
+          body: zlib.deflateSync(body),
+        };
+      },
+    },
+  ];
+
+  test("its records, its text kept as rawBody, the same as it is, gzip and deflate, declared and chunked", async () => {
+    for (const encoding of encodings) {
+      for (const chunked of [false, true]) {
+        const sent: SentRequest = await send(
+          "/after-stream",
+          encoding.encode(JSON_STREAM),
+          chunked,
+        );
+
+        expect({
+          encoding: encoding.how,
+          chunked,
+          answer: answerOf(sent),
+        }).toEqual({
+          encoding: encoding.how,
+          chunked,
+          answer: {
+            status: 200,
+            json: {
+              kind: "array",
+              body: STREAM_RECORDS,
+              rawBody: JSON_STREAM.toString("utf8"),
+              rawFormUrlEncodedBody: null,
+              limit: LIMIT.bytes,
+            },
+          },
+        });
+      }
+    }
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("records a line each, as Fluentd's HTTP output sends them as application/json without json_array, are records too", async () => {
+    const lines: Buffer = Buffer.from(
+      STREAM_RECORDS.map((record: Record<string, unknown>): string => {
+        return `${JSON.stringify(record)}\n`;
+      }).join(""),
+    );
+
+    for (const encoding of encodings) {
+      const sent: SentRequest = await send(
+        "/after-stream",
+        encoding.encode(lines),
+      );
+
+      expect({ encoding: encoding.how, body: answerOf(sent) }).toEqual({
+        encoding: encoding.how,
+        body: {
+          status: 200,
+          json: expect.objectContaining({
+            kind: "array",
+            body: STREAM_RECORDS,
+            rawBody: lines.toString("utf8"),
+          }),
+        },
+      });
+    }
+  });
+
+  test("a body that is one JSON document is read exactly as without it: every body, the same answer", async () => {
+    for (const sent of BODIES) {
+      expect({
+        how: sent.how,
+        answer: answerOf(await send("/after-stream", sent)),
+      }).toEqual({
+        how: sent.how,
+        answer: answerOf(await send("/after-lines", sent)),
+      });
+    }
+  });
+
+  test("a stream of one record is that record, as one JSON document is", async () => {
+    const one: Buffer = Buffer.from(JSON.stringify(STREAM_RECORDS[0]));
+
+    for (const encoding of encodings) {
+      const stream: SentRequest = await send(
+        "/after-stream",
+        encoding.encode(one),
+      );
+
+      expect(answerOf(stream)).toEqual(
+        answerOf(await send("/after-lines", encoding.encode(one))),
+      );
+      expect((stream.answer.json as Found).body).toEqual(STREAM_RECORDS[0]);
+    }
+  });
+
+  test.each([
+    ["a record cut off", '{"log":"a"}{"log":"b'],
+    ["records separated by commas", '{"log":"a"},{"log":"b"}'],
+    ["text after the records", '{"log":"a"}{"log":"b"} and some text'],
+    ["arrays one after another", '[{"log":"a"}][{"log":"b"}]'],
+    ["a record that does not parse", '{"log":"a"}{"log":}{"log":"c"}'],
+  ])(
+    "%s is no stream: refused 400 in the words JSON that does not parse gets, as it is, gzip and deflate",
+    async (_what: string, body: string) => {
+      const invalidJson: unknown = answerOf(
+        await send(
+          "/after",
+          BODIES.find((sent: Sent): boolean => {
+            return sent.how === "JSON that does not parse";
+          })!,
+        ),
+      );
+
+      expect((invalidJson as { status: number }).status).toBe(400);
+
+      for (const encoding of encodings) {
+        expect({
+          encoding: encoding.how,
+          answer: answerOf(
+            await send("/after-stream", encoding.encode(Buffer.from(body))),
+          ),
+        }).toEqual({ encoding: encoding.how, answer: invalidJson });
+      }
+
+      // The client's to fix: no error line.
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test("without it, a stream is refused 400 as it always was", async () => {
+    for (const encoding of encodings) {
+      expect(
+        (await send("/after-lines", encoding.encode(JSON_STREAM))).answer
+          .status,
+      ).toBe(400);
+    }
+  });
+
+  test("past the route's values it is refused 413 before any record is parsed, as it is, gzip and deflate", async () => {
+    // 402 values a record - itself, its key, its list and 399 numbers: the third passes the route's 1,000.
+    const record: string = JSON.stringify({ v: new Array(399).fill(0) });
+    const over: Buffer = Buffer.from(record.repeat(3));
+    const parse: ReturnType<typeof jest.spyOn> = jest.spyOn(JSON, "parse");
+
+    try {
+      for (const encoding of encodings) {
+        expect({
+          encoding: encoding.how,
+          answer: answerOf(await send("/after-stream", encoding.encode(over))),
+        }).toEqual({
+          encoding: encoding.how,
+          answer: {
+            status: 413,
+            json: {
+              error: getTooManyJsonValuesMessage(
+                JsonElementLimit.Values,
+                LIMIT.values,
+              ),
+            },
+          },
+        });
+      }
+
+      // Counted whole as it arrived, before any record was handed to JSON.parse.
+      expect(
+        (parse.mock.calls as Array<Array<unknown>>).some(
+          (call: Array<unknown>): boolean => {
+            return typeof call[0] === "string" && call[0].startsWith('{"v":');
+          },
+        ),
+      ).toBe(false);
+    } finally {
+      parse.mockRestore();
+    }
+
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+});
+
 describe("a request the key check refuses has nothing of its body read", () => {
   test.each([...CONNECTIONS])(
     "40 MiB of JSON, declared or chunked, gzip or not: refused, a socket read or two read (%s)",
@@ -814,7 +1047,7 @@ describe("a request the key check refuses has nothing of its body read", () => {
 
       for (const sent of bodies) {
         for (const chunked of [false, true]) {
-          for (const path of ["/after", "/after-json"]) {
+          for (const path of ["/after", "/after-json", "/after-stream"]) {
             const refused: SentRequest = await sendOverHttp(server, {
               path: path,
               headers: sent.headers,

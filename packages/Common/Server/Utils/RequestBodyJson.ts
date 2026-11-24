@@ -65,6 +65,26 @@ const isLineSpace: (code: number | undefined) => boolean = (
 };
 
 /*
+ * Where the JSON whitespace from `from` ends - space, tab, line feed and
+ * carriage return (RFC 8259): what may come between a stream's records.
+ */
+const skipWhitespace: (bytes: Uint8Array, from: number) => number = (
+  bytes: Uint8Array,
+  from: number,
+): number => {
+  let index: number = from;
+
+  while (
+    index < bytes.length &&
+    (isLineSpace(bytes[index]) || bytes[index] === LINE_FEED)
+  ) {
+    index++;
+  }
+
+  return index;
+};
+
+/*
  * Whether bytes[from, to) open and close as a JSON object, array or string
  * do: the lines worth handing to JSON.parse. A number, true, false or null
  * reads the same kept as text, and a log line that is no JSON is text.
@@ -257,6 +277,74 @@ export default class RequestBodyJson {
     }
 
     return values;
+  }
+
+  /*
+   * A JSON STREAM, READ AS ITS RECORDS: JSON objects one after another,
+   * with nothing between them or only whitespace (#10796). Fluent Bit's
+   * http output sends its records so with format json_stream - each
+   * record's JSON appended to the last, no separator
+   * (flb_pack_msgpack_to_json_format) - as application/json
+   * (plugins/out_http/http.c). Fluentd's HTTP output with content_type
+   * application/json and no json_array sends its records a line each, as
+   * application/json too. Neither is one JSON document, which is all a
+   * JSON body is read as.
+   *
+   *   - Each record ends where its outermost brace closes, found by the
+   *     walk that counts it (JsonElementTally.addValue), before JSON.parse
+   *     sees it: against what the records before it left of the limit -
+   *     both counts, as parse holds a whole body to them - and the body is
+   *     refused at the record that passes it (413,
+   *     createTooManyJsonValuesError), with no record after it read.
+   *   - A record is parsed on its own, never the body as one text.
+   *
+   * Null when the body is no such stream, for its caller to refuse as the
+   * JSON it is not: anything but a JSON object where a record starts - an
+   * array, a string, a number, text, a comma - a record that does not
+   * close, or one JSON.parse refuses, ends the read there. So a body that
+   * is broken JSON is never read as some of its records: it is refused
+   * whole, at the first piece that is not one. No more than one record is
+   * handed to JSON.parse that fails.
+   *
+   * The bytes are read as UTF-8, which the count reads too.
+   */
+  public static parseStream(
+    bytes: Uint8Array,
+    limit: RequestBodyLimit,
+  ): Array<unknown> | null {
+    const text: Buffer = Buffer.isBuffer(bytes)
+      ? bytes
+      : Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    const tally: JsonElementTally = new JsonElementTally(limit);
+    const records: Array<unknown> = [];
+    let start: number = skipWhitespace(text, 0);
+
+    while (start < text.length) {
+      if (text[start] !== OPEN_BRACE) {
+        return null;
+      }
+
+      const end: number = tally.addValue(text, start);
+      const count: JsonElementTallyCount = tally.getCount();
+
+      if (count.passed) {
+        throw createTooManyJsonValuesError(count, limit);
+      }
+
+      if (end === -1) {
+        return null;
+      }
+
+      try {
+        records.push(JSON.parse(text.toString("utf8", start, end)));
+      } catch {
+        return null;
+      }
+
+      start = skipWhitespace(text, end);
+    }
+
+    return records.length > 0 ? records : null;
   }
 
   // Whether an error is the refusal assertWithinLimit throws.
