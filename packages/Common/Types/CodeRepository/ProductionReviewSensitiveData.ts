@@ -1,5 +1,6 @@
 import { getDataSecurityCheck } from "../DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../DataSecurity/DataSensitivity";
+import { DataStoreExposure } from "../DataSecurity/DataStorePosture";
 import SecuritySeverity from "../SecuritySeverity";
 
 /*
@@ -17,10 +18,10 @@ import SecuritySeverity from "../SecuritySeverity";
  * (Server/Utils/CodeRepository/ProductionReview/SensitiveData):
  *
  *   - Telemetry: code that writes a value to a log, a span or event
- *     attribute, a metric label or a prompt sent to an AI provider, whose
- *     name a data type's field-name hints point at (`email`, `ssn`,
- *     `password`, the project's own types), or a whole request body or
- *     user record;
+ *     attribute, a metric label, an exception or an error tracker's
+ *     report, or a prompt sent to an AI provider, whose name a data
+ *     type's field-name hints point at (`email`, `ssn`, `password`, the
+ *     project's own types), or a whole request body or user record;
  *   - Infrastructure: Terraform, CloudFormation, Bicep, Pulumi or
  *     Kubernetes that makes a store public, turns off its encryption,
  *     backups or access logging, opens its firewall to every address or
@@ -38,8 +39,9 @@ import SecuritySeverity from "../SecuritySeverity";
  *
  * What production knows makes a point sharper - a location that has held
  * the data before, a scrub rule that masks it at ingest, the store a
- * resource is - but only in a private repository's comment, and in
- * OneUptime only for a reader who may read Data Security's findings: a
+ * resource is, the store a migration's table is in and what the table
+ * already holds (#10779) - but only in a private repository's comment, and
+ * in OneUptime only for a reader who may read Data Security's findings: a
  * public repository's comment says only what the diff shows.
  *
  * These are the shapes the server, the comment and the Dashboard share.
@@ -59,12 +61,19 @@ export enum SensitiveDataLeakKind {
 // Where telemetry code writes a value.
 export enum SensitiveDataSink {
   Log = "Log",
-  // A span's or an event's attribute, a tag, a user set on the trace.
+  // A span's or an event's attribute, or a tag on a span.
   Span = "Span",
   // A metric's label or attribute.
   Metric = "Metric",
   // A prompt sent to an AI provider.
   AiPrompt = "AiPrompt",
+  /*
+   * An exception (#10778): the message an error is made with - thrown,
+   * raised, returned - and what an error tracker is handed with it (its
+   * extras, tags and user), or a span's recorded exception. It reaches
+   * the service's exceptions in telemetry, as a log line does its logs.
+   */
+  Exception = "Exception",
 }
 
 // What a new column of a migration or a model is.
@@ -229,26 +238,78 @@ export interface ProductionReviewLeakHeldBeforeJSON {
   lastSeenAt: string;
 }
 
-// The project's store an infrastructure point's resource is.
+/*
+ * The project's store an infrastructure point's resource is - or, for a
+ * migration's point, the store its table is in (#10779).
+ */
 export interface ProductionReviewLeakStoreJSON {
   dataStoreId: string;
   name: string;
   sensitivity: DataSensitivity;
   // The kinds of data found in it, the most sensitive first.
   dataTypeNames: Array<string>;
+  /*
+   * A migration's store: who outside the project's own accounts can reach
+   * it - Public, Other accounts, Internet reachable - which a new column of
+   * it is reached by too. Unset for a private store, or one not known.
+   */
+  exposure?: DataStoreExposure | undefined;
+  // A migration's store: its configuration says it is not encrypted at rest.
+  isNotEncryptedAtRest?: boolean | undefined;
+}
+
+/*
+ * A column of a migration's table that Data Security's scans found
+ * holding the same kind of data as the column the migration adds.
+ */
+export interface ProductionReviewLeakTableColumnJSON {
+  // As the finding locates it: "public.customers.ssn_last4".
+  location: string;
+  dataTypeName: string;
+  lastSeenAt: string;
+}
+
+/*
+ * A migration's table, as Data Security knows it (#10779): its name in the
+ * store it is in (`store`), the kinds of data its columns were found to
+ * hold, and the columns found holding what the new one is for - which the
+ * change then copies rather than adds.
+ */
+export interface ProductionReviewLeakTableJSON {
+  // As the store names it: "public.customers".
+  name: string;
+  // The kinds of data found in its columns, the most sensitive first.
+  dataTypeNames: Array<string>;
+  // Its columns found holding the same kinds of data as the new column.
+  sameData: Array<ProductionReviewLeakTableColumnJSON>;
+  // The project's other stores that hold a table of this name.
+  otherStoreCount: number;
 }
 
 /*
  * What production knows about a point. Never in a public repository's
  * comment, and read in OneUptime only by those who may read Data
  * Security's findings (ProductionReviewUtil.keepReadableSensitiveData).
+ * A migration's is read for a private repository alone.
  */
 export interface ProductionReviewLeakProductionJSON {
   heldBefore?: Array<ProductionReviewLeakHeldBeforeJSON> | undefined;
   // A scrub rule already masks it at ingest: still written by the code.
   maskedAtIngestBy?: string | undefined;
   store?: ProductionReviewLeakStoreJSON | undefined;
+  // A migration's table, as Data Security knows it (#10779).
+  table?: ProductionReviewLeakTableJSON | undefined;
 }
+
+/*
+ * The exposures a store's point names: those that let someone outside the
+ * project's own accounts reach it. Private and Unknown say nothing.
+ */
+export const EXPOSURES_A_COLUMN_INHERITS: ReadonlyArray<DataStoreExposure> = [
+  DataStoreExposure.Public,
+  DataStoreExposure.OtherAccounts,
+  DataStoreExposure.InternetReachable,
+];
 
 // One point of the Sensitive data section.
 export interface ProductionReviewLeakJSON {
@@ -390,7 +451,9 @@ export class ProductionReviewSensitiveDataUtil {
    * The section as a reader who may not read Data Security's findings reads
    * it: every point without what production knows of it - and with the
    * severity its own sensitivity gives it, where a known store's gave it
-   * another. The same section when no point has any.
+   * another (an infrastructure point's: a migration's table's store says
+   * nothing of how bad its point is). The same section when no point has
+   * any.
    */
   public static withoutProduction(
     section: ProductionReviewSensitiveDataJSON,
@@ -412,7 +475,10 @@ export class ProductionReviewSensitiveDataUtil {
         (point: ProductionReviewLeakJSON): ProductionReviewLeakJSON => {
           const { production, ...rest } = point;
 
-          if (!production?.store) {
+          if (
+            !production?.store ||
+            point.kind !== SensitiveDataLeakKind.Infrastructure
+          ) {
             return rest;
           }
 
