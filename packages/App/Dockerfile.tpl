@@ -262,6 +262,7 @@ COPY ./agents/PodmanAgent /usr/src/agents/PodmanAgent
 COPY ./agents/ProxmoxAgent /usr/src/agents/ProxmoxAgent
 COPY ./agents/StorageArrayAgent /usr/src/agents/StorageArrayAgent
 COPY ./agents/VMwareAgent /usr/src/agents/VMwareAgent
+COPY ./agents/XcpNgAgent /usr/src/agents/XcpNgAgent
 # .dockerignore leaves HelmChart/ out of the context except these two files.
 COPY ./HelmChart/Public/kubernetes-agent/troubleshoot.sh /usr/src/HelmChart/Public/kubernetes-agent/troubleshoot.sh
 # The air-gapped image bundle script, served at /install/air-gapped.
