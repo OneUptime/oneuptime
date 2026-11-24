@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "AI-voorstel goedgekeurd",
   "AI Change Made": "AI-wijziging doorgevoerd",
   "AI Proposal Dismissed": "AI-voorstel afgewezen",
+  "AI Proposal Expired": "AI-voorstel verlopen",
   "AI Change Undone": "AI-wijziging ongedaan gemaakt",
   "AI Change Failed": "AI-wijziging mislukt",
   "AI Response": "AI-reactie",
@@ -64177,5 +64178,11 @@
   "View Alerts": "Waarschuwingen bekijken",
   "View Incidents": "Incidenten bekijken",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Er wachtten meer verzoeken op evaluatie dan de {{limit}} die deze monitor bewaart, dus de oudste zijn overgeslagen. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "De verzoeken die op evaluatie wachtten, namen meer in dan de {{size}} MB die deze monitor bewaart, dus de oudste zijn overgeslagen. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "De verzoeken die op evaluatie wachtten, namen meer in dan de {{size}} MB die deze monitor bewaart, dus de oudste zijn overgeslagen. Een incident of waarschuwing die een overgeslagen verzoek zou hebben geopend of opgelost, kan ontbreken of nog open staan.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "Vraag OneUptime AI de code achter de uitzonderingen van de verzoeken van de case op te lossen, als pull request op de repository die de code bevat. Bij een gegevensbeveiligingscase vraagt het om de ene pull request die de gedeelde oorzaak van de problemen oplost, en een eigen pull request voor elk van de andere problemen.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Om de oplossing van een groep te vragen, heb je toestemming nodig om gegevensbeveiligingsproblemen in het hele project te lezen.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Elk van de {{count}} gegevensopslagen die in de console zijn gemaakt, krijgt de wijziging hieronder, via zijn cloudkoppeling.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "De gegevensopslag die in de console is gemaakt, krijgt de wijziging hieronder, via zijn cloudkoppeling.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Elk van de {{count}} gegevensopslagen die in de console zijn gemaakt, krijgt de wijziging die zijn soort nodig heeft, via zijn cloudkoppeling. Eén goedkeuring voert ze allemaal uit.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "De gegevensopslag die in de console is gemaakt, krijgt de wijziging die zijn soort nodig heeft, via zijn cloudkoppeling."
 }

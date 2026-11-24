@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "پیشنهاد هوش مصنوعی تأیید شد",
   "AI Change Made": "تغییر هوش مصنوعی انجام شد",
   "AI Proposal Dismissed": "پیشنهاد هوش مصنوعی رد شد",
+  "AI Proposal Expired": "پیشنهاد هوش مصنوعی منقضی شد",
   "AI Change Undone": "تغییر هوش مصنوعی برگردانده شد",
   "AI Change Failed": "تغییر هوش مصنوعی ناموفق بود",
   "AI Response": "پاسخ هوش مصنوعی",
@@ -64177,5 +64178,11 @@
   "View Alerts": "مشاهده هشدارها",
   "View Incidents": "مشاهده حوادث",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "بیش از {{limit}} درخواستی که این مانیتور نگه می‌دارد منتظر ارزیابی بودند، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "حجم درخواست‌های منتظر ارزیابی از {{size}} MB که این مانیتور نگه می‌دارد بیشتر شد، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "حجم درخواست‌های منتظر ارزیابی از {{size}} MB که این مانیتور نگه می‌دارد بیشتر شد، پس قدیمی‌ترین آن‌ها رد شدند. حادثه یا هشداری که یک درخواست ردشده باز یا رفع می‌کرد، ممکن است وجود نداشته باشد یا هنوز باز باشد.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "از OneUptime AI بخواهید کد پشت استثناهایی را که درخواست‌های پرونده پرتاب کردند، به‌صورت یک Pull Request روی مخزنی که آن را دارد رفع کند. در یک پرونده امنیت داده، همان یک Pull Request را درخواست می‌کند که علت مشترک مسائل آن را رفع می‌کند، و برای هر یک از مسائل دیگرش یک Pull Request جداگانه.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "درخواست رفع مشکل یک گروه به مجوز خواندن مسائل امنیت داده در کل پروژه نیاز دارد.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "هر یک از {{count}} مخزن داده‌ای که در کنسول ساخته شده‌اند، تغییر زیر را از طریق اتصال ابری‌اش می‌گیرد.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "مخزن داده‌ای که در کنسول ساخته شده، تغییر زیر را از طریق اتصال ابری‌اش می‌گیرد.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "هر یک از {{count}} مخزن داده‌ای که در کنسول ساخته شده‌اند، تغییری را که نوعش لازم دارد از طریق اتصال ابری‌اش می‌گیرد. یک تأیید همه را انجام می‌دهد.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "مخزن داده‌ای که در کنسول ساخته شده، تغییری را که نوعش لازم دارد از طریق اتصال ابری‌اش می‌گیرد."
 }

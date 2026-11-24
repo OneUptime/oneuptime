@@ -842,3 +842,47 @@ describe("each issue the pull request fixes", () => {
     expect(feed).not.toHaveBeenCalled();
   });
 });
+
+/*
+ * A DATA SECURITY CASE'S PLAYBOOK ASKS FOR IT (#10740): OneUptime plans the
+ * fix Fix with AI on the issue would show, asks it in the repository the
+ * plan found, and keeps the task on the case. The expiry of what waits for
+ * a person is a person's ask alone.
+ */
+describe("a security case's playbook asks for it", () => {
+  test("planned as OneUptime, asked in the repository the plan found, and kept on the case", async () => {
+    const caseId: ObjectID = new ObjectID(
+      "10740000-0000-4000-8000-0000000000ca",
+    );
+    const planned: {
+      result: DataSecurityTelemetryFixPlanResult;
+      plan: TelemetryLeakFixPlan | null;
+    } = await TelemetryLeakFix.planForIssue({
+      projectId: PROJECT_ID,
+      issueId: new ObjectID(LOG_ISSUE_ID),
+      props: { isRoot: true },
+    });
+
+    expect(planned.plan?.repository?.id).toBe(CHECKOUT_REPOSITORY.id);
+
+    const result: DataSecurityFixResult & { wasAlreadyAsked?: boolean } =
+      await TelemetryLeakFix.start({
+        projectId: PROJECT_ID,
+        plan: planned.plan!,
+        props: { isRoot: true },
+        requestedRepositoryId: planned.plan!.repository!.id,
+        triggeredBySecurityCaseId: caseId,
+      });
+
+    expect(result.aiRunId).toBe(RUN_ID);
+    expect(requested).toHaveBeenCalledTimes(1);
+    expect(requested.mock.calls[0]![0]).toMatchObject({
+      props: { isRoot: true },
+      requestedRepositoryId: CHECKOUT_REPOSITORY.id,
+      triggeredBySecurityCaseId: caseId,
+    });
+    expect(
+      DataSecurityAiProposalService.expireWaitingInLane,
+    ).not.toHaveBeenCalled();
+  });
+});

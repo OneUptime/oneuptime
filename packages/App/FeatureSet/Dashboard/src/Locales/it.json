@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "Proposta dell'IA approvata",
   "AI Change Made": "Modifica dell'IA eseguita",
   "AI Proposal Dismissed": "Proposta dell'IA ignorata",
+  "AI Proposal Expired": "Proposta dell'IA scaduta",
   "AI Change Undone": "Modifica dell'IA annullata",
   "AI Change Failed": "Modifica dell'IA non riuscita",
   "AI Response": "Risposta dell'IA",
@@ -64177,5 +64178,11 @@
   "View Alerts": "Visualizza avvisi",
   "View Incidents": "Visualizza incidenti",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Più richieste attendevano di essere valutate delle {{limit}} che questo monitor conserva, quindi le più vecchie sono state saltate. Un incidente o un avviso che una richiesta saltata avrebbe aperto o risolto potrebbe mancare o essere ancora aperto.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Le richieste in attesa di essere valutate occupavano più dei {{size}} MB che questo monitor conserva, quindi le più vecchie sono state saltate. Un incidente o un avviso che una richiesta saltata avrebbe aperto o risolto potrebbe mancare o essere ancora aperto."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Le richieste in attesa di essere valutate occupavano più dei {{size}} MB che questo monitor conserva, quindi le più vecchie sono state saltate. Un incidente o un avviso che una richiesta saltata avrebbe aperto o risolto potrebbe mancare o essere ancora aperto.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "Chiedi a OneUptime AI di correggere il codice dietro le eccezioni generate dalle richieste del caso, come pull request sul repository che lo contiene. In un caso di sicurezza dei dati, chiede l'unica pull request che corregge la causa comune ai suoi problemi, e una pull request a sé per ciascuno dei suoi altri problemi.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Chiedere la correzione di un gruppo richiede l'autorizzazione a leggere i problemi di sicurezza dei dati dell'intero progetto.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Ciascuno dei {{count}} archivi dati creati nella console riceve la modifica qui sotto, tramite la sua connessione cloud.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "L'archivio dati creato nella console riceve la modifica qui sotto, tramite la sua connessione cloud.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Ciascuno dei {{count}} archivi dati creati nella console riceve la modifica di cui ha bisogno il suo tipo, tramite la sua connessione cloud. Un'unica approvazione le applica tutte.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "L'archivio dati creato nella console riceve la modifica di cui ha bisogno il suo tipo, tramite la sua connessione cloud."
 }

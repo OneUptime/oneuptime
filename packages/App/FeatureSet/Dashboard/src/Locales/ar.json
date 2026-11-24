@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "تمت الموافقة على اقتراح الذكاء الاصطناعي",
   "AI Change Made": "أجرى الذكاء الاصطناعي تغييرًا",
   "AI Proposal Dismissed": "رُفض اقتراح الذكاء الاصطناعي",
+  "AI Proposal Expired": "انتهت صلاحية اقتراح الذكاء الاصطناعي",
   "AI Change Undone": "تم التراجع عن تغيير الذكاء الاصطناعي",
   "AI Change Failed": "فشل تغيير الذكاء الاصطناعي",
   "AI Response": "استجابة الذكاء الاصطناعي",
@@ -64177,5 +64178,11 @@
   "View Alerts": "عرض التنبيهات",
   "View Incidents": "عرض الحوادث",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "كانت الطلبات المنتظرة للتقييم أكثر من الحد الذي تحتفظ به هذه المراقبة، وهو {{limit}}، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "تجاوزت الطلبات المنتظرة للتقييم {{size}} MB، وهو ما تحتفظ به هذه المراقبة، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "تجاوزت الطلبات المنتظرة للتقييم {{size}} MB، وهو ما تحتفظ به هذه المراقبة، لذا تُخطيت أقدمها. قد تكون الحادثة أو التنبيه الذي كان سيفتحه أو يحله طلب مُتخطى مفقودًا أو لا يزال مفتوحًا.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "اطلب من OneUptime AI إصلاح التعليمات البرمجية وراء الاستثناءات التي رمتها طلبات الحالة، كطلب سحب على المستودع الذي يحتويها. في حالة أمن البيانات، يطلب طلب السحب الواحد الذي يصلح السبب الذي تشترك فيه مشكلاتها، وطلب سحب خاصًا لكل مشكلة من مشكلاتها الأخرى.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "يتطلب طلب إصلاح مجموعة إذنًا بقراءة مشكلات أمن البيانات في المشروع بأكمله.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "يتلقى كل مخزن من مخازن البيانات المنشأة في وحدة التحكم (العدد: {{count}}) التغيير أدناه، عبر اتصاله السحابي.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "يتلقى مخزن البيانات المنشأ في وحدة التحكم التغيير أدناه، عبر اتصاله السحابي.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "يتلقى كل مخزن من مخازن البيانات المنشأة في وحدة التحكم (العدد: {{count}}) التغيير الذي يحتاجه نوعه، عبر اتصاله السحابي. موافقة واحدة تُجري التغييرات كلها.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "يتلقى مخزن البيانات المنشأ في وحدة التحكم التغيير الذي يحتاجه نوعه، عبر اتصاله السحابي."
 }

@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "AI-förslag godkänt",
   "AI Change Made": "AI-ändring gjord",
   "AI Proposal Dismissed": "AI-förslag avfärdat",
+  "AI Proposal Expired": "AI-förslag har gått ut",
   "AI Change Undone": "AI-ändring ångrad",
   "AI Change Failed": "AI-ändring misslyckades",
   "AI Response": "AI-respons",
@@ -64177,5 +64178,11 @@
   "View Alerts": "Visa larm",
   "View Incidents": "Visa incidenter",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Fler förfrågningar väntade på att utvärderas än de {{limit}} som den här monitorn sparar, så de äldsta av dem hoppades över. En incident eller ett larm som en överhoppad förfrågan skulle ha öppnat eller löst kan saknas eller fortfarande vara öppet.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Förfrågningarna som väntade på att utvärderas tog upp mer än de {{size}} MB som den här monitorn sparar, så de äldsta av dem hoppades över. En incident eller ett larm som en överhoppad förfrågan skulle ha öppnat eller löst kan saknas eller fortfarande vara öppet."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Förfrågningarna som väntade på att utvärderas tog upp mer än de {{size}} MB som den här monitorn sparar, så de äldsta av dem hoppades över. En incident eller ett larm som en överhoppad förfrågan skulle ha öppnat eller löst kan saknas eller fortfarande vara öppet.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "Be OneUptime AI åtgärda koden bakom de undantag som ärendets förfrågningar kastade, som en pull request i den lagringsplats som har koden. I ett datasäkerhetsärende ber den om den enda pull request som åtgärdar orsaken dess problem har gemensamt, och en egen pull request för vart och ett av dess andra problem.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "För att be om en grupps åtgärd behöver du behörighet att läsa datasäkerhetsproblem i hela projektet.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Vart och ett av de {{count}} datalager som skapades i konsolen får ändringen nedan, via sin molnanslutning.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "Datalagret som skapades i konsolen får ändringen nedan, via sin molnanslutning.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Vart och ett av de {{count}} datalager som skapades i konsolen får den ändring som dess typ behöver, via sin molnanslutning. Ett godkännande gör alla ändringarna.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "Datalagret som skapades i konsolen får den ändring som dess typ behöver, via sin molnanslutning."
 }

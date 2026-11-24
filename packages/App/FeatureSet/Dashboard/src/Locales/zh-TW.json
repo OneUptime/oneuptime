@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "AI 提議已核准",
   "AI Change Made": "AI 已進行變更",
   "AI Proposal Dismissed": "AI 提議已駁回",
+  "AI Proposal Expired": "AI 提議已過期",
   "AI Change Undone": "AI 變更已復原",
   "AI Change Failed": "AI 變更失敗",
   "AI Response": "AI 回應",
@@ -64177,5 +64178,11 @@
   "View Alerts": "檢視警示",
   "View Incidents": "檢視事件",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待評估的請求超過了此監測器保留的 {{limit}} 個，因此略過了其中最早的請求。被略過的請求原本會開啟或解決的事件或警示可能不存在，或仍處於開啟狀態。",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待評估的請求超過了此監測器保留的 {{size}} MB，因此略過了其中最早的請求。被略過的請求原本會開啟或解決的事件或警示可能不存在，或仍處於開啟狀態。"
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待評估的請求超過了此監測器保留的 {{size}} MB，因此略過了其中最早的請求。被略過的請求原本會開啟或解決的事件或警示可能不存在，或仍處於開啟狀態。",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "請 OneUptime AI 修正案例請求所引發例外背後的程式碼，作為對包含該程式碼的存放庫的拉取請求。對於資料安全案例，它會請求修正其問題共同原因的唯一拉取請求，並為其他每個問題各請求一個拉取請求。",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "請求修復一個群組需要讀取整個專案資料安全問題的權限。",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "透過雲端連線，對在主控台中建立的 {{count}} 個資料儲存區逐一執行下方的變更。",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "透過雲端連線，對在主控台中建立的資料儲存區執行下方的變更。",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "透過雲端連線，對在主控台中建立的 {{count}} 個資料儲存區逐一執行其類型所需的變更。一次核准即可全部完成。",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "透過雲端連線，對在主控台中建立的資料儲存區執行其類型所需的變更。"
 }

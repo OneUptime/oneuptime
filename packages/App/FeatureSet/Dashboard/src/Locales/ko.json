@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "AI 제안 승인됨",
   "AI Change Made": "AI 변경 완료",
   "AI Proposal Dismissed": "AI 제안 거부됨",
+  "AI Proposal Expired": "AI 제안 만료됨",
   "AI Change Undone": "AI 변경 취소됨",
   "AI Change Failed": "AI 변경 실패",
   "AI Response": "AI 대응",
@@ -64177,5 +64178,11 @@
   "View Alerts": "경고 보기",
   "View Incidents": "인시던트 보기",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "이 모니터가 보관하는 {{limit}}개보다 많은 요청이 평가를 기다리고 있어서 가장 오래된 요청을 건너뛰었습니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "평가를 기다리는 요청이 이 모니터가 보관하는 {{size}} MB를 넘어서 가장 오래된 요청을 건너뛰었습니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "평가를 기다리는 요청이 이 모니터가 보관하는 {{size}} MB를 넘어서 가장 오래된 요청을 건너뛰었습니다. 건너뛴 요청이 열거나 해결했을 인시던트나 경고가 없거나 아직 열려 있을 수 있습니다.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "케이스의 요청이 던진 예외의 원인 코드를, 그 코드가 있는 저장소에 대한 풀 리퀘스트로 OneUptime AI가 수정하도록 요청합니다. 데이터 보안 케이스에서는 이슈들이 공유하는 원인을 수정하는 하나의 풀 리퀘스트를 요청하고, 나머지 각 이슈에는 각각 별도의 풀 리퀘스트를 요청합니다.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "그룹의 수정을 요청하려면 프로젝트 전체의 데이터 보안 이슈를 읽을 권한이 필요합니다.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "콘솔에서 만든 데이터 저장소 {{count}}개 각각에 클라우드 연결을 통해 아래 변경을 적용합니다.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 아래 변경을 적용합니다.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "콘솔에서 만든 데이터 저장소 {{count}}개 각각에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다. 한 번의 승인으로 모두 적용됩니다.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다."
 }

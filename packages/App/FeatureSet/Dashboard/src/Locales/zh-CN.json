@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "AI 提议已批准",
   "AI Change Made": "AI 已做更改",
   "AI Proposal Dismissed": "AI 提议已驳回",
+  "AI Proposal Expired": "AI 提议已过期",
   "AI Change Undone": "AI 更改已撤消",
   "AI Change Failed": "AI 更改失败",
   "AI Response": "AI 响应",
@@ -64177,5 +64178,11 @@
   "View Alerts": "查看警报",
   "View Incidents": "查看事件",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{limit}} 个，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{size}} MB，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。"
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "等待评估的请求超过了此监视器保留的 {{size}} MB，因此跳过了其中最早的请求。被跳过的请求本应打开或解决的事件或警报可能缺失，或仍处于打开状态。",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "请 OneUptime AI 修复案例请求所引发异常背后的代码，作为对包含该代码的存储库的拉取请求。对于数据安全案例，它会请求修复其问题共同原因的唯一拉取请求，并为其他每个问题各请求一个拉取请求。",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "请求修复一个分组需要读取整个项目数据安全问题的权限。",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "通过云连接，对在控制台中创建的 {{count}} 个数据存储逐一执行下面的更改。",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "通过云连接，对在控制台中创建的数据存储执行下面的更改。",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "通过云连接，对在控制台中创建的 {{count}} 个数据存储逐一执行其类型所需的更改。一次批准即可全部完成。",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "通过云连接，对在控制台中创建的数据存储执行其类型所需的更改。"
 }

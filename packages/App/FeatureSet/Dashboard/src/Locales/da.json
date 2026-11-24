@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "AI-forslag godkendt",
   "AI Change Made": "AI-ændring foretaget",
   "AI Proposal Dismissed": "AI-forslag afvist",
+  "AI Proposal Expired": "AI-forslag udløbet",
   "AI Change Undone": "AI-ændring fortrudt",
   "AI Change Failed": "AI-ændring mislykkedes",
   "AI Response": "AI-respons",
@@ -64177,5 +64178,11 @@
   "View Alerts": "Vis advarsler",
   "View Incidents": "Vis hændelser",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Flere anmodninger ventede på at blive evalueret end de {{limit}}, som denne monitor gemmer, så de ældste af dem blev sprunget over. En hændelse eller advarsel, som en oversprunget anmodning ville have åbnet eller løst, kan mangle eller stadig være åben.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Anmodningerne, der ventede på at blive evalueret, fyldte mere end de {{size}} MB, som denne monitor gemmer, så de ældste af dem blev sprunget over. En hændelse eller advarsel, som en oversprunget anmodning ville have åbnet eller løst, kan mangle eller stadig være åben."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Anmodningerne, der ventede på at blive evalueret, fyldte mere end de {{size}} MB, som denne monitor gemmer, så de ældste af dem blev sprunget over. En hændelse eller advarsel, som en oversprunget anmodning ville have åbnet eller løst, kan mangle eller stadig være åben.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "Bed OneUptime AI om at rette koden bag de undtagelser, sagens forespørgsler kastede, som en pull request i det kodelager, der rummer den. På en datasikkerhedssag beder den om den ene pull request, der retter den årsag, dens problemer har til fælles, og en pull request for sig for hvert af dens andre problemer.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "For at bede om en gruppes rettelse skal du have tilladelse til at læse datasikkerhedsproblemer i hele projektet.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Hvert af de {{count}} datalagre, der er oprettet i konsollen, får ændringen nedenfor via sin cloudforbindelse.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "Datalageret, der er oprettet i konsollen, får ændringen nedenfor via sin cloudforbindelse.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Hvert af de {{count}} datalagre, der er oprettet i konsollen, får den ændring, dets type har brug for, via sin cloudforbindelse. Én godkendelse udfører dem alle.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "Datalageret, der er oprettet i konsollen, får den ændring, dets type har brug for, via sin cloudforbindelse."
 }

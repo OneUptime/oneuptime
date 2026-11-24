@@ -62892,6 +62892,7 @@
   "AI Proposal Approved": "Предложение ИИ одобрено",
   "AI Change Made": "Изменение ИИ внесено",
   "AI Proposal Dismissed": "Предложение ИИ отклонено",
+  "AI Proposal Expired": "Предложение ИИ истекло",
   "AI Change Undone": "Изменение ИИ отменено",
   "AI Change Failed": "Изменение ИИ не удалось",
   "AI Response": "Реагирование ИИ",
@@ -64177,5 +64178,11 @@
   "View Alerts": "Просмотреть оповещения",
   "View Incidents": "Просмотреть инциденты",
   "More requests were waiting to be evaluated than the {{limit}} this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запросов, ожидающих проверки, было больше предела в {{limit}}, который хранит этот монитор, поэтому самые старые из них пропущены. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми.",
-  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запросы, ожидающие проверки, заняли больше предела в {{size}} MB, который хранит этот монитор, поэтому самые старые из них пропущены. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми."
+  "The requests waiting to be evaluated took more than the {{size}} MB this monitor keeps, so the oldest of them were skipped. An incident or alert a skipped request would have opened or resolved may be missing or still open.": "Запросы, ожидающие проверки, заняли больше предела в {{size}} MB, который хранит этот монитор, поэтому самые старые из них пропущены. Инцидент или оповещение, которые пропущенный запрос открыл бы или устранил, могут отсутствовать или всё ещё быть открытыми.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "Попросить OneUptime AI исправить код, стоящий за исключениями, которые выбросили запросы кейса, пул-реквестом в репозитории с этим кодом. Для кейса безопасности данных он запрашивает единственный пул-реквест, который исправляет общую причину его проблем, и отдельный пул-реквест для каждой из остальных его проблем.",
+  "Asking for a group's fix takes permission to read Data Security issues across the whole project.": "Чтобы запросить исправление группы, нужно разрешение читать проблемы безопасности данных во всём проекте.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "Каждое из хранилищ данных, созданных в консоли (их {{count}}), получает изменение ниже через своё облачное подключение.",
+  "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "Хранилище данных, созданное в консоли, получает изменение ниже через своё облачное подключение.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "Каждое из хранилищ данных, созданных в консоли (их {{count}}), получает изменение, нужное его типу, через своё облачное подключение. Одно одобрение вносит их все.",
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "Хранилище данных, созданное в консоли, получает изменение, нужное его типу, через своё облачное подключение."
 }
