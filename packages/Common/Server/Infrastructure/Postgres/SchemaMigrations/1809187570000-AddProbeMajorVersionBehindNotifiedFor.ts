@@ -15,10 +15,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * is backfilled: no probe's owners were told before, so every probe starts
  * with nothing told.
  */
-export class AddProbeMajorVersionBehindNotifiedFor1809187560000
+export class AddProbeMajorVersionBehindNotifiedFor1809187570000
   implements MigrationInterface
 {
-  public name: string = "AddProbeMajorVersionBehindNotifiedFor1809187560000";
+  public name: string = "AddProbeMajorVersionBehindNotifiedFor1809187570000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

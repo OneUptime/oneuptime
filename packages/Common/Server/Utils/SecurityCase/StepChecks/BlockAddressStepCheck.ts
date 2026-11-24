@@ -178,7 +178,8 @@ function regressed(data: {
           { address: input.address },
           {
             count: Math.max(1, reading.afterSince || reading.recent),
-            times: { time: regressedAt },
+            // Since when they reach the app: "since 14:25" (#10622).
+            times: { since: regressedAt },
           },
         ),
       ],

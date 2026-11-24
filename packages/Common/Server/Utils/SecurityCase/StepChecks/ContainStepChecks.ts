@@ -136,7 +136,8 @@ function heldSentence(data: {
     return sentence(
       CHECK_USER_DISABLED_SIGNED_OUT,
       { user: data.value, provider },
-      { times: { since: reading.sessionsEndedAt } },
+      // When they were ended: "at 14:25" (#10622).
+      { times: { time: reading.sessionsEndedAt } },
     );
   }
 

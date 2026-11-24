@@ -11,6 +11,7 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 import GitHubUtil, {
   GitHubBranchInfo,
   GitHubFileContent,
+  GitHubPullRequestMerge,
 } from "../GitHub/GitHub";
 import GitHubInstallationBinding from "../GitHub/GitHubInstallationBinding";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -20,7 +21,6 @@ import {
   CodeHost,
   CodeHostCapability,
 } from "../../../../Types/CodeRepository/CodeHost";
-import PullRequestState from "../../../../Types/CodeRepository/PullRequestState";
 import ObjectID from "../../../../Types/ObjectID";
 import CodeHostHttp, {
   CodeHostHttpError,
@@ -769,17 +769,19 @@ export default class CodeHostAccess {
 
         return file;
       },
+      // Its state, and once merged the commit it merged as (a linked pull request's deploy, #10604).
       getPullRequestState: async (data: {
         number: number;
       }): Promise<CodeHostPullRequestState & { ci: null }> => {
-        const state: PullRequestState = await GitHubUtil.getPullRequestState({
-          installationId,
-          organizationName,
-          repositoryName,
-          pullRequestNumber: data.number,
-        });
+        const merge: GitHubPullRequestMerge =
+          await GitHubUtil.getPullRequestMerge({
+            installationId,
+            organizationName,
+            repositoryName,
+            pullRequestNumber: data.number,
+          });
 
-        return { state, ci: null };
+        return { ...merge, ci: null };
       },
       getFileWebUrl: (data: {
         path: string;
