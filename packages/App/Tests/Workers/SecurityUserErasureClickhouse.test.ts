@@ -89,17 +89,46 @@ jest.mock("Common/Server/Utils/AnalyticsDatabase/ClusterConfig", () => {
 import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import SecurityUserVault from "Common/Models/AnalyticsModels/SecurityUserVault";
+import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
+import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
 import ClickhouseDatabase, {
   ClickhouseClient,
 } from "Common/Server/Infrastructure/ClickhouseDatabase";
+import OTelIngestService, {
+  TelemetryServiceMetadata,
+} from "Common/Server/Services/OpenTelemetryIngestService";
 import ProjectService from "Common/Server/Services/ProjectService";
-import SecurityEventService from "Common/Server/Services/SecurityEventService";
+import SecurityEventService, {
+  DetectionMatchGroup,
+} from "Common/Server/Services/SecurityEventService";
 import SecurityUserErasureRequestService, {
   SecurityUserErasureCounts,
   getErasureTokens,
+  readErasureRequestNames,
+  toStoredErasureNames,
 } from "Common/Server/Services/SecurityUserErasureRequestService";
+import { IndicatorMatchGroup } from "Common/Server/Services/ThreatIntelIndicatorService";
+import DetectionRuleEvaluator from "Common/Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import ThreatIntelMatcher from "Common/Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelMatcher";
+import SecurityUserErasureFindings, {
+  FINDING_USER_ERASED_ATTRIBUTE,
+  FindingRewrite,
+  FindingsScanResult,
+  planFindingRewrite,
+} from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureFindings";
+import {
+  DETECTION_FINDING_CLASS_NAME,
+  DETECTION_FINDING_CLASS_UID,
+  DETECTION_GROUP_VALUE_ATTRIBUTE,
+  DETECTION_MATCH_COUNT_ATTRIBUTE,
+  DETECTION_RULE_NAME_ATTRIBUTE,
+  DETECTION_SUMMARY_ATTRIBUTE,
+} from "Common/Types/SecurityEvent/DetectionFindingConstants";
+import { SigmaCorrelationType } from "Common/Types/SecurityEvent/SigmaCorrelation";
+import SigmaRule, { SigmaLevel } from "Common/Types/SecurityEvent/SigmaRule";
+import { THREAT_INDICATOR_VALUE_ATTRIBUTE } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import SecurityUserVaultService, {
   SecurityUserVaultService as SecurityUserVaultServiceClass,
 } from "Common/Server/Services/SecurityUserVaultService";
@@ -130,7 +159,10 @@ import LogScrubAction from "Common/Types/Log/LogScrubAction";
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import ObjectID from "Common/Types/ObjectID";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
-import { SecurityUserErasureRequestStatus } from "Common/Types/SecurityEvent/SecurityUserErasure";
+import {
+  SecurityUserErasureRequestStatus,
+  isErasureToken,
+} from "Common/Types/SecurityEvent/SecurityUserErasure";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   ERASED_USER_ATTRIBUTES,
@@ -396,6 +428,207 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
     SecurityUserErasedTokens.clearCache();
   }
 
+  /*
+   * The Detection Findings a rule or a threat intel feed writes about
+   * somebody (#11044), written by the real writers (DetectionRuleEvaluator,
+   * ThreatIntelMatcher), so each holds them exactly where OneUptime puts
+   * them: the message, the observables and the attributes.
+   */
+  const CAROL: string = "carol@example.org";
+  // Holds the person's address inside it: another person, never touched.
+  const MALICE: string = `m${ALICE}`;
+  const ADDRESS: string = "203.0.113.7";
+  const INDICATOR: string = "198.51.100.9";
+  const ALICE_NAMES: Array<ErasedName> = [
+    { named: ALICE, hashed: ALICE_TOKEN },
+    { named: ALICE_TYPED, hashed: ALICE_TYPED_TOKEN },
+    { named: ALICE_IN_AUTH0, hashed: `auth0|${ALICE_TOKEN}` },
+  ];
+
+  interface FindingWriters {
+    writeDetectionFindings: (data: {
+      rule: DetectionRule;
+      parsedRule: SigmaRule;
+      matchedGroups: Array<DetectionMatchGroup>;
+      correlationType?: string | undefined;
+    }) => Promise<{ eventUids: Map<string, string>; written: number }>;
+    writeThreatIntelFindings: (data: {
+      feed: ThreatIntelFeed;
+      matchedGroups: Array<IndicatorMatchGroup>;
+    }) => Promise<Map<string, string>>;
+  }
+
+  const evaluator: FindingWriters =
+    DetectionRuleEvaluator as unknown as FindingWriters;
+  const matcher: FindingWriters =
+    ThreatIntelMatcher as unknown as FindingWriters;
+
+  function parsedRuleOf(title: string): SigmaRule {
+    return {
+      title,
+      id: "8f3c9a4e-0000-4000-8000-000000011044",
+      description: "",
+      level: SigmaLevel.High,
+      status: "stable",
+      tags: [],
+      mitreTactics: ["TA0006"],
+      mitreTechniques: ["T1110"],
+      logsource: {},
+      selections: [],
+      condition: { type: "selection", name: "selection" },
+    } as unknown as SigmaRule;
+  }
+
+  function ruleOf(
+    name: string,
+    projectId: ObjectID = PROJECT_ID,
+  ): DetectionRule {
+    const rule: DetectionRule = new DetectionRule();
+
+    rule.id = ObjectID.generate();
+    rule.projectId = projectId;
+    rule.name = name;
+
+    return rule;
+  }
+
+  function group(data: Partial<DetectionMatchGroup>): DetectionMatchGroup {
+    return {
+      groupValue: "",
+      matchCount: 3,
+      distinctCount: 0,
+      sampleMessage: "Failed password",
+      sampleObservables: [],
+      ...data,
+    };
+  }
+
+  // A rule's findings, as the evaluator writes them, and the rule's id to find them by.
+  async function writeRuleFindings(data: {
+    name: string;
+    groups: Array<DetectionMatchGroup>;
+    correlationType?: string | undefined;
+    projectId?: ObjectID | undefined;
+  }): Promise<string> {
+    const rule: DetectionRule = ruleOf(data.name, data.projectId);
+
+    await evaluator.writeDetectionFindings({
+      rule,
+      parsedRule: parsedRuleOf(data.name),
+      matchedGroups: data.groups,
+      correlationType: data.correlationType,
+    });
+
+    return rule.id!.toString();
+  }
+
+  async function writeThreatIntelFinding(): Promise<string> {
+    const feed: ThreatIntelFeed = new ThreatIntelFeed();
+
+    feed.id = ObjectID.generate();
+    feed.projectId = PROJECT_ID;
+    feed.name = "Known bad addresses";
+
+    const stixId: string = `indicator--${ObjectID.generate().toString()}`;
+
+    await matcher.writeThreatIntelFindings({
+      feed,
+      matchedGroups: [
+        {
+          indicatorValue: INDICATOR,
+          stixId,
+          indicatorType: "ipv4-addr",
+          indicatorName: "Botnet node",
+          confidence: 80,
+          matchCount: 2,
+          sampleMessage: "Connection",
+          sampleObservables: [INDICATOR, ALICE],
+        },
+      ],
+    });
+
+    return stixId;
+  }
+
+  // A finding as a connector brings one in: named by its source, never by the vault.
+  async function writeConnectorFinding(): Promise<void> {
+    const time: Date = OneUptimeDate.addRemoveMinutes(new Date(), -5);
+    const attributes: Record<string, string> = {
+      "crowdstrike.detection_id": "ldt:1",
+    };
+
+    await client.insert({
+      table: eventsTable,
+      values: [
+        {
+          _id: ObjectID.generate().toString(),
+          projectId: PROJECT_ID.toString(),
+          primaryEntityId: SOURCE_ID.toString(),
+          primaryEntityType: ServiceType.OpenTelemetry,
+          time: OneUptimeDate.toClickhouseDateTime64(time),
+          createdAt: OneUptimeDate.toClickhouseDateTime(time),
+          eventUid: "connector-finding",
+          classUid: DETECTION_FINDING_CLASS_UID,
+          className: DETECTION_FINDING_CLASS_NAME,
+          vendorName: "CrowdStrike",
+          productName: "Falcon",
+          ruleId: "connector-rule",
+          message: `Suspicious sign-in — ${ALICE}`,
+          principalUser: ALICE,
+          observables: [ALICE],
+          attributes,
+          attributeKeys: Object.keys(attributes),
+          retentionDate: OneUptimeDate.toClickhouseDateTime(
+            OneUptimeDate.addRemoveDays(new Date(), 30),
+          ),
+        },
+      ],
+      format: "JSONEachRow",
+      clickhouse_settings: { wait_for_async_insert: 1 },
+    });
+  }
+
+  async function findingsCount(): Promise<number> {
+    const rows: Array<JSONObject> = await rowsOf(
+      `SELECT toString(count()) AS c FROM ${eventsTable} WHERE className = '${DETECTION_FINDING_CLASS_NAME}'`,
+    );
+
+    return Number(rows[0]?.["c"] || 0);
+  }
+
+  // The writers insert without waiting: until every finding is in.
+  async function findingsWritten(expected: number): Promise<void> {
+    await client.command({ query: "SYSTEM FLUSH ASYNC INSERT QUEUE" });
+
+    const deadline: number = Date.now() + 30000;
+
+    while (Date.now() < deadline) {
+      if ((await findingsCount()) >= expected) {
+        return;
+      }
+
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 200);
+      });
+    }
+
+    throw new Error(`Expected ${expected} findings, found fewer.`);
+  }
+
+  async function findingOf(ruleId: string): Promise<JSONObject> {
+    const rows: Array<JSONObject> = await rowsOf(
+      `SELECT _id, eventUid, toString(time) AS time, ruleName, severityName, mitreTactics, message, observables, attributes, attributeKeys, vendorName FROM ${eventsTable} WHERE ruleId = '${ruleId}'`,
+    );
+
+    expect(rows).toHaveLength(1);
+
+    return rows[0]!;
+  }
+
+  function attributesOf(finding: JSONObject): Record<string, string> {
+    return finding["attributes"] as Record<string, string>;
+  }
+
   beforeAll(async (): Promise<void> => {
     const url: URL = new URL(endpoint!);
 
@@ -491,6 +724,19 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         );
       },
     } as never);
+
+    jest
+      .spyOn(OTelIngestService, "telemetryServiceFromName")
+      .mockResolvedValue({
+        serviceName: "OneUptime Detections",
+        primaryEntityId: SOURCE_ID,
+        primaryEntityType: ServiceType.OpenTelemetry,
+        dataRententionInDays: 30,
+        serviceRetentionConfig: null,
+        serviceRetentionInDays: null,
+        projectRetentionConfig: null,
+        projectRetentionInDays: 30,
+      } as TelemetryServiceMetadata);
   });
 
   afterEach(async (): Promise<void> => {
@@ -549,6 +795,72 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         expect(sent).not.toContain("example.com");
         expect(sent).toContain(PROJECT_ID.toString());
       }
+    });
+
+    test("the Detection Findings' read and update name the project, ids and tokens, never the person (#11044)", () => {
+      // Every shape of name: the user alone, inside a provider's id, and beside their name.
+      const names: Array<ErasedName> = [
+        { named: ALICE, hashed: ALICE_TOKEN },
+        { named: ALICE_TYPED, hashed: ALICE_TYPED_TOKEN },
+        { named: ALICE_IN_AUTH0, hashed: `auth0|${ALICE_TOKEN}` },
+        {
+          named: `Alice Smith <${ALICE}>`,
+          hashed: `Alice Smith <${ALICE_TOKEN}>`,
+        },
+      ];
+      const rewrite: FindingRewrite | null = planFindingRewrite(
+        {
+          id: ObjectID.generate().toString(),
+          time: "1764000000000000000",
+          observables: [
+            `Alice Smith <${ALICE}>`,
+            ALICE,
+            ALICE_TYPED,
+            ALICE_IN_AUTH0,
+            "203.0.113.7",
+          ],
+        },
+        names,
+      );
+
+      expect(rewrite!.replacements).toHaveLength(4);
+
+      const statements: Array<Statement> = [
+        SecurityUserErasureFindings.toFindingsPageStatement({
+          projectId: PROJECT_ID,
+          limit: 10,
+        }),
+        SecurityUserErasureFindings.toFindingsPageStatement({
+          projectId: PROJECT_ID,
+          after: { time: rewrite!.time, id: rewrite!.id },
+          limit: 10,
+        }),
+        SecurityUserErasureFindings.toUnnameFindingsStatement({
+          projectId: PROJECT_ID,
+          mutation: {
+            replacements: rewrite!.replacements,
+            ids: [rewrite!.id],
+            fromTime: rewrite!.time,
+            toTime: rewrite!.time,
+          },
+        }),
+      ];
+
+      for (const statement of statements) {
+        const sent: string =
+          `${statement.query} ${JSON.stringify(statement.query_params)}`.toLowerCase();
+
+        expect(sent).not.toContain("alice");
+        expect(sent).not.toContain("smith");
+        expect(sent).not.toContain("example.com");
+        expect(sent).toContain(PROJECT_ID.toString());
+      }
+
+      // What goes in a name's place is the token and two lengths: the rest is the row's own.
+      const update: string = JSON.stringify(statements[2]!.query_params);
+
+      expect(update).toContain(ALICE_TOKEN);
+      expect(update).not.toContain("auth0|");
     });
   });
 
@@ -864,6 +1176,587 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
     });
   });
 
+  /*
+   * #11044: the Detection Findings a rule or a threat intel feed wrote
+   * about the person, written by the real writers (DetectionRuleEvaluator,
+   * ThreatIntelMatcher), so each holds the person exactly where OneUptime
+   * puts them: the message, the observables and the attributes.
+   */
+  describe("the Detection Findings a rule wrote about the person", () => {
+    let ids: {
+      byUser: string;
+      byAddress: string;
+      correlation: string;
+      newValue: string;
+      inAuth0: string;
+      bob: string;
+      otherProject: string;
+      threatIntel: string;
+    };
+
+    async function seedFindings(): Promise<void> {
+      ids = {
+        // Grouped on who acted: the person is the group value, and twice an observable.
+        byUser: await writeRuleFindings({
+          name: "Brute force",
+          groups: [
+            group({
+              groupValue: ALICE,
+              sampleObservables: [ALICE, ADDRESS, ALICE_TYPED],
+            }),
+          ],
+        }),
+        // Grouped on the address: the person is only a sample observable.
+        byAddress: await writeRuleFindings({
+          name: "Password spray",
+          groups: [
+            group({
+              groupValue: ADDRESS,
+              matchCount: 9,
+              sampleObservables: [ADDRESS, ALICE, CAROL],
+            }),
+          ],
+        }),
+        // A correlation grouped on the user and the address.
+        correlation: await writeRuleFindings({
+          name: "Brute force then success",
+          correlationType: SigmaCorrelationType.TemporalOrdered,
+          groups: [
+            group({
+              groupValue: `${ALICE} / ${ADDRESS}`,
+              matchCount: 7,
+              groupFields: [
+                { field: "principalUser", value: ALICE },
+                { field: "principalIp", value: ADDRESS },
+              ],
+              summary:
+                "Failed sign-in, then Successful sign-in, 2 minutes apart",
+              sampleObservables: [ALICE, ADDRESS],
+            }),
+          ],
+        }),
+        // A new value: the person in the sentence, beside somebody whose address holds theirs.
+        newValue: await writeRuleFindings({
+          name: "First sign-in from an address",
+          correlationType: SigmaCorrelationType.NewValue,
+          groups: [
+            group({
+              groupValue: ADDRESS,
+              matchCount: 4,
+              groupFields: [{ field: "principalIp", value: ADDRESS }],
+              summary: `First principalUser in 7 days: ${ALICE}, ${MALICE}, ${ALICE} and 2 more`,
+              sampleObservables: [ALICE, MALICE, ADDRESS],
+            }),
+          ],
+        }),
+        // The user inside a provider's id, as the events named them.
+        inAuth0: await writeRuleFindings({
+          name: "Token reuse",
+          groups: [
+            group({
+              groupValue: ALICE_IN_AUTH0,
+              sampleObservables: [ALICE_IN_AUTH0],
+            }),
+          ],
+        }),
+        bob: await writeRuleFindings({
+          name: "Brute force",
+          groups: [group({ groupValue: BOB, sampleObservables: [BOB] })],
+        }),
+        otherProject: await writeRuleFindings({
+          name: "Brute force",
+          projectId: OTHER_PROJECT_ID,
+          groups: [group({ groupValue: ALICE, sampleObservables: [ALICE] })],
+        }),
+        threatIntel: await writeThreatIntelFinding(),
+      };
+
+      await writeConnectorFinding();
+      await findingsWritten(9);
+    }
+
+    test("the writers name the person where a finding is about them", async () => {
+      await seedFindings();
+
+      const byUser: JSONObject = await findingOf(ids.byUser);
+
+      expect(byUser["message"]).toBe(
+        `Detection: Brute force — ${ALICE} (3 events)`,
+      );
+      expect(byUser["observables"]).toEqual([ALICE, ADDRESS, ALICE_TYPED]);
+      expect(attributesOf(byUser)[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(ALICE);
+      expect(byUser["vendorName"]).toBe("OneUptime");
+    });
+
+    test("reads only the project's own findings that name the person, and matches them in the worker", async () => {
+      await seedFindings();
+
+      const found: FindingsScanResult =
+        await SecurityUserErasureFindings.findNamingFindings({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        });
+      const foundIds: Array<string> = found.rewrites.map(
+        (rewrite: FindingRewrite): string => {
+          return rewrite.id;
+        },
+      );
+      const idOf: (ruleId: string) => Promise<string> = async (
+        ruleId: string,
+      ): Promise<string> => {
+        return String((await findingOf(ruleId))["_id"]);
+      };
+
+      expect(foundIds.sort()).toEqual(
+        (
+          await Promise.all(
+            [
+              ids.byUser,
+              ids.byAddress,
+              ids.correlation,
+              ids.newValue,
+              ids.inAuth0,
+              ids.threatIntel,
+            ].map(idOf),
+          )
+        ).sort(),
+      );
+      expect(found.isCapped).toBe(false);
+      expect(
+        await SecurityUserErasureFindings.isAnyFindingNaming({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        }),
+      ).toBe(true);
+      // Nobody erased: nothing found, and nothing read for nobody.
+      expect(
+        (
+          await SecurityUserErasureFindings.findNamingFindings({
+            projectId: PROJECT_ID,
+            names: [
+              {
+                named: "dave@example.net",
+                hashed: tokenOf("dave@example.net"),
+              },
+            ],
+          })
+        ).rewrites,
+      ).toEqual([]);
+    });
+
+    test("takes the person out of each finding's message, observables and attributes, as the rule left them", async () => {
+      await seedFindings();
+
+      const found: FindingsScanResult =
+        await SecurityUserErasureFindings.findNamingFindings({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        });
+
+      expect(
+        await SecurityUserErasureFindings.unnameFindings({
+          projectId: PROJECT_ID,
+          rewrites: found.rewrites,
+        }),
+      ).toBe(6);
+      await mutationsApplied();
+
+      const byUser: JSONObject = await findingOf(ids.byUser);
+
+      expect(byUser["message"]).toBe(
+        `Detection: Brute force — ${ALICE_TOKEN} (3 events)`,
+      );
+      // Each spelling with its own token, in its own place.
+      expect(byUser["observables"]).toEqual([
+        ALICE_TOKEN,
+        ADDRESS,
+        ALICE_TYPED_TOKEN,
+      ]);
+      expect(attributesOf(byUser)[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(
+        ALICE_TOKEN,
+      );
+      expect(attributesOf(byUser)[FINDING_USER_ERASED_ATTRIBUTE]).toBe(
+        USER_ERASED_ON_REQUEST,
+      );
+      expect((byUser["attributeKeys"] as Array<string>).sort()).toEqual(
+        Object.keys(attributesOf(byUser)).sort(),
+      );
+
+      const byAddress: JSONObject = await findingOf(ids.byAddress);
+
+      expect(byAddress["message"]).toBe(
+        `Detection: Password spray — ${ADDRESS} (9 events)`,
+      );
+      expect(byAddress["observables"]).toEqual([ADDRESS, ALICE_TOKEN, CAROL]);
+      expect(attributesOf(byAddress)[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(
+        ADDRESS,
+      );
+
+      const correlation: JSONObject = await findingOf(ids.correlation);
+
+      expect(correlation["message"]).toBe(
+        `Detection: Brute force then success — ${ALICE_TOKEN} / ${ADDRESS} (7 events; Failed sign-in, then Successful sign-in, 2 minutes apart)`,
+      );
+      expect(correlation["observables"]).toEqual([ALICE_TOKEN, ADDRESS]);
+      expect(attributesOf(correlation)[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(
+        `${ALICE_TOKEN} / ${ADDRESS}`,
+      );
+
+      const newValue: JSONObject = await findingOf(ids.newValue);
+
+      // Every time the sentence names them, and never the person whose address holds theirs.
+      expect(newValue["message"]).toBe(
+        `Detection: First sign-in from an address — ${ADDRESS} (4 events; First principalUser in 7 days: ${ALICE_TOKEN}, ${MALICE}, ${ALICE_TOKEN} and 2 more)`,
+      );
+      expect(attributesOf(newValue)[DETECTION_SUMMARY_ATTRIBUTE]).toBe(
+        `First principalUser in 7 days: ${ALICE_TOKEN}, ${MALICE}, ${ALICE_TOKEN} and 2 more`,
+      );
+      expect(newValue["observables"]).toEqual([ADDRESS, ALICE_TOKEN, MALICE]);
+
+      const inAuth0: JSONObject = await findingOf(ids.inAuth0);
+
+      expect(inAuth0["message"]).toBe(
+        `Detection: Token reuse — auth0|${ALICE_TOKEN} (3 events)`,
+      );
+      expect(inAuth0["observables"]).toEqual([`auth0|${ALICE_TOKEN}`]);
+      expect(attributesOf(inAuth0)[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(
+        `auth0|${ALICE_TOKEN}`,
+      );
+
+      const threatIntel: JSONObject = await findingOf(ids.threatIntel);
+
+      expect(threatIntel["message"]).toBe(
+        `Threat intel: Known bad addresses — ${INDICATOR} (2 events)`,
+      );
+      expect(threatIntel["observables"]).toEqual([INDICATOR, ALICE_TOKEN]);
+      expect(attributesOf(threatIntel)[THREAT_INDICATOR_VALUE_ATTRIBUTE]).toBe(
+        INDICATOR,
+      );
+
+      for (const finding of [
+        byUser,
+        byAddress,
+        correlation,
+        inAuth0,
+        threatIntel,
+      ]) {
+        expect(JSON.stringify(finding)).not.toContain(ALICE);
+        expect(JSON.stringify(finding).toLowerCase()).not.toContain(
+          ALICE_TYPED.toLowerCase(),
+        );
+        expect(attributesOf(finding)[FINDING_USER_ERASED_ATTRIBUTE]).toBe(
+          USER_ERASED_ON_REQUEST,
+        );
+      }
+
+      expect(
+        await SecurityUserErasureFindings.isAnyFindingNaming({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        }),
+      ).toBe(false);
+    });
+
+    test("leaves another person's findings, another project's, and a connector's as they were", async () => {
+      await seedFindings();
+
+      const before: Array<JSONObject> = await rowsOf(
+        `SELECT ruleId, message, observables, attributes FROM ${eventsTable} WHERE ruleId IN ('${ids.bob}', '${ids.otherProject}', 'connector-rule') ORDER BY ruleId`,
+      );
+
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId: PROJECT_ID,
+        rewrites: (
+          await SecurityUserErasureFindings.findNamingFindings({
+            projectId: PROJECT_ID,
+            names: ALICE_NAMES,
+          })
+        ).rewrites,
+      });
+      await mutationsApplied();
+
+      expect(
+        await rowsOf(
+          `SELECT ruleId, message, observables, attributes FROM ${eventsTable} WHERE ruleId IN ('${ids.bob}', '${ids.otherProject}', 'connector-rule') ORDER BY ruleId`,
+        ),
+      ).toEqual(before);
+      expect(before).toHaveLength(3);
+    });
+
+    test("keeps the rest of each finding: when, its rule, its severity and its counts", async () => {
+      await seedFindings();
+
+      const kept: string = `SELECT _id, eventUid, time, ruleId, ruleName, severityName, mitreTactics, mitreTechniques, classUid, attributes['${DETECTION_RULE_NAME_ATTRIBUTE}'] AS ruleNameAttribute, attributes['${DETECTION_MATCH_COUNT_ATTRIBUTE}'] AS matchCount FROM ${eventsTable} WHERE ruleId = '${ids.correlation}'`;
+      const before: Array<JSONObject> = await rowsOf(kept);
+
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId: PROJECT_ID,
+        rewrites: (
+          await SecurityUserErasureFindings.findNamingFindings({
+            projectId: PROJECT_ID,
+            names: ALICE_NAMES,
+          })
+        ).rewrites,
+      });
+      await mutationsApplied();
+
+      expect(await rowsOf(kept)).toEqual(before);
+      expect(before).toHaveLength(1);
+    });
+
+    test("running it again finds nothing and changes nothing, and a mutation applied twice changes nothing more", async () => {
+      await seedFindings();
+
+      const found: FindingsScanResult =
+        await SecurityUserErasureFindings.findNamingFindings({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        });
+
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId: PROJECT_ID,
+        rewrites: found.rewrites,
+      });
+      await mutationsApplied();
+
+      const all: string = `SELECT _id, message, observables, attributes, attributeKeys FROM ${eventsTable} ORDER BY _id`;
+      const once: Array<JSONObject> = await rowsOf(all);
+
+      expect(
+        (
+          await SecurityUserErasureFindings.findNamingFindings({
+            projectId: PROJECT_ID,
+            names: ALICE_NAMES,
+          })
+        ).rewrites,
+      ).toEqual([]);
+
+      // The same changes, told again (a run that queued them before the first was applied).
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId: PROJECT_ID,
+        rewrites: found.rewrites,
+      });
+      await mutationsApplied();
+
+      expect(await rowsOf(all)).toEqual(once);
+    });
+
+    test("findings that need the same change share one mutation", async () => {
+      // Five firings of one rule about the person: the same change each.
+      for (let firing: number = 0; firing < 5; firing++) {
+        await writeRuleFindings({
+          name: `Brute force ${firing}`,
+          groups: [group({ groupValue: ALICE, sampleObservables: [ALICE] })],
+        });
+      }
+
+      // And one whose change differs: the person second.
+      await writeRuleFindings({
+        name: "Password spray",
+        groups: [
+          group({ groupValue: ADDRESS, sampleObservables: [ADDRESS, ALICE] }),
+        ],
+      });
+      await findingsWritten(6);
+
+      const mutationsBefore: number = Number(
+        (
+          await rowsOf(
+            `SELECT toString(count()) AS c FROM system.mutations WHERE database = '${database}'`,
+          )
+        )[0]!["c"],
+      );
+
+      expect(
+        await SecurityUserErasureFindings.unnameFindings({
+          projectId: PROJECT_ID,
+          rewrites: (
+            await SecurityUserErasureFindings.findNamingFindings({
+              projectId: PROJECT_ID,
+              names: ALICE_NAMES,
+            })
+          ).rewrites,
+        }),
+      ).toBe(6);
+      await mutationsApplied();
+
+      expect(
+        Number(
+          (
+            await rowsOf(
+              `SELECT toString(count()) AS c FROM system.mutations WHERE database = '${database}'`,
+            )
+          )[0]!["c"],
+        ) - mutationsBefore,
+      ).toBe(2);
+      expect(
+        await SecurityUserErasureFindings.isAnyFindingNaming({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        }),
+      ).toBe(false);
+    });
+
+    test("reads page after page, findings written at the same moment included, and keeps at most as many as asked", async () => {
+      const time: Date = OneUptimeDate.addRemoveMinutes(new Date(), -3);
+      const rows: Array<JSONObject> = [];
+
+      // Seven findings at one moment, every other one about the person.
+      for (let index: number = 0; index < 7; index++) {
+        const attributes: Record<string, string> = {
+          [DETECTION_GROUP_VALUE_ATTRIBUTE]: index % 2 === 0 ? ALICE : BOB,
+        };
+
+        rows.push({
+          _id: ObjectID.generate().toString(),
+          projectId: PROJECT_ID.toString(),
+          primaryEntityId: SOURCE_ID.toString(),
+          primaryEntityType: ServiceType.OpenTelemetry,
+          time: OneUptimeDate.toClickhouseDateTime64(time),
+          createdAt: OneUptimeDate.toClickhouseDateTime(time),
+          eventUid: `same-moment-${index}`,
+          classUid: DETECTION_FINDING_CLASS_UID,
+          className: DETECTION_FINDING_CLASS_NAME,
+          vendorName: "OneUptime",
+          productName: "OneUptime Detections",
+          ruleId: `same-moment-${index}`,
+          message: `Detection: Same moment — ${index % 2 === 0 ? ALICE : BOB} (1 events)`,
+          observables: [index % 2 === 0 ? ALICE : BOB],
+          attributes,
+          attributeKeys: Object.keys(attributes),
+          retentionDate: OneUptimeDate.toClickhouseDateTime(
+            OneUptimeDate.addRemoveDays(new Date(), 30),
+          ),
+        });
+      }
+
+      await client.insert({
+        table: eventsTable,
+        values: rows,
+        format: "JSONEachRow",
+        clickhouse_settings: { wait_for_async_insert: 1 },
+      });
+
+      const paged: FindingsScanResult =
+        await SecurityUserErasureFindings.findNamingFindings({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+          pageSize: 2,
+        });
+
+      expect(paged.rewrites).toHaveLength(4);
+      expect(
+        new Set(
+          paged.rewrites.map((rewrite: FindingRewrite): string => {
+            return rewrite.id;
+          }),
+        ).size,
+      ).toBe(4);
+
+      const capped: FindingsScanResult =
+        await SecurityUserErasureFindings.findNamingFindings({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+          pageSize: 2,
+          maxRewrites: 3,
+        });
+
+      expect(capped.rewrites).toHaveLength(3);
+      expect(capped.isCapped).toBe(true);
+    });
+
+    test("a name beside text of the person's own, or with a pattern's characters in it, comes out with only the token sent", async () => {
+      const besideName: ErasedName = {
+        named: `Alice Smith <${ALICE}>`,
+        hashed: `Alice Smith <${ALICE_TOKEN}>`,
+      };
+      const patterned: string = "o'neil+(test)|a.b@example.com";
+      const patternedName: ErasedName = {
+        named: patterned,
+        hashed: tokenOf(patterned),
+      };
+      const withBackslash: ErasedName = {
+        named: "CORP\\alice",
+        hashed: `CORP\\${tokenOf("alice")}`,
+      };
+
+      const besideId: string = await writeRuleFindings({
+        name: "Mailbox rule",
+        groups: [
+          group({
+            groupValue: besideName.named,
+            sampleObservables: [besideName.named],
+          }),
+        ],
+      });
+      const patternedId: string = await writeRuleFindings({
+        name: "Odd user",
+        groups: [
+          group({ groupValue: patterned, sampleObservables: [patterned] }),
+        ],
+      });
+      const backslashId: string = await writeRuleFindings({
+        name: "Domain user",
+        groups: [
+          group({
+            groupValue: withBackslash.named,
+            sampleObservables: [withBackslash.named],
+          }),
+        ],
+      });
+
+      await findingsWritten(3);
+
+      const found: FindingsScanResult =
+        await SecurityUserErasureFindings.findNamingFindings({
+          projectId: PROJECT_ID,
+          names: [besideName, patternedName, withBackslash],
+        });
+
+      expect(found.rewrites).toHaveLength(3);
+
+      await SecurityUserErasureFindings.unnameFindings({
+        projectId: PROJECT_ID,
+        rewrites: found.rewrites,
+      });
+      await mutationsApplied();
+
+      expect((await findingOf(besideId))["message"]).toBe(
+        `Detection: Mailbox rule — Alice Smith <${ALICE_TOKEN}> (3 events)`,
+      );
+      expect((await findingOf(besideId))["observables"]).toEqual([
+        besideName.hashed,
+      ]);
+      expect((await findingOf(patternedId))["message"]).toBe(
+        `Detection: Odd user — ${patternedName.hashed} (3 events)`,
+      );
+      expect((await findingOf(backslashId))["message"]).toBe(
+        `Detection: Domain user — ${withBackslash.hashed} (3 events)`,
+      );
+      expect((await findingOf(backslashId))["observables"]).toEqual([
+        withBackslash.hashed,
+      ]);
+
+      // What ClickHouse keeps of the update: the ids, the tokens and lengths, never the text around them.
+      const commands: string = (
+        await rowsOf(
+          `SELECT command FROM system.mutations WHERE database = '${database}'`,
+        )
+      )
+        .map((row: JSONObject): string => {
+          return String(row["command"]);
+        })
+        .join("\n")
+        .toLowerCase();
+
+      expect(commands).toContain(ALICE_TOKEN.toLowerCase());
+      expect(commands).not.toContain("alice");
+      expect(commands).not.toContain("smith");
+      expect(commands).not.toContain("o'neil");
+      expect(commands).not.toContain("example.com");
+    });
+  });
+
   describe("once erased, never named again", () => {
     function pendingEvent(principalUser: string): NormalizedSecurityEvent {
       return {
@@ -1051,7 +1944,8 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
 
       request.id = ObjectID.generate();
       request.projectId = projectId;
-      request.userToErase = data.user;
+      // A pasted token needs nothing more: the service keeps none (SecurityUserErasureRequestService).
+      request.userToErase = isErasureToken(data.user) ? undefined : data.user;
       request.tokens = getErasureTokens({ projectId, user: data.user });
       request.status = SecurityUserErasureRequestStatus.Pending;
       request.requestedAt = data.requestedAt;
@@ -1142,11 +2036,21 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
           async (data: {
             requestId: ObjectID;
             counts: SecurityUserErasureCounts;
+            names?: ReadonlyArray<ErasedName> | undefined;
           }): Promise<void> => {
             update(data.requestId, {
               status: SecurityUserErasureRequestStatus.InProgress,
               failureReason: null,
               ...data.counts,
+              // As the service keeps them: encrypted text, read back by readErasureRequestNames.
+              ...(data.names
+                ? {
+                    namesToErase:
+                      data.names.length > 0
+                        ? toStoredErasureNames(data.names)
+                        : null,
+                  }
+                : {}),
             });
           },
         );
@@ -1161,11 +2065,16 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
               status: SecurityUserErasureRequestStatus.Completed,
               completedAt: new Date(),
               userToErase: null,
+              namesToErase: null,
               ...data.counts,
             });
           },
         );
-      // Postgres's half is SecurityUserErasurePostgres.test.ts: here, who it is handed.
+      /*
+       * Postgres's half is SecurityUserErasurePostgres.test.ts: here, who it
+       * is handed - on each run, and once more as the request completes. A
+       * case named the person the first time only.
+       */
       jest
         .spyOn(SecurityUserErasureRecords, "unnameRecords")
         .mockImplementation(
@@ -1174,7 +2083,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
             names: ReadonlyArray<ErasedName>;
           }) => {
             erasedNames.push([...data.names]);
-            return { cases: 1, proposals: 0 };
+            return { cases: erasedNames.length === 1 ? 1 : 0, proposals: 0 };
           },
         );
       jest
@@ -1265,9 +2174,12 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       );
       expect(stored(request).completedAt).toBeInstanceOf(Date);
       expect(stored(request).userToErase).toBeUndefined();
+      // The names it kept while it worked are wiped with what was typed (#11044).
+      expect(stored(request).namesToErase).toBeUndefined();
       // The counts it showed when it started are the counts it keeps.
       expect(stored(request).vaultEntriesDeleted).toBe(1);
       expect(stored(request).eventsUnnamed).toBe(2);
+      expect(stored(request).casesUnnamed).toBe(1);
 
       expect(await vaultUsersOf(PROJECT_ID)).toEqual([BOB]);
       expect((await eventOf("alice-1"))["principalUser"]).toBe(ALICE_TOKEN);
@@ -1277,11 +2189,31 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       expect((await eventOf("bob"))["principalUser"]).toBe(BOB);
       expect(emailed).toBe(0);
 
+      /*
+       * Postgres was gone through once more as it completed, with the names
+       * the first run kept - though the vault and the events no longer hold
+       * them.
+       */
+      expect(erasedNames).toHaveLength(2);
+      expect(
+        erasedNames[1]!
+          .map((name: ErasedName): string => {
+            return `${name.named} -> ${name.hashed}`;
+          })
+          .sort(),
+      ).toEqual(
+        erasedNames[0]!
+          .map((name: ErasedName): string => {
+            return `${name.named} -> ${name.hashed}`;
+          })
+          .sort(),
+      );
+
       // Over: the next run leaves it be.
       await SecurityUserErasure.processOpenRequests(
         new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 121000),
       );
-      expect(erasedNames).toHaveLength(1);
+      expect(erasedNames).toHaveLength(2);
     });
 
     test("a person the vault never knew is erased all the same, with nothing to count", async () => {
@@ -1452,6 +2384,7 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
               completedAt: new Date(),
               attempts: data.attempts,
               userToErase: null,
+              namesToErase: null,
               failureReason: data.failureReason,
             });
           },
@@ -1486,11 +2419,381 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
         SecurityUserErasureRequestStatus.Failed,
       );
       expect(stored(request).userToErase).toBeUndefined();
+      expect(stored(request).namesToErase).toBeUndefined();
       expect(emailed).toBe(1);
       // Failed, but the vault still refuses the person.
       expect(filedTokens.get(PROJECT_ID.toString())?.has(ALICE_TOKEN)).toBe(
         true,
       );
+    });
+
+    /*
+     * #11044: a person a grouped rule fired on. The rule wrote a Detection
+     * Finding about them from the events the vault named them in, and a
+     * correlation one, and one about Bob.
+     */
+    async function seedFindingsAboutPerson(): Promise<{
+      byUser: string;
+      correlation: string;
+      bob: string;
+    }> {
+      const found: { byUser: string; correlation: string; bob: string } = {
+        byUser: await writeRuleFindings({
+          name: "Brute force",
+          groups: [
+            group({
+              groupValue: ALICE,
+              sampleObservables: [ALICE, ADDRESS],
+            }),
+          ],
+        }),
+        correlation: await writeRuleFindings({
+          name: "Brute force then success",
+          correlationType: SigmaCorrelationType.TemporalOrdered,
+          groups: [
+            group({
+              groupValue: `${ALICE_IN_AUTH0} / ${ADDRESS}`,
+              matchCount: 7,
+              groupFields: [
+                { field: "targetUser", value: ALICE_IN_AUTH0 },
+                { field: "principalIp", value: ADDRESS },
+              ],
+              summary:
+                "Failed sign-in, then Successful sign-in, 2 minutes apart",
+              sampleObservables: [ALICE_IN_AUTH0, ADDRESS],
+            }),
+          ],
+        }),
+        bob: await writeRuleFindings({
+          name: "Brute force",
+          groups: [group({ groupValue: BOB, sampleObservables: [BOB] })],
+        }),
+      };
+
+      await findingsWritten(3);
+
+      return found;
+    }
+
+    test("a person a grouped rule fired on: their Detection Findings hold the token, counted with the events, and the request reads Erased once none names them", async () => {
+      await seedPerson();
+
+      const findings: { byUser: string; correlation: string; bob: string } =
+        await seedFindingsAboutPerson();
+      const filedAt: Date = new Date();
+      const request: SecurityUserErasureRequest = fileRequest({
+        user: ALICE_TYPED,
+        requestedAt: filedAt,
+      });
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+      );
+
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.InProgress,
+      );
+      // Two events and two findings.
+      expect(stored(request).eventsUnnamed).toBe(4);
+      expect(stored(request).vaultEntriesDeleted).toBe(1);
+
+      await mutationsApplied();
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000),
+      );
+
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.Completed,
+      );
+      expect(stored(request).eventsUnnamed).toBe(4);
+
+      const byUser: JSONObject = await findingOf(findings.byUser);
+
+      expect(byUser["message"]).toBe(
+        `Detection: Brute force — ${ALICE_TOKEN} (3 events)`,
+      );
+      expect(byUser["observables"]).toEqual([ALICE_TOKEN, ADDRESS]);
+
+      const correlation: JSONObject = await findingOf(findings.correlation);
+
+      expect(correlation["message"]).toBe(
+        `Detection: Brute force then success — auth0|${ALICE_TOKEN} / ${ADDRESS} (7 events; Failed sign-in, then Successful sign-in, 2 minutes apart)`,
+      );
+      expect(correlation["observables"]).toEqual([
+        `auth0|${ALICE_TOKEN}`,
+        ADDRESS,
+      ]);
+
+      for (const finding of [byUser, correlation]) {
+        expect(JSON.stringify(finding).toLowerCase()).not.toContain(
+          ALICE.toLowerCase(),
+        );
+      }
+
+      expect((await findingOf(findings.bob))["observables"]).toEqual([BOB]);
+    });
+
+    test("a request whose findings ClickHouse has not changed yet stays Erasing, though the vault and the events are done, until it has", async () => {
+      await seedPerson();
+      await seedFindingsAboutPerson();
+
+      const filedAt: Date = new Date();
+      const request: SecurityUserErasureRequest = fileRequest({
+        user: ALICE,
+        requestedAt: filedAt,
+      });
+
+      // The first run's change of the findings is lost on the way.
+      const unnameFindings: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(SecurityUserErasureFindings, "unnameFindings")
+        .mockResolvedValueOnce(0);
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+      );
+      await mutationsApplied();
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000),
+      );
+
+      // The vault and the events are done; the findings still name the person.
+      expect(await vaultUsersOf(PROJECT_ID)).toEqual([BOB]);
+      expect((await eventOf("alice-1"))["principalUser"]).toBe(ALICE_TOKEN);
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.InProgress,
+      );
+
+      // Half an hour on, it is told again, with the names it kept; then it is done.
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 31 * 60 * 1000),
+      );
+      await mutationsApplied();
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 32 * 60 * 1000),
+      );
+
+      expect(unnameFindings).toHaveBeenCalledTimes(2);
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.Completed,
+      );
+      expect(
+        await SecurityUserErasureFindings.isAnyFindingNaming({
+          projectId: PROJECT_ID,
+          names: ALICE_NAMES,
+        }),
+      ).toBe(false);
+    });
+
+    test("a finding a rule wrote after the run read them keeps the request Erasing until a later run takes the person out of it", async () => {
+      await seedPerson();
+      await seedFindingsAboutPerson();
+
+      const filedAt: Date = new Date();
+      const request: SecurityUserErasureRequest = fileRequest({
+        user: ALICE,
+        requestedAt: filedAt,
+      });
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+      );
+      await mutationsApplied();
+
+      // A rule that read the events before they lost the name writes its finding now.
+      const late: string = await writeRuleFindings({
+        name: "Impossible travel",
+        groups: [group({ groupValue: ALICE, sampleObservables: [ALICE] })],
+      });
+
+      await findingsWritten(4);
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000),
+      );
+
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.InProgress,
+      );
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 31 * 60 * 1000),
+      );
+      await mutationsApplied();
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 32 * 60 * 1000),
+      );
+
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.Completed,
+      );
+      expect((await findingOf(late))["message"]).toBe(
+        `Detection: Impossible travel — ${ALICE_TOKEN} (3 events)`,
+      );
+    });
+
+    test("a request filed by its token keeps the names it found, so the check still finds a finding about them once the vault and the events are gone", async () => {
+      await seedPerson();
+      await seedFindingsAboutPerson();
+
+      const filedAt: Date = new Date();
+      const request: SecurityUserErasureRequest = fileRequest({
+        user: ALICE_TOKEN,
+        requestedAt: filedAt,
+      });
+
+      expect(request.userToErase).toBeUndefined();
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+      );
+
+      // Who the vault and the events named them as, kept on the request.
+      expect(
+        readErasureRequestNames(stored(request))
+          .map((name: ErasedName): string => {
+            return `${name.named} -> ${name.hashed}`;
+          })
+          .sort(),
+      ).toEqual(
+        [
+          `${ALICE} -> ${ALICE_TOKEN}`,
+          `${ALICE_IN_AUTH0} -> auth0|${ALICE_TOKEN}`,
+        ].sort(),
+      );
+
+      await mutationsApplied();
+
+      // Nothing in ClickHouse holds the names any more but a late finding.
+      expect(await vaultUsersOf(PROJECT_ID)).toEqual([BOB]);
+
+      const late: string = await writeRuleFindings({
+        name: "Token reuse",
+        groups: [
+          group({
+            groupValue: ALICE_IN_AUTH0,
+            sampleObservables: [ALICE_IN_AUTH0],
+          }),
+        ],
+      });
+
+      await findingsWritten(4);
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000),
+      );
+
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.InProgress,
+      );
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 31 * 60 * 1000),
+      );
+      await mutationsApplied();
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 32 * 60 * 1000),
+      );
+
+      expect(stored(request).status).toBe(
+        SecurityUserErasureRequestStatus.Completed,
+      );
+      expect(stored(request).namesToErase).toBeUndefined();
+      expect((await findingOf(late))["observables"]).toEqual([
+        `auth0|${ALICE_TOKEN}`,
+      ]);
+    });
+
+    test("nothing the worker sends ClickHouse names the person, and ClickHouse keeps nothing that does", async () => {
+      await seedPerson();
+      await seedFindingsAboutPerson();
+
+      // Every statement from here on, as the client sends it.
+      const sent: Array<string> = [];
+      const capture: (params: unknown) => void = (params: unknown): void => {
+        const statement: {
+          query?: unknown;
+          query_params?: unknown;
+          table?: unknown;
+        } = (params || {}) as {
+          query?: unknown;
+          query_params?: unknown;
+          table?: unknown;
+        };
+
+        sent.push(
+          `${String(statement.query ?? statement.table ?? "")} ${JSON.stringify(statement.query_params ?? {})}`,
+        );
+      };
+
+      for (const method of ["query", "command", "exec", "insert"] as const) {
+        const original: (params: never) => Promise<unknown> = (
+          client[method] as unknown as (params: never) => Promise<unknown>
+        ).bind(client);
+
+        jest.spyOn(client, method).mockImplementation(((
+          params: never,
+        ): Promise<unknown> => {
+          capture(params);
+          return original(params);
+        }) as never);
+      }
+
+      const windowStart: Date = new Date();
+      const filedAt: Date = new Date();
+
+      fileRequest({ user: ALICE_TYPED, requestedAt: filedAt });
+
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 1000),
+      );
+      await mutationsApplied();
+      await SecurityUserErasure.processOpenRequests(
+        new Date(filedAt.getTime() + SUPPRESSION_SETTLE_MS + 61000),
+      );
+
+      jest.restoreAllMocks();
+
+      // The findings were read and changed, the events and the vault too.
+      expect(
+        sent.some((text: string): boolean => {
+          return text.includes("findingTime");
+        }),
+      ).toBe(true);
+      expect(
+        sent.some((text: string): boolean => {
+          return text.includes("UPDATE observables = arrayMap(");
+        }),
+      ).toBe(true);
+      expect(
+        sent.some((text: string): boolean => {
+          return text.includes(" DELETE WHERE ");
+        }),
+      ).toBe(true);
+
+      for (const text of sent) {
+        expect(text.toLowerCase()).not.toContain("alice");
+        expect(text.toLowerCase()).not.toContain("example.com");
+      }
+
+      // And ClickHouse's own record of what it was sent: its query log and its mutations.
+      await client.command({ query: "SYSTEM FLUSH LOGS" });
+
+      const logged: Array<JSONObject> = await rowsOf(
+        `SELECT query FROM system.query_log WHERE event_time_microseconds >= fromUnixTimestamp64Micro(toInt64(${windowStart.getTime() * 1000})) AND has(databases, '${database}')`,
+      );
+      const mutations: Array<JSONObject> = await rowsOf(
+        `SELECT command FROM system.mutations WHERE database = '${database}'`,
+      );
+
+      expect(logged.length).toBeGreaterThan(0);
+      expect(mutations.length).toBeGreaterThan(0);
+
+      for (const row of [...logged, ...mutations]) {
+        const text: string = String(
+          row["query"] ?? row["command"],
+        ).toLowerCase();
+
+        expect(text).not.toContain("alice");
+        expect(text).not.toContain("example.com");
+      }
     });
   });
 });

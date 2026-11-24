@@ -1192,6 +1192,7 @@ import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./180918761
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
+import { AddSecurityUserErasureRequestNamesToErase1809187661044 } from "./1809187661044-AddSecurityUserErasureRequestNamesToErase";
 
 export default [
   InitialMigration,
@@ -2388,4 +2389,5 @@ export default [
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
   AddSecurityUserErasureRequest1809187650908,
+  AddSecurityUserErasureRequestNamesToErase1809187661044,
 ];

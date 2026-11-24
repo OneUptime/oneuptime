@@ -44,6 +44,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *     wipes it the moment the request is over, Completed or Failed. It is
  *     kept that long only so the worker can find the person in the cases,
  *     detections and proposals that name them;
+ *   - namesToErase, who the worker found the person named as, is kept the
+ *     same way and wiped with it: the Detection Findings a rule wrote about
+ *     the person name them with no token beside them, so the worker needs
+ *     the names on every run until it has checked none is left (#11044);
  *   - tokens, the tokens a Hash rule of the project makes of it, are kept
  *     for good: the keyed pseudonyms the logs and traces already hold, which
  *     no one without the server's encryption secret can work back to the
@@ -84,6 +88,7 @@ const CREATE_PERMISSIONS: Array<Permission> = [
  */
 const WORKER_COLUMNS: Array<string> = [
   "userToErase",
+  "namesToErase",
   "status",
   "completedAt",
   "attempts",
@@ -212,6 +217,38 @@ export default class SecurityUserErasureRequest extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public userToErase?: string = undefined;
+
+  /*
+   * Write-only (read: []) and encrypted at rest, as userToErase: who the
+   * worker found the person named as - what was typed, the vault's rows of
+   * the tokens, the users the events it named hold - each with what the
+   * Hash rule left in its place (#11044). The vault's rows and those events
+   * go with the first run, so every later run, and the check that nothing
+   * names the person any more, read the names from here: a Detection
+   * Finding that names them carries no token to be found by. Written only
+   * by the worker, as the server, and wiped with userToErase once the
+   * request is over. See the model's comment.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    encrypted: true,
+    required: false,
+    computed: true,
+    type: TableColumnType.VeryLongText,
+    canReadOnRelationQuery: false,
+    title: "Names to Erase",
+    description:
+      "Who the erasure worker found the person named as, with the token in each one's place. Write-only: kept encrypted, never returned, and wiped once the request is over.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public namesToErase?: string = undefined;
 
   /*
    * computed: the service works them out of userToErase in onBeforeCreate,
