@@ -78,6 +78,8 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/Services/OnCallDutyPolicyService.ts",
   "packages/Common/Server/Services/OnCallDutyPolicyEscalationRuleService.ts",
   "packages/Common/Server/Services/OnCallDutyPolicyScheduleService.ts",
+  // The pages an on-call page's Acknowledge and Escalate links open (#11056).
+  "packages/Common/Server/API/UserOnCallLogTimelineAPI.ts",
   "packages/Common/Server/Services/StatusPageService.ts",
   "packages/Common/Server/Services/StatusPageResourceService.ts",
   "packages/Common/Server/Services/TelemetryIngestionKeyService.ts",

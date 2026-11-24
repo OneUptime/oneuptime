@@ -17,6 +17,14 @@ import Hostname from "../../Types/API/Hostname";
 import Protocol from "../../Types/API/Protocol";
 import URL from "../../Types/API/URL";
 import BadDataException from "../../Types/Exception/BadDataException";
+import {
+  getOnCallLinkRefusalWords,
+  ON_CALL_LINK_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_LINK_ACKNOWLEDGED_TITLE,
+  ON_CALL_LINK_OPEN_ONEUPTIME_LABEL,
+  OnCallLinkRefusal,
+} from "../../Types/OnCallDutyPolicy/OnCallLinkRefusals";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
@@ -276,7 +284,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(
+                getOnCallLinkRefusalWords(OnCallLinkRefusal.Incomplete)
+                  .message,
+              ),
             );
           }
 
@@ -311,7 +322,10 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item Id"),
+              new BadDataException(
+                getOnCallLinkRefusalWords(OnCallLinkRefusal.NotAvailable)
+                  .message,
+              ),
             );
           }
 
@@ -571,22 +585,22 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const itemId: ObjectID | null = this.readItemId(req);
 
           if (!itemId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item ID is required"),
-            );
+            return await this.renderLinkRefused({
+              req: req,
+              res: res,
+              refusal: OnCallLinkRefusal.Incomplete,
+            });
           }
 
           const timelineItem: UserOnCallLogTimeline | null =
             await this.readNotification(itemId);
 
           if (!timelineItem) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid item Id"),
-            );
+            return await this.renderLinkRefused({
+              req: req,
+              res: res,
+              refusal: OnCallLinkRefusal.NotAvailable,
+            });
           }
 
           const record: NotificationRecord =
@@ -635,22 +649,22 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
           const itemId: ObjectID | null = this.readItemId(req);
 
           if (!itemId) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Item ID is required"),
-            );
+            return await this.renderLinkRefused({
+              req: req,
+              res: res,
+              refusal: OnCallLinkRefusal.Incomplete,
+            });
           }
 
           const timelineItem: UserOnCallLogTimeline | null =
             await this.readNotification(itemId);
 
           if (!timelineItem) {
-            return Response.sendErrorResponse(
-              req,
-              res,
-              new BadDataException("Invalid item Id"),
-            );
+            return await this.renderLinkRefused({
+              req: req,
+              res: res,
+              refusal: OnCallLinkRefusal.NotAvailable,
+            });
           }
 
           const record: NotificationRecord =
@@ -743,22 +757,22 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     const itemId: ObjectID | null = this.readItemId(req);
 
     if (!itemId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Item ID is required"),
-      );
+      return await this.renderLinkRefused({
+        req: req,
+        res: res,
+        refusal: OnCallLinkRefusal.Incomplete,
+      });
     }
 
     const timelineItem: UserOnCallLogTimeline | null =
       await this.readNotification(itemId);
 
     if (!timelineItem) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid item Id"),
-      );
+      return await this.renderLinkRefused({
+        req: req,
+        res: res,
+        refusal: OnCallLinkRefusal.NotAvailable,
+      });
     }
 
     // A test page (OnCallTestPage) is about no record: a page of its own.
@@ -896,22 +910,22 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
     const itemId: ObjectID | null = this.readItemId(req);
 
     if (!itemId) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Item ID is required"),
-      );
+      return await this.renderLinkRefused({
+        req: req,
+        res: res,
+        refusal: OnCallLinkRefusal.Incomplete,
+      });
     }
 
     const timelineItem: UserOnCallLogTimeline | null =
       await this.readNotification(itemId);
 
     if (!timelineItem) {
-      return Response.sendErrorResponse(
-        req,
-        res,
-        new BadDataException("Invalid item Id"),
-      );
+      return await this.renderLinkRefused({
+        req: req,
+        res: res,
+        refusal: OnCallLinkRefusal.NotAvailable,
+      });
     }
 
     const proof: OnCallAcknowledgeLinkProof =
@@ -1062,10 +1076,61 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
       );
     }
 
-    return Response.sendErrorResponse(
+    /*
+     * Acknowledged, with no record to open: it was answered "Invalid item
+     * Id" after the page was acknowledged.
+     */
+    return Response.render(
       req,
       res,
-      new BadDataException("Invalid item Id"),
+      "/usr/src/Common/Server/Views/ViewMessage.ejs",
+      {
+        title: ON_CALL_LINK_ACKNOWLEDGED_TITLE,
+        message: ProductBrandingText.brandText(
+          ON_CALL_LINK_ACKNOWLEDGED_MESSAGE,
+        ),
+        statusIcon: "check",
+      },
+    );
+  }
+
+  /*
+   * A link that opens no page (#11056): one with no notification in it or
+   * cut short, or one whose notification is not there. A page that says
+   * which, and what to do next - with the button to OneUptime itself - never
+   * the JSON of an API error. A notification that is not there reads the
+   * same whatever the reason, so the answer says nothing more about an id
+   * than "Invalid item Id" did, with the same status.
+   */
+  private async renderLinkRefused(data: {
+    req: ExpressRequest;
+    res: ExpressResponse;
+    refusal: OnCallLinkRefusal;
+  }): Promise<void> {
+    const words: { title: string; message: string } =
+      getOnCallLinkRefusalWords(data.refusal);
+
+    const host: Hostname = await DatabaseConfig.getHost();
+    const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();
+
+    data.res.status(400);
+
+    return Response.render(
+      data.req,
+      data.res,
+      "/usr/src/Common/Server/Views/ViewMessage.ejs",
+      {
+        title: words.title,
+        message: ProductBrandingText.brandText(words.message),
+        viewDetailsText: ProductBrandingText.brandText(
+          ON_CALL_LINK_OPEN_ONEUPTIME_LABEL,
+        ),
+        viewDetailsUrl: new URL(
+          httpProtocol,
+          host,
+          new Route(DashboardRoute.toString()),
+        ).toString(),
+      },
     );
   }
 

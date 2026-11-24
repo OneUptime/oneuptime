@@ -7,6 +7,10 @@ jest.mock("isolated-vm", () => {
 });
 
 import { mockRouter } from "./Helpers";
+import {
+  ON_CALL_LINK_INCOMPLETE_TITLE,
+  ON_CALL_LINK_PAGE_NOT_AVAILABLE_TITLE,
+} from "../../../Types/OnCallDutyPolicy/OnCallLinkRefusals";
 import UserNotificationLogTimelineAPI from "../../../Server/API/UserOnCallLogTimelineAPI";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import DataMigrationService from "../../../Server/Services/DataMigrationService";
@@ -161,7 +165,7 @@ async function open(uri: string, query: JSONObject = {}): Promise<void> {
       query: query,
       body: {},
     } as unknown as ExpressRequest,
-    {} as unknown as ExpressResponse,
+    { status: jest.fn() } as unknown as ExpressResponse,
     ((err: unknown) => {
       throw err || new Error("the route handler must not fall through");
     }) as unknown as NextFunction,
@@ -179,7 +183,7 @@ async function press(body: JSONObject, query: JSONObject = {}): Promise<void> {
       query: query,
       body: body,
     } as unknown as ExpressRequest,
-    {} as unknown as ExpressResponse,
+    { status: jest.fn() } as unknown as ExpressResponse,
     ((err: unknown) => {
       throw err || new Error("the route handler must not fall through");
     }) as unknown as NextFunction,
@@ -609,12 +613,21 @@ describe("opening the acknowledge address changes nothing", () => {
           params: { itemId: "not-an-id" },
           query: {},
         } as unknown as ExpressRequest,
-        {} as unknown as ExpressResponse,
+        { status: jest.fn() } as unknown as ExpressResponse,
         (() => {}) as unknown as NextFunction,
       );
     }
 
-    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(2);
+    // Each a page that says the link is not complete (#11056), never JSON.
+    const render: jest.Mock = Response.render as unknown as jest.Mock;
+
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(render).toHaveBeenCalledTimes(2);
+    for (const renderCall of render.mock.calls) {
+      expect((renderCall[3] as JSONObject)["title"]).toBe(
+        ON_CALL_LINK_INCOMPLETE_TITLE,
+      );
+    }
     expect(findSpy).not.toHaveBeenCalled();
   });
 });
@@ -693,7 +706,11 @@ describe("the Acknowledge button", () => {
 
     await press({ pageToken: pageToken() });
 
-    expect(Response.sendErrorResponse).toHaveBeenCalledTimes(1);
+    // A page that says it is not available (#11056), and nothing written.
+    expect(Response.sendErrorResponse).not.toHaveBeenCalled();
+    expect(rendered().variables["title"]).toBe(
+      ON_CALL_LINK_PAGE_NOT_AVAILABLE_TITLE,
+    );
     expect(updateSpy).not.toHaveBeenCalled();
   });
 });
