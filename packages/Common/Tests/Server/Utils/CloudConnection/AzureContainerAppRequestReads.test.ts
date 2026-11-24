@@ -15,7 +15,7 @@ import {
 } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
 import {
-  AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+  AZURE_KEY_METRIC_SPLIT_TOP,
   AZURE_STATUS_CODE_CATEGORY_ATTRIBUTE,
   AZURE_STATUS_CODE_CATEGORY_DIMENSION,
 } from "../../../../Types/Cloud/CloudKeyMetrics";
@@ -220,6 +220,13 @@ function metricsOf(data: {
   });
 }
 
+// A split filter's dimension, `<dimension> eq '*'`, as a call asks it.
+const SPLIT_FILTER: RegExp = /^(\w+) eq '\*'$/;
+
+function splitByOf(filter: string | null): string {
+  return SPLIT_FILTER.exec(filter || "")?.[1] || "";
+}
+
 function namesOf(url: URL): Array<string> {
   return (url.searchParams.get("metricnames") || "")
     .split(",")
@@ -282,9 +289,7 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
             start: Date.parse(
               (url.searchParams.get("timespan") || "").split("/")[0]!,
             ),
-            splitBy: /^(\w+) eq '\*'$/.exec(
-              url.searchParams.get("$filter") || "",
-            )?.[1]!,
+            splitBy: splitByOf(url.searchParams.get("$filter")),
             options,
           }),
         });
@@ -296,9 +301,7 @@ function createFakeAzure(options: FakeAzureOptions = {}): FakeAzure {
       method: "POST",
       respond: (request: DataSourceHttpRequest, url: URL): FakeResponse => {
         batchCalls.push(url);
-        const splitBy: string =
-          /^(\w+) eq '\*'$/.exec(url.searchParams.get("filter") || "")?.[1] ||
-          "";
+        const splitBy: string = splitByOf(url.searchParams.get("filter"));
 
         if (splitBy && options.splitBatchAnswer) {
           return options.splitBatchAnswer;
@@ -436,7 +439,7 @@ describe("a Container App's request, read through the connection (#10837)", () =
         metricnames: "Requests",
         aggregation: "Total",
         filter: "statusCodeCategory eq '*'",
-        top: String(AZURE_MAX_SPLIT_SERIES_PER_METRIC),
+        top: String(AZURE_KEY_METRIC_SPLIT_TOP),
       }),
     );
     expect(split.searchParams.has("$filter")).toBe(false);
@@ -645,7 +648,7 @@ describe("a Container App's read groups", () => {
       {
         metrics: "Requests",
         splitBy: AZURE_STATUS_CODE_CATEGORY_DIMENSION,
-        top: AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+        top: AZURE_KEY_METRIC_SPLIT_TOP,
         batchesSplit: true,
         reportsCapped: false,
       },
@@ -676,7 +679,7 @@ describe("a Container App's read groups", () => {
       {
         metrics: "Requests",
         splitBy: AZURE_STATUS_CODE_CATEGORY_DIMENSION,
-        top: AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+        top: AZURE_KEY_METRIC_SPLIT_TOP,
         batchesSplit: true,
         reportsCapped: false,
       },

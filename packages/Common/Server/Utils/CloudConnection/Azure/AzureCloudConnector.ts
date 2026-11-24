@@ -4,6 +4,7 @@ import {
   AZURE_FIVE_MINUTE_GRAIN,
   AZURE_FIVE_MINUTE_READ_MINUTES,
   AZURE_MAX_METRICS_PER_RESOURCE,
+  AZURE_KEY_METRIC_SPLIT_TOP,
   AZURE_MAX_SPLIT_SERIES_PER_METRIC,
   AzureTypeKeyMetrics,
   getAzureKeyMetricSplit,
@@ -733,7 +734,7 @@ export function buildAzureMetricRequest(data: {
           : keySplit
             ? {
                 splitBy: keySplit,
-                top: AZURE_MAX_SPLIT_SERIES_PER_METRIC,
+                top: AZURE_KEY_METRIC_SPLIT_TOP,
                 batchesSplit: true,
               }
             : splitBy

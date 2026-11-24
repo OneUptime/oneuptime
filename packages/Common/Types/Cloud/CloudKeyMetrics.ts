@@ -1386,6 +1386,13 @@ export function getAzureDimensionAttribute(dimension: string): string {
  */
 export const AZURE_MAX_SPLIT_SERIES_PER_METRIC: number = 1000;
 
+/*
+ * Series a key metric split alone asks for at most (AzureKeyMetric.splitBy):
+ * Azure Monitor's own default `top`, as metrics:getBatch documents it - a
+ * status code's categories are five at most, so it is never reached.
+ */
+export const AZURE_KEY_METRIC_SPLIT_TOP: number = 10;
+
 function azure(name: string, group: CloudKeyMetricGroup): AzureKeyMetric {
   return { name, group };
 }

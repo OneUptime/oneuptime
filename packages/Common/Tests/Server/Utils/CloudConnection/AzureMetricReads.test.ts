@@ -1015,7 +1015,7 @@ describe("a key metric split alone", () => {
     const whole: AzureMetricRequest<Metric> = requestOf(at, [RESPONSE_TIME]);
     const split: AzureMetricRequest<Metric> = requestOf(at, [REQUESTS], {
       splitBy: "statusCodeCategory",
-      top: 1000,
+      top: 10,
       batchesSplit: true,
     });
 
@@ -1033,7 +1033,7 @@ describe("a key metric split alone", () => {
     );
 
     expect(run.fake.calls.map(shapeOf).sort()).toEqual([
-      "batch Requests statusCodeCategory 1000 3",
+      "batch Requests statusCodeCategory 10 3",
       "batch ResponseTime - - 3",
     ]);
     expect(result.batchCalls).toBe(2);
@@ -1101,7 +1101,7 @@ describe("a key metric split alone", () => {
       metricnames: "Requests",
       aggregation: "Total",
       filter: "statusCodeCategory eq '*'",
-      top: "1000",
+      top: "10",
       "api-version": "2023-10-01",
     });
   });
@@ -1113,7 +1113,7 @@ describe("a key metric split alone", () => {
     );
 
     expect(run.fake.calls.map(shapeOf).sort()).toEqual([
-      "single Requests statusCodeCategory 1000 1",
+      "single Requests statusCodeCategory 10 1",
       "single ResponseTime - - 1",
     ]);
 
@@ -1148,10 +1148,10 @@ describe("a key metric split alone", () => {
     );
 
     expect(run.fake.calls.map(shapeOf).sort()).toEqual([
-      "batch Requests statusCodeCategory 1000 2",
+      "batch Requests statusCodeCategory 10 2",
       "batch ResponseTime - - 2",
-      "single Requests statusCodeCategory 1000 1",
-      "single Requests statusCodeCategory 1000 1",
+      "single Requests statusCodeCategory 10 1",
+      "single Requests statusCodeCategory 10 1",
     ]);
     expect(result.batchRefusals).toHaveLength(1);
     expect(readNames(result)).toEqual([
