@@ -270,6 +270,7 @@ export const SECURITY_CAMPAIGN_TEST_IDS: {
   clearSelection: string;
   groupByNetwork: string;
   networkRow: string;
+  networkRequests: string;
   challengeNetwork: string;
   rowBlock: string;
   checklist: string;
@@ -287,6 +288,7 @@ export const SECURITY_CAMPAIGN_TEST_IDS: {
   clearSelection: "security-campaigns-clear-selection",
   groupByNetwork: "security-campaigns-group-by-network",
   networkRow: "security-attack-network",
+  networkRequests: "security-attack-network-requests",
   challengeNetwork: "security-attack-network-challenge",
   rowBlock: "security-campaign-row-block",
   checklist: "security-campaign-checklist",

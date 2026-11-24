@@ -7,6 +7,15 @@ import {
   readSecurityAttackCampaign,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
 import SecurityEventRequestOutcome from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import { SecurityAttackNetworkKind } from "Common/Types/SecurityEvent/SecurityAttackNetwork";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import Wildcard from "Common/Types/BaseDatabase/Wildcard";
+import { toLikePattern } from "Common/Types/BaseDatabase/WildcardPattern";
+import {
+  SecurityEventSearchFilters,
+  applySecurityEventFacetFiltersToQuery,
+  parseSecurityEventSearch,
+} from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
   Translator,
   createTranslator,
@@ -332,5 +341,146 @@ describe("the links", () => {
     expect(
       Model.buildCampaignCorrelateRoute(campaign({ sourceIp: "" })),
     ).toBeNull();
+  });
+});
+
+/*
+ * A NETWORK ROW'S REQUESTS (#10896): View requests on a network row opens
+ * the events list on what the network sent over the page's window - an ASN
+ * row by the ASN its Cloudflare events carry, a /24 or a /48 by its
+ * addresses, in a search the person sees and can change - as an address
+ * row's opens its own.
+ */
+describe("a network row's requests", () => {
+  const startTime: Date = new Date("2026-10-20T12:00:00.000Z");
+
+  function networkRoute(
+    network: string,
+    kind: SecurityAttackNetworkKind | "",
+  ): ReturnType<typeof Model.buildCampaignNetworkEventsRoute> {
+    return Model.buildCampaignNetworkEventsRoute({
+      network: { network, kind },
+      startTime,
+      endTime: NOW,
+    });
+  }
+
+  test("an ASN row opens the web attacks whose Cloudflare events carry its ASN, over the window", () => {
+    const route: ReturnType<typeof Model.buildCampaignNetworkEventsRoute> =
+      networkRoute("AS14061", SecurityAttackNetworkKind.Asn);
+    const query: URLSearchParams = queryOf(route!);
+
+    expect(route!.toString().split("?")[0]).toContain("/security-events");
+    expect(route!.toString().split("?")[0]).not.toContain("/correlate");
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["className", "HTTP Activity"],
+      ["attributes.cloudflare.client.asn", "14061"],
+      ["attributes.cloudflare.client.asn", "AS14061"],
+    ]);
+    expect(query.get("start")).toBe(startTime.toISOString());
+    expect(query.get("end")).toBe(NOW.toISOString());
+    // No search: the ASN is a chip of its own.
+    expect(query.get("search")).toBeNull();
+  });
+
+  test("the ASN's chips read as one filter of either spelling, on the attribute Cloudflare's events carry", () => {
+    const query: URLSearchParams = queryOf(
+      networkRoute("AS14061", SecurityAttackNetworkKind.Asn)!,
+    );
+    const chips: Map<string, Set<string>> = new Map();
+
+    for (const [key, value] of JSON.parse(query.get("filters")!) as Array<
+      [string, string]
+    >) {
+      chips.set(key, new Set([...(chips.get(key) || []), value]));
+    }
+
+    const compiled: Record<string, unknown> =
+      applySecurityEventFacetFiltersToQuery({
+        query: {},
+        filters: chips,
+      }) as Record<string, unknown>;
+
+    expect(compiled["className"]).toBe("HTTP Activity");
+    expect(
+      (compiled["attributes"] as Record<string, unknown>)[
+        "cloudflare.client.asn"
+      ],
+    ).toEqual(new Includes(["14061", "AS14061"]));
+  });
+
+  test("a /24 row opens the web attacks from its addresses, in a search the person sees", () => {
+    const query: URLSearchParams = queryOf(
+      networkRoute("203.0.113.0/24", SecurityAttackNetworkKind.Range)!,
+    );
+
+    expect(JSON.parse(query.get("filters")!)).toEqual([
+      ["className", "HTTP Activity"],
+    ]);
+    expect(query.get("search")).toBe("ip:203.0.113.*");
+    expect(query.get("start")).toBe(startTime.toISOString());
+    expect(query.get("end")).toBe(NOW.toISOString());
+  });
+
+  test("a /48 row's search names every way its addresses are written", () => {
+    expect(
+      queryOf(
+        networkRoute("2001:db8:85a3::/48", SecurityAttackNetworkKind.Range)!,
+      ).get("search"),
+    ).toBe("ip:(2001:db8:85a3:* OR 2001:0db8:85a3:*)");
+    expect(
+      queryOf(
+        networkRoute("2001:db8::/48", SecurityAttackNetworkKind.Range)!,
+      ).get("search"),
+    ).toBe("ip:(2001:db8:0:* OR 2001:db8::* OR 2001:0db8:0000:*)");
+    expect(
+      queryOf(
+        networkRoute("2a03:2880:f0ff::/48", SecurityAttackNetworkKind.Range)!,
+      ).get("search"),
+    ).toBe("ip:2a03:2880:f0ff:*");
+  });
+
+  test.each([
+    ["203.0.113.0/24", ["203.0.113.*"]],
+    ["2001:db8:85a3::/48", ["2001:db8:85a3:*", "2001:0db8:85a3:*"]],
+    ["2001:db8::/48", ["2001:db8:0:*", "2001:db8::*", "2001:0db8:0000:*"]],
+  ])(
+    "the search for %s reads, in the explorer's own grammar, as the address matching its globs",
+    (range: string, globs: Array<string>) => {
+      const search: string = queryOf(
+        networkRoute(range, SecurityAttackNetworkKind.Range)!,
+      ).get("search")!;
+      const parsed: SecurityEventSearchFilters =
+        parseSecurityEventSearch(search);
+
+      expect(parsed.freeText).toBeNull();
+      expect(parsed.attributes).toEqual({});
+      expect(Object.keys(parsed.fields)).toEqual(["principalIp"]);
+      expect(parsed.fields["principalIp"]).toBeInstanceOf(Wildcard);
+      expect((parsed.fields["principalIp"] as Wildcard).toPatterns()).toEqual(
+        globs.map((glob: string): string => {
+          return toLikePattern(glob);
+        }),
+      );
+    },
+  );
+
+  test("the row of requests whose address nobody knew has no link", () => {
+    expect(networkRoute("", "")).toBeNull();
+  });
+
+  test("a row OneUptime cannot read has no link rather than a wrong one", () => {
+    expect(networkRoute("AS0", SecurityAttackNetworkKind.Asn)).toBeNull();
+    expect(
+      networkRoute("203.0.113.0/25", SecurityAttackNetworkKind.Range),
+    ).toBeNull();
+  });
+
+  test("writes no search for no globs, one glob bare, and several as a list", () => {
+    expect(Model.writeNetworkAddressSearch([])).toBe("");
+    expect(Model.writeNetworkAddressSearch(["10.0.4.*"])).toBe("ip:10.0.4.*");
+    expect(Model.writeNetworkAddressSearch(["a:*", "b:*"])).toBe(
+      "ip:(a:* OR b:*)",
+    );
   });
 });
