@@ -927,8 +927,13 @@ describe("the test", () => {
 
     expect(answer).toHaveTextContent("The key or secret was not accepted.");
     expect(answer).toHaveTextContent("Copy everything the command printed");
+    // The cloud's own answer, folded under Details (#7268).
+    expect(answer).not.toHaveTextContent("AADSTS7000215");
+
+    fireEvent.click(screen.getByTestId("cloud-connection-test-details-toggle"));
+
     expect(
-      screen.getByTestId("cloud-connection-test-details"),
+      screen.getByTestId("cloud-connection-test-details-words"),
     ).toHaveTextContent("AADSTS7000215: Invalid client secret provided.");
     expect(screen.queryByTestId("cloud-test-found")).not.toBeInTheDocument();
   });

@@ -19,6 +19,8 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { ChannelVerificationMessages } from "../../../Types/UserNotification/ChannelVerificationMessages";
 import UserType from "../../../Types/UserType";
+import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceRefusal from "../../../Utils/Workspace/WorkspaceRefusal";
 import { mockRouter } from "./Helpers";
 import { getJestSpyOn } from "../../Spy";
 import {
@@ -104,6 +106,13 @@ const workspaceSend: (error?: Error) => ReturnType<typeof getJestSpyOn> = (
   return error
     ? spy.mockRejectedValue(error as never)
     : spy.mockResolvedValue(undefined as never);
+};
+
+// Each chat tool's workspace, by the name a failed send gives it.
+const TOOL_WORKSPACES: Record<string, WorkspaceType> = {
+  Slack: WorkspaceType.Slack,
+  "Microsoft Teams": WorkspaceType.MicrosoftTeams,
+  Mattermost: WorkspaceType.Mattermost,
 };
 
 const ROUTES: Array<TestRoute> = [
@@ -377,6 +386,40 @@ describe.each(
       .body;
 
     expect(body).toEqual({ ok: false, statusMessage: reason });
+  });
+
+  /*
+   * A refusal of the tool's is said in OneUptime's words, and the tool's own
+   * answer goes beside them, for the dialog's Details (#7268): not glued
+   * after the sentence ("... Slack said: is_archived.").
+   */
+  test("says the tool's refusal in OneUptime's words, and hands the tool's own answer on beside them", async () => {
+    const workspaceType: WorkspaceType = TOOL_WORKSPACES[route.tool!]!;
+    const reason: string =
+      "The Slack channel is archived. Unarchive it in Slack, or pick another channel.";
+
+    route.stubRead(USER_ID);
+    route.stubSend(
+      new Error(
+        WorkspaceRefusal.withDetail({
+          reason: reason,
+          workspaceType: workspaceType,
+          detail: "is_archived",
+        }),
+      ),
+    );
+
+    const answer: Answer = await send(route, { itemId: ITEM_ID.toString() });
+    const body: JSONObject = (answer as { kind: "answered"; body: JSONObject })
+      .body;
+
+    expect(body).toEqual({
+      ok: false,
+      statusMessage: reason,
+      otherSystemDetails: "is_archived",
+    });
+    expect(meetsErrorMessageRule(body["statusMessage"] as string)).toBe(true);
+    expect(body["statusMessage"]).not.toContain("said:");
   });
 });
 

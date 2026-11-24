@@ -1,5 +1,6 @@
 import { JSONObject } from "Common/Types/JSON";
 import { UNEXPLAINED_ERROR_MESSAGES } from "Common/Types/Exception/UnexplainedError";
+import { readOtherSystemDetails } from "Common/Types/Exception/OtherSystemFailure";
 
 /*
  * WHAT A CHAT TOOL'S SEND TEST ANSWERED.
@@ -12,11 +13,15 @@ import { UNEXPLAINED_ERROR_MESSAGES } from "Common/Types/Exception/UnexplainedEr
  * connected, the app not installed in Teams - was said in a green "sent"
  * toast with the failure's words in it. A failure stays in the page's
  * "Test message not sent" dialog, to be read; only a test that went out is
- * said in the corner.
+ * said in the corner. The tool's own answer, when it gave one, comes
+ * beside the reason (otherSystemDetails), for the dialog to fold under
+ * Details (#7268).
  */
 export interface ChatTestAnswer {
   isSent: boolean;
   message: string;
+  // The tool's own answer to a test that was not sent, as it gave it.
+  details: string | null;
 }
 
 export const readChatTestAnswer: (
@@ -36,8 +41,13 @@ export const readChatTestAnswer: (
     return {
       isSent: false,
       message: statusMessage || UNEXPLAINED_ERROR_MESSAGES.server,
+      details: readOtherSystemDetails(data),
     };
   }
 
-  return { isSent: true, message: statusMessage || sentMessage };
+  return {
+    isSent: true,
+    message: statusMessage || sentMessage,
+    details: null,
+  };
 };

@@ -9,6 +9,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import { getWorkspaceTestSendFailureAnswer } from "../Utils/Workspace/WorkspaceTestSendFailure";
 import BaseAPI from "./BaseAPI";
 import TestSendAccess, { TestSendToSelfCaller } from "./TestSendAccess";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -104,15 +105,18 @@ export default class UserSlackAPI extends BaseAPI<
               userId: item.userId!,
             });
           } catch (err) {
-            const message: string =
-              err instanceof Error && err.message
-                ? err.message
-                : "The test message was not sent, and Slack did not say why. Try again in a moment.";
-
-            return Response.sendJsonObjectResponse(req, res, {
-              ok: false,
-              statusMessage: message,
-            });
+            /*
+             * OneUptime's words first, the tool's own answer beside them
+             * for the dialog's Details (WorkspaceTestSendFailure, #7268).
+             */
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              getWorkspaceTestSendFailureAnswer({
+                error: err,
+                workspaceType: WorkspaceType.Slack,
+              }),
+            );
           }
 
           return Response.sendJsonObjectResponse(req, res, {

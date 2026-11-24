@@ -333,8 +333,12 @@ test.describe("connecting Azure", () => {
     );
     await expect(answer).toContainText("The key or secret was not accepted.");
     await expect(answer).toContainText("Copy everything the command printed");
+    // The cloud's own answer, folded under Details (#7268).
+    await dialog(page)
+      .getByTestId("cloud-connection-test-details-toggle")
+      .click();
     await expect(
-      dialog(page).getByTestId("cloud-connection-test-details"),
+      dialog(page).getByTestId("cloud-connection-test-details-words"),
     ).toContainText("AADSTS7000215");
     await expectNoSidewaysScroll(page, { tolerance: 1 });
     await shoot(page, "azure-test-fail");
@@ -1017,9 +1021,10 @@ test.describe("the connected accounts", () => {
     ).toContainText(
       "Signed in, but this access cannot read what OneUptime needs.",
     );
-    await expect(page.getByTestId("cloud-connection-error")).toContainText(
-      "Microsoft.Insights/metrics/read",
-    );
+    await page.getByTestId("cloud-connection-error-details-toggle").click();
+    await expect(
+      page.getByTestId("cloud-connection-error-details-words"),
+    ).toContainText("Microsoft.Insights/metrics/read");
     await shoot(page, "connect-last-error");
   });
 

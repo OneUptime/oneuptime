@@ -27,6 +27,7 @@ import {
   getResourceCountWords,
 } from "./CloudConnectionWords";
 import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
+import OtherSystemDetails from "Common/UI/Components/ErrorMessage/OtherSystemDetails";
 
 /*
  * "Test connection": sign in with the settings as they are, and count a
@@ -235,18 +236,16 @@ export const CloudConnectionTestAnswer: FunctionComponent<
         <></>
       )}
 
+      {/*
+       * The cloud's own answer, folded under Details with its copy button
+       * (#7268): what went wrong and what to do are the words above.
+       */}
       {words.details ? (
-        <div className="ml-6 mt-3">
-          <div className="text-xs font-medium text-gray-500">
-            {translator.translateText("Details")}
-          </div>
-          <div
-            className="mt-1 max-h-40 overflow-y-auto break-words rounded-md bg-white px-3 py-2 font-mono text-xs text-gray-700 ring-1 ring-inset ring-gray-200"
-            data-testid="cloud-connection-test-details"
-          >
-            {drawCloudFailureDetails(translator, words.details)}
-          </div>
-        </div>
+        <OtherSystemDetails
+          details={drawCloudFailureDetails(translator, words.details)}
+          className="ml-6 mt-3"
+          dataTestId="cloud-connection-test-details"
+        />
       ) : (
         <></>
       )}

@@ -100,6 +100,13 @@ function textOf(element: Element): string {
   return withoutIsolateMarks(element.textContent || "");
 }
 
+// The refusal, folded under Details (#7268): opened, as a person opens it.
+function openedDetails(): HTMLElement {
+  fireEvent.click(screen.getByTestId("cloud-connection-test-details-toggle"));
+
+  return screen.getByTestId("cloud-connection-test-details-words");
+}
+
 beforeAll(async () => {
   const resources: Record<string, { translation: Record<string, string> }> = {};
 
@@ -135,9 +142,7 @@ describe("a test that refuses an AWS role without the project's external id", ()
     );
     expect(answer).toHaveTextContent(AWS_ROLE_WITHOUT_EXTERNAL_ID_WORDS.advice);
     expect(answer).not.toHaveTextContent("A setting is not right.");
-    expect(textOf(screen.getByTestId("cloud-connection-test-details"))).toBe(
-      REFUSAL,
-    );
+    expect(textOf(openedDetails())).toBe(REFUSAL);
   });
 
   test.each(
@@ -153,9 +158,8 @@ describe("a test that refuses an AWS role without the project's external id", ()
       await inLanguage(language);
 
       const answer: HTMLElement = await testedAnswer();
-      const details: string = textOf(
-        screen.getByTestId("cloud-connection-test-details"),
-      );
+      const folded: string = textOf(answer);
+      const details: string = textOf(openedDetails());
 
       expect(textOf(answer)).toContain(
         withoutIsolateMarks(
@@ -178,7 +182,7 @@ describe("a test that refuses an AWS role without the project's external id", ()
       // The exact condition, and none of the English around it.
       expect(details).toContain(CONDITION);
       expect(details).not.toContain("trusts OneUptime");
-      expect(textOf(answer)).not.toContain("external ID");
+      expect(folded).not.toContain("external ID");
     },
   );
 });
