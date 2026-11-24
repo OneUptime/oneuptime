@@ -1,4 +1,5 @@
 import { higherConfidence } from "../../../../Types/DataSecurity/DataConfidence";
+import { writeScanWarning } from "../../../../Types/DataSecurity/ScanWarnings";
 import { JSONObject } from "../../../../Types/JSON";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
 import {
@@ -91,8 +92,12 @@ export const LOCATION_SEPARATOR: string = " › ";
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
-// Formats known by their extension that no reader reads: not even fetched.
-const UNREAD_EXTENSIONS: ReadonlyMap<string, string> = new Map([
+/*
+ * Formats known by their extension that no reader reads: not even fetched.
+ * Each is named as a scan's warning names it: one of SCAN_FORMAT_NAMES
+ * (Types/DataSecurity/ScanWarnings), drawn translated.
+ */
+export const UNREAD_EXTENSIONS: ReadonlyMap<string, string> = new Map([
   ["png", "PNG image"],
   ["jpg", "JPEG image"],
   ["jpeg", "JPEG image"],
@@ -459,8 +464,14 @@ export async function sampleObjectStore(
       isComplete = false;
       warn(
         error instanceof ScanDeadlineError
-          ? `The scan reached its time limit while listing ${reader.description}, after ${listed} objects.`
-          : `Could not list the objects of ${reader.description}: ${describeError(error)}`,
+          ? writeScanWarning("objectsTimeLimitWhileListing", {
+              store: reader.description,
+              count: listed,
+            })
+          : writeScanWarning("objectsCouldNotList", {
+              store: reader.description,
+              error: describeError(error),
+            }),
       );
       break;
     }
@@ -531,7 +542,10 @@ export async function sampleObjectStore(
 
     if (listed >= maxListed) {
       warn(
-        `Listed the first ${listed} objects of ${reader.description}; the patterns of the objects after them were not sampled.`,
+        writeScanWarning("objectsListedFirst", {
+          count: listed,
+          store: reader.description,
+        }),
       );
       break;
     }
@@ -541,7 +555,12 @@ export async function sampleObjectStore(
     group.objects.sort(byRecency);
 
     for (const [format] of group.unreadFormats) {
-      warn(`${group.pattern}: not scanned: ${format} is not supported yet`);
+      warn(
+        writeScanWarning("patternFormatNotSupported", {
+          pattern: group.pattern,
+          format,
+        }),
+      );
     }
   }
 
@@ -605,7 +624,10 @@ export async function sampleObjectStore(
   if (unsampled > 0) {
     isComplete = false;
     warn(
-      `${unsampled} patterns were not sampled: the scan reads at most ${maxObjects} objects.`,
+      writeScanWarning("objectsPatternsNotSampled", {
+        count: unsampled,
+        max: maxObjects,
+      }),
     );
   }
 
@@ -628,7 +650,10 @@ export async function sampleObjectStore(
     if (Date.now() >= deadline.getTime()) {
       isComplete = false;
       warn(
-        `The scan reached its time limit after reading ${result.objectsRead} of ${picks.length} objects.`,
+        writeScanWarning("objectsTimeLimitAfterObjects", {
+          read: result.objectsRead,
+          total: picks.length,
+        }),
       );
       break;
     }
@@ -638,7 +663,11 @@ export async function sampleObjectStore(
     if (budgetLeft <= 0) {
       isComplete = false;
       warn(
-        `The scan read its ${limits.maxBytesTotal} bytes after ${result.objectsRead} of ${picks.length} objects.`,
+        writeScanWarning("objectsBytesAfterObjects", {
+          bytes: limits.maxBytesTotal,
+          read: result.objectsRead,
+          total: picks.length,
+        }),
       );
       break;
     }
@@ -659,12 +688,20 @@ export async function sampleObjectStore(
 
       if (error instanceof ScanDeadlineError) {
         warn(
-          `The scan reached its time limit after reading ${result.objectsRead} of ${picks.length} objects.`,
+          writeScanWarning("objectsTimeLimitAfterObjects", {
+            read: result.objectsRead,
+            total: picks.length,
+          }),
         );
         break;
       }
 
-      warn(`Could not read ${key}: ${describeError(error)}`);
+      warn(
+        writeScanWarning("objectsCouldNotRead", {
+          key,
+          error: describeError(error),
+        }),
+      );
       continue;
     }
 
@@ -697,7 +734,12 @@ export async function sampleObjectStore(
       });
     } catch (error) {
       isComplete = false;
-      warn(`Could not classify ${key}: ${describeError(error)}`);
+      warn(
+        writeScanWarning("objectsCouldNotClassify", {
+          key,
+          error: describeError(error),
+        }),
+      );
       continue;
     }
 

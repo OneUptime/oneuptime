@@ -1,3 +1,8 @@
+import {
+  describeScanDuration,
+  writeScanWarning,
+} from "../../../../Types/DataSecurity/ScanWarnings";
+
 /*
  * HOW MUCH MODEL TIME A SCAN MAY SPEND, AND WHAT IT SAYS WHEN IT RAN OUT.
  *
@@ -7,7 +12,9 @@
  * starts once either has spent its share, as no object is read once a scan
  * has read its bytes. A scan that ran out still finishes, with what the
  * model read; its warnings say how much that was - how many of the free-text
- * values it was to read - never what.
+ * values it was to read - never what. They are written from the scan
+ * warnings' templates (Types/DataSecurity/ScanWarnings.ts), which a scan's
+ * details draw in the reader's language (#10930).
  *
  * The budgets are the server's, not a project's setting: model time is the
  * CPU of OneUptime's workers and of probes, shared by every project they
@@ -37,15 +44,7 @@ export type BudgetScope = "content" | "telemetry" | "reread";
 
 // "2 minutes", "6 seconds": a budget as its warning says it.
 export function describeDuration(milliseconds: number): string {
-  const seconds: number = Math.max(1, Math.round(milliseconds / 1000));
-
-  if (seconds % 60 === 0) {
-    const minutes: number = seconds / 60;
-
-    return minutes === 1 ? "1 minute" : `${minutes} minutes`;
-  }
-
-  return seconds === 1 ? "1 second" : `${seconds} seconds`;
+  return describeScanDuration(milliseconds);
 }
 
 export class ModelStoreBudget {
@@ -145,13 +144,18 @@ export class ModelStoreBudget {
       return [];
     }
 
-    const limit: string =
-      this.runOutBy === "store"
-        ? `this store's ${describeDuration(this.limitInMs)} of model time`
-        : `the scan's ${describeDuration(this.scan.limitInMs)} of model time`;
-
     return [
-      `Names and street addresses were looked for in ${this.read} of ${this.toRead} free-text values: ${limit} ran out.`,
+      this.runOutBy === "store"
+        ? writeScanWarning("modelStoreTimeRanOut", {
+            read: this.read,
+            total: this.toRead,
+            limit: this.limitInMs,
+          })
+        : writeScanWarning("modelScanTimeRanOut", {
+            read: this.read,
+            total: this.toRead,
+            limit: this.scan.limitInMs,
+          }),
     ];
   }
 }

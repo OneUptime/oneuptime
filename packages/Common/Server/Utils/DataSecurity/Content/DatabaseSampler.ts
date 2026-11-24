@@ -22,6 +22,7 @@ import {
 } from "../DataSecurityScanTypes";
 import { FingerprintAccumulator } from "../Fingerprint";
 import { CONTENT_STORE_KEY, recognizeFields } from "../Model/ModelScan";
+import { writeScanWarning } from "../../../../Types/DataSecurity/ScanWarnings";
 import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import {
   classifyCollectedFields,
@@ -1072,9 +1073,7 @@ export async function sampleDatabase(
 
   // No time left: not even a connection is made.
   if (Date.now() >= deadline) {
-    result.warnings = [
-      "The scan reached its time limit before it could connect.",
-    ];
+    result.warnings = [writeScanWarning("databaseTimeLimitBeforeConnecting")];
     result.isComplete = false;
     return result;
   }
@@ -1101,7 +1100,9 @@ export async function sampleDatabase(
       );
     } catch (error) {
       warn(
-        `Could not list the tables: ${sanitizeErrorMessage(error, secrets)}`,
+        writeScanWarning("databaseCouldNotListTables", {
+          error: sanitizeErrorMessage(error, secrets),
+        }),
       );
       result.warnings = warnings;
       result.isComplete = false;
@@ -1116,7 +1117,10 @@ export async function sampleDatabase(
     if (eligible > chosen.length) {
       isComplete = false;
       warn(
-        `${eligible - chosen.length} tables were not sampled: the scan reads at most ${limits.maxTables} tables.`,
+        writeScanWarning("databaseTablesNotSampled", {
+          count: eligible - chosen.length,
+          max: limits.maxTables,
+        }),
       );
     }
 
@@ -1129,7 +1133,10 @@ export async function sampleDatabase(
       if (timeLeft <= 0) {
         isComplete = false;
         warn(
-          `The scan reached its time limit after ${result.objectsRead} of ${chosen.length} tables.`,
+          writeScanWarning("databaseTimeLimitAfterTables", {
+            read: result.objectsRead,
+            total: chosen.length,
+          }),
         );
         break;
       }
@@ -1137,7 +1144,11 @@ export async function sampleDatabase(
       if (result.bytesRead >= limits.maxBytesTotal) {
         isComplete = false;
         warn(
-          `The scan read its ${limits.maxBytesTotal} bytes after ${result.objectsRead} of ${chosen.length} tables.`,
+          writeScanWarning("databaseBytesAfterTables", {
+            bytes: limits.maxBytesTotal,
+            read: result.objectsRead,
+            total: chosen.length,
+          }),
         );
         break;
       }
@@ -1145,7 +1156,9 @@ export async function sampleDatabase(
       if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         isComplete = false;
         warn(
-          `The scan stopped after ${MAX_CONSECUTIVE_FAILURES} tables in a row could not be read.`,
+          writeScanWarning("databaseFailuresInARow", {
+            count: MAX_CONSECUTIVE_FAILURES,
+          }),
         );
         break;
       }
@@ -1247,7 +1260,10 @@ export async function sampleDatabase(
         consecutiveFailures++;
         isComplete = false;
         warn(
-          `Could not sample ${name}: ${sanitizeErrorMessage(error, secrets)}`,
+          writeScanWarning("databaseCouldNotSampleTable", {
+            table: name,
+            error: sanitizeErrorMessage(error, secrets),
+          }),
         );
       }
     }
