@@ -3,15 +3,34 @@ import AndroidAgentRedactor, {
 } from "../../../Utils/Host/AndroidAgentRedactor";
 import { describe, expect, test } from "@jest/globals";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
+import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import {
+  JavaScriptPattern,
+  KotlinStringLiteral,
+  javaScriptForm,
+  kotlinStringLiterals,
+} from "../../Helpers/KotlinPatterns";
+import { REPOSITORY_DIRECTORY } from "../../Helpers/TagStripScan";
+import fs from "fs";
+import path from "path";
+import ts from "typescript";
 
 /*
  * The Android agent's redaction, as OneUptime runs it over what it sends to
  * a device (a log session's note, #9966). Every case is one of the agent's
  * own (agents/AndroidAgent RedactorTest.kt), with the same answer: a text
  * reads the same on the device whichever of the two redacted it. Only the
- * token's own block at the end is ours: it holds the JavaScript form of the
- * agent's token pattern, read once per run, to the tokens the agent's finds.
+ * token's own block and the patterns' at the end are ours: they hold the
+ * server's patterns to the agent's, read from its Kotlin.
  */
+
+const AGENT_REDACTOR: string =
+  "agents/AndroidAgent/app/src/main/java/com/oneuptime/androidagent/logs/Redactor.kt";
+const SERVER_REDACTOR: string =
+  "packages/Common/Utils/Host/AndroidAgentRedactor.ts";
+
+const JWT: string =
+  "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
 
 function redact(text: string | null | undefined): string {
   return AndroidAgentRedactor.redact(text);
@@ -50,6 +69,140 @@ describe("a card number", () => {
     expect(AndroidAgentRedactor.looksLikeCardNumber("1111111111111117")).toBe(
       false,
     );
+    // A digit of another script is no card's.
+    expect(
+      AndroidAgentRedactor.passesLuhn(
+        "\u0664\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661\u0661",
+      ),
+    ).toBe(false);
+    expect(AndroidAgentRedactor.passesLuhn("411111111111111\u0661")).toBe(
+      false,
+    );
+    expect(
+      AndroidAgentRedactor.looksLikeCardNumber("411111111111111\uff11"),
+    ).toBe(false);
+  });
+
+  test("beside another number is taken out", () => {
+    // Its expiry date, an amount or a code after it, one space or dash between.
+    expect(redact("4111 1111 1111 1111 12/25")).toBe("[card number] 12/25");
+    expect(redact("card 4111111111111111 123")).toBe("card [card number] 123");
+    expect(redact("有效 4111111111111111 123元")).toBe(
+      "有效 [card number] 123元",
+    );
+    expect(redact("卡号 4111 1111 1111 1111 12月到期")).toBe(
+      "卡号 [card number] 12月到期",
+    );
+    expect(redact("4111-1111-1111-1111-1号")).toBe("[card number]-1号");
+    // A number before it.
+    expect(redact("1 4111 1111 1111 1111")).toBe("1 [card number]");
+    expect(redact("号12 4111 1111 1111 1111")).toBe("号12 [card number]");
+    expect(redact("订单号1234 4111 1111 1111 1111")).toBe(
+      "订单号1234 [card number]",
+    );
+    // Two in one run, and a run too long for one.
+    expect(redact("4111 1111 1111 1111 5500 0000 0000 0004")).toBe(
+      "[card number] [card number]",
+    );
+    expect(redact("4111 1111 1111 1111 1111 1111")).toBe(
+      "[card number] 1111 1111",
+    );
+    // Numbers that hold no card stay, whole.
+    expect(redact("1795076857467 1795076857467")).toBe(
+      "1795076857467 1795076857467",
+    );
+    expect(redact("12 34 56 78 90 12 34")).toBe("12 34 56 78 90 12 34");
+    expect(redact("4111 1111 1111 1112 12/25")).toBe(
+      "4111 1111 1111 1112 12/25",
+    );
+  });
+});
+
+describe("a secret written right against a letter of another script", () => {
+  test("is taken out, as on the device (#10835)", () => {
+    expect(redact("支付失败，卡号4111111111111111")).toBe(
+      "支付失败，卡号[card number]",
+    );
+    expect(redact("4111111111111111已拒绝")).toBe("[card number]已拒绝");
+    expect(redact("邮箱jane@example.com")).toBe("邮箱[email]");
+    expect(redact("jane@example.com已发送")).toBe("[email]已发送");
+    expect(redact("令牌Bearer abcdefghijklmnop")).toBe(
+      "令牌Bearer [credential]",
+    );
+    expect(redact(`令牌${JWT}`)).toBe("令牌[token]");
+    expect(redact("用户password=hunter2")).toBe("用户password=[redacted]");
+    expect(redact("カード番号4111 1111 1111 1111です")).toBe(
+      "カード番号[card number]です",
+    );
+    expect(redact(`トークン${JWT}を送信`)).toBe("トークン[token]を送信");
+    expect(
+      redact("メールjane.doe+kiosk@example.co.ukに送信しました"),
+    ).toBe("メール[email]に送信しました");
+    // Korean, Arabic, Cyrillic, Thai and Devanagari.
+    expect(redact("카드번호4111111111111111승인거절")).toBe(
+      "카드번호[card number]승인거절",
+    );
+    expect(redact("이메일jane@example.com으로")).toBe("이메일[email]으로");
+    expect(redact("토큰Bearer abcdefghijklmnop")).toBe(
+      "토큰Bearer [credential]",
+    );
+    expect(redact("رقم البطاقة5500-0000-0000-0004")).toBe(
+      "رقم البطاقة[card number]",
+    );
+    expect(redact("البريدjane@example.com")).toBe("البريد[email]");
+    expect(redact("номер4111111111111111отклонён")).toBe(
+      "номер[card number]отклонён",
+    );
+    expect(redact("ключBasic dXNlcjpwYXNzd29yZA==")).toBe(
+      "ключBasic [credential]",
+    );
+    expect(redact(`токен${JWT}`)).toBe("токен[token]");
+    expect(redact("บัตร378282246310005")).toBe("บัตร[card number]");
+    expect(redact("कार्ड4111111111111111")).toBe("कार्ड[card number]");
+    // A secret's value after a long run of another script's letters.
+    expect(redact(`${"中".repeat(41)}password=hunter2`)).toBe(
+      `${"中".repeat(41)}password=[redacted]`,
+    );
+  });
+
+  test("a mark, a joiner, a digit of another script or a folded letter beside it is no word's part either", () => {
+    expect(redact(`x\u200b${JWT}`)).toBe("x\u200b[token]");
+    expect(redact("x\u200bBearer abcdefghijklmnop")).toBe(
+      "x\u200bBearer [credential]",
+    );
+    expect(redact("\u200d4111111111111111")).toBe("\u200d[card number]");
+    expect(redact("jane@example.com\u200d")).toBe("[email]\u200d");
+    expect(redact(`e\u0301${JWT}`)).toBe("e\u0301[token]");
+    expect(redact("e\u0301Bearer abcdefghijklmnop")).toBe(
+      "e\u0301Bearer [credential]",
+    );
+    expect(redact("jane@example.com\u0301")).toBe("[email]\u0301");
+    expect(redact("4111111111111111\u0663")).toBe("[card number]\u0663");
+    expect(redact("\u09674111111111111111")).toBe("\u0967[card number]");
+    expect(redact("4111111111111111\uff11\uff12")).toBe(
+      "[card number]\uff11\uff12",
+    );
+    expect(redact("\u017fBearer abcdefghijklmnop")).toBe(
+      "\u017fBearer [credential]",
+    );
+    expect(redact("\u212apassword=hunter2")).toBe("\u212apassword=[redacted]");
+    expect(redact(`\u{1d49c}${JWT}`)).toBe("\u{1d49c}[token]");
+  });
+
+  test("inside a longer ASCII word, is kept", () => {
+    for (const text of [
+      "x4111111111111111",
+      "4111111111111111_",
+      "v1.4111111111111111",
+      "4111111111111111.5",
+      "xBearer abcdefghijklmnop",
+      "_basic abcdefghijklmnop",
+      `${"a".repeat(41)}password=hunter2`,
+      "卡号4111111111111111x",
+      "x4111111111111111已拒绝",
+    ]) {
+      expect(redact(text)).toBe(text);
+    }
   });
 });
 
@@ -159,7 +312,7 @@ describe("a token, looked for once per run of its characters", () => {
   const jwt: string =
     "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U";
 
-  test("is taken out where the agent's word boundary lets one start, and only there", () => {
+  test("is taken out where no ASCII word runs into it, and only there", () => {
     // After a "-" in a run: the run's text before it stays.
     expect(redact(`trace-${jwt}`)).toBe("trace-[token]");
     expect(redact(`req a-b-${jwt}.more`)).toBe("req a-b-[token].more");
@@ -214,5 +367,151 @@ describe("a token, looked for once per run of its characters", () => {
     // No token is whole in any of them.
     expect(redacted.result).toEqual(texts);
     expect(redacted.inMs).toBeLessThan(5_000);
+  });
+});
+
+// Each of the agent's patterns by its name: the first pattern after its `val NAME: Regex =`.
+function agentPatterns(): Map<string, string> {
+  const text: string = fs.readFileSync(
+    path.join(REPOSITORY_DIRECTORY, AGENT_REDACTOR),
+    "utf8",
+  );
+  const literals: Array<KotlinStringLiteral> = kotlinStringLiterals(
+    text,
+  ).filter((literal: KotlinStringLiteral): boolean => {
+    return literal.isPattern;
+  });
+  const patterns: Map<string, string> = new Map<string, string>();
+
+  for (const declaration of text.matchAll(/\bval\s+([A-Z_]+)\s*:\s*Regex\s*=/g)) {
+    const literal: KotlinStringLiteral | undefined = literals.find(
+      (candidate: KotlinStringLiteral): boolean => {
+        return candidate.start > declaration.index;
+      },
+    );
+
+    if (literal) {
+      patterns.set(declaration[1]!, literal.value);
+    }
+  }
+
+  return patterns;
+}
+
+// Each of the server's patterns by its name, as written.
+function serverPatterns(): Map<string, JavaScriptPattern> {
+  const text: string = fs.readFileSync(
+    path.join(REPOSITORY_DIRECTORY, SERVER_REDACTOR),
+    "utf8",
+  );
+  const source: ts.SourceFile = ts.createSourceFile(
+    SERVER_REDACTOR,
+    text,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const patterns: Map<string, JavaScriptPattern> = new Map<
+    string,
+    JavaScriptPattern
+  >();
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer?.kind === ts.SyntaxKind.RegularExpressionLiteral
+    ) {
+      const literal: string = node.initializer.getText(source);
+      const end: number = literal.lastIndexOf("/");
+
+      patterns.set(node.name.text, {
+        source: literal.slice(1, end),
+        flags: literal.slice(end + 1),
+      });
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(source);
+
+  return patterns;
+}
+
+describe("its patterns", () => {
+  test("are the agent's, as JavaScript writes them", () => {
+    const agent: Map<string, string> = agentPatterns();
+    const server: Map<string, JavaScriptPattern> = serverPatterns();
+
+    expect([...agent.keys()].sort()).toEqual([
+      "AUTHORIZATION",
+      "CARD_START",
+      "EMAIL_ADDRESS",
+      "JWT",
+      "SECRET_ASSIGNMENT",
+    ]);
+
+    for (const [name, kotlin] of agent) {
+      // The token's is written otherwise for each engine (Redactor.kt says why): the next test reads it.
+      if (name === "JWT") {
+        continue;
+      }
+
+      const caseInsensitive: boolean = kotlin.includes("(?i)");
+
+      expect({
+        name,
+        source: server.get(name)?.source,
+        caseInsensitive: server.get(name)?.flags.includes("i"),
+      }).toEqual({
+        name,
+        // Kotlin turns (?i) on in the pattern, after its look-behind, and JavaScript with a flag; ICU refuses a bare "}" in a class.
+        source: kotlin.split("(?i)").join("").split("\\}").join("}"),
+        caseInsensitive,
+      });
+    }
+  });
+
+  test("the agent's token pattern and the server's take out the same tokens", () => {
+    const form: JavaScriptPattern = javaScriptForm(agentPatterns().get("JWT")!);
+    const agent: RegExp = new RegExp(form.source, `${form.flags}g`);
+    const server: RegExp = new RegExp(serverPatterns().get("JWT")!.source, "g");
+    // A token's pieces more than once each, so that many texts hold one.
+    const texts: Array<string> = generatedTexts(20000, 10835, [
+      "eyJ",
+      "eyJabcde",
+      "eyJabcde",
+      "-",
+      "-eyJ",
+      ".",
+      ".abcde",
+      ".abcde",
+      "a",
+      "abcde",
+      "_",
+      " ",
+      "é",
+      "中",
+      "e\u0301",
+      "\u200b",
+      "\u017f",
+      "eyJab-",
+    ]);
+    let withToken: number = 0;
+
+    for (const text of texts) {
+      const expected: string = text.replace(server, "$1[token]");
+
+      if (expected !== text) {
+        withToken++;
+      }
+
+      expect({ text, agent: text.replace(agent, "$1[token]") }).toEqual({
+        text,
+        agent: expected,
+      });
+    }
+
+    expect(withToken).toBeGreaterThan(texts.length / 50);
   });
 });
