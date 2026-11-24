@@ -22,6 +22,7 @@ import {
 } from "../../../../../Types/CodeRepository/PullRequestLink";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * A pull request a person linked (#10604): the project's repository it is
@@ -117,7 +118,7 @@ describe("the repository a pull request's address names", () => {
   });
 
   test("is found among the project's repositories, or is not connected", async () => {
-    const findBy: jest.SpiedFunction<typeof CodeRepositoryService.findBy> = jest
+    const findBy: SpyInstance<typeof CodeRepositoryService.findBy> = jest
       .spyOn(CodeRepositoryService, "findBy")
       .mockResolvedValue([GITLAB, GITHUB]);
     const projectId: ObjectID = ObjectID.generate();

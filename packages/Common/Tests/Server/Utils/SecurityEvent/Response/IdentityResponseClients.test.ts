@@ -552,6 +552,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "bob@example.com",
         suspended: false,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.Done);
 
@@ -566,6 +568,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "bob@example.com",
         suspended: true,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.AlreadyDone);
     expect(api.requests).toHaveLength(2);
@@ -581,6 +585,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "",
         suspended: true,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.Done);
     expect(JSON.parse(String(api.requests[1]!.body))).toEqual({
@@ -592,6 +598,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "",
         suspended: false,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     ).toBe(GoogleWorkspaceContainmentOutcome.AlreadyDone);
   });
@@ -657,6 +665,8 @@ describe("GoogleWorkspaceResponseClient", () => {
         primaryEmail: "",
         suspended: false,
         isEnrolledIn2Sv: false,
+        isAdmin: false,
+        isDelegatedAdmin: false,
       }),
     );
 

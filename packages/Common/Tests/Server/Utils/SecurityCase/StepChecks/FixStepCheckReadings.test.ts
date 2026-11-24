@@ -43,6 +43,7 @@ import {
   at,
 } from "../../../../Helpers/SecurityCaseStepChecks";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * How the Fix step's check (#10347) reads its evidence: the attack
@@ -488,12 +489,11 @@ describe("the case's fixes, read together", () => {
     theirs.pullRequestNumber = 482;
     theirs.pullRequestState = PullRequestState.Open;
 
-    const aiFindBy: jest.SpiedFunction<
-      typeof AIAgentTaskPullRequestService.findBy
-    > = jest
-      .spyOn(AIAgentTaskPullRequestService, "findBy")
-      .mockResolvedValue([ours]);
-    const linkedFindBy: jest.SpiedFunction<
+    const aiFindBy: SpyInstance<typeof AIAgentTaskPullRequestService.findBy> =
+      jest
+        .spyOn(AIAgentTaskPullRequestService, "findBy")
+        .mockResolvedValue([ours]);
+    const linkedFindBy: SpyInstance<
       typeof SecurityCasePullRequestService.findBy
     > = jest
       .spyOn(SecurityCasePullRequestService, "findBy")

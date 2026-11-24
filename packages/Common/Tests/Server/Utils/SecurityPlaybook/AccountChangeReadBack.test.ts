@@ -31,6 +31,7 @@ import {
   FAKE_TOKEN_URI,
 } from "../SecurityEvent/Connectors/GoogleWorkspace/GoogleWorkspaceFakeApi";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * Whether a change an attack made to an account is still there (#10603),
@@ -1040,9 +1041,7 @@ describe("each change is read in every connection of its product", () => {
       productName: "Okta System Log",
       attributes: { eventType: "user.lifecycle.create" },
     } as unknown as JSONObject;
-    const findBy: jest.SpiedFunction<
-      typeof SecurityCaseEvidenceService.findBy
-    > = jest
+    const findBy: SpyInstance<typeof SecurityCaseEvidenceService.findBy> = jest
       .spyOn(SecurityCaseEvidenceService, "findBy")
       .mockResolvedValue([kept, new SecurityCaseEvidence()]);
 

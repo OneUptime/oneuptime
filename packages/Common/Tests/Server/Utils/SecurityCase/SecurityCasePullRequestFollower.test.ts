@@ -37,6 +37,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * Following a pull request a person linked to a security case (#10604) the
@@ -350,22 +351,21 @@ describe("a merged one, matched to the deploy that shipped it", () => {
 
 describe("every link still to follow", () => {
   test("open ones, and merged ones waiting for a deploy as long as an AI fix's is waited for: the longest-waiting first, each on its own", async () => {
-    const findBy: jest.SpiedFunction<
-      typeof SecurityCasePullRequestService.findBy
-    > = jest
-      .spyOn(SecurityCasePullRequestService, "findBy")
-      .mockResolvedValueOnce([
-        linkRow({ pullRequestNumber: 1 }),
-        linkRow({ pullRequestNumber: 2 }),
-      ])
-      .mockResolvedValueOnce([
-        linkRow({
-          pullRequestNumber: 3,
-          pullRequestState: PullRequestState.Merged,
-          mergeCommitSha: MERGE_SHA,
-          mergedAt: MERGED_AT,
-        }),
-      ]);
+    const findBy: SpyInstance<typeof SecurityCasePullRequestService.findBy> =
+      jest
+        .spyOn(SecurityCasePullRequestService, "findBy")
+        .mockResolvedValueOnce([
+          linkRow({ pullRequestNumber: 1 }),
+          linkRow({ pullRequestNumber: 2 }),
+        ])
+        .mockResolvedValueOnce([
+          linkRow({
+            pullRequestNumber: 3,
+            pullRequestState: PullRequestState.Merged,
+            mergeCommitSha: MERGE_SHA,
+            mergedAt: MERGED_AT,
+          }),
+        ]);
 
     // The first host does not answer; the others are followed all the same.
     read = async (number: number): Promise<CodeHostPullRequestState> => {
@@ -413,7 +413,7 @@ describe("every link still to follow", () => {
   });
 
   test("one just linked, merged already: read in its project, followed now", async () => {
-    const findOneBy: jest.SpiedFunction<
+    const findOneBy: SpyInstance<
       typeof SecurityCasePullRequestService.findOneBy
     > = jest
       .spyOn(SecurityCasePullRequestService, "findOneBy")
