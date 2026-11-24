@@ -446,6 +446,12 @@ export enum SecurityCaseAiActionReason {
    * follows a close of OneUptime AI's own is left for a person (#10847).
    */
   ProductOff = "ProductOff",
+  /*
+   * Left: what it would act on is a person erased from Security Events'
+   * user vault on request (#10908) - an action asked of a person and not
+   * yet decided is withdrawn, so nobody acts on them after the erasure.
+   */
+  PersonErased = "PersonErased",
   // Failed: the engine could not do it.
   EngineFailed = "EngineFailed",
   // Undone: a person took it back.

@@ -16,6 +16,7 @@ import {
 } from "../../../../Types/AI/CodeTask";
 import { CodeHost } from "../../../../Types/CodeRepository/CodeHost";
 import CodeRepositoryType from "../../../../Types/CodeRepository/CodeRepositoryType";
+import { isCodeReadableRepository } from "../../../../Types/CodeRepository/CodeReadableRepository";
 import { matchesCodeRepositorySearch } from "../../../../Types/CodeRepository/CodeRepositorySearch";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -46,9 +47,21 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * Every repository of the reader's is weighed for each read, so a page is
  * never a page of a first page.
+ *
+ * A Fix with AI picker asks for the repositories its fix accepts, and
+ * nothing else (#10921): those the reader may ask OneUptime AI to work in
+ * (askableOnly, CodeTaskAccess.listAskableRepositoryIds - one read a batch,
+ * never one a repository), and for a finding's or a profile's fix those
+ * whose code OneUptime reads (codeReadableOnly, CodeReadableRepository - the
+ * rule SourceLocator keeps them by). The repositories are held to them
+ * before anything else is done, so the search, the lists, the order, the
+ * page and every count describe only what the picker may offer.
  */
 
-// What a search, the lists and the order read of every repository.
+/*
+ * What a search, the lists, the order and the code-readable rule read of
+ * every repository.
+ */
 export const CODE_REPOSITORY_LIST_SELECT: Select<CodeRepository> = {
   _id: true,
   name: true,
@@ -56,9 +69,25 @@ export const CODE_REPOSITORY_LIST_SELECT: Select<CodeRepository> = {
   repositoryName: true,
   description: true,
   repositoryHostedAt: true,
+  repositoryUrl: true,
 };
 
-export interface CodeRepositoryListRequest {
+// What a read of repositories is held to: every one the reader may read, unless said.
+export interface CodeRepositoryListScope {
+  /*
+   * Only the repositories the reader may ask OneUptime AI to work in: what
+   * a Fix with AI picker offers.
+   */
+  askableOnly?: boolean | undefined;
+  /*
+   * Only the repositories whose code OneUptime reads
+   * (CodeReadableRepository): what a finding's or a profile's Fix with AI
+   * works in.
+   */
+  codeReadableOnly?: boolean | undefined;
+}
+
+export interface CodeRepositoryListRequest extends CodeRepositoryListScope {
   // "" for every repository.
   search: string;
   // One of the two lists, or both (null) - those AI can work in first.
@@ -75,6 +104,11 @@ export interface CodeRepositoryListEntry {
   provider: CodeRepositoryType;
 }
 
+/*
+ * A page of the reader's repositories. A read held to some of them
+ * (CodeRepositoryListScope) answers of those alone: its page, its count,
+ * its facts and its matches never name one it is not held to.
+ */
 export interface CodeRepositoryListPage {
   // The page, in its order, read whole (CODE_TASK_REPOSITORY_SELECT).
   repositories: Array<CodeRepository>;
@@ -119,8 +153,19 @@ export default class CodeTaskRepositoryList {
           }),
       });
 
+    // Only what the request is held to, before anything else is weighed.
+    const held: Array<CodeRepository> = await CodeTaskRepositoryList.keepHeldTo(
+      {
+        props: data.props,
+        projectId: data.projectId,
+        repositories: readable,
+        summaries,
+        scope: data.request,
+      },
+    );
+
     const entries: Array<CodeRepositoryListEntry> =
-      CodeTaskRepositoryList.toEntries({ repositories: readable, summaries });
+      CodeTaskRepositoryList.toEntries({ repositories: held, summaries });
 
     const found: Array<CodeRepositoryListEntry> = entries.filter(
       (entry: CodeRepositoryListEntry): boolean => {
@@ -195,6 +240,83 @@ export default class CodeTaskRepositoryList {
       facts: CodeTaskRepositoryList.getFacts(entries),
       matches: CodeTaskRepositoryList.getMatches(found),
     };
+  }
+
+  /*
+   * Of some repositories the reader may read, those a read is held to, in
+   * the order given: whose code OneUptime reads (codeReadableOnly, judged
+   * from how each connects), then those the reader may ask OneUptime AI to
+   * work in (askableOnly) - asked of the ones left, in one read a batch. A
+   * read held to neither keeps them all, and asks nothing.
+   */
+  @CaptureSpan()
+  public static async keepHeldTo(data: {
+    props: DatabaseCommonInteractionProps;
+    projectId: ObjectID;
+    repositories: Array<CodeRepository>;
+    // How each connects, by id (CodeHostAccess.getConnectionSummaries).
+    summaries: Map<string, CodeHostConnectionSummary>;
+    scope: CodeRepositoryListScope;
+  }): Promise<Array<CodeRepository>> {
+    let held: Array<CodeRepository> = data.repositories;
+
+    if (data.scope.codeReadableOnly) {
+      held = held.filter((repository: CodeRepository): boolean => {
+        return CodeTaskRepositoryList.isCodeReadable(
+          repository,
+          repository.id
+            ? data.summaries.get(repository.id.toString())
+            : undefined,
+        );
+      });
+    }
+
+    if (data.scope.askableOnly) {
+      const ids: Array<ObjectID> = held
+        .map((repository: CodeRepository): ObjectID | undefined => {
+          return repository.id || undefined;
+        })
+        .filter((id: ObjectID | undefined): id is ObjectID => {
+          return Boolean(id);
+        });
+
+      const askable: Set<string> =
+        ids.length > 0
+          ? await CodeTaskAccess.listAskableRepositoryIds({
+              props: data.props,
+              projectId: data.projectId,
+              repositoryIds: ids,
+            })
+          : new Set<string>();
+
+      held = held.filter((repository: CodeRepository): boolean => {
+        return askable.has(keyOf(repository));
+      });
+    }
+
+    return held;
+  }
+
+  /*
+   * Whether OneUptime reads the repository's code, by how it connects (a
+   * repository with no connection summary is not connected).
+   */
+  public static isCodeReadable(
+    repository: CodeRepository,
+    summary: CodeHostConnectionSummary | undefined,
+  ): boolean {
+    if (!repository.id || !summary) {
+      return false;
+    }
+
+    return isCodeReadableRepository({
+      organizationName: repository.organizationName,
+      repositoryName: repository.repositoryName,
+      repositoryUrl: repository.repositoryUrl,
+      provider: summary.provider,
+      isConnected: summary.state === CodeHostConnectionState.Connected,
+      isReachableFromServer: summary.isReachableFromServer,
+    });
   }
 
   // Each repository read, with how it connects.

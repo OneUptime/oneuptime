@@ -4575,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "O servidor não respondeu com as configurações de ajuda e suporte.",
   "Keyboard shortcuts": "Atalhos de teclado",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Baixe um arquivo de diagnóstico local com a pilha do erro, a pilha de componentes, a URL da página sem dados sensíveis, os detalhes do navegador e a versão do OneUptime. Ele nunca lê cookies, dados salvos do navegador ou o conteúdo de formulários. Revise-o antes de compartilhá-lo.",
-  "Chat on Slack": "Chat no Slack"
+  "Chat on Slack": "Chat no Slack",
+  "Your Twilio account's default voice": "Voz padrão da sua conta do Twilio",
+  "US English, female voice": "Inglês americano, voz feminina",
+  "US English, male voice": "Inglês americano, voz masculina",
+  "British English, female voice": "Inglês britânico, voz feminina",
+  "British English, male voice": "Inglês britânico, voz masculina",
+  "A page's call starts like this, always in English:": "A chamada de um acionamento começa assim, sempre em inglês:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "O Twilio cobra um valor extra por esta voz: menos de 2 centavos de dólar pela chamada de cada acionamento.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Grátis. Segundo o Twilio, suas vozes Basic não são indicadas para uso em produção.",
+  "Save, then send a test call to hear it.": "Salve e depois envie uma chamada de teste para ouvi-la.",
+  "Call Voice": "Voz das chamadas",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "A voz com que falam as chamadas telefônicas do OneUptime quando saem pela conta do Twilio deste servidor.",
+  "Choose Voice": "Escolher voz",
+  "Voice": "Voz"
 }

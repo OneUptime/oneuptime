@@ -1189,8 +1189,10 @@ import { AddProjectSecurityTrustedProxySwitches1809187580546 } from "./180918758
 import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
 import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
 import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddTwilioCallVoice1809187620948 } from "./1809187620948-AddTwilioCallVoice";
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
+import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
 
 export default [
   InitialMigration,
@@ -2384,6 +2386,8 @@ export default [
   AddSecurityCaseExposureAssessment1809187590377,
   AddHelpAndSupport1809187600000,
   AddGroupIncidentsByEpisodeToStatusPage1809187610767,
+  AddTwilioCallVoice1809187620948,
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
+  AddSecurityUserErasureRequest1809187650908,
 ];

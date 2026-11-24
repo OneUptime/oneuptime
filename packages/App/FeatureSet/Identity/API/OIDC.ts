@@ -1,6 +1,7 @@
 import IdentityProviderSignOut from "../Utils/IdentityProviderSignOut";
 import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
+import OidcEmailVerificationGate from "../Utils/OidcEmailVerificationGate";
 import {
   respondToMobileSsoFailure,
   respondToMobileSsoSuccess,
@@ -491,6 +492,31 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
           "OIDC token exchange or validation failed. Please contact your administrator.",
         ),
       );
+    }
+
+    /*
+     * An address the provider says it has not verified signs nobody in -
+     * not the account that has it, and not a new one - before the gate
+     * below reads, makes, emails or provisions anything, or accepts an
+     * invitation (GHSA-8gwc-w386-fh6w, ../Utils/OidcEmailVerification). The
+     * answer comes from the provider's own word, so it says nothing of
+     * whether the address has an account.
+     */
+    if (
+      await OidcEmailVerificationGate.refuseUnverifiedAddress({
+        req,
+        res,
+        isMobileRequest,
+        identity: result,
+        provider: `OIDC provider ${projectOidcId.toString()} of project ${req.params["projectId"]}`,
+        signIn: {
+          method: SignInMethod.OpenIdConnect,
+          ssoProviderName: projectOidc.name,
+          ssoProjectId: new ObjectID(req.params["projectId"] as string),
+        },
+      })
+    ) {
+      return;
     }
 
     /*

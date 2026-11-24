@@ -4575,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "Servern svarade inte med sina inställningar för hjälp och support.",
   "Keyboard shortcuts": "Kortkommandon",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den.",
-  "Chat on Slack": "Chatta på Slack"
+  "Chat on Slack": "Chatta på Slack",
+  "Your Twilio account's default voice": "Standardrösten för ditt Twilio-konto",
+  "US English, female voice": "Amerikansk engelska, kvinnlig röst",
+  "US English, male voice": "Amerikansk engelska, manlig röst",
+  "British English, female voice": "Brittisk engelska, kvinnlig röst",
+  "British English, male voice": "Brittisk engelska, manlig röst",
+  "A page's call starts like this, always in English:": "Ett larmsamtal börjar så här, alltid på engelska:",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio tar extra betalt för den här rösten: under 2 amerikanska cent per larmsamtal.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratis. Enligt Twilio är Basic-rösterna inte avsedda för produktionsanvändning.",
+  "Save, then send a test call to hear it.": "Spara och skicka sedan ett testsamtal för att höra den.",
+  "Call Voice": "Röst för samtal",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "Rösten som OneUptimes telefonsamtal talar med när de går ut via den här serverns Twilio-konto.",
+  "Choose Voice": "Välj röst",
+  "Voice": "Röst"
 }

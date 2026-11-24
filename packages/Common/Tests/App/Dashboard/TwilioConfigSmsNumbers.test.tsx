@@ -279,6 +279,10 @@ jest.mock("../../../UI/Utils/Project", () => {
   return {
     __esModule: true,
     default: {
+      // The project the config is for: the call voice's sample names it (#10948).
+      getCurrentProject: (): unknown => {
+        return { name: "Acme Payments" };
+      },
       getCurrentProjectId: (): unknown => {
         const ObjectIDClass: any = (
           jest.requireActual("../../../Types/ObjectID") as any
@@ -302,6 +306,7 @@ import TwilioTestSendCopy, {
   TwilioTestSendKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioTestSendCopy";
 import TwilioConfigDefaultCopy from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigDefaultCopy";
+import TwilioConfigVoiceCopy from "../../../../App/FeatureSet/Dashboard/src/Components/CallSMS/TwilioConfigVoiceCopy";
 import API from "../../../UI/Utils/API/API";
 import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -324,6 +329,8 @@ import { EMPTY_VALUE_MARK } from "../../../UI/Components/Detail/EmptyValue";
 
 const SMS_NUMBERS: string = "Twilio SMS Phone Numbers";
 const SECONDARY_NUMBERS: string = "Twilio Secondary Phone Numbers";
+// The voice a config's calls speak with (#10948).
+const CALL_VOICE: string = "Call Voice";
 
 const LOCALES_DIR: string = path.join(
   __dirname,
@@ -498,13 +505,65 @@ describe("the Twilio step of a Twilio config's form", () => {
     const header: HTMLElement = moreFieldsHeader();
 
     expect(header).toHaveAttribute("aria-expanded", "false");
-    // Folded, the line names what is under it: the SMS numbers first.
-    expect(listedNames(header)).toEqual([SMS_NUMBERS, SECONDARY_NUMBERS]);
+    /*
+     * Folded, the line names what is under it: the SMS numbers first, and
+     * the voice calls speak with last (#10948).
+     */
+    expect(listedNames(header)).toEqual([
+      SMS_NUMBERS,
+      SECONDARY_NUMBERS,
+      CALL_VOICE,
+    ]);
     expect(hasSetChip(header)).toBe(false);
 
-    for (const folded of [SMS_NUMBERS, SECONDARY_NUMBERS]) {
+    for (const folded of [SMS_NUMBERS, SECONDARY_NUMBERS, CALL_VOICE]) {
       expect(label(folded)).not.toBeVisible();
     }
+  });
+
+  test("More fields holds the voice calls speak with: optional, the account's default to start with, and a sample from this project", async () => {
+    await renderCard();
+    await openForm("create");
+    await walkToTwilioStep();
+    await openMoreFields();
+
+    expect(label(CALL_VOICE)).toBeVisible();
+    expect(label(CALL_VOICE)).toHaveTextContent("(Optional)");
+    expect(
+      within(dialog()).getByText(TwilioConfigVoiceCopy.fieldDescription),
+    ).toBeVisible();
+
+    const sample: HTMLElement =
+      within(dialog()).getByTestId("call-voice-sample");
+
+    // Nothing chosen: the account's default voice, and what Twilio says of it.
+    expect(
+      within(sample).getByTestId("call-voice-sample-voice"),
+    ).toHaveTextContent("Your Twilio account's default voice");
+    expect(
+      within(sample).getByTestId("call-voice-sample-cost"),
+    ).toHaveTextContent(
+      "Free. Twilio says its Basic voices are not meant for production.",
+    );
+    // The call is from the project the config is for.
+    expect(
+      within(sample).getByTestId("call-voice-sample-sentence"),
+    ).toHaveTextContent(/^“This is a call from Acme Payments\. /);
+  });
+
+  test("a config saved without a voice keeps the account's default: no voice is sent", async () => {
+    await renderCard();
+    await openForm("create");
+    await walkToTwilioStep();
+    await fillAccount(US_NUMBER);
+    await clickFooter();
+
+    await waitFor(() => {
+      expect(capturedModels).toHaveLength(1);
+    });
+
+    // Empty: the service stores it as none, the account's default voice.
+    expect(textOf(capturedModels[0]!["twilioCallVoice"])).toBe("");
   });
 
   test("the primary number says SMS go out from it too unless SMS numbers are added", async () => {
@@ -1124,6 +1183,8 @@ describe("the Twilio Config table's columns", () => {
       "Used For",
       "Phone Numbers",
       "Project Default",
+      // The voice its calls speak with (#10948): most keep the default.
+      "Call Voice",
       "Twilio Account SID",
     ]);
 
@@ -1135,7 +1196,28 @@ describe("the Twilio Config table's columns", () => {
         .map((column: Column<ProjectCallSMSConfig>): string => {
           return column.title;
         }),
-    ).toEqual(["Twilio Account SID"]);
+    ).toEqual(["Call Voice", "Twilio Account SID"]);
+  });
+
+  test("the Call Voice column names a config's voice, or the account's default; its export is the API's value", async () => {
+    await renderCard();
+
+    const voice: Column<ProjectCallSMSConfig> | undefined = columns().find(
+      (column: Column<ProjectCallSMSConfig>): boolean => {
+        return column.title === "Call Voice";
+      },
+    );
+
+    const withVoice: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+    withVoice.twilioCallVoice = "Polly.Amy-Neural";
+    const withNone: ProjectCallSMSConfig = new ProjectCallSMSConfig();
+
+    render(<>{voice?.getElement?.(withVoice)}</>);
+    expect(screen.getByTestId("twilio-config-call-voice")).toHaveTextContent(
+      "Amy · Amazon Polly · British English, female voice",
+    );
+    expect(voice?.getExportValue?.(withVoice)).toBe("Polly.Amy-Neural");
+    expect(voice?.getExportValue?.(withNone)).toBe("");
   });
 
   test("cut the account SID short below 1536px, and show it whole from there", async () => {

@@ -10,7 +10,9 @@ import {
   PRODUCTION_REVIEW_SENSITIVE_DATA_AI_NOTES,
   PRODUCTION_REVIEW_SENSITIVE_DATA_COPY,
   PRODUCTION_REVIEW_SENSITIVE_DATA_DROPPED,
+  PRODUCTION_REVIEW_SENSITIVE_DATA_EXPOSURE,
   PRODUCTION_REVIEW_SENSITIVE_DATA_MORE,
+  PRODUCTION_REVIEW_SENSITIVE_DATA_OTHER_STORES,
   PRODUCTION_REVIEW_SPANS_LAST_HOUR,
   PRODUCTION_REVIEW_WHERE_LABELS,
   ProductionReviewProviderLine,
@@ -58,6 +60,9 @@ import {
   ProductionReviewLeakHeldBeforeJSON,
   ProductionReviewLeakJSON,
   ProductionReviewLeakProductionJSON,
+  ProductionReviewLeakStoreJSON,
+  ProductionReviewLeakTableColumnJSON,
+  ProductionReviewLeakTableJSON,
   ProductionReviewSensitiveDataJSON,
   ProductionReviewSensitiveDataUtil,
 } from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
@@ -1602,7 +1607,9 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
         ) : (
           <></>
         )}
-        {production.store ? (
+        {production.store && production.table ? (
+          renderSensitiveDataTable(production.table, production.store)
+        ) : production.store ? (
           <p>
             <TranslatedSentence
               template={PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.store}
@@ -1622,6 +1629,127 @@ const CodeProductionReview: FunctionComponent<ComponentProps> = (
                   production.store.sensitivity,
               }}
             />
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
+    );
+  };
+
+  /*
+   * What Data Security knows of a migration's table (#10779): the store it
+   * is in and what that holds, what of the store the new column inherits,
+   * the table's columns already found holding the same data, and how many
+   * more of the project's stores hold a table of that name.
+   */
+  const renderSensitiveDataTable: (
+    table: ProductionReviewLeakTableJSON,
+    store: ProductionReviewLeakStoreJSON,
+  ) => ReactElement = (
+    table: ProductionReviewLeakTableJSON,
+    store: ProductionReviewLeakStoreJSON,
+  ): ReactElement => {
+    const exposure: string | undefined = store.exposure
+      ? PRODUCTION_REVIEW_SENSITIVE_DATA_EXPOSURE[store.exposure]
+      : undefined;
+    const kinds: string = table.dataTypeNames
+      .slice(0, 3)
+      .map((typeName: string): string => {
+        return translator.translateText(typeName) || typeName;
+      })
+      .join(getInlineSeparator(translator.language));
+
+    return (
+      <div
+        className="space-y-1"
+        data-testid="production-review-sensitive-data-table"
+      >
+        <p>
+          <TranslatedSentence
+            template={PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.tableStore}
+            slots={{
+              table: <CodeName>{table.name}</CodeName>,
+              store: (
+                <RowName
+                  route={recordRoute(
+                    PageMap.DATA_SECURITY_STORE_VIEW,
+                    store.dataStoreId,
+                  )}
+                >
+                  <span className="font-medium">{store.name}</span>
+                </RowName>
+              ),
+              sensitivity:
+                translator.translateText(store.sensitivity) ||
+                store.sensitivity,
+            }}
+          />
+        </p>
+        {exposure ? (
+          <p data-testid="production-review-sensitive-data-exposure">
+            {text(exposure)}
+          </p>
+        ) : (
+          <></>
+        )}
+        {store.isNotEncryptedAtRest ? (
+          <p data-testid="production-review-sensitive-data-not-encrypted">
+            {text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.notEncrypted)}
+          </p>
+        ) : (
+          <></>
+        )}
+        {table.sameData.length > 0 ? (
+          <div data-testid="production-review-sensitive-data-same-data">
+            <p className="font-medium">
+              {text(PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.sameData)}
+            </p>
+            <ul className="mt-1 space-y-1">
+              {table.sameData.map(
+                (column: ProductionReviewLeakTableColumnJSON) => {
+                  return (
+                    <li key={column.location}>
+                      <CodeMetaList
+                        className="text-xs text-amber-900"
+                        items={[
+                          fact(
+                            "location",
+                            <CodeName>{column.location}</CodeName>,
+                          ),
+                          fact(
+                            "type",
+                            translator.translateText(column.dataTypeName) ||
+                              column.dataTypeName,
+                          ),
+                          fact(
+                            "seen",
+                            <CodeTimeAgo date={column.lastSeenAt} />,
+                          ),
+                        ]}
+                      />
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </div>
+        ) : kinds ? (
+          <p>
+            <TranslatedSentence
+              template={PRODUCTION_REVIEW_SENSITIVE_DATA_COPY.tableHolds}
+              slots={{ types: kinds }}
+            />
+          </p>
+        ) : (
+          <></>
+        )}
+        {table.otherStoreCount > 0 ? (
+          <p data-testid="production-review-sensitive-data-other-stores">
+            {translator.translatePlural(
+              PRODUCTION_REVIEW_SENSITIVE_DATA_OTHER_STORES,
+              table.otherStoreCount,
+            )}
           </p>
         ) : (
           <></>

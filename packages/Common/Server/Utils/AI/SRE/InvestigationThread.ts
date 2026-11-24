@@ -19,7 +19,9 @@ import IncidentService from "../../../Services/IncidentService";
 import AlertService from "../../../Services/AlertService";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ResourceAiAccessService from "../../../Services/ResourceAiAccessService";
-import { READ_TOOL_OUTPUT_TOOL_NAME } from "../Chat/ToolOutputPager";
+import ToolOutputPager, {
+  READ_TOOL_OUTPUT_TOOL_NAME,
+} from "../Chat/ToolOutputPager";
 import { ChatExtraTool } from "../Chat/ChatAgentRunner";
 import ChatInfrastructureAccess, {
   ChatInfrastructureTools,
@@ -95,6 +97,12 @@ export interface InvestigationThreadLatestInvestigation {
 export interface InvestigationThreadTurnContext {
   additionalSystemInstructions: string;
   extraTools: Array<ChatExtraTool>;
+  /*
+   * The pager the command tools page their long output with: the turn's
+   * other tools - the project's external MCP servers' - page with it too,
+   * so one read_tool_output reads all of it.
+   */
+  outputPager?: ToolOutputPager | undefined;
   pageContext: AIChatPageContext;
   title: string;
   /*
@@ -623,8 +631,10 @@ export default class InvestigationThread {
     /*
      * Only what the person asking may view: the commands run for them.
      * Each check fails closed (nothing offered) on its own, and one pager
-     * serves the turn, so read_tool_output reads every toolkit's output.
+     * serves the turn - the external MCP servers' tools the turn adds page
+     * with it too - so read_tool_output reads every toolkit's output.
      */
+    const outputPager: ToolOutputPager = new ToolOutputPager();
     const infrastructure: ChatInfrastructureTools =
       await ChatInfrastructureAccess.buildTools({
         projectId: data.projectId,
@@ -632,6 +642,7 @@ export default class InvestigationThread {
         props: data.props,
         statuses: { clusters: clusterStatuses, resources: resourceStatuses },
         offeredIn: `the ${subjectNoun} thread`,
+        outputPager,
       });
 
     const sections: Array<string> = [
@@ -662,6 +673,7 @@ export default class InvestigationThread {
     return {
       additionalSystemInstructions: sections.join("\n\n"),
       extraTools: infrastructure.extraTools,
+      outputPager,
       pageContext: details.pageContext,
       title: `${details.label}: ${details.title}`,
       aiContextRules,

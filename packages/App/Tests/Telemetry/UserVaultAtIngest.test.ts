@@ -55,6 +55,8 @@ import SpanService from "Common/Server/Services/SpanService";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import SecurityAddressVaultWriter from "Common/Server/Utils/SecurityEvent/AddressVault/SecurityAddressVaultWriter";
 import SecurityUserVaultWriter from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
+import SecurityUserErasedTokens from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
+import SecurityUserErasureRequestService from "Common/Server/Services/SecurityUserErasureRequestService";
 import SecurityEventsReadTelemetry from "Common/Server/Utils/SecurityEvent/SecurityEventsReadTelemetry";
 import SyslogDeviceMatcher from "Common/Server/Utils/Syslog/SyslogDeviceMatcher";
 import AppMetrics from "Common/Server/Utils/Telemetry/AppMetrics";
@@ -280,6 +282,11 @@ beforeEach(() => {
   SecurityEventsReadTelemetry.clearCache();
   SecurityAddressVaultWriter.forgetWrites();
   SecurityUserVaultWriter.forgetWrites();
+  // Nobody erased from the user vault on request (#10908).
+  SecurityUserErasedTokens.clearCache();
+  jest
+    .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+    .mockResolvedValue(new Set<string>());
 
   const metadata: TelemetryServiceMetadata = {
     serviceName: SERVICE_NAME,

@@ -147,6 +147,21 @@ Lo que ninguna configuración predeterminada envía sale como saldría sin confi
 
 Las páginas de estado ofrecen solo las configuraciones que envían SMS, y **Enviar SMS de prueba** y **Enviar llamada de prueba** aparecen solo para lo que envía cada configuración. Toda configuración existente queda en **Llamadas y SMS**, como antes. En la API y en Terraform, la elección es el campo `usedFor`, y se rechaza una configuración sin los números que su elección necesita.
 
+### La voz con la que hablan las llamadas
+
+Las llamadas hablan con la voz que tu cuenta de Twilio usa de forma predeterminada: la voz Basic gratuita de Twilio, salvo que hayas elegido otra en la Twilio Console. Según Twilio, sus voces Basic no están pensadas para uso en producción, así que cada cuenta puede hablar en su lugar con una de estas voces neuronales. Elige la de la cuenta de toda la instalación en la tarjeta **Voz de las llamadas** de **Admin Dashboard > Ajustes > Llamadas y SMS**, y la de una configuración de proyecto en **Voz de las llamadas**, dentro de **Más campos**.
+
+| Voz | Proveedor | Cómo suena |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Inglés estadounidense, voz femenina |
+| `Polly.Matthew-Neural` | Amazon Polly | Inglés estadounidense, voz masculina |
+| `Polly.Amy-Neural` | Amazon Polly | Inglés británico, voz femenina |
+| `Polly.Brian-Neural` | Amazon Polly | Inglés británico, voz masculina |
+| `Google.en-US-Neural2-F` | Google | Inglés estadounidense, voz femenina |
+| `Google.en-US-Neural2-J` | Google | Inglés estadounidense, voz masculina |
+
+Toda llamada a través de la cuenta habla con esa voz: los avisos de guardia y la respuesta a la tecla que pulsas, el mensaje que se deja en el buzón de voz, los códigos de verificación, **Enviar llamada de prueba** y los saludos de una política de llamadas entrantes. Con estas voces, un número como `INC-42` se deletrea con SSML, lo que suena más natural que las letras separadas por espacios que reciben otras voces. Twilio cobra estas voces a la cuenta que hace la llamada: $0.0032 por cada 100 caracteres en noviembre de 2026, menos de 2 centavos de dólar por la llamada de un aviso. Consulta [los precios de las llamadas de voz de Twilio](https://www.twilio.com/en-us/voice/pricing/us). Deja **Voz de las llamadas** en blanco para mantener la voz predeterminada de la cuenta. En la API y en Terraform, la voz es el campo `twilioCallVoice`, y se rechaza una voz que no esté en la tabla.
+
 ### Buzón de voz en las llamadas de guardia
 
 Para Twilio, una llamada que contesta el buzón de voz está contestada, igual que una que contesta una persona. Por eso cada llamada de guardia pregunta a Twilio, en segundo plano, si la contestó una persona o el buzón de voz, con la [detección de contestador](https://www.twilio.com/docs/voice/answering-machine-detection): quien descuelga oye el aviso al momento. Una llamada que contesta el buzón de voz cuenta como no contestada, como una que suena sin respuesta, y el aviso sigue como con una llamada perdida. En cuanto termina el saludo, OneUptime deja un mensaje breve con lo que decía la llamada. El registro de la llamada dice si se dejó un mensaje, y también el feed del incidente: «Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left.»

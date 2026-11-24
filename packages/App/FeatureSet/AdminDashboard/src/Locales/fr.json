@@ -4575,5 +4575,18 @@
   "The server did not answer with its help and support settings.": "Le serveur n'a pas répondu avec ses paramètres d'aide et de support.",
   "Keyboard shortcuts": "Raccourcis clavier",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Téléchargez un fichier de diagnostic local avec la pile d'erreur, la pile de composants, l'URL de la page nettoyée, les détails du navigateur et le build de OneUptime. Il ne lit jamais les cookies, les données enregistrées du navigateur ni le contenu des formulaires. Relisez-le avant de le partager.",
-  "Chat on Slack": "Discuter sur Slack"
+  "Chat on Slack": "Discuter sur Slack",
+  "Your Twilio account's default voice": "Voix par défaut de votre compte Twilio",
+  "US English, female voice": "Anglais américain, voix féminine",
+  "US English, male voice": "Anglais américain, voix masculine",
+  "British English, female voice": "Anglais britannique, voix féminine",
+  "British English, male voice": "Anglais britannique, voix masculine",
+  "A page's call starts like this, always in English:": "Un appel d'astreinte commence ainsi, toujours en anglais :",
+  "Twilio charges extra for this voice: under 2 US cents for each page's call.": "Twilio facture un supplément pour cette voix : moins de 2 cents US par appel d'astreinte.",
+  "Free. Twilio says its Basic voices are not meant for production.": "Gratuit. Selon Twilio, ses voix Basic ne sont pas destinées à une utilisation en production.",
+  "Save, then send a test call to hear it.": "Enregistrez, puis envoyez un appel de test pour l'entendre.",
+  "Call Voice": "Voix des appels",
+  "The voice OneUptime's phone calls speak with when they go out through this server's Twilio account.": "La voix avec laquelle parlent les appels téléphoniques de OneUptime lorsqu'ils passent par le compte Twilio de ce serveur.",
+  "Choose Voice": "Choisir la voix",
+  "Voice": "Voix"
 }

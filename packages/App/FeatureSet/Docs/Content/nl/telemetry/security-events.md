@@ -65,6 +65,7 @@ Open **Producten → Beveiligingsgebeurtenissen**, onder **Beveiliging**. Het me
 | **Notitie-sjablonen** | Instellingen | Kant-en-klare tekst voor de notities die je team bij zijn zaken schrijft |
 | **Nummering** | Instellingen | De tekst voor de zaaknummers, en het nummer dat de volgende zaak krijgt |
 | **Risicoscoring** | Instellingen | Of het risico van een entiteit een zaak opent, bij welk risico, en hoe zwaar elke entiteit weegt |
+| **Wisverzoeken** | Instellingen | Personen die op verzoek zijn gewist, en wat elke wissing veranderde |
 
 **Detecties**, **AI**, **Verbindingen** en **Instellingen**, die je één keer instelt, blijven ingeklapt tot je ze opent. Nieuw met beveiliging? [Aan de slag met beveiliging](/docs/telemetry/security-getting-started) richt het in met twee klikken.
 
@@ -246,7 +247,7 @@ Zet **Netwerkflows** aan, onder **Uw OneUptime-gegevens** op **Verbindingen**, e
 - het bereik van elke detectie van de sonde, zolang de scan loopt;
 - de hosts en poorten die haar monitoren controleren.
 
-Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt.
+Het wordt bewaard als informatieve gebeurtenis, `oneuptime-probe-traffic`, die de sonde noemt, en geen regel leest het. **Netwerkflows** zegt hoeveel er de afgelopen dag apart is gezet, met **Bekijk ze**. Al het andere vanaf het adres van een sonde telt als ieders verkeer, en een sweep of scan buiten het werk van de sonde wordt gemeld, met de naam van de sonde. Een sonde wordt herkend aan het adres waarvandaan ze zich meldt en aan de adressen van haar eigen netwerkinterfaces, die ze bij elke melding opsomt. Een aangepaste sonde zonder hostnetwerk, zoals een Kubernetes-pod of een container op een Docker-bridgenetwerk, wordt ook herkend aan de adressen van haar host, die `PROBE_HOST_IP_ADDRESSES` haar doorgeeft: zolang ze die niet heeft, vertrekken haar polls vanaf een adres waaraan ze niet wordt herkend en worden ze als sweeps gemeld. Zie [Wat een sonde stuurt wanneer ze zich meldt](/docs/probe/custom-probe#wat-een-sonde-stuurt-wanneer-ze-zich-meldt).
 
 ### Een beveiligingsproduct koppelen
 
@@ -352,6 +353,8 @@ Een regel die hasht, bewaart het adres voor Beveiligingsgebeurtenissen, zodat de
 Een detectieregel die per adres telt, kan het beste per `principalIp` of `targetIp` tellen, zoals de regels van de regelbibliotheek doen: die velden noemen het adres achter het token van een regel die hasht. Het eigen adresveld van een formaat, zoals `openstack.audit.initiator_address` of `asa.src_ip`, bevat alleen een adres dat in het log stond, dus het blijft leeg overal waar een scrub-regel er een verborg.
 
 Een regel die een gebruiker wist of maskeert, verbergt die op dezelfde manier: waar de gebeurtenis de gebruiker zou noemen, zegt **Brongebruiker** of **Doelgebruiker** dat een scrub-regel die verborg. Waar Beveiligingsgebeurtenissen een gebruiker leest, bewaart een regel die hasht de gebruiker ervoor: de `enduser.id` of `user.id` van een verzoek, de gebruiker van een AI-aanroep en een gebruiker die een logregel noemt, zoals de principal van een cloud-auditlog. Zo noemt de gebeurtenis de gebruiker achter het token, noemt een zaak over die gebruiker het account, en kan een playbook erop handelen zoals op elke andere gebruiker. Wat de regel achterliet, staat in `oneuptime.principal_user_hashed_as` of `oneuptime.target_user_hashed_as`, zodat je de gebruiker kunt vinden in je logs en traces, die alleen het token bevatten. Een token waarvoor geen gebruiker bewaard is, zoals een token dat gemaakt is voordat tokens een sleutel hadden, blijft de gebruiker van de gebeurtenis: regels tellen het als één account, en geen playbook handelt erop.
+
+Het paneel van het event zegt dat onder de gebruiker die het noemt in **Brongebruiker** en **Doelgebruiker**: “Gehasht in uw logboeken als …”, of “Gehasht in uw traces als …” bij een event uit uw traces, waarbij … het token is. Het token is een link die uw logs of traces erop doorzoekt, van een dag vóór het event tot een dag erna. Bij een gebruiker die op verzoek is gewist, staat in plaats daarvan **Op verzoek gewist**, en het event toont het token: zie [Een persoon wissen](#een-persoon-wissen).
 
 ## Beveiligingsgebeurtenissen verkennen
 
@@ -747,6 +750,30 @@ Alles in Beveiligingsgebeurtenissen dat eerdere gebeurtenissen leest, leest alle
 - Een hunt waarvan het **Tijdsbereik** langer is dan gebeurtenissen worden bewaard, vindt niets ouder, en het formulier zegt dat.
 
 **Projectinstellingen → Telemetrie & APM → Gegevensbewaring** toont de ingeschakelde regels die verder terugkijken dan de **Standaardbewaring (dagen)**. Om ze te dekken, bewaar je gebeurtenissen langer, met **Bewaartermijn wijzigen** onder een regel, of maak je de tijdspanne van een regel korter tot wat bewaard wordt. OneUptime bewaart 15 dagen tenzij je dat wijzigt, omdat de bewaartermijn bepaalt wat je telemetrie kost en hoe lang persoonsgegevens in gebeurtenissen, zoals adressen en gebruikersnamen, worden bewaard. Een nieuwe bewaartermijn geldt voor gebeurtenissen die vanaf dan binnenkomen, dus regels kijken verder terug naarmate die gebeurtenissen ouder worden.
+
+## Een persoon wissen
+
+Als iemand u vraagt zijn gegevens te wissen, bijvoorbeeld op grond van artikel 17 AVG, wist u hem in **Beveiligingsgebeurtenissen → Instellingen → Wisverzoeken**. Kies **Persoon wissen** en voer zijn gebruikers-ID of e-mailadres in zoals uw logs het bevatten voordat uw Hash-opschoonregel het verborg, of het token dat een event op die plaats toont. Een e-mailadres wordt ook in kleine letters gewist. Vul bij **Referentie** uw eigen referentie in, zoals het ticketnummer van het verzoek, nooit de naam van de persoon.
+
+Wat het verzoek doet:
+
+- Binnen een minuut wordt de persoon niet meer genoemd. De gebruikerskluis weigert vanaf dan de tokens, zodat geen event, case of playbook de persoon nog noemt, ook niet als een later event hetzelfde token bevat: dat event houdt het token als gebruiker, zoals bij elk token zonder bewaarde gebruiker. Een token dat terugkomt bewaren zou de persoon opnieuw noemen, en dat is precies wat u op hun verzoek moet stoppen.
+- Binnen een paar minuten verwijdert het de items van de kluis over de persoon en zet het token terug op hun plaats in de events die hen via de kluis noemden: **Brongebruiker**, **Doelgebruiker**, de observables en de attributen. Het haalt de persoon uit de titels, entiteiten en bewaarde events van cases en detecties, en uit het entiteitsrisico.
+- Een playbookrun of een actie van OneUptime AI die op goedkeuring wacht om op de persoon te handelen, wordt ingetrokken en zegt waarom.
+
+Elk verzoek toont zijn status, **In de wachtrij**, **Wordt gewist**, **Gewist** of **Mislukt**, en wat het veranderde: de verwijderde kluisitems, de events en cases die de persoon niet meer noemen en de ingetrokken voorstellen. Het wissen begint twee minuten nadat het verzoek is ingediend, zodra geen enkele OneUptime-server de persoon nog noemt, en een verzoek toont pas **Gewist** als elke wijziging is toegepast. Een verzoek dat mislukt, wordt opnieuw geprobeerd; na vijf pogingen toont het **Mislukt** met de reden, en de eigenaren van het project krijgen een e-mail. De persoon wordt nog steeds niet genoemd, en het verzoek opnieuw indienen probeert het nogmaals.
+
+Wat het laat staan:
+
+- Wat mensen schreven: notities, afsluitnotities, taken, bewijs, aangepaste velden en wat OneUptime AI over een case schreef.
+- Events die de persoon noemden omdat uw logs hen leesbaar bevatten, en uw logs en traces zelf, die alleen het token bevatten.
+- De Detection Finding-events die een regel over de persoon schreef, waarvan het bericht en de observables hen kunnen noemen, totdat uw telemetriebewaring ze verwijdert.
+- Al verzonden meldingen, incidenten en waarschuwingen die een detectie opende, de activiteit van een case, exports, back-ups en het auditlog.
+- Bij een zelf gehoste OneUptime waarvan de `ENCRYPTION_SECRET` veranderde, tokens van vóór de wijziging: wis elk ervan via het token dat een event toont.
+
+Het verzoek bewaart wie het indiende en wanneer, uw referentie en de tokens van de persoon, waarmee de kluis hen blijft weigeren. Het gebruikers-ID of e-mailadres wordt versleuteld opgeslagen, waar geen pagina, export of API het kan lezen, en gewist zodra het wissen klaar is; ClickHouse krijgt alleen ooit de tokens. Verzoeken kunnen niet worden bewerkt of verwijderd: ze zijn uw vastlegging van het wissen.
+
+Projecteigenaren, Projectbeheerders, Beveiligingsbeheerders en iedereen met Create Security Erasure Request, zoals uw functionaris voor gegevensbescherming, kunnen een verzoek indienen, op de pagina of via `/security-user-erasure-request` van de API. Elke beveiligingsrol kan ze lezen.
 
 ## Probleemoplossing
 

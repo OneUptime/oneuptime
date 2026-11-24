@@ -1,9 +1,11 @@
 import {
+  djangoTableOf,
   findSensitiveColumns,
   isCardSecurityCodeName,
   isModelPath,
   isPlaintextPasswordName,
   readNewColumns,
+  readTablesInScope,
 } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/MigrationRules";
 import { SensitiveDataCandidate } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCandidate";
 import { SensitiveNameMatcher } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataNames";
@@ -369,5 +371,401 @@ describe("time in line with the change, whatever it holds", () => {
     });
 
     expect(run.inMs).toBeLessThan(3000);
+  });
+});
+
+/*
+ * THE TABLE A COLUMN IS ADDED TO (#10779): what production is asked of, and
+ * what the point says ("Adds the column `ssn` to `customers`"). SQL and a
+ * few calls name it on the column's own line; most ORMs name it on the
+ * line that opens the block the columns are declared in - and Django after
+ * the model's app.
+ */
+describe("the table a column is added to", () => {
+  function tablesOf(path: string, lines: Array<string>): Array<string> {
+    return columnsIn(path, lines).map(
+      (point: SensitiveDataCandidate): string => {
+        return `${point.subject} -> ${point.where || "(none)"}`;
+      },
+    );
+  }
+
+  test.each([
+    [
+      "SQL, ALTER TABLE with a schema: the table alone",
+      "db/migrations/20261124_add_customer_ssn.sql",
+      ["ALTER TABLE public.customers ADD COLUMN customer_ssn VARCHAR(11);"],
+      ["customer_ssn -> customers"],
+    ],
+    [
+      "SQL, two tables in one migration",
+      "db/migrations/20261124_two_tables.sql",
+      [
+        "CREATE TABLE patients (",
+        "  id SERIAL PRIMARY KEY,",
+        "  date_of_birth DATE",
+        ");",
+        "ALTER TABLE orders ADD COLUMN billing_email TEXT;",
+      ],
+      ["date_of_birth -> patients", "billing_email -> orders"],
+    ],
+    [
+      "Rails, add_column",
+      "db/migrate/20261124_add_ssn.rb",
+      ["add_column :customers, :customer_ssn, :string"],
+      ["customer_ssn -> customers"],
+    ],
+    [
+      "Rails, create_table's block",
+      "db/migrate/20261124_create_customers.rb",
+      [
+        "create_table :customers do |t|",
+        "  t.string :name",
+        "  t.string :customer_ssn",
+        "end",
+      ],
+      ["customer_ssn -> customers"],
+    ],
+    [
+      "Rails, two blocks: each column its own block's",
+      "db/migrate/20261124_two.rb",
+      [
+        "create_table :customers do |t|",
+        "  t.string :ssn",
+        "end",
+        "change_table :orders do |t|",
+        "  t.string :billing_email",
+        "end",
+      ],
+      ["ssn -> customers", "billing_email -> orders"],
+    ],
+    [
+      "Knex, createTable",
+      "migrations/20261124_customers.js",
+      [
+        'exports.up = (knex) => knex.schema.createTable("customers", (table) => {',
+        '  table.string("date_of_birth");',
+        "});",
+      ],
+      ["date_of_birth -> customers"],
+    ],
+    [
+      "Knex, alterTable",
+      "migrations/20261124_orders.js",
+      [
+        'await knex.schema.alterTable("orders", (t) => {',
+        '  t.string("billing_email");',
+        "});",
+      ],
+      ["billing_email -> orders"],
+    ],
+    [
+      "Sequelize, createTable",
+      "migrations/20261124-create-customers.js",
+      [
+        'await queryInterface.createTable("customers", {',
+        "  ssn: { type: Sequelize.STRING },",
+        "});",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "TypeORM, addColumn with a TableColumn",
+      "src/migrations/1700000000000-AddSsn.ts",
+      [
+        'await queryRunner.addColumn("customers", new TableColumn({ name: "ssn", type: "varchar" }));',
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "TypeORM, an entity named for its table",
+      "src/entities/Customer.entity.ts",
+      [
+        '@Entity("customers")',
+        "export class Customer {",
+        "  @Column()",
+        "  public ssn!: string;",
+        "}",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "TypeORM, an entity whose table is its option's",
+      "src/entities/Customer.entity.ts",
+      [
+        '@Entity({ name: "customers" })',
+        "export class Customer {",
+        "  @Column()",
+        "  public ssn!: string;",
+        "}",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "Alembic, create_table with its name on its own line",
+      "alembic/versions/2026_add_ssn.py",
+      [
+        "def upgrade():",
+        "    op.create_table(",
+        '        "customers",',
+        '        sa.Column("ssn", sa.String(11)),',
+        "    )",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "Alembic, batch_alter_table",
+      "alembic/versions/2026_batch.py",
+      [
+        "def upgrade():",
+        '    with op.batch_alter_table("customers") as batch_op:',
+        '        batch_op.add_column(sa.Column("date_of_birth", sa.Date()))',
+      ],
+      ["date_of_birth -> customers"],
+    ],
+    [
+      "SQLAlchemy, __tablename__",
+      "app/models.py",
+      [
+        "class Customer(Base):",
+        '    __tablename__ = "customers"',
+        "    ssn = Column(String(11))",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "Django, AddField across lines: the app's table",
+      "accounts/migrations/0002_customer_ssn.py",
+      [
+        "migrations.AddField(",
+        '    model_name="customer",',
+        '    name="ssn",',
+        "    field=models.CharField(max_length=11, null=True),",
+        "),",
+      ],
+      ["ssn -> accounts_customer"],
+    ],
+    [
+      "Django, AddField on one line",
+      "accounts/migrations/0003_customer_dob.py",
+      [
+        'migrations.AddField(model_name="customer", name="date_of_birth", field=models.DateField(null=True)),',
+      ],
+      ["date_of_birth -> accounts_customer"],
+    ],
+    [
+      "Django, CreateModel",
+      "accounts/migrations/0001_initial.py",
+      [
+        "migrations.CreateModel(",
+        '    name="Customer",',
+        "    fields=[",
+        '        ("ssn", models.CharField(max_length=11)),',
+        "    ],",
+        "),",
+      ],
+      ["ssn -> accounts_customer"],
+    ],
+    [
+      "Django, a model",
+      "accounts/models.py",
+      [
+        "class Customer(models.Model):",
+        "    ssn = models.CharField(max_length=11)",
+      ],
+      ["ssn -> accounts_customer"],
+    ],
+    [
+      "Ecto, a migration's alter table",
+      "priv/repo/migrations/20261124_add_ssn.exs",
+      [
+        "defmodule Repo.Migrations.AddSsn do",
+        "  use Ecto.Migration",
+        "  def change do",
+        "    alter table(:customers) do",
+        "      add :ssn, :string",
+        "    end",
+        "  end",
+        "end",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "Entity Framework, AddColumn across lines",
+      "src/Acme.Data/Migrations/20261124_AddSsn.cs",
+      [
+        "migrationBuilder.AddColumn<string>(",
+        '    name: "Ssn",',
+        '    table: "Customers",',
+        "    nullable: true);",
+      ],
+      ["Ssn -> Customers"],
+    ],
+    [
+      "Entity Framework, AddColumn on one line",
+      "src/Acme.Data/Migrations/20261124_AddDob.cs",
+      [
+        'migrationBuilder.AddColumn<DateTime>(name: "DateOfBirth", table: "Customers", nullable: true);',
+      ],
+      ["DateOfBirth -> Customers"],
+    ],
+    [
+      "Entity Framework, CreateTable",
+      "src/Acme.Data/Migrations/20261124_CreateCustomers.cs",
+      [
+        "migrationBuilder.CreateTable(",
+        '    name: "Customers",',
+        "    columns: table => new",
+        "    {",
+        "        Ssn = table.Column<string>(nullable: true),",
+        "    });",
+      ],
+      ["Ssn -> Customers"],
+    ],
+    [
+      "Liquibase, addColumn",
+      "db/changelog/2026-add-ssn.xml",
+      [
+        '<changeSet id="1" author="dana">',
+        '  <addColumn tableName="customers">',
+        '    <column name="ssn" type="varchar(11)"/>',
+        "  </addColumn>",
+        "</changeSet>",
+      ],
+      ["ssn -> customers"],
+    ],
+    [
+      "Prisma, a model",
+      "prisma/schema.prisma",
+      ["model Customer {", "  id  Int    @id", "  ssn String", "}"],
+      ["ssn -> Customer"],
+    ],
+    [
+      "SQLAlchemy with no table declared: none",
+      "app/models/customer.py",
+      [
+        "class Customer(Base):",
+        "    email: Mapped[str] = mapped_column(String(255))",
+      ],
+      ["email -> (none)"],
+    ],
+  ])(
+    "%s",
+    (
+      _how: string,
+      path: string,
+      lines: Array<string>,
+      tables: Array<string>,
+    ) => {
+      expect(tablesOf(path, lines)).toEqual(tables);
+    },
+  );
+
+  test("the point says the table, in its words", () => {
+    const point: SensitiveDataCandidate = columnsIn(
+      "db/migrate/20261124_create_customers.rb",
+      ["create_table :customers do |t|", "  t.string :customer_ssn", "end"],
+    )[0]!;
+
+    expect(point.text).toBe(
+      "Adds the column `customer_ssn` to `customers`, whose name says it holds a US Social Security number.",
+    );
+  });
+
+  test("a block a hunk opened is the hunk's alone: the next hunk names its own, or none", () => {
+    const points: Array<SensitiveDataCandidate> = findSensitiveColumns({
+      path: "db/migrate/20261124_two.rb",
+      lines: readPatchLines(
+        [
+          "@@ -1,2 +1,3 @@",
+          " create_table :customers do |t|",
+          "+  t.string :ssn",
+          " end",
+          "@@ -40,2 +41,3 @@",
+          " t.timestamps",
+          "+t.string :billing_email",
+          " end",
+        ].join("\n"),
+      ),
+      matcher,
+      hashesPasswords: false,
+    });
+
+    expect(
+      points.map(
+        (point: SensitiveDataCandidate): [string, string | undefined] => {
+          return [point.subject, point.where];
+        },
+      ),
+    ).toEqual([
+      ["ssn", "customers"],
+      ["billing_email", undefined],
+    ]);
+  });
+
+  test("a model's class shown as context above an added field still names its table", () => {
+    const points: Array<SensitiveDataCandidate> = findSensitiveColumns({
+      path: "accounts/models.py",
+      lines: readPatchLines(
+        [
+          "@@ -10,2 +10,3 @@",
+          " class Customer(models.Model):",
+          "     name = models.CharField(max_length=80)",
+          "+    date_of_birth = models.DateField(null=True)",
+        ].join("\n"),
+      ),
+      matcher,
+      hashesPasswords: false,
+    });
+
+    expect(
+      points.map((point: SensitiveDataCandidate) => {
+        return point.where;
+      }),
+    ).toEqual(["accounts_customer"]);
+  });
+
+  test.each([
+    ["accounts/migrations/0002_ssn.py", "Customer", "accounts_customer"],
+    ["src/shop/orders/migrations/0001_initial.py", "Order", "orders_order"],
+    ["accounts/models.py", "Customer", "accounts_customer"],
+    ["accounts/models/customer.py", "Customer", "accounts_customer"],
+    ["models.py", "Customer", "customer"],
+  ])(
+    "Django names %s's model %s's table %s",
+    (path: string, model: string, table: string) => {
+      expect(djangoTableOf(path, model)).toBe(table);
+    },
+  );
+
+  test("the tables in scope, line by line", () => {
+    expect(
+      readTablesInScope(
+        [
+          { text: "create_table :customers do |t|", hunk: 0 },
+          { text: "  t.string :ssn", hunk: 0 },
+          { text: "end", hunk: 0 },
+          { text: "  t.string :email", hunk: 1 },
+        ],
+        "db/migrate/1_x.rb",
+      ),
+    ).toEqual(["customers", "customers", "customers", null]);
+  });
+
+  test("Ecto's and Liquibase's migrations are read at all", () => {
+    expect(
+      subjectsIn("priv/repo/migrations/20261124_add_ssn.exs", [
+        "alter table(:customers) do",
+        "  add :ssn, :string",
+        "end",
+      ]),
+    ).toEqual(["ssn"]);
+    expect(
+      subjectsIn("db/changelog/2026-add-ssn.xml", [
+        '<addColumn tableName="customers">',
+        '  <column name="ssn" type="varchar(11)"/>',
+        "</addColumn>",
+      ]),
+    ).toEqual(["ssn"]);
   });
 });

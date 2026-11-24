@@ -332,8 +332,39 @@ export function removeHuntFilterValue(
 }
 
 /*
+ * The sources a hunt's filters name - kept or left out - each once, as
+ * written: a source is a service's id, drawn by the service's name once it
+ * is read by that id (HuntFormFilters, #10921).
+ */
+export function getHuntSourceValues(filters: unknown): Array<string> {
+  const seen: Set<string> = new Set<string>();
+  const sources: Array<string> = [];
+
+  for (const [facetKey, values] of Object.entries(
+    readSecurityHuntFilters(filters),
+  )) {
+    if (
+      getSecurityEventBaseFacetKey(facetKey) !== SECURITY_EVENT_SOURCE_FACET_KEY
+    ) {
+      continue;
+    }
+
+    for (const value of values) {
+      const key: string = value.trim().toLowerCase();
+
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        sources.push(value);
+      }
+    }
+  }
+
+  return sources;
+}
+
+/*
  * Whether a hunt's filters name a source - a value that is a service's id,
- * drawn by the service's name once the project's are read.
+ * drawn by the service's name once it is read by its id.
  */
 export function hasHuntSourceFilter(filters: unknown): boolean {
   return Object.keys(readSecurityHuntFilters(filters)).some(
