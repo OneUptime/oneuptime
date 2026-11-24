@@ -197,7 +197,11 @@ describe("a group's one approval", () => {
 describe("nothing proves a fix but its issues' own checks", () => {
   test("a fix that fixed no issue has nothing to prove", () => {
     expect(
-      getIssueGroupFixProofStanding({ kind: CODE, taskId: TASK_ID, issues: [] }),
+      getIssueGroupFixProofStanding({
+        kind: CODE,
+        taskId: TASK_ID,
+        issues: [],
+      }),
     ).toBe(IssueGroupFixProofStanding.NothingToProve);
     expect(getIssueGroupFixProofStanding({ kind: CLOUD, issues: [] })).toBe(
       IssueGroupFixProofStanding.NothingToProve,

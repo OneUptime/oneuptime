@@ -188,9 +188,7 @@ const CloudActionList: FunctionComponent<{
     >
       {props.actions.map(
         (entry: DataSecurityIssueGroupCloudActionJSON): ReactElement => {
-          const description: string = isDataSecurityResponseAction(
-            entry.action,
-          )
+          const description: string = isDataSecurityResponseAction(entry.action)
             ? describeDataSecurityResponseAction(entry.action, entry.kind)
             : "";
 

@@ -570,7 +570,9 @@ describe("the one approval's proposal, kind by kind (#10742)", () => {
       world.addStoreWithIssue(
         {
           name:
-            index <= buckets ? `orders-bucket-${index}` : `orders-table-${index}`,
+            index <= buckets
+              ? `orders-bucket-${index}`
+              : `orders-table-${index}`,
           kind: index <= buckets ? "AWS S3 Bucket" : "AWS DynamoDB Table",
           cloudConnectionId: CONNECTION_ID,
           cloudTags: { component: "orders" },

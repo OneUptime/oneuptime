@@ -79,15 +79,20 @@ describe("the pattern a group's key was made with", () => {
     ["access-not-logged|aws|name:*-exports-*", "*-exports-*", "exports"],
     ["access-not-logged|aws|name:acme-*", "acme-*", "acme"],
     ["public-read|gcp|name:*_reports", "*_reports", "reports"],
-  ])("%s reads as %s, of the word %s", (key: string, pattern: string, word: string) => {
-    expect(readIssueGroupKeyPattern(key)).toEqual({ pattern, word });
-  });
+  ])(
+    "%s reads as %s, of the word %s",
+    (key: string, pattern: string, word: string) => {
+      expect(readIssueGroupKeyPattern(key)).toEqual({ pattern, word });
+    },
+  );
 
   test("a key of any other fact has none", () => {
     expect(
       readIssueGroupKeyPattern("access-not-logged|aws|tag:module=static-site"),
     ).toBeNull();
-    expect(readIssueGroupKeyPattern("access-not-logged|aws|stack:web")).toBeNull();
+    expect(
+      readIssueGroupKeyPattern("access-not-logged|aws|stack:web"),
+    ).toBeNull();
     expect(readIssueGroupKeyPattern("")).toBeNull();
     expect(readIssueGroupKeyPattern(null)).toBeNull();
     expect(readIssueGroupKeyPattern("x|aws|name:*")).toBeNull();

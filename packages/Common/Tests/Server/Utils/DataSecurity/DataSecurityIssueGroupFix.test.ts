@@ -752,7 +752,10 @@ describe("the one approval, kind by kind (#10742)", () => {
           changed: number;
           unchanged: number;
           failed: number;
-        }): [string, { changed: number; unchanged: number; failed: number }] => {
+        }): [
+          string,
+          { changed: number; unchanged: number; failed: number },
+        ] => {
           return [outcome.action, outcome];
         },
       ),

@@ -244,8 +244,7 @@ export default class SecurityPlaybookIssueGroupFix {
       const caseIssues: Array<DataSecurityIssue> = data.issues.filter(
         (issue: DataSecurityIssue): boolean => {
           return (
-            issue.dataSecurityIssueGroupId?.toString().toLowerCase() ===
-            groupId
+            issue.dataSecurityIssueGroupId?.toString().toLowerCase() === groupId
           );
         },
       );
@@ -420,7 +419,10 @@ export default class SecurityPlaybookIssueGroupFix {
             buildMessage: async () => {
               return buildDataSecurityFixRequest(
                 full,
-                await DataSecurityAiReads.readPlaces({ projectId, issue: full }),
+                await DataSecurityAiReads.readPlaces({
+                  projectId,
+                  issue: full,
+                }),
                 await ProjectDataTypeNames.read({ projectId }),
               );
             },

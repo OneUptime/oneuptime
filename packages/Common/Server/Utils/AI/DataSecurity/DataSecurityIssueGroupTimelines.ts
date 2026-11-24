@@ -81,9 +81,7 @@ function idText(value: unknown): string {
 
 function readIds(value: unknown): Array<string> {
   return Array.from(
-    new Set(
-      (Array.isArray(value) ? value : []).map(idText).filter(Boolean),
-    ),
+    new Set((Array.isArray(value) ? value : []).map(idText).filter(Boolean)),
   );
 }
 
@@ -179,10 +177,7 @@ export default class DataSecurityIssueGroupTimelines {
    */
   public static async readProposalIssueIds(data: {
     projectId: ObjectID;
-    proposal: Pick<
-      DataSecurityAiProposal,
-      "plan" | "dataSecurityIssueGroupId"
-    >;
+    proposal: Pick<DataSecurityAiProposal, "plan" | "dataSecurityIssueGroupId">;
   }): Promise<Array<string>> {
     const listed: Array<string> = readIds(data.proposal.plan?.["issueIds"]);
 

@@ -74,9 +74,7 @@ function idText(value: unknown): string {
 
 function readIds(value: unknown): Array<string> {
   return Array.from(
-    new Set(
-      (Array.isArray(value) ? value : []).map(idText).filter(Boolean),
-    ),
+    new Set((Array.isArray(value) ? value : []).map(idText).filter(Boolean)),
   );
 }
 
@@ -136,9 +134,11 @@ export default class DataSecurityIssueGroupFixProof {
         }
 
         try {
-          const proof: GroupFixProof = await DataSecurityIssueGroupFixProof.read(
-            { projectId: data.projectId, proposal },
-          );
+          const proof: GroupFixProof =
+            await DataSecurityIssueGroupFixProof.read({
+              projectId: data.projectId,
+              proposal,
+            });
 
           if (proof.standing === IssueGroupFixProofStanding.Proven) {
             proven += await DataSecurityAiProposalService.markGroupFixProven({
@@ -183,7 +183,10 @@ export default class DataSecurityIssueGroupFixProof {
       });
     }
 
-    return { standing: IssueGroupFixProofStanding.NothingToProve, issueIds: [] };
+    return {
+      standing: IssueGroupFixProofStanding.NothingToProve,
+      issueIds: [],
+    };
   }
 
   /*
@@ -382,26 +385,24 @@ export default class DataSecurityIssueGroupFixProof {
       }),
     );
 
-    return ids.map(
-      (id: string): IssueGroupFixProofIssue & { id?: string } => {
-        const issue: DataSecurityIssue | undefined = byId.get(id);
+    return ids.map((id: string): IssueGroupFixProofIssue & { id?: string } => {
+      const issue: DataSecurityIssue | undefined = byId.get(id);
 
-        if (!issue) {
-          return { id, status: "Deleted" };
-        }
+      if (!issue) {
+        return { id, status: "Deleted" };
+      }
 
-        const details: DataSecurityIssueResolutionDetails =
-          readDataSecurityIssueResolutionDetails(issue.resolutionDetails);
+      const details: DataSecurityIssueResolutionDetails =
+        readDataSecurityIssueResolutionDetails(issue.resolutionDetails);
 
-        return {
-          id,
-          status: issue.status,
-          resolution: issue.resolution,
-          resolvedAt: issue.resolvedAt,
-          fixTaskId: details.fix?.taskId,
-          responseAction: details.responseAction,
-        };
-      },
-    );
+      return {
+        id,
+        status: issue.status,
+        resolution: issue.resolution,
+        resolvedAt: issue.resolvedAt,
+        fixTaskId: details.fix?.taskId,
+        responseAction: details.responseAction,
+      };
+    });
   }
 }

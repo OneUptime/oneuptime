@@ -229,9 +229,7 @@ describe("a case whose issue is in no group", () => {
     // The step says what it asked for, and where.
     expect(outcome.summary.toString()).toContain("customer-exports");
     expect(outcome.summary.toString()).toContain("acme/infra");
-    expect(outcome.summary.toString()).toContain(
-      "buckets/customer-exports.tf",
-    );
+    expect(outcome.summary.toString()).toContain("buckets/customer-exports.tf");
     expect(outcome.summary.toString()).toContain("Terraform");
     // The issue's timeline says a playbook asked, with nobody named.
     expect(calls.feedLines).toContainEqual({
@@ -296,15 +294,13 @@ describe("a case whose issue is in no group", () => {
       gateRefusal: "Turn on AI for this project first.",
     });
     declared = new Map();
-    jest
-      .spyOn(DataSecurityIssueDossier, "readDeclaredCode")
-      .mockResolvedValue({
-        repositoryId: REPOSITORY_ID,
-        repositoryName: "acme/infra",
-        paths: [],
-        codeKind: "Terraform",
-        reason: "HasNamedFile",
-      } as never);
+    jest.spyOn(DataSecurityIssueDossier, "readDeclaredCode").mockResolvedValue({
+      repositoryId: REPOSITORY_ID,
+      repositoryName: "acme/infra",
+      paths: [],
+      codeKind: "Terraform",
+      reason: "HasNamedFile",
+    } as never);
     jest
       .spyOn(ProjectDataTypeNames, "read")
       .mockResolvedValue(DataTypeNamer.withoutCustomTypes() as never);
@@ -335,10 +331,14 @@ describe("a case whose issue is in no group", () => {
   test("asks for at most a few issues in no group, each its own pull request", async () => {
     for (let index: number = 1; index <= MAX_CASE_ISSUES_FIXED + 2; index++) {
       // Each of another kind and name: no two make a group.
-      declaredStore(`store${index}`, {
-        kind: index % 2 === 0 ? "AWS S3 Bucket" : "AWS RDS Instance",
-        cloudTags: { "managed-by": "terraform", owner: `team${index}` },
-      }, { checkId: index % 2 === 0 ? "public-read" : "not-encrypted-at-rest" });
+      declaredStore(
+        `store${index}`,
+        {
+          kind: index % 2 === 0 ? "AWS S3 Bucket" : "AWS RDS Instance",
+          cloudTags: { "managed-by": "terraform", owner: `team${index}` },
+        },
+        { checkId: index % 2 === 0 ? "public-read" : "not-encrypted-at-rest" },
+      );
     }
 
     const outcome: PlaybookStepOutcome = await runStep();
@@ -357,9 +357,7 @@ describe("a case with issues in a group and in none", () => {
           name: `site-${index}-assets`,
           cloudTags: { module: "static-site", "managed-by": "terraform" },
         },
-        index === 1
-          ? { securityCaseId: securityCase._id!.toString() }
-          : {},
+        index === 1 ? { securityCaseId: securityCase._id!.toString() } : {},
       );
     }
 

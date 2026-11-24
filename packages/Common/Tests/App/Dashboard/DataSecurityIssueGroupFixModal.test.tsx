@@ -378,7 +378,9 @@ describe("the one approval, kind by kind (#10742)", () => {
     ]);
     expect(
       getCloudActions(cloudPlan(stores, { withActions: false }).cloud!),
-    ).toEqual([{ action: VERSIONING, kind: DataStoreKind.AwsS3Bucket, stores }]);
+    ).toEqual([
+      { action: VERSIONING, kind: DataStoreKind.AwsS3Bucket, stores },
+    ]);
 
     expect(
       getCloudOutcomes({

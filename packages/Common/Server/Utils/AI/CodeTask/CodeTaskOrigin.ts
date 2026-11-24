@@ -218,8 +218,7 @@ export default class CodeTaskOrigin {
   }): boolean {
     return (
       Boolean(run.triggeredBySecurityCaseId) &&
-      (!CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType) ||
-        !run.userId)
+      (!CodeFixTaskTypeHelper.isCodeRequest(run.codeFixTaskType) || !run.userId)
     );
   }
 
@@ -465,8 +464,9 @@ export default class CodeTaskOrigin {
     run: AIRun,
     subjects: CodeTaskOriginSubjects,
   ): CodeTaskOriginJSON {
-    const securityCase: SecurityCase | undefined =
-      subjects.securityCases?.get(run.triggeredBySecurityCaseId!.toString());
+    const securityCase: SecurityCase | undefined = subjects.securityCases?.get(
+      run.triggeredBySecurityCaseId!.toString(),
+    );
 
     return {
       type: CodeTaskOriginType.SecurityCase,

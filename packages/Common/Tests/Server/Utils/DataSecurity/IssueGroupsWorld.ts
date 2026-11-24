@@ -394,10 +394,7 @@ export default class IssueGroupsWorld {
 
   // Whether a reader may read an issue: held to labels, its store must carry one (#10739).
   public isReadableBy(issue: WorldIssue, props: unknown): boolean {
-    const labels: Set<string> | null = getReaderLabelIds(
-      this.projectId,
-      props,
-    );
+    const labels: Set<string> | null = getReaderLabelIds(this.projectId, props);
 
     if (labels === null) {
       return true;

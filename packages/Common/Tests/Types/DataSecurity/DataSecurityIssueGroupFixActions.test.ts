@@ -357,9 +357,9 @@ describe("the catalog the one approval reads", () => {
       DataStoreKind.AwsRdsCluster,
       DataStoreKind.AwsDocumentDbCluster,
     ]) {
-      expect(getDataSecurityResponseActionForIssue("snapshot-public", kind)).toBe(
-        REVOKE,
-      );
+      expect(
+        getDataSecurityResponseActionForIssue("snapshot-public", kind),
+      ).toBe(REVOKE);
     }
   });
 

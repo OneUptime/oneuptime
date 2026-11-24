@@ -536,7 +536,8 @@ export default class DataSecurityIssueGroupProposals {
             },
           ),
           // One action reads as it always did; several name each (#10742).
-          extra: actions.length > 1 ? [...actions].sort().join(",") : actions[0],
+          extra:
+            actions.length > 1 ? [...actions].sort().join(",") : actions[0],
         }),
         safety,
         meetsDefaultConditions: false,

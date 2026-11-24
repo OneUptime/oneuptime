@@ -20,13 +20,19 @@ import {
 
 describe("the server's sentences of a group's fix", () => {
   test.each([
-    ["a pull request the reader may not ask for", GROUP_PULL_REQUEST_REFUSED_MESSAGE],
+    [
+      "a pull request the reader may not ask for",
+      GROUP_PULL_REQUEST_REFUSED_MESSAGE,
+    ],
     ["a cloud change the reader may not make", CLOUD_FIX_REFUSED_MESSAGE],
     ["a plan that changed since it was shown", GROUP_FIX_CHANGED_MESSAGE],
     ["a group whose every store is left out", GROUP_FIX_NOTHING_TO_DO_MESSAGE],
     ["a group that is gone", GROUP_NOT_FOUND_MESSAGE],
     ["a reader held to labels (#10739)", GROUP_FIX_HELD_READER_MESSAGE],
-  ])("%s is one the Dashboard translates", (_name: string, sentence: string) => {
-    expect(GROUP_FIX_SERVER_SENTENCES).toContain(sentence);
-  });
+  ])(
+    "%s is one the Dashboard translates",
+    (_name: string, sentence: string) => {
+      expect(GROUP_FIX_SERVER_SENTENCES).toContain(sentence);
+    },
+  );
 });

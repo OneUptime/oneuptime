@@ -561,10 +561,11 @@ describe("dismissing a proposal", () => {
     const groupId: ObjectID = new ObjectID(
       "10741000-0000-4000-8000-0000000000b1",
     );
-    const told: SpyInstance<typeof DataSecurityIssueGroupTimelines.onDismissed> =
-      jest
-        .spyOn(DataSecurityIssueGroupTimelines, "onDismissed")
-        .mockResolvedValue(2);
+    const told: SpyInstance<
+      typeof DataSecurityIssueGroupTimelines.onDismissed
+    > = jest
+      .spyOn(DataSecurityIssueGroupTimelines, "onDismissed")
+      .mockResolvedValue(2);
 
     row = proposalRow({
       dataSecurityIssueId: undefined,
@@ -591,10 +592,11 @@ describe("dismissing a proposal", () => {
   });
 
   test("an issue's own proposal tells no group", async () => {
-    const told: SpyInstance<typeof DataSecurityIssueGroupTimelines.onDismissed> =
-      jest
-        .spyOn(DataSecurityIssueGroupTimelines, "onDismissed")
-        .mockResolvedValue(0);
+    const told: SpyInstance<
+      typeof DataSecurityIssueGroupTimelines.onDismissed
+    > = jest
+      .spyOn(DataSecurityIssueGroupTimelines, "onDismissed")
+      .mockResolvedValue(0);
 
     await dismissAs({ ...person(ALICE), isMasterAdmin: true }, "No.");
 

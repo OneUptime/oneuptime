@@ -297,7 +297,9 @@ function taskFixing(issueIds: Array<string>): void {
   const task: AIRun = new AIRun();
 
   task.id = new ObjectID(TASK_ID);
-  jest.spyOn(DataSecurityFixTarget, "readTask").mockResolvedValue(task as never);
+  jest
+    .spyOn(DataSecurityFixTarget, "readTask")
+    .mockResolvedValue(task as never);
   jest
     .spyOn(DataSecurityFixTarget, "issueIdsOfTask")
     .mockReturnValue(issueIds as never);

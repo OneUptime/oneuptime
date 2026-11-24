@@ -637,10 +637,7 @@ export default class DataSecurityIssueGroupFix {
       });
 
       if (cloud.action) {
-        const refusal: string | null = !holds(
-          data.props,
-          CLOUD_FIX_PERMISSIONS,
-        )
+        const refusal: string | null = !holds(data.props, CLOUD_FIX_PERMISSIONS)
           ? CLOUD_FIX_REFUSED_MESSAGE
           : data.isHeldReader
             ? GROUP_FIX_HELD_READER_MESSAGE

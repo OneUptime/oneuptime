@@ -422,14 +422,14 @@ describe("DataSecurityCodeTask.requestFix asked by OneUptime, for a security cas
   beforeEach(() => {
     given = repository("infra");
     looked = [];
-    jest
-      .spyOn(CodeRepositoryService, "findOneBy")
-      .mockImplementation((async (findOneBy: JSONObject) => {
-        looked.push(findOneBy);
-        order.push("repository");
+    jest.spyOn(CodeRepositoryService, "findOneBy").mockImplementation((async (
+      findOneBy: JSONObject,
+    ) => {
+      looked.push(findOneBy);
+      order.push("repository");
 
-        return given;
-      }) as never);
+      return given;
+    }) as never);
     startedForIssue = jest
       .spyOn(CodeTaskRuns, "startForDataSecurityIssue")
       .mockImplementation(async (): Promise<AIRun> => {
@@ -483,12 +483,12 @@ describe("DataSecurityCodeTask.requestFix asked by OneUptime, for a security cas
   });
 
   test("with no repository given, or one of another project, starts nothing and says why", async () => {
-    expect(await askAsOneUptime({ requestedRepositoryId: undefined })).toEqual(
-      { message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE },
-    );
-    expect(await askAsOneUptime({ requestedRepositoryId: "not-an-id" })).toEqual(
-      { message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE },
-    );
+    expect(await askAsOneUptime({ requestedRepositoryId: undefined })).toEqual({
+      message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE,
+    });
+    expect(
+      await askAsOneUptime({ requestedRepositoryId: "not-an-id" }),
+    ).toEqual({ message: DATA_SECURITY_ISSUE_FIX_NO_REPOSITORY_MESSAGE });
 
     given = null;
 

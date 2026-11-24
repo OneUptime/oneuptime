@@ -524,40 +524,12 @@ describe("a group that follows its issues to the end", () => {
       expect(proven).toHaveLength(1);
     });
 
-    test("never when an issue was accepted, or marked not an issue, instead of fixed", async () => {
-      for (const status of [
-        DataSecurityIssueStatus.Accepted,
-        DataSecurityIssueStatus.NotAnIssue,
-      ]) {
-        jest.restoreAllMocks();
-        world = new IssueGroupsWorld();
-        world.install();
-        calls = installGroupFixStubs({
-          connections: [{ id: CONNECTION_ID }],
-        });
-        jest
-          .spyOn(AIService, "isProjectAIEnabled")
-          .mockResolvedValue(true as never);
-        proven = [];
-        proposal = undefined as unknown as DataSecurityAiProposal;
-        (
-          DataSecurityIssueGroupFixProof.proveForProject as unknown as {
-            mockRestore: () => void;
-          }
-        ).mockRestore();
-        jest
-          .spyOn(DataSecurityAiProposalService, "findBy")
-          .mockImplementation((async () => {
-            return proposal ? [proposal] : [];
-          }) as never);
-        jest
-          .spyOn(DataSecurityAiProposalService, "markGroupFixProven")
-          .mockImplementation((async (data: { proposalId: ObjectID }) => {
-            proven.push(data.proposalId.toString());
-
-            return 1;
-          }) as never);
-
+    test.each([
+      DataSecurityIssueStatus.Accepted,
+      DataSecurityIssueStatus.NotAnIssue,
+    ])(
+      "never when an issue was %s instead of fixed",
+      async (status: DataSecurityIssueStatus) => {
         const { buckets, made } = await fixedByProposal(4);
 
         for (const bucket of buckets.slice(1)) {
@@ -570,8 +542,8 @@ describe("a group that follows its issues to the end", () => {
 
         expect(made.openIssueCount).toBe(0);
         expect(proven).toEqual([]);
-      }
-    });
+      },
+    );
   });
 });
 

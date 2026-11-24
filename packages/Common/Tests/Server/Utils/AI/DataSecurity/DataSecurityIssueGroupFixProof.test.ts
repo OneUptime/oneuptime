@@ -129,12 +129,17 @@ function fixedFromHere(
 }
 
 // The pull request's task, in a project, listing these issues.
-function taskListing(issueIds: Array<string>, projectId: ObjectID = PROJECT_ID): void {
+function taskListing(
+  issueIds: Array<string>,
+  projectId: ObjectID = PROJECT_ID,
+): void {
   const task: AIRun = new AIRun();
 
   task.id = new ObjectID(TASK_ID);
   task.projectId = projectId;
-  jest.spyOn(DataSecurityFixTarget, "readTask").mockResolvedValue(task as never);
+  jest
+    .spyOn(DataSecurityFixTarget, "readTask")
+    .mockResolvedValue(task as never);
   jest
     .spyOn(DataSecurityFixTarget, "issueIdsOfTask")
     .mockReturnValue(issueIds as never);
@@ -390,7 +395,9 @@ describe("a group's pull request", () => {
       result: { aiRunId: TASK_ID },
     });
 
-    jest.spyOn(DataSecurityFixTarget, "readTask").mockResolvedValue(null as never);
+    jest
+      .spyOn(DataSecurityFixTarget, "readTask")
+      .mockResolvedValue(null as never);
     expect(await prove()).toBe(0);
 
     taskListing([fixed.id], OTHER_PROJECT_ID);

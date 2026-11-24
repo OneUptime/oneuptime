@@ -447,7 +447,10 @@ export default class DataSecurityIssueGroups {
       ),
     );
 
-    if (groupIds.length === 0 || !DataSecurityIssueGroups.canReadAny(data.props)) {
+    if (
+      groupIds.length === 0 ||
+      !DataSecurityIssueGroups.canReadAny(data.props)
+    ) {
       return byIssue;
     }
 

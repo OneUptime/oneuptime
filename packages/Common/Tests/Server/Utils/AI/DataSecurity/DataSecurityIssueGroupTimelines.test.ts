@@ -48,11 +48,10 @@ import {
 const PROJECT_ID: ObjectID = new ObjectID(
   "10741000-0000-4000-8000-000000000001",
 );
-const GROUP_ID: ObjectID = new ObjectID(
-  "10741000-0000-4000-8000-0000000000b1",
-);
+const GROUP_ID: ObjectID = new ObjectID("10741000-0000-4000-8000-0000000000b1");
 const USER_ID: ObjectID = new ObjectID("10741000-0000-4000-8000-0000000000e1");
-const AI_PAGE: string = "https://oneuptime.example/dashboard/p/data-security/ai";
+const AI_PAGE: string =
+  "https://oneuptime.example/dashboard/p/data-security/ai";
 
 let next: number = 0;
 
@@ -96,8 +95,9 @@ function addIssues(
 }
 
 function readIds(value: unknown): Array<string> {
-  const raw: { objectLiteralParameters?: Record<string, unknown> } =
-    value as { objectLiteralParameters?: Record<string, unknown> };
+  const raw: { objectLiteralParameters?: Record<string, unknown> } = value as {
+    objectLiteralParameters?: Record<string, unknown>;
+  };
 
   return (
     Object.values(raw?.objectLiteralParameters || {}).flat() as Array<unknown>
@@ -197,7 +197,9 @@ beforeEach(() => {
       fromStatuses: Array<string>;
       set: JSONObject;
     }) => {
-      expect(data.fromStatuses).toEqual([DataSecurityAiProposalStatus.Proposed]);
+      expect(data.fromStatuses).toEqual([
+        DataSecurityAiProposalStatus.Proposed,
+      ]);
       claims.push({ proposalId: data.proposalId.toString(), set: data.set });
 
       return claimWins ? 1 : 0;
@@ -332,7 +334,10 @@ describe("when OneUptime AI proposes a group's fix that waits", () => {
 
   test("each open issue it is for says so, once, with the proposal behind the line", async () => {
     const open: Array<string> = addIssues(3);
-    const closed: Array<string> = addIssues(1, DataSecurityIssueStatus.Resolved);
+    const closed: Array<string> = addIssues(
+      1,
+      DataSecurityIssueStatus.Resolved,
+    );
 
     expect(
       await proposed(DataSecurityAiProposalKind.FixIssueGroupInCode, {
@@ -475,9 +480,7 @@ describe("when OneUptime AI proposes a group's fix that waits", () => {
         kind: DataSecurityAiProposalKind.FixIssueGroupInCode,
       }),
     ).toEqual(new Set([...first, ...second]));
-    expect(
-      (findBy.mock.calls[0]![0] as { query: JSONObject }).query,
-    ).toEqual({
+    expect((findBy.mock.calls[0]![0] as { query: JSONObject }).query).toEqual({
       projectId: PROJECT_ID,
       dataSecurityIssueGroupId: GROUP_ID,
       kind: DataSecurityAiProposalKind.FixIssueGroupInCode,
@@ -501,7 +504,10 @@ describe("when OneUptime AI proposes a group's fix that waits", () => {
 describe("when a person dismisses a group's proposal", () => {
   test("each issue it was for says so, with who, whatever it stands at now", async () => {
     const open: Array<string> = addIssues(2);
-    const closed: Array<string> = addIssues(1, DataSecurityIssueStatus.Resolved);
+    const closed: Array<string> = addIssues(
+      1,
+      DataSecurityIssueStatus.Resolved,
+    );
     const proposal: DataSecurityAiProposal = proposalOf(
       DataSecurityAiProposalKind.FixIssueGroupInCode,
       { issueIds: [...open, ...closed] },
@@ -652,8 +658,9 @@ describe("when what a group's fix still waited for expires", () => {
       why: GroupProposalExpiry.NoLongerNeeded,
     });
 
-    const query: JSONObject = (findBy.mock.calls[0]![0] as { query: JSONObject })
-      .query;
+    const query: JSONObject = (
+      findBy.mock.calls[0]![0] as { query: JSONObject }
+    ).query;
 
     expect(query["status"]).toBe(DataSecurityAiProposalStatus.Proposed);
     expect(query["dataSecurityIssueGroupId"]).toEqual(GROUP_ID);
