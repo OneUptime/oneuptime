@@ -103,6 +103,8 @@ const READ_AS_WRITTEN: Readonly<Record<string, string>> = {
   "member@company.com": "an example address, typed over",
   "email@company.com": "an example address, typed over",
   "email@yourcompany.com": "an example address, typed over",
+  // Settings > Help and Support's link field (#10864-#10866).
+  "https://help.yourcompany.com": "an example link, typed over",
   "internal-probe": "an example probe name, typed over",
   "0 USD": "an amount in a currency's code, typed over",
   "OpenID Connect (OIDC)": "a protocol's name",
@@ -116,6 +118,10 @@ const READ_AS_WRITTEN: Readonly<Record<string, string>> = {
  */
 const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
   de: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
+    "Mobile App",
+    "Single Sign-On",
     "Feedback",
     "Version",
     "Name",
@@ -134,6 +140,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Host",
   ],
   fr: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     "Question",
     "Page",
     // The Feedback page's docs pages (#7209): French says "Pages" too.
@@ -158,6 +166,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Actions",
   ],
   es: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     "No",
     "Total",
     "Enterprise",
@@ -170,6 +180,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Idea",
   ],
   it: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     // What Give feedback was about (#8893): Italian says "Idea" too.
     "Idea",
     "Home",
@@ -189,6 +201,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Host",
   ],
   pt: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     "Feedback",
     "Status",
     "Datastores",
@@ -201,6 +215,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Host",
   ],
   nl: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     "Feedback",
     "Status",
     "Datastores",
@@ -221,6 +237,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Host",
   ],
   da: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     "Feedback",
     "Version",
     "Status",
@@ -242,6 +260,8 @@ const SAME_AS_ENGLISH_IN: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Shard {{shard}}",
   ],
   no: [
+    // Settings > Help and Support (#10864-#10866): the language says it too.
+    "Chat",
     "Status",
     "{{count}} people_one",
     "Team",

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 8284
+    "keys": 63890,
+    "untranslated": 8276
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -71,6 +71,7 @@
     "Cluster",
     "Cluster {{cluster}}",
     "Clusters",
+    "Colorado",
     "Commit",
     "Commits",
     "Community Edition",
@@ -336,6 +337,7 @@
     "Tebibytes",
     "Tenancy",
     "Terabytes",
+    "Texas",
     "Threads",
     "Token",
     "Tokens",
@@ -375,6 +377,7 @@
     "Volumes",
     "WAF",
     "WAFs",
+    "Washington",
     "Watts",
     "Web",
     "Web, iOS, Android, React Native",

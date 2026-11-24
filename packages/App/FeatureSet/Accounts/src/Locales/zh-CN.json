@@ -725,6 +725,10 @@
   "Add one file at a time.": "请一次添加一个文件。",
   "This field holds up to {{count}} files. Remove one to add another.": "此字段最多可包含 {{count}} 个文件。请先移除一个，再添加其他文件。",
   "This field holds up to {{count}} files. Remove one to add another._one": "此字段只能包含一个文件。请先移除它，再添加其他文件。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "“{{fileName}}”未添加：此字段最多可包含 {{count}} 个文件。",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "“{{fileName}}”未添加：此字段只能包含一个文件。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "此字段最多可包含 {{count}} 个文件，因此以下文件未添加：{{fileNames}}。",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "此字段只能包含一个文件，因此以下文件未添加：{{fileNames}}。",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",
@@ -733,5 +737,6 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下载一个本地诊断文件，其中包含错误堆栈、组件堆栈、已清理的页面 URL、浏览器信息和 OneUptime 版本。它从不读取 Cookie、浏览器保存的数据或表单内容。分享之前请先检查。"
 }

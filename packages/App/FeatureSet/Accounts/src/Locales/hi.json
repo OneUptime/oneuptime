@@ -725,6 +725,10 @@
   "Add one file at a time.": "एक बार में एक फ़ाइल जोड़ें।",
   "This field holds up to {{count}} files. Remove one to add another.": "इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं। दूसरी जोड़ने के लिए एक हटाएं।",
   "This field holds up to {{count}} files. Remove one to add another._one": "इस फ़ील्ड में एक ही फ़ाइल रखी जा सकती है। दूसरी जोड़ने के लिए इसे हटाएं।",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" नहीं जोड़ी गई: इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं।",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" नहीं जोड़ी गई: इस फ़ील्ड में एक ही फ़ाइल रखी जा सकती है।",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "ये फ़ाइलें नहीं जोड़ी गईं, क्योंकि इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं: {{fileNames}}।",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "ये फ़ाइलें नहीं जोड़ी गईं, क्योंकि इस फ़ील्ड में एक ही फ़ाइल रखी जा सकती है: {{fileNames}}।",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",
@@ -733,5 +737,6 @@
     "note": "नोट",
     "tip": "सुझाव",
     "warning": "चेतावनी"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "त्रुटि स्टैक, कंपोनेंट स्टैक, साफ़ किया गया पेज URL, ब्राउज़र विवरण और OneUptime बिल्ड वाली एक स्थानीय डायग्नोस्टिक फ़ाइल डाउनलोड करें। यह कभी कुकीज़, ब्राउज़र में सहेजा डेटा या फ़ॉर्म की सामग्री नहीं पढ़ती। साझा करने से पहले इसे देख लें।"
 }

@@ -725,6 +725,10 @@
   "Add one file at a time.": "Tilføj én fil ad gangen.",
   "This field holds up to {{count}} files. Remove one to add another.": "Dette felt kan indeholde op til {{count}} filer. Fjern en for at tilføje en anden.",
   "This field holds up to {{count}} files. Remove one to add another._one": "Dette felt kan indeholde én fil. Fjern den for at tilføje en anden.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" blev ikke tilføjet: dette felt kan indeholde op til {{count}} filer.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" blev ikke tilføjet: dette felt kan indeholde én fil.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "Disse filer blev ikke tilføjet, fordi dette felt kan indeholde op til {{count}} filer: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "Disse filer blev ikke tilføjet, fordi dette felt kan indeholde én fil: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",
@@ -733,5 +737,6 @@
     "note": "Bemærk",
     "tip": "Tip",
     "warning": "Advarsel"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Hent en lokal diagnosefil med fejlstakken, komponentstakken, den rensede side-URL, browseroplysninger og OneUptime-buildet. Den læser aldrig cookies, gemte browserdata eller formularindhold. Gennemgå den, før du deler den."
 }

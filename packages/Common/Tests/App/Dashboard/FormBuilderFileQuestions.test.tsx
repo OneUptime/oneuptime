@@ -84,6 +84,7 @@ import {
   FormFieldSource,
 } from "../../../Types/Form/FormField";
 import { FormCustomFieldDefinition } from "../../../Types/Form/FormPublic";
+import { FORM_FILE_QUESTION_MAX_FILES } from "../../../Types/Form/FormFileAnswer";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 
 const CONTRACT_FIELD_ID: string = "b0000000-0000-4000-8000-0000000000f1";
@@ -134,12 +135,16 @@ describe("the palette's file questions", () => {
     expect(
       screen.getByTestId(`form-palette-question-${CustomFieldType.File}`),
     ).toHaveTextContent("File");
+    /*
+     * How many files it takes is every Multiple Files question's, a value
+     * of the sentence (#8039): never a number written into its words.
+     */
     expect(
       screen.getByTestId(
         `form-palette-question-${CustomFieldType.MultipleFiles}`,
       ),
     ).toHaveTextContent(
-      FORM_QUESTION_TYPE_TEXT[CustomFieldType.MultipleFiles].description,
+      `Up to ${FORM_FILE_QUESTION_MAX_FILES} files, such as screenshots and logs.`,
     );
   });
 

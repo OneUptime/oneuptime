@@ -308,6 +308,8 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
+不過，有人在 OneUptime 中為監測器的步驟新增、而你的設定沒有寫的設定值，是一種差異：下一次 plan 會顯示 `monitor_steps` 發生變化，隨後的 apply 會按 plan 所說移除該設定值。要保留它，也請在你的設定中寫上它。
+
 ## 標籤和 OneUptime 也會新增的其他清單
 
 OneUptime 會自行在記錄的某些清單中新增內容：標籤規則會把它的標籤新增到它符合的記錄上，待命規則會把它的原則新增到它符合的事件和警示上，SLO 的監測器規則會關聯它們符合的監測器。參考文件對每個這樣的屬性都會寫明："OneUptime adds to it too, on its own"。設定了這類清單的設定會保留它列出的項目，其餘的保持不變：

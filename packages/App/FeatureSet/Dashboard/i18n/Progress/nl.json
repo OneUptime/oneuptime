@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 8319
+    "keys": 63890,
+    "untranslated": 8311
   },
   "sameAsEnglish": [
     " is",
@@ -107,6 +107,7 @@
     "Code",
     "Code {{code}}",
     "Collector",
+    "Colorado",
     "Commit",
     "Commits",
     "Community Edition",
@@ -191,6 +192,7 @@
     "Flavor",
     "Flavors",
     "Floating IP",
+    "Florida",
     "Fluent Bit",
     "Fuchsia",
     "GKE Autopilot",
@@ -257,6 +259,7 @@
     "Incident: {{severity}}",
     "Incident: {{title}}",
     "Index",
+    "India",
     "Indicator",
     "Indigo",
     "Info",
@@ -335,6 +338,7 @@
     "Nameserver",
     "Native push (Proxmox VE 9+)",
     "Nav",
+    "New York",
     "Node",
     "Nodes online",
     "Null",
@@ -527,6 +531,7 @@
     "Tenant",
     "Tenant: {{tenant}}",
     "Terabytes",
+    "Texas",
     "Theater",
     "Threads",
     "Timing",
@@ -588,6 +593,7 @@
     "Volume {{name}}",
     "Volumes",
     "WAF",
+    "Washington",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",

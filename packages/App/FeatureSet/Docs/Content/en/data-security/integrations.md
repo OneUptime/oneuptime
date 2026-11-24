@@ -4,6 +4,7 @@ Data Security does not run a pager or a security queue of its own. It hands what
 
 :::cards
 - [Security Operations](#security-operations): A security case for every store with a Critical issue.
+- [Was it a breach?](#was-it-a-breach): Each Critical exposure assessed: how long, who could read it, whose data, and the breach laws that may apply.
 - [Alerts and on-call](#alerts-and-on-call): Page whoever is on call when a Critical issue opens.
 - [Incidents](#incidents): Declare an incident for a breach your incident process should run.
 - [Owners](#owners): Who owns each store, set by hand or by rules, and the email they get.
@@ -45,6 +46,22 @@ Every store is an entity of its own in Security Operations, of the type **Data S
 From there the case is worked like any other: assigned, noted, closed, and answered by the project's playbooks. The store's detections count toward its risk on [Entity Risk](/docs/telemetry/security-entity-risk), as any entity's do. See [Security Cases and Playbooks](/docs/telemetry/security-cases).
 
 Any security case, whatever opened it, shows the data at risk on its **Impact**: the stores with sensitive data the case is about, and every store its users and roles can reach, the most sensitive first, with what each holds, about how many records, how exposed it is and how many identities can reach it. An assumed-role session the case names counts as its role, and an email address as the cloud users it belongs to. It is read with the reader's own permissions, so a role that cannot read Data Security sees that it is left out.
+
+## Was it a breach?
+
+A Critical exposure of a store with **Restricted** or **Confidential** data - open to anyone on the internet, shared with accounts outside yours, or a snapshot others can restore - has its case assessed on its own, as the case opens. Any other case about a data store is assessed when a person presses **Assess This Exposure** on its **Overview**. Plain code works the assessment out from what OneUptime recorded, and works it out again each time it is read:
+
+- **How long it was open**: from the change in your cloud's log that exposed the store, when one was logged in the 30 days before it was found, else at least since Data Security found it; until Data Security's own response closed it, a change closed it, or a check found it closed.
+- **Who could read it**: whether the store logged reads. Where it did not, the assessment says "Reads were not logged. Treat the data as read." It counts the accounts outside your company that could read the store, and how many of them used their access while it was open, never naming them.
+- **Whose data it was**: what the store holds, about how many records, who they are about, and where the people live, as the data shows and as a person says.
+- **The secrets to rotate**: each secret found in the store while it was open, by its type and where it was found, never its value.
+- **The breach laws that may apply**: each row of OneUptime's table of breach laws, with what it asks, of whom, its deadline counted from when Data Security found the exposure, and what a person still checks before it applies.
+
+The table covers GDPR Articles 33 and 34, UK GDPR Articles 33 and 34, HIPAA's Breach Notification Rule, PCI DSS requirement 12.10.1, Brazil's LGPD, India's DPDP Rules and CERT-In directions, and the breach laws of California, Colorado, Florida, New York, Texas and Washington. Each row links to the law's own text, its source, and says the day it was last checked against it. What the table does not cover - another country, another US state, where your organization is established, your contracts - the assessment says in plain words.
+
+OneUptime AI writes the assessment up as your Data Security AI rules allow, or when a person asks: what it means, a notice to the regulator, a notice to the people affected and an internal summary (see [OneUptime AI in Data Security](/docs/data-security/ai)). Each draft is held to the assessment's facts: a number or a law none of them holds drops it. Nothing is sent anywhere: a notice is text a person edits and copies, and the assessment and every draft say they are not legal advice.
+
+The case's readers who may read the store and its findings too see the assessment, since it names what the store holds. Assessing, drafting, editing a notice and saying where the people live take permission to edit the case as well. See [Was it a breach?](/docs/telemetry/security-cases#was-it-a-breach) for the case's cards.
 
 ## Alerts and on-call
 
@@ -147,7 +164,7 @@ Two changes close a cloud store's exposure, each through the store's cloud conne
 
 A person runs one from an open issue it fixes, with **Fix it from here** (see [Data Security Checks and Issues](/docs/data-security/checks-and-issues#fix-it-from-here)). A Security Operations playbook runs them as steps of the **Contain** category, **Block public access to data stores** and **Revoke data store sharing**: on every data store the case is about, at most 10, each a step that starts with **Needs Approval** on. A store marked **Public By Design** is never blocked. Either way the store's feed says what was done, and the store is checked again at once, so the issue resolves when the change took.
 
-The **Close a Data Exposure** playbook template answers the cases Data Security opens: it emails the store's owners, blocks public access and revokes sharing once a person approves each, and adds the response's checklist to the case as tasks - who read the data while it was exposed, whether it is a breach you must report, which secrets to rotate, and what to write when the case closes. Add it from **Create from Template** on the project's playbooks.
+The **Close a Data Exposure** playbook template answers the cases Data Security opens: it emails the store's owners, blocks public access and revokes sharing once a person approves each, and adds the response's checklist to the case as tasks - who read the data while it was exposed, whether it is a breach you must report, which secrets to rotate, and what to write when the case closes. Add it from **Create from Template** on the project's playbooks. The case's **Was It a Breach?** card answers each of those tasks (see [Was it a breach?](#was-it-a-breach)).
 
 ## API, Terraform and MCP
 
@@ -186,6 +203,11 @@ A few answers are worked out on request rather than stored. Each is a `POST`:
 | `/data-security-ai-proposal/<id>/approve` | **Approve** on a change OneUptime AI proposes, which makes it with your own permissions. It takes the `expectedPlanFingerprint` of the proposal you were shown, and refuses one that changed since |
 | `/data-security-ai-proposal/<id>/dismiss` | **Dismiss proposal**, with `{"reason": "..."}`, which goes on the issue's timeline |
 | `/data-security-ai-proposal/<id>/undo` | **Undo** on a change OneUptime AI made: it is taken back, and the store is checked again |
+| `/security-case/<id>/exposure-assessment` | A security case's exposure assessment, as you may read it: what plain code works out of the store it is about, and OneUptime AI's write-up |
+| `/security-case/<id>/exposure-assessment/assess` | **Assess This Exposure**: starts the case's assessment, of the store `{"dataStoreId": "..."}` names when the case is about more than one |
+| `/security-case/<id>/exposure-assessment/draft` | **Draft With OneUptime AI**: OneUptime AI writes up every part no person edited. Nothing is sent |
+| `/security-case/<id>/exposure-assessment/edit` | One part in a person's own words, such as `{"part": "regulatorNotice", "markdown": "..."}`, which is never drafted again |
+| `/security-case/<id>/exposure-assessment/people` | Where the people the data is about live, such as `{"places": ["EEA", "GB"]}`; an empty list takes the answer back |
 
 The [Terraform provider](/docs/terraform/index) has a resource for each kind of record you create - data stores you add yourself, custom data types, check settings, compliance settings, residency rules, owner and label rules - named after the record, such as `oneuptime_residency_rule`.
 

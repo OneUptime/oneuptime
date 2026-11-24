@@ -1,5 +1,6 @@
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeStateTimeline from "Common/Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -15,4 +16,6 @@ export default interface EpisodeGroup {
   episodeStateTimelines: Array<IncidentEpisodeStateTimeline>;
   episodeResources: Array<StatusPageResource>;
   monitorsInGroup: Dictionary<Array<ObjectID>>;
+  // Grouped by episode, the incidents of it the page shows: its card lists them.
+  incidents?: Array<Incident> | undefined;
 }

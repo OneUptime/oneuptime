@@ -14,8 +14,10 @@ import ProjectService from "../../Services/ProjectService";
 import Project from "../../../Models/DatabaseModels/Project";
 import {
   queueDataSecurityAiEvaluation,
+  queueDataSecurityExposureAssessment,
   queueDataSecurityOwnerNotice,
 } from "./DataSecurityJobs";
+import { isAssessedOnItsOwn } from "../../../Types/DataSecurity/ExposureAssessment";
 import OneUptimeDate from "../../../Types/Date";
 import TeamMemberService from "../../Services/TeamMemberService";
 import UserService from "../../Services/UserService";
@@ -71,7 +73,10 @@ import Markdown, { MarkdownContentType } from "../../Types/Markdown";
  *  - A Critical issue opens a security case (on by default), grouped by
  *    store: the store is the case's Data Store entity, so a second Critical
  *    issue on the same store joins the same case, and Entity Risk and
- *    playbooks see it like any other entity.
+ *    playbooks see it like any other entity. A Critical exposure of a store
+ *    with Restricted or Confidential data has the case assessed on its own
+ *    (#10377): the window, who could read it, whose data it was and which
+ *    breach laws may apply (ExposureAssessmentRun).
  *  - A Critical issue raises an alert (off by default), which pages
  *    whoever is on call through the alert's own rules. The alert ends with
  *    the issue: it is resolved once the issue is no longer open
@@ -509,7 +514,13 @@ export default class DataSecurityIntegrations {
       }
 
       await SecurityCaseIngest.recordDetections(signals);
-      await this.linkIssuesToCases(projectId, issues);
+
+      const caseOf: Map<string, ObjectID> = await this.linkIssuesToCases(
+        projectId,
+        issues,
+      );
+
+      await this.queueExposureAssessments(projectId, issues, caseOf);
 
       for (const issue of issues) {
         await DataSecurityIssueFeedService.createDataSecurityIssueFeedItem({
@@ -723,7 +734,9 @@ export default class DataSecurityIntegrations {
   private static async linkIssuesToCases(
     projectId: ObjectID,
     issues: Array<OpenedIssueForIntegrations>,
-  ): Promise<void> {
+  ): Promise<Map<string, ObjectID>> {
+    const caseOfIssue: Map<string, ObjectID> = new Map();
+
     try {
       const detections: Array<SecurityDetection> =
         await SecurityDetectionService.findBy({
@@ -759,6 +772,7 @@ export default class DataSecurityIntegrations {
         );
 
         if (securityCaseId) {
+          caseOfIssue.set(issue.issueId.toString(), securityCaseId);
           await this.linkIssue(issue.issueId, { securityCaseId });
         }
       }
@@ -767,6 +781,49 @@ export default class DataSecurityIntegrations {
         `DataSecurity: could not link issues to their security cases in project ${projectId.toString()}:`,
       );
       logger.error(error);
+    }
+
+    return caseOfIssue;
+  }
+
+  /*
+   * Every Critical exposure of a store with Restricted or Confidential data
+   * is assessed on its own (#10377): one queued job per case it is in,
+   * which works out the window, who could read the data, whose it was and
+   * which breach laws may apply, and has OneUptime AI write it up as the
+   * project's AI rules allow (ExposureAssessmentRun). Any other case about
+   * a store is assessed when a person asks. Best effort, like the rest.
+   */
+  private static async queueExposureAssessments(
+    projectId: ObjectID,
+    issues: Array<OpenedIssueForIntegrations>,
+    caseOfIssue: Map<string, ObjectID>,
+  ): Promise<void> {
+    const queuedCases: Set<string> = new Set();
+
+    for (const issue of issues) {
+      const securityCaseId: ObjectID | undefined = caseOfIssue.get(
+        issue.issueId.toString(),
+      );
+
+      if (
+        !securityCaseId ||
+        queuedCases.has(securityCaseId.toString()) ||
+        !isAssessedOnItsOwn({
+          severity: issue.severity,
+          checkId: issue.checkId,
+          sensitivity: issue.sensitivity,
+        })
+      ) {
+        continue;
+      }
+
+      queuedCases.add(securityCaseId.toString());
+      await queueDataSecurityExposureAssessment({
+        projectId,
+        securityCaseId,
+        dataSecurityIssueId: issue.issueId,
+      });
     }
   }
 

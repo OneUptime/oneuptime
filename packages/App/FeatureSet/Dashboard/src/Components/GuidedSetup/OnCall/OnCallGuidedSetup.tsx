@@ -92,6 +92,11 @@ import {
   BrowserPushProblem,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
+import {
+  MobileAppOffer,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import { PUSH_NOTIFICATIONS_TURNED_OFF_NOTICE } from "../../NotificationMethods/PushNotificationsTurnedOff";
 import { usePushNotificationsTurnedOff } from "../../../Utils/PushNotificationsTurnedOff";
 import Toast from "Common/UI/Utils/Toast";
@@ -251,6 +256,13 @@ const pickedIds: (
 
 const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * How the server offers the mobile app (Admin Dashboard > Settings > Help
+   * and Support, #10866): OneUptime's stores, a page of its own, or not at
+   * all - then the push step offers this browser only.
+   */
+  const mobileAppOffer: MobileAppOffer | null =
+    getMobileAppOffer(useHelpAndSupport());
   const serverEmail: ServerEmail = useServerEmail();
   const sendingStatus: ServerSendingStatusAnswer | null =
     useServerSendingStatus();
@@ -1105,7 +1117,11 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       ) : (
         <>
           <p className="text-sm text-gray-500">
-            {translator.translateText(ON_CALL_SETUP_COPY.pushHelp)}
+            {translator.translateText(
+              mobileAppOffer
+                ? ON_CALL_SETUP_COPY.pushHelp
+                : ON_CALL_SETUP_COPY.pushHelpWithoutApp,
+            )}
           </p>
           {browserPushProblem ? (
             <p
@@ -1135,17 +1151,21 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 }}
               />
             )}
-            <Button
-              title={ON_CALL_SETUP_COPY.getTheApp}
-              icon={IconProp.DevicePhoneMobile}
-              buttonStyle={ButtonStyleType.NORMAL}
-              ariaExpanded={isAppCodesOpen}
-              ariaControls="on-call-setup-app-codes"
-              dataTestId="on-call-setup-get-the-app"
-              onClick={() => {
-                setIsAppCodesOpen(!isAppCodesOpen);
-              }}
-            />
+            {mobileAppOffer ? (
+              <Button
+                title={ON_CALL_SETUP_COPY.getTheApp}
+                icon={IconProp.DevicePhoneMobile}
+                buttonStyle={ButtonStyleType.NORMAL}
+                ariaExpanded={isAppCodesOpen}
+                ariaControls="on-call-setup-app-codes"
+                dataTestId="on-call-setup-get-the-app"
+                onClick={() => {
+                  setIsAppCodesOpen(!isAppCodesOpen);
+                }}
+              />
+            ) : (
+              <></>
+            )}
           </div>
           {browserPushError ? (
             <p
@@ -1167,7 +1187,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           ) : (
             <></>
           )}
-          {isAppCodesOpen ? (
+          {isAppCodesOpen && mobileAppOffer ? (
             <div id="on-call-setup-app-codes" className="space-y-2">
               <MobileAppCodes
                 dataTestId="on-call-setup-app-codes"

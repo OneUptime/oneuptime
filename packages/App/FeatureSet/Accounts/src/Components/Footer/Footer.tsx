@@ -1,5 +1,10 @@
 import URL from "Common/Types/API/URL";
+import {
+  HelpPageLink,
+  getHelpPageLink,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
 import Footer from "Common/UI/Components/Footer/Footer";
+import HelpAndSupport from "Common/UI/Utils/HelpAndSupport";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import LanguageSwitcher from "../LanguageSwitcher/LanguageSwitcher";
@@ -36,6 +41,16 @@ const AccountsFooter: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * Contact: OneUptime's support page by default, the server's own help page
+   * where its admins set one, or nothing where they hid it (Admin Dashboard
+   * > Settings > Help and Support, #10864). Read from env.js, so the link is
+   * right before anyone signs in.
+   */
+  const helpPage: HelpPageLink | null = getHelpPageLink(
+    HelpAndSupport.getSettings(),
+  );
+
   return (
     <Footer
       /*
@@ -47,11 +62,15 @@ const AccountsFooter: FunctionComponent<ComponentProps> = (
       className="border-t border-gray-100 px-8"
       copyright={t("footer.copyright")}
       links={[
-        {
-          title: t("footer.contact"),
-          to: URL.fromString("https://oneuptime.com/support"),
-          openInNewTab: true,
-        },
+        ...(helpPage
+          ? [
+              {
+                title: t("footer.contact"),
+                to: URL.fromStringLenient(helpPage.url),
+                openInNewTab: true,
+              },
+            ]
+          : []),
         {
           title: t("footer.privacyAndTerms"),
           to: URL.fromString("https://oneuptime.com/legal"),

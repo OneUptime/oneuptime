@@ -1,4 +1,4 @@
-import { BASE_URL } from "../../Config";
+import { BASE_URL, E2E_SIGNUP_PASSWORD } from "../../Config";
 import { getRowMenuAction } from "../Helpers/RowActions";
 import { totpCode } from "../Helpers/Totp";
 import { registerAndCreateProject } from "./Helpers/ProductOnboarding";
@@ -352,6 +352,26 @@ test.describe("Security settings card layout", () => {
     await chooser
       .getByRole("button", { name: "Continue", exact: true })
       .click();
+
+    /*
+     * An authenticator app changes how the account signs in, so the
+     * Dashboard first asks the session to confirm it's its person's
+     * (#10155) - a new account's session has not - and then carries on, as
+     * in the Passkeys spec. Two-factor authentication is not on yet, so the
+     * password is all it asks for, and the confirmation lasts (ten minutes)
+     * for every change after it in this test.
+     */
+    const confirmItsYou: Locator = page.getByRole("dialog", {
+      name: "Confirm It's You",
+      exact: true,
+    });
+    await expect(confirmItsYou).toBeVisible();
+    const password: Locator = confirmItsYou.getByTestId(
+      "reauthentication-password",
+    );
+    await password.fill(E2E_SIGNUP_PASSWORD);
+    await password.press("Enter");
+    await expect(confirmItsYou).toHaveCount(0);
 
     const verify: Locator = page.getByRole("button", {
       name: "Verify and finish",

@@ -1151,6 +1151,30 @@ export default class SecurityCase extends BaseModel {
   public aiTriagePromptInjectionSuspected?: boolean = undefined;
 
   /*
+   * The case's exposure assessment (#10377), when it is about a data store
+   * that was exposed: which store, who started it, where a person said the
+   * people live, and OneUptime AI's write-up - what it means and the three
+   * notices it drafted or a person edited - with the facts each rests on
+   * (Types/DataSecurity/ExposureAssessment). Never read through the API:
+   * it names what the store holds, so its own route serves it, to the
+   * case's readers who may read the store's findings too.
+   */
+  @ColumnAccessControl({ create: [], read: [], update: [] })
+  @TableColumn({
+    type: TableColumnType.JSON,
+    required: false,
+    computed: true,
+    title: "Exposure Assessment",
+    description:
+      "The case's exposure assessment: which store, where the people live, and OneUptime AI's write-up and drafted notices, with the facts each rests on.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public exposureAssessment?: JSONObject = undefined;
+
+  /*
    * Where OneUptime AI stands on the case when it works it (#10352,
    * Types/SecurityCase/SecurityCaseAi): Working once it took the case (the
    * case is on OneUptime AI's queue), Waiting For People while it waits for

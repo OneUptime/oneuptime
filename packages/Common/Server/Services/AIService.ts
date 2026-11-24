@@ -352,6 +352,26 @@ export const AI_DATA_SECURITY_RULE_DRAFT_FEATURE: string =
   "AI Data Security Rule Draft";
 
 /*
+ * The LlmLog feature name for OneUptime AI's write-up of an exposure's
+ * assessment (ExposureAssessmentDrafter, #10377) written on its own: one
+ * constrained call per security case Data Security opens for a Critical
+ * exposure of a store with Restricted or Confidential data, with no one
+ * pressing it - one scan can open several - so the daily budget covers
+ * it. Its AI Logs rows keep no previews, as every Data Security call's do
+ * not.
+ */
+export const AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE: string =
+  "AI Data Security Exposure Assessment";
+
+/*
+ * The same write-up when a person asks for it on a case's Was It a
+ * Breach? card (#10377): one request, answered while they wait. Not
+ * autonomous - the project's daily limits cover it like any other request.
+ */
+export const AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_REQUEST_FEATURE: string =
+  "AI Data Security Exposure Assessment Request";
+
+/*
  * The LlmLog feature name for drafting a detection rule from a description
  * (DetectionRuleDraft): one request, started by a person on the Detection
  * Rules form and answered while they wait. Not autonomous - the project's
@@ -550,6 +570,12 @@ export const AUTONOMOUS_AI_FEATURES: Array<string> = [
    * started by the scans that kept its fields.
    */
   AI_DATA_SECURITY_DATA_TYPE_DRAFT_FEATURE,
+  /*
+   * OneUptime AI's write-up of an exposure's assessment
+   * (ExposureAssessmentDrafter, #10377) on its own: one constrained call
+   * per case Data Security opens for a Critical exposure.
+   */
+  AI_DATA_SECURITY_EXPOSURE_ASSESSMENT_FEATURE,
   /*
    * Pre-rename labels. Keeps the budget honest for rows already persisted
    * under the old names — read the LEGACY_AUTONOMOUS_AI_FEATURES comment

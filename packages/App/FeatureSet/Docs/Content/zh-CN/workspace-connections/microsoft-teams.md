@@ -43,7 +43,7 @@ flowchart TB
 :::steps
 ### 授予管理员同意
 
-前往 **项目设置** > **工作区** > **Microsoft Teams**，点击 **授予管理员许可**。Microsoft 365 管理员登录，并为组织允许 OneUptime 应用。之后卡片会显示 **Admin Consent Completed**。在连接工作区之前，事件、警报、计划维护、监视器和值班菜单的 **工作区** 部分中有 **连接工作区**，它同样会带您来到这里。
+前往 **项目设置** > **工作区** > **Microsoft Teams**，点击 **授予管理员许可**。Microsoft 365 管理员登录，并为组织允许 OneUptime 应用。之后卡片会显示 **Admin Consent Completed**，并写出组织，例如 Contoso (contoso.onmicrosoft.com)。在连接工作区之前，事件、警报、计划维护、监视器和值班菜单的 **工作区** 部分中有 **连接工作区**，它同样会带您来到这里。
 
 ### 连接您的账户
 
@@ -305,7 +305,7 @@ OneUptime AI 提出待批准的修复时，会以一张包含其变更和三个�
 - **项目设置** > **工作区** > **Microsoft Teams** 上的 **Uninstall OneUptime from Microsoft Teams** 会断开项目的连接。OneUptime 停止向 Microsoft Teams 发布，并且 **工作区** 菜单不再列出它。通知规则和摘要会被保留，以便您再次连接时使用。
 
 > [!WARNING]
-> 卸载还会解除项目中每个成员自己的 Microsoft Teams 账户的关联，并删除 Microsoft Teams 通知方式以及使用它们的值班规则。一个项目只连接到一个 Microsoft 365 组织：要将其移到另一个组织，请先卸载。
+> 卸载还会解除项目中每个成员自己的 Microsoft Teams 账户的关联，并删除 Microsoft Teams 通知方式以及使用它们的值班规则。一个项目只连接到一个 Microsoft 365 组织：要将其移到另一个组织，请改为在同一菜单中选择 **Connect a Different Organization**。它以同样的方式卸载 OneUptime，然后请另一个组织的 Microsoft 365 管理员授予许可。
 
 ## 故障排除
 
@@ -319,6 +319,10 @@ Microsoft 拒绝了发布，因为机器人不在该团队中。将应用添加�
 
 :::details 机器人提示我的账户未连接
 在机器人的回复中按 **Connect Microsoft Teams account** 即可一步连接，或在 **用户设置** > **工作区** > **Microsoft Teams** 中通过 **Connect my account with Microsoft Teams** 关联它。无论哪种方式，您都会登录到项目所连接的组织；如果您是该组织的来宾，则以来宾身份登录。如果您是来宾，并且之前关联的是您自己组织的账户，请重新连接。
+:::
+
+:::details Microsoft 提示所选账户在租户中不存在
+项目的每次 Microsoft 登录都会前往项目所连接的 Microsoft 365 组织，即 **Admin Consent Completed** 卡片上写出的组织。不在该组织中的账户会被 Microsoft 在其自己的页面上拦下 (`AADSTS50020`)，且不会把您送回。请使用您在该组织中的账户登录。若要改为将项目连接到您的组织，请在该卡片的菜单中选择 **Connect a Different Organization**，并请您组织的 Microsoft 365 管理员授予许可。
 :::
 
 :::details 在自托管服务器上所有通知都失败

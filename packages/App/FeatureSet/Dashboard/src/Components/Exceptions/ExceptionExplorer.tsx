@@ -60,8 +60,10 @@ import ExceptionSimilar from "./ExceptionSimilar";
 import ExceptionMergedPanel from "./ExceptionMergedPanel";
 import ExceptionActivity from "./ExceptionActivity";
 import {
+  MAX_SPLIT_INTO_EXCEPTIONS,
   MERGED_EXCEPTION_SELECT,
   SPLIT_FROM_EXCEPTION_SELECT,
+  SPLIT_INTO_EXCEPTION_SELECT,
 } from "../../Utils/ExceptionMerge";
 import ExceptionSplitNotice from "./ExceptionSplitNotice";
 import { getMergedFingerprints } from "../../Utils/ExceptionGroupFingerprints";
@@ -169,6 +171,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   const [mergedInto, setMergedInto] = useState<TelemetryException | null>(null);
   // The exception a scrub rule split this one from, when ingest saw it (#10618).
   const [splitFrom, setSplitFrom] = useState<TelemetryException | null>(null);
+  // And the exceptions a scrub rule split from this one (#10897).
+  const [splitInto, setSplitInto] = useState<Array<TelemetryException>>([]);
   // Bumped after a merge or an unmerge: the page reads itself again.
   const [reloadKey, setReloadKey] = useState<number>(0);
   // Bumped after a triage or an assignment: the activity reads itself again.
@@ -465,6 +469,41 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * The exceptions a scrub rule split from this one (#10897), which its
+   * note names and offers to merge back into it - the older one, often
+   * resolved by the time anyone looks. Read as the lists read exceptions,
+   * so one merged since is left out, oldest first. Best effort: without
+   * them there is no note.
+   */
+  const loadSplitInto: (
+    exception: TelemetryException,
+  ) => Promise<void> = async (exception: TelemetryException): Promise<void> => {
+    if (exception.mergedIntoTelemetryExceptionId) {
+      setSplitInto([]);
+      return;
+    }
+
+    try {
+      setSplitInto(
+        (
+          await ModelAPI.getList<TelemetryException>({
+            modelType: TelemetryException,
+            query: {
+              splitFromTelemetryExceptionId: props.telemetryExceptionId,
+            },
+            select: SPLIT_INTO_EXCEPTION_SELECT,
+            limit: MAX_SPLIT_INTO_EXCEPTIONS,
+            skip: 0,
+            sort: { firstSeenAt: SortOrder.Ascending },
+          })
+        ).data,
+      );
+    } catch {
+      setSplitInto([]);
+    }
+  };
+
   const loadMergeContext: (
     exception: TelemetryException,
   ) => Promise<Array<TelemetryException>> = async (
@@ -510,6 +549,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         const members: Array<TelemetryException> =
           await loadMergeContext(exception);
         void loadSplitFrom(exception);
+        void loadSplitInto(exception);
         loadSupplementaryData(
           exception,
           getMergedFingerprints({
@@ -696,6 +736,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         <ExceptionSplitNotice
           exception={telemetryException}
           splitFrom={splitFrom}
+          splitInto={splitInto}
           onMerged={reload}
         />
       )}

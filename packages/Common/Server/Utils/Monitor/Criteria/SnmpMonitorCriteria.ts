@@ -21,6 +21,7 @@ import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUt
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
+import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import MetricBaselineService, {
   BaselineBand,
   BaselineSummary,
@@ -227,6 +228,11 @@ export default class SnmpMonitorCriteria {
      * whole window is breaching.
      */
     monitoringInterval?: string | undefined;
+    /*
+     * The step's rows of the series an over-time window reads
+     * (MonitorStepSeries, #10906): never another step's checks.
+     */
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<string | null> {
     let threshold: number | string | undefined | null =
       input.criteriaFilter.value;
@@ -376,6 +382,7 @@ export default class SnmpMonitorCriteria {
         monitorId: input.dataToProcess.monitorId!,
         criteriaFilter: input.criteriaFilter,
         monitoringInterval: input.monitoringInterval,
+        stepScope: input.stepScope,
       });
 
     /*

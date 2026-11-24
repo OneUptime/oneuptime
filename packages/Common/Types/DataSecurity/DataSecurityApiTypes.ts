@@ -32,6 +32,12 @@ import {
   StoreImpactAssessment,
 } from "./ImpactAssessment";
 import {
+  ExposureAssessmentView,
+  ExposureDraftPart,
+  StoredExposureAssessment,
+} from "./ExposureAssessment";
+import { ExposureChecklistAnswer } from "./ExposureChecklist";
+import {
   RecordDraftSkip,
   RecordField,
   RecordFieldView,
@@ -90,6 +96,11 @@ export const DATA_SECURITY_API_ROUTES: {
   auditEvidence: string;
   draftAuditEvidence: string;
   editAuditEvidence: string;
+  exposureAssessment: (securityCaseId: string) => string;
+  assessExposure: (securityCaseId: string) => string;
+  draftExposureAssessment: (securityCaseId: string) => string;
+  editExposureAssessment: (securityCaseId: string) => string;
+  exposurePeoplePlaces: (securityCaseId: string) => string;
 } = {
   overview: "/data-security/overview",
   compliance: "/data-security/compliance",
@@ -265,6 +276,29 @@ export const DATA_SECURITY_API_ROUTES: {
   draftAuditEvidence: "/data-security/audit-evidence/draft",
   // ...one requirement's paragraph written by a person: { framework, periodInDays, requirement, text }.
   editAuditEvidence: "/data-security/audit-evidence/edit",
+  /*
+   * A security case's exposure assessment (#10377), for the case's readers
+   * who may read the store's findings too: what plain code worked out and
+   * OneUptime AI's write-up. Assess starts one, { dataStoreId? } for a case
+   * about more than one store; Draft asks OneUptime AI for the parts no
+   * person edited; Edit saves a person's words for one part, { part,
+   * markdown }; People says where the people live, { places }.
+   */
+  exposureAssessment: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment`;
+  },
+  assessExposure: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/assess`;
+  },
+  draftExposureAssessment: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/draft`;
+  },
+  editExposureAssessment: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/edit`;
+  },
+  exposurePeoplePlaces: (securityCaseId: string): string => {
+    return `/security-case/${securityCaseId}/exposure-assessment/people`;
+  },
 };
 
 /*
@@ -660,6 +694,41 @@ export interface DataSecurityImpactAssessmentResponse {
   editors: Record<string, string>;
   isAiEnabled: boolean;
   canEdit: boolean;
+  canDraft: boolean;
+}
+
+// A store a security case is about, as the reader may read it.
+export interface DataSecurityExposureCaseStore {
+  dataStoreId: string;
+  name: string;
+  kind: string;
+  sensitivity: string;
+}
+
+/*
+ * A security case's exposure assessment (#10377): the stores the case is
+ * about; once it is assessed, what plain code works out now (view) and what
+ * the case keeps of OneUptime AI's write-up and a person's answers; the
+ * facts as they are now and the parts written over facts that changed
+ * since; the playbook's checklist matched to the case's tasks; and what the
+ * reader may do.
+ */
+export interface DataSecurityExposureAssessmentResponse {
+  securityCaseId: string;
+  stores: Array<DataSecurityExposureCaseStore>;
+  // The store it is about, once assessed.
+  dataStoreId?: string | undefined;
+  assessment: StoredExposureAssessment | null;
+  view: ExposureAssessmentView | null;
+  facts: Array<ComplianceFact>;
+  staleParts: Array<ExposureDraftPart>;
+  // Who edited a part, or said where the people live, by name as the project knows them.
+  editors: Record<string, string>;
+  checklist: Array<ExposureChecklistAnswer>;
+  isAiEnabled: boolean;
+  // Start an assessment, edit a part, say where the people live.
+  canChange: boolean;
+  // Ask OneUptime AI for the parts no person edited.
   canDraft: boolean;
 }
 

@@ -13,6 +13,9 @@ import ObjectID from "../../../../Types/ObjectID";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
+import MonitorStepSeries, {
+  MonitorStepSeriesScope,
+} from "../../../../Types/Monitor/MonitorStepSeries";
 import MetricService from "../../../Services/MetricService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
@@ -100,6 +103,13 @@ export default class EvaluateOverTime {
     miscData?: JSONObject | undefined;
     /** Monitor's monitoringInterval cron. Used to size the expected window. */
     monitoringInterval?: string | undefined;
+    /*
+     * The rows of the series the step being judged reads (MonitorStepSeries,
+     * #10906): a step of a monitor with several reads its own checks alone.
+     * Every evaluator hands on what it was given, so the key is required;
+     * undefined, from a caller judging no step, reads every row.
+     */
+    stepScope: MonitorStepSeriesScope | undefined;
   }): Promise<OverTimeCriteriaValue> {
     /*
      * Every criteria evaluator calls this for every filter, so the common
@@ -122,6 +132,7 @@ export default class EvaluateOverTime {
       criteriaFilter: data.criteriaFilter,
       miscData: data.miscData,
       monitoringInterval: data.monitoringInterval,
+      stepScope: data.stepScope,
     });
 
     if (
@@ -192,6 +203,8 @@ export default class EvaluateOverTime {
     criteriaFilter: CriteriaFilter;
     miscData?: JSONObject | undefined;
     monitoringInterval?: string | undefined;
+    // The step's rows of the series (MonitorStepSeries); every row when not given.
+    stepScope?: MonitorStepSeriesScope | undefined;
   }): Promise<OverTimeEvaluation> {
     const evaluateOverTimeOptions: EvaluateOverTimeOptions | undefined =
       data.criteriaFilter.evaluateOverTimeOptions;
@@ -261,7 +274,14 @@ export default class EvaluateOverTime {
         metricName: metricName,
         windowStart: windowStart,
         windowEnd: now,
-        attributes: data.miscData,
+        /*
+         * The step's own rows (#10906): a monitor checking a fast page and a
+         * slow one averages, and waits on, each page's checks alone.
+         */
+        attributes: EvaluateOverTime.getWindowAttributes({
+          miscData: data.miscData,
+          stepScope: data.stepScope,
+        }),
         /*
          * A window of hours (#10355) can hold more rows than one read
          * returns - a day of checks every 30 seconds from eight probes. Read
@@ -396,6 +416,25 @@ export default class EvaluateOverTime {
       sampleCount: values.length,
       noDataReason: null,
       isReadError: false,
+    };
+  }
+
+  /*
+   * The attributes a window's rows are read by: the series' own (a disk's
+   * path), and the step's (MonitorStepSeries) - the step's id, or on a
+   * monitor with one step its id or none. Undefined when there are none.
+   */
+  public static getWindowAttributes(data: {
+    miscData?: JSONObject | undefined;
+    stepScope?: MonitorStepSeriesScope | undefined;
+  }): JSONObject | undefined {
+    if (!data.stepScope) {
+      return data.miscData;
+    }
+
+    return {
+      ...(data.miscData || {}),
+      ...MonitorStepSeries.toQueryAttributes(data.stepScope),
     };
   }
 

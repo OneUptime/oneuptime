@@ -51,6 +51,8 @@ export const DATA_SECURITY_DISCOVER_DATA_TYPES_JOB: string =
   "DataSecurity:DiscoverDataTypes";
 export const DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB: string =
   "DataSecurity:ProposeTelemetryFixes";
+export const DATA_SECURITY_ASSESS_EXPOSURE_JOB: string =
+  "DataSecurity:AssessExposure";
 
 /*
  * How long the grouping waits after an evaluation: a connection's read
@@ -349,6 +351,30 @@ export async function queueDataSecurityRecordDrafts(
     key: `data-security-record-drafts-${projectId.toString()}`,
     payload: { projectId: projectId.toString() },
     description: `OneUptime AI's record of processing drafts for project ${projectId.toString()}`,
+  });
+}
+
+/*
+ * Assesses the exposure a Critical issue opened a security case for
+ * (Server/Utils/AI/DataSecurity/ExposureAssessmentRun, #10377): plain
+ * code works the assessment out, and OneUptime AI writes it up as the
+ * project's Data Security AI rules allow. One job per case: a second
+ * exposure issue joining the case while it waits is assessed with it.
+ */
+export async function queueDataSecurityExposureAssessment(data: {
+  projectId: ObjectID;
+  securityCaseId: ObjectID;
+  dataSecurityIssueId: ObjectID;
+}): Promise<boolean> {
+  return await queue({
+    jobName: DATA_SECURITY_ASSESS_EXPOSURE_JOB,
+    key: `data-security-exposure-${data.securityCaseId.toString()}`,
+    payload: {
+      projectId: data.projectId.toString(),
+      securityCaseId: data.securityCaseId.toString(),
+      dataSecurityIssueId: data.dataSecurityIssueId.toString(),
+    },
+    description: `the exposure assessment of security case ${data.securityCaseId.toString()}`,
   });
 }
 
