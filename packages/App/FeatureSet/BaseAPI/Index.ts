@@ -1022,6 +1022,9 @@ import RumSessionReplayViewService, {
 import RumSessionErasureRequestService, {
   Service as RumSessionErasureRequestServiceType,
 } from "Common/Server/Services/RumSessionErasureRequestService";
+import SecurityUserErasureRequestService, {
+  Service as SecurityUserErasureRequestServiceType,
+} from "Common/Server/Services/SecurityUserErasureRequestService";
 import RumSessionPinService, {
   Service as RumSessionPinServiceType,
 } from "Common/Server/Services/RumSessionPinService";
@@ -1785,6 +1788,7 @@ import CloudAppRevision from "Common/Models/DatabaseModels/CloudAppRevision";
 import RumApplicationClient from "Common/Models/DatabaseModels/RumApplicationClient";
 import RumSessionReplayView from "Common/Models/DatabaseModels/RumSessionReplayView";
 import RumSessionErasureRequest from "Common/Models/DatabaseModels/RumSessionErasureRequest";
+import SecurityUserErasureRequest from "Common/Models/DatabaseModels/SecurityUserErasureRequest";
 import RumSessionPin from "Common/Models/DatabaseModels/RumSessionPin";
 import RumProductAnalyticsSavedView from "Common/Models/DatabaseModels/RumProductAnalyticsSavedView";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
@@ -6255,6 +6259,18 @@ const BaseAPIFeatureSet: FeatureSet = {
         RumSessionErasureRequest,
         RumSessionErasureRequestServiceType
       >(RumSessionErasureRequest, RumSessionErasureRequestService).getRouter(),
+    );
+
+    // Erasing one person from Security Events' user vault (#10908).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestServiceType
+      >(
+        SecurityUserErasureRequest,
+        SecurityUserErasureRequestService,
+      ).getRouter(),
     );
 
     app.use(

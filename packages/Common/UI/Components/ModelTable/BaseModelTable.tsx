@@ -673,6 +673,16 @@ export interface BaseTableProps<
    */
   editFormTitle?: ((item: TBaseModel) => string) | undefined;
   createFormSubmitButtonText?: string | undefined;
+  /*
+   * What the create dialog says over its fields, and how its submit button
+   * looks, for a create that cannot be undone: an erasure request erases a
+   * person for good (#10908), so its dialog says so and its button is the
+   * danger style, the confirmation of what it does. English to look up, or
+   * words already in the reader's language. Left out, the dialog has no
+   * description and its button is the primary one, as before.
+   */
+  createFormDescription?: string | undefined;
+  createFormSubmitButtonStyle?: ButtonStyleType | undefined;
   showAs?: ShowAs | undefined;
   singularName?: string | undefined;
   pluralName?: string | undefined;

@@ -1,6 +1,9 @@
 import { ResponseJSON } from "@clickhouse/client";
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
-import AnalyticsDatabaseService, { Results } from "./AnalyticsDatabaseService";
+import AnalyticsDatabaseService, {
+  MigrationExecuteOptions,
+  Results,
+} from "./AnalyticsDatabaseService";
 import SecurityUserVault, {
   SECURITY_USER_VAULT_RETENTION_IN_DAYS,
 } from "../../Models/AnalyticsModels/SecurityUserVault";
@@ -14,19 +17,30 @@ import { SCRUB_HASH_TOKEN_PATTERN } from "../../Types/Telemetry/ScrubHashTokenFo
 import { getScrubPlaceholderKind } from "../../Types/Telemetry/ScrubRule";
 import { SQL, Statement } from "../Utils/AnalyticsDatabase/Statement";
 import { getQuerySettings } from "../Utils/AnalyticsDatabase/QuerySettingsHelper";
+import {
+  getStorageTableName,
+  onClusterClause,
+} from "../Utils/AnalyticsDatabase/ClusterConfig";
 
 /*
  * THE USER VAULT'S TABLE (Models/AnalyticsModels/SecurityUserVault,
  * #10632): what ingest writes, and the one read Security Events' scans
  * make. The address vault's twin (SecurityAddressVaultService), for users.
  *
- * Two ways in, and only two:
+ * Two ways in, and only two, and one way out:
  *
  *   - toRows: the rows ingest's writer hands the telemetry fan-in writer
  *     (Utils/SecurityEvent/UserVault/SecurityUserVaultWriter.ts);
  *   - findUsersOfTokens: the users behind a page's tokens, in one query a
  *     page, for the scans' lookup
- *     (Utils/SecurityEvent/UserVault/SecurityUserVaultLookup.ts).
+ *     (Utils/SecurityEvent/UserVault/SecurityUserVaultLookup.ts);
+ *   - and an erasure (#10908): the rows of a person's tokens, counted,
+ *     read for who they name, and deleted
+ *     (Utils/SecurityEvent/UserVault/SecurityUserErasure.ts). Every one of
+ *     its statements names the project and the tokens, never the person:
+ *     ClickHouse keeps a mutation's command (system.mutations, Keeper) and
+ *     a query's text (system.query_log) long after they ran, and an erasure
+ *     must not leave the person it erases there.
  *
  * Every generic read an AnalyticsDatabaseService has - find, count,
  * aggregate, exists - is refused, as the server too: the service sits in
@@ -241,6 +255,189 @@ export class SecurityUserVaultService extends AnalyticsDatabaseService<SecurityU
     }
 
     return users;
+  }
+
+  /*
+   * ---------------------------------------------------------------------
+   * An erasure (#10908): a person's rows, by their tokens, whatever their
+   * age. Each statement names the project and the tokens only.
+   * ---------------------------------------------------------------------
+   */
+
+  // The tokens a statement names: today's form only, each once.
+  private static erasableTokens(tokens: ReadonlyArray<string>): Array<string> {
+    return Array.from(
+      new Set<string>(
+        tokens.filter((token: string): boolean => {
+          return SCRUB_HASH_TOKEN_PATTERN.test(token);
+        }),
+      ),
+    );
+  }
+
+  private qualifiedTableName(tableName: string): string {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    return `${this.database.getDatasourceOptions().database!}.${tableName}`;
+  }
+
+  // The rows of a project's tokens, at any age, through the Distributed table.
+  public toFindEntriesOfTokensStatement(data: {
+    projectId: ObjectID;
+    tokens: Array<string>;
+  }): Statement {
+    const statement: Statement = SQL`SELECT token, userValue FROM `;
+    statement.append(this.qualifiedTableName(this.model.tableName));
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND token IN (${{
+        type: TableColumnType.Text,
+        value: new Includes(data.tokens),
+      }}) GROUP BY token, userValue ORDER BY token, userValue`,
+    );
+
+    return statement;
+  }
+
+  /*
+   * Who a project's tokens name, at any age: what an erasure takes the
+   * person out of Postgres by. A token with two users (a collision) gives
+   * both. Read through the migration pool, as the erasure's every
+   * statement is: none of it sits on a request's path.
+   */
+  public async findEntriesOfTokens(data: {
+    projectId: ObjectID;
+    tokens: ReadonlyArray<string>;
+  }): Promise<Array<SecurityUserVaultEntry>> {
+    const tokens: Array<string> = SecurityUserVaultService.erasableTokens(
+      data.tokens,
+    );
+
+    if (tokens.length === 0) {
+      return [];
+    }
+
+    const result: Results = await this.executeQuery(
+      this.toFindEntriesOfTokensStatement({
+        projectId: data.projectId,
+        tokens,
+      }),
+      MigrationExecuteOptions,
+    );
+    const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+
+    return ((response.data || []) as Array<JSONObject>)
+      .map((row: JSONObject): SecurityUserVaultEntry => {
+        return {
+          token: readText(row["token"]),
+          user: readText(row["userValue"]),
+        };
+      })
+      .filter((entry: SecurityUserVaultEntry): boolean => {
+        return tokens.includes(entry.token) && entry.user.length > 0;
+      });
+  }
+
+  // How many rows a project's tokens have, at any age.
+  public toCountRowsOfTokensStatement(data: {
+    projectId: ObjectID;
+    tokens: Array<string>;
+  }): Statement {
+    const statement: Statement = SQL`SELECT count() AS vaultRows FROM `;
+    statement.append(this.qualifiedTableName(this.model.tableName));
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND token IN (${{
+        type: TableColumnType.Text,
+        value: new Includes(data.tokens),
+      }})`,
+    );
+
+    return statement;
+  }
+
+  public async countRowsOfTokens(data: {
+    projectId: ObjectID;
+    tokens: ReadonlyArray<string>;
+  }): Promise<number> {
+    const tokens: Array<string> = SecurityUserVaultService.erasableTokens(
+      data.tokens,
+    );
+
+    if (tokens.length === 0) {
+      return 0;
+    }
+
+    const result: Results = await this.executeQuery(
+      this.toCountRowsOfTokensStatement({ projectId: data.projectId, tokens }),
+      MigrationExecuteOptions,
+    );
+    const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+    const row: JSONObject | undefined = (response.data || [])[0] as
+      | JSONObject
+      | undefined;
+
+    return Number(row?.["vaultRows"] || 0) || 0;
+  }
+
+  /*
+   * The delete of a project's tokens' rows: a mutation on the local table,
+   * ON CLUSTER, as every delete of an analytics table is
+   * (AnalyticsDatabaseService.toDeleteStatement) - a lightweight DELETE
+   * cannot target a Distributed table or run ON CLUSTER. Deleting rows that
+   * are gone already deletes nothing, so it is safe to run again.
+   */
+  public toEraseTokensStatement(data: {
+    projectId: ObjectID;
+    tokens: Array<string>;
+  }): Statement {
+    const statement: Statement = SQL`ALTER TABLE `;
+    statement.append(
+      this.qualifiedTableName(getStorageTableName(this.model.tableName)),
+    );
+    statement.append(onClusterClause());
+    statement.append(
+      SQL` DELETE WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND token IN (${{
+        type: TableColumnType.Text,
+        value: new Includes(data.tokens),
+      }})`,
+    );
+
+    return statement;
+  }
+
+  /*
+   * Queues the delete of a project's tokens' rows and returns once ClickHouse
+   * holds it (mutations_sync stays at its default): the mutation is durable
+   * in Keeper from then on, and the erasure checks on a later run that it
+   * was applied. Through the migration pool, whose socket outlasts a
+   * mutation's queueing on a busy cluster.
+   */
+  public async eraseTokens(data: {
+    projectId: ObjectID;
+    tokens: ReadonlyArray<string>;
+  }): Promise<void> {
+    const tokens: Array<string> = SecurityUserVaultService.erasableTokens(
+      data.tokens,
+    );
+
+    if (tokens.length === 0) {
+      return;
+    }
+
+    await this.execute(
+      this.toEraseTokensStatement({ projectId: data.projectId, tokens }),
+      MigrationExecuteOptions,
+    );
   }
 
   private refuse(): never {
