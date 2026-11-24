@@ -64389,6 +64389,13 @@
   "Private addresses": "Private Adressen",
   "Security Events trusts these as proxies without your listing them.": "Sicherheitsereignisse vertraut diesen als Proxys, ohne dass Sie sie aufführen.",
   "That is every event it matched, so it can't fire.": "Das sind alle passenden Ereignisse, daher kann sie nicht auslösen.",
+  "The alert states could not be loaded.": "Die Warnungsstatus konnten nicht geladen werden.",
+  "The announcement templates could not be loaded.": "Die Ankündigungs-Vorlagen konnten nicht geladen werden.",
+  "The incident states could not be loaded.": "Die Vorfallsstatus konnten nicht geladen werden.",
+  "The incident templates could not be loaded.": "Die Vorfall-Vorlagen konnten nicht geladen werden.",
+  "The scheduled maintenance states could not be loaded.": "Die Status der geplanten Wartung konnten nicht geladen werden.",
+  "The scheduled maintenance templates could not be loaded.": "Die Vorlagen für geplante Wartung konnten nicht geladen werden.",
+  "The {{itemName}} was not deleted.": "{{itemName}} wurde nicht gelöscht.",
   "Trust Your Load Balancers": "Ihren Load Balancern vertrauen",
   "Trusted Automatically": "Automatisch vertrauenswürdig",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "Schalten Sie dies ein, wenn Ihre Webserver X-Forwarded-For zuletzt protokollieren, wie es das Format main von nginx tut. Bis dahin ist das erste Feld jeder Zeile ihr Client.",
@@ -64455,5 +64462,8 @@
   "Took {{pullRequest}} off this issue.": "{{pullRequest}} wurde von diesem Problem entfernt.",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "Ihre eigene Korrektur für dieses Problem. OneUptime verfolgt sie bis in die Produktion, wie die Korrekturen von OneUptime AI, und das Problem gilt als behoben, sobald die Produktion es zeigt.",
   "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} ist bereits mit diesem Problem verknüpft.",
+  "“{{action}}” did not finish.": "Der Vorgang „{{action}}“ wurde nicht abgeschlossen.",
+  "Date unknown": "Datum unbekannt",
+  "Yesterday": "Gestern",
   "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "Die DNS-Antwort wird als Ganzes mit der der vorherigen Prüfung verglichen. „Ungleich“ trifft zu, wenn sich ihre Einträge geändert haben, „Gleich“, wenn nicht. Dieselben Einträge in anderer Reihenfolge sind keine Änderung."
 }

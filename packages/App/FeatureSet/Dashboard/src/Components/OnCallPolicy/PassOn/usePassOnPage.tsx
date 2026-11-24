@@ -495,6 +495,8 @@ export default function usePassOnPage(data: {
       <ConfirmModal
         title={PAGE_AGAIN_TEXT.failedTitle}
         description={acknowledgeError}
+        // Its title says what failed: the explanation does not again (#7680).
+        titleSaysWhatFailed={true}
         submitButtonText="Close"
         submitButtonType={ButtonStyleType.NORMAL}
         onSubmit={(): void => {

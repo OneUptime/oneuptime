@@ -2366,6 +2366,8 @@
   "The {{itemName}} was not created.": "Не удалось создать: {{itemName}}.",
   "The {{itemName}} was not saved.": "Не удалось сохранить: {{itemName}}.",
   "This did not finish.": "Действие не выполнено.",
+  "The {{itemName}} was not deleted.": "Не удалось удалить: {{itemName}}.",
+  "“{{action}}” did not finish.": "Действие «{{action}}» не выполнено.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "На этой странице произошла проблема, поэтому действие не выполнено. Перезагрузите страницу и повторите попытку.",
   "This page ran into a problem.": "На этой странице произошла проблема.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "Чтобы узнать, что не сработало, выполните npm run doctor -- --logs в папке oneuptime на сервере и найдите этот код.",

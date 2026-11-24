@@ -2748,6 +2748,8 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <ConfirmModal
           title="Could not save"
           description={error}
+          // Its title says what failed: the explanation does not again (#7680).
+          titleSaysWhatFailed={true}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={() => {

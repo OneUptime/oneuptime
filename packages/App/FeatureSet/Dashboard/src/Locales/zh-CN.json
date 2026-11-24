@@ -64389,6 +64389,13 @@
   "Private addresses": "私有地址",
   "Security Events trusts these as proxies without your listing them.": "安全事件无需你列出，就会把这些当作代理信任。",
   "That is every event it matched, so it can't fire.": "这就是它匹配的全部事件，因此它无法触发。",
+  "The alert states could not be loaded.": "无法加载警报状态。",
+  "The announcement templates could not be loaded.": "无法加载公告模板。",
+  "The incident states could not be loaded.": "无法加载事件状态。",
+  "The incident templates could not be loaded.": "无法加载事件模板。",
+  "The scheduled maintenance states could not be loaded.": "无法加载计划维护状态。",
+  "The scheduled maintenance templates could not be loaded.": "无法加载计划维护模板。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未删除。",
   "Trust Your Load Balancers": "信任你的负载均衡器",
   "Trusted Automatically": "自动信任",
   "Turn on if your web servers log X-Forwarded-For last, as nginx's main format does. Until then, each line's first field is its client.": "如果你的 Web 服务器把 X-Forwarded-For 记录在最后（就像 nginx 的 main 格式），请打开。在此之前，每行的第一个字段就是它的客户端。",
@@ -64455,5 +64462,8 @@
   "Took {{pullRequest}} off this issue.": "已从此问题中移除 {{pullRequest}}。",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "你为此问题做的修复。OneUptime 会像跟踪 OneUptime AI 的修复一样将其跟踪到生产环境，一旦生产环境证实，该问题即视为已修复。",
   "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} 已关联到此问题。",
+  "“{{action}}” did not finish.": "“{{action}}”操作未完成。",
+  "Date unknown": "日期未知",
+  "Yesterday": "昨天",
   "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "DNS 应答会作为一个整体与上一次检查的应答比较。“不等于”在其记录发生变化时匹配，“等于”在记录未变化时匹配。相同的记录只是顺序不同，不算变化。"
 }

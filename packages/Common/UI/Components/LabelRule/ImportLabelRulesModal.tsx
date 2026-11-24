@@ -29,6 +29,7 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import { getDialogWhatFailed } from "../../Utils/DialogWhatFailed";
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   modelType: { new (): TBaseModel };
@@ -299,6 +300,17 @@ const ImportLabelRulesModal: <TBaseModel extends BaseModel>(
           preview.items.length,
         )}
         error={error || undefined}
+        /*
+         * What failed is the import its button started - "“Import 3
+         * rules” did not finish." - not the preview the title names (#7680).
+         */
+        errorWhatFailed={getDialogWhatFailed(
+          translator,
+          translator.translatePlural(
+            { one: "Import {{count}} rule", other: "Import {{count}} rules" },
+            preview.items.length,
+          ),
+        )}
         leftFooterElement={
           <Button
             title="Edit JSON"
