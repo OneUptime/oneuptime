@@ -171,10 +171,10 @@ In Cloudflare, open **My Profile → API Tokens**, edit the connection's token, 
 
 ### Turn blocking on
 
-On the connection's row, select **Block Addresses**. Paste a new token in **New API Token**, or leave it empty to keep the current one, and in **Zones** leave **All zones**, or pick the zones to block in. **Check Permissions** asks Cloudflare whether the token has each permission, and changes nothing. **Turn On Blocking** turns blocking on only when every check passes, and OneUptime sets Cloudflare up within a minute.
+On the connection's row, select **Block Addresses**. Paste a new token in **New API Token**, or leave it empty to keep the current one, and in **Zones** leave **All zones**, or pick the zones to block in. **Check Permissions** asks Cloudflare whether the token has each permission, and changes nothing. **Turn On Blocking** turns blocking on only when every check passes, but for **Challenge a network by its ASN**, which only warns, and OneUptime sets Cloudflare up within a minute.
 :::
 
-While blocking is on, **Test connection** runs the same checks: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** and, where IP Access Rules are used, **Edit IP Access Rules**.
+While blocking is on, **Test connection** runs the same checks: **How blocking is set up**, **Edit the lists**, **Edit custom rules in each zone** and, where IP Access Rules are used, **Edit IP Access Rules**, or else **Challenge a network by its ASN**.
 
 ### What OneUptime adds to Cloudflare
 
@@ -183,7 +183,7 @@ While blocking is on, **Test connection** runs the same checks: **How blocking i
 | The lists `oneuptime_block` and `oneuptime_challenge` | Two IP lists in the account, one for blocks and one for challenges. Their description names your OneUptime project. |
 | One custom rule per list, in each zone | `(ip.src in $oneuptime_block)` with the action Block, and `(ip.src in $oneuptime_challenge)` with the action Managed Challenge. Their description says OneUptime manages them. |
 | One list item per block | Its comment names the case and when the block ends, such as `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
-| One IP Access Rule per network challenged by its ASN | A whole network challenged from **Campaigns**, as an IP Access Rule whose target is `asn`, which every plan has. Its note says the same as a list item's. Without `Account > Account Firewall Access Rules > Edit` on the token, the challenge is not applied, and the **Blocklist** says which permission to add. |
+| One IP Access Rule per network challenged by its ASN | A whole network challenged from **Campaigns**, as an IP Access Rule whose target is `asn`, which every plan has. Its note says the same as a list item's. **Check Permissions** and **Test connection** warn first, under **Challenge a network by its ASN**, when the token lacks `Account > Account Firewall Access Rules > Edit`: blocking works without it, but the challenge is not applied, and the **Blocklist** says which permission to add. |
 
 Each rule goes first among the zone's custom rules, so it runs before yours: a skip rule of yours cannot let a blocked address past it. When your skip rules let addresses through, such as your monitors' or a partner's, **Blocking Status** names them. **Protect These Addresses** adds them to **Protected Entities**, which no one can block.
 
