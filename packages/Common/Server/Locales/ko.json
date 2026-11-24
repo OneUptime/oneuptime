@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: 보호 대상 목록에 있으므로 작업 대상이 되지 않음",
   "{{target}}: one of the case's addresses": "{{target}}: 케이스의 주소 중 하나",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: 자체 주소 중 하나이므로 차단되지 않음",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: 케이스의 주소와 같은 도구로 같은 요청을 보냄",
   "{{target}}: the case is grouped on it": "{{target}}: 케이스가 이 값으로 그룹화됨",
   "{{target}}: undone at {{time}}": "{{target}}: {{time}}에 실행 취소됨",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: {{person}}님이 {{time}}에 실행 취소함",

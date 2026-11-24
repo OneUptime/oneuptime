@@ -142,6 +142,11 @@ const COVERED: Record<string, Coverage> = {
       suites: ["ProductAnalyticsRetentionSettings.test.tsx"],
       drawnBy: "Pages/Rum/View/ProductAnalyticsSettings",
     },
+  "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/AutomaticResponse.tsx":
+    {
+      suites: ["SecurityAutomaticResponseHourlyLimit.test.tsx"],
+      drawnBy: "Pages/SecurityEvents/AutomaticResponse",
+    },
   "packages/App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections.tsx":
     {
       suites: ["SecurityTrustedProxiesSettings.test.tsx"],

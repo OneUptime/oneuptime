@@ -113,10 +113,11 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 | **Aantal**, **Percentage**, **Statuswijzigingen** | Hoeveel controles aan de voorwaarde voldeden, hun aandeel, of hoe vaak ze wisselden tussen wel en niet voldoen, wordt vergeleken met het getal dat eronder is ingesteld. |
+| **Vorige controle** | Deze controle, vergeleken met de vorige controle van de sonde zoals ingesteld onder **Verschil met de vorige controle**: bijvoorbeeld een reactietijd die meer dan 50% hoger ligt. Een filter dat waar of onwaar is, voldoet bij de controle die aan de voorwaarde begon te voldoen. |
 
 De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
-**Time-out van aanvraag** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Of het telt dat met **Aantal**, **Percentage** of **Statuswijzigingen**.
+**Time-out van aanvraag** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**. Of het telt dat met **Aantal**, **Percentage** of **Statuswijzigingen**. Met **Vorige controle** voldoet het filter bij de controle waarbij het begon te voldoen.
 
 Maak het venster langer dan het monitoringinterval, zodat het meerdere controles bevat: een monitor die elke 5 minuten wordt gecontroleerd, heeft in elk venster van 5 minuten maar één controle.
 

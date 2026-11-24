@@ -9,7 +9,6 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
   SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS,
-  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
   SECURITY_AUTOMATIC_RESPONSE_READY_KINDS,
   SecurityAutomaticResponseTrialState,
   getSecurityAutomaticResponseTrialDaysLeft,
@@ -19,6 +18,7 @@ import {
 import {
   SECURITY_AUTOMATIC_RESPONSE_ACTED_OUTCOMES,
   SECURITY_AUTOMATIC_RESPONSE_SPARED_OUTCOMES,
+  SecurityAutomaticResponseOutcome,
 } from "../../../Types/SecurityAutomaticResponse/SecurityAutomaticResponseOutcome";
 import {
   SecurityAutomaticResponseTimeToBlock,
@@ -43,6 +43,7 @@ import SecurityBlockDestinations, {
   SecurityBlockDestinationsFound,
 } from "../SecurityBlocklist/SecurityBlockDestinations";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import SecurityAutomaticResponseLimit from "./SecurityAutomaticResponseLimit";
 import SecurityAutomaticResponseRules from "./SecurityAutomaticResponseRules";
 
 /*
@@ -52,7 +53,9 @@ import SecurityAutomaticResponseRules from "./SecurityAutomaticResponseRules";
  * block (50th and 95th percentiles, day by day, over 30 days), what it did
  * in the last week, the rules it acts on and whether each runs in real
  * time; the destinations that enforce the blocklist and whether each can
- * challenge; and how many of the hour's automatic blocks are taken.
+ * challenge; and how many of the hour's automatic blocks are taken, of the
+ * project's own hourly limit (#10746), and whether the security owners
+ * were paged about it this hour.
  *
  * The policies are read as the reader, so a reader who may not read them
  * reads none; what they did is read as OneUptime for those policies alone.
@@ -196,8 +199,19 @@ export default class SecurityAutomaticResponseOverview {
       policiesJson.push(await this.readPolicy({ ...data, policy, now }));
     }
 
-    const [destinations, blocksThisHour]: [
+    const hourStart: Date = new Date(
+      now.getTime() - SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS,
+    );
+    const toNumber: (count: { toNumber: () => number }) => number = (count: {
+      toNumber: () => number;
+    }): number => {
+      return count.toNumber();
+    };
+
+    const [destinations, blocksThisHour, maxBlocksPerHour, pagesThisHour]: [
       { destinations: Array<JSONObject>; cannotTell: boolean },
+      number,
+      number,
       number,
     ] = await Promise.all([
       this.readDestinations(data.projectId),
@@ -208,16 +222,22 @@ export default class SecurityAutomaticResponseOverview {
           outcome: new Includes([
             ...SECURITY_AUTOMATIC_RESPONSE_ACTED_OUTCOMES,
           ]),
-          createdAt: QueryHelper.greaterThanEqualTo(
-            new Date(
-              now.getTime() - SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS,
-            ),
-          ),
+          createdAt: QueryHelper.greaterThanEqualTo(hourStart),
         },
         props: { isRoot: true },
-      }).then((count: { toNumber: () => number }): number => {
-        return count.toNumber();
-      }),
+      }).then(toNumber),
+      // The project's own hourly limit (#10746), as its decisions are held to it.
+      SecurityAutomaticResponseLimit.read(data.projectId),
+      // Whether a stop at the limit paged the security owners this hour, as the decisions count it.
+      SecurityAutomaticResponseActionService.countBy({
+        query: {
+          projectId: data.projectId,
+          outcome: SecurityAutomaticResponseOutcome.StoppedAtLimit,
+          isTrialRun: false,
+          pagedAt: QueryHelper.greaterThanEqualTo(hourStart),
+        },
+        props: { isRoot: true },
+      }).then(toNumber),
     ]);
 
     return {
@@ -226,7 +246,8 @@ export default class SecurityAutomaticResponseOverview {
       // A kind of destination could not be listed: the page cannot tell nothing enforces the blocklist.
       destinationsCannotTell: destinations.cannotTell,
       blocksThisHour,
-      maxBlocksPerHour: SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+      maxBlocksPerHour,
+      pagedThisHour: pagesThisHour > 0,
     };
   }
 

@@ -5,6 +5,7 @@ import {
   checkScrubRuleCustomRegex,
   SCRUB_RULE_CUSTOM_PATTERN_TYPE,
 } from "Common/Types/Telemetry/ScrubRule";
+import { readScrubRuleKeys } from "Common/Types/Telemetry/ScrubRuleKeys";
 import {
   ScrubRuleReadersRequest,
   TelemetryFieldReaders,
@@ -50,6 +51,12 @@ export interface ScrubRuleReadersPreviewRule {
   // The service picked, as a form or a row holds it: an id, an ObjectID, a service.
   service?: unknown;
   serviceId?: unknown;
+  /*
+   * The attributes it names, as a form holds them (text, one a line) or a
+   * row (a list): a Named Attributes rule's, or the only ones a pattern
+   * rule reads (#10751).
+   */
+  attributeKeys?: unknown;
 }
 
 function readText(value: unknown): string {
@@ -113,6 +120,13 @@ export function getScrubRuleReadersRequest(
   const scrubAction: string = readText(rule.scrubAction);
   const fieldsToScrub: string = readText(rule.fieldsToScrub);
   const serviceId: string = readRuleServiceId(rule);
+  /*
+   * The attributes the rule names: a Named Attributes rule hides only
+   * those, and a pattern rule that names some reads only them, so what
+   * reads anything else loses nothing (#10751). Left out, the lookup took
+   * a narrowed rule for one that reads every attribute.
+   */
+  const attributeKeys: Array<string> = readScrubRuleKeys(rule.attributeKeys);
 
   if (patternType === SCRUB_RULE_CUSTOM_PATTERN_TYPE) {
     request.customRegex = customRegex;
@@ -128,6 +142,10 @@ export function getScrubRuleReadersRequest(
 
   if (serviceId) {
     request.serviceId = serviceId;
+  }
+
+  if (attributeKeys.length > 0) {
+    request.attributeKeys = attributeKeys;
   }
 
   return request;

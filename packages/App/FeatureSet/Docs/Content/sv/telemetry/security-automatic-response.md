@@ -35,11 +35,13 @@ En policy reagerar på en detektion när den registreras i sitt ärende, några 
 
 | Policy | Reagerar på | Gör | Första blockering |
 | --- | --- | --- | --- |
-| **Skannrar** | Webbskanningar och exploateringsförsök (ATT&CK T1595, T1190): försök till SQL-injektion, path traversal och Log4Shell, och många träffar på hanterade Cloudflare-regler från en adress, så länge alla förfrågningar från adressen avvisades | Utmaning | 1 timme |
+| **Skannrar** | Webbskanningar och exploateringsförsök (ATT&CK T1595, T1190): försök till SQL-injektion, path traversal och Log4Shell, skanning efter känsliga filer som `/.env`, `/.git/config` och `/wp-admin`, och många träffar på hanterade Cloudflare-regler från en adress, så länge alla förfrågningar från adressen avvisades | Utmaning | 1 timme |
 | **Lösenordsgissning** | Brute force och lösenordssprejning (ATT&CK T1110): misslyckade inloggningar från en adress, och misslyckade inloggningar följda av en lyckad från samma adress | Blockera | 1 timme |
 | **Kända skadliga adresser** | Alla detektioner om en adress som din [hotinformation](/docs/telemetry/threat-intelligence) listar | Blockera | 24 timmar |
 
 Människor klarar en utmaning, skript och bottar gör det inte. Skannrar utmanar bara en adress så länge ingen av dess förfrågningar har nått din app: en adress vars förfrågningar kom igenom är ett ärende för en person.
+
+Skanning efter känsliga filer räknar bara förfrågningar som din webbplats nekade eller som gällde något den inte har, och bara när en adress begär tre eller fler olika filer eller administratörssidor inom fem minuter. En sida som din webbplats levererar räknas aldrig, så en WordPress-webbplats egna administratörer kan öppna `/wp-admin` och `/wp-login.php` så ofta de vill.
 
 När du slår på Skannrar eller Lösenordsgissning, i provperioden eller helt, körs reglerna från **Regelbibliotek** som policyn reagerar på i realtid, och de regler ditt projekt saknar läggs till: en realtidsregel utlöses sekunder efter att händelserna kommer, medan en schemalagd regel läser minuter efter. En regel som någon har stängt av förblir avstängd. Ett projekt kör högst 50 regler i realtid: därutöver stannar en regel på sitt schema, och policyns kort visar **Enligt ett schema** bredvid.
 
@@ -66,7 +68,7 @@ För att slå på en policy utan dess veckas provperiod öppnar du **Fler instä
 - **Aldrig dina egna eller skyddade adresser.** Posterna i **Skyddade entiteter**, och allt som OneUptime skyddar av sig självt: dina värdar, molnresurser och sonder, de intervall som inte finns på internet, och den edge som står framför din app. Se [Blocklista](/docs/telemetry/security-cases#blocklista).
 - **Aldrig en adress som en inloggad användare har använt de senaste 30 dagarna.** Ett kontors nätverk, en kunds proxy eller en persons hem: OneUptime letar efter adressen i din identitetsleverantörs inloggningar och i de förfrågningar som din app besvarade för en inloggad användare, de med ett användar-ID i sina spår eller loggar. En adress som den inte kan kontrollera, eftersom de händelserna inte kunde läsas eller eftersom dina scrub-regler döljer adresser på ett sätt som den inte kan matcha, lämnas åt en person.
 - **Längre blockeringar för en adress som kommer tillbaka.** Den första blockeringen varar 1 timme, sedan 24 timmar, sedan 7 dagar för en adress som blockeras igen inom 30 dagar. Kända skadliga adresser börjar på 24 timmar.
-- **Högst 50 automatiska blockeringar i timmen.** Därutöver slutar dina policyer blockera och larmar dina säkerhetsansvariga: en så stor attack behöver en person. Sidan säger det så länge det pågår.
+- **Högst 50 automatiska blockeringar i timmen, eller den gräns du anger.** Därutöver slutar dina policyer blockera och larmar dina säkerhetsansvariga: en så stor attack behöver en person. Sidan säger det så länge det pågår. En Säkerhetsadministratör, Projektadministratör eller Projektägare kan ange gränsen, från 1 till 500, under **Fler inställningar** längst ned på sidan: **Timgräns**. En ny gräns gäller från och med nästa detektion.
 - **Ångra vid tvivel.** När en inloggad användare syns från en adress som en policy har blockerat, häver policyn blockeringen och meddelar dina säkerhetsansvariga.
 
 Dina säkerhetsansvariga är ditt projekts Säkerhetsadministratörer, eller dess Projektägare om det inte har några. Varje adress som ett skyddsräcke lät vara står i sitt ärende, med orsaken.
@@ -101,7 +103,7 @@ Titta på ärendets tidslinje: en policy som lät en adress vara säger varför,
 :::
 
 :::details Sidan säger att timmens automatiska blockeringar är förbrukade
-Dina policyer gjorde 50 automatiska blockeringar den senaste timmen och larmade dina säkerhetsansvariga. De fortsätter igen när timmens blockeringar blir äldre. Titta på attackens ärenden, och blockera ett intervall från **Blocklista** om det kommer från ett nätverk.
+Dina policyer nådde din timgräns för automatiska blockeringar, 50 om ingen har ändrat den, och larmade dina säkerhetsansvariga. De fortsätter igen när timmens blockeringar blir äldre. Titta på attackens ärenden, och blockera ett intervall från **Blocklista** om det kommer från ett nätverk. Om ditt projekt ofta utsätts för så här många skannrar klickar du på **Ändra gräns** bredvid meddelandet och höjer gränsen.
 :::
 
 ## Nästa steg

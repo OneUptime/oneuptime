@@ -214,17 +214,18 @@ Lagringstiden för en tjänsts telemetri, mottagarna och överföringarna härle
 
 ### Datalager som OneUptime sparar för din säkerhet
 
-Tre datalager innehåller IP-adresser med avsikt, för att skydda ditt nätverk: **Säkerhetshändelser**, **Network Flows** och **Säkerhetsadressvalv**. Registret tar upp vart och ett som ditt projekt har. OneUptime anger dem i stället för att hitta dem: vad de innehåller är känt från början, så ingen skanning läser dem, ingen kontroll gäller för dem, och att de innehåller dessa adresser är aldrig ett problem, eftersom det är det som de är till för. De visar **Angivet av OneUptime** under **Datalager**, och **Översikt** och ramverkens poäng utelämnar dem.
+Fyra datalager innehåller IP-adresser och användarnamn med avsikt, för att skydda ditt nätverk: **Säkerhetshändelser**, **Network Flows**, **Säkerhetsadressvalv** och **Säkerhetsanvändarvalv**. Registret tar upp vart och ett som ditt projekt har. OneUptime anger dem i stället för att hitta dem: vad de innehåller är känt från början, så ingen skanning läser dem, ingen kontroll gäller för dem, och att de innehåller dessa adresser och namn är aldrig ett problem, eftersom det är det som de är till för. De visar **Angivet av OneUptime** under **Datalager**, och **Översikt** och ramverkens poäng utelämnar dem.
 
 | Datalager | Vad det innehåller | Lagringstid | Vem kan läsa det |
 | --- | --- | --- | --- |
 | Säkerhetshändelser | IP-adresserna, användarnamnen och e-postadresserna för den som agerade och det som berördes | Ditt projekts [lagringstid för telemetri](/docs/telemetry/data-retention), läst varje gång registret läses, så en ändring gäller direkt | Projektägare, Projektadministratörer, Säkerhetsadministratörer, Säkerhetsmedlemmar, Säkerhetstittare och alla med Read Security Event |
 | Network Flows | IP-adresserna för vem som kommunicerade med vem | 30 dagar efter att ett flöde kommer in | Alla som får läsa nätverksenheter |
 | Säkerhetsadressvalv | IP-adressen bakom varje token som en IP-adressregel som hashar lämnade i de loggar och spår som [Säkerhetshändelser](/docs/telemetry/security-events) läser | 30 dagar efter att en adress senast sågs | Bara skanningarna i Säkerhetshändelser, inne i OneUptime: ingen person, sida, export, API eller AI-verktyg |
+| Säkerhetsanvändarvalv | Användaren bakom varje token som en regel som hashar lämnade där [Säkerhetshändelser](/docs/telemetry/security-events) läser en användare i loggar och spår | 30 dagar efter att en användare senast sågs | Bara skanningarna i Säkerhetshändelser, inne i OneUptime: ingen person, sida, export, API eller AI-verktyg |
 
 Syftet med vart och ett är "Nät- och informationssäkerhet (GDPR skäl 49)". För att skriva ett eget syfte eller en egen lagringstid använder du **Redigera register** i datalagrets **Inställningar**: ett fält som lämnas tomt behåller OneUptimes.
 
-Ett datalager visas så länge ditt projekt sparar dess data: valvet så länge en aktiverad IP-adressregel hashar loggar eller spår som Säkerhetshändelser läser, och i 31 dagar efter det (se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). När dess data är borta arkiveras datalagret, och det kommer tillbaka med ditt syfte och din lagringstid om datan gör det.
+Ett datalager visas så länge ditt projekt sparar dess data: adressvalvet så länge en aktiverad IP-adressregel hashar loggar eller spår som Säkerhetshändelser läser, användarvalvet så länge en aktiverad regel med något annat mönster gör det, och vart och ett i 31 dagar efter det (se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). När dess data är borta arkiveras datalagret, och det kommer tillbaka med ditt syfte och din lagringstid om datan gör det.
 
 ## Konsekvensbedömningar
 

@@ -133,6 +133,7 @@ Slutpunkten svarar `200` när händelserna har lagts i kö. En händelse som ski
 Ange formatet med `?format=`, med huvudet `x-oneuptime-security-event-format` eller med ett fält `"format"` på översta nivån. Utelämnar du det avgörs varje händelses format för sig, så en enda webhook kan blanda detektioner med råa händelser.
 
 - Kroppen kan vara en händelse, en array av händelser eller `{ "events": [...] }`.
+- En batch kan komprimeras med gzip och skickas med `Content-Encoding: gzip`: den läses då precis som samma batch utan komprimering. Fluent Bit komprimerar med `compress gzip` i sin `http`-utdata, Vector med `compression = "gzip"` i sin `http`-sink och Logstash med `http_compression => true` i sin `http`-utdata. Bara JSON läses i komprimerad form: en komprimerad kropp av någon annan typ avvisas med `400`.
 - Huvudet `x-oneuptime-service-name` anger telemetritjänsten som händelserna hör till. Utan det hör de till tjänsten som är uppkallad efter den första händelsens produkt eller leverantör, eller till `Security Events`.
 - Ingenting kastas för att det inte gick att mappa: varje fält från källan hamnar i händelsens attribut.
 
@@ -174,6 +175,7 @@ För att skicka säkerhetsloggar som du redan samlar in, till exempel auditd, sy
     tls              On
     URI              /security-events/v1/ingest
     Format           json
+    compress         gzip
     Json_date_key    timestamp
     Json_date_format iso8601
     Header           x-oneuptime-token YOUR_INGESTION_TOKEN
@@ -185,7 +187,7 @@ Sidan **Installationsguide**, under **Anslutningar**, har de här kodsnuttarna m
 
 ### Hitta säkerhetshändelser i dina loggar
 
-Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost och webbattack i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
+Kortet **Dina loggar**, högst upp på **Anslutningar**, gör loggarna du redan skickar till OneUptime till en källa. Med **Hitta säkerhetshändelser i dina loggar** påslaget läses projektets nya loggar varje minut, och varje SSH- eller Windows-inloggning, sudo-kommando, granskningspost från ett moln, CEF- eller LEEF-post från en säkerhetsprodukt, post från en Palo Alto Networks-, FortiGate- eller Cisco ASA-brandvägg, Kubernetes-granskningspost, webbattack och nekad förfrågan efter en känslig fil i dem lagras som en säkerhetshändelse. Se [Kom igång med säkerhet](/docs/telemetry/security-getting-started#hitta-säkerhetshändelser-i-dina-loggar) för vad varje typ täcker.
 
 Varje typ når OneUptime som vanliga loggar:
 
@@ -298,6 +300,10 @@ En IP-adressregel som raderar eller maskerar dina loggar eller spår döljer adr
 
 En regel som hashar sparar adressen åt Säkerhetshändelser, så händelsen namnger den, om inte dess token är äldre än 30 dagar eller skapades innan tokens hade en nyckel: se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data). Sök efter `@oneuptime.request.client_address_hidden:scrub-rule` för att hitta dessa händelser. Det regeln lämnade i adressens ställe, till exempel `[REDACTED]`, finns i `oneuptime.request.client_address_scrubbed`. Sök efter `@oneuptime.target_address_hidden:scrub-rule` för en destination.
 
+En detektionsregel som räknar per adress bör, precis som regelbibliotekets regler, räkna per `principalIp` eller `targetIp`, som namnger adressen bakom token från en regel som hashar. Ett formats eget adressfält, till exempel `openstack.audit.initiator_address` eller `asa.src_ip`, innehåller bara en adress som står i loggen, så det förblir tomt överallt där en scrub-regel dolde adressen.
+
+En regel som raderar eller maskerar en användare döljer den på samma sätt: där händelsen skulle namnge användaren säger **Källanvändare** eller **Målanvändare** att en scrub-regel dolde den. Där Säkerhetshändelser läser en användare sparar en regel som hashar användaren åt den: en begärans `enduser.id` eller `user.id`, ett AI-anrops användare och en användare som en loggrad namnger, till exempel principal i en granskningslogg från molnet. Så händelsen namnger användaren bakom token, ett ärende om användaren namnger kontot, och en playbook kan agera på det som på vilken annan användare som helst. Det regeln lämnade finns i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så att du kan hitta användaren i dina loggar och spår, som bara innehåller token. En token som ingen användare har sparats för, till exempel en som skapades innan tokens hade en nyckel, förblir händelsens användare: regler räknar den som ett konto, och ingen playbook agerar på den.
+
 ## Utforska säkerhetshändelser
 
 **Händelser** är en telemetriutforskare som utforskarna för loggar och spår: ett diagram över fönstrets händelser efter allvarlighetsgrad, en sidopanel med facetter, listan och en panel med varje fält och attribut i händelsen du öppnar. Fönstret, filtren och sökningen finns alla i URL:en, så en filtrerad vy kan delas och överlever en omladdning.
@@ -331,7 +337,16 @@ En händelse läst från en loggrad som skrevs inuti en spårad förfrågan föl
 
 ### Campaigns
 
-**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först.
+**Kampanjer** listar varje adress som skickade attackförfrågningar som en rad, med attacktyperna, verktygen och förfrågningarna den skickade, och hur många som kom igenom. Adresserna vars förfrågningar nådde din app kommer först. En rad som din blocklista redan håller säger till när den är blockerad eller utmanad, och nämner intervallet eller nätverket som håller den.
+
+För att blockera flera angripare på en gång markerar du deras rader och trycker på **Blockera adresser**. En enda dialog listar varje adress som den blockerar och varje adress som den utelämnar, med skälet: redan blockerad, en av dina egna eller en skyddad, en som en inloggad användare har använt de senaste 30 dagarna, eller en som OneUptime inte kunde kontrollera. Den blockerar i 24 timmar om du inte väljer en annan längd, eller utmanar med **Utmana i stället**, och varje blockering hamnar på din [blocklista](/docs/telemetry/security-cases#blocklista) som din.
+
+**Gruppera efter nätverk** samlar adresserna från ett nätverk på en rad: efter dess ASN där händelserna från din [Cloudflare](/docs/integrations/cloudflare)-anslutning anger ett, och annars efter dess /24 för IPv4 eller dess /48 för IPv6. Ett ASN:s rad listar intervallen som dess adresser skickade från. **Utmana det här nätverket** säger vad det kommer att göra, var och hur länge, innan det gör det: 24 timmar om du inte väljer en annan längd, och nästa steg på stegen för ett nätverk som har utmanats tidigare. Cloudflare håller ett intervall i sin utmaningslista, och ett ASN som en IP Access Rule, som alla planer har.
+
+- Ett nätverk som innehåller en adress som en inloggad användare har använt de senaste 30 dagarna, eller en av dina egna, utmanas aldrig, och dialogen nämner vem eller vad.
+- Ett intervall som är bredare än ett /24 (ett /48 för IPv6), och ett helt ASN, kräver en Säkerhetsadministratör, en Projektadministratör eller en Projektägare. Ett ASN:s rad erbjuder också vart och ett av dess intervall, som alla som får blockera kan utmana.
+- När OneUptime inte kan avgöra vem som använder ett nätverk, eftersom det är ett helt ASN eller eftersom en scrub-regel döljer klientadresser, kan bara en Säkerhetsadministratör, en Projektadministratör eller en Projektägare utmana det, efter att ha kryssat i att de vet det.
+- Inget blockeras eller utmanas så länge Säkerhetshändelser är avstängd på servern.
 
 ### Korrelera
 
@@ -583,6 +598,7 @@ Ett undantag är något en regel hoppar över eftersom du väntar dig det, som e
 | **Ett tidsfönster** | Alla händelser från **Börjar den** till **Slutar den**, högst 30 dagar isär |
 
 - Värden träffar oavsett versaler och gemener, och `*` står för vilken följd av tecken som helst: `svc-*` hoppar över alla tjänstekonton, och `*.lab.example.com` alla värdar i en domän. En IP-adress kan vara ett intervall, som `10.20.0.0/16`. Ett värde som bara är `*` avvisas: stäng av en regel för att stoppa den.
+- Händelser från OneUptimes egen granskningslogg namnger en projekt-API-nyckel i `principalUser` som `api-key:` följt av dess ID, så två nycklar med samma namn är två aktörer, och ingen playbook erbjuder en nyckel som en användare att stänga av. Nyckelns namn står kvar i händelsens meddelande och i `audit.api_key_name`. Ett undantag för en nyckels namn, som användare eller som värde för `principalUser`, hoppar fortfarande över alla nycklar med det namnet, och ett undantag för `api-key:` följt av nyckelns ID hoppar bara över den nyckeln.
 - Varje undantag säger varför i sin **Orsak**, som alla som läser listan ser, och sparar vem som lade till det och när. En entitet eller ett värde kan ha ett datum i **Upphör**, varefter regeln ser det igen; ett tidsfönster slutar av sig självt.
 - **Status** säger var vart och ett står: **Aktiv**, **Kommande** för ett fönster som inte har börjat, **Utgången** eller **Avslutad**. Under en regels namn i **Detektionsregler** räknar en rad dess aktiva undantag, och **Visa undantag** i regelns rad öppnar listan filtrerad på regeln.
 - Överhoppade händelser lämnas utanför innan regeln räknar något, så de räknas aldrig mot dess **Tröskel för antal träffar** och öppnar inget ärende, larm, incident eller fynd. Undantag gäller för varje körning av regeln, korrelationer inräknade, och för **Kör på tidigare händelser**, men aldrig för en testattack, som kontrollerar att händelser kommer fram.

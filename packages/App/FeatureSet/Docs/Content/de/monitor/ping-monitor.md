@@ -108,10 +108,11 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 | **Anzahl**, **Prozentsatz**, **Statuswechsel** | Wie viele Prüfungen die Bedingung erfüllt haben, ihr Anteil oder wie oft sie zwischen Erfüllen und Nichterfüllen gewechselt haben, wird mit der darunter eingestellten Zahl verglichen. |
+| **Vorherige Prüfung** | Diese Prüfung, verglichen mit der vorherigen Prüfung der Sonde, wie unter **Änderung gegenüber der vorherigen Prüfung** eingestellt: etwa eine Antwortzeit, die mehr als 50 % darüber liegt. Ein Filter, der wahr oder falsch ist, trifft bei der Prüfung zu, die die Bedingung zu erfüllen begann. |
 
 Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
-**Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. Oder OneUptime zählt sie mit **Anzahl**, **Prozentsatz** oder **Statuswechsel**.
+**Zeitüberschreitung der Anfrage** ist keine Zahl, die OneUptime aufzeichnet. OneUptime zeichnet deshalb auf, ob der Filter bei jeder Prüfung zutraf, und beurteilt das Fenster anhand dieser Aufzeichnung mit **Alle Werte** oder **Beliebiger Wert**. Oder OneUptime zählt sie mit **Anzahl**, **Prozentsatz** oder **Statuswechsel**. Mit **Vorherige Prüfung** trifft der Filter bei der Prüfung zu, bei der er zu passen begann.
 
 Wählen Sie das Fenster länger als das Überwachungsintervall, damit es mehrere Prüfungen enthält: Ein Monitor, der alle 5 Minuten geprüft wird, hat in jedem 5-Minuten-Fenster nur eine einzige Prüfung.
 

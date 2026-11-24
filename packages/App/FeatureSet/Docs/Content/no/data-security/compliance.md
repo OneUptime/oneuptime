@@ -214,17 +214,18 @@ Oppbevaringen av telemetrien til en tjeneste, mottakerne og overføringene utled
 
 ### Datalagre OneUptime oppbevarer for sikkerheten din
 
-Tre datalagre inneholder IP-adresser med vilje, for å beskytte nettverket ditt: **Sikkerhetshendelser**, **Network Flows** og **Sikkerhetsadressehvelv**. Protokollen viser hvert av dem prosjektet ditt har. OneUptime oppgir dem i stedet for å finne dem: hva de inneholder, er kjent fra starten, så ingen skanning leser dem, ingen kontroll gjelder for dem, og at de inneholder disse adressene, er aldri et problem, for det er det de er til for. De viser **Oppgitt av OneUptime** under **Datalagre**, og **Oversikt** og scorene for rammeverkene utelater dem.
+Fire datalagre inneholder IP-adresser og brukernavn med vilje, for å beskytte nettverket ditt: **Sikkerhetshendelser**, **Network Flows**, **Sikkerhetsadressehvelv** og **Sikkerhetsbrukerhvelv**. Protokollen viser hvert av dem prosjektet ditt har. OneUptime oppgir dem i stedet for å finne dem: hva de inneholder, er kjent fra starten, så ingen skanning leser dem, ingen kontroll gjelder for dem, og at de inneholder disse adressene og navnene, er aldri et problem, for det er det de er til for. De viser **Oppgitt av OneUptime** under **Datalagre**, og **Oversikt** og scorene for rammeverkene utelater dem.
 
 | Datalager | Hva det inneholder | Oppbevaring | Hvem kan lese det |
 | --- | --- | --- | --- |
 | Sikkerhetshendelser | IP-adressene, brukernavnene og e-postadressene til den som handlet og det som ble berørt | Prosjektets [oppbevaring av telemetri](/docs/telemetry/data-retention), lest hver gang protokollen leses, så en endring gjelder med en gang | Prosjekteiere, Prosjektadministratorer, Sikkerhetsadministratorer, Sikkerhetsmedlemmer, Sikkerhetslesere og alle med Read Security Event |
 | Network Flows | IP-adressene til dem som kommuniserte med hverandre | 30 dager etter at en flyt kommer inn | Alle som kan lese nettverksenheter |
 | Sikkerhetsadressehvelv | IP-adressen bak hvert token en IP-adresseregel som hasher, la igjen i loggene og trasene [Sikkerhetshendelser](/docs/telemetry/security-events) leser | 30 dager etter at en adresse sist ble sett | Bare skanningene i Sikkerhetshendelser, inne i OneUptime: ingen person, side, eksport, API eller AI-verktøy |
+| Sikkerhetsbrukerhvelv | Brukeren bak hvert token en regel som hasher, la igjen der [Sikkerhetshendelser](/docs/telemetry/security-events) leser en bruker i loggene og trasene | 30 dager etter at en bruker sist ble sett | Bare skanningene i Sikkerhetshendelser, inne i OneUptime: ingen person, side, eksport, API eller AI-verktøy |
 
 Formålet med hvert av dem er «Nettverks- og informasjonssikkerhet (GDPR fortalepunkt 49)». For å skrive ditt eget formål eller din egen oppbevaring, bruk **Rediger protokoll** under **Innstillinger** for datalageret: et felt som står tomt, beholder OneUptimes.
 
-Et datalager vises så lenge prosjektet ditt oppbevarer dataene: hvelvet så lenge en aktivert IP-adresseregel hasher logger eller traser Sikkerhetshendelser leser, og i 31 dager etter (se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Når dataene er borte, arkiveres datalageret, og det kommer tilbake med formålet og oppbevaringen din hvis dataene gjør det.
+Et datalager vises så lenge prosjektet ditt oppbevarer dataene: adressehvelvet så lenge en aktivert IP-adresseregel hasher logger eller traser Sikkerhetshendelser leser, brukerhvelvet så lenge en aktivert regel med et hvilket som helst annet mønster gjør det, hvert i 31 dager etter (se [Rens sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Når dataene er borte, arkiveres datalageret, og det kommer tilbake med formålet og oppbevaringen din hvis dataene gjør det.
 
 ## Konsekvensvurderinger
 

@@ -113,7 +113,7 @@ import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -1927,13 +1927,14 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
 
               <Card
                 title={
-                  <span className="inline-flex items-center gap-1.5">
-                    {translator.translateText(CONVERSATIONS_TITLE)}
-                    <InfoTooltip
-                      label={CONVERSATIONS_TITLE}
-                      text={TRAFFIC_HELP.conversations}
-                    />
-                  </span>
+                  <WordsWithInfoTooltip
+                    text={
+                      translator.translateText(CONVERSATIONS_TITLE) ||
+                      CONVERSATIONS_TITLE
+                    }
+                    label={CONVERSATIONS_TITLE}
+                    description={TRAFFIC_HELP.conversations}
+                  />
                 }
                 description="Who talks to whom, busiest first."
                 rightElement={

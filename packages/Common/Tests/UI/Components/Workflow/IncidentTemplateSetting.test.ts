@@ -24,7 +24,6 @@ import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity
 import IncidentTemplate from "../../../../Models/DatabaseModels/IncidentTemplate";
 import Label from "../../../../Models/DatabaseModels/Label";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
-import { DropdownOption } from "../../../../UI/Components/Dropdown/Dropdown";
 import {
   LintGraphNode,
   WorkflowLintIssue,
@@ -33,11 +32,16 @@ import {
   lintWorkflowGraph,
 } from "../../../../UI/Components/Workflow/GraphLint";
 import {
+  getRecordChoiceDropdownModal,
   getRecordChoiceSource,
   getRecordChoiceTypes,
+  getRecordChoiceTypesReadWhole,
   loadRecordChoices,
+  RecordChoiceDropdownModal,
   RecordChoiceSource,
 } from "../../../../UI/Components/Workflow/RecordChoices";
+import { ENTITY_DROPDOWN_NOT_FOUND_LABEL } from "../../../../UI/Components/EntityDropdown/EntityDropdownNotFound";
+import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
 import ModelAPI from "../../../../UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
@@ -466,68 +470,87 @@ describe("the list a setting picked from the project's records offers", () => {
     ]);
   });
 
-  test("the templates come from the API by name, each offered as its ID; an unnamed one by its ID", async () => {
-    const named: IncidentTemplate = new IncidentTemplate();
-    named._id = TEMPLATE_ID;
-    named.templateName = "Checkout degraded";
-
-    const unnamed: IncidentTemplate = new IncidentTemplate();
-    unnamed._id = "7c000000-0000-4000-8000-0000000000a2";
-
-    getList.mockResolvedValue({
-      data: [named, unnamed],
-      count: 2,
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    } as never);
-
-    const options: Array<DropdownOption> = await loadRecordChoices({
-      type: ComponentInputType.IncidentTemplateSelect,
-      workflowId: new ObjectID(WORKFLOW_ID),
+  /*
+   * A project's templates and workflows may be more than one read lists: the
+   * settings read the first 10,000 by name, so one past them could not be
+   * picked and one a step held showed blank (#10764). They search the server
+   * as they are typed in, and read what a step holds by its ID
+   * (WorkflowRecordChoicesPastTheCap draws them on a project of 10,000+).
+   */
+  test("Incident Template searches the server by the template's name, a held one read by its ID", async () => {
+    expect(
+      getRecordChoiceDropdownModal({
+        type: ComponentInputType.IncidentTemplateSelect,
+        workflowId: new ObjectID(WORKFLOW_ID),
+      }),
+    ).toEqual({
+      type: IncidentTemplate,
+      labelField: "templateName",
+      valueField: "_id",
+      // A deleted one - or one the person may not read - is not blank.
+      notFoundLabel: ENTITY_DROPDOWN_NOT_FOUND_LABEL,
     });
 
-    expect(options).toEqual([
-      { label: "Checkout degraded", value: TEMPLATE_ID },
-      {
-        label: "7c000000-0000-4000-8000-0000000000a2",
-        value: "7c000000-0000-4000-8000-0000000000a2",
-      },
-    ]);
-
-    const request: JSONObject = getList.mock.calls[0]![0];
-
-    expect(request["modelType"]).toBe(IncidentTemplate);
-    expect(request["select"]).toEqual({ _id: true, templateName: true });
-    expect(request["sort"]).toEqual({ templateName: SortOrder.Ascending });
-    expect(request["limit"]).toBe(LIMIT_PER_PROJECT);
+    // Nothing is read up front for it.
+    expect(
+      await loadRecordChoices({
+        type: ComponentInputType.IncidentTemplateSelect,
+        workflowId: new ObjectID(WORKFLOW_ID),
+      }),
+    ).toEqual([]);
+    expect(getList).not.toHaveBeenCalled();
   });
 
-  test("the workflow list leaves out the workflow being edited", async () => {
-    const self: Workflow = new Workflow();
-    self._id = WORKFLOW_ID;
-    self.name = "This one";
+  test("Workflow searches the server, never offering the workflow being edited", async () => {
+    const modal: RecordChoiceDropdownModal | null =
+      getRecordChoiceDropdownModal({
+        type: ComponentInputType.WorkflowSelect,
+        workflowId: new ObjectID(WORKFLOW_ID),
+      });
 
-    const other: Workflow = new Workflow();
-    other._id = "7c000000-0000-4000-8000-0000000000f2";
-    other.name = "Escalate to on-call";
-
-    getList.mockResolvedValue({
-      data: [self, other],
-      count: 2,
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-    } as never);
+    expect(modal?.type).toBe(Workflow);
+    expect(modal?.labelField).toBe("name");
+    expect(modal?.valueField).toBe("_id");
+    expect(modal?.notFoundLabel).toBe(ENTITY_DROPDOWN_NOT_FOUND_LABEL);
+    // Every search the dropdown sends leaves it out (a workflow cannot run itself).
+    expect(modal?.query).toEqual({
+      _id: new NotEqual<string>(WORKFLOW_ID),
+    });
 
     expect(
       await loadRecordChoices({
         type: ComponentInputType.WorkflowSelect,
         workflowId: new ObjectID(WORKFLOW_ID),
       }),
-    ).toEqual([
-      {
-        label: "Escalate to on-call",
-        value: "7c000000-0000-4000-8000-0000000000f2",
+    ).toEqual([]);
+    expect(getList).not.toHaveBeenCalled();
+  });
+
+  test("the severities are read whole as the settings open, in the project's order: they search nothing", () => {
+    for (const type of [
+      ComponentInputType.AlertSeveritySelect,
+      ComponentInputType.IncidentSeveritySelect,
+    ]) {
+      expect(
+        getRecordChoiceDropdownModal({
+          type: type,
+          workflowId: new ObjectID(WORKFLOW_ID),
+        }),
+      ).toBeNull();
+    }
+
+    expect(
+      getRecordChoiceTypesReadWhole(CREATE_ONE_INCIDENT.arguments),
+    ).toEqual([]);
+
+    const pageUsers: ComponentMetadata = Components.find(
+      (component: ComponentMetadata): boolean => {
+        return component.id === ComponentID.PageUsers;
       },
+    )!;
+
+    expect(getRecordChoiceTypesReadWhole(pageUsers.arguments)).toEqual([
+      ComponentInputType.AlertSeveritySelect,
     ]);
   });
 

@@ -23,6 +23,7 @@ import { NAME_TAKEN_REFUSALS } from "../../Types/Database/UniqueName";
 import { AWS_ROLE_WITHOUT_EXTERNAL_ID_REFUSAL } from "../../Types/CloudConnection/AwsRoleExternalIdRefusal";
 import { RESPONDER_ON_RULE_ALREADY_REFUSALS } from "../../Types/OnCallDutyPolicy/EscalationRuleResponderOnce";
 import { DISCOVERY_SCAN_PROBE_OFFLINE_REFUSAL } from "../../Utils/NetworkDiscovery/DiscoveryScanRun";
+import { PULL_REQUEST_LINK_REFUSALS } from "../../Types/SecurityCase/SecurityCasePullRequestLink";
 
 /*
  * AN ERROR INSIDE A SENTENCE A CARD WRITES (#7307).
@@ -139,6 +140,12 @@ const REFUSALS_WITH_VALUES: ReadonlyArray<RefusalWithValues> = [
    * probe's name (#10334): the scan's Run Again says it.
    */
   DISCOVERY_SCAN_PROBE_OFFLINE_REFUSAL,
+  /*
+   * A pull request a person linked to a security case's Fix step, refused
+   * with the repository or the pull request it names (#10604): the Link
+   * Pull Request dialog says it.
+   */
+  ...PULL_REQUEST_LINK_REFUSALS,
 ];
 
 /*

@@ -20,7 +20,11 @@ import {
   isDataStoreKind,
   TELEMETRY_DATA_STORE_KINDS,
 } from "../../../../../Types/DataSecurity/DataStoreKind";
-import { ScrubRuleWriterPlace } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
+import {
+  MAX_SCRUB_RULE_WRITER_PLACES,
+  ScrubRuleWriterPlace,
+  ScrubRuleWriterRule,
+} from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import {
   ScrubRuleSignal,
   ScrubTarget,
@@ -29,7 +33,10 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission from "../../../../../Types/Permission";
-import { describeScrubRuleProof } from "../../../../../Types/Telemetry/ScrubRuleProof";
+import {
+  describeScrubRuleProof,
+  ScrubRuleProof,
+} from "../../../../../Types/Telemetry/ScrubRuleProof";
 import {
   isEveryTelemetryFieldReaderChecked,
   TELEMETRY_FIELD_READER_KINDS,
@@ -82,10 +89,17 @@ import {
   mergeScrubRuleKeys,
   mergeScrubRuleProofs,
 } from "../../../DataSecurity/Telemetry/TelemetryScrubMerge";
+import { findMetricScrubRuleReaders } from "../../../DataSecurity/Telemetry/TelemetryMetricDrop";
 import {
   readScrubPlanFindingRecord,
+  readScrubProofFinding,
   ScrubPlanFindingRecord,
 } from "../../../DataSecurity/Telemetry/TelemetryScrubPlan";
+import {
+  proveMetricScrubRule,
+  ScrubProofFinding,
+  ScrubProofOutcome,
+} from "../../../DataSecurity/Telemetry/TelemetryScrubProof";
 import {
   getAttributeKeyOfTarget,
   getScrubFindingCategory,
@@ -105,7 +119,10 @@ import {
   DataSecurityAiPlannedChange,
 } from "../DataSecurityAiAction";
 import ScrubRuleWriter, {
+  getScrubRuleWriterInputHash,
+  readKeptScrubRuleWriterRules,
   ScrubRuleWriterOutcome,
+  toKeptScrubRuleWriterRules,
   toScrubRuleCandidate,
 } from "../ScrubRuleWriter";
 import {
@@ -223,6 +240,13 @@ interface PlannedPlace {
   attributeKey: string | null;
   rule?: ProvenScrubItRule | undefined;
   metric?: ScrubRulePreview | undefined;
+  /*
+   * A metric's rule, proven on the finding's data points, and what reads
+   * the metrics that carry its attribute (#10753): none when it could not
+   * be proven, or read.
+   */
+  metricProof?: ScrubRuleProof | undefined;
+  metricReaders?: ScrubReaderCounts | undefined;
 }
 
 // A rule the plan makes, with the places it is for.
@@ -447,6 +471,7 @@ function mergePlannedPlaces(data: {
           name: planned.metric.name,
           description: planned.metric.description,
           findingIds: [planned.place.findingId],
+          ...(planned.metricProof ? { proof: planned.metricProof } : {}),
           waitReasons: [],
         },
         places: [planned],
@@ -572,10 +597,110 @@ function mergePlannedPlaces(data: {
 }
 
 /*
+ * A metric attribute's rule, proven on the finding's data points and the
+ * newest of its service with a value at the place (#10753) - kept only
+ * when it hid the data in every value that held it, as a log's or a
+ * span's proven rule is - and what reads the metrics that carry its
+ * attribute. Either is left out when it could not be had: the rule then
+ * waits for a person, as any rule not proven or whose readers are not
+ * known does.
+ */
+async function proveMetricPlace(data: {
+  context: DataSecurityAiIssueContext;
+  kind: DataStoreKind;
+  place: ScrubPlace;
+  preview: ScrubRulePreview;
+  attributeKey: string;
+  serviceId: string | undefined;
+  options: ContentScanOptions;
+}): Promise<{
+  metricProof?: ScrubRuleProof | undefined;
+  metricReaders?: ScrubReaderCounts | undefined;
+}> {
+  const proven: {
+    metricProof?: ScrubRuleProof | undefined;
+    metricReaders?: ScrubReaderCounts | undefined;
+  } = {};
+
+  if (!data.preview.metricRule || !data.serviceId || !data.attributeKey) {
+    return proven;
+  }
+
+  const finding: ScrubProofFinding | null = await readScrubProofFinding({
+    projectId: data.context.projectId,
+    findingId: data.place.findingId,
+    kind: data.kind,
+  });
+
+  if (finding) {
+    const outcome: ScrubProofOutcome = await proveMetricScrubRule({
+      projectId: data.context.projectId,
+      rule: data.preview.metricRule,
+      finding,
+      options: data.options,
+      now: data.context.now,
+    });
+
+    if (!outcome.failure && outcome.covers) {
+      proven.metricProof = outcome.proof;
+    }
+  }
+
+  const readers: ScrubReaderCounts | undefined =
+    await findMetricScrubRuleReaders({
+      projectId: data.context.projectId,
+      serviceId: data.serviceId.toLowerCase(),
+      attributeKey: data.attributeKey,
+      // As OneUptime: counted, never named, in the plan.
+      props: { isRoot: true },
+      now: data.context.now,
+    });
+
+  if (readers) {
+    proven.metricReaders = readers;
+  }
+
+  return proven;
+}
+
+/*
+ * What OneUptime AI wrote for a place, kept on its finding with the hash
+ * of what it was told (#10752): its rules, or none. Never throws: a place
+ * whose answer was not kept is only asked again.
+ */
+async function keepScrubRuleWriterAnswer(data: {
+  projectId: ObjectID;
+  findingId: string;
+  inputHash: string;
+  rules: ReadonlyArray<ScrubRuleWriterRule>;
+}): Promise<void> {
+  try {
+    await DataStoreFindingService.updateColumnsByIdWithoutHooks({
+      id: new ObjectID(data.findingId),
+      data: {
+        aiScrubRuleInputHash: data.inputHash,
+        aiScrubRules: toKeptScrubRuleWriterRules(data.rules),
+      } as never,
+    });
+  } catch (error) {
+    logger.warn(
+      `DataSecurity AI: could not keep what OneUptime AI wrote for finding ${data.findingId} of project ${data.projectId.toString()}: ${error}`,
+    );
+  }
+}
+
+/*
  * OneUptime AI's rules for the places no rule of Scrub It's can hide: each
  * place told as names and shapes (TelemetryScrubShapes), the rules it
  * writes proven on the finding's records as the planner's are - and only
  * a proven one is kept.
+ *
+ * Asked once for what it is told (#10752): a place told the same as when
+ * it last wrote for it - its finding keeps the hash of that, and the
+ * answer - reuses the answer, proven again on the newest records, with no
+ * model call and so no AI credits; a "no rule" answer is not asked again
+ * either. Only the places told something new are asked, and their answers
+ * kept. A call that failed keeps nothing: those places are asked next time.
  */
 async function writeRulesWithOneUptimeAi(data: {
   context: DataSecurityAiIssueContext;
@@ -587,10 +712,13 @@ async function writeRulesWithOneUptimeAi(data: {
     target: ScrubTarget & { signal: "log" | "trace" };
   }>;
 }): Promise<{ planned: Array<PlannedPlace>; unscrubbable: number }> {
-  const asked: Array<{
+  const told: Array<{
     place: ScrubPlace;
     target: ScrubTarget & { signal: "log" | "trace" };
     told: ScrubRuleWriterPlace;
+    inputHash: string;
+    // What it wrote when it was last told the same: none to ask again.
+    kept: Array<ScrubRuleWriterRule> | null;
   }> = [];
 
   for (const item of data.places) {
@@ -606,9 +734,9 @@ async function writeRulesWithOneUptimeAi(data: {
       continue;
     }
 
-    const told: ScrubRuleWriterPlace | null = await describeScrubPlace({
+    const place: ScrubRuleWriterPlace | null = await describeScrubPlace({
       projectId: data.context.projectId,
-      ref: `P${String(asked.length + 1)}`,
+      ref: `P${String(told.length + 1)}`,
       finding: record,
       dataTypeName: data.context.dataTypeNamer.nameOf(
         item.place.dataTypeId,
@@ -619,44 +747,93 @@ async function writeRulesWithOneUptimeAi(data: {
       now: data.context.now,
     });
 
-    if (told) {
-      asked.push({ ...item, told });
+    if (!place) {
+      continue;
+    }
+
+    const inputHash: string = getScrubRuleWriterInputHash(place);
+
+    told.push({
+      ...item,
+      told: place,
+      inputHash,
+      kept:
+        record.aiScrubRuleInputHash === inputHash
+          ? readKeptScrubRuleWriterRules(record.aiScrubRules, place)
+          : null,
+    });
+  }
+
+  if (told.length === 0) {
+    return { planned: [], unscrubbable: data.places.length };
+  }
+
+  // What each place's rules are: kept from before, or written now.
+  const rulesOf: Map<string, Array<ScrubRuleWriterRule>> = new Map<
+    string,
+    Array<ScrubRuleWriterRule>
+  >();
+  const asked: typeof told = [];
+
+  for (const item of told) {
+    if (item.kept) {
+      rulesOf.set(item.told.ref, item.kept);
+    } else {
+      asked.push(item);
     }
   }
 
-  if (asked.length === 0) {
-    return { planned: [], unscrubbable: data.places.length };
-  }
+  /*
+   * One call tells at most MAX_SCRUB_RULE_WRITER_PLACES places. The rest are
+   * not told, so they keep no answer: the next evaluation, which reuses the
+   * answers kept now, asks them.
+   */
+  const toldNow: typeof asked = asked.slice(0, MAX_SCRUB_RULE_WRITER_PLACES);
 
-  const outcome: ScrubRuleWriterOutcome = await ScrubRuleWriter.write({
-    projectId: data.context.projectId,
-    places: asked.map((item: { told: ScrubRuleWriterPlace }) => {
-      return item.told;
-    }),
-    llmProviderId: data.context.llmProviderId,
-  });
+  if (toldNow.length > 0) {
+    const outcome: ScrubRuleWriterOutcome = await ScrubRuleWriter.write({
+      projectId: data.context.projectId,
+      places: toldNow.map((item: { told: ScrubRuleWriterPlace }) => {
+        return item.told;
+      }),
+      llmProviderId: data.context.llmProviderId,
+    });
 
-  if (outcome.kind === "nothing") {
-    logger.debug(
-      `DataSecurity AI: OneUptime AI wrote no scrub rule for issue ${data.context.issue.id?.toString()}: ${outcome.detail}`,
-    );
-    return { planned: [], unscrubbable: data.places.length };
+    if (outcome.kind === "nothing") {
+      logger.debug(
+        `DataSecurity AI: OneUptime AI wrote no scrub rule for issue ${data.context.issue.id?.toString()}: ${outcome.detail}`,
+      );
+    } else {
+      for (const item of toldNow) {
+        const rules: Array<ScrubRuleWriterRule> = outcome.rules.filter(
+          (rule: ScrubRuleWriterRule): boolean => {
+            return rule.ref === item.told.ref;
+          },
+        );
+
+        rulesOf.set(item.told.ref, rules);
+        await keepScrubRuleWriterAnswer({
+          projectId: data.context.projectId,
+          findingId: item.place.findingId,
+          inputHash: item.inputHash,
+          rules,
+        });
+      }
+    }
   }
 
   const planned: Array<PlannedPlace> = [];
 
-  for (const item of asked) {
-    const candidates: Array<ScrubRuleCandidate> = outcome.rules
-      .filter((rule: { ref: string }): boolean => {
-        return rule.ref === item.told.ref;
-      })
-      .map((rule: (typeof outcome.rules)[number]): ScrubRuleCandidate => {
-        return toScrubRuleCandidate({
-          rule,
-          place: item.told,
-          target: item.target,
-        });
+  for (const item of told) {
+    const candidates: Array<ScrubRuleCandidate> = (
+      rulesOf.get(item.told.ref) || []
+    ).map((rule: ScrubRuleWriterRule): ScrubRuleCandidate => {
+      return toScrubRuleCandidate({
+        rule,
+        place: item.told,
+        target: item.target,
       });
+    });
 
     if (candidates.length === 0) {
       continue;
@@ -994,10 +1171,23 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
             serviceId,
           });
 
+          options =
+            options ||
+            (await DataSecurityRunner.getScanSetup(context.projectId)).options;
+
           planned.push({
             place: { ...place, signal: "metric" },
             attributeKey: null,
             metric: preview,
+            ...(await proveMetricPlace({
+              context,
+              kind,
+              place,
+              preview,
+              attributeKey: target.key || "",
+              serviceId,
+              options,
+            })),
           });
         } catch (error) {
           if (!(error instanceof BadDataException)) {
@@ -1084,7 +1274,9 @@ const ScrubTelemetryAction: DataSecurityAiAction = {
 
     // What reads what each rule hides, and so whether it may run on its own.
     for (const merged of rules) {
-      if (merged.rule.signal !== "metric") {
+      if (merged.rule.signal === "metric") {
+        merged.rule.readers = merged.places[0]?.metricReaders;
+      } else {
         try {
           const readers: TelemetryFieldReaders = await findScrubRuleReaders({
             projectId: context.projectId,

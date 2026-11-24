@@ -17,7 +17,6 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
-import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -28,7 +27,6 @@ import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope"
 import {
   TranslatableTerm,
   Translator,
-  formatInline,
   getInlineSeparator,
   translatableTerm,
   translationKey,
@@ -131,30 +129,83 @@ export function getVideoCallHeadline(call: EventVideoCall): string {
   }
 }
 
-// The line under a call that says who started it and when: one line of text.
-export const EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME: string =
-  "mt-0.5 truncate text-xs text-gray-500";
-
 /*
- * The same line when the name in it reads the other way from the page: a
- * row of boxes on one line, in the page's direction. The words around the
- * name and the time keep their width; the name gives way (min-w-0) and is
- * cut short at its own end.
+ * WHO STARTED A CALL, AND WHEN, ON ANY WIDTH (#7086, #7234).
+ *
+ * The line under a call holds two facts - who ("Started by Maya Chen",
+ * "Started automatically by a workspace rule") and when ("3 minutes ago")
+ * - drawn the same way whatever the name and the language:
+ *
+ *   - Who is a row of boxes on one line, in the page's direction: the
+ *     sentence's words keep their width, and a person's name gives way
+ *     (min-w-0), cut short at its own end, its whole self in its title.
+ *     A sentence with no name (a workspace rule, the API) is cut short at
+ *     its end on a line too narrow for it.
+ *   - When follows on the same line where both fit ("Started by Ada ·
+ *     3 minutes ago"), and starts the next line where they do not, whole:
+ *     the line wraps between the two facts, never inside the time.
+ *   - The separator between them is drawn in the room before the time,
+ *     and that room is clipped where the time starts a line, so no line
+ *     starts with "·". The facts' row starts that room before the line's
+ *     own start (EVENT_VIDEO_CALL_STARTED_FACTS_CLASS_NAME), each fact
+ *     keeps it in front of itself (ps-3), and the line clips it
+ *     (overflow-hidden). Read aloud, the line is still one sentence.
+ *
+ * It used to be a row only for a name that reads the other way from the
+ * page (#7086); every other line was one line of text cut short where the
+ * card ended. So on a 390px phone an English page read "Started by Maya
+ * Chen-Rodriguez (Pl..." and lost the time, while a Persian page kept it,
+ * and an Arabic page lost it for a long Arabic name and kept it for an
+ * English one: how the line gave way hung on the script of the name, not
+ * on what the reader needs (#7234). And an earlier call's line, beside its
+ * Join link, has 105px in Russian: room for neither fact whole, let alone
+ * both, and a workspace rule's lost its time in German too. The time says
+ * whether the call is still worth joining, and the name names whom to ask.
  */
 export const EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME: string =
-  "mt-0.5 flex min-w-0 overflow-hidden whitespace-nowrap text-xs text-gray-500";
+  "mt-0.5 min-w-0 overflow-hidden text-xs text-gray-500";
 
+// The row of the two facts, which wraps between them only.
+export const EVENT_VIDEO_CALL_STARTED_FACTS_CLASS_NAME: string =
+  "-ms-3 flex flex-wrap";
+
+// Who: the sentence's words and the name, on one line.
+export const EVENT_VIDEO_CALL_STARTED_WHO_CLASS_NAME: string =
+  "flex min-w-0 max-w-full whitespace-nowrap ps-3";
+
+// A person's name, or the sentence that says no person started it.
 export const EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME: string =
   "min-w-0 truncate";
 
 /*
- * A piece of that row's words - "Started by ", " · 3 minutes ago" - as a
- * box that keeps its width and its spaces (a flex row drops the spaces at
- * the ends of loose text), so the line still has a space between its
- * words, and its text reads as one sentence to a screen reader.
+ * A piece of the sentence's words - "Started by " - as a box that keeps
+ * its width and its spaces (a flex row drops the spaces at the ends of
+ * loose text), so the line still has a space between its words, and its
+ * text reads as one sentence to a screen reader.
  */
 export const EVENT_VIDEO_CALL_STARTED_ROW_TEXT_CLASS_NAME: string =
   "shrink-0 whitespace-pre";
+
+/*
+ * When: whole, after who or at the start of the next line. Cut short at
+ * its end only on a line too narrow for the time alone.
+ */
+export const EVENT_VIDEO_CALL_STARTED_WHEN_CLASS_NAME: string =
+  "min-w-0 max-w-full truncate ps-3";
+
+/*
+ * The separator before the time, in the room the time keeps in front of
+ * itself: after who on the same line, clipped with that room where the
+ * time starts a line.
+ */
+export const EVENT_VIDEO_CALL_STARTED_SEPARATOR_CLASS_NAME: string =
+  "-ms-3 inline-block w-3 whitespace-pre text-center";
+
+export const EVENT_VIDEO_CALL_STARTED_WHO_TEST_ID: string =
+  "event-video-call-started-who";
+
+export const EVENT_VIDEO_CALL_STARTED_WHEN_TEST_ID: string =
+  "event-video-call-started-when";
 
 function renderStartedRowText(text: string): ReactElement {
   return (
@@ -196,35 +247,11 @@ const CallRow: FunctionComponent<CallRowProps> = (
       call.createdByUser?.email?.toString() ||
       "";
 
-  /*
-   * Who started it. A person's name is set apart from the sentence
-   * (setsValuesApart): an English name in an Arabic or Persian sentence
-   * keeps its own order and its punctuation, and the time after it stays
-   * where the sentence puts it.
-   */
-  const startedBy: string = call.workspaceNotificationRuleId
+  // Who started it when no person did: a workspace rule, or the API.
+  const startedByNoPerson: string = call.workspaceNotificationRuleId
     ? translator.translateText("Started automatically by a workspace rule") ||
       ""
-    : starterName
-      ? translator.translateTemplate(
-          "Started by {{name}}",
-          { name: starterName },
-          { setsValuesApart: true },
-        )
-      : translator.translateText("Started from the API") || "";
-
-  /*
-   * A name that reads the other way from the page - an English name on an
-   * Arabic or Persian page. Inside the sentence's one line, cut short where
-   * the card ends, such a name lost its start: that line ends at the left,
-   * where an English name starts ("...SRE, EU West on-call)"). So the line
-   * is drawn as a row of boxes instead, and the name is a box of its own
-   * that reads its way and is cut at its own end ("Maya Chen-Rodriguez
-   * (Pla...").
-   */
-  const starterNameDirection: string | undefined = starterName
-    ? getLineDirection(starterName, translator.language)
-    : undefined;
+    : translator.translateText("Started from the API") || "";
 
   // "5 minutes ago" in the reader's language, as the transcript's line says it.
   const startedAt: string = call.createdAt
@@ -289,46 +316,59 @@ const CallRow: FunctionComponent<CallRowProps> = (
               />
             )}
           {/*
-           * Who started it and when, set off from each other as the
-           * reader's language does (formatInline): a bullet beside
-           * Persian digits, whose zero is a dot.
+           * Who started it and when (EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME),
+           * set off from each other as the reader's language does
+           * (getInlineSeparator): a bullet beside Persian digits, whose
+           * zero is a dot. A person's name is a box of its own
+           * (IsolatedLine), read its own way where it reads the other way
+           * from the page - an English name on an Arabic page.
            */}
-          {starterNameDirection ? (
-            <p
-              className={EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME}
-              data-testid="event-video-call-started"
-            >
-              <TranslatedSentence
-                template="Started by {{name}}"
-                slots={{
-                  name: (
-                    <IsolatedLine
-                      as="span"
-                      text={starterName}
-                      className={EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME}
-                      title={starterName}
-                      dataTestId="event-video-call-started-by-name"
-                    />
-                  ),
-                }}
-                renderText={renderStartedRowText}
-              />
-              {startedAt
-                ? renderStartedRowText(
-                    `${getInlineSeparator(translator.language)}${startedAt}`,
-                  )
-                : null}
-            </p>
-          ) : (
-            <p
-              className={EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME}
-              data-testid="event-video-call-started"
-            >
-              {startedAt
-                ? formatInline([startedBy, startedAt], translator)
-                : startedBy}
-            </p>
-          )}
+          <p
+            className={EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME}
+            data-testid="event-video-call-started"
+          >
+            <span className={EVENT_VIDEO_CALL_STARTED_FACTS_CLASS_NAME}>
+              <span
+                className={EVENT_VIDEO_CALL_STARTED_WHO_CLASS_NAME}
+                data-testid={EVENT_VIDEO_CALL_STARTED_WHO_TEST_ID}
+              >
+                {starterName ? (
+                  <TranslatedSentence
+                    template="Started by {{name}}"
+                    slots={{
+                      name: (
+                        <IsolatedLine
+                          as="span"
+                          text={starterName}
+                          className={EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME}
+                          title={starterName}
+                          dataTestId="event-video-call-started-by-name"
+                        />
+                      ),
+                    }}
+                    renderText={renderStartedRowText}
+                  />
+                ) : (
+                  <span className={EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME}>
+                    {startedByNoPerson}
+                  </span>
+                )}
+              </span>
+              {startedAt ? (
+                <span
+                  className={EVENT_VIDEO_CALL_STARTED_WHEN_CLASS_NAME}
+                  data-testid={EVENT_VIDEO_CALL_STARTED_WHEN_TEST_ID}
+                >
+                  <span
+                    className={EVENT_VIDEO_CALL_STARTED_SEPARATOR_CLASS_NAME}
+                  >
+                    {getInlineSeparator(translator.language)}
+                  </span>
+                  {startedAt}
+                </span>
+              ) : null}
+            </span>
+          </p>
           {props.isPrimary ? <></> : transcriptBlock}
         </div>
         {!props.isPrimary && openableJoinUrl && (

@@ -14,6 +14,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
@@ -690,11 +691,20 @@ describe("REGRESSION: the tab drew English in every language", () => {
   test("the service picker offers a person's services as written and the stand-in in the language's words", async () => {
     await renderDashboard("de");
 
-    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
+    const picker: HTMLElement = screen.getByRole("combobox", {
+      name: word("de", "Scope insights to a service"),
+    });
+
+    // Searched on the server as it opens (#10764), its first page by name.
+    await act(async () => {
+      fireEvent.focus(picker);
+    });
 
     expect(
       await screen.findAllByText(word("de", "Unknown Service")),
     ).not.toHaveLength(0);
-    expect(screen.getAllByText("api-gateway").length).toBeGreaterThan(1);
+    await waitFor(() => {
+      expect(screen.getAllByText("api-gateway").length).toBeGreaterThan(1);
+    });
   });
 });

@@ -14,7 +14,19 @@ import {
   SecurityBlockIndicatorValue,
   isSecurityBlockAddressType,
   isSecurityBlockDuration,
+  readSecurityBlockValue,
 } from "../../../Types/SecurityBlocklist/SecurityBlock";
+import {
+  SECURITY_CAMPAIGN_OF_ADDRESS_MAX,
+  SecurityCampaignAddressCheck,
+  SecurityCampaignAddressStanding,
+  SecurityCampaignAddressesCheck,
+  SecurityCampaignOfCaseAddress,
+} from "../../../Types/SecurityEvent/SecurityCampaignContainment";
+import SecurityCampaignContainment, {
+  readCampaignValues,
+} from "../SecurityEvent/SecurityCampaignContainment";
+import { TelemetryServiceFilter } from "../Telemetry/TelemetryReadScope";
 import { describeSecurityAddressProtection } from "../../../Types/SecurityBlocklist/SecurityProtectedAddress";
 import { SecurityCaseMatchesJson } from "../../../Types/SecurityCase/SecurityCaseMatches";
 import {
@@ -89,6 +101,33 @@ export const NOT_BLOCKABLE_MESSAGE: string =
 
 export const MATCHES_UNREAD_MESSAGE: string =
   "OneUptime could not read the case's requests to check the address. Try again in a minute.";
+
+export const NOTHING_LEFT_IN_CAMPAIGN_MESSAGE: string =
+  "Every address of the campaign is left out: each is already blocked, one of your own or protected, or used by a signed-in user lately. Nothing was blocked.";
+
+/*
+ * Block the Whole Campaign from a case (#10354): the case's address and
+ * the other addresses of its campaign the person kept - none named: every
+ * one - blocked together, in one run and one approval.
+ */
+export interface CampaignBlockRequest {
+  securityCaseId: ObjectID;
+  // The case's address whose campaign it is.
+  value: string;
+  // The campaign's other addresses the person kept; empty: every one.
+  values: Array<string>;
+  blockAction: SecurityBlockAction;
+  duration: SecurityBlockDuration;
+}
+
+export interface CampaignBlockStarted {
+  run: SecurityPlaybookRun;
+  needsApproval: boolean;
+  // The addresses blocked, as targets of the run.
+  blocking: Array<string>;
+  // Every address asked about that is left out, with why.
+  leftOut: Array<SecurityCampaignAddressCheck>;
+}
 
 function readText(value: JSONValue | undefined): string {
   return typeof value === "string" ? value.trim() : "";
@@ -210,25 +249,12 @@ export default class SecurityPlaybookOneStepRuns {
     const mayRunWithoutApproval: boolean =
       SecurityPlaybookService.mayTurnOffContainmentApproval(props);
 
-    const step: SecurityPlaybookStep = {
-      id: ObjectID.generate().toString(),
-      action: SecurityPlaybookActionType.BlockAddress,
-      config: {
-        blockAction: request.blockAction,
-        duration: request.duration,
-      },
-      requiresApproval: !mayRunWithoutApproval,
-      continueOnFailure: false,
-      onlyIfThreatIntelMatched: false,
-      ...(mayRunWithoutApproval
-        ? {
-            approvalTurnedOff: {
-              byUserId: props.userId.toString(),
-              at: OneUptimeDate.getCurrentDate().toISOString(),
-            },
-          }
-        : {}),
-    };
+    const step: SecurityPlaybookStep = this.blockStep({
+      blockAction: request.blockAction,
+      duration: request.duration,
+      mayRunWithoutApproval,
+      userId: props.userId,
+    });
 
     const target: SecurityPlaybookTarget = {
       type: SecurityEntityType.IpAddress,
@@ -247,6 +273,228 @@ export default class SecurityPlaybookOneStepRuns {
       });
 
     return { run, needsApproval: !mayRunWithoutApproval };
+  }
+
+  // What Block the Whole Campaign asks for, read from a request's body.
+  public static readCampaignBlockRequest(
+    body: JSONObject,
+  ): CampaignBlockRequest {
+    const single: OneStepBlockRequest = this.readBlockRequest(body);
+
+    return {
+      ...single,
+      values: readCampaignValues(
+        body["values"],
+        SECURITY_CAMPAIGN_OF_ADDRESS_MAX,
+      ),
+    };
+  }
+
+  /*
+   * Starts Block the Whole Campaign: one run of the engine, one step, whose
+   * targets are the case's address (On the Case) and its campaign's other
+   * addresses (In the Campaign) - one approval lists them all, and the
+   * approver may leave any out. The campaign is read again here, as the
+   * person may read it, and only its addresses are taken. A protected or
+   * own address is a target marked Protected, so the approval names it and
+   * nothing acts on it; one already blocked, one a signed-in user used
+   * lately, and one OneUptime could not check are left out and said.
+   */
+  @CaptureSpan()
+  public static async startCampaignBlock(data: {
+    projectId: ObjectID;
+    request: CampaignBlockRequest;
+    props: DatabaseCommonInteractionProps;
+    serviceFilter?: TelemetryServiceFilter | undefined;
+  }): Promise<CampaignBlockStarted> {
+    const { projectId, request, props } = data;
+
+    if (!props.userId) {
+      throw new BadDataException("Only a person can block from a case.");
+    }
+
+    if (
+      request.duration === SecurityBlockDuration.UntilLifted &&
+      !props.isMasterAdmin &&
+      !CallerPermission.holdsAnyOf(props, SECURITY_BLOCK_ADMIN_PERMISSIONS, {
+        projectId,
+      })
+    ) {
+      throw new BadDataException(SECURITY_BLOCK_MESSAGES.untilLiftedTakesAdmin);
+    }
+
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneBy({
+        query: { _id: request.securityCaseId, projectId },
+        select: { _id: true, entities: true },
+        props,
+      });
+
+    if (!securityCase?.id) {
+      throw new NotFoundException("Security case not found.");
+    }
+
+    let matches: SecurityCaseMatchesJson | null;
+
+    try {
+      matches = await SecurityCaseMatches.build({
+        projectId,
+        securityCaseId: securityCase.id,
+        props: { isRoot: true },
+        now: OneUptimeDate.getCurrentDate(),
+      });
+    } catch (error) {
+      logger.error(
+        `SecurityPlaybookOneStepRuns: could not read case ${securityCase.id.toString()}'s requests to check an address:`,
+      );
+      logger.error(error);
+      throw new BadDataException(MATCHES_UNREAD_MESSAGE);
+    }
+
+    const address: string | null = canonicalAddress(request.value);
+
+    if (
+      !address ||
+      !isCaseBlockableAddress({
+        value: address,
+        entities: readSecurityEntities(securityCase.entities),
+        matches,
+      })
+    ) {
+      throw new BadDataException(NOT_BLOCKABLE_MESSAGE);
+    }
+
+    const campaign: SecurityCampaignOfCaseAddress =
+      await SecurityCampaignContainment.findCampaignOfCaseAddress({
+        projectId,
+        securityCaseId: securityCase.id,
+        address,
+        props,
+        serviceFilter: data.serviceFilter,
+      });
+    const own: SecurityCampaignAddressesCheck =
+      await SecurityCampaignContainment.checkAddresses({
+        projectId,
+        values: [campaign.address],
+        props,
+      });
+    const picked: Set<string> = new Set(
+      request.values.map((value: string): string => {
+        return readSecurityBlockValue(value)?.value || value;
+      }),
+    );
+    const others: Array<SecurityCampaignAddressCheck> =
+      campaign.addresses.filter((check: SecurityCampaignAddressCheck) => {
+        return picked.size === 0 || picked.has(check.value || check.typed);
+      });
+
+    const targets: Array<SecurityPlaybookTarget> = [];
+    const blocking: Array<string> = [];
+    const leftOut: Array<SecurityCampaignAddressCheck> = [];
+
+    for (const [check, reason] of [
+      ...own.addresses.map(
+        (
+          check: SecurityCampaignAddressCheck,
+        ): [SecurityCampaignAddressCheck, SecurityPlaybookTargetReason] => {
+          return [check, SecurityPlaybookTargetReason.OnTheCase];
+        },
+      ),
+      ...others.map(
+        (
+          check: SecurityCampaignAddressCheck,
+        ): [SecurityCampaignAddressCheck, SecurityPlaybookTargetReason] => {
+          return [check, SecurityPlaybookTargetReason.InTheCampaign];
+        },
+      ),
+    ]) {
+      const value: string = check.value || check.typed;
+
+      if (check.standing === SecurityCampaignAddressStanding.Blockable) {
+        targets.push({
+          type: SecurityEntityType.IpAddress,
+          value,
+          reason,
+          state: SecurityPlaybookTargetState.Proposed,
+        });
+        blocking.push(value);
+        continue;
+      }
+
+      if (
+        check.standing === SecurityCampaignAddressStanding.Protected &&
+        check.protection
+      ) {
+        targets.push({
+          type: SecurityEntityType.IpAddress,
+          value,
+          reason,
+          state: SecurityPlaybookTargetState.Protected,
+          detail: describeSecurityAddressProtection({
+            value,
+            protection: check.protection,
+          }),
+        });
+      }
+
+      leftOut.push(check);
+    }
+
+    if (blocking.length === 0) {
+      throw new BadDataException(NOTHING_LEFT_IN_CAMPAIGN_MESSAGE);
+    }
+
+    const mayRunWithoutApproval: boolean =
+      SecurityPlaybookService.mayTurnOffContainmentApproval(props);
+
+    const run: SecurityPlaybookRun =
+      await SecurityPlaybookRunService.startOneStepRun({
+        projectId,
+        securityCaseId: securityCase.id,
+        userId: props.userId,
+        step: this.blockStep({
+          blockAction: request.blockAction,
+          duration: request.duration,
+          mayRunWithoutApproval,
+          userId: props.userId,
+        }),
+        targets,
+      });
+
+    return {
+      run,
+      needsApproval: !mayRunWithoutApproval,
+      blocking,
+      leftOut,
+    };
+  }
+
+  // The one step of a person's block from a case: approval as a playbook's, unless they may turn it off.
+  private static blockStep(data: {
+    blockAction: SecurityBlockAction;
+    duration: SecurityBlockDuration;
+    mayRunWithoutApproval: boolean;
+    userId: ObjectID;
+  }): SecurityPlaybookStep {
+    return {
+      id: ObjectID.generate().toString(),
+      action: SecurityPlaybookActionType.BlockAddress,
+      config: {
+        blockAction: data.blockAction,
+        duration: data.duration,
+      },
+      requiresApproval: !data.mayRunWithoutApproval,
+      continueOnFailure: false,
+      onlyIfThreatIntelMatched: false,
+      ...(data.mayRunWithoutApproval
+        ? {
+            approvalTurnedOff: {
+              byUserId: data.userId.toString(),
+              at: OneUptimeDate.getCurrentDate().toISOString(),
+            },
+          }
+        : {}),
+    };
   }
 
   /*

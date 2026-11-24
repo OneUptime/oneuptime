@@ -272,6 +272,8 @@ describe("which check reads a step", () => {
     ["fix:public-app", "fix:public-app"],
     ["fix:credentials", "fix:credentials"],
     ["fix:brute-force", "fix:brute-force"],
+    // The account changes an attack made, read back too (#10603).
+    ["fix:account-changes", "fix:account-changes"],
   ])("%s is checked by the %s check", (key: string, kind: string) => {
     expect(getStepCheck(key)?.kind).toBe(kind);
   });
@@ -279,7 +281,6 @@ describe("which check reads a step", () => {
   test.each([
     "confirm:take",
     "contain:mark-contained",
-    "fix:account-changes",
     "fix:persistence",
     "close",
   ])(

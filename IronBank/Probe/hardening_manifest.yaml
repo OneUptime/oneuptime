@@ -47,6 +47,33 @@ resources:
     validation:
       type: "sha256"
       value: "f506cb3de8b34cd94e9014d247b39e9dfd7effad79edad3ab67096dc3c1b6b0e"
+  # Data Security's names-and-addresses model (openmasq/ner-multilingual,
+  # Apache-2.0), which the probe runs inside its scanner on the databases it
+  # scans: the files of the pinned revision, with the checksums the release's
+  # build checks them against (packages/Common/Server/Utils/DataSecurity/
+  # Model/NameAddressModel.json; Tests/Ops/IronBankDataSecurityModel.test.js
+  # holds the two to each other). The Dockerfile copies them to where the
+  # scanner reads them.
+  - url: "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/onnx/model_quantized.onnx"
+    filename: "data-security-model_quantized.onnx"
+    validation:
+      type: "sha256"
+      value: "7470819a0961b246614ceedd940934b8d8ae7c39070cb15508883fe0e6f93012"
+  - url: "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/vocab.txt"
+    filename: "data-security-vocab.txt"
+    validation:
+      type: "sha256"
+      value: "2c6a68543b91336cb07a688b9678a2a61d8ff687ab6885826cd89680785fae40"
+  - url: "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/config.json"
+    filename: "data-security-config.json"
+    validation:
+      type: "sha256"
+      value: "b942516293db81db39bc12b734888dc5e7a7e38c2f5f6f7ecacb337fd716c4c3"
+  - url: "https://huggingface.co/openmasq/ner-multilingual/resolve/8cf72739a75da1de5680ea6c30c381660e740303/README.md"
+    filename: "data-security-README.md"
+    validation:
+      type: "sha256"
+      value: "e39d9b3a38e02a7af00c54568ae44d5c8a3a0a3c7dd3d07e0e53cf5bf000e48a"
 
 # The engineers the onboarding request names, by their Platform One (Repo1)
 # usernames.

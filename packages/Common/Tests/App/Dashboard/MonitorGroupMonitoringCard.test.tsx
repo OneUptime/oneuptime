@@ -28,7 +28,7 @@ import { getJestSpyOn } from "../../Spy";
  * many of the group's monitors are checked and turns monitoring off or on
  * for every one of them at once:
  *
- *   - Turn off monitoring while any monitor is checked, Turn monitoring on
+ *   - Turn monitoring off while any monitor is checked, Turn monitoring on
  *     while any is not; both while the group is mixed;
  *   - turning it off asks first - in the dialog, why it failed - and
  *     turning it on saves at once, saying on the card why it failed;
@@ -150,13 +150,13 @@ describe("what the card says", () => {
     ).toBeVisible();
   });
 
-  test("every monitor checked: monitoring is on, and the one way on is Turn off monitoring", () => {
+  test("every monitor checked: monitoring is on, and the one way on is Turn monitoring off", () => {
     renderCard({ monitorCount: 3, monitoringOffCount: 0 });
 
     expect(stateLine()).toHaveTextContent(
       "Monitoring is on for every monitor in this group.",
     );
-    expect(turnOffButton()).toHaveTextContent("Turn off monitoring");
+    expect(turnOffButton()).toHaveTextContent("Turn monitoring off");
     expect(turnOnButton()).toBeNull();
   });
 
@@ -180,20 +180,37 @@ describe("what the card says", () => {
     expect(turnOffButton()).not.toBeNull();
   });
 
+  /*
+   * One switch, said one way (#6988): side by side, the two buttons read
+   * "Turn monitoring on" and "Turn off monitoring", in two word orders.
+   */
+  test("some off, some on: the two buttons say the one switch in one word order", () => {
+    renderCard({ monitorCount: 5, monitoringOffCount: 2 });
+
+    const off: string = (turnOffButton()!.textContent || "").trim();
+    const on: string = (turnOnButton()!.textContent || "").trim();
+
+    expect([off, on]).toEqual(["Turn monitoring off", "Turn monitoring on"]);
+    // Every word in the same place but the last, which is the state.
+    expect(off.split(" ").slice(0, -1)).toEqual(on.split(" ").slice(0, -1));
+    expect(off.split(" ").pop()).toBe("off");
+    expect(on.split(" ").pop()).toBe("on");
+  });
+
   test("a single monitor reads as every monitor, on or off", () => {
     renderCard({ monitorCount: 1, monitoringOffCount: 1 });
     expect(stateLine()).toHaveTextContent(MonitorGroupMonitoringCopy.offLine);
   });
 });
 
-describe("Turn off monitoring", () => {
+describe("Turn monitoring off", () => {
   test("asks first, in the words of a monitor's own switch, with a danger button", () => {
     renderCard({ monitorCount: 3, monitoringOffCount: 0 });
 
     fireEvent.click(turnOffButton()!);
 
     expect(
-      within(dialog()).getByText("Turn off monitoring for this group?"),
+      within(dialog()).getByText("Turn monitoring off for this group?"),
     ).toBeVisible();
     expect(
       within(dialog()).getByTestId("confirm-modal-description"),
@@ -220,7 +237,7 @@ describe("Turn off monitoring", () => {
 
     fireEvent.click(turnOffButton()!);
     fireEvent.click(
-      within(dialog()).getByRole("button", { name: "Turn off monitoring" }),
+      within(dialog()).getByRole("button", { name: "Turn monitoring off" }),
     );
     await flush();
 
@@ -244,7 +261,7 @@ describe("Turn off monitoring", () => {
 
     fireEvent.click(turnOffButton()!);
     fireEvent.click(
-      within(dialog()).getByRole("button", { name: "Turn off monitoring" }),
+      within(dialog()).getByRole("button", { name: "Turn monitoring off" }),
     );
     await flush();
 
@@ -270,7 +287,7 @@ describe("Turn off monitoring", () => {
 
     fireEvent.click(turnOffButton()!);
     const confirm: HTMLElement = within(dialog()).getByRole("button", {
-      name: "Turn off monitoring",
+      name: "Turn monitoring off",
     });
     fireEvent.click(confirm);
     fireEvent.click(confirm);

@@ -212,8 +212,13 @@ describe("Archive in a row", () => {
     expect(screen.getByTestId("row-archive-name")).toHaveTextContent(
       /^build-runner-3$/,
     );
+    // What archiving does, and the page the side menu names to undo it.
+    expect(ROW_ARCHIVE_TELEMETRY_SENTENCE).toContain("{{page}}");
     expect(screen.getByTestId("row-archive-consequence")).toHaveTextContent(
-      ROW_ARCHIVE_TELEMETRY_SENTENCE,
+      ROW_ARCHIVE_TELEMETRY_SENTENCE.replace("{{page}}", "Archived"),
+    );
+    expect(screen.getByTestId("row-archive-consequence")).not.toHaveTextContent(
+      /\btab\b/,
     );
     expect(updateByIdMock).not.toHaveBeenCalled();
   });

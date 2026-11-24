@@ -222,6 +222,8 @@ Los ajustes de Seguridad de datos son un único conjunto por proyecto, en la sec
 | **Comprobar configuración** | Activado | Ejecuta las comprobaciones en cada almacén. Desactivado, no se abre, cambia ni cierra ningún problema. |
 | **Escanear contenido** | Activado | Muestrea el contenido de los almacenes donde se concedió el permiso de contenido. |
 | **Escanear telemetría** | Activado | Muestrea los registros, trazas, métricas, excepciones, reproducciones y conversaciones de IA del proyecto. |
+| **Detectar nombres y direcciones postales** | Activado | Lee el texto libre en busca de nombres de personas y direcciones postales con un pequeño modelo dentro del escáner. No es OneUptime AI, y el texto nunca sale del escáner. Consulta [Nombres y direcciones postales en texto libre](/docs/data-security/data-types#nombres-y-direcciones-postales-en-texto-libre). |
+| **Detectar nombres y direcciones postales en la telemetría** | Desactivado | El escaneo horario de telemetría también lee con el modelo los cuerpos de los registros, los mensajes de excepción y las conversaciones de IA, hasta un minuto cada hora. Solo mientras el ajuste anterior esté activado. |
 | **Conservar muestras enmascaradas** | Activado | Guarda hasta tres muestras enmascaradas con cada hallazgo. Desactivado, guarda solo recuentos. |
 | **Abrir casos de seguridad** | Activado | Abre un caso de seguridad, agrupado por almacén, cuando se abre un problema crítico. |
 | **Generar alertas** | Desactivado | Genera una alerta, que avisa a quien esté de guardia, cuando se abre un problema crítico. |

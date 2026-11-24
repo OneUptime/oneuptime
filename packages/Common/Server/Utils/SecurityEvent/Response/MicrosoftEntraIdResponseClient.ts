@@ -58,6 +58,62 @@ export const ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION: string =
   "UserAuthenticationMethod.Read.All";
 
 /*
+ * What reading an account's roles, groups and app role assignments takes,
+ * and an app's keys (#10603). Directory.Read.All covers both.
+ */
+export const ENTRA_ID_DIRECTORY_READ_PERMISSION: string = "Directory.Read.All";
+export const ENTRA_ID_APPLICATION_READ_PERMISSION: string =
+  "Application.Read.All";
+
+/*
+ * An object Graph lists for an account - a directory role, a group, an app
+ * role assignment, an authentication method - as the account-changes
+ * check reads it (#10603): its id, the ids it points to, its type, its
+ * name, and when it was added, where Graph says.
+ */
+export interface EntraIdDirectoryObject {
+  id: string;
+  // A directory role's template id; an app role assignment's app (resourceId).
+  templateId: string;
+  // An app role assignment's role.
+  appRoleId: string;
+  // An authentication method's @odata.type.
+  type: string;
+  name: string;
+  createdAt: Date | null;
+}
+
+function readGraphText(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function readEntraIdDirectoryObject(
+  value: unknown,
+): EntraIdDirectoryObject {
+  const record: JSONObject =
+    value && typeof value === "object" && !Array.isArray(value)
+      ? (value as JSONObject)
+      : {};
+  const created: string = readGraphText(record["createdDateTime"]);
+  const createdAt: Date | null = created ? new Date(created) : null;
+
+  return {
+    id: readGraphText(record["id"]).toLowerCase(),
+    templateId: (
+      readGraphText(record["roleTemplateId"]) ||
+      readGraphText(record["resourceId"])
+    ).toLowerCase(),
+    appRoleId: readGraphText(record["appRoleId"]).toLowerCase(),
+    type: readGraphText(record["@odata.type"]),
+    name:
+      readGraphText(record["displayName"]) ||
+      readGraphText(record["resourceDisplayName"]),
+    createdAt:
+      createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : null,
+  };
+}
+
+/*
  * The authentication methods Microsoft Graph lists that are a second
  * factor (learn.microsoft.com/graph/api/resources/authenticationmethods-
  * overview): an authenticator app, a security key, Windows Hello, a
@@ -354,6 +410,124 @@ export default class MicrosoftEntraIdResponseClient {
       .filter((type: string): boolean => {
         return ENTRA_ID_MFA_METHOD_TYPES.includes(type);
       });
+  }
+
+  /*
+   * What the Fix step "Undo what changed on the account" reads back
+   * (#10603), without changing anything: the directory roles and groups
+   * the account is a member of (GET /users/{id}/memberOf/...,
+   * Directory.Read.All), its app role assignments (GET /users/{id}/
+   * appRoleAssignments), its authentication methods with when each was
+   * added, and the keys an app holds (GET /applications/{id} or
+   * /servicePrincipals/{id}, Application.Read.All or Directory.Read.All).
+   */
+  public async listDirectoryRoles(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID directory roles lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/memberOf/microsoft.graph.directoryRole?$select=id,roleTemplateId,displayName`,
+      permission: ENTRA_ID_DIRECTORY_READ_PERMISSION,
+    });
+  }
+
+  public async listGroups(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID groups lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/memberOf/microsoft.graph.group?$select=id,displayName&$top=999`,
+      permission: ENTRA_ID_DIRECTORY_READ_PERMISSION,
+    });
+  }
+
+  public async listAppRoleAssignments(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID app role assignments lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/appRoleAssignments?$select=id,resourceId,appRoleId,resourceDisplayName&$top=999`,
+      permission: ENTRA_ID_DIRECTORY_READ_PERMISSION,
+    });
+  }
+
+  // Every method the account signs in with, its type and when it was added.
+  public async listAuthenticationMethods(
+    user: EntraIdUser,
+  ): Promise<Array<EntraIdDirectoryObject>> {
+    return await this.readObjects({
+      step: "Microsoft Entra ID authentication methods lookup",
+      url: `${this.graphHost}/v1.0/users/${encodeURIComponent(user.id)}/authentication/methods`,
+      permission: ENTRA_ID_AUTHENTICATION_METHODS_PERMISSION,
+    });
+  }
+
+  /*
+   * The ids of the secrets and certificates an app holds - its
+   * registration's ("Application") or its service principal's - or null
+   * once the app is gone.
+   */
+  public async readAppKeyIds(data: {
+    ownerType: "Application" | "ServicePrincipal";
+    id: string;
+  }): Promise<Array<string> | null> {
+    const step: string = "Microsoft Entra ID app keys lookup";
+    const collection: string =
+      data.ownerType === "Application" ? "applications" : "servicePrincipals";
+    const result: ResponseHttpResult = await this.send(
+      step,
+      "GET",
+      `${this.graphHost}/v1.0/${collection}/${encodeURIComponent(data.id)}?$select=id,passwordCredentials,keyCredentials`,
+    );
+
+    if (result.statusCode === 404) {
+      return null;
+    }
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(step, result, ENTRA_ID_APPLICATION_READ_PERMISSION);
+    }
+
+    const body: JSONObject = (result.bodyJson as JSONObject | undefined) || {};
+    const ids: Array<string> = [];
+
+    for (const list of [body["passwordCredentials"], body["keyCredentials"]]) {
+      for (const credential of Array.isArray(list) ? list : []) {
+        const keyId: unknown =
+          credential && typeof credential === "object"
+            ? (credential as JSONObject)["keyId"]
+            : undefined;
+
+        if (typeof keyId === "string" && keyId) {
+          ids.push(keyId.toLowerCase());
+        }
+      }
+    }
+
+    return ids;
+  }
+
+  // A list Graph answers with: one page, as `value`.
+  private async readObjects(data: {
+    step: string;
+    url: string;
+    permission: string;
+  }): Promise<Array<EntraIdDirectoryObject>> {
+    const result: ResponseHttpResult = await this.send(
+      data.step,
+      "GET",
+      data.url,
+    );
+
+    if (!ResponseHttp.isSuccess(result)) {
+      throw this.failure(data.step, result, data.permission);
+    }
+
+    const items: unknown = (result.bodyJson as JSONObject | undefined)?.[
+      "value"
+    ];
+
+    return Array.isArray(items) ? items.map(readEntraIdDirectoryObject) : [];
   }
 
   private static readTime(value: unknown): Date | null {

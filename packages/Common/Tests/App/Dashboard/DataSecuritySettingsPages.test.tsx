@@ -23,8 +23,10 @@ import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
 import DataSecurityDataTypes, {
   BUILT_IN_DATA_TYPES_TEST_ID,
+  CUSTOM_DATA_TYPE_TEST_PANEL_MODEL_NOTE_TEST_ID,
   CUSTOM_DATA_TYPE_TEST_PANEL_TEST_ID,
   CustomDataTypeTestPanel,
+  TEST_PANEL_MODEL_NOTE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/DataTypes";
 import DataSecurityChecks, {
   DATA_SECURITY_CHECKS_TEST_ID,
@@ -535,6 +537,45 @@ describe("Data Types: Test It", () => {
     expect(
       screen.getByTestId(`${CUSTOM_DATA_TYPE_TEST_PANEL_TEST_ID}-summary`),
     ).toHaveTextContent("Nothing in this text is this data type.");
+  });
+
+  /*
+   * The names-and-addresses model runs only in the scanner (#10373): the
+   * box says its findings are not shown here, before and after a test, and
+   * a name and an address pasted in are not found by it here.
+   */
+  test("says the model's names and street addresses are not shown here, whatever the panel shows", async () => {
+    await renderPanel({ pattern: "EMP-\\d{6}" });
+
+    const note: HTMLElement = screen.getByTestId(
+      CUSTOM_DATA_TYPE_TEST_PANEL_MODEL_NOTE_TEST_ID,
+    );
+
+    expect(note).toHaveTextContent(TEST_PANEL_MODEL_NOTE);
+    expect(note).toHaveTextContent("not shown here");
+    expect(
+      screen.getByTestId(CUSTOM_DATA_TYPE_TEST_PANEL_TEST_ID),
+    ).toContainElement(note);
+
+    await act(async () => {
+      paste("Refund approved for Maria Gonzalez, 14 Calle Mayor, Madrid");
+    });
+    await settle();
+
+    expect(
+      screen.getByTestId(`${CUSTOM_DATA_TYPE_TEST_PANEL_TEST_ID}-summary`),
+    ).toHaveTextContent("Nothing in this text is this data type.");
+    expect(
+      screen.getByTestId(CUSTOM_DATA_TYPE_TEST_PANEL_MODEL_NOTE_TEST_ID),
+    ).toBeInTheDocument();
+  });
+
+  test("the note is there for a type found from field names alone too", async () => {
+    await renderPanel({ fieldNames: ["employee_id"] });
+
+    expect(
+      screen.getByTestId(CUSTOM_DATA_TYPE_TEST_PANEL_MODEL_NOTE_TEST_ID),
+    ).toHaveTextContent(TEST_PANEL_MODEL_NOTE);
   });
 });
 

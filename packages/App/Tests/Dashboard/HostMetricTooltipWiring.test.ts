@@ -36,6 +36,12 @@ const IMPORT_LINE: string =
   'import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";';
 const TOOLTIP_IMPORT: string =
   'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";';
+// A title's (i) after its last word (WordsWithInfoTooltip, #8044).
+const WORDS_WITH_INFO_IMPORT: string =
+  'import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTooltip";';
+// A chart card's title, in the reader's words, with its (i).
+const CHART_TITLE_WITH_INFO: string =
+  '<WordsWithInfoTooltip className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider" text={translator.translateText(params.title) || params.title} label={params.title} description={params.description} />';
 const REFERENCE_PATTERN: RegExp = /HOST_METRIC_DESCRIPTIONS\.([A-Za-z]+)/g;
 const TITLE_ATTRIBUTE: RegExp = /title="([^"]+)"/;
 /*
@@ -419,18 +425,9 @@ describe("Host overview", () => {
     );
 
     expect(definition).toContain("description?: string;");
-    expect(
-      countOf(
-        skeleton,
-        "<InfoTooltip label={params.title} text={params.description} />",
-      ),
-    ).toBe(1);
-    expect(
-      countOf(
-        loaded,
-        "<InfoTooltip label={params.title} text={params.description} />",
-      ),
-    ).toBe(1);
+    expect(countOf(skeleton, CHART_TITLE_WITH_INFO)).toBe(1);
+    expect(countOf(loaded, CHART_TITLE_WITH_INFO)).toBe(1);
+    expect(definition).not.toContain("<InfoTooltip");
   });
 
   test("the loaded chart header keeps the uptime badge after the (i)", () => {
@@ -440,11 +437,10 @@ describe("Host overview", () => {
       "<LineChartElement",
     );
 
-    expect(
-      definition.indexOf(
-        "<InfoTooltip label={params.title} text={params.description} />",
-      ),
-    ).toBeLessThan(definition.indexOf("{params.headerExtra ?? null}"));
+    expect(definition.indexOf(CHART_TITLE_WITH_INFO)).toBeGreaterThanOrEqual(0);
+    expect(definition.indexOf(CHART_TITLE_WITH_INFO)).toBeLessThan(
+      definition.indexOf("{params.headerExtra ?? null}"),
+    );
   });
 
   test("the Filesystems table explains its three metric columns", () => {
@@ -508,6 +504,7 @@ describe("Host overview", () => {
 
   test("imports the (i) it draws", () => {
     expect(readRaw("Overview.tsx")).toContain(TOOLTIP_IMPORT);
+    expect(readRaw("Overview.tsx")).toContain(WORDS_WITH_INFO_IMPORT);
   });
 });
 
@@ -558,15 +555,11 @@ describe("Host process view", () => {
     );
 
     expect(definition).toContain("description?: string;");
-    expect(
-      countOf(
-        definition,
-        "<InfoTooltip label={params.title} text={params.description} />",
-      ),
-    ).toBe(2);
-    expect(
-      definition.indexOf("<InfoTooltip label={params.title}"),
-    ).toBeLessThan(definition.indexOf("animate-pulse"));
+    expect(countOf(definition, CHART_TITLE_WITH_INFO)).toBe(2);
+    expect(definition).not.toContain("<InfoTooltip");
+    expect(definition.indexOf(CHART_TITLE_WITH_INFO)).toBeLessThan(
+      definition.indexOf("animate-pulse"),
+    );
   });
 });
 
@@ -612,9 +605,11 @@ describe.each([
       );
 
       expect(tile).toContain("description?: string | undefined;");
+      // The (i) after the title's last word (WordsWithInfoTooltip, #8044).
       expect(tile).toContain(
-        "{translator.translateText(props.title)} </span> <InfoTooltip label={props.title} text={props.description} />",
+        '<WordsWithInfoTooltip className="min-w-0 text-xs font-medium text-gray-500 uppercase tracking-wider" text={translator.translateText(props.title) || props.title} label={props.title} description={props.description} />',
       );
+      expect(tile).not.toContain("<InfoTooltip");
     });
 
     test("every tile carries the description for its own title", () => {
@@ -630,18 +625,22 @@ describe.each([
     test("the timeline heading (the chart has no card title) carries its (i)", () => {
       const heading: string = between(
         code,
-        `{translator.translateText("${timeline}")} </h2>`,
-        "/>",
+        '<h2 className="min-w-0 text-sm font-semibold text-gray-900"> <WordsWithInfoTooltip',
+        "</h2>",
       );
 
-      expect(heading).toContain(`<InfoTooltip label="${timeline}"`);
+      // The heading's words, then its (i) after the last of them (#8044).
       expect(heading).toContain(
-        `text={HOST_METRIC_DESCRIPTIONS.${timelineKey}}`,
+        `text={ translator.translateText("${timeline}") || "${timeline}" }`,
+      );
+      expect(heading).toContain(`label="${timeline}"`);
+      expect(heading).toContain(
+        `description={HOST_METRIC_DESCRIPTIONS.${timelineKey}}`,
       );
     });
 
     test("imports the (i) it draws", () => {
-      expect(readRaw(page)).toContain(TOOLTIP_IMPORT);
+      expect(readRaw(page)).toContain(WORDS_WITH_INFO_IMPORT);
     });
   },
 );
