@@ -413,10 +413,6 @@ describe("an unexpected shape: JSON nobody expected", () => {
   });
 
   test("an error answer that will not read still ends a session: its status is kept", async () => {
-    const logout: jest.SpiedFunction<typeof User.logout> = jest
-      .spyOn(User, "logout")
-      .mockResolvedValue(null);
-
     server.on(HTTPMethod.GET, RESOURCE_URL, [
       { status: 405, data: { owner: UNREADABLE_EMAIL } },
     ]);
@@ -424,7 +420,8 @@ describe("an unexpected shape: JSON nobody expected", () => {
     const failure: unknown = await failureOf(readResource);
 
     expect((failure as HTTPErrorResponse).statusCode).toBe(405);
-    expect(logout).toHaveBeenCalled();
+    // Signed out, as any 405 signs the person out (beforeEach's spy).
+    expect(User.logout).toHaveBeenCalled();
   });
 
   test.each([

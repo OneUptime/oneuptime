@@ -866,7 +866,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
         getDialogWhatFailed(
           translator,
           translator.translateText("Run Workflow") || "Run Workflow",
-        ),
+        ) || "",
       );
       setError(API.getFriendlyMessage(err));
     }
