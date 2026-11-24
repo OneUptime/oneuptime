@@ -21,7 +21,9 @@ import { escapeRegExp } from "../RegExpEscape";
  *   - a record's number (getRecordNumberSpeech). A voice reads "INC-42" as
  *     "Incorporated 42", so the letters of its prefix are said one by one:
  *     with SSML's <say-as interpret-as="characters"> for a voice that reads
- *     SSML, and as "I N C 42" for any other;
+ *     SSML, and as "I N C 42" for any other. The number a sentence carries
+ *     (Say.recordNumber), and any number written with one of the project's
+ *     own prefixes, wherever a call says it (getSpeechParts);
  *   - the product's own name, said as two words: "One Uptime". The text says
  *     OneUptime, so an installation that goes by its own name says that
  *     instead (ProductBrandingText), and only then is it spelled for the voice.
