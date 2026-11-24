@@ -436,6 +436,7 @@
     "PVC",
     "Page",
     "Page {{current}}",
+    "Page {{name}}",
     "Page {{number}}",
     "Page {{page}}",
     "Pages",
