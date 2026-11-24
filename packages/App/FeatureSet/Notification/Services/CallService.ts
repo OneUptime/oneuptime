@@ -88,6 +88,27 @@ import {
   MAX_CALL_TWIML_LENGTH,
   TRUNCATED_TEXT_NOTE_PLAIN,
 } from "Common/Utils/MessageFit";
+import {
+  getSpeechParts,
+  isSsmlVoice,
+  renderSpeechAsText,
+  SpeechPart,
+  toSpokenText,
+  toTwimlText,
+} from "Common/Utils/Call/CallSpeech";
+import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+
+/*
+ * A call that asks for a key says its details and prompt this many times
+ * more while no key is pressed: twice in all, as the issue that asked for it
+ * suggested (#10762). A key pressed at any moment answers it, and a call
+ * that goes unanswered still ends inside its first minute - a call is
+ * billed by the minute.
+ */
+export const CALL_PROMPT_REPEATS: number = 1;
+
+// The silence before each time it says them again, listening for a key all the while.
+export const CALL_PROMPT_REPEAT_PAUSE_IN_SECONDS: number = 5;
 
 /*
  * How long a text is once Twilio's TwiML builder has escaped it: "&", "<"
@@ -148,8 +169,11 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
     : "No message content found";
 }
 
-// How a sentence ends: a full stop, a question mark or an exclamation mark.
-const SENTENCE_END: RegExp = new RegExp("[.!?]$");
+/*
+ * How a sentence ends: a full stop, a question mark, an exclamation mark - or
+ * the "…" of a title cut for speech.
+ */
+const SENTENCE_END: RegExp = new RegExp("[.!?…]$");
 
 /*
  * What a call says, for a gateway that makes it (CallAndSmsGatewayPayload):
@@ -174,6 +198,35 @@ export function getCallGatewayMessage(callRequest: CallRequest): string {
 
   return sentences.join(" ");
 }
+
+/*
+ * What a call said, as its voicemail message repeats it: its sentences in
+ * order, as a voice says them - a record's number spelled out, "I N C 42",
+ * which written ("INC-42") a voice reads "Incorporated 42". The keypad
+ * prompt is left out, as for a gateway (getCallGatewayMessage).
+ */
+export function getCallVoicemailWords(callRequest: CallRequest): string {
+  const sentences: Array<string> = [];
+
+  for (const item of callRequest.data || []) {
+    if (typeof (item as Say).sayMessage !== "string") {
+      continue;
+    }
+
+    const sentence: string = renderSpeechAsText(
+      getSpeechParts(item as Say),
+    ).trim();
+
+    if (sentence) {
+      sentences.push(SENTENCE_END.test(sentence) ? sentence : `${sentence}.`);
+    }
+  }
+
+  return sentences.join(" ");
+}
+
+// Where a call's sentences go: the call itself, or its prompt for a key.
+type SayParent = VoiceResponse | VoiceResponse.Gather;
 
 export default class CallService {
   public static async makeCall(
@@ -703,7 +756,7 @@ export default class CallService {
           callLog.callData = {
             ...((callLog.callData as unknown as Record<string, unknown>) || {}),
             [VOICEMAIL_MESSAGE_CALL_DATA_KEY]: ProductBrandingText.brandText(
-              getVoicemailMessage(getCallGatewayMessage(callRequest)),
+              getVoicemailMessage(getCallVoicemailWords(callRequest)),
             ),
           } as any;
         }
@@ -940,7 +993,7 @@ export default class CallService {
    * has them cut, the longest first and all to about the same length, each
    * ending with a note that the rest is in OneUptime (fitTextsToBudget). The
    * TwiML is built again and measured, and the texts cut shorter while it is
-   * still over. A call that fits is made as it always was.
+   * still over. A call that fits is made whole.
    */
   public static generateTwimlForCall(
     callRequest: CallRequestMessage,
@@ -951,6 +1004,12 @@ export default class CallService {
        * for that notification.
        */
       userOnCallLogTimelineId?: ObjectID | string | undefined;
+      /*
+       * The Twilio voice the call speaks with: "Polly.Joanna", say. None -
+       * as every call OneUptime places - is the Twilio account's default
+       * voice, which may read no SSML (Utils/Call/CallSpeech).
+       */
+      voice?: string | undefined;
     },
   ): string {
     const spoken: Array<string> = [];
@@ -977,6 +1036,8 @@ export default class CallService {
       return keypadTokens.get(gather)!;
     };
 
+    const voice: string | undefined = options?.voice;
+
     const twiml: string = this.buildTwimlForCall(
       callRequest,
       (text: string): string => {
@@ -984,6 +1045,7 @@ export default class CallService {
         return text;
       },
       keypadTokenOf,
+      voice,
     );
 
     if (twiml.length <= MAX_CALL_TWIML_LENGTH) {
@@ -998,6 +1060,7 @@ export default class CallService {
           return "x";
         },
         keypadTokenOf,
+        voice,
       ).length - spoken.length;
 
     let budget: number = MAX_CALL_TWIML_LENGTH - overhead;
@@ -1023,6 +1086,7 @@ export default class CallService {
           return fitted[next++] ?? "";
         },
         keypadTokenOf,
+        voice,
       );
 
       if (fittedTwiml.length <= MAX_CALL_TWIML_LENGTH) {
@@ -1059,42 +1123,169 @@ export default class CallService {
 
   /*
    * The TwiML for a call, each text it speaks as `say` has it: in the order
-   * the call speaks them. A key the person presses is posted to the
-   * prompt's keypad action (getKeypadAction), with the call's keypad token
-   * (`keypadTokenOf`).
+   * the call speaks them.
+   *
+   * A call that asks for a key (#10762) says everything inside its
+   * <Gather input="dtmf">, so a key pressed while it speaks stops it and
+   * answers the call at once - Twilio takes no key pressed outside one. It
+   * says, once:
+   *
+   *   1. the sentences before the prompt - who calls, what happened and
+   *      which one;
+   *   2. the prompt - "Press 1 to acknowledge, or 2 to escalate.";
+   *   3. the sentences after it (Say.afterPrompt) - the title, cut short;
+   *
+   * then, CALL_PROMPT_REPEATS times, a pause and the sentences said again
+   * (Say.repeated) with the prompt after them. Twilio waits the prompt's
+   * timeout once all of it is said, and a call nobody answered says its
+   * no-input words and ends: the page is left as it was, not acknowledged,
+   * as before. A key Twilio posts to the prompt's keypad action
+   * (getKeypadAction), with the call's keypad token (`keypadTokenOf`) -
+   * keys 1 and 2 answer exactly as before.
+   *
+   * Every text goes through the TwiML builder, which escapes it - a title is
+   * never TwiML or SSML - in characters it can carry (toTwimlText), and a
+   * record's number is spelled (CallSpeech): with SSML for a voice that reads
+   * it, with spaced letters for any other, the account's default among them.
    */
   private static buildTwimlForCall(
     callRequest: CallRequestMessage,
     say: (text: string) => string,
     keypadTokenOf: (gather: GatherInput) => string,
+    voice?: string | undefined,
   ): string {
-    const response: Twilio.twiml.VoiceResponse =
-      new Twilio.twiml.VoiceResponse();
+    const response: VoiceResponse = new Twilio.twiml.VoiceResponse();
+
+    // The sentences said so far, which the next prompt says first.
+    let sentences: Array<Say> = [];
 
     for (const item of callRequest.data) {
       if ((item as Say).sayMessage) {
-        response.say(say((item as Say).sayMessage));
+        sentences.push(item as Say);
       }
 
       if ((item as GatherInput) && (item as GatherInput).numDigits > 0) {
-        response.say(say((item as GatherInput).introMessage));
+        const prompt: GatherInput = item as GatherInput;
 
-        response.gather({
-          numDigits: (item as GatherInput).numDigits,
-          timeout: (item as GatherInput).timeoutInSeconds || 5,
+        const gather: VoiceResponse.Gather = response.gather({
+          input: ["dtmf"],
+          numDigits: prompt.numDigits,
+          timeout: prompt.timeoutInSeconds || 5,
           action: this.getKeypadAction(
-            (item as GatherInput).responseUrl,
-            keypadTokenOf(item as GatherInput),
+            prompt.responseUrl,
+            keypadTokenOf(prompt),
           ),
           method: "POST",
         });
 
-        response.say(say((item as GatherInput).noInputMessage));
+        for (const sentence of sentences) {
+          if (!sentence.afterPrompt) {
+            this.sayInto(gather, sentence, say, voice);
+          }
+        }
+
+        this.sayInto(gather, prompt.introMessage, say, voice);
+
+        for (const sentence of sentences) {
+          if (sentence.afterPrompt) {
+            this.sayInto(gather, sentence, say, voice);
+          }
+        }
+
+        for (let repeat: number = 0; repeat < CALL_PROMPT_REPEATS; repeat++) {
+          gather.pause({ length: CALL_PROMPT_REPEAT_PAUSE_IN_SECONDS });
+
+          for (const sentence of sentences) {
+            if (sentence.repeated) {
+              this.sayInto(gather, sentence, say, voice);
+            }
+          }
+
+          this.sayInto(gather, prompt.introMessage, say, voice);
+        }
+
+        sentences = [];
+
+        this.sayInto(response, prompt.noInputMessage, say, voice);
       }
+    }
+
+    // A call that asks for no key says its sentences, as it always did.
+    for (const sentence of sentences) {
+      this.sayInto(response, sentence, say, voice);
     }
 
     response.hangup();
 
     return response.toString();
+  }
+
+  /*
+   * One sentence into the TwiML, as `say` has its texts: a <Say> - or
+   * nothing, for a sentence with no words. For a voice that reads SSML, its
+   * record's number is a <say-as interpret-as="characters">; for any other -
+   * the account's default voice among them - it is spelled with spaces.
+   * Every text is put in characters TwiML can carry, and the builder escapes
+   * it.
+   */
+  private static sayInto(
+    parent: SayParent,
+    sentence: Say | string,
+    say: (text: string) => string,
+    voice: string | undefined,
+  ): void {
+    const parts: Array<SpeechPart> =
+      typeof sentence === "string"
+        ? [{ text: sentence }]
+        : getSpeechParts(sentence);
+
+    const attributes: VoiceResponse.SayAttributes = voice
+      ? { voice: voice as NonNullable<VoiceResponse.SayAttributes["voice"]> }
+      : {};
+
+    if (!isSsmlVoice(voice)) {
+      const text: string = renderSpeechAsText(
+        parts.map((part: SpeechPart): SpeechPart => {
+          return "characters" in part
+            ? { characters: toTwimlText(part.characters) }
+            : { text: toSpokenText(part.text) };
+        }),
+      );
+
+      if (!text.trim()) {
+        return;
+      }
+
+      parent.say(attributes, say(text));
+      return;
+    }
+
+    const spoken: Array<SpeechPart> = parts
+      .map((part: SpeechPart): SpeechPart => {
+        return "characters" in part
+          ? { characters: toTwimlText(part.characters).trim() }
+          : { text: toSpokenText(part.text) };
+      })
+      .filter((part: SpeechPart): boolean => {
+        return "characters" in part ? part.characters !== "" : part.text !== "";
+      });
+
+    const hasWords: boolean = spoken.some((part: SpeechPart): boolean => {
+      return "characters" in part || part.text.trim() !== "";
+    });
+
+    if (!hasWords) {
+      return;
+    }
+
+    const node: VoiceResponse.Say = parent.say(attributes, "");
+
+    for (const part of spoken) {
+      if ("characters" in part) {
+        node.sayAs({ "interpret-as": "characters" }, part.characters);
+      } else {
+        node.addText(say(part.text));
+      }
+    }
   }
 }
