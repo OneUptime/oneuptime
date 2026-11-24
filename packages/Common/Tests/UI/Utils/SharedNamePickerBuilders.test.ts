@@ -33,12 +33,14 @@ const BUILDERS: Array<string> = [
   "packages/Common/UI/Components/PeoplePicker/PeoplePickerKinds.ts",
   // The facet chips: Labels, and the Owner chip's teams.
   "packages/App/FeatureSet/Dashboard/src/Components/ResourceOwners/useResourceOwners.tsx",
-  // A monitor's criteria: its on-call policies and labels.
-  "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorSteps.tsx",
+  /*
+   * The values a searched picker holds, read by their ids (#10646): a
+   * monitor's criteria's and a recommended monitor's on-call policies and
+   * labels, and a workspace rule's conditions (SEARCHED_PICKERS, below).
+   */
+  "packages/Common/UI/Components/EntityDropdown/HeldValueOptions.ts",
   // Telemetry ingestion budgets by team or label.
   "packages/App/FeatureSet/Dashboard/src/Components/TelemetryIngestionBudget/TeamLabelBudgetsTable.tsx",
-  // A recommended monitor's policies and labels.
-  "packages/App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationProjectSetup.ts",
   // Setup Health's quick fix: the policy a new rule pages.
   "packages/App/FeatureSet/Dashboard/src/Components/SetupHealth/SetupHealthQuickFix.ts",
   // A dashboard's label filter.
@@ -154,10 +156,19 @@ const CHAT_BUILDERS: Array<string> = [
   "packages/Common/Server/Utils/Workspace/Mattermost/MattermostActions.ts",
 ];
 
-// Builders whose options come from DropdownUtil, which reads the facts itself.
-const SELECTS_ONLY: Array<string> = [
-  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceNotificationRulesTable.tsx",
-  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/WorkspaceSummaryTable.tsx",
+/*
+ * The pickers that search their records on the server as they are typed in,
+ * and read the ones they hold by their ids (#10646): each searches through
+ * EntityDropdown and names what it holds through useHeldValueOptions
+ * (HeldValueOptions), both builders above. A monitor's criteria and a
+ * recommended monitor read their on-call policies and labels this way
+ * (MonitorSteps and MonitorRecommendationProjectSetup read the project's
+ * first 10,000 of each before), and so do a workspace rule's conditions (the
+ * rules' tables read them before, with DropdownUtil).
+ */
+const SEARCHED_PICKERS: Array<string> = [
+  "packages/App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaRecordPicker.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/RecordConditionPicker.tsx",
 ];
 
 // The components that draw the options: each marks the twins.
@@ -239,12 +250,46 @@ describe("the builders of the four kinds' options", () => {
     expect(source).toMatch(OPTION_FACTS_PATTERN);
   });
 
-  test.each(SELECTS_ONLY)(
-    "%s reads what tells twins apart, which DropdownUtil hands to each option",
+  test.each(SEARCHED_PICKERS)(
+    "%s searches through EntityDropdown and names what it holds through useHeldValueOptions",
     (file: string) => {
-      expect(read(file)).toContain("getSharedNameSelect(");
+      const source: string = read(file);
+
+      expect({ file, search: source.includes("<EntityDropdown") }).toEqual({
+        file,
+        search: true,
+      });
+      expect({ file, held: source.includes("useHeldValueOptions(") }).toEqual({
+        file,
+        held: true,
+      });
     },
   );
+
+  /*
+   * A held read is made with the select it is handed, in place of its own
+   * (getHeldValueSelect, which reads what tells twins apart): a picker that
+   * hands one keeps the facts in it.
+   */
+  test.each(SEARCHED_PICKERS)(
+    "%s reads what tells twins apart in any select it hands the held read",
+    (file: string) => {
+      const source: string = read(file);
+      const handsASelect: boolean =
+        /useHeldValueOptions\(\{[^}]*\bselect:/.test(source);
+
+      expect({
+        file,
+        facts: !handsASelect || source.includes("getSharedNameSelect("),
+      }).toEqual({ file, facts: true });
+    },
+  );
+
+  test("a held read is made with what tells twins apart unless it is handed a select", () => {
+    expect(
+      read("packages/Common/UI/Components/EntityDropdown/HeldValueOptions.ts"),
+    ).toContain("select: data.select || getHeldValueSelect(data.modelType),");
+  });
 
   test("DropdownUtil hands a record listed by its name its facts", () => {
     expect(read("packages/Common/UI/Utils/Dropdown.ts")).toMatch(
