@@ -65,8 +65,11 @@ import PushNotificationLevel from "Common/Types/NotificationRule/PushNotificatio
 import {
   CANT_TAKE_IT_ESCALATE,
   ON_CALL_PAGE_CALL_PASS_ON_DIGIT,
-  getOnCallPageCallPassOnPrompt,
 } from "Common/Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT,
+  ON_CALL_PAGE_CALL_PROMPT,
+} from "Common/Utils/Call/OnCallPageCall";
 import { NO_NOTIFICATION_RULES_STATUS_MESSAGE } from "Common/Types/OnCallDutyPolicy/OnCallPageLine";
 import { getUserOnCallLogRecordAcknowledgedMessage } from "Common/Types/OnCallDutyPolicy/OnCallPageEnding";
 import {
@@ -1833,8 +1836,11 @@ describe("personal on-call rules", () => {
       "Server/Services/UserNotificationRuleService.ts",
     );
 
-    expect(ruleService).toContain(
-      "introMessage: `To acknowledge this alert, press 1. ${getOnCallPageCallPassOnPrompt()}`,",
+    // Every page's call is built by one builder, which asks for 1 (Utils/Call/OnCallPageCall).
+    expect(ruleService).toContain("data: buildOnCallPageCallData({");
+    expect(ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT).toBe("1");
+    expect(ON_CALL_PAGE_CALL_PROMPT.startsWith("Press 1 to acknowledge")).toBe(
+      true,
     );
     // A text's one link acknowledges the page (Utils/Sms/OnCallPageSms).
     expect(ON_CALL_PAGE_SMS_ACTION).toBe("Ack or escalate:");
@@ -1873,8 +1879,8 @@ describe("personal on-call rules", () => {
     );
 
     expect(ON_CALL_PAGE_CALL_PASS_ON_DIGIT).toBe("2");
-    expect(getOnCallPageCallPassOnPrompt()).toBe(
-      `If you can't take it, press ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
+    expect(ON_CALL_PAGE_CALL_PROMPT).toBe(
+      `Press 1 to acknowledge, or ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`,
     );
     // Telegram's links, one place for every record a page is about.
     expect(ruleService).toContain(

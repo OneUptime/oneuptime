@@ -193,6 +193,11 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Session Replays"),
   translationKey("AI Conversations"),
   translationKey("Metrics"),
+  // The stores OneUptime keeps for a project's security, and declares (#10398, #10860)
+  translationKey("Security Events"),
+  translationKey("Network Flows"),
+  translationKey("Security Address Vault"),
+  translationKey("Security User Vault"),
   // Families, each as the noun it is drawn with
   ...Object.values(DATA_STORE_FAMILY_TITLES),
   // Environments, each as the noun it is drawn with (Unknown is an exposure's too, above)
@@ -236,7 +241,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("A phone number in international or national format."),
   translationKey("Person name"),
   translationKey(
-    "A person's first, last or full name, found from the field's name.",
+    "A person's first, last or full name, found from the field's name, or by the scanner's model in free text.",
   ),
   translationKey("Street address"),
   translationKey(

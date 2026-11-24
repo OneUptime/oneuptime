@@ -41,10 +41,14 @@ import FeedMarkdown, {
  *    proposed by default (#10366's decision), and runs on its own only
  *    where a Data Security AI rule says Contain runs without asking;
  *  - Ask: everything else - a rule nothing could be proven on, one that
- *    changes other values, one something reads, one for every service, a
- *    metric's pipeline rule, or a place whose earlier rule a person took
- *    back. It waits for a person, whatever any rule says
- *    (canRunWithoutAsking: false).
+ *    changes other values, one something reads, one for every service, or
+ *    a place whose earlier rule a person took back. It waits for a person,
+ *    whatever any rule says (canRunWithoutAsking: false).
+ *
+ * A metric attribute's pipeline rule is proven on the finding's data points
+ * and an exception's rule on its exceptions (#10753), so each is judged by
+ * the same conditions as any other place - a metric rule's readers being
+ * what reads the metrics that carry its attribute.
  *
  * The plan holds names, places, counts and ids - never a value, a sample
  * or a record: a rule's pattern is OneUptime's, its type's, or OneUptime
@@ -80,7 +84,11 @@ export enum ScrubWaitReason {
   ReadersUnknown = "ReadersUnknown",
   // It is for every service, not the finding's.
   EveryService = "EveryService",
-  // A metric's pipeline rule: never proven on records.
+  /*
+   * A metric's pipeline rule, once never proven on records: plans made
+   * before #10753 keep it. A metric's rule is proven now, and judged as
+   * any other.
+   */
   MetricRule = "MetricRule",
   // A person took back, or dismissed, a rule for the place before.
   TakenBack = "TakenBack",
@@ -293,17 +301,22 @@ function readRule(item: unknown): ScrubPlanRule | null {
       rule.attributeKeys = keys;
     }
 
-    const proof: ScrubRuleProof | null = readScrubRuleProof(raw["proof"]);
-
-    if (proof) {
-      rule.proof = proof;
-    }
-
-    rule.readers = readReaders(raw["readers"]);
-
     if (raw["securityEventsLoses"] === true) {
       rule.securityEventsLoses = true;
     }
+  }
+
+  // How it was proven, and what reads what it hides: a metric's rule too (#10753).
+  const proof: ScrubRuleProof | null = readScrubRuleProof(raw["proof"]);
+
+  if (proof) {
+    rule.proof = proof;
+  }
+
+  const readers: ScrubReaderCounts | undefined = readReaders(raw["readers"]);
+
+  if (readers || rule.signal !== "metric") {
+    rule.readers = readers;
   }
 
   return rule;
@@ -454,10 +467,7 @@ export function getScrubWaitReasons(data: {
 }): Array<ScrubWaitReason> {
   const reasons: Array<ScrubWaitReason> = [];
 
-  if (data.rule.signal === "metric") {
-    return [ScrubWaitReason.MetricRule];
-  }
-
+  // A metric's rule is proven on the finding's data points (#10753): judged as any other.
   if (!data.rule.proof) {
     reasons.push(ScrubWaitReason.NotProven);
   } else if (getScrubOverreachShare(data.rule.proof) > 0) {
@@ -576,10 +586,6 @@ export function describeScrubPlanRule(
   const lines: Array<MarkdownText> = [
     mdText`**${rule.name}** (${rule.signal}): ${rule.description}`,
   ];
-
-  if (rule.signal === "metric") {
-    return lines;
-  }
 
   lines.push(
     rule.proof

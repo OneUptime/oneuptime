@@ -57,10 +57,26 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  * its name is a link too, for the keyboard.
  */
 
+/*
+ * A list the server pages (#10764): the table shows the page it was handed
+ * and asks for another, rather than paging through a list it holds whole.
+ */
+export interface CodeRepositoriesTablePaging {
+  // How many repositories the list holds in all.
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  onNavigateToPage: (pageNumber: number, pageSize: number) => void;
+}
+
 export interface ComponentProps {
   id: string;
-  // The repositories to list, in order. The table pages through them.
+  /*
+   * The repositories to list, in order. The table pages through them -
+   * unless `paging` says they are one page of a list the server pages.
+   */
   repositories: Array<CodeRepositoryListItem>;
+  paging?: CodeRepositoriesTablePaging | undefined;
   // What the table shows with none to list.
   emptyState?: TableEmptyStateProps | undefined;
   // A repository OneUptime does not reach is drawn quieter: its mark grey.
@@ -180,15 +196,22 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
     .join(",");
 
   useEffect(() => {
-    setPageNumber(1);
+    if (!props.paging) {
+      setPageNumber(1);
+    }
   }, [listKey]);
 
   const page: { items: Array<CodeRepositoryListItem>; pageNumber: number } =
-    getRepositoriesPage({
-      repositories: props.repositories,
-      pageNumber,
-      pageSize,
-    });
+    props.paging
+      ? {
+          items: props.repositories,
+          pageNumber: props.paging.pageNumber,
+        }
+      : getRepositoriesPage({
+          repositories: props.repositories,
+          pageNumber,
+          pageSize,
+        });
 
   const columns: Columns<CodeRepositoryListItem> = [
     {
@@ -427,9 +450,19 @@ const CodeRepositoriesTable: FunctionComponent<ComponentProps> = (
       singularLabel="Repository"
       pluralLabel="Repositories"
       currentPageNumber={page.pageNumber}
-      totalItemsCount={props.repositories.length}
-      itemsOnPage={pageSize}
+      totalItemsCount={
+        props.paging ? props.paging.totalCount : props.repositories.length
+      }
+      itemsOnPage={props.paging ? props.paging.pageSize : pageSize}
       onNavigateToPage={(nextPage: number, itemsOnPage: number): void => {
+        if (props.paging) {
+          props.paging.onNavigateToPage(
+            nextPage,
+            itemsOnPage > 0 ? itemsOnPage : props.paging.pageSize,
+          );
+          return;
+        }
+
         setPageNumber(nextPage);
 
         if (itemsOnPage > 0) {

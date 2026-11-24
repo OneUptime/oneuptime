@@ -82,6 +82,8 @@ En un grupo de cuadrícula, el cuadro de diálogo también pide la fila y la col
 > [!TIP]
 > Para mostrar varias comprobaciones como una sola fila, añade un [grupo de monitores](/docs/monitor/monitor-groups). Con el interruptor **Grupos de monitores** activado (**Ajustes del proyecto** > **Básico** > **Productos**, que se guarda en cuanto lo cambias), un enlace bajo la lista desplegable dice **Añade un grupo de monitores en su lugar.** Haz clic en él y **Monitor** pasa a ser **Grupo de monitores** (**Seleccionar grupo de monitores**); **Añade un monitor en su lugar.** vuelve atrás.
 
+**Editar recurso**, el lápiz de una fila, se abre en lo que muestra la fila: la fila de un grupo de monitores en **Grupo de monitores**, con el grupo elegido, y la de un monitor en **Monitor**. Con el interruptor **Grupos de monitores** activado, el enlace bajo la lista desplegable dice **Muestra un monitor en su lugar.** en la fila de un grupo y **Muestra un grupo de monitores en su lugar.** en la de un monitor. Cambia la lista desplegable solo en ese diálogo, y al guardar la fila pasa a mostrar lo que elegiste. **Nombre para mostrar** sigue la nueva elección mientras siga siendo el nombre de lo que mostraba la fila, y se queda como está si cambiaste el nombre de la fila. En la lista, la fila de un grupo cuyo nombre para mostrar es el del propio grupo dice **Igual que el nombre del grupo de monitores**.
+
 ### Añadir varios a la vez
 
 **Añadir varios** (también **Añadir varios monitores** en el menú **Más acciones**) abre **Añadir varios monitores**. También ocupa una sola página: una selección múltiple **Monitores** y luego los mismos **Más campos** plegados, cuyas opciones de visualización se aplican a cada monitor que elijas. Cada recurso toma el nombre para mostrar y la descripción de su monitor, y **Añadir monitores** los añade todos. Es la forma más rápida de llenar una página nueva.
@@ -97,6 +99,8 @@ Una página de estado lista un monitor una sola vez. Añadir es idempotente, as�
 El resumen al final de la adición masiva lo dice: los monitores añadidos aparecen en **Añadido**, y los que ya estaban en **Ya añadidos**. Nada se notifica como fallo y no se escribe nada para ellos.
 
 La misma regla se aplica en cualquier otro lugar donde se crea un recurso. Añadir un monitor que ya está en la página desde el formulario de adición individual, o apuntar a él un recurso existente desde el formulario de edición, se rechaza con *«This monitor is already added to this status page»*, también cuando el recurso existente está en otro grupo, porque un visitante seguiría viendo el monitor dos veces. Para mostrar un monitor en otro grupo, elimina el recurso que ya tiene y añádelo donde lo quieras.
+
+Un recurso muestra un monitor o un grupo de monitores, nunca los dos y nunca ninguno. Apuntar un recurso a uno vacía el otro, así que pasar una fila de un monitor a un grupo de monitores es un solo cambio. Desde la API, un recurso que nombra los dos se rechaza con *«A status page resource shows a monitor or a monitor group, not both. Send one of them.»*, y uno que no nombra ninguno, o un cambio que lo dejaría sin ninguno, con *«A status page resource needs a monitor or a monitor group to show»*.
 
 ## Opciones de visualización de un recurso
 
@@ -280,6 +284,10 @@ La importación crea grupos, no recursos: añade después los monitores con **A�
 
 :::details «This monitor is already added to this status page»
 Una página lista cada monitor una sola vez, también entre grupos. El monitor ya tiene un recurso, quizá en otro grupo o añadido por una regla de monitores. Búscalo en el navegador, elimina ese recurso y añade el monitor donde lo quieras.
+:::
+
+:::details «A status page resource needs a monitor or a monitor group to show»
+La API, Terraform o un script envió un recurso sin monitor ni grupo de monitores, o un cambio que vacía lo que muestra. Envía `monitorId` o `monitorGroupId`, uno de los dos. Para apuntar un recurso al otro tipo, envía el nuevo en el mismo cambio: el anterior se vacía. Los recursos que no mostraban ninguno antes de esta regla nunca se mostraron a los visitantes, y una actualización los elimina.
 :::
 
 :::details Un monitor que añadí no aparece en la página de estado

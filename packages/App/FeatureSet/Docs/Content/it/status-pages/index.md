@@ -178,6 +178,8 @@ La schermata **Panoramica** di ogni pagina di stato ha una scheda **Link della p
 
 Dietro le quinte, ogni percorso pubblico ha un gemello di anteprima in `/status-page/{statusPageId}/...`: una panoramica di anteprima, un elenco degli incidenti di anteprima, una pagina di iscrizione di anteprima e così via. Per questo un URL o uno screenshot presi dall'anteprima della dashboard non corrisponderanno a ciò che vede un cliente una volta collegato un dominio personalizzato, quindi verificate ogni link che incollate in un runbook o in un'email.
 
+Finché una pagina non mostra nulla, i suoi visitatori leggono **Ancora niente da mostrare**. Nell'anteprima, una nota sotto dice «I visitatori vedono questo avviso finché non aggiungi delle risorse.», con **Aggiungi risorse nella dashboard**, che apre le **Risorse** della pagina nella dashboard, in qualunque dei vostri progetti si trovi la pagina.
+
 ## Limitare chi può vedere la pagina
 
 Non tutte le pagine di stato sono per il pubblico. Chi può vedere una pagina è una sola scelta, la prima scheda di **Pagine di stato → la vostra pagina → Sicurezza → Accesso**, **Chi può vedere questa pagina di stato**:

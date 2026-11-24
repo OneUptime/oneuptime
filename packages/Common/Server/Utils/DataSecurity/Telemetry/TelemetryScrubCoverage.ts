@@ -1874,6 +1874,12 @@ export interface ScrubRulePreview {
   signal: ScrubRuleSignal;
   name: string;
   description: string;
+  /*
+   * A metric attribute's rule as it would be made: what its proof runs on
+   * the finding's data points (TelemetryScrubProof.proveMetricScrubRule,
+   * #10753).
+   */
+  metricRule?: MetricPipelineRule | undefined;
 }
 
 /*
@@ -1920,6 +1926,7 @@ export async function previewScrubRuleForFinding(data: {
       signal: "metric",
       name: rule.name || "",
       description: rule.description || "",
+      metricRule: rule,
     };
   }
 

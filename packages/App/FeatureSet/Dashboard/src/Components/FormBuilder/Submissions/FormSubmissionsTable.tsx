@@ -3,6 +3,7 @@ import {
   getFormSubmissionCreatedLink,
   getFormSubmissionSubmitter,
   FormSubmissionCreatedLink,
+  isFormSubmissionAlertHidden,
   isFormSubmissionIncidentHidden,
 } from "./FormSubmissionPresentation";
 import PageMap from "../../../Utils/PageMap";
@@ -165,6 +166,11 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
         },
+        alert: {
+          _id: true,
+          alertNumber: true,
+          alertNumberWithPrefix: true,
+        },
       },
       title: FormsCopy.created,
       type: FieldType.Element,
@@ -173,6 +179,14 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
           return (
             <span className="text-sm text-gray-500">
               {tx(FormsCopy.createdPrivate)}
+            </span>
+          );
+        }
+
+        if (isFormSubmissionAlertHidden(item)) {
+          return (
+            <span className="text-sm text-gray-500">
+              {tx(FormsCopy.createdPrivateAlert)}
             </span>
           );
         }
@@ -205,6 +219,10 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
       getExportValue: (item: FormSubmission): string => {
         if (isFormSubmissionIncidentHidden(item)) {
           return FormsCopy.createdPrivate;
+        }
+
+        if (isFormSubmissionAlertHidden(item)) {
+          return FormsCopy.createdPrivateAlert;
         }
 
         const created: FormSubmissionCreatedLink | null =
@@ -249,6 +267,7 @@ const FormSubmissionsTable: FunctionComponent<ComponentProps> = (
           targetType: true,
           incidentId: true,
           scheduledMaintenanceId: true,
+          alertId: true,
         }}
         sortBy="createdAt"
         sortOrder={SortOrder.Descending}

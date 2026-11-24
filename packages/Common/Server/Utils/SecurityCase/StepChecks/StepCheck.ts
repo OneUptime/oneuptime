@@ -24,6 +24,9 @@ import {
 } from "./Evidence/AddressRequests";
 import { AddressFactsReading } from "./Evidence/AddressFacts";
 import { AccountFixReading } from "./Evidence/AccountFixState";
+import { AccountChangesReading } from "./Evidence/AccountChangesState";
+import { AccountChange } from "../../../../Utils/SecurityCase/AttackAccountChanges";
+import { SecurityCaseEventSnapshot } from "../../../../Types/SecurityCase/SecurityCaseEventEvidence";
 import { IndicatorBlockReading } from "./Evidence/IndicatorBlocks";
 import { ContainmentStateReading } from "./Evidence/ContainmentState";
 import { FixChangesReading } from "./Evidence/FixChanges";
@@ -136,6 +139,12 @@ export interface StepCheckEvidence {
     since: Date;
   }): Promise<AccountFixReading>;
   readAccountMfa(user: string): Promise<AccountFixReading>;
+  // The security events kept on the case (its Evidence), beside the ones its detections matched.
+  readKeptEvents(): Promise<Array<SecurityCaseEventSnapshot>>;
+  // Whether each change an attack made to an account is still there, in its product (#10603).
+  readAccountChanges(
+    changes: Array<AccountChange>,
+  ): Promise<AccountChangesReading>;
 }
 
 export interface StepCheckContext {

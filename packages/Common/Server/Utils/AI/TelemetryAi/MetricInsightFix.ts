@@ -382,21 +382,15 @@ export default class MetricInsightFix {
         props: data.props,
       });
 
-    const askable: Array<LocatableRepository> = [];
-
-    for (const repository of readable) {
-      if (
-        await CodeTaskAccess.canAskInRepository({
-          props: data.props,
-          projectId: data.projectId,
-          repositoryId: new ObjectID(repository.id),
-        })
-      ) {
-        askable.push(repository);
-      }
-    }
-
-    return askable;
+    // Every one of them, however many (#10764): one read a batch.
+    return await CodeTaskAccess.keepAskableRepositories<LocatableRepository>({
+      props: data.props,
+      projectId: data.projectId,
+      repositories: readable,
+      getId: (repository: LocatableRepository): string => {
+        return repository.id;
+      },
+    });
   }
 
   private static toRepository(

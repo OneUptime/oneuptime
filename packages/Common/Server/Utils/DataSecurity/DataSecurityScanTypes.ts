@@ -10,6 +10,7 @@ import {
   MAX_UNPLACED_FIELDS_PER_SCAN,
   UnplacedField,
 } from "../../../Utils/DataSecurity/UnplacedFields";
+import { ModelScanContext } from "./Model/ModelScan";
 
 export { MAX_UNPLACED_FIELDS_PER_SCAN };
 
@@ -81,6 +82,12 @@ export interface ContentScanOptions {
    * project, so two projects' fingerprints can never be compared.
    */
   fingerprintKey: string;
+  /*
+   * The names-and-addresses model, when the project has it on for this
+   * scan (Model/ModelScan.ts): it reads the store's free text, within the
+   * scan's model time. Absent: the scan finds what the detectors find.
+   */
+  model?: ModelScanContext | undefined;
   /*
    * Data types OneUptime AI drafted from this store's unplaced fields, run
    * in shadow (#10371, Utils/DataSecurity/ShadowCount): each field the scan

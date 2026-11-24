@@ -51,8 +51,10 @@ import WorkspacePageAbout from "./WorkspacePageAbout";
  * incident it declares is linked to the alert as one declared from it in
  * the Dashboard is (INCIDENT_ALERT_IDS_TO_LINK_KEY): the incident's Alerts
  * tab lists it, and the project's switches move it along with the incident.
- * A private alert's incident is private too, with the alert's owners, as
- * the Dashboard declares it.
+ * The alert's owners own it too (INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY, the
+ * default for a declaration from alerts, #10867), as the Dashboard declares
+ * it - the chat's form has no Owners field to start from them - and a
+ * private alert's incident is private too.
  *
  * Its monitor is not linked: a monitor linked to an incident a person
  * declares pauses its checks, so it is the person's pick under Monitors.

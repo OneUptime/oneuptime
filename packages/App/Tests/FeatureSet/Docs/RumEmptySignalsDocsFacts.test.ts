@@ -461,9 +461,13 @@ describe("RUM docs: why Exceptions or Logs are empty (issue #5770)", () => {
       route: string,
     ): string | undefined => {
       const start: number = routes.indexOf(`"${route}",`);
+      /*
+       * The surface the route counts as: its first argument, before the
+       * reader of its body, which runs once its key is right (#10814).
+       */
       const match: RegExpMatchArray | null = routes
         .slice(start)
-        .match(/forSurface\(TelemetryIngestSurface\.(\w+)\)/);
+        .match(/forSurface\(\s*TelemetryIngestSurface\.(\w+)\s*[,)]/);
 
       return start === -1 || !match ? undefined : match[1];
     };

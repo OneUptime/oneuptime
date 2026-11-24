@@ -61,7 +61,8 @@
     "subGroupCount": "{{total}} grupos",
     "noResourcesTitle": "Aún no hay nada que mostrar",
     "noResourcesDescription": "Esta página aún no muestra ningún servicio.",
-    "noResourcesPreviewDescription": "Los visitantes ven este aviso hasta que añadas recursos. Añade monitores o grupos a esta página de estado en Recursos, en el panel."
+    "noResourcesPreviewDescription": "Los visitantes ven este aviso hasta que añadas recursos.",
+    "noResourcesPreviewLink": "Añadir recursos en el panel"
   },
   "eventItem": {
     "affectedResources": "Recursos afectados",

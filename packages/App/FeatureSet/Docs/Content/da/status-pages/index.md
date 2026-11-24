@@ -178,6 +178,8 @@ Skærmen **Oversigt** for hver statusside har et kort **Link til statussiden** m
 
 Bag kulisserne har hver offentlig rute en forhåndsvisningstvilling under `/status-page/{statusPageId}/...`: en forhåndsvist oversigt, en forhåndsvist hændelsesliste, en forhåndsvist tilmeldingsside og så videre. En URL eller et skærmbillede taget fra dashboardets forhåndsvisning svarer derfor ikke til det, en kunde ser, når et brugerdefineret domæne er tilknyttet, så tjek alle links, du indsætter i en runbook eller en e-mail.
 
+Så længe en side ikke viser noget, læser dens besøgende **Intet at vise endnu**. I forhåndsvisningen siger en note nedenunder "Besøgende ser denne besked, indtil du tilføjer ressourcer.", med **Tilføj ressourcer i Dashboard**, der åbner sidens **Ressourcer** i Dashboard, uanset hvilket af dine projekter siden ligger i.
+
 ## At begrænse hvem der må se siden
 
 Ikke alle statussider er til offentligheden. Hvem der må se en side, er ét valg, det første kort på **Statussider → din side → Sikkerhed → Adgang**, **Hvem der kan se denne statusside**:

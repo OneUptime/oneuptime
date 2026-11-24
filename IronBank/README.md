@@ -55,7 +55,12 @@ Dockerfile to the Dockerfile its release is built from
 sets, those suites say what to change here.
 
 - **App.** It copies `/usr/src` and installs `bash`, `curl` and the PostgreSQL
-  clients that backups use. Only the Enterprise Edition is on Iron Bank, as a
+  clients that backups use. Data Security's names-and-addresses model, which
+  the workers run inside the scanner, comes from the manifest's resources
+  instead of the release: the files of the revision
+  `packages/Common/Server/Utils/DataSecurity/Model/NameAddressModel.json` pins,
+  by URL and sha256, copied to `/usr/src/DataSecurityModel`. The shipped stage
+  leaves the release's copy out, so no layer carries it twice. Only the Enterprise Edition is on Iron Bank, as a
   "commercial" image. Production use of it needs an Enterprise license
   (`ee/LICENSE`). Without one it runs a 14-day trial, for evaluation. After
   that, SCIM and audit logging stop and enterprise configuration becomes
@@ -77,7 +82,8 @@ sets, those suites say what to change here.
   It leaves out the release's `curl`, which only the release's build uses.
   Microsoft's ODBC Driver 18 for SQL Server comes from Microsoft's repository,
   which Iron Bank's pipeline cannot reach. So the manifest pins its package by
-  URL and sha256. Update both values from Microsoft's
+  URL and sha256, and Data Security's names-and-addresses model the same way,
+  as the App's does. Update both values from Microsoft's
   [package index](https://packages.microsoft.com/debian/12/prod/dists/bookworm/main/binary-amd64/Packages).
 
 ### Running as root

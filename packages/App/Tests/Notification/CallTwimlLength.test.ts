@@ -57,13 +57,14 @@ function spokenIn(twiml: string): Array<string> {
 }
 
 describe("CallService.generateTwimlForCall", () => {
-  test("a call that fits is made as it always was", () => {
+  test("a call that fits is said whole: its text, its prompt - twice, as a call asks for a key twice (#10762) - and its no-input words", () => {
     const twiml: string = CallService.generateTwimlForCall(
       callSaying("Incident 42. Checkout is down."),
     );
 
     expect(spokenIn(twiml)).toEqual([
       "Incident 42. Checkout is down.",
+      "Press 1 to acknowledge.",
       "Press 1 to acknowledge.",
       "No input received.",
     ]);
@@ -83,6 +84,7 @@ describe("CallService.generateTwimlForCall", () => {
     );
     expect(spoken[0]!.endsWith(TRUNCATED_TEXT_NOTE_PLAIN)).toBe(true);
     expect(spoken.slice(1)).toEqual([
+      "Press 1 to acknowledge.",
       "Press 1 to acknowledge.",
       "No input received.",
     ]);

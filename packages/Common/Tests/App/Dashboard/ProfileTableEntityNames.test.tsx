@@ -150,6 +150,15 @@ const fakeGetList: (args: GetListArgs) => Promise<{
     return value.toString();
   });
 
+  // The page's services, read by their ids (#10764).
+  if (args.modelType === Service) {
+    const services: Array<Service> = ids.includes(SERVICE_ID)
+      ? [makeService()]
+      : [];
+
+    return { data: services, count: services.length };
+  }
+
   const data: Array<FakeRow> = RESOLVABLE.filter(
     (entry: [ModelType, FakeRow]): boolean => {
       return (
@@ -303,24 +312,42 @@ describe("ProfileTable — entity names", () => {
     expect(sourceCellText(page[2]!)).toContain("Kubernetes Cluster");
     expect(sourceCellText(page[0]!)).toContain("checkout-web");
 
-    // Service and Host rows still come from the loaded lists.
+    /*
+     * A Service row comes from a read of the page's services by their ids
+     * (#10764), a Host row from the loaded Host list.
+     */
     expect(sourceCellText(page[3]!)).toContain("checkout-api");
     expect(sourceCellText(page[4]!)).toContain("web-01");
     expect(sourceCellText(page[4]!)).toContain("Host");
 
+    const requests: Array<ResolverRequest> = resolverRequests();
+    const serviceReads: Array<ResolverRequest> = requests.filter(
+      (request: ResolverRequest): boolean => {
+        return request.modelType === Service;
+      },
+    );
+
+    // One read of the page's services, by the ids its service rows name.
+    expect(serviceReads).toHaveLength(1);
+    expect(serviceReads[0]!.ids).toEqual([SERVICE_ID]);
+
     /*
      * Hinted ids go straight to their tables: one RumApplication and one
      * KubernetesCluster request, no Service-first probe, and the Service /
-     * Host ids the page already names are not looked up at all.
+     * Host ids the page already names are not looked up again.
      */
-    const requests: Array<ResolverRequest> = resolverRequests();
-    expect(requests).toHaveLength(2);
+    const resolved: Array<ResolverRequest> = requests.filter(
+      (request: ResolverRequest): boolean => {
+        return request.modelType !== Service;
+      },
+    );
+    expect(resolved).toHaveLength(2);
     expect(
-      requests.map((request: ResolverRequest): ModelType => {
+      resolved.map((request: ResolverRequest): ModelType => {
         return request.modelType;
       }),
     ).toEqual(expect.arrayContaining([RumApplication, KubernetesCluster]));
-    for (const request of requests) {
+    for (const request of resolved) {
       expect(request.ids).not.toContain(SERVICE_ID);
       expect(request.ids).not.toContain(HOST_ID);
     }
@@ -394,14 +421,19 @@ describe("ProfileTable — entity names", () => {
     expect(view.container.textContent).not.toContain("84858d6c…");
   });
 
-  test("the ?serviceId= chip for a loaded Service is named without a lookup", async () => {
+  test("the ?serviceId= chip for a Service is named by its id, in one read of the Service table", async () => {
     window.history.pushState({}, "", `/?serviceId=${SERVICE_ID}`);
 
     const view: ReturnType<typeof render> = await renderTable();
 
+    await waitFor(() => {
+      expect(view.container.textContent).toContain("checkout-api");
+    });
     expect(view.container.textContent).toContain("Service");
-    expect(view.container.textContent).toContain("checkout-api");
-    expect(resolverRequests()).toHaveLength(0);
+    // The project's services are never read whole: one read, by its id.
+    expect(resolverRequests()).toEqual([
+      { modelType: Service, ids: [SERVICE_ID] },
+    ]);
   });
 
   test("REGRESSION: the ?serviceId= chip for a loaded Host reads 'Host: web-01' without a lookup", async () => {

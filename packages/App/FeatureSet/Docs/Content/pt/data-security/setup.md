@@ -222,6 +222,8 @@ As configurações da Segurança de dados são um único conjunto por projeto, n
 | **Verificar configuração** | Ativado | Executa as verificações em cada repositório. Desativada, nenhum problema abre, muda ou fecha. |
 | **Varrer conteúdo** | Ativado | Amostra o conteúdo dos repositórios onde a permissão de conteúdo foi concedida. |
 | **Varrer telemetria** | Ativado | Amostra os logs, traces, métricas, exceções, replays e conversas de IA do projeto. |
+| **Encontrar nomes e endereços** | Ativado | Lê texto livre em busca de nomes de pessoas e endereços com um pequeno modelo dentro do scanner. Não é o OneUptime AI, e o texto nunca sai do scanner. Veja [Nomes e endereços em texto livre](/docs/data-security/data-types#nomes-e-endereços-em-texto-livre). |
+| **Encontrar nomes e endereços na telemetria** | Desativado | A varredura de telemetria de hora em hora também lê corpos de logs, mensagens de exceção e conversas de IA com o modelo, até um minuto por hora. Só enquanto a configuração acima estiver ativada. |
 | **Manter amostras mascaradas** | Ativado | Guarda até três amostras mascaradas com cada descoberta. Desativada, guarda só contagens. |
 | **Abrir casos de segurança** | Ativado | Abre um caso de segurança, agrupado por repositório, quando um problema Crítico abre. |
 | **Gerar alertas** | Desativado | Gera um alerta, que aciona quem estiver de plantão, quando um problema Crítico abre. |

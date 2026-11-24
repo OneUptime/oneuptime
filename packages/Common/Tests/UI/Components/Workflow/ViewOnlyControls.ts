@@ -131,6 +131,21 @@ const isStateButton: IsReadingControlFunction = (element: Element): boolean => {
   );
 };
 
+/*
+ * The face of a setting that holds one of the project's records - the record
+ * drawn as a button that opens the server's search (EntityDropdown: Execute
+ * Workflow's Workflow, #10764) - disabled on a view: the field itself, held
+ * still as a disabled list is, and no action.
+ */
+const isHeldRecordValue: IsReadingControlFunction = (
+  element: Element,
+): boolean => {
+  return (
+    element.matches(":disabled") &&
+    Boolean(element.closest('[data-testid="entity-dropdown-value"]'))
+  );
+};
+
 export type FindActionsFunction = (root: Element) => Array<LiveControl>;
 
 /*
@@ -148,7 +163,11 @@ export const findActionsAViewDraws: FindActionsFunction = (
   for (const button of Array.from(
     root.querySelectorAll('button, [role="button"]'),
   )) {
-    if (isReadingControl(button) || isStateButton(button)) {
+    if (
+      isReadingControl(button) ||
+      isStateButton(button) ||
+      isHeldRecordValue(button)
+    ) {
       continue;
     }
 

@@ -371,15 +371,22 @@ function markdown(blocks: Array<WorkspaceMessageBlock>): string {
     .join("\n");
 }
 
+// The record as each kind's call says it (#10762): severity, kind, number.
+const CALL_RECORD: Record<string, string> = {
+  incident: "Critical incident INC-42",
+  alert: "High alert ALR-12",
+};
+
 describe.each(KINDS)("an observer's page about $name", (kind: Kind) => {
-  test("the call says they are paged as an observer, which one, who stays on it - and asks only for 1, which acknowledges nothing", async () => {
+  test("the call says who calls, that they are paged as an observer, which one, who stays on it - and asks only for 1, which acknowledges nothing", async () => {
     const call: CallRequest = await kind.call(undefined, true);
 
+    // Who stays on it before the prompt; the title after it (#10762).
     expect(sayMessages(call)).toEqual([
-      "This is a call from One Uptime",
-      `You are paged as an observer about an ${kind.noun}`,
-      expect.stringContaining(kind.title),
+      "This is a call from Acme.",
+      `You are paged as an observer about an ${kind.noun}: ${CALL_RECORD[kind.noun]}.`,
       `You are kept informed: the people responding stay on this ${kind.noun}.`,
+      expect.stringContaining(kind.title),
     ]);
 
     const prompt: GatherInput = call.data.find((step: unknown): boolean => {
@@ -402,7 +409,7 @@ describe.each(KINDS)("an observer's page about $name", (kind: Kind) => {
     const said: Array<string> = sayMessages(call);
 
     expect(said[1]).toBe(
-      `Alice Kim paged Platform about an ${kind.noun}, as an observer`,
+      `Alice Kim paged Platform about an ${kind.noun}, as an observer: ${CALL_RECORD[kind.noun]}.`,
     );
     expect(said).toContain("Alice Kim says: Can you check the database?");
   });
@@ -488,8 +495,8 @@ describe.each(KINDS)("an observer's page about $name", (kind: Kind) => {
       return Boolean((step as { introMessage?: string }).introMessage);
     }) as GatherInput;
 
-    expect(prompt.introMessage).toContain(
-      `To acknowledge this ${kind.noun}, press 1.`,
+    expect(prompt.introMessage).toBe(
+      "Press 1 to acknowledge, or 2 to escalate.",
     );
     expect((await kind.email(undefined, false)).subject).toBe(
       (await kind.email()).subject,

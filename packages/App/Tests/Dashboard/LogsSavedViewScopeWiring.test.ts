@@ -382,9 +382,17 @@ describe("the Dashboard Logs viewer", () => {
   const viewer: string = readCode(VIEWER_FILE);
 
   test("asks the server for its page's views only", () => {
+    /*
+     * One query for every read of its views - the first ones, any held past
+     * them and a search (#10646) - which names its page.
+     */
     expect(viewer).toContain(
-      "query: { projectId: projectId, scope: getSavedViewScopeQueryValue(props.savedViewScope), },",
+      "return { projectId: projectId, scope: getSavedViewScopeQueryValue(props.savedViewScope!), } as Query<LogSavedView>;",
     );
+    expect(viewer).toContain(
+      "const query: Query<LogSavedView> = getSavedViewsQuery(projectId);",
+    );
+    expect(viewer).toContain("query: getSavedViewsQuery(projectId),");
   });
 
   test("asks for none on a panel with no page, and asks again when its page changes", () => {
@@ -392,8 +400,10 @@ describe("the Dashboard Logs viewer", () => {
       "if (!projectId || !props.savedViewScope) { setSavedViews([]); return; }",
     );
     expect(viewer).toContain(
-      "setHasFetchedSavedViews(true); } }, [props.savedViewScope]);",
+      "setHasFetchedSavedViews(true); } }, [props.savedViewScope], );",
     );
+    // The read runs again whenever it is made anew: for another page.
+    expect(viewer).toContain("void fetchSavedViews(); }, [fetchSavedViews]);");
   });
 
   test("saves a new view on its page", () => {

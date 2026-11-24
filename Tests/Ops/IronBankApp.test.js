@@ -155,8 +155,14 @@ describe("IronBank/App runs the image the release runs", () => {
           return `${copy.sources.join(" ")} ${copy.destination}`;
         }),
     ).toEqual(["/usr/src /usr/src"]);
+    // And Data Security's model from the manifest's resources, where the
+    // release's build fetched it (IronBankDataSecurityModel.test.js).
     expect(all(finalInstructions, "COPY")).toEqual([
       "COPY --from=shipped /usr/src /usr/src",
+      "COPY data-security-model_quantized.onnx /usr/src/DataSecurityModel/model_quantized.onnx",
+      "COPY data-security-vocab.txt /usr/src/DataSecurityModel/vocab.txt",
+      "COPY data-security-config.json /usr/src/DataSecurityModel/config.json",
+      "COPY data-security-README.md /usr/src/DataSecurityModel/README.md",
     ]);
   });
 });

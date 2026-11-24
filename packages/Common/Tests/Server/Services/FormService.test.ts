@@ -2,6 +2,7 @@ import Form from "../../../Models/DatabaseModels/Form";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import FormService, {
+  FORM_ALERT_PERMISSION_MESSAGE,
   FORM_SHARE_KEY_MESSAGE,
   FORM_TARGET_TYPE_MESSAGE,
 } from "../../../Server/Services/FormService";
@@ -17,6 +18,7 @@ import ProjectScopedReferenceValidator, {
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CustomFieldType from "../../../Types/CustomField/CustomFieldType";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import {
   FormField,
   FormFieldSource,
@@ -27,6 +29,8 @@ import { validateFormIpAllowlist } from "../../../Types/Form/FormIpAllowlist";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import { ON_HIGHEST_PLAN } from "../TestingUtils/RequestPlan";
 import {
   afterEach,
   beforeEach,
@@ -256,7 +260,7 @@ describe("FormService.onBeforeCreate: what the form creates and asks", () => {
     ).toBe(FormTargetType.ScheduledMaintenance);
   });
 
-  test.each([["Alert"], ["incident"], [7]])(
+  test.each([["Monitor"], ["alert"], ["incident"], [7]])(
     "refuses a target that is not one (%p)",
     async (targetType: unknown) => {
       const error: Error | undefined = await refusal(
@@ -514,7 +518,7 @@ describe("FormService.onBeforeUpdate", () => {
   });
 
   test("a target that is not one is refused", async () => {
-    expect((await refusal(update({ targetType: "Alert" })))?.message).toBe(
+    expect((await refusal(update({ targetType: "Monitor" })))?.message).toBe(
       FORM_TARGET_TYPE_MESSAGE,
     );
   });
@@ -776,5 +780,289 @@ describe("FormService.onBeforeUpdate: records the settings already held", () => 
     });
 
     expect(checked()).toEqual([[GONE_MONITOR_ID, true]]);
+  });
+});
+
+/*
+ * A form that creates alerts lets anyone with its link create them - and
+ * so notify their owners and page their on-call - so setting one up takes
+ * what creating an alert takes (#10760): creating it, turning a form into
+ * one, and changing its questions, settings or templates. Its name, link,
+ * switch and look take the Form permissions alone, and incident and
+ * maintenance forms take nothing more than they always did.
+ */
+describe("FormService: setting up a form that creates alerts", () => {
+  const ALERT_STATE_ID: string = "b1000000-0000-4000-8000-0000000000f1";
+
+  // A teammate with exactly these permissions in the form's project.
+  function teammate(
+    permissions: Array<Permission>,
+    blocked: Array<Permission> = [],
+  ): DatabaseCommonInteractionProps {
+    const rows: Array<{
+      permission: Permission;
+      isBlockPermission: boolean;
+    }> = [
+      ...permissions.map((permission: Permission) => {
+        return { permission, isBlockPermission: false };
+      }),
+      ...blocked.map((permission: Permission) => {
+        return { permission, isBlockPermission: true };
+      }),
+    ];
+
+    return {
+      userId: new ObjectID(MEMBER_ID),
+      tenantId: PROJECT_ID,
+      ...ON_HIGHEST_PLAN,
+      userTenantAccessPermission: {
+        [PROJECT_ID.toString()]: {
+          projectId: PROJECT_ID,
+          permissions: rows.map(
+            (row: { permission: Permission; isBlockPermission: boolean }) => {
+              return {
+                permission: row.permission,
+                labelIds: [],
+                isBlockPermission: row.isBlockPermission,
+                _type: "UserPermission" as const,
+              };
+            },
+          ),
+          _type: "UserTenantAccessPermission",
+        },
+      },
+    } as DatabaseCommonInteractionProps;
+  }
+
+  function alertForm(data: Partial<Form> = {}): Form {
+    return newForm({ targetType: FormTargetType.Alert, ...data });
+  }
+
+  function storedAlertForm(): Form {
+    return storedForm({
+      targetType: FormTargetType.Alert,
+      fields: getDefaultFormFields(
+        FormTargetType.Alert,
+      ) as unknown as JSONArray,
+    });
+  }
+
+  test("a form that creates alerts needs a permission that may create them", async () => {
+    const error: Error | undefined = await refusal(
+      create(alertForm(), teammate([Permission.CreateForm])),
+    );
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error?.message.startsWith(FORM_ALERT_PERMISSION_MESSAGE)).toBe(true);
+    // The table's own refusal follows, naming who may.
+    expect(error?.message).toContain("Create Alert");
+    // Refused before anything of the project is read.
+    expect(validator).not.toHaveBeenCalled();
+    expect(monitorFindBy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [Permission.ProjectOwner],
+    [Permission.ProjectAdmin],
+    [Permission.ProjectMember],
+    [Permission.AlertAdmin],
+    [Permission.AlertMember],
+    [Permission.CreateAlert],
+  ])("%s may set one up", async (permission: Permission) => {
+    const created: Form = (
+      await create(alertForm(), teammate([Permission.CreateForm, permission]))
+    ).createBy.data;
+
+    expect(created.targetType).toBe(FormTargetType.Alert);
+
+    // It starts with an alert form's own questions.
+    const asked: (fields: Array<FormField>) => Array<string> = (
+      fields: Array<FormField>,
+    ): Array<string> => {
+      return fields.map((field: FormField): string => {
+        return `${field.source}:${field.targetField || ""}`;
+      });
+    };
+
+    expect(asked(created.fields as unknown as Array<FormField>)).toEqual(
+      asked(getDefaultFormFields(FormTargetType.Alert)),
+    );
+  });
+
+  test("incident and maintenance forms take the Form permissions alone, as they always did", async () => {
+    for (const targetType of [
+      FormTargetType.Incident,
+      FormTargetType.ScheduledMaintenance,
+    ]) {
+      expect(
+        (
+          await create(
+            newForm({ targetType }),
+            teammate([Permission.CreateForm]),
+          )
+        ).createBy.data.targetType,
+      ).toBe(targetType);
+    }
+  });
+
+  test("a team's block on creating alerts refuses it, whatever else the team may do", async () => {
+    const error: Error | undefined = await refusal(
+      create(
+        alertForm(),
+        teammate(
+          [Permission.CreateForm, Permission.ProjectAdmin],
+          [Permission.CreateAlert],
+        ),
+      ),
+    );
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error?.message.startsWith(FORM_ALERT_PERMISSION_MESSAGE)).toBe(true);
+    expect(error?.message).toContain("permission block list");
+  });
+
+  test("OneUptime itself and a master admin may", async () => {
+    expect(
+      (await create(alertForm(), { isRoot: true, tenantId: PROJECT_ID }))
+        .createBy.data.targetType,
+    ).toBe(FormTargetType.Alert);
+    expect(
+      (
+        await create(alertForm(), {
+          isMasterAdmin: true,
+          userId: new ObjectID(MEMBER_ID),
+          tenantId: PROJECT_ID,
+        })
+      ).createBy.data.targetType,
+    ).toBe(FormTargetType.Alert);
+  });
+
+  test("turning a form into one takes the permission too, refused before any form is read", async () => {
+    const error: Error | undefined = await refusal(
+      update(
+        { targetType: FormTargetType.Alert },
+        teammate([Permission.EditForm]),
+      ),
+    );
+
+    expect(error).toBeInstanceOf(NotAuthorizedException);
+    expect(error?.message.startsWith(FORM_ALERT_PERMISSION_MESSAGE)).toBe(true);
+    expect(formFindBy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "its questions",
+      {
+        fields: getDefaultFormFields(
+          FormTargetType.Alert,
+        ) as unknown as JSONArray,
+      },
+    ],
+    ["its settings", { targetSettings: { alertStateId: ALERT_STATE_ID } }],
+    ["its templates", { templates: [] }],
+  ] as Array<[string, JSONObject]>)(
+    "changing %s takes the permission too",
+    async (_what: string, data: JSONObject) => {
+      storedForms = [storedAlertForm()];
+
+      const error: Error | undefined = await refusal(
+        update(data, teammate([Permission.EditForm])),
+      );
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error?.message.startsWith(FORM_ALERT_PERMISSION_MESSAGE)).toBe(
+        true,
+      );
+      // Nothing of the project is read for it.
+      expect(validator).not.toHaveBeenCalled();
+    },
+  );
+
+  test("with the permission, an alert form's settings are checked as any form's", async () => {
+    storedForms = [storedAlertForm()];
+
+    await update(
+      { targetSettings: { alertStateId: ALERT_STATE_ID } },
+      teammate([Permission.EditForm, Permission.AlertMember]),
+    );
+
+    const call: ValidatorCall = validator.mock.calls[0]![0] as ValidatorCall;
+
+    expect(call.projectId?.toString()).toBe(PROJECT_ID.toString());
+    // The initial state named is checked as one of the project's alert states.
+    expect(
+      call.references.map((reference: ProjectScopedReference): string => {
+        return `${reference.modelName}:${reference.id?.toString()}`;
+      }),
+    ).toContain(`Initial State:${ALERT_STATE_ID}`);
+  });
+
+  test.each([
+    ["its name", { name: "Something to check" }],
+    ["its IP allowlist", { ipWhitelist: "" }],
+  ])(
+    "%s takes the Form permissions alone",
+    async (_what: string, data: JSONObject) => {
+      storedForms = [storedAlertForm()];
+
+      await expect(
+        update(data, teammate([Permission.EditForm])),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  test("an alert form turned into an incident form takes the Form permissions alone", async () => {
+    storedForms = [storedAlertForm()];
+
+    await expect(
+      update(
+        {
+          targetType: FormTargetType.Incident,
+          fields: getDefaultFormFields(
+            FormTargetType.Incident,
+          ) as unknown as JSONArray,
+          targetSettings: {},
+        },
+        teammate([Permission.EditForm]),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  test("an alert form refuses another target's settings, naming its own", async () => {
+    const error: Error | undefined = await refusal(
+      create(
+        alertForm({
+          targetSettings: { incidentSeverityId: SEVERITY_ID },
+        }),
+        { isRoot: true, tenantId: PROJECT_ID },
+      ),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect(error?.message).toContain(
+      '"incidentSeverityId" is not a setting of forms that create an alert.',
+    );
+  });
+
+  test("an alert form refuses an incident's questions", async () => {
+    const error: Error | undefined = await refusal(
+      create(
+        alertForm({
+          fields: [
+            {
+              id: "severity",
+              source: FormFieldSource.TargetField,
+              targetField: "incidentSeverityId",
+              label: "Severity",
+              isRequired: false,
+            },
+          ] as unknown as JSONArray,
+        }),
+        { isRoot: true, tenantId: PROJECT_ID },
+      ),
+    );
+
+    expect(error).toBeInstanceOf(BadDataException);
   });
 });

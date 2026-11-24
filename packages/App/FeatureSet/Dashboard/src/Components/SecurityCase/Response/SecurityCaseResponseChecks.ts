@@ -5,7 +5,6 @@ import {
 import { ResponseStep } from "./SecurityCaseResponseTypes";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import OneUptimeDate from "Common/Types/Date";
 import {
   ResponseLink,
   ResponseLinkKind,
@@ -16,6 +15,7 @@ import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { DOCS_URL } from "Common/UI/Config";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { wordStepCheckSentence } from "Common/Utils/SecurityCase/ResponsePlan/StepCheckSentences";
+import { WrittenMoment, writeReaderMoment } from "Common/Utils/MomentPhrases";
 import {
   STEP_CHECK_OPEN_BLOCKLIST,
   STEP_CHECK_OPEN_EVENTS,
@@ -62,13 +62,26 @@ export function getStepCheckLineClassName(
 
 /*
  * A step OneUptime cannot tell about says why at once - what it does know,
- * and how to let it check - since that is what the person acts on; every
- * other state folds what else it saw under How We Know.
+ * and how to let it check - since that is what the person acts on, and so
+ * does one that looks done but leaves something for the person to confirm,
+ * named one by one: the account changes OneUptime cannot read back
+ * (#10603). Every other check folds what else it saw under How We Know.
  */
-export function isCheckExplainedInline(
-  state: SecurityCaseStepCheckState,
-): boolean {
-  return state === SecurityCaseStepCheckState.CannotTell;
+export function isCheckExplainedInline(check: {
+  state: SecurityCaseStepCheckState;
+  evidence: { data: Record<string, unknown> };
+}): boolean {
+  if (check.state === SecurityCaseStepCheckState.CannotTell) {
+    return true;
+  }
+
+  const toConfirm: unknown = check.evidence.data["toConfirm"];
+
+  return (
+    check.state === SecurityCaseStepCheckState.LooksDone &&
+    typeof toConfirm === "number" &&
+    toConfirm > 0
+  );
 }
 
 // A step that looks done is a person's to confirm: it becomes their tick.
@@ -95,28 +108,39 @@ export function isDoneByCheckOnly(step: ResponseStep): boolean {
   return step.isCheckedByOneUptime && !step.taskId;
 }
 
-// A time of OneUptime's evidence on the reader's clock: the time today, the day and time before.
-export function writeCheckTime(time: Date, now: Date = new Date()): string {
-  const use12HourFormat: boolean = OneUptimeDate.getUserPrefers12HourFormat();
-
-  return OneUptimeDate.getDateAsLocalDayMonthString(time) ===
-    OneUptimeDate.getDateAsLocalDayMonthString(now)
-    ? OneUptimeDate.getLocalTimeString(time, { use12HourFormat })
-    : OneUptimeDate.getDateAsLocalDayMonthTimeString(time, {
-        use12HourFormat,
-      });
+/*
+ * A moment of OneUptime's evidence on the reader's clock: the time alone
+ * today, the day and the time on another day - each a sentence's moment
+ * brings its own words to, "at 14:25", "on 27 Nov at 14:25" (#10622).
+ */
+export function writeCheckMoment(
+  time: Date,
+  now: Date = new Date(),
+): WrittenMoment {
+  return writeReaderMoment(time, now);
 }
 
-// A sentence of the evidence in the reader's words, its times on their clock.
+/*
+ * The same moment as one text, "14:25" today and "27 Nov, 14:25" on another
+ * day, for a sentence that still writes its own preposition before it: the
+ * campaigns' "Blocked until {{time}}" (#10932). A step check's sentence takes
+ * the moment's phrase instead (writeCheckMoment).
+ */
+export function writeCheckTime(time: Date, now: Date = new Date()): string {
+  return writeCheckMoment(time, now).whole;
+}
+
+// A sentence of the evidence in the reader's words, its moments on their clock.
 export function readCheckSentence(
   sentence: SecurityCaseStepCheckSentence,
   translator: Translator,
+  now: Date = new Date(),
 ): string {
   return wordStepCheckSentence({
     sentence,
     translator,
-    writeTime: (time: Date): string => {
-      return writeCheckTime(time);
+    writeMoment: (time: Date): WrittenMoment => {
+      return writeCheckMoment(time, now);
     },
   });
 }

@@ -220,6 +220,7 @@ export const POSTMORTEM_ACTION_ITEMS_TEST_IDS: {
   track: string;
   trackButton: string;
   dialogItem: string;
+  repositoryPicker: string;
 } = {
   card: "postmortem-action-items",
   list: "postmortem-action-items-list",
@@ -240,4 +241,6 @@ export const POSTMORTEM_ACTION_ITEMS_TEST_IDS: {
   track: "postmortem-action-items-track",
   trackButton: "postmortem-action-items-track-button",
   dialogItem: "postmortem-action-item-dialog-item",
+  // The dialog's repository field, searched on the server (#10764).
+  repositoryPicker: "postmortem-action-item-repository",
 };
