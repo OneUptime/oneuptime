@@ -1172,6 +1172,7 @@ import { AddSecurityCaseAiHoldUntilIndex1809187490010 } from "./1809187490010-Ad
 import { AddSecurityAutomaticResponse1809187500000 } from "./1809187500000-AddSecurityAutomaticResponse";
 import { AddSecurityAutomaticResponseIndexesAndKeys1809187500010 } from "./1809187500010-AddSecurityAutomaticResponseIndexesAndKeys";
 import { AddDataSecurityIssueResolution1809187510368 } from "./1809187510368-AddDataSecurityIssueResolution";
+import { AddSecurityAutomaticResponseHourlyLimit1809187530746 } from "./1809187530746-AddSecurityAutomaticResponseHourlyLimit";
 
 export default [
   InitialMigration,
@@ -2348,4 +2349,5 @@ export default [
   AddSecurityAutomaticResponse1809187500000,
   AddSecurityAutomaticResponseIndexesAndKeys1809187500010,
   AddDataSecurityIssueResolution1809187510368,
+  AddSecurityAutomaticResponseHourlyLimit1809187530746,
 ];

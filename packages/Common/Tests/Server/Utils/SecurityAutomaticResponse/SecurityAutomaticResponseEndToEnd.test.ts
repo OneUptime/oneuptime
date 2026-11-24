@@ -40,6 +40,7 @@ import SecurityAutomaticResponse, {
   SecurityAutomaticResponseJobData,
   readSecurityAutomaticResponseJobData,
 } from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponse";
+import SecurityAutomaticResponseLimit from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseLimit";
 import SecurityAutomaticResponseRecorder from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityAutomaticResponseRecorder";
 import SecurityRepeatOffenders from "../../../../Server/Utils/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import SecuritySignedInAddresses, {
@@ -416,6 +417,8 @@ beforeEach(() => {
     .mockResolvedValue(policy() as never);
   jest.spyOn(Semaphore, "lock").mockResolvedValue({} as SemaphoreMutex);
   jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  // The project's hourly limit (#10746): the default.
+  jest.spyOn(SecurityAutomaticResponseLimit, "read").mockResolvedValue(50);
   jest
     .spyOn(SecurityDetectionService, "findOneBy")
     .mockImplementation((async () => {

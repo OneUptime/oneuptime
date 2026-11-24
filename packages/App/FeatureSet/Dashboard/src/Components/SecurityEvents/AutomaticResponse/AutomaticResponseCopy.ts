@@ -8,8 +8,9 @@ import {
  * The words of Security Events > Playbooks > Automatic Response (#10350):
  * each policy's card - whether it is on, where its trial run stands and
  * what it would have done, what it acts on, its guardrails and its time to
- * block - the dialog that makes or changes a project's own policy, and
- * what the page says when the hour's automatic blocks are used up. Each is
+ * block - the dialog that makes or changes a project's own policy, what
+ * the page says when the hour's automatic blocks are used up, and the
+ * hourly limit a project sets under More settings (#10746). Each is
  * an en.json key, looked up where it is drawn. The ready policies' names
  * and descriptions, and what is wrong with a project's own, are the shared
  * rules' sentences (Types/SecurityAutomaticResponse), keys too.
@@ -251,12 +252,41 @@ export const SECONDS_AXIS: string = translationKey("Seconds");
 
 // ---------- The page ----------
 
-// The hour's automatic blocks are used up: the policies stopped.
+/*
+ * The hour's automatic blocks are used up: the policies stopped at the
+ * project's own limit (#10746) - {{count}} is the limit, whatever the hour
+ * made, since a limit lowered in the middle of an hour can be below that -
+ * and paged the security owners, or will at the next stop.
+ */
 export const LIMIT_REACHED: PluralTemplate = {
-  one: "Your policies made {{count}} automatic block in the last hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.",
+  one: "Your policies reached your limit of {{count}} automatic block an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.",
   other:
-    "Your policies made {{count}} automatic blocks in the last hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.",
+    "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.",
 };
+export const LIMIT_REACHED_NOT_PAGED: PluralTemplate = {
+  one: "Your policies reached your limit of {{count}} automatic block an hour, so they stopped. They start again as the hour's blocks age out.",
+  other:
+    "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.",
+};
+
+// After the notice, for whoever may change the limit: opens it under More settings.
+export const CHANGE_LIMIT: string = translationKey("Change Limit");
+
+// ---------- More settings: the hourly limit (#10746) ----------
+
+export const MORE_SETTINGS_DESCRIPTION: string = translationKey(
+  "What every policy shares.",
+);
+export const HOURLY_LIMIT_TITLE: string = translationKey("Hourly Limit");
+export const HOURLY_LIMIT_DESCRIPTION: string = translationKey(
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.",
+);
+export const HOURLY_LIMIT_FIELD_TITLE: string = translationKey(
+  "Automatic Blocks an Hour",
+);
+export const HOURLY_LIMIT_FIELD_DESCRIPTION: string = translationKey(
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.",
+);
 
 export const OWN_POLICIES_TITLE: string = translationKey("Your Own Policy");
 export const OWN_POLICIES_DESCRIPTION: string = translationKey(
@@ -338,6 +368,9 @@ export const AUTOMATIC_RESPONSE_TEST_IDS: {
   guardrails: string;
   timeToBlock: string;
   limitNotice: string;
+  changeLimit: string;
+  moreSettings: string;
+  hourlyLimit: string;
   readFailed: string;
   createPolicy: string;
 } = {
@@ -354,6 +387,9 @@ export const AUTOMATIC_RESPONSE_TEST_IDS: {
   guardrails: "automatic-response-guardrails",
   timeToBlock: "automatic-response-time-to-block",
   limitNotice: "automatic-response-limit",
+  changeLimit: "automatic-response-change-limit",
+  moreSettings: "automatic-response-more-settings",
+  hourlyLimit: "automatic-response-hourly-limit",
   readFailed: "automatic-response-read-failed",
   createPolicy: "automatic-response-create-policy",
 };
