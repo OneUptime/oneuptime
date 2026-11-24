@@ -52,6 +52,8 @@ export const ATTRIBUTE_DISPLAY_NAMES: Readonly<Record<string, string>> = {
   "resource.openstack.cloud.name": "Cloud",
   "resource.docker.swarm.cluster.name": "Cluster",
   "resource.vmware.vcenter.name": "vCenter",
+  // An XCP-ng pool's logs are scoped by its XAPI UUID; the page shows its name.
+  "resource.xcp_ng.pool.id": "Pool",
   "resource.storage.array.name": "Storage Array",
   "resource.iot.fleet.name": "Fleet",
   /*

@@ -33,9 +33,10 @@ import EmptyFigure, {
  * Each of the Incident, Alert, and ScheduledMaintenance models exposes
  * the same set of resource-relation fields (`hosts`, `kubernetesClusters`,
  * `dockerHosts`, `podmanHosts`, `dockerSwarmClusters`, `proxmoxClusters`,
- * `vmwareVCenters`, `cephClusters`, `storageArrays`, `databaseServers`,
- * `services`). The host/k8s/docker/podman/swarm/proxmox/vmware/ceph/storage
- * array/database/service overview pages filter their
+ * `vmwareVCenters`, `xcpNgPools`, `cephClusters`, `storageArrays`,
+ * `databaseServers`, `services`). The host/k8s/docker/podman/swarm/proxmox/
+ * vmware/xcp-ng/ceph/storage array/database/service overview pages filter
+ * their
  * activity tables by populating one of these keys with an `Includes`
  * over the current resource id — this component does the same for the
  * count cards so the numbers match what the filtered pages show.
@@ -55,6 +56,7 @@ export type ResourceQueryKey =
   | "proxmoxClusters"
   | "openStackClouds"
   | "vmwareVCenters"
+  | "xcpNgPools"
   | "cephClusters"
   | "storageArrays"
   | "databaseServers"

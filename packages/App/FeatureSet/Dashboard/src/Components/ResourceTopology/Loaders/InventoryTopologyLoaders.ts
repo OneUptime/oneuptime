@@ -6,6 +6,8 @@ import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import ProxmoxResource from "Common/Models/DatabaseModels/ProxmoxResource";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import XcpNgResource from "Common/Models/DatabaseModels/XcpNgResource";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -17,6 +19,7 @@ import {
   keyForDockerSwarmCluster,
   keyForProxmoxCluster,
   keyForStorageArray,
+  keyForXcpNgPool,
 } from "Common/Utils/Telemetry/EntityKey";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -30,6 +33,7 @@ import {
 } from "../Builders/DockerSwarmTopology";
 import { buildProxmoxTopology } from "../Builders/ProxmoxTopology";
 import { buildStorageArrayTopology } from "../Builders/StorageArrayTopology";
+import { buildXcpNgTopology } from "../Builders/XcpNgTopology";
 import { ResourceTopologyTruncation } from "../ResourceTopologyModel";
 import {
   OpenIssuesResult,
@@ -41,7 +45,8 @@ import { ResourceTopologyData } from "../ResourceTopologyPage";
 
 /*
  * The topologies read from one inventory table each: a Docker Swarm
- * cluster's, a Proxmox cluster's, a Ceph cluster's and a storage array's.
+ * cluster's, a Proxmox cluster's, an XCP-ng pool's, a Ceph cluster's and a
+ * storage array's.
  * Each reads its resource, every inventory row (the columns its map needs)
  * and its open incidents and alerts.
  */
@@ -236,6 +241,82 @@ export async function loadProxmoxTopology(
       loaded.projectId && name
         ? masterTopologyRouteFor(
             keyForProxmoxCluster(loaded.projectId.toString(), name),
+          )
+        : null,
+  };
+}
+
+/*
+ * An XCP-ng pool's map: the pool, its hosts, the VMs each host runs and the
+ * storage repositories they use, from the XcpNgResource inventory (the
+ * builder, Builders/XcpNgTopology, decides what each part shows). Virtual
+ * disks are read too: they tie each VM to the storage repositories it uses.
+ * The master Topology knows the pool by its UUID (xcp_ng.pool.id).
+ */
+export async function loadXcpNgTopology(
+  poolId: ObjectID,
+): Promise<ResourceTopologyData> {
+  const loaded: Loaded<XcpNgPool, XcpNgResource> = await loadInventory({
+    id: poolId,
+    resourceType: XcpNgPool,
+    resourceSelect: { name: true, poolIdentifier: true, lastSeenAt: true },
+    rowType: XcpNgResource,
+    rowQuery: { xcpNgPoolId: poolId },
+    rowSelect: {
+      _id: true,
+      kind: true,
+      externalId: true,
+      name: true,
+      powerState: true,
+      isUp: true,
+      isEnabled: true,
+      isControlDomain: true,
+      parentHostExternalId: true,
+      parentHostName: true,
+      storageRepositoryExternalId: true,
+      storageRepositoryName: true,
+      vmExternalId: true,
+      vmName: true,
+      srType: true,
+      isShared: true,
+      latestCpuPercent: true,
+      latestMemoryPercent: true,
+      latestDiskBytes: true,
+      maxDiskBytes: true,
+      latestDiskPercent: true,
+      metricsUpdatedAt: true,
+      lastSeenAt: true,
+    },
+    relation: "xcpNgPools",
+    kind: "xcp_ng.pool",
+  });
+  const name: string = loaded.resource?.name || "";
+  const poolIdentifier: string = loaded.resource?.poolIdentifier || "";
+
+  return {
+    arrangements: [
+      {
+        id: "hosts",
+        label: translationKey("Hosts"),
+        graph: buildXcpNgTopology({
+          pool: {
+            id: poolId.toString(),
+            name: name,
+            lastSeenAt: loaded.resource?.lastSeenAt || null,
+          },
+          rows: loaded.rows.data,
+          issues: loaded.issues?.records || [],
+          now: new Date(),
+          truncations: loaded.truncations,
+        }),
+      },
+    ],
+    issuesArePartial: Boolean(loaded.issues?.isPartial),
+    issuesAreUnreadable: areOpenIssuesUnreadable(loaded.issues),
+    masterTopologyRoute:
+      loaded.projectId && poolIdentifier
+        ? masterTopologyRouteFor(
+            keyForXcpNgPool(loaded.projectId.toString(), poolIdentifier),
           )
         : null,
   };
