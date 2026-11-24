@@ -177,6 +177,7 @@ OneUptime AI drar sig aldrig tillbaka i tysthet. Den lämnar över ärendet till
 - det som nästa steg agerar på är skyddat;
 - den har agerat på egen hand så ofta som den får under en timme;
 - AI är avstängd för projektet eller för säkerhetsärenden, det inte finns någon LLM-leverantör, eller projektet har slut på AI-krediter eller har nått sin dagliga AI-gräns;
+- produkten Säkerhetshändelser är avstängd på servern;
 - dess AI-bedömning inte kunde avgöra om ärendet är verkligt;
 - ett steg som den utförde inte håller, ett steg som den startade inte slutfördes, eller en person avböjde eller ångrade ett steg som den utförde;
 - den inte kan avgöra vad den ska göra härnäst, eller allt som återstår i ärendet måste göras av en person.
@@ -184,6 +185,8 @@ OneUptime AI drar sig aldrig tillbaka i tysthet. Den lämnar över ärendet till
 Personerna på ärendet får veta det direkt, eller, när ingen är på ärendet, de personer som aviseras om ärenden med dess prioritet: **OneUptime AI lämnade över ett säkerhetsärende till personer**, under **Användarinställningar → Aviseringsinställningar**. En aviseringsregel för arbetsytan för säkerhetsärenden postar det i sin Slack- eller Microsoft Teams-kanal under **Överlämnat till personer av OneUptime AI**. **Ta över** lämnar över ärendet utan att meddela någon, eftersom personen som tryckte på den har ärendet.
 
 **Agera med AI** ber OneUptime AI att arbeta med ärendet igen, från där ärendet står.
+
+Så länge produkten Säkerhetshändelser är avstängd på servern startar OneUptime AI inget nytt steg i något ärende, och inom en minut lämnar den över varje ärende den arbetar med till personer. Ett steg som den redan har startat slutförs eller kan ångras som vanligt. När produkten är påslagen igen tar den inte upp något av de ärendena igen av sig själv: det gör **Agera med AI**.
 
 Ett ärende som hålls inne medan OneUptime AI agerar först når personer en gång, med aviseringen om det nya ärendet och varför OneUptime AI slutade: se [Låt OneUptime AI agera först](#låt-oneuptime-ai-agera-först).
 

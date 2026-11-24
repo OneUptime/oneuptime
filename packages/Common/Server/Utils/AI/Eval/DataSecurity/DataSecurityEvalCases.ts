@@ -52,6 +52,7 @@ import {
 import PULL_REQUEST_EVAL_DIFFS, {
   PullRequestEvalDiff,
 } from "./PullRequestReviewEvalSet";
+import FINDING_VERDICT_EVAL_CASES from "./FindingVerdictEvalSet";
 import DataCategory from "../../../../../Types/DataSecurity/DataCategory";
 import { ScrubRuleWriterRuleKind } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
 import {
@@ -1745,6 +1746,8 @@ const PULL_REQUEST_REVIEW_CASES: Array<PullRequestReviewEvalCase> =
 export const DATA_SECURITY_EVAL_CASES: ReadonlyArray<DataSecurityEvalCase> = [
   ...ANALYSIS_CASES,
   ...FIELD_SUGGESTION_CASES,
+  // OneUptime AI's verdicts on findings, with the team's decisions as precedent (#10372).
+  ...FINDING_VERDICT_EVAL_CASES,
   ...FIX_CASES,
   ...ASK_AI_CASES,
   ...STORE_OWNER_CASES,

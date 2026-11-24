@@ -38,6 +38,7 @@ import SecurityCaseValues, {
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import AIInvestigationQueue from "../../SRE/InvestigationQueue";
 import SecurityCaseResponseLook from "./SecurityCaseResponseLook";
+import SecurityCaseResponseProductOff from "./SecurityCaseResponseProductOff";
 
 /*
  * WHEN ONEUPTIME AI WORKS A SECURITY CASE (#10352), and the one way a look
@@ -58,8 +59,11 @@ import SecurityCaseResponseLook from "./SecurityCaseResponseLook";
  *
  * One look queued or running per case at a time, under the case's lock: a
  * second start while one is on its way adds nothing. Whatever stops
- * OneUptime AI on a case it was going to work - AI off, no credits - hands
- * the case to people, saying why: it never stands down quietly.
+ * OneUptime AI on a case it was going to work - AI off, no credits,
+ * Security Events switched off on the server - hands the case to people,
+ * saying why: it never stands down quietly. While Security Events is off
+ * no look starts, and every case it works goes to people within a minute
+ * (SecurityCaseResponseProductOff, #10816).
  */
 
 /*
@@ -116,6 +120,7 @@ const GATE_HAND_OFFS: Partial<
 > = {
   ai_disabled: SecurityCaseHandOffReason.AiOff,
   response_disabled: SecurityCaseHandOffReason.AiOff,
+  product_off: SecurityCaseHandOffReason.ProductOff,
   provider_missing: SecurityCaseHandOffReason.NoLlmProvider,
   insufficient_ai_balance: SecurityCaseHandOffReason.OutOfCredits,
   project_daily_limit_reached: SecurityCaseHandOffReason.OutOfCredits,
@@ -124,8 +129,8 @@ const GATE_HAND_OFFS: Partial<
 export default class SecurityCaseResponse {
   /*
    * Why OneUptime AI cannot work a case of this project now, or null when
-   * it can: AI on, for cases too, a provider, credits and room under the
-   * project's daily AI limits.
+   * it can: AI on, for cases too, Security Events on on the server, a
+   * provider, credits and room under the project's daily AI limits.
    */
   @CaptureSpan()
   public static async getNotStartedReason(data: {
@@ -150,6 +155,11 @@ export default class SecurityCaseResponse {
 
       if (!limits.isOn) {
         return "response_disabled";
+      }
+
+      // Switched off on the server (#10816): none of the product's work starts.
+      if (await SecurityCaseResponseProductOff.isOff()) {
+        return "product_off";
       }
 
       switch (await SecurityCaseResponseLook.getAiGate({ project, limits })) {
@@ -361,6 +371,16 @@ export default class SecurityCaseResponse {
   public static async startDueLooks(
     now: Date = OneUptimeDate.getCurrentDate(),
   ): Promise<number> {
+    /*
+     * Security Events switched off on the server (#10816): no look starts,
+     * and every case OneUptime AI works goes to people instead, saying why -
+     * whenever its next look was due (SecurityCaseResponseProductOff).
+     */
+    if (await SecurityCaseResponseProductOff.isOff()) {
+      await SecurityCaseResponseProductOff.stopEveryCase(now);
+      return 0;
+    }
+
     const due: Array<SecurityCase> = await SecurityCaseService.findBy({
       query: {
         aiNextLookAt: QueryHelper.lessThanEqualTo(now),
@@ -434,6 +454,19 @@ export default class SecurityCaseResponse {
     securityCaseId: ObjectID;
     isFirstLook: boolean;
   }): Promise<ObjectID | null> {
+    /*
+     * Security Events switched off on the server (#10816): the queue would
+     * take no look, quietly. None starts, the case is not marked as
+     * OneUptime AI's, and it goes to people, saying why.
+     */
+    if (await SecurityCaseResponseProductOff.isOff()) {
+      await SecurityCaseResponseProductOff.stopCase({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+      });
+      return null;
+    }
+
     let mutex: SemaphoreMutex | null = null;
 
     try {

@@ -2180,17 +2180,20 @@ describe("the first check, read as the server judges it (#7410)", () => {
   });
 
   test("asks again until every location has answered, then stops", async () => {
+    /*
+     * The rest of the answers are held until the first has been read: the
+     * setup asks again every 5 ms here, so on a busy runner an answer that
+     * is already there could land before the test reads the first one.
+     */
+    let answerTheRest: (state: unknown) => void = () => {};
     api["loadFirstCheck"]!.mockResolvedValueOnce({
       locationCount: 2,
       activeLocationCount: 2,
       answers: [{ isOnline: false, failureCause: "Connection refused" }],
-    }).mockResolvedValue({
-      locationCount: 2,
-      activeLocationCount: 2,
-      answers: [
-        { isOnline: false, failureCause: "Connection refused" },
-        { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
-      ],
+    }).mockImplementation(() => {
+      return new Promise((resolve: (state: unknown) => void) => {
+        answerTheRest = resolve;
+      });
     });
 
     await renderSetup();
@@ -2198,9 +2201,28 @@ describe("the first check, read as the server judges it (#7410)", () => {
     await startChecking();
 
     // One answer in, one to come: nothing claimed yet.
-    expect(
-      screen.getByTestId("guided-setup-first-check-verdict"),
-    ).toHaveTextContent("Waiting for 1 more location...");
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-first-check-verdict"),
+      ).toHaveTextContent("Waiting for 1 more location...");
+    });
+
+    // It asks again, and the rest answer.
+    await waitFor(() => {
+      expect(api["loadFirstCheck"]!.mock.calls.length).toBeGreaterThanOrEqual(
+        2,
+      );
+    });
+    await act(async () => {
+      answerTheRest({
+        locationCount: 2,
+        activeLocationCount: 2,
+        answers: [
+          { isOnline: false, failureCause: "Connection refused" },
+          { isOnline: true, responseCode: 200, responseTimeInMs: 30 },
+        ],
+      });
+    });
 
     await waitFor(() => {
       expect(

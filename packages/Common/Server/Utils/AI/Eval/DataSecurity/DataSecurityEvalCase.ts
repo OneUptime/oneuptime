@@ -10,6 +10,11 @@ import {
 } from "../../../../../Types/DataSecurity/DataStoreOwnerProposal";
 import { DataSecurityIssueGroupFacts } from "../../../../../Types/DataSecurity/DataSecurityIssueGroup";
 import {
+  DataStoreFindingPrecedent,
+  DataStoreFindingVerdict,
+  FindingWrongMatchSign,
+} from "../../../../../Types/DataSecurity/DataStoreFindingVerdict";
+import {
   ScrubRuleWriterPlace,
   ScrubRuleWriterRuleKind,
 } from "../../../../../Types/DataSecurity/ScrubRuleWriterPlace";
@@ -25,6 +30,7 @@ import {
   AiIssueRecord,
   AiRecordDossier,
   AiStoreRecord,
+  AiVerdictFindingRecord,
 } from "../../DataSecurity/DataSecurityAiInput";
 import ComplianceFramework from "../../../../../Types/DataSecurity/ComplianceFramework";
 import {
@@ -257,6 +263,40 @@ export interface PullRequestReviewEvalCase extends DataSecurityEvalCaseBase {
 }
 
 /*
+ * One finding OneUptime AI judges (#10372): its facts, its signs of a wrong
+ * match, its precedent - the team's earlier decisions, P1 first - and the
+ * verdict a right answer gives it: one of `expect`. A right Confirm or Not
+ * sensitive cites at least one of `cites` (refs of its precedent), when the
+ * case names any.
+ */
+export interface FindingVerdictEvalFinding {
+  finding: AiVerdictFindingRecord;
+  signs: Array<FindingWrongMatchSign>;
+  nameSaysInstead?: Array<string> | undefined;
+  precedent: Array<
+    DataStoreFindingPrecedent & {
+      storeKind?: string | undefined;
+      storeEnvironment?: string | undefined;
+    }
+  >;
+  expect: Array<DataStoreFindingVerdict>;
+  cites?: Array<string> | undefined;
+}
+
+/*
+ * The verdicts on a store's findings that wait for a person (#10372): the
+ * store, and each finding with what it is judged from. The answer is held
+ * to its facts as the product holds it (holdFindingVerdictToFacts) before
+ * it is scored, so a precedent it was not given counts for nothing.
+ */
+export interface FindingVerdictEvalCase extends DataSecurityEvalCaseBase {
+  feature: DataSecurityAiFeature.JudgeFindings;
+  store: AiStoreRecord;
+  findings: Array<FindingVerdictEvalFinding>;
+  language?: string | undefined;
+}
+
+/*
  * What a right draft of one field of a store's record is (#10375): drafted,
  * saying one word of each group; or left empty (null) where no fact says
  * it - a record that guesses is worse than one that asks.
@@ -331,6 +371,7 @@ export interface AuditEvidenceEvalCase extends DataSecurityEvalCaseBase {
 
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
+  | FindingVerdictEvalCase
   | FieldSuggestionEvalCase
   | FixEvalCase
   | AskAiEvalCase

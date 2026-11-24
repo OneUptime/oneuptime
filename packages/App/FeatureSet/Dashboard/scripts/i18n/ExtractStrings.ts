@@ -189,6 +189,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * OneUptime AI's verdict on a finding that waits for a person (#10372):
+   * Confirm it, Not sensitive or Cannot tell, and the signs of a wrong
+   * match, as a finding's row, the findings' filter and Apply to Similar
+   * Findings draw them. The server keeps the same file's English. Only the
+   * words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+    kind: "keys",
+  },
+  /*
    * The compliance paperwork (#10375): the record of processing's fields,
    * legal bases, people, statuses and refusals; the kinds of fact a draft
    * rests on; an impact assessment's parts and why a store needs one; and

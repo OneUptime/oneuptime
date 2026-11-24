@@ -105,6 +105,9 @@ import {
   ResponderWait,
   planSecurityCaseResponse,
 } from "./SecurityCaseResponsePlanner";
+import SecurityCaseResponseProductOff, {
+  SecurityCaseProductOffStop,
+} from "./SecurityCaseResponseProductOff";
 import SecurityCaseResponseToolkit, {
   ToolResult,
   ToolkitCase,
@@ -130,6 +133,14 @@ import SecurityCaseResponseToolkit, {
  *     a step of its own, when a check is due, when the quiet window before
  *     a close ends. Something it waits on changing looks at once
  *     (SecurityCaseResponseNudge).
+ *
+ * A case handed to people is theirs (#10816): a look claimed after a
+ * hand-off - queued before it, or held in the queue while Security Events
+ * was switched off - does nothing, and only Respond with AI takes the case
+ * up again. Before each step it asks whether it may still go on: Security
+ * Events still on (SecurityCaseResponseProductOff), and the case not handed
+ * over since the look began - Take Over stops it there. Where it stands
+ * once a look is done never undoes a hand-off made while it looked.
  *
  * Everything is read and written as OneUptime (root), with the project and
  * the case named in every query: the responder is a system actor, and every
@@ -164,7 +175,32 @@ export interface LookOutcome {
   waits: Array<ResponderWait>;
   isFinished: boolean;
   nextLookAt: Date | null;
+  /*
+   * The case was handed to people before the look, or while it looked - a
+   * person's Take Over, Security Events switched off (#10816): it stopped,
+   * and left the case to them.
+   */
+  isNoLongerWorking: boolean;
 }
+
+// Why a look stops before its next step (#10816).
+export enum LookStop {
+  // Security Events was switched off on the server: the case goes to people.
+  ProductOff = "ProductOff",
+  // The case was handed to people since the look began: it is theirs.
+  HandedOver = "HandedOver",
+}
+
+/*
+ * The states a look leaves the case in its own once it is done: still
+ * worked, or closed while it looked - looked at once more, and finished
+ * then. Never a case handed to people meanwhile (#10816).
+ */
+const LOOK_END_FROM_STATES: ReadonlyArray<SecurityCaseAiResponseState> = [
+  SecurityCaseAiResponseState.Working,
+  SecurityCaseAiResponseState.WaitingForPeople,
+  SecurityCaseAiResponseState.Finished,
+];
 
 const CASE_SELECT: {
   _id: true;
@@ -299,6 +335,19 @@ export default class SecurityCaseResponseLook {
       throw new NotFoundException("Security case not found.");
     }
 
+    /*
+     * Handed to people since this look was queued (#10816): the case is
+     * theirs, and the look does nothing - however long it waited in the
+     * queue, as one does while Security Events is switched off. Only
+     * Respond with AI takes the case up again.
+     */
+    if (
+      securityCase.aiResponseState ===
+      SecurityCaseAiResponseState.HandedToPeople
+    ) {
+      return this.noLongerWorking(0);
+    }
+
     const [project, values]: [Project | null, ProjectSecurityCaseValues] =
       await Promise.all([
         ProjectService.findOneById({
@@ -322,6 +371,24 @@ export default class SecurityCaseResponseLook {
       securityCase,
       now,
     });
+
+    /*
+     * Security Events switched off on the server (#10816): nothing new
+     * starts. What it started is recorded above as it went - the engine
+     * finishes or undoes it as usual - and the case goes to people, saying
+     * why (SecurityCaseResponseProductOff).
+     */
+    if (await SecurityCaseResponseProductOff.isOff()) {
+      return await this.stopWhileProductOff({
+        projectId: data.projectId,
+        securityCaseId: securityCase.id,
+        aiRunId: data.aiRunId,
+        carriedOut: 0,
+        stepKeys: [],
+        stepTitles: {},
+        now,
+      });
+    }
 
     const reads: PlanReads = await this.readPlan({
       projectId: data.projectId,
@@ -398,7 +465,40 @@ export default class SecurityCaseResponseLook {
     let handOffStepKeys: Array<string> = [];
     let carriedOut: number = 0;
 
-    for (const intent of planned.intents) {
+    for (const [index, intent] of planned.intents.entries()) {
+      /*
+       * Before each step (#10816): Security Events still on, and the case
+       * still OneUptime AI's. Switched off, the steps it was about to take
+       * are left for a person; taken over, the case is the person's.
+       */
+      const stop: LookStop | null = await this.getStop({
+        projectId: data.projectId,
+        securityCaseId: securityCase.id,
+      });
+
+      if (stop === LookStop.ProductOff) {
+        // The plan's steps it had not got to: the Response Plan's words for them.
+        const left: Array<string> = getStepKeys(
+          planned.intents.slice(index),
+        ).filter((key: string): boolean => {
+          return stepsByKey.has(key);
+        });
+
+        return await this.stopWhileProductOff({
+          projectId: data.projectId,
+          securityCaseId: securityCase.id,
+          aiRunId: data.aiRunId,
+          carriedOut,
+          stepKeys: left,
+          stepTitles: this.getStepTitles(toolkit, left),
+          now,
+        });
+      }
+
+      if (stop === LookStop.HandedOver) {
+        return this.noLongerWorking(carriedOut);
+      }
+
       const prepared: ResponderIntent = await this.prepare({
         intent,
         toolkit,
@@ -431,14 +531,7 @@ export default class SecurityCaseResponseLook {
         securityCaseId: securityCase.id,
         reason: handOff,
         stepKeys: handOffStepKeys,
-        stepTitles: Object.fromEntries(
-          handOffStepKeys.map((key: string): [string, string] => {
-            return [
-              key,
-              SecurityCaseResponseToolkit.getStepWords(toolkit, key),
-            ];
-          }),
-        ),
+        stepTitles: this.getStepTitles(toolkit, handOffStepKeys),
         aiRunId: data.aiRunId,
         now,
       });
@@ -449,17 +542,21 @@ export default class SecurityCaseResponseLook {
         waits: planned.waits,
         isFinished: false,
         nextLookAt: null,
+        isNoLongerWorking: false,
       };
     }
 
     if (planned.isFinished || stage === SecurityCaseStage.Closed) {
-      await SecurityCaseService.updateColumnsByIdWithoutHooks({
-        id: securityCase.id,
-        data: {
-          aiResponseState: SecurityCaseAiResponseState.Finished,
-          aiNextLookAt: null,
-        } as unknown as PartialEntity<SecurityCase>,
-      });
+      if (
+        !(await this.setWhereItStands({
+          projectId: data.projectId,
+          securityCaseId: securityCase.id,
+          state: SecurityCaseAiResponseState.Finished,
+          nextLookAt: null,
+        }))
+      ) {
+        return this.noLongerWorking(carriedOut);
+      }
 
       return {
         handedOff: null,
@@ -467,6 +564,7 @@ export default class SecurityCaseResponseLook {
         waits: [],
         isFinished: true,
         nextLookAt: null,
+        isNoLongerWorking: false,
       };
     }
 
@@ -486,15 +584,18 @@ export default class SecurityCaseResponseLook {
       ),
     });
 
-    await SecurityCaseService.updateColumnsByIdWithoutHooks({
-      id: securityCase.id,
-      data: {
-        aiResponseState: isWaitingForPeople
+    if (
+      !(await this.setWhereItStands({
+        projectId: data.projectId,
+        securityCaseId: securityCase.id,
+        state: isWaitingForPeople
           ? SecurityCaseAiResponseState.WaitingForPeople
           : SecurityCaseAiResponseState.Working,
-        aiNextLookAt: nextLookAt,
-      } as unknown as PartialEntity<SecurityCase>,
-    });
+        nextLookAt,
+      }))
+    ) {
+      return this.noLongerWorking(carriedOut);
+    }
 
     return {
       handedOff: null,
@@ -502,7 +603,140 @@ export default class SecurityCaseResponseLook {
       waits: planned.waits,
       isFinished: false,
       nextLookAt,
+      isNoLongerWorking: false,
     };
+  }
+
+  /*
+   * What stops a look before its next step (#10816), or null when it may
+   * go on: Security Events switched off on the server, or the case handed
+   * to people since the look began - a person's Take Over, or the
+   * every-minute job that hands every case over while the product is off.
+   */
+  public static async getStop(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+  }): Promise<LookStop | null> {
+    if (await SecurityCaseResponseProductOff.isOff()) {
+      return LookStop.ProductOff;
+    }
+
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneBy({
+        query: { _id: data.securityCaseId, projectId: data.projectId },
+        select: { _id: true, aiResponseState: true },
+        props: { isRoot: true },
+      });
+
+    if (
+      !securityCase ||
+      securityCase.aiResponseState ===
+        SecurityCaseAiResponseState.HandedToPeople
+    ) {
+      return LookStop.HandedOver;
+    }
+
+    return null;
+  }
+
+  /*
+   * A look stopped for Security Events switched off (#10816): the case goes
+   * to people, saying why, with the steps it was about to take as the ones
+   * left for a person; a closed one is done with.
+   */
+  private static async stopWhileProductOff(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    aiRunId: ObjectID;
+    carriedOut: number;
+    stepKeys: Array<string>;
+    stepTitles: Record<string, string>;
+    now: Date;
+  }): Promise<LookOutcome> {
+    const stop: SecurityCaseProductOffStop =
+      await SecurityCaseResponseProductOff.stopCase({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        aiRunId: data.aiRunId,
+        stepKeys: data.stepKeys,
+        stepTitles: data.stepTitles,
+        now: data.now,
+      });
+
+    if (stop === SecurityCaseProductOffStop.None) {
+      return this.noLongerWorking(data.carriedOut);
+    }
+
+    return {
+      handedOff:
+        stop === SecurityCaseProductOffStop.HandedOff
+          ? SecurityCaseHandOffReason.ProductOff
+          : null,
+      carriedOut: data.carriedOut,
+      waits: [],
+      isFinished: stop === SecurityCaseProductOffStop.Finished,
+      nextLookAt: null,
+      isNoLongerWorking: false,
+    };
+  }
+
+  // A look that left the case to the people it was handed to.
+  private static noLongerWorking(carriedOut: number): LookOutcome {
+    return {
+      handedOff: null,
+      carriedOut,
+      waits: [],
+      isFinished: false,
+      nextLookAt: null,
+      isNoLongerWorking: true,
+    };
+  }
+
+  /*
+   * Where OneUptime AI stands on the case once a look is done, and when it
+   * looks again - unless the case was handed to people while it looked
+   * (#10816): a person's Take Over, or Security Events switched off, is
+   * never undone by a look already under way. One compare-and-set per state
+   * the case may be in (LOOK_END_FROM_STATES). Returns whether it was set.
+   */
+  private static async setWhereItStands(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    state: SecurityCaseAiResponseState;
+    nextLookAt: Date | null;
+  }): Promise<boolean> {
+    for (const from of LOOK_END_FROM_STATES) {
+      const isSet: boolean =
+        await SecurityCaseService.compareAndSetColumnsByIdWithoutHooks({
+          id: data.securityCaseId,
+          data: {
+            aiResponseState: data.state,
+            aiNextLookAt: data.nextLookAt,
+          } as unknown as PartialEntity<SecurityCase>,
+          expectedData: {
+            projectId: data.projectId,
+            aiResponseState: from,
+          } as unknown as PartialEntity<SecurityCase>,
+        });
+
+      if (isSet) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Each step's words, in English, for the timeline: by key.
+  private static getStepTitles(
+    toolkit: ToolkitCase,
+    stepKeys: Array<string>,
+  ): Record<string, string> {
+    return Object.fromEntries(
+      stepKeys.map((key: string): [string, string] => {
+        return [key, SecurityCaseResponseToolkit.getStepWords(toolkit, key)];
+      }),
+    );
   }
 
   /*
@@ -1194,6 +1428,19 @@ export interface PlanReads {
   plan: ResponsePlan;
   matches: SecurityCaseMatchesJson | null;
   playbooks: Array<ResponsePlaybook>;
+}
+
+// The steps the intents are about, each once, in their order.
+function getStepKeys(intents: Array<ResponderIntent>): Array<string> {
+  const keys: Array<string> = [];
+
+  for (const intent of intents) {
+    if (intent.stepKey && !keys.includes(intent.stepKey)) {
+      keys.push(intent.stepKey);
+    }
+  }
+
+  return keys;
 }
 
 // A row of the log, as the planner reads it.
