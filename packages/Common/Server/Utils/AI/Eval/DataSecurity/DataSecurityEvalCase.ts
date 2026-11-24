@@ -45,6 +45,8 @@ import {
   RecordLegalBasis,
   RecordPeople,
 } from "../../../../../Types/DataSecurity/RecordOfProcessing";
+import { ExposureDraftPart } from "../../../../../Types/DataSecurity/ExposureAssessment";
+import { ExposureEvalExposure } from "./DataSecurityExposureEvalSet";
 
 /*
  * A CASE OF THE DATA SECURITY EVAL (#10365): ONE INPUT A FEATURE WOULD
@@ -426,6 +428,24 @@ export interface DescribeDataTypeEvalCase extends DataSecurityEvalCaseBase {
   expect: DataTypeEvalExpectation;
 }
 
+/*
+ * An exposure's write-up (#10377): a made-up exposure, worked out by the
+ * product's plain code into its assessment (DataSecurityExposureEvalSet),
+ * and the words each part of OneUptime AI's write-up must say once it is
+ * held to its facts - each group, one of its words.
+ */
+export interface ExposureAssessmentEvalCase extends DataSecurityEvalCaseBase {
+  feature:
+    | DataSecurityAiFeature.DraftExposureAssessment
+    | DataSecurityAiFeature.DraftExposureAssessmentOnRequest;
+  exposure: ExposureEvalExposure;
+  language?: string | undefined;
+  expect: {
+    parts: Partial<Record<ExposureDraftPart, Array<Array<string>>>>;
+    never: Array<string>;
+  };
+}
+
 export type DataSecurityEvalCase =
   | AnalysisEvalCase
   | FindingVerdictEvalCase
@@ -442,4 +462,5 @@ export type DataSecurityEvalCase =
   | ImpactAssessmentEvalCase
   | AuditEvidenceEvalCase
   | DraftDataTypesEvalCase
-  | DescribeDataTypeEvalCase;
+  | DescribeDataTypeEvalCase
+  | ExposureAssessmentEvalCase;

@@ -62,6 +62,38 @@ import {
   SeverityPill,
 } from "./DataSecurityPills";
 import {
+  ANYONE_COULD_READ,
+  OPEN_DAYS,
+  OPEN_HOURS,
+  OUTSIDE_ACCOUNTS,
+  PEOPLE_SAID_IN,
+  SECRET_REMOVED,
+  SECRET_STILL_THERE,
+  SINCE_FOUND,
+  STILL_OPEN,
+  UNTIL_RESPONSE,
+  UNTIL_SCAN,
+  UNTIL_CLOSED_BY_CHANGE,
+  SINCE_CHANGE,
+} from "../SecurityCase/Exposure/ExposureAssessmentCopy";
+import {
+  describeDeadline,
+  describePlaces,
+  getReadsLine,
+} from "../SecurityCase/Exposure/ExposureAssessmentModel";
+import { ObligationStatusPill } from "../SecurityCase/Exposure/ExposureObligationRow";
+import OneUptimeDate from "Common/Types/Date";
+import {
+  BreachLawRule,
+  getBreachLawRule,
+  isBreachLawId,
+} from "Common/Types/DataSecurity/BreachLaws";
+import {
+  BreachObligationStatus,
+  ExposureReadsLogged,
+  ExposureWindowEndKind,
+} from "Common/Types/DataSecurity/ExposureAssessment";
+import {
   COMPLIANCE_FACT_KIND_TITLES,
   ComplianceFact,
   ComplianceFactKind,
@@ -620,6 +652,147 @@ export const ComplianceFactLine: FunctionComponent<{
           {fact.reason ? <Quoted text={fact.reason} /> : <></>}
         </span>
       );
+    case ComplianceFactKind.ExposureIssue:
+      return (
+        <span className={ROW_CLASS_NAME}>
+          {fact.severity ? <SeverityPill severity={fact.severity} /> : <></>}
+          <span className="[overflow-wrap:anywhere]">
+            <IsolatedText text={fact.title} />
+          </span>
+          <Separator />
+          <span className="text-gray-500">{text(fact.status)}</span>
+        </span>
+      );
+    case ComplianceFactKind.ExposureWindow: {
+      const at: (value: string | undefined) => string = (
+        value: string | undefined,
+      ): string => {
+        return value
+          ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(value)
+          : "";
+      };
+
+      return (
+        <span className={ROW_CLASS_NAME}>
+          <span className="font-medium">
+            {fact.days >= 1
+              ? translator.translatePlural(OPEN_DAYS, fact.days)
+              : translator.translatePlural(OPEN_HOURS, fact.hours)}
+          </span>
+          <Separator />
+          <span>
+            {fact.startIsExact && fact.startOperation
+              ? translator.translateTemplate(SINCE_CHANGE, {
+                  date: at(fact.start),
+                  operation: fact.startOperation,
+                })
+              : translator.translateTemplate(SINCE_FOUND, {
+                  date: at(fact.start),
+                })}
+          </span>
+          <Separator />
+          <span>
+            {fact.isStillOpen
+              ? text(STILL_OPEN)
+              : translator.translateTemplate(
+                  fact.endKind === ExposureWindowEndKind.ResponseAction
+                    ? UNTIL_RESPONSE
+                    : fact.endKind === ExposureWindowEndKind.Change
+                      ? UNTIL_CLOSED_BY_CHANGE
+                      : UNTIL_SCAN,
+                  { date: at(fact.end) },
+                )}
+          </span>
+        </span>
+      );
+    }
+    case ComplianceFactKind.ExposureReads:
+      return (
+        <span className={ROW_CLASS_NAME}>
+          <span className="font-medium">
+            {text(getReadsLine(fact.logged as ExposureReadsLogged))}
+          </span>
+          {fact.isPublic ? (
+            <>
+              <Separator />
+              <span>{text(ANYONE_COULD_READ)}</span>
+            </>
+          ) : (
+            <></>
+          )}
+          {fact.outsideAccounts > 0 ? (
+            <>
+              <Separator />
+              <span>
+                {translator.translatePlural(
+                  OUTSIDE_ACCOUNTS,
+                  fact.outsideAccounts,
+                )}
+              </span>
+            </>
+          ) : (
+            <></>
+          )}
+        </span>
+      );
+    case ComplianceFactKind.SecretFound:
+      return (
+        <span className={ROW_CLASS_NAME}>
+          <span>{text(fact.dataType)}</span>
+          <code className={CODE_CLASS_NAME}>{fact.location}</code>
+          <span className="text-gray-500">
+            {text(fact.isStillThere ? SECRET_STILL_THERE : SECRET_REMOVED)}
+          </span>
+        </span>
+      );
+    case ComplianceFactKind.PeopleLiveIn:
+      return (
+        <span className={ROW_CLASS_NAME}>
+          {translator.translateTemplate(PEOPLE_SAID_IN, {
+            places: composedValue((sentence: Translator): string => {
+              return describePlaces(fact.places, sentence);
+            }),
+          })}
+        </span>
+      );
+    case ComplianceFactKind.BreachObligation: {
+      const rule: BreachLawRule | undefined = isBreachLawId(fact.ruleId)
+        ? getBreachLawRule(fact.ruleId)
+        : undefined;
+
+      return (
+        <span className={ROW_CLASS_NAME}>
+          <span className="font-medium">{fact.law}</span>
+          <Separator />
+          <span>{text(fact.action)}</span>
+          {rule ? (
+            <>
+              <Separator />
+              <span>{describeDeadline(rule, translator)}</span>
+            </>
+          ) : (
+            <></>
+          )}
+          {rule ? (
+            <ObligationStatusPill
+              obligation={{
+                ruleId: rule.id,
+                status: fact.status as BreachObligationStatus,
+                reasons: [],
+                checks: [],
+                // The pill says how far off it is only where it is known to apply.
+                isPlaceKnown: false,
+                foundAt: fact.countsFrom,
+                dueAt: fact.dueAt,
+              }}
+              now={new Date()}
+            />
+          ) : (
+            <></>
+          )}
+        </span>
+      );
+    }
     default:
       return <></>;
   }

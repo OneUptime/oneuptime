@@ -19,6 +19,7 @@ import {
   DataSecurityDropMetricImpact,
   DataSecurityDropMetricResult,
   DataSecurityExplainResult,
+  DataSecurityExposureAssessmentResponse,
   DataSecurityIssueAnalysisResult,
   DataSecurityIssueContainment,
   DataSecurityIssueContainmentRule,
@@ -79,6 +80,8 @@ import {
 } from "Common/Types/DataSecurity/TelemetryLeakFix";
 import ComplianceFramework from "Common/Types/DataSecurity/ComplianceFramework";
 import { ImpactAssessmentPart } from "Common/Types/DataSecurity/ImpactAssessment";
+import { ExposureDraftPart } from "Common/Types/DataSecurity/ExposureAssessment";
+import { BreachPlace } from "Common/Types/DataSecurity/BreachLaws";
 import {
   RecordField,
   RecordFieldAction,
@@ -432,6 +435,66 @@ export default class DataSecurityApi {
       ),
       { part: data.part, markdown: data.markdown },
     )) as unknown as DataSecurityImpactAssessmentResponse;
+  }
+
+  /*
+   * A security case's exposure assessment (#10377): what plain code works
+   * out of the store it is about, and OneUptime AI's write-up. Nothing
+   * any of these does sends anything anywhere.
+   */
+  public static async getExposureAssessment(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposureAssessment(securityCaseId.toString()),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // ...started by a person: of the store they pick, when the case is about more than one.
+  public static async assessExposure(data: {
+    securityCaseId: ObjectID;
+    dataStoreId?: string | undefined;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.assessExposure(data.securityCaseId.toString()),
+      data.dataStoreId ? { dataStoreId: data.dataStoreId } : {},
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  public static async draftExposureAssessment(
+    securityCaseId: ObjectID,
+  ): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.draftExposureAssessment(
+        securityCaseId.toString(),
+      ),
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  public static async editExposureAssessment(data: {
+    securityCaseId: ObjectID;
+    part: ExposureDraftPart;
+    markdown: string;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.editExposureAssessment(
+        data.securityCaseId.toString(),
+      ),
+      { part: data.part, markdown: data.markdown },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
+  }
+
+  // Where the people the data is about live; none takes the answer back.
+  public static async setExposurePeoplePlaces(data: {
+    securityCaseId: ObjectID;
+    places: Array<BreachPlace>;
+  }): Promise<DataSecurityExposureAssessmentResponse> {
+    return (await post(
+      DATA_SECURITY_API_ROUTES.exposurePeoplePlaces(
+        data.securityCaseId.toString(),
+      ),
+      { places: data.places },
+    )) as unknown as DataSecurityExposureAssessmentResponse;
   }
 
   // A framework's audit evidence over a period (#10375).

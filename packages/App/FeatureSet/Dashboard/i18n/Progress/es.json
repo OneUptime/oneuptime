@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63263,
-    "untranslated": 2306
+    "keys": 63890,
+    "untranslated": 2302
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -110,6 +110,7 @@
     "CPU Ready {{percent}}",
     "CPU.*high",
     "CSS",
+    "California",
     "Canonical Sunbeam",
     "Celsius",
     "Chad",
@@ -124,6 +125,7 @@
     "Code Challenge",
     "Colombia",
     "Color",
+    "Colorado",
     "Commit",
     "Community Edition",
     "Congo",
@@ -183,6 +185,7 @@
     "FlashBlade",
     "Flavor",
     "Flavors",
+    "Florida",
     "Fluent Bit",
     "Frames",
     "GKE Autopilot",
@@ -444,6 +447,7 @@
     "Tenant",
     "Tenant: {{tenant}}",
     "Terabytes",
+    "Texas",
     "Togo",
     "Tokelau",
     "Token",
@@ -492,6 +496,7 @@
     "Visual",
     "WAF",
     "WARN",
+    "Washington",
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",

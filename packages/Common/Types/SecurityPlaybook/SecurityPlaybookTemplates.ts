@@ -1,3 +1,4 @@
+import { getDataExposureChecklistTaskLines } from "../DataSecurity/ExposureChecklist";
 import IconProp from "../Icon/IconProp";
 import ObjectID from "../ObjectID";
 import SecurityCasePriorityLevel from "../SecurityCase/SecurityCasePriorityLevel";
@@ -109,14 +110,13 @@ export const DATA_EXPOSURE_TEMPLATE: SecurityPlaybookTemplateDefinition = {
         {},
         { requiresApproval: true, continueOnFailure: true },
       ),
-      // The response checklist, as the case's own tasks to tick off.
+      /*
+       * The response checklist, as the case's own tasks to tick off - each
+       * answered by the case's exposure assessment (#10377), which matches
+       * them by these very lines (ExposureChecklist).
+       */
       step(SecurityPlaybookActionType.AddCaseTasks, {
-        tasks: [
-          "Find who read the data while it was exposed, from the store's access logs and its Who Can Reach It page",
-          "Decide whether this is a breach you must report, to whom and by when",
-          "Rotate every secret and key the store held",
-          "Close the case with what was exposed, for how long, and to whom",
-        ],
+        tasks: getDataExposureChecklistTaskLines(),
       }),
     ];
   },
