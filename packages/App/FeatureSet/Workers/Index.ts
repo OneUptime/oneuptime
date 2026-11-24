@@ -449,6 +449,7 @@ import "./Jobs/OpenStackCloudOwners/SendOwnerAddedNotification";
 import "./Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
 import "./Jobs/CephClusterOwners/SendOwnerAddedNotification";
 import "./Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "./Jobs/XcpNgPoolOwners/SendOwnerAddedNotification";
 import "./Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "./Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "./Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
