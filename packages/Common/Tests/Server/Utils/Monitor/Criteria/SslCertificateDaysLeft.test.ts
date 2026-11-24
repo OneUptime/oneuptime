@@ -37,6 +37,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * AN SSL CERTIFICATE'S DAYS LEFT, COMPARED WITH THE PREVIOUS CHECK (#10905).
@@ -353,7 +354,7 @@ describe("an SSL certificate's days left (#10905)", () => {
     });
 
     test("over a window, the window's days are judged, not this check's", async () => {
-      const overTime: jest.SpiedFunction<
+      const overTime: SpyInstance<
         typeof EvaluateOverTime.getOverTimeValueForCriteriaFilter
       > = jest.spyOn(EvaluateOverTime, "getOverTimeValueForCriteriaFilter");
 

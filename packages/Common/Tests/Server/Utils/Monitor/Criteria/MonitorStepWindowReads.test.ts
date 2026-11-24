@@ -57,6 +57,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * EVERY WINDOW OF A STEP READS THAT STEP'S ROWS (#10906).
@@ -124,6 +125,7 @@ const RESPONSE_TIME_ABOVE_300: CriteriaFilter = {
 const OFFLINE: CriteriaFilter = {
   checkOn: CheckOn.IsOnline,
   filterType: FilterType.False,
+  value: undefined,
 };
 
 const BODY_HAS_ERROR: CriteriaFilter = {
@@ -379,7 +381,7 @@ describe("every window of a step reads that step's rows", () => {
 
   describe("reads shared while a check is judged", () => {
     test("two steps' counted windows of one series are two reads, each with its step", async () => {
-      const summarize: jest.SpiedFunction<
+      const summarize: SpyInstance<
         typeof MetricService.summarizeMonitorChecks
       > = jest
         .spyOn(MetricService, "summarizeMonitorChecks")
@@ -415,7 +417,7 @@ describe("every window of a step reads that step's rows", () => {
     });
 
     test("two steps' previous checks of one series are two reads, each with its step", async () => {
-      const readPrevious: jest.SpiedFunction<
+      const readPrevious: SpyInstance<
         typeof MetricService.readPreviousMonitorChecks
       > = jest
         .spyOn(MetricService, "readPreviousMonitorChecks")
@@ -593,7 +595,11 @@ describe("every window of a step reads that step's rows", () => {
       },
       {
         monitorType: MonitorType.SSLCertificate,
-        filter: { checkOn: CheckOn.IsOnline, filterType: FilterType.True },
+        filter: {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.True,
+          value: undefined,
+        },
         check: probeCheck,
       },
       {

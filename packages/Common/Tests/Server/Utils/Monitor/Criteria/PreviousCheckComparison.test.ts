@@ -7,6 +7,7 @@ import CriteriaFilterMatchHistory, {
   CriteriaFilterMatchHistoryReads,
 } from "../../../../../Server/Utils/Monitor/Criteria/CriteriaFilterMatchHistory";
 import MetricService, {
+  MonitorCheckAttributeFilter,
   MonitorPreviousCheckRow,
 } from "../../../../../Server/Services/MetricService";
 import logger from "../../../../../Server/Utils/Logger";
@@ -107,7 +108,7 @@ interface ReadAsked {
   metricName: string;
   windowStart: Date;
   before: Date;
-  attributes: Record<string, string> | undefined;
+  attributes: MonitorCheckAttributeFilter | undefined;
   groupByAttributeKeys: Array<string>;
 }
 
@@ -121,7 +122,7 @@ function stubPreviousChecks(rows: Array<MonitorPreviousCheckRow>): void {
         metricName: string;
         windowStart: Date;
         before: Date;
-        attributes?: Record<string, string> | undefined;
+        attributes?: MonitorCheckAttributeFilter | undefined;
         groupByAttributeKeys: Array<string>;
       }): Promise<Array<MonitorPreviousCheckRow>> => {
         readsAsked.push({

@@ -504,7 +504,11 @@ integration(
         ]),
         criteria("fast: offline on any check", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.False,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.AnyValue,
@@ -513,7 +517,11 @@ integration(
         ]),
         criteria("fast: offline more than twice", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.False,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.Count,
@@ -524,7 +532,11 @@ integration(
         ]),
         criteria("fast: offline on more than 20% of checks", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.False,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.Percentage,
@@ -535,7 +547,11 @@ integration(
         ]),
         criteria("fast: flapping", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.False,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.StatusChanges,
@@ -561,7 +577,11 @@ integration(
         ]),
         criteria("fast: came back online", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.True },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.True,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
@@ -584,7 +604,11 @@ integration(
         // The step's own checks: online on every one of them.
         criteria("fast: online on every check", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.True },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.True,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.AllValues,
@@ -622,7 +646,11 @@ integration(
         ]),
         criteria("slow: online on any check", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.True },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.True,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.AnyValue,
@@ -631,7 +659,11 @@ integration(
         ]),
         criteria("slow: online more than twice", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.True },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.True,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.Count,
@@ -642,7 +674,11 @@ integration(
         ]),
         criteria("slow: flapping", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.False,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.StatusChanges,
@@ -668,7 +704,11 @@ integration(
         ]),
         criteria("slow: went down", [
           overTime(
-            { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+            {
+              checkOn: CheckOn.IsOnline,
+              filterType: FilterType.False,
+              value: undefined,
+            },
             {
               timeValueInMinutes: 5,
               evaluateOverTimeType: EvaluateOverTimeType.PreviousCheck,
@@ -877,7 +917,11 @@ integration(
 
     describe("rows written before rows named their step", () => {
       const OFFLINE_MORE_THAN_THREE_TIMES: CriteriaFilter = overTime(
-        { checkOn: CheckOn.IsOnline, filterType: FilterType.False },
+        {
+          checkOn: CheckOn.IsOnline,
+          filterType: FilterType.False,
+          value: undefined,
+        },
         {
           timeValueInMinutes: 10,
           evaluateOverTimeType: EvaluateOverTimeType.Count,
