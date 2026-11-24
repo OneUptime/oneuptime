@@ -710,6 +710,8 @@ describe("OneUptime AI in Security docs", () => {
       [SecurityCaseHandOffReason.NoLlmProvider]: "there is no LLM provider",
       [SecurityCaseHandOffReason.OutOfCredits]:
         "the project is out of AI credits or reached its daily AI limit",
+      [SecurityCaseHandOffReason.ProductOff]:
+        "Security Events is switched off on the server",
       [SecurityCaseHandOffReason.NotLikelyMalicious]:
         "its triage could not tell whether the case is real",
       [SecurityCaseHandOffReason.DidNotHold]: "a step it took does not hold",
@@ -732,6 +734,49 @@ describe("OneUptime AI in Security docs", () => {
     expect(SECURITY_CASE_HAND_OFFS_TOLD_NOBODY).toEqual([
       SecurityCaseHandOffReason.TakenOver,
     ]);
+  });
+
+  /*
+   * Security Events switched off on the server while OneUptime AI works a
+   * case (#10816), as the every-minute job, the look and the starter do it.
+   */
+  it("says what Security Events switched off does to the cases OneUptime AI works, as the code does it", () => {
+    const section: string = flat(sectionOf("When it hands a case to people"));
+    const job: string = source(
+      "App/FeatureSet/Workers/Jobs/SecurityCases/WorkCasesWithAi.ts",
+    );
+    const starter: string = flat(
+      source(
+        "Common/Server/Utils/AI/Security/Response/SecurityCaseResponse.ts",
+      ),
+    );
+    const look: string = flat(
+      source(
+        "Common/Server/Utils/AI/Security/Response/SecurityCaseResponseLook.ts",
+      ),
+    );
+
+    // Within a minute: the every-minute job hands every case over in place of its looks.
+    expect(job).toContain("schedule: EVERY_MINUTE,");
+    expect(starter).toContain(
+      "if (await SecurityCaseResponseProductOff.isOff()) { await SecurityCaseResponseProductOff.stopEveryCase(now); return 0; }",
+    );
+    // No new step: a look asks before each one, and what the engine runs is left to it.
+    expect(look).toContain(
+      "const stop: LookStop | null = await this.getStop({",
+    );
+    expect(section).toContain(
+      "While Security Events is switched off on the server, OneUptime AI starts no new step on any case, and within a minute it hands every case it works to people. A step it already started finishes, or can be undone, as usual.",
+    );
+
+    // Nothing resumes by itself: a look claimed after a hand-off does nothing.
+    expect(look).toContain(
+      "if ( securityCase.aiResponseState === SecurityCaseAiResponseState.HandedToPeople ) { return this.noLongerWorking(0); }",
+    );
+    expect(SecurityCaseAiResponseCopy.respondButton).toBe("Respond with AI");
+    expect(section).toContain(
+      "Once Security Events is back on, it takes none of those cases up again by itself: **Respond with AI** does.",
+    );
   });
 
   it("names where people hear of a hand-off as their settings and the workspace rules name it", () => {
