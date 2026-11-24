@@ -656,6 +656,18 @@ const LIBRARY_STEP_TEXTS: Readonly<Record<LibraryStepId, LibraryStepText>> = {
     phase: Fix,
     text: "Fix the code the exception points to, so a request like it is turned away instead.",
   },
+  "check-sensitive-files-served": {
+    phase: Confirm,
+    text: "Ask your site for each file the address asked for, from outside your network, and check that none of them is served.",
+  },
+  "rotate-served-secrets": {
+    phase: Contain,
+    text: "If one was served, rotate every secret it holds now: its passwords, keys and tokens.",
+  },
+  "keep-secrets-out-of-web-root": {
+    phase: Fix,
+    text: "Keep secrets and repositories out of the folders your web server serves, and have it refuse paths that start with a dot.",
+  },
   // ----- At Cloudflare -----
   "check-cloudflare-hits-reached-app": {
     phase: Confirm,
@@ -1232,6 +1244,12 @@ const LIBRARY_RULE_STEPS: Readonly<Record<string, Array<LibraryStepId>>> = {
   "68d61e5d-79d2-4f41-8c1b-c017f6d0bd52": ["safe-file-paths"],
   // Log4Shell exploit attempt
   "866b7566-304e-442b-b1ad-ca08264af493": ["check-log4j", "upgrade-log4j"],
+  // Scanning for sensitive files
+  "37aac329-ce8b-4ced-9255-4ae49d564451": [
+    "check-sensitive-files-served",
+    "rotate-served-secrets",
+    "keep-secrets-out-of-web-root",
+  ],
   // Injected SQL reached the database
   "a1218db8-8e28-4afb-ae8e-ed4f0aef7595": [
     "check-injected-query",

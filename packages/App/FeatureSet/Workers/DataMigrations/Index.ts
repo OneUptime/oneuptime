@@ -161,6 +161,7 @@ import RedactDataSecurityIssueExplanationLogs from "./RedactDataSecurityIssueExp
 import MaterializeSecurityEventCreatedAtIndex from "./MaterializeSecurityEventCreatedAtIndex";
 import UpgradeLibraryRuleCopies from "./UpgradeLibraryRuleCopies";
 import UpgradeLibraryRuleCopiesForHashedAddresses from "./UpgradeLibraryRuleCopiesForHashedAddresses";
+import AddSensitiveFileRuleToScannersPolicies from "./AddSensitiveFileRuleToScannersPolicies";
 import RemoveNotificationSettingsOfFormerMembers from "./RemoveNotificationSettingsOfFormerMembers";
 import NotifyOwnersOfStoppedApiKeysAndScim from "./NotifyOwnersOfStoppedApiKeysAndScim";
 import RepairGoogleSecOpsDetectionSeverity from "./RepairGoogleSecOpsDetectionSeverity";
@@ -1629,6 +1630,14 @@ const DataMigrations: Array<DataMigrationBase> = [
    * only, idempotent; before the two slots kept last.
    */
   new UpgradeLibraryRuleCopiesForHashedAddresses(),
+  /*
+   * Scanning for sensitive files, the Scanners policy's new rule (#10745),
+   * for each project whose Scanners policy is in its trial run or on
+   * already, as turning it on would have added it - and nothing else of
+   * the policy's. Postgres only, idempotent; before the two slots kept
+   * last.
+   */
+  new AddSensitiveFileRuleToScannersPolicies(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

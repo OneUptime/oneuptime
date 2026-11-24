@@ -169,6 +169,8 @@ export const CAMPAIGN_ATTACK_KIND_LABELS: Record<WebAttackKind, string> = {
   [WebAttackKind.SqlInjection]: translationKey("SQL injection"),
   [WebAttackKind.PathTraversal]: translationKey("Path traversal"),
   [WebAttackKind.Log4Shell]: translationKey("Log4Shell"),
+  // Requests for /.env, /.git/config, /wp-admin and the like that the site refused (#10745).
+  [WebAttackKind.SensitiveFile]: translationKey("Sensitive files"),
 };
 
 export function getCampaignAttackKindLabel(kind: string): string {

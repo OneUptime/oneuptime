@@ -15,6 +15,7 @@ import CloudflareNormalizer, {
 } from "../../../../Utils/SecurityEvent/Connectors/CloudflareNormalizer";
 import {
   WEB_ATTACK_KIND_ATTRIBUTE,
+  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WebAttackKind,
 } from "../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import {
@@ -307,6 +308,127 @@ describe("CloudflareNormalizer - each action", () => {
       WebAttackKind.Log4Shell,
     );
     expect(event.severityName).toBe(OcsfSeverity.High);
+  });
+});
+
+/*
+ * #10745: a request for a sensitive file or admin page that Cloudflare
+ * stopped, or the origin refused or does not have, is tagged as an access
+ * log's and a trace's are - so the Rule Library's "Scanning for sensitive
+ * files" counts it with them. A page the origin served never is.
+ */
+describe("CloudflareNormalizer - a request for a sensitive file", () => {
+  // A custom rule of the customer's, blocking a request for this path at the edge.
+  function blocked(path: string, overrides: JSONObject = {}): JSONObject {
+    return {
+      ...MANAGED_RULE_BLOCK,
+      action: "block",
+      source: "firewallCustom",
+      ruleId: "4c2b9a0e1d7f4e6a8b3c5d7e9f1a2b3c",
+      description: "Block requests for dotfiles",
+      clientRequestPath: path,
+      clientRequestQuery: "",
+      userAgent: "Mozilla/5.0 zgrab/0.x",
+      ...overrides,
+    };
+  }
+
+  test("stopped at the edge, it is tagged with the path it counts as", () => {
+    const event: NormalizedSecurityEvent = normalize(blocked("/.env"));
+
+    expect(event.requestOutcome).toBe(SecurityEventRequestOutcome.Rejected);
+    expect(event.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(
+      WebAttackKind.SensitiveFile,
+    );
+    expect(event.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]).toBe("/.env");
+    // Still the firewall's event, said as before.
+    expect(event.message).toBe(
+      `Cloudflare blocked GET shop.example.com/.env from ${ATTACKER_IP} (WAF custom rules: Block requests for dotfiles)`,
+    );
+  });
+
+  test("each spelling counts as its path, and a challenge stops it as a block does", () => {
+    expect(
+      normalize(blocked("/.git/config")).attributes[
+        WEB_SENSITIVE_FILE_PATH_ATTRIBUTE
+      ],
+    ).toBe("/.git");
+    expect(
+      normalize(blocked("/wp-login.php", { action: "managed_challenge" }))
+        .attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
+    ).toBe("/wp-admin");
+  });
+
+  test("let through, it counts only when the origin refused it or does not have it", () => {
+    const letThrough: (status: number) => NormalizedSecurityEvent = (
+      status: number,
+    ): NormalizedSecurityEvent => {
+      return normalize(
+        blocked("/wp-admin/", {
+          action: "log",
+          source: "firewallManaged",
+          edgeResponseStatus: status,
+          originResponseStatus: status,
+        }),
+      );
+    };
+
+    expect(letThrough(404).attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]).toBe(
+      "/wp-admin",
+    );
+    // A WordPress site's own admin page, served: no probe.
+    expect(letThrough(200).attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBeUndefined();
+    expect(
+      letThrough(302).attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
+    ).toBeUndefined();
+    // The origin's own failure, or an answer from the cache: no refusal said.
+    expect(
+      letThrough(502).attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
+    ).toBeUndefined();
+    expect(
+      letThrough(0).attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
+    ).toBeUndefined();
+  });
+
+  test("an attack string wins, and a path that only looks like one is none", () => {
+    const injection: NormalizedSecurityEvent = normalize(
+      blocked("/.env", { clientRequestQuery: "?id=1%27%20union%20select%201--" }),
+    );
+
+    expect(injection.attributes[WEB_ATTACK_KIND_ATTRIBUTE]).toBe(
+      WebAttackKind.SqlInjection,
+    );
+    expect(
+      injection.attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
+    ).toBeUndefined();
+
+    for (const path of ["/blog/wp-admin-tips", "/environment", "/login"]) {
+      expect({
+        path,
+        tagged: normalize(blocked(path)).attributes[
+          WEB_SENSITIVE_FILE_PATH_ATTRIBUTE
+        ],
+      }).toEqual({ path, tagged: undefined });
+    }
+
+    // In the query, it is what was searched for, not what was asked for.
+    expect(
+      normalize(blocked("/search", { clientRequestQuery: "?q=/.env" }))
+        .attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE],
+    ).toBeUndefined();
+  });
+
+  test("which requests are imported is unchanged", () => {
+    // The customer's own skip rule let it through, with no attack in it: still not imported.
+    expect(
+      CloudflareNormalizer.isSecurityRelevant(
+        blocked("/.env", {
+          action: "skip",
+          edgeResponseStatus: 404,
+          originResponseStatus: 404,
+        }),
+      ),
+    ).toBe(false);
   });
 });
 

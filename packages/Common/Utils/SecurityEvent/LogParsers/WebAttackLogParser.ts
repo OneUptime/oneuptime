@@ -18,6 +18,10 @@ import {
 import { readString, readValue } from "../NormalizerHelpers";
 import { requestOutcomeFromStatusCode } from "../RequestOutcome";
 import {
+  SENSITIVE_FILE_PROBE_WORDS,
+  readSensitiveFileProbe,
+} from "../SensitiveFileProbe";
+import {
   MAX_SCRUBBED_ADDRESS_LENGTH,
   ScrubbedAddress,
   ScrubbedAddressPlace,
@@ -46,7 +50,10 @@ import {
  * string becomes a security event: SQL injection, path traversal, or a
  * Log4Shell JNDI lookup (which an attacker also puts in headers, so it is
  * looked for in any log line, access log or not - as a lookup, "${jndi:"
- * and where to look, never the bare string a rule or a query names).
+ * and where to look, never the bare string a rule or a query names) - or
+ * a request for a well-known sensitive file or admin page, such as /.env
+ * or /wp-admin, that the site refused or does not have (#10745,
+ * Utils/SecurityEvent/SensitiveFileProbe): a scanner's first move.
  *
  * Common and combined log format lines and JSON access logs (nginx,
  * Caddy, Envoy and the like) are read for the client address, the method,
@@ -81,7 +88,21 @@ export enum WebAttackKind {
   SqlInjection = "sql-injection",
   PathTraversal = "path-traversal",
   Log4Shell = "log4shell",
+  /*
+   * A request for a well-known sensitive file or admin page the site
+   * refused or does not have (#10745): read from its path and its status
+   * (SensitiveFileProbe), never from a marker anywhere in the line.
+   */
+  SensitiveFile = "sensitive-file",
 }
+
+/*
+ * The sensitive path a SensitiveFile request asked for, as it is counted
+ * ("/.env", "/wp-admin"): what the Rule Library's rule counts distinct
+ * values of per address.
+ */
+export const WEB_SENSITIVE_FILE_PATH_ATTRIBUTE: string =
+  "web.sensitive_file.path";
 
 /*
  * Matched lowercased, as written in requests: raw, and URL-encoded the way
@@ -1130,6 +1151,7 @@ export const WEB_ATTACK_LABELS: Record<WebAttackKind, string> = {
   [WebAttackKind.SqlInjection]: "SQL injection attempt",
   [WebAttackKind.PathTraversal]: "Path traversal attempt",
   [WebAttackKind.Log4Shell]: "Log4Shell exploit attempt",
+  [WebAttackKind.SensitiveFile]: "Request for a sensitive file",
 };
 
 export function isWebAttackKind(value: unknown): value is WebAttackKind {
@@ -1430,9 +1452,19 @@ export default class WebAttackLogParser {
       body.length > MAX_TEXT_LINE_LENGTH
         ? body.slice(0, MAX_TEXT_LINE_LENGTH)
         : body;
-    const kind: WebAttackKind | null = readWebAttackKind(text);
+    const attackKind: WebAttackKind | null = readWebAttackKind(text);
+    const lower: string = text.toLowerCase();
 
-    if (!kind) {
+    /*
+     * Neither an attack string nor a sensitive path's words: nothing to
+     * read, before any of the line is parsed.
+     */
+    if (
+      !attackKind &&
+      !SENSITIVE_FILE_PROBE_WORDS.some((word: string): boolean => {
+        return lower.indexOf(word) !== -1;
+      })
+    ) {
       return [];
     }
 
@@ -1443,7 +1475,25 @@ export default class WebAttackLogParser {
       line.attributes || {},
       line.trustedProxies,
     );
-    const payload: string = readPayload(text, kind);
+
+    /*
+     * No attack string: a request for a sensitive file the site refused or
+     * does not have (#10745), read from the request the line records -
+     * its path and its status - or nothing.
+     */
+    const sensitivePath: string | null = attackKind
+      ? null
+      : readSensitiveFileProbe({
+          target: accessLog?.target || fromAttributes.target,
+          statusCode: accessLog?.status || fromAttributes.status,
+        });
+
+    if (!attackKind && !sensitivePath) {
+      return [];
+    }
+
+    const kind: WebAttackKind = attackKind || WebAttackKind.SensitiveFile;
+    const payload: string = attackKind ? readPayload(text, attackKind) : "";
 
     /*
      * The target is the request an access log line records, as it always
@@ -1455,7 +1505,7 @@ export default class WebAttackLogParser {
      */
     const target: string = accessLog
       ? accessLog.target
-      : holdsAttackMarker(fromAttributes.target)
+      : sensitivePath || holdsAttackMarker(fromAttributes.target)
         ? fromAttributes.target
         : payload || text;
 
@@ -1480,6 +1530,10 @@ export default class WebAttackLogParser {
     const attributes: JSONObject = {
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
     };
+
+    if (sensitivePath) {
+      attributes[WEB_SENSITIVE_FILE_PATH_ATTRIBUTE] = sensitivePath;
+    }
 
     // A scrub rule hid the client's address: the event says so, and names none.
     if (client.scrubbed) {

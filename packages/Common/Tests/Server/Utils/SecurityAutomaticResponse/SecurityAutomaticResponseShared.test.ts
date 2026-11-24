@@ -52,6 +52,7 @@ import SecurityDetectionSource from "../../../../Types/SecurityCase/SecurityDete
 import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryEntry,
+  SCANNING_FOR_SENSITIVE_FILES_RULE_ID,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import OcsfSeverity from "../../../../Types/SecurityEvent/OcsfSeverity";
 import {
@@ -467,6 +468,7 @@ describe("the ready policies' rules, in real time", () => {
       "SQL injection attempts",
       "Path traversal attempts",
       "Log4Shell exploit attempt",
+      "Scanning for sensitive files",
       "Many Cloudflare managed rule hits from one address",
     ]);
     expect(
@@ -474,6 +476,120 @@ describe("the ready policies' rules, in real time", () => {
         SecurityAutomaticResponsePolicyKind.Custom,
       ),
     ).toEqual([]);
+  });
+
+  /*
+   * #10745: a rule the library gave a policy that is on already - added
+   * for it alone (AddSensitiveFileRuleToScannersPolicies), the rules its
+   * project made its own since left as they are.
+   */
+  describe("kept to the rules it is given", () => {
+    const scannersEntries: () => Array<DetectionRuleLibraryEntry> =
+      (): Array<DetectionRuleLibraryEntry> => {
+        return getSecurityAutomaticResponseLibraryEntries(
+          SecurityAutomaticResponsePolicyKind.Scanners,
+        );
+      };
+
+    function projectRule(
+      entry: DetectionRuleLibraryEntry,
+      index: number,
+      state: { isEnabled: boolean; isRealTime: boolean },
+    ): DetectionRule {
+      const made: DetectionRule = new DetectionRule(
+        new ObjectID(`cccccccc-cccc-4ccc-8ccc-${String(index).padStart(12, "0")}`),
+      );
+      made.name = entry.title;
+      made.sigmaRuleYaml = entry.sigmaRuleYaml;
+      made.isEnabled = state.isEnabled;
+      made.isRealTime = state.isRealTime;
+      return made;
+    }
+
+    test("adds the one rule, real-time, never a rule of the policy's the project deleted or left on its schedule", async () => {
+      const entries: Array<DetectionRuleLibraryEntry> = scannersEntries();
+      // The project deleted SQL injection attempts, and runs path traversal on its schedule.
+      const pathTraversal: DetectionRuleLibraryEntry = entries.find(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.title === "Path traversal attempts";
+        },
+      )!;
+      rules = [
+        projectRule(pathTraversal, 1, { isEnabled: true, isRealTime: false }),
+      ];
+
+      await SecurityAutomaticResponseRules.runInRealTime({
+        projectId: PROJECT_ID,
+        kind: SecurityAutomaticResponsePolicyKind.Scanners,
+        libraryRuleIds: [SCANNING_FOR_SENSITIVE_FILES_RULE_ID],
+      });
+
+      expect(
+        created.map((rule: DetectionRule): string => {
+          return rule.name || "";
+        }),
+      ).toEqual(["Scanning for sensitive files"]);
+      expect(created[0]!.isRealTime).toBe(true);
+      expect(created[0]!.isEnabled).toBe(true);
+      expect(created[0]!.groupByField).toBe("principalIp");
+      expect(created[0]!.distinctCountField).toBe("web.sensitive_file.path");
+      expect(turnedRealTime).toEqual([]);
+    });
+
+    test("one the project has on its schedule runs in real time; one it turned off stays off", async () => {
+      const sensitive: DetectionRuleLibraryEntry = scannersEntries().find(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.id === SCANNING_FOR_SENSITIVE_FILES_RULE_ID;
+        },
+      )!;
+      const scheduled: DetectionRule = projectRule(sensitive, 2, {
+        isEnabled: true,
+        isRealTime: false,
+      });
+      rules = [scheduled];
+
+      await SecurityAutomaticResponseRules.runInRealTime({
+        projectId: PROJECT_ID,
+        kind: SecurityAutomaticResponsePolicyKind.Scanners,
+        libraryRuleIds: [SCANNING_FOR_SENSITIVE_FILES_RULE_ID],
+      });
+
+      expect(turnedRealTime).toEqual([scheduled.id!.toString()]);
+      expect(created).toEqual([]);
+
+      turnedRealTime = [];
+      rules = [projectRule(sensitive, 3, { isEnabled: false, isRealTime: false })];
+
+      await SecurityAutomaticResponseRules.runInRealTime({
+        projectId: PROJECT_ID,
+        kind: SecurityAutomaticResponsePolicyKind.Scanners,
+        libraryRuleIds: [SCANNING_FOR_SENSITIVE_FILES_RULE_ID],
+      });
+
+      expect(turnedRealTime).toEqual([]);
+      expect(created).toEqual([]);
+    });
+
+    test("a rule that is not the policy's is never added, nor one past 50 real-time rules", async () => {
+      await SecurityAutomaticResponseRules.runInRealTime({
+        projectId: PROJECT_ID,
+        kind: SecurityAutomaticResponsePolicyKind.PasswordGuessing,
+        libraryRuleIds: [SCANNING_FOR_SENSITIVE_FILES_RULE_ID],
+      });
+
+      expect(created).toEqual([]);
+
+      realTimeCount = 50;
+
+      await SecurityAutomaticResponseRules.runInRealTime({
+        projectId: PROJECT_ID,
+        kind: SecurityAutomaticResponsePolicyKind.Scanners,
+        libraryRuleIds: [SCANNING_FOR_SENSITIVE_FILES_RULE_ID],
+      });
+
+      expect(created).toEqual([]);
+      expect(turnedRealTime).toEqual([]);
+    });
   });
 
   test("adds the rules the project has not got, real-time, and turns its own real-time, leaving one it turned off off", async () => {
