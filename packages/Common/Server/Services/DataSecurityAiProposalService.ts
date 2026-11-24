@@ -261,6 +261,43 @@ export class Service extends ProjectReferencesService<DataSecurityAiProposal> {
   }
 
   /*
+   * A group's fix whose every issue was closed by it, as each one's own
+   * check said (#10738, DataSecurityIssueGroupFixProof): proven, the proof
+   * being the checks. Only a group's fix, only one that still stands, and
+   * only once.
+   */
+  @CaptureSpan()
+  public async markGroupFixProven(data: {
+    proposalId: ObjectID;
+    at: Date;
+  }): Promise<number> {
+    const result: UpdateResult = await this.getRepository()
+      .createQueryBuilder()
+      .update(DataSecurityAiProposal)
+      .set({
+        verifiedAt: data.at,
+      } as unknown as QueryDeepPartialEntity<DataSecurityAiProposal>)
+      .where('"_id" = :id', { id: data.proposalId.toString() })
+      .andWhere('"kind" IN (:...kinds)', {
+        kinds: [
+          DataSecurityAiProposalKind.FixIssueGroupInCode,
+          DataSecurityAiProposalKind.FixIssueGroupInCloud,
+        ],
+      })
+      .andWhere('"status" IN (:...statuses)', {
+        statuses: [
+          DataSecurityAiProposalStatus.Applied,
+          DataSecurityAiProposalStatus.AppliedWithoutAsking,
+        ],
+      })
+      .andWhere('"verifiedAt" IS NULL')
+      .andWhere('"deletedAt" IS NULL')
+      .execute();
+
+    return result.affected || 0;
+  }
+
+  /*
    * A store that has an owner now - added on its Owners page, by an owner
    * rule, or by another proposal (#10374): the owners still proposed for it
    * are no longer needed. Whatever issue they hang on, or none.
