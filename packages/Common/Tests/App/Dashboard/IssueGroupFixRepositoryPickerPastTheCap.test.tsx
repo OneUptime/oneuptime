@@ -510,17 +510,29 @@ describe("Fix the Cause's repository, past a project's first 10,000", () => {
   });
 
   test("left out of the fix, the pull request asks for no repository", async () => {
+    const consoleBucket: {
+      issueId: string;
+      dataStoreId: string;
+      name: string;
+    } = {
+      issueId: "10921000-0000-4000-8000-00000000d002",
+      dataStoreId: "10921000-0000-4000-8000-00000000e002",
+      name: "console-bucket",
+    };
+
     currentPlan = {
       ...plan({}),
       cloud: {
         action: "BlockPublicAccess" as never,
-        stores: [
+        // One kind of store: its own action, and the plan's.
+        actions: [
           {
-            issueId: "10921000-0000-4000-8000-00000000d002",
-            dataStoreId: "10921000-0000-4000-8000-00000000e002",
-            name: "console-bucket",
+            action: "BlockPublicAccess" as never,
+            kind: "AWS S3 Bucket",
+            stores: [consoleBucket],
           },
         ],
+        stores: [consoleBucket],
       },
     };
 
