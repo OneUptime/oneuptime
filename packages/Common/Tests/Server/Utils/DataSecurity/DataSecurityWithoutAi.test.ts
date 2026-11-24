@@ -190,11 +190,6 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
       module: "Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDraftRun",
       uses: ["RecordOfProcessingDraftRun.run"],
     },
-    // The data types a project's own fields make (#10371): drafted only with Enable AI on.
-    {
-      module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
-      uses: ["DataTypeDiscovery.runForProject"],
-    },
     /*
      * An exposure's assessment (#10377): plain code's part asks no model;
      * the run reads Enable AI and Work on new issues, and the rules, before
@@ -203,6 +198,11 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/ExposureAssessmentRun",
       uses: ["ExposureAssessmentRun.run"],
+    },
+    // The data types a project's own fields make (#10371): drafted only with Enable AI on.
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
+      uses: ["DataTypeDiscovery.runForProject"],
     },
   ],
   "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [
