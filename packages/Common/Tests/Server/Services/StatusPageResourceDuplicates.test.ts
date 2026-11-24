@@ -1,5 +1,7 @@
 import StatusPageResourceService, {
   BOTH_TARGETS_MESSAGE,
+  NO_TARGET_MESSAGE,
+  TARGET_CLEARED_MESSAGE,
 } from "../../../Server/Services/StatusPageResourceService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
@@ -8,6 +10,9 @@ import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import {
   afterEach,
   beforeEach,
@@ -541,12 +546,16 @@ describe("StatusPageResourceService duplicate rules", () => {
       expect(duplicateLookup.props.isRoot).toBe(true);
     });
 
+    // A resource that names neither is refused before any lookup (#6558).
     it("does not look for a duplicate when the resource names neither", async () => {
       const mocks: ReturnType<typeof mockService> = mockService([]);
 
-      await onBeforeCreate(createBy({}));
+      await expect(onBeforeCreate(createBy({}))).rejects.toThrow(
+        new BadDataException(NO_TARGET_MESSAGE),
+      );
 
       expect(duplicateLookups(mocks.findOneBy)).toEqual([]);
+      expect(appendQueries(mocks.findOneBy)).toEqual([]);
     });
 
     it("refuses before it numbers the resource", async () => {
@@ -860,6 +869,10 @@ describe("StatusPageResourceService, under either name of a reference", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * A resource shows something (#6558): one this suite names no monitor for
+   * shows OTHER_MONITOR_ID, which no row of these cases holds.
+   */
   function createByRelations(data: {
     statusPage?: ObjectID | undefined;
     statusPageGroup?: ObjectID | undefined;
@@ -884,9 +897,7 @@ describe("StatusPageResourceService, under either name of a reference", () => {
       record["statusPageGroup"] = { _id: data.statusPageGroup.toString() };
     }
 
-    if (data.monitor) {
-      record["monitor"] = { _id: data.monitor.toString() };
-    }
+    record["monitor"] = { _id: (data.monitor || OTHER_MONITOR_ID).toString() };
 
     return {
       data: resource,
@@ -1284,16 +1295,687 @@ describe("StatusPageResourceService, a monitor or a monitor group", () => {
       expect(Object.keys(dataOf(update))).toEqual(["displayName"]);
     });
 
-    it("adds no reference to an update that clears its target and names no other", async () => {
+    /*
+     * It would leave the resource showing nothing, so it is refused (#6558),
+     * and nothing is added to it on the way.
+     */
+    it("refuses an update that clears its target and names no other, adding no reference", async () => {
       mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
 
       const update: UpdateBy<StatusPageResource> = rawUpdateBy(resourceId(1), {
         monitorId: null,
       });
 
-      await onBeforeUpdate(update);
+      await expect(onBeforeUpdate(update)).rejects.toThrow(
+        new BadDataException(TARGET_CLEARED_MESSAGE),
+      );
 
       expect(Object.keys(dataOf(update))).toEqual(["monitorId"]);
+    });
+  });
+});
+
+/*
+ * Contract under test - a resource shows a monitor or a monitor group, never
+ * nothing (issue #6558).
+ *
+ * The API took a resource that named neither: a create with no monitor and
+ * no monitor group, and an update that cleared the one it showed. Nothing in
+ * the product drew such a row - the public page left it out, the
+ * Dashboard's list named it after its display name alone - and no incident,
+ * maintenance event or subscriber ever reached it. So:
+ *
+ *   1. a create that names neither is refused, before anything is read -
+ *      the project check of its references included;
+ *   2. an update that clears both is refused before anything is read;
+ *   3. an update that clears one leaves the resource what the other holds,
+ *      read off the rows it writes, and is refused when that is nothing;
+ *   4. an update that names one is left to the rules above, and one that
+ *      touches neither - a rename - never reads what the resource shows.
+ */
+describe("StatusPageResourceService, never neither (#6558)", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  // A create as a caller sends it: the page, a name, and these values as given.
+  function rawCreateBy(
+    values: Record<string, unknown>,
+  ): CreateBy<StatusPageResource> {
+    const resource: StatusPageResource = new StatusPageResource();
+    resource.projectId = PROJECT_ID;
+    resource.statusPageId = STATUS_PAGE_ID;
+    resource.displayName = "Checkout API";
+
+    const record: Record<string, unknown> = resource as unknown as Record<
+      string,
+      unknown
+    >;
+
+    for (const [key, value] of Object.entries(values)) {
+      record[key] = value;
+    }
+
+    return {
+      data: resource,
+      props: { isRoot: true },
+    } as CreateBy<StatusPageResource>;
+  }
+
+  // An update body as BaseAPI hands it over, writing the rows `ids` names.
+  function rawUpdateOf(
+    ids: Array<ObjectID>,
+    data: Record<string, unknown>,
+  ): UpdateBy<StatusPageResource> {
+    return {
+      query: {
+        _id:
+          ids.length === 1
+            ? ids[0]!.toString()
+            : QueryHelper.any(
+                ids.map((id: ObjectID): string => {
+                  return id.toString();
+                }),
+              ),
+      },
+      data: data,
+      props: { isRoot: true },
+    } as unknown as UpdateBy<StatusPageResource>;
+  }
+
+  // The reads of the rows an update clears: the ones asking what each shows.
+  function clearReads(findBy: {
+    mock: { calls: Array<Array<unknown>> };
+  }): Array<any> {
+    return findBy.mock.calls
+      .map((call: Array<unknown>): any => {
+        return call[0];
+      })
+      .filter((read: any): boolean => {
+        return Boolean(
+          read?.select?.monitorId &&
+            read?.select?.monitorGroupId &&
+            !read?.select?.statusPageId,
+        );
+      });
+  }
+
+  describe("on create", () => {
+    it("refuses a resource naming neither, before the project check or any lookup", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([]);
+      const projectCheck: SpyInstance<
+        typeof ProjectReferenceCheck.validateCreate
+      > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+
+      await expect(onBeforeCreate(rawCreateBy({}))).rejects.toThrow(
+        new BadDataException(NO_TARGET_MESSAGE),
+      );
+
+      expect(projectCheck).not.toHaveBeenCalled();
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
+      expect(mocks.findBy).not.toHaveBeenCalled();
+      expect(mocks.updateOneBy).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["a monitor cleared by its ID column", { monitorId: null }],
+      ["a monitor cleared by its relation", { monitor: null }],
+      ["a monitor group cleared by its ID column", { monitorGroupId: null }],
+      ["a monitor group cleared by its relation", { monitorGroup: null }],
+      ["both cleared", { monitorId: null, monitorGroupId: null }],
+      [
+        "the empty id Terraform sends for one it was not given",
+        { monitorId: "" },
+      ],
+      ["a relation with no id in it", { monitor: {} }],
+      [
+        "a monitor group relation whose id is blank",
+        { monitorGroup: { _id: "  " } },
+      ],
+    ] as Array<[string, Record<string, unknown>]>)(
+      "refuses one naming %s and nothing else",
+      async (_shape: string, values: Record<string, unknown>) => {
+        const mocks: ReturnType<typeof mockService> = mockService([]);
+
+        await expect(onBeforeCreate(rawCreateBy(values))).rejects.toThrow(
+          new BadDataException(NO_TARGET_MESSAGE),
+        );
+
+        expect(mocks.findOneBy).not.toHaveBeenCalled();
+      },
+    );
+
+    it("says what is missing and what to send, as a sentence", () => {
+      expect(NO_TARGET_MESSAGE).toBe(
+        "A status page resource needs a monitor or a monitor group to show, and this one has neither. Send the monitor or the monitor group it shows.",
+      );
+      expect(TARGET_CLEARED_MESSAGE).toBe(
+        "A status page resource needs a monitor or a monitor group to show, and this change leaves it with neither. Send the monitor or the monitor group it shows in the same change.",
+      );
+    });
+
+    it.each([
+      ["a monitor by its ID column", { monitorId: MONITOR_ID }],
+      [
+        "a monitor by its relation",
+        { monitor: { _id: MONITOR_ID.toString() } },
+      ],
+      [
+        "a monitor group by its ID column",
+        { monitorGroupId: MONITOR_GROUP_ID },
+      ],
+      [
+        "a monitor group by its relation",
+        { monitorGroup: { _id: MONITOR_GROUP_ID.toString() } },
+      ],
+      [
+        "a monitor, with the monitor group cleared beside it",
+        { monitorId: MONITOR_ID, monitorGroupId: null },
+      ],
+    ] as Array<[string, Record<string, unknown>]>)(
+      "adds one naming %s, and checks its references first",
+      async (_shape: string, values: Record<string, unknown>) => {
+        mockService([]);
+        const projectCheck: SpyInstance<
+          typeof ProjectReferenceCheck.validateCreate
+        > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+
+        await expect(
+          onBeforeCreate(rawCreateBy(values)),
+        ).resolves.toBeDefined();
+
+        expect(projectCheck).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it("still refuses one naming both, before the project check", async () => {
+      mockService([]);
+      const projectCheck: SpyInstance<
+        typeof ProjectReferenceCheck.validateCreate
+      > = jest.spyOn(ProjectReferenceCheck, "validateCreate");
+
+      await expect(
+        onBeforeCreate(
+          rawCreateBy({
+            monitorId: MONITOR_ID,
+            monitorGroup: { _id: MONITOR_GROUP_ID.toString() },
+          }),
+        ),
+      ).rejects.toThrow(new BadDataException(BOTH_TARGETS_MESSAGE));
+
+      expect(projectCheck).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("on update", () => {
+    it("refuses one clearing both, before the project check or any read", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
+      ]);
+      const projectCheck: SpyInstance<
+        typeof ProjectReferenceCheck.validateUpdate
+      > = jest.spyOn(ProjectReferenceCheck, "validateUpdate");
+
+      await expect(
+        onBeforeUpdate(
+          rawUpdateOf([resourceId(1)], { monitorId: null, monitorGroup: null }),
+        ),
+      ).rejects.toThrow(new BadDataException(TARGET_CLEARED_MESSAGE));
+
+      expect(projectCheck).not.toHaveBeenCalled();
+      expect(mocks.findBy).not.toHaveBeenCalled();
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ["its ID column", { monitorId: null }],
+      ["its relation", { monitor: null }],
+      [
+        "the empty id Terraform sends when monitor_id is removed",
+        { monitorId: "" },
+      ],
+      ["a relation with no id in it", { monitor: {} }],
+    ] as Array<[string, Record<string, unknown>]>)(
+      "refuses one clearing a monitor's resource's monitor by %s, read off the row it writes",
+      async (_shape: string, values: Record<string, unknown>) => {
+        const mocks: ReturnType<typeof mockService> = mockService([
+          makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
+        ]);
+
+        await expect(
+          onBeforeUpdate(rawUpdateOf([resourceId(1)], values)),
+        ).rejects.toThrow(new BadDataException(TARGET_CLEARED_MESSAGE));
+
+        // One read of the row, for what it shows; no duplicate looked for.
+        expect(clearReads(mocks.findBy)).toHaveLength(1);
+        expect(mocks.findOneBy).not.toHaveBeenCalled();
+      },
+    );
+
+    it("refuses one clearing a monitor group's resource's group", async () => {
+      mockService([
+        makeResource({ id: resourceId(1), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(rawUpdateOf([resourceId(1)], { monitorGroupId: null })),
+      ).rejects.toThrow(new BadDataException(TARGET_CLEARED_MESSAGE));
+    });
+
+    it("lets one clear the monitor group a monitor's resource never had: it still shows its monitor", async () => {
+      mockService([makeResource({ id: resourceId(1), monitorId: MONITOR_ID })]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateOf(
+        [resourceId(1)],
+        { monitorGroup: null, displayName: "Checkout" },
+      );
+
+      await expect(onBeforeUpdate(update)).resolves.toBeDefined();
+
+      expect(update.data as unknown).toEqual({
+        monitorGroup: null,
+        displayName: "Checkout",
+      });
+    });
+
+    it("lets one clear the monitor of a row from before #6540 that names its group too", async () => {
+      mockService([
+        makeResource({
+          id: resourceId(1),
+          monitorId: MONITOR_ID,
+          monitorGroupId: MONITOR_GROUP_ID,
+        }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(rawUpdateOf([resourceId(1)], { monitorId: null })),
+      ).resolves.toBeDefined();
+    });
+
+    it("lets one clear what the resource shows and name the other kind in the same write", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
+      ]);
+
+      const update: UpdateBy<StatusPageResource> = rawUpdateOf(
+        [resourceId(1)],
+        { monitorId: "", monitorGroupId: MONITOR_GROUP_ID },
+      );
+
+      await expect(onBeforeUpdate(update)).resolves.toBeDefined();
+
+      // Not read for what it is left showing: it names what it shows.
+      expect(clearReads(mocks.findBy)).toHaveLength(0);
+      expect(String((update.data as any)["monitorGroupId"])).toBe(
+        MONITOR_GROUP_ID.toString(),
+      );
+    });
+
+    it("lets a rename through without reading what the resource shows", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({ id: resourceId(1), monitorId: MONITOR_ID }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          rawUpdateOf([resourceId(1)], { displayName: "Checkout API" }),
+        ),
+      ).resolves.toBeDefined();
+
+      expect(mocks.findBy).not.toHaveBeenCalled();
+      expect(mocks.findOneBy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A row the API made before the rule: renamed, moved or given its
+     * monitor as ever, and refused only a write that clears it again.
+     */
+    describe("a row that already shows nothing", () => {
+      it("is renamed as any other", async () => {
+        mockService([makeResource({ id: resourceId(1) })]);
+
+        await expect(
+          onBeforeUpdate(
+            rawUpdateOf([resourceId(1)], { displayName: "Checkout API" }),
+          ),
+        ).resolves.toBeDefined();
+      });
+
+      it("is given a monitor, which mends it", async () => {
+        mockService([makeResource({ id: resourceId(1) })]);
+
+        const update: UpdateBy<StatusPageResource> = rawUpdateOf(
+          [resourceId(1)],
+          { monitor: { _id: MONITOR_ID.toString() } },
+        );
+
+        await expect(onBeforeUpdate(update)).resolves.toBeDefined();
+
+        expect((update.data as any)["monitorGroupId"]).toBeNull();
+      });
+
+      it("is refused a write that clears it again", async () => {
+        mockService([makeResource({ id: resourceId(1) })]);
+
+        await expect(
+          onBeforeUpdate(
+            rawUpdateOf([resourceId(1)], { monitorGroupId: null }),
+          ),
+        ).rejects.toThrow(new BadDataException(TARGET_CLEARED_MESSAGE));
+      });
+    });
+
+    it("refuses an update of several resources when one of them would show nothing", async () => {
+      const mocks: ReturnType<typeof mockService> = mockService([
+        makeResource({
+          id: resourceId(1),
+          monitorId: MONITOR_ID,
+          monitorGroupId: MONITOR_GROUP_ID,
+        }),
+        makeResource({ id: resourceId(2), monitorId: OTHER_MONITOR_ID }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          rawUpdateOf([resourceId(1), resourceId(2)], { monitorId: null }),
+        ),
+      ).rejects.toThrow(new BadDataException(TARGET_CLEARED_MESSAGE));
+
+      expect(clearReads(mocks.findBy)).toHaveLength(1);
+    });
+
+    it("lets an update of several resources clear what each still shows another way", async () => {
+      mockService([
+        makeResource({
+          id: resourceId(1),
+          monitorId: MONITOR_ID,
+          monitorGroupId: MONITOR_GROUP_ID,
+        }),
+        makeResource({ id: resourceId(2), monitorGroupId: MONITOR_GROUP_ID }),
+      ]);
+
+      await expect(
+        onBeforeUpdate(
+          rawUpdateOf([resourceId(1), resourceId(2)], { monitorId: null }),
+        ),
+      ).resolves.toBeDefined();
+    });
+
+    it("does nothing when the resource it clears has gone", async () => {
+      mockService([]);
+
+      await expect(
+        onBeforeUpdate(rawUpdateOf([resourceId(1)], { monitorId: null })),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  /*
+   * Every shape a write can take, drawn from a seed: each of the four names
+   * absent, cleared (null, an empty id, a relation with no id) or naming one
+   * of a few ids (an ObjectID, a uuid string, a relation), over a row that
+   * shows a monitor, a group, both (from before #6540) or nothing (from
+   * before #6558) - against the rule written out on its own.
+   */
+  describe("whatever shape the write takes", () => {
+    const IDS: Array<string> = [
+      MONITOR_ID.toString(),
+      OTHER_MONITOR_ID.toString(),
+      MONITOR_GROUP_ID.toString(),
+    ];
+
+    type Shape =
+      | { kind: "absent" }
+      | { kind: "cleared"; value: unknown }
+      | { kind: "named"; id: string; value: unknown };
+
+    function drawShape(random: SeededRandom): Shape {
+      const pick: number = random(8);
+
+      if (pick < 3) {
+        return { kind: "absent" };
+      }
+
+      if (pick === 3) {
+        return { kind: "cleared", value: null };
+      }
+
+      if (pick === 4) {
+        return { kind: "cleared", value: random(2) === 0 ? "" : {} };
+      }
+
+      const id: string = IDS[random(IDS.length)]!;
+      const form: number = random(3);
+
+      return {
+        kind: "named",
+        id: id,
+        value: form === 0 ? new ObjectID(id) : form === 1 ? id : { _id: id },
+      };
+    }
+
+    interface Reference {
+      present: boolean;
+      id: string | null;
+      conflicting: boolean;
+    }
+
+    // One reference, under its two names, as the rule reads it.
+    function readReference(shapes: Array<Shape>): Reference {
+      const sent: Array<Shape> = shapes.filter((shape: Shape): boolean => {
+        return shape.kind !== "absent";
+      });
+      const ids: Set<string> = new Set(
+        sent
+          .filter((shape: Shape): boolean => {
+            return shape.kind === "named";
+          })
+          .map((shape: Shape): string => {
+            return (shape as { id: string }).id;
+          }),
+      );
+      const cleared: boolean = sent.some((shape: Shape): boolean => {
+        return shape.kind === "cleared";
+      });
+
+      return {
+        present: sent.length > 0,
+        id: ids.size === 1 ? [...ids][0]! : null,
+        conflicting: ids.size > 1 || (cleared && ids.size > 0),
+      };
+    }
+
+    function valuesOf(names: Record<string, Shape>): Record<string, unknown> {
+      const values: Record<string, unknown> = {};
+
+      for (const [name, shape] of Object.entries(names)) {
+        if (shape.kind !== "absent") {
+          values[name] = shape.value;
+        }
+      }
+
+      return values;
+    }
+
+    function drawNames(random: SeededRandom): Record<string, Shape> {
+      return {
+        monitorId: drawShape(random),
+        monitor: drawShape(random),
+        monitorGroupId: drawShape(random),
+        monitorGroup: drawShape(random),
+      };
+    }
+
+    // What the rule says of a write, or null when it lets it through.
+    function expectedRefusal(
+      names: Record<string, Shape>,
+      stored: { monitor: boolean; group: boolean } | null,
+    ): string | RegExp | null {
+      const monitor: Reference = readReference([
+        names["monitorId"]!,
+        names["monitor"]!,
+      ]);
+      const group: Reference = readReference([
+        names["monitorGroupId"]!,
+        names["monitorGroup"]!,
+      ]);
+
+      if (monitor.conflicting) {
+        return /Conflicting Monitor references were provided\./;
+      }
+
+      if (group.conflicting) {
+        return /Conflicting Monitor Group references were provided\./;
+      }
+
+      if (monitor.id && group.id) {
+        return BOTH_TARGETS_MESSAGE;
+      }
+
+      if (monitor.id || group.id) {
+        return null;
+      }
+
+      // A create names one; an update that touches neither changes nothing.
+      if (!stored) {
+        return NO_TARGET_MESSAGE;
+      }
+
+      if (!monitor.present && !group.present) {
+        return null;
+      }
+
+      if (monitor.present && group.present) {
+        return TARGET_CLEARED_MESSAGE;
+      }
+
+      const leftShowing: boolean = monitor.present
+        ? stored.group
+        : stored.monitor;
+
+      return leftShowing ? null : TARGET_CLEARED_MESSAGE;
+    }
+
+    async function outcomeOf(run: () => Promise<unknown>): Promise<string> {
+      try {
+        await run();
+        return "let through";
+      } catch (error) {
+        return (error as Error).message;
+      }
+    }
+
+    function describeExpected(refusal: string | RegExp | null): string {
+      return refusal === null ? "let through" : refusal.toString();
+    }
+
+    function matches(
+      outcome: string,
+      refusal: string | RegExp | null,
+    ): boolean {
+      if (refusal === null) {
+        return outcome === "let through";
+      }
+
+      return typeof refusal === "string"
+        ? outcome === refusal
+        : refusal.test(outcome);
+    }
+
+    it("refuses a create exactly when it names neither, or both, or one twice differently", async () => {
+      const random: SeededRandom = seededRandom(6558);
+      const mismatches: Array<string> = [];
+      let refusedForNeither: number = 0;
+
+      for (let draw: number = 0; draw < 300; draw++) {
+        jest.restoreAllMocks();
+        stubProjectDirectory({});
+        mockService([]);
+
+        const names: Record<string, Shape> = drawNames(random);
+        const refusal: string | RegExp | null = expectedRefusal(names, null);
+        const outcome: string = await outcomeOf(() => {
+          return onBeforeCreate(rawCreateBy(valuesOf(names)));
+        });
+
+        if (refusal === NO_TARGET_MESSAGE) {
+          refusedForNeither++;
+        }
+
+        if (!matches(outcome, refusal)) {
+          mismatches.push(
+            `${JSON.stringify(valuesOf(names))}: ${outcome}, not ${describeExpected(refusal)}`,
+          );
+        }
+      }
+
+      expect(mismatches).toEqual([]);
+      // The draws reach the rule under test, many times over.
+      expect(refusedForNeither).toBeGreaterThan(20);
+    });
+
+    it("refuses an update exactly when it would leave a resource showing nothing, or both", async () => {
+      const random: SeededRandom = seededRandom(65580);
+      const mismatches: Array<string> = [];
+      let refusedForClearing: number = 0;
+      let letThroughLeftShowing: number = 0;
+
+      for (let draw: number = 0; draw < 400; draw++) {
+        jest.restoreAllMocks();
+        stubProjectDirectory({});
+
+        const stored: { monitor: boolean; group: boolean } = {
+          monitor: random(2) === 0,
+          group: random(2) === 0,
+        };
+
+        mockService([
+          makeResource({
+            id: resourceId(1),
+            monitorId: stored.monitor ? MONITOR_ID : undefined,
+            monitorGroupId: stored.group ? MONITOR_GROUP_ID : undefined,
+          }),
+        ]);
+
+        const names: Record<string, Shape> = drawNames(random);
+        const refusal: string | RegExp | null = expectedRefusal(names, stored);
+        const outcome: string = await outcomeOf(() => {
+          return onBeforeUpdate(rawUpdateOf([resourceId(1)], valuesOf(names)));
+        });
+
+        if (refusal === TARGET_CLEARED_MESSAGE) {
+          refusedForClearing++;
+        }
+
+        const monitor: Reference = readReference([
+          names["monitorId"]!,
+          names["monitor"]!,
+        ]);
+        const group: Reference = readReference([
+          names["monitorGroupId"]!,
+          names["monitorGroup"]!,
+        ]);
+
+        if (
+          refusal === null &&
+          !monitor.id &&
+          !group.id &&
+          (monitor.present || group.present)
+        ) {
+          letThroughLeftShowing++;
+        }
+
+        if (!matches(outcome, refusal)) {
+          mismatches.push(
+            `${JSON.stringify(stored)} ${JSON.stringify(valuesOf(names))}: ${outcome}, not ${describeExpected(refusal)}`,
+          );
+        }
+      }
+
+      expect(mismatches).toEqual([]);
+      // Both sides of the rule are reached: refused, and a clear let through.
+      expect(refusedForClearing).toBeGreaterThan(20);
+      expect(letThroughLeftShowing).toBeGreaterThan(5);
     });
   });
 });
