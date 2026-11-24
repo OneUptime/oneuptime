@@ -898,6 +898,26 @@ export default class InventoryItem {
     },
 
     /*
+     * xcp_ng.pool — xcp_ng.pool.id only: the pool's XAPI UUID, which the
+     * XCP-ng Agent moves from Xen Orchestra's pool_id label to the
+     * resource (one resource per pool). Its name (xcp_ng.pool.name) and the
+     * Xen Orchestra it is read from (xen_orchestra.name) are descriptive,
+     * never identity: the typed XcpNgPool row and the read side
+     * (`EntityKey.keyForXcpNgPool`) are UUID-based, so a rename in Xen
+     * Orchestra never forks the pool. Hosts, VMs and storage repositories
+     * are XcpNgResource inventory rows, not entities.
+     */
+    (attrs: EntityAttributes) => {
+      const poolId: string | null = InventoryItem.str(attrs, "xcp_ng.pool.id");
+      return poolId
+        ? {
+            entityType: EntityType.XcpNgPool,
+            id: { "xcp_ng.pool.id": poolId.toLowerCase() },
+          }
+        : null;
+    },
+
+    /*
      * docker.swarm.cluster — docker.swarm.cluster.name only, mirroring the
      * proxmox/ceph/vmware root identity: the typed Postgres row
      * (DockerSwarmCluster) and the read side

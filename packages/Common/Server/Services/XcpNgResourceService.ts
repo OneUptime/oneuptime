@@ -31,6 +31,9 @@ export interface XcpNgInventorySummary {
   storageUsedBytes: number;
 }
 
+// How long a row may go unreported before the prune takes it, by default.
+export const XCP_NG_INVENTORY_STALE_MINUTES: number = 15;
+
 const UPSERT_BATCH_SIZE: number = 300;
 const STALE_DELETE_WARN_THRESHOLD: number = 100;
 
@@ -294,10 +297,36 @@ export class Service extends DatabaseService<Model> {
   }
 
   /**
+   * The cutoff below which a row of a pool is stale: 15 minutes (three
+   * missed scrapes of a minute, and five of the agent's batches) before the
+   * pool's own last read, not before now - a pool nobody can read keeps its
+   * last inventory. XCP_NG_INVENTORY_STALE_MINUTES overrides it (at least
+   * 5).
+   */
+  public getStaleThresholdDate(poolLastSeenAt?: Date | undefined): Date {
+    const configured: number = Number(
+      process.env["XCP_NG_INVENTORY_STALE_MINUTES"],
+    );
+    const minutes: number =
+      Number.isFinite(configured) && configured >= 5
+        ? configured
+        : XCP_NG_INVENTORY_STALE_MINUTES;
+    const anchor: Date =
+      poolLastSeenAt && !isNaN(poolLastSeenAt.getTime())
+        ? poolLastSeenAt
+        : new Date();
+    return new Date(anchor.getTime() - minutes * 60 * 1000);
+  }
+
+  /**
    * Delete the rows of a pool that its reads stopped reporting: a host
-   * removed from the pool, a deleted VM, storage repository or disk. Anchored
-   * on the pool's own last read, so a pool Xen Orchestra lost keeps its last
-   * inventory (shown as such) instead of emptying. Returns how many rows went.
+   * removed from the pool, a deleted VM, storage repository or disk. Called
+   * with a cutoff anchored on the pool's own last read, so a pool Xen
+   * Orchestra lost keeps its last inventory (shown as such) instead of
+   * emptying. And never the whole inventory at once: with no row fresher
+   * than the cutoff, the reads stopped describing the pool (an ingest
+   * backlog, an agent clock off), and nothing is pruned until one does
+   * again - as Proxmox's prune. Returns how many rows went.
    */
   @CaptureSpan()
   public async deleteStaleForPool(data: {
@@ -306,8 +335,14 @@ export class Service extends DatabaseService<Model> {
     olderThan: Date;
   }): Promise<number> {
     const result: unknown = await this.getRepository().manager.query(
-      `DELETE FROM "XcpNgResource"
-       WHERE "projectId" = $1 AND "xcpNgPoolId" = $2 AND "lastSeenAt" < $3`,
+      `DELETE FROM "XcpNgResource" AS stale
+       WHERE stale."projectId" = $1 AND stale."xcpNgPoolId" = $2
+         AND stale."lastSeenAt" < $3
+         AND EXISTS (
+           SELECT 1 FROM "XcpNgResource" AS fresh
+           WHERE fresh."projectId" = $1 AND fresh."xcpNgPoolId" = $2
+             AND fresh."lastSeenAt" >= $3
+         )`,
       [data.projectId.toString(), data.xcpNgPoolId.toString(), data.olderThan],
     );
 

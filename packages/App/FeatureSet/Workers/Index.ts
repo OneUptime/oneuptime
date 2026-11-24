@@ -404,6 +404,9 @@ import "./Jobs/Ceph/CleanupStaleResources";
 // Storage array disconnection sweeper + inventory cleanup.
 import "./Jobs/StorageArray/CleanupStaleResources";
 
+// XCP-ng pool disconnection sweeper + inventory cleanup.
+import "./Jobs/XcpNg/CleanupStaleResources";
+
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
 

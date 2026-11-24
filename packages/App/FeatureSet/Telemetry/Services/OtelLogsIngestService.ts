@@ -603,9 +603,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             vmwareVCenterId,
             cephClusterId,
             storageArrayId,
+            xcpNgPoolId,
             dockerSwarmClusterId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -651,6 +653,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
              * routing below — there is no inventory hook on the logs path.
              */
             this.autoDiscoverStorageArray({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
+            /*
+             * Logs that name an XCP-ng pool (xcp_ng.pool.id: a host's syslog
+             * forwarded through a collector that stamps it) attach to the
+             * pool through the primary-entity routing below.
+             */
+            this.autoDiscoverXcpNgPool({
               projectId,
               attributes: resourceAttributes_raw,
             }),
@@ -762,6 +773,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               vmwareVCenterId,
               cephClusterId,
               storageArrayId,
+              xcpNgPoolId,
               dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,

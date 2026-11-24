@@ -101,6 +101,7 @@ export type DiscoveredResourceKindName =
   | "DockerSwarmCluster"
   | "CephCluster"
   | "StorageArray"
+  | "XcpNgPool"
   | "ServerlessFunction"
   | "CloudResource"
   | "CloudMonitoredResource"
@@ -172,6 +173,17 @@ export const DiscoveredResourceKinds: Readonly<
     tableName: "StorageArray",
     namespace: "storage-array-id",
     identityColumn: "name",
+    expiresInSeconds: ONE_DAY_IN_SECONDS,
+    storesId: true,
+  },
+  /*
+   * An XCP-ng pool, found by its XAPI UUID (xcp_ng.pool.id), never by its
+   * name: one Xen Orchestra reports many pools, and two can share a name.
+   */
+  XcpNgPool: {
+    tableName: "XcpNgPool",
+    namespace: "xcp-ng-pool-id",
+    identityColumn: "poolIdentifier",
     expiresInSeconds: ONE_DAY_IN_SECONDS,
     storesId: true,
   },
