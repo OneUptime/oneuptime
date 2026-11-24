@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "لا يقرأ OneUptime بعد أي خدمة ECS في العنقود {{cluster}} تشغّل تعريف المهام {{name}}.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "المئين 95 لزمن استجابة هذا التطبيق في كل دقيقة، في المتوسط على النطاق المحدد، كما يقيسه {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم، لذا توقّف OneUptime AI عن العمل على الحالة.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم. ويمكن لأحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم. ويمكن لأحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات.",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "يناسب 50 معظم المشاريع: ارفعه حتى 500 أمام سيل مستمر من الماسحات، أو اخفضه للحذر.",
+  "Automatic Blocks an Hour": "الحظورات التلقائية في الساعة",
+  "Automatic Response Hourly Limit": "الحد الساعي للاستجابة التلقائية",
+  "Change Limit": "تغيير الحد",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "مُعلَّق: {{value}} أصبح محميًا الآن، لذا أزال OneUptime الحظر. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "مُعلَّق: {{value}} أصبح محميًا الآن، لذا أزال OneUptime الحظر. {{protection}}",
+  "Hourly Limit": "الحد الساعي",
+  "Sensitive files": "ملفات حساسة",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "اضبط الحد الساعي على عدد صحيح من الحظورات بين 1 و500.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "أقصى عدد من الحظورات التلقائية تنفّذه سياساتك في الساعة، قبل أن تتوقف وتستدعي مسؤولي الأمان لديك.",
+  "What every policy shares.": "ما تشترك فيه كل السياسات.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "بلغت سياساتك حدّك من الحظورات التلقائية في الساعة ({{count}})، لذا توقفت واستدعت مسؤولي الأمان لديك. تعود إلى العمل مع تقادم حظورات تلك الساعة.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "بلغت سياساتك حدّك البالغ حظرًا تلقائيًا واحدًا في الساعة ({{count}})، لذا توقفت واستدعت مسؤولي الأمان لديك. تعود إلى العمل مع تقادم حظورات تلك الساعة.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "بلغت سياساتك حدّك من الحظورات التلقائية في الساعة ({{count}})، لذا توقفت. تعود إلى العمل مع تقادم حظورات تلك الساعة.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "بلغت سياساتك حدّك البالغ حظرًا تلقائيًا واحدًا في الساعة ({{count}})، لذا توقفت. تعود إلى العمل مع تقادم حظورات تلك الساعة."
 }

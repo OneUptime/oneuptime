@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "O OneUptime ainda não lê nenhum serviço do ECS no cluster {{cluster}} que execute a definição de tarefa {{name}}.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "O percentil 95 do tempo de resposta deste app em cada minuto, em média no intervalo selecionado, conforme o {{service}} mede.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "O produto Eventos de segurança está desativado neste servidor, então o OneUptime AI parou de trabalhar no caso.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "O produto Eventos de segurança está desativado neste servidor. Um administrador do servidor pode ativá-lo em Painel de administração > Configurações > Produtos."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "O produto Eventos de segurança está desativado neste servidor. Um administrador do servidor pode ativá-lo em Painel de administração > Configurações > Produtos.",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "50 serve para a maioria dos projetos: aumente, até 500, diante de um fluxo constante de scanners, ou diminua para ser cauteloso.",
+  "Automatic Blocks an Hour": "Bloqueios automáticos por hora",
+  "Automatic Response Hourly Limit": "Limite por hora da resposta automática",
+  "Change Limit": "Alterar limite",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Retido: {{value}} agora está protegido, então o OneUptime removeu o bloqueio. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Retido: {{value}} agora está protegido, então o OneUptime removeu o bloqueio. {{protection}}",
+  "Hourly Limit": "Limite por hora",
+  "Sensitive files": "Arquivos sensíveis",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "Defina o limite por hora como um número inteiro de bloqueios entre 1 e 500.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "O máximo de bloqueios automáticos que suas políticas fazem em uma hora, antes de parar e avisar seus responsáveis pela segurança.",
+  "What every policy shares.": "O que todas as políticas compartilham.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "Suas políticas atingiram seu limite de {{count}} bloqueios automáticos por hora, então pararam e avisaram seus responsáveis pela segurança. Elas voltam a agir à medida que os bloqueios dessa hora envelhecem.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "Suas políticas atingiram seu limite de {{count}} bloqueio automático por hora, então pararam e avisaram seus responsáveis pela segurança. Elas voltam a agir à medida que os bloqueios dessa hora envelhecem.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "Suas políticas atingiram seu limite de {{count}} bloqueios automáticos por hora, então pararam. Elas voltam a agir à medida que os bloqueios dessa hora envelhecem.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "Suas políticas atingiram seu limite de {{count}} bloqueio automático por hora, então pararam. Elas voltam a agir à medida que os bloqueios dessa hora envelhecem."
 }

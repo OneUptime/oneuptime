@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.",
+  "Automatic Blocks an Hour": "Automatic Blocks an Hour",
+  "Automatic Response Hourly Limit": "Automatic Response Hourly Limit",
+  "Change Limit": "Change Limit",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}",
+  "Hourly Limit": "Hourly Limit",
+  "Sensitive files": "Sensitive files",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "Set the hourly limit to a whole number of blocks from 1 to 500.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "The most automatic blocks your policies make in an hour, before they stop and page your security owners.",
+  "What every policy shares.": "What every policy shares.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "Your policies reached your limit of {{count}} automatic block an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "Your policies reached your limit of {{count}} automatic block an hour, so they stopped. They start again as the hour's blocks age out."
 }

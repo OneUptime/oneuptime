@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime はまだ、クラスター {{cluster}} でタスク定義 {{name}} を実行する ECS サービスを読み取っていません。",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "このアプリの毎分の応答時間の 95 パーセンタイルを、選択した範囲で平均した値です（{{service}} の測定値）。",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "セキュリティイベントはこのサーバーでオフになっているため、OneUptime AI はケースへの対応をやめました。",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。"
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "多くのプロジェクトには 50 が適しています。スキャナーが絶えず来る場合は 500 まで上げ、慎重にしたい場合は下げてください。",
+  "Automatic Blocks an Hour": "1 時間あたりの自動ブロック数",
+  "Automatic Response Hourly Limit": "自動対応の 1 時間あたりの上限",
+  "Change Limit": "上限を変更",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "保留: {{value}} は現在保護されているため、OneUptime はブロックを解除しました。{{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "保留: {{value}} は現在保護されているため、OneUptime はブロックを解除しました。{{protection}}",
+  "Hourly Limit": "1 時間あたりの上限",
+  "Sensitive files": "機密ファイル",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "1 時間あたりの上限は、1 から 500 までの整数のブロック数で指定してください。",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "ポリシーが 1 時間に行える自動ブロックの最大数です。超えると停止し、セキュリティ担当者を呼び出します。",
+  "What every policy shares.": "すべてのポリシーに共通の設定です。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "ポリシーが 1 時間あたりの上限である {{count}} 件の自動ブロックに達したため、停止してセキュリティ担当者を呼び出しました。この 1 時間のブロックが古くなるにつれて再開します。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "ポリシーが 1 時間あたりの上限である {{count}} 件の自動ブロックに達したため、停止してセキュリティ担当者を呼び出しました。この 1 時間のブロックが古くなるにつれて再開します。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "ポリシーが 1 時間あたりの上限である {{count}} 件の自動ブロックに達したため、停止しました。この 1 時間のブロックが古くなるにつれて再開します。",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "ポリシーが 1 時間あたりの上限である {{count}} 件の自動ブロックに達したため、停止しました。この 1 時間のブロックが古くなるにつれて再開します。"
 }

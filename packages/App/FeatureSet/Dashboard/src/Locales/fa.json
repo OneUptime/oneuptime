@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime هنوز هیچ سرویس ECS در خوشه {{cluster}} را که task definition {{name}} را اجرا کند نمی‌خواند.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "صدک ۹۵ زمان پاسخ این برنامه در هر دقیقه، به‌طور میانگین در بازه انتخاب‌شده، طبق اندازه‌گیری {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "رویدادهای امنیتی در این سرور خاموش شده است، بنابراین OneUptime AI رسیدگی به پرونده را متوقف کرد.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "رویدادهای امنیتی در این سرور خاموش شده است. یک مدیر سرور می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "رویدادهای امنیتی در این سرور خاموش شده است. یک مدیر سرور می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "۵۰ برای بیشتر پروژه‌ها مناسب است: برای جریان پیوسته اسکنرها آن را تا ۵۰۰ بالا ببرید، یا برای احتیاط پایین بیاورید.",
+  "Automatic Blocks an Hour": "مسدودسازی خودکار در ساعت",
+  "Automatic Response Hourly Limit": "سقف ساعتی پاسخ خودکار",
+  "Change Limit": "تغییر سقف",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "معلق: {{value}} اکنون محافظت‌شده است، پس OneUptime مسدودسازی را برداشت. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "معلق: {{value}} اکنون محافظت‌شده است، پس OneUptime مسدودسازی را برداشت. {{protection}}",
+  "Hourly Limit": "سقف ساعتی",
+  "Sensitive files": "فایل‌های حساس",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "سقف ساعتی را روی عددی صحیح از ۱ تا ۵۰۰ مسدودسازی تنظیم کنید.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "بیشترین تعداد مسدودسازی خودکاری که سیاست‌های شما در یک ساعت انجام می‌دهند، پیش از آنکه متوقف شوند و مسئولان امنیت شما را فرا بخوانند.",
+  "What every policy shares.": "آنچه همه سیاست‌ها مشترک دارند.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "سیاست‌های شما به سقف {{count}} مسدودسازی خودکار در ساعت رسیدند، پس متوقف شدند و مسئولان امنیت شما را فرا خواندند. با قدیمی شدن مسدودسازی‌های آن ساعت دوباره شروع می‌کنند.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "سیاست‌های شما به سقف {{count}} مسدودسازی خودکار در ساعت رسیدند، پس متوقف شدند و مسئولان امنیت شما را فرا خواندند. با قدیمی شدن مسدودسازی‌های آن ساعت دوباره شروع می‌کنند.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "سیاست‌های شما به سقف {{count}} مسدودسازی خودکار در ساعت رسیدند، پس متوقف شدند. با قدیمی شدن مسدودسازی‌های آن ساعت دوباره شروع می‌کنند.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "سیاست‌های شما به سقف {{count}} مسدودسازی خودکار در ساعت رسیدند، پس متوقف شدند. با قدیمی شدن مسدودسازی‌های آن ساعت دوباره شروع می‌کنند."
 }

@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime пока не читает ни одного сервиса ECS в кластере {{cluster}}, который запускает определение задачи {{name}}.",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "95-й перцентиль времени ответа этого приложения в каждую минуту, в среднем за выбранный период, по измерениям {{service}}.",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Продукт «События безопасности» отключён на этом сервере, поэтому OneUptime AI перестал работать над кейсом.",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты»."
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты».",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "50 подходит большинству проектов: увеличьте, до 500, при постоянном потоке сканеров или уменьшите для осторожности.",
+  "Automatic Blocks an Hour": "Автоматических блокировок в час",
+  "Automatic Response Hourly Limit": "Часовой лимит автоматического реагирования",
+  "Change Limit": "Изменить лимит",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "Приостановлено: {{value}} теперь под защитой, поэтому OneUptime снял блокировку. {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "Приостановлено: {{value}} теперь под защитой, поэтому OneUptime снял блокировку. {{protection}}",
+  "Hourly Limit": "Часовой лимит",
+  "Sensitive files": "Конфиденциальные файлы",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "Укажите часовой лимит целым числом блокировок от 1 до 500.",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "Наибольшее число автоматических блокировок, которое ваши политики делают за час, прежде чем остановиться и вызвать ваших ответственных за безопасность.",
+  "What every policy shares.": "Общее для всех политик.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "Ваши политики достигли вашего часового лимита автоматических блокировок ({{count}}), поэтому остановились и вызвали ваших ответственных за безопасность. Они продолжат, когда блокировки этого часа устареют.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "Ваши политики достигли вашего лимита в {{count}} автоматическую блокировку в час, поэтому остановились и вызвали ваших ответственных за безопасность. Они продолжат, когда блокировки этого часа устареют.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "Ваши политики достигли вашего часового лимита автоматических блокировок ({{count}}), поэтому остановились. Они продолжат, когда блокировки этого часа устареют.",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "Ваши политики достигли вашего лимита в {{count}} автоматическую блокировку в час, поэтому остановились. Они продолжат, когда блокировки этого часа устареют."
 }

@@ -63015,5 +63015,20 @@
   "No ECS service in cluster {{cluster}} that runs task definition {{name}} is read yet.": "OneUptime अभी क्लस्टर {{cluster}} की ऐसी कोई ECS सेवा नहीं पढ़ता है जो task definition {{name}} चलाती हो।",
   "The 95th percentile of this app's response time in each minute, averaged over the selected range, as {{service}} measures it.": "हर मिनट इस ऐप के प्रतिक्रिया समय का 95वाँ पर्सेंटाइल, चुनी गई सीमा पर औसत, जैसा {{service}} उसे मापता है।",
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
-  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।"
+  "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।",
+  "50 suits most projects: raise it, up to 500, for a steady stream of scanners, or lower it to be cautious.": "अधिकांश प्रोजेक्ट के लिए 50 ठीक है: स्कैनरों की लगातार धारा के लिए इसे 500 तक बढ़ाएँ, या सावधान रहने के लिए घटाएँ।",
+  "Automatic Blocks an Hour": "प्रति घंटे स्वचालित ब्लॉक",
+  "Automatic Response Hourly Limit": "स्वचालित प्रतिक्रिया की प्रति घंटे की सीमा",
+  "Change Limit": "सीमा बदलें",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{overlap}} {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{overlap}} {{protection}}",
+  "Held back: {{value}} is protected now, so OneUptime took the block off. {{protection}}": "रोका गया: {{value}} अब सुरक्षित है, इसलिए OneUptime ने ब्लॉक हटा दिया। {{protection}}",
+  "Hourly Limit": "प्रति घंटे की सीमा",
+  "Sensitive files": "संवेदनशील फ़ाइलें",
+  "Set the hourly limit to a whole number of blocks from 1 to 500.": "प्रति घंटे की सीमा को 1 से 500 के बीच ब्लॉक की एक पूर्ण संख्या पर सेट करें।",
+  "The most automatic blocks your policies make in an hour, before they stop and page your security owners.": "आपकी नीतियाँ एक घंटे में अधिकतम कितने स्वचालित ब्लॉक करती हैं, इसके बाद वे रुककर आपके सुरक्षा ज़िम्मेदारों को पेज करती हैं।",
+  "What every policy shares.": "जो सभी नीतियों में साझा है।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out.": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं और आपके सुरक्षा ज़िम्मेदारों को पेज किया। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped and paged your security owners. They start again as the hour's blocks age out._one": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं और आपके सुरक्षा ज़िम्मेदारों को पेज किया। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out.": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।",
+  "Your policies reached your limit of {{count}} automatic blocks an hour, so they stopped. They start again as the hour's blocks age out._one": "आपकी नीतियाँ प्रति घंटे {{count}} स्वचालित ब्लॉक की आपकी सीमा तक पहुँच गईं, इसलिए वे रुक गईं। उस घंटे के ब्लॉक पुराने होने के साथ वे फिर शुरू होती हैं।"
 }
