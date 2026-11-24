@@ -857,9 +857,8 @@ describe("the writes that change who is on duty for what", () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findOneById")
       .mockResolvedValue(stored as never);
-    jest.spyOn(TeamMemberService, "getUsersInTeam").mockResolvedValue([]);
-    // Its accepted members, who the team adds to the rule (#10464).
-    jest.spyOn(TeamMemberService, "getUsersInTeams").mockResolvedValue([]);
+    // Its accepted members, who the team adds to the rule (#10464, #10970).
+    jest.spyOn(TeamMemberService, "getUserIdsInTeams").mockResolvedValue([]);
 
     await hooksOf(OnCallDutyPolicyEscalationRuleTeamService).onCreateSuccess(
       { createBy: { data: created, props: {} }, carryForward: null },
@@ -874,7 +873,7 @@ describe("the writes that change who is on duty for what", () => {
     deleted.projectId = PROJECT;
     deleted.teamId = TEAM_ID;
 
-    jest.spyOn(TeamMemberService, "getUsersInTeam").mockResolvedValue([]);
+    jest.spyOn(TeamMemberService, "getUserIdsInTeams").mockResolvedValue([]);
 
     await hooksOf(OnCallDutyPolicyEscalationRuleTeamService).onDeleteSuccess(
       {
