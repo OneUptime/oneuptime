@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "De statussen van gepland onderhoud konden niet worden geladen.",
   "The scheduled maintenance templates could not be loaded.": "De sjablonen voor gepland onderhoud konden niet worden geladen.",
   "The {{itemName}} was not deleted.": "{{itemName}} is niet verwijderd.",
-  "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid."
+  "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid.",
+  "Date unknown": "Datum onbekend",
+  "Yesterday": "Gisteren"
 }

@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "अनुसूचित रखरखाव स्थितियां लोड नहीं हो सकीं।",
   "The scheduled maintenance templates could not be loaded.": "अनुसूचित रखरखाव टेम्पलेट लोड नहीं हो सके।",
   "The {{itemName}} was not deleted.": "{{itemName}} हटाया नहीं गया।",
-  "“{{action}}” did not finish.": "\"{{action}}\" पूरा नहीं हुआ।"
+  "“{{action}}” did not finish.": "\"{{action}}\" पूरा नहीं हुआ।",
+  "Date unknown": "तारीख़ अज्ञात",
+  "Yesterday": "कल"
 }

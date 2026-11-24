@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "无法加载计划维护状态。",
   "The scheduled maintenance templates could not be loaded.": "无法加载计划维护模板。",
   "The {{itemName}} was not deleted.": "{{itemName}}未删除。",
-  "“{{action}}” did not finish.": "“{{action}}”操作未完成。"
+  "“{{action}}” did not finish.": "“{{action}}”操作未完成。",
+  "Date unknown": "日期未知",
+  "Yesterday": "昨天"
 }

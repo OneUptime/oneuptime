@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "Échec du chargement des états de maintenance planifiée.",
   "The scheduled maintenance templates could not be loaded.": "Échec du chargement des modèles de maintenance planifiée.",
   "The {{itemName}} was not deleted.": "Échec de la suppression : {{itemName}}.",
-  "“{{action}}” did not finish.": "L'opération « {{action}} » n'a pas abouti."
+  "“{{action}}” did not finish.": "L'opération « {{action}} » n'a pas abouti.",
+  "Date unknown": "Date inconnue",
+  "Yesterday": "Hier"
 }

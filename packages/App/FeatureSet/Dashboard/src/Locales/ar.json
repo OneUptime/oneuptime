@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "تعذّر تحميل حالات الصيانة المجدولة.",
   "The scheduled maintenance templates could not be loaded.": "تعذّر تحميل قوالب الصيانة المجدولة.",
   "The {{itemName}} was not deleted.": "لم يتم حذف {{itemName}}.",
-  "“{{action}}” did not finish.": "لم تكتمل عملية «{{action}}»."
+  "“{{action}}” did not finish.": "لم تكتمل عملية «{{action}}».",
+  "Date unknown": "تاريخ غير معروف",
+  "Yesterday": "أمس"
 }

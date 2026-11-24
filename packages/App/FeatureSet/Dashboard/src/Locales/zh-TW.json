@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "無法載入排定維護狀態。",
   "The scheduled maintenance templates could not be loaded.": "無法載入排定維護範本。",
   "The {{itemName}} was not deleted.": "{{itemName}}未刪除。",
-  "“{{action}}” did not finish.": "「{{action}}」操作未完成。"
+  "“{{action}}” did not finish.": "「{{action}}」操作未完成。",
+  "Date unknown": "日期未知",
+  "Yesterday": "昨天"
 }

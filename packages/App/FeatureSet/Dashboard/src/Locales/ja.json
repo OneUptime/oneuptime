@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "定期メンテナンスの状態を読み込めませんでした。",
   "The scheduled maintenance templates could not be loaded.": "定期メンテナンステンプレートを読み込めませんでした。",
   "The {{itemName}} was not deleted.": "{{itemName}}は削除されませんでした。",
-  "“{{action}}” did not finish.": "「{{action}}」の処理は完了しませんでした。"
+  "“{{action}}” did not finish.": "「{{action}}」の処理は完了しませんでした。",
+  "Date unknown": "日付不明",
+  "Yesterday": "昨日"
 }

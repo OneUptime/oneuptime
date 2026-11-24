@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "Не удалось загрузить состояния планового обслуживания.",
   "The scheduled maintenance templates could not be loaded.": "Не удалось загрузить шаблоны планового обслуживания.",
   "The {{itemName}} was not deleted.": "Не удалось удалить: {{itemName}}.",
-  "“{{action}}” did not finish.": "Действие «{{action}}» не выполнено."
+  "“{{action}}” did not finish.": "Действие «{{action}}» не выполнено.",
+  "Date unknown": "Дата неизвестна",
+  "Yesterday": "Вчера"
 }

@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "وضعیت‌های تعمیر و نگهداری زمان‌بندی‌شده بارگیری نشد.",
   "The scheduled maintenance templates could not be loaded.": "قالب‌های تعمیر و نگهداری زمان‌بندی‌شده بارگیری نشد.",
   "The {{itemName}} was not deleted.": "{{itemName}} حذف نشد.",
-  "“{{action}}” did not finish.": "کار «{{action}}» تمام نشد."
+  "“{{action}}” did not finish.": "کار «{{action}}» تمام نشد.",
+  "Date unknown": "تاریخ نامعلوم",
+  "Yesterday": "دیروز"
 }

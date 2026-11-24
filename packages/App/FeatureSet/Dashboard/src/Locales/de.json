@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "Die Status der geplanten Wartung konnten nicht geladen werden.",
   "The scheduled maintenance templates could not be loaded.": "Die Vorlagen für geplante Wartung konnten nicht geladen werden.",
   "The {{itemName}} was not deleted.": "{{itemName}} wurde nicht gelöscht.",
-  "“{{action}}” did not finish.": "Der Vorgang „{{action}}“ wurde nicht abgeschlossen."
+  "“{{action}}” did not finish.": "Der Vorgang „{{action}}“ wurde nicht abgeschlossen.",
+  "Date unknown": "Datum unbekannt",
+  "Yesterday": "Gestern"
 }

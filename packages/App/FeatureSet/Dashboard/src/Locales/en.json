@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "The scheduled maintenance states could not be loaded.",
   "The scheduled maintenance templates could not be loaded.": "The scheduled maintenance templates could not be loaded.",
   "The {{itemName}} was not deleted.": "The {{itemName}} was not deleted.",
-  "“{{action}}” did not finish.": "“{{action}}” did not finish."
+  "“{{action}}” did not finish.": "“{{action}}” did not finish.",
+  "Date unknown": "Date unknown",
+  "Yesterday": "Yesterday"
 }

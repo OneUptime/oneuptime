@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "Não foi possível carregar os estados da manutenção programada.",
   "The scheduled maintenance templates could not be loaded.": "Não foi possível carregar os modelos de manutenção programada.",
   "The {{itemName}} was not deleted.": "Não foi excluído: {{itemName}}.",
-  "“{{action}}” did not finish.": "A operação \"{{action}}\" não terminou."
+  "“{{action}}” did not finish.": "A operação \"{{action}}\" não terminou.",
+  "Date unknown": "Data desconhecida",
+  "Yesterday": "Ontem"
 }

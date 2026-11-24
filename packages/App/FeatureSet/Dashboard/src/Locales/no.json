@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "Tilstandene for planlagt vedlikehold kunne ikke lastes inn.",
   "The scheduled maintenance templates could not be loaded.": "Malene for planlagt vedlikehold kunne ikke lastes inn.",
   "The {{itemName}} was not deleted.": "{{itemName}} ble ikke slettet.",
-  "“{{action}}” did not finish.": "Handlingen «{{action}}» ble ikke fullført."
+  "“{{action}}” did not finish.": "Handlingen «{{action}}» ble ikke fullført.",
+  "Date unknown": "Ukjent dato",
+  "Yesterday": "I går"
 }

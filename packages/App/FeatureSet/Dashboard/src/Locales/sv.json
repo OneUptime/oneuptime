@@ -64211,5 +64211,7 @@
   "The scheduled maintenance states could not be loaded.": "Tillstånden för schemalagt underhåll kunde inte läsas in.",
   "The scheduled maintenance templates could not be loaded.": "Mallarna för schemalagt underhåll kunde inte läsas in.",
   "The {{itemName}} was not deleted.": "{{itemName}} togs inte bort.",
-  "“{{action}}” did not finish.": "Åtgärden ”{{action}}” slutfördes inte."
+  "“{{action}}” did not finish.": "Åtgärden ”{{action}}” slutfördes inte.",
+  "Date unknown": "Okänt datum",
+  "Yesterday": "I går"
 }
