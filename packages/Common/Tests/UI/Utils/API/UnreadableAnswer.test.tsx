@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#errors
 // Must stay the first import: the client's URLs are built from HOST on load.
 import { DASHBOARD_ORIGIN } from "./DashboardHost";
 import FakeAxiosServer, { FakeReply, FakeTransport } from "./FakeAxiosServer";

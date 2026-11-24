@@ -565,6 +565,28 @@ work out, starts from a default for everything else, and folds what most people 
   or list (`whatFailed`) where the page knows it. Enforced by
   [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts) for the words of
   the last resort; for everything else, not enforced: use judgement.
+- **A failure's reference sits under its lines as they sit.** A piece that lays out its own failure
+  draws the words with `ErrorMessageText` (`hideWhatFailed` where its heading already says what
+  failed), and the reference is drawn by `ErrorReference` alone: one inline box on a line of its own,
+  which the line's alignment places, centred under centred lines and at their start where they
+  start, the right on a page read from the right. Its row was laid out from its own start and
+  centred only where a layout said so (`isCentered`): a table's failed load never did, and its
+  reference sat about 150px off the centre of the lines above it (#7622). No layout hands the words
+  an alignment. Enforced by
+  [ErrorReferenceDrawnOnceGuard](../../packages/Common/Tests/UI/Components/ErrorMessage/ErrorReferenceDrawnOnceGuard.test.ts)
+  and
+  [ErrorReferenceInEveryLayout](../../packages/Common/Tests/App/Dashboard/ErrorReferenceInEveryLayout.test.tsx).
+- **An answer the page cannot read is the page's failure, said plainly.** Something that throws while
+  the browser reads an answer - a parse error, "array is not iterable", a value of a shape nobody
+  expected - is OneUptime's failure, never the reader's: Admin Dashboard > Telemetry Usage said "Array
+  is not iterable" where its projects should have been (#7794, #8413). The client reads an answer only
+  in `readAnswer` and `readErrorAnswer`, and the model clients turn it into models, rows or a count
+  only through `AnswerReader`; what throws there is an `UnreadableAnswerException`, said as a failure
+  nobody explained - the server's with its reference where the answer named one, the page's
+  otherwise - and an error answer whose body says nothing in words (`{ error: { code: 42 } }`) is
+  read through `statedMessage`, never drawn as its JSON. Enforced by
+  [AnswersReadThroughReaderGuard](../../packages/Common/Tests/UI/Utils/API/AnswersReadThroughReaderGuard.test.ts)
+  and [UnreadableAnswer](../../packages/Common/Tests/UI/Utils/API/UnreadableAnswer.test.tsx).
 - **Another system's failure is said in OneUptime's words first,** and that system's own words
   second: "The verification code was not sent to +15551230100. No Twilio account is set up to send
   SMS." Not enforced: use judgement.

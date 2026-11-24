@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#errors
 import "@testing-library/jest-dom";
 import {
   afterEach,
