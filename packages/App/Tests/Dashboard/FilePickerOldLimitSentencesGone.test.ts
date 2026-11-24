@@ -54,6 +54,12 @@ const KEYS_THAT_REPLACED_THEM: Array<string> = [
 // A limit written into the words: "10MB", "10 MB", "۱۰ MB", "512 KB".
 const LIMIT_IN_WORDS: RegExp = /[0-9۰-۹]+(?:[.,][0-9۰-۹]+)?\s?(?:KB|MB|GB)\b/;
 
+// The picker's everyday limit written into the words, with a space or without.
+const TEN_MEGABYTES: RegExp = /\b10\s?MB\b/;
+
+// The picker's old spelling of it, with no space.
+const TEN_MEGABYTES_UNSPACED: RegExp = /10MB/;
+
 const readLocale: (language: string) => Record<string, unknown> = (
   language: string,
 ): Record<string, unknown> => {
@@ -127,14 +133,14 @@ describe("a key that writes 10 MB into its words", () => {
   const english: Record<string, unknown> = readLocale("en");
   const keysWithTenMegabytes: Array<string> = Object.keys(english).filter(
     (key: string): boolean => {
-      return typeof english[key] === "string" && /\b10\s?MB\b/.test(key);
+      return typeof english[key] === "string" && TEN_MEGABYTES.test(key);
     },
   );
 
   test("never spells the picker's old 10MB, with no space", () => {
     expect(
       keysWithTenMegabytes.filter((key: string): boolean => {
-        return /10MB/.test(key);
+        return TEN_MEGABYTES_UNSPACED.test(key);
       }),
     ).toEqual([]);
   });

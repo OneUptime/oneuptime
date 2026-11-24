@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import fs from "fs";
 import path from "path";
@@ -59,15 +65,20 @@ const PLURALS: Array<PluralTemplate> = [
 
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
-const readAppLocale: (app: string, language: string) => Record<string, string> =
-  (app: string, language: string): Record<string, string> => {
-    return JSON.parse(
-      fs.readFileSync(
-        path.join(LOCALE_DIRS[app] as string, `${language}.json`),
-        "utf8",
-      ),
-    ) as Record<string, string>;
-  };
+const readAppLocale: (
+  app: string,
+  language: string,
+) => Record<string, string> = (
+  app: string,
+  language: string,
+): Record<string, string> => {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(LOCALE_DIRS[app] as string, `${language}.json`),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+};
 
 const instances: Record<string, i18n> = {};
 
@@ -157,11 +168,15 @@ const leftOutLine: LeftOutLineFunction = async (data: {
     });
   });
 
-  return (await screen.findByTestId(FILE_PICKER_ERROR_TEST_ID)).textContent || "";
+  return (
+    (await screen.findByTestId(FILE_PICKER_ERROR_TEST_ID)).textContent || ""
+  );
 };
 
 // Names a..z with ".log", as many as asked.
-const logs: (count: number) => Array<string> = (count: number): Array<string> => {
+const logs: (count: number) => Array<string> = (
+  count: number,
+): Array<string> => {
   return Array.from({ length: count }, (_: unknown, index: number): string => {
     return `${String.fromCharCode(97 + (index % 26))}${index >= 26 ? index : ""}.log`;
   });
@@ -187,17 +202,9 @@ describe("one file it had no room for, named in the reader's words", () => {
     ],
     ["fa", 3, "«d.log» افزوده نشد: این فیلد حداکثر ۳ فایل می‌پذیرد."],
     ["fa", 1, "«b.log» افزوده نشد: این فیلد یک فایل می‌پذیرد."],
-    [
-      "ar",
-      3,
-      "لم تتم إضافة «d.log»، فالحد الأقصى للملفات في هذا الحقل: 3.",
-    ],
+    ["ar", 3, "لم تتم إضافة «d.log»، فالحد الأقصى للملفات في هذا الحقل: 3."],
     // Arabic's 11 is its "many": the general sentence again.
-    [
-      "ar",
-      11,
-      "لم تتم إضافة «l.log»، فالحد الأقصى للملفات في هذا الحقل: 11.",
-    ],
+    ["ar", 11, "لم تتم إضافة «l.log»، فالحد الأقصى للملفات في هذا الحقل: 11."],
     ["ar", 1, "لم تتم إضافة «b.log»، فهذا الحقل يحمل ملفًا واحدًا."],
     [
       "ja",
@@ -269,9 +276,9 @@ describe("on a page read from the right", () => {
   test.each(["fa", "ar"])(
     "%s: each name, and a list of names, is set apart from the words",
     async (page: string) => {
-      expect(await leftOutLine({ page, maxFiles: 3, names: logs(4) })).toContain(
-        isolated("d.log"),
-      );
+      expect(
+        await leftOutLine({ page, maxFiles: 3, names: logs(4) }),
+      ).toContain(isolated("d.log"));
       cleanup();
 
       const several: string = await leftOutLine({

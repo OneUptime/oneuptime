@@ -873,11 +873,12 @@ describe("Forms docs", () => {
             },
             translatePlural: translator.translatePlural,
           }),
-        ).replace(/[  ]/g, " ");
+        ).replace(/[\u00A0\u202F]/g, " ");
 
-        expect({ language, row: (row as string).split("|")[2]?.trim() }).toEqual(
-          { language, row: drawn },
-        );
+        expect({
+          language,
+          row: (row as string).split("|")[2]?.trim(),
+        }).toEqual({ language, row: drawn });
         expect(drawn).toContain(
           translator.formatNumber(FORM_FILE_QUESTION_MAX_FILES),
         );

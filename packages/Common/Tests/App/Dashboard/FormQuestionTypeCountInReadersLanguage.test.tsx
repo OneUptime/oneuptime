@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
@@ -126,7 +133,7 @@ function describedIn(language: string, maxFiles?: number): string {
       translatePlural: translator.translatePlural,
       maxFiles,
     }),
-  ).replace(/ /g, " ");
+  ).replace(/\u00A0/g, " ");
 }
 
 describe("the palette's Multiple Files type", () => {
@@ -142,9 +149,12 @@ describe("the palette's Multiple Files type", () => {
     ["ar", "الحد الأقصى للملفات: 10، مثل لقطات الشاشة والسجلات."],
     // Persian writes its own digits: the words wrote a Latin 10.
     ["fa", "حداکثر ۱۰ فایل، مانند تصویر صفحه و لاگ."],
-  ])("%s: says it in the reader's words and digits", (language: string, words: string) => {
-    expect(drawnDescription(language).replace(/ /g, " ")).toBe(words);
-  });
+  ])(
+    "%s: says it in the reader's words and digits",
+    (language: string, words: string) => {
+      expect(drawnDescription(language).replace(/\u00A0/g, " ")).toBe(words);
+    },
+  );
 
   test("fa: no Latin digit", () => {
     expect(drawnDescription("fa")).not.toMatch(/[0-9]/);

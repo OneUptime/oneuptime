@@ -152,6 +152,10 @@ const QUESTION_TYPE_PLURALS: Array<PluralTemplate> = Object.values(
   return typeof text.description === "string" ? [] : [text.description];
 });
 
+// The Multiple Files type's sentence when its count was written into its words.
+const OLD_MULTIPLE_FILES_SENTENCE: RegExp =
+  /^Up to \d+ files, such as screenshots and logs\.$/;
+
 // What each target is called, and what the picker says about it.
 const TARGET_TYPE_STRINGS: Array<string> = FORM_TARGET_TYPES.flatMap(
   (targetType: FormTargetType): Array<string> => {
@@ -606,7 +610,7 @@ describe("Forms strings in every Dashboard locale", () => {
     // The sentence it replaced, with 10 written into its words, is gone.
     expect(
       englishKeys.filter((key: string): boolean => {
-        return /^Up to \d+ files, such as screenshots and logs\.$/.test(key);
+        return OLD_MULTIPLE_FILES_SENTENCE.test(key);
       }),
     ).toEqual([]);
   });

@@ -13,7 +13,11 @@ import {
   TOO_MANY_FILES_CODE,
 } from "../../../UI/Components/FilePicker/FilePickerLeftOut";
 import { createTranslator, Translator } from "../../../Types/Translator";
-import { SeededRandom, seededRandom, shuffled } from "../../Helpers/SeededRandom";
+import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../Helpers/SeededRandom";
 
 /*
  * WHAT A FILE PICKER LEAVES OUT OF A CHOICE, AND THE LINE THAT NAMES IT
@@ -444,7 +448,7 @@ describe("the line that names what a choice left out, in English", () => {
         LIMITS,
       ),
     ).toBe(
-      'These files are not a type this field takes: setup.exe, run.sh. "capture.pcap" exceeds the 10 KB limit. "c.log" was not added: this field holds up to 3 files.',
+      'These files are not a type this field takes: setup.exe, run.sh. "capture.pcap" exceeds the 10\u00A0KB limit. "c.log" was not added: this field holds up to 3 files.',
     );
   });
 
@@ -455,7 +459,7 @@ describe("the line that names what a choice left out, in English", () => {
         { ...NOTHING, tooLarge: ["a.pdf", "b.pdf"] },
         { maxFiles: null, maxFileSizeInBytes: 512 * KB },
       ),
-    ).toBe("These files exceed the 512 KB limit: a.pdf, b.pdf.");
+    ).toBe("These files exceed the 512\u00A0KB limit: a.pdf, b.pdf.");
   });
 
   test("tells a picker of one to take one file at a time, after any file it refused", () => {

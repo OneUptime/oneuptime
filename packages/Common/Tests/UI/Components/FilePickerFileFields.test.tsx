@@ -532,7 +532,7 @@ describe("the files a choice leaves out, named", () => {
     // The large one takes no room: the two after it that fit are added.
     expect(listedNames()).toEqual(["a.png", "b.png"]);
     expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
-      '"big.png" exceeds the 1 KB limit. "c.png" was not added: this field holds up to 2 files.',
+      '"big.png" exceeds the 1\u00A0KB limit. "c.png" was not added: this field holds up to 2 files.',
     );
   });
 
@@ -563,7 +563,7 @@ describe("the files a choice leaves out, named", () => {
     expect(listedNames()).toEqual(["fine.png"]);
     // The type was dropped without a word while a large file was named.
     expect(screen.getByTestId(FILE_PICKER_ERROR_TEST_ID).textContent).toBe(
-      '"setup.exe" is not a type of file this field takes. "big.png" exceeds the 1 KB limit.',
+      '"setup.exe" is not a type of file this field takes. "big.png" exceeds the 1\u00A0KB limit.',
     );
   });
 
@@ -692,7 +692,11 @@ describe("the files a choice leaves out, named", () => {
     );
 
     expect(line).toHaveAttribute("role", "alert");
-    expect(line).toHaveClass("text-xs", "font-medium", FIELD_ERROR_COLOR_CLASS_NAME);
+    expect(line).toHaveClass(
+      "text-xs",
+      "font-medium",
+      FIELD_ERROR_COLOR_CLASS_NAME,
+    );
     // Inside the full picker's note, under its words.
     expect(screen.getByTestId("picker")).toContainElement(line);
   });
