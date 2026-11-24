@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "このユーザーのオンコール通知の設定を表示する権限がありません。プロジェクト所有者またはプロジェクト管理者に「ユーザー通知ルールの読み取り」権限を依頼してください。",
   "You do not have permission to watch recordings for this application.": "このアプリケーションの録画を視聴する権限がありません。",
   "You do not have permission to {{action}} this {{itemName}}.": "この{{itemName}}に対して「{{action}}」を実行する権限がありません。",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "{{itemName}}の{{columnName}}を設定する権限がありません。次のいずれかの権限が必要です: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "{{itemName}}の{{columnName}}を編集する権限がありません。次のいずれかの権限が必要です: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "{{itemName}}の{{columnName}}を設定する権限がありません。次のいずれかの権限が必要です: {{permissions}}。",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "{{itemName}}の{{columnName}}を編集する権限がありません。次のいずれかの権限が必要です: {{permissions}}。",
   "You have been invited to a project": "プロジェクトに招待されました",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "サブスクリプションのプランを変更する前に、支払い方法が必要です。支払い方法を追加すると、公開されている料金での従量課金の利用も有効になります。",
   "You need incident or alert access to see what's open here.": "ここで未解決のものを表示するには、インシデントまたはアラートへのアクセス権が必要です。",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪問者にはインシデントごとのカードとエピソードごとのカードが表示されるため、エピソードに含まれるインシデントは 2 回表示されます。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪問者には、各エピソードがそのインシデントと影響範囲をまとめた 1 枚のカードとして表示されます。",
   "Page when the script timed out": "スクリプトがタイムアウトしたときのページ",
-  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}"
+  "Page {{number}} when the script timed out": "スクリプトがタイムアウトしたときのページ {{number}}",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "この機能には {{plan}} プラン以上が必要です。「プロジェクト設定 > 請求と請求書 > 請求」でプロジェクトのプランをアップグレードしてから、もう一度お試しください。",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} 「{{value}}」 はすでに存在します。{{field}} に別の値を指定してから、もう一度お試しください。"
 }

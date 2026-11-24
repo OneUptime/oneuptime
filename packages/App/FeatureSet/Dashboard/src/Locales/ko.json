@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "이 애플리케이션의 녹화를 볼 권한이 없습니다.",
   "You do not have permission to {{action}} this {{itemName}}.": "이 {{itemName}}에 대해 '{{action}}'을(를) 실행할 권한이 없습니다.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "{{itemName}}의 {{columnName}}을(를) 설정할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "{{itemName}}의 {{columnName}}을(를) 편집할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "{{itemName}}의 {{columnName}}을(를) 설정할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "{{itemName}}의 {{columnName}}을(를) 편집할 권한이 없습니다. 다음 권한 중 하나가 필요합니다: {{permissions}}.",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "여기에서 열려 있는 항목을 보려면 인시던트 또는 경고에 대한 접근 권한이 필요합니다.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "방문자에게 인시던트마다 카드가 하나씩, 에피소드마다 카드가 하나씩 더 표시되므로 에피소드에 속한 인시던트는 두 번 표시됩니다.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "방문자에게 각 에피소드가 해당 인시던트와 영향받는 항목을 나열한 하나의 카드로 표시됩니다.",
   "Page when the script timed out": "스크립트 시간 초과 시점의 페이지",
-  "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}"
+  "Page {{number}} when the script timed out": "스크립트 시간 초과 시점의 페이지 {{number}}",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "이 기능에는 {{plan}} 요금제 이상이 필요합니다. 프로젝트 설정 > 결제 및 청구서 > 결제에서 프로젝트의 요금제를 업그레이드한 다음 다시 시도하세요.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\"이(가) 이미 있습니다. {{field}}에 다른 값을 선택한 다음 다시 시도하세요."
 }

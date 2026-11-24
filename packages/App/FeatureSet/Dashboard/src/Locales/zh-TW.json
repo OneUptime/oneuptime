@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "你沒有觀看此應用程式錄製的權限。",
   "You do not have permission to {{action}} this {{itemName}}.": "您沒有對此{{itemName}}執行「{{action}}」的權限。",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "您沒有足夠的權限設定{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "您沒有足夠的權限編輯{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "您沒有足夠的權限設定{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}。",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "您沒有足夠的權限編輯{{itemName}}的{{columnName}}。您需要下列其中一項權限：{{permissions}}。",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "要查看這裡未解決的內容，需要事件或警示的存取權。",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "訪客會看到每個事件一張卡片，每個片段另一張卡片，因此片段中的事件會顯示兩次。",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "訪客會將每個片段看作一張卡片，其中列出該片段的事件及其影響範圍。",
   "Page when the script timed out": "指令碼逾時時的頁面",
-  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}"
+  "Page {{number}} when the script timed out": "指令碼逾時時的頁面 {{number}}",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "此功能需要 {{plan}} 方案或更高方案。請在「專案設定」>「帳單與發票」>「帳單」中升級專案的方案，然後再試一次。",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} 「{{value}}」 已存在。請為 {{field}} 選擇其他值，然後再試一次。"
 }

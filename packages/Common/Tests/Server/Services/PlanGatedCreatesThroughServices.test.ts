@@ -101,7 +101,7 @@ const PLANS: ReadonlyArray<PlanType> = [
 const REACHED_SAVE: string = "REACHED_SAVE";
 
 const refusalFor: (plan: PlanType) => string = (plan: PlanType): string => {
-  return `Please upgrade your plan to ${plan} to access this feature`;
+  return `This feature needs the ${plan} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.`;
 };
 
 const PROJECT_ID: ObjectID = new ObjectID(

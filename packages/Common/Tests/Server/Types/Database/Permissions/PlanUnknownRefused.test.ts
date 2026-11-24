@@ -371,7 +371,7 @@ describe("BillingPermissions: a table's plan, for props with no plan", () => {
 
     expect(below).toBeInstanceOf(PaymentRequiredException);
     expect((below as Error).message).toBe(
-      "Please upgrade your plan to Scale to access this feature",
+      "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
 
     expect(
@@ -459,7 +459,7 @@ describe("ColumnPermissions: a column's plan, for props with no plan", () => {
 
     expect(below).toBeInstanceOf(PaymentRequiredException);
     expect((below as Error).message).toBe(
-      "Please upgrade your plan to Growth to access this feature",
+      "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     );
     expect(
       checkColumns(
@@ -494,7 +494,7 @@ describe("the analytics checks, for props with no plan", () => {
         null,
         ownerWithoutPlan(),
       ),
-    ).rejects.toThrow("Please upgrade your plan to Enterprise");
+    ).rejects.toThrow("This feature needs the Enterprise plan");
 
     expect(currentPlanSpy).toHaveBeenCalledWith(PROJECT_ID);
   });
@@ -541,7 +541,7 @@ describe("DatabaseService reads the project's plan only when a plan decides", ()
 
     await expect(
       labelService().create({ data: newLabel(), props: ownerWithoutPlan() }),
-    ).rejects.toThrow("Please upgrade your plan to Growth");
+    ).rejects.toThrow("This feature needs the Growth plan");
   });
 
   test("a caller's own props are left as they were", async () => {
@@ -663,7 +663,7 @@ describe("DatabaseService reads the project's plan only when a plan decides", ()
     // Refused with the plan's name - never as a plan nobody could confirm.
     await expect(
       stylingService().create({ data: newPage(), props: ownerWithoutPlan() }),
-    ).rejects.toThrow("Please upgrade your plan to Growth");
+    ).rejects.toThrow("This feature needs the Growth plan");
 
     expect(currentPlanSpy).toHaveBeenCalledTimes(1);
     expect(currentPlanSpy).toHaveBeenCalledWith(PROJECT_ID);
@@ -727,7 +727,7 @@ describe("an analytics batch reads the plan once, before anything is written", (
 
     await expect(
       service.createMany({ items: sessions(2), props: ownerWithoutPlan() }),
-    ).rejects.toThrow("Please upgrade your plan to Growth");
+    ).rejects.toThrow("This feature needs the Growth plan");
 
     expect(
       (service as unknown as { execute: { mock: { calls: Array<unknown> } } })

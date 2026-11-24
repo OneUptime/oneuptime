@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "اجازه مشاهده پیکربندی اعلان آنکال این کاربر را ندارید. دسترسی «Read User Notification Rules» را از مالک پروژه یا مدیر پروژه بخواهید.",
   "You do not have permission to watch recordings for this application.": "شما اجازه تماشای ضبط‌های این برنامه را ندارید.",
   "You do not have permission to {{action}} this {{itemName}}.": "مجوز انجام «{{action}}» روی این مورد ({{itemName}}) را ندارید.",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "مجوز کافی برای تعیین {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "مجوز کافی برای ویرایش {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "مجوز کافی برای تعیین {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "مجوز کافی برای ویرایش {{columnName}} در {{itemName}} ندارید. به یکی از این مجوزها نیاز دارید: {{permissions}}.",
   "You have been invited to a project": "به یک پروژه دعوت شده‌اید",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "پیش از تغییر طرح اشتراک به یک روش پرداخت نیاز دارید. افزودن آن، استفاده پرداخت بر اساس مصرف را نیز با نرخ‌های منتشرشده فعال می‌کند.",
   "You need incident or alert access to see what's open here.": "برای دیدن موارد باز در اینجا، به دسترسی حادثه یا هشدار نیاز دارید.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "بازدیدکنندگان برای هر حادثه یک کارت و برای هر اپیزود کارتی دیگر می‌بینند، بنابراین حادثه‌ای که در یک اپیزود است دو بار نمایش داده می‌شود.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "بازدیدکنندگان هر اپیزود را در یک کارت می‌بینند که حوادث آن و آنچه را تحت تأثیر قرار داده‌اند فهرست می‌کند.",
   "Page when the script timed out": "صفحه هنگام تمام شدن مهلت اسکریپت",
-  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت"
+  "Page {{number}} when the script timed out": "صفحه {{number}} هنگام تمام شدن مهلت اسکریپت",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "این قابلیت به طرح {{plan}} یا بالاتر نیاز دارد. طرح پروژه را در تنظیمات پروژه > صورت‌حساب و فاکتورها > صورت‌حساب ارتقا دهید و سپس دوباره امتحان کنید.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» از قبل وجود دارد. برای {{field}} مقدار دیگری انتخاب کنید و سپس دوباره امتحان کنید."
 }

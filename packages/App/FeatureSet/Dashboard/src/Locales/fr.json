@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "Vous n'avez pas l'autorisation de regarder les enregistrements de cette application.",
   "You do not have permission to {{action}} this {{itemName}}.": "Vous n'avez pas l'autorisation d'effectuer « {{action}} » sur cet élément ({{itemName}}).",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Vous n'avez pas les autorisations nécessaires pour définir {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Vous n'avez pas les autorisations nécessaires pour modifier {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Vous n'avez pas les autorisations nécessaires pour définir {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Vous n'avez pas les autorisations nécessaires pour modifier {{columnName}} sur {{itemName}}. Vous avez besoin de l'une des autorisations suivantes : {{permissions}}.",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "Vous avez besoin d'un accès aux incidents ou aux alertes pour voir ce qui est ouvert ici.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Les visiteurs voient une carte par incident et une autre par épisode, si bien qu'un incident d'un épisode apparaît deux fois.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Les visiteurs voient chaque épisode sur une seule carte qui liste ses incidents et ce qu'ils affectent.",
   "Page when the script timed out": "Page lorsque le script a expiré",
-  "Page {{number}} when the script timed out": "Page {{number}} lorsque le script a expiré"
+  "Page {{number}} when the script timed out": "Page {{number}} lorsque le script a expiré",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Cette fonctionnalité nécessite le forfait {{plan}} ou supérieur. Passez le projet à un forfait supérieur dans Paramètres du projet > Facturation et factures > Facturation, puis réessayez.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} « {{value}} » existe déjà. Choisissez une autre valeur pour {{field}}, puis réessayez."
 }

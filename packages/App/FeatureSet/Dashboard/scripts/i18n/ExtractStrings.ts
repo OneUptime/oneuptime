@@ -900,6 +900,20 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Server/Utils/Errors.ts", kind: "keys" },
   /*
+   * A feature the project's plan does not include, and a value another
+   * record holds in a column that holds each value once (#7276): refusals
+   * with values in them, which every form and dialog says in the reader's
+   * language (ErrorInSentence). Only the words each file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Billing/PlanRequiredRefusal.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Database/UniqueValueTaken.ts",
+    kind: "keys",
+  },
+  /*
    * Why a data check or a reconciliation was not written, added or set up
    * (#7530): the server's refusals, which Write a Check from a Sentence,
    * Suggested Checks and the Reconciliations page say in the reader's

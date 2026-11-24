@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "U hebt geen toestemming om opnamen van deze applicatie te bekijken.",
   "You do not have permission to {{action}} this {{itemName}}.": "U hebt geen toestemming om \"{{action}}\" uit te voeren voor dit item ({{itemName}}).",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "U hebt onvoldoende rechten om {{columnName}} in te stellen voor {{itemName}}. U hebt een van de volgende rechten nodig: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "U hebt onvoldoende rechten om {{columnName}} te bewerken voor {{itemName}}. U hebt een van de volgende rechten nodig: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "U hebt onvoldoende rechten om {{columnName}} in te stellen voor {{itemName}}. U hebt een van de volgende rechten nodig: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "U hebt onvoldoende rechten om {{columnName}} te bewerken voor {{itemName}}. U hebt een van de volgende rechten nodig: {{permissions}}.",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "U hebt toegang tot incidenten of waarschuwingen nodig om te zien wat hier openstaat.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Bezoekers zien een kaart voor elk incident en nog een voor elke episode, dus een incident in een episode staat er twee keer.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Bezoekers zien elke episode als één kaart met de incidenten erin en wat ze treffen.",
   "Page when the script timed out": "Pagina toen het script een time-out kreeg",
-  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg"
+  "Page {{number}} when the script timed out": "Pagina {{number}} toen het script een time-out kreeg",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Deze functie vereist het {{plan}}-abonnement of hoger. Upgrade het abonnement van het project in Projectinstellingen > Facturering en facturen > Facturering en probeer het daarna opnieuw.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" bestaat al. Kies een andere waarde voor {{field}} en probeer het daarna opnieuw."
 }

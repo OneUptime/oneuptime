@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "У вас нет прав на просмотр записей этого приложения.",
   "You do not have permission to {{action}} this {{itemName}}.": "У вас нет прав на действие «{{action}}» для этого элемента ({{itemName}}).",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "У вас недостаточно прав, чтобы задать {{columnName}} для {{itemName}}. Требуется одно из следующих прав: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "У вас недостаточно прав, чтобы изменить {{columnName}} для {{itemName}}. Требуется одно из следующих прав: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "У вас недостаточно прав, чтобы задать {{columnName}} для {{itemName}}. Требуется одно из следующих прав: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "У вас недостаточно прав, чтобы изменить {{columnName}} для {{itemName}}. Требуется одно из следующих прав: {{permissions}}.",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "Чтобы увидеть, что здесь открыто, нужен доступ к инцидентам или оповещениям.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Посетители видят карточку для каждого инцидента и ещё одну для каждого эпизода, поэтому инцидент из эпизода показывается дважды.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Посетители видят каждый эпизод как одну карточку со списком его инцидентов и того, на что они повлияли.",
   "Page when the script timed out": "Страница в момент тайм-аута скрипта",
-  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта"
+  "Page {{number}} when the script timed out": "Страница {{number}} в момент тайм-аута скрипта",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Для этой функции нужен план {{plan}} или выше. Повысьте план проекта в Настройки проекта > Биллинг и счета > Биллинг, затем повторите попытку.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» уже существует. Выберите другое значение для {{field}} и повторите попытку."
 }

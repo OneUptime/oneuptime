@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "ليس لديك إذن بعرض تهيئة إشعارات المناوبة لهذا المستخدم. اطلب من مالك المشروع أو مسؤول المشروع إذن «قراءة قواعد إشعارات المستخدم».",
   "You do not have permission to watch recordings for this application.": "ليس لديك إذن بمشاهدة تسجيلات هذا التطبيق.",
   "You do not have permission to {{action}} this {{itemName}}.": "ليس لديك إذن بـ {{action}} هذا العنصر ({{itemName}}).",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "ليس لديك أذونات كافية لإنشاء {{columnName}} في {{itemName}}. تحتاج إلى أحد الأذونات التالية: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "ليس لديك أذونات كافية لتعديل {{columnName}} في {{itemName}}. تحتاج إلى أحد الأذونات التالية: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "ليس لديك أذونات كافية لإنشاء {{columnName}} في {{itemName}}. تحتاج إلى أحد الأذونات التالية: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "ليس لديك أذونات كافية لتعديل {{columnName}} في {{itemName}}. تحتاج إلى أحد الأذونات التالية: {{permissions}}.",
   "You have been invited to a project": "تمت دعوتك إلى مشروع",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "تحتاج إلى طريقة دفع قبل تغيير خطة اشتراكك. تُفعّل إضافة طريقة دفع أيضًا الاستخدام بالدفع حسب الاستخدام بالأسعار المنشورة.",
   "You need incident or alert access to see what's open here.": "تحتاج إلى وصول إلى الحوادث أو التنبيهات لترى ما هو مفتوح هنا.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "يرى الزوار بطاقة لكل حادثة وأخرى لكل حلقة، لذا تظهر الحادثة التي تنتمي إلى حلقة مرتين.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "يرى الزوار كل حلقة في بطاقة واحدة تسرد حوادثها وما تؤثر فيه.",
   "Page when the script timed out": "الصفحة عند انتهاء مهلة البرنامج النصي",
-  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي"
+  "Page {{number}} when the script timed out": "الصفحة {{number}} عند انتهاء مهلة البرنامج النصي",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "تتطلب هذه الميزة خطة {{plan}} أو أعلى. رقِّ خطة المشروع في إعدادات المشروع > الفوترة والفواتير > الفوترة، ثم حاول مرة أخرى.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} «{{value}}» موجود بالفعل. اختر قيمة أخرى في {{field}}، ثم حاول مرة أخرى."
 }

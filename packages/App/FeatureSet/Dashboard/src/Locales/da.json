@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "Du har ikke tilladelse til at se optagelser for denne applikation.",
   "You do not have permission to {{action}} this {{itemName}}.": "Du har ikke tilladelse til at udføre \"{{action}}\" for dette element ({{itemName}}).",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Du har ikke tilstrækkelige tilladelser til at angive {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "Du har ikke tilstrækkelige tilladelser til at redigere {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Du har ikke tilstrækkelige tilladelser til at angive {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "Du har ikke tilstrækkelige tilladelser til at redigere {{columnName}} for {{itemName}}. Du skal have en af følgende tilladelser: {{permissions}}.",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "Du skal have adgang til hændelser eller advarsler for at se, hvad der er åbent her.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Besøgende ser et kort for hver hændelse og et for hver episode, så en hændelse i en episode vises to gange.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Besøgende ser hver episode som ét kort, der viser dens hændelser og det, de påvirker.",
   "Page when the script timed out": "Side, da scriptet fik timeout",
-  "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout"
+  "Page {{number}} when the script timed out": "Side {{number}}, da scriptet fik timeout",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Denne funktion kræver {{plan}}-planen eller højere. Opgrader projektets plan under Projektindstillinger > Fakturering og fakturaer > Fakturering, og prøv så igen.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" findes allerede. Vælg en anden værdi for {{field}}, og prøv så igen."
 }

@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "No tienes permiso para ver la configuración de notificaciones de guardia de este usuario. Pide a un Propietario del proyecto o Administrador del proyecto el permiso 'Leer reglas de notificación de usuarios'.",
   "You do not have permission to watch recordings for this application.": "No tienes permiso para ver las grabaciones de esta aplicación.",
   "You do not have permission to {{action}} this {{itemName}}.": "No tiene permiso para aplicar «{{action}}» a este elemento ({{itemName}}).",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "No tienes permisos suficientes para definir {{columnName}} en {{itemName}}. Necesitas uno de los siguientes permisos: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "No tienes permisos suficientes para editar {{columnName}} en {{itemName}}. Necesitas uno de los siguientes permisos: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "No tienes permisos suficientes para definir {{columnName}} en {{itemName}}. Necesitas uno de los siguientes permisos: {{permissions}}.",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "No tienes permisos suficientes para editar {{columnName}} en {{itemName}}. Necesitas uno de los siguientes permisos: {{permissions}}.",
   "You have been invited to a project": "Te han invitado a un proyecto",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "Necesitas un método de pago antes de cambiar tu plan de suscripción. Añadir uno también habilita el uso de pago por uso a las tarifas publicadas.",
   "You need incident or alert access to see what's open here.": "Necesitas acceso a incidentes o alertas para ver lo que hay abierto aquí.",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "Los visitantes ven una tarjeta por cada incidente y otra por cada episodio, así que un incidente de un episodio aparece dos veces.",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "Los visitantes ven cada episodio como una sola tarjeta que enumera sus incidentes y lo que afectan.",
   "Page when the script timed out": "Página cuando se agotó el tiempo del script",
-  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script"
+  "Page {{number}} when the script timed out": "Página {{number}} cuando se agotó el tiempo del script",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "Esta función requiere el plan {{plan}} o superior. Mejore el plan del proyecto en Ajustes del proyecto > Facturación y facturas > Facturación y vuelva a intentarlo.",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" ya existe. Elija otro valor para {{field}} y vuelva a intentarlo."
 }

@@ -121,7 +121,7 @@ const PLANS: ReadonlyArray<PlanType> = [
 ];
 
 const SCALE_REFUSAL: string =
-  "Please upgrade your plan to Scale to access this feature";
+  "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "1c000000-0000-4000-8000-000000000001",

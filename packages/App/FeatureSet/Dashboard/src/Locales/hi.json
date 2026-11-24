@@ -18469,8 +18469,8 @@
   "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.": "You do not have permission to view this user's on-call notification configuration. Ask a Project Owner or Project Admin for the 'Read User Notification Rules' permission.",
   "You do not have permission to watch recordings for this application.": "आपको इस ऐप्लिकेशन की रिकॉर्डिंग देखने की अनुमति नहीं है।",
   "You do not have permission to {{action}} this {{itemName}}.": "आपको इस {{itemName}} पर \"{{action}}\" करने की अनुमति नहीं है।",
-  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "आपके पास {{itemName}} पर {{columnName}} सेट करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}",
-  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}": "आपके पास {{itemName}} पर {{columnName}} संपादित करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}",
+  "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "आपके पास {{itemName}} पर {{columnName}} सेट करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}।",
+  "You don't have enough permissions to edit {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.": "आपके पास {{itemName}} पर {{columnName}} संपादित करने की पर्याप्त अनुमतियाँ नहीं हैं। आपको इनमें से एक अनुमति चाहिए: {{permissions}}।",
   "You have been invited to a project": "You have been invited to a project",
   "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.": "You need a payment method before changing your subscription plan. Adding one also enables pay as you go usage at the published rates.",
   "You need incident or alert access to see what's open here.": "यहाँ क्या खुला है, यह देखने के लिए आपको घटनाओं या अलर्ट की पहुँच चाहिए।",
@@ -64069,5 +64069,7 @@
   "Visitors see a card for every incident and another for every episode, so an incident in an episode shows twice.": "विज़िटर हर घटना के लिए एक कार्ड और हर एपिसोड के लिए एक और कार्ड देखते हैं, इसलिए किसी एपिसोड की घटना दो बार दिखती है।",
   "Visitors see each episode as one card that lists its incidents and what they affect.": "विज़िटर हर एपिसोड को एक कार्ड के रूप में देखते हैं, जिसमें उसकी घटनाएं और उनसे प्रभावित चीज़ें सूचीबद्ध होती हैं।",
   "Page when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज",
-  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}"
+  "Page {{number}} when the script timed out": "स्क्रिप्ट का टाइमआउट होने के समय का पेज {{number}}",
+  "This feature needs the {{plan}} plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.": "इस सुविधा के लिए {{plan}} योजना या उससे ऊपर की योजना चाहिए। प्रोजेक्ट सेटिंग्स > बिलिंग और चालान > बिलिंग में प्रोजेक्ट की योजना अपग्रेड करें, फिर दोबारा कोशिश करें।",
+  "{{field}} \"{{value}}\" already exists. Choose another {{field}}, then try again.": "{{field}} \"{{value}}\" पहले से मौजूद है। {{field}} के लिए कोई दूसरा मान चुनें, फिर दोबारा कोशिश करें।"
 }
