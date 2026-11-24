@@ -1220,8 +1220,9 @@ export function getAwsReadOnlyRoleTemplate(data: {
       : dataSecurity
         ? "its data stores' configuration"
         : "";
+  // Which of each, never a key's secret or a password.
   const iamUsers: string = caseChecks
-    ? "what its IAM users hold: their keys, console password, policies, groups and MFA devices"
+    ? "which keys, console passwords, policies, groups and MFA devices its IAM users have"
     : "";
   const reads: string = [dataStores, iamUsers]
     .filter((what: string): boolean => {

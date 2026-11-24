@@ -63699,7 +63699,7 @@
   "A service-account key (JSON) delegated admin.reports.audit.readonly. Add admin.directory.group.member.readonly so security cases can read groups.": "A service-account key (JSON) delegated admin.reports.audit.readonly. Add admin.directory.group.member.readonly so security cases can read groups.",
   "Confirm the password the attack set for {{account}} no longer works in {{provider}}.": "Confirm the password the attack set for {{account}} no longer works in {{provider}}.",
   "Confirm {{account}} no longer has the policy {{object}} in {{provider}}.": "Confirm {{account}} no longer has the policy {{object}} in {{provider}}.",
-  "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. Read-only.": "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. Read-only.",
+  "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. The command changes with it.": "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. The command changes with it.",
   "No AWS connection reads the account {{cloudAccount}}, so OneUptime cannot read its IAM back. Connect it under Cloud → Connect, with Security case checks on.": "No AWS connection reads the account {{cloudAccount}}, so OneUptime cannot read its IAM back. Connect it under Cloud → Connect, with Security case checks on.",
   "Security case checks": "Security case checks",
   "The password the attack set for {{account}} no longer works in {{provider}}.": "The password the attack set for {{account}} no longer works in {{provider}}.",

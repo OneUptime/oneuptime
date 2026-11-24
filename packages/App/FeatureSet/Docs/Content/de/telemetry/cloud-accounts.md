@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 Der Befehl einer niedrigeren Stufe ersetzt die AWS-Richtlinie durch die der niedrigeren Stufe. **Aus** fügt nichts hinzu und lässt daher stehen, was ein früherer Befehl gewährt hat, bis Sie es löschen: die Richtlinie `OneUptimeDataSecurity` bei AWS, mit `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, und die Rollen der Inhaltsstufe bei Azure und Google Cloud. Datensicherheit hört so oder so sofort auf zu lesen: Sie liest nur, was die Stufe der Verbindung sagt. [Datensicherheit einrichten](/docs/data-security/setup) listet jede Aktion der Richtlinie auf und was Datensicherheit von dem behält, was sie liest.
 
+## Prüfungen für Sicherheitsfälle
+
+Bei AWS kann dieselbe Verbindung einen [Sicherheitsfall](/docs/telemetry/security-cases#wie-oneuptime-einen-schritt-prüft) prüfen lassen, ob rückgängig gemacht wurde, was ein Angriff an einem IAM-Benutzer geändert hat: der Zugriffsschlüssel, den er angelegt hat, das Konsolenpasswort, das er gesetzt hat, die Richtlinien, die er angehängt oder geschrieben hat, die Gruppen, denen er den Benutzer hinzugefügt hat, das MFA-Gerät, das er aktiviert hat, und der Benutzer, den er angelegt hat. Unter **Weitere Felder** steht die Einstellung **Prüfungen für Sicherheitsfälle** auf **Aus**, bis Sie sie einschalten, und der Befehl, den das Formular zeigt, ändert sich mit ihr. Jede Aktion liest nur, und keine liest ein Geheimnis: von einem Zugriffsschlüssel die ID und ob er aktiv ist, nie den Schlüssel, und dass ein Konsolenpasswort gesetzt ist, nie das Passwort.
+
+| Was der Fall von jedem Benutzer liest, den seine CloudTrail-Ereignisse nennen | Aktionen |
+| --- | --- |
+| Den Benutzer, oder dass es ihn nicht mehr gibt | `iam:GetUser` |
+| Seine Zugriffsschlüssel und ob jeder davon aktiv ist | `iam:ListAccessKeys` |
+| Ob er ein Konsolenpasswort hat, und seit wann | `iam:GetLoginProfile` |
+| Seine verwalteten Richtlinien und die Namen seiner Inline-Richtlinien | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| Die Gruppen, in denen er ist | `iam:ListGroupsForUser` |
+| Seine MFA-Geräte | `iam:ListMFADevices` |
+
+Der Befehl der Rolle fügt eine eigene Inline-Richtlinie, `OneUptimeSecurityCaseChecks`, mit einer weiteren Zeile hinzu, und das StackSet einer Organisation legt sie in die Rolle jedes Kontos:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+Mit einem **Zugriffsschlüssel** kommt die Richtlinie auf eine gleichnamige Gruppe, `OneUptimeSecurityCaseChecks`, der der Benutzer beitritt:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+Ein Fall liest eine Änderung nur über eine Verbindung, die das Konto erreicht, in dem die Änderung vorgenommen wurde, und fragt IAM über eine Verbindung, deren Einstellung **Prüfungen für Sicherheitsfälle** auf **Aus** steht, nichts: Er nennt diese Änderungen, damit Sie sie bestätigen, und sagt, dass Sie die Einstellung einschalten sollen. **Aus** fügt nichts hinzu und lässt daher stehen, was ein früherer Befehl gewährt hat, bis Sie es löschen, mit `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+
 ## Was OneUptime liest
 
 | | AWS | Azure | Google Cloud |

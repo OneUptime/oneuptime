@@ -266,6 +266,38 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 A lower level's command replaces the AWS policy with the lower one. **Off** adds nothing, so it leaves what an earlier command granted in place until you delete it: the `OneUptimeDataSecurity` policy on AWS, with `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeDataSecurity`, and the content level's roles on Azure and Google Cloud. Data Security stops reading at once either way: it reads only what the connection's level says. [Set Up Data Security](/docs/data-security/setup) lists every action of the policy, and what Data Security keeps of what it reads.
 
+## Security case checks
+
+On AWS, the same connection can let a [security case](/docs/telemetry/security-cases#how-oneuptime-checks-a-step) check that what an attack changed on an IAM user was undone: the access key it made, the console password it set, the policies it attached or wrote, the groups it added the user to, the MFA device it enabled and the user it made. Under **More fields**, **Security case checks** is **Off** until you turn it on, and the command the form shows changes with it. Each action only reads, and none reads a secret: an access key's ID and whether it is active, never the key, and that a console password is set, never the password.
+
+| What the case reads of each user its CloudTrail events name | Actions |
+| --- | --- |
+| The user, or that it is gone | `iam:GetUser` |
+| Its access keys, and whether each is active | `iam:ListAccessKeys` |
+| Whether it has a console password, and since when | `iam:GetLoginProfile` |
+| Its managed policies, and its inline policies' names | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
+| The groups it is in | `iam:ListGroupsForUser` |
+| Its MFA devices | `iam:ListMFADevices` |
+
+The role's command adds an inline policy of its own, `OneUptimeSecurityCaseChecks`, with one more line, and an organization's StackSet puts it in every account's role:
+
+```bash
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+```
+
+With an **Access key**, the policy goes on a group of the same name, `OneUptimeSecurityCaseChecks`, that the user joins:
+
+```bash
+aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage","ce:GetCostAndUsageWithResources","ce:GetSavingsPlansCoverage","ce:GetSavingsPlansUtilization","ce:GetReservationCoverage","ce:GetReservationUtilization","cost-optimization-hub:ListRecommendations","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
+aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
+aws iam create-access-key --user-name OneUptimeReadOnly
+```
+
+A case reads a change only through a connection that reaches the account the change was made in, and asks IAM nothing through a connection whose **Security case checks** is **Off**: it names those changes for you to confirm, and says to turn it on. **Off** adds nothing, so it leaves what an earlier command granted in place until you delete it, with `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+
 ## What OneUptime reads
 
 | | AWS | Azure | Google Cloud |
