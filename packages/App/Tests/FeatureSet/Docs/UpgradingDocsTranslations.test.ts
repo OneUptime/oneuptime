@@ -478,6 +478,7 @@ const PROSE_LEADS: Array<string> = [
   "Rows that share a number are read in the order of their IDs, and a gap in the numbers changes nothing.",
   "A recurring maintenance template keeps its events' time of day when the clocks change, and a monthly one keeps its day of the month.",
   "Network sites have owners, and the `Owned` scope narrows them.",
+  "Workflows that run with the default permissions no longer change runbook variables, monitor secrets, BI tool connections or threat intel feeds.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

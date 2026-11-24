@@ -261,6 +261,16 @@ with recurring templates.
   picked for a device. Make the people who look after sites their owners, on
   a site's **Owners** page or with **Add Owner** in the **Sites** list's
   **Bulk Actions**. See [Network Sites](/docs/monitor/network-sites).
+- **Workflows that run with the default permissions no longer change runbook
+  variables, monitor secrets, BI tool connections or threat intel feeds.** A
+  Project Member can build a workflow, and its steps act as a Project Admin,
+  so such a step let them change what a runbook runs on your machines, or
+  send a credential they can't read to a server of their choosing. The step
+  is refused now: it takes its Error output, and the run log names the
+  permission the change takes. A workflow that rotates one of these needs
+  more than the default permissions: in its Settings, have it run as Project
+  Owner, or as a custom role that holds that permission. See
+  [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 :::
 
 ## Upgrading from OneUptime 15 → 16
