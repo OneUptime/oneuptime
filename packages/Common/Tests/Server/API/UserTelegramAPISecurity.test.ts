@@ -302,7 +302,9 @@ describe("UserTelegramAPI security", () => {
   test.each([[VERIFICATION_INFO_ROUTE], [RESEND_ROUTE]])(
     "%s tells a request that names nobody to sign in again, before reading any row",
     async (route: string) => {
-      request.userAuthorization = undefined;
+      // A session that names nobody (a project's API key, say).
+      delete (request as { userAuthorization?: JSONWebTokenData })
+        .userAuthorization;
 
       await call(route);
 
