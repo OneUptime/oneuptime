@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHO MAY CHANGE A DATA STORE'S COMPLIANCE PAPERWORK (#10375, #10805).
@@ -178,14 +179,12 @@ function storeRow(labels: Array<Label>): DataStore {
 }
 
 let storeLabels: Array<Label>;
-let storeRead: jest.SpiedFunction<typeof DataStoreService.findOneBy>;
-let storeWrite: jest.SpiedFunction<
+let storeRead: SpyInstance<typeof DataStoreService.findOneBy>;
+let storeWrite: SpyInstance<
   typeof DataStoreService.updateColumnsByIdWithoutHooks
 >;
-let feedWrite: jest.SpiedFunction<
-  typeof DataStoreFeedService.createDataStoreFeedItem
->;
-let aiAsk: jest.SpiedFunction<typeof DataSecurityAiCall.ask>;
+let feedWrite: SpyInstance<typeof DataStoreFeedService.createDataStoreFeedItem>;
+let aiAsk: SpyInstance<typeof DataSecurityAiCall.ask>;
 
 beforeEach(() => {
   storeLabels = [PRODUCTION];
@@ -310,9 +309,8 @@ describe("StoreChangeAccess: a store's paperwork is changed by who may change th
   });
 
   test("whether a list of stores offers changes is read from the stores an update may reach", async () => {
-    const narrowed: jest.SpiedFunction<
-      typeof ModelPermission.getUpdatableQuery
-    > = jest.spyOn(ModelPermission, "getUpdatableQuery");
+    const narrowed: SpyInstance<typeof ModelPermission.getUpdatableQuery> =
+      jest.spyOn(ModelPermission, "getUpdatableQuery");
 
     await expect(
       StoreChangeAccess.mayChangeAny({
@@ -543,7 +541,7 @@ describe("the project's audit evidence", () => {
   const SECURITY_ADMIN: DatabaseCommonInteractionProps = callerProps({
     permissions: [Permission.SecurityAdmin],
   });
-  let evidenceWrite: jest.SpiedFunction<() => Promise<unknown>>;
+  let evidenceWrite: SpyInstance<() => Promise<unknown>>;
 
   beforeEach(() => {
     const setting: DataSecuritySetting = new DataSecuritySetting();
