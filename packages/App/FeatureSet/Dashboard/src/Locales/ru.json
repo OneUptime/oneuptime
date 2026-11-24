@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "Что статья 30 GDPR требует от этого хранилища. OneUptime AI составляет черновики того, что никто не написал; ничего не попадает в реестр, пока вы это не подтвердите.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "Что аудитор читает по каждому требованию — по проверкам и истории проблем Безопасности данных. Редактируйте любой абзац: для отредактированного вами абзаца черновик больше никогда не составляется.",
   "What changed since it was confirmed": "Что изменилось после подтверждения",
-  "What it is": "Что это",
   "What the redaction step removes": "Что удаляет шаг редактирования",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "Что сервис отправил с тех пор: агент кода не читает вашу телеметрию, пока работает",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "То, что изменило бы это исправление, изменилось с тех пор, как вам его показали, поэтому ничего не запущено. Посмотрите на него ещё раз, прежде чем просить.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "Исправление подтверждено",
   "Issue Fix Not Applied": "Исправление проблемы не применено",
   "Issue Fix Regressed": "Регрессия после исправления проблемы",
-  "Issue Fix Verified": "Исправление проблемы подтверждено"
+  "Issue Fix Verified": "Исправление проблемы подтверждено",
+  "What it is (store identity)": "Что это"
 }

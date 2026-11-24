@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "Wat artikel 30 van de AVG van deze opslag vraagt. OneUptime AI stelt op wat niemand schreef; niets staat in het register totdat u het bevestigt.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "Wat een auditor onder elke vereiste leest, uit de controles en de probleemgeschiedenis van Gegevensbeveiliging. Bewerk elke alinea: een alinea die u bewerkt, wordt nooit opnieuw opgesteld.",
   "What changed since it was confirmed": "Wat er is veranderd sinds de bevestiging",
-  "What it is": "Wat het is",
   "What the redaction step removes": "Wat de redactiestap verwijdert",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "Wat de service sindsdien heeft verstuurd: de codeeragent leest niets van je telemetrie terwijl hij werkt",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "Wat deze correctie zou veranderen, is veranderd sinds die aan je werd getoond, dus er is niets gestart. Bekijk het opnieuw voordat je het vraagt.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "Herstel geverifieerd",
   "Issue Fix Not Applied": "Herstel van een probleem niet toegepast",
   "Issue Fix Regressed": "Regressie na het herstel van een probleem",
-  "Issue Fix Verified": "Herstel van een probleem geverifieerd"
+  "Issue Fix Verified": "Herstel van een probleem geverifieerd",
+  "What it is (store identity)": "Wat het is"
 }

@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "آنچه ماده ۳۰ GDPR از این مخزن می‌خواهد. OneUptime AI برای آنچه کسی ننوشته پیش‌نویس می‌نویسد؛ تا شما تأیید نکنید چیزی در سابقه نیست.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "آنچه یک ممیز زیر هر الزام می‌خواند، از بررسی‌ها و تاریخچه مسائل امنیت داده. هر بندی را ویرایش کنید: برای بندی که ویرایش کنید دیگر هرگز پیش‌نویس نوشته نمی‌شود.",
   "What changed since it was confirmed": "آنچه از زمان تأیید تغییر کرده است",
-  "What it is": "چه چیزی است",
   "What the redaction step removes": "آنچه مرحله پوشاندن حذف می‌کند",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "آنچه سرویس از آن پس فرستاده است: عامل کدنویسی هنگام کار هیچ‌چیز از تله‌متری شما نمی‌خواند",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "آنچه این اصلاح تغییر می‌داد از زمانی که به شما نشان داده شد تغییر کرده است، پس چیزی آغاز نشد. پیش از درخواست دوباره آن را ببینید.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "اصلاح راستی‌آزمایی شد",
   "Issue Fix Not Applied": "اصلاح مسئله اعمال نشد",
   "Issue Fix Regressed": "مسئله پس از اصلاح دوباره رخ داد",
-  "Issue Fix Verified": "اصلاح مسئله راستی‌آزمایی شد"
+  "Issue Fix Verified": "اصلاح مسئله راستی‌آزمایی شد",
+  "What it is (store identity)": "چه چیزی است"
 }

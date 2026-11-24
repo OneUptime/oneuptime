@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.",
   "What changed since it was confirmed": "What changed since it was confirmed",
-  "What it is": "What it is",
   "What the redaction step removes": "What the redaction step removes",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "What the service sent since: the coding agent reads none of your telemetry while it works",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "Fix Verified",
   "Issue Fix Not Applied": "Issue Fix Not Applied",
   "Issue Fix Regressed": "Issue Fix Regressed",
-  "Issue Fix Verified": "Issue Fix Verified"
+  "Issue Fix Verified": "Issue Fix Verified",
+  "What it is (store identity)": "What it is (store identity)"
 }

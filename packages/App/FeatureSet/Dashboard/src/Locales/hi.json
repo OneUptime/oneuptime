@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "GDPR अनुच्छेद 30 इस स्टोर से क्या मांगता है। जो किसी ने नहीं लिखा, उसका ड्राफ़्ट OneUptime AI बनाता है; आपकी पुष्टि से पहले रिकॉर्ड में कुछ नहीं जाता।",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "हर आवश्यकता के तहत ऑडिटर क्या पढ़ता है, डेटा सुरक्षा की जांचों और समस्याओं के इतिहास से। कोई भी अनुच्छेद संपादित करें: आपके संपादित अनुच्छेद का फिर कभी ड्राफ़्ट नहीं बनता।",
   "What changed since it was confirmed": "पुष्टि के बाद क्या बदला",
-  "What it is": "यह क्या है",
   "What the redaction step removes": "रिडैक्शन स्टेप क्या हटाता है",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "उसके बाद सर्विस ने क्या भेजा: कोडिंग एजेंट काम करते समय आपकी कोई टेलीमेट्री नहीं पढ़ता",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "यह सुधार जो बदलेगा, वह आपको दिखाए जाने के बाद बदल गया है, इसलिए कुछ शुरू नहीं हुआ। कहने से पहले इसे दोबारा देखें।",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "सुधार सत्यापित हुआ",
   "Issue Fix Not Applied": "समस्या का सुधार लागू नहीं हुआ",
   "Issue Fix Regressed": "समस्या सुधार के बाद फिर हुई",
-  "Issue Fix Verified": "समस्या का सुधार सत्यापित हुआ"
+  "Issue Fix Verified": "समस्या का सुधार सत्यापित हुआ",
+  "What it is (store identity)": "यह क्या है"
 }

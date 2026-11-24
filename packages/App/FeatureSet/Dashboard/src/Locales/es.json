@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "Lo que el artículo 30 del RGPD pide de este almacén. OneUptime AI redacta lo que nadie ha escrito; nada entra en el registro hasta que lo confirmes.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "Lo que un auditor lee en cada requisito, a partir de las comprobaciones y del historial de problemas de Seguridad de datos. Edita cualquier párrafo: uno que edites nunca se vuelve a redactar.",
   "What changed since it was confirmed": "Qué cambió desde que se confirmó",
-  "What it is": "Qué es",
   "What the redaction step removes": "Lo que elimina el paso de redacción",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "Lo que el servicio envió desde entonces: el agente de código no lee nada de tu telemetría mientras trabaja",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "Lo que cambiaría esta corrección ha cambiado desde que se te mostró, así que no se inició nada. Revísala de nuevo antes de pedirla.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "Corrección verificada",
   "Issue Fix Not Applied": "Corrección de un problema no aplicada",
   "Issue Fix Regressed": "Regresión tras la corrección de un problema",
-  "Issue Fix Verified": "Corrección de un problema verificada"
+  "Issue Fix Verified": "Corrección de un problema verificada",
+  "What it is (store identity)": "Qué es"
 }

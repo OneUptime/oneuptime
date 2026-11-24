@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "ما تطلبه المادة 30 من GDPR من هذا المخزن. يصوغ OneUptime AI ما لم يكتبه أحد؛ ولا يدخل شيء في السجل حتى تؤكده.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "ما يقرؤه المدقق تحت كل متطلب، من فحوصات «أمن البيانات» وسجل المشكلات. عدّل أي فقرة: الفقرة التي تعدّلها لا تُعاد صياغتها أبدًا.",
   "What changed since it was confirmed": "ما تغيّر منذ تأكيده",
-  "What it is": "ما هو",
   "What the redaction step removes": "ما تزيله خطوة الحجب",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "ما أرسلته الخدمة منذ ذلك الحين: لا يقرأ وكيل البرمجة أي شيء من القياس عن بُعد لديك أثناء عمله",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "تغيّر ما كان هذا الإصلاح سيغيّره منذ عُرض عليك، لذا لم يبدأ شيء. راجعه مرة أخرى قبل أن تطلب.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "ثبت نجاح الإصلاح",
   "Issue Fix Not Applied": "لم يُطبَّق إصلاح مشكلة",
   "Issue Fix Regressed": "عادت المشكلة بعد إصلاحها",
-  "Issue Fix Verified": "ثبت نجاح إصلاح مشكلة"
+  "Issue Fix Verified": "ثبت نجاح إصلاح مشكلة",
+  "What it is (store identity)": "ما هو"
 }

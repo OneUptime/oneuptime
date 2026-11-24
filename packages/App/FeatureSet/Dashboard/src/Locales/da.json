@@ -63471,7 +63471,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "Det, GDPR artikel 30 kræver af dette datalager. OneUptime AI skriver kladder til det, ingen har skrevet; intet kommer i fortegnelsen, før du bekræfter det.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "Det, en revisor læser under hvert krav, ud fra Datasikkerheds kontroller og problemhistorik. Rediger et hvilket som helst afsnit: der skrives aldrig igen kladde til et afsnit, du har redigeret.",
   "What changed since it was confirmed": "Hvad der er ændret, siden det blev bekræftet",
-  "What it is": "Hvad det er",
   "What the redaction step removes": "Det, redigeringstrinnet fjerner",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "Det, tjenesten har sendt siden: kodeagenten læser intet af din telemetri, mens den arbejder",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "Det, denne rettelse ville ændre, har ændret sig, siden den blev vist dig, så intet blev startet. Se den igen, før du beder om den.",
@@ -64247,5 +64246,6 @@
   "Fix Verified": "Rettelse verificeret",
   "Issue Fix Not Applied": "Rettelse af et problem ikke anvendt",
   "Issue Fix Regressed": "Regression efter rettelsen af et problem",
-  "Issue Fix Verified": "Rettelse af et problem verificeret"
+  "Issue Fix Verified": "Rettelse af et problem verificeret",
+  "What it is (store identity)": "Hvad det er"
 }
