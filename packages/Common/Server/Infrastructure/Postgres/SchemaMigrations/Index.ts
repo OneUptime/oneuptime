@@ -1190,6 +1190,8 @@ import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSuppor
 import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
+import { AddOnCallPolicyIncidentRole1809187650000 } from "./1809187650000-AddOnCallPolicyIncidentRole";
+import { AddOnCallPolicyIncidentRoleIndexAndKey1809187650010 } from "./1809187650010-AddOnCallPolicyIncidentRoleIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2384,4 +2386,6 @@ export default [
   AddGroupIncidentsByEpisodeToStatusPage1809187610767,
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
+  AddOnCallPolicyIncidentRole1809187650000,
+  AddOnCallPolicyIncidentRoleIndexAndKey1809187650010,
 ];
