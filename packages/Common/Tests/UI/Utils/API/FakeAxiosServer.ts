@@ -208,7 +208,7 @@ export default class FakeAxiosServer {
     const status: number = reply.status ?? 200;
 
     const response: AxiosResponse = {
-      data: "rawData" in reply ? reply.rawData : (reply.data ?? {}),
+      data: "rawData" in reply ? reply.rawData : reply.data ?? {},
       status: status,
       statusText: "",
       headers: reply.headers ?? {},

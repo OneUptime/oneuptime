@@ -73,15 +73,18 @@ describe("HTTPErrorResponse.statedMessage", () => {
     [{ error: { message: "Pick a probe." } }, "Pick a probe."],
     [{ error: { error: "Pick a probe." } }, "Pick a probe."],
     [{ data: { rows: [] }, message: "Pick a probe." }, "Pick a probe."],
-  ])("reads the words of %j", (body: object, words: string) => {
-    const answer: HTTPErrorResponse = new HTTPErrorResponse(
-      400,
-      body as never,
-      {},
-    );
+  ])(
+    "reads the words of %j",
+    (body: Record<string, unknown>, words: string) => {
+      const answer: HTTPErrorResponse = new HTTPErrorResponse(
+        400,
+        body as never,
+        {},
+      );
 
-    expect(answer.statedMessage).toBe(words);
-  });
+      expect(answer.statedMessage).toBe(words);
+    },
+  );
 
   it.each([
     [{ error: { code: 42 } }],
@@ -94,7 +97,7 @@ describe("HTTPErrorResponse.statedMessage", () => {
     [{}],
   ])(
     "states nothing for %j, where message has JSON or a number",
-    (body: object) => {
+    (body: Record<string, unknown>) => {
       const answer: HTTPErrorResponse = new HTTPErrorResponse(
         500,
         body as never,

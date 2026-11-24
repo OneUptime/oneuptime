@@ -150,9 +150,9 @@ describe("a table's sentence under its title", () => {
 
     expect(reference).toHaveTextContent(REFERENCE);
     expect(getReferenceAlignment(reference)).toBe("center");
-    expect(getWordsAlignment(within(words).getByTestId("error-why-and-next"))).toBe(
-      "center",
-    );
+    expect(
+      getWordsAlignment(within(words).getByTestId("error-why-and-next")),
+    ).toBe("center");
   });
 
   test("for words of their own, is ErrorMessageText's line", () => {

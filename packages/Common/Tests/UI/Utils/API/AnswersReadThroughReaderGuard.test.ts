@@ -87,8 +87,7 @@ const isAnswerData: (node: ts.Expression | undefined) => boolean = (
   const expression: ts.Expression = unwrapped(node);
 
   return (
-    ts.isPropertyAccessExpression(expression) &&
-    expression.name.text === "data"
+    ts.isPropertyAccessExpression(expression) && expression.name.text === "data"
   );
 };
 
@@ -191,7 +190,10 @@ const findUnguardedReads: (
         isAnswerData(node.arguments[0]) &&
         !isInsideAnswerReader(node)
       ) {
-        report(node, `builds models from an answer's data (${callee.name.text})`);
+        report(
+          node,
+          `builds models from an answer's data (${callee.name.text})`,
+        );
       }
 
       // An answer's data read as a list of rows.
@@ -408,6 +410,8 @@ describe("the browser's clients", () => {
           return finding.how;
         },
       ),
-    ).toEqual(["builds an HTTPResponse outside readAnswer and readErrorAnswer"]);
+    ).toEqual([
+      "builds an HTTPResponse outside readAnswer and readErrorAnswer",
+    ]);
   });
 });

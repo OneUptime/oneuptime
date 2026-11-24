@@ -128,7 +128,9 @@ const LAYOUTS: Array<Layout> = [
     name: "a list that did not load (ErrorMessage)",
     alignment: "center",
     draw: (): React.ReactElement => {
-      return <ErrorMessage message={WITH_REFERENCE} onRefreshClick={() => {}} />;
+      return (
+        <ErrorMessage message={WITH_REFERENCE} onRefreshClick={() => {}} />
+      );
     },
   },
   {
@@ -158,7 +160,9 @@ const LAYOUTS: Array<Layout> = [
     name: "a public dashboard's placeholder (WidgetPlaceholder)",
     alignment: "center",
     draw: (): React.ReactElement => {
-      return <WidgetPlaceholder icon={IconProp.Logs} message={WITH_REFERENCE} />;
+      return (
+        <WidgetPlaceholder icon={IconProp.Logs} message={WITH_REFERENCE} />
+      );
     },
   },
   {
