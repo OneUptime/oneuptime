@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "هذه المشكلة غير موجودة، أو لا يمكنك قراءتها.",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "رُبط بهذه المشكلة 10 طلبات سحب بالفعل. أزِل واحدًا قبل أن تربط آخر.",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "نُحّيت هذه المشكلة جانبًا: قُبلت مخاطرها، أو ليست مشكلة. أعد فتحها لربط طلب السحب الذي يصلحها.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} مرتبط بهذه المشكلة بالفعل."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} مرتبط بهذه المشكلة بالفعل.",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "لواجهة تطبيق RUM الأمامية، مسار الصفحة التي كُتب فيها كل سجل من المتصفح، مع حجب كل قيمة فيه، واستدعاء مسجّل الجلسات الذي أعطى الجلسة مستخدمها"
 }

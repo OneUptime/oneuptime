@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "この問題は存在しないか、読み取る権限がありません。",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "この問題にはすでに 10 件のプルリクエストがリンクされています。別のものをリンクするには、先に 1 件のリンクを解除してください。",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "この問題は保留されています。リスクが受け入れられたか、問題ではないとされました。修正するプルリクエストをリンクするには、問題を再度開いてください。",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "RUM アプリケーションのフロントエンドでは、各ブラウザーのレコードが書き込まれたページのパス（その中の値はすべてマスク済み）と、セッションにユーザーを渡したセッションレコーダーの呼び出し"
 }

@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "이 이슈가 존재하지 않거나 읽을 권한이 없습니다.",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "이 이슈에는 이미 풀 리퀘스트 10개가 연결되어 있습니다. 다른 풀 리퀘스트를 연결하려면 먼저 하나를 연결 해제하세요.",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "이 이슈는 보류되었습니다. 위험이 수락되었거나 이슈가 아닌 것으로 처리되었습니다. 이 이슈를 수정하는 풀 리퀘스트를 연결하려면 다시 여세요.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}}은(는) 이미 이 이슈에 연결되어 있습니다."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}}은(는) 이미 이 이슈에 연결되어 있습니다.",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "RUM 애플리케이션의 프런트엔드에서는 각 브라우저 레코드가 기록된 페이지의 경로(그 안의 모든 값은 가려짐)와 세션에 사용자를 넘긴 세션 녹화기 호출"
 }

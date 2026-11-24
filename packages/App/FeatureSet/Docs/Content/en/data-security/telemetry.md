@@ -201,6 +201,15 @@ A secret needs more than a code fix: the code stops new copies only, and the sec
 
 With **Work on new issues** on, OneUptime AI also proposes each service's fix on its own, the riskiest service first, on **Data Security → AI** and on the service's riskiest issue. Out of the box it waits for you. A Data Security AI rule that sets **Fix** to **Automatically** for the service's riskiest issue opens the pull request without asking, in a repository something decided. The repository's **Max Open Fix Pull Requests** caps both: at the cap, a pull request a rule would open waits for you, and no new fix pull request opens until one is merged or closed.
 
+### A RUM application's front end
+
+**Fix with AI** on a session replay issue does the same for a RUM application: one pull request that stops its front-end code sending every leak OneUptime still sees in its browser logs, its browser spans and its sessions' details. Where each leak is written comes from the records it was seen in, read inside OneUptime:
+
+- **A browser log or span**: the file, line and function its JavaScript stack resolves to through the source maps your builds uploaded (see [Source Maps](/docs/telemetry/source-maps)), else its `code.*` attributes; the log's line or the span's name as a template; and the page it was written on, by its path only, each ID and value in it masked.
+- **A session's user details**: the session recorder's `identify()` call that gave them, and the page the session started on.
+
+The pull request goes to the repository that holds those files, else to the one that holds the most of the files the newest release's source maps name, else to the repository named like the application's **App Identifier**, or to the project's only one; when nothing decides, you pick. It changes the browser code at each place, where a session's user is identified by an opaque ID and never an email, or adds one redaction step where the application sets up its browser telemetry. A session's recording is never read, and the coding agent reads none of your telemetry. Each issue resolves as **Fixed in code** once the application's new release no longer sends the data. OneUptime AI does not propose an application's fix on its own yet: ask for it with **Fix with AI**.
+
 ## Drop This Metric
 
 No rule takes the data out of a metric's name, so until the code that names the metric is fixed, the data keeps arriving. **Drop This Metric** on a finding in a metric's name stops storing the metrics whose names hold it, at the cost of their data, so it only happens when you ask for it:

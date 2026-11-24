@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "Dette problem findes ikke, eller du har ikke adgang til at læse det.",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "Dette problem har allerede 10 tilknyttede pull requests. Fjern en, før du tilknytter en ny.",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Dette problem er lagt til side: risikoen er accepteret, eller det er ikke et problem. Genåbn det for at tilknytte den pull request, der retter det.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} er allerede tilknyttet dette problem."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} er allerede tilknyttet dette problem.",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "For en RUM-applikations frontend stien til den side, hver browserpost blev skrevet på, med hver værdi maskeret, og sessionsoptagerens kald, der gav en session dens bruger"
 }

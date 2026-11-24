@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "यह इश्यू मौजूद नहीं है, या आप इसे नहीं पढ़ सकते।",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "इस इश्यू से पहले ही 10 पुल रिक्वेस्ट लिंक हैं। दूसरा लिंक करने से पहले एक हटाएँ।",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "यह इश्यू अलग रखा गया है: इसका जोखिम स्वीकार किया गया, या यह इश्यू नहीं है। इसे ठीक करने वाला पुल रिक्वेस्ट लिंक करने के लिए इसे फिर से खोलें।",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} पहले से इस इश्यू से लिंक है।"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} पहले से इस इश्यू से लिंक है।",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "RUM एप्लिकेशन के फ़्रंट-एंड के लिए, उस पेज का पाथ जिस पर हर ब्राउज़र रिकॉर्ड लिखा गया, उसमें हर मान छिपा हुआ, और सेशन रिकॉर्डर का वह कॉल जिसने सेशन को उसका उपयोगकर्ता दिया"
 }

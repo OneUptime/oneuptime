@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "Questo problema non esiste, oppure non puoi leggerlo.",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "Questo problema ha già 10 pull request collegate. Rimuovine una prima di collegarne un'altra.",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Questo problema è stato messo da parte: il suo rischio è stato accettato, oppure non è un problema. Riaprilo per collegare la pull request che lo corregge.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} è già collegata a questo problema."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} è già collegata a questo problema.",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "Per il front-end di un'applicazione RUM, il percorso della pagina su cui è stato scritto ogni record del browser, con ogni valore mascherato, e la chiamata del registratore delle sessioni che ha dato a una sessione il suo utente"
 }

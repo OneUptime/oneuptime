@@ -64056,5 +64056,6 @@
   "This issue does not exist, or you cannot read it.": "This issue does not exist, or you cannot read it.",
   "This issue has 10 pull requests linked already. Take one off before you link another.": "This issue has 10 pull requests linked already. Take one off before you link another.",
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} is linked to this issue already."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} is linked to this issue already.",
+  "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user": "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user"
 }
