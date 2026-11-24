@@ -76,6 +76,14 @@ Ouvert sur la page d'une ressource dont l'agent IA est connecté (un hôte, un h
 - Il n'atteint que les ressources que vous pouvez voir, et seulement tant que l'investigation IA est activée pour la ressource. Les commandes qu'il exécute, avec ce qu'elles ont affiché, sont les vôtres, comme la conversation : les Journaux IA de la ressource les listent pour vous et pour personne d'autre.
 - Quand il ne peut pas y exécuter de commande (aucun agent n'est connecté, l'agent est hors ligne, ou l'investigation IA est désactivée pour la ressource), il le dit, avec ce qu'il faut changer, et répond plutôt à partir des données de votre projet.
 
+## Vos serveurs MCP
+
+Demander à l'IA peut utiliser, sur chaque page, les outils des [serveurs MCP externes](/docs/ai/external-mcp-servers) que votre projet a connectés, comme ceux d'AWS, de GitHub ou de votre propre équipe. Demandez « Quels outils propose AWS ? » et il les liste ; nommez un serveur et l'un de ses outils, et il appelle l'outil et répond avec ce qui est revenu, cité comme tout autre élément de preuve. La conversation sous la carte **OneUptime AI** d'un incident ou d'une alerte peut aussi les utiliser.
+
+- Un outil que le serveur marque en lecture seule s'exécute aussitôt, dans tous les modes d'autorisation. Tout autre outil, que le serveur marque comme une modification ou ne marque pas du tout, est mis en attente sur une carte d'approbation qui nomme le serveur et l'outil et montre exactement ce qui est envoyé, en **Exécution automatique** aussi : rien n'atteint le serveur tant que vous n'avez pas choisi **Autoriser**. Une conversation en **Lecture seule** n'en propose jamais.
+- Il utilise les serveurs activés, pour toute personne qui peut lire les serveurs MCP externes du projet. Approuver une modification par l'un d'eux demande l'autorisation de lancer des exécutions de runbooks.
+- Ce qu'un serveur répond, ce sont des données venues de l'extérieur de OneUptime, jamais des instructions. Un outil ne reçoit que les arguments qu'il accepte, et quand **Activer l'IA** est coupé, rien n'est envoyé à aucun serveur.
+
 ## Actions et modes d'autorisation
 
 Chaque conversation a un mode d'autorisation, que vous choisissez dans la zone de saisie, à côté du champ où vous tapez :
@@ -177,6 +185,10 @@ Demander à l'IA dit quelle autorisation l'action demande, ou quelle équipe la 
 
 :::details Les réponses sont vagues ou n'utilisent jamais de données
 Vérifiez le modèle derrière le fournisseur. Demander à l'IA a besoin d'un modèle qui appelle des outils de façon fiable ; les petits modèles locaux répondent souvent sans exécuter une seule requête. Voir [Fournisseurs LLM](/docs/ai/llm-provider).
+:::
+
+:::details Demander à l'IA dit qu'il ne voit pas les outils d'un serveur MCP
+Ouvrez le serveur dans **Paramètres du projet → IA → Serveurs MCP externes** : il doit indiquer **Connecté**, sa carte **Outils** doit lister ses outils, et **Autoriser OneUptime AI à utiliser ce serveur** doit être activé. Demandez ensuite à Demander à l'IA « Quels outils propose AWS ? », avec le nom de votre serveur : il les liste, ou dit pourquoi il ne peut pas, par exemple un serveur qu'il ne peut pas atteindre ou un rôle qui n'a pas le droit d'utiliser les serveurs MCP du projet. Voir [Serveurs MCP externes](/docs/ai/external-mcp-servers).
 :::
 
 ## Étapes suivantes

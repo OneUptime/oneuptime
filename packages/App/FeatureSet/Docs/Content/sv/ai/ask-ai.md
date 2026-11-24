@@ -76,6 +76,14 @@ På en undersida registrerar kontexten också den pod, container, VM, process el
 - Den når bara de resurser du får se, och bara medan AI-undersökning är påslagen för resursen. Kommandona den kör, med det de skrev ut, är dina, precis som konversationen: resursens AI-loggar visar dem för dig och ingen annan.
 - När den inte kan köra ett kommando där (ingen agent är ansluten, agenten är offline eller AI-undersökning är avstängd för resursen) säger den det, tillsammans med vad som behöver ändras, och svarar i stället utifrån ditt projekts data.
 
+## Dina MCP-servrar
+
+Fråga AI kan använda verktygen på de [externa MCP-servrar](/docs/ai/external-mcp-servers) som ditt projekt har anslutit, till exempel AWS:s, GitHubs eller ditt teams egna, på varje sida. Frågar du "Vilka verktyg har AWS?" listar den dem; nämner du en server och ett av dess verktyg anropar den verktyget och svarar med det som kom tillbaka, med källhänvisning som allt annat underlag. Samtalet under en incidents eller ett larms kort **OneUptime AI** kan också använda dem.
+
+- Ett verktyg som servern märker som skrivskyddat körs direkt, i alla behörighetslägen. Alla andra verktyg, de som servern märker som en ändring eller inte märker alls, väntar på ett godkännandekort som anger servern och verktyget och visar exakt vad som skickas, även i läget **Kör automatiskt**: inget når servern förrän du väljer **Tillåt**. Ett samtal i läget **Skrivskyddad** erbjuder aldrig något sådant verktyg.
+- Den använder de påslagna servrarna, för alla som får läsa projektets externa MCP-servrar. Att godkänna en ändring via en av dem kräver behörighet att starta runbook-körningar.
+- Det en server svarar är data från en källa utanför OneUptime, aldrig instruktioner. Ett verktyg får bara de argument det tar emot, och när **Aktivera AI** är avstängt skickas ingenting till någon server.
+
 ## Åtgärder och behörighetslägen
 
 Varje samtal har ett behörighetsläge, som du väljer i inmatningsfältet bredvid rutan du skriver i:
@@ -177,6 +185,10 @@ Fråga AI säger vilken behörighet åtgärden kräver, eller vilket team som bl
 
 :::details Svaren är vaga eller använder aldrig data
 Kontrollera modellen bakom leverantören. Fråga AI behöver en modell som anropar verktyg tillförlitligt; små lokala modeller svarar ofta utan att köra en enda fråga. Se [LLM-leverantörer](/docs/ai/llm-provider).
+:::
+
+:::details Fråga AI säger att den inte ser en MCP-servers verktyg
+Öppna servern under **Projektinställningar → AI → Externa MCP-servrar**: den ska visa **Ansluten**, dess kort **Verktyg** ska lista dess verktyg och **Låt OneUptime AI använda den här servern** ska vara påslaget. Ställ sedan frågan "Vilka verktyg har AWS?" i Fråga AI, med din servers namn: den listar dem eller säger varför den inte kan, till exempel en server den inte når eller en roll som inte får använda projektets MCP-servrar. Se [Externa MCP-servrar](/docs/ai/external-mcp-servers).
 :::
 
 ## Nästa steg

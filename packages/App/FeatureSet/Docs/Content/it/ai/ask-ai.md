@@ -76,6 +76,14 @@ Aperto sulla pagina di una risorsa il cui agente IA è connesso (un host, un hos
 - Raggiunge solo le risorse che puoi vedere, e solo finché l'indagine IA è attiva per la risorsa. I comandi che esegue, con ciò che hanno stampato, sono tuoi, come la conversazione: i Log IA della risorsa li elencano per te e per nessun altro.
 - Quando non può eseguire un comando lì (nessun agente è connesso, l'agente è offline o l'indagine IA è disattivata per la risorsa), lo dice, insieme a cosa cambiare, e risponde invece con i dati del tuo progetto.
 
+## I tuoi server MCP
+
+Chiedi all'IA può usare, su ogni pagina, gli strumenti dei [server MCP esterni](/docs/ai/external-mcp-servers) che il tuo progetto ha collegato, come quelli di AWS, di GitHub o del tuo team. Chiedi «Quali strumenti ha AWS?» e li elenca; indica un server e uno dei suoi strumenti, e chiama lo strumento e risponde con ciò che è tornato, citato come qualsiasi altra prova. Anche la conversazione sotto la scheda **OneUptime AI** di un incidente o di un avviso può usarli.
+
+- Uno strumento che il server contrassegna come di sola lettura viene eseguito subito, in ogni modalità di autorizzazione. Qualsiasi altro strumento, uno che il server contrassegna come una modifica o non contrassegna affatto, resta in attesa su una scheda di approvazione che nomina il server e lo strumento e mostra esattamente cosa viene inviato, anche in **Esecuzione automatica**: nulla raggiunge il server finché non scegli **Consenti**. Una conversazione in **Sola lettura** non ne offre mai.
+- Usa i server attivi, per chiunque possa leggere i server MCP esterni del progetto. Approvare una modifica tramite uno di essi richiede il permesso di avviare esecuzioni di runbook.
+- Ciò che un server risponde sono dati provenienti da fuori OneUptime, mai istruzioni. A uno strumento vengono inviati solo gli argomenti che accetta, e con **Abilita IA** disattivato non viene inviato nulla a nessun server.
+
 ## Azioni e modalità di autorizzazione
 
 Ogni conversazione ha una modalità di autorizzazione, che scegli nell'area di scrittura, accanto alla casella in cui scrivi:
@@ -177,6 +185,10 @@ Chiedi all'IA dice quale permesso serve all'azione, o quale team la blocca. Chie
 
 :::details Le risposte sono vaghe o non usano mai dati
 Controlla il modello dietro il provider. Chiedi all'IA ha bisogno di un modello che chiami gli strumenti in modo affidabile; i piccoli modelli locali spesso rispondono senza eseguire nemmeno una query. Vedi [Provider LLM](/docs/ai/llm-provider).
+:::
+
+:::details Chiedi all'IA dice di non vedere gli strumenti di un server MCP
+Apri il server in **Impostazioni del progetto → IA → Server MCP esterni**: dovrebbe indicare **Connesso**, la sua scheda **Strumenti** dovrebbe elencarne gli strumenti, e **Consenti a OneUptime AI di usare questo server** dovrebbe essere attivo. Poi chiedi a Chiedi all'IA «Quali strumenti ha AWS?», con il nome del tuo server: li elenca, o dice perché non può, ad esempio un server che non riesce a raggiungere o un ruolo che non può usare i server MCP del progetto. Vedi [Server MCP esterni](/docs/ai/external-mcp-servers).
 :::
 
 ## Prossimi passi

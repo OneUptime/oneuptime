@@ -76,6 +76,14 @@ Auf der Seite einer Ressource geöffnet, deren KI-Agent verbunden ist (ein Host,
 - Erreicht werden nur die Ressourcen, die Sie sehen dürfen, und nur, solange die KI-Untersuchung für die Ressource eingeschaltet ist. Die Befehle, die es ausführt, samt ihrer Ausgabe, gehören Ihnen, wie die Unterhaltung: Die KI-Protokolle der Ressource listen sie für Sie und für niemanden sonst.
 - Kann KI fragen dort keinen Befehl ausführen (kein Agent ist verbunden, der Agent ist offline oder die KI-Untersuchung ist für die Ressource ausgeschaltet), sagt es das, samt dem, was zu ändern ist, und antwortet stattdessen aus den Daten Ihres Projekts.
 
+## Ihre MCP-Server
+
+KI fragen kann auf jeder Seite die Werkzeuge der [externen MCP-Server](/docs/ai/external-mcp-servers) nutzen, die Ihr Projekt verbunden hat, etwa die von AWS, von GitHub oder die Ihres eigenen Teams. Fragen Sie „Welche Werkzeuge hat AWS?“, und es listet sie auf; nennen Sie einen Server und eines seiner Werkzeuge, und es ruft das Werkzeug auf und antwortet mit dem, was zurückkam, belegt wie jeder andere Nachweis. Die Unterhaltung unter der Karte **OneUptime AI** eines Vorfalls oder einer Warnung kann sie ebenfalls nutzen.
+
+- Ein Werkzeug, das der Server als nur lesend markiert, läuft sofort, in jedem Berechtigungsmodus. Jedes andere Werkzeug, eines, das der Server als Änderung markiert oder gar nicht markiert, wartet auf einer Genehmigungskarte, die den Server und das Werkzeug nennt und genau zeigt, was gesendet wird, auch bei **Automatisch ausführen**: Nichts erreicht den Server, bevor Sie **Zulassen** wählen. Eine Unterhaltung im Modus **Nur Lesezugriff** bietet nie eines an.
+- Es nutzt die eingeschalteten Server für jeden, der die externen MCP-Server des Projekts lesen darf. Eine Änderung über einen davon zu genehmigen erfordert die Berechtigung, Runbook-Ausführungen zu starten.
+- Was ein Server antwortet, sind Daten von außerhalb von OneUptime, nie Anweisungen. Ein Werkzeug bekommt nur die Argumente gesendet, die es annimmt, und ist **KI aktivieren** ausgeschaltet, wird nichts an einen Server gesendet.
+
 ## Aktionen und Berechtigungsmodi
 
 Jede Unterhaltung hat einen Berechtigungsmodus, den Sie im Eingabebereich neben dem Textfeld wählen:
@@ -177,6 +185,10 @@ KI fragen sagt, welche Berechtigung die Aktion braucht oder welches Team sie blo
 
 :::details Antworten sind vage oder nutzen nie Daten
 Prüfen Sie das Modell hinter dem Anbieter. KI fragen braucht ein Modell, das Werkzeuge zuverlässig aufruft; kleine lokale Modelle antworten oft, ohne eine einzige Abfrage auszuführen. Siehe [LLM-Anbieter](/docs/ai/llm-provider).
+:::
+
+:::details KI fragen sagt, dass es die Werkzeuge eines MCP-Servers nicht sehen kann
+Öffnen Sie den Server unter **Projekteinstellungen → KI → Externe MCP-Server**: Er sollte **Verbunden** anzeigen, seine Karte **Werkzeuge** sollte seine Werkzeuge auflisten, und **OneUptime AI diesen Server nutzen lassen** sollte eingeschaltet sein. Fragen Sie dann in KI fragen „Welche Werkzeuge hat AWS?“, mit dem Namen Ihres Servers: Es listet sie auf oder sagt, warum es das nicht kann, etwa bei einem Server, den es nicht erreicht, oder einer Rolle, die die MCP-Server des Projekts nicht nutzen darf. Siehe [Externe MCP-Server](/docs/ai/external-mcp-servers).
 :::
 
 ## Nächste Schritte

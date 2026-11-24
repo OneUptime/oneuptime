@@ -76,6 +76,14 @@ På en underside registrerer konteksten også den pod, container, VM, proces ell
 - Den når kun de ressourcer, du må se, og kun mens AI-undersøgelse er slået til for ressourcen. De kommandoer, den kører, med det, de udskrev, er dine, ligesom samtalen: ressourcens AI-logs viser dem for dig og ingen andre.
 - Når den ikke kan køre en kommando der (ingen agent er forbundet, agenten er offline, eller AI-undersøgelse er slået fra for ressourcen), siger den det sammen med, hvad der skal ændres, og svarer i stedet ud fra dit projekts data.
 
+## Dine MCP-servere
+
+Spørg AI kan bruge værktøjerne på de [eksterne MCP-servere](/docs/ai/external-mcp-servers), dit projekt har forbundet, fx dem fra AWS, GitHub eller dit eget team, på alle sider. Spørg "Hvilke værktøjer har AWS?", så viser den dem; nævn en server og et af dens værktøjer, så kalder den værktøjet og svarer med det, der kom tilbage, med kildehenvisning ligesom al anden dokumentation. Samtalen under kortet **OneUptime AI** på en hændelse eller en advarsel kan også bruge dem.
+
+- Et værktøj, som serveren markerer som skrivebeskyttet, kører med det samme i alle tilladelsestilstande. Ethvert andet værktøj, et, som serveren markerer som en ændring eller slet ikke markerer, venter på et godkendelseskort, der nævner serveren og værktøjet og viser præcis, hvad der sendes, også i **Kør automatisk**: intet når serveren, før du vælger **Tillad**. En samtale i tilstanden **Skrivebeskyttet** tilbyder aldrig et sådant værktøj.
+- Den bruger de servere, der er slået til, for alle, der må læse projektets Eksterne MCP-servere. At godkende en ændring via en af dem kræver tilladelse til at starte runbook-kørsler.
+- Det, en server svarer, er data udefra, aldrig instruktioner. Et værktøj får kun de argumenter, det tager imod, og med **Aktivér AI** slået fra sendes intet til nogen server.
+
 ## Handlinger og tilladelsestilstande
 
 Hver samtale har en tilladelsestilstand, som du vælger i indtastningsfeltet ved siden af tekstboksen:
@@ -177,6 +185,10 @@ Spørg AI siger, hvilken tilladelse handlingen kræver, eller hvilket team der b
 
 :::details Svarene er vage eller bruger aldrig data
 Tjek modellen bag udbyderen. Spørg AI har brug for en model, der kalder værktøjer pålideligt; små lokale modeller svarer ofte uden at køre en eneste forespørgsel. Se [LLM-udbydere](/docs/ai/llm-provider).
+:::
+
+:::details Spørg AI siger, at den ikke kan se en MCP-servers værktøjer
+Åbn serveren under **Projektindstillinger → AI → Eksterne MCP-servere**: Den skal vise **Forbundet**, dens kort **Værktøjer** skal vise dens værktøjer, og **Lad OneUptime AI bruge denne server** skal være slået til. Spørg derefter i Spørg AI "Hvilke værktøjer har AWS?" med din servers navn: Den viser dem eller siger, hvorfor den ikke kan, fx en server, den ikke kan nå, eller en rolle, der ikke må bruge projektets MCP-servere. Se [Eksterne MCP-servere](/docs/ai/external-mcp-servers).
 :::
 
 ## Næste trin

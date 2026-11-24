@@ -76,6 +76,14 @@ Aberto na página de um recurso cujo agente de IA está conectado (um host, um h
 - Ele alcança apenas os recursos que você pode ver, e apenas enquanto a investigação de IA estiver ativada para o recurso. Os comandos que ele executa, com o que imprimiram, são seus, como a conversa: os Registros de IA do recurso os listam para você e para mais ninguém.
 - Quando não consegue executar um comando ali (nenhum agente está conectado, o agente está offline ou a investigação de IA está desativada para o recurso), ele avisa, junto com o que mudar, e responde com os dados do seu projeto.
 
+## Os seus servidores MCP
+
+O Pergunte à IA pode usar as ferramentas dos [servidores MCP externos](/docs/ai/external-mcp-servers) que o seu projeto conectou, como os da AWS, do GitHub ou da sua própria equipe, em qualquer página. Pergunte "Quais ferramentas a AWS tem?" e ele as lista; nomeie um servidor e uma das suas ferramentas, e ele chama a ferramenta e responde com o que voltou, citado como qualquer outra evidência. A conversa abaixo do cartão **OneUptime AI** de um incidente ou de um alerta também pode usá-los.
+
+- Uma ferramenta que o servidor marca como somente leitura é executada na hora, em qualquer modo de permissão. Qualquer outra ferramenta, uma que o servidor marca como alteração ou não marca de jeito nenhum, espera em um cartão de aprovação que nomeia o servidor e a ferramenta e mostra exatamente o que é enviado, também em **Execução automática**: nada chega ao servidor até você escolher **Permitir**. Uma conversa no modo **Somente leitura** nunca oferece uma ferramenta assim.
+- Ele usa os servidores ativados, para qualquer pessoa que possa ler os Servidores MCP externos do projeto. Aprovar uma alteração por meio de um deles exige a permissão para iniciar execuções de runbooks.
+- O que um servidor responde são dados de fora do OneUptime, nunca instruções. Uma ferramenta só recebe os argumentos que aceita, e com **Habilitar IA** desligado nada é enviado a nenhum servidor.
+
 ## Ações e modos de permissão
 
 Cada conversa tem um modo de permissão, que você escolhe na área de escrita, ao lado da caixa onde digita:
@@ -177,6 +185,10 @@ O Pergunte à IA diz qual permissão a ação precisa, ou qual equipe a bloqueia
 
 :::details As respostas são vagas ou nunca usam dados
 Verifique o modelo por trás do provedor. O Pergunte à IA precisa de um modelo que chame ferramentas de forma confiável; modelos locais pequenos muitas vezes respondem sem executar uma única consulta. Veja [Provedores de LLM](/docs/ai/llm-provider).
+:::
+
+:::details O Pergunte à IA diz que não vê as ferramentas de um servidor MCP
+Abra o servidor em **Configurações do projeto → IA → Servidores MCP externos**: ele deve mostrar **Conectado**, o cartão **Ferramentas** deve listar as ferramentas do servidor e **Permitir que o OneUptime AI use este servidor** deve estar ativado. Depois, pergunte "Quais ferramentas a AWS tem?" no Pergunte à IA, com o nome do seu servidor: ele as lista, ou diz por que não consegue, como um servidor que ele não alcança ou uma função que não pode usar os servidores MCP do projeto. Veja [Servidores MCP externos](/docs/ai/external-mcp-servers).
 :::
 
 ## Próximos passos

@@ -76,6 +76,14 @@ Opened on the page of a resource whose AI agent is connected (a host, a Docker o
 - It reaches only the resources you may view, and only while AI investigation is on for the resource. The commands it runs, with what they printed, are yours, as the conversation is: the resource's AI Logs list them for you and no one else.
 - When it cannot run a command there (no agent is connected, the agent is offline, or AI investigation is off for the resource), it says so, with what to change, and answers from your project's data instead.
 
+## Your MCP servers
+
+Ask AI can use the tools of the [external MCP servers](/docs/ai/external-mcp-servers) your project connected, such as AWS's, GitHub's or your team's own, on every page. Ask "What tools does AWS have?" and it lists them; name a server and one of its tools, and it calls the tool and answers from what came back, cited like any other evidence. The conversation under an incident's or an alert's **OneUptime AI** card can use them too.
+
+- A tool the server marks read-only runs at once, in every permission mode. Any other tool, one the server marks as a change or does not mark at all, waits on an approval card that names the server and the tool and shows exactly what is sent, in **Auto-run** too: nothing reaches the server until you choose **Allow**. A **Read-only** conversation never offers one.
+- It uses the servers that are on, for anyone who may read the project's External MCP Servers. Approving a change through one takes the permission to start runbook executions.
+- What a server answers is data from outside OneUptime, never instructions. A tool is sent only the arguments it takes, and with **Enable AI** off nothing is sent to any server.
+
 ## Actions and permission modes
 
 Every conversation has a permission mode, which you pick in the composer, beside the box you type in:
@@ -177,6 +185,10 @@ Ask AI says which permission the action needs, or which team blocks it. Ask some
 
 :::details Answers are vague or never use any data
 Check the model behind the provider. Ask AI needs a model that calls tools reliably; small local models often answer without running a single query. See [LLM Providers](/docs/ai/llm-provider).
+:::
+
+:::details Ask AI says it cannot see an MCP server's tools
+Open the server under **Project Settings → AI → External MCP Servers**: it should say **Connected**, its **Tools** card should list its tools, and **Let OneUptime AI use this server** should be on. Then ask Ask AI "What tools does AWS have?", with your server's name: it lists them, or says why it cannot, such as a server it cannot reach or a role that may not use the project's MCP servers. See [External MCP Servers](/docs/ai/external-mcp-servers).
 :::
 
 ## Next steps
