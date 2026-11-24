@@ -124,7 +124,7 @@ function dataTypesPage(): AIChatCitationTarget {
  * ---------------------------------------------------------------------------
  */
 export const QueryDataSecurityProposalsTool: ObservabilityTool = {
-  name: QUERY_DATA_SECURITY_PROPOSALS_TOOL_NAME,
+  name: "query_data_security_proposals",
   description:
     'What OneUptime AI proposes in Data Security, waiting for a person to approve or dismiss: scrub rules, owners and owner rules, fixes in code or in the cloud, findings to confirm, data types to turn off or places to leave out of scans - each with its kind, title, risk and what it is about (its issue or store), riskiest first. which="data-types" lists instead the data types OneUptime AI found in the project\'s fields that scans do not look for yet ("Data Types to Review"): each draft\'s name, category and sensitivity, how it was proven ("Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores"), the stores and fields it is in (locations only, never a value), and how many more drafts are still being checked. Pass dataSecurityIssueId for one issue\'s proposals. Answers "what does OneUptime AI propose?" and "which data types did OneUptime AI find?".',
   inputSchema: {
@@ -326,7 +326,7 @@ function reasonFor(
 }
 
 export const DecideDataSecurityProposalTool: ObservabilityTool = {
-  name: DECIDE_DATA_SECURITY_PROPOSAL_TOOL_NAME,
+  name: "decide_data_security_proposal",
   description: `Approve or dismiss one of OneUptime AI's proposals in Data Security, as the person - the buttons on Data Security > AI. decision "approve" makes the change OneUptime AI proposed, with the person's own permissions, held to the proposal as it is now; decision "dismiss" turns it down with reason, the person's own words (a data type found is turned down as "Not a data type." when they give none). A data type is added on its form in Data Security > Settings > Data Types, never here. It always shows the person a card, in every mode. Find the dataSecurityAiProposalId with ${QUERY_DATA_SECURITY_PROPOSALS_TOOL_NAME}.`,
   inputSchema: {
     type: "object",

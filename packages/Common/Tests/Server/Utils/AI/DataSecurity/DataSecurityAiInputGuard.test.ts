@@ -186,6 +186,14 @@ const FEATURE_CALLS: Record<DataSecurityAiFeature, FeatureCall> = {
     kind: "ask",
     file: `${AI_DIRECTORY}/DataTypeFromSentence.ts`,
   },
+  /*
+   * A residency, owner or label rule drafted from a person's sentence, for
+   * Ask AI's and the MCP server's draft_data_security_rule (#10378).
+   */
+  [DataSecurityAiFeature.DraftRuleFromSentence]: {
+    kind: "ask",
+    file: `${AI_DIRECTORY}/RuleFromSentence.ts`,
+  },
   // A service's telemetry leaks fixed in its code (#10367): a task in Code too.
   [DataSecurityAiFeature.FixTelemetryLeaks]: {
     kind: "codeTask",

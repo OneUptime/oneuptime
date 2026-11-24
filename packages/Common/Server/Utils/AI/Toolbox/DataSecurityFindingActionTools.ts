@@ -27,10 +27,6 @@ import {
   AI_DATA_SECURITY_SCRUB_SENTENCES,
 } from "../../../../Types/AI/AIDataSecurityActionWords";
 import {
-  JUDGE_DATA_SECURITY_FINDING_TOOL_NAME,
-  SCRUB_DATA_SECURITY_FINDING_TOOL_NAME,
-} from "../../../../Types/AI/AIDataSecurityActions";
-import {
   DataSecurityApplyToSimilarResult,
   DataSecurityScrubImpact,
   DataSecuritySimilarFinding,
@@ -381,7 +377,7 @@ function buildScrubTitle(named: NamedFinding | null): AIActionSentence {
 }
 
 export const ScrubDataSecurityFindingTool: ObservabilityTool = {
-  name: SCRUB_DATA_SECURITY_FINDING_TOOL_NAME,
+  name: "scrub_data_security_finding",
   description:
     "Scrub It on a Data Security finding in telemetry, as the person - the button on the finding: adds the proven, narrow scrub rule that hides the finding's data type at its place in the service's logs, spans or metrics as new data arrives, tested on the records it was found in, or marks it scrubbed when an enabled rule hides it already. The card says what reads the attribute (monitors, dashboards, saved views, recording rules, SLOs, Security Events). Only for a finding in telemetry; a finding in a database or a bucket is fixed at its source. Find the dataStoreFindingId with query_data_stores (one store's findings).",
   inputSchema: {
@@ -688,7 +684,7 @@ function buildJudgeTitle(
 const SIMILAR_FINDING_IDS_KEY: string = "similarFindingIds";
 
 export const JudgeDataSecurityFindingTool: ObservabilityTool = {
-  name: JUDGE_DATA_SECURITY_FINDING_TOOL_NAME,
+  name: "judge_data_security_finding",
   description:
     'Decide on a Data Security finding, as the person - the buttons on the finding: decision "confirm" (Confirm: it is the data it was matched as, so it counts for certain) or "not-sensitive" (Not Sensitive: it stops counting toward the store\'s sensitivity and issues; reason is required - why it is not sensitive, in the person\'s words). alsoSimilar=true applies the same decision, with the same reason, to the findings like it: the same data type in a field of the same name, in stores the person can read (Apply to Similar). Not Sensitive always shows the person a card, in every mode. Find the dataStoreFindingId with query_data_stores (one store\'s findings).',
   inputSchema: {
