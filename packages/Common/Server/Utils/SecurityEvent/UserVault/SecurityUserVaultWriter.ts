@@ -1,6 +1,7 @@
 import OneUptimeDate from "../../../../Types/Date";
 import { JSONObject } from "../../../../Types/JSON";
 import LogScrubAction from "../../../../Types/Log/LogScrubAction";
+import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../../Types/ObjectID";
 import { SCRUB_HASH_TOKEN_PATTERN } from "../../../../Types/Telemetry/ScrubHashTokenFormat";
 import InMemoryTTLCache from "../../../Infrastructure/InMemoryTTLCache";
@@ -50,10 +51,11 @@ import {
  *
  * A batch keeps nothing unless both hold, the cheap one first:
  *
- *   - one of the project's enabled rules of the batch's kind hashes: an
- *     Email rule, a Named Attributes rule on enduser.id, a custom pattern -
- *     any pattern can hide a user. Redact and Mask leave nothing to look
- *     up;
+ *   - one of the project's enabled rules of the batch's kind hashes, and
+ *     by a pattern that can hide a user: an Email rule, a Named Attributes
+ *     rule on enduser.id, a custom pattern - any but IP Address, whose
+ *     tokens the address vault keeps. Redact and Mask leave nothing to
+ *     look up;
  *   - Security Events reads the project's logs, or its traces
  *     (SecurityEventsReadTelemetry, cached a minute as scrub rules are).
  *
@@ -107,16 +109,23 @@ export enum SecurityUserVaultWriteOutcome {
 // The scrub rules a batch runs, as far as the vault asks about them.
 export interface SecurityUserVaultScrubRule {
   rule: {
+    patternType?: string | undefined;
     scrubAction?: string | undefined;
   };
 }
 
-// Whether any of a batch's rules hashes: any pattern can hide a user.
-export function hashesAnything(
+/*
+ * Whether any of a batch's rules hashes by a pattern that can hide a user:
+ * any but IP Address, whose tokens are an address's (the address vault's).
+ */
+export function hashesUsers(
   rules: ReadonlyArray<SecurityUserVaultScrubRule>,
 ): boolean {
   return rules.some((compiled: SecurityUserVaultScrubRule): boolean => {
-    return compiled.rule.scrubAction === LogScrubAction.Hash;
+    return (
+      compiled.rule.scrubAction === LogScrubAction.Hash &&
+      compiled.rule.patternType !== LogScrubPatternType.IPAddress
+    );
   });
 }
 
@@ -301,7 +310,7 @@ export class SecurityUserVaultBatch implements ScrubHashedUserRecorder {
 export default class SecurityUserVaultWriter {
   /*
    * The batch a run of ingest keeps its hashed users in, or null when none
-   * of them may reach the vault: no rule of the batch hashes, or Security
+   * of them may reach the vault: no rule of the batch hashes a user, or Security
    * Events does not read the project's logs (or traces). Never throws: a
    * question that fails keeps nothing.
    */
@@ -311,7 +320,7 @@ export default class SecurityUserVaultWriter {
     scrubRules: ReadonlyArray<SecurityUserVaultScrubRule>;
   }): Promise<SecurityUserVaultBatch | null> {
     try {
-      if (!hashesAnything(data.scrubRules)) {
+      if (!hashesUsers(data.scrubRules)) {
         return null;
       }
 

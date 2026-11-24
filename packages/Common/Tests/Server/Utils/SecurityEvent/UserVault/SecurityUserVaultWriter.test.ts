@@ -6,7 +6,7 @@ import SecurityUserVaultWriter, {
   SecurityUserVaultScrubRule,
   SecurityUserVaultWriteOutcome,
   USER_VAULT_REWRITE_INTERVAL_MS,
-  hashesAnything,
+  hashesUsers,
 } from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter";
 import SecurityEventsReadTelemetry from "../../../../../Server/Utils/SecurityEvent/SecurityEventsReadTelemetry";
 import AppMetrics from "../../../../../Server/Utils/Telemetry/AppMetrics";
@@ -165,10 +165,12 @@ describe("which rules can hide a user", () => {
       "a Sensitive Attribute Keys rule that hashes",
       LogScrubPatternType.SensitiveKeys,
     ],
-    ["an IP Address rule that hashes", LogScrubPatternType.IPAddress],
-  ])("%s: any pattern can", (_label: string, patternType: string) => {
-    expect(hashesAnything([rule(patternType, LogScrubAction.Hash)])).toBe(true);
-  });
+  ])(
+    "%s: any pattern but IP Address can",
+    (_label: string, patternType: string) => {
+      expect(hashesUsers([rule(patternType, LogScrubAction.Hash)])).toBe(true);
+    },
+  );
 
   test.each([
     ["no rules", []],
@@ -184,8 +186,12 @@ describe("which rules can hide a user", () => {
       "a rule saved with no action (it redacts)",
       [rule(LogScrubPatternType.Email, "")],
     ],
+    [
+      "an IP Address rule that hashes: its tokens are an address's",
+      [rule(LogScrubPatternType.IPAddress, LogScrubAction.Hash)],
+    ],
   ])("not %s", (_label: string, rules: Array<SecurityUserVaultScrubRule>) => {
-    expect(hashesAnything(rules)).toBe(false);
+    expect(hashesUsers(rules)).toBe(false);
   });
 });
 
