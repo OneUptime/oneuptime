@@ -64079,5 +64079,6 @@
   "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "콘솔에서 만든 데이터 저장소 {{count}}개 각각에 클라우드 연결을 통해 아래 변경을 적용합니다.",
   "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 아래 변경을 적용합니다.",
   "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "콘솔에서 만든 데이터 저장소 {{count}}개 각각에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다. 한 번의 승인으로 모두 적용됩니다.",
-  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다."
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "콘솔에서 만든 데이터 저장소에 클라우드 연결을 통해 그 종류에 필요한 변경을 적용합니다.",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "케이스의 요청이 던진 예외의 원인 코드를, 그 코드가 있는 저장소에 대한 풀 리퀘스트로 OneUptime AI가 수정하도록 요청합니다. 데이터 보안 케이스에서는 이슈들이 공유하는 원인을 수정하는 하나의 풀 리퀘스트를 요청하고, 나머지 각 이슈에는 각각 별도의 풀 리퀘스트를 요청합니다."
 }

@@ -64079,5 +64079,6 @@
   "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "通过云连接，对在控制台中创建的 {{count}} 个数据存储逐一执行下面的更改。",
   "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "通过云连接，对在控制台中创建的数据存储执行下面的更改。",
   "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "通过云连接，对在控制台中创建的 {{count}} 个数据存储逐一执行其类型所需的更改。一次批准即可全部完成。",
-  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "通过云连接，对在控制台中创建的数据存储执行其类型所需的更改。"
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "通过云连接，对在控制台中创建的数据存储执行其类型所需的更改。",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "请 OneUptime AI 修复案例请求所引发异常背后的代码，作为对包含该代码的存储库的拉取请求。对于数据安全案例，它会请求修复其问题共同原因的唯一拉取请求，并为其他每个问题各请求一个拉取请求。"
 }

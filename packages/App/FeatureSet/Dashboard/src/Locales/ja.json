@@ -64079,5 +64079,6 @@
   "Each of the {{count}} stores made in the console takes the change below, through its cloud connection.": "コンソールで作成された {{count}} 個のデータストアそれぞれに、クラウド接続を通じて以下の変更を行います。",
   "Each of the {{count}} stores made in the console takes the change below, through its cloud connection._one": "コンソールで作成されたデータストアに、クラウド接続を通じて以下の変更を行います。",
   "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all.": "コンソールで作成された {{count}} 個のデータストアそれぞれに、クラウド接続を通じて、その種類に必要な変更を行います。1 回の承認ですべて行われます。",
-  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "コンソールで作成されたデータストアに、クラウド接続を通じて、その種類に必要な変更を行います。"
+  "Each of the {{count}} stores made in the console takes the change its kind needs, through its cloud connection. One approval makes them all._one": "コンソールで作成されたデータストアに、クラウド接続を通じて、その種類に必要な変更を行います。",
+  "Ask OneUptime AI to fix the code behind the exceptions the case's requests threw, as a pull request on the repository that holds it. On a Data Security case, it asks for the one pull request that fixes the cause its issues share, and a pull request of its own for each of its other issues.": "ケースのリクエストが投げた例外の原因となったコードを、そのコードがあるリポジトリへのプルリクエストとして OneUptime AI に修正させます。データセキュリティのケースでは、問題に共通する原因を修正する 1 つのプルリクエストを依頼し、それ以外の各問題にはそれぞれ専用のプルリクエストを依頼します。"
 }
