@@ -54,6 +54,7 @@ const PROCESSORS = [
   "transform/xcp-ng-rates",
   "groupbyattrs/xcp-ng-pool",
   "resource",
+  "transform/xen-orchestra",
   "filter/xcp-ng-pool-only",
   "batch",
 ];
@@ -184,13 +185,20 @@ describe("agents/XcpNgAgent/otel-collector-config.yaml", () => {
       honor_timestamps: true,
       authorization: {
         type: "Bearer",
-        credentials: "${env:XO_OPENMETRICS_SECRET}",
+        credentials: "${env:XO_OPENMETRICS_SECRET} ",
       },
       tls_config: {
         ca_file: CA_FILE_IN_CONTAINER,
         server_name: "${env:XO_TLS_SERVER_NAME}",
       },
-      static_configs: [{ targets: ["${env:XO_ADDRESS}"] }],
+      static_configs: [{ targets: ["xo=${env:XO_ADDRESS}"] }],
+      relabel_configs: [
+        {
+          source_labels: ["__address__"],
+          regex: "xo=(.+)",
+          target_label: "__address__",
+        },
+      ],
     });
     expect(Object.keys(config().receivers)).toEqual(["prometheus"]);
   });
@@ -303,11 +311,6 @@ describe("agents/XcpNgAgent/otel-collector-config.yaml", () => {
         { key: "pool_id", action: "delete" },
         { key: "pool_name", action: "delete" },
         {
-          key: CONTRACT.XEN_ORCHESTRA_NAME_ATTRIBUTE,
-          value: "${env:XO_NAME}",
-          action: "upsert",
-        },
-        {
           key: "oneuptime.agent.version",
           value: composePin(),
           action: "upsert",
@@ -319,6 +322,68 @@ describe("agents/XcpNgAgent/otel-collector-config.yaml", () => {
     // Quoted, so YAML keeps it the version string the page compares.
     expect(configText()).toContain(
       `      - key: oneuptime.agent.version\n        value: "${composePin()}"\n        action: upsert\n`,
+    );
+    // The Xen Orchestra's name, from inside an OTTL string (the next test).
+    expect(config().processors["transform/xen-orchestra"]).toEqual({
+      error_mode: "ignore",
+      metric_statements: [
+        {
+          context: "resource",
+          statements: [
+            `set(resource.attributes["${CONTRACT.XEN_ORCHESTRA_NAME_ATTRIBUTE}"], "\${env:XO_NAME}")`,
+            `delete_key(resource.attributes, "${CONTRACT.XEN_ORCHESTRA_NAME_ATTRIBUTE}") where resource.attributes["${CONTRACT.XEN_ORCHESTRA_NAME_ATTRIBUTE}"] == ""`,
+          ],
+        },
+      ],
+    });
+  });
+
+  /*
+   * A value that is one ${env:...} and nothing else, collector 0.165.0 reads
+   * as YAML (measured): an IPv6 XO_ADDRESS ([fd00::5]:443) or a secret like
+   * `[x]` or `a: b` stopped the config loading, a secret like `TRUE`, `+12`,
+   * `1e3`, `0x1F` or `null` reached Xen Orchestra as another value, and an
+   * XO_NAME like `XO: lab` arrived as a map, `2026` as a number. So none of
+   * the values a person types is one on its own.
+   */
+  test("reads every value a person types as text: none is a ${env:...} on its own", () => {
+    const wholeValue = /^\$\{env:([A-Z_]+)\}$/;
+    const wholeValues = [];
+    const walk = (node, where) => {
+      if (typeof node === "string") {
+        const match = wholeValue.exec(node);
+        if (match) {
+          wholeValues.push(`${where}: ${match[1]}`);
+        }
+      } else if (Array.isArray(node)) {
+        node.forEach((item, index) => {
+          walk(item, `${where}[${index}]`);
+        });
+      } else if (node && typeof node === "object") {
+        for (const [key, value] of Object.entries(node)) {
+          walk(value, `${where}.${key}`);
+        }
+      }
+    };
+    walk(config(), "config");
+    // What remains whole: the scheme and the name the certificate is checked
+    // against (install.sh writes only https or http, and a host name), and
+    // the ingestion key (a UUID, read by a string field of the exporter).
+    expect(wholeValues.sort()).toEqual(
+      [
+        "config.exporters.otlp_http.headers.x-oneuptime-token: ONEUPTIME_TELEMETRY_INGESTION_KEY",
+        "config.receivers.prometheus.config.scrape_configs[0].scheme: XO_SCHEME",
+        "config.receivers.prometheus.config.scrape_configs[0].tls_config.server_name: XO_TLS_SERVER_NAME",
+      ].sort(),
+    );
+    // The secret, followed by a space HTTP drops (and Xen Orchestra trims).
+    expect(configText()).toContain(
+      'credentials: "${env:XO_OPENMETRICS_SECRET} "',
+    );
+    // The name is the only value inside an OTTL string: install.sh refuses
+    // the quote and the backslash that would end or escape it.
+    expect(read(`${AGENT_DIR}/install.sh`)).toContain(
+      'echo "Error: XO_NAME must not contain a double quote or a backslash."',
     );
   });
 

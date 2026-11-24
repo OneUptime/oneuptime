@@ -343,7 +343,7 @@ elif printf '%s' "$STATE" | grep -q '^running restarting=false'; then
   AGENT_RUNNING=1
 else
   fail "Container '$AGENT_CONTAINER' is NOT healthy: $STATE"
-  add_finding "The agent container is not running (state: $STATE). A restart loop usually means a config error (an empty XO_ADDRESS, or XO_SCHEME neither https nor http) — check: docker logs $AGENT_CONTAINER"
+  add_finding "The agent container is not running (state: $STATE). A restart loop usually means a config error (an empty XO_NAME and XO_ADDRESS: the resource processor refuses an empty xen_orchestra.name) — check: docker logs $AGENT_CONTAINER"
 fi
 
 if [ -d "$CA_PEM" ]; then
@@ -396,7 +396,7 @@ case "$XO_SCHEME" in
     add_finding "Reading Xen Orchestra over http:// is for a lab only. Give it a certificate that names its address (README.md, \"Xen Orchestra's certificate\"), set XO_URL to https://… and run install.sh again."
     ;;
   *)
-    fail "XO_SCHEME is '$XO_SCHEME' — neither https nor http, so the collector refuses to start."
+    fail "XO_SCHEME is '$XO_SCHEME' — neither https nor http, so the collector cannot read Xen Orchestra."
     add_finding "Set XO_URL in $ENV_FILE to Xen Orchestra's https:// address and run install.sh again."
     XO_VERDICT="MISCONFIGURED"
     ;;

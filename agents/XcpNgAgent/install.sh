@@ -544,6 +544,14 @@ if [ -z "$XO_NAME" ]; then
 fi
 
 reject_dollar XO_NAME "$XO_NAME"
+# The collector stamps the name from inside an OTTL string, where a quote or
+# a backslash would end or escape it.
+case "$XO_NAME" in
+    *\"*|*\\*)
+        echo "Error: XO_NAME must not contain a double quote or a backslash."
+        exit 1
+        ;;
+esac
 reject_dollar XO_TLS_SERVER_NAME "$XO_TLS_SERVER_NAME"
 reject_dollar ONEUPTIME_URL "$ONEUPTIME_URL"
 # A CA bundle named from where the script was started is kept by its full
