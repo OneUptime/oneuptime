@@ -5,6 +5,7 @@ import {
 } from "../../Types/Telemetry/ScrubRule";
 import { DataTypeDetector } from "../DataSecurity/Detector";
 import { IP_ADDRESS_DETECTORS } from "../DataSecurity/Detectors/ContactDetectors";
+import PercentDecodedText from "../DataSecurity/PercentDecodedText";
 import IpCanonicalUtil from "../IpCanonicalUtil";
 
 /*
@@ -38,9 +39,19 @@ import IpCanonicalUtil from "../IpCanonicalUtil";
  * text, and what either accepts is hidden: an IPv4 address written as IPv6
  * (::ffff:8.8.8.8) is found by both, and hidden whole.
  *
+ * An address in a percent-encoded URL (http%3A%2F%2F%5B2001%3Adb8%3A%3A1%5D)
+ * has no colon a pattern reads, so it was neither found nor hidden. Both
+ * detectors read percent-encoded text (readsPercentEncoded), and the rule
+ * reads it as Data Security's scanner does: the text with its escapes read
+ * as well as as it is written (PercentDecodedText), each match of the
+ * reading placed on the characters it is written with - the encoded
+ * address whole, its first character to its last, and not the escaped
+ * brackets around it (#10467). What either reading finds is hidden.
+ *
  * In line with the text's length: each detector's pattern is bounded and
- * cannot start inside a longer run of its characters
- * (ScrubIpAddressLinearTime.test.ts reads megabyte-long adversarial texts).
+ * cannot start inside a longer run of its characters, and the escapes are
+ * read in one pass a reading (ScrubIpAddressLinearTime.test.ts reads
+ * megabyte-long adversarial texts).
  */
 
 export type ScrubIpAddressRange = [number, number];
@@ -103,7 +114,8 @@ export default class ScrubIpAddress {
    * Where the IP addresses Data Security counts are in a text: [start, end)
    * ranges, left to right, none overlapping. Ranges two detectors share -
    * an IPv4 address and the IPv6 one it is written as - are one range, so
-   * an address is hidden whole.
+   * an address is hidden whole, and so are ranges the text's two readings
+   * share: an address found as it is written and as its escapes read.
    */
   public static findRanges(text: string): Array<ScrubIpAddressRange> {
     if (!text) {
@@ -114,6 +126,23 @@ export default class ScrubIpAddress {
 
     for (const detector of IP_ADDRESS_DETECTORS) {
       acceptedRanges(detector, text, found);
+    }
+
+    // The text with its percent-escapes read: an address in an encoded URL.
+    const decoded: PercentDecodedText | null = PercentDecodedText.read(text);
+
+    if (decoded !== null) {
+      const inReading: Array<ScrubIpAddressRange> = [];
+
+      for (const detector of IP_ADDRESS_DETECTORS) {
+        if (detector.readsPercentEncoded) {
+          acceptedRanges(detector, decoded.readable, inReading);
+        }
+      }
+
+      for (const range of inReading) {
+        found.push(decoded.rangeToWritten(range));
+      }
     }
 
     if (found.length < 2) {
@@ -159,10 +188,13 @@ export default class ScrubIpAddress {
    * IPv4-mapped one stands for ("::ffff:8.8.8.8" and "::ffff:808:808" are
    * "8.8.8.8", the address a dual-stack server saw), and any other IPv6
    * address in RFC 5952's form ("2001:DB8:0:0:0:0:0:1" is "2001:db8::1").
-   * Text that is no address comes back as it is.
+   * An address written in a percent-encoded URL is read with its escapes
+   * read: "2001%3Adb8%3A%3A1" is "2001:db8::1", so its token, its mask and
+   * what the address vault keeps are those of the address (#10467). Text
+   * that is no address comes back as it is.
    */
   public static canonicalize(address: string): string {
-    const trimmed: string = address.trim();
+    const trimmed: string = PercentDecodedText.readableOf(address).trim();
 
     if (!IP.isIP(trimmed)) {
       return address;

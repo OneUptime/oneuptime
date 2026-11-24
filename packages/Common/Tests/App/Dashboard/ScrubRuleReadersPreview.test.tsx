@@ -197,6 +197,47 @@ describe("the question asked of the server", () => {
     ).toEqual({ signal: "log", patternType: "email" });
   });
 
+  /*
+   * #10751: the attributes a rule names narrow what it hides - a Named
+   * Attributes rule hides only those, a pattern rule that names some reads
+   * only them - so the question names them, as the form holds them (one a
+   * line) or a row (a list). Left out, a narrowed rule was asked about as
+   * one that reads every attribute.
+   */
+  test("the attributes the rule names, from the form's text or the row's list, and none when it names none", () => {
+    expect(
+      getScrubRuleReadersRequest("log", {
+        patternType: "custom",
+        customRegex: "pw=[^&]+",
+        attributeKeys: "db.password\n DB.password \ndb.password_old\n",
+      }),
+    ).toEqual({
+      signal: "log",
+      patternType: "custom",
+      customRegex: "pw=[^&]+",
+      attributeKeys: ["db.password", "db.password_old"],
+    });
+    expect(
+      getScrubRuleReadersRequest("trace", {
+        patternType: "namedKeys",
+        attributeKeys: ["customer_name"],
+      }),
+    ).toEqual({
+      signal: "trace",
+      patternType: "namedKeys",
+      attributeKeys: ["customer_name"],
+    });
+
+    for (const attributeKeys of [undefined, null, "", " \n ", []]) {
+      expect(
+        getScrubRuleReadersRequest("log", {
+          patternType: "email",
+          attributeKeys,
+        }),
+      ).toEqual({ signal: "log", patternType: "email" });
+    }
+  });
+
   test("a saved rule, as a row holds it", () => {
     const rule: LogScrubRule = new LogScrubRule();
 

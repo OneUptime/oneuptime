@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime fyller själv i det här datalagrets register.",
   "OneUptime keeps its records {{count}} days": "OneUptime sparar dess poster i {{count}} dagar",
   "OneUptime keeps its records {{count}} days_one": "OneUptime sparar dess poster i {{count}} dag",
+  "Only in These Attributes": "Endast i dessa attribut",
   "Open Store": "Öppna datalager",
   "Open issue": "Öppet problem",
   "Outside host": "Extern värd",
@@ -63339,6 +63340,8 @@
   "Proposed change": "Föreslagen ändring",
   "Prospects": "Potentiella kunder",
   "Public task": "Uppgift av allmänt intresse",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Läser bara dessa attribut, en nyckel per rad, eller alla attribut när fältet är tomt. Loggens brödtext läses som ”Fält att rensa” anger.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Läser bara dessa attribut, en nyckel per rad, eller alla attribut när fältet är tomt. Spannamnet och statusmeddelandet läses som ”Fält att rensa” anger.",
   "Recipients (of data)": "Mottagare",
   "Record Drafts": "Utkast till registret",
   "Record of processing": "Register över behandling",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "Du har osparade ändringar i den här bedömningen. Om du lämnar sidan nu går de förlorade.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "Du har osparade ändringar i det här revisionsbeviset. Om du lämnar sidan nu går de förlorade.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "Du har osparade ändringar i det här datalagrets register. Om du lämnar sidan nu går de förlorade.",
+  "e.g. db.password": "t.ex. db.password",
   "some up to {{count}} days": "vissa upp till {{count}} dagar",
   "some up to {{count}} days_one": "vissa upp till {{count}} dag",
   "the European Economic Area": "EES-området",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "Personer och team som äger den här sonden. De meddelas när dess status ändras, och en gång när den hamnar en huvudversion efter OneUptime.",
   "Probe a major release behind": "Sond en huvudversion efter",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "Adresserna på den här sondens nätverksgränssnitt, och värdens när den får dem, så som sonden listar dem varje gång den hör av sig. Säkerhetshändelser lägger sondens egna avfrågningar, upptäckter och monitorkontroller från dessa adresser åt sidan, och blocklistan blockerar dem aldrig.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen som OneUptime ser den här sonden höra av sig från. Blocklistan blockerar den aldrig."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Adressen som OneUptime ser den här sonden höra av sig från. Blocklistan blockerar den aldrig.",
+  "OneUptime AI's Scrub Rule Input Hash": "Inmatningshash för OneUptime AI:s scrub-regler",
+  "OneUptime AI's Scrub Rules": "OneUptime AI:s scrub-regler"
 }

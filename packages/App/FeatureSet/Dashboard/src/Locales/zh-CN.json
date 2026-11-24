@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime 会自行填写此数据存储的记录。",
   "OneUptime keeps its records {{count}} days": "OneUptime 将其记录保留 {{count}} 天",
   "OneUptime keeps its records {{count}} days_one": "OneUptime 将其记录保留 {{count}} 天",
+  "Only in These Attributes": "仅在这些属性中",
   "Open Store": "打开数据存储",
   "Open issue": "未解决的问题",
   "Outside host": "外部主机",
@@ -63339,6 +63340,8 @@
   "Proposed change": "提议的更改",
   "Prospects": "潜在客户",
   "Public task": "公共任务",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "仅读取这些属性，每行一个键；留空则读取所有属性。日志正文按“要清除的字段”的设置读取。",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "仅读取这些属性，每行一个键；留空则读取所有属性。跨度名称和状态消息按“要清除的字段”的设置读取。",
   "Recipients (of data)": "接收方",
   "Record Drafts": "记录草稿",
   "Record of processing": "处理活动记录",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "您对此评估有未保存的更改。如果现在离开，这些更改将会丢失。",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "您对此证据有未保存的更改。如果现在离开，这些更改将会丢失。",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "您对此数据存储的记录有未保存的更改。如果现在离开，这些更改将会丢失。",
+  "e.g. db.password": "例如 db.password",
   "some up to {{count}} days": "部分最长 {{count}} 天",
   "some up to {{count}} days_one": "部分最长 {{count}} 天",
   "the European Economic Area": "欧洲经济区",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "拥有此探测器的人员和团队。当其状态发生变化时，以及当它落后 OneUptime 一个主版本时（一次），他们会收到警报。",
   "Probe a major release behind": "探测器落后一个主版本",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "此探测器网络接口上的地址，以及在告知它时其主机的地址，即探测器每次上报时列出的地址。安全事件会将探测器自身从这些地址发出的轮询、发现和监控检查单独搁置，封禁列表也从不封禁它们。",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探测器上报时所用的地址。封禁列表从不封禁它。"
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime 看到此探测器上报时所用的地址。封禁列表从不封禁它。",
+  "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI 清理规则输入哈希",
+  "OneUptime AI's Scrub Rules": "OneUptime AI 的清理规则"
 }

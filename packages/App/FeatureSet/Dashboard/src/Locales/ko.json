@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "이 저장소의 기록은 OneUptime이 직접 채웁니다.",
   "OneUptime keeps its records {{count}} days": "OneUptime이 레코드를 {{count}}일 동안 보관",
   "OneUptime keeps its records {{count}} days_one": "OneUptime이 레코드를 {{count}}일 동안 보관",
+  "Only in These Attributes": "이 속성에서만",
   "Open Store": "저장소 열기",
   "Open issue": "열린 이슈",
   "Outside host": "외부 호스트",
@@ -63339,6 +63340,8 @@
   "Proposed change": "제안된 변경",
   "Prospects": "잠재 고객",
   "Public task": "공익 업무",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "이 속성만 읽습니다(한 줄에 키 하나). 비워 두면 모든 속성을 읽습니다. 로그 본문은 \"정리할 필드\"에 지정한 대로 읽습니다.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "이 속성만 읽습니다(한 줄에 키 하나). 비워 두면 모든 속성을 읽습니다. 스팬 이름과 상태 메시지는 \"정리할 필드\"에 지정한 대로 읽습니다.",
   "Recipients (of data)": "수령인",
   "Record Drafts": "기록 초안",
   "Record of processing": "처리 기록",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "이 평가에 저장되지 않은 변경 사항이 있습니다. 지금 나가면 변경 사항이 사라집니다.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "이 증거에 저장되지 않은 변경 사항이 있습니다. 지금 나가면 변경 사항이 사라집니다.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "이 저장소의 기록에 저장되지 않은 변경 사항이 있습니다. 지금 나가면 변경 사항이 사라집니다.",
+  "e.g. db.password": "예: db.password",
   "some up to {{count}} days": "일부는 최대 {{count}}일",
   "some up to {{count}} days_one": "일부는 최대 {{count}}일",
   "the European Economic Area": "유럽경제지역",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "이 프로브를 소유한 사람과 팀입니다. 상태가 변경되면 경고를 받고, OneUptime보다 메이저 릴리스 하나만큼 뒤처지면 한 번 경고를 받습니다.",
   "Probe a major release behind": "프로브가 메이저 릴리스 하나 뒤처짐",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소와, 전달받은 경우 호스트의 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 보안 이벤트는 이 주소에서 나온 프로브 자체의 폴링, 검색, 모니터 검사를 따로 분류하며, 차단 목록은 이 주소를 절대 차단하지 않습니다.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "OneUptime이 보기에 이 프로브가 체크인하는 주소입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
+  "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI의 스크럽 규칙 입력 해시",
+  "OneUptime AI's Scrub Rules": "OneUptime AI의 스크럽 규칙"
 }

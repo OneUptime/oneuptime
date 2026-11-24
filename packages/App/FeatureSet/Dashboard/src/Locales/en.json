@@ -63326,6 +63326,7 @@
   "OneUptime fills in this store's record itself.": "OneUptime fills in this store's record itself.",
   "OneUptime keeps its records {{count}} days": "OneUptime keeps its records {{count}} days",
   "OneUptime keeps its records {{count}} days_one": "OneUptime keeps its records {{count}} day",
+  "Only in These Attributes": "Only in These Attributes",
   "Open Store": "Open Store",
   "Open issue": "Open issue",
   "Outside host": "Outside host",
@@ -63339,6 +63340,8 @@
   "Proposed change": "Proposed change",
   "Prospects": "Prospects",
   "Public task": "Public task",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.",
   "Recipients (of data)": "Recipients (of data)",
   "Record Drafts": "Record Drafts",
   "Record of processing": "Record of processing",
@@ -63402,6 +63405,7 @@
   "You have unsaved changes to this assessment. If you leave now, they will be lost.": "You have unsaved changes to this assessment. If you leave now, they will be lost.",
   "You have unsaved changes to this evidence. If you leave now, they will be lost.": "You have unsaved changes to this evidence. If you leave now, they will be lost.",
   "You have unsaved changes to this store's record. If you leave now, they will be lost.": "You have unsaved changes to this store's record. If you leave now, they will be lost.",
+  "e.g. db.password": "e.g. db.password",
   "some up to {{count}} days": "some up to {{count}} days",
   "some up to {{count}} days_one": "some up to {{count}} day",
   "the European Economic Area": "the European Economic Area",
@@ -63665,5 +63669,7 @@
   "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.": "People and teams who own this probe. They are alerted when its status changes, and once when it falls a major release behind OneUptime.",
   "Probe a major release behind": "Probe a major release behind",
   "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.": "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
-  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it."
+  "Where OneUptime sees this probe check in from. The blocklist never blocks it.": "Where OneUptime sees this probe check in from. The blocklist never blocks it.",
+  "OneUptime AI's Scrub Rule Input Hash": "OneUptime AI's Scrub Rule Input Hash",
+  "OneUptime AI's Scrub Rules": "OneUptime AI's Scrub Rules"
 }
