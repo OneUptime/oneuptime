@@ -159,6 +159,8 @@ export class SecurityUserVaultBatch implements ScrubHashedUserRecorder {
   public readonly projectId: ObjectID;
   public readonly signal: SecurityEventsReadSignal;
   private readonly entries: Map<string, string> = new Map<string, string>();
+  // The tokens of each line read again, as one sorted text: bounded by the lines read.
+  private readonly tokenSetsRead: Set<string> = new Set<string>();
   private logLinesRead: number = 0;
   private wasWritten: boolean = false;
 
@@ -223,8 +225,10 @@ export class SecurityUserVaultBatch implements ScrubHashedUserRecorder {
   /*
    * A log line the rules changed: the users its tokens stand for, where
    * Security Events' log parsers read a user - unless every token it holds
-   * is one this batch, or this process lately, already kept, or the batch
-   * read as many lines again as it may.
+   * is a user this batch, or this process lately, already kept; or the
+   * batch already read a line of exactly these tokens (the same record
+   * again: a cloud audit log hashes its resource's emails as well as its
+   * principal); or it read as many lines again as it may.
    */
   public recordScrubbedLogLine(data: {
     bodyBefore: string;
@@ -252,6 +256,13 @@ export class SecurityUserVaultBatch implements ScrubHashedUserRecorder {
       return;
     }
 
+    const tokenSet: string = [...tokens].sort().join(",");
+
+    if (this.tokenSetsRead.has(tokenSet)) {
+      return;
+    }
+
+    this.tokenSetsRead.add(tokenSet);
     this.logLinesRead++;
 
     for (const pair of readHashedUsersOfLogLine({
