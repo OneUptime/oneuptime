@@ -142,7 +142,10 @@ describe("which repositories OneUptime reads the code of: one rule", () => {
 
   test.each([
     ["not connected", { isConnected: false }],
-    ["its Git server out of the server's reach", { isReachableFromServer: false }],
+    [
+      "its Git server out of the server's reach",
+      { isReachableFromServer: false },
+    ],
     ["no owner", { organizationName: "" }],
     ["no name on its host", { repositoryName: null }],
   ])(
@@ -335,7 +338,10 @@ describe("holding repositories to what a picker may offer", () => {
       {
         props: READER,
         projectId: PROJECT_ID,
-        repositories: [repository({ name: "web" }), repository({ name: "api" })],
+        repositories: [
+          repository({ name: "web" }),
+          repository({ name: "api" }),
+        ],
         summaries: new Map(),
         scope: { askableOnly: true },
       },

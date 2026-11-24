@@ -1663,7 +1663,9 @@ describe("a repository to pick for a fix no repository was found for", () => {
   }
 
   // More connected repositories than a suggestion lists, by name.
-  function manyRepositories(count: number): Array<{ id: string; name: string }> {
+  function manyRepositories(
+    count: number,
+  ): Array<{ id: string; name: string }> {
     return Array.from(
       { length: count },
       (_: unknown, index: number): { id: string; name: string } => {
