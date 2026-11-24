@@ -7,7 +7,13 @@ import {
   OpenStackAffectedResource,
   StorageArrayAffectedResource,
   VMwareAffectedResource,
+  XcpNgAffectedResource,
 } from "../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
+import {
+  XCP_NG_ID_ATTRIBUTE,
+  XCP_NG_SCOPE_ATTRIBUTE,
+  XcpNgLabel,
+} from "../../Types/XcpNg/XcpNgTelemetry";
 
 /*
  * A platform resource without the numbers — just "which object is this".
@@ -39,6 +45,10 @@ export type DockerSwarmResourceIdentity = Omit<
 >;
 export type StorageArrayResourceIdentity = Omit<
   StorageArrayAffectedResource,
+  "metricValue" | "lowestMetricValue"
+>;
+export type XcpNgResourceIdentity = Omit<
+  XcpNgAffectedResource,
   "metricValue" | "lowestMetricValue"
 >;
 
@@ -612,6 +622,84 @@ export default class PlatformResourceIdentity {
     return {
       ...series,
       componentType: series.componentType || context.componentType,
+    };
+  }
+
+  /**
+   * An XCP-ng series names its object by the `xcp_ng.scope` / `xcp_ng.id`
+   * ingest stamps on every datapoint (XcpNgSeriesNormalizer), and by Xen
+   * Orchestra's own name labels. A monitor someone grouped by Xen
+   * Orchestra's raw UUID labels instead is read through them, the
+   * object's own UUID first: a virtual disk's before its storage
+   * repository's.
+   */
+  public static xcpNg(attributes: JSONObject): XcpNgResourceIdentity {
+    const read: (key: string) => string | undefined = (
+      key: string,
+    ): string | undefined => {
+      return PlatformResourceIdentity.readAttribute(attributes, key);
+    };
+
+    return {
+      scope: read(XCP_NG_SCOPE_ATTRIBUTE),
+      objectId:
+        read(XCP_NG_ID_ATTRIBUTE) ||
+        read(XcpNgLabel.Uuid) ||
+        read(XcpNgLabel.VdiUuid) ||
+        read(XcpNgLabel.SrUuid),
+      hostName: read(XcpNgLabel.HostName),
+      vmName: read(XcpNgLabel.VmName),
+      storageRepositoryName: read(XcpNgLabel.SrName),
+      vdiName: read(XcpNgLabel.VdiName),
+    };
+  }
+
+  public static xcpNgKey(identity: XcpNgResourceIdentity): string {
+    return [
+      identity.scope || "",
+      identity.objectId || "",
+      identity.hostName || "",
+      identity.vmName || "",
+      identity.storageRepositoryName || "",
+      identity.vdiName || "",
+    ].join("|");
+  }
+
+  /**
+   * A series grouped by `xcp_ng.id` names one host, VM, storage repository
+   * or virtual disk; every datapoint of it carries the same scope and the
+   * same names, so the series may borrow them from its own datapoint.
+   */
+  public static withXcpNgContext(
+    series: XcpNgResourceIdentity,
+    context: XcpNgResourceIdentity,
+  ): XcpNgResourceIdentity {
+    if (
+      !series.objectId ||
+      !PlatformResourceIdentity.agreesOn(
+        series as JSONObject,
+        context as JSONObject,
+        [
+          "scope",
+          "objectId",
+          "hostName",
+          "vmName",
+          "storageRepositoryName",
+          "vdiName",
+        ],
+      )
+    ) {
+      return series;
+    }
+
+    return {
+      ...series,
+      scope: series.scope || context.scope,
+      hostName: series.hostName || context.hostName,
+      vmName: series.vmName || context.vmName,
+      storageRepositoryName:
+        series.storageRepositoryName || context.storageRepositoryName,
+      vdiName: series.vdiName || context.vdiName,
     };
   }
 

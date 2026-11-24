@@ -200,6 +200,38 @@ const FriendlyLabelNames: Record<string, string> = {
   cpu_reservation_type: "CPU Reservation Type",
   cpu_state: "CPU State",
 
+  /*
+   * --- XCP-ng ---
+   *
+   * The XCP-ng Agent stamps the pool (`xcp_ng.pool.id`, its UUID, and
+   * `xcp_ng.pool.name`) and the Xen Orchestra it reads on the resource;
+   * ingest stamps `xcp_ng.scope` and `xcp_ng.id` on every datapoint
+   * (XcpNgSeriesNormalizer), which the shipped templates group by. The rest
+   * are Xen Orchestra's own DATAPOINT labels. `uuid`, `power_state`,
+   * `network_name` and `device` are named above.
+   */
+  "xcp_ng.pool.id": "XCP-ng Pool UUID",
+  "xcp_ng.pool.name": "XCP-ng Pool",
+  "xen_orchestra.name": "Xen Orchestra",
+  "xcp_ng.scope": "Object Type",
+  "xcp_ng.id": "Object UUID",
+  host_name: "Host",
+  host_id: "Host UUID",
+  vm_name: "VM",
+  vm_uuid: "VM UUID",
+  sr_name: "Storage Repository",
+  sr_uuid: "Storage Repository UUID",
+  sr_type: "Storage Repository Type",
+  vdi_name: "Virtual Disk",
+  vdi_uuid: "Virtual Disk UUID",
+  content_type: "Content Type",
+  is_control_domain: "Control Domain",
+  enabled: "Enabled",
+  vif: "VIF",
+  interface: "Interface",
+  core: "Core",
+  tags: "Tags",
+
   // --- Ceph ---
   "ceph.cluster.name": "Ceph Cluster",
   ceph_daemon: "Ceph Daemon",
@@ -414,6 +446,20 @@ const LabelPriority: Record<string, number> = {
   "networkDevice.name": 40,
   "proxmox.vm.name": 25,
   vmid: 25,
+  /*
+   * XCP-ng: the object that breached by its name (a VM, a virtual disk, a
+   * storage repository, a host), then its UUID, then the host it runs on,
+   * then the pool and the Xen Orchestra that merely scope it.
+   */
+  vm_name: 25,
+  vdi_name: 25,
+  sr_name: 26,
+  host_name: 30,
+  "xcp_ng.id": 31,
+  "xcp_ng.scope": 55,
+  "xcp_ng.pool.name": 75,
+  "xen_orchestra.name": 80,
+  "xcp_ng.pool.id": 95,
   /*
    * OpenStack: the part that breached, by the name people know it by, then the
    * region that scopes it. `uuid`, `network_id` and `tenant_id` keep the default

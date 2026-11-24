@@ -1955,6 +1955,20 @@ export default class ValueFormatter {
       return false;
     }
 
+    /*
+     * Xen Orchestra's CPU, run-state and I/O-wait series (XcpNgMetricCatalog's
+     * "ratio" entries: xcp_host_cpu_average, xcp_vm_cpu_usage,
+     * xcp_vm_runstate_full_contention, xcp_vm_disk_iowait, ...) are [0, 1]
+     * shares of time whose names say nothing of it - XAPI's own names, kept
+     * as Xen Orchestra documents them - so they are named here, and read as
+     * the percentages they are.
+     */
+    const xcpNgShareOfTime: RegExp =
+      /^xcp_(host_cpu_average|host_cpu_core_usage|vm_cpu_usage|vm_cpu_core_usage|vm_runstate_[a-z_]+|host_disk_iowait|vm_disk_iowait)$/i;
+    if (xcpNgShareOfTime.test(metricName.trim())) {
+      return true;
+    }
+
     const fractionMetricSuffixRegex: RegExp =
       /[._](utilization|ratio|fraction|percent|percentage)$/i;
     return fractionMetricSuffixRegex.test(metricName);

@@ -172,6 +172,8 @@ import MetricMonitorResponse, {
   CephResourceBreakdown,
   StorageArrayAffectedResource,
   StorageArrayResourceBreakdown,
+  XcpNgAffectedResource,
+  XcpNgResourceBreakdown,
   DockerSwarmAffectedResource,
   DockerSwarmResourceBreakdown,
 } from "../../../Types/Monitor/MetricMonitor/MetricMonitorResponse";
@@ -197,6 +199,11 @@ import MonitorStepStorageArrayMonitor, {
   StorageArrayResourceFilters,
 } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import MonitorStepDockerSwarmMonitor from "../../../Types/Monitor/MonitorStepDockerSwarmMonitor";
+import MonitorStepXcpNgMonitor, {
+  XcpNgResourceFilters,
+} from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
+import { getXcpNgMetricByMetricName } from "../../../Types/Monitor/XcpNgMetricCatalog";
+import { XcpNgScope } from "../../../Types/XcpNg/XcpNgTelemetry";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import { getKubernetesMetricByMetricName } from "../../../Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "../../../Types/Monitor/ProxmoxMetricCatalog";
@@ -219,6 +226,7 @@ import PlatformResourceIdentity, {
   OpenStackResourceIdentity,
   StorageArrayResourceIdentity,
   VMwareResourceIdentity,
+  XcpNgResourceIdentity,
 } from "../../../Utils/Monitor/PlatformResourceIdentity";
 import MetricAliasData from "../../../Types/Metrics/MetricAliasData";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
@@ -317,7 +325,8 @@ type PlatformName =
   | "vmware"
   | "dockerSwarm"
   | "ceph"
-  | "storageArray";
+  | "storageArray"
+  | "xcpNg";
 
 interface CriteriaMetricTargetComponent {
   alias: string;
@@ -3188,6 +3197,11 @@ ${incomingRequestGrouping.rootCauseNote}
       return MonitorCriteriaEvaluator.buildStorageArrayRootCauseContext(input);
     }
 
+    // Handle XCP-ng monitors with pool resource context
+    if (input.monitor.monitorType === MonitorType.XcpNg) {
+      return MonitorCriteriaEvaluator.buildXcpNgRootCauseContext(input);
+    }
+
     // Handle generic Metric monitors with metric identity + breaching series
     if (
       input.monitor.monitorType === MonitorType.Metrics &&
@@ -4472,6 +4486,8 @@ ${incomingRequestGrouping.rootCauseNote}
       case "storageArray":
         return getStorageArrayMetric(input.metricName, input.attributes)
           ?.friendlyName;
+      case "xcpNg":
+        return getXcpNgMetricByMetricName(input.metricName)?.friendlyName;
       default:
         return undefined;
     }
@@ -7917,6 +7933,310 @@ ${incomingRequestGrouping.rootCauseNote}
                           MonitorCriteriaEvaluator.renderAffectedRowValue(row),
                       },
                     );
+              },
+            ),
+        }),
+      );
+      renderedBreakdownList = true;
+    }
+
+    // Metric results summary (fallback context when no list rendered)
+    if (
+      !renderedBreakdownList &&
+      metricResponse.metricResult &&
+      metricResponse.metricResult.length > 0
+    ) {
+      const resultDetails: Array<MarkdownText> = [];
+
+      for (const result of metricResponse.metricResult) {
+        if (result.data && result.data.length > 0) {
+          resultDetails.push(
+            mdText`- ${result.data.length} metric data point(s) returned`,
+          );
+        }
+      }
+
+      if (resultDetails.length > 0) {
+        sections.push(
+          mdText`\n\n**Metric Summary**\n${FeedMarkdown.join(resultDetails, "\n")}`,
+        );
+      }
+    }
+
+    return sections.length > 0 ? FeedMarkdown.join(sections, "\n") : null;
+  }
+
+  /*
+   * What kind of an XCP-ng pool's object a row is, from the `xcp_ng.scope`
+   * ingest stamps on each of its datapoints, and the name label of that
+   * kind.
+   */
+  private static getXcpNgObjectKind(resource: XcpNgResourceIdentity): {
+    kind: string;
+    name: string | undefined;
+  } {
+    switch (resource.scope) {
+      case XcpNgScope.Host:
+        return { kind: "Host", name: resource.hostName };
+      case XcpNgScope.VM:
+        return { kind: "VM", name: resource.vmName };
+      case XcpNgScope.StorageRepository:
+        return {
+          kind: "Storage Repository",
+          name: resource.storageRepositoryName,
+        };
+      case XcpNgScope.VDI:
+        return { kind: "Virtual Disk", name: resource.vdiName };
+      case XcpNgScope.Xostor:
+        return { kind: "XOSTOR", name: resource.storageRepositoryName };
+      case XcpNgScope.Pool:
+        return { kind: "Pool", name: undefined };
+      default:
+        break;
+    }
+
+    // A monitor grouped by Xen Orchestra's labels names no scope.
+    if (resource.vdiName) {
+      return { kind: "Virtual Disk", name: resource.vdiName };
+    }
+
+    if (resource.vmName) {
+      return { kind: "VM", name: resource.vmName };
+    }
+
+    if (resource.storageRepositoryName) {
+      return {
+        kind: "Storage Repository",
+        name: resource.storageRepositoryName,
+      };
+    }
+
+    if (resource.hostName) {
+      return { kind: "Host", name: resource.hostName };
+    }
+
+    return { kind: "Object", name: undefined };
+  }
+
+  /*
+   * One object of an XCP-ng pool as an "Affected Resources" list item:
+   * what it is (a host, a VM, a storage repository, a virtual disk), its
+   * name next to its UUID, and where it sits.
+   */
+  private static getXcpNgAffectedResourceEntry(input: {
+    resource: XcpNgResourceIdentity;
+    poolIdentifier: string;
+    value: MarkdownValue;
+  }): AffectedResourceListEntry {
+    const resource: XcpNgResourceIdentity = input.resource;
+    const object: { kind: string; name: string | undefined } =
+      MonitorCriteriaEvaluator.getXcpNgObjectKind(resource);
+
+    let kind: string = object.kind;
+    let name: MarkdownText =
+      resource.scope === XcpNgScope.Pool
+        ? FeedMarkdown.empty()
+        : AffectedResourceList.codeWithId({
+            name: object.name,
+            id: resource.objectId,
+          });
+
+    if (name.isEmpty()) {
+      // Nothing narrower than the pool: a series for all of it.
+      kind = "Pool";
+      name = AffectedResourceList.code(input.poolIdentifier);
+    }
+
+    const details: Array<AffectedResourceListDetail> = [];
+
+    // Where a VM runs, and what a virtual disk belongs to.
+    if (resource.hostName && kind !== "Host" && kind !== "Pool") {
+      details.push({
+        label: "Host",
+        value: AffectedResourceList.code(resource.hostName),
+      });
+    }
+
+    if (resource.vmName && kind !== "VM" && kind !== "Pool") {
+      details.push({
+        label: "VM",
+        value: AffectedResourceList.code(resource.vmName),
+      });
+    }
+
+    if (
+      resource.storageRepositoryName &&
+      kind !== "Storage Repository" &&
+      kind !== "XOSTOR" &&
+      kind !== "Pool"
+    ) {
+      details.push({
+        label: "Storage Repository",
+        value: AffectedResourceList.code(resource.storageRepositoryName),
+      });
+    }
+
+    return {
+      kind: kind,
+      name: name,
+      value: input.value,
+      details: details,
+    };
+  }
+
+  private static buildXcpNgRootCauseContext(input: {
+    dataToProcess: DataToProcess;
+    monitorStep: MonitorStep;
+    monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    perSeriesMatches?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): MarkdownText | null {
+    const metricResponse: MetricMonitorResponse =
+      input.dataToProcess as MetricMonitorResponse;
+
+    // XCP-ng pool context
+    const xcpNgMonitor: MonitorStepXcpNgMonitor | undefined =
+      input.monitorStep.data?.xcpNgMonitor;
+
+    const target: CriteriaMetricTarget | null =
+      MonitorCriteriaEvaluator.resolveCriteriaMetricTarget({
+        criteriaInstance: input.criteriaInstance,
+        monitorStep: input.monitorStep,
+        metricResponse: metricResponse,
+      });
+
+    const breakdown: XcpNgResourceBreakdown | undefined =
+      MonitorCriteriaEvaluator.selectPlatformBreakdown({
+        breakdowns: metricResponse.xcpNgResourceBreakdowns,
+        target: target,
+      });
+
+    const poolIdentifier: string =
+      breakdown?.poolIdentifier ||
+      (typeof xcpNgMonitor?.poolIdentifier === "string"
+        ? xcpNgMonitor.poolIdentifier.trim()
+        : "") ||
+      "Unknown";
+
+    const sections: Array<MarkdownText> = [];
+
+    if (xcpNgMonitor || breakdown) {
+      const poolDetails: Array<MarkdownText> = [];
+      poolDetails.push(mdText`- Pool: ${poolIdentifier}`);
+      poolDetails.push(
+        ...MonitorCriteriaEvaluator.describeCriteriaMetric({
+          platform: "xcpNg",
+          target: target,
+          breakdown: breakdown,
+          fallbackMetricName: xcpNgMonitor?.metricViewConfig?.queryConfigs?.[0]
+            ?.metricQueryData?.filterData?.metricName as string | undefined,
+        }),
+      );
+
+      const filterLabels: Record<keyof XcpNgResourceFilters, string> = {
+        scope: "Scope Filter",
+        xcpNgId: "Object Filter",
+        hostName: "Host Filter",
+      };
+
+      for (const filterKey of Object.keys(filterLabels) as Array<
+        keyof XcpNgResourceFilters
+      >) {
+        const filterValue: unknown = xcpNgMonitor?.resourceFilters?.[filterKey];
+
+        if (typeof filterValue === "string" && filterValue.trim()) {
+          // A filter is text the monitor's author typed.
+          poolDetails.push(
+            mdText`- ${filterLabels[filterKey]}: ${filterValue.trim()}`,
+          );
+        }
+      }
+
+      poolDetails.push(
+        ...MonitorCriteriaEvaluator.describeDataLag(target?.dataLagMs),
+      );
+
+      sections.push(
+        mdText`**XCP-ng Pool Details**\n${FeedMarkdown.join(poolDetails, "\n")}`,
+      );
+    }
+
+    // Affected resources: a ranked list of the pool's hosts, VMs and SRs
+    let renderedBreakdownList: boolean = false;
+
+    /*
+     * The objects the matched criteria breached, worst first, top 10 - not
+     * simply the non-zero rows. Host Offline fires on
+     * `xcp_ng.host.running < 1`, so the zero rows ARE the halted hosts.
+     */
+    const rows: Array<PlatformAffectedRow<XcpNgResourceIdentity>> | null =
+      MonitorCriteriaEvaluator.getPlatformAffectedRows<
+        XcpNgResourceIdentity,
+        XcpNgAffectedResource
+      >({
+        platform: "xcpNg",
+        perSeriesMatches: input.perSeriesMatches,
+        namesObject: (identity: XcpNgResourceIdentity): boolean => {
+          return Boolean(
+            identity.objectId ||
+              identity.hostName ||
+              identity.vmName ||
+              identity.storageRepositoryName ||
+              identity.vdiName,
+          );
+        },
+        metricResponse: metricResponse,
+        monitorStep: input.monitorStep,
+        target: target,
+        breakdown: breakdown,
+        breach: MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        }),
+        toIdentity: PlatformResourceIdentity.xcpNg,
+        withContext: PlatformResourceIdentity.withXcpNgContext,
+      });
+
+    /*
+     * Skip the list when no row names an object (pool-wide series such as
+     * xcp_pool_connected) - it would add nothing.
+     */
+    const hasIdentity: boolean = (rows || []).some(
+      (row: PlatformAffectedRow<XcpNgResourceIdentity>) => {
+        return Boolean(
+          row.seriesLabels ||
+            row.identity.objectId ||
+            row.identity.hostName ||
+            row.identity.vmName ||
+            row.identity.storageRepositoryName ||
+            row.identity.vdiName,
+        );
+      },
+    );
+
+    if (rows && rows.length > 0 && hasIdentity) {
+      sections.push(
+        AffectedResourceList.render({
+          heading: "Affected Resources",
+          overflowNoun: "affected resources",
+          totalCount: rows.length,
+          entries: rows
+            .slice(0, AffectedResourceList.MAX_ENTRIES)
+            .map(
+              (
+                row: PlatformAffectedRow<XcpNgResourceIdentity>,
+              ): AffectedResourceListEntry => {
+                return row.seriesLabels
+                  ? MonitorCriteriaEvaluator.getSeriesLabelEntry({
+                      labels: row.seriesLabels,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    })
+                  : MonitorCriteriaEvaluator.getXcpNgAffectedResourceEntry({
+                      resource: row.identity,
+                      poolIdentifier: poolIdentifier,
+                      value:
+                        MonitorCriteriaEvaluator.renderAffectedRowValue(row),
+                    });
               },
             ),
         }),

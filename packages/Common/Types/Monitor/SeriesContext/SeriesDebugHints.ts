@@ -16,6 +16,13 @@ import {
   DeviceManagementConnectionReadingAttribute,
   MANAGED_DEVICE_CONNECTION_READ_AGE_METRIC_NAME,
 } from "../../DeviceManagement/DeviceManagementConnectionReading";
+import {
+  XCP_NG_ID_ATTRIBUTE,
+  XCP_NG_SCOPE_ATTRIBUTE,
+  XcpNgLabel,
+  XcpNgScope,
+  XcpNgTelemetryUtil,
+} from "../../XcpNg/XcpNgTelemetry";
 
 import FeedMarkdown, {
   MarkdownText,
@@ -1217,6 +1224,111 @@ export default class SeriesDebugHints {
   }
 
   /*
+   * XAPI's own CLI, `xe`, run in the control domain of the pool's master
+   * (over SSH, or the console Xen Orchestra opens on it): read-only
+   * `*-param-list` and `*-list` calls, addressed by UUID.
+   *
+   * The shipped XCP-ng templates group by `xcp_ng.id` alone, so a series
+   * names its object's UUID but not what kind of object it is; that comes
+   * from `xcp_ng.scope` when the series carries it, else from the metric
+   * the monitor reads (xcp_host_* is a host's, xcp_ng.vm.* a VM's - see
+   * XcpNgTelemetryUtil.getScopeOfSeries). With neither, a host named by
+   * Xen Orchestra's `host_name` label is still looked up by name.
+   */
+  private static xcpNgCommands(
+    seriesLabels: JSONObject,
+    metricNames: ReadonlyArray<string> | undefined,
+  ): Array<SeriesDebugCommand> {
+    const commands: Array<SeriesDebugCommand> = [];
+
+    let scope: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      XCP_NG_SCOPE_ATTRIBUTE,
+    ]);
+
+    if (!scope) {
+      for (const metricName of metricNames || []) {
+        const metricScope: XcpNgScope | null =
+          XcpNgTelemetryUtil.getScopeOfSeries(metricName);
+
+        if (metricScope) {
+          scope = metricScope;
+          break;
+        }
+      }
+    }
+
+    const objectId: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      XCP_NG_ID_ATTRIBUTE,
+    ]);
+
+    if (objectId) {
+      const quoted: string = SeriesDebugHints.quoteForShell(objectId);
+
+      switch (scope) {
+        case XcpNgScope.Host:
+          commands.push({
+            purpose:
+              "The host's state, whether it is enabled, and its software (run on the pool master)",
+            command: `xe host-param-list uuid=${quoted}`,
+          });
+          commands.push({
+            purpose: "The VMs running on the host",
+            command: `xe vm-list resident-on=${quoted} is-control-domain=false params=name-label,power-state`,
+          });
+          break;
+        case XcpNgScope.VM:
+          commands.push({
+            purpose:
+              "The VM's power state and the host it runs on (run on the pool master)",
+            command: `xe vm-list uuid=${quoted} params=name-label,power-state,resident-on`,
+          });
+          commands.push({
+            purpose: "Everything XAPI knows about the VM",
+            command: `xe vm-param-list uuid=${quoted}`,
+          });
+          break;
+        case XcpNgScope.StorageRepository:
+        case XcpNgScope.Xostor:
+          commands.push({
+            purpose:
+              "The storage repository's size, use and type (run on the pool master)",
+            command: `xe sr-param-list uuid=${quoted}`,
+          });
+          commands.push({
+            purpose: "Whether every host has the storage repository plugged",
+            command: `xe pbd-list sr-uuid=${quoted} params=host-uuid,currently-attached`,
+          });
+          break;
+        case XcpNgScope.VDI:
+          commands.push({
+            purpose:
+              "The virtual disk's size, use and storage repository (run on the pool master)",
+            command: `xe vdi-param-list uuid=${quoted}`,
+          });
+          break;
+        default:
+          break;
+      }
+    }
+
+    const hostName: string = SeriesLabelDisplay.findLabelValue(seriesLabels, [
+      XcpNgLabel.HostName,
+    ]);
+
+    if (commands.length === 0 && hostName) {
+      commands.push({
+        purpose:
+          "The host's UUID, whether it is enabled and whether it is live (run on the pool master)",
+        command: `xe host-list name-label=${SeriesDebugHints.quoteForShell(
+          hostName,
+        )} params=uuid,enabled,host-metrics-live`,
+      });
+    }
+
+    return commands;
+  }
+
+  /*
    * The metrics a monitor's step reads, each once, in the order its queries
    * name them: what narrows a managed device's commands to the reading its
    * monitor alerts on (#10209). [] for a step with no metric query.
@@ -1324,6 +1436,9 @@ export default class SeriesDebugHints {
 
       case MonitorType.StorageArray:
         return SeriesDebugHints.storageArrayCommands(seriesLabels);
+
+      case MonitorType.XcpNg:
+        return SeriesDebugHints.xcpNgCommands(seriesLabels, input.metricNames);
 
       /*
        * A Traces monitor grouped by a mobile app's install (#9711): the

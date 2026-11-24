@@ -11,6 +11,7 @@ import { getProxmoxMetricByMetricName } from "../../Types/Monitor/ProxmoxMetricC
 import { getOpenStackMetricByMetricName } from "../../Types/Monitor/OpenStackMetricCatalog";
 import { getStorageArrayMetric } from "../../Types/Monitor/StorageArrayMetricCatalog";
 import { getVMwareMetricByMetricName } from "../../Types/Monitor/VMwareMetricCatalog";
+import { getXcpNgMetricByMetricName } from "../../Types/Monitor/XcpNgMetricCatalog";
 
 /*
  * The platforms that ship their own metric catalog. Each catalog names the
@@ -21,6 +22,7 @@ export type MetricCatalogPlatform =
   | "proxmox"
   | "openstack"
   | "vmware"
+  | "xcpNg"
   | "dockerSwarm"
   | "ceph"
   | "storageArray"
@@ -72,6 +74,8 @@ export default class PlatformMetricUnitUtil {
         return "openstack";
       case MonitorType.VMware:
         return "vmware";
+      case MonitorType.XcpNg:
+        return "xcpNg";
       case MonitorType.DockerSwarm:
         return "dockerSwarm";
       case MonitorType.Ceph:
@@ -227,6 +231,8 @@ export default class PlatformMetricUnitUtil {
         return getOpenStackMetricByMetricName(metricName)?.unit;
       case "vmware":
         return getVMwareMetricByMetricName(metricName)?.unit;
+      case "xcpNg":
+        return getXcpNgMetricByMetricName(metricName)?.unit;
       case "dockerSwarm":
         return getDockerSwarmMetricByMetricName(metricName)?.unit;
       case "ceph":
