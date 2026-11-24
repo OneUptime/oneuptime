@@ -45,6 +45,8 @@ export const DATA_SECURITY_GROUP_ISSUES_JOB: string =
 export const DATA_SECURITY_JUDGE_FINDINGS_JOB: string =
   "DataSecurity:JudgeFindings";
 export const DATA_SECURITY_TUNE_SCANS_JOB: string = "DataSecurity:TuneScans";
+export const DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB: string =
+  "DataSecurity:ProposeTelemetryFixes";
 
 /*
  * How long the grouping waits after an evaluation: a connection's read
@@ -52,6 +54,14 @@ export const DATA_SECURITY_TUNE_SCANS_JOB: string = "DataSecurity:TuneScans";
  * groups what all of them opened.
  */
 export const GROUP_ISSUES_DELAY_IN_MS: number = 30 * 1000;
+
+/*
+ * How long OneUptime AI's proposals of each service's telemetry fix wait
+ * after an evaluation (#10367): the issues it opened are analyzed and
+ * contained first, in their own jobs, and one look after them proposes
+ * one pull request per service for all of them.
+ */
+export const TELEMETRY_FIXES_DELAY_IN_MS: number = 2 * 60 * 1000;
 
 /*
  * How long the owner rules wait after a store's owners are proposed: a
@@ -347,6 +357,23 @@ export async function queueDataSecurityIssueGrouping(
     payload: { projectId: projectId.toString() },
     description: `the grouping of the issues of project ${projectId.toString()}`,
     delayInMs: GROUP_ISSUES_DELAY_IN_MS,
+  });
+}
+
+/*
+ * Has OneUptime AI propose each service's telemetry fix in its code
+ * (Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals, #10367):
+ * queued by each evaluation, a little after it, once for all it opened.
+ */
+export async function queueTelemetryLeakFixProposals(
+  projectId: ObjectID,
+): Promise<void> {
+  await queue({
+    jobName: DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+    key: `data-security-telemetry-fixes-${projectId.toString()}`,
+    payload: { projectId: projectId.toString() },
+    description: `OneUptime AI's telemetry fixes for project ${projectId.toString()}`,
+    delayInMs: TELEMETRY_FIXES_DELAY_IN_MS,
   });
 }
 

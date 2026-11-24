@@ -14,6 +14,7 @@ import DataSecurityOwnerNotice from "Common/Server/Utils/AI/DataSecurity/DataSec
 import DataStoreOwnerProposalRun from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerProposalRun";
 import DataStoreOwnerRuleProposals from "Common/Server/Utils/AI/DataSecurity/DataStoreOwnerRuleProposals";
 import DataSecurityIssueGrouper from "Common/Server/Utils/DataSecurity/DataSecurityIssueGrouper";
+import TelemetryLeakFixProposals from "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals";
 import {
   DATA_SECURITY_AI_EVALUATE_ISSUE_JOB,
   DATA_SECURITY_NOTIFY_OWNERS_JOB,
@@ -25,6 +26,7 @@ import {
   DATA_SECURITY_EVALUATE_PROJECT_JOB,
   DATA_SECURITY_GROUP_ISSUES_JOB,
   DATA_SECURITY_JUDGE_FINDINGS_JOB,
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
   DATA_SECURITY_READ_CONNECTION_JOB,
   DATA_SECURITY_SCAN_STORE_JOB,
   DATA_SECURITY_SCAN_TELEMETRY_JOB,
@@ -75,7 +77,9 @@ import ObjectID from "Common/Types/ObjectID";
  *    owner rules they share.
  *  - After each evaluation (queued by it, a little after), group the
  *    project's issues by what made them, so the issues one mistake made are
- *    one group, fixed once (#10370).
+ *    one group, fixed once (#10370); and, while OneUptime AI works on its
+ *    issues, propose each service's telemetry leaks fixed in its code, one
+ *    pull request per service and repository (#10367).
  *
  * The crons only decide what is due; each piece of work - one project, one
  * store, one connection - is its own queue job, deduplicated by what it is
@@ -403,3 +407,19 @@ JobDictionary.setJobFunction(
   },
 );
 JobDictionary.setTimeoutInMs(DATA_SECURITY_GROUP_ISSUES_JOB, 10 * 60 * 1000);
+
+// Each service's telemetry leaks, fixed in its code in one pull request (#10367).
+JobDictionary.setJobFunction(
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+  async (job?: QueueJob): Promise<void> => {
+    const projectId: ObjectID | null = readId(job, "projectId");
+
+    if (projectId) {
+      await TelemetryLeakFixProposals.proposeForProject({ projectId });
+    }
+  },
+);
+JobDictionary.setTimeoutInMs(
+  DATA_SECURITY_PROPOSE_TELEMETRY_FIXES_JOB,
+  10 * 60 * 1000,
+);
