@@ -773,6 +773,8 @@ describe("readCommonLogFormat keeps the field for the client reading to decide",
       method: "GET",
       target: "/download?file=../../etc/passwd",
       status: 404,
+      // The body's size, as the line writes it after the status (#10912).
+      bodySize: 153,
       userAgent: "curl/8.4.0",
       trailingForwardedFor: `${SENDERS_CLAIM}, ${CLIENT}`,
     });
