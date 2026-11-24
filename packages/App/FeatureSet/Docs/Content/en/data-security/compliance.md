@@ -227,6 +227,8 @@ Each one's purpose is "Network and information security (GDPR Recital 49)". To w
 
 A store is listed while your project keeps its data: the address vault while an enabled IP Address rule hashes logs or traces Security Events reads, the user vault while an enabled rule of any other pattern does, each for 31 days after (see [Scrub sensitive data](/docs/telemetry/drop-filters-and-scrub-rules#scrub-sensitive-data)). Once its data is gone the store is archived, and it comes back with your purpose and retention if the data does.
 
+To erase one person from the Security User Vault, and from the events and cases that name them through it, file an erasure request: see [Erase a person](/docs/telemetry/security-events#erase-a-person).
+
 ## Impact assessments
 
 GDPR Article 35 asks for a data protection impact assessment before processing that is likely to be high risk. Data Security says which stores need one: a store that holds special category data, such as health data, data about many people (about 100,000 records or more), or data that leaves its people's countries.

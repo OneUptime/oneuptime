@@ -65,6 +65,7 @@ flowchart TB
 | **Notiz-Vorlagen** | Einstellungen | Fertige Texte für die Notizen, die Ihr Team zu seinen Fällen schreibt |
 | **Nummerierung** | Einstellungen | Der Text vor den Fallnummern und die Nummer, die der nächste Fall erhält |
 | **Risikobewertung** | Einstellungen | Ob das Risiko einer Entität einen Fall eröffnet, ab welchem Risiko, und wie wichtig jede Entität ist |
+| **Löschanfragen** | Einstellungen | Personen, die auf Anfrage gelöscht wurden, und was jede Löschung geändert hat |
 
 **Erkennungen**, **KI**, **Verbindungen** und **Einstellungen**, die man einmal einrichtet, bleiben eingeklappt, bis Sie sie öffnen. Neu bei Sicherheit? [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started) richtet sie mit zwei Klicks ein.
 
@@ -352,6 +353,8 @@ Eine Regel, die hasht, bewahrt die Adresse für Sicherheitsereignisse auf, sodas
 Eine Erkennungsregel, die pro Adresse zählt, sollte wie die Regeln der Regelbibliothek pro `principalIp` oder `targetIp` zählen, denn diese Felder nennen die Adresse hinter dem Token einer Regel, die hasht. Das eigene Adressfeld eines Formats, etwa `openstack.audit.initiator_address` oder `asa.src_ip`, enthält nur eine Adresse, die das Log geschrieben hat, und bleibt daher überall leer, wo eine Scrub-Regel eine verborgen hat.
 
 Eine Regel, die einen Benutzer schwärzt oder maskiert, verbirgt ihn genauso: Wo das Ereignis den Benutzer nennen würde, sagt **Quellbenutzer** oder **Zielbenutzer**, dass eine Scrub-Regel ihn verborgen hat. Wo Sicherheitsereignisse einen Benutzer liest, bewahrt eine Regel, die hasht, den Benutzer dafür auf: die `enduser.id` oder `user.id` einer Anfrage, den Benutzer eines KI-Aufrufs und einen Benutzer, den eine Logzeile nennt, etwa den Principal eines Cloud-Audit-Logs. So nennt das Ereignis den Benutzer hinter dem Token, ein Fall über ihn nennt das Konto, und ein Playbook kann darauf handeln wie bei jedem anderen Benutzer. Was die Regel hinterlassen hat, steht in `oneuptime.principal_user_hashed_as` oder `oneuptime.target_user_hashed_as`, damit Sie den Benutzer in Ihren Logs und Traces finden, die nur das Token enthalten. Ein Token, zu dem kein Benutzer aufbewahrt ist, etwa eines, das entstand, bevor Token einen Schlüssel hatten, bleibt der Benutzer des Ereignisses: Regeln zählen es als ein Konto, und kein Playbook handelt darauf.
+
+Das Panel des Ereignisses sagt das unter dem Benutzer, den es in **Quellbenutzer** und **Zielbenutzer** nennt: „In Ihren Protokollen gehasht als …“, oder „In Ihren Traces gehasht als …“ bei einem Ereignis aus Ihren Traces, wobei … für das Token steht. Das Token ist ein Link, der Ihre Logs oder Traces danach durchsucht, von einem Tag vor dem Ereignis bis zu einem Tag danach. Bei einem auf Anfrage gelöschten Benutzer steht stattdessen **Auf Anfrage gelöscht**, und das Ereignis zeigt sein Token: siehe [Eine Person löschen](#eine-person-löschen).
 
 ## Sicherheitsereignisse erkunden
 
@@ -747,6 +750,30 @@ Alles, was in Sicherheitsereignissen vergangene Ereignisse liest, liest nur die 
 - Eine Bedrohungssuche, deren **Zeitbereich** länger ist, als Ereignisse aufbewahrt werden, findet nichts Älteres, und ihr Formular sagt das.
 
 **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung** listet die aktivierten Regeln auf, die weiter zurückblicken als ihre **Standardaufbewahrung (Tage)**. Um sie abzudecken, bewahren Sie Ereignisse länger auf, mit **Aufbewahrung ändern** unter einer Regel, oder verkürzen Sie die Zeitspanne einer Regel auf das Aufbewahrte. OneUptime bewahrt 15 Tage auf, sofern Sie es nicht ändern, denn die Aufbewahrung bestimmt, was Ihre Telemetrie kostet und wie lange personenbezogene Daten in Ereignissen, etwa Adressen und Benutzernamen, aufbewahrt werden. Eine neue Aufbewahrung gilt für Ereignisse, die ab dann eintreffen, sodass Regeln weiter zurückblicken, je älter diese Ereignisse werden.
+
+## Eine Person löschen
+
+Wenn jemand Sie bittet, seine Daten zu löschen, etwa nach Artikel 17 DSGVO, löschen Sie die Person unter **Sicherheitsereignisse → Einstellungen → Löschanfragen**. Wählen Sie **Person löschen** und geben Sie ihre Benutzer-ID oder E-Mail-Adresse so ein, wie Ihre Logs sie enthielten, bevor Ihre Hash-Scrub-Regel sie verbarg, oder das Token, das ein Ereignis an ihrer Stelle zeigt. Eine E-Mail-Adresse wird auch in Kleinbuchstaben gelöscht. Tragen Sie unter **Referenz** Ihren eigenen Verweis ein, etwa die Ticketnummer der Anfrage, nie den Namen der Person.
+
+Was die Anfrage bewirkt:
+
+- Innerhalb einer Minute wird die Person nicht mehr genannt. Der Benutzertresor verweigert ab dann ihre Token, sodass kein Ereignis, kein Fall und kein Playbook sie wieder nennt, auch wenn ein späteres Ereignis dasselbe Token trägt: Dieses Ereignis behält das Token als seinen Benutzer, wie bei jedem Token, zu dem kein Benutzer aufbewahrt wird. Ein wiederkehrendes Token aufzubewahren würde die Person wieder nennen, und genau das sollen Sie auf ihren Wunsch beenden.
+- Innerhalb weniger Minuten löscht sie die Einträge des Tresors zur Person und setzt das Token wieder an ihre Stelle in den Ereignissen, die sie über den Tresor nannten: **Quellbenutzer**, **Zielbenutzer**, die Observables und die Attribute. Sie entfernt die Person aus den Titeln, Entitäten und aufbewahrten Ereignissen von Fällen und Erkennungen sowie aus dem Entitätsrisiko.
+- Ein Playbook-Lauf oder eine Aktion von OneUptime AI, die auf eine Genehmigung wartet, um auf die Person zu wirken, wird zurückgezogen und sagt, warum.
+
+Jede Anfrage zeigt ihren Status, **In der Warteschlange**, **Wird gelöscht**, **Gelöscht** oder **Fehlgeschlagen**, und was sie geändert hat: die gelöschten Tresoreinträge, die Ereignisse und Fälle, die die Person nicht mehr nennen, und die zurückgezogenen Vorschläge. Das Löschen beginnt zwei Minuten nach dem Stellen der Anfrage, sobald kein OneUptime-Server die Person mehr nennt, und eine Anfrage zeigt **Gelöscht** erst, wenn jede Änderung angewendet ist. Eine fehlgeschlagene Anfrage wird erneut versucht; nach fünf Versuchen zeigt sie **Fehlgeschlagen** mit dem Grund, und die Inhaber des Projekts erhalten eine E-Mail. Die Person wird weiterhin nicht genannt, und wenn Sie die Anfrage erneut stellen, wird es noch einmal versucht.
+
+Was sie belässt:
+
+- Was Menschen geschrieben haben: Notizen, Abschlussnotizen, Aufgaben, Beweise, benutzerdefinierte Felder und was OneUptime AI über einen Fall geschrieben hat.
+- Ereignisse, die die Person nannten, weil Ihre Logs sie im Klartext enthielten, und Ihre Logs und Traces selbst, die nur das Token enthalten.
+- Die Detection-Finding-Ereignisse, die eine Regel über die Person geschrieben hat und deren Nachricht und Observables sie nennen können, bis Ihre Telemetrie-Aufbewahrung sie löscht.
+- Bereits gesendete Benachrichtigungen, Vorfälle und Alarme, die eine Erkennung geöffnet hat, die Aktivität eines Falls, Exporte, Backups und das Audit-Log.
+- Bei einem selbst gehosteten OneUptime, dessen `ENCRYPTION_SECRET` sich geändert hat, die Token von vor der Änderung: Löschen Sie jedes über das Token, das ein Ereignis zeigt.
+
+Die Anfrage bewahrt auf, wer sie wann gestellt hat, Ihren Verweis und die Token der Person, mit denen der Tresor sie weiterhin verweigert. Die Benutzer-ID oder E-Mail-Adresse wird verschlüsselt gespeichert, wo keine Seite, kein Export und keine API sie lesen kann, und gelöscht, sobald die Löschung abgeschlossen ist; ClickHouse erhält immer nur die Token. Anfragen lassen sich weder bearbeiten noch löschen: Sie sind Ihr Nachweis der Löschung.
+
+Projektinhaber, Projektadministratoren, Sicherheits-Administratoren und alle mit Create Security Erasure Request, etwa Ihr Datenschutzbeauftragter, können eine Anfrage stellen, auf der Seite oder über `/security-user-erasure-request` der API. Jede Sicherheitsrolle kann sie lesen.
 
 ## Fehlerbehebung
 

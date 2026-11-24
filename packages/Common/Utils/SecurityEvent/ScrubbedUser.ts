@@ -249,6 +249,47 @@ export const HASHED_USER_ATTRIBUTES: Readonly<
   [ScrubbedUserRole.Target]: "oneuptime.target_user_hashed_as",
 };
 
+/*
+ * A USER ERASED FROM THE USER VAULT ON REQUEST (#10908).
+ *
+ * An erasure puts the token back where the vault had named the user: the
+ * event's user is what the rule left again, the marker says a scrub rule
+ * hid it, and this says why it no longer names anybody - so the event's
+ * panel can say "Erased on request" beside the token. Never who it was.
+ */
+export const ERASED_USER_ATTRIBUTES: Readonly<
+  Record<ScrubbedUserRole, string>
+> = {
+  [ScrubbedUserRole.Principal]: "oneuptime.principal_user_erased",
+  [ScrubbedUserRole.Target]: "oneuptime.target_user_erased",
+};
+
+// The value of the erased attribute: an erasure request took the user out.
+export const USER_ERASED_ON_REQUEST: string = "erasure-request";
+
+// Whether an erasure request took the event's user of a role out (#10908).
+export function isEventUserErased(
+  event: { attributes?: unknown },
+  role: ScrubbedUserRole,
+): boolean {
+  return (
+    readAttribute(event.attributes, ERASED_USER_ATTRIBUTES[role]) ===
+    USER_ERASED_ON_REQUEST
+  );
+}
+
+/*
+ * What a Hash rule left of an event's user of a role, when Security Events
+ * named the user behind it (#10632): the token the logs and traces hold in
+ * the user's place, or "" when the event names its user as it was read.
+ */
+export function readHashedEventUser(
+  event: { attributes?: unknown },
+  role: ScrubbedUserRole,
+): string {
+  return readAttribute(event.attributes, HASHED_USER_ATTRIBUTES[role]);
+}
+
 // The roles, in the order an event's users are read.
 export const SCRUBBED_USER_ROLES: ReadonlyArray<ScrubbedUserRole> = [
   ScrubbedUserRole.Principal,
