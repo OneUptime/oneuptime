@@ -133,8 +133,17 @@ export default class CustomCodeMonitor {
          * monitor criteria keep working.
          */
         if (result.scriptError) {
-          // Their script, their throw — never ours.
-          logger.error(result.scriptError, EXTERNAL_FAULT);
+          /*
+           * Their script, their throw — never ours. The error itself is
+           * reported with the check, never logged here: the server filled
+           * the monitor's secrets into the script, and the error can say
+           * one back. The server hides them in what the check reports
+           * (#10825); the probe cannot tell which text was one.
+           */
+          logger.error(
+            `Custom Code Monitor${options.monitorId ? ` ${options.monitorId.toString()}` : ""} script failed. Its error is reported with the check.`,
+            EXTERNAL_FAULT,
+          );
           scriptResult.scriptError =
             result.scriptError.message || result.scriptError.toString();
         }

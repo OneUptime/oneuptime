@@ -3290,7 +3290,7 @@ describe("External Data Sources, against the connectors and their limits", () =>
     );
   });
 
-  it("puts a variable into a query, several values joined with |, and leaves an unpicked one as written", () => {
+  it("puts a variable into PromQL as Grafana's Prometheus does, and into any other query several values joined with |, an unpicked one left as written", () => {
     const job: DashboardVariable = {
       id: "job",
       name: "job",
@@ -3301,16 +3301,46 @@ describe("External Data Sources, against the connectors and their limits", () =>
     };
     const nothing: DashboardVariable = { ...job, selectedValues: [] };
     const promql: string = fenceCode(DATA_SOURCES, "PromQL");
+    const fill: (
+      dataSourceId: string,
+      dataSourceType: DataSourceType | undefined,
+      query: string,
+      variable: DashboardVariable,
+    ) => string = (
+      dataSourceId: string,
+      dataSourceType: DataSourceType | undefined,
+      query: string,
+      variable: DashboardVariable,
+    ): string => {
+      return DataSourceQueryText.applyVariablesForSource({
+        dataSourceId,
+        dataSourceType,
+        queryText: query,
+        variables: [variable],
+      });
+    };
+    const outside: string = "6c7a8b9c-0000-4000-8000-000000000001";
 
     expect(promql).toContain('job=~"{{job}}"');
-    expect(DataSourceQueryText.applyVariables(promql, [job])).toContain(
-      'job=~"api|web"',
+
+    // This project's metrics and a Prometheus: any of the values, each as written; nothing picked, every value.
+    for (const [id, type] of [
+      [PROJECT_METRICS_DATA_SOURCE_ID, undefined],
+      [outside, DataSourceType.Prometheus],
+    ] as Array<[string, DataSourceType | undefined]>) {
+      expect(fill(id, type, promql, job)).toContain('job=~"(api|web)"');
+      expect(fill(id, type, promql, nothing)).toContain('job=~".*"');
+    }
+
+    // Any other query: joined with |, which a LogQL regex matcher reads; nothing picked, as written.
+    const logql: string = 'sum(count_over_time({job=~"{{job}}"}[5m]))';
+
+    expect(fill(outside, DataSourceType.Loki, logql, job)).toBe(
+      'sum(count_over_time({job=~"api|web"}[5m]))',
     );
-    expect(DataSourceQueryText.applyVariables(promql, [nothing])).toContain(
-      'job=~"{{job}}"',
-    );
+    expect(fill(outside, DataSourceType.Loki, logql, nothing)).toBe(logql);
     expect(page).toContain(
-      'Several values of a multi-select variable are joined with `|`, which is what a PromQL or LogQL regular expression matcher needs: `job=~"{{job}}"`. A variable with nothing picked leaves the placeholder as written',
+      "A query on this project's metrics or on a Prometheus is filled as Grafana's Prometheus data source fills it: in `job=~\"{{job}}\"`, several values of a multi-select variable match any one of them, each as written, and a variable with nothing picked matches every value. In any other query, several values are joined with `|`, which is what a LogQL regular expression matcher needs, and a variable with nothing picked is left as written",
     );
   });
 

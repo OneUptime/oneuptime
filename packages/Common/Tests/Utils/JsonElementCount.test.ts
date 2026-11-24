@@ -538,3 +538,154 @@ describe("JsonElementTally over bytes", () => {
     ).toBe(0);
   });
 });
+
+/*
+ * A stream's values, one at a time (#10796): Fluent Bit's json_stream sends
+ * records' JSON one after another with no separator, and each is read where
+ * its outermost bracket closes - which only the counting walk knows, since a
+ * bracket inside a string is none - and counted before it is parsed.
+ */
+describe("JsonElementTally.addValue", () => {
+  // The JSON whitespace a stream's values may have between them.
+  const SEPARATORS: ReadonlyArray<string> = ["", "", "\n", "\r\n", " \t"];
+
+  const skipSpace: (bytes: Buffer, from: number) => number = (
+    bytes: Buffer,
+    from: number,
+  ): number => {
+    let index: number = from;
+
+    while (
+      index < bytes.length &&
+      " \t\r\n".includes(String.fromCharCode(bytes[index]!))
+    ) {
+      index++;
+    }
+
+    return index;
+  };
+
+  test("ends each value where its outermost bracket closes, over many generated documents one after another", () => {
+    const next: () => number = seededRandom(10796);
+
+    for (let run: number = 0; run < 300; run++) {
+      // Objects and arrays, compact or indented, as a stream holds them.
+      const documents: Array<unknown> = Array.from(
+        { length: 1 + Math.floor(next() * 6) },
+        (): unknown => {
+          const document: unknown = generate(next, 1);
+
+          return next() < 0.5 ? { value: document } : [document];
+        },
+      );
+      const texts: Array<string> = documents.map(
+        (document: unknown): string => {
+          return next() < 0.5
+            ? JSON.stringify(document)
+            : JSON.stringify(document, null, 2);
+        },
+      );
+      const body: Buffer = Buffer.from(
+        texts
+          .map((text: string): string => {
+            return `${text}${SEPARATORS[Math.floor(next() * SEPARATORS.length)]}`;
+          })
+          .join(""),
+        "utf8",
+      );
+      const tally: JsonElementTally = new JsonElementTally(NO_LIMIT);
+      const read: Array<string> = [];
+      let start: number = skipSpace(body, 0);
+
+      while (start < body.length) {
+        const end: number = tally.addValue(body, start);
+
+        expect({ run, start, closes: end > start }).toEqual({
+          run,
+          start,
+          closes: true,
+        });
+
+        read.push(body.toString("utf8", start, end));
+        start = skipSpace(body, end);
+      }
+
+      expect({ run, read }).toEqual({ run, read: texts });
+      // Counted as one body counts the same bytes.
+      expect({ run, count: tally.getCount() }).toEqual({
+        run,
+        count: JsonElementCounter.countBytes(body, NO_LIMIT),
+      });
+    }
+  });
+
+  test("a brace, bracket, quote or backslash inside a string ends nothing", () => {
+    const first: string = JSON.stringify({
+      a: "}]",
+      b: '\\"{[',
+      c: "\\",
+      d: ["]", { e: "}" }],
+    });
+    const body: Buffer = Buffer.from(`${first}{"next":1}`);
+    const tally: JsonElementTally = new JsonElementTally(NO_LIMIT);
+
+    expect(tally.addValue(body, 0)).toBe(Buffer.byteLength(first));
+    expect(tally.addValue(body, Buffer.byteLength(first))).toBe(body.length);
+  });
+
+  test("answers -1 where no object or array opens, or where the bytes end before it closes", () => {
+    for (const [text, start] of [
+      ['"a string"', 0],
+      ["42", 0],
+      ["true", 0],
+      [" {}", 0],
+      ["}{", 0],
+      ["{}", 2],
+      ["{}", -1],
+      ['{"a":[1,2]', 0],
+      ['{"a":"}', 0],
+      ["[[]", 0],
+    ] as Array<[string, number]>) {
+      expect({
+        text,
+        start,
+        end: new JsonElementTally(NO_LIMIT).addValue(Buffer.from(text), start),
+      }).toEqual({ text, start, end: -1 });
+    }
+  });
+
+  test("reads no further than the end it is given", () => {
+    const body: Buffer = Buffer.from('{"a":1}{"b":2}');
+
+    expect(new JsonElementTally(NO_LIMIT).addValue(body, 0, 6)).toBe(-1);
+    expect(new JsonElementTally(NO_LIMIT).addValue(body, 0, 7)).toBe(7);
+    expect(new JsonElementTally(NO_LIMIT).addValue(body, 7)).toBe(14);
+  });
+
+  test("answers -1 at the value that passes a limit, which getCount names, and reads nothing more", () => {
+    const tally: JsonElementTally = new JsonElementTally({
+      values: 4,
+      objectsArraysAndStrings: 100,
+    });
+    const body: Buffer = Buffer.from('{"a":1}{"b":2}{"c":3}');
+
+    // {"a":1} is three values; the second record's key is the fifth.
+    expect(tally.addValue(body, 0)).toBe(7);
+    expect(tally.addValue(body, 7)).toBe(-1);
+    expect(tally.getCount()).toEqual({
+      values: 5,
+      objectsArraysAndStrings: 4,
+      passed: JsonElementLimit.Values,
+    });
+    expect(tally.addValue(body, 14)).toBe(-1);
+    expect(tally.getCount().values).toBe(5);
+  });
+
+  test("does not start a value inside a string add left open", () => {
+    const tally: JsonElementTally = new JsonElementTally(NO_LIMIT);
+
+    tally.add(Buffer.from('"never closed'));
+
+    expect(tally.addValue(Buffer.from("{}"), 0)).toBe(-1);
+  });
+});

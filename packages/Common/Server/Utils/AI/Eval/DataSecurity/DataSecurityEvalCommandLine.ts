@@ -94,6 +94,27 @@ const FEATURES_OF_FILE: ReadonlyArray<{
     path: "packages/Common/Server/Utils/AI/DataSecurity/FieldSuggestion.ts",
     features: [DataSecurityAiFeature.SuggestFieldTypes],
   },
+  // Verdicts on findings (#10372): what each is told, and how its answer is held.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdictPrompt.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingVerdicts.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/FindingPrecedent.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
+  {
+    path: "packages/Common/Utils/DataSecurity/FindingJudgement.ts",
+    features: [DataSecurityAiFeature.JudgeFindings],
+  },
   {
     path: "packages/Common/Server/Utils/AI/Toolbox/DataSecurityTools.ts",
     features: [DataSecurityAiFeature.AskAi],
@@ -158,6 +179,70 @@ const FEATURES_OF_FILE: ReadonlyArray<{
   {
     path: "packages/Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubShapes.ts",
     features: [DataSecurityAiFeature.WriteScrubRules],
+  },
+  // The compliance paperwork (#10375): what each draft is asked, and how its answer is held to its facts.
+  {
+    path: "packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+      DataSecurityAiFeature.DraftAuditEvidence,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingPrompt.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDrafter.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/RecordOfProcessingDossier.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+    features: [
+      DataSecurityAiFeature.DraftRecord,
+      DataSecurityAiFeature.DraftRecordOnRequest,
+      DataSecurityAiFeature.DraftImpactAssessment,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentPrompt.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ImpactAssessmentDrafter.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+    features: [DataSecurityAiFeature.DraftImpactAssessment],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/AuditEvidencePrompt.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/AuditEvidenceDrafter.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
+    features: [DataSecurityAiFeature.DraftAuditEvidence],
   },
 ];
 

@@ -108,6 +108,7 @@ function overTimeCombobox(name: string): HTMLElement {
 const OFFLINE_OVER_AN_HOUR: CriteriaFilter = {
   checkOn: CheckOn.IsOnline,
   filterType: FilterType.False,
+  value: undefined,
   evaluateOverTime: true,
   evaluateOverTimeOptions: {
     timeValueInMinutes: 60,
@@ -319,6 +320,7 @@ function criteriaWith(
       {
         checkOn: CheckOn.IsOnline,
         filterType: FilterType.False,
+        value: undefined,
         evaluateOverTime: true,
         evaluateOverTimeOptions: {
           timeValueInMinutes: 60,
@@ -422,6 +424,7 @@ describe("when a criteria recovers", () => {
           {
             checkOn: CheckOn.IsOnline,
             filterType: FilterType.True,
+            value: undefined,
           },
         ],
         recoveryFilterCondition: FilterCondition.All,
@@ -546,6 +549,7 @@ describe("the criteria list", () => {
           {
             checkOn: CheckOn.IsOnline,
             filterType: FilterType.False,
+            value: undefined,
             evaluateOverTime: true,
             evaluateOverTimeOptions: {
               timeValueInMinutes: 60,

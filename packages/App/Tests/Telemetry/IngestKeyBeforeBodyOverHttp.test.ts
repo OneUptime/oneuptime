@@ -45,6 +45,7 @@ import {
   readsBodyAfterAuthentication,
 } from "Common/Server/Utils/RequestBodyLimit";
 import {
+  REQUEST_BODY_REFUSAL_MESSAGES,
   getTooLargeForRouteMessage,
   getTooManyJsonValuesMessage,
 } from "Common/Server/Utils/RequestBodyRefusal";
@@ -496,6 +497,45 @@ const FLUENT_BIT_JSON_LINES_SEND: Send = {
   taken: FLUENT_BIT_RECORDS,
 };
 
+/*
+ * Fluent Bit's http output with format json_stream (#10796): each record's
+ * JSON appended to the last with no separator - flb_pack_msgpack_to_json_format
+ * appends a line feed for FLB_PACK_JSON_FORMAT_LINES alone ("no separators,
+ * e.g: {'ts':abc,'k1':1}{'ts':abc,'k1':2}{N}") - with Content-Type
+ * application/json: plugins/out_http/http.c sets FLB_HTTP_MIME_JSON for
+ * FLB_PACK_JSON_FORMAT_JSON, FLB_PACK_JSON_FORMAT_STREAM and gelf, and
+ * http.h defines it as "application/json". The time is under json_date_key,
+ * and compress gzip compresses the body whole (flb_gzip_compress, then
+ * flb_http_set_content_encoding_gzip). It was refused 400.
+ */
+const FLUENT_BIT_JSON_STREAM_SEND: Send = {
+  how: "records one after another, as Fluent Bit's http output posts them with format json_stream (application/json)",
+  headers: {
+    ...JSON_TYPE,
+    "user-agent": "Fluent-Bit",
+    ...TOKEN,
+  },
+  body: Buffer.from(
+    FLUENT_BIT_RECORDS.map((record: JSONObject): string => {
+      return JSON.stringify(record);
+    }).join(""),
+  ),
+  taken: FLUENT_BIT_RECORDS,
+};
+
+/*
+ * Fluentd's HTTP output with content_type application/json set and no
+ * json_array: out_http sends the buffer chunk as it is (req.body is
+ * chunk.read without json_array), a record and a line feed each, under the
+ * type it was told. It was refused 400 too.
+ */
+const FLUENTD_JSON_WITHOUT_ARRAY_SEND: Send = {
+  how: "a buffer chunk a record a line, as Fluentd's HTTP output posts it with content_type application/json and no json_array",
+  headers: { ...JSON_TYPE, ...TOKEN, "x-oneuptime-service-name": "checkout" },
+  body: FLUENTD_NDJSON_SEND.body,
+  taken: FLUENT_RECORDS,
+};
+
 const SYSLOG_JSON: Send = {
   how: "a JSON messages array, as rsyslog's omhttp posts it with the documented template",
   headers: { ...JSON_TYPE, ...TOKEN },
@@ -528,6 +568,11 @@ const ROUTES: Array<IngestRoute> = [
       gzipped(FLUENTD_NDJSON_SEND),
       FLUENT_BIT_JSON_LINES_SEND,
       gzipped(FLUENT_BIT_JSON_LINES_SEND),
+      // #10796: both were refused 400, as it is and gzip-encoded alike.
+      FLUENT_BIT_JSON_STREAM_SEND,
+      gzipped(FLUENT_BIT_JSON_STREAM_SEND),
+      FLUENTD_JSON_WITHOUT_ARRAY_SEND,
+      gzipped(FLUENTD_JSON_WITHOUT_ARRAY_SEND),
       {
         how: "newline-separated lines, gzip-encoded",
         headers: {
@@ -1718,6 +1763,22 @@ describe("the ingestion budget, once the key is right", () => {
       gzipped(FLUENTD_NDJSON_SEND),
     ],
     ["Fluent Bit's json_lines", "/fluentd/v1/logs", FLUENT_BIT_JSON_LINES_SEND],
+    // #10796: read as records once it is no one document, measured as sent.
+    [
+      "Fluent Bit's json_stream",
+      "/fluentd/v1/logs",
+      FLUENT_BIT_JSON_STREAM_SEND,
+    ],
+    [
+      "Fluent Bit's json_stream, gzip-encoded",
+      "/fluentd/v1/logs",
+      gzipped(FLUENT_BIT_JSON_STREAM_SEND),
+    ],
+    [
+      "Fluentd's records a line each as application/json",
+      "/fluentd/v1/logs",
+      FLUENTD_JSON_WITHOUT_ARRAY_SEND,
+    ],
     [
       "Fluentd's single_value lines of text",
       "/fluentd/v1/logs",
@@ -2089,6 +2150,246 @@ describe("newline-delimited JSON, Fluentd's default and Fluent Bit's json_lines"
         {
           headers: { ...NDJSON_TYPE, "content-encoding": "gzip" },
           body: zlib.gzipSync(lines),
+          chunked: false,
+        },
+      ]) {
+        const refused: SentRequest = await sendOverHttp(server, {
+          path: FLUENT,
+          headers: sent.headers,
+          connection: connection,
+          chunked: sent.chunked,
+          body: sent.body,
+        });
+
+        expect({
+          status: refused.answer.status,
+          json: refused.answer.json,
+        }).toEqual({ status: 401, json: MISSING_KEY });
+        expect(await server.readInAll(refused.tag)).toBeLessThanOrEqual(
+          READ_OR_TWO,
+        );
+      }
+
+      expect(watched.inflated).toBe(0);
+      expect(longestJsonParsed()).toBeLessThan(READ_OR_TWO);
+      expectNothingTaken();
+    },
+  );
+});
+
+/*
+ * #10796: Fluent Bit's http output with format json_stream sends its
+ * records' JSON one after another with no separator, as application/json
+ * (FLUENT_BIT_JSON_STREAM_SEND). That is no one JSON document: it was
+ * refused 400, which Fluent Bit drops without retrying, the records lost.
+ * Once the key is right, a JSON body that is no one document is read again
+ * as JSON objects one after another, each counted before it is parsed; one
+ * that is no such stream either is still refused 400.
+ */
+describe("Fluent Bit's json_stream: records one after another, as application/json", () => {
+  const FLUENT: string = "/fluentd/v1/logs";
+  const GZIP: Record<string, string> = { "content-encoding": "gzip" };
+  const INVALID_JSON: JSONObject = {
+    error: REQUEST_BODY_REFUSAL_MESSAGES.invalidJson,
+  };
+
+  // Records as Fluent Bit sends them: its time under json_date_key, and the record's keys.
+  const WORDS: Array<string> = [
+    "order",
+    "placed",
+    "ü",
+    "中",
+    '"quoted"',
+    "back\\slash",
+    "{brace}",
+    "}{",
+    "[bracket]",
+  ];
+
+  const drawRecord: (random: SeededRandom) => JSONObject = (
+    random: SeededRandom,
+  ): JSONObject => {
+    const record: JSONObject = {
+      date: 1795255200 + random(100000) / 1000,
+      log: `${WORDS[random(WORDS.length)]} ${WORDS[random(WORDS.length)]}`,
+      level: ["info", "warn", "error"][random(3)]!,
+    };
+
+    if (random(2) === 0) {
+      record["kubernetes"] = {
+        pod_name: WORDS[random(WORDS.length)]!,
+        labels: { app: "checkout" },
+      };
+    }
+
+    return record;
+  };
+
+  test("drawn batches give the same records sent as they are and gzip-compressed, declared and chunked", async () => {
+    const random: SeededRandom = seededRandom(10796);
+    const batches: Array<Array<JSONObject>> = [];
+
+    for (let batch: number = 0; batch < 12; batch++) {
+      const records: Array<JSONObject> = Array.from(
+        { length: 2 + random(30) },
+        (): JSONObject => {
+          return drawRecord(random);
+        },
+      );
+      const stream: Buffer = Buffer.from(
+        records
+          .map((record: JSONObject): string => {
+            return JSON.stringify(record);
+          })
+          .join(""),
+      );
+
+      batches.push(records);
+
+      for (const body of [stream, zlib.gzipSync(stream)]) {
+        const sent: SentRequest = await sendOverHttp(server, {
+          path: FLUENT,
+          headers: {
+            ...FLUENT_BIT_JSON_STREAM_SEND.headers,
+            ...(body === stream ? {} : GZIP),
+          },
+          chunked: random(2) === 0,
+          body: body,
+        });
+
+        expect(sent.answer.status).toBe(200);
+      }
+    }
+
+    expect(takenBy("Fluentd and Fluent Bit")).toEqual(
+      batches.flatMap((records: Array<JSONObject>) => {
+        return [records, records];
+      }),
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test("a stream of one record is that record, as it is and gzip-compressed", async () => {
+    const one: Buffer = Buffer.from(JSON.stringify(FLUENT_BIT_RECORDS[0]));
+
+    for (const body of [one, zlib.gzipSync(one)]) {
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: FLUENT,
+        headers: {
+          ...FLUENT_BIT_JSON_STREAM_SEND.headers,
+          ...(body === one ? {} : GZIP),
+        },
+        body: body,
+      });
+
+      expect(sent.answer.status).toBe(200);
+    }
+
+    expect(takenBy("Fluentd and Fluent Bit")).toEqual([
+      [FLUENT_BIT_RECORDS[0]],
+      [FLUENT_BIT_RECORDS[0]],
+    ]);
+  });
+
+  test("the key is checked before a byte of it is inflated or parsed", async () => {
+    const sent: SentRequest = await sendOverHttp(server, {
+      path: FLUENT,
+      headers: { ...FLUENT_BIT_JSON_STREAM_SEND.headers, ...GZIP },
+      body: zlib.gzipSync(FLUENT_BIT_JSON_STREAM_SEND.body),
+    });
+
+    expect(sent.answer.status).toBe(200);
+    expect(atKeyCheck).toEqual([{ inflated: 0, parsed: 0 }]);
+    expect(takenBy("Fluentd and Fluent Bit")).toEqual([FLUENT_BIT_RECORDS]);
+  });
+
+  test("over a large route's 1,000,000 values: refused 413 before any record is parsed, as it is and gzip-compressed", async () => {
+    // 1,000 values a record - itself, its key, its list and 997 numbers: the 1,001st passes them.
+    const record: string = JSON.stringify({ v: new Array(997).fill(0) });
+    const over: Buffer = Buffer.from(record.repeat(1001));
+
+    for (const body of [over, zlib.gzipSync(over)]) {
+      jsonParse.mockClear();
+
+      const sent: SentRequest = await sendOverHttp(server, {
+        path: FLUENT,
+        headers: {
+          ...FLUENT_BIT_JSON_STREAM_SEND.headers,
+          ...(body === over ? {} : GZIP),
+        },
+        body: body,
+      });
+
+      expect({ status: sent.answer.status, json: sent.answer.json }).toEqual({
+        status: 413,
+        json: {
+          error: getTooManyJsonValuesMessage(
+            JsonElementLimit.Values,
+            LARGE_REQUEST_BODY_JSON_VALUES,
+          ),
+        },
+      });
+      // Counted as it arrived, or as it inflated: no record was parsed.
+      expect(
+        (jsonParse.mock.calls as Array<Array<unknown>>).filter(
+          (call: Array<unknown>): boolean => {
+            return typeof call[0] === "string" && call[0].startsWith('{"v":');
+          },
+        ),
+      ).toEqual([]);
+    }
+
+    expectNothingTaken();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["a record cut off", '{"log":"a"}{"log":"b'],
+    ["records separated by commas", '{"log":"a"},{"log":"b"}'],
+    ["text after the records", '{"log":"a"}{"log":"b"} and some text'],
+    ["arrays one after another", '[{"log":"a"}][{"log":"b"}]'],
+    ["a record that does not parse", '{"log":"a"}{"log":}{"log":"c"}'],
+    ["text alone", "order placed"],
+  ])(
+    "a malformed body - %s - is refused 400 in the words JSON that does not parse gets, as it is and gzip-compressed",
+    async (_what: string, text: string) => {
+      const malformed: Buffer = Buffer.from(text);
+
+      for (const body of [malformed, zlib.gzipSync(malformed)]) {
+        const sent: SentRequest = await sendOverHttp(server, {
+          path: FLUENT,
+          headers: {
+            ...FLUENT_BIT_JSON_STREAM_SEND.headers,
+            ...(body === malformed ? {} : GZIP),
+          },
+          body: body,
+        });
+
+        expect({
+          status: sent.answer.status,
+          json: sent.answer.json,
+        }).toEqual({ status: 400, json: INVALID_JSON });
+      }
+
+      expectNothingTaken();
+      // The client's to fix: no error line.
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([...CONNECTIONS])(
+    "with no key, 40 MiB of it are refused, declared, chunked or gzip-compressed, with nothing read, inflated or parsed (%s)",
+    async (connection: Connection) => {
+      const stream: Buffer = Buffer.from(
+        JSON.stringify({ log: "a".repeat(1000) }).repeat(UNKEYED / 1024),
+      );
+
+      for (const sent of [
+        { headers: JSON_TYPE, body: stream, chunked: false },
+        { headers: JSON_TYPE, body: stream, chunked: true },
+        {
+          headers: { ...JSON_TYPE, ...GZIP },
+          body: zlib.gzipSync(stream),
           chunked: false,
         },
       ]) {

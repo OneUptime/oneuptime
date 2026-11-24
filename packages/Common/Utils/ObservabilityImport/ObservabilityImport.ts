@@ -14,11 +14,13 @@ import {
 } from "../../Types/ObservabilityImport/ObservabilityImport";
 import {
   convertDatadogDashboard,
+  listDatadogDashboardAsCountMetricNames,
   listDatadogDashboardMetricNames,
 } from "./Datadog/DatadogDashboard";
 import { DatadogMetricKind } from "./Datadog/DatadogPromQL";
 import {
   convertDatadogMonitors,
+  listDatadogMonitorAsCountMetricNames,
   listDatadogMonitorMetricNames,
 } from "./Datadog/DatadogMonitors";
 import { convertGrafanaAlertRules } from "./Grafana/GrafanaAlertRules";
@@ -45,6 +47,11 @@ export interface ImportPlanOptions {
   queryOverrides?: ImportQueryOverrides | undefined;
   // A Datadog dashboard's metrics as the project's data says they are.
   knownMetricKinds?: ReadonlyMap<string, DatadogMetricKind> | undefined;
+  /*
+   * The seconds each point of a Datadog rate covers, as the project's data
+   * says (issue #10327): what .as_count() multiplies a rate by.
+   */
+  rateIntervalsInSeconds?: ReadonlyMap<string, number> | undefined;
 }
 
 export const planDashboardImport: (
@@ -96,6 +103,25 @@ export const listDatadogMetricNames: (
 
   if (source.kind === ImportSourceKind.DatadogMonitors) {
     return listDatadogMonitorMetricNames(source.documents);
+  }
+
+  return [];
+};
+
+/*
+ * The Datadog metrics a file reads with .as_count(): of those the project
+ * keeps as gauges, the preview asks which are rates, and the seconds each
+ * point covers (issue #10327).
+ */
+export const listDatadogAsCountMetricNames: (
+  source: ImportSourceDocument,
+) => Array<string> = (source: ImportSourceDocument): Array<string> => {
+  if (source.kind === ImportSourceKind.DatadogDashboard) {
+    return listDatadogDashboardAsCountMetricNames(source.documents[0] || {});
+  }
+
+  if (source.kind === ImportSourceKind.DatadogMonitors) {
+    return listDatadogMonitorAsCountMetricNames(source.documents);
   }
 
   return [];

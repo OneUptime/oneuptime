@@ -7,7 +7,9 @@ Datasikkerhed scorer ni compliancerammer ud fra det, dens scanninger fandt. Hver
 - [Sådan scores en ramme](#sådan-scores-en-ramme): Krav, der består, fejler eller ikke er vurderet.
 - [På en ressources side](#på-en-ressources-side): Overholdelse for én klynge, vært, database, tjeneste eller cloud-ressource, og hvad der er slået fra for den.
 - [Krav og deres kontroller](#krav-og-deres-kontroller): Hvert krav og de kontroller, der er bevis for det.
-- [Fortegnelse over behandlingsaktiviteter](#fortegnelse-over-behandlingsaktiviteter): GDPR artikel 30, skrevet ud fra dine datalagre.
+- [Fortegnelse over behandlingsaktiviteter](#fortegnelse-over-behandlingsaktiviteter): GDPR artikel 30, skrevet ud fra dine datalagre, med OneUptime AI's kladder, som du bekræfter.
+- [Konsekvensanalyser](#konsekvensanalyser): En konsekvensanalyse vedrørende databeskyttelse for hvert datalager, der har brug for en.
+- [Revisionsbevis](#revisionsbevis): Det, en revisor læser under hvert krav, eksporteret med din fortegnelse og problemhistorik.
 :::
 
 ## Rammerne
@@ -185,13 +187,30 @@ GDPR artikel 30 kræver, at du fører en fortegnelse over dine behandlingsaktivi
 | Miljø | Datalagerets tags eller navn, eller det, du angiver |
 | Følsomhed, kategorier og datatyper | Det, scanningerne fandt, eller den følsomhed, du angiver |
 | Ejere | Datalagerets ejere, personer og medlemmerne af dets teams |
-| Formål | Det, du skriver i datalagerets **Formål**: hvorfor det indeholder persondata. OneUptime udfylder det for de datalagre, det opbevarer for din sikkerhed |
-| Opbevaring | Det, du skriver i datalagerets **Opbevaring**: hvor længe data opbevares i det. OneUptime udfylder det for de datalagre, det opbevarer for din sikkerhed |
+| Formål | Det, du skriver eller bekræfter i datalagerets **Formål**: hvorfor det indeholder persondata. OneUptime udfylder det for de datalagre, det opbevarer for din sikkerhed |
+| Opbevaring | Det, du skriver eller bekræfter i datalagerets **Opbevaring**: hvor længe data opbevares i det. OneUptime udfylder det for de datalagre, det opbevarer for din sikkerhed, og for en tjenestes telemetri ud fra dit projekts opbevaring af telemetri |
 | Hvem kan læse | Hvem der kan læse et datalager, som OneUptime opbevarer for din sikkerhed |
 | Rammer | De rammer, som dets datatyper gør det omfattet af |
 | Angivet af | OneUptime, for de datalagre, det opbevarer for din sikkerhed |
+| Retsgrundlag | Det, du skriver eller bekræfter: datalagerets retsgrundlag efter GDPR artikel 6, ét af samtykke, kontrakt, retlig forpligtelse, vitale interesser, opgave i samfundets interesse og legitime interesser. Legitime interesser for de datalagre, OneUptime opbevarer for din sikkerhed |
+| Registrerede | Det, du skriver eller bekræfter: hvem datalagerets data handler om, f.eks. kunder, brugere, medarbejdere eller patienter |
+| Modtagere | Udledt af datalagerets datastrømme: de eksterne værter og AI-udbydere, som dets data sendes til, og de datalagre, der har en kopi af dem |
+| Overførsler | Udledt af datalagerets region, de regioner, clouden kopierer det til, og regionerne for dets kopier, holdt op mod de lande, de registrerede befinder sig i: hver overførsel ud af de lande, eller hvorfor den ikke kendes |
+| Konsekvensanalyse | Om datalageret har brug for en konsekvensanalyse vedrørende databeskyttelse, og hvor den står: ikke nødvendig, påkrævet, kladde eller redigeret |
+| Venter på gennemsyn | De felter, hvis kladde venter på en person. En kladde er aldrig i fortegnelsen, heller ikke i dens eksporter, før nogen bekræfter den |
 
-For et datalager, som Datasikkerhed har fundet, udfylder du **Formål** og **Opbevaring** under dets **Indstillinger**: ingen scanning kan vide dem. Fortegnelsen og scorerne kan også hentes fra Datasikkerheds API på `/data-security/record-of-processing`, `/data-security/compliance` og, for én ressource, `/data-security/resource-compliance` af alle, der må læse datalagre (se [Datasikkerhedsintegrationer](/docs/data-security/integrations#api-terraform-og-mcp)).
+For et datalager, som Datasikkerhed har fundet, kan ingen scanning vide, hvorfor det indeholder persondata, hvor længe, på hvilket grundlag eller om hvem: skriv det under dets **Indstillinger**, eller bekræft OneUptime AI's kladder. Fortegnelsen og scorerne kan også hentes fra Datasikkerheds API på `/data-security/record-of-processing`, `/data-security/compliance` og, for én ressource, `/data-security/resource-compliance` af alle, der må læse datalagre (se [Datasikkerhedsintegrationer](/docs/data-security/integrations#api-terraform-og-mcp)).
+
+### OneUptime AI's kladder
+
+OneUptime AI skriver kladder til et datalagers **Formål**, **Opbevaring**, **Retsgrundlag** og **Registrerede** ud fra det, Datasikkerhed ved om det: de fundne datatyper, dets navn, tags og beskrivelse, de tjenester, der bruger det, og hvad deres teams har skrevet, at de er til, hvor dets data sendes hen, og hvor de opbevares. Den ser aldrig en værdi fra dine data (se [OneUptime AI i Datasikkerhed](/docs/data-security/ai)).
+
+- **En kladde er markeret Kladde** og siger hvorfor, med de fakta, den bygger på, ét klik væk. Den er ikke i fortegnelsen, før du trykker på **Bekræft** eller bruger **Rediger** til at skrive den om med dine egne ord.
+- **Dine ord bliver aldrig overskrevet af en kladde.** Der skrives aldrig igen kladde til et felt, du har skrevet. En kladde, du har bekræftet, får kun en ny kladde, når et faktum, den bygger på, ændrer sig, og så foreslås den i stedet for at blive brugt: markeret **Ændring foreslået**, med det, der er ændret, **Brug ny kladde** og **Behold nuværende**.
+- **Gennemse kladder** på kortet **Fortegnelse over behandlingsaktiviteter** gennemgår de datalagre, hvis kladder venter på dig, ét ad gangen. Et datalagers **Indstillinger** har de samme felter, med **Skriv kladde med OneUptime AI** til de tomme.
+- **Af sig selv** skriver OneUptime AI én gang om dagen kladder til de tomme felter i de mest risikable datalagre, mens **Arbejd med nye problemer** er slået til under **Datasikkerhed → AI**, som dine AI-regler tillader.
+
+Opbevaringen af en tjenestes telemetri, modtagerne og overførslerne udledes af almindelig kode og får aldrig en kladde. Kladderne er et udgangspunkt, ikke juridisk rådgivning: få dem kontrolleret af den, der står til ansvar for jeres overholdelse.
 
 ### Datalagre, som OneUptime opbevarer for din sikkerhed
 
@@ -207,6 +226,32 @@ Fire datalagre indeholder IP-adresser og brugernavne med vilje for at beskytte d
 Formålet med hvert af dem er "Net- og informationssikkerhed (GDPR betragtning 49)". Vil du skrive dit eget formål eller din egen opbevaring, så brug **Rediger fortegnelse** under datalagerets **Indstillinger**: et felt, der står tomt, beholder OneUptimes.
 
 Et datalager vises, så længe dit projekt opbevarer dets data: adresseboksen, så længe en aktiveret IP-adresseregel hasher logs eller traces, som Sikkerhedshændelser læser, og brugerboksen, så længe en aktiveret regel med et hvilket som helst andet mønster gør det, hver i 31 dage derefter (se [Rens følsomme data](/docs/telemetry/drop-filters-and-scrub-rules#rens-følsomme-data)). Når dets data er væk, arkiveres datalageret, og det vender tilbage med dit formål og din opbevaring, hvis dataene gør det.
+
+## Konsekvensanalyser
+
+GDPR artikel 35 kræver en konsekvensanalyse vedrørende databeskyttelse før behandling, der sandsynligvis indebærer en høj risiko. Datasikkerhed angiver, hvilke datalagre der har brug for en: et datalager, der indeholder særlige kategorier af personoplysninger, f.eks. helbredsdata, data om mange personer (omkring 100.000 poster eller flere), eller data, der forlader de registreredes lande.
+
+Et datalagers **Konsekvensanalyse**, i dets menu under **Indstillinger**, siger, hvorfor datalageret har brug for en, eller at det ikke har. **Skriv kladde til analysen** beder OneUptime AI om de fire dele, artikel 35(7) kræver, ud fra datalagerets fortegnelse, dets åbne problemer og dem, der er rettet for nylig, hvor eksponeret det er, hvor mange der kan nå det, og dets kryptering:
+
+| Del | Artikel |
+| --- | --- |
+| Behandlingen og dens formål | Art. 35(7)(a) |
+| Nødvendighed og proportionalitet | Art. 35(7)(b) |
+| Risici for de registrerede | Art. 35(7)(c) |
+| Foranstaltninger til at imødegå risiciene | Art. 35(7)(d) |
+
+Hver del siger, hvem der skrev den og hvornår, med de fakta, en del med en kladde bygger på. **Rediger** gør en del til din, og der skrives aldrig igen kladde til den; **Skriv ny kladde** skriver kun kladder til de dele, ingen har redigeret. En del, der er skrevet ud fra fakta, som siden er ændret, siger det. **Eksportér PDF** og **Eksportér Markdown** downloader analysen.
+
+## Revisionsbevis
+
+**Revisionsbevis** på den ramme, du vælger under **Datasikkerhed → Overholdelse**, er det, en revisor læser under hvert af dens krav, over de seneste 30, 90, 180 eller 365 dage:
+
+- datalagrene inden for kravets omfang, og hvordan dets kontroller står;
+- de problemer fra dets kontroller, der blev åbnet og rettet i perioden, og hvor hurtigt de blev rettet;
+- de risici, der er accepteret under det, med deres begrundelser og udløb;
+- de ressourcer, der har slået det fra, og hvorfor.
+
+**Skriv kladde til revisionsbeviset** beder OneUptime AI om et afsnit under hvert krav, holdt til disse fakta; **Rediger** gør et afsnit til dit, og der skrives aldrig igen kladde til det. Et krav uden afsnit viser sit bevis, som det er. **Eksportér PDF** og **Eksportér Markdown** downloader revisionsbeviset med to bilag: fortegnelsen over behandlingsaktiviteter for datalagrene inden for omfanget og den problemhistorik, det henviser til.
 
 ## Næste trin
 

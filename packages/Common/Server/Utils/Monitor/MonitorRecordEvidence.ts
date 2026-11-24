@@ -34,6 +34,11 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  *   - a Test Monitor run's result (MonitorTest.monitorStepProbeResponse),
  *     kept two days.
  *
+ * A probe's check comes here with the values of its monitor's secrets
+ * already hidden wherever they stood (MonitorCheckSecretValues, #10825):
+ * the rules below go by names and shapes, and cannot tell a secret's value
+ * from any other text.
+ *
  * The evaluation details are cut by MonitorEvidenceRedaction's rules; every
  * other copy is cut here, by the same rules:
  *

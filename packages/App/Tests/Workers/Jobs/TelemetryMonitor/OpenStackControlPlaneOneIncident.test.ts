@@ -604,6 +604,10 @@ beforeEach(() => {
   jest
     .spyOn(SeriesResourceLinker, "linkSeriesResourcesToModel")
     .mockResolvedValue(undefined as never);
+  // Nor the many series' path: every series reads as its own.
+  jest
+    .spyOn(SeriesResourceLinker, "resolveManySeries")
+    .mockResolvedValue(new Map());
   jest
     .spyOn(OpenStackAlertContext, "addToDescription")
     .mockImplementation(async (input: unknown) => {

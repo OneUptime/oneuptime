@@ -143,7 +143,7 @@ Le macro SQL sono scritte in UTC, quindi esegui le sessioni del tuo database in 
 
 ### Variabili della dashboard
 
-Scrivi `{{name}}` in qualsiasi punto di una query, e il widget ci mette il valore della variabile prima di inviare la query. Più valori di una variabile a selezione multipla vengono uniti con `|`, che è ciò che serve a un selettore con espressione regolare di PromQL o LogQL: `job=~"{{job}}"`. Una variabile senza nulla di scelto lascia il segnaposto così com'è scritto, quindi l'errore lo nomina. [Variabili e filtri della dashboard](/docs/dashboards/variables) spiega come aggiungerne una.
+Scrivi `{{name}}` in qualsiasi punto di una query, e il widget ci mette il valore della variabile prima di inviare la query. Una query sulle metriche di questo progetto o su un Prometheus viene compilata come la compila la fonte di dati Prometheus di Grafana: in `job=~"{{job}}"`, più valori di una variabile a selezione multipla corrispondono a uno qualsiasi di essi, ciascuno così com'è scritto, e una variabile senza nulla di scelto corrisponde a ogni valore. In qualsiasi altra query, più valori vengono uniti con `|`, che è ciò che serve a un selettore con espressione regolare di LogQL, e una variabile senza nulla di scelto lascia il segnaposto così com'è scritto, quindi l'errore lo nomina. [Variabili e filtri della dashboard](/docs/dashboards/variables) spiega come aggiungerne una.
 
 ## Limiti
 

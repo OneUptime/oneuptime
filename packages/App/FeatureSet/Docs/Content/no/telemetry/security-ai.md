@@ -136,7 +136,7 @@ Under den står hvert trinn den utførte, spurte om eller overlot, det nyeste f�
 
 ### En sak den leser som ufarlig eller falsk positiv
 
-**Reager med KI** på en sak som vurderingen leste som Sannsynligvis ufarlig eller Sannsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, slik **Lukk saken** tillater. Når den er lukket, opphever OneUptime AI blokkeringene saken laget, slik **Lukk saken** også tillater, og tilbyr sakens regel et unntak for verdien som utløste den. Unntaket venter alltid på en person: **Godkjenn** legger det til, på dine vegne.
+**Reager med KI** på en sak som vurderingen leste som Sannsynligvis ufarlig eller Sannsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, slik **Lukk saken** tillater. Når den er lukket, opphever OneUptime AI blokkeringene saken laget, slik **Lukk saken** også tillater, og tilbyr sakens regel et unntak for verdien som utløste den. Unntaket venter alltid på en person: **Godkjenn** legger det til, på dine vegne. En person som gjenåpner saken eller overtar den først, hindrer begge deler, og så lenge produktet Sikkerhetshendelser er slått av, overlater OneUptime AI begge deler til en person.
 
 ## Hva OneUptime AI får gjøre på en sak
 

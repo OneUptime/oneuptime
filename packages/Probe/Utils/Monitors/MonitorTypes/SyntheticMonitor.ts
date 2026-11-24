@@ -157,8 +157,16 @@ export default class SyntheticMonitor {
 
     // If there's an error and we haven't exceeded retry count, retry
     if (result.scriptError && currentRetry < maxRetries) {
+      /*
+       * A runtime fault's message is OneUptime's own. A script's error is
+       * the script's - Playwright quotes the URL a page failed to load, a
+       * monitor secret in it - and is reported with the check, where the
+       * server hides the monitor's secrets (#10825): never logged here.
+       */
       logger.debug(
-        `Synthetic Monitor ${attempt.isRuntimeFault ? "runtime fault" : "script error"}, retrying (${currentRetry + 1}/${maxRetries}): ${result.scriptError}`,
+        attempt.isRuntimeFault
+          ? `Synthetic Monitor runtime fault, retrying (${currentRetry + 1}/${maxRetries}): ${result.scriptError}`
+          : `Synthetic Monitor script error, retrying (${currentRetry + 1}/${maxRetries}).`,
       );
 
       // Wait a bit before retrying
@@ -296,8 +304,17 @@ export default class SyntheticMonitor {
          * Playwright script threw, timed out, or returned more data than the
          * result cap allows. A worker or browser failure surfaces as a
          * rejection in the catch below instead, which stays loud.
+         *
+         * The error itself is reported with the check, never logged here:
+         * Playwright quotes the URL a page failed to load, and the server
+         * filled the monitor's secrets into the script. The server hides
+         * them in what the check reports (#10825); the probe cannot tell
+         * which text was one.
          */
-        logger.error(result.scriptError, EXTERNAL_FAULT);
+        logger.error(
+          `Synthetic Monitor script failed (browser: ${options.browserType}, screen size: ${options.screenSizeType}). Its error is reported with the check.`,
+          EXTERNAL_FAULT,
+        );
         scriptResult.scriptError = result.scriptError;
       }
     } catch (err: unknown) {

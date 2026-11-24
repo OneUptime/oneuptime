@@ -7,7 +7,9 @@ Seguridad de datos puntúa nueve marcos a partir de lo que encontraron sus escan
 - [Cómo se puntúa un marco](#cómo-se-puntúa-un-marco): Requisitos que se cumplen, que no se cumplen y sin evaluar.
 - [En la página de un recurso](#en-la-página-de-un-recurso): El cumplimiento de un clúster, un host, una base de datos, un servicio o un recurso en la nube, y lo que está desactivado para él.
 - [Requisitos y sus comprobaciones](#requisitos-y-sus-comprobaciones): Cada requisito, y las comprobaciones que son evidencia de él.
-- [Registro de actividades de tratamiento](#registro-de-actividades-de-tratamiento): El artículo 30 del RGPD, redactado a partir de tus almacenes.
+- [Registro de actividades de tratamiento](#registro-de-actividades-de-tratamiento): El artículo 30 del RGPD, redactado a partir de tus almacenes, con los borradores de OneUptime AI para que los confirmes.
+- [Evaluaciones de impacto](#evaluaciones-de-impacto): Una evaluación de impacto relativa a la protección de datos para cada almacén que la necesite.
+- [Evidencias de auditoría](#evidencias-de-auditoría): Lo que lee un auditor en cada requisito, exportado con tu registro y el historial de problemas.
 :::
 
 ## Los marcos
@@ -185,13 +187,30 @@ El artículo 30 del RGPD te pide llevar un registro de tus actividades de tratam
 | Entorno | Las etiquetas o el nombre del almacén, o lo que fijes tú |
 | Sensibilidad, categorías y tipos de datos | Lo que encontraron los escaneos, o la sensibilidad que fijes tú |
 | Propietarios | Los propietarios del almacén: personas y los miembros de sus equipos |
-| Finalidad | Lo que escribas en la **Finalidad** del almacén: por qué contiene datos personales. OneUptime la completa en los almacenes que conserva para tu seguridad |
-| Retención | Lo que escribas en la **Retención** del almacén: cuánto tiempo se guardan los datos en él. OneUptime la completa en los almacenes que conserva para tu seguridad |
+| Finalidad | Lo que escribas o confirmes en la **Finalidad** del almacén: por qué contiene datos personales. OneUptime la completa en los almacenes que conserva para tu seguridad |
+| Retención | Lo que escribas o confirmes en la **Retención** del almacén: cuánto tiempo se guardan los datos en él. OneUptime la completa en los almacenes que conserva para tu seguridad, y en la telemetría de un servicio a partir de la retención de telemetría de tu proyecto |
 | Quién puede leer | Quién puede leer un almacén que OneUptime conserva para tu seguridad |
 | Marcos | Los marcos que sus tipos de datos incluyen en el alcance |
 | Declarado por | OneUptime, en los almacenes que conserva para tu seguridad |
+| Base jurídica | Lo que escribas o confirmes: la base jurídica del almacén según el artículo 6 del RGPD, una de consentimiento, contrato, obligación legal, intereses vitales, misión de interés público e intereses legítimos. Intereses legítimos en los almacenes que OneUptime conserva para tu seguridad |
+| Interesados | Lo que escribas o confirmes: a quién se refieren los datos del almacén, como clientes, usuarios, empleados o pacientes |
+| Destinatarios | Calculado a partir de los flujos de datos del almacén: los hosts externos y proveedores de IA a los que se envían sus datos, y los almacenes que guardan una copia de ellos |
+| Transferencias | Calculado a partir de la región del almacén, las regiones a las que lo copia su nube y las regiones de sus copias, frente a los países en los que están los interesados: cada transferencia fuera de esos países, o por qué no se sabe |
+| Evaluación de impacto | Si el almacén necesita una evaluación de impacto relativa a la protección de datos y en qué punto está: no necesaria, necesaria, redactada o editada |
+| Pendiente de revisión | Los campos cuyo borrador espera a una persona. Un borrador nunca está en el registro, ni en sus exportaciones, hasta que alguien lo confirma |
 
-En un almacén que encontró Seguridad de datos, rellena **Finalidad** y **Retención** en sus **Ajustes**: ningún escaneo puede saberlas. La API de Seguridad de datos también devuelve el registro y las puntuaciones, en `/data-security/record-of-processing`, `/data-security/compliance` y, para un solo recurso, `/data-security/resource-compliance`, a quien pueda leer almacenes de datos (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#api-terraform-y-mcp)).
+En un almacén que encontró Seguridad de datos, ningún escaneo puede saber por qué contiene datos personales, durante cuánto tiempo, con qué base ni sobre quién: escríbelo en sus **Ajustes**, o confirma los borradores de OneUptime AI. La API de Seguridad de datos también devuelve el registro y las puntuaciones, en `/data-security/record-of-processing`, `/data-security/compliance` y, para un solo recurso, `/data-security/resource-compliance`, a quien pueda leer almacenes de datos (consulta [Integraciones de Seguridad de datos](/docs/data-security/integrations#api-terraform-y-mcp)).
+
+### Los borradores de OneUptime AI
+
+OneUptime AI redacta la **Finalidad**, la **Retención**, la **Base jurídica** y los **Interesados** de un almacén a partir de lo que Seguridad de datos sabe de él: los tipos de datos encontrados, su nombre, sus etiquetas y su descripción, los servicios que lo usan y para qué sirven según escribieron sus equipos, adónde van sus datos y dónde se guardan. Nunca ve un valor de tus datos (consulta [OneUptime AI en Seguridad de datos](/docs/data-security/ai)).
+
+- **Un borrador lleva la marca Borrador** y dice por qué, con los hechos en los que se basa a un clic. No está en el registro hasta que pulsas **Confirmar**, o lo pasas a tus propias palabras con **Editar**.
+- **Tus palabras nunca se sustituyen por un borrador.** Un campo que escribiste nunca se vuelve a redactar. Un borrador que confirmaste solo se vuelve a redactar cuando cambia un hecho en el que se basa, y entonces se propone, no se aplica: marcado como **Cambio propuesto**, con lo que cambió, **Usar el nuevo borrador** y **Conservar el valor actual**.
+- **Revisar borradores**, en la tarjeta **Registro de tratamiento**, recorre uno a uno los almacenes cuyos borradores te esperan. Los **Ajustes** de un almacén tienen los mismos campos, con **Redactar con OneUptime AI** para los vacíos.
+- **Por su cuenta**, OneUptime AI redacta una vez al día los campos vacíos de los almacenes más arriesgados, mientras **Trabajar en los problemas nuevos** está activado en **Seguridad de datos → IA**, según lo que permitan tus reglas de IA.
+
+La retención de la telemetría de un servicio, los destinatarios y las transferencias se calculan con código simple, nunca se redactan. Los borradores son un punto de partida, no asesoramiento jurídico: haz que los revise quien responda de tu cumplimiento normativo.
 
 ### Almacenes que OneUptime conserva para tu seguridad
 
@@ -207,6 +226,32 @@ Cuatro almacenes contienen direcciones IP y nombres de usuario a propósito, par
 La finalidad de cada uno es «Seguridad de la red y de la información (considerando 49 del RGPD)». Para escribir tu propia finalidad o retención, usa **Editar registro** en los **Ajustes** del almacén: un campo que dejes vacío conserva la de OneUptime.
 
 Un almacén aparece mientras tu proyecto conserva sus datos: la bóveda de direcciones, mientras una regla de dirección IP activada aplica hash a los registros o las trazas que lee Eventos de seguridad, la bóveda de usuarios, mientras lo hace una regla activada de cualquier otro patrón, y cada una 31 días más (consulta [Depurar datos sensibles](/docs/telemetry/drop-filters-and-scrub-rules#depurar-datos-sensibles)). Cuando sus datos desaparecen, el almacén se archiva, y vuelve con tu finalidad y tu retención si vuelven los datos.
+
+## Evaluaciones de impacto
+
+El artículo 35 del RGPD pide una evaluación de impacto relativa a la protección de datos antes de un tratamiento que probablemente entrañe un alto riesgo. Seguridad de datos dice qué almacenes la necesitan: un almacén que contiene categorías especiales de datos, como datos de salud, datos sobre muchas personas (unos 100.000 registros o más) o datos que salen de los países de los interesados.
+
+La **Evaluación de impacto** de un almacén, en su menú bajo **Ajustes**, dice por qué el almacén la necesita, o que no la necesita. **Redactar la evaluación** pide a OneUptime AI las cuatro partes que exige el artículo 35(7), a partir del registro del almacén, sus problemas abiertos y los corregidos recientemente, lo expuesto que está, cuántos pueden acceder a él y su cifrado:
+
+| Parte | Artículo |
+| --- | --- |
+| El tratamiento y sus fines | Art. 35(7)(a) |
+| Necesidad y proporcionalidad | Art. 35(7)(b) |
+| Riesgos para los interesados | Art. 35(7)(c) |
+| Medidas para afrontar los riesgos | Art. 35(7)(d) |
+
+Cada parte dice quién la escribió y cuándo, con los hechos en los que se basa una parte redactada. **Editar** hace tuya una parte, y nunca se vuelve a redactar; **Volver a redactar** solo redacta las partes que nadie editó. Una parte escrita sobre hechos que cambiaron desde entonces lo indica. **Exportar PDF** y **Exportar Markdown** descargan la evaluación.
+
+## Evidencias de auditoría
+
+Las **Evidencias de auditoría**, en el marco que elijas en **Seguridad de datos → Cumplimiento**, son lo que lee un auditor en cada uno de sus requisitos, en los últimos 30, 90, 180 o 365 días:
+
+- los almacenes de su ámbito, y cómo están sus comprobaciones;
+- los problemas de sus comprobaciones que se abrieron y se corrigieron en el periodo, y con qué rapidez se corrigieron;
+- los riesgos aceptados en él, con sus motivos y su caducidad;
+- los recursos que lo desactivaron, y por qué.
+
+**Redactar las evidencias** pide a OneUptime AI un párrafo en cada requisito, ceñido a esos hechos; **Editar** hace tuyo un párrafo, y nunca se vuelve a redactar. Un requisito sin párrafo muestra sus evidencias tal como están. **Exportar PDF** y **Exportar Markdown** descargan las evidencias con dos anexos: el registro de actividades de tratamiento de los almacenes en el ámbito y el historial de problemas que citan.
 
 ## Próximos pasos
 

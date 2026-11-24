@@ -2,6 +2,7 @@ import { UnplacedField } from "../../../../Utils/DataSecurity/UnplacedFields";
 import DataSecurityAiInput, {
   DataSecurityAiPrompt,
 } from "./DataSecurityAiInput";
+import { getAnalysisLanguageName } from "./DataSecurityIssuePrompt";
 import {
   readStrictAnswer,
   StrictAnswer,
@@ -28,7 +29,8 @@ import {
  *
  * The answer is read strictly (StrictAnswer): a JSON object of fields by
  * reference, each with one of the listed ids or null, and a sentence of
- * why. An answer that is not that object - words around it included - is
+ * why - in the project's language (#6105), which the store's What's Inside
+ * draws across the suggestion's row for everyone in the project to read. An answer that is not that object - words around it included - is
  * no answer; a field that is not of its shape, a reference that was not
  * asked, or a second answer for one, is left out; an id that is not listed
  * is no type.
@@ -46,18 +48,28 @@ const MAX_DATA_TYPE_ID_LENGTH: number = 100;
 // The prefix of a field's reference: F1, F2...
 const FIELD_REFERENCE_PREFIX: string = "F";
 
-export const FIELD_SUGGESTION_SYSTEM_PROMPT: string = [
-  "You classify the fields of a customer's data store for OneUptime Data Security.",
-  "",
-  "The user message is one JSON value of data. For each field it gives the field's location, the names of the fields beside it, and the shapes of its values: every letter written as a (lower case) or A (upper case), every digit as 9, every other character as it is, with the share of the values that has each shape. It never holds a value.",
-  "",
-  "For each field, name the data type it holds from the dataTypes list, by its id, or null when it holds none of them or you cannot tell. Suggest a type only when the field's name, the names beside it and its shapes together make it likely: a person will confirm or reject each suggestion. Names can be in any language, abbreviated or in a company's own words.",
-  "",
-  "Answer with JSON only, no other text, in this form:",
-  '{"fields":[{"ref":"F1","dataTypeId":"an id from dataTypes, or null","reason":"one sentence of at most 25 words"}]}',
-  "",
-  "Answer for every field, by its ref. Use only ids from dataTypes. The reason says what in the name or the shapes points to the type.",
-].join("\n");
+/*
+ * What OneUptime AI is asked, in OneUptime's words, with the reasons it
+ * writes in the language given: the project's (ProjectLanguage).
+ */
+export function getFieldSuggestionInstructions(language: string): string {
+  return [
+    "You classify the fields of a customer's data store for OneUptime Data Security.",
+    "",
+    "The user message is one JSON value of data. For each field it gives the field's location, the names of the fields beside it, and the shapes of its values: every letter written as a (lower case) or A (upper case), every digit as 9, every other character as it is, with the share of the values that has each shape. It never holds a value.",
+    "",
+    "For each field, name the data type it holds from the dataTypes list, by its id, or null when it holds none of them or you cannot tell. Suggest a type only when the field's name, the names beside it and its shapes together make it likely: a person will confirm or reject each suggestion. Names can be in any language, abbreviated or in a company's own words.",
+    "",
+    "Answer with JSON only, no other text, in this form:",
+    '{"fields":[{"ref":"F1","dataTypeId":"an id from dataTypes, or null","reason":"one sentence of at most 25 words"}]}',
+    "",
+    `Answer for every field, by its ref. Use only ids from dataTypes. The reason says what in the name or the shapes points to the type, written in ${getAnalysisLanguageName(language)}: the people who confirm the suggestion read it.`,
+  ].join("\n");
+}
+
+// The instructions with the reasons in English: a project with no language of its own.
+export const FIELD_SUGGESTION_SYSTEM_PROMPT: string =
+  getFieldSuggestionInstructions("en");
 
 export interface FieldSuggestionDataType {
   id: string;
@@ -77,15 +89,18 @@ export function getFieldReference(index: number): string {
 
 /*
  * The prompt: the store's kind, the data types an answer may name, and at
- * most MAX_FIELDS_PER_SUGGESTION_REQUEST fields, each by its reference.
+ * most MAX_FIELDS_PER_SUGGESTION_REQUEST fields, each by its reference -
+ * with the reasons asked for in the project's language, English when none
+ * is given.
  */
 export function buildFieldSuggestionPrompt(data: {
   storeKind: string;
   dataTypes: ReadonlyArray<FieldSuggestionDataType>;
   fields: ReadonlyArray<UnplacedField>;
+  language?: string | undefined;
 }): DataSecurityAiPrompt {
   return DataSecurityAiInput.buildSuggestFieldTypesPrompt({
-    instructions: FIELD_SUGGESTION_SYSTEM_PROMPT,
+    instructions: getFieldSuggestionInstructions(data.language || "en"),
     storeKind: data.storeKind,
     dataTypes: data.dataTypes,
     fields: data.fields.slice(0, MAX_FIELDS_PER_SUGGESTION_REQUEST),

@@ -7,7 +7,9 @@ Datasäkerhet poängsätter nio ramverk utifrån det som dess skanningar hittade
 - [Hur ett ramverk poängsätts](#hur-ett-ramverk-poängsätts): Krav som godkänns, underkänns eller inte utvärderas.
 - [På en resurs sida](#på-en-resurs-sida): Efterlevnaden för ett kluster, en värd, en databas, en tjänst eller en molnresurs, och vad som är avstängt för den.
 - [Krav och deras kontroller](#krav-och-deras-kontroller): Varje krav, och de kontroller som är bevis för det.
-- [Register över behandling](#register-över-behandling): GDPR artikel 30, skrivet utifrån dina datalager.
+- [Register över behandling](#register-över-behandling): GDPR artikel 30, skrivet utifrån dina datalager, med utkast från OneUptime AI som du bekräftar.
+- [Konsekvensbedömningar](#konsekvensbedömningar): En konsekvensbedömning avseende dataskydd för varje datalager som behöver en.
+- [Revisionsbevis](#revisionsbevis): Det som en revisor läser under varje krav, exporterat med ditt register och din problemhistorik.
 :::
 
 ## Ramverken
@@ -185,13 +187,30 @@ GDPR artikel 30 kräver att du för ett register över dina behandlingar. Datas�
 | Miljö | Datalagrets taggar eller namn, eller det som du anger |
 | Känslighet, kategorier och datatyper | Det som skanningarna hittade, eller den känslighet som du anger |
 | Ägare | Datalagrets ägare, personer och medlemmarna i dess team |
-| Syfte | Det som du skriver i datalagrets **Syfte**: varför det innehåller personuppgifter. OneUptime fyller i det för de datalager som det sparar för din säkerhet |
-| Lagringstid | Det som du skriver i datalagrets **Lagringstid**: hur länge data sparas i det. OneUptime fyller i den för de datalager som det sparar för din säkerhet |
+| Syfte | Det som du skriver eller bekräftar i datalagrets **Syfte**: varför det innehåller personuppgifter. OneUptime fyller i det för de datalager som det sparar för din säkerhet |
+| Lagringstid | Det som du skriver eller bekräftar i datalagrets **Lagringstid**: hur länge data sparas i det. OneUptime fyller i den för de datalager som det sparar för din säkerhet, och för en tjänsts telemetri utifrån ditt projekts lagringstid för telemetri |
 | Vem kan läsa | Vem som kan läsa ett datalager som OneUptime sparar för din säkerhet |
 | Ramverk | De ramverk som dess datatyper gör tillämpliga |
 | Angivet av | OneUptime, för de datalager som det sparar för din säkerhet |
+| Rättslig grund | Det som du skriver eller bekräftar: datalagrets rättsliga grund enligt GDPR artikel 6, en av samtycke, avtal, rättslig förpliktelse, grundläggande intressen, uppgift av allmänt intresse och berättigade intressen. Berättigade intressen för de datalager som OneUptime sparar för din säkerhet |
+| Registrerade | Det som du skriver eller bekräftar: vilka datalagrets data gäller, till exempel kunder, användare, anställda eller patienter |
+| Mottagare | Härlett från datalagrets dataflöden: de externa värdar och AI-leverantörer som dess data skickas till, och de datalager som har en kopia av dem |
+| Överföringar | Härlett från datalagrets region, de regioner som molnet kopierar det till och regionerna för dess kopior, jämfört med de länder som de registrerade finns i: varje överföring ut ur de länderna, eller varför den inte är känd |
+| Konsekvensbedömning | Om datalagret behöver en konsekvensbedömning avseende dataskydd, och var den står: behövs inte, krävs, utkast eller redigerad |
+| Väntar på granskning | De fält vars utkast väntar på en person. Ett utkast finns aldrig i registret, inte heller i dess exporter, förrän någon bekräftar det |
 
-För ett datalager som Datasäkerhet har hittat fyller du i **Syfte** och **Lagringstid** i dess **Inställningar**: ingen skanning kan veta dem. Registret och poängen går också att hämta via Datasäkerhets API, på `/data-security/record-of-processing`, `/data-security/compliance` och, för en enskild resurs, `/data-security/resource-compliance`, för alla som får läsa datalager (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#api-terraform-och-mcp)).
+För ett datalager som Datasäkerhet har hittat kan ingen skanning veta varför det innehåller personuppgifter, hur länge, på vilken grund eller vilka det gäller: skriv det i dess **Inställningar**, eller bekräfta utkasten från OneUptime AI. Registret och poängen går också att hämta via Datasäkerhets API, på `/data-security/record-of-processing`, `/data-security/compliance` och, för en enskild resurs, `/data-security/resource-compliance`, för alla som får läsa datalager (se [Integrationer för Datasäkerhet](/docs/data-security/integrations#api-terraform-och-mcp)).
+
+### Utkast från OneUptime AI
+
+OneUptime AI skriver utkast till ett datalagers **Syfte**, **Lagringstid**, **Rättslig grund** och **Registrerade** utifrån det som Datasäkerhet vet om det: de datatyper som hittats, dess namn, taggar och beskrivning, de tjänster som använder det och vad deras team har skrivit att de är till för, vart dess data tar vägen och var de lagras. Den ser aldrig ett värde från dina data (se [OneUptime AI i Datasäkerhet](/docs/data-security/ai)).
+
+- **Ett utkast är markerat Utkast** och säger varför, med de fakta som det bygger på ett klick bort. Det finns inte i registret förrän du trycker på **Bekräfta**, eller använder **Redigera** för att skriva om det med dina egna ord.
+- **Dina ord skrivs aldrig över av ett utkast.** Ett fält som du har skrivit får aldrig något nytt utkast. Ett utkast som du har bekräftat får ett nytt utkast bara när ett faktum som det bygger på ändras, och då föreslås det i stället för att tillämpas: markerat **Ändring föreslagen**, med vad som har ändrats, **Använd nytt utkast** och **Behåll nuvarande**.
+- **Granska utkast**, på kortet **Register över behandling**, går igenom de datalager vars utkast väntar på dig, ett i taget. Ett datalagers **Inställningar** har samma fält, med **Skriv utkast med OneUptime AI** för de tomma.
+- **På egen hand** skriver OneUptime AI utkast till de tomma fälten i de mest riskfyllda datalagren en gång om dagen, medan **Arbeta med nya problem** är påslaget under **Datasäkerhet → AI**, så som dina AI-regler tillåter.
+
+Lagringstiden för en tjänsts telemetri, mottagarna och överföringarna härleds med vanlig kod och får aldrig några utkast. Utkasten är en utgångspunkt, inte juridisk rådgivning: låt den som ansvarar för er efterlevnad granska dem.
 
 ### Datalager som OneUptime sparar för din säkerhet
 
@@ -207,6 +226,32 @@ Fyra datalager innehåller IP-adresser och användarnamn med avsikt, för att sk
 Syftet med vart och ett är "Nät- och informationssäkerhet (GDPR skäl 49)". För att skriva ett eget syfte eller en egen lagringstid använder du **Redigera register** i datalagrets **Inställningar**: ett fält som lämnas tomt behåller OneUptimes.
 
 Ett datalager visas så länge ditt projekt sparar dess data: adressvalvet så länge en aktiverad IP-adressregel hashar loggar eller spår som Säkerhetshändelser läser, användarvalvet så länge en aktiverad regel med något annat mönster gör det, och vart och ett i 31 dagar efter det (se [Rensa känsliga data](/docs/telemetry/drop-filters-and-scrub-rules#rensa-känsliga-data)). När dess data är borta arkiveras datalagret, och det kommer tillbaka med ditt syfte och din lagringstid om datan gör det.
+
+## Konsekvensbedömningar
+
+GDPR artikel 35 kräver en konsekvensbedömning avseende dataskydd före en behandling som sannolikt leder till en hög risk. Datasäkerhet anger vilka datalager som behöver en: ett datalager som innehåller särskilda kategorier av personuppgifter, till exempel hälsodata, data om många personer (omkring 100 000 poster eller fler), eller data som lämnar de registrerades länder.
+
+Ett datalagers **Konsekvensbedömning**, i dess meny under **Inställningar**, säger varför datalagret behöver en, eller att det inte gör det. **Skriv utkast till bedömningen** ber OneUptime AI om de fyra delar som artikel 35(7) kräver, utifrån datalagrets register, dess öppna problem och de som åtgärdats nyligen, hur exponerat det är, hur många som kan nå det och dess kryptering:
+
+| Del | Artikel |
+| --- | --- |
+| Behandlingen och dess ändamål | Art. 35(7)(a) |
+| Nödvändighet och proportionalitet | Art. 35(7)(b) |
+| Risker för de registrerade | Art. 35(7)(c) |
+| Åtgärder för att hantera riskerna | Art. 35(7)(d) |
+
+Varje del säger vem som skrev den och när, med de fakta som en del med utkast bygger på. **Redigera** gör en del till din, och den får aldrig något nytt utkast; **Skriv nytt utkast** skriver bara utkast till de delar som ingen har redigerat. En del som skrevs utifrån fakta som har ändrats sedan dess säger det. **Exportera PDF** och **Exportera Markdown** laddar ned bedömningen.
+
+## Revisionsbevis
+
+**Revisionsbevis**, för det ramverk som du väljer på **Datasäkerhet → Efterlevnad**, är det som en revisor läser under vart och ett av dess krav, under de senaste 30, 90, 180 eller 365 dagarna:
+
+- datalagren inom kravets omfattning, och hur dess kontroller står;
+- problemen från dess kontroller som öppnades och åtgärdades under tidsperioden, och hur snabbt de åtgärdades;
+- riskerna som accepterats under det, med motiveringar och utgångsdatum;
+- resurserna som har stängt av det, och varför.
+
+**Skriv utkast till revisionsbeviset** ber OneUptime AI om ett stycke under varje krav, som håller sig till dessa fakta; **Redigera** gör ett stycke till ditt, och det får aldrig något nytt utkast. Ett krav utan stycke visar sitt bevis som det är. **Exportera PDF** och **Exportera Markdown** laddar ned revisionsbeviset med två bilagor: registret över behandling för datalagren inom omfattningen, och den problemhistorik som det hänvisar till.
 
 ## Nästa steg
 
