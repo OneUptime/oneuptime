@@ -184,7 +184,7 @@ pipeline:
 
 ## Envoyer avec la sortie HTTP
 
-La [sortie HTTP](https://docs.fluentbit.io/manual/pipeline/outputs/http) de Fluent Bit peut aussi envoyer au point de terminaison Fluentd de OneUptime, qui lit chaque enregistrement comme le décrit la [page Fluentd](/docs/telemetry/fluentd). Réglez `format` sur `json_lines`, comme ci-dessous, ou sur `json` : OneUptime lit les deux, compressés avec `compress: gzip` ou non. Le format par défaut de Fluent Bit, `msgpack`, est refusé.
+La [sortie HTTP](https://docs.fluentbit.io/manual/pipeline/outputs/http) de Fluent Bit peut aussi envoyer au point de terminaison Fluentd de OneUptime, qui lit chaque enregistrement comme le décrit la [page Fluentd](/docs/telemetry/fluentd). Réglez `format` sur `json_lines`, comme ci-dessous, ou sur `json` ou `json_stream` : OneUptime lit les trois, compressés avec `compress: gzip` ou non. Le format par défaut de Fluent Bit, `msgpack`, est refusé.
 
 ```yaml title="fluent-bit.yaml"
 pipeline:
