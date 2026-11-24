@@ -1,6 +1,8 @@
 import SecurityUserErasureRequest from "../../../../../Models/DatabaseModels/SecurityUserErasureRequest";
 import ProjectService from "../../../../../Server/Services/ProjectService";
-import SecurityUserErasureRequestService from "../../../../../Server/Services/SecurityUserErasureRequestService";
+import SecurityUserErasureRequestService, {
+  SecurityUserErasureCounts,
+} from "../../../../../Server/Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService from "../../../../../Server/Services/SecurityUserVaultService";
 import SecurityUserErasure, {
   MAX_ERASURE_ATTEMPTS,
@@ -114,14 +116,14 @@ beforeEach(() => {
   jest
     .spyOn(SecurityUserErasureRequestService, "markInProgress")
     .mockImplementation(
-      async (data: { counts: Record<string, number> }): Promise<void> => {
+      async (data: { counts: SecurityUserErasureCounts }): Promise<void> => {
         world.calls.push(`inProgress ${JSON.stringify(data.counts)}`);
       },
     );
   jest
     .spyOn(SecurityUserErasureRequestService, "markCompleted")
     .mockImplementation(
-      async (data: { counts: Record<string, number> }): Promise<void> => {
+      async (data: { counts: SecurityUserErasureCounts }): Promise<void> => {
         world.calls.push(`completed ${JSON.stringify(data.counts)}`);
       },
     );
@@ -449,7 +451,7 @@ describe("what the worker leaves alone", () => {
 
     const noProject: SecurityUserErasureRequest = request();
 
-    noProject.projectId = undefined;
+    noProject.projectId = undefined as unknown as ObjectID;
 
     for (const unsaved of [noId, noProject]) {
       await SecurityUserErasure.processRequest({
