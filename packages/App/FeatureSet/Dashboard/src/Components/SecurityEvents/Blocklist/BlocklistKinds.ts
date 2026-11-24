@@ -30,7 +30,7 @@ import {
   NOT_A_FILE_HASH,
 } from "./BlocklistCopy";
 import {
-  SECURITY_BLOCK_ADDRESS_TYPES,
+  SECURITY_BLOCK_NETWORK_TYPES,
   SECURITY_BLOCK_DEFAULT_DURATION,
   SECURITY_BLOCK_FILE_TYPES,
   SECURITY_BLOCK_SENTENCES,
@@ -133,7 +133,8 @@ export const BLOCKLIST_KIND_DEFAULT_DURATIONS: Readonly<
 export const BLOCKLIST_KIND_TYPES: Readonly<
   Record<BlocklistKind, ReadonlyArray<SecurityBlockIndicatorType>>
 > = {
-  [BlocklistKind.Addresses]: SECURITY_BLOCK_ADDRESS_TYPES,
+  // An address, a range, or a whole network by its ASN (#10354).
+  [BlocklistKind.Addresses]: SECURITY_BLOCK_NETWORK_TYPES,
   [BlocklistKind.DomainsAndUrls]: [
     SecurityBlockIndicatorType.Domain,
     SecurityBlockIndicatorType.Url,
@@ -195,6 +196,18 @@ export function getBlocklistKindSentence(data: {
 
   if (read && getBlocklistKind(read.indicatorType) !== data.kind) {
     return { template: OTHER_KIND_SENTENCES[data.kind], values: {} };
+  }
+
+  /*
+   * A whole network by its ASN (#10354) is challenged from Campaigns, where
+   * a Security Admin says they know OneUptime cannot check who is in it:
+   * the Blocklist's own dialog never makes one.
+   */
+  if (read && read.indicatorType === SecurityBlockIndicatorType.Asn) {
+    return {
+      template: SECURITY_BLOCK_SENTENCES.asnUnchecked,
+      values: { value: read.value },
+    };
   }
 
   const sentence: SecurityBlockSentence | null = getSecurityBlockValueSentence({

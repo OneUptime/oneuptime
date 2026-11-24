@@ -706,6 +706,7 @@
   "{{target}}: on your protected list, so it is never acted on": "{{target}}: på listen din over beskyttede entiteter, så det handles aldri på den",
   "{{target}}: one of the case's addresses": "{{target}}: en av sakens adresser",
   "{{target}}: one of your own addresses, so it is never blocked": "{{target}}: en av dine egne adresser, så den blokkeres aldri",
+  "{{target}}: sent the same requests with the same tools as the case's address": "{{target}}: sendte de samme forespørslene med de samme verktøyene som sakens adresse",
   "{{target}}: the case is grouped on it": "{{target}}: saken er gruppert etter den",
   "{{target}}: undone at {{time}}": "{{target}}: angret kl. {{time}}",
   "{{target}}: undone by {{person}} at {{time}}": "{{target}}: angret av {{person}} kl. {{time}}",

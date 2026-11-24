@@ -515,12 +515,12 @@ export function getCloudAppUsageTileNote(data: {
  * Whether the app's CPU and Memory tiles are shown. They give way once the
  * platform's own section below shows the CPU and memory its provider
  * measures (#6794) - Azure Monitor's for an App Service site or a Container
- * App, Google Cloud Monitoring's for a Cloud Run service, Amazon
- * CloudWatch's for an App Runner or ECS service - while the app itself
- * reports neither: tiles that would only say "Not on Azure App Service" or
- * "Not reported" above those numbers read as a contradiction. A tile with
- * a number is always shown, and so are both where the section shows no CPU
- * or memory (an App Engine service's).
+ * App, Google Cloud Monitoring's for a Cloud Run or App Engine service
+ * (#10838), Amazon CloudWatch's for an App Runner or ECS service - while the
+ * app itself reports neither: tiles that would only say "Not on Azure App
+ * Service" or "Not reported" above those numbers read as a contradiction.
+ * A tile with a number is always shown, and so are both where the section
+ * shows no CPU or memory, or there is no section.
  */
 export function showsCloudAppUsageTiles(data: {
   hasCpuReading: boolean;

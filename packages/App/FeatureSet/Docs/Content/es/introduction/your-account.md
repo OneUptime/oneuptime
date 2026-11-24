@@ -114,7 +114,7 @@ Abre **Seguridad → Autenticación de dos factores** y haz clic en **Habilitar 
 
 ### Configurarlo
 
-Para una aplicación de autenticación, escanea el código QR con una aplicación como 1Password, Google Authenticator o Microsoft Authenticator, introduce el código de 6 dígitos que muestra y haz clic en **Verificar y terminar**. Para una llave USB o NFC, ponle un nombre y sigue las indicaciones de tu navegador. La autenticación de dos factores queda entonces activada y la tarjeta muestra **Habilitado**. Desde tu próximo inicio de sesión con contraseña o con un enlace enviado por correo, OneUptime te pide tu segundo paso.
+Para una aplicación de autenticación, escanea el código QR con una aplicación como 1Password, Google Authenticator o Microsoft Authenticator, introduce el código de 6 dígitos que muestra y haz clic en **Verificar y terminar**. En un teléfono, toca **Añadir a la aplicación de autenticación** en lugar de escanear: tu aplicación se abre con tu cuenta ya rellenada. Para una llave USB o NFC, ponle un nombre y sigue las indicaciones de tu navegador. La autenticación de dos factores queda entonces activada y la tarjeta muestra **Habilitado**. Desde tu próximo inicio de sesión con contraseña o con un enlace enviado por correo, OneUptime te pide tu segundo paso.
 
 ### Guardar tus códigos de respaldo
 
@@ -127,7 +127,7 @@ Si ya tienes una aplicación en **Aplicaciones de autenticación** o una llave e
 
 Cuando un administrador exige la autenticación de dos factores y aún no tienes nada configurado, tu próximo inicio de sesión con una contraseña o un enlace enviado por correo te pide que la configures antes de dejarte entrar. Elige **Aplicación de autenticación** o **Llave de seguridad** y haz clic en **Continuar**:
 
-- **Aplicación de autenticación**: escanea el código QR, introduce el código de 6 dígitos que muestra tu aplicación y haz clic en **Verificar e iniciar sesión**.
+- **Aplicación de autenticación**: escanea el código QR, introduce el código de 6 dígitos que muestra tu aplicación y haz clic en **Verificar e iniciar sesión**. En un teléfono, toca **Añadir a la aplicación de autenticación** en lugar de escanear.
 - **Llave de seguridad**: haz clic en **Registrar llave de seguridad** y sigue las indicaciones de tu navegador. Toca una llave USB o NFC, o usa la huella dactilar, el rostro o el bloqueo de pantalla de tu teléfono o tu ordenador.
 
 Si aún no tienes códigos de respaldo, OneUptime te los muestra entonces una sola vez, y ya has iniciado sesión. **Elegir otro método** vuelve a la elección. Un navegador que no puede registrar una llave de seguridad, como uno en una página sin HTTPS, solo ofrece la aplicación de autenticación.

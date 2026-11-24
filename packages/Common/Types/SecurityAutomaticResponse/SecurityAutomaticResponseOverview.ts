@@ -4,7 +4,6 @@ import {
   SecurityBlockDuration,
 } from "../SecurityBlocklist/SecurityBlock";
 import {
-  SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
   SecurityAutomaticResponseMatch,
   SecurityAutomaticResponseMode,
   SecurityAutomaticResponsePolicyKind,
@@ -12,6 +11,7 @@ import {
   isSecurityAutomaticResponseDuration,
   isSecurityAutomaticResponseMode,
   isSecurityAutomaticResponsePolicyKind,
+  readSecurityAutomaticResponseHourlyLimit,
   readSecurityAutomaticResponseMatch,
 } from "./SecurityAutomaticResponsePolicy";
 import {
@@ -27,7 +27,7 @@ import {
  * stands, what it would have done and did, its time to block and the rules
  * it acts on; the destinations that enforce the blocklist, and whether
  * each can challenge; and how many of the hour's automatic blocks are
- * taken.
+ * taken, of the project's own hourly limit (#10746).
  *
  * The reader below takes whatever came back and keeps what it can read:
  * a field it cannot read is the safest thing it could be (off, nothing
@@ -93,9 +93,11 @@ export interface SecurityAutomaticResponseOverviewData {
   destinations: Array<SecurityAutomaticResponseOverviewDestination>;
   // A kind of destination could not be listed: none listed is not nothing enforcing the blocklist.
   destinationsCannotTell: boolean;
-  // The automatic blocks made in the last hour, and the most there may be.
+  // The automatic blocks made in the last hour, and the most there may be: the project's own limit (#10746).
   blocksThisHour: number;
   maxBlocksPerHour: number;
+  // A stop at the limit paged the project's security owners in the last hour.
+  pagedThisHour: boolean;
 }
 
 // A day as time to block names it: "2026-11-22".
@@ -323,14 +325,15 @@ export function readSecurityAutomaticResponseOverview(
     });
   }
 
-  const maxBlocksPerHour: number = readCount(object["maxBlocksPerHour"]);
-
   return {
     policies,
     destinations,
     destinationsCannotTell: object["destinationsCannotTell"] === true,
     blocksThisHour: readCount(object["blocksThisHour"]),
-    maxBlocksPerHour:
-      maxBlocksPerHour || SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR,
+    // A limit it cannot read is the default: never none, never one a project cannot set.
+    maxBlocksPerHour: readSecurityAutomaticResponseHourlyLimit(
+      object["maxBlocksPerHour"],
+    ),
+    pagedThisHour: object["pagedThisHour"] === true,
   };
 }

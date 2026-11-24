@@ -545,7 +545,12 @@ const KNOWN_CALL_SITES: Array<CallSite> = [
    * job a store's scan starts: the job reads the switch first
    * (isProjectAIEnabled) and does nothing when AI is off, and a refusal
    * while it asks is a line in the log - the fields are asked about after
-   * the next scan.
+   * the next scan. The data types OneUptime AI drafts from a group of
+   * unplaced fields (#10371) run in the same kind of job, which reads the
+   * switch first and drafts nothing when AI is off; Describe It on the data
+   * type form is a person's request (POST
+   * /data-security-custom-data-type/draft-with-ai), and a refusal is the
+   * message the form shows under the sentence.
    */
   {
     file: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiCall.ts",

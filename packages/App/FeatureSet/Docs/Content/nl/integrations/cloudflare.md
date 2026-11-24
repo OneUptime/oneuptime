@@ -162,7 +162,7 @@ Blokkeren heeft schrijfrechten nodig op het API-token van de verbinding:
 | --- | --- |
 | `Account > Account Filter Lists > Edit` | Maakt zijn twee lijsten, en voegt hun adressen toe of haalt ze weg. |
 | `Zone > Zone WAF > Edit`, op elke zone waarin geblokkeerd wordt | Voegt zijn aangepaste regels toe, en leest die van de zone zelf. |
-| `Account > Account Firewall Access Rules > Edit` | Voegt IP Access Rules toe en haalt ze weg, bij een abonnement zonder vrije lijst of vrije aangepaste regel. |
+| `Account > Account Firewall Access Rules > Edit` | Voegt IP Access Rules toe en haalt ze weg: bij een abonnement zonder vrije lijst of vrije aangepaste regel, en voor een netwerk dat vanuit **Campagnes** een challenge krijgt op zijn ASN. |
 
 :::steps
 ### Het token schrijfrechten geven
@@ -183,6 +183,7 @@ Zolang blokkeren aan staat, voert **Verbinding testen** dezelfde controles uit: 
 | De lijsten `oneuptime_block` en `oneuptime_challenge` | Twee IP-lijsten in het account, een voor blokkeringen en een voor challenges. Hun beschrijving noemt je OneUptime-project. |
 | Eén aangepaste regel per lijst, in elke zone | `(ip.src in $oneuptime_block)` met de actie Block, en `(ip.src in $oneuptime_challenge)` met de actie Managed Challenge. Hun beschrijving zegt dat OneUptime ze beheert. |
 | Eén lijstitem per blokkering | Het commentaar noemt de zaak en wanneer de blokkering afloopt, zoals `OneUptime case CASE-42 until 2026-11-21 10:42 UTC`. |
+| Eén IP Access Rule per netwerk dat een challenge krijgt op zijn ASN | Een heel netwerk dat vanuit **Campagnes** een challenge krijgt, als IP Access Rule met als doel `asn`, die elk abonnement heeft. De notitie ervan zegt hetzelfde als het commentaar van een lijstitem. Zonder `Account > Account Firewall Access Rules > Edit` op het token wordt de challenge niet toegepast, en zegt de **Blokkeerlijst** welk recht je moet toevoegen. |
 
 Elke regel komt als eerste van de aangepaste regels van de zone, dus hij loopt vóór die van jou: een Skip-regel van jou kan een geblokkeerd adres er niet langs laten. Als je Skip-regels adressen doorlaten, zoals die van je monitors of van een partner, noemt **Blokkeerstatus** ze. **Deze adressen beschermen** voegt ze toe aan **Beschermde entiteiten**, die niemand kan blokkeren.
 

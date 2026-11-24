@@ -70,7 +70,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import AuditLogService, {
   AuditLogService as AuditLogStore,
 } from "Common/Server/Services/AuditLogService";
-import AuditLogSecurityScan from "Common/Server/Utils/SecurityEvent/TelemetryScan/AuditLogSecurityScan";
+import AuditLogSecurityScan, {
+  toMassDeleteRow,
+} from "Common/Server/Utils/SecurityEvent/TelemetryScan/AuditLogSecurityScan";
+import { getAuditActorPrincipal } from "Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals";
 
 const endpoint: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
 
@@ -451,6 +454,42 @@ integration("Security Events' mass delete read against ClickHouse", () => {
         "Workflow: Archive Old Incidents (Default, nobody)",
         "Workflow: Nightly Cleanup (ProjectOwner, Jane Doe)",
       ]);
+    });
+
+    /*
+     * #10630: a project API key is "api-key:" and its id, never its name,
+     * as ClickHouse hands the scan its row - and nobody else's row reads
+     * as a key's: a person's, a workflow's and OneUptime's carry no key id.
+     */
+    test("each actor's row reads as its own principal: a key by its id, never its name", async () => {
+      const statement: Statement = buildMassDeleteStatement({
+        projectId: PROJECT,
+        arrivedAfter: ARRIVED_AFTER,
+        arrivedUntil: ARRIVED_UNTIL,
+        minDeletes: 1,
+        limit: 20,
+      });
+      const result: { json: () => Promise<{ data?: Array<JSONObject> }> } =
+        (await AuditLogService.executeQuery(statement)) as unknown as {
+          json: () => Promise<{ data?: Array<JSONObject> }>;
+        };
+      const principals: Array<string> = ((await result.json()).data || [])
+        .map((row: JSONObject): string => {
+          return getAuditActorPrincipal(toMassDeleteRow(row));
+        })
+        .sort();
+
+      expect(principals).toEqual(
+        [
+          `api-key:${TERRAFORM.toString()}`,
+          "mallory@example.com",
+          "oneuptime",
+          `workflow:${ARCHIVER.toString()}`,
+          `workflow:${NIGHTLY.toString()}`,
+          `workflow:${PURGE.toString()}`,
+        ].sort(),
+      );
+      expect(principals).not.toContain("terraform");
     });
 
     test("the scan makes a named High event per actor past the threshold, OneUptime's Informational, and none for the two workflows of 15", async () => {

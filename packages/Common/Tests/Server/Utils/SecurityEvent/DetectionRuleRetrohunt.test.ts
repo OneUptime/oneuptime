@@ -496,6 +496,30 @@ describe("the kind of entity a group is", () => {
   test("a value that is nothing in particular is no kind", () => {
     expect(getRetrohuntEntityType("targetResource", "/api/login")).toBe("");
   });
+
+  /*
+   * As a case holds it (getEntityAsActionable): what a scrub rule left of a
+   * user, and OneUptime's own actors - a workflow, a project API key
+   * (#10630), OneUptime itself - are no account, so Run on Past Events
+   * never draws one as a user.
+   */
+  test("no account to act on is no kind: a key, a workflow, a token or a placeholder", () => {
+    for (const value of [
+      "api-key:0192f1a0-0000-7000-8000-00000000f101",
+      "workflow:0192f1a0-0000-7000-8000-00000000f102",
+      "oneuptime",
+      "[HASHED:3f9a1c0e7b2d4a68]",
+      "[REDACTED]",
+      "j***@***.com",
+    ]) {
+      expect(getRetrohuntEntityType("principalUser", value)).toBe("");
+    }
+
+    // A key's name is a name like any other: a user, by the field.
+    expect(getRetrohuntEntityType("principalUser", "terraform")).toBe(
+      SecurityEntityType.User,
+    );
+  });
 });
 
 describe("what a correlation's groups say", () => {

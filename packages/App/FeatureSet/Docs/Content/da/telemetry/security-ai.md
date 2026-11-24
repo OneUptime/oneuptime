@@ -136,7 +136,7 @@ Under det står hvert trin, den udførte, spurgte om eller overlod, det nyeste f
 
 ### En sag, den læser som harmløs eller falsk positiv
 
-**Reagér med AI** på en sag, som vurderingen læste som Sandsynligvis harmløs eller Sandsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, som **Luk sagen** tillader. Når den er lukket, ophæver OneUptime AI de blokeringer, sagen lavede, som **Luk sagen** også tillader, og tilbyder sagens regel en undtagelse for den værdi, der udløste den. Undtagelsen venter altid på en person: **Godkend** tilføjer den i dit navn.
+**Reagér med AI** på en sag, som vurderingen læste som Sandsynligvis harmløs eller Sandsynligvis falsk positiv, lukker den som Benign Positive eller False Positive, som **Luk sagen** tillader. Når den er lukket, ophæver OneUptime AI de blokeringer, sagen lavede, som **Luk sagen** også tillader, og tilbyder sagens regel en undtagelse for den værdi, der udløste den. Undtagelsen venter altid på en person: **Godkend** tilføjer den i dit navn. En person, der genåbner sagen eller overtager den først, forhindrer begge dele, og så længe produktet Sikkerhedshændelser er slået fra, overlader OneUptime AI begge dele til en person.
 
 ## Hvad OneUptime AI må gøre på en sag
 

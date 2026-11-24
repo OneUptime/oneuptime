@@ -115,13 +115,77 @@ export const SECURITY_AUTOMATIC_RESPONSE_TRIAL_IN_MS: number =
   SECURITY_AUTOMATIC_RESPONSE_TRIAL_DAYS * DAY_IN_MS;
 
 /*
- * The most automatic blocks a project's policies make in an hour. Past it
- * they stop blocking and page the project's security owners: an attack that
- * large needs a person, and stopping quietly would hide the largest attacks.
+ * The most automatic blocks a project's policies make in an hour, unless
+ * it sets its own (Project.securityAutomaticResponseMaxBlocksPerHour,
+ * #10746). Past it they stop blocking and page the project's security
+ * owners: an attack that large needs a person, and stopping quietly would
+ * hide the largest attacks.
  */
 export const SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR: number = 50;
 export const SECURITY_AUTOMATIC_RESPONSE_LIMIT_WINDOW_IN_MS: number =
   HOUR_IN_MS;
+
+/*
+ * What a project may set its own limit to (#10746): at least one block an
+ * hour - none at all is turning the policies off, which their switches
+ * say - and at most 500, ten times the default. Blocks last an hour at
+ * first and a day for an address that comes back, so 500 an hour stays
+ * well inside the 20,000 active blocks one pass of the reconciler keeps at
+ * a destination (SECURITY_BLOCKLIST_MAX_ACTIVE_BLOCKS).
+ */
+export const SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN: number = 1;
+export const SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MAX: number = 500;
+
+// Digits, as a form's number field writes a number: "120", "2.5", "-3" - never "0x10" or "1e2".
+const DECIMAL_DIGITS: RegExp = /^-?\d+(\.\d+)?$/;
+
+// A number as a form or the API may send it: a number, or decimal digits as text.
+function readWholeNumber(value: unknown): number {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  const text: string = typeof value === "string" ? value.trim() : "";
+
+  return DECIMAL_DIGITS.test(text) ? Number(text) : Number.NaN;
+}
+
+/*
+ * Why an hourly limit someone sets cannot be kept - not a whole number, or
+ * out of range - or null when it can. The server refuses it with these
+ * words, and the Automatic Response page says them under the field.
+ */
+export function getSecurityAutomaticResponseHourlyLimitError(
+  value: unknown,
+): string | null {
+  const limit: number = readWholeNumber(value);
+
+  if (
+    !Number.isInteger(limit) ||
+    limit < SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN ||
+    limit > SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MAX
+  ) {
+    return SECURITY_AUTOMATIC_RESPONSE_MESSAGES.hourlyLimitOutOfRange;
+  }
+
+  return null;
+}
+
+/*
+ * The hourly limit a project's policies are held to, as stored: its own
+ * when it is one a project may set, else the default - a column never
+ * written, or a value from before the range, never makes the policies
+ * block without limit, nor stop for good.
+ */
+export function readSecurityAutomaticResponseHourlyLimit(
+  value: unknown,
+): number {
+  const limit: number = readWholeNumber(value);
+
+  return getSecurityAutomaticResponseHourlyLimitError(limit) === null
+    ? limit
+    : SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR;
+}
 
 /*
  * How far back a signed-in user's use of an address spares it: an office's
@@ -366,6 +430,7 @@ export const SECURITY_AUTOMATIC_RESPONSE_MESSAGES: {
   notAnAction: string;
   turnOnTakesAdmin: string;
   nameRequired: string;
+  hourlyLimitOutOfRange: string;
 } = {
   matchNamesNothing: translationKey(
     "Choose what the policy acts on: at least one ATT&CK technique, one detection rule, or addresses your threat intel lists.",
@@ -381,6 +446,10 @@ export const SECURITY_AUTOMATIC_RESPONSE_MESSAGES: {
     "Only a Security Admin, a Project Admin or a Project Owner can turn an automatic response policy on: its blocks need nobody's approval.",
   ),
   nameRequired: translationKey("Name the policy."),
+  // The range is SECURITY_AUTOMATIC_RESPONSE_MAX_BLOCKS_PER_HOUR_MIN and _MAX, as a test holds it.
+  hourlyLimitOutOfRange: translationKey(
+    "Set the hourly limit to a whole number of blocks from 1 to 500.",
+  ),
 };
 
 // ---------- The trial run ----------

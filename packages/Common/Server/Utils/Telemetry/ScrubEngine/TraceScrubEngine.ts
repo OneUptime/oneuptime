@@ -6,6 +6,7 @@ import {
 } from "../../../../Types/Telemetry/LlmConventions";
 import { getScrubRulesOfRecord } from "../../../../Types/Telemetry/ScrubRuleScope";
 import TraceScrubAction from "../../../../Types/Trace/TraceScrubAction";
+import { TRACE_SCAN_ATTRIBUTE_KEYS } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
 import TraceScrubField from "../../../../Types/Trace/TraceScrubField";
 import TraceScrubPatternType from "../../../../Types/Trace/TraceScrubPatternType";
 import { copyOwnValues } from "../../../../Utils/LookupTable";
@@ -20,7 +21,10 @@ import ScrubNestedValuesUtil, {
   ScrubNestedValuesAllowance,
 } from "../../../../Utils/Telemetry/ScrubNestedValues";
 import PatternWorkScope from "../../PatternWorkScope";
-import ScrubAction, { ScrubHashedAddressRecorder } from "../ScrubAction";
+import ScrubAction, {
+  ScrubHashedAddressRecorder,
+  ScrubHashedUserRecorder,
+} from "../ScrubAction";
 import {
   CompiledScrubRule,
   isNamedKeysRule,
@@ -58,6 +62,62 @@ import { countScrubbedValues, ScrubValueTally } from "./ScrubValueTally";
 export interface TraceScrubOptions {
   // Count the values each rule changed: ingest does, a proof does not.
   countValues?: boolean | undefined;
+  /*
+   * Told what the rules did to the span's users, for Security Events' user
+   * vault (#10632): passed by ingest only for a batch whose traces Security
+   * Events reads and whose rules hash (SecurityUserVaultWriter.startBatch).
+   */
+  hashedUsers?: ScrubHashedUserRecorder | null | undefined;
+}
+
+/*
+ * Where Security Events reads a span's user (#10632): its enduser.id and
+ * user.id (TraceSignals.readSpanUser, the request follow-up), and an AI
+ * call's user (llmUserId, the column copied from its user attribute) - each
+ * as text, "" for none.
+ */
+export function readSpanUserValues(spanRow: JSONObject): Array<string> {
+  const attributes: unknown = spanRow["attributes"];
+  const values: Array<string> = TRACE_SCAN_ATTRIBUTE_KEYS.userId.map(
+    (key: string): string => {
+      const value: unknown =
+        attributes &&
+        typeof attributes === "object" &&
+        Object.prototype.hasOwnProperty.call(attributes, key)
+          ? (attributes as JSONObject)[key]
+          : undefined;
+
+      return typeof value === "string" ? value : "";
+    },
+  );
+  const llmUserId: unknown = spanRow["llmUserId"];
+
+  values.push(typeof llmUserId === "string" ? llmUserId : "");
+
+  return values;
+}
+
+/*
+ * Each of a span's users the rules changed, told to the user vault's
+ * recorder (#10632). One that throws is ignored: keeping a user can never
+ * cost a record.
+ */
+function tellScrubbedUserValues(
+  recorder: ScrubHashedUserRecorder,
+  before: ReadonlyArray<string>,
+  after: ReadonlyArray<string>,
+): void {
+  before.forEach((value: string, index: number): void => {
+    const left: string = after[index] ?? "";
+
+    if (value && value !== left) {
+      try {
+        recorder.recordScrubbedUserValue({ before: value, after: left });
+      } catch {
+        // The vault is worth having, never worth a record.
+      }
+    }
+  });
 }
 
 // What an exception copies out of its span's exception event.
@@ -584,6 +644,11 @@ export default class TraceScrubEngine {
     // What each rule changed in this span, counted once it is scrubbed.
     const tally: ScrubValueTally = new ScrubValueTally();
 
+    // Where Security Events reads the span's user, before any rule (#10632).
+    const usersBefore: Array<string> | null = options?.hashedUsers
+      ? readSpanUserValues(spanRow)
+      : null;
+
     const held: HeldAttributeMaps = this.holdOversizedValuesAsText([
       spanRow["attributes"],
       ...this.attributeMapsOf(spanRow["events"]),
@@ -784,6 +849,14 @@ export default class TraceScrubEngine {
           }
         }
       }
+    }
+
+    if (options?.hashedUsers && usersBefore) {
+      tellScrubbedUserValues(
+        options.hashedUsers,
+        usersBefore,
+        readSpanUserValues(spanRow),
+      );
     }
 
     if (options?.countValues !== false) {

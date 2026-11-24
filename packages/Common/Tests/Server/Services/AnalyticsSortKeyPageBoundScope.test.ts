@@ -102,6 +102,8 @@ const BOUNDED_DEFAULT_LISTS: Record<string, boolean> = {
    * generic read - and never listed.
    */
   SecurityAddressVaultV1: false,
+  // Its twin for users (#10632): the same, on the same terms.
+  SecurityUserVaultV1: false,
   SecurityEventItemV1: true,
   /*
    * Events that arrived too late for the rules (#10491): an aggregate

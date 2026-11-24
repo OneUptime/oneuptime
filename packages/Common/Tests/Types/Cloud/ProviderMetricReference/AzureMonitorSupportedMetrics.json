@@ -1,6 +1,6 @@
 {
   "source": "https://learn.microsoft.com/azure/azure-monitor/reference/supported-metrics/metrics-index (the generated tables, from github.com/MicrosoftDocs/azure-monitor-docs, articles/azure-monitor/reference/supported-metrics)",
-  "readOn": "2026-11-19",
+  "readOn": "2026-11-24",
   "types": {
     "Microsoft.Compute/virtualMachines": {
       "page": "microsoft-compute-virtualmachines-metrics.md",
@@ -384,11 +384,11 @@
       "page": "microsoft-app-containerapps-metrics.md",
       "pageDate": "07/31/2026",
       "metrics": {
-        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "Requests": {"displayName": "Requests", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false, "dimensions": ["revisionName", "podName", "statusCodeCategory", "statusCode"]},
         "UsageNanoCores": {"displayName": "CPU Usage", "unit": "NanoCores", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "WorkingSetBytes": {"displayName": "Memory Working Set Bytes", "unit": "Bytes", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "RestartCount": {"displayName": "Total Replica Restart Count", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
-        "ResponseTime": {"displayName": "Average Response Time (Preview)", "unit": "Milliseconds", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
+        "ResponseTime": {"displayName": "Average Response Time (Preview)", "unit": "Milliseconds", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false, "dimensions": ["statusCodeCategory", "statusCode"]},
         "CpuPercentage": {"displayName": "CPU Usage Percentage (Preview)", "unit": "Percent", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "MemoryPercentage": {"displayName": "Memory Percentage (Preview)", "unit": "Percent", "aggregations": ["Total", "Average", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},
         "Replicas": {"displayName": "Replica Count", "unit": "Count", "aggregations": ["Average", "Total", "Maximum", "Minimum"], "timeGrains": ["PT1M"], "dsExport": true, "advanced": false},

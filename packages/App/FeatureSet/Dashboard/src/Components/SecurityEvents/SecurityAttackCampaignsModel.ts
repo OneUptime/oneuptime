@@ -3,6 +3,7 @@ import Color from "Common/Types/Color";
 import { Gray500 } from "Common/Types/BrandColors";
 import Dictionary from "Common/Types/Dictionary";
 import {
+  SecurityAttackActivity,
   SecurityAttackCampaign,
   getCampaignGotThroughCount,
   getCampaignNotFollowedCount,
@@ -169,6 +170,8 @@ export const CAMPAIGN_ATTACK_KIND_LABELS: Record<WebAttackKind, string> = {
   [WebAttackKind.SqlInjection]: translationKey("SQL injection"),
   [WebAttackKind.PathTraversal]: translationKey("Path traversal"),
   [WebAttackKind.Log4Shell]: translationKey("Log4Shell"),
+  // Requests for /.env, /.git/config, /wp-admin and the like that the site refused (#10745).
+  [WebAttackKind.SensitiveFile]: translationKey("Sensitive files"),
 };
 
 export function getCampaignAttackKindLabel(kind: string): string {
@@ -180,7 +183,8 @@ export function getCampaignAttackKindLabel(kind: string): string {
  * that none did, or that OneUptime could not follow them.
  */
 export function describeCampaignResult(
-  campaign: SecurityAttackCampaign,
+  // An address's campaign, or a network's campaigns (#10354).
+  campaign: SecurityAttackActivity,
   translator: Translator,
 ): string {
   const gotThrough: number = getCampaignGotThroughCount(campaign);
@@ -216,7 +220,7 @@ export interface CampaignOutcomeSegment {
  * reader's eye should find before the long green run of turned-away probes.
  */
 export function getCampaignOutcomeSegments(
-  campaign: SecurityAttackCampaign,
+  campaign: SecurityAttackActivity,
 ): Array<CampaignOutcomeSegment> {
   const segments: Array<CampaignOutcomeSegment> = [
     {

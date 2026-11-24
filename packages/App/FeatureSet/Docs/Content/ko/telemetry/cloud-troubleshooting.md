@@ -90,7 +90,7 @@ Node.js와 .NET용 Azure 감지기는 `azure.container_apps`, `azure.app_service
 인스턴스는 나열되는데 개요의 **CPU**와 **메모리** 타일, 그리고 **인스턴스**의 CPU와 메모리 열이 비어 있습니다. 이 값은 트레이스가 아니라 메트릭에서 나옵니다. 트레이스와 같은 인스턴스 식별자와 `cloud.platform`을 리소스에 가진 `container.cpu.utilization`과 `container.memory.usage`(또는 `container.memory.usage.total`) 데이터 포인트입니다.
 
 - **ECS에서는** 사이드카 Collector의 `awsecscontainermetrics` 수신기가 이를 `ecs.task.cpu.utilized`와 `ecs.task.memory.utilized`로 제공합니다. 이 수신기를 `metrics` 파이프라인에 두고, 같은 파이프라인에 `resourcedetection`도 남겨 두세요. 그렇지 않으면 메트릭이 `cloud.platform` 없이 도착해 다른 곳에 기록됩니다.
-- **Cloud Run, Container Apps와 그 밖의 플랫폼에서는** 플랫폼이 컨테이너 사용량을 사이드카에 보여 주지 않습니다. 그 메트릭을 직접 보내지 않으면 타일은 비어 있으니, 대신 요청 타일을 보세요. App Service에서는 **클라우드 → 연결**에서 구독을 연결하면 앱 페이지에 **Azure Monitor**에서 읽은 사이트의 CPU 시간과 메모리가 표시됩니다.
+- **Cloud Run, Container Apps와 그 밖의 플랫폼에서는** 플랫폼이 컨테이너 사용량을 사이드카에 보여 주지 않습니다. 그 메트릭을 직접 보내지 않으면 타일은 비어 있으니, 대신 요청 타일을 보세요. App Service에서는 **클라우드 → 연결**에서 구독을 연결하면 앱 페이지에 **Azure Monitor**에서 읽은 사이트의 CPU 시간과 메모리가 표시됩니다. Container Apps, Cloud Run, App Engine, App Runner에서도 같은 방식으로 **클라우드 → 연결**에서 계정을 연결하면 앱 페이지에 클라우드가 측정한 CPU와 메모리가 표시되고, 빈 타일은 사라집니다.
 - **SDK direct에서는** 컨테이너 메트릭을 보내는 것이 없으므로 타일이 비어 있는 것이 정상입니다.
 
 ## 환경이 연결 끊김으로 표시됨

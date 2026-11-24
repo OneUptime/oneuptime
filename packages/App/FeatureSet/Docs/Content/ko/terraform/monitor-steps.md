@@ -238,6 +238,10 @@ resource "oneuptime_monitor" "checkout_errors" {
 | `description` | string | 대시보드에 표시되는 설명. |
 | `filter_condition` | string (필수) | `All`: 모든 필터가 일치해야 합니다. `Any`: 하나면 충분합니다. |
 | `filters` | list (필수) | 조건, 최소 하나: [필터 참조](#필터-참조) 참조. |
+| `recovery_filters` | list | `filters` 속성과 같은 형태의 필터입니다. `filters` 속성이 더 이상 일치하지 않는 즉시가 아니라, 이 필터가 일치해야 기준이 작동을 멈춥니다. |
+| `recovery_filter_condition` | string | `recovery_filters` 속성을 결합하는 방식: `All`(기본값) 또는 `Any`. |
+| `active_hours` | object | 이 `days` 속성의 요일(월요일이 `0`, 일요일이 `6`)에 `from`부터 `to`까지(`"08:00"`)만 기준을 판정합니다. 그 밖의 시간에는 비활성화된 기준처럼 건너뜁니다. |
+| `active_hours_timezone` | string | `active_hours` 속성을 읽는 시간대입니다. 예: `Europe/Oslo`. `active_hours` 속성과 함께 설정하세요. |
 | `change_monitor_status` | bool | 일치하면 모니터 상태를 바꿀지 여부. |
 | `monitor_status_id` | string | 바꿀 대상 `oneuptime_monitor_status`의 ID. `change_monitor_status`가 `true`일 때 설정하세요. |
 | `create_incidents` | bool | 일치하면 인시던트를 열지 여부. |
@@ -284,15 +288,87 @@ criteria = [
 ]
 ```
 
+### 복구되는 시점과 판정되는 시점
+
+이 기준은 오슬로의 업무 시간(월요일~금요일)에만 사이트를 판정하고, 10분 동안 모든 검사에 응답할 때까지 사이트를 offline 상태로 둡니다.
+
+```hcl
+criteria = [
+  {
+    name                  = "Offline"
+    filter_condition      = "Any"
+    change_monitor_status = true
+    monitor_status_id     = oneuptime_monitor_status.offline.id
+
+    filters = [
+      {
+        check_on    = "Is Online"
+        filter_type = "False"
+      }
+    ]
+
+    recovery_filters = [
+      {
+        check_on                   = "Is Online"
+        filter_type                = "True"
+        evaluate_over_time         = true
+        evaluate_over_time_minutes = 10
+        evaluate_over_time_type    = "All Values"
+      }
+    ]
+
+    active_hours = {
+      days = [0, 1, 2, 3, 4] # Monday to Friday
+      from = "08:00"
+      to   = "18:00"
+    }
+    active_hours_timezone = "Europe/Oslo"
+  }
+]
+```
+
 ## 필터 참조
 
 필터에는 `check_on`(무엇을 볼지), `filter_type`(어떻게 비교할지), `value`(무엇과 비교할지, 문자열로 씁니다. `True`와 `False` 같은 참·거짓 확인에서는 뺍니다)가 있습니다.
 
-필터는 최신 확인 대신 시간 범위를 판정할 수도 있습니다. `evaluate_over_time = true`를 설정하고, `evaluate_over_time_minutes`에 시간 범위의 길이를, `evaluate_over_time_type`에 시간 범위를 읽는 방식을 지정하세요: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes`. `Percentile` 유형은 `evaluate_over_time_percentile` 속성의 백분위수를 필터의 값과 비교합니다(설정하지 않으면 95). `Count`, `Percentage`, `Status Changes` 유형은 프로브별로 조건을 충족한 기간 내 확인의 수, 그 비율(%), 또는 조건 충족과 미충족 사이에서 바뀐 횟수를 세고, 그 수를 `evaluate_over_time_count_filter_type` 속성이 정한 대로 `evaluate_over_time_count_value` 속성과 비교합니다(설정하지 않으면 `Greater Than` 0).
+필터는 최신 확인 대신 시간 범위를 판정할 수도 있습니다. `evaluate_over_time = true`를 설정하고, `evaluate_over_time_minutes`에 시간 범위의 길이를, `evaluate_over_time_type`에 시간 범위를 읽는 방식을 지정하세요: `Average`, `Sum`, `Maximum Value`, `Minimum Value`, `Percentile`, `All Values`, `Any Value`, `Count`, `Percentage`, `Status Changes`, `Previous Check`. `Percentile` 유형은 `evaluate_over_time_percentile` 속성의 백분위수를 필터의 값과 비교합니다(설정하지 않으면 95). `Count`, `Percentage`, `Status Changes` 유형은 프로브별로 조건을 충족한 기간 내 확인의 수, 그 비율(%), 또는 조건 충족과 미충족 사이에서 바뀐 횟수를 세고, 그 수를 `evaluate_over_time_count_filter_type` 속성이 정한 대로 `evaluate_over_time_count_value` 속성과 비교합니다(설정하지 않으면 `Greater Than` 0).
 
 `All Values`는 시간 범위의 모든 확인이 규칙을 위반했다는 뜻이므로, 시간 범위가 데이터로 채워져야 일치합니다. 방금 만든 모니터는 첫 확인에서 일치하는 대신 시간 범위가 채워지기를 기다립니다. 시간 범위는 모니터의 `monitoring_interval`의 두 배 이상으로 하세요. 그렇지 않으면 시간 범위에 확인이 하나만 들어가고, "모든 값"이 "아무 값"과 같은 뜻이 됩니다. `Any Value`는 규칙을 위반한 확인 하나에 일치하며, 이는 의도된 동작입니다.
 
 `evaluate_over_time_no_data_policy`는 시간 범위에 데이터가 충분하지 않은 동안 필터가 무엇을 할지 정합니다. `Ignore`(기본값)는 일치하지 않고, `Trigger`는 heartbeat처럼 데이터가 없는 것을 장애로 취급하며, `Treat As Zero`는 시간 범위를 0 하나로 비교합니다.
+
+`Previous Check` 유형은 각 검사를 `evaluate_over_time_minutes` 이내에 이루어진 같은 프로브의 이전 검사와 비교합니다. 측정값은 `value` 속성을 받지 않습니다. `filter_type` 속성이 측정값을, 이전 값을 `evaluate_over_time_change_value` 속성만큼 옮긴 값과 비교하며(`Greater Than` 유형이면 위로, `Less Than` 유형이면 아래로), 그 변화는 `evaluate_over_time_change_type` 속성이 정한 대로 검사 자체 단위의 `Amount` 또는 이전 값 대비 `Percentage`입니다(설정하지 않으면 `Amount` 0: 어떤 상승이나 하락이든). 참 또는 거짓인 필터는 조건을 충족하기 시작한 검사에서 일치합니다. 이전 검사가 없으면 `evaluate_over_time_no_data_policy` 속성이 결정합니다.
+
+이 기준은 검사가 이전 검사보다 두 배 넘게 오래 걸리면 경고를 엽니다.
+
+```hcl
+criteria = [
+  {
+    name             = "Slower than the previous check"
+    filter_condition = "All"
+    create_alerts    = true
+
+    filters = [
+      {
+        check_on                        = "Response Time (in ms)"
+        filter_type                     = "Greater Than"
+        evaluate_over_time              = true
+        evaluate_over_time_minutes      = 5
+        evaluate_over_time_type         = "Previous Check"
+        evaluate_over_time_change_type  = "Percentage"
+        evaluate_over_time_change_value = 100
+      }
+    ]
+
+    alerts = [
+      {
+        title       = "Website slowed down"
+        description = "A check took more than twice as long as the one before it."
+      }
+    ]
+  }
+]
+```
 
 ### 필터가 확인할 수 있는 것
 

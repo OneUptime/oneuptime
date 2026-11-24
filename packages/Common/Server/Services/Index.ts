@@ -434,6 +434,7 @@ import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityAddressVaultService from "./SecurityAddressVaultService";
+import SecurityUserVaultService from "./SecurityUserVaultService";
 import ScrubRuleValueCountService from "./ScrubRuleValueCountService";
 import SecurityCaseService from "./SecurityCaseService";
 import SecurityCaseFeedService from "./SecurityCaseFeedService";
@@ -1342,6 +1343,12 @@ export const AnalyticsServices: Array<
    * live update is ever built for it.
    */
   SecurityAddressVaultService,
+  /*
+   * Security Events' user vault (#10632), the address vault's twin. Here
+   * only so boot creates its table, on the same terms: every generic read
+   * refused, and the model kept out of the AnalyticsModels registry.
+   */
+  SecurityUserVaultService,
   /*
    * How many values each scrub rule changed, by service and version, an
    * hour a row (#10366). Here so boot creates its table: the model is kept

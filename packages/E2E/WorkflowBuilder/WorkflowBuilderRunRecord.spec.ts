@@ -1,4 +1,5 @@
 import { expect, Locator, Page, test } from "@playwright/test";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -758,20 +759,39 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     await searchBox(panel).click();
     await expect(options(panel)).toHaveCount(6);
 
-    const titleStarts: Array<number> = [];
-    const chipStarts: Array<number> = [];
-    const chipWidths: Array<number> = [];
-
-    for (let index: number = 0; index < 6; index++) {
-      const row: Locator = options(panel).nth(index);
-
-      titleStarts.push((await boxOf(row.locator('[data-part="name"]'))).x);
-
-      const chip: Box = await boxOf(row.locator('[data-part="number"] > span'));
-
-      chipStarts.push(chip.x);
-      chipWidths.push(chip.width);
-    }
+    /*
+     * Every title and every number read in one frame: the panel slides in
+     * as it opens, and boxes read one after another come from moments it
+     * had moved between (SuiteHelpers/Frames.ts).
+     */
+    const rows: Array<Locator> = [0, 1, 2, 3, 4, 5].map(
+      (index: number): Locator => {
+        return options(panel).nth(index);
+      },
+    );
+    const boxes: Array<FrameBox> = await boxesInOneFrame([
+      ...rows.map((row: Locator): Locator => {
+        return row.locator('[data-part="name"]');
+      }),
+      ...rows.map((row: Locator): Locator => {
+        return row.locator('[data-part="number"] > span');
+      }),
+    ]);
+    const titleStarts: Array<number> = boxes
+      .slice(0, 6)
+      .map((box: FrameBox): number => {
+        return box.x;
+      });
+    const chipStarts: Array<number> = boxes
+      .slice(6)
+      .map((box: FrameBox): number => {
+        return box.x;
+      });
+    const chipWidths: Array<number> = boxes
+      .slice(6)
+      .map((box: FrameBox): number => {
+        return box.width;
+      });
 
     // INC-12, INC-11, INC-10, INC-9, INC-8 and OPS-7: two lengths of number.
     expect(Math.max(...chipWidths) - Math.min(...chipWidths)).toBeGreaterThan(
@@ -796,10 +816,10 @@ test.describe("Workflow builder: Run Workflow for a record trigger", () => {
     await search(page, panel, "8");
 
     const only: Locator = options(panel).first();
-    const onlyChip: Box = await boxOf(
+    const [onlyChip, onlyTitle] = (await boxesInOneFrame([
       only.locator('[data-part="number"] > span'),
-    );
-    const onlyTitle: Box = await boxOf(only.locator('[data-part="name"]'));
+      only.locator('[data-part="name"]'),
+    ])) as [FrameBox, FrameBox];
 
     expect(onlyTitle.x - (onlyChip.x + onlyChip.width)).toBeLessThan(16);
     expect(onlyTitle.x).toBeLessThan(titleStarts[0] as number);
