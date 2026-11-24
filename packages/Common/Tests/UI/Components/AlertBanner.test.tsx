@@ -335,7 +335,7 @@ describe("AlertBanner", () => {
       }
     });
 
-    test("narrow, it starts under the sentence; wide, it ends the title's line", () => {
+    test("narrow, it starts under the sentence; wide, it ends the title's line, beside the sentence", () => {
       const { title, body, action } = renderArchivedBanner();
 
       // One column: title, sentence, action - the action at its start.
@@ -357,11 +357,15 @@ describe("AlertBanner", () => {
         "[@container(min-width:32rem)]:justify-self-end",
         "[@container(min-width:32rem)]:mt-0",
       );
-      // ...and the sentence runs under both.
+      /*
+       * ...and the sentence runs on under the title, beside the action
+       * (which spans both lines), not under the button's height.
+       */
       expect(body).toHaveClass(
-        "[@container(min-width:32rem)]:col-span-2",
+        "[@container(min-width:32rem)]:col-start-1",
         "[@container(min-width:32rem)]:row-start-2",
       );
+      expect(action).toHaveClass("[@container(min-width:32rem)]:row-span-2");
     });
 
     test("is placed by start and end, so it mirrors on a page read from the right", () => {

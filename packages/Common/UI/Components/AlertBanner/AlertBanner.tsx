@@ -69,8 +69,9 @@ interface BannerStyle {
  * sentence it acts on ("Fjern fra arkivet" before why).
  *
  * Where the banner is wide enough for both, the action stays at the end of
- * the title's line, as it always was, and the sentence runs under both.
- * "Wide enough" is the banner's own width - a container query - not the
+ * the title's line, as it always was, and the sentence runs on under the
+ * title, beside the action rather than under its height. "Wide enough" is
+ * the banner's own width - a container query - not the
  * window's: a banner also sits in a narrow card on a wide screen. Start
  * and end, never left and right, so it mirrors on an Arabic or Persian
  * page: under the sentence at the right, at the title's left end.
@@ -82,8 +83,8 @@ export const ALERT_BANNER_CONTENT_CLASS_NAME: string =
 
 /*
  * One column - title, sentence, action - until the banner's words have
- * 32rem: then the title and the action share the first line, and the
- * sentence runs under both.
+ * 32rem: then the title and the sentence are the first column, and the
+ * action the second, at the end of the title's line.
  */
 export const ALERT_BANNER_LAYOUT_CLASS_NAME: string =
   "grid grid-cols-[minmax(0,1fr)] [@container(min-width:32rem)]:grid-cols-[minmax(0,1fr)_auto] [@container(min-width:32rem)]:gap-x-4";
@@ -92,14 +93,16 @@ export const ALERT_BANNER_TITLE_PLACE_CLASS_NAME: string =
   "[@container(min-width:32rem)]:col-start-1 [@container(min-width:32rem)]:row-start-1";
 
 export const ALERT_BANNER_BODY_PLACE_CLASS_NAME: string =
-  "mt-1 [@container(min-width:32rem)]:col-span-2 [@container(min-width:32rem)]:row-start-2";
+  "mt-1 [@container(min-width:32rem)]:col-start-1 [@container(min-width:32rem)]:row-start-2";
 
 /*
  * Under the sentence, at its start; at the end of the title's line where
- * there is room. Its own height, never stretched to the row's.
+ * there is room, beside the sentence too (row-span-2), so the sentence
+ * follows its title with no gap the button's height would leave. Its own
+ * height, never stretched to the rows'.
  */
 export const ALERT_BANNER_ACTION_PLACE_CLASS_NAME: string =
-  "mt-3 flex items-center self-start justify-self-start [@container(min-width:32rem)]:col-start-2 [@container(min-width:32rem)]:row-start-1 [@container(min-width:32rem)]:mt-0 [@container(min-width:32rem)]:justify-self-end";
+  "mt-3 flex items-center self-start justify-self-start [@container(min-width:32rem)]:col-start-2 [@container(min-width:32rem)]:row-start-1 [@container(min-width:32rem)]:row-span-2 [@container(min-width:32rem)]:mt-0 [@container(min-width:32rem)]:justify-self-end";
 
 export const ALERT_BANNER_ACTION_TEST_ID: string = "alert-banner-action";
 

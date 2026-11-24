@@ -26,8 +26,9 @@ import {
  * (#8034).
  *
  * A banner's action comes after the sentence it acts on, under it at its
- * start while the banner is narrow, and at the end of the title's line once
- * the banner's words have 32rem - the banner's own width, read by a
+ * start while the banner is narrow, and at the end of the title's line,
+ * beside the sentence, once the banner's words have 32rem - the banner's
+ * own width, read by a
  * container query, never the window's. The frontends style themselves with
  * the Play CDN build of Tailwind, and a class it does not know draws
  * nothing, so the runtime runs here, as a page runs it, and these read the
@@ -193,7 +194,7 @@ describe("a banner's action, in the Dashboard's own Tailwind", () => {
     });
   });
 
-  test("from 32rem of its own: the title and the action share a line, the sentence under both", () => {
+  test("from 32rem of its own: the title and the action share a line, the sentence under the title beside the action", () => {
     const wide: (className: string) => string = (className: string) => {
       return `[@container(min-width:32rem)]:${className}`;
     };
@@ -222,9 +223,9 @@ describe("a banner's action, in the Dashboard's own Tailwind", () => {
       query: QUERY,
       declarations: { "grid-row-start": "2" },
     });
-    expect(onlyRuleFor(wide("col-span-2"))).toEqual({
+    expect(onlyRuleFor(wide("row-span-2"))).toEqual({
       query: QUERY,
-      declarations: { "grid-column": "span 2 / span 2" },
+      declarations: { "grid-row": "span 2 / span 2" },
     });
     expect(onlyRuleFor(wide("justify-self-end"))).toEqual({
       query: QUERY,
