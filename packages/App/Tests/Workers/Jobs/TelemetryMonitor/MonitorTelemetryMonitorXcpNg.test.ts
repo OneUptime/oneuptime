@@ -264,6 +264,7 @@ describe("monitorXcpNg: scoping to the pool", () => {
 
     await monitorXcpNg({ monitorStep: step, monitorId, projectId });
 
+    expect(queriedAttributes("xcp_vm_cpu_usage").length).toBeGreaterThan(0);
     for (const attributes of queriedAttributes("xcp_vm_cpu_usage")) {
       expect(Object.keys(attributes)).not.toContain(
         "resource.xcp_ng.pool.name",
@@ -286,6 +287,7 @@ describe("monitorXcpNg: scoping to the pool", () => {
 
     await monitorXcpNg({ monitorStep: step, monitorId, projectId });
 
+    expect(queriedAttributes("xcp_pool_connected").length).toBeGreaterThan(0);
     for (const attributes of queriedAttributes("xcp_pool_connected")) {
       expect(attributes).toEqual({ "resource.xcp_ng.pool.id": POOL_UUID });
     }
@@ -304,6 +306,7 @@ describe("monitorXcpNg: scoping to the pool", () => {
 
     await monitorXcpNg({ monitorStep: step, monitorId, projectId });
 
+    expect(queriedAttributes("xcp_pool_connected").length).toBeGreaterThan(0);
     for (const attributes of queriedAttributes("xcp_pool_connected")) {
       expect(attributes).toEqual({});
     }
