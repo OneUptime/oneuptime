@@ -12,6 +12,7 @@ import * as React from "react";
 import fs from "fs";
 import path from "path";
 import { matchRoutes } from "react-router-dom";
+import { SpyInstance } from "jest-mock";
 
 jest.mock("react-i18next", () => {
   return {
@@ -66,8 +67,8 @@ const LOCALES_DIR: string = path.resolve(
 
 type GetList = typeof ModelAPI.getList;
 
-let getList: jest.SpiedFunction<GetList>;
-let navigate: jest.SpiedFunction<typeof Navigation.navigate>;
+let getList: SpyInstance<GetList>;
+let navigate: SpyInstance<typeof Navigation.navigate>;
 
 function answerWith(statusPages: Array<StatusPage>): void {
   getList.mockResolvedValue({
@@ -104,7 +105,7 @@ async function open(address: string): Promise<void> {
 }
 
 beforeEach(() => {
-  getList = jest.spyOn(ModelAPI, "getList") as jest.SpiedFunction<GetList>;
+  getList = jest.spyOn(ModelAPI, "getList") as unknown as SpyInstance<GetList>;
   navigate = jest
     .spyOn(Navigation, "navigate")
     .mockImplementation((): void => {});
