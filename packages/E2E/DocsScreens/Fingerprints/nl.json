@@ -275,7 +275,7 @@
       "SMS staat uit in dit project, dus oproepen die het gebruiken worden niet verstuurd.",
       "Telefoonoproep staat uit in dit project, dus oproepen die het gebruiken worden niet verstuurd.",
       "Sms'jes en oproepen worden betaald uit het tegoed van dit project, dat 0.00 USD is. Een nummer toevoegen stuurt een sms, dus het tegoed moet hoger zijn dan 1.00 USD.",
-      "Tegoed toevoegen",
+      "Aan saldo toevoegen",
       "Sms en oproepen aanzetten",
       "Mobiele app of browser",
       "Niet ingericht.",
@@ -286,15 +286,15 @@
       "Opnieuw controleren"
     ],
     "outline": [
-      "button: Tegoed toevoegen",
+      "button: Aan saldo toevoegen",
       "button: Sms en oproepen aanzetten",
       "button: Deze browser gebruiken",
       "button: Download de app",
       "button: Doorgaan",
       "button: Opnieuw controleren"
     ],
-    "width": 768,
-    "height": 678
+    "width": 784,
+    "height": 707
   },
   "paging-phone": {
     "text": [
