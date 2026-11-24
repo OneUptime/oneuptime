@@ -2053,6 +2053,26 @@ describe("A telemetry finding's records", () => {
       sampleRecords: [],
       lastSeenAt: null,
       now: NOW,
+      // A detector's finding: its detectors read its records again, as always.
+      isFoundByModel: false,
+    });
+  });
+
+  test("a finding the names-and-addresses model made is read with the model (#10926)", async () => {
+    asCaller([Permission.SecurityMember]);
+    findingRow!.dataTypeId = "person-name";
+    findingRow!.location = "body";
+    findingRow!.isFoundByModel = true;
+
+    await records();
+
+    expect(findingFindOneSpy.mock.calls[0]![0]).toMatchObject({
+      select: { isFoundByModel: true },
+    });
+    expect(occurrencesSpy.mock.calls[0]![0]).toMatchObject({
+      dataTypeId: "person-name",
+      location: "body",
+      isFoundByModel: true,
     });
   });
 

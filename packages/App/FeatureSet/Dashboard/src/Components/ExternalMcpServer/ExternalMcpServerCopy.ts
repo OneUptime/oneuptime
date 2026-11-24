@@ -28,7 +28,9 @@ import {
  * MCP servers it already runs or subscribes to - a name, the address, and
  * how OneUptime signs in - and OneUptime AI uses their tools: in
  * investigations the ones that only read, in fixes the others too, the way
- * the auto remediation rule's Approval says.
+ * the auto remediation rule's Approval says, and in Ask AI and an incident's
+ * or alert's conversation all of them, a tool that may change something
+ * once the person approves the call (issue #10879).
  *
  * "External", because the AI section also holds MCP Server: OneUptime's
  * own server, which AI assistants connect to. This page is the other way
@@ -43,7 +45,7 @@ export const EXTERNAL_MCP_SERVERS_PAGE_COPY: {
 } = {
   title: translationKey("External MCP Servers"),
   description: translationKey(
-    "MCP servers outside OneUptime whose tools OneUptime AI may use while it investigates and fixes, such as AWS, Azure or GitHub.",
+    "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.",
   ),
   ownServerNote: translationKey(
     "To connect an AI assistant to OneUptime instead, use {{mcpServerLink}}.",

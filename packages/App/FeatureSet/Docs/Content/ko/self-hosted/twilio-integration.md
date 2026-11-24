@@ -147,6 +147,21 @@ SMS에만, 또는 통화에만 쓰는 계정에는 다른 쪽을 위한 번호�
 
 상태 페이지에서는 SMS를 보내는 구성만 고를 수 있고, **테스트 SMS 보내기**와 **테스트 전화 보내기**는 구성이 보내는 것에 대해서만 나타납니다. 기존 구성은 모두 이전처럼 **통화 및 SMS**로 쓰입니다. API와 Terraform에서는 이 선택이 `usedFor` 필드이며, 선택에 필요한 번호가 없는 구성은 거부됩니다.
 
+### 통화에 쓰이는 음성
+
+통화는 Twilio 계정이 기본으로 쓰는 음성으로 말합니다. Twilio Console에서 다른 음성을 고르지 않았다면 Twilio의 무료 Basic 음성입니다. Twilio는 Basic 음성이 프로덕션용이 아니라고 안내하므로, 계정마다 대신 아래 뉴럴 음성 중 하나를 쓸 수 있습니다. 설치 전체의 계정은 **Admin Dashboard > 설정 > 통화 및 SMS**의 **통화 음성** 카드에서, 프로젝트 구성은 **추가 필드**의 **통화 음성**에서 고릅니다.
+
+| 음성 | 제공 업체 | 들리는 소리 |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | 미국 영어, 여성 음성 |
+| `Polly.Matthew-Neural` | Amazon Polly | 미국 영어, 남성 음성 |
+| `Polly.Amy-Neural` | Amazon Polly | 영국 영어, 여성 음성 |
+| `Polly.Brian-Neural` | Amazon Polly | 영국 영어, 남성 음성 |
+| `Google.en-US-Neural2-F` | Google | 미국 영어, 여성 음성 |
+| `Google.en-US-Neural2-J` | Google | 미국 영어, 남성 음성 |
+
+이 계정을 거치는 모든 통화가 이 음성으로 말합니다. 온콜 호출과 누른 키에 대한 응답, 음성사서함에 남기는 메시지, 인증 코드, **테스트 전화 보내기**, 수신 전화 정책의 인사말이 모두 해당합니다. 이 음성들은 `INC-42` 같은 번호를 SSML로 한 글자씩 읽으므로, 다른 음성에 쓰는 띄어 쓴 글자보다 자연스럽게 들립니다. Twilio는 이 음성의 요금을 전화를 거는 계정에 청구합니다. 2026년 11월 기준 100자당 $0.0032로, 호출 전화 한 통에 미화 2센트가 채 안 됩니다. [Twilio 음성 요금](https://www.twilio.com/en-us/voice/pricing/us)을 참고하세요. 계정의 기본 음성을 그대로 쓰려면 **통화 음성**을 비워 두세요. API와 Terraform에서는 음성이 `twilioCallVoice` 필드이며, 표에 없는 음성은 거부됩니다.
+
 ### 온콜 전화의 음성사서함
 
 Twilio에게는 음성사서함이 받은 전화도 사람이 받은 전화처럼 받은 전화입니다. 그래서 각 온콜 전화는 [자동 응답기 감지](https://www.twilio.com/docs/voice/answering-machine-detection)로 사람과 음성사서함 중 누가 받았는지 백그라운드에서 Twilio에 묻습니다. 전화를 받은 사람은 호출 내용을 바로 듣습니다. 음성사서함이 받은 전화는 신호만 가다 끊긴 전화처럼 받지 않은 것으로 처리되며, 호출은 부재중 전화일 때처럼 계속됩니다. 인사말이 끝나면 OneUptime이 전화 내용을 담은 짧은 메시지를 남깁니다. 메시지를 남겼는지는 통화 로그에 표시되며, 인시던트 피드에도 표시됩니다: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

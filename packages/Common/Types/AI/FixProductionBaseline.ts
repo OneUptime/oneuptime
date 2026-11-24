@@ -98,6 +98,11 @@ export interface TelemetryLeakFixPlace {
   scrubRuleIds: Array<string>;
   // ISO-8601: when the scan last saw it.
   lastSeenAt?: string | undefined;
+  /*
+   * The names-and-addresses model found it: its records are read again
+   * with the model (#10926). Absent from a check made before.
+   */
+  isFoundByModel?: boolean | undefined;
 }
 
 // One telemetry store - a service's logs, its spans - the fix is for.

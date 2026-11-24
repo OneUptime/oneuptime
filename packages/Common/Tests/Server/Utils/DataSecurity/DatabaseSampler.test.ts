@@ -29,6 +29,11 @@ import DataConfidence from "../../../../Types/DataSecurity/DataConfidence";
 import FakeEntityRecognizer, {
   ISSUE_SENTENCE,
 } from "./Model/FakeEntityRecognizer";
+import {
+  MODEL_TURN_STATE_KEY,
+  readModelResumeAt,
+} from "../../../../Server/Utils/DataSecurity/Model/ModelTurns";
+import { JSONObject } from "../../../../Types/JSON";
 
 jest.mock("pg", () => {
   return { __esModule: true, Client: jest.fn() };
@@ -973,5 +978,218 @@ describe("the names-and-addresses model on a database's free text", () => {
     expect(budget.forStore(CONTENT_STORE_KEY).getWarnings()).toEqual([
       "Names and street addresses were looked for in 3 of 6 free-text values: the scan's 1 second of model time ran out.",
     ]);
+  });
+});
+
+describe("the tables take turns at the model's time (#10928)", () => {
+  // A table of support notes, each long enough to be free text, the issue's sentence first.
+  function notesTable(table: string, notes: number = 3): FakeTable {
+    const rows: Array<Record<string, string | null>> = [];
+
+    for (let index: number = 0; index < notes; index++) {
+      rows.push({
+        id: String(index + 1),
+        notes:
+          index === 0
+            ? ISSUE_SENTENCE
+            : `Ticket ${table} ${index}: the customer asked about the delivery window for their order and was told tomorrow.`,
+      });
+    }
+
+    return {
+      schema: "public",
+      table,
+      estimatedRows: notes,
+      columns: [
+        ["id", "integer"],
+        ["notes", "text"],
+      ],
+      rows,
+    };
+  }
+
+  // A model with time for `texts` notes a scan, ten milliseconds each.
+  function modelWithTimeFor(texts: number): ModelScanContext {
+    return {
+      recognizer: new FakeEntityRecognizer({ millisecondsPerText: 10 }),
+      budget: new ModelBudget({
+        scanLimitInMs: texts * 10,
+        storeLimitInMs: texts * 10,
+      }),
+    };
+  }
+
+  // The tables whose notes the model found the issue's name in.
+  function tablesWithName(result: ContentScanResult): Array<string> {
+    return result.locations
+      .filter((location: LocationFindings): boolean => {
+        return location.classifications.some(
+          (classification: FieldClassification): boolean => {
+            return classification.dataTypeId === "person-name";
+          },
+        );
+      })
+      .map((location: LocationFindings): string => {
+        return location.location.split(".")[1]!;
+      });
+  }
+
+  test("each scan's model starts at the table the last one stopped at, so every table has its turn", async () => {
+    database.tables = ["tickets_a", "tickets_b", "tickets_c", "tickets_d"].map(
+      (table: string): FakeTable => {
+        return notesTable(table);
+      },
+    );
+
+    let state: JSONObject | undefined = undefined;
+    const turns: Array<Array<string>> = [];
+    const resumes: Array<string | null> = [];
+
+    // Time for one table's three notes a scan.
+    for (let scan: number = 0; scan < 5; scan++) {
+      const result: ContentScanResult = await sampleDatabase(
+        POSTGRES,
+        options({}, { model: modelWithTimeFor(3), previousState: state }),
+      );
+
+      turns.push(tablesWithName(result));
+      state = result.nextState;
+      resumes.push(readModelResumeAt(state));
+
+      // Every table is still read, and classified by its detectors.
+      expect(result.objectsRead).toBe(4);
+    }
+
+    expect(turns).toEqual([
+      ["tickets_a"],
+      ["tickets_b"],
+      ["tickets_c"],
+      ["tickets_d"],
+      ["tickets_a"],
+    ]);
+    expect(resumes).toEqual([
+      "public.tickets_b",
+      "public.tickets_c",
+      "public.tickets_d",
+      "public.tickets_a",
+      "public.tickets_b",
+    ]);
+  });
+
+  test("the tables are read from the turn on, round to the one before it, the empty ones last", async () => {
+    database.tables = [
+      notesTable("tickets_a"),
+      { ...notesTable("archive"), estimatedRows: 0 },
+      notesTable("tickets_b"),
+      notesTable("tickets_c"),
+    ];
+
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options(
+        {},
+        {
+          model: modelWithTimeFor(100),
+          previousState: {
+            [MODEL_TURN_STATE_KEY]: { resumeAt: "public.tickets_b" },
+          },
+        },
+      ),
+    );
+
+    expect(result.readLog).toEqual([
+      "public.tickets_b",
+      "public.tickets_c",
+      "public.tickets_a",
+      "public.archive",
+    ]);
+    // The model had time for everything: the next scan starts at the first.
+    expect(result.nextState).toEqual({});
+    expect(readModelResumeAt(result.nextState)).toBeNull();
+  });
+
+  test("a table the model started its time on and could not finish passes the turn to the next", async () => {
+    database.tables = [
+      notesTable("tickets_big", 5),
+      notesTable("tickets_next"),
+      notesTable("tickets_last"),
+    ];
+
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options({}, { model: modelWithTimeFor(3) }),
+    );
+
+    expect(readModelResumeAt(result.nextState)).toBe("public.tickets_next");
+  });
+
+  test("a table the model stopped in, after one it read whole, gets the next turn", async () => {
+    database.tables = [
+      notesTable("tickets_small", 2),
+      notesTable("tickets_long", 4),
+      notesTable("tickets_last"),
+    ];
+
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options({}, { model: modelWithTimeFor(4) }),
+    );
+
+    expect(readModelResumeAt(result.nextState)).toBe("public.tickets_long");
+  });
+
+  test("without the model, the tables are read in their order and no turn is kept", async () => {
+    database.tables = [notesTable("tickets_a"), notesTable("tickets_b")];
+
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options(
+        {},
+        {
+          previousState: {
+            [MODEL_TURN_STATE_KEY]: { resumeAt: "public.tickets_b" },
+          },
+        },
+      ),
+    );
+
+    expect(result.readLog).toEqual(["public.tickets_a", "public.tickets_b"]);
+    expect(result.nextState).toBeUndefined();
+  });
+
+  test("a scan that could not list the tables keeps the turn where it was", async () => {
+    database.tables = [notesTable("tickets_a")];
+    database.failOn = "information_schema.tables";
+
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options(
+        {},
+        {
+          model: modelWithTimeFor(3),
+          previousState: {
+            [MODEL_TURN_STATE_KEY]: { resumeAt: "public.tickets_x" },
+          },
+        },
+      ),
+    );
+
+    expect(result.isComplete).toBe(false);
+    expect(readModelResumeAt(result.nextState)).toBe("public.tickets_x");
+  });
+
+  test("a turn names a table, never anything read from it", async () => {
+    database.tables = [notesTable("tickets_a"), notesTable("tickets_b")];
+
+    const result: ContentScanResult = await sampleDatabase(
+      POSTGRES,
+      options({}, { model: modelWithTimeFor(3) }),
+    );
+
+    expect(JSON.stringify(result.nextState)).toBe(
+      JSON.stringify({
+        [MODEL_TURN_STATE_KEY]: { resumeAt: "public.tickets_b" },
+      }),
+    );
   });
 });

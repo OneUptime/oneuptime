@@ -337,6 +337,7 @@ export default class TelemetryLeakFix {
           isScrubbed: true,
           lastSeenAt: true,
           sampleRecords: true,
+          isFoundByModel: true,
         },
         sort: { matchCount: SortOrder.Descending },
         skip: 0,
@@ -439,6 +440,7 @@ export default class TelemetryLeakFix {
                 entry.finding.sampleRecords,
               ),
               lastSeenAt: entry.finding.lastSeenAt || null,
+              isFoundByModel: entry.finding.isFoundByModel === true,
             };
           },
         ),
