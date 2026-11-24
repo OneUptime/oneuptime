@@ -47,6 +47,10 @@ const DEFAULT_MONITOR_STATUS_ID: string =
 const OFFLINE_STATUS_ID: string = "a1000000-0000-4000-8000-0000000109b2";
 const SEVERITY_ID: string = "a1000000-0000-4000-8000-0000000109b3";
 const ON_CALL_POLICY_ID: string = "a1000000-0000-4000-8000-0000000109b4";
+// An incident role and two people given it (#10984).
+const ROLE_ID: string = "a1000000-0000-4000-8000-0000000109b5";
+const USER_ID: string = "a1000000-0000-4000-8000-0000000109b6";
+const OTHER_USER_ID: string = "a1000000-0000-4000-8000-0000000109b7";
 
 function stepsEnvelope(steps: Array<JSONObject>): JSONObject {
   return {
@@ -309,6 +313,70 @@ const SENT: Array<{ name: string; sent: JSONObject }> = [
                   metricAlias: "a",
                   metricAggregationType: "Average",
                 },
+              },
+            ],
+          },
+        ],
+      ),
+    ]),
+  },
+  {
+    name: "an incident template that gives people roles, the template's flags left out",
+    sent: stepsEnvelope([
+      withCriteria(WEBSITE, [
+        {
+          ...OFFLINE,
+          createIncidents: true,
+          incidents: [
+            {
+              title: "The shop is down",
+              description: "The shop does not answer.",
+              incidentSeverityId: SEVERITY_ID,
+              incidentMemberRoles: [
+                { roleId: ROLE_ID, userId: USER_ID },
+                { roleId: ROLE_ID, userId: OTHER_USER_ID },
+              ],
+            },
+          ],
+        },
+      ]),
+    ]),
+  },
+  {
+    name: "a template's step that keeps fields of each linked monitor",
+    sent: stepsEnvelope([
+      withCriteria(
+        {
+          ...WEBSITE,
+          doNotSyncFields: ["monitorDestination", "requestTimeoutInMs"],
+        },
+        [OFFLINE],
+      ),
+    ]),
+  },
+  {
+    name: "a Security Events step, its query sent as written",
+    sent: stepsEnvelope([
+      withCriteria(
+        {
+          securityEventsMonitor: {
+            attributes: {},
+            messageContains: "Failed password",
+            severityNames: ["High"],
+            classNames: ["Authentication"],
+            telemetryServiceIds: [],
+            lastXSecondsOfEvents: 300,
+          },
+        },
+        [
+          {
+            name: "Brute force",
+            filterCondition: "All",
+            filters: [
+              {
+                checkOn: "Security Event Count",
+                filterType: "Greater Than",
+                value: 20,
               },
             ],
           },

@@ -64464,5 +64464,6 @@
   "{{pullRequest}} is linked to this issue already.": "{{pullRequest}}은(는) 이미 이 이슈에 연결되어 있습니다.",
   "“{{action}}” did not finish.": "\"{{action}}\" 작업을 마치지 못했습니다.",
   "Date unknown": "날짜 알 수 없음",
-  "Yesterday": "어제"
+  "Yesterday": "어제",
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "DNS 응답은 이전 검사의 응답과 전체로 비교됩니다. '같지 않음'은 레코드가 바뀌었을 때, '같음'은 바뀌지 않았을 때 일치합니다. 같은 레코드가 다른 순서로 와도 변화가 아닙니다."
 }

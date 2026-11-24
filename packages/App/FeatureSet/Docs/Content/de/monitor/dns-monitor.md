@@ -118,7 +118,7 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **DNS ist online** und **DNS-Antwortzeit (in ms)**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein Kontrollkästchen unter einem Filter, angeboten für **DNS ist online**, **DNS-Antwortzeit (in ms)** und **DNS-Eintragswert**. Schalten Sie es ein, um ein Fenster vergangener Prüfungen statt nur der letzten zu beurteilen: Wählen Sie unter **Auswerten** eine Aggregation und unter **Für die letzten** ein Fenster von 2 Minuten bis 24 Stunden. Für **DNS-Eintragswert** ist die einzige Wahl **Vorherige Prüfung**: siehe [Wenn sich die DNS-Antwort ändert](#wenn-sich-die-dns-antwort-ändert).
 
 | Aggregation | Trifft zu, wenn |
 | --- | --- |
@@ -126,7 +126,7 @@ Kriterien werden von oben nach unten geprüft, und das erste zutreffende entsche
 | **Alle Werte** | Jede Prüfung im Fenster die Bedingung erfüllt. |
 | **Beliebiger Wert** | Mindestens eine Prüfung im Fenster die Bedingung erfüllt. |
 | **Anzahl**, **Prozentsatz**, **Statuswechsel** | Wie viele Prüfungen die Bedingung erfüllt haben, ihr Anteil oder wie oft sie zwischen Erfüllen und Nichterfüllen gewechselt haben, wird mit der darunter eingestellten Zahl verglichen. |
-| **Vorherige Prüfung** | Diese Prüfung, verglichen mit der vorherigen Prüfung der Sonde, wie unter **Änderung gegenüber der vorherigen Prüfung** eingestellt: etwa eine Antwortzeit, die mehr als 50 % darüber liegt. Ein Filter, der wahr oder falsch ist, trifft bei der Prüfung zu, die die Bedingung zu erfüllen begann. |
+| **Vorherige Prüfung** | Diese Prüfung, verglichen mit der vorherigen Prüfung der Sonde, wie unter **Änderung gegenüber der vorherigen Prüfung** eingestellt: etwa eine Antwortzeit, die mehr als 50 % darüber liegt. Ein Filter, der wahr oder falsch ist, trifft bei der Prüfung zu, die die Bedingung zu erfüllen begann. **DNS-Eintragswert** vergleicht die ganze Antwort: siehe unten. |
 
 Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten gefüllt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen, daher wartet das Kriterium, statt auf dem einen vorhandenen Messwert anzuschlagen. **Beliebiger Wert** ist die Einstellung für „sag mir sofort, wenn eine einzige Prüfung den Grenzwert verletzt“ und schlägt weiterhin sofort an.
 
@@ -138,11 +138,26 @@ Die Option **Alle Werte** trifft erst zu, wenn das Fenster wirklich mit Daten ge
 | **Auslöser** | Die fehlenden Daten zählen als das Problem. | Prüfungen, bei denen Stille selbst ein Fehler ist. |
 | **Treat As Zero** | Das Fenster wird als einzelne Null verglichen. | Zähler, bei denen keine Ereignisse wirklich null bedeutet. |
 
+### Wenn sich die DNS-Antwort ändert
+
+Um zu erfahren, wenn sich die Antwort für einen Namen ändert, etwa weil eine Adresse umgezogen ist, ein Mailserver ersetzt wurde oder ein Eintrag hinzugekommen oder verschwunden ist, vergleichen Sie **DNS-Eintragswert** mit der vorherigen Prüfung:
+
+1. Fügen Sie einen Filter mit **DNS-Eintragswert** und **Ungleich** hinzu.
+2. Aktivieren Sie **Diese Kriterien über einen Zeitraum hinweg auswerten**. **Vorherige Prüfung** ist für diesen Filter die einzige Wahl unter **Auswerten** und braucht keinen Wert.
+3. Wählen Sie unter **Für die letzten**, wie lange die vorherige Prüfung zurückliegen darf: länger als das Überwachungsintervall.
+
+Die Antwort wird als Ganzes verglichen: alle Einträge des Typs, ohne ihre TTL. Dieselben Einträge in anderer Reihenfolge sind dieselbe Antwort, ebenso ein Name in anderer Groß- und Kleinschreibung, da DNS-Namen nicht zwischen Groß- und Kleinschreibung unterscheiden. Ein hinzugefügter, entfernter oder geänderter Eintrag ergibt eine andere Antwort. **Gleich** trifft im umgekehrten Fall zu, bei einer Antwort, die der der vorherigen Prüfung gleicht, für ein Kriterium, das gelten soll, solange die Antwort stabil ist.
+
+Die Antwort jeder Sonde wird mit der vorherigen Antwort derselben Sonde verglichen und die jedes Schritts mit seiner eigenen, ein Name, der in verschiedenen Regionen unterschiedlich antwortet, ist also keine Änderung. Eine Prüfung, die keine Antwort erhält, weil der Name nicht aufgelöst wird oder die Abfrage in ein Timeout läuft, wird nicht verglichen: Dafür ist der Filter **DNS ist online** da. Die nächste Prüfung, die eine Antwort erhält, wird mit der letzten Antwort davor verglichen, sofern diese innerhalb von **Für die letzten** liegt. Ohne vorherige Antwort im Fenster, wie bei der ersten Prüfung des Monitors, entscheidet **Bei keinen Daten**, wie bei jedem Vergleich mit der vorherigen Prüfung.
+
+Der Vorfall oder die Warnung nennt, wie die Antwort lautete und wie sie jetzt lautet: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Beispielkriterien
 
 | Ziel | Filter | Bedingung | Wert |
 | --- | --- | --- | --- |
 | Offline, wenn der Name nicht mehr aufgelöst wird | **DNS ist online** | **Falsch** | — |
+| Warnen, wenn sich die Antwort für einen Namen ändert | **DNS-Eintragswert**, ausgewertet über **Vorherige Prüfung** | **Ungleich** | — |
 | Warnen, wenn sich der einzige `A`-Eintrag eines Namens ändert | **DNS-Eintragswert** | **Ungleich** | `93.184.216.34` |
 | Warnen, wenn ein `MX`-Eintrag aus Ihrer Domain hinauszeigt | **DNS-Eintragswert** | **Enthält nicht** | `example.com` |
 | DNS als beeinträchtigt markieren, wenn es langsam ist | **DNS-Antwortzeit (in ms)** | **Größer als** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Lassen Sie das Standard-Offline-Kriterium oben: **DNS ist online** / **Falsch**.
 2. Fügen Sie darunter ein Kriterium mit **DNS-Eintragswert** / **Gleich** / dem erwarteten Wert hinzu, das den Monitor als **Betriebsbereit** markiert.
 3. Fügen Sie darunter ein Kriterium mit **DNS ist online** / **Wahr** hinzu, das den Monitor als **Offline** markiert und einen Vorfall meldet. Es trifft nur auf Antworten zu, die den Wert nicht enthalten.
+:::
+
+:::details Ein Kriterium, das die Antwort mit der vorherigen Prüfung vergleicht, schlägt bei jeder Prüfung an
+Der Server liefert bei jeder Abfrage einen anderen Teil eines großen Pools von Einträgen, wie es manche lastverteilte Namen tun. Jede dieser Antworten ist eine andere Menge von Einträgen. Fragen Sie in **DNS-Server (Optional)** einen Server, der den ganzen Pool liefert, oder prüfen Sie stattdessen mit **DNS-Eintragswert** / **Gleich** auf den erwarteten Wert.
 :::
 
 :::details DNSSEC ist gültig trifft nie zu

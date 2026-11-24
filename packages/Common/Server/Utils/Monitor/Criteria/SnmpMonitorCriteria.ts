@@ -21,14 +21,35 @@ import SnmpOidListUtil from "../../../../Types/Monitor/SnmpMonitor/SnmpOidListUt
 import SnmpTrap from "../../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
-import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
+import MonitorStepSeries, {
+  MonitorStepSeriesScope,
+} from "../../../../Types/Monitor/MonitorStepSeries";
+import AggregatedModel from "../../../../Types/BaseDatabase/AggregatedModel";
+import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
+import AggregationType from "../../../../Types/BaseDatabase/AggregationType";
+import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
 import MetricBaselineService, {
   BaselineBand,
   BaselineSummary,
+  MetricBaselineQuery,
   MetricBaselineService as MetricBaselineServiceClass,
+  MetricSeriesBaselines,
 } from "../../../Services/MetricBaselineService";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import logger from "../../Logger";
+
+/*
+ * The attribute an interface's rows name it by: the name the walk gave it, as
+ * MonitorMetricUtil writes it on every interface series.
+ */
+export const SNMP_INTERFACE_NAME_ATTRIBUTE: string = "interfaceName";
+
+// An interface outside its own band, and the band it is outside of.
+interface UtilizationBreach {
+  interfaceName: string;
+  observed: number;
+  baseline: BaselineSummary;
+}
 
 export default class SnmpMonitorCriteria {
   /*
@@ -106,21 +127,76 @@ export default class SnmpMonitorCriteria {
   }
 
   /*
-   * Anomaly path for interface utilization: compares the busiest in-scope
-   * interface's current utilization to this monitor's same-hour-of-week
-   * baseline of the oneuptime.monitor.snmp.interface.utilization.percent
-   * metric. MonitorMetricUtil writes that metric every check with the
-   * monitorId as the metric's primaryEntityId, so the MetricBaselineHourly
-   * MV already keys a per-monitor baseline — this reuses it via
-   * MetricBaselineService exactly like MetricMonitorCriteria does.
+   * WHAT AN INTERFACE'S UTILIZATION IS JUDGED AGAINST (#10985).
    *
-   * Note the baseline aggregates every interface sample the monitor
-   * emitted (interfaces are attributes, not part of the baseline key)
-   * while the observed value is the busiest in-scope interface — the same
-   * "worst interface vs device-wide history" trade-off the static
-   * threshold path already makes.
+   * The anomaly condition used to compare the busiest in-scope interface with
+   * the hourly rollup's cell (MetricBaselineHourly), which keys on the monitor
+   * alone. A monitor with two steps - a core switch and an access switch -
+   * judged each step against both steps' samples, and every device against
+   * all of its ports at once: a busy uplink was "anomalously high" against a
+   * crowd of idle ports, and an idle port gone busy was lost in the crowd.
    *
-   * Missing or unreliable baselines mean the rule is still learning —
+   * So each interface is judged against its own history, on the step that
+   * polls it: the rows the step's checks wrote (MonitorMetricUtil names the
+   * step and the interface on each), read the way a step's windows read them
+   * (MonitorStepSeries), one series an interface, from one read of the hour a
+   * step (MetricBaselineService.getSeriesBaselines, which keeps it for the
+   * hour). The condition is met when any in-scope interface is outside its
+   * own band, as a threshold is met when any interface crosses it; with "*"
+   * fanned out per interface, each port's alert is judged against that port.
+   *
+   * Rows written before rows named their step are read only by a monitor with
+   * one step, whose rows they all are. A monitor with several leaves them out
+   * and learns again from its steps' own rows: until two earlier weeks of the
+   * hour are there, an interface's condition does not fire. The rollup, kept
+   * 90 days, is the step's own only on a monitor with one step, so only such
+   * a monitor falls back on it - every port in one cell, as it was judged
+   * before - when its rows are kept too briefly to hold two weeks (a monitor
+   * metric retention under 14 days).
+   */
+  public static getUtilizationBaselineQuery(
+    stepScope: MonitorStepSeriesScope | undefined,
+  ): MetricBaselineQuery {
+    return {
+      // One poll a minute at most: a minute's data point is that poll's reading.
+      aggregationType: AggregationType.Max,
+      isNarrowedByAttributes: true,
+      interval: AggregationInterval.Minute,
+      scope: {
+        attributes: stepScope
+          ? MonitorStepSeries.toQueryAttributes(stepScope)
+          : {},
+        groupByAttributeKeys: [SNMP_INTERFACE_NAME_ATTRIBUTE],
+      },
+      readsOnlyItsOwnRows: stepScope ? !stepScope.readsRowsWithoutStep : false,
+    };
+  }
+
+  /*
+   * The series an interface's rows make, as the baseline read names it: by
+   * the name the walk gave it, and "" for one it gave none (a missing key of
+   * the attributes map).
+   */
+  public static getInterfaceSeriesFingerprint(
+    interfaceName: string | undefined,
+  ): string {
+    return MetricSeriesFingerprint.computeFingerprint(
+      MetricSeriesFingerprint.extractSeriesLabels({
+        sample: {
+          attributes: { [SNMP_INTERFACE_NAME_ATTRIBUTE]: interfaceName || "" },
+        } as unknown as AggregatedModel,
+        attributeKeys: [SNMP_INTERFACE_NAME_ATTRIBUTE],
+      }),
+    );
+  }
+
+  /*
+   * Anomaly path for interface utilization: compares each in-scope
+   * interface's utilization with the same hour of the week of its own
+   * history on this step (getUtilizationBaselineQuery), and names the one
+   * furthest outside its band.
+   *
+   * Missing or unreliable baselines mean the interface is still learning —
    * never alert from a thin baseline. Zero-variance baselines are skipped
    * too, until the samples themselves have left the one value they held.
    */
@@ -128,7 +204,9 @@ export default class SnmpMonitorCriteria {
     projectId: ObjectID;
     monitorId: ObjectID;
     criteriaFilter: CriteriaFilter;
-    observedUtilizationPercent: number;
+    stepScope: MonitorStepSeriesScope | undefined;
+    // The interfaces in scope on this check.
+    interfaces: Array<SnmpInterface>;
   }): Promise<string | null> {
     const sensitivity: AnomalyDetectionSensitivity =
       (input.criteriaFilter.metricMonitorOptions?.anomalyDetection
@@ -137,9 +215,9 @@ export default class SnmpMonitorCriteria {
     const sigmaCount: number =
       MetricBaselineServiceClass.sigmaForSensitivity(sensitivity);
 
-    let baseline: BaselineSummary | null = null;
+    let baselines: MetricSeriesBaselines;
     try {
-      baseline = await MetricBaselineService.getBaseline({
+      baselines = await MetricBaselineService.getSeriesBaselines({
         projectId: input.projectId.toString(),
         metricName: MonitorMetricType.SnmpInterfaceUtilizationPercent,
         primaryEntityId: input.monitorId.toString(),
@@ -152,6 +230,7 @@ export default class SnmpMonitorCriteria {
         minSamples:
           input.criteriaFilter.metricMonitorOptions?.anomalyDetection
             ?.minSamples,
+        query: SnmpMonitorCriteria.getUtilizationBaselineQuery(input.stepScope),
       });
     } catch (err) {
       logger.error(
@@ -161,56 +240,120 @@ export default class SnmpMonitorCriteria {
       return null;
     }
 
-    if (!baseline || !baseline.isReliable) {
-      // Cold start: the baseline is still learning; nothing to compare to.
+    const breaches: Array<UtilizationBreach> = [];
+
+    for (const snmpInterface of input.interfaces) {
+      const observed: number | undefined = snmpInterface.utilizationPercent;
+
+      if (typeof observed !== "number" || !Number.isFinite(observed)) {
+        continue;
+      }
+
+      const baseline: BaselineSummary | null =
+        MetricBaselineServiceClass.getSeriesBaseline({
+          baselines,
+          seriesFingerprint: SnmpMonitorCriteria.getInterfaceSeriesFingerprint(
+            snmpInterface.name,
+          ),
+        });
+
+      if (!baseline || !baseline.isReliable) {
+        // Cold start: this interface is still learning; nothing to compare to.
+        continue;
+      }
+
+      const band: BaselineBand | null = MetricBaselineServiceClass.getBand({
+        baseline,
+        sigmaCount,
+      });
+
+      if (!band) {
+        // A zero-variance baseline would flag every deviation. Skip.
+        continue;
+      }
+
+      const isHighBreach: boolean = observed > band.expectedHigh;
+      const isLowBreach: boolean = observed < band.expectedLow;
+
+      const isBreach: boolean =
+        (input.criteriaFilter.filterType === FilterType.AnomalouslyHigh &&
+          isHighBreach) ||
+        (input.criteriaFilter.filterType === FilterType.AnomalouslyLow &&
+          isLowBreach) ||
+        (input.criteriaFilter.filterType === FilterType.Anomalous &&
+          (isHighBreach || isLowBreach));
+
+      if (isBreach) {
+        breaches.push({
+          interfaceName: snmpInterface.name || "",
+          observed,
+          baseline,
+        });
+      }
+    }
+
+    if (breaches.length === 0) {
       return null;
     }
 
-    const band: BaselineBand | null = MetricBaselineServiceClass.getBand({
-      baseline,
-      sigmaCount,
+    // The furthest outside its band first: a flat history's is furthest of all.
+    breaches.sort((a: UtilizationBreach, b: UtilizationBreach): number => {
+      return (
+        SnmpMonitorCriteria.getSigmasAway(b) -
+        SnmpMonitorCriteria.getSigmasAway(a)
+      );
     });
 
-    if (!band) {
-      // A zero-variance baseline would flag every deviation. Skip.
-      return null;
-    }
+    const others: string =
+      breaches.length > 1
+        ? ` ${breaches.length - 1} more interface(s) are outside their own baselines too: ${breaches
+            .slice(1, 6)
+            .map((breach: UtilizationBreach): string => {
+              return breach.interfaceName;
+            })
+            .join(", ")}${breaches.length > 6 ? ", …" : ""}.`
+        : "";
 
-    const observed: number = input.observedUtilizationPercent;
+    return (
+      SnmpMonitorCriteria.describeBreach({
+        breach: breaches[0]!,
+        sensitivity,
+      }) + others
+    );
+  }
 
-    const isHighBreach: boolean = observed > band.expectedHigh;
-    const isLowBreach: boolean = observed < band.expectedLow;
+  // How many σ an interface's reading is from its baseline's mean.
+  private static getSigmasAway(breach: UtilizationBreach): number {
+    return breach.baseline.stddev > 0
+      ? Math.abs(breach.observed - breach.baseline.mean) /
+          breach.baseline.stddev
+      : Number.POSITIVE_INFINITY;
+  }
 
-    let breaches: boolean = false;
-    if (input.criteriaFilter.filterType === FilterType.AnomalouslyHigh) {
-      breaches = isHighBreach;
-    } else if (input.criteriaFilter.filterType === FilterType.AnomalouslyLow) {
-      breaches = isLowBreach;
-    } else if (input.criteriaFilter.filterType === FilterType.Anomalous) {
-      breaches = isHighBreach || isLowBreach;
-    }
-
-    if (!breaches) {
-      return null;
-    }
-
+  private static describeBreach(data: {
+    breach: UtilizationBreach;
+    sensitivity: AnomalyDetectionSensitivity;
+  }): string {
+    const { breach, sensitivity } = data;
+    const { baseline, observed } = breach;
+    const subject: string = breach.interfaceName
+      ? `SNMP interface ${breach.interfaceName} utilization`
+      : "SNMP interface utilization";
     const direction: string = observed >= baseline.mean ? "above" : "below";
 
     // A baseline with no spread has no σ to count: it held one value.
     if (baseline.stddev === 0) {
       return (
-        `SNMP interface utilization ${observed.toFixed(2)}% is ${direction} the ` +
+        `${subject} ${observed.toFixed(2)}% is ${direction} its ` +
         `same-hour baseline, which held at ${baseline.mean.toFixed(2)}% for all ` +
         `${baseline.sampleCount} samples over ${baseline.windowDays} days ` +
         `(sensitivity ${sensitivity}).`
       );
     }
 
-    const observedSigma: number = (observed - baseline.mean) / baseline.stddev;
-
     return (
-      `SNMP interface utilization ${observed.toFixed(2)}% is ` +
-      `${Math.abs(observedSigma).toFixed(2)}σ ${direction} the same-hour baseline ` +
+      `${subject} ${observed.toFixed(2)}% is ` +
+      `${SnmpMonitorCriteria.getSigmasAway(breach).toFixed(2)}σ ${direction} its same-hour baseline ` +
       `(mean ${baseline.mean.toFixed(2)}%, σ ${baseline.stddev.toFixed(2)}%, ` +
       `${baseline.sampleCount} samples over ${baseline.windowDays} days, ` +
       `sensitivity ${sensitivity}).`
@@ -513,10 +656,12 @@ export default class SnmpMonitorCriteria {
     if (
       input.criteriaFilter.checkOn === CheckOn.SnmpInterfaceUtilizationPercent
     ) {
-      const utilizations: Array<number> = SnmpMonitorCriteria.scopeInterfaces(
+      const inScope: Array<SnmpInterface> = SnmpMonitorCriteria.scopeInterfaces(
         snmpResponse?.interfaces || [],
         input.criteriaFilter,
-      )
+      );
+
+      const utilizations: Array<number> = inScope
         .map((snmpInterface: SnmpInterface) => {
           return snmpInterface.utilizationPercent;
         })
@@ -529,9 +674,9 @@ export default class SnmpMonitorCriteria {
       }
 
       /*
-       * Anomaly filters skip the static threshold entirely: the busiest
-       * in-scope interface's utilization is compared to this monitor's
-       * same-hour-of-week utilization baseline instead.
+       * Anomaly filters skip the static threshold entirely: each in-scope
+       * interface's utilization is compared to the same hour of the week of
+       * its own history on this step instead (#10985).
        */
       if (
         CriteriaFilterUtil.isAnomalyFilterType(input.criteriaFilter.filterType)
@@ -540,7 +685,8 @@ export default class SnmpMonitorCriteria {
           projectId: dataToProcess.projectId,
           monitorId: input.dataToProcess.monitorId!,
           criteriaFilter: input.criteriaFilter,
-          observedUtilizationPercent: Math.max(...utilizations),
+          stepScope: input.stepScope,
+          interfaces: inScope,
         });
       }
 

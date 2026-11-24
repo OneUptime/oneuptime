@@ -111,7 +111,7 @@ Schalten Sie beim zweiten **Nur erholen, wenn eine eigene Bedingung erfüllt ist
 
 ### Eine Prüfung mit der vorherigen vergleichen
 
-**Vorherige Prüfung** vergleicht jede Prüfung mit der vorherigen Prüfung derselben Sonde, bei der Belegung eines Datenträgers auch desselben Datenträgers. **Für die letzten** gibt an, wie lange diese Prüfung zurückliegen darf; wählen Sie den Zeitraum daher länger als das Überwachungsintervall. Angeboten wird es für dieselben Filter wie **Anzahl**.
+**Vorherige Prüfung** vergleicht jede Prüfung mit der vorherigen Prüfung derselben Sonde, bei der Belegung eines Datenträgers auch desselben Datenträgers. **Für die letzten** gibt an, wie lange diese Prüfung zurückliegen darf; wählen Sie den Zeitraum daher länger als das Überwachungsintervall. Angeboten wird es für dieselben Filter wie **Anzahl**. Außerdem wird es für **DNS-Eintragswert** angeboten, wo es die ganze DNS-Antwort mit der der vorherigen Prüfung vergleicht, mit **Ungleich** oder **Gleich**: siehe [Wenn sich die DNS-Antwort ändert](/docs/monitor/dns-monitor#wenn-sich-die-dns-antwort-ändert).
 
 Ein gemessener Wert, etwa eine Antwortzeit, trifft zu, wenn er um mehr als die unter **Änderung gegenüber der vorherigen Prüfung** eingestellte Änderung über der vorherigen Prüfung liegt (mit **Größer als**) oder darunter (mit **Kleiner als**). Die Änderung ist ein **Wert in der Einheit der Prüfung**, etwa 200 ms, oder ein **Prozent der vorherigen Prüfung**, etwa 50 %, und 0 trifft bei jedem Anstieg oder Rückgang zu. **Gleich** und **Ungleich** vergleichen mit dem vorherigen Wert selbst.
 

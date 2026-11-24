@@ -118,7 +118,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **DNS online** e **Tempo di risposta DNS (in ms)**. Attivatela per giudicare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 minuti a 24 ore, in **Nell'ultimo periodo di**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **DNS online**, **Tempo di risposta DNS (in ms)** e **Valore del record DNS**. Attivatela per giudicare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 minuti a 24 ore, in **Nell'ultimo periodo di**. Per **Valore del record DNS** l'unica scelta è **Controllo precedente**: vedete [Quando la risposta DNS cambia](#quando-la-risposta-dns-cambia).
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
@@ -126,7 +126,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 | **Tutti i valori** | Ogni controllo della finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo della finestra soddisfa la condizione. |
 | **Conteggio**, **Percentuale**, **Cambi di stato** | Quanti controlli hanno soddisfatto la condizione, la loro quota o quante volte sono passati dal soddisfarla al non soddisfarla viene confrontato con il numero impostato sotto. |
-| **Controllo precedente** | Questo controllo, confrontato con il controllo precedente della sonda come impostato in **Variazione rispetto al controllo precedente**: un tempo di risposta superiore di oltre il 50%, per esempio. Un filtro vero o falso corrisponde al controllo che ha iniziato a soddisfare la condizione. |
+| **Controllo precedente** | Questo controllo, confrontato con il controllo precedente della sonda come impostato in **Variazione rispetto al controllo precedente**: un tempo di risposta superiore di oltre il 50%, per esempio. Un filtro vero o falso corrisponde al controllo che ha iniziato a soddisfare la condizione. **Valore del record DNS** confronta l'intera risposta: vedete più sotto. |
 
 L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
 
@@ -138,11 +138,26 @@ L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero cope
 | **Trigger** | I dati mancanti contano come il problema. | I controlli in cui il silenzio è di per sé un guasto. |
 | **Treat As Zero** | La finestra viene confrontata come un singolo zero. | I contatori in cui nessun evento significa davvero zero. |
 
+### Quando la risposta DNS cambia
+
+Per sapere quando cambia la risposta di un nome, per esempio un indirizzo che si è spostato, un server di posta sostituito o un record aggiunto o sparito, confrontate **Valore del record DNS** con il controllo precedente:
+
+1. Aggiungete un filtro con **Valore del record DNS** e **Diverso da**.
+2. Spuntate **Valuta questo criterio su un periodo di tempo**. **Controllo precedente** è l'unica scelta in **Valuta** per questo filtro, e non richiede alcun valore.
+3. In **Nell'ultimo periodo di**, scegliete quanto può essere vecchio il controllo precedente: più dell'intervallo di monitoraggio.
+
+La risposta viene confrontata per intero: tutti i record del tipo, senza il loro TTL. Gli stessi record in un altro ordine sono la stessa risposta, e lo è anche un nome scritto con altre maiuscole e minuscole, perché i nomi DNS non distinguono tra maiuscole e minuscole. Un record aggiunto, rimosso o cambiato dà una risposta diversa. **Uguale a** corrisponde al caso opposto, a una risposta uguale a quella del controllo precedente, per un criterio che deve valere finché la risposta è stabile.
+
+La risposta di ogni sonda viene confrontata con la risposta precedente della stessa sonda, e quella di ogni passaggio con la propria, quindi un nome che risponde in modo diverso in regioni diverse non è un cambiamento. Un controllo che non riceve risposta, perché il nome non si risolve o la query va in timeout, non viene confrontato: a questo serve il filtro **DNS online**. Il controllo successivo che riceve una risposta viene confrontato con l'ultima risposta precedente, se rientra in **Nell'ultimo periodo di**. Senza una risposta precedente nella finestra, come al primo controllo del monitor, decide **Se nessun dato**, come per qualsiasi confronto con il controllo precedente.
+
+L'incidente o l'avviso dice qual era la risposta e qual è ora: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Esempi di criteri
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
 | Offline quando il nome smette di risolversi | **DNS online** | **Falso** | — |
+| Avvisare quando la risposta di un nome cambia | **Valore del record DNS**, valutato su **Controllo precedente** | **Diverso da** | — |
 | Avvisare quando cambia l'unico record `A` di un nome | **Valore del record DNS** | **Diverso da** | `93.184.216.34` |
 | Avvisare quando un record `MX` punta fuori dal vostro dominio | **Valore del record DNS** | **Non contiene** | `example.com` |
 | Segnare il DNS come degradato quando è lento | **Tempo di risposta DNS (in ms)** | **Maggiore di** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Tenete in cima il criterio offline predefinito: **DNS online** / **Falso**.
 2. Sotto, aggiungete un criterio con **Valore del record DNS** / **Uguale a** / il valore che vi aspettate, che segni il monitor **Operativo**.
 3. Ancora sotto, aggiungete un criterio con **DNS online** / **Vero**, che segni il monitor **Offline** e dichiari un incidente. Corrisponde solo alle risposte che non hanno il valore.
+:::
+
+:::details Un criterio che confronta la risposta con il controllo precedente scatta a ogni controllo
+Il server restituisce una parte diversa di un grande insieme di record a ogni query, come fanno alcuni nomi con bilanciamento del carico. Ognuna di queste risposte è un insieme diverso di record. Interrogate in **Server DNS (opzionale)** un server che restituisca l'intero insieme, oppure controllate invece il valore atteso con **Valore del record DNS** / **Uguale a**.
 :::
 
 :::details DNSSEC valido non corrisponde mai

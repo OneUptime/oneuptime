@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-En revanche, un réglage que quelqu'un ajoute dans OneUptime aux étapes d'un moniteur, et que votre configuration n'écrit pas, est une différence : le plan suivant montre que `monitor_steps` change, et l'apply qui suit retire le réglage, comme le dit le plan. Pour le garder, écrivez-le aussi dans votre configuration.
+En revanche, un réglage que quelqu'un ajoute dans OneUptime aux étapes d'un moniteur, et que votre configuration n'écrit pas, est une différence : le plan suivant montre que `monitor_steps` change, et l'apply qui suit retire le réglage, comme le dit le plan. Pour le garder, écrivez-le aussi dans votre configuration. Un réglage pour lequel le fournisseur n'a pas d'attribut, et une clé que OneUptime garde dans un réglage que vous écrivez avec `jsonencode()`, ne sont pas une différence, et un apply les garde : voir [Étapes de moniteur](/docs/terraform/monitor-steps).
 
 ## Les étiquettes et les autres listes auxquelles OneUptime ajoute aussi
 
