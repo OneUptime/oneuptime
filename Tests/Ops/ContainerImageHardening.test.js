@@ -2281,6 +2281,7 @@ describe("the OpenTelemetry collector pin", () => {
     "agents/OpenStackAgent/docker-compose.yml",
     "agents/OpenStackAgent/docker-compose.traces.yml",
     "agents/OpenStackAgent/docker-compose.logs.yml",
+    "agents/XcpNgAgent/docker-compose.yml",
     // The journald wrapper image the Proxmox README and guide build.
     "agents/ProxmoxAgent/README.md",
     "packages/App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown.ts",
@@ -2371,7 +2372,7 @@ describe("the OpenTelemetry collector pin", () => {
     expect(isFilesVersionOf("0.161", "0.161.0")).toBe(false);
   });
 
-  test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack and Storage Array compose files run the pinned collector", () => {
+  test("the Swarm, VMware, Database, Proxmox, Ceph, OpenStack, Storage Array and XCP-ng compose files run the pinned collector", () => {
     for (const file of [
       "agents/DockerSwarmAgent/docker-compose.yml",
       "agents/VMwareAgent/docker-compose.yml",
@@ -2382,6 +2383,7 @@ describe("the OpenTelemetry collector pin", () => {
       "agents/OpenStackAgent/docker-compose.traces.yml",
       "agents/OpenStackAgent/docker-compose.logs.yml",
       "agents/StorageArrayAgent/docker-compose.yml",
+      "agents/XcpNgAgent/docker-compose.yml",
     ]) {
       const compose = yaml.load(read(file));
       const images = Object.values(compose.services)
@@ -2559,7 +2561,8 @@ describe("the OpenTelemetry collector pin", () => {
    * what tells OneUptime the agent's version: it must stamp exactly the pin
    * the compose file beside it runs, or the version sign on the resource's
    * page compares the wrong number. The Storage Array agent runs one of
-   * three configs (the kind of array decides which), so each stamps it.
+   * three configs (the kind of array decides which), so each stamps it. The
+   * XCP-ng agent's stamps it on every pool it reports.
    */
   test.each([
     ["ProxmoxAgent", "otel-collector-config.yaml"],
@@ -2572,6 +2575,7 @@ describe("the OpenTelemetry collector pin", () => {
     ["StorageArrayAgent", "otel-collector-config.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flasharray-exporter.yaml"],
     ["StorageArrayAgent", "otel-collector-config.flashblade.yaml"],
+    ["XcpNgAgent", "otel-collector-config.yaml"],
   ])(
     "agents/%s/%s stamps the pin as oneuptime.agent.version",
     (agent, file) => {
