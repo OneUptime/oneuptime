@@ -947,8 +947,23 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
     const images: Array<HTMLImageElement> =
       getPlaceholderImages(placeholderUrl);
     if (images.length > 0) {
+      const editable: HTMLDivElement | null = editableRef.current;
       images.forEach((img: HTMLImageElement) => {
+        const holder: HTMLElement | null = img.parentElement;
         img.remove();
+        /*
+         * A placeholder pasted on a line of its own went in as a paragraph
+         * of its own: an empty one left behind is taken out too, so the
+         * editor is as it was. One the person had, holding its <br>, stays.
+         */
+        if (
+          holder &&
+          holder !== editable &&
+          (holder.tagName === "P" || holder.tagName === "DIV") &&
+          holder.childNodes.length === 0
+        ) {
+          holder.remove();
+        }
       });
       syncFromEditable();
       return;

@@ -1,12 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import {
   act,
   cleanup,
@@ -500,6 +493,54 @@ describe("an upload that fails", () => {
     }
   });
 
+  test("pasted on a line of its own, leaves the visual editor exactly as it was, no empty line behind", async () => {
+    const onChange: jest.Mock = jest.fn();
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockRejectedValue(new Error(STORAGE_FULL) as never);
+    render(<MarkdownEditor initialValue="Before" onChange={onChange} />);
+    expect(editableOf().innerHTML).toBe("<p>Before</p>");
+
+    // No cursor in the editor: the placeholder goes in as a paragraph of its own.
+    pasteInto(editableOf(), [imageFile("shot.png", MB)]);
+    expect(editableOf().querySelectorAll("p")).toHaveLength(2);
+    await flushUploads();
+    await flushUploads();
+
+    expect(editableOf().innerHTML).toBe("<p>Before</p>");
+    expect(lastChange(onChange)).toBe("Before");
+    expect(failedLines()).toHaveLength(1);
+  });
+
+  test("keeps an empty line the person had, beside the placeholder's", async () => {
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockRejectedValue(new Error(STORAGE_FULL) as never);
+    render(<MarkdownEditor initialValue="Before" />);
+    // An empty line as a browser draws one: a paragraph holding a <br>.
+    act(() => {
+      editableOf().innerHTML = "<p>Before</p><p><br></p>";
+    });
+    const emptyLine: HTMLElement = editableOf().querySelectorAll(
+      "p",
+    )[1] as HTMLElement;
+    const range: Range = document.createRange();
+    range.setStart(emptyLine, 0);
+    range.collapse(true);
+    act(() => {
+      editableOf().focus();
+    });
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    pasteInto(editableOf(), [imageFile("shot.png", MB)]);
+    await flushUploads();
+    await flushUploads();
+
+    expect(editableOf().querySelector("img")).toBeNull();
+    expect(editableOf().contains(emptyLine)).toBe(true);
+  });
+
   test("after the person switched to the markdown source, still finds its placeholder there", async () => {
     const onChange: jest.Mock = jest.fn();
     let fail: (error: unknown) => void = (): void => {};
@@ -582,7 +623,7 @@ describe("an upload that fails", () => {
     const onChange: jest.Mock = jest.fn();
     let succeed: (value: unknown) => void = (): void => {};
     jest.spyOn(ModelAPI, "create").mockReturnValue(
-      new Promise<never>((resolve: (value: unknown) => void) => {
+      new Promise<unknown>((resolve: (value: unknown) => void) => {
         succeed = resolve;
       }) as never,
     );
