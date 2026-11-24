@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "حدث خطأ ما",
-  "An unexpected error has occurred. Please reload the page to continue": "حدث خطأ غير متوقع. يُرجى إعادة تحميل الصفحة للمتابعة",
+  "This page stopped working": "توقفت هذه الصفحة عن العمل",
+  "Part of this page ran into a problem. Reload the page to continue.": "واجه جزء من هذه الصفحة مشكلة. أعد تحميل الصفحة للمتابعة.",
   "Error details": "تفاصيل الخطأ",
   "a11y": {
     "skipToMainContent": "انتقل إلى المحتوى الرئيسي",

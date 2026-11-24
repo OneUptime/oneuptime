@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Algo salió mal",
-  "An unexpected error has occurred. Please reload the page to continue": "Se produjo un error inesperado. Vuelve a cargar la página para continuar",
+  "This page stopped working": "Esta página dejó de funcionar",
+  "Part of this page ran into a problem. Reload the page to continue.": "Una parte de esta página tuvo un problema. Vuelve a cargar la página para continuar.",
   "Error details": "Detalles del error",
   "a11y": {
     "skipToMainContent": "Saltar al contenido principal",

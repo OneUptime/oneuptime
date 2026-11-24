@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "문제가 발생했습니다",
-  "An unexpected error has occurred. Please reload the page to continue": "예기치 않은 오류가 발생했습니다. 계속하려면 페이지를 새로 고치세요",
+  "This page stopped working": "이 페이지가 작동을 멈췄습니다",
+  "Part of this page ran into a problem. Reload the page to continue.": "이 페이지의 일부에 문제가 생겼습니다. 계속하려면 페이지를 새로 고치세요.",
   "Error details": "오류 세부 정보",
   "a11y": {
     "skipToMainContent": "본문으로 건너뛰기",

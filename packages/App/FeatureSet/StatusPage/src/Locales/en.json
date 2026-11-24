@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Something went wrong",
-  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue",
+  "This page stopped working": "This page stopped working",
+  "Part of this page ran into a problem. Reload the page to continue.": "Part of this page ran into a problem. Reload the page to continue.",
   "Error details": "Error details",
   "a11y": {
     "skipToMainContent": "Skip to main content",

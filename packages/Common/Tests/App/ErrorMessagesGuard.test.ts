@@ -91,6 +91,8 @@ export const LAST_RESORT_FILES: ReadonlyArray<string> = [
   "packages/Common/UI/Components/ErrorMessage/ErrorMessage.tsx",
   "packages/Common/UI/Components/ErrorMessage/ErrorExplanation.tsx",
   "packages/Common/Types/Exception/UnexplainedError.ts",
+  // The screen a part of a page that threw is replaced with (#7270).
+  "packages/Common/UI/Components/ErrorBoundary.tsx",
 ];
 
 // Buttons whose words are an empty phrase's, and say what they do.

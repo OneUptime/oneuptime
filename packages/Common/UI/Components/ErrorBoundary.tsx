@@ -5,7 +5,7 @@ import {
   reloadPage,
 } from "../Utils/NewVersion/ChunkLoadError";
 import NewVersion, { NewVersionAudience } from "../Utils/NewVersion/NewVersion";
-import { Translator } from "../Utils/TranslateTemplate";
+import { translationKey, Translator } from "../Utils/TranslateTemplate";
 import useTranslator from "../Utils/UseTranslator";
 import {
   ALERT_ICON_PATH,
@@ -85,8 +85,8 @@ interface FallbackComponentProps extends FallbackProps {
   getCapturedErrorDetails?: GetCapturedErrorDetailsFunction | undefined;
   /*
    * The screen's own words, for an error that has them (a page whose code
-   * would not download even after reloading). "Something went wrong" when
-   * not given.
+   * would not download even after reloading). CRASH_SCREEN_WORDS when not
+   * given.
    */
   title?: string | undefined;
   message?: string | undefined;
@@ -130,6 +130,25 @@ interface SupportBundleStatus {
 
 /** Where a reviewed support bundle should be sent. */
 export const SUPPORT_EMAIL: string = "support@oneuptime.com";
+
+/*
+ * What the screen says when a part of the page threw while it was drawn
+ * (#7270): what happened, in the title, and what to do next, under it. It
+ * read "Something went wrong" over "An unexpected error has occurred.
+ * Please reload the page to continue" - an empty phrase over a sentence
+ * that said nothing a person could not see (EMPTY_ERROR_PHRASES). If the
+ * reload does not help, the people who use OneUptime read what to do next
+ * in the support part under it; a visitor has only the reload.
+ */
+export const CRASH_SCREEN_WORDS: {
+  title: string;
+  message: string;
+} = {
+  title: translationKey("This page stopped working"),
+  message: translationKey(
+    "Part of this page ran into a problem. Reload the page to continue.",
+  ),
+};
 
 export const Fallback: FunctionComponent<FallbackComponentProps> = (
   props: FallbackComponentProps,
@@ -179,7 +198,7 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
   };
 
   const language: string =
-    props.language || getScreenLanguage(translator, "Something went wrong");
+    props.language || getScreenLanguage(translator, CRASH_SCREEN_WORDS.title);
   const showsSupport: boolean =
     props.showSupport ??
     NewVersion.getAudience() === NewVersionAudience.Members;
@@ -195,13 +214,11 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
         <div className="oueb-badge">{getIcon(ALERT_ICON_PATH)}</div>
         <div role="alert">
           <h1 className="oueb-title" data-testid="error-boundary-title">
-            {props.title || translator.translateText("Something went wrong")}
+            {props.title || translator.translateText(CRASH_SCREEN_WORDS.title)}
           </h1>
           <p className="oueb-message">
             {props.message ||
-              translator.translateText(
-                "An unexpected error has occurred. Please reload the page to continue",
-              )}
+              translator.translateText(CRASH_SCREEN_WORDS.message)}
           </p>
         </div>
         <div className="oueb-actions">

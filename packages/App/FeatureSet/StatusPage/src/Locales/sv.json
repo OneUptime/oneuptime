@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Något gick fel",
-  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Läs in sidan igen för att fortsätta",
+  "This page stopped working": "Den här sidan slutade fungera",
+  "Part of this page ran into a problem. Reload the page to continue.": "En del av den här sidan stötte på ett problem. Läs in sidan igen för att fortsätta.",
   "Error details": "Felinformation",
   "a11y": {
     "skipToMainContent": "Hoppa till huvudinnehåll",

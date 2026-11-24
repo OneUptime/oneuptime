@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "問題が発生しました",
-  "An unexpected error has occurred. Please reload the page to continue": "予期しないエラーが発生しました。続行するにはページを再読み込みしてください",
+  "This page stopped working": "このページは動作を停止しました",
+  "Part of this page ran into a problem. Reload the page to continue.": "このページの一部で問題が発生しました。続行するにはページを再読み込みしてください。",
   "Error details": "エラーの詳細",
   "a11y": {
     "skipToMainContent": "メインコンテンツにスキップ",

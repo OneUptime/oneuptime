@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "مشکلی پیش آمد",
-  "An unexpected error has occurred. Please reload the page to continue": "خطای غیرمنتظره‌ای رخ داد. برای ادامه، صفحه را دوباره بارگذاری کنید",
+  "This page stopped working": "این صفحه از کار افتاد",
+  "Part of this page ran into a problem. Reload the page to continue.": "بخشی از این صفحه با مشکلی روبه‌رو شد. برای ادامه، صفحه را دوباره بارگذاری کنید.",
   "Error details": "جزئیات خطا",
   "a11y": {
     "skipToMainContent": "رفتن به محتوای اصلی",
