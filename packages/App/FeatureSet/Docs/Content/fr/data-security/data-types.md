@@ -42,6 +42,8 @@ Seules les détections de confiance Élevé ou Moyen comptent : elles rendent un
 
 Quand deux types de données revendiquent les mêmes caractères, la détection la plus sûre l'emporte : la confiance la plus élevée, puis le détecteur dont les propres règles prouvent le plus, puis la correspondance la plus longue.
 
+Une valeur est aussi lue telle que les gens l'écrivent. Les échappements en pourcentage d'une URL sont lus, donc une adresse IP ou une adresse e-mail dans une chaîne de requête, comme `jane%40example.com`, est trouvée. Les chiffres d'un numéro de carte sont lus dans n'importe quelle écriture, comme des chiffres pleine chasse (`４１１１ １１１１ １１１１ １１１１`) ou des chiffres arabo-indiens, chaque écriture seule d'abord, puis ensemble. Une adresse e-mail est trouvée dans n'importe quelle écriture, comme `张伟@example.com` ou `почта@пример.рф`, ainsi qu'une adresse IPv6 juste après le deux-points d'une clé, comme `ip:2001:db8::1`. Chaque détection est la valeur telle qu'elle est écrite, donc une règle de nettoyage la cache à cet endroit.
+
 Une valeur longue est lue par fenêtres de 64 Ko qui se chevauchent de 4 Ko, donc une valeur est trouvée entière où qu'elle se trouve, et au plus 4 Mo d'une même valeur sont lus.
 
 ## Champs et colonnes

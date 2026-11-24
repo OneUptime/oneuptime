@@ -194,6 +194,8 @@ Reinicie el collector. Cada servicio cuyas trazas pasan por él envía entonces 
 | Ocultar atributo | Sustituye el valor de un atributo por un marcador. |
 | Muestra | Conserva un porcentaje de los puntos de datos que coinciden. |
 
+Una regla actúa sobre cada punto de datos, o solo sobre los que coinciden con sus filtros. Un filtro compara el nombre de la métrica o un atributo con un valor o una expresión regular, o pregunta con **Coincide con el tipo de patrón** si contiene una dirección de correo electrónico, un número de tarjeta de crédito, un número de la Seguridad Social, un número de teléfono o una dirección IP, encontrados como los encuentra una regla de depuración de registros o de trazas de ese **Tipo de patrón**. La regla **Ocultar atributo** que [Seguridad de datos](/docs/data-security/telemetry) crea para una dirección IP, una dirección de correo electrónico o un número de tarjeta en un atributo lo usa.
+
 **Métricas → Ajustes → Reglas de grabación** calcula cada minuto métricas nuevas a partir de otras métricas. Consulte [Reglas de grabación de registros](/docs/telemetry/log-recording-rules) para ver cómo funcionan las reglas de grabación.
 
 ## Solución de problemas
