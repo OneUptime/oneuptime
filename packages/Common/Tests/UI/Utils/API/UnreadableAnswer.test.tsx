@@ -1,5 +1,7 @@
-// UX rule: Docs/ux/README.md#errors
-// Must stay the first import: the client's URLs are built from HOST on load.
+/*
+ * UX rule: Docs/ux/README.md#errors
+ * Must stay the first import: the client's URLs are built from HOST on load.
+ */
 import { DASHBOARD_ORIGIN } from "./DashboardHost";
 import FakeAxiosServer, { FakeReply, FakeTransport } from "./FakeAxiosServer";
 import BaseAPI from "../../../../UI/Utils/API/API";
@@ -122,15 +124,14 @@ const countLabels: () => Promise<number> = async (): Promise<number> => {
   return await ModelAPI.count<Label>({ modelType: Label, query: {} });
 };
 
-const getLabel: () => Promise<Label | null> = async (): Promise<
-  Label | null
-> => {
-  return await ModelAPI.getItem<Label>({
-    modelType: Label,
-    id: new ObjectID(LABEL_ID),
-    select: { name: true },
-  });
-};
+const getLabel: () => Promise<Label | null> =
+  async (): Promise<Label | null> => {
+    return await ModelAPI.getItem<Label>({
+      modelType: Label,
+      id: new ObjectID(LABEL_ID),
+      select: { name: true },
+    });
+  };
 
 const listLogs: () => Promise<unknown> = async (): Promise<unknown> => {
   return await AnalyticsModelAPI.getList<Log>({
@@ -665,6 +666,72 @@ describe("whatever a client's code throws while it reads an answer", () => {
   });
 });
 
+describe("a page that asks the client's getFriendlyErrorMessage", () => {
+  /*
+   * Some two hundred places in the front ends - dashboard widgets, a
+   * table's failed load, the sign-in page - asked the client's
+   * getFriendlyErrorMessage, a server's words for a log line, for the words
+   * they draw. In a browser it answers as getFriendlyMessage does.
+   */
+  test("is told the plain sentence for an answer it could not read", async () => {
+    server.on(HTTPMethod.POST, LABELS_URL, [
+      { status: 200, rawData: CUT_SHORT },
+    ]);
+
+    const failure: unknown = await failureOf(listLabels);
+
+    expectPlainSentence(
+      BaseAPI.getFriendlyErrorMessage(failure as Error),
+      UnexplainedErrorKind.Page,
+      ["6f00000", (failure as Error).message],
+    );
+  });
+
+  test("is told the plain sentence for no answer at all, never 'Network Error.'", async () => {
+    server.on(HTTPMethod.POST, LABELS_URL, [
+      { networkErrorCode: "ERR_NETWORK" },
+    ]);
+
+    const message: string = BaseAPI.getFriendlyErrorMessage(
+      (await failureOf(listLabels)) as Error,
+    );
+
+    expectPlainSentence(message, UnexplainedErrorKind.Unreachable, [
+      "Network Error",
+    ]);
+  });
+
+  test("is told the server's failure with its reference, and a gateway's page as the server that did not answer", () => {
+    expect(
+      BaseAPI.getFriendlyErrorMessage(
+        new HTTPErrorResponse(
+          500,
+          { error: "Server Error", [ERROR_REFERENCE_FIELD]: REFERENCE },
+          {},
+        ),
+      ),
+    ).toBe(getUnexplainedServerErrorMessage(REFERENCE));
+
+    expect(
+      BaseAPI.getFriendlyErrorMessage(
+        new HTTPErrorResponse(
+          502,
+          { data: "<html><body>502 Bad Gateway</body></html>" },
+          {},
+        ),
+      ),
+    ).toBe(SERVER_DOWN_MESSAGE);
+  });
+
+  test("keeps a message somebody wrote", () => {
+    expect(
+      BaseAPI.getFriendlyErrorMessage(
+        new HTTPErrorResponse(400, { message: "Pick a probe." }, {}),
+      ),
+    ).toBe("Pick a probe.");
+  });
+});
+
 describe("what the page shows, in the reader's language", () => {
   beforeAll(async () => {
     await i18next.use(initReactI18next).init({
@@ -711,15 +778,16 @@ describe("what the page shows, in the reader's language", () => {
         <ErrorMessage message={said(failure)} onRefreshClick={() => {}} />,
       );
 
-      const text: string = withoutIsolateMarks(view.container.textContent || "");
+      const text: string = withoutIsolateMarks(
+        view.container.textContent || "",
+      );
       const words: Record<string, string> = readDashboardLocale(language);
 
       expect(text).toContain(
         words[UnexplainedErrorWords.pageWhy] || UnexplainedErrorWords.pageWhy,
       );
       expect(text).toContain(
-        words[UnexplainedErrorWords.pageNext] ||
-          UnexplainedErrorWords.pageNext,
+        words[UnexplainedErrorWords.pageNext] || UnexplainedErrorWords.pageNext,
       );
 
       for (const thrown of [
@@ -749,4 +817,3 @@ describe("a reply of the fake server", () => {
     expect((answer.data as JSONObject)["data"]).toBe(PROXY_PAGE);
   });
 });
-

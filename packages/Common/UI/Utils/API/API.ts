@@ -743,6 +743,21 @@ class BaseAPI extends API {
     return new Route("/accounts/forbidden");
   }
 
+  /*
+   * In a browser, an error a page shows is said as getFriendlyMessage says
+   * it (#8413). The client's own getFriendlyErrorMessage is for a log line
+   * or a probe's check on a server: it hands on a developer's words - a
+   * TypeError's, an answer the page could not read ("json is not
+   * iterable"), "Network Error.", a gateway's page of HTML - and some two
+   * hundred places in the front ends asked it for the words they draw: a
+   * dashboard widget, a table's failed load, the sign-in page. Asked here,
+   * it answers as getFriendlyMessage does, in a sentence ErrorExplanation
+   * says in the reader's language, with the reference the server named.
+   */
+  public static override getFriendlyErrorMessage(error: unknown): string {
+    return BaseAPI.getFriendlyMessage(error);
+  }
+
   public static getFriendlyMessage(
     err: HTTPErrorResponse | Exception | unknown,
   ): string {
