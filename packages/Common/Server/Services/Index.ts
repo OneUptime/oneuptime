@@ -623,6 +623,8 @@ import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
+import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
+import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
 import CloudResourceOwnerRuleService from "./CloudResourceOwnerRuleService";
@@ -1242,6 +1244,8 @@ const services: Array<BaseService> = [
   CloudAccountFeedService,
   CloudBudgetService,
   CloudCostRecommendationService,
+  CloudOffHoursScheduleService,
+  CloudSavingsActionService,
   CloudConnectionService,
   CloudResourceLabelRuleService,
   CloudResourceOwnerRuleService,

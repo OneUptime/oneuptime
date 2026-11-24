@@ -141,6 +141,8 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   OnCallDutyPolicyExecutionLogTimeline: AuditLogExemptionKind.RunRecord,
   OnCallDutyPolicyTimeLog: AuditLogExemptionKind.RunRecord,
   ProjectSCIMLog: AuditLogExemptionKind.RunRecord,
+  // A change OneUptime made in a cloud for a saving: the resource's timeline says who approved it.
+  CloudSavingsAction: AuditLogExemptionKind.RunRecord,
   RumSessionReplayView: AuditLogExemptionKind.RunRecord,
   SecurityEventConnectionRun: AuditLogExemptionKind.RunRecord,
   SecurityHuntRun: AuditLogExemptionKind.RunRecord,

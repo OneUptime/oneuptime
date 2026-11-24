@@ -99,6 +99,8 @@ import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
 import CloudBudget from "./CloudBudget";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
+import CloudSavingsAction from "./CloudSavingsAction";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -1366,6 +1368,8 @@ const AllModelTypes: Array<{
   CloudAccountFeed,
   CloudBudget,
   CloudCostRecommendation,
+  CloudOffHoursSchedule,
+  CloudSavingsAction,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

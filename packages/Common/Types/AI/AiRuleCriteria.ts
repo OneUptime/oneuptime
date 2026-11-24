@@ -1,4 +1,5 @@
 import AutoRemediationTriggerEntity from "../AutoRemediation/AutoRemediationTriggerEntity";
+import { CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS } from "../Cloud/CloudSavingsAi";
 import { DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS } from "../DataSecurity/DataSecurityAi";
 import { RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN } from "../Rules/RuleCriteria";
 
@@ -57,6 +58,9 @@ export const AI_RULE_CRITERIA_FIELDS_BY_TRIGGER: Readonly<
     ...DATA_SECURITY_AI_RULE_ISSUE_CRITERIA_FIELDS,
     ...TELEMETRY_AI_RULE_CRITERIA_FIELDS,
   ],
+  // A cloud saving: the kind of change, the resource's environment, its cloud (Types/Cloud/CloudSavingsAi).
+  [AutoRemediationTriggerEntity.CloudSaving]:
+    CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS,
 };
 
 const TRIGGER_ENTITY_TYPES: ReadonlyArray<AutoRemediationTriggerEntity> =
@@ -86,6 +90,7 @@ const RULES_NAME_BY_TRIGGER: Readonly<
   [AutoRemediationTriggerEntity.Log]: "log AI rules",
   [AutoRemediationTriggerEntity.Metric]: "metric AI rules",
   [AutoRemediationTriggerEntity.DataSecurityIssue]: "Data Security AI rules",
+  [AutoRemediationTriggerEntity.CloudSaving]: "savings AI rules",
 };
 
 // What a refusal calls each criterion: its column's title in the API docs.
@@ -109,6 +114,9 @@ const TRIGGER_SPECIFIC_FIELD_TITLES: Readonly<Record<string, string>> = {
   dataStoreEnvironments: "Data Store Environments",
   dataStoreLabels: "Data Store Labels",
   dataCategories: "Data Categories",
+  cloudSavingActionGroups: "Cloud Saving: Changes",
+  cloudSavingEnvironments: "Cloud Saving: Environments",
+  cloudSavingProviders: "Cloud Saving: Clouds",
 };
 
 // The criteria that are a pattern on a text, rather than a list of records.

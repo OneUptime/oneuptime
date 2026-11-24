@@ -604,6 +604,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "CloudBudget",
     "CloudConnection",
     "CloudCostRecommendation",
+    "CloudOffHoursSchedule",
+    "CloudSavingsAction",
     AnalyticsTableName.CloudCost,
     // A cloud's resources: App Platforms draws its environments from them.
     "CloudResource",
