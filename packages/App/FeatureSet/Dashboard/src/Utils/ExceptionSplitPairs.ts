@@ -272,10 +272,12 @@ function fingerprintOf(exception: TelemetryException): string {
  * (ExceptionInstance), which know nothing of the pair. With the filter on
  * they are narrowed by these, as an attribute filter narrows them
  * (ExceptionsAttributeScope), so they count what the list lists. Two reads,
- * once, by the indexes the pair has. The split ones are few (only rules
- * from before #10434 split exceptions), and at most MAX_SCOPED_FINGERPRINTS
- * are read. Empty when a read fails: the chart then counts nothing, rather
- * than every exception under a filter that says otherwise.
+ * once: the split ones by their column's partial index, the exceptions
+ * merged into them by the merge column's index. The split ones are few
+ * (only rules from before #10434 split exceptions), and at most
+ * MAX_SCOPED_FINGERPRINTS are read. Empty when a read fails: the chart then
+ * counts nothing, rather than every exception under a filter that says
+ * otherwise.
  */
 export async function readSplitExceptionFingerprints(): Promise<Array<string>> {
   try {
