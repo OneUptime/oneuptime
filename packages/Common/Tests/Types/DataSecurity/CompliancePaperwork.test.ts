@@ -21,6 +21,7 @@ import {
   getUnfoundedNumbers,
   holdTextToFacts,
   readComplianceFacts,
+  TelemetryRetentionSignal,
 } from "../../../Types/DataSecurity/ComplianceFacts";
 import DataCategory from "../../../Types/DataSecurity/DataCategory";
 import {
@@ -530,8 +531,49 @@ describe("a framework's audit evidence", () => {
 
   test("a requirement with no paragraph reads its facts, in plain English", () => {
     expect(summarizeRequirementFacts([SCOPE, CHECKS, HISTORY])).toBe(
-      "3 stores are in its scope. All 4 checks that are evidence for it pass on every store in scope. In the last 90 days, 2 issues were opened and 2 fixed, in 1 day at the median; 0 are still open.",
+      "3 stores are in its scope. All 4 checks that are evidence for it pass on every store in scope. In the last 90 days, 2 issues were opened and 2 fixed, in 1 day at the median; 0 are still open.",
     );
+  });
+
+  /*
+   * An export's PDF and a rendered Markdown break a line at a plain space:
+   * "the last 90" over "days" (NumbersKeepTheirUnitsInCodeGuard). Each
+   * figure keeps its word's line, wherever the facts' English says one.
+   */
+  test("a figure and the length of time it counts stay on one line", () => {
+    expect(
+      summarizeRequirementFacts([{ ...HISTORY, medianDaysToFix: 3 }]),
+    ).toBe(
+      "In the last 90 days, 2 issues were opened and 2 fixed, in 3 days at the median; 0 are still open.",
+    );
+    expect(describeComplianceFact(HISTORY)).toBe(
+      "In the last 90 days: 2 opened, 2 fixed in 30 hours at the median, 0 still open",
+    );
+    expect(
+      describeComplianceFact({
+        id: "F4",
+        key: "store:backups",
+        kind: ComplianceFactKind.Backups,
+        backupsEnabled: true,
+        backupRetentionDays: 1,
+      }),
+    ).toBe("Backed up, backups kept 1 day");
+    expect(
+      describeComplianceFact({
+        id: "F5",
+        key: "telemetry:logs",
+        kind: ComplianceFactKind.TelemetryRetention,
+        signal: TelemetryRetentionSignal.Logs,
+        days: 15,
+        maxDays: 30,
+      }),
+    ).toBe("OneUptime keeps its logs 15 days, some up to 30 days");
+
+    for (const fact of [HISTORY, SCOPE, CHECKS]) {
+      expect(describeComplianceFact(fact)).not.toMatch(
+        /\d (?:days?|hours?)\b/,
+      );
+    }
   });
 
   test("a period is one of the four, else 90 days", () => {
