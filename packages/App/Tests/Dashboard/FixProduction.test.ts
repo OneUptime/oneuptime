@@ -13,10 +13,12 @@ import {
 
 /*
  * The words for what production showed about a merged AI fix. Waiting for
- * the deploy and watching read alike for every fix; a verdict says what it
- * means for that kind of fix - an exception stopped, an operation made
- * faster, a monitor quiet, telemetry arriving - and its tone says at a
- * glance whether it worked.
+ * the deploy and watching read alike for every fix that is deployed, and a
+ * fix in the code that declares a store waits to be applied instead; a
+ * verdict says what it means for that kind of fix - an exception stopped,
+ * an operation made faster, a monitor quiet, telemetry arriving, a leak
+ * stopped, a store's check passing - and its tone says at a glance whether
+ * it worked.
  */
 
 describe("FIX_PRODUCTION_CHECK_LABELS", () => {
@@ -32,8 +34,13 @@ describe("FIX_PRODUCTION_CHECK_LABELS", () => {
     }
   });
 
-  test("waiting, watching and not knowing read alike for every kind of fix", () => {
+  test("waiting, watching and not knowing read alike for every kind of fix that waits for a deploy", () => {
     for (const check of Object.values(FixProductionCheck)) {
+      // Applied, not deployed: its own words, below.
+      if (check === FixProductionCheck.StoreConfiguration) {
+        continue;
+      }
+
       for (const status of [
         FixProductionStatus.AwaitingDeploy,
         FixProductionStatus.Watching,
@@ -43,6 +50,25 @@ describe("FIX_PRODUCTION_CHECK_LABELS", () => {
           FIX_PRODUCTION_LABELS[status],
         );
       }
+    }
+  });
+
+  test("a fix in the code that declares a store waits to be applied, not deployed (#10368)", () => {
+    expect(
+      FIX_PRODUCTION_CHECK_LABELS[FixProductionCheck.StoreConfiguration],
+    ).toEqual({
+      [FixProductionStatus.AwaitingDeploy]: "Merged, not applied yet",
+      [FixProductionStatus.Watching]: "Applied to some stores",
+      [FixProductionStatus.Verified]: "Applied: the check passes",
+      [FixProductionStatus.Regressed]: "The check failed again after the fix",
+      [FixProductionStatus.Unverifiable]: "Not verified as applied",
+    });
+
+    // Never a deploy: no word of it says one.
+    for (const label of Object.values(
+      FIX_PRODUCTION_CHECK_LABELS[FixProductionCheck.StoreConfiguration],
+    )) {
+      expect(label).not.toMatch(/deploy/i);
     }
   });
 
@@ -75,6 +101,18 @@ describe("FIX_PRODUCTION_CHECK_LABELS", () => {
         FixProductionCheck.Telemetry,
         "Arriving in production",
         "Telemetry stopped after the fix",
+      ],
+      // A Data Security telemetry leak's code fix (#10368).
+      [
+        FixProductionCheck.TelemetryLeak,
+        "Leak stopped in production",
+        "Still written after the fix",
+      ],
+      // A store's configuration, fixed in the code that declares it (#10368).
+      [
+        FixProductionCheck.StoreConfiguration,
+        "Applied: the check passes",
+        "The check failed again after the fix",
       ],
     ]);
   });

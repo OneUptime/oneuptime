@@ -193,6 +193,10 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Session Replays"),
   translationKey("AI Conversations"),
   translationKey("Metrics"),
+  // The stores OneUptime keeps for a project's security, and declares (#10398)
+  translationKey("Security Events"),
+  translationKey("Network Flows"),
+  translationKey("Security Address Vault"),
   // Families, each as the noun it is drawn with
   ...Object.values(DATA_STORE_FAMILY_TITLES),
   // Environments, each as the noun it is drawn with (Unknown is an exposure's too, above)
