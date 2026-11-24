@@ -99,7 +99,7 @@ Een regel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer velden*
 
 ## Incidentregels
 
-**Waarschuwingen → Regels → Incidentregels** maakt vanzelf incidenten van waarschuwingen. De eerste regel die bij een nieuwe waarschuwing past, van boven naar beneden in de lijst, meldt er een incident uit, zoals **Incident melden** op de pagina van de waarschuwing zou doen, en koppelt de waarschuwing eraan.
+**Waarschuwingen → Regels → Incidentregels** maakt vanzelf incidenten van waarschuwingen. De eerste regel die bij een nieuwe waarschuwing past, van boven naar beneden in de lijst, meldt er een incident uit, zoals **Incident melden** op de pagina van de waarschuwing zou doen, en koppelt de waarschuwing eraan. Het incident begint met de eigenaren van de waarschuwing als zijn eigenaren, die er één keer van horen, via de melding **Incident aangemaakt** ervan.
 
 :::steps
 ### De waarschuwingen uitkiezen

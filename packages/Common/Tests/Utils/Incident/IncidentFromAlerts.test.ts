@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import IncidentFromAlerts, {
   AlertForAcknowledgement,
   AlertForIncidentPrefill,
+  AlertOwnerIds,
   AlertsToAcknowledge,
   AlertStateForAcknowledgement,
   INCIDENT_PREFILL_RESOURCE_KEYS,
@@ -1051,5 +1052,185 @@ describe("IncidentFromAlerts.getAlertsToAcknowledge", () => {
       { id: "a2", currentAlertStateId: ACKNOWLEDGED.id },
     ]);
     expect(alertStates).toEqual([RESOLVED, CREATED, ACKNOWLEDGED]);
+  });
+});
+
+/*
+ * #10867: declaring an incident from an alert starts its Owners field with
+ * the alert's owners - every user and team, each once, never a user who
+ * has left the project - and the declarer can still change them.
+ */
+describe("getAlertOwnersToCarryOver", () => {
+  const ALICE: string = "a0000000-0000-4000-8000-000000000001";
+  const BOB: string = "a0000000-0000-4000-8000-000000000002";
+  const CAROL_WHO_LEFT: string = "a0000000-0000-4000-8000-000000000003";
+  const PLATFORM: string = "b0000000-0000-4000-8000-000000000001";
+  const DATABASE: string = "b0000000-0000-4000-8000-000000000002";
+
+  test("carries over every user and team owner, in the order read", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [ALICE, BOB],
+        ownerTeamIds: [PLATFORM, DATABASE],
+      }),
+    ).toEqual({ userIds: [ALICE, BOB], teamIds: [PLATFORM, DATABASE] });
+  });
+
+  test("a team owner on its own carries over", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [],
+        ownerTeamIds: [PLATFORM],
+      }),
+    ).toEqual({ userIds: [], teamIds: [PLATFORM] });
+  });
+
+  test("an owner of several alerts is carried over once, however the id is spelled", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [ALICE, BOB, ALICE.toUpperCase(), ` ${BOB} `],
+        ownerTeamIds: [PLATFORM, PLATFORM.toUpperCase()],
+      }),
+    ).toEqual({ userIds: [ALICE, BOB], teamIds: [PLATFORM] });
+  });
+
+  test("no owners: nothing to carry over", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [],
+        ownerTeamIds: [],
+      }),
+    ).toEqual({ userIds: [], teamIds: [] });
+  });
+
+  test("leaves out an owner who is no longer a member of the project", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [ALICE, CAROL_WHO_LEFT, BOB],
+        ownerTeamIds: [PLATFORM],
+        projectMemberUserIds: [BOB.toUpperCase(), ALICE],
+      }),
+    ).toEqual({ userIds: [ALICE, BOB], teamIds: [PLATFORM] });
+  });
+
+  test("every owner left: only the teams carry over", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [CAROL_WHO_LEFT],
+        ownerTeamIds: [DATABASE],
+        projectMemberUserIds: [],
+      }),
+    ).toEqual({ userIds: [], teamIds: [DATABASE] });
+  });
+
+  test("who is a member not known: the users are kept as read, for the server to judge", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [ALICE, CAROL_WHO_LEFT],
+        ownerTeamIds: [],
+        projectMemberUserIds: null,
+      }),
+    ).toEqual({ userIds: [ALICE, CAROL_WHO_LEFT], teamIds: [] });
+  });
+
+  test("ids that are not ids, and empty ones, are left out", () => {
+    expect(
+      IncidentFromAlerts.getAlertOwnersToCarryOver({
+        ownerUserIds: [undefined, null, "", "not-an-id", ALICE],
+        ownerTeamIds: ["team-platform", undefined, PLATFORM],
+      }),
+    ).toEqual({ userIds: [ALICE], teamIds: [PLATFORM] });
+  });
+});
+
+describe("countAlertOwners", () => {
+  test("counts people and teams together", () => {
+    expect(
+      IncidentFromAlerts.countAlertOwners({
+        userIds: ["a0000000-0000-4000-8000-000000000001"],
+        teamIds: [
+          "b0000000-0000-4000-8000-000000000001",
+          "b0000000-0000-4000-8000-000000000002",
+        ],
+      }),
+    ).toBe(3);
+  });
+
+  test("nothing read is no owner", () => {
+    expect(IncidentFromAlerts.countAlertOwners(null)).toBe(0);
+    expect(
+      IncidentFromAlerts.countAlertOwners({ userIds: [], teamIds: [] }),
+    ).toBe(0);
+  });
+});
+
+describe("applyOwnersToInitialValues", () => {
+  const ALICE: string = "a0000000-0000-4000-8000-000000000001";
+  const BOB: string = "a0000000-0000-4000-8000-000000000002";
+  const PLATFORM: string = "b0000000-0000-4000-8000-000000000001";
+  const DATABASE: string = "b0000000-0000-4000-8000-000000000002";
+
+  const owners: AlertOwnerIds = { userIds: [ALICE], teamIds: [PLATFORM] };
+
+  test("starts the Owners field with the alerts' owners", () => {
+    expect(
+      IncidentFromAlerts.applyOwnersToInitialValues(
+        { title: "Database is down" },
+        owners,
+      ),
+    ).toEqual({
+      title: "Database is down",
+      ownerUsers: [ALICE],
+      ownerTeams: [PLATFORM],
+    });
+  });
+
+  test("unions them with a template's owners, which keep their place first", () => {
+    expect(
+      IncidentFromAlerts.applyOwnersToInitialValues(
+        { ownerUsers: [BOB, ALICE], ownerTeams: [DATABASE] },
+        { userIds: [ALICE, BOB], teamIds: [PLATFORM, DATABASE] },
+      ),
+    ).toEqual({ ownerUsers: [BOB, ALICE], ownerTeams: [DATABASE, PLATFORM] });
+  });
+
+  test("reads owners the form holds in any shape it keeps them", () => {
+    expect(
+      IncidentFromAlerts.applyOwnersToInitialValues(
+        {
+          ownerUsers: [{ _id: BOB }] as never,
+          ownerTeams: [{ id: DATABASE.toUpperCase() }] as never,
+        },
+        owners,
+      ),
+    ).toEqual({ ownerUsers: [BOB, ALICE], ownerTeams: [DATABASE, PLATFORM] });
+  });
+
+  test("no owners to carry leaves the values as they were", () => {
+    const values: JSONObject = { title: "Database is down", ownerUsers: [BOB] };
+
+    expect(
+      IncidentFromAlerts.applyOwnersToInitialValues(values, {
+        userIds: [],
+        teamIds: [],
+      }),
+    ).toEqual(values);
+    expect(
+      IncidentFromAlerts.applyOwnersToInitialValues(
+        {},
+        {
+          userIds: [],
+          teamIds: [],
+        },
+      ),
+    ).toEqual({});
+  });
+
+  test("does not change the values it is handed", () => {
+    const values: JSONObject = { ownerUsers: [BOB] };
+
+    IncidentFromAlerts.applyOwnersToInitialValues(values, owners);
+
+    expect(values).toEqual({ ownerUsers: [BOB] });
   });
 });

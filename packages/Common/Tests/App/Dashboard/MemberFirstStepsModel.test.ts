@@ -693,3 +693,156 @@ describe("the on-call tile's words", () => {
     expect(onCall.pageMap).toBeUndefined();
   });
 });
+
+/*
+ * A server whose admins took the mobile app away (Admin Dashboard >
+ * Settings > Help and Support, #10866): no "Get the mobile app" step, and no
+ * sentence suggests the app. The step never counted towards what is left,
+ * so the card's progress - how many are left, and whether it is finished -
+ * is the same with or without it.
+ */
+describe("without the mobile app", () => {
+  const CASES: Array<[string, Partial<MemberFirstStepsInput>]> = [
+    ["a new member, set up", {}],
+    [
+      "a member still to be reached",
+      { checklist: checklistFor({ methods: [method("SMS", false)] }) },
+    ],
+    [
+      "only email while on call",
+      { checklist: checklistFor({ reachedVia: ["Team"] }) },
+    ],
+    ["a server that cannot send email", { canSendEmail: false }],
+    [
+      "reached, and a test page acknowledged",
+      { hasAcknowledgedTestPage: true },
+    ],
+    [
+      "a test page acknowledged, but only email on call",
+      {
+        hasAcknowledgedTestPage: true,
+        checklist: checklistFor({ reachedVia: ["Team"] }),
+      },
+    ],
+    [
+      "a checklist still loading",
+      { checklist: null, isChecklistLoading: true },
+    ],
+    [
+      "a push device registered",
+      {
+        checklist: checklistFor({
+          methods: [
+            method(EMAIL_METHOD_TYPE, true),
+            method(PUSH_METHOD_TYPE, true),
+          ],
+        }),
+      },
+    ],
+  ];
+
+  test.each(CASES)(
+    "%s: the same steps and progress, less the mobile app's",
+    (_name: string, overrides: Partial<MemberFirstStepsInput>) => {
+      const withApp: MemberFirstSteps = buildMemberFirstSteps(input(overrides));
+      const withoutApp: MemberFirstSteps = buildMemberFirstSteps(
+        input({ ...overrides, isMobileAppOffered: false }),
+      );
+
+      expect(stepsOf(withoutApp)).toEqual(
+        stepsOf(withApp).filter((step: string): boolean => {
+          return !step.startsWith(MemberStep.MobileApp);
+        }),
+      );
+      expect(
+        withoutApp.tiles.some((candidate: MemberStepTile): boolean => {
+          return candidate.step === MemberStep.MobileApp;
+        }),
+      ).toBe(false);
+      expect(withoutApp.openCount).toBe(withApp.openCount);
+      expect(withoutApp.isFinished).toBe(withApp.isFinished);
+      expect(withoutApp.isSettling).toBe(withApp.isSettling);
+      expect(withoutApp.reachState).toBe(withApp.reachState);
+    },
+  );
+
+  test("a new member, set up, not on call: reached, then the test page is next", () => {
+    const steps: MemberFirstSteps = buildMemberFirstSteps(
+      input({ isMobileAppOffered: false }),
+    );
+
+    expect(stepsOf(steps)).toEqual(["on_call", "reach:done", "test_page:next"]);
+    expect(steps.openCount).toBe(1);
+    expect(steps.isFinished).toBe(false);
+  });
+
+  test("reached and a test page acknowledged: finished, as with the app", () => {
+    const steps: MemberFirstSteps = buildMemberFirstSteps(
+      input({ isMobileAppOffered: false, hasAcknowledgedTestPage: true }),
+    );
+
+    expect(stepsOf(steps)).toEqual(["on_call", "reach:done", "test_page:done"]);
+    expect(steps.openCount).toBe(0);
+    expect(steps.isFinished).toBe(true);
+  });
+
+  test("only email while on call suggests a phone number, not the app", () => {
+    const reach: MemberStepTile = tile(
+      buildMemberFirstSteps(
+        input({
+          isMobileAppOffered: false,
+          checklist: checklistFor({ reachedVia: ["Team"] }),
+        }),
+      ),
+      MemberStep.Reach,
+    );
+
+    expect(reach.title).toBe(MEMBER_FIRST_STEPS_COPY.onlyEmailTitle);
+    expect(reach.description).toBe(
+      MEMBER_FIRST_STEPS_COPY.onlyEmailWithoutAppDescription,
+    );
+    expect(reach.description).toContain("add a phone number");
+    expect(reach.description).not.toMatch(/\bapp\b/i);
+    expect(reach.pageMap).toBe(PageMap.USER_SETTINGS_NOTIFICATION_METHODS);
+  });
+
+  test("a server that cannot send email suggests a phone number, not the app", () => {
+    const reach: MemberStepTile = tile(
+      buildMemberFirstSteps(
+        input({ isMobileAppOffered: false, canSendEmail: false }),
+      ),
+      MemberStep.Reach,
+    );
+
+    expect(reach.title).toBe(MEMBER_FIRST_STEPS_COPY.emailCannotReachTitle);
+    expect(reach.description).toBe(
+      MEMBER_FIRST_STEPS_COPY.emailCannotReachWithoutAppDescription,
+    );
+    expect(reach.description).toContain("Add a phone number");
+    expect(reach.description).not.toMatch(/\bapp\b/i);
+  });
+
+  test("with the app, the sentences are the ones they always were", () => {
+    expect(
+      tile(
+        buildMemberFirstSteps(
+          input({ checklist: checklistFor({ reachedVia: ["Team"] }) }),
+        ),
+        MemberStep.Reach,
+      ).description,
+    ).toBe(MEMBER_FIRST_STEPS_COPY.onlyEmailDescription);
+    expect(
+      tile(
+        buildMemberFirstSteps(input({ canSendEmail: false })),
+        MemberStep.Reach,
+      ).description,
+    ).toBe(MEMBER_FIRST_STEPS_COPY.emailCannotReachDescription);
+  });
+
+  test("left out, the app is offered, as it always was", () => {
+    expect(stepsOf(buildMemberFirstSteps(input()))).toContain("mobile_app");
+    expect(
+      stepsOf(buildMemberFirstSteps(input({ isMobileAppOffered: true }))),
+    ).toContain("mobile_app");
+  });
+});

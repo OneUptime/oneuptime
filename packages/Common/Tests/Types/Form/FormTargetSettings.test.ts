@@ -1,4 +1,5 @@
 import {
+  FORM_ALERT_TITLE_MAX_LENGTH,
   FORM_INCIDENT_TITLE_MAX_LENGTH,
   FORM_SCHEDULED_MAINTENANCE_TITLE_MAX_LENGTH,
 } from "../../../Types/Form/FormTargetCatalog";
@@ -88,8 +89,21 @@ describe("the settings each target has", () => {
     ]);
   });
 
+  test("an alert form (#10760): a default title, severity, initial state and monitor, records to attach and owners", () => {
+    expect(getFormTargetSettingKeys(FormTargetType.Alert)).toEqual([
+      "defaultTitle",
+      "alertSeverityId",
+      "alertStateId",
+      "monitorId",
+      "labelIds",
+      "onCallDutyPolicyIds",
+      "ownerUserIds",
+      "ownerTeamIds",
+    ]);
+  });
+
   test("an unknown target has none", () => {
-    expect(getFormTargetSettingKeys("Alert" as FormTargetType)).toEqual([]);
+    expect(getFormTargetSettingKeys("Monitor" as FormTargetType)).toEqual([]);
   });
 });
 
@@ -97,6 +111,7 @@ describe("validateFormTargetSettings: what the API accepts", () => {
   test("nothing at all, and an empty object, are fine", () => {
     for (const target of [
       FormTargetType.Incident,
+      FormTargetType.Alert,
       FormTargetType.ScheduledMaintenance,
     ]) {
       expect(validate(null, target)).toBeNull();
@@ -125,6 +140,58 @@ describe("validateFormTargetSettings: what the API accepts", () => {
         ownerUserIds: [B],
         ownerTeamIds: [C],
       }),
+    ).toBeNull();
+  });
+
+  test("a full alert form's settings are accepted", () => {
+    expect(
+      validate(
+        {
+          defaultTitle: "Something to check",
+          alertSeverityId: A,
+          alertStateId: B.toUpperCase(),
+          monitorId: C,
+          labelIds: [A, B],
+          onCallDutyPolicyIds: [C],
+          ownerUserIds: [A],
+          ownerTeamIds: [B],
+        },
+        FormTargetType.Alert,
+      ),
+    ).toBeNull();
+  });
+
+  test("an alert form refuses another target's settings, naming its own", () => {
+    expect(validate({ incidentSeverityId: A }, FormTargetType.Alert)).toBe(
+      '"incidentSeverityId" is not a setting of forms that create an alert. Settings: defaultTitle, alertSeverityId, alertStateId, monitorId, labelIds, onCallDutyPolicyIds, ownerUserIds, ownerTeamIds.',
+    );
+    // An alert is about one monitor: a list of them is no setting of it.
+    expect(validate({ monitorIds: [A] }, FormTargetType.Alert)).toContain(
+      '"monitorIds" is not a setting of forms that create an alert.',
+    );
+    expect(validate({ alertSeverityId: A })).toContain(
+      '"alertSeverityId" is not a setting of forms that create an incident.',
+    );
+    expect(
+      validate({ alertStateId: A }, FormTargetType.ScheduledMaintenance),
+    ).toContain(
+      '"alertStateId" is not a setting of forms that create a maintenance event.',
+    );
+  });
+
+  test("an alert form's single records are named by their ids", () => {
+    expect(validate({ alertSeverityId: 7 }, FormTargetType.Alert)).toBe(
+      "Severity must be an id.",
+    );
+    expect(validate({ alertStateId: [A] }, FormTargetType.Alert)).toBe(
+      "Initial State must be an id.",
+    );
+    expect(validate({ monitorId: "monitor" }, FormTargetType.Alert)).toBe(
+      "Monitor must be an id.",
+    );
+    // An empty id clears it, as for an incident's severity.
+    expect(
+      validate({ alertStateId: "", monitorId: null }, FormTargetType.Alert),
     ).toBeNull();
   });
 
@@ -197,6 +264,19 @@ describe("validateFormTargetSettings: what the API accepts", () => {
         FormTargetType.ScheduledMaintenance,
       ),
     ).toBe("Default Title cannot be more than 100 characters.");
+    // An alert's title column is as long as an incident's.
+    expect(
+      validate(
+        { defaultTitle: "x".repeat(FORM_ALERT_TITLE_MAX_LENGTH) },
+        FormTargetType.Alert,
+      ),
+    ).toBeNull();
+    expect(
+      validate(
+        { defaultTitle: "x".repeat(FORM_ALERT_TITLE_MAX_LENGTH + 1) },
+        FormTargetType.Alert,
+      ),
+    ).toBe("Default Title cannot be more than 500 characters.");
     // The spaces around it do not count.
     expect(
       validate(
@@ -289,6 +369,36 @@ describe("readFormTargetSettings: what is stored, as a submission reads it", () 
       incidentTemplateId: B,
       monitorIds: [A, B],
       ownerUserIds: [C],
+    });
+  });
+
+  test("keeps an alert form's settings, ids lowercased", () => {
+    expect(
+      readFormTargetSettings({
+        targetType: FormTargetType.Alert,
+        value: {
+          defaultTitle: "  Something to check  ",
+          alertSeverityId: A.toUpperCase(),
+          alertStateId: new ObjectID(B),
+          monitorId: "junk",
+          labelIds: [C, C.toUpperCase()],
+          onCallDutyPolicyIds: [A],
+          ownerUserIds: [B],
+          ownerTeamIds: [` ${C} `],
+          // Another target's settings are not an alert's.
+          incidentSeverityId: A,
+          monitorIds: [A],
+          statusPageIds: [B],
+        },
+      }),
+    ).toEqual({
+      defaultTitle: "Something to check",
+      alertSeverityId: A,
+      alertStateId: B,
+      labelIds: [C],
+      onCallDutyPolicyIds: [A],
+      ownerUserIds: [B],
+      ownerTeamIds: [C],
     });
   });
 
@@ -410,6 +520,60 @@ describe("getFormTargetSettingReferences: what the server checks against the pro
         title: "Owner Teams",
         model: FormTargetSettingReferenceModel.Team,
         ids: [C],
+      },
+    ]);
+  });
+
+  test("every id an alert form's settings name, by the record it is", () => {
+    expect(
+      getFormTargetSettingReferences({
+        targetType: FormTargetType.Alert,
+        settings: {
+          defaultTitle: "Not a reference",
+          alertSeverityId: A,
+          alertStateId: B,
+          monitorId: C,
+          labelIds: [A],
+          onCallDutyPolicyIds: [B],
+          ownerUserIds: [C],
+          ownerTeamIds: [A],
+        },
+      }),
+    ).toEqual([
+      {
+        title: "Severity",
+        model: FormTargetSettingReferenceModel.AlertSeverity,
+        ids: [A],
+      },
+      {
+        title: "Initial State",
+        model: FormTargetSettingReferenceModel.AlertState,
+        ids: [B],
+      },
+      {
+        title: "Monitor",
+        model: FormTargetSettingReferenceModel.Monitor,
+        ids: [C],
+      },
+      {
+        title: "Labels",
+        model: FormTargetSettingReferenceModel.Label,
+        ids: [A],
+      },
+      {
+        title: "On-Call Policies",
+        model: FormTargetSettingReferenceModel.OnCallDutyPolicy,
+        ids: [B],
+      },
+      {
+        title: "Owner Users",
+        model: FormTargetSettingReferenceModel.User,
+        ids: [C],
+      },
+      {
+        title: "Owner Teams",
+        model: FormTargetSettingReferenceModel.Team,
+        ids: [A],
       },
     ]);
   });

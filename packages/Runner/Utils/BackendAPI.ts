@@ -9,9 +9,11 @@ import { JSONArray, JSONObject } from "Common/Types/JSON";
 import AIAgentTaskStatus from "Common/Types/AI/AIAgentTaskStatus";
 import {
   getInfrastructureFixTaskContext,
+  getTelemetryLeakFixTaskContext,
   InfrastructureFixTaskContext,
   ImplicatedSpan,
   PerformanceFinding,
+  TelemetryLeakFixTaskContext,
 } from "Common/Types/AI/CodeFixTaskContext";
 import { CodeTaskAgentDetails } from "Common/Types/AI/CodeTask";
 import CodeAgentRunLimitsUtil, {
@@ -101,6 +103,8 @@ interface SubjectTaskDetailsResponse {
   spanSummaries?: Array<ImplicatedSpan>;
   // The fix of a group of Data Security issues' cause (FixInfrastructureCode) only.
   infrastructureFix?: unknown;
+  // A service's telemetry leaks fixed in its code (FixSensitiveDataInTelemetry) only.
+  telemetryLeakFix?: unknown;
 }
 
 interface RepositoryTokenResponse {
@@ -243,6 +247,14 @@ export interface SubjectTaskDetails {
    * fixes. None for every other recipe.
    */
   infrastructureFix?: InfrastructureFixTaskContext | null | undefined;
+  /*
+   * A service's telemetry leaks fixed in its code in one pull request
+   * (FixSensitiveDataInTelemetry, #10367) only: each leak with where its
+   * records say it is written, and the issues its pull request fixes -
+   * places, keys, data types and masked templates, never a value. None for
+   * every other recipe.
+   */
+  telemetryLeakFix?: TelemetryLeakFixTaskContext | null | undefined;
 }
 
 export interface RepositoryToken {
@@ -731,6 +743,7 @@ export default class BackendAPI {
       infrastructureFix: getInfrastructureFixTaskContext(
         data.infrastructureFix,
       ),
+      telemetryLeakFix: getTelemetryLeakFixTaskContext(data.telemetryLeakFix),
     };
   }
 

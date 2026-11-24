@@ -3,6 +3,7 @@ import { AddIncidentForms1796400000000 } from "../../../../Server/Infrastructure
 import { AddFormBranding1797700000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1797700000000-AddFormBranding";
 import { AddFormTemplates1799500000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1799500000000-AddFormTemplates";
 import { AddFormPrivateUsersAndSingleSignOn1809187140120 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187140120-AddFormPrivateUsersAndSingleSignOn";
+import { AddFormSubmissionAlert1809187540760 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187540760-AddFormSubmissionAlert";
 import {
   LEGACY_PERMISSION_RENAMES,
   MigrateIncidentFormsToForms1797400000000,
@@ -241,6 +242,12 @@ const ADDED_LATER: Array<{
     migration: new AddFormPrivateUsersAndSingleSignOn1809187140120(),
     table: "Form",
     columns: ["requireSignIn", "requireSsoForLogin"],
+  },
+  {
+    // The alert an alert form's submission created (#10760).
+    migration: new AddFormSubmissionAlert1809187540760(),
+    table: "FormSubmission",
+    columns: ["alertId"],
   },
 ];
 

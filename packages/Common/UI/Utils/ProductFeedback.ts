@@ -113,9 +113,46 @@ export default class ProductFeedback {
     };
   }
 
-  // Whether this server takes feedback: Give feedback is offered.
+  // Whether this server takes feedback at all: its questions, and the thumbs.
   public static isOn(): boolean {
     return ProductFeedback.settings?.isOn === true;
+  }
+
+  /*
+   * Whether Give feedback is offered (Help, Search, the first-week
+   * check-in): where the server takes feedback, and its admins neither hid
+   * Give feedback nor sent it to an address the server cannot email yet
+   * (Admin Dashboard > Settings > Help and Support, #10865). A server that
+   * does not say is read as offering it, as it always did.
+   */
+  public static isGiveFeedbackOffered(): boolean {
+    return (
+      ProductFeedback.settings?.isOn === true &&
+      ProductFeedback.settings.isGiveFeedbackOffered !== false
+    );
+  }
+
+  /*
+   * The page of the server's own Give feedback opens instead of the dialog,
+   * or null where it opens the dialog.
+   */
+  public static getGiveFeedbackUrl(): string | null {
+    const settings: ProductFeedbackSettings | null = ProductFeedback.settings;
+
+    return settings?.giveFeedbackGoesTo ===
+      GiveFeedbackDestination.SupportPage && settings.giveFeedbackUrl
+      ? settings.giveFeedbackUrl
+      : null;
+  }
+
+  // The address of the server's own Give feedback is emailed to, or null.
+  public static getGiveFeedbackTo(): string | null {
+    const settings: ProductFeedbackSettings | null = ProductFeedback.settings;
+
+    return settings?.giveFeedbackGoesTo ===
+      GiveFeedbackDestination.SupportTeamByEmail && settings.giveFeedbackTo
+      ? settings.giveFeedbackTo
+      : null;
   }
 
   /*
@@ -250,6 +287,15 @@ export default class ProductFeedback {
     answer: ProductFeedbackAnswer,
   ): Promise<KeptAnswer | null> {
     if (!ProductFeedback.isOn()) {
+      return null;
+    }
+
+    // Give feedback only where it is offered and opens no page of its own.
+    if (
+      answer.kind === ProductFeedbackKind.General &&
+      (!ProductFeedback.isGiveFeedbackOffered() ||
+        ProductFeedback.getGiveFeedbackUrl())
+    ) {
       return null;
     }
 

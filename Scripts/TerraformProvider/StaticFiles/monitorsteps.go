@@ -569,9 +569,12 @@ func (v MonitorStepsValue) Equal(o attr.Value) bool {
 /*
  * ListSemanticEquals: the framework calls this with the receiver being the
  * newer value (apply result or refreshed read) and the argument the prior
- * value (planned config or prior state). The prior form may be a sparse
- * subset of the newer, server-default-filled form; the newer side may never
- * disagree with the prior on a key both carry.
+ * value (planned config or prior state). The prior form may leave out what
+ * OneUptime writes of its own (a criteria's is_enabled = true, a step's
+ * GET); the newer side may never disagree with the prior on a key both
+ * carry, nor hold a setting of its own the prior leaves out - a setting
+ * added in the Dashboard reads as a change (monitorStepsHoldsOnlyWhatIsWritten,
+ * #10907), where any key the prior left out used to pass.
  */
 func (v MonitorStepsValue) ListSemanticEquals(ctx context.Context, otherValuable basetypes.ListValuable) (bool, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -606,7 +609,7 @@ func (v MonitorStepsValue) ListSemanticEquals(ctx context.Context, otherValuable
 	minePlain = normalizeMonitorStepsValues(normalizeURLWrapperLeaves(minePlain))
 	theirsPlain = normalizeMonitorStepsValues(normalizeURLWrapperLeaves(theirsPlain))
 
-	return jsonIsSubset(theirsPlain, minePlain), diags
+	return monitorStepsHoldsOnlyWhatIsWritten(theirsPlain, minePlain), diags
 }
 
 // toPlainJSON round-trips a value through encoding/json so numeric types
@@ -1187,11 +1190,15 @@ func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute 
 // every criteria's defaults written out (is_enabled = true, create_incidents
 // = false...), a step's request_type as GET, and a bare origin with its
 // trailing slash, none of which a configuration writes. They are the same
-// steps when the configuration's, as the API takes them, are a subset of the
-// imported ones with bare origins compared without their slash - the rule
-// ListSemanticEquals applies after an apply. Only right after an import
-// (isImportedFromServer): once Terraform writes the monitor, its state is
-// what the configuration says, and taking a field out is a change again.
+// steps when the imported ones hold only what the configuration's, as the
+// API takes them, say - and what OneUptime writes of its own - with bare
+// origins compared without their slash: the rule ListSemanticEquals applies
+// after an apply (monitorStepsHoldsOnlyWhatIsWritten). A setting the
+// monitor has that the configuration leaves out (active hours set in the
+// Dashboard) is a change, which the plan shows (#10907). Only right after an
+// import (isImportedFromServer): once Terraform writes the monitor, its
+// state is what the configuration says, and taking a field out is a change
+// again.
 type monitorStepsAfterImportModifier struct{}
 
 // MonitorStepsKeepImported is the monitor_steps plan modifier above.
@@ -1230,10 +1237,11 @@ func (m monitorStepsAfterImportModifier) PlanModifyList(ctx context.Context, req
 	}
 }
 
-// monitorStepsSameAfterImport: the steps a configuration writes, as the API
-// takes them, are a subset of the steps an import read, bare origins
-// compared without their trailing slash and each value written another way
-// read as the one OneUptime stores (normalizeMonitorStepsValues).
+// monitorStepsSameAfterImport: the steps an import read hold only what the
+// steps a configuration writes, as the API takes them, say - and what
+// OneUptime writes of its own (monitorStepsHoldsOnlyWhatIsWritten) - bare
+// origins compared without their trailing slash and each value written
+// another way read as the one OneUptime stores (normalizeMonitorStepsValues).
 func monitorStepsSameAfterImport(ctx context.Context, planned types.List, imported types.List) bool {
 	plannedSteps, plannedDiags := MonitorStepsToAPI(ctx, planned)
 	importedSteps, importedDiags := MonitorStepsToAPI(ctx, imported)
@@ -1247,7 +1255,7 @@ func monitorStepsSameAfterImport(ctx context.Context, planned types.List, import
 		return false
 	}
 
-	return jsonIsSubset(
+	return monitorStepsHoldsOnlyWhatIsWritten(
 		normalizeMonitorStepsValues(normalizeURLWrapperLeaves(plannedPlain)),
 		normalizeMonitorStepsValues(normalizeURLWrapperLeaves(importedPlain)),
 	)

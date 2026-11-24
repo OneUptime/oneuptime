@@ -181,7 +181,18 @@ export type CriticalAlertSentenceSlot =
   | "alarmSoundPath"
   | "appStore"
   | "googlePlay"
+  | "appPage"
   | "serverUrl";
+
+/*
+ * A browser's first step where the server's admins offer the app from a
+ * page of their own - an app catalogue, a device manager's company portal
+ * (Admin Dashboard > Settings > Help and Support, #10866) - in place of the
+ * stores: {{appPage}} is that page, as a link named by its address.
+ */
+export const GET_THE_APP_FROM_OWN_PAGE_STEP: string = translationKey(
+  "Get {{app}} for your phone from {{appPage}}.",
+);
 
 const TURN_ON_THE_SWITCH: string = translationKey(
   "Under {{notifications}}, turn on {{criticalAlerts}}.",

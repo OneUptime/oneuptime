@@ -4274,6 +4274,56 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     });
   }
 
+  /*
+   * The ids of the people in the teams, each once, read off the member rows'
+   * own userId column - nobody's User row joined - for a caller that needs
+   * no more than who they are: the on-call time logs and messages of a team
+   * on an escalation rule (#10970). Pending invitations included; pass
+   * acceptedOnly for the accepted rows alone, as getUsersInTeams.
+   */
+  @CaptureSpan()
+  public async getUserIdsInTeams(
+    teamIds: Array<ObjectID>,
+    options?: { acceptedOnly?: boolean | undefined } | undefined,
+  ): Promise<Array<ObjectID>> {
+    if (teamIds.length === 0) {
+      return [];
+    }
+
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        teamId: QueryHelper.any(teamIds),
+        ...(options?.acceptedOnly ? { hasAcceptedInvitation: true } : {}),
+      },
+      props: {
+        isRoot: true,
+      },
+      select: {
+        _id: true,
+        userId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+    });
+
+    const seen: Set<string> = new Set<string>();
+    const userIds: Array<ObjectID> = [];
+
+    for (const member of members) {
+      const userId: string = member.userId?.toString() || "";
+      const key: string = userId.toLowerCase();
+
+      if (!key || seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      userIds.push(new ObjectID(userId));
+    }
+
+    return userIds;
+  }
+
   @CaptureSpan()
   public async getUsersInTeam(teamId: ObjectID): Promise<Array<User>> {
     const members: Array<TeamMember> = await this.findBy({

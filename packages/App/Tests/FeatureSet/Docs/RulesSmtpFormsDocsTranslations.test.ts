@@ -30,6 +30,7 @@ import {
   toLatinDigits,
 } from "./DocsTranslationChecks";
 import Form from "Common/Models/DatabaseModels/Form";
+import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import MonitorLabelRule from "Common/Models/DatabaseModels/MonitorLabelRule";
 import ProjectSmtpConfig from "Common/Models/DatabaseModels/ProjectSmtpConfig";
@@ -182,6 +183,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Edit Form Domain",
     "Delete Form Domain",
     "Read Form Domain",
+    /*
+     * The permission that may create alerts, which setting up a form that
+     * creates them also takes (#10760), as the role pickers name it.
+     */
+    "Create Alert",
     // The group the generated Permission Reference heads them with.
     "Form",
     // The questions an upgraded incident form got, stored with these labels.
@@ -224,6 +230,7 @@ const WORKFLOW_COMPONENTS: Array<string> = [
   "On Create Form",
   "On Update Form",
   "On Create Incident",
+  "On Create Alert",
   "On Create Maintenance Event",
 ];
 
@@ -435,6 +442,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "A plan that includes forms.",
     "Permission to create forms.",
     "For an incident form, a severity.",
+    "For an alert form, a severity.",
+    "A form that creates alerts takes permission to create alerts.",
   ],
 };
 
@@ -1018,7 +1027,11 @@ describe("the lists this test keeps", () => {
      * builder has never listed: it is "... Maintenance Event".
      */
     // Asked of the builder itself: a step's title is filled in from a template.
-    for (const created of [new Incident(), new ScheduledMaintenance()]) {
+    for (const created of [
+      new Incident(),
+      new Alert(),
+      new ScheduledMaintenance(),
+    ]) {
       expect(
         BaseModelComponent.getComponents(created).map(
           (component: ComponentMetadata): string => {
@@ -1028,7 +1041,11 @@ describe("the lists this test keeps", () => {
       ).toContain(`On Create ${created.singularName}`);
     }
 
-    for (const created of [new Incident(), new ScheduledMaintenance()]) {
+    for (const created of [
+      new Incident(),
+      new Alert(),
+      new ScheduledMaintenance(),
+    ]) {
       expect(created.enableWorkflowOn).toEqual(
         expect.objectContaining({ create: true }),
       );
@@ -1041,6 +1058,7 @@ describe("the lists this test keeps", () => {
       `On Create ${form.singularName}`,
       `On Update ${form.singularName}`,
       `On Create ${new Incident().singularName}`,
+      `On Create ${new Alert().singularName}`,
       `On Create ${new ScheduledMaintenance().singularName}`,
     ]);
 

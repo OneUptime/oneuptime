@@ -83,8 +83,11 @@ import { QueryDeepPartialEntity } from "typeorm/query-builder/QueryPartialEntity
  * labels, and is private when the alert is; it is created through
  * IncidentService with the alert to link (INCIDENT_ALERT_IDS_TO_LINK_KEY),
  * so it is linked, announced once in the incident's feed - naming the rule
- * (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY) - and, when private, given
- * the alert's owners, exactly as a declaration by hand. Its severity is the
+ * (INCIDENT_DECLARED_BY_ALERT_INCIDENT_RULE_KEY) - and given the alert's
+ * owners (INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY, #10867): the people who own
+ * the alert own the incident it became, told of it once by its "Incident
+ * Created" notification, exactly as a declaration by hand starts with them.
+ * Its severity is the
  * rule's, or the incident severity that corresponds to the alert's. The
  * incident's own rules - on-call, owners, labels, privacy, grouping - then
  * run on it as on every new incident. Its on-call policies are never copied

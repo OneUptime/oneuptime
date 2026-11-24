@@ -70,6 +70,8 @@ flowchart TB
 
 **یک صفحه کدام حادثه‌ها را برمی‌گرداند.** نقطهٔ پایانی حادثه‌ها، حادثه‌های مانیتورهای صفحه را برمی‌گرداند، منهای آن‌هایی که به صفحات وضعیت دیگر محدود شده‌اند، و اگر صفحه فقط حادثه‌های محدودشده به خودش را نشان دهد، منهای هر حادثه‌ای که به این صفحه محدود نشده است ([یک صفحه وضعیت برای هر مخاطب](/docs/status-pages/one-status-page-per-audience) را ببینید). اینکه یک حادثه به کدام صفحه‌ها محدود شده، هرگز بخشی از پاسخ نیست.
 
+**یک صفحه حادثه‌هایش را چگونه می‌چیند.** نمای کلی و فهرست‌های حادثه و اپیزود حالت صفحه را در `incidentListMode` می‌گویند: `GroupedByEpisode`، `Separate`، `IncidentsOnly`، `EpisodesOnly`، یا `None` در نمای کلی صفحه‌ای که هیچ‌کدام را نشان نمی‌دهد. وقتی صفحه هم حادثه‌ها و هم اپیزودها را نشان می‌دهد، هر اپیزود در `episodes` و `activeEpisodes` دارای `incidents` است: حادثه‌هایی از آن که صفحه نشان می‌دهد، جدیدترین اول، هر کدام با `_id`، `title`، `declaredAt`، `incidentSeverity`، `currentIncidentState` و `monitors` خودش. آنگاه حادثه‌ای که با شناسه‌اش خوانده شود دارای `partOfEpisodes` است: هر اپیزودی که جزو آن است، با `_id` و `title` آن. با گروه‌بندی بر اساس اپیزود، یعنی وقتی **نمایش حوادث گروه‌بندی‌شده بر اساس اپیزود** روشن است، صفحه هر اپیزود را به شکل یک کارت می‌کشد و حادثه‌هایش را از کارت‌های حادثه بیرون می‌گذارد، و اپیزودی که هیچ‌کدام از آن حادثه‌ها را ندارد از فهرست‌ها کنار گذاشته می‌شود؛ `incidents` و `activeIncidents` همچنان هر حادثه‌ای را که صفحه نشان می‌دهد در بر دارند، پس خواننده‌ای که اپیزودها را نادیده بگیرد هیچ حادثه‌ای را از دست نمی‌دهد. هر جا حادثه یا اپیزودی `monitors` خود را نام می‌برد، آن‌ها فقط مانیتورهای خود صفحه‌اند.
+
 ## خواندن نمای کلی
 
 نمای کلی یک درخواست برای کل صفحه است. همان داده‌ای است که صفحهٔ وضعیت ترسیم می‌کند، و حداکثر ۱۵ ثانیه قدمت دارد.
@@ -140,7 +142,9 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `monitorStatusTimelines`، `uptimeDailyAggregate`، `monitorGroupUptimeDailyAggregate`، `monitorGroupMergedDowntime`، `statusPageHistoryChartBarColorRules` | داده‌هایی که نوارهای زمان کارکرد از آن‌ها ترسیم می‌شوند، و قواعد رنگ نوارهای صفحه. |
 | `activeIncidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، یادداشت‌های عمومی و تغییرات وضعیتشان، و وضعیت‌های حادثهٔ پروژه. |
 | `timelineIncidents` | حادثه‌های درون بازهٔ نوارهای زمان کارکرد، از جمله حل‌شده‌ها، برای راهنمای نوارها. |
-| `activeEpisodes`، `episodePublicNotes`، `episodeStateTimelines` | همین‌ها برای اپیزودهای حادثه. |
+| `timelineEpisodes` | در صفحه‌ای که اپیزودها را نشان می‌دهد اما حادثه‌ها را نه، آنچه راهنمای نوارهای زمان کارکرد و پنجرهٔ گفت‌وگوی هر روز به‌جای آن فهرست می‌کنند: هر اپیزودی که پشت حادثه‌ای درون بازهٔ نوارهاست، فقط با `declaredAt` و `monitors` صفحه برای هر کدام از حادثه‌هایش که صفحه به‌تنهایی نشان می‌داد. در هر صفحهٔ دیگری خالی است. |
+| `activeEpisodes`، `episodePublicNotes`، `episodeStateTimelines` | همین‌ها برای اپیزودهای حادثه. هر اپیزود دارای `monitors` است، یعنی مانیتورهای صفحه که حادثه‌های نمایش‌داده‌شده‌اش روی آن‌ها هستند، و وقتی صفحه حادثه‌ها را هم نشان می‌دهد، دارای `incidents` نیز هست. |
+| `incidentListMode` | اینکه صفحه حادثه‌ها و اپیزودهایش را چگونه می‌چیند: `GroupedByEpisode`، `Separate`، `IncidentsOnly`، `EpisodesOnly` یا `None`. |
 | `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates` | رویدادهای تعمیر و نگهداری که هنوز در پیش‌اند یا در جریان‌اند، یادداشت‌های عمومی و تغییرات وضعیتشان. |
 | `timelineScheduledMaintenanceEvents` | رویدادهای تعمیر و نگهداری درون بازهٔ نوارهای زمان کارکرد که آغاز شده‌اند، چه در جریان باشند چه پایان‌یافته، برای راهنمای نوارها و پنجرهٔ گفت‌وگوی هر روز: رویدادهایی که صفحه نشان می‌دهد و یکی از مانیتورهای آن را در بر دارند، هر کدام فقط با مانیتورهای صفحه. |
 | `activeAnnouncements` | اطلاعیه‌هایی که اکنون نمایش داده می‌شوند: آغازشده و پایان‌نیافته. |
@@ -195,7 +199,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | --- | -------------- |
 | `overallStatus` | وضعیت کلی صفحه، همان‌طور که بنرش نشان می‌دهد: `name`، `color` و `isOperational`. وقتی همهٔ منابع صفحه **پایش نشده** باشند، `null` است. |
 | `resources` | هر منبعی که صفحه نشان می‌دهد، به ترتیب صفحه: `name` آن در صفحه، `groupName` آن همراه با گروه‌های بالاتر، `currentStatus` آن، `isMonitored`، و `isUnderMaintenance`. |
-| `activeIncidents` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، هر کدام با `affectedResourceIds` منبع‌هایی که بر آن‌ها اثر می‌گذارد. |
+| `activeIncidents` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، هر کدام با `affectedResourceIds` منبع‌هایی که بر آن‌ها اثر می‌گذارد.در صفحه‌ای که اپیزودها را نشان می‌دهد اما حادثه‌ها را نه، اپیزودهای فعالش، که نمای کلی‌اش آن‌ها را به‌عنوان حادثه‌های فعالش فهرست می‌کند. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | رویدادهای تعمیر و نگهداری در جریان و پیش رو، هر کدام با `affectedResourceIds` خودش. |
 
 وقتی صفحه وضعیت یک منبع را نشان نمی‌دهد، `currentStatus` آن `null` است، و همچنین وقتی `isMonitored` برابر `false` باشد: هیچ چیز منبع را بررسی نمی‌کند، چون پایش مانیتورش خاموش است یا پایش همهٔ مانیتورهای گروه مانیتورش خاموش است، پس صفحه آن را **پایش نشده** نشان می‌دهد، یا هنوز هیچ چیز آن را بررسی نکرده است، پس صفحه آن را **هنوز پایش نشده** نشان می‌دهد. ‏`isUnderMaintenance` تا وقتی `true` است که رویدادی در جریان یکی از مانیتورهای منبع، یا مانیتوری در گروه مانیتورش را نام ببرد، آن مانیتورها در هر وضعیتی که باشند.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | نقطهٔ پایانی | کلیدهای پاسخ |
 | -------- | -------------------- |
-| حادثه‌ها | `incidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates`، `statusPageResources`، `monitorsInGroup` |
-| اپیزودها | `episodes`، `episodePublicNotes`، `episodeStateTimelines`، `incidentStates`، `statusPageResources`، `monitorsInGroup` |
+| حادثه‌ها | `incidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates`، `statusPageResources`، `monitorsInGroup`، `incidentListMode` |
+| اپیزودها | `episodes`، `episodePublicNotes`، `episodeStateTimelines`، `incidentStates`، `statusPageResources`، `monitorsInGroup`، `incidentListMode` |
 | رویدادهای تعمیر و نگهداری | `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates`، `statusPageResources`، `monitorsInGroup` |
 | اطلاعیه‌ها | `announcements`، `statusPageResources`، `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ for incident in incidents:
 
 ## راه‌های دیگر خواندن یک صفحهٔ وضعیت
 
-- **RSS.** هر صفحهٔ وضعیت `/rss` را ارائه می‌کند، خوراکی از حادثه‌ها، اطلاعیه‌ها و رویدادهای تعمیر و نگهداری‌اش، که هر کدام همان تاریخی را دارد که صفحه به آن می‌دهد. [نشان تعبیه‌شدنی و خوراک RSS](/docs/status-pages/index#نشان-تعبیهشدنی-و-خوراک-rss) را ببینید.
+- **RSS.** هر صفحهٔ وضعیت `/rss` را ارائه می‌کند، خوراکی از حادثه‌ها و اپیزودها، اطلاعیه‌ها و رویدادهای تعمیر و نگهداری‌اش، که هر کدام همان تاریخی را دارد که صفحه به آن می‌دهد، و حادثه‌هایش همان‌طور چیده می‌شوند که صفحه آن‌ها را می‌چیند. [نشان تعبیه‌شدنی و خوراک RSS](/docs/status-pages/index#نشان-تعبیهشدنی-و-خوراک-rss) را ببینید.
 - **llms.txt.** هر صفحهٔ وضعیت در کنار `/rss`، فایل `/llms.txt` را هم ارائه می‌کند که عامل‌های هوش مصنوعی را به خوراک RSS و JSON نمای کلی راهنمایی می‌کند.
 - **MCP.** عامل‌های هوش مصنوعی می‌توانند صفحه را از راه سرور MCP در OneUptime به نشانی `https://oneuptime.com/mcp` و بدون کلید API بخوانند، با فرستادن شناسه یا دامنهٔ صفحه به‌عنوان `statusPageIdOrDomain`. این قابلیت به‌طور پیش‌فرض روشن است؛ آن را با **فعال کردن سرور MCP** در **پیشرفته ← MCP** در منوی کناری صفحه خاموش کنید. [سرور MCP](/docs/ai/mcp-server) را ببینید.
 - **REST API.** برای ساختن یا تغییر صفحات وضعیت، منابع، مشترکان و اطلاعیه‌ها، از [API در OneUptime](/docs/api-reference/api-reference) با یک کلید API استفاده کنید.

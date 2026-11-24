@@ -70,6 +70,8 @@ flowchart TB
 
 **페이지가 반환하는 인시던트.** 인시던트 엔드포인트는 페이지 모니터의 인시던트에서 다른 상태 페이지로 한정된 것을 빼고, 페이지가 자신에게 한정된 인시던트만 보여 주도록 설정되어 있다면 이 페이지로 한정되지 않은 인시던트도 모두 뺀 것을 반환합니다([대상별 상태 페이지](/docs/status-pages/one-status-page-per-audience) 참고). 인시던트가 어떤 페이지로 한정되어 있는지는 응답에 절대 포함되지 않습니다.
 
+**페이지가 인시던트를 배치하는 방식.** 개요와 인시던트 및 에피소드 목록은 페이지의 모드를 `incidentListMode`에 담습니다. 값은 `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` 중 하나이며, 둘 다 표시하지 않는 페이지의 개요에서는 `None`입니다. 페이지가 인시던트와 에피소드를 모두 표시하는 동안에는 `episodes`와 `activeEpisodes`의 각 에피소드에 `incidents`가 붙습니다. 그 에피소드의 인시던트 중 페이지가 보여 주는 것이 최신순으로 담기며, 각각 `_id`, `title`, `declaredAt`, `incidentSeverity`, `currentIncidentState`, `monitors`가 붙습니다. 이때 ID로 읽은 인시던트에는 `partOfEpisodes`가 붙습니다. 그 인시던트가 속한 각 에피소드이며, 각각 `_id`와 `title`을 가집니다. 에피소드별로 묶는 경우, 즉 **인시던트를 에피소드별로 묶어 표시**가 켜져 있으면 페이지는 에피소드를 카드 하나로 그리고 그 인시던트를 인시던트 카드에서 빼며, 그런 인시던트가 하나도 없는 에피소드는 목록에서 빠집니다. `incidents`와 `activeIncidents`에는 여전히 페이지가 보여 주는 모든 인시던트가 담기므로, 에피소드를 무시하는 클라이언트도 놓치는 인시던트가 없습니다. 인시던트나 에피소드가 `monitors`를 나타내는 곳에서는 어디서든 페이지 자체의 모니터만 담깁니다.
+
 ## 개요 읽기
 
 개요는 페이지 전체를 위한 요청 하나입니다. 상태 페이지가 그리는 것과 같은 데이터이며, 길어야 15초 전 데이터입니다.
@@ -140,7 +142,9 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | 가동률 막대를 그리는 데이터와 페이지의 막대 색상 규칙. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | 페이지가 보여 주는 해결되지 않은 인시던트, 그 공개 메모와 상태 변경, 프로젝트의 인시던트 상태. |
 | `timelineIncidents` | 가동률 막대 기간 안의 인시던트(해결된 것 포함). 막대의 툴팁에 쓰입니다. |
-| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | 인시던트 에피소드에 대한 같은 데이터. |
+| `timelineEpisodes` | 에피소드는 표시하지만 인시던트는 표시하지 않는 페이지에서, 가동률 막대의 툴팁과 각 날짜의 대화 상자가 대신 나열하는 것. 막대 기간 안의 인시던트가 속한 각 에피소드이며, 그 인시던트 중 페이지가 단독으로도 보여 줄 인시던트마다 `declaredAt`과 페이지의 `monitors`만 붙습니다. 다른 페이지에서는 모두 비어 있습니다. |
+| `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | 인시던트 에피소드에 대한 같은 데이터. 각 에피소드에는 `monitors`(표시되는 인시던트가 있는 페이지의 모니터)가 붙고, 페이지가 인시던트도 표시하는 동안에는 `incidents`도 붙습니다. |
+| `incidentListMode` | 페이지가 인시던트와 에피소드를 배치하는 방식: `GroupedByEpisode`, `Separate`, `IncidentsOnly`, `EpisodesOnly` 또는 `None`. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | 앞으로 있거나 진행 중인 유지 관리 이벤트와 그 공개 메모, 상태 변경. |
 | `timelineScheduledMaintenanceEvents` | 가동률 막대 기간 안의, 이미 시작된 유지 관리 이벤트(진행 중이거나 지난 것). 막대의 툴팁과 각 날짜의 대화 상자에 쓰입니다. 페이지가 보여 주고 페이지의 모니터 중 하나를 포함하는 이벤트만이며, 각각 페이지의 모니터만 붙습니다. |
 | `activeAnnouncements` | 지금 표시 중인 공지: 시작되었고 아직 끝나지 않은 것. |
@@ -195,7 +199,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 | --- | -------------- |
 | `overallStatus` | 배너가 보여 주는 대로의 페이지 전체 상태: `name`, `color`, `isOperational`. 페이지의 모든 리소스가 **모니터링되지 않음**이면 `null`. |
 | `resources` | 페이지가 보여 주는 각 리소스(페이지 순서): 페이지에서의 `name`, 상위 그룹을 포함한 `groupName`, `currentStatus`, `isMonitored`, `isUnderMaintenance`. |
-| `activeIncidents` | 페이지가 보여 주는 해결되지 않은 인시던트. 각각 영향을 주는 리소스의 `affectedResourceIds` 가 붙습니다. |
+| `activeIncidents` | 페이지가 보여 주는 해결되지 않은 인시던트. 각각 영향을 주는 리소스의 `affectedResourceIds` 가 붙습니다. 에피소드는 표시하지만 인시던트는 표시하지 않는 페이지에서는 진행 중인 에피소드이며, 개요는 이를 진행 중인 인시던트로 나열합니다. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 진행 중인 유지 관리 이벤트와 앞으로 있을 이벤트. 각각 `affectedResourceIds` 가 붙습니다. |
 
 페이지가 리소스의 `currentStatus` 를 보여 주지 않으면 그 값은 `null` 이며, `isMonitored` 가 `false` 일 때도 마찬가지입니다. 이때는 모니터의 모니터링이 꺼져 있거나 모니터 그룹의 모든 모니터에서 모니터링이 꺼져 있어 아무것도 리소스를 확인하지 않으므로, 페이지는 리소스를 **모니터링되지 않음**으로 표시합니다. 아직 아무것도 리소스를 확인하지 않은 경우도 마찬가지이며, 이때 페이지는 리소스를 **아직 모니터링되지 않음**으로 표시합니다. `isUnderMaintenance` 는 진행 중인 이벤트가 리소스의 모니터나 그 모니터 그룹의 모니터를 지정하는 동안, 그 모니터들의 상태와 관계없이 `true` 입니다.
@@ -383,8 +387,8 @@ for incident in incidents:
 
 | 엔드포인트 | 응답의 키 |
 | -------- | -------------------- |
-| 인시던트 | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
-| 에피소드 | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup` |
+| 인시던트 | `incidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
+| 에피소드 | `episodes`, `episodePublicNotes`, `episodeStateTimelines`, `incidentStates`, `statusPageResources`, `monitorsInGroup`, `incidentListMode` |
 | 유지 관리 이벤트 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates`, `statusPageResources`, `monitorsInGroup` |
 | 공지 | `announcements`, `statusPageResources`, `monitorsInGroup` |
 
@@ -407,7 +411,7 @@ for incident in incidents:
 
 ## 상태 페이지를 읽는 다른 방법
 
-- **RSS.** 모든 상태 페이지는 인시던트, 공지, 유지 관리 이벤트의 피드인 `/rss`를 제공하며, 각 항목에는 페이지와 같은 날짜가 붙습니다. [임베드 배지와 RSS 피드](/docs/status-pages/index#임베드-배지와-rss-피드)를 참고하세요.
+- **RSS.** 모든 상태 페이지는 인시던트와 에피소드, 공지, 유지 관리 이벤트의 피드인 `/rss`를 제공하며, 각 항목에는 페이지와 같은 날짜가 붙고, 인시던트는 페이지와 같은 방식으로 배치됩니다. [임베드 배지와 RSS 피드](/docs/status-pages/index#임베드-배지와-rss-피드)를 참고하세요.
 - **llms.txt.** 모든 상태 페이지는 `/rss`와 함께 `/llms.txt`도 제공하며, 이 파일은 AI 에이전트에게 RSS 피드와 개요 JSON의 위치를 알려 줍니다.
 - **MCP.** AI 에이전트는 OneUptime의 MCP 서버(`https://oneuptime.com/mcp`)를 통해 API 키 없이 페이지를 읽을 수 있으며, 페이지 ID나 도메인을 `statusPageIdOrDomain`으로 넘깁니다. 기본으로 켜져 있으며, 페이지 사이드 메뉴의 **고급 → MCP**에 있는 **MCP 서버 활성화**로 끌 수 있습니다. [MCP 서버](/docs/ai/mcp-server)를 참고하세요.
 - **REST API.** 상태 페이지, 리소스, 구독자, 공지를 만들거나 바꾸려면 API 키와 함께 [OneUptime API](/docs/api-reference/api-reference)를 사용하세요.

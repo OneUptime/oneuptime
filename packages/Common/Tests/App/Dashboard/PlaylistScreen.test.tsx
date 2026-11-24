@@ -9,15 +9,16 @@ import {
   exitPageFullScreen,
   isPageFullScreen,
   usePageFullScreen,
-  useScreenWakeLock,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistScreen";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PageFullScreen";
+import { useScreenWakeLock } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistScreen";
 
 /*
  * What a wall screen nobody touches needs from the browser (issue #5235):
- * the page full screen, and the display kept awake. Both may be refused or
- * missing - jsdom has neither - and a refusal changes nothing else. The
- * browser's own calls are stood in for here, as a browser that has them
- * would answer.
+ * the page full screen (Utils/PageFullScreen, which a dashboard shown full
+ * screen asks for too, #10409), and the display kept awake
+ * (Playlist/PlaylistScreen). Both may be refused or missing - jsdom has
+ * neither - and a refusal changes nothing else. The browser's own calls are
+ * stood in for here, as a browser that has them would answer.
  */
 
 interface FullScreenStandIn {
@@ -156,13 +157,38 @@ afterEach(() => {
 });
 
 describe("full screen", () => {
-  test("a browser without it: the player offers no full screen, and asking does nothing", () => {
+  test("a browser without it: the player offers no full screen, and asking does nothing", async () => {
     expect(canShowPageFullScreen()).toBe(false);
     expect(isPageFullScreen()).toBe(false);
     expect(() => {
-      enterPageFullScreen();
+      void enterPageFullScreen();
       exitPageFullScreen();
     }).not.toThrow();
+    // Asked anyway, it answers that it was not granted.
+    await expect(enterPageFullScreen()).resolves.toBe(false);
+  });
+
+  test("granted: the ask answers that it was, and the page is full screen", async () => {
+    const stand: FullScreenStandIn = standInFullScreen();
+    restores.push(stand.restore);
+
+    await expect(enterPageFullScreen()).resolves.toBe(true);
+
+    expect(stand.requested).toBe(1);
+    expect(isPageFullScreen()).toBe(true);
+  });
+
+  test("an older browser that throws instead of refusing: not granted, and nothing thrown", async () => {
+    const stand: FullScreenStandIn = standInFullScreen();
+    restores.push(stand.restore);
+    (document.documentElement as unknown as Record<string, unknown>)[
+      "requestFullscreen"
+    ] = (): Promise<void> => {
+      throw new TypeError("Not supported");
+    };
+
+    await expect(enterPageFullScreen()).resolves.toBe(false);
+    expect(isPageFullScreen()).toBe(false);
   });
 
   test("a browser that may not (a page in a frame that forbids it) offers none either", () => {
@@ -222,9 +248,10 @@ describe("full screen", () => {
     const stand: FullScreenStandIn = standInFullScreen({ refuse: true });
     restores.push(stand.restore);
 
-    enterPageFullScreen();
+    const granted: boolean = await enterPageFullScreen();
     await settle();
 
+    expect(granted).toBe(false);
     expect(stand.requested).toBe(1);
     expect(isPageFullScreen()).toBe(false);
   });

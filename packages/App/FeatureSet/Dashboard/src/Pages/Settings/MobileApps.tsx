@@ -5,7 +5,17 @@ import Image from "Common/UI/Components/Image/Image";
 import OneUptimeLogo from "Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import EmptyState, {
+  EmptyStateSize,
+} from "Common/UI/Components/EmptyState/EmptyState";
+import {
+  MobileAppOffer,
+  MobileAppOfferKind,
+  getHelpLinkLabel,
+  getMobileAppOffer,
+} from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import {
   APP_STORE_NAME,
@@ -140,6 +150,8 @@ interface DownloadRow {
   eyebrow: string;
   title: string;
   description: string;
+  // A page of the server's own, named by its address in place of a description.
+  address?: string | undefined;
   cta: ReactElement;
   onClick: () => void;
 }
@@ -219,8 +231,78 @@ const downloadRows: Array<DownloadRow> = [
   },
 ];
 
+/*
+ * The page's words where the server's admins chose how the app is offered
+ * (Admin Dashboard > Settings > Help and Support, #10866): from a page of
+ * their own, or not at all.
+ */
+export const MOBILE_APPS_PAGE_COPY: {
+  ownPageTitle: string;
+  ownPageAction: string;
+  turnedOffTitle: string;
+  turnedOffDescription: string;
+} = {
+  ownPageTitle: translationKey("Get the app from your organization"),
+  ownPageAction: translationKey("Get the App"),
+  turnedOffTitle: translationKey("No mobile app on this server"),
+  turnedOffDescription: translationKey(
+    "This server's admins turned the mobile app off. Pages reach you through the other ways in How to Reach Me.",
+  ),
+};
+
 const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
+
+  // How the server offers the app: OneUptime's stores, its own page, or not at all.
+  const offer: MobileAppOffer | null = getMobileAppOffer(useHelpAndSupport());
+  const ownPageUrl: string | null =
+    offer?.kind === MobileAppOfferKind.OwnPage ? offer.url : null;
+
+  if (!offer) {
+    return (
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <EmptyState
+          id="mobile-apps-turned-off"
+          icon={IconProp.DevicePhoneMobile}
+          title={MOBILE_APPS_PAGE_COPY.turnedOffTitle}
+          description={MOBILE_APPS_PAGE_COPY.turnedOffDescription}
+          size={EmptyStateSize.Card}
+        />
+      </div>
+    );
+  }
+
+  const rows: Array<DownloadRow> =
+    offer.kind === MobileAppOfferKind.OwnPage
+      ? ownPageUrl
+        ? [
+            {
+              eyebrow: "",
+              title: MOBILE_APPS_PAGE_COPY.ownPageTitle,
+              description: "",
+              address: getHelpLinkLabel(ownPageUrl),
+              cta: (
+                <>
+                  <Icon
+                    icon={IconProp.ExternalLink}
+                    size={SizeProp.Five}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm font-semibold">
+                    {translator.translateText(
+                      MOBILE_APPS_PAGE_COPY.ownPageAction,
+                    )}
+                  </span>
+                </>
+              ),
+              onClick: () => {
+                openLink(ownPageUrl);
+              },
+            },
+          ]
+        : []
+      : downloadRows;
+
   return (
     <Fragment>
       <div className="mb-5 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -258,23 +340,40 @@ const MobileApps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         </div>
 
         <div className="divide-y divide-gray-100 border-t border-gray-100">
-          {downloadRows.map((row: DownloadRow, index: number) => {
+          {rows.map((row: DownloadRow, index: number) => {
             const isApk: boolean = row.eyebrow === "APK";
             return (
               <div
                 key={index}
                 className="flex flex-col gap-4 px-6 py-5 transition-colors hover:bg-gray-50/60 md:flex-row md:items-center md:justify-between md:px-10"
+                data-testid={row.address ? "mobile-apps-own-page" : undefined}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500">
-                    {row.eyebrow}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-gray-900">
+                  {row.eyebrow ? (
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-500">
+                      {row.eyebrow}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                  <p
+                    className={`${row.eyebrow ? "mt-1 " : ""}text-sm font-semibold text-gray-900`}
+                  >
                     {translator.translateText(row.title)}
                   </p>
-                  <p className="mt-0.5 text-sm text-gray-500">
-                    {translator.translateText(row.description)}
-                  </p>
+                  {row.address ? (
+                    // The page's address, as written, read left to right.
+                    <p
+                      className="mt-0.5 break-all text-sm text-gray-500"
+                      dir="ltr"
+                    >
+                      {row.address}
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-sm text-gray-500">
+                      {translator.translateText(row.description)}
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"

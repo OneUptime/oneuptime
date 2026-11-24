@@ -1,5 +1,6 @@
 import { sha256Hex } from "../AutoRemediation/RemediationPlanFingerprint";
 import { JSONObject, JSONValue } from "../JSON";
+import { NO_BREAK_SPACE } from "../NoBreakSpaces";
 import { translationKey } from "../Translator";
 import { toStableJsonText } from "./DataSecurityAi";
 
@@ -76,6 +77,18 @@ export enum ComplianceFactKind {
   AcceptedRisk = "AcceptedRisk",
   // A resource that turned a requirement off, and why.
   TurnedOff = "TurnedOff",
+  /*
+   * An exposure's assessment (#10377): one of the case's exposure issues,
+   * the window it was open, whether reads were logged and who could read
+   * it, a secret found in the store, where a person said the people live,
+   * and a notice a breach law may ask for.
+   */
+  ExposureIssue = "ExposureIssue",
+  ExposureWindow = "ExposureWindow",
+  ExposureReads = "ExposureReads",
+  SecretFound = "SecretFound",
+  PeopleLiveIn = "PeopleLiveIn",
+  BreachObligation = "BreachObligation",
 }
 
 export const COMPLIANCE_FACT_KINDS: ReadonlyArray<ComplianceFactKind> =
@@ -286,7 +299,94 @@ export interface TurnedOffFact extends FactBase<ComplianceFactKind.TurnedOff> {
   isWholeFramework: boolean;
 }
 
+// One of the exposure's issues: what its check found, and when it was open.
+export interface ExposureIssueFact
+  extends FactBase<ComplianceFactKind.ExposureIssue> {
+  title: string;
+  checkId: string;
+  severity: string;
+  status: string;
+  // ISO 8601.
+  firstDetectedAt?: string | undefined;
+  resolvedAt?: string | undefined;
+}
+
+// How long the store was exposed: ISO 8601 moments, whole hours and days.
+export interface ExposureWindowFact
+  extends FactBase<ComplianceFactKind.ExposureWindow> {
+  foundAt: string;
+  start: string;
+  // The change that exposed it; else "at least since" the first scan that saw it.
+  startIsExact: boolean;
+  startOperation?: string | undefined;
+  end?: string | undefined;
+  // How it ended: "Change", "ResponseAction" or "Scan" (by then at the latest).
+  endKind?: string | undefined;
+  isStillOpen: boolean;
+  hours: number;
+  days: number;
+}
+
+// Whether reads were logged, and who could read it, counted.
+export interface ExposureReadsFact
+  extends FactBase<ComplianceFactKind.ExposureReads> {
+  // "Logged", "NotLogged" or "Unknown".
+  logged: string;
+  isPublic: boolean;
+  outsideAccounts: number;
+  outsideAccountsUsedInWindow: number;
+  isTreatedAsRead: boolean;
+}
+
+// A secret found in the store: its type and where, never its value.
+export interface SecretFoundFact
+  extends FactBase<ComplianceFactKind.SecretFound> {
+  dataType: string;
+  location: string;
+  locationKind?: string | undefined;
+  isStillThere: boolean;
+}
+
+// Where a person said the people the data is about live.
+export interface PeopleLiveInFact
+  extends FactBase<ComplianceFactKind.PeopleLiveIn> {
+  places: Array<string>;
+}
+
+/*
+ * A notice a breach law may ask for, as plain code applied the table
+ * (BreachLaws.ts) to the facts: who must be told, its deadline counted from
+ * when the exposure was found, and what a person still checks.
+ */
+export interface BreachObligationFact
+  extends FactBase<ComplianceFactKind.BreachObligation> {
+  ruleId: string;
+  // The law's family, as a draft may name it ("GDPR", "Texas").
+  family: string;
+  // The law and its provision, as written: "GDPR Article 33".
+  law: string;
+  // "MayApply", "NotTriggered" or "NotYetInForce".
+  status: string;
+  action: string;
+  recipient: string;
+  // The deadline in words: "72 hours", "3 business days", "without undue delay".
+  deadline: string;
+  deadlineAmount?: number | undefined;
+  deadlineUnit: string;
+  // ISO 8601: when it is due, and when the exposure was found.
+  dueAt?: string | undefined;
+  countsFrom: string;
+  // What a person still checks, in words.
+  checks: Array<string>;
+}
+
 export type ComplianceFact =
+  | ExposureIssueFact
+  | ExposureWindowFact
+  | ExposureReadsFact
+  | SecretFoundFact
+  | PeopleLiveInFact
+  | BreachObligationFact
   | StoreHoldsFact
   | StoreIdentityFact
   | StoreTagsFact
@@ -340,6 +440,17 @@ export const COMPLIANCE_FACT_KIND_WORDS: Readonly<
   [ComplianceFactKind.IssueHistory]: "its issues in the period",
   [ComplianceFactKind.AcceptedRisk]: "an accepted risk",
   [ComplianceFactKind.TurnedOff]: "a resource that turned it off",
+  [ComplianceFactKind.ExposureIssue]:
+    "an issue that found the store exposed, and when it was open",
+  [ComplianceFactKind.ExposureWindow]: "how long the store was exposed, in UTC",
+  [ComplianceFactKind.ExposureReads]:
+    "whether reads of the store were logged, and who could read it",
+  [ComplianceFactKind.SecretFound]:
+    "a secret found in the store, by its type and where - never its value",
+  [ComplianceFactKind.PeopleLiveIn]:
+    "where a person said the people the data is about live",
+  [ComplianceFactKind.BreachObligation]:
+    "a notice a breach law may ask for, as plain code applied the law to these facts",
 };
 
 // What a reader is told each kind of fact is, in the Dashboard: a key the reader's language words.
@@ -370,6 +481,12 @@ export const COMPLIANCE_FACT_KIND_TITLES: Readonly<
   [ComplianceFactKind.IssueHistory]: translationKey("Issues in the period"),
   [ComplianceFactKind.AcceptedRisk]: translationKey("Accepted risk"),
   [ComplianceFactKind.TurnedOff]: translationKey("Turned off"),
+  [ComplianceFactKind.ExposureIssue]: translationKey("Exposure issue"),
+  [ComplianceFactKind.ExposureWindow]: translationKey("Exposure window"),
+  [ComplianceFactKind.ExposureReads]: translationKey("Reads"),
+  [ComplianceFactKind.SecretFound]: translationKey("Secret found"),
+  [ComplianceFactKind.PeopleLiveIn]: translationKey("Where the people live"),
+  [ComplianceFactKind.BreachObligation]: translationKey("Breach law"),
 };
 
 /*
@@ -709,6 +826,76 @@ export function readComplianceFact(value: unknown): ComplianceFact | null {
         reason: text(value["reason"]),
         isWholeFramework: value["isWholeFramework"] === true,
       };
+    case ComplianceFactKind.ExposureIssue:
+      return {
+        id,
+        key,
+        kind,
+        title: text(value["title"]),
+        checkId: text(value["checkId"]),
+        severity: text(value["severity"]),
+        status: text(value["status"]),
+        firstDetectedAt: optionalText(value["firstDetectedAt"]),
+        resolvedAt: optionalText(value["resolvedAt"]),
+      };
+    case ComplianceFactKind.ExposureWindow:
+      return {
+        id,
+        key,
+        kind,
+        foundAt: text(value["foundAt"]),
+        start: text(value["start"]),
+        startIsExact: value["startIsExact"] === true,
+        startOperation: optionalText(value["startOperation"]),
+        end: optionalText(value["end"]),
+        endKind: optionalText(value["endKind"]),
+        isStillOpen: value["isStillOpen"] === true,
+        hours: count(value["hours"]),
+        days: count(value["days"]),
+      };
+    case ComplianceFactKind.ExposureReads:
+      return {
+        id,
+        key,
+        kind,
+        logged: text(value["logged"]),
+        isPublic: value["isPublic"] === true,
+        outsideAccounts: count(value["outsideAccounts"]),
+        outsideAccountsUsedInWindow: count(
+          value["outsideAccountsUsedInWindow"],
+        ),
+        isTreatedAsRead: value["isTreatedAsRead"] === true,
+      };
+    case ComplianceFactKind.SecretFound:
+      return {
+        id,
+        key,
+        kind,
+        dataType: text(value["dataType"]),
+        location: text(value["location"]),
+        locationKind: optionalText(value["locationKind"]),
+        isStillThere: value["isStillThere"] === true,
+      };
+    case ComplianceFactKind.PeopleLiveIn:
+      return { id, key, kind, places: texts(value["places"]) };
+    case ComplianceFactKind.BreachObligation:
+      return {
+        id,
+        key,
+        kind,
+        ruleId: text(value["ruleId"]),
+        family: text(value["family"]),
+        law: text(value["law"]),
+        status: text(value["status"]),
+        action: text(value["action"]),
+        recipient: text(value["recipient"]),
+        deadline: text(value["deadline"]),
+        deadlineAmount: optionalNumber(value["deadlineAmount"]),
+        deadlineUnit: text(value["deadlineUnit"]),
+        dueAt: optionalText(value["dueAt"]),
+        countsFrom: text(value["countsFrom"]),
+        checks: texts(value["checks"]),
+      };
     default:
       return null;
   }
@@ -948,8 +1135,9 @@ function list(items: ReadonlyArray<string>): string {
   return items.filter(Boolean).join(", ");
 }
 
+// A number of days, the figure kept on its word's line (NoBreakSpaces).
 function days(value: number): string {
-  return `${value} ${value === 1 ? "day" : "days"}`;
+  return `${value}${NO_BREAK_SPACE}${value === 1 ? "day" : "days"}`;
 }
 
 /*
@@ -1087,7 +1275,7 @@ export function describeComplianceFact(fact: ComplianceFact): string {
     case ComplianceFactKind.IssueHistory:
       return `In the last ${days(fact.periodInDays)}: ${fact.opened} opened, ${fact.fixed} fixed${
         fact.medianHoursToFix !== undefined
-          ? ` in ${fact.medianHoursToFix} hours at the median`
+          ? ` in ${fact.medianHoursToFix}${NO_BREAK_SPACE}hours at the median`
           : ""
       }, ${fact.stillOpen} still open`;
     case ComplianceFactKind.AcceptedRisk:
@@ -1102,6 +1290,46 @@ export function describeComplianceFact(fact: ComplianceFact): string {
       } on ${fact.resource} (${fact.resourceKind})${
         fact.reason ? `: "${fact.reason}"` : ""
       }`;
+    case ComplianceFactKind.ExposureIssue:
+      return `${fact.severity} issue: ${fact.title} (${fact.status}${
+        fact.firstDetectedAt ? `, found ${fact.firstDetectedAt}` : ""
+      }${fact.resolvedAt ? `, closed ${fact.resolvedAt}` : ""})`;
+    case ComplianceFactKind.ExposureWindow:
+      return `Exposed ${
+        fact.startIsExact
+          ? `from ${fact.start}`
+          : `at least since ${fact.start}`
+      }${
+        fact.isStillOpen
+          ? ", and still open"
+          : fact.end
+            ? ` to ${fact.end}`
+            : ""
+      }: ${days(fact.days)} (${fact.hours} hours). Found ${fact.foundAt}`;
+    case ComplianceFactKind.ExposureReads:
+      return [
+        fact.logged === "Logged"
+          ? "Reads were logged"
+          : fact.logged === "NotLogged"
+            ? "Reads were not logged: treat the data as read"
+            : "Whether reads were logged is not known: treat the data as read",
+        fact.isPublic ? "anyone on the internet could read it" : "",
+        fact.outsideAccounts > 0
+          ? `${fact.outsideAccounts} accounts outside the company could read it`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("; ");
+    case ComplianceFactKind.SecretFound:
+      return `Secret found: ${fact.dataType} at ${fact.location}${
+        fact.isStillThere ? "" : " (no longer there)"
+      }`;
+    case ComplianceFactKind.PeopleLiveIn:
+      return `A person said the people live in ${list(fact.places)}`;
+    case ComplianceFactKind.BreachObligation:
+      return `${fact.law}: ${fact.action}, ${fact.recipient}. Deadline: ${fact.deadline}${
+        fact.dueAt ? `, due ${fact.dueAt}` : ""
+      } (${fact.status})`;
     default:
       return "";
   }

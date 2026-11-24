@@ -1,6 +1,6 @@
 # Formulär – översikt
 
-Ett formulär är en sida som alla med länken kan fylla i, utan ett OneUptime-konto. Varje inlämning skapar något i ditt projekt: en **incident**, för felrapporter, eller en **underhållshändelse**, för ändrings- och underhållsbegäranden. Du bygger formulärets frågor i en dra-och-släpp-redigerare, bestämmer hur svaren blir posten och delar länken med dem som ska använda den.
+Ett formulär är en sida som alla med länken kan fylla i, utan ett OneUptime-konto. Varje inlämning skapar något i ditt projekt: en **incident**, för felrapporter, ett **larm**, för varningar och saker som bör kontrolleras, eller en **underhållshändelse**, för ändrings- och underhållsbegäranden. Du bygger formulärets frågor i en dra-och-släpp-redigerare, bestämmer hur svaren blir posten och delar länken med dem som ska använda den.
 
 Använd ett formulär när de som märker ett problem, eller behöver en ändring, inte är de som hanterar dina incidenter och ditt underhåll: supportpersonal, kolleger på en annan avdelning, en butikschef, en kunds driftteam. De öppnar länken, svarar på dina frågor och trycker på **Skicka**. Ditt team får en vanlig incident eller händelse, med svaren i dess fält och en privat anteckning som visar vem som skickade den.
 
@@ -13,16 +13,19 @@ Använd ett formulär när de som märker ett problem, eller behöver en ändrin
 
 ## Så fungerar ett formulär
 
-```mermaid title="Från ett ifyllt formulär till en incident eller en underhållshändelse"
+```mermaid title="Från ett ifyllt formulär till en incident, ett larm eller en underhållshändelse"
 flowchart TB
     submitter["Någon med länken,<br/>utan konto"] --> page["Formulärets sida"]
     page -->|Skicka| checks["Skydd och<br/>kontroll av svar"]
     checks --> submission["Inlämning, sparad<br/>med formuläret"]
     submission --> target{"Varje inlämning skapar"}
     target -->|Incident| incident["Incident, dold<br/>på statussidor"]
+    target -->|Larm| alert["Larm, som ägarna<br/>ska kontrollera"]
     target -->|Schemalagt underhåll| event["Underhållshändelse,<br/>dold om inget annat anges"]
     incident --> response["Jourpolicyer och<br/>regler körs"]
+    alert --> response
     incident --> note["Privat anteckning: vem som skickade,<br/>övriga svar"]
+    alert --> note
     event --> note
 ```
 
@@ -49,15 +52,17 @@ När du skapar ett formulär väljer du vad **Varje inlämning skapar**. Du kan 
 | Varje inlämning skapar | Används för | Vad som händer |
 | --- | --- | --- |
 | **Incident** | Felrapporter | En incident deklareras direkt, så att dina jourpolicyer och regler körs och de som har jour får veta det. Den hålls borta från statussidor tills någon som hanterar den publicerar den. |
+| **Larm** | Varningar och saker som bör kontrolleras | Ett larm skapas, så att dess ägare får veta det och dess jourpolicyer och regler körs, utan att en incident deklareras. Ett som börjar i ett senare tillstånd, som **Bekräftad**, larmar ingen. |
 | **Schemalagt underhåll** | Ändrings- och underhållsbegäranden | En underhållshändelse schemaläggs för det tidsfönster som avsändaren ber om. Om inte formuläret säger något annat hålls den borta från sina statussidor och meddelar inga prenumeranter. |
 
-Formulär börjar med de här två, och fler sorters poster kommer.
+Att sätta upp ett formulär som skapar larm kräver också behörighet att skapa larm: se [Behörigheter](#behörigheter).
 
 ## Innan du börjar
 
 - **En plan som omfattar formulär.** På OneUptime Cloud kräver formulär planen **Growth** eller högre. Se [Plan](#plan).
 - **Behörighet att skapa formulär.** **Create Form** har Projektägare och Projektadministratörer, och de roller som du ger den till. Se [Behörigheter](#behörigheter).
 - **För ett incidentformulär, en allvarlighetsgrad.** Varje incident behöver en: från en fråga, från formulärets inställningar eller från dess incidentmall. Utan den avvisas varje inlämning. Se [Vad en inlämning skapar](/docs/forms/on-submit#så-blir-en-inlämning-en-incident).
+- **För ett larmformulär, en allvarlighetsgrad.** Varje larm behöver också en: från en fråga eller från formulärets inställningar. Se [Så blir en inlämning ett larm](/docs/forms/on-submit#så-blir-en-inlämning-ett-larm).
 
 ## Skapa ditt första formulär
 
@@ -144,6 +149,8 @@ Formulär låter personer utanför ditt team skapa incidenter och underhållshä
 | **Delete Form Domain** | Ta bort ett formulärs anpassade domäner. | Projektägare, Projektadministratör och **Edit Form** |
 | **Read Form Domain** | Se ett formulärs anpassade domäner, deras DNS-poster och hur långt var och en har kommit på vägen till HTTPS. | Alla med **Read Form** |
 
+**Ett formulär som skapar larm kräver behörighet att skapa larm.** Alla med dess länk kan skapa larm, meddela deras ägare och larma deras jour, så för att skapa ett formulär som skapar larm, göra om ett formulär till ett sådant eller ändra ett larmformulärs frågor, mallar eller inställningar under **Vid inlämning** krävs i varje fall också en behörighet som ger rätt att skapa larm: Projektägare, Projektadministratör, Projektmedlem, Larmadministratör, Larmmedlem eller **Create Alert**. Dess namn, länk, **Tar emot inlämningar**, varumärke och **IP-tillåtelselista** kräver bara behörigheterna **Form**. Utan den behörigheten erbjuds inte **Larm** när du skapar ett formulär, och det är låst på formulärets sida **Vid inlämning**, med ett verktygstips som nämner behörigheten; en begäran som görs ändå avvisas med "Only people who may create alerts can set up a form that creates them." Incident- och underhållsformulär kräver bara behörigheterna **Form**, som de alltid har gjort.
+
 Inlämningar innehåller det som främlingar har skrivit (namn, e-postadresser och svar som kanske aldrig når posten), så bara Projektägare och Projektadministratörer ser dem, om du inte ger **Read Form Submission**. Alla som kan läsa ett formulär kan se och dela dess länk. Att skicka ett formulär kräver ingen behörighet alls. Hur roller och detaljerade behörigheter samverkar kan du läsa i [Användare, team och behörigheter](/docs/permissions/index).
 
 ## Plan
@@ -156,7 +163,7 @@ Formulär är en vanlig API-resurs på `/api/form`, och deras inlämningar på `
 
 ### Frågor och inställningar
 
-Ett formulärs frågor är dess kolumn `fields`, en JSON-lista i den ordning som formuläret ställer dem, och dess inställningar under Vid inlämning är dess `targetSettings`:
+Ett formulärs `targetType` är det som varje inlämning skapar: `Incident`, `Alert` eller `ScheduledMaintenance`. Dess frågor är dess kolumn `fields`, en JSON-lista i den ordning som formuläret ställer dem, och dess inställningar under Vid inlämning är dess `targetSettings` — för ett larmformulär `defaultTitle`, `alertSeverityId`, `alertStateId`, `monitorId`, `labelIds`, `onCallDutyPolicyIds`, `ownerUserIds` och `ownerTeamIds`:
 
 ```json
 {
@@ -199,8 +206,8 @@ Varje fråga har ett eget `id` (bokstäver, siffror, `-` och `_`), en `source`, 
 | `source` | Vad den frågar |
 | --- | --- |
 | `Question` | En av formulärets egna frågor, besvarad enligt `type`: `Text`, `LongText`, `Markdown`, `Number`, `Dropdown`, `MultiSelectDropdown`, `Boolean`, `Date`, `DateTime`, `File` eller `MultipleFiles`. En listruta listar sina `dropdownOptions`, en per rad. |
-| `TargetField` | Ett fält i det som formuläret skapar, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` och `impactStartedAt` för en incident; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` och `labels` för en underhållshändelse. Ett fält som besvaras genom att välja listar de poster som det erbjuder i `allowedOptionIds`. |
-| `TargetCustomField` | Ett av incidentens eller händelsens anpassade fält, angivet med `customFieldId`. |
+| `TargetField` | Ett fält i det som formuläret skapar, angivet med `targetField`: `title`, `description`, `incidentSeverityId`, `monitors`, `labels` och `impactStartedAt` för en incident; `title`, `description`, `alertSeverityId`, `monitor`, `labels` och `impactStartedAt` för ett larm; `title`, `description`, `startsAt`, `endsAt`, `monitors`, `statusPages` och `labels` för en underhållshändelse. Ett fält som besvaras genom att välja listar de poster som det erbjuder i `allowedOptionIds`. |
+| `TargetCustomField` | Ett av incidentens, larmets eller händelsens anpassade fält, angivet med `customFieldId`. |
 | `Submitter` | Avsändarens `Name` eller `Email`, angivet med `submitterField`. |
 
 En fråga med `isHidden` satt till `true` visas inte på den offentliga sidan, är aldrig obligatorisk och besvaras bara från den mall som en inlämning anger, om inte den mallen ställer den. `isRequired` och `isHidden` är formulärets standard; varje mall kan ställa en fråga på sitt eget sätt.
@@ -249,7 +256,7 @@ curl -X POST https://oneuptime.com/api/form-submission/get-list \
   -H "Content-Type: application/json" \
   -d '{
     "query": { "formId": "<form-id>" },
-    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "scheduledMaintenanceId": true, "createdAt": true },
+    "select": { "submitterName": true, "submitterEmail": true, "answers": true, "incidentId": true, "alertId": true, "scheduledMaintenanceId": true, "createdAt": true },
     "limit": 50,
     "skip": 0
   }'
@@ -259,7 +266,7 @@ Svaret på en filfråga är filerna så som de sparades, var och en med sin `fil
 
 ### Arbetsflöden
 
-Formulär har de genererade arbetsflödeskomponenterna: **Vid skapande: Formulär**, **Vid uppdatering: Formulär** och så vidare. Använd **Vid skapande: Incident** eller **Vid skapande: Underhållshändelse** för att agera på det som ett formulär har skapat.
+Formulär har de genererade arbetsflödeskomponenterna: **Vid skapande: Formulär**, **Vid uppdatering: Formulär** och så vidare. Använd **Vid skapande: Incident**, **Vid skapande: Larm** eller **Vid skapande: Underhållshändelse** för att agera på det som ett formulär har skapat.
 
 ### Den offentliga sidans egna slutpunkter
 

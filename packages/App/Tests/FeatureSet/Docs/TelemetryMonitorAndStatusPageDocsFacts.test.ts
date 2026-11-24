@@ -704,8 +704,9 @@ describe("OneUptime's own downtime is not silence", () => {
       "await ReceivingCoverage.planTelemetryEvaluation({ windowInMs: TelemetryMonitorWindow.getWindowInMs({",
     );
     const skip: number = TELEMETRY_JOB.indexOf("if (!plan.evaluate) {");
+    // With when the evaluation began, which its log entry times (#10809).
     const check: number = TELEMETRY_JOB.indexOf(
-      "await MonitorResourceUtil.monitorResource(response);",
+      "await MonitorResourceUtil.monitorResource(response, {",
     );
 
     expect(plan).toBeGreaterThan(-1);

@@ -41,6 +41,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../../Types/Date";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
@@ -268,8 +269,14 @@ function summarize(
       row.time.getTime() < data.windowStart.getTime() ||
       row.time.getTime() > data.windowEnd.getTime() ||
       !Object.entries(data.attributes || {}).every(
-        ([key, value]: [string, string]): boolean => {
-          return row.attributes[key] === value;
+        ([key, value]: [string, string | Array<string>]): boolean => {
+          /*
+           * A list is any of its values, a missing key read as "", as the
+           * statement's map reads it: the step of a series (#10906).
+           */
+          return Array.isArray(value)
+            ? value.includes(String(row.attributes[key] ?? ""))
+            : row.attributes[key] === value;
         },
       )
     ) {
@@ -447,6 +454,19 @@ describe("A flapping access point is unstable, and one that is down is an outage
                 row.time.getTime() <= time.endValue.getTime() &&
                 Object.entries(attributes).every(
                   ([key, value]: [string, unknown]): boolean => {
+                    /*
+                     * Includes is any of its values, a missing key read as
+                     * "", as the analytics query reads a map: a one-step
+                     * monitor's step, or no step (#10906).
+                     */
+                    if (value instanceof Includes) {
+                      return value.values
+                        .map((included: string | number | ObjectID) => {
+                          return included.toString();
+                        })
+                        .includes(String(row.attributes[key] ?? ""));
+                    }
+
                     return row.attributes[key] === value;
                   },
                 )

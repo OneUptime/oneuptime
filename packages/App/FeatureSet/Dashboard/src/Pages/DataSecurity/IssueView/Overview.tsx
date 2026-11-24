@@ -30,6 +30,7 @@ import {
 } from "../../../Components/DataSecurity/IssueDataTypes";
 import { getStoreViewRoute } from "../../../Components/DataSecurity/IssueListRoute";
 import IssueAiAnalysisCard from "../../../Components/DataSecurity/IssueAiAnalysisCard";
+import IssueCodeFix from "../../../Components/DataSecurity/IssueCodeFix";
 import {
   AcceptIssueRiskModal,
   AssignIssueModal,
@@ -43,6 +44,8 @@ import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
+import { isServiceTelemetryFix } from "../../../Components/DataSecurity/TelemetryFixCopy";
+import TelemetryFixModal from "../../../Components/DataSecurity/TelemetryFixModal";
 import {
   STORE_DATA_TYPES_NOT_LOADED,
   StoreDataTypesRead,
@@ -93,6 +96,7 @@ import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
 import API from "Common/UI/Utils/API/API";
+import Toast from "Common/UI/Utils/Toast";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -136,7 +140,6 @@ const NO_DATA_TYPES: string = translationKey("No sensitive data found yet.");
 const UNKNOWN_CHECK: string = translationKey(
   "This check is no longer in the catalog. Its evidence is below.",
 );
-const OPEN_TASK: string = translationKey("Open the task");
 const HOW_TO_FIX: string = translationKey(
   "Fix it in the console, from the CLI or with Terraform, then mark it resolved: the store is checked again at once.",
 );
@@ -146,11 +149,18 @@ const HOW_TO_FIX_TELEMETRY: string = translationKey(
 );
 const MORE_ACTIONS: string = translationKey("More actions");
 
-type IssueDialog = "accept" | "assign" | "repository" | "notAnIssue" | null;
+type IssueDialog =
+  | "accept"
+  | "assign"
+  | "repository"
+  | "notAnIssue"
+  // Fix with AI's plan for a service's telemetry leaks (#10367).
+  | "telemetryFix"
+  | null;
 
+// Why Fix with AI started nothing, in the server's words.
 interface FixNotice {
   message: string;
-  taskId?: string | undefined;
 }
 
 // The requirements an issue is evidence for: its own, else its check's.
@@ -269,6 +279,15 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const storeId: string =
     issue.dataStoreId?.toString() || store?._id?.toString() || "";
   const storeName: string = store?.name || "";
+  /*
+   * An issue in a service's telemetry: Fix with AI shows the one pull
+   * request that stops the service writing all of its leaks first (#10367).
+   */
+  const isServiceTelemetry: boolean = isServiceTelemetryFix({
+    isTelemetryCheck: isTelemetryFindingCheck(issue.checkId),
+    storeKind: store?.kind,
+    serviceId: store?.serviceId,
+  });
   const title: string =
     translator.translateText(check?.title || issue.title) || issue.title || "";
 
@@ -321,7 +340,8 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
    * when something stands in the way - AI is off, no Runner is online, no
    * repository the person may change is connected - and says what to fix;
    * or, when the person may ask in several repositories, lists them to
-   * choose from (#10362).
+   * choose from (#10362). A run that started says so in a toast, and the
+   * How to Fix card says where it stands from then on (IssueCodeFix).
    */
   const askForFix: (
     codeRepositoryId?: ObjectID | undefined,
@@ -334,7 +354,7 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     );
 
     if (result.aiRunId) {
-      setFixNotice({ message: result.message, taskId: result.aiRunId });
+      Toast.success(translator.translateText(result.message) || result.message);
       view.refresh();
       return true;
     }
@@ -350,9 +370,16 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   };
 
   const fixWithAi: () => Promise<void> = async (): Promise<void> => {
-    setIsFixing(true);
     setActionError("");
     setFixNotice(null);
+
+    // A service's telemetry fix is shown before it is asked for.
+    if (isServiceTelemetry) {
+      setDialog("telemetryFix");
+      return;
+    }
+
+    setIsFixing(true);
 
     try {
       await askForFix();
@@ -928,6 +955,11 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         buttons={fixButtons}
       >
         <div className="space-y-4">
+          {/* The issue keeps its fix: its pull request and where it stands (#10367). */}
+          <IssueCodeFix
+            issueId={view.issueId}
+            refreshToggle={view.refreshToggle}
+          />
           {issue.status === DataSecurityIssueStatus.Open && storeId ? (
             <IssueResponseAction
               issueId={view.issueId}
@@ -944,27 +976,13 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           )}
           {fixNotice ? (
             <Alert
-              type={fixNotice.taskId ? AlertType.SUCCESS : AlertType.WARNING}
+              type={AlertType.WARNING}
               title={fixNotice.message}
               dataTestId="data-security-issue-fix-notice"
               onClose={() => {
                 setFixNotice(null);
               }}
             />
-          ) : (
-            <></>
-          )}
-          {fixNotice?.taskId ? (
-            <AppLink
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline"
-              to={RouteUtil.populateRouteParams(
-                RouteMap[PageMap.CODE_TASK_VIEW] as Route,
-                { modelId: new ObjectID(fixNotice.taskId) },
-              )}
-            >
-              <Icon icon={IconProp.ExternalLink} className="h-4 w-4" />
-              <span>{translator.translateText(OPEN_TASK)}</span>
-            </AppLink>
           ) : (
             <></>
           )}
@@ -1038,6 +1056,24 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
           onSubmit={async (pick: IssueAssigneePick): Promise<void> => {
             await view.updateIssue(getIssueAssignWrite(pick));
             setDialog(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {dialog === "telemetryFix" ? (
+        <TelemetryFixModal
+          issueId={view.issueId}
+          onClose={() => {
+            setDialog(null);
+          }}
+          onStarted={(result: DataSecurityFixResult) => {
+            setDialog(null);
+            Toast.success(
+              translator.translateText(result.message) || result.message,
+            );
+            view.refresh();
           }}
         />
       ) : (

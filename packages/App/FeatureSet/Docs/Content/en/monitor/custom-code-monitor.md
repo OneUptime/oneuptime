@@ -167,7 +167,7 @@ Once captured, these metrics appear in the Metric Explorer under names like `cus
 
 Some attribute names are OneUptime's own, and a script cannot write them. If your script sets one, the attribute is dropped — the metric itself is still recorded — and a warning naming the key is written to the OneUptime server logs. They are:
 
-- The monitor's identity: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `isCustomMetric`.
+- The monitor's identity: `monitorId`, `projectId`, `monitorName`, `probeName`, `probeId`, `monitorStepId`, `isCustomMetric`.
 - Anything in the `oneuptime.` or `resource.` namespaces — these carry the identifiers OneUptime stamps at ingest.
 - Resource identity attributes: `service.name`, `host.name`, `k8s.cluster.name`, `iot.fleet.name`, `proxmox.cluster.name`, `openstack.cloud.name`, `vmware.vcenter.name`, `ceph.cluster.name`, `storage.array.name` and `docker.swarm.cluster.name`.
 

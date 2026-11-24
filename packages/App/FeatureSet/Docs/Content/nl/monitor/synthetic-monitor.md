@@ -156,13 +156,15 @@ return {
 
 Een uitvoering bewaart tot 20 schermafbeeldingen, elk tot 10 MB en samen 50 MB. Een schermafbeelding kan ook verschijnen in het incident of de waarschuwing die een mislukte uitvoering opent (op de pagina ervan en in de e-mails erover) door haar in de incident- of waarschuwingsbeschrijving van de monitor te plaatsen. Zie [Een schermafbeelding tonen](/docs/monitor/incident-alert-templating#een-schermafbeelding-tonen).
 
+Als een uitvoering een time-out krijgt, maakt de sonde ook een schermafbeelding van elke pagina die het script nog open heeft, zodat u ziet waar het is gestopt. De schermafbeelding van de eerste pagina heet `timed-out-page`, die van de andere `timed-out-page-2`, `timed-out-page-3` enzovoort, in de volgorde waarin de pagina's zijn geopend. De samenvatting van de monitor toont ze als “Pagina toen het script een time-out kreeg” en “Pagina 2 toen het script een time-out kreeg”, en de beschrijving van een incident of waarschuwing kan ze tonen zoals elke andere schermafbeelding. Ze tellen mee voor de limieten hierboven, na de schermafbeeldingen van het script zelf.
+
 De schermafbeeldingen van een controle worden bewaard in de logboeken van de monitor zelf, niet in de logboeken van een incident of een waarschuwing en niet in de statuswijzigingen van een monitor: die bewaren de rest van de controle, en elke uitvoering waarvan de schermafbeeldingen zijn weggelaten, meldt dat (`areScreenshotsOmitted`). Schermafbeeldingen die daar al eerder zijn opgeslagen, worden na de upgrade beetje bij beetje gewist door een taak die elk uur draait, tot er geen meer over zijn.
 
 > [!NOTE]
 > Bij een zelfgehoste installatie hergebruikt PostgreSQL de ruimte die de gewiste schermafbeeldingen achterlaten, maar geeft die niet terug aan de schijf. Om de database te verkleinen zodra ze gewist zijn, voert u in een onderhoudsvenster `VACUUM FULL` uit op de grootste tabellen, omdat dat elke tabel vergrendelt terwijl het die herschrijft, of gebruikt u `pg_repack`, dat dat niet doet.
 
 :::details Schermafbeeldingen teruggeven (verouderd)
-Voor achterwaartse compatibiliteit kunt u schermafbeeldingen ook als deel van de retourwaarde uit het script teruggeven. Zo teruggegeven schermafbeeldingen worden **alleen** vastgelegd als het script normaal eindigt: ze gaan verloren als het script een fout gooit. Geef de voorkeur aan het zijkanaalpatroon hierboven als u bewijs van mislukkingen wilt.
+Voor achterwaartse compatibiliteit kunt u schermafbeeldingen ook als deel van de retourwaarde uit het script teruggeven. Zo teruggegeven schermafbeeldingen worden **alleen** vastgelegd als het script normaal eindigt: ze gaan verloren als het script een fout gooit of een time-out krijgt. Geef de voorkeur aan het zijkanaalpatroon hierboven als u bewijs van mislukkingen wilt.
 
 ```javascript
 // Legacy pattern — screenshots only captured on successful return.
@@ -292,7 +294,7 @@ Event-listeners kunnen de isolatiegrens niet passeren. Gebruik `page.waitForEven
 :::
 
 :::details De uitvoering loopt in een time-out
-Wacht op specifieke elementen met `page.waitForSelector(...)` en een `timeout` die korter is dan de limiet van het script zelf, zodat de uitvoering mislukt op de stap die traag is, met een duidelijke fout.
+**Meer details weergeven** in de samenvatting van de monitor toont “Pagina toen het script een time-out kreeg”: de pagina waarop het script was toen zijn tijd op was. Wacht op specifieke elementen met `page.waitForSelector(...)` en een `timeout` die korter is dan de limiet van het script zelf, zodat de uitvoering mislukt op de stap die traag is, met een duidelijke fout.
 :::
 
 :::details Een zelfgehoste sonde zegt dat het uitvoerbare bestand van de browser niet gevonden is

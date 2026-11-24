@@ -23,7 +23,8 @@
 #   google-cloud   the schema maps every image and the reporting secret; the
 #                  chart takes every value the deployer passes (the app's name
 #                  and namespace too) and renders an Application with the
-#                  listing's deploy-info and no service account; the
+#                  listing's deploy-info and icon and no service account,
+#                  with every resource one of its components; the
 #                  reporting secret reaches the app; the tester renders laid
 #                  over the chart, as a verification run lays it, in the app's
 #                  image, and asks for OneUptime by the deployment's own host;
@@ -340,11 +341,55 @@ if python3 "${MARKETPLACE_DIR}/build.py" --marketplace google-cloud --version "$
     assert_present "google-cloud: renders the Application resource" "$GOOGLE_RENDER" "kind: Application"
     # The deployer refuses an Application without the listing's partner and product IDs.
     assert_present "google-cloud: the Application carries the listing's deploy-info" "$GOOGLE_RENDER" "marketplace.cloud.google.com/deploy-info"
+    # The listing's icon, as a PNG (base64 of the PNG signature), which the console shows with the app.
+    assert_present "google-cloud: the Application carries the listing's icon" "$GOOGLE_RENDER" "data:image/png;base64,iVBORw0KGgo"
     assert_absent "google-cloud: creates no service account" "$GOOGLE_RENDER" "kind: ServiceAccount"
     assert_absent "google-cloud: creates no RBAC" "$GOOGLE_RENDER" "kind: Role"
     assert_present "google-cloud: the app reads the reporting key from the reporting secret" "$GOOGLE_RENDER" "key: reporting-key"
     assert_present "google-cloud: the app reads the consumer from the reporting secret" "$GOOGLE_RENDER" "key: consumer-id"
     assert_present "google-cloud: the app knows the listing's service" "$GOOGLE_RENDER" "$(edition_value google-cloud serviceName)"
+
+    # The console lists an app's components by app.kubernetes.io/name: <app name>, which
+    # Google's deployer adds to every resource without that label (#10989). Rendered as the
+    # deployer renders an app named other than the chart, every resource must leave the label
+    # to the deployer or carry the app's name. A release's chart from before the fix labels
+    # ClickHouse "clickhouse" itself.
+    if [ -n "${MARKETPLACE_RELEASED_CHARTS:-}" ] && ! grep -qF 'define "oneuptime.appNameLabel"' "${GOOGLE_CHART}/templates/_helpers.tpl"; then
+        echo "  SKIP: google-cloud: every resource is one of the app's components: the chart predates #10989"
+    elif helm template myapp "$GOOGLE_CHART" --namespace myns \
+        --set name=myapp --set namespace=myns \
+        --set enterpriseMarketplace.googleCloud.reportingSecret=myapp-reporting-secret \
+        --set host=oneuptime.example.com >"${WORK_DIR}/google-cloud-myapp.yaml" 2>"${WORK_DIR}/google-cloud-myapp.err"; then
+        # Each resource's own labels: the top-level metadata's, not a selector's or a pod's.
+        GOOGLE_OTHER_NAMES="$(python3 - "${WORK_DIR}/google-cloud-myapp.yaml" myapp <<'EOF'
+import re
+import sys
+
+path, app = sys.argv[1], sys.argv[2]
+others = []
+
+for doc in re.split(r"(?m)^---[ \t]*$", open(path, encoding="utf-8").read()):
+    kind = re.search(r"(?m)^kind:[ \t]*(\S+)", doc)
+    metadata = re.search(r"(?m)^metadata:[ \t]*\n((?:[ \t].*\n?|\n)*)", doc)
+
+    if not kind or not metadata:
+        continue
+
+    name = re.search(r"(?m)^  name:[ \t]*(\S+)", metadata.group(1))
+    labels = re.search(r"(?m)^  labels:[ \t]*\n((?:    .*\n?)*)", metadata.group(1))
+    label = re.search(r"(?m)^    app\.kubernetes\.io/name:[ \t]*(.+?)[ \t]*$", labels.group(1)) if labels else None
+
+    if label and label.group(1).strip("\"'") != app:
+        others.append(f"{kind.group(1)} {name.group(1) if name else '?'}: {label.group(1)}")
+
+print("\n".join(others))
+EOF
+)"
+        assert_eq "google-cloud: every resource is one of the app's components" "" "$GOOGLE_OTHER_NAMES"
+    else
+        fail "google-cloud: renders under another app's name"
+        sed 's/^/        /' "${WORK_DIR}/google-cloud-myapp.err" | head -20
+    fi
 
     GOOGLE_IMAGES="$(rendered_images "${WORK_DIR}/google-cloud.yaml")"
     GOOGLE_UNTAGGED="$(grep -v ":${VERSION}$" <<<"$GOOGLE_IMAGES" || true)"

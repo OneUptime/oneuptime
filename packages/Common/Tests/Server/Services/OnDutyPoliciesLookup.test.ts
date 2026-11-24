@@ -13,6 +13,7 @@ import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/
 import OnCallDutyPolicyEscalationRuleUserService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
+import OnCallDutyPolicyTimeLogService from "../../../Server/Services/OnCallDutyPolicyTimeLogService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import logger from "../../../Server/Utils/Logger";
@@ -857,9 +858,8 @@ describe("the writes that change who is on duty for what", () => {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findOneById")
       .mockResolvedValue(stored as never);
-    jest.spyOn(TeamMemberService, "getUsersInTeam").mockResolvedValue([]);
-    // Its accepted members, who the team adds to the rule (#10464).
-    jest.spyOn(TeamMemberService, "getUsersInTeams").mockResolvedValue([]);
+    // Its accepted members, who the team adds to the rule (#10464, #10970).
+    jest.spyOn(TeamMemberService, "getUserIdsInTeams").mockResolvedValue([]);
 
     await hooksOf(OnCallDutyPolicyEscalationRuleTeamService).onCreateSuccess(
       { createBy: { data: created, props: {} }, carryForward: null },
@@ -874,7 +874,7 @@ describe("the writes that change who is on duty for what", () => {
     deleted.projectId = PROJECT;
     deleted.teamId = TEAM_ID;
 
-    jest.spyOn(TeamMemberService, "getUsersInTeam").mockResolvedValue([]);
+    jest.spyOn(TeamMemberService, "getUserIdsInTeams").mockResolvedValue([]);
 
     await hooksOf(OnCallDutyPolicyEscalationRuleTeamService).onDeleteSuccess(
       {
@@ -1013,16 +1013,49 @@ describe("the writes that change who is on duty for what", () => {
     expect(forgotten).toEqual([PROJECT.toString()]);
   });
 
-  test("a policy deleted: its rules go with it", async () => {
+  test("a policy deleted: its rules go with it, and the time logs still open on it end", async () => {
+    // The rows that named its people go by the cascade, their hooks unrun (#10970).
+    const ended: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyTimeLogService, "endTimeForPolicies")
+      .mockResolvedValue(undefined as never);
+    const policyId: ObjectID = ObjectID.generate();
+
     await hooksOf(OnCallDutyPolicyService).onDeleteSuccess(
       {
         deleteBy: { query: {}, props: {} },
         carryForward: { projectId: PROJECT },
       },
-      [ObjectID.generate()],
+      [policyId],
     );
 
     expect(forgotten).toEqual([PROJECT.toString()]);
+    expect(ended).toHaveBeenCalledTimes(1);
+    expect(ended).toHaveBeenCalledWith({
+      onCallDutyPolicyIds: [policyId],
+      endsAt: expect.any(Date),
+    });
+  });
+
+  test("a policy deleted whose time logs cannot be ended: the delete still succeeds, and the failure is logged", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyTimeLogService, "endTimeForPolicies")
+      .mockRejectedValue(new Error("connection reset") as never);
+
+    await expect(
+      hooksOf(OnCallDutyPolicyService).onDeleteSuccess(
+        {
+          deleteBy: { query: {}, props: {} },
+          carryForward: { projectId: PROJECT },
+        },
+        [ObjectID.generate()],
+      ),
+    ).resolves.toBeDefined();
+
+    expect(forgotten).toEqual([PROJECT.toString()]);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("connection reset"),
+      expect.anything(),
+    );
   });
 
   test("someone's team membership made, accepted or ended", async () => {

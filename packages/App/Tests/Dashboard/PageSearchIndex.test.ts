@@ -327,7 +327,7 @@ describe("the page index is sound", () => {
     expect(owner?.page.page).toBe(PageMap.SETTINGS_DANGERZONE);
   });
 
-  test("only billing pages wait for billing, and only Monitor Groups for its flag", () => {
+  test("only billing pages wait for billing, only Monitor Groups for its flag, and only Mobile Apps for the server's mobile app", () => {
     const gated: Array<string> = [];
 
     for (const area of AREAS) {
@@ -348,6 +348,7 @@ describe("the page index is sound", () => {
         `${PageSearchGate.Billing}:${PageMap.SETTINGS_BILLING}`,
         `${PageSearchGate.Billing}:${PageMap.SETTINGS_BILLING_INVOICES}`,
         `${PageSearchGate.MonitorGroups}:${PageMap.MONITOR_GROUPS}`,
+        `${PageSearchGate.MobileApp}:${PageMap.SETTINGS_MOBILE_APPS}`,
       ].sort(),
     );
   });

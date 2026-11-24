@@ -2046,11 +2046,11 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     );
     /*
      * An address is folded before it is hashed (<EMAIL>), so it reaches no
-     * fingerprint: a new exception is made under grouping v3's as it would
-     * be without the rule, and nothing is moved.
+     * fingerprint: a new exception is made under grouping v4's (#10898) as
+     * it would be without the rule, and nothing is moved.
      */
     expect(fingerprints.fingerprintV2).toBe(
-      ExceptionUtil.getFingerprintV3(asItArrived),
+      ExceptionUtil.getFingerprintV4(asItArrived),
     );
     expect(fingerprints.fingerprintRekeys).toBeUndefined();
 
@@ -2073,14 +2073,25 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     } & ExceptionGroupingContent = { projectId, primaryEntityId, ...named };
 
     expect(namedFingerprints.fingerprintV2).not.toBe(
-      ExceptionUtil.getFingerprintV3(namedAsItArrived),
+      ExceptionUtil.getFingerprintV4(namedAsItArrived),
     );
     // An exception made before the rule under an unkeyed one moves (#10619).
     expect(
       namedFingerprints.fingerprintRekeys?.[
-        ExceptionUtil.getFingerprintV3(namedAsItArrived)
+        ExceptionUtil.getFingerprintV4(namedAsItArrived)
       ],
     ).toBe(namedFingerprints.fingerprintV2);
+    // And one made under v3's moves to v3's keyed one, as before.
+    expect(
+      namedFingerprints.fingerprintRekeys?.[
+        ExceptionUtil.getFingerprintV3(namedAsItArrived)
+      ],
+    ).toBeDefined();
+    expect(
+      namedFingerprints.fingerprintRekeys?.[
+        ExceptionUtil.getFingerprintV3(namedAsItArrived)
+      ],
+    ).not.toBe(namedFingerprints.fingerprintV2);
 
     // The keyed one is keyed per project from the installation's secret.
     const keyed: string = readCommonSource(
