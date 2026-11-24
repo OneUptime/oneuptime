@@ -46,6 +46,8 @@ export const EXCEPTION_LIST_SELECT: Select<TelemetryException> = {
   assignToTeamId: true,
   assignToUser: { name: true, email: true },
   assignToTeam: { name: true },
+  // Which exception a scrub rule split it from: the row's Split (#10897).
+  splitFromTelemetryExceptionId: true,
 };
 
 /*

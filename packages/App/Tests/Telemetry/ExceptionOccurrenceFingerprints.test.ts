@@ -78,6 +78,9 @@ interface Fingerprints {
   // Grouping v3's, and its keyed one (#10620): v2's for frames.
   v3: string;
   keyedV3: string;
+  // Grouping v4's, and its keyed one (#10898): v2's for frames.
+  v4: string;
+  keyedV4: string;
 }
 
 // An exception's fingerprints, made the way the ingest made them before.
@@ -114,6 +117,11 @@ function fingerprintsOf(content: ExceptionGroupingContent): Fingerprints {
       projectId: PROJECT_ID,
       text: ExceptionUtil.getGroupingTexts(input).v3,
     }),
+    v4: ExceptionUtil.getFingerprintV4(input),
+    keyedV4: KeyedExceptionFingerprint.ofGroupingText({
+      projectId: PROJECT_ID,
+      text: ExceptionUtil.getGroupingTexts(input).v4,
+    }),
   };
 }
 
@@ -132,7 +140,7 @@ function occurrence(data: {
 }
 
 describe("an occurrence's fingerprints", () => {
-  test("no rule changed it: v1, v2 and v3, each with its keyed one, are tried in that order, a new exception is made under v3, and v1 is kept when nothing can be read", () => {
+  test("no rule changed it: v1, v2, v3 and v4, each with its keyed one, are tried in that order, a new exception is made under v4, and v1 is kept when nothing can be read", () => {
     const card: Fingerprints = fingerprintsOf(CARD_ARRIVED);
 
     for (const fromLog of [false, true]) {
@@ -140,7 +148,7 @@ describe("an occurrence's fingerprints", () => {
         occurrence({ arrived: CARD_ARRIVED, stored: CARD_ARRIVED, fromLog }),
       ).toEqual({
         fingerprint: card.v1,
-        fingerprintV2: card.v3,
+        fingerprintV2: card.v4,
         fingerprintCandidates: [
           card.v1,
           card.keyedV1,
@@ -148,14 +156,18 @@ describe("an occurrence's fingerprints", () => {
           card.keyed,
           card.v3,
           card.keyedV3,
+          card.v4,
+          card.keyedV4,
         ],
       });
     }
 
-    // Grouped by its frames, v3 is v2: each is tried once.
+    // Grouped by its frames, v3 and v4 are v2: each is tried once.
     const cart: Fingerprints = fingerprintsOf(CART_ARRIVED);
     expect(cart.v3).toBe(cart.v2);
     expect(cart.keyedV3).toBe(cart.keyed);
+    expect(cart.v4).toBe(cart.v2);
+    expect(cart.keyedV4).toBe(cart.keyed);
     expect(occurrence({ arrived: CART_ARRIVED, stored: CART_ARRIVED })).toEqual(
       {
         fingerprint: cart.v1,
@@ -177,12 +189,12 @@ describe("an occurrence's fingerprints", () => {
     expect(fingerprints.fingerprintV2).toBe(expected.v2);
   });
 
-  test("a rule hid a card number: tried as it arrived, and made under v3, which folds the card, as kept when nothing can be read", () => {
+  test("a rule hid a card number: tried as it arrived, and made under v4, which folds the card, as kept when nothing can be read", () => {
     const arrived: Fingerprints = fingerprintsOf(CARD_ARRIVED);
 
     expect(occurrence({ arrived: CARD_ARRIVED, stored: CARD_STORED })).toEqual({
-      fingerprint: arrived.v3,
-      fingerprintV2: arrived.v3,
+      fingerprint: arrived.v4,
+      fingerprintV2: arrived.v4,
       fingerprintCandidates: [
         arrived.v1,
         arrived.keyedV1,
@@ -190,10 +202,13 @@ describe("an occurrence's fingerprints", () => {
         arrived.keyed,
         arrived.v3,
         arrived.keyedV3,
+        arrived.v4,
+        arrived.keyedV4,
       ],
       /*
        * v1 and v2 hash the card's digits: an exception made under either
-       * moves (#10619). v3's text holds <CARD> whatever the card was.
+       * moves (#10619). v3's and v4's texts hold <CARD> whatever the card
+       * was.
        */
       fingerprintRekeys: {
         [arrived.v1]: arrived.keyedV1,
@@ -202,7 +217,7 @@ describe("an occurrence's fingerprints", () => {
     });
   });
 
-  test("a rule hid what grouping v3 reads too, a name: made under v3's keyed fingerprint, and kept under it when nothing can be read", () => {
+  test("a rule hid what grouping v3 and v4 read too, a name: made under v4's keyed fingerprint, and kept under it when nothing can be read", () => {
     const named: ExceptionGroupingContent = {
       exceptionType: "AccountError",
       message: "No account for Ada Lovelace",
@@ -216,8 +231,8 @@ describe("an occurrence's fingerprints", () => {
         stored: { ...named, message: "No account for [REDACTED]" },
       }),
     ).toEqual({
-      fingerprint: arrived.keyedV3,
-      fingerprintV2: arrived.keyedV3,
+      fingerprint: arrived.keyedV4,
+      fingerprintV2: arrived.keyedV4,
       fingerprintCandidates: [
         arrived.v1,
         arrived.keyedV1,
@@ -225,11 +240,14 @@ describe("an occurrence's fingerprints", () => {
         arrived.keyed,
         arrived.v3,
         arrived.keyedV3,
+        arrived.v4,
+        arrived.keyedV4,
       ],
       fingerprintRekeys: {
         [arrived.v1]: arrived.keyedV1,
         [arrived.v2]: arrived.keyed,
         [arrived.v3]: arrived.keyedV3,
+        [arrived.v4]: arrived.keyedV4,
       },
     });
   });
@@ -241,8 +259,8 @@ describe("an occurrence's fingerprints", () => {
     expect(
       occurrence({ arrived: CARD_ARRIVED, stored: CARD_STORED, fromLog: true }),
     ).toEqual({
-      fingerprint: arrived.v3,
-      fingerprintV2: arrived.v3,
+      fingerprint: arrived.v4,
+      fingerprintV2: arrived.v4,
       fingerprintCandidates: [
         stored.v1,
         stored.v2,
@@ -252,6 +270,8 @@ describe("an occurrence's fingerprints", () => {
         arrived.keyed,
         arrived.v3,
         arrived.keyedV3,
+        arrived.v4,
+        arrived.keyedV4,
       ],
       // What the rule left hashes nothing hidden: never moved.
       fingerprintRekeys: {
@@ -660,5 +680,272 @@ describe("which exception an occurrence with candidates belongs to", () => {
 
     expect(chosen.get(groupFingerprintKey(SPLIT))).toBe("stored-v2");
     expect(logger.warn).toHaveBeenCalled();
+  });
+});
+
+/*
+ * GROUPING V4 (#10898): an international phone number, a 15-digit American
+ * Express card or a 19-digit card in a message is folded too, for new
+ * exceptions; v4's fingerprints are tried after v3's, so every exception
+ * made before keeps the occurrences it had.
+ */
+describe("grouping v4's fingerprints, tried after every older one", () => {
+  beforeEach(() => {
+    clearExistingV1FingerprintCache();
+    existing = new Set<string>();
+    movedTo = new Map<string, string>();
+    lookups = [];
+    lookupFails = false;
+    splitRecords = [];
+    mockPostgres();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const phone: (number: string) => ExceptionGroupingContent = (
+    number: string,
+  ): ExceptionGroupingContent => {
+    return {
+      exceptionType: "SmsDeliveryError",
+      message: `SMS to ${number} was not delivered`,
+      stackTrace: "",
+    };
+  };
+
+  const LONDON: ExceptionGroupingContent = phone("+44 20 7946 0958");
+  const BERLIN: ExceptionGroupingContent = phone("+49 30 123456");
+  const PARIS: ExceptionGroupingContent = phone("+33 1 23 45 67 89");
+
+  function candidateOf(
+    content: ExceptionGroupingContent,
+    stored?: ExceptionGroupingContent,
+  ): GroupFingerprintCandidate {
+    const fingerprints: OccurrenceFingerprints = occurrence({
+      arrived: content,
+      stored: stored || content,
+    });
+
+    return {
+      projectId: PROJECT_ID.toString(),
+      primaryEntityId: SERVICE_ID.toString(),
+      v1: fingerprints.fingerprint,
+      v2: fingerprints.fingerprintV2,
+      candidates: fingerprints.fingerprintCandidates,
+      ...(fingerprints.fingerprintRekeys
+        ? { rekeys: fingerprints.fingerprintRekeys }
+        : {}),
+    };
+  }
+
+  test("no rule changed it: v1 to v3 as before, then v4 and its keyed one, and every number makes one new exception, under v4", () => {
+    const london: Fingerprints = fingerprintsOf(LONDON);
+    const berlin: Fingerprints = fingerprintsOf(BERLIN);
+
+    expect(occurrence({ arrived: LONDON, stored: LONDON })).toEqual({
+      fingerprint: london.v1,
+      fingerprintV2: london.v4,
+      fingerprintCandidates: [
+        london.v1,
+        london.keyedV1,
+        london.v2,
+        london.keyed,
+        london.v3,
+        london.keyedV3,
+        london.v4,
+        london.keyedV4,
+      ],
+    });
+
+    // Each number its own exception under v1 to v3; one under v4.
+    for (const version of [
+      "v1",
+      "keyedV1",
+      "v2",
+      "keyed",
+      "v3",
+      "keyedV3",
+    ] as Array<keyof Fingerprints>) {
+      expect(london[version]).not.toBe(berlin[version]);
+    }
+    expect(london.v4).toBe(berlin.v4);
+    expect(london.keyedV4).toBe(berlin.keyedV4);
+    expect(fingerprintsOf(PARIS).v4).toBe(london.v4);
+  });
+
+  test("a keyed v4 fingerprint is never a keyed v3 one, nor any unkeyed one", () => {
+    const london: Fingerprints = fingerprintsOf(LONDON);
+    const cardMessage: Fingerprints = fingerprintsOf(CARD_ARRIVED);
+
+    for (const fingerprints of [london, cardMessage]) {
+      expect(fingerprints.keyedV4).not.toBe(fingerprints.keyedV3);
+      expect([
+        fingerprints.v1,
+        fingerprints.v2,
+        fingerprints.v3,
+        fingerprints.v4,
+      ]).not.toContain(fingerprints.keyedV4);
+      expect(fingerprints.v4).not.toBe(fingerprints.v3);
+    }
+  });
+
+  test("a rule redacted an international number: v1, v2 and v3 hash it, and move; made under v4, which needs no key", () => {
+    const london: Fingerprints = fingerprintsOf(LONDON);
+    const redacted: ExceptionGroupingContent = {
+      ...LONDON,
+      message: "SMS to [REDACTED] was not delivered",
+    };
+
+    expect(occurrence({ arrived: LONDON, stored: redacted })).toEqual({
+      // v1 holds the number: the one a new exception is made under is kept.
+      fingerprint: london.v4,
+      fingerprintV2: london.v4,
+      fingerprintCandidates: [
+        london.v1,
+        london.keyedV1,
+        london.v2,
+        london.keyed,
+        london.v3,
+        london.keyedV3,
+        london.v4,
+        london.keyedV4,
+      ],
+      fingerprintRekeys: {
+        [london.v1]: london.keyedV1,
+        [london.v2]: london.keyed,
+        // v3 folds no international number: its text holds this one.
+        [london.v3]: london.keyedV3,
+      },
+    });
+  });
+
+  test("an exception made under v3 for one number keeps it, and the numbers since share one under v4, in this batch and the next", async () => {
+    existing = new Set<string>([fingerprintsOf(LONDON).v3]);
+
+    const chosen: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints([
+        candidateOf(LONDON),
+        candidateOf(BERLIN),
+      ]);
+
+    expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).toBe(
+      fingerprintsOf(LONDON).v3,
+    );
+    expect(chosen.get(groupFingerprintKey(candidateOf(BERLIN)))).toBe(
+      fingerprintsOf(BERLIN).v4,
+    );
+
+    const next: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints([
+        candidateOf(PARIS),
+        candidateOf(LONDON),
+      ]);
+
+    expect(next.get(groupFingerprintKey(candidateOf(PARIS)))).toBe(
+      fingerprintsOf(BERLIN).v4,
+    );
+    expect(next.get(groupFingerprintKey(candidateOf(LONDON)))).toBe(
+      fingerprintsOf(LONDON).v3,
+    );
+  });
+
+  test.each([
+    ["v1", "v1"],
+    ["v1's keyed one", "keyedV1"],
+    ["v2", "v2"],
+    ["v2's keyed one", "keyed"],
+    ["v3", "v3"],
+    ["v3's keyed one", "keyedV3"],
+  ])(
+    "an exception made under %s is found before v4: nothing splits",
+    async (_name: string, version: string) => {
+      const made: string = (
+        fingerprintsOf(LONDON) as unknown as Record<string, string>
+      )[version]!;
+      existing = new Set<string>([made, fingerprintsOf(LONDON).v4]);
+
+      const chosen: Map<string, string> =
+        await ExceptionUtil.resolveGroupFingerprints([candidateOf(LONDON)]);
+
+      expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).toBe(made);
+    },
+  );
+
+  test("when the exceptions cannot be read, one a rule changed keeps the newest fingerprint, tried last: the exception under an older one still gets the next occurrence", async () => {
+    const named: ExceptionGroupingContent = {
+      exceptionType: "SmsDeliveryError",
+      message: "SMS to Ada Lovelace at +44 20 7946 0958 was not delivered",
+      stackTrace: "",
+    };
+    const stored: ExceptionGroupingContent = {
+      ...named,
+      message: "SMS to [REDACTED] at +44 20 7946 0958 was not delivered",
+    };
+    const fingerprints: Fingerprints = fingerprintsOf(named);
+    const candidate: GroupFingerprintCandidate = candidateOf(named, stored);
+
+    // Made since v3 shipped, under v3's keyed fingerprint.
+    existing = new Set<string>([fingerprints.keyedV3]);
+    lookupFails = true;
+
+    const failed: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints([candidate]);
+
+    expect(failed.get(groupFingerprintKey(candidate))).toBe(
+      fingerprints.keyedV4,
+    );
+
+    /*
+     * That occurrence made an exception of its own under keyed v4. Once
+     * the exceptions can be read again, the one under keyed v3, tried
+     * first, gets every occurrence: it lost one batch, and keeps its place.
+     */
+    clearExistingV1FingerprintCache();
+    lookupFails = false;
+    existing = new Set<string>([fingerprints.keyedV3, fingerprints.keyedV4]);
+
+    const next: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints([candidate]);
+
+    expect(next.get(groupFingerprintKey(candidate))).toBe(fingerprints.keyedV3);
+  });
+
+  test("and one no rule changed keeps v1, as ever", async () => {
+    lookupFails = true;
+
+    const chosen: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints([candidateOf(LONDON)]);
+
+    expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).toBe(
+      fingerprintsOf(LONDON).v1,
+    );
+  });
+
+  test("an American Express card and a 19-digit card: one exception each kind, whatever the number", () => {
+    const card: (number: string) => ExceptionGroupingContent = (
+      number: string,
+    ): ExceptionGroupingContent => {
+      return {
+        exceptionType: "PaymentDeclinedError",
+        message: `card ${number} declined`,
+        stackTrace: "",
+      };
+    };
+
+    for (const [first, second] of [
+      ["3782 822463 10005", "3714 496353 98431"],
+      ["6011 1111 1111 1111 117", "6250 9460 0000 0016 228"],
+    ] as Array<[string, string]>) {
+      expect(fingerprintsOf(card(first)).v3).not.toBe(
+        fingerprintsOf(card(second)).v3,
+      );
+      expect(
+        occurrence({ arrived: card(first), stored: card(first) }).fingerprintV2,
+      ).toBe(
+        occurrence({ arrived: card(second), stored: card(second) })
+          .fingerprintV2,
+      );
+    }
   });
 });
