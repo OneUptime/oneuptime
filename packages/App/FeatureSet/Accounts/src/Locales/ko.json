@@ -725,6 +725,10 @@
   "Add one file at a time.": "파일은 한 번에 하나씩 추가하세요.",
   "This field holds up to {{count}} files. Remove one to add another.": "이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있습니다. 다른 파일을 추가하려면 하나를 제거하세요.",
   "This field holds up to {{count}} files. Remove one to add another._one": "이 필드에는 파일을 1개만 넣을 수 있습니다. 다른 파일을 추가하려면 이 파일을 제거하세요.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "\"{{fileName}}\" 파일은 추가되지 않았습니다. 이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있습니다.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "\"{{fileName}}\" 파일은 추가되지 않았습니다. 이 필드에는 파일을 1개만 넣을 수 있습니다.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "이 필드에는 파일을 최대 {{count}}개까지 넣을 수 있어 다음 파일은 추가되지 않았습니다: {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "이 필드에는 파일을 1개만 넣을 수 있어 다음 파일은 추가되지 않았습니다: {{fileNames}}.",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",
@@ -733,5 +737,6 @@
     "note": "참고",
     "tip": "팁",
     "warning": "경고"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "오류 스택, 컴포넌트 스택, 민감 정보를 지운 페이지 URL, 브라우저 정보, OneUptime 빌드가 담긴 로컬 진단 파일을 내려받으세요. 쿠키, 저장된 브라우저 데이터, 양식 내용은 절대 읽지 않습니다. 공유하기 전에 검토하세요."
 }

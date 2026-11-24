@@ -31,6 +31,7 @@ import {
   FixFromIncidentTaskHandler,
   FixPerformanceTaskHandler,
   FixInfrastructureCodeTaskHandler,
+  FixSensitiveDataInTelemetryTaskHandler,
   GitHubIssueFixTaskHandler,
   GitHubPullRequestRevisionTaskHandler,
   GitHubPullRequestReviewTaskHandler,
@@ -277,6 +278,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       registry.register(new FixFromIncidentTaskHandler());
       registry.register(new FixPerformanceTaskHandler());
       registry.register(new FixInfrastructureCodeTaskHandler());
+      registry.register(new FixSensitiveDataInTelemetryTaskHandler());
       registry.register(new GitHubIssueFixTaskHandler());
       registry.register(new GitHubPullRequestRevisionTaskHandler());
       registry.register(new GitHubPullRequestReviewTaskHandler());

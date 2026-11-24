@@ -725,6 +725,10 @@
   "Add one file at a time.": "Ajoutez un fichier à la fois.",
   "This field holds up to {{count}} files. Remove one to add another.": "Ce champ contient au maximum {{count}} fichiers. Retirez-en un pour en ajouter un autre.",
   "This field holds up to {{count}} files. Remove one to add another._one": "Ce champ contient un seul fichier. Retirez-le pour en ajouter un autre.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files.": "« {{fileName}} » n'a pas été ajouté : ce champ contient au maximum {{count}} fichiers.",
+  "\"{{fileName}}\" was not added: this field holds up to {{count}} files._one": "« {{fileName}} » n'a pas été ajouté : ce champ contient un seul fichier.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}.": "Ces fichiers n'ont pas été ajoutés, car ce champ contient au maximum {{count}} fichiers : {{fileNames}}.",
+  "These files were not added, as this field holds up to {{count}} files: {{fileNames}}._one": "Ces fichiers n'ont pas été ajoutés, car ce champ contient un seul fichier : {{fileNames}}.",
   "markdownCallouts": {
     "caution": "Attention",
     "danger": "Danger",
@@ -733,5 +737,6 @@
     "note": "Remarque",
     "tip": "Astuce",
     "warning": "Avertissement"
-  }
+  },
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Téléchargez un fichier de diagnostic local avec la pile d'erreur, la pile de composants, l'URL de la page nettoyée, les détails du navigateur et le build de OneUptime. Il ne lit jamais les cookies, les données enregistrées du navigateur ni le contenu des formulaires. Relisez-le avant de le partager."
 }

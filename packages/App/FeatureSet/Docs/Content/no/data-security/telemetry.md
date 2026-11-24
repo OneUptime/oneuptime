@@ -9,6 +9,7 @@ Det er ingenting å sette opp: telemetrien til hver tjeneste skannes hver time, 
 - [Slik tar en skanning stikkprøver](#slik-tar-en-skanning-stikkprøver): De nyeste postene fra hver tjeneste, hver time.
 - [Rens](#rens): Skjul et funn ved inntak, i tjenesten det ble funnet i.
 - [Begrenset på egen hånd](#begrenset-på-egen-hånd): En hemmelighet skjult uten at noen trykker på noe, der det er bevist trygt.
+- [Fiks det i koden](#fiks-det-i-koden): Én pull-forespørsel som får en tjeneste til å slutte å skrive alle lekkasjene sine.
 - [Forkast denne målingen](#forkast-denne-målingen): Slutt å lagre målingene der navnet inneholder sensitive data.
 - [Hva som regnes som renset](#hva-som-regnes-som-renset): Når en rensingsregel allerede dekker et funn.
 :::
@@ -99,7 +100,7 @@ Klikk på **Rens**. En dialog sier hva regelen ville gjøre før noe opprettes: 
 
 ### Rett koden også
 
-Regelen skjuler nye data før de lagres. Data som allerede er lagret, blir liggende til oppbevaringstiden er ute, så rett koden som skriver dem: funnet nevner tjenesten og attributtet.
+Regelen skjuler nye data før de lagres. Data som allerede er lagret, blir liggende til oppbevaringstiden er ute, så rett koden som skriver dem: funnet nevner tjenesten og attributtet. **Fiks med AI** på problemet åpner én pull-forespørsel for hver av tjenestens lekkasjer: se [Fiks det i koden](#fiks-det-i-koden).
 :::
 
 Regelen får navn etter det den skjuler, for eksempel «Data Security: Email address in log attributes of checkout», eller «Data Security: Password or secret in db.password of checkout» for en regel som navngir attributtet sitt, og står sammen med de andre rensingsreglene dine (se [Forkastingsfiltre og rensingsregler](/docs/telemetry/drop-filters-and-scrub-rules#rens-sensitive-data)). Den er den smaleste regelen som skjuler dataene i funnet, den første av disse som passer:
@@ -157,6 +158,48 @@ En endring OneUptime AI gjorde på egen hånd:
 - **Sier at en hemmelighet må roteres.** Å skjule en hemmelighet stopper bare nye kopier: Hemmeligheten virker fortsatt, og postene som ble lagret før regelen, beholder den til oppbevaringstiden er ute. Tidslinjen og e-posten sier hvor den ble sett.
 
 Nye funn i en tjeneste der problemet allerede er åpent, begrenses på samme måte så snart den timelige skanningen finner dem.
+
+## Fiks det i koden
+
+En scrub-regel skjuler nye data ved inntak, men koden skriver dem fortsatt. **Fiks med AI** på et telemetriproblem ber OneUptime AI om én pull-forespørsel som får tjenesten til å slutte å skrive hver lekkasje OneUptime fortsatt ser i telemetrien: dette problemets og tjenestens andre, også de som er begrenset ved inntak. En dialog viser hva pull-forespørselen vil gjøre før noe starter, og **Åpne pull-forespørsel** ber om akkurat det.
+
+:::steps
+### Finn hvor hver lekkasje skrives
+
+Før OneUptime AI starter, leser Datasikkerhet postene hver lekkasje ble sett i på nytt, inne i OneUptime, og beholder bare hvor koden skrev dem:
+
+- **Et span eller et AI-kall**: filen, linjen og funksjonen som attributtene `code.*` nevner, og navnet på spannet.
+- **Et unntak**: dets egne øverste rammer, de i tjenestens kode.
+- **En logglinje**: filen, linjen og funksjonen som attributtene nevner, når den har dem, loggeren, og linjen som mal, der hver verdi er erstattet av navnet på typen, for eksempel `User <Email address> signed up`.
+- **En måling**: navnet på målingen.
+- **Enhver lekkasje**: attributtnøkkelen, for eksempel `user.email`, som koden vanligvis skriver som den er.
+
+### Velg kodelageret
+
+Pull-forespørselen går til kodelageret som inneholder filene postene nevner, funnet slik filene i en stakksporing finnes. En lekkasje der postene ikke nevner noen fil, går dit tjenestens andre lekkasjer er, ellers til kodelageret som heter det samme som tjenesten, eller til prosjektets eneste. I et kodelager med flere tjenester jobber OneUptime AI i tjenestens mappe: den filene deler, ellers den tjenestens produksjonsgjennomganger bruker. Når ingenting avgjør, velger du selv blant kodelagrene du kan be OneUptime AI jobbe i.
+
+### Åpne pull-forespørselen
+
+Dialogen sier hvordan koden vil endres, viser hver lekkasje med hvor den skrives, og nevner kodelageret, hvorfor det er det, og filene OneUptime AI starter fra. **Åpne pull-forespørsel** ber om akkurat den planen: Hvis en lekkasje er funnet eller fikset siden du åpnet den, starter ingenting, og planen vises på nytt.
+:::
+
+Hvordan koden endres, avhenger av hvor mange steder dataene skrives:
+
+| Hvor dataene skrives | Hva pull-forespørselen gjør |
+| --- | --- |
+| Tre steder eller færre | Endrer koden på hvert sted: utelater verdien, eller maskerer eller hasher den før den sendes |
+| Mer enn tre steder | Legger til ett sladdetrinn med en test der tjenesten setter opp telemetrien, i stedet for å endre hvert sted |
+| Der scrub-reglene dine allerede skjuler dem ved inntak | Legger også til sladdetrinnet for de nøklene, så koden gjør det samme som inntaket |
+
+Én pull-forespørsel fikser én tjeneste i ett kodelager: En tjeneste der lekkasjene skrives i to kodelagre, får én i hvert. Mens den skrives, peker **Fiks med AI** på et hvilket som helst av tjenestens problemer til den, og ingen ny startes.
+
+OneUptime AI får stedene, nøklene, datatypene og malene, aldri en verdi fra dataene dine, et maskert eksempel eller en post, og kodeagenten leser ingenting av telemetrien din mens den jobber. Beskrivelsen av pull-forespørselen viser lekkasjene og lenker til problemene den fikser, og siterer aldri en post.
+
+Hvert problem pull-forespørselen fikser, beholder den: Kortet **Slik fikser du det** viser om den skrives, er åpen, slått sammen eller lukket, med lenker til pull-forespørselen og oppgaven, og når den er slått sammen, hva produksjonen viste. Problemets tidslinje viser når den ble åpnet. Problemet løses som **Rettet i koden** så snart tjenestens nye versjon ikke lenger skriver dataene (se [Hva som skjer med et problem](/docs/data-security/checks-and-issues#hva-som-skjer-med-et-problem)).
+
+En hemmelighet trenger mer enn en kodeendring: Koden stopper bare nye kopier, og hemmeligheten virker fortsatt. Pull-forespørselen, problemets tidslinje og kortet **Slik fikser du det** sier at den må roteres, og kortet viser hvor den ble sett.
+
+Med **Jobb med nye problemer** slått på foreslår OneUptime AI også på egen hånd hver tjenestes fiks, den mest risikable tjenesten først, under **Datasikkerhet → KI** og på tjenestens mest risikable problem. Som standard venter den på deg. En AI-regel i Datasikkerhet som setter **Rettelse** til **Automatisk** for tjenestens mest risikable problem, åpner pull-forespørselen uten å spørre, i et kodelager noe har avgjort. Kodelagerets **Maks. åpne pull-forespørsler med rettelser** begrenser begge: Ved grensen venter en pull-forespørsel en regel ville åpnet, på deg, og ingen ny pull-forespørsel med rettelser åpnes før én er slått sammen eller lukket.
 
 ## Forkast denne målingen
 

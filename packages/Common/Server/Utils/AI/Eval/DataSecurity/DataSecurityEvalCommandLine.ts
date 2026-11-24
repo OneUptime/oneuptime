@@ -188,6 +188,8 @@ const FEATURES_OF_FILE: ReadonlyArray<{
       DataSecurityAiFeature.DraftRecordOnRequest,
       DataSecurityAiFeature.DraftImpactAssessment,
       DataSecurityAiFeature.DraftAuditEvidence,
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
     ],
   },
   {
@@ -243,6 +245,35 @@ const FEATURES_OF_FILE: ReadonlyArray<{
   {
     path: "packages/Common/Types/DataSecurity/AuditEvidence.ts",
     features: [DataSecurityAiFeature.DraftAuditEvidence],
+  },
+  // An exposure's write-up (#10377): its words, its drafter, and the plain code and laws it rests on.
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentPrompt.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Server/Utils/AI/DataSecurity/ExposureAssessmentDrafter.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
+  },
+  {
+    path: "packages/Common/Types/DataSecurity/BreachLaws.ts",
+    features: [
+      DataSecurityAiFeature.DraftExposureAssessment,
+      DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    ],
   },
 ];
 

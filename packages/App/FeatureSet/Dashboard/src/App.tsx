@@ -12,6 +12,7 @@ import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
 import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
 import ReauthenticationPrompt from "Common/UI/Components/Reauthentication/ReauthenticationPrompt";
 import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
+import HelpAndSupportInit from "./Components/HelpAndSupport/HelpAndSupportInit";
 import DashboardRecording from "./Components/DashboardRecording/DashboardRecording";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
@@ -668,6 +669,8 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <UserLanguageInit />
       <ProductFeedbackInit />
+      {/* Where the server sends its people for help (#10864-#10866). */}
+      <HelpAndSupportInit />
       {/*
        * On OneUptime Cloud only, and only with the person's consent: a
        * recording of the first-run pages, to see where people get stuck

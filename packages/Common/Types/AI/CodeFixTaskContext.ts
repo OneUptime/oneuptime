@@ -10,6 +10,22 @@ import {
   ProductionReviewPosting,
   ProductionReviewTrigger,
 } from "../CodeRepository/ProductionReview";
+import {
+  MAX_TELEMETRY_LEAK_ISSUES,
+  MAX_TELEMETRY_LEAK_NAME_LENGTH,
+  MAX_TELEMETRY_LEAK_PATH_LENGTH,
+  MAX_TELEMETRY_LEAK_REDACTION_KEYS,
+  MAX_TELEMETRY_LEAK_START_FILES,
+  MAX_TELEMETRY_LEAKS_PER_FIX,
+  TelemetryLeakFixIssue,
+  TelemetryLeakFixLeak,
+  TelemetryLeakFixStrategy,
+  isTelemetryLeakFixStrategy,
+  readTelemetryLeakFixIssue,
+  readTelemetryLeakFixLeak,
+  readTelemetryLeakList,
+  readTelemetryLeakTexts,
+} from "../DataSecurity/TelemetryLeakFix";
 
 /*
  * The JSON persisted on AIRun.taskContext for tasks whose exact working
@@ -464,6 +480,152 @@ export function getInfrastructureFixFolder(
   return shared.length > 0 ? shared.join("/") : null;
 }
 
+/*
+ * The fix of a service's telemetry leaks in its code, in one pull request
+ * (CodeFixTaskType.FixSensitiveDataInTelemetry, #10367): what its Runner
+ * is handed and its pull request says, and what #10368 follows to
+ * production - every leak it fixes, by its issue, store, location and data
+ * type (Types/DataSecurity/TelemetryLeakFix). Places, keys, data types and
+ * masked templates only - never a value, a sample, a record or an excerpt.
+ */
+export interface TelemetryLeakFixTaskContext {
+  serviceId: string;
+  serviceName: string;
+  // What the pull request is called: "Stop checkout writing sensitive data to its telemetry".
+  title: string;
+  // The request the coding agent reads (DataSecurityAiInput.buildFixTelemetryLeaksRequest).
+  request: string;
+  strategy: TelemetryLeakFixStrategy;
+  // The distinct places the leaks are written in, as the strategy counted them.
+  placeCount: number;
+  leaks: Array<TelemetryLeakFixLeak>;
+  // The issues it fixes, for its description.
+  issues: Array<TelemetryLeakFixIssue>;
+  // The attribute keys, and the data types in text, the redaction step covers.
+  redactionKeys: Array<string>;
+  redactionDataTypes: Array<string>;
+  // The files the agent starts from, as the repository holds them.
+  startFiles: Array<string>;
+  // The service's folder in the repository: a monorepo's, or none for its root.
+  folder?: string | undefined;
+  // A secret is among the leaks: its pull request says to rotate it.
+  hasSecrets: boolean;
+  // Where the service's issues are in OneUptime.
+  issuesUrl?: string | undefined;
+}
+
+/*
+ * A telemetry fix's context as a run carries it, read defensively, or null
+ * when it is not one: no service, no request, or no leak.
+ */
+export function getTelemetryLeakFixTaskContext(
+  value: unknown,
+): TelemetryLeakFixTaskContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const serviceId: string = readFixText(raw["serviceId"], 100);
+  const request: string = readFixText(
+    raw["request"],
+    MAX_INFRASTRUCTURE_FIX_TEXT,
+  );
+  const leaks: Array<TelemetryLeakFixLeak> = readTelemetryLeakList(
+    raw["leaks"],
+    readTelemetryLeakFixLeak,
+    MAX_TELEMETRY_LEAKS_PER_FIX,
+  );
+
+  if (!serviceId || !request.trim() || leaks.length === 0) {
+    return null;
+  }
+
+  const strategy: unknown = raw["strategy"];
+  const placeCount: unknown = raw["placeCount"];
+  const folder: string = readFixText(
+    raw["folder"],
+    MAX_TELEMETRY_LEAK_PATH_LENGTH,
+  ).trim();
+  const issuesUrl: string = readFixText(raw["issuesUrl"], 2000);
+  const serviceName: string = readFixText(
+    raw["serviceName"],
+    MAX_TELEMETRY_LEAK_NAME_LENGTH,
+  );
+
+  return {
+    serviceId,
+    serviceName,
+    title:
+      readFixText(raw["title"], MAX_INFRASTRUCTURE_FIX_NAME) ||
+      "Stop writing sensitive data to telemetry",
+    request,
+    strategy: isTelemetryLeakFixStrategy(strategy)
+      ? strategy
+      : TelemetryLeakFixStrategy.CallSites,
+    placeCount:
+      typeof placeCount === "number" &&
+      Number.isSafeInteger(placeCount) &&
+      placeCount >= 0
+        ? placeCount
+        : 0,
+    leaks,
+    issues: readTelemetryLeakList(
+      raw["issues"],
+      readTelemetryLeakFixIssue,
+      MAX_TELEMETRY_LEAK_ISSUES,
+    ),
+    redactionKeys: readTelemetryLeakTexts(
+      raw["redactionKeys"],
+      MAX_TELEMETRY_LEAK_REDACTION_KEYS,
+      MAX_TELEMETRY_LEAK_PATH_LENGTH,
+    ),
+    redactionDataTypes: readTelemetryLeakTexts(
+      raw["redactionDataTypes"],
+      MAX_TELEMETRY_LEAK_REDACTION_KEYS,
+      MAX_TELEMETRY_LEAK_NAME_LENGTH,
+    ),
+    startFiles: readTelemetryLeakTexts(
+      raw["startFiles"],
+      MAX_TELEMETRY_LEAK_START_FILES,
+      MAX_TELEMETRY_LEAK_PATH_LENGTH,
+    ),
+    ...(folder ? { folder } : {}),
+    hasSecrets:
+      raw["hasSecrets"] === true ||
+      leaks.some((leak: TelemetryLeakFixLeak): boolean => {
+        return leak.isSecret;
+      }),
+    ...(issuesUrl.startsWith("https://") || issuesUrl.startsWith("http://")
+      ? { issuesUrl }
+      : {}),
+  };
+}
+
+// The issues a telemetry fix's context fixes, each once: what #10368 marks fixed.
+export function getTelemetryLeakFixIssueIds(
+  fix: TelemetryLeakFixTaskContext | null | undefined,
+): Array<string> {
+  const ids: Array<string> = [];
+
+  for (const id of [
+    ...(fix?.leaks || []).map((leak: TelemetryLeakFixLeak): string => {
+      return leak.issueId;
+    }),
+    ...(fix?.issues || []).map((issue: TelemetryLeakFixIssue): string => {
+      return issue.issueId;
+    }),
+  ]) {
+    const lower: string = id.toLowerCase();
+
+    if (lower && !ids.includes(lower)) {
+      ids.push(lower);
+    }
+  }
+
+  return ids;
+}
+
 export interface CodeFixTaskContext {
   /*
    * FixFromIncident: the exact investigation whose published RootCause is
@@ -515,6 +677,11 @@ export interface CodeFixTaskContext {
    * (CodeFixTaskType.FixInfrastructureCode, #10370).
    */
   infrastructureFix?: InfrastructureFixTaskContext | undefined;
+  /*
+   * The fix of a service's telemetry leaks in its code, in one pull request
+   * (CodeFixTaskType.FixSensitiveDataInTelemetry, #10367).
+   */
+  telemetryLeakFix?: TelemetryLeakFixTaskContext | undefined;
   /*
    * GitHubPullRequestProductionReview: what the pull request's review was
    * asked to do, and what it keeps between reviews. `github` names a
