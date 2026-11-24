@@ -11,6 +11,7 @@
 import ExceptionUtil, {
   EXISTING_GROUP_CACHE_MAX_ENTRIES,
   ExceptionGroupingContent,
+  GROUP_FINGERPRINT_LOOKUP_SQL,
   GroupFingerprintCandidate,
   OccurrenceFingerprints,
   TelemetryExceptionPayload,
@@ -69,6 +70,8 @@ const CART_STORED: ExceptionGroupingContent = {
 
 interface Fingerprints {
   v1: string;
+  // The keyed one of v1's text, where a v1 exception moves (#10619).
+  keyedV1: string;
   v2: string;
   keyed: string;
 }
@@ -89,6 +92,10 @@ function fingerprintsOf(content: ExceptionGroupingContent): Fingerprints {
 
   return {
     v1: ExceptionUtil.getFingerprint(input),
+    keyedV1: KeyedExceptionFingerprint.ofFirstGroupingText({
+      projectId: PROJECT_ID,
+      text: ExceptionUtil.getGroupingTextV1(input),
+    }),
     v2: ExceptionUtil.getFingerprintV2(input),
     keyed: KeyedExceptionFingerprint.ofGroupingText({
       projectId: PROJECT_ID,
@@ -116,7 +123,7 @@ function occurrence(data: {
 }
 
 describe("an occurrence's fingerprints", () => {
-  test("no rule changed it: v1, v2 and the keyed one are tried in that order, a new exception is made under v2, and v1 is kept when nothing can be read", () => {
+  test("no rule changed it: v1, the keyed v1, v2 and the keyed one are tried in that order, a new exception is made under v2, and v1 is kept when nothing can be read", () => {
     for (const content of [CARD_ARRIVED, CART_ARRIVED]) {
       const expected: Fingerprints = fingerprintsOf(content);
 
@@ -126,7 +133,12 @@ describe("an occurrence's fingerprints", () => {
         ).toEqual({
           fingerprint: expected.v1,
           fingerprintV2: expected.v2,
-          fingerprintCandidates: [expected.v1, expected.v2, expected.keyed],
+          fingerprintCandidates: [
+            expected.v1,
+            expected.keyedV1,
+            expected.v2,
+            expected.keyed,
+          ],
         });
       }
     }
@@ -150,7 +162,17 @@ describe("an occurrence's fingerprints", () => {
     expect(occurrence({ arrived: CARD_ARRIVED, stored: CARD_STORED })).toEqual({
       fingerprint: arrived.keyed,
       fingerprintV2: arrived.keyed,
-      fingerprintCandidates: [arrived.v1, arrived.v2, arrived.keyed],
+      fingerprintCandidates: [
+        arrived.v1,
+        arrived.keyedV1,
+        arrived.v2,
+        arrived.keyed,
+      ],
+      // Both hash the card's digits: an exception under either moves (#10619).
+      fingerprintRekeys: {
+        [arrived.v1]: arrived.keyedV1,
+        [arrived.v2]: arrived.keyed,
+      },
     });
   });
 
@@ -167,9 +189,15 @@ describe("an occurrence's fingerprints", () => {
         stored.v1,
         stored.v2,
         arrived.v1,
+        arrived.keyedV1,
         arrived.v2,
         arrived.keyed,
       ],
+      // What the rule left hashes nothing hidden: never moved.
+      fingerprintRekeys: {
+        [arrived.v1]: arrived.keyedV1,
+        [arrived.v2]: arrived.keyed,
+      },
     });
   });
 
@@ -184,14 +212,29 @@ describe("an occurrence's fingerprints", () => {
     expect(occurrence({ arrived: CART_ARRIVED, stored: CART_STORED })).toEqual({
       fingerprint: arrived.v2,
       fingerprintV2: arrived.v2,
-      fingerprintCandidates: [arrived.v1, arrived.v2, arrived.keyed],
+      fingerprintCandidates: [
+        arrived.v1,
+        arrived.keyedV1,
+        arrived.v2,
+        arrived.keyed,
+      ],
+      /*
+       * Neither hashes the address - v1's text holds <EMAIL> in its place -
+       * so an exception under either keeps its fingerprint: no moves.
+       */
     });
 
     // A log tries what it was grouped by before, once each.
     expect(
       occurrence({ arrived: CART_ARRIVED, stored: CART_STORED, fromLog: true })
         .fingerprintCandidates,
-    ).toEqual([stored.v1, arrived.v2, arrived.v1, arrived.keyed]);
+    ).toEqual([
+      stored.v1,
+      arrived.v2,
+      arrived.v1,
+      arrived.keyedV1,
+      arrived.keyed,
+    ]);
   });
 
   test("is the same every time, and another in another service or project", () => {
@@ -238,7 +281,7 @@ function mockPostgres(): void {
   jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
     manager: {
       query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
-        if (sql.includes('SELECT "fingerprint" FROM "TelemetryException"')) {
+        if (sql === GROUP_FINGERPRINT_LOOKUP_SQL) {
           lookups.push(params);
           if (lookupFails) {
             throw new Error("connection reset");
@@ -248,7 +291,7 @@ function mockPostgres(): void {
               return existing.has(fingerprint);
             })
             .map((fingerprint: string) => {
-              return { fingerprint };
+              return { fingerprint, movedTo: null };
             });
         }
         return [];

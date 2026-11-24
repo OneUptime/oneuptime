@@ -37,7 +37,12 @@ import {
 export const MERGE_ROUTE_PREFIX: string = "/telemetry-exception/merge";
 export const UNMERGE_ROUTE_PREFIX: string = "/telemetry-exception/unmerge";
 
-// What an exception's page reads of the exceptions merged into it.
+/*
+ * What an exception's page reads of the exceptions merged into it: their
+ * fingerprints, which it reads its occurrences by, and, to list them, the
+ * rest. A row that keeps its own former fingerprint (#10619) is read too:
+ * its fingerprint is the one its occurrences from before the move carry.
+ */
 export const MERGED_EXCEPTION_SELECT: {
   _id: true;
   fingerprint: true;
@@ -45,6 +50,7 @@ export const MERGED_EXCEPTION_SELECT: {
   message: true;
   occuranceCount: true;
   mergedAt: true;
+  formerFingerprintOfTelemetryExceptionId: true;
 } = {
   _id: true,
   fingerprint: true,
@@ -52,7 +58,23 @@ export const MERGED_EXCEPTION_SELECT: {
   message: true,
   occuranceCount: true,
   mergedAt: true,
+  formerFingerprintOfTelemetryExceptionId: true,
 };
+
+/*
+ * The exceptions a person merged, of those merged into one: without the
+ * rows that only keep a former fingerprint of it, which are part of it and
+ * are never listed or unmerged on their own. Pure, for the tests.
+ */
+export function getListedMergedExceptions<
+  T extends {
+    formerFingerprintOfTelemetryExceptionId?: unknown;
+  },
+>(members: ReadonlyArray<T>): Array<T> {
+  return members.filter((member: T): boolean => {
+    return !member.formerFingerprintOfTelemetryExceptionId;
+  });
+}
 
 async function post(route: string, data: JSONObject): Promise<JSONObject> {
   const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(

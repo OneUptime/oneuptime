@@ -12,6 +12,7 @@ import {
   parseAppleCrashReport,
 } from "../../../Utils/Telemetry/AppleCrashReport";
 import { toAppleSymbolDisplayName } from "../../../Utils/Telemetry/SwiftDemangle";
+import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
 /*
  * WHAT MAKES TWO OCCURRENCES THE SAME EXCEPTION: GROUPING V2.
@@ -376,6 +377,114 @@ export function getExceptionGroupingKey(input: {
       ).trim(),
     ],
   };
+}
+
+/*
+ * The placeholders the normalizers write in place of a value
+ * (normalizeExceptionText; collapseLongDigitRuns' "<n>"): whatever the value
+ * was, the text a fingerprint hashes holds the placeholder alone.
+ */
+export const FOLDED_VALUE_PLACEHOLDERS: ReadonlyArray<string> = [
+  "<UUID>",
+  "<OBJECT_ID>",
+  "<STRIPE_ID>",
+  "<SERVICE_ID>",
+  "<JWT>",
+  "<BASE64>",
+  "<IP>",
+  "<IPV6>",
+  "<EMAIL>",
+  "<ID>",
+  "<TIMESTAMP>",
+  "<DATE>",
+  "<TIME>",
+  "<MEMORY_ADDR>",
+  "<SESSION>",
+  "<REQUEST>",
+  "<CORRELATION>",
+  "<TRANSACTION>",
+  "<HEX_ID>",
+  "<PORT>",
+  "<LINE>",
+  "<COL>",
+  "<PID>",
+  "<TID>",
+  "<NUMBER>",
+  "<n>",
+];
+
+const FOLDED_VALUE_PLACEHOLDER_REGEX: RegExp = new RegExp(
+  `(${FOLDED_VALUE_PLACEHOLDERS.map(escapeRegExp).join("|")})`,
+);
+
+// Past this many placeholders a text is not read for them (see below).
+const MAX_PLACEHOLDERS_READ: number = 256;
+
+/*
+ * WHETHER A SCRUB RULE HID ANYTHING A FINGERPRINT HASHES (#10619).
+ *
+ * `arrived` and `stored` are the texts a fingerprint hashes, made from an
+ * exception as it arrived and from what the scrub rules left of it. They
+ * differ wherever a rule hid something - but a value the normalizer folds
+ * (an email address, a UUID, a long number) never reaches the fingerprint:
+ * the arrived text holds a placeholder there, whatever the value was. So the
+ * fingerprint gives nothing a rule hid away exactly when the stored text is
+ * the arrived one with only its placeholders replaced: every literal piece
+ * of the arrived text found, in order, in the stored one - the first at its
+ * start, the last at its end - and anything at all where a placeholder is.
+ * A hidden value that was not folded sits in a literal piece, which the
+ * stored text no longer holds.
+ *
+ * Errs one way only: a text with too many placeholders to read is taken to
+ * give something away. Bounded by the texts' length.
+ */
+export function isChangedOnlyWhereFolded(
+  arrived: string,
+  stored: string,
+): boolean {
+  if (arrived === stored) {
+    return true;
+  }
+
+  // Literal pieces at even indexes, placeholders at odd ones.
+  const pieces: Array<string> = arrived.split(FOLDED_VALUE_PLACEHOLDER_REGEX);
+  const placeholders: number = (pieces.length - 1) / 2;
+
+  if (placeholders < 1 || placeholders > MAX_PLACEHOLDERS_READ) {
+    return false;
+  }
+
+  const first: string = pieces[0] || "";
+  const last: string = pieces[pieces.length - 1] || "";
+
+  if (
+    !stored.startsWith(first) ||
+    !stored.endsWith(last) ||
+    first.length + last.length > stored.length
+  ) {
+    return false;
+  }
+
+  let at: number = first.length;
+  const end: number = stored.length - last.length;
+
+  for (let index: number = 2; index < pieces.length - 1; index += 2) {
+    const piece: string = pieces[index] || "";
+
+    if (!piece) {
+      continue;
+    }
+
+    const found: number = stored.indexOf(piece, at);
+
+    if (found < 0 || found + piece.length > end) {
+      return false;
+    }
+
+    at = found + piece.length;
+  }
+
+  return true;
 }
 
 /*

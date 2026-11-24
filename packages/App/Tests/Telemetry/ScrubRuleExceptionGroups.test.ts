@@ -10,6 +10,7 @@ import TraceDropFilterService from "../../FeatureSet/Telemetry/Services/TraceDro
 import TracePipelineService from "../../FeatureSet/Telemetry/Services/TracePipelineService";
 import LlmModelPriceService from "../../FeatureSet/Telemetry/Services/LlmModelPriceService";
 import ExceptionUtil, {
+  GROUP_FINGERPRINT_LOOKUP_SQL,
   clearExistingV1FingerprintCache,
 } from "../../FeatureSet/Telemetry/Utils/Exception";
 import * as FilterEvaluator from "../../FeatureSet/Telemetry/Utils/LogFilterEvaluator";
@@ -22,6 +23,7 @@ import LogService from "Common/Server/Services/LogService";
 import SpanService from "Common/Server/Services/SpanService";
 import TelemetryExceptionService from "Common/Server/Services/TelemetryExceptionService";
 import KeyedExceptionFingerprint from "Common/Server/Utils/Telemetry/KeyedExceptionFingerprint";
+import { FORMER_FINGERPRINT_OWNER_SQL } from "Common/Server/Utils/Telemetry/TelemetryExceptionRekey";
 import {
   getExceptionGroupingKey,
   getExceptionGroupingText,
@@ -135,16 +137,27 @@ interface ShareCase {
 
 // One exception of the stand-in table.
 interface StoredException {
+  id: string;
   fingerprint: string;
   firstSeenAt: Date;
   lastSeenAt: Date;
   occuranceCount: number;
   message: string;
   stackTrace: string;
+  /*
+   * A row that only keeps the former fingerprint of the exception with this
+   * id, merged into it (#10619, TelemetryExceptionRekey).
+   */
+  formerFingerprintOf?: string | undefined;
 }
 
 let table: Map<string, StoredException>;
 let lookupFails: boolean;
+// The exceptions made so far, for their ids.
+let made: number;
+// The moves to a private fingerprint written, and whether they fail.
+let movesWritten: number;
+let movesFail: boolean;
 let logRows: Array<JSONObject>;
 let spanRows: Array<JSONObject>;
 let exceptionRows: Array<JSONObject>;
@@ -233,6 +246,7 @@ function storeUpsert(params: Array<unknown>): void {
 
     if (!stored) {
       table.set(fingerprint, {
+        id: `exception-${++made}`,
         fingerprint,
         firstSeenAt,
         lastSeenAt,
@@ -256,6 +270,7 @@ function storeUpsert(params: Array<unknown>): void {
 // An exception made before this suite's ingest: before the rule, or before #10434.
 function seed(fingerprint: string, at: number = BEFORE - HOUR_MS): void {
   table.set(fingerprint, {
+    id: `exception-${++made}`,
     fingerprint,
     firstSeenAt: new Date(at),
     lastSeenAt: new Date(at),
@@ -271,12 +286,22 @@ function seed(fingerprint: string, at: number = BEFORE - HOUR_MS): void {
  * in the window).
  */
 function newExceptionsAround(at: number): number {
+  return exceptions().filter((exception: StoredException): boolean => {
+    const firstSeen: number = exception.firstSeenAt.getTime();
+    return firstSeen > at - MONITOR_WINDOW_MS && firstSeen <= at + MINUTE_MS;
+  }).length;
+}
+
+/*
+ * The exceptions of the table: not the rows that only keep an exception's
+ * former fingerprint (#10619), which no list or monitor counts.
+ */
+function exceptions(): Array<StoredException> {
   return Array.from(table.values()).filter(
-    (exception: StoredException): boolean => {
-      const firstSeen: number = exception.firstSeenAt.getTime();
-      return firstSeen > at - MONITOR_WINDOW_MS && firstSeen <= at + MINUTE_MS;
+    (entry: StoredException): boolean => {
+      return !entry.formerFingerprintOf;
     },
-  ).length;
+  );
 }
 
 function setupIngest(): void {
@@ -341,7 +366,7 @@ function setupIngest(): void {
   jest.spyOn(TelemetryExceptionService, "getRepository").mockReturnValue({
     manager: {
       query: async (sql: string, params: Array<unknown>): Promise<unknown> => {
-        if (sql.includes('SELECT "fingerprint" FROM "TelemetryException"')) {
+        if (sql === GROUP_FINGERPRINT_LOOKUP_SQL) {
           if (lookupFails) {
             throw new Error("connection reset");
           }
@@ -351,7 +376,10 @@ function setupIngest(): void {
               return table.has(fingerprint);
             })
             .map((fingerprint: string) => {
-              return { fingerprint };
+              return {
+                fingerprint,
+                movedTo: ownerOf(table.get(fingerprint)!)?.fingerprint || null,
+              };
             });
         }
 
@@ -366,6 +394,94 @@ function setupIngest(): void {
       },
     },
   } as never);
+
+  // A move to a private fingerprint, as its transaction writes the table.
+  jest
+    .spyOn(TelemetryExceptionService, "executeTransaction")
+    .mockImplementation(((
+      run: (manager: unknown) => Promise<unknown>,
+    ): Promise<unknown> => {
+      if (movesFail) {
+        return Promise.reject(new Error("deadlock detected"));
+      }
+
+      return run({
+        query: async (
+          sql: string,
+          params: Array<unknown>,
+        ): Promise<unknown> => {
+          if (sql.includes("FOR UPDATE")) {
+            const row: StoredException | undefined = table.get(
+              params[2] as string,
+            );
+
+            return row
+              ? [
+                  {
+                    id: row.id,
+                    mergedIntoId: row.formerFingerprintOf || null,
+                    formerFingerprintOfId: row.formerFingerprintOf || null,
+                    primaryEntityType: "OpenTelemetry",
+                    exceptionType: "",
+                    firstSeenAt: row.firstSeenAt,
+                    lastSeenAt: row.lastSeenAt,
+                    firstSeenInRelease: "",
+                    lastSeenInRelease: "",
+                  },
+                ]
+              : [];
+          }
+
+          if (sql === FORMER_FINGERPRINT_OWNER_SQL) {
+            const row: StoredException | undefined = table.get(
+              params[2] as string,
+            );
+            const owner: StoredException | undefined = row
+              ? ownerOf(row)
+              : undefined;
+
+            return owner ? [{ fingerprint: owner.fingerprint }] : [];
+          }
+
+          if (sql.startsWith(`SELECT "_id"::text AS "id"`)) {
+            return table.has(params[2] as string) ? [{ id: "taken" }] : [];
+          }
+
+          if (sql.startsWith(`UPDATE "TelemetryException" SET "fingerprint"`)) {
+            const exception: StoredException = Array.from(table.values()).find(
+              (entry: StoredException): boolean => {
+                return entry.id === params[1];
+              },
+            )!;
+
+            table.delete(exception.fingerprint);
+            exception.fingerprint = params[0] as string;
+            table.set(exception.fingerprint, exception);
+            movesWritten++;
+            return [];
+          }
+
+          if (sql.startsWith(`INSERT INTO "TelemetryException"`)) {
+            table.set(params[3] as string, {
+              id: `exception-${++made}`,
+              fingerprint: params[3] as string,
+              firstSeenAt: params[5] as Date,
+              lastSeenAt: params[6] as Date,
+              occuranceCount: 0,
+              message: "",
+              stackTrace: "",
+              formerFingerprintOf: params[10] as string,
+            });
+            return [];
+          }
+
+          throw new Error(`unexpected statement ${sql}`);
+        },
+      });
+    }) as never);
+  jest
+    .spyOn(TelemetryExceptionService, "forgetGroupFingerprints")
+    .mockResolvedValue(undefined as never);
 
   jest.spyOn(logger, "warn").mockImplementation((() => {
     return undefined;
@@ -475,6 +591,7 @@ async function ingestSpanException(
 // An exception's fingerprints, made from what it said, as the ingest makes them.
 function fingerprintsOf(exception: ExceptionText): {
   v1: string;
+  keyedV1: string;
   v2: string;
   keyed: string;
 } {
@@ -493,6 +610,14 @@ function fingerprintsOf(exception: ExceptionText): {
       projectId: PROJECT_ID,
       primaryEntityId: SERVICE_ID,
       ...content,
+    }),
+    keyedV1: KeyedExceptionFingerprint.ofFirstGroupingText({
+      projectId: PROJECT_ID,
+      text: ExceptionUtil.getGroupingTextV1({
+        projectId: PROJECT_ID,
+        primaryEntityId: SERVICE_ID,
+        ...content,
+      }),
     }),
     v2: ExceptionUtil.getFingerprintV2({
       projectId: PROJECT_ID,
@@ -517,8 +642,8 @@ function rowFingerprints(): Array<string> {
 }
 
 function onlyException(): StoredException {
-  expect(table.size).toBe(1);
-  return Array.from(table.values())[0]!;
+  expect(exceptions()).toHaveLength(1);
+  return exceptions()[0]!;
 }
 
 // An exception with no stack trace, so grouping v2 reads its message.
@@ -527,9 +652,23 @@ const CART_EXCEPTION: ExceptionText = {
   message: "No cart for ada@example.com",
 };
 
+// The exception a row that keeps a former fingerprint is kept for.
+function ownerOf(row: StoredException): StoredException | undefined {
+  if (!row.formerFingerprintOf) {
+    return undefined;
+  }
+
+  return Array.from(table.values()).find((entry: StoredException): boolean => {
+    return entry.id === row.formerFingerprintOf;
+  });
+}
+
 beforeEach(() => {
   table = new Map<string, StoredException>();
   lookupFails = false;
+  made = 0;
+  movesWritten = 0;
+  movesFail = false;
   logRows = [];
   spanRows = [];
   exceptionRows = [];
@@ -669,13 +808,28 @@ describe("an exception found in a log, before and after a scrub rule", () => {
     test("added to an exception named in a log's attributes: one exception", async () => {
       await ingestLogException(exception, BEFORE);
       const before: StoredException = onlyException();
+      const fingerprints: { v2: string; keyed: string } =
+        fingerprintsOf(exception);
 
       logRules = [rule()];
       await ingestLogException(exception, AFTER);
 
       expect(onlyException()).toBe(before);
+      expect(before.occuranceCount).toBe(2);
       expect(newExceptionsAround(AFTER)).toBe(0);
       expect(exceptionRows[1]!["message"]).not.toContain(value);
+
+      /*
+       * A value the normalizer keeps was in the text the exception's
+       * fingerprint hashes: it moved to the private fingerprint, its old one
+       * kept by a row of its own (#10619). An email address never was.
+       */
+      if (value.includes("@")) {
+        expect(before.fingerprint).toBe(fingerprints.v2);
+      } else {
+        expect(before.fingerprint).toBe(fingerprints.keyed);
+        expect(table.get(fingerprints.v2)?.formerFingerprintOf).toBe(before.id);
+      }
     });
 
     test("added to an exception found in a log's body: one exception", async () => {
@@ -1135,5 +1289,223 @@ describe("an exception a log pipeline names", () => {
 
     // The exception record's copy as it arrived; the other holds no exception.
     expect(processLog).toHaveBeenCalledTimes(3);
+  });
+});
+
+/*
+ * An exception made before #10434 - a span's, or any made before its rule -
+ * keeps the unkeyed fingerprint it was made under, and that fingerprint
+ * hashes what the rule now hides: whoever reads it and the redacted message
+ * hashes every guess and gets the value back. Its next occurrence the rule
+ * changed moves it to the keyed fingerprint of the same text, keeping the
+ * old one only as a row merged into it, so its occurrences from before stay
+ * its own: nothing split, nothing new (#10619).
+ */
+describe("an exception whose unkeyed fingerprint hashes what a rule now hides", () => {
+  const ssnException: ExceptionText = {
+    type: "InvalidSsnError",
+    message: "Invalid SSN 123-45-6789 on file",
+  };
+  const SSN_TRACE_RULE: () => unknown = (): unknown => {
+    return traceRule({ patternType: TraceScrubPatternType.SSN });
+  };
+
+  // Every guess at the last four digits whose unkeyed fingerprint is this one.
+  function lastFourMatching(fingerprint: string): Array<string> {
+    const found: Array<string> = [];
+
+    for (let value: number = 0; value < 10000; value++) {
+      const lastFour: string = value.toString().padStart(4, "0");
+      const guess: { v1: string; v2: string } = fingerprintsOf({
+        ...ssnException,
+        message: `Invalid SSN 123-45-${lastFour} on file`,
+      });
+
+      if (guess.v1 === fingerprint || guess.v2 === fingerprint) {
+        found.push(lastFour);
+      }
+    }
+
+    return found;
+  }
+
+  function exceptionWithId(id: string): StoredException {
+    const found: StoredException | undefined = Array.from(table.values()).find(
+      (entry: StoredException): boolean => {
+        return entry.id === id;
+      },
+    );
+
+    expect(found).toBeDefined();
+    return found!;
+  }
+
+  // A span's exception from before #10434, grouped under its unkeyed v2.
+  async function spanExceptionFromBefore(): Promise<StoredException> {
+    await ingestSpanException(ssnException, BEFORE);
+
+    const before: StoredException = onlyException();
+    expect(before.fingerprint).toBe(fingerprintsOf(ssnException).v2);
+    // Anyone who reads it can work the number back.
+    expect(lastFourMatching(before.fingerprint)).toEqual(["6789"]);
+
+    return before;
+  }
+
+  test("moves to the private fingerprint on its next occurrence: the same exception, counted again, and New Exception does not fire", async () => {
+    const before: StoredException = await spanExceptionFromBefore();
+
+    traceRules = [SSN_TRACE_RULE()];
+    await ingestSpanException(ssnException, AFTER);
+
+    const exception: StoredException = exceptionWithId(before.id);
+    const keyed: string = fingerprintsOf(ssnException).keyed;
+
+    expect(exception).toBe(before);
+    expect(exception.fingerprint).toBe(keyed);
+    expect(exception.occuranceCount).toBe(2);
+    expect(newExceptionsAround(AFTER)).toBe(0);
+    // Its new occurrence carries the private fingerprint.
+    expect(rowFingerprints()).toEqual([fingerprintsOf(ssnException).v2, keyed]);
+    // Which gives no guess back, and the number is stored nowhere new.
+    expect(lastFourMatching(exception.fingerprint)).toEqual([]);
+    expect(JSON.stringify(exceptionRows[1])).not.toContain("6789");
+  });
+
+  test("keeps its old fingerprint only as a row merged into it, which the occurrences from before still carry", async () => {
+    const before: StoredException = await spanExceptionFromBefore();
+    const oldFingerprint: string = before.fingerprint;
+    const firstSeenAt: Date = before.firstSeenAt;
+
+    traceRules = [SSN_TRACE_RULE()];
+    await ingestSpanException(ssnException, AFTER);
+
+    expect(table.size).toBe(2);
+
+    const kept: StoredException = table.get(oldFingerprint)!;
+    expect(kept.formerFingerprintOf).toBe(before.id);
+    expect(kept.occuranceCount).toBe(0);
+    // When the occurrences it stands for were seen: the exception's, till now.
+    expect(kept.firstSeenAt).toEqual(firstSeenAt);
+    expect(movesWritten).toBe(1);
+  });
+
+  test("every later occurrence goes to the private fingerprint: in another process, with the rule removed, or from a log", async () => {
+    const before: StoredException = await spanExceptionFromBefore();
+    const keyed: string = fingerprintsOf(ssnException).keyed;
+
+    traceRules = [SSN_TRACE_RULE()];
+    await ingestSpanException(ssnException, AFTER);
+
+    // Another worker, which read nothing before: found through the old one.
+    clearExistingV1FingerprintCache();
+    exceptionRows = [];
+    await ingestSpanException(ssnException, AFTER + MINUTE_MS);
+
+    // The rule removed: an occurrence no rule changed finds it the same way.
+    clearExistingV1FingerprintCache();
+    traceRules = [];
+    await ingestSpanException(ssnException, AFTER + 2 * MINUTE_MS);
+
+    // A log's copy, a log rule hiding the number.
+    clearExistingV1FingerprintCache();
+    logRules = [logRule({ patternType: LogScrubPatternType.SSN })];
+    await ingestLogException(ssnException, AFTER + 3 * MINUTE_MS);
+
+    expect(rowFingerprints()).toEqual([keyed, keyed, keyed]);
+    expect(exceptionWithId(before.id).occuranceCount).toBe(5);
+    expect(table.size).toBe(2);
+    // Moved once.
+    expect(movesWritten).toBe(1);
+  });
+
+  test("a log's copy a rule changed moves it too", async () => {
+    const before: StoredException = await spanExceptionFromBefore();
+
+    logRules = [logRule({ patternType: LogScrubPatternType.SSN })];
+    await ingestLogException(ssnException, AFTER);
+
+    expect(exceptionWithId(before.id).fingerprint).toBe(
+      fingerprintsOf(ssnException).keyed,
+    );
+    expect(newExceptionsAround(AFTER)).toBe(0);
+  });
+
+  test("one made before grouping v2 moves to the private fingerprint of its first fingerprint's text, and is found there", async () => {
+    const fingerprints: { v1: string; keyedV1: string } =
+      fingerprintsOf(ssnException);
+    seed(fingerprints.v1);
+    const before: StoredException = onlyException();
+
+    traceRules = [SSN_TRACE_RULE()];
+    await ingestSpanException(ssnException, AFTER);
+
+    expect(before.fingerprint).toBe(fingerprints.keyedV1);
+    expect(table.get(fingerprints.v1)!.formerFingerprintOf).toBe(before.id);
+
+    clearExistingV1FingerprintCache();
+    await ingestSpanException(ssnException, AFTER + MINUTE_MS);
+
+    expect(rowFingerprints()).toEqual([
+      fingerprints.keyedV1,
+      fingerprints.keyedV1,
+    ]);
+    expect(before.occuranceCount).toBe(3);
+    expect(lastFourMatching(before.fingerprint)).toEqual([]);
+  });
+
+  test("one whose fingerprint never held what the rule hid stays where it is: an email address is folded before it is hashed", async () => {
+    await ingestSpanException(CART_EXCEPTION, BEFORE);
+    const before: StoredException = onlyException();
+    const fingerprint: string = before.fingerprint;
+
+    traceRules = [traceRule({ patternType: TraceScrubPatternType.Email })];
+    await ingestSpanException(CART_EXCEPTION, AFTER);
+
+    expect(onlyException()).toBe(before);
+    expect(before.fingerprint).toBe(fingerprint);
+    expect(movesWritten).toBe(0);
+  });
+
+  test("the private fingerprint taken by another exception: nothing moves and nothing merges", async () => {
+    const fingerprints: { v2: string; keyed: string } =
+      fingerprintsOf(ssnException);
+    seed(fingerprints.v2, BEFORE - 2 * HOUR_MS);
+    seed(fingerprints.keyed, BEFORE);
+
+    traceRules = [SSN_TRACE_RULE()];
+    await ingestSpanException(ssnException, AFTER);
+
+    expect(rowFingerprints()).toEqual([fingerprints.v2]);
+    expect(table.get(fingerprints.v2)!.occuranceCount).toBe(2);
+    expect(table.get(fingerprints.keyed)!.occuranceCount).toBe(1);
+    expect(table.size).toBe(2);
+    expect(movesWritten).toBe(0);
+  });
+
+  test("a move that fails loses nothing: the occurrence counts on the exception under its old fingerprint, and a later one moves it", async () => {
+    const before: StoredException = await spanExceptionFromBefore();
+    const oldFingerprint: string = before.fingerprint;
+
+    traceRules = [SSN_TRACE_RULE()];
+    movesFail = true;
+    await ingestSpanException(ssnException, AFTER);
+
+    expect(rowFingerprints()).toEqual([oldFingerprint, oldFingerprint]);
+    expect(before.occuranceCount).toBe(2);
+    expect(table.size).toBe(1);
+
+    // Not tried again by this process for a while...
+    movesFail = false;
+    await ingestSpanException(ssnException, AFTER + MINUTE_MS);
+    expect(movesWritten).toBe(0);
+
+    // ...but by the next one to read it.
+    clearExistingV1FingerprintCache();
+    await ingestSpanException(ssnException, AFTER + 2 * MINUTE_MS);
+
+    expect(before.fingerprint).toBe(fingerprintsOf(ssnException).keyed);
+    expect(before.occuranceCount).toBe(4);
+    expect(movesWritten).toBe(1);
   });
 });
