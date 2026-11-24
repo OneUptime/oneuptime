@@ -193,4 +193,5 @@ SAML プロバイダーの場合、レスポンスの audience がプロバイ�
 - [SSO](/docs/identity/sso): プロジェクト自身の SAML または OIDC プロバイダーを設定する。
 - [SCIM](/docs/identity/scim): アイデンティティプロバイダーに人の追加と削除を自動で任せる。
 - [ユーザー、チーム、権限](/docs/permissions/index): 新しい人が参加するチームで何ができるようになるか。
+- [ヘルプとサポート](/docs/self-hosted/help-and-support): 招待が必要な人に、誰に頼めばよいかを伝える。
 :::

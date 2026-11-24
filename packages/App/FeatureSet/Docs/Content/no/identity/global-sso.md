@@ -193,4 +193,5 @@ Hele instansen krever SSO, og dette var en pålogging med passord, passnøkkel, 
 - [SSO](/docs/identity/sso): Sett opp et prosjekts egen SAML- eller OIDC-leverandør.
 - [SCIM](/docs/identity/scim): La identitetsleverandøren din legge til og fjerne personer automatisk.
 - [Brukere, team og tillatelser](/docs/permissions/index): Hva teamene nye personer blir med i, gir dem lov til.
+- [Hjelp og støtte](/docs/self-hosted/help-and-support): Fortell personer som trenger en invitasjon, hvem de skal spørre.
 :::

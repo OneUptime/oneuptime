@@ -193,4 +193,5 @@ Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見
 - [SSO](/docs/identity/sso): 設定專案自己的 SAML 或 OIDC 提供者。
 - [SCIM](/docs/identity/scim): 讓身分提供者自動新增和移除人員。
 - [使用者、團隊與權限](/docs/permissions/index): 新來的人加入的團隊允許他們做什麼。
+- [說明與支援](/docs/self-hosted/help-and-support): 告訴需要邀請的人該向誰申請。
 :::
