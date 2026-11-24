@@ -1,9 +1,10 @@
 import crypto from "crypto";
 import http, { IncomingMessage, ServerResponse } from "http";
-import https from "https";
 import net from "net";
 import tls from "tls";
 import { Duplex } from "stream";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import DataSourceEgressGuard, {
   EgressGuardOptions,
   ResolvedAddress,
@@ -41,8 +42,8 @@ import { SyntheticMonitorWorkerProxy } from "./SyntheticMonitorWorkerTypes";
  *     XHR, WebSocket, worker, service worker, beacon and redirect hop is
  *     handed to it rather than connected by the browser itself;
  *   - the script's axios bridge sends through it too
- *     (PlaywrightCapabilityBroker), so axios's redirects come here hop by
- *     hop as well.
+ *     (PlaywrightCapabilityBroker), with agents that can dial nothing else,
+ *     so axios's redirects come here hop by hop as well.
  *
  * For each connection it is asked for - a CONNECT tunnel for https and wss,
  * an absolute-form request for http, an Upgrade for ws - it asks the egress
@@ -56,9 +57,10 @@ import { SyntheticMonitorWorkerProxy } from "./SyntheticMonitorWorkerTypes";
  * Behind the operator's outbound proxy (the one the browser always used:
  * HTTPS_PROXY_URL, else HTTP_PROXY_URL, apart from NO_PROXY's hosts), the
  * approved address is what the proxy is asked for - a CONNECT to the
- * address, an absolute URI naming it - as HttpMonitorRequest asks it, so the
- * proxy cannot resolve the name somewhere else. The proxy's own address is
- * the operator's and is not checked.
+ * address, an absolute URI naming it, a Host header naming what was checked
+ * - as HttpMonitorRequest asks it, so the proxy cannot resolve the name, or
+ * route on a header, somewhere else. The proxy's own address is the
+ * operator's and is not checked.
  *
  * A refused request is answered by this proxy - 403 for an address the
  * policy refuses, 502 for a host that cannot be reached, which for a host
@@ -77,14 +79,25 @@ export interface SyntheticEgressRefusal {
 
 // An http and an https agent that send one axios request through this proxy.
 export interface SyntheticEgressRequestAgents {
+  /*
+   * Both dial this proxy and nothing else: an absolute-form request for
+   * http, a CONNECT for https. Neither depends on the runtime honouring a
+   * proxy option (Node 24 ignored http.Agent's proxyEnv and went direct).
+   */
   httpAgent: http.Agent;
-  httpsAgent: https.Agent;
+  httpsAgent: http.Agent;
   /*
    * The first refusal or connection failure this proxy answered the request
    * (and its redirects) with, or undefined: what the script should be told
    * instead of the proxy's own answer.
    */
   takeFailure: () => string | undefined;
+  /*
+   * How many requests of these agents - the first, and each redirect hop -
+   * reached this proxy. A response the caller cannot account for here did
+   * not come through the egress checks, and must not be handed back.
+   */
+  requestsSeen: () => number;
   // Lets the agents and the record go. Call once the request has settled.
   release: () => void;
 }
@@ -92,12 +105,25 @@ export interface SyntheticEgressRequestAgents {
 export interface SyntheticEgressProxyOptions {
   // Where requests may go. Absent: public addresses only.
   policy?: MonitorEgressPolicy | undefined;
-  // The operator's outbound proxy, as the supervisor read it (config.proxy).
+  /*
+   * The operator's outbound proxy, as the supervisor read it (config.proxy).
+   * One this proxy cannot read is a fault, never "no proxy": going direct
+   * would route around the operator's proxy.
+   */
   upstreamProxy?: SyntheticMonitorWorkerProxy | undefined;
 }
 
 // How long one connection - to the target or to the outbound proxy - may take.
 export const SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS: number = 30_000;
+
+/*
+ * The header on this proxy's own answer to a browser request it did not
+ * send: the refusal's place in the record (findBrowserFailure), behind a
+ * value only this proxy knows, so a site cannot pass its own answer off as
+ * the probe's.
+ */
+export const SYNTHETIC_EGRESS_REFUSAL_HEADER: string =
+  "x-oneuptime-egress-refusal";
 
 /*
  * How long an approved host's addresses are reused. Pages open many
@@ -109,6 +135,18 @@ const MAX_CACHED_APPROVALS: number = 500;
 
 // Refusals of the browser's requests a check keeps for its report.
 export const MAX_RECORDED_BROWSER_REFUSALS: number = 10;
+
+/*
+ * Browser requests this proxy did not send, kept so a navigation that
+ * failed on one can say why (PlaywrightCapabilityBroker).
+ */
+const MAX_RECORDED_BROWSER_FAILURES: number = 256;
+
+/*
+ * Approved addresses asked of the outbound proxy in turn, when it says it
+ * could not reach the one before.
+ */
+const MAX_UPSTREAM_ADDRESS_ATTEMPTS: number = 4;
 
 // Connections open at once, both sides counted: far above what a browser opens.
 const MAX_OPEN_SOCKETS: number = 1_024;
@@ -124,6 +162,10 @@ const CONNECT_AUTHORITY_PATTERN: RegExp =
 const HTTP_STATUS_LINE_PATTERN: RegExp = /^HTTP\/1\.[01] (\d{3})/;
 // Basic credentials, as a Proxy-Authorization header carries them.
 const BASIC_CREDENTIALS_PATTERN: RegExp = /^Basic\s+([A-Za-z0-9+/=]+)$/i;
+// What Node refuses in a reason phrase (its checkInvalidHeaderChar).
+const INVALID_REASON_CHARACTERS: RegExp = /[^\t\x20-\x7e\x80-\xff]/g;
+// The marker on a refusal: this proxy's token, then the refusal's sequence.
+const REFUSAL_MARKER_PATTERN: RegExp = /^([0-9a-f]+)\.(\d{1,15})$/;
 
 const HOP_BY_HOP_HEADERS: ReadonlySet<string> = new Set([
   "connection",
@@ -137,13 +179,50 @@ const HOP_BY_HOP_HEADERS: ReadonlySet<string> = new Set([
   "upgrade",
 ]);
 
+/*
+ * Through the outbound proxy the Host header goes too: it is set to what the
+ * guard checked, never what the client wrote (a proxy may route on it).
+ */
+const HOP_BY_HOP_AND_HOST_HEADERS: ReadonlySet<string> = new Set([
+  ...HOP_BY_HOP_HEADERS,
+  "host",
+]);
+
 // Headers an Upgrade request keeps: the handshake is relayed as it is.
 const UPGRADE_DROPPED_HEADERS: ReadonlySet<string> = new Set([
   "proxy-authorization",
   "proxy-connection",
 ]);
 
-type Refusal = { status: number; reason: string; message: string };
+const DEFAULT_PORTS: Readonly<Record<string, number>> = {
+  "http:": 80,
+  "ws:": 80,
+  "https:": 443,
+  "wss:": 443,
+};
+
+type Refusal = {
+  status: number;
+  reason: string;
+  message: string;
+  // On an answer to the browser: SYNTHETIC_EGRESS_REFUSAL_HEADER's value.
+  marker?: string | undefined;
+};
+
+interface BrowserFailure {
+  sequence: number;
+  target: string;
+  message: string;
+}
+
+// A target whose answer the probe could not read (or relay) as HTTP.
+class UnreadableResponseError extends Error {}
+
+/*
+ * The outbound proxy answered a CONNECT, but not with a tunnel: it could not
+ * reach that address, or would not. Another approved address may do.
+ */
+class UpstreamTunnelRefusal extends Error {}
 
 export default class SyntheticEgressProxy {
   private readonly policy: MonitorEgressPolicy;
@@ -151,6 +230,9 @@ export default class SyntheticEgressProxy {
   private readonly upstream: URL | null;
   private readonly upstreamAuthorization: string | null;
   private readonly upstreamNoProxy: string;
+  private readonly refusalMarkerToken: string = crypto
+    .randomBytes(12)
+    .toString("hex");
   private server: http.Server | null = null;
   private port: number = 0;
   private isClosed: boolean = false;
@@ -159,12 +241,15 @@ export default class SyntheticEgressProxy {
     string,
     { addresses: Promise<Array<ResolvedAddress>>; expiresAtInMs: number }
   > = new Map();
-  private readonly requestTags: Set<string> = new Set<string>();
+  // Each axios request's tag, and how many of its requests came here.
+  private readonly requestTags: Map<string, number> = new Map<string, number>();
   private readonly requestFailures: Map<string, string> = new Map<
     string,
     string
   >();
   private readonly browserRefusals: Array<SyntheticEgressRefusal> = [];
+  private readonly browserFailures: Array<BrowserFailure> = [];
+  private browserFailureSequence: number = 0;
 
   public constructor(options: SyntheticEgressProxyOptions = {}) {
     this.policy = options.policy || PUBLIC_ONLY_MONITOR_EGRESS_POLICY;
@@ -262,20 +347,19 @@ export default class SyntheticEgressProxy {
     const tag: string = crypto.randomBytes(16).toString("hex");
     // The tag travels as the proxy user name (Proxy-Authorization).
     const proxyUrl: string = `http://${tag}:@127.0.0.1:${port}`;
-    const httpAgent: http.Agent = new http.Agent({
-      proxyEnv: { http_proxy: proxyUrl },
-    });
-    const httpsAgent: https.Agent = new https.Agent({
-      proxyEnv: { https_proxy: proxyUrl },
-    });
+    const httpAgent: HttpProxyAgent<string> = new HttpProxyAgent(proxyUrl);
+    const httpsAgent: HttpsProxyAgent<string> = new HttpsProxyAgent(proxyUrl);
 
-    this.requestTags.add(tag);
+    this.requestTags.set(tag, 0);
 
     return {
       httpAgent,
       httpsAgent,
       takeFailure: (): string | undefined => {
         return this.requestFailures.get(tag);
+      },
+      requestsSeen: (): number => {
+        return this.requestTags.get(tag) || 0;
       },
       release: (): void => {
         httpAgent.destroy();
@@ -292,6 +376,88 @@ export default class SyntheticEgressProxy {
       (refusal: SyntheticEgressRefusal): SyntheticEgressRefusal => {
         return { ...refusal };
       },
+    );
+  }
+
+  /*
+   * Where the record of the browser's requests this proxy did not send
+   * stands now: what a navigation started after can be told apart by.
+   */
+  public getBrowserFailureSequence(): number {
+    return this.browserFailureSequence;
+  }
+
+  /*
+   * Why this proxy did not send the browser's latest request to `target`
+   * ("host:port", as targetOfUrl writes it) since `afterSequence`, or
+   * undefined when it sent every one.
+   */
+  public findBrowserFailure(data: {
+    afterSequence: number;
+    target: string;
+  }): string | undefined {
+    for (
+      let index: number = this.browserFailures.length - 1;
+      index >= 0;
+      index--
+    ) {
+      const failure: BrowserFailure = this.browserFailures[index]!;
+      if (failure.sequence <= data.afterSequence) {
+        return undefined;
+      }
+      if (failure.target === data.target) {
+        return failure.message;
+      }
+    }
+    return undefined;
+  }
+
+  /*
+   * Why this proxy answered a browser request itself, read from the
+   * SYNTHETIC_EGRESS_REFUSAL_HEADER of that answer, or undefined when the
+   * value is not one this proxy wrote: a site's own header is not believed.
+   */
+  public readRefusalMarker(value: string | undefined): string | undefined {
+    const match: RegExpExecArray | null = REFUSAL_MARKER_PATTERN.exec(
+      (value || "").trim(),
+    );
+
+    if (!match || match[1] !== this.refusalMarkerToken) {
+      return undefined;
+    }
+
+    const sequence: number = Number.parseInt(match[2]!, 10);
+
+    return this.browserFailures.find((failure: BrowserFailure) => {
+      return failure.sequence === sequence;
+    })?.message;
+  }
+
+  /*
+   * The "host:port" this proxy files a request to `url` under, or null for a
+   * URL it would never be asked for.
+   */
+  public static targetOfUrl(value: string): string | null {
+    let url: URL;
+
+    try {
+      url = new URL(value);
+    } catch {
+      return null;
+    }
+
+    const port: number =
+      url.port === ""
+        ? DEFAULT_PORTS[url.protocol] || 0
+        : Number.parseInt(url.port, 10);
+
+    if (!url.hostname || !(port >= 1)) {
+      return null;
+    }
+
+    return SyntheticEgressProxy.formatAuthority(
+      SyntheticEgressProxy.bareHost(url.hostname),
+      port,
     );
   }
 
@@ -476,13 +642,18 @@ export default class SyntheticEgressProxy {
     const pathAndQuery: string = `${target.pathname}${target.search}`;
     const headers: Array<string> = SyntheticEgressProxy.forwardableHeaders(
       request.rawHeaders,
-      HOP_BY_HOP_HEADERS,
+      upstream ? HOP_BY_HOP_AND_HOST_HEADERS : HOP_BY_HOP_HEADERS,
     );
 
     if (
-      !SyntheticEgressProxy.hasHeader(headers, "host") &&
-      target.host.length > 0
+      upstream ||
+      (!SyntheticEgressProxy.hasHeader(headers, "host") &&
+        target.host.length > 0)
     ) {
+      /*
+       * Through the outbound proxy, always the authority the guard checked:
+       * a proxy that routes on Host must not be pointed elsewhere by it.
+       */
       headers.push("Host", target.host);
     }
 
@@ -490,46 +661,98 @@ export default class SyntheticEgressProxy {
       headers.push("Proxy-Authorization", this.upstreamAuthorization);
     }
 
-    const outgoing: http.ClientRequest = http.request({
-      method: request.method,
-      /*
-       * Through the outbound proxy, the absolute URI names the approved
-       * address, so the proxy is never asked to resolve the name; the Host
-       * header still carries it, for virtual hosting.
-       */
-      path: upstream
-        ? `http://${SyntheticEgressProxy.formatAuthority(addresses[0]!.address, port)}${pathAndQuery}`
-        : pathAndQuery,
-      headers,
-      setHost: false,
-      maxHeaderSize: MAX_HEADER_BYTES,
-      createConnection: (
-        _options: unknown,
-        onCreate: (error: Error | null, socket: Duplex) => void,
-      ): undefined => {
-        const connecting: Promise<net.Socket> = upstream
-          ? this.connectToUpstream(upstream)
-          : this.connectDirectly({ hostname, port, addresses });
+    /*
+     * Once this proxy has answered the request itself, nothing that follows
+     * - a late error from the target's side - answers it again.
+     */
+    let answeredByProxy: boolean = false;
+    const answerByProxy: (error: unknown) => void = (error: unknown): void => {
+      if (answeredByProxy) {
+        return;
+      }
+      answeredByProxy = true;
 
-        connecting.then(
-          (socket: net.Socket): void => {
-            if (!this.track(socket)) {
-              socket.destroy();
-              onCreate(new Error("Too many open connections."), socket);
-              return;
-            }
-            onCreate(null, socket);
-          },
-          (error: Error): void => {
-            onCreate(error, undefined as unknown as Duplex);
-          },
-        );
+      if (response.headersSent) {
+        // The target's answer had begun: it is cut short, not replaced.
+        response.destroy();
+        return;
+      }
 
-        return undefined;
-      },
-    } as http.RequestOptions);
+      SyntheticEgressProxy.respondWithRefusal(
+        response,
+        this.refuse({ tag, target: targetName, hostname, error }),
+      );
+    };
+
+    let outgoing: http.ClientRequest;
+
+    try {
+      outgoing = http.request({
+        method: request.method,
+        /*
+         * Through the outbound proxy, the absolute URI names the approved
+         * address, so the proxy is never asked to resolve the name.
+         */
+        path: upstream
+          ? `http://${SyntheticEgressProxy.formatAuthority(SyntheticEgressProxy.inUpstreamOrder(addresses)[0]!.address, port)}${pathAndQuery}`
+          : pathAndQuery,
+        headers,
+        setHost: false,
+        maxHeaderSize: MAX_HEADER_BYTES,
+        createConnection: (
+          _options: unknown,
+          onCreate: (error: Error | null, socket: Duplex) => void,
+        ): undefined => {
+          const connecting: Promise<net.Socket> = upstream
+            ? this.connectToUpstream(upstream)
+            : this.connectDirectly({ hostname, port, addresses });
+
+          connecting.then(
+            (socket: net.Socket): void => {
+              if (!this.track(socket)) {
+                socket.destroy();
+                onCreate(new Error("Too many open connections."), socket);
+                return;
+              }
+              onCreate(null, socket);
+            },
+            (error: Error): void => {
+              onCreate(error, undefined as unknown as Duplex);
+            },
+          );
+
+          return undefined;
+        },
+      } as http.RequestOptions);
+    } catch (error: unknown) {
+      answerByProxy(error);
+      request.resume();
+      return;
+    }
 
     outgoing.on("response", (incoming: IncomingMessage): void => {
+      if (answeredByProxy) {
+        incoming.resume();
+        return;
+      }
+
+      const status: number | undefined = incoming.statusCode;
+
+      /*
+       * A status or reason phrase Node will not write again must never be
+       * what ends the worker: it is the target's fault, answered 502.
+       */
+      if (
+        status === undefined ||
+        !Number.isInteger(status) ||
+        status < 100 ||
+        status > 999
+      ) {
+        answerByProxy(new UnreadableResponseError());
+        outgoing.destroy();
+        return;
+      }
+
       const responseHeaders: Array<string> =
         SyntheticEgressProxy.forwardableHeaders(
           incoming.rawHeaders,
@@ -538,12 +761,14 @@ export default class SyntheticEgressProxy {
 
       try {
         response.writeHead(
-          incoming.statusCode || 502,
-          incoming.statusMessage || "",
+          status,
+          SyntheticEgressProxy.readableReason(incoming.statusMessage),
           responseHeaders,
         );
       } catch {
-        response.writeHead(incoming.statusCode || 502, responseHeaders);
+        answerByProxy(new UnreadableResponseError());
+        outgoing.destroy();
+        return;
       }
 
       incoming.on("error", (): void => {
@@ -553,15 +778,7 @@ export default class SyntheticEgressProxy {
     });
 
     outgoing.on("error", (error: Error): void => {
-      if (response.headersSent) {
-        response.destroy();
-        return;
-      }
-
-      SyntheticEgressProxy.respondWithRefusal(
-        response,
-        this.refuse({ tag, target: targetName, hostname, error }),
-      );
+      answerByProxy(error);
     });
 
     response.on("close", (): void => {
@@ -704,9 +921,9 @@ export default class SyntheticEgressProxy {
       return await this.connectDirectly(data);
     }
 
-    return await this.tunnelThroughUpstream({
+    return await this.tunnelThroughUpstreamToAny({
       upstream,
-      address: data.addresses[0]!,
+      addresses: data.addresses,
       port: data.port,
     });
   }
@@ -714,7 +931,9 @@ export default class SyntheticEgressProxy {
   /*
    * Dials the approved addresses and nothing else. A name is answered from
    * the approval (a pinned lookup), never looked up again; an IP address is
-   * dialled as written, which is what was approved.
+   * dialled as written, which is what was approved. Every approved address
+   * of a name is tried in turn (autoSelectFamily, RFC 8305), so an IPv6
+   * answer first on a network with no IPv6 route still connects over IPv4.
    */
   private async connectDirectly(data: {
     hostname: string;
@@ -753,6 +972,42 @@ export default class SyntheticEgressProxy {
     );
   }
 
+  /*
+   * A tunnel through the outbound proxy to one of the approved addresses,
+   * IPv4 first, the next one asked for whenever the proxy says it could not
+   * open the last. A proxy that cannot itself be reached is not asked again.
+   */
+  private async tunnelThroughUpstreamToAny(data: {
+    upstream: URL;
+    addresses: Array<ResolvedAddress>;
+    port: number;
+  }): Promise<net.Socket> {
+    const candidates: Array<ResolvedAddress> =
+      SyntheticEgressProxy.inUpstreamOrder(data.addresses).slice(
+        0,
+        MAX_UPSTREAM_ADDRESS_ATTEMPTS,
+      );
+    let lastError: unknown = new Error("No approved address to connect to.");
+
+    for (const address of candidates) {
+      try {
+        return await this.tunnelThroughUpstream({
+          upstream: data.upstream,
+          address,
+          port: data.port,
+        });
+      } catch (error: unknown) {
+        lastError = error;
+
+        if (!(error instanceof UpstreamTunnelRefusal)) {
+          break;
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
   // A CONNECT tunnel through the outbound proxy to the approved address.
   private async tunnelThroughUpstream(data: {
     upstream: URL;
@@ -772,7 +1027,11 @@ export default class SyntheticEgressProxy {
       ): void => {
         let received: Buffer = Buffer.alloc(0);
         const timer: NodeJS.Timeout = setTimeout((): void => {
-          fail(new Error("The outbound proxy did not answer the CONNECT."));
+          fail(
+            new UpstreamTunnelRefusal(
+              "The outbound proxy did not answer the CONNECT.",
+            ),
+          );
         }, SYNTHETIC_EGRESS_CONNECT_TIMEOUT_IN_MS);
         timer.unref?.();
 
@@ -788,7 +1047,9 @@ export default class SyntheticEgressProxy {
           reject(error);
         };
         const onClose: () => void = (): void => {
-          fail(new Error("The outbound proxy closed the CONNECT."));
+          fail(
+            new UpstreamTunnelRefusal("The outbound proxy closed the CONNECT."),
+          );
         };
         const onData: (chunk: Buffer) => void = (chunk: Buffer): void => {
           received = Buffer.concat([received, chunk]);
@@ -796,7 +1057,11 @@ export default class SyntheticEgressProxy {
 
           if (end === -1) {
             if (received.byteLength > MAX_UPSTREAM_CONNECT_RESPONSE_BYTES) {
-              fail(new Error("The outbound proxy's answer was too long."));
+              fail(
+                new UpstreamTunnelRefusal(
+                  "The outbound proxy's answer was too long.",
+                ),
+              );
             }
             return;
           }
@@ -809,7 +1074,7 @@ export default class SyntheticEgressProxy {
 
           if (!status || status[1] !== "200") {
             fail(
-              new Error(
+              new UpstreamTunnelRefusal(
                 `The outbound proxy refused the CONNECT (${status ? status[1] : "no status"}).`,
               ),
             );
@@ -858,7 +1123,7 @@ export default class SyntheticEgressProxy {
   /*
    * The answer to a request that will not be sent - the guard refused its
    * host, or it could not be reached - recorded for whoever asked: an axios
-   * request by its tag, the browser in its list.
+   * request by its tag, the browser in its lists.
    */
   private refuse(data: {
     tag: string | null;
@@ -867,31 +1132,34 @@ export default class SyntheticEgressProxy {
     error: unknown;
   }): Refusal {
     const isGuardRefusal: boolean = data.error instanceof EgressGuardException;
-    const message: string = isGuardRefusal
-      ? (data.error as EgressGuardException).message
-      : `${MONITOR_TARGET_LABEL} host ${data.hostname} could not be reached.`;
+    let message: string = `${MONITOR_TARGET_LABEL} host ${data.hostname} could not be reached.`;
     let status: number = 502;
     let reason: string = "Bad Gateway";
 
     if (isGuardRefusal) {
-      const guardReason: EgressFailureReason = (
-        data.error as EgressGuardException
-      ).reason;
+      const guardError: EgressGuardException =
+        data.error as EgressGuardException;
+      message = guardError.message;
 
-      if (guardReason === EgressFailureReason.InvalidTarget) {
+      if (guardError.reason === EgressFailureReason.InvalidTarget) {
         status = 400;
         reason = "Bad Request";
-      } else if (guardReason === EgressFailureReason.AddressBlocked) {
+      } else if (guardError.reason === EgressFailureReason.AddressBlocked) {
         status = 403;
         reason = "Forbidden";
       }
+    } else if (data.error instanceof UnreadableResponseError) {
+      message = `${MONITOR_TARGET_LABEL} host ${data.hostname} sent a response the probe could not read.`;
     }
 
     if (data.tag) {
       if (!this.requestFailures.has(data.tag)) {
         this.requestFailures.set(data.tag, message);
       }
-    } else if (
+      return { status, reason, message };
+    }
+
+    if (
       isGuardRefusal &&
       this.browserRefusals.length < MAX_RECORDED_BROWSER_REFUSALS &&
       !this.browserRefusals.some((refusal: SyntheticEgressRefusal) => {
@@ -901,10 +1169,34 @@ export default class SyntheticEgressProxy {
       this.browserRefusals.push({ target: data.target, message });
     }
 
-    return { status, reason, message };
+    return {
+      status,
+      reason,
+      message,
+      marker: this.recordBrowserFailure(data.target, message),
+    };
   }
 
-  // The tag of an axios request (its proxy user name), or null: the browser.
+  // Files a browser request this proxy did not send; returns its marker.
+  private recordBrowserFailure(target: string, message: string): string {
+    this.browserFailureSequence += 1;
+    this.browserFailures.push({
+      sequence: this.browserFailureSequence,
+      target,
+      message,
+    });
+
+    if (this.browserFailures.length > MAX_RECORDED_BROWSER_FAILURES) {
+      this.browserFailures.shift();
+    }
+
+    return `${this.refusalMarkerToken}.${this.browserFailureSequence}`;
+  }
+
+  /*
+   * The tag of an axios request (its proxy user name), or null: the browser.
+   * Every request a tag is seen on is counted for it.
+   */
   private readTag(request: IncomingMessage): string | null {
     const header: string | undefined = request.headers["proxy-authorization"];
     const basic: RegExpExecArray | null = BASIC_CREDENTIALS_PATTERN.exec(
@@ -921,8 +1213,14 @@ export default class SyntheticEgressProxy {
     const separator: number = credentials.indexOf(":");
     const tag: string =
       separator === -1 ? credentials : credentials.slice(0, separator);
+    const seen: number | undefined = this.requestTags.get(tag);
 
-    return this.requestTags.has(tag) ? tag : null;
+    if (seen === undefined) {
+      return null;
+    }
+
+    this.requestTags.set(tag, seen + 1);
+    return tag;
   }
 
   private track(socket: Duplex): boolean {
@@ -946,7 +1244,11 @@ export default class SyntheticEgressProxy {
     socket.end(
       Buffer.concat([
         Buffer.from(
-          `HTTP/1.1 ${refusal.status} ${refusal.reason}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: ${body.byteLength}\r\nConnection: close\r\n\r\n`,
+          `HTTP/1.1 ${refusal.status} ${refusal.reason}\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: ${body.byteLength}\r\n${
+            refusal.marker
+              ? `${SYNTHETIC_EGRESS_REFUSAL_HEADER}: ${refusal.marker}\r\n`
+              : ""
+          }Connection: close\r\n\r\n`,
           "latin1",
         ),
         body,
@@ -966,6 +1268,9 @@ export default class SyntheticEgressProxy {
     response.writeHead(refusal.status, refusal.reason, {
       "Content-Type": "text/plain; charset=utf-8",
       "Content-Length": Buffer.byteLength(refusal.message, "utf8"),
+      ...(refusal.marker
+        ? { [SYNTHETIC_EGRESS_REFUSAL_HEADER]: refusal.marker }
+        : {}),
       Connection: "close",
     });
     response.end(refusal.message);
@@ -1071,7 +1376,9 @@ export default class SyntheticEgressProxy {
       !protocols.includes(url.protocol) ||
       !url.hostname ||
       url.username ||
-      url.password
+      url.password ||
+      // Port 0 reaches nothing; it is never read as the default.
+      url.port === "0"
     ) {
       return null;
     }
@@ -1086,6 +1393,28 @@ export default class SyntheticEgressProxy {
   // "host:port", an IPv6 address in brackets.
   private static formatAuthority(host: string, port: number): string {
     return net.isIPv6(host) ? `[${host}]:${port}` : `${host}:${port}`;
+  }
+
+  /*
+   * The approved addresses in the order the outbound proxy is asked for
+   * them: IPv4 first, as an operator's proxy often has no IPv6 route.
+   */
+  private static inUpstreamOrder(
+    addresses: Array<ResolvedAddress>,
+  ): Array<ResolvedAddress> {
+    return [
+      ...addresses.filter((address: ResolvedAddress) => {
+        return address.family === 4;
+      }),
+      ...addresses.filter((address: ResolvedAddress) => {
+        return address.family !== 4;
+      }),
+    ];
+  }
+
+  // A reason phrase Node will write: what the target sent, less what it refuses.
+  private static readableReason(reason: string | undefined): string {
+    return (reason || "").replace(INVALID_REASON_CHARACTERS, "");
   }
 
   /*
@@ -1142,15 +1471,33 @@ export default class SyntheticEgressProxy {
     return false;
   }
 
-  private static readUpstream(proxy: SyntheticMonitorWorkerProxy): URL | null {
+  /*
+   * The operator's outbound proxy, or a throw: one that cannot be read as
+   * an http:// or https:// URL is a fault, never "no proxy", because going
+   * direct would route around it.
+   */
+  private static readUpstream(proxy: SyntheticMonitorWorkerProxy): URL {
+    let url: URL;
+
     try {
-      const url: URL = new URL(proxy.server);
-      url.username = "";
-      url.password = "";
-      return url.protocol === "http:" || url.protocol === "https:" ? url : null;
+      url = new URL(proxy.server);
     } catch {
-      return null;
+      // The value itself is not repeated: it may hold the proxy's password.
+      throw new Error("The probe's outbound proxy URL could not be read.");
     }
+
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      !url.hostname
+    ) {
+      throw new Error(
+        "The probe's outbound proxy URL must be an http:// or https:// URL with a host.",
+      );
+    }
+
+    url.username = "";
+    url.password = "";
+    return url;
   }
 
   /*
@@ -1165,13 +1512,9 @@ export default class SyntheticEgressProxy {
     let password: string | undefined = proxy.password;
 
     if (username === undefined && password === undefined) {
-      try {
-        const url: URL = new URL(proxy.server);
-        username = url.username || undefined;
-        password = url.password || undefined;
-      } catch {
-        return null;
-      }
+      const url: URL = new URL(proxy.server);
+      username = url.username || undefined;
+      password = url.password || undefined;
     }
 
     if (!username && !password) {
