@@ -693,6 +693,27 @@ describe("what a probe reports of a check", () => {
     expect(redact(plain).monitorDestination).toBe(plain.monitorDestination);
   });
 
+  test("a body's __proto__ key stays a key of the copy, and never its prototype", () => {
+    // As JSON.parse keeps it: an own property of the body.
+    const body: JSONObject = JSON.parse(
+      `{"__proto__": "${SECRET}", "polluted": "${SECRET}"}`,
+    ) as JSONObject;
+
+    const redacted: ProbeMonitorResponse = redact({
+      ...report(),
+      responseBody: body,
+    });
+    const copy: JSONObject = redacted.responseBody as JSONObject;
+
+    expect(Object.getPrototypeOf(copy)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(copy, "__proto__")).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(copy, "__proto__")?.value).toBe(
+      MARKER,
+    );
+    expect(copy["polluted"]).toBe(MARKER);
+    expect(({} as JSONObject)["polluted"]).toBeUndefined();
+  });
+
   test("never changes the check it is handed", () => {
     const original: ProbeMonitorResponse = report();
     const before: string = JSON.stringify(original);

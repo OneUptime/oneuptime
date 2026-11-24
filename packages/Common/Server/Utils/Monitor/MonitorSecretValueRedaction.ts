@@ -475,7 +475,7 @@ export default class MonitorSecretValueRedaction {
         if (redacted === undefined) {
           delete result[key];
         } else {
-          result[key] = redacted;
+          MonitorSecretValueRedaction.writeOwn(result, key, redacted);
         }
       }
     }
@@ -524,7 +524,7 @@ export default class MonitorSecretValueRedaction {
 
       if (redacted !== child) {
         result = result || { ...source };
-        result[key] = redacted;
+        MonitorSecretValueRedaction.writeOwn(result, key, redacted);
       }
     }
 
@@ -620,17 +620,43 @@ export default class MonitorSecretValueRedaction {
               break;
             }
 
-            result[earlier] = source[earlier] as JSONValue;
+            MonitorSecretValueRedaction.writeOwn(
+              result,
+              earlier,
+              source[earlier] as JSONValue,
+            );
           }
         }
       }
 
       if (result) {
-        result[redactedKey] = redactedChild;
+        MonitorSecretValueRedaction.writeOwn(
+          result,
+          redactedKey,
+          redactedChild,
+        );
       }
     }
 
     return result || value;
+  }
+
+  /*
+   * A key written as the object's own: a body's "__proto__" key stays a
+   * key, as JSON.parse and JSONFunctions.deserialize keep it, and never
+   * reaches the object's prototype.
+   */
+  private static writeOwn(
+    target: JSONObject,
+    key: string,
+    value: JSONValue,
+  ): void {
+    Object.defineProperty(target, key, {
+      value: value,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
   }
 
   // An array with each item mapped: the same array when none changes.
