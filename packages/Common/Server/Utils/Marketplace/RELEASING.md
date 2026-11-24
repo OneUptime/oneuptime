@@ -337,14 +337,12 @@ and its pricing has been in Google's review since 19 November (both
 submitted that day with the maintainer's go-ahead); production has the
 settings (step 7); and the Pub/Sub subscription pushes to it (step 6). A
 test purchase made an `Active` subscription (step 9), whose first usage
-report waits for its trial to end. Google's approval of OneUptime Cloud
-(case 77068529, 19 November) offers an adjusted revenue share and asks us to
-reply on the case that it is agreeable; its approval letter adds that having
-the product publicly available accepts its terms. That reply was found
-unsent on 24 November. **Left**: the maintainer's answer on the revenue
-share; the pricing's approval; the technical integration's review (step
-10); then **Publish** once all three reviews are approved (the maintainer's
-go-ahead).
+report waits for its trial to end. Google approved OneUptime Cloud (case
+77068529) with an adjusted revenue share, which the maintainer accepted on
+the case on 19 November; Google's approval letter of that day sets it.
+Nothing is waiting on us. **Left**: the pricing's approval; the technical
+integration's review (step 10); then **Publish** once all three reviews are
+approved (the maintainer's go-ahead).
 
 The listing, its service account, its Pub/Sub subscription and its Service
 Control service live in a Google Cloud project made for the listings,
@@ -786,6 +784,7 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-17 | Google Cloud | Producer Portal requested on the self-hosted app's case (form and roles done); still pending                          | Agent      |
 | 2026-11-17 | Google Cloud | SaaS validation (case 77068529): the maintainer confirmed Google's sales and cost estimates                           | Maintainer |
 | 2026-11-19 | Google Cloud | Google approved OneUptime Cloud (case 77068529); decided: list it after all, hosting box ticked                       | Maintainer |
+| 2026-11-19 | Google Cloud | The approval came with an adjusted revenue share; the maintainer accepted it on the case                              | Maintainer |
 | 2026-11-19 | Google Cloud | SaaS product `oneuptime-cloud` ("OneUptime") created; listing, pricing and integration links filled in                | Agent      |
 | 2026-11-19 | Google Cloud | Product image, Tax Category and EULA (OneUptime's terms) entered                                                      | Maintainer |
 | 2026-11-19 | Google Cloud | Product details and pricing (`usage_units` at USD 0.01) submitted for review, with the maintainer's go-ahead          | Agent      |
@@ -794,7 +793,6 @@ Add a row for every submission, approval, rejection and go-live.
 | 2026-11-19 | Google Cloud | Pub/Sub push subscription created as `marketplace@` (temporary grants, revoked); set never to expire                  | Agent      |
 | 2026-11-19 | Google Cloud | Test purchase with the test billing account: production's row is Active, in its trial                                 | Maintainer |
 | 2026-11-20 | Google Cloud | Product details review of `oneuptime-cloud` approved                                                                  | Google     |
-| 2026-11-24 | Google Cloud | Found unanswered on case 77068529: Google's approval offers an adjusted revenue share, to confirm                     | Agent      |
 | 2026-11-24 | Google Cloud | Pricing still in review (since 19 November); the integration review waits for usage billing tests                     | Agent      |
 
 ## Notes for agents driving the browser
