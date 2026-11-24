@@ -820,12 +820,15 @@ describe("the lane each scheduling endpoint asks for", () => {
 
   test("a Test Monitor fetch goes on to its handler while every work slot is held and the work queue is full", async () => {
     const work: number = ProbeSchedulingLimiterInstance.limits.maxRunning;
-    const waiting: number = ProbeSchedulingLimiterInstance.limits.maxWaitingPerKey;
+    const waiting: number =
+      ProbeSchedulingLimiterInstance.limits.maxWaitingPerKey;
     const held: Array<KeyedConcurrencyRelease> = [];
     const queued: Array<Promise<KeyedConcurrencyRelease>> = [];
 
     for (let slot: number = 0; slot < work; slot++) {
-      held.push(await ProbeSchedulingLimiterInstance.acquire(PROBE_ID.toString()));
+      held.push(
+        await ProbeSchedulingLimiterInstance.acquire(PROBE_ID.toString()),
+      );
     }
 
     for (let place: number = 0; place < waiting; place++) {
