@@ -249,6 +249,33 @@ const SIGN_IN_AGAIN_LABELS: Array<string> = [
 ];
 
 /*
+ * Where authentik and Keycloak say an address is verified, which an OpenID
+ * Connect sign-in needs of them since GHSA-8gwc-w386-fh6w: authentik's own
+ * email scope mapping and the provider's Scopes it goes in (its Next and
+ * Finish are Okta's words too, above), and Keycloak's Verify email, a
+ * person's Email verified and an LDAP provider's Trust Email. Keycloak's
+ * Realm settings and Save are in the lists above.
+ */
+const EMAIL_VERIFIED_LABELS: Array<string> = [
+  // authentik.
+  "Customization",
+  "Property Mappings",
+  "New Property Mapping",
+  "Scope Mapping",
+  "Scope name",
+  "Expression",
+  "Scopes",
+  // Keycloak.
+  "Login",
+  "Email settings",
+  "Verify email",
+  "Email verified",
+  "Trust Email",
+  "Advanced settings",
+  "User federation",
+];
+
+/*
  * Labels of another product's console, by page. A translation keeps each
  * one bold and in English: OneUptime cannot know which language that
  * console is set to, and its English names are the ones its own docs and
@@ -261,6 +288,7 @@ const IDENTITY_PROVIDER_LABELS: Record<string, Array<string>> = {
     ...OKTA_SSO_LABELS,
     ...SIGN_OUT_LABELS,
     ...SIGN_IN_AGAIN_LABELS,
+    ...EMAIL_VERIFIED_LABELS,
   ],
   [SCIM]: [
     // Microsoft Entra ID.
@@ -549,12 +577,14 @@ const ADMIN_KEYS: Record<string, string> = {
 };
 
 /*
- * Admin Dashboard labels a page also names as the Dashboard draws them: the
- * SSO page's project switch is the Dashboard's Require SSO to Sign In, its
- * server-wide one the Admin Dashboard's.
+ * Labels a page names as another product draws them and also as the
+ * Dashboard draws them, so a translation names both: the SSO page's project
+ * switch is the Dashboard's Require SSO to Sign In, its server-wide one the
+ * Admin Dashboard's; an OIDC provider's own Scopes are the Dashboard's, and
+ * the Scopes an authentik provider's email mapping goes in are authentik's.
  */
 const ALSO_DASHBOARD_LABELS: Record<string, Array<string>> = {
-  [SSO]: ["Require SSO to Sign In"],
+  [SSO]: ["Require SSO to Sign In", "Scopes"],
 };
 
 // The user menu's way into the Admin Dashboard, a key of the Dashboard's.
@@ -733,6 +763,8 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     ':::details "SAML response has expired"',
     ':::details "SAML response was already used"',
     ':::details "This account is linked to someone else."',
+    // An OpenID Connect sign-in whose provider has not verified the address.
+    ':::details "Your identity provider did not confirm your email address."',
     '"SAML Destination does not match"',
     '"SAML response is not valid yet"',
   ],
@@ -743,6 +775,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     ':::details "Issuer URL does not match"',
     ':::details "SAML Audience does not match"',
     ':::details "SAML response was already used"',
+    ':::details "Your identity provider did not confirm your email address."',
     '"SAML Recipient does not match"',
     '"SAML Destination does not match"',
     '"SAML response has expired"',
@@ -760,9 +793,12 @@ const NUMBERS: Record<string, Array<string>> = {
   /*
    * 25: the Keycloak release that gives every client the basic scope
    * (#10332). 26 and 27: Keycloak 26.8.2 and earlier skip ForceAuthn on a
-   * restarted sign-in, which 26.8.3 and 27.0.0 fix (#10530).
+   * restarted sign-in, which 26.8.3 and 27.0.0 fix (#10530). 2025: the
+   * authentik release, 2025.10, that sends every address as unverified
+   * (GHSA-8gwc-w386-fh6w).
    */
-  [SSO]: ["24", "17", "700016", "404", "10", "3", "25", "26", "27"],
+  [SSO]: ["24", "17", "700016", "404", "10", "3", "25", "26", "27", "2025"],
+  [GLOBAL_SSO]: ["2025"],
   [SCIM]: ["14", "30", "40", "200", "1000", "401", "402"],
 };
 
@@ -897,17 +933,17 @@ function keysOf(
  * sign-in pages' and the prose.
  */
 function notDashboardLabels(page: string): Array<string> {
-  const admin: Array<string> = listed(ADMIN_LABELS, page).filter(
-    (label: string): boolean => {
-      return !listed(ALSO_DASHBOARD_LABELS, page).includes(label);
-    },
-  );
+  const notAlsoDashboard: (label: string) => boolean = (
+    label: string,
+  ): boolean => {
+    return !listed(ALSO_DASHBOARD_LABELS, page).includes(label);
+  };
 
   return [
-    ...listed(IDENTITY_PROVIDER_LABELS, page),
+    ...listed(IDENTITY_PROVIDER_LABELS, page).filter(notAlsoDashboard),
     ...listed(KEPT_IN_ENGLISH, page),
     ...listed(PROSE, page),
-    ...admin,
+    ...listed(ADMIN_LABELS, page).filter(notAlsoDashboard),
     ...keysOf(DOCS_CHROME, page),
     ...keysOf(USER_MENU_LABELS, page),
     ...keysOf(ACCOUNTS_LABELS, page),
@@ -1149,6 +1185,21 @@ describe("the lists this test keeps", () => {
           page,
           lead,
           isLabel: isActionLabel(lead),
+        });
+      }
+    }
+  });
+
+  it("say a label is the Dashboard's too only where it is, beside another product's on the same page", () => {
+    for (const page of Object.keys(ALSO_DASHBOARD_LABELS)) {
+      for (const label of ALSO_DASHBOARD_LABELS[page] as Array<string>) {
+        expect({ page, label, isLabel: true, another: true }).toEqual({
+          page,
+          label,
+          isLabel: isActionLabel(label),
+          another:
+            listed(ADMIN_LABELS, page).includes(label) ||
+            listed(IDENTITY_PROVIDER_LABELS, page).includes(label),
         });
       }
     }
