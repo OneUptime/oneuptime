@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Produkten Säkerhetshändelser är avstängd på den här servern, så OneUptime AI slutade arbeta med ärendet.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Produkten Säkerhetshändelser är avstängd på den här servern. En serveradministratör kan slå på den under Admin-instrumentpanel > Inställningar > Produkter.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} av {{total}} markerade",
-  "Change Failed At": "Ändring misslyckades"
+  "Change Failed At": "Ändring misslyckades",
+  "Only in These Attributes": "Endast i dessa attribut",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Läser bara dessa attribut, en nyckel per rad, eller alla attribut när fältet är tomt. Loggens brödtext läses som ”Fält att rensa” anger.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Läser bara dessa attribut, en nyckel per rad, eller alla attribut när fältet är tomt. Spannamnet och statusmeddelandet läses som ”Fält att rensa” anger.",
+  "e.g. db.password": "t.ex. db.password"
 }

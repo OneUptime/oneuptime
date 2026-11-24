@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server, dus OneUptime AI is gestopt met het behandelen van de zaak.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Het product Beveiligingsgebeurtenissen is uitgeschakeld op deze server. Een serverbeheerder kan het inschakelen via Beheerdashboard > Instellingen > Producten.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} van {{total}} geselecteerd",
-  "Change Failed At": "Wijziging mislukt op"
+  "Change Failed At": "Wijziging mislukt op",
+  "Only in These Attributes": "Alleen in deze attributen",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Leest alleen deze attributen, één sleutel per regel, of alle attributen als het leeg is. De logbody wordt gelezen zoals ‘Te wissen velden’ aangeeft.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Leest alleen deze attributen, één sleutel per regel, of alle attributen als het leeg is. De spannaam en het statusbericht worden gelezen zoals ‘Te wissen velden’ aangeeft.",
+  "e.g. db.password": "bijv. db.password"
 }

@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "보안 이벤트가 이 서버에서 꺼져 있어 OneUptime AI가 케이스 처리를 멈췄습니다.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "보안 이벤트가 이 서버에서 꺼져 있습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다.",
   "{{ticked}} of {{total}} ticked": "{{total}}개 중 {{ticked}}개 선택됨",
-  "Change Failed At": "변경 실패 일시"
+  "Change Failed At": "변경 실패 일시",
+  "Only in These Attributes": "이 속성에서만",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "이 속성만 읽습니다(한 줄에 키 하나). 비워 두면 모든 속성을 읽습니다. 로그 본문은 \"정리할 필드\"에 지정한 대로 읽습니다.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "이 속성만 읽습니다(한 줄에 키 하나). 비워 두면 모든 속성을 읽습니다. 스팬 이름과 상태 메시지는 \"정리할 필드\"에 지정한 대로 읽습니다.",
+  "e.g. db.password": "예: db.password"
 }

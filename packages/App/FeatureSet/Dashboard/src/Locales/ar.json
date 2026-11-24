@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم، لذا توقّف OneUptime AI عن العمل على الحالة.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "المنتج (الأحداث الأمنية) متوقف على هذا الخادم. ويمكن لأحد مسؤولي الخادم تشغيله من لوحة معلومات المسؤول > الإعدادات > المنتجات.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} من {{total}} محددة",
-  "Change Failed At": "وقت إخفاق التغيير"
+  "Change Failed At": "وقت إخفاق التغيير",
+  "Only in These Attributes": "في هذه السمات فقط",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "يقرأ هذه السمات فقط، مفتاح واحد في كل سطر، أو كل السمات إن تُرك فارغًا. ويُقرأ نص السجل كما تحدده «الحقول المراد تنقيتها».",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "يقرأ هذه السمات فقط، مفتاح واحد في كل سطر، أو كل السمات إن تُرك فارغًا. ويُقرأ اسم الامتداد ورسالة الحالة كما تحددهما «الحقول المراد تنقيتها».",
+  "e.g. db.password": "مثل: db.password"
 }

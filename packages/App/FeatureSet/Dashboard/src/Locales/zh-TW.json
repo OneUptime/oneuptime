@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "安全事件已在此伺服器上關閉，因此 OneUptime AI 已停止處理此案例。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "安全事件已在此伺服器上關閉。伺服器管理員可以在「管理員儀表板 > 設定 > 產品」中將其開啟。",
   "{{ticked}} of {{total}} ticked": "已勾選 {{ticked}}/{{total}}",
-  "Change Failed At": "變更失敗時間"
+  "Change Failed At": "變更失敗時間",
+  "Only in These Attributes": "僅在這些屬性中",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "僅讀取這些屬性，每行一個鍵；留空則讀取所有屬性。日誌內文依「要清除的欄位」的設定讀取。",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "僅讀取這些屬性，每行一個鍵；留空則讀取所有屬性。跨度名稱與狀態訊息依「要清除的欄位」的設定讀取。",
+  "e.g. db.password": "例如 db.password"
 }

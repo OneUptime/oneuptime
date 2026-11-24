@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "セキュリティイベントはこのサーバーでオフになっているため、OneUptime AI はケースへの対応をやめました。",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "セキュリティイベントはこのサーバーでオフになっています。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。",
   "{{ticked}} of {{total}} ticked": "{{total}} 件中 {{ticked}} 件を選択",
-  "Change Failed At": "変更の失敗日時"
+  "Change Failed At": "変更の失敗日時",
+  "Only in These Attributes": "これらの属性のみ",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "これらの属性のみを読み取ります (1 行に 1 つのキー)。空欄のときはすべての属性を読み取ります。ログ本文は「スクラブするフィールド」の指定どおりに読み取ります。",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "これらの属性のみを読み取ります (1 行に 1 つのキー)。空欄のときはすべての属性を読み取ります。スパン名とステータスメッセージは「スクラブするフィールド」の指定どおりに読み取ります。",
+  "e.g. db.password": "例: db.password"
 }

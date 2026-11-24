@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "O produto Eventos de segurança está desativado neste servidor, então o OneUptime AI parou de trabalhar no caso.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "O produto Eventos de segurança está desativado neste servidor. Um administrador do servidor pode ativá-lo em Painel de administração > Configurações > Produtos.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} de {{total}} marcadas",
-  "Change Failed At": "Alteração falhou em"
+  "Change Failed At": "Alteração falhou em",
+  "Only in These Attributes": "Apenas nestes atributos",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Lê apenas estes atributos, uma chave por linha, ou todos os atributos se ficar vazio. O corpo do registro é lido conforme indicar \"Campos a depurar\".",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Lê apenas estes atributos, uma chave por linha, ou todos os atributos se ficar vazio. O nome do span e a mensagem de status são lidos conforme indicar \"Campos a depurar\".",
+  "e.g. db.password": "ex.: db.password"
 }

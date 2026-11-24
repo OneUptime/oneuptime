@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Security Events is switched off on this server, so OneUptime AI stopped working the case.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} of {{total}} ticked",
-  "Change Failed At": "Change Failed At"
+  "Change Failed At": "Change Failed At",
+  "Only in These Attributes": "Only in These Attributes",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.",
+  "e.g. db.password": "e.g. db.password"
 }

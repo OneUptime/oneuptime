@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "رویدادهای امنیتی در این سرور خاموش شده است، بنابراین OneUptime AI رسیدگی به پرونده را متوقف کرد.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "رویدادهای امنیتی در این سرور خاموش شده است. یک مدیر سرور می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
   "{{ticked}} of {{total}} ticked": "{{ticked}} از {{total}} تیک‌خورده",
-  "Change Failed At": "زمان شکست تغییر"
+  "Change Failed At": "زمان شکست تغییر",
+  "Only in These Attributes": "فقط در این ویژگی‌ها",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "فقط این ویژگی‌ها را می‌خواند، در هر خط یک کلید، یا اگر خالی باشد همه ویژگی‌ها را. بدنه لاگ همان‌طور خوانده می‌شود که «فیلدهایی که باید پالایش شوند» می‌گوید.",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "فقط این ویژگی‌ها را می‌خواند، در هر خط یک کلید، یا اگر خالی باشد همه ویژگی‌ها را. نام اسپن و پیام وضعیت همان‌طور خوانده می‌شوند که «فیلدهایی که باید پالایش شوند» می‌گوید.",
+  "e.g. db.password": "برای نمونه db.password"
 }

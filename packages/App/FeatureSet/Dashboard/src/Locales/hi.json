@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है, इसलिए OneUptime AI ने केस पर काम करना बंद कर दिया।",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "सुरक्षा इवेंट इस सर्वर पर बंद कर दिया गया है। कोई सर्वर एडमिन इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकता है।",
   "{{ticked}} of {{total}} ticked": "{{total}} में से {{ticked}} पर निशान लगा है",
-  "Change Failed At": "बदलाव विफल होने का समय"
+  "Change Failed At": "बदलाव विफल होने का समय",
+  "Only in These Attributes": "केवल इन विशेषताओं में",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "केवल इन विशेषताओं को पढ़ता है, हर पंक्ति में एक कुंजी, या खाली होने पर हर विशेषता। लॉग body \"स्क्रब करने के लिए फ़ील्ड\" के अनुसार पढ़ी जाती है।",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "केवल इन विशेषताओं को पढ़ता है, हर पंक्ति में एक कुंजी, या खाली होने पर हर विशेषता। स्पैन नाम और स्थिति संदेश \"स्क्रब करने के लिए फ़ील्ड\" के अनुसार पढ़े जाते हैं।",
+  "e.g. db.password": "उदा. db.password"
 }

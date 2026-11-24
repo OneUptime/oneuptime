@@ -63070,5 +63070,9 @@
   "Security Events is switched off on this server, so OneUptime AI stopped working the case.": "Продукт «События безопасности» отключён на этом сервере, поэтому OneUptime AI перестал работать над кейсом.",
   "Security Events is switched off on this server. A server admin can switch it on in Admin Dashboard > Settings > Products.": "Продукт «События безопасности» отключён на этом сервере. Администратор сервера может включить его в разделе «Панель администратора > Настройки > Продукты».",
   "{{ticked}} of {{total}} ticked": "Отмечено: {{ticked}} из {{total}}",
-  "Change Failed At": "Время сбоя изменения"
+  "Change Failed At": "Время сбоя изменения",
+  "Only in These Attributes": "Только в этих атрибутах",
+  "Reads only these attributes, one key a line, or every attribute when empty. The log body is read as Fields to Scrub says.": "Читает только эти атрибуты, по одному ключу в строке, или все атрибуты, если поле пустое. Тело лога читается так, как задано в «Поля для очистки».",
+  "Reads only these attributes, one key a line, or every attribute when empty. The span name and status message are read as Fields to Scrub says.": "Читает только эти атрибуты, по одному ключу в строке, или все атрибуты, если поле пустое. Имя спана и сообщение о статусе читаются так, как задано в «Поля для очистки».",
+  "e.g. db.password": "напр. db.password"
 }
