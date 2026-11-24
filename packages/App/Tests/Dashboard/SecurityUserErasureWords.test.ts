@@ -65,6 +65,13 @@ const SENTENCES: ReadonlyArray<string> = [
   UserCopy.ERASED_ON_REQUEST_DETAIL,
 ];
 
+/*
+ * "Detection Finding", as every language writes the class's name: kept in
+ * English, some with a hyphen ("Detection-Finding-Ereignisse"). A named
+ * constant, so the linter's rules do not fight over an inline literal.
+ */
+const NAMES_A_FINDING: RegExp = /Detection.?Finding/;
+
 const PLURALS: ReadonlyArray<PluralTemplate> = [
   Copy.VAULT_ENTRIES_DELETED,
   Copy.EVENTS_UNNAMED,
@@ -173,12 +180,12 @@ describe("the words of erasing a person", () => {
 
       expect({
         language,
-        names: /Detection.?Finding/.test(items[1] || ""),
+        names: NAMES_A_FINDING.test(items[1] || ""),
       }).toEqual({ language, names: true });
       expect({
         language,
         leaves: items.slice(3, 6).some((item: string): boolean => {
-          return (/Detection.?Finding/).test(item);
+          return NAMES_A_FINDING.test(item);
         }),
       }).toEqual({ language, leaves: false });
     }
