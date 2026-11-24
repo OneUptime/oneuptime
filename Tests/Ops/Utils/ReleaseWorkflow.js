@@ -54,6 +54,27 @@ function ancestorsOf(jobs, name) {
 }
 
 /**
+ * The `if` of a release.yml job that runs for `release` once every job it
+ * needs has succeeded, whatever became of the jobs before those:
+ * `!cancelled()`, the branch, and each need's result by name, in the order
+ * of its needs. A plain `if` would be `success() && ...`, and success() is
+ * false once any job before it has failed, needed or not
+ * (JobsAfterToleratedFailures.test.js).
+ * @param {Object} job
+ * @returns {string}
+ */
+function afterEveryNeedSucceeded(job) {
+  const terms = [
+    "!cancelled()",
+    "github.ref == 'refs/heads/release'",
+    ...needsOf(job).map((need) => {
+      return `needs.${need}.result == 'success'`;
+    }),
+  ];
+  return `\${{ ${terms.join(" && ")} }}`;
+}
+
+/**
  * Every `needs` entry that names no job of the workflow, as "job -> need".
  * @param {Object<string, Object>} jobs
  * @returns {Array<string>}
@@ -306,6 +327,7 @@ function readBashArray(script, name) {
 module.exports = {
   needsOf,
   ancestorsOf,
+  afterEveryNeedSucceeded,
   danglingNeeds,
   stepCommand,
   commandsMentioning,
