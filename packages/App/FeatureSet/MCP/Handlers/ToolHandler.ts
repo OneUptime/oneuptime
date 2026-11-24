@@ -33,6 +33,10 @@ import {
   handlePublicStatusPageTool,
 } from "../Tools/PublicStatusPageTools";
 import { isWorkflowTool, handleWorkflowTool } from "../Tools/WorkflowTools";
+import {
+  getServerWritePolicy,
+  getWritePolicyRefusal,
+} from "../Tools/ToolGenerator";
 import { sanitizeToolName } from "../Tools/SchemaConverter";
 import RequestGate, { McpToolAccess } from "../OAuth/RequestGate";
 import McpCredentialUtil, {
@@ -389,6 +393,26 @@ async function handleCallTool(
 
     // Workflow tools (acknowledge/resolve/notes/whoami) require an API key or a sign-in
     if (isWorkflowTool(name)) {
+      /*
+       * A workflow tool is found by its name in every definition there is,
+       * so one the server's write policy took off the list (MCP_READ_ONLY,
+       * MCP_ALLOW_DESTRUCTIVE) still ran when a client called it by name.
+       * Only a tool this server offers runs.
+       */
+      if (
+        !tools.some((offered: McpToolInfo): boolean => {
+          return offered.name === name;
+        })
+      ) {
+        return buildErrorResult(
+          name,
+          new Error(getWritePolicyRefusal(getServerWritePolicy())),
+          credential,
+          // Nothing is wrong with the arguments, so the default would mislead.
+          "Do not retry this tool: it is turned off on this server. The tools it lists still work.",
+        );
+      }
+
       logger.debug(`Executing workflow tool: ${name}`);
       if (!McpCredentialUtil.isPresent(credential)) {
         return buildErrorResult(
