@@ -2666,6 +2666,15 @@ const RouteMap: Dictionary<Route> = {
   // Common/Types/Workspace/ConnectCallback's CONNECT_RETURN_PATH, under /dashboard.
   [PageMap.CONNECT_RETURN]: new Route(`/dashboard/connect-return`),
 
+  /*
+   * Common/Types/StatusPage/StatusPageResourcesLink's
+   * STATUS_PAGE_RESOURCES_BY_ID_PATH, under /dashboard: where the status
+   * page's preview sends its owner to add resources (#9180).
+   */
+  [PageMap.STATUS_PAGE_RESOURCES_BY_ID]: new Route(
+    `/dashboard/status-pages/${RouteParams.ModelID}/resources`,
+  ),
+
   [PageMap.INCIDENT_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW]
