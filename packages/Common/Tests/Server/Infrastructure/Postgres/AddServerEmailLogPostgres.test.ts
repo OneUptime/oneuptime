@@ -1,5 +1,6 @@
 import { AddServerEmailLog1809183300000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183300000-AddServerEmailLog";
-import ServerEmailLog from "../../../../Models/DatabaseModels/ServerEmailLog";
+import { getAddRecordActorColumnsStatement } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import ServerEmailLogService from "../../../../Server/Services/ServerEmailLogService";
@@ -141,10 +142,15 @@ describePostgres("AddServerEmailLog against Postgres", () => {
   }
 
   beforeAll(async () => {
+    /*
+     * Every model is registered, as the server registers them: each one
+     * relates to the person who last modified it (RecordActor, #10290), and
+     * TypeORM reads a relation from the model it names.
+     */
     database = new DataSource({
       type: "postgres",
       ...connection,
-      entities: [ServerEmailLog],
+      entities: Entities,
       schema: schema,
       synchronize: false,
       extra: { options: `-c search_path=${schema},public` },
@@ -154,6 +160,14 @@ describePostgres("AddServerEmailLog against Postgres", () => {
 
     await runInSchema(async (queryRunner: QueryRunner): Promise<void> => {
       await new AddServerEmailLog1809183300000().up(queryRunner);
+      /*
+       * And what the migrations after it give every table, which the model
+       * writes: what created a row and what last changed it
+       * (AddRecordCreatedByAndLastModifiedColumns, #10290).
+       */
+      await queryRunner.query(
+        getAddRecordActorColumnsStatement("ServerEmailLog"),
+      );
     });
   });
 
