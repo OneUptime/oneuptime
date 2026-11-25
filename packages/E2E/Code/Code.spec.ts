@@ -631,7 +631,18 @@ test.describe("Code opens on the request box, like Claude Code and Codex", () =>
     await expect(
       repositories.filter({ hasText: "payments-worker" }),
     ).toContainText("Not connected");
-    await page.getByTestId("code-repository-picker-search").fill("store");
+    /*
+     * The server searches names, "organization/name" and descriptions
+     * (#10764): "store" finds storefront-web by its name, and checkout-api
+     * by its description, "The checkout and payment API behind the store.".
+     */
+    const search: Locator = page.getByTestId("code-repository-picker-search");
+    await search.fill("store");
+    await expect(repositories).toHaveCount(2);
+    await expect(repositories.filter({ hasText: "checkout-api" })).toHaveCount(
+      1,
+    );
+    await search.fill("storefront");
     await expect(repositories).toHaveCount(1);
     await page.keyboard.press("Enter");
     await expect(page.getByTestId("code-repository-picker-button")).toHaveText(
