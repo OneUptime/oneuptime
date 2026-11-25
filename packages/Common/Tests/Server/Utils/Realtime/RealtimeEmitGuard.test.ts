@@ -10,6 +10,7 @@ import SecurityPlaybookRunService from "../../../../Server/Services/SecurityPlay
 import SecurityCaseTaskService from "../../../../Server/Services/SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "../../../../Server/Services/SecurityCaseStepCheckService";
 import SecurityCaseAiActionService from "../../../../Server/Services/SecurityCaseAiActionService";
+import SecurityCasePullRequestService from "../../../../Server/Services/SecurityCasePullRequestService";
 import IncidentPostmortemActionItemService from "../../../../Server/Services/IncidentPostmortemActionItemService";
 import AIRunService from "../../../../Server/Services/AIRunService";
 import AIRunEventService from "../../../../Server/Services/AIRunEventService";
@@ -420,6 +421,8 @@ describe("every model that sends live updates is read the way its service reads 
     SecurityCaseStepCheckService,
     // What OneUptime AI does on a case shows on its AI card's log at once (#10352).
     SecurityCaseAiActionService,
+    // A pull request linked to a case, merging and shipping, shows on its Fix step at once (#10604).
+    SecurityCasePullRequestService,
     // A colleague ticking a postmortem's action item off shows on the postmortem at once.
     IncidentPostmortemActionItemService,
     SecurityPlaybookRunService,

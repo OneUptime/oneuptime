@@ -149,6 +149,8 @@ describe("which lists keep themselves current", () => {
         "SecurityCase",
         // What OneUptime AI does on a case shows on its AI card's log at once (#10352).
         "SecurityCaseAiAction",
+        // A pull request linked to a case, merging and shipping, shows on its Fix step at once (#10604).
+        "SecurityCasePullRequest",
         // OneUptime checking a step of a case's Response Plan again shows on the plan at once (#10340).
         "SecurityCaseStepCheck",
         "SecurityCaseTask",

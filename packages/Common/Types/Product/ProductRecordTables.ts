@@ -349,6 +349,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityCaseNote",
     "SecurityCaseNoteTemplate",
     "SecurityCasePriority",
+    // A pull request a person linked to a case as its fix (#10604).
+    "SecurityCasePullRequest",
     "SecurityCaseStatus",
     "SecurityCaseStepCheck",
     "SecurityCaseTask",
