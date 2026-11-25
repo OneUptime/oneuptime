@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "Владелец проекта удалил настройки входа, сохранённые в вашей учётной записи {{product}}.",
   "A backup code was used to confirm it's you in your {{product}} account": "Резервный код использовали, чтобы подтвердить, что это вы, в вашей учётной записи {{product}}",
   "A backup code was used to confirm it's you.": "Резервный код использовали, чтобы подтвердить, что это вы.",
   "A backup code was used to sign in to your account.": "Резервный код использовали для входа в вашу учётную запись.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "Заметка к этому инциденту обновлена. Последняя версия:",
   "A note on this scheduled event has been updated. Here is the latest version:": "Заметка к этому запланированному событию обновлена. Последняя версия:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "Опубликован анализ инцидента, который затронул сервисы, на которые вы подписаны.",
-  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "Владелец проекта удалил настройки входа, сохранённые в вашей учётной записи {{product}}.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "Администратор сервера сменил адрес электронной почты вашей учётной записи {{product}} с этого адреса на новый.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "Администратор сервера удалил настройки входа, сохранённые в вашей учётной записи {{product}}.",
   "A server admin made this the email address of your {{product}} account.": "Администратор сервера сделал этот адрес адресом электронной почты вашей учётной записи {{product}}.",

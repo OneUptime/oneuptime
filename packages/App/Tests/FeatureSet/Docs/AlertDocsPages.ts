@@ -82,10 +82,11 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "On-call policies page people.",
     "Episodes group the noise.",
     /*
-     * Not "What it is", the comparison table's first row: the Dashboard
-     * draws it (a compliance fact's title, since 3ad48fb70f9), so the row
-     * reads as each language's Dashboard draws it, as on Core Concepts.
+     * The comparison table's first row. A data store's compliance fact is
+     * titled by a key of its own, "What it is (store identity)", so the bare
+     * phrase is no label of the Dashboard and the row is worded freely.
      */
+    "What it is",
     "On status pages",
     "Starting states",
     "Starting severities",

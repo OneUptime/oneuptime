@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "مسح مالك المشروع إعدادات تسجيل الدخول المحفوظة في حسابك على {{product}}.",
   "A backup code was used to confirm it's you in your {{product}} account": "استُخدم رمز احتياطي لتأكيد هويتك في حسابك على {{product}}",
   "A backup code was used to confirm it's you.": "استُخدم رمز احتياطي لتأكيد هويتك.",
   "A backup code was used to sign in to your account.": "استُخدم رمز احتياطي لتسجيل الدخول إلى حسابك.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "حُدّثت ملاحظة على هذه الحادثة. إليك أحدث نسخة:",
   "A note on this scheduled event has been updated. Here is the latest version:": "حُدّثت ملاحظة على هذا الحدث المجدول. إليك أحدث نسخة:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "نُشر تقرير ما بعد الحادثة لحادثة أثّرت في الخدمات التي اشتركت فيها.",
-  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "مسح مالك المشروع إعدادات تسجيل الدخول المحفوظة في حسابك على {{product}}.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "غيّر أحد مسؤولي الخادم عنوان البريد الإلكتروني لحسابك على {{product}} من هذا العنوان إلى عنوان جديد.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "مسح أحد مسؤولي الخادم إعدادات تسجيل الدخول المحفوظة في حسابك على {{product}}.",
   "A server admin made this the email address of your {{product}} account.": "جعل أحد مسؤولي الخادم هذا العنوان عنوان البريد الإلكتروني لحسابك على {{product}}.",

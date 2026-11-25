@@ -93,6 +93,8 @@ export const NOT_UX_GUARDS: Record<string, string> = {
     "Tests the FlowViewportGuard component, which keeps the Service Map on its canvas.",
   "packages/Common/Tests/App/Dashboard/PrivateRecordGatesGuard.test.ts":
     "Permissions: a private record's gates ask with its owning teams' scope.",
+  "packages/Common/Tests/App/FrontendsImportNoServiceGuard.test.ts":
+    "The build: no frontend's browser code imports a service, not even a type, which would bring Common/Server into its type check.",
 };
 
 // Sections of the guide that hold no rules: the principles and the guide's own upkeep.

@@ -93,6 +93,7 @@ import { StatusPageResourceTargetType } from "../../../../App/FeatureSet/Dashboa
 import MonitorGroup from "../../../Models/DatabaseModels/MonitorGroup";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ObjectID from "../../../Types/ObjectID";
+import { loadEntityDropdown } from "../../../UI/Components/EntityDropdown/LazyEntityDropdown";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Toast, { ToastItem } from "../../../UI/Utils/Toast";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
@@ -219,6 +220,12 @@ beforeAll(async () => {
     keySeparator: false,
     nsSeparator: false,
   });
+  /*
+   * The form loads its entity dropdown's file as it is drawn
+   * (FormFieldControls); loaded first here, the picker is drawn with it at
+   * once in every language, as it is once the file has arrived.
+   */
+  await loadEntityDropdown();
 });
 
 afterAll(async () => {
