@@ -91,6 +91,12 @@ flowchart TB
 
 選擇 **每個專案** 時，使用此提供者登入會在此人所屬的每個專案中滿足 SSO 要求，附加專案只決定新來的人被加入到哪裡。
 
+## 身分提供者未驗證的電子郵件地址
+
+全域 OpenID Connect 提供者與專案的提供者一樣，依它傳送的電子郵件地址找到要登入的帳戶，主管理員的帳戶也以同樣的方式找到。因此，對於提供者表示未驗證的地址，也就是 `email_verified` 宣告為 `false` 或既不是 true 也不是 false 的值，它不會讓任何人登入。否則，有人可以在提供者處自己的帳戶上填入主管理員的地址，以其身分登入整個執行個體。把 `email_verified` 傳送為 `true` 或不傳送它的提供者，例如 Microsoft Entra ID，會像以前一樣讓人登入。
+
+透過 authentik 2025.10 及更新版本，在您修改其 `email` 範圍對應之前沒有人能登入；透過 Keycloak，地址未經驗證的人無法登入。要在那裡修改什麼、哪些仍可登入以及此人會看到什麼，請見 [SSO](/docs/identity/sso#身分提供者未驗證的電子郵件地址) 頁面。有密碼的主管理員在此期間可以用密碼登入；當整個執行個體要求使用 SSO 時，請在 `/accounts/admin-login` 登入。
+
 ## 同時登出身分提供者
 
 登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，下一個用該提供者登入的人，會以離開的那個人的身分進入。在 SAML 或 OpenID Connect 提供者上按一下 **編輯設定**，並在 **更多欄位** 下開啟 **同時登出身分提供者**：這樣登出 OneUptime 時也會結束提供者那裡的工作階段，提供者會將瀏覽器送回 OneUptime。此設定預設為關閉，因為在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。
@@ -181,6 +187,10 @@ Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見
 
 :::details "SAML response was already used"
 您的身分提供者的每個回應只能登入一次，而且只在簽發後幾分鐘內有效：之後會以 "SAML response has expired" 被拒絕。請重新登入。如果回應不斷過期，請檢查本伺服器和您的身分提供者的時鐘。
+:::
+
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect 提供者把 `email_verified` 傳送為 `false`，或既不是 true 也不是 false 的值，因此 OneUptime 沒有讓任何人登入，主管理員也不例外。請在您的身分提供者處驗證該地址，或在那裡將其標示為已驗證，然後重新登入。請參閱 [身分提供者未驗證的電子郵件地址](#身分提供者未驗證的電子郵件地址)。
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

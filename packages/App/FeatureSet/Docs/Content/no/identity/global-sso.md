@@ -91,6 +91,12 @@ To spørsmål på leverandøren endrer dette, foldet sammen under **Flere felt**
 
 Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle prosjekter personen hører til, og tilknyttede prosjekter avgjør bare hvor nye personer legges til.
 
+## E-postadresser identitetsleverandøren din ikke har bekreftet
+
+En global OpenID Connect-leverandør finner kontoen den logger på ut fra e-postadressen den sender, slik et prosjekts leverandør gjør, og kontoene til master-admins blir funnet på samme måte. Derfor logger den ikke på noen med en adresse leverandøren sier at den ikke har bekreftet, med en claim `email_verified` på `false` eller på noe som verken er true eller false. Ellers kunne noen sette adressen til en master-admin på kontoen sin hos leverandøren og logge på hele instansen som vedkommende. En leverandør som sender `email_verified` som `true`, eller ikke sender den, slik Microsoft Entra ID gjør, logger på folk som før.
+
+Gjennom authentik 2025.10 og nyere logger ingen på før du endrer scope-mappingen for `email` der, og gjennom Keycloak ingen som har en adresse den ikke har bekreftet. Hva du skal endre der, hva som fortsatt logger på og hva personen ser, står på siden [SSO](/docs/identity/sso#e-postadresser-identitetsleverandøren-din-ikke-har-bekreftet). Master-admins med et passord kan logge på med det i mellomtiden, på `/accounts/admin-login` så lenge hele instansen krever SSO.
+
 ## Logg også ut av identitetsleverandøren
 
 Når man logger ut av OneUptime, forblir man pålogget hos identitetsleverandøren, så på en delt datamaskin kommer den neste som logger inn med den leverandøren, inn som den som gikk. Klikk på **Rediger konfigurasjon** på en SAML- eller OpenID Connect-leverandør, og slå på **Logg også ut av identitetsleverandøren** under **Flere felt**: Utlogging av OneUptime avslutter da også økten hos leverandøren, og leverandøren sender nettleseren tilbake til OneUptime. Den er slått av som standard, siden den på en personlig bærbar også ville logge personen ut av alle andre apper som bruker leverandøren.
@@ -181,6 +187,10 @@ For en SAML-leverandør er svarets audience ikke leverandørens **Issuer (Entity
 
 :::details "SAML response was already used"
 Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare innen noen minutter etter at det ble utstedt: deretter avvises det med "SAML response has expired". Logg inn på nytt. Hvis svarene fortsetter å utløpe, kontroller klokkene på denne serveren og hos identitetsleverandøren din.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect-leverandøren sendte `email_verified` som `false`, eller som noe som verken er true eller false, så OneUptime logget ikke på noen, heller ikke en master-admin. Få adressen bekreftet hos identitetsleverandøren din, eller merk den som bekreftet der, og logg på igjen. Se [E-postadresser identitetsleverandøren din ikke har bekreftet](#e-postadresser-identitetsleverandøren-din-ikke-har-bekreftet).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

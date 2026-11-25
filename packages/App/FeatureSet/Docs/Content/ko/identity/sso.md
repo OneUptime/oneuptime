@@ -259,6 +259,41 @@ OneUptime의 SSO는 SAML 2.0을 사용하며 규격을 준수하는 모든 ID �
 6. 프로젝트에 SSO를 필수로 지정하기 전에 **SSO 로그인 링크** 카드의 링크를 열고 공급자를 골라 그 공급자로 로그인해 보세요.
 :::
 
+## ID 공급자가 인증하지 않은 이메일 주소
+
+OpenID Connect 로그인은 ID 공급자가 보내는 이메일 주소로 그 사람의 OneUptime 계정을 찾고, 그 주소로 계정을 만들 수도 있습니다. 일부 공급자는 자기 주소임을 증명하지 않아도 자기 계정에 주소를 넣을 수 있게 하며, 이를 표준 `email_verified` 클레임으로 알립니다. 그래서 OneUptime은 공급자가 인증하지 않았다고 하는 주소로는 아무도 로그인시키지 않습니다. 그렇지 않으면 누군가 자기 계정에 다른 사람의 주소를 넣고 그 사람으로 로그인할 수 있습니다.
+
+| `email_verified` | 로그인 |
+| --- | --- |
+| `true`, 또는 `"true"`와 `1` | 진행됨 |
+| 보내지 않음(Microsoft Entra ID와 AD FS처럼) | 진행됨 |
+| `false`, 또는 `"false"`와 `0` | 거부됨 |
+| 그 밖의 값(예: `"yes"`) | 거부됨: OneUptime이 판단할 수 없음 |
+
+- 이 규칙은 웹과 모바일 앱 모두에서 모든 계정에 적용됩니다. 기존 계정(관리자 계정 포함)과 로그인이 만들게 될 계정 모두입니다. 거부된 로그인은 계정을 만들지 않고, 아무도 팀에 추가하지 않으며, 초대를 수락하지 않고, 이메일을 보내지 않습니다.
+- OneUptime은 `email_verified`를 주소가 온 곳, 즉 ID 토큰이나 userinfo 엔드포인트에서 읽으며, 주소가 `email` 클레임일 때만 읽습니다. `preferred_username`이나 `upn` 같은 다른 클레임으로 주소를 보내도록 설정한 공급자는 이전처럼 로그인시키므로, 사용자가 스스로 바꿀 수 없는 클레임을 사용하세요.
+- 본인에게는 "Your identity provider did not confirm your email address."가 표시되고, ID 공급자에서 주소를 인증하거나 그곳에서 인증된 것으로 표시해 달라고 요청한 다음 다시 로그인하라는 안내가 나옵니다. 모바일 앱은 같은 안내와 함께 `provider_email_not_verified`를 표시합니다. 그 주소를 가진 계정이 있으면, 그 계정이 속한 프로젝트의 감사 로그에 이 시도가 로그인 실패로 기록됩니다.
+- SAML 공급자는 `email_verified`를 읽지 않으며, 상태 페이지, 대시보드, 양식의 OpenID Connect 공급자도 읽지 않습니다. 이 공급자들은 사람을 각자의 비공개 사용자로 로그인시킵니다.
+
+Google과 Okta처럼 보내는 주소를 인증하는 공급자는 이전처럼 로그인시킵니다. authentik과 Keycloak은 변경이 필요할 수 있습니다:
+
+:::tabs
+@tab authentik
+authentik 2025.10 이상은 기본 `email` 범위 매핑으로 모든 사람의 `email_verified`를 `false`로 보냅니다. 따라서 authentik 가이드 [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/)의 설명대로 그 매핑을 바꾸기 전까지는 authentik을 통해 아무도 로그인할 수 없습니다:
+
+1. **Customization** > **Property Mappings**에서 **New Property Mapping**을 클릭하고, **Scope Mapping**을 선택한 다음 **Next**를 클릭합니다.
+2. 매핑 이름을 정하고, **Scope name**을 `email`로 설정하고, 사용자 주소가 인증되는 방식에 맞는 가이드의 **Expression**을 입력한 다음 **Finish**를 클릭합니다.
+3. 애플리케이션의 공급자를 열고, **Scopes**에서 기본 `email` 매핑을 직접 만든 매핑으로 바꾼 다음 공급자를 저장합니다.
+
+authentik에서 사람들이 자기 주소를 바꿀 수 있는 동안에는 모든 주소에 `true`를 보내지 마세요. 그 매핑은 누군가 자기 계정에 넣은 어떤 주소든 보증하게 됩니다. 2025.10 이전 릴리스는 모든 주소에 `true`를 보내므로, 그곳에서는 사람들이 자기 주소를 바꾸지 못하게 하세요.
+@tab Keycloak
+Keycloak은 주소를 인증하지 않은 사람에 대해 `email_verified`를 `false`로 보냅니다. 관리자가 **Email verified**를 끈 채로 만든 사람, 그리고 **Verify email**이 꺼져 있는 동안 가입했거나 주소를 바꾼 사람입니다.
+
+- 주소를 인증하게 하려면 **Realm settings** > **Login** > **Email settings**에서 **Verify email**을 켭니다. 그러면 Keycloak이 다음 로그인 때 각 사람에게 이메일로 주소를 인증하도록 요청하므로, 렐름에 이메일 서버가 설정되어 있어야 합니다.
+- 한 사람의 주소를 직접 보증하려면 Keycloak에서 그 사람의 페이지에 있는 **Email verified**를 켜고 **Save**를 클릭합니다.
+- LDAP 또는 Active Directory에서 온 사람의 경우, **User federation**에 있는 공급자의 **Advanced settings**에서 **Trust Email**을 켭니다. 그러면 Keycloak이 사람을 가져올 때 그 주소를 인증된 것으로 표시합니다. 그 전에 가져온 사람에 대해서는 **Email verified**를 켜세요.
+:::
+
 ## ID 공급자에서도 로그아웃
 
 OneUptime에서 로그아웃해도 ID 공급자에는 로그인된 상태로 남습니다. 그래서 NOC 화면이나 키오스크 같은 공용 컴퓨터에서는 다음에 로그인 페이지에서 그 공급자를 고른 사람이 떠난 사람으로 들어가게 됩니다. OneUptime에서 로그아웃할 때 공급자의 세션도 끝내려면 SAML 또는 OIDC 공급자의 **추가 필드**에서 **ID 공급자에서도 로그아웃**을 켜세요. 기본값은 꺼짐입니다. 개인 노트북에서는 그 공급자를 쓰는 다른 모든 앱에서도 로그아웃되기 때문입니다. 켠 뒤 브라우저로 로그인한 사람에게 적용되며, 모바일 앱은 OneUptime에서만 로그아웃합니다.
@@ -456,6 +491,10 @@ IdP의 각 응답으로는 한 번만 로그인할 수 있습니다. 로그인�
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID가 이 공급자를 통해 다른 개체 ID에 연결된 계정의 이메일 주소로 누군가를 로그인시켰습니다. 지금은 Entra ID에서 다른 사람이 그 주소를 쓰고 있거나, 그 사람의 Entra ID 계정이 다시 만들어진 경우입니다. OneUptime은 이 로그인을 거부하므로, 다음에 그 주소를 갖게 된 사람은 그 계정을 사용할 수 없습니다. 계정이 그 사람의 것이라면 그 사람을 프로젝트에서 제거했다가 다시 추가하세요. 다음 로그인 때 계정이 그 사람의 새 개체 ID에 연결됩니다.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect 공급자가 `email_verified`를 `false`로, 또는 true도 false도 아닌 값으로 보냈기 때문에 OneUptime이 아무도 로그인시키지 않았습니다. ID 공급자에서 주소를 인증받거나 그곳에서 인증된 것으로 표시한 다음 다시 로그인하세요. authentik과 Keycloak에서 바꿀 내용은 [ID 공급자가 인증하지 않은 이메일 주소](#id-공급자가-인증하지-않은-이메일-주소)에 있습니다.
 :::
 
 :::details 서명 또는 인증서 오류로 로그인에 실패함

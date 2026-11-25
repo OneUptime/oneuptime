@@ -33,7 +33,7 @@ Et navn bruges én gang, uanset store og små bogstaver, blandt projektets globa
 
 ## Før du begynder
 
-- **En rolle, der administrerer variabler.** Projektejer og Projektadministrator eller tilladelsen **Create Runbook Variable**. Runbook-administrator læser variabler for at vælge dem i de trin, den skriver, men ændrer dem ikke.
+- **En rolle, der administrerer variabler.** Projektejer og Projektadministrator eller tilladelsen **Create Runbook Variable**. Runbook-administrator læser variabler for at vælge dem i de trin, den skriver, men ændrer dem ikke. En arbejdsgang ændrer dem kun, når den kører som Projektejer eller som en brugerdefineret rolle med disse tilladelser: se [Hvad arbejdsgangstrin kan gøre](/docs/workflows/configuration#hvad-arbejdsgangstrin-må-gøre).
 - **Et abonnement, der omfatter dem.** På OneUptime Cloud kræver runbook-variabler abonnementet **Growth** eller højere.
 
 ## Opret en variabel
@@ -84,6 +84,8 @@ Et [SSH-trin](/docs/runbooks/authoring#ssh) vælger under **Log ind med** den he
 @tab Kubeconfig
 Et [kubectl-trin](/docs/runbooks/authoring#kubectl) vælger under **Kubeconfig** den hemmelige variabel, der indeholder klyngens kubeconfig, eller **Runnerens egen adgang** for at bruge Runnerens.
 :::
+
+En værdi indsættes præcis, som den er skrevet, der hvor referencen står, så den, der kan ændre en variabel, ændrer, hvad hvert trin, der nævner den, kører. Giv kun de tilladelser, der ændrer variabler, til personer, du ville lade skrive de trin. Værdier udefra OneUptime, såsom det, et webhook-kald sender, når i stedet et Bash-trin som miljøvariabler, aldrig som en del af dets script: se [Værdier, et webhook-kald sender](/docs/runbooks/triggers#værdier-et-webhook-kald-sender).
 
 På et runbooks side **Trin** viser hvert script og hver HTTP-anmodning under **Variabler – klik for at kopiere** de variabler, deres trin kan bruge, og editoren siger til, når et trin nævner en variabel, der ikke findes, eller en hemmelighed, som dets Runner ikke må bruge.
 

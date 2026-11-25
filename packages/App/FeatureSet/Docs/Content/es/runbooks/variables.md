@@ -33,7 +33,7 @@ Un nombre se usa una sola vez, sin importar mayúsculas y minúsculas, entre las
 
 ## Antes de empezar
 
-- **Un rol que gestione variables.** Propietario del proyecto y Administrador del proyecto, o el permiso **Create Runbook Variable**. Administrador de runbooks lee las variables, para elegirlas en los pasos que escribe, pero no las cambia.
+- **Un rol que gestione variables.** Propietario del proyecto y Administrador del proyecto, o el permiso **Create Runbook Variable**. Administrador de runbooks lee las variables, para elegirlas en los pasos que escribe, pero no las cambia. Un flujo de trabajo solo las cambia cuando se ejecuta como Propietario del proyecto o como un rol personalizado que tenga estos permisos: consulta [Qué pueden hacer los pasos de un flujo de trabajo](/docs/workflows/configuration#qué-pueden-hacer-los-pasos-de-un-flujo-de-trabajo).
 - **Un plan que las incluya.** En OneUptime Cloud, las variables de runbook necesitan el plan **Growth** o superior.
 
 ## Crear una variable
@@ -84,6 +84,8 @@ Un [paso SSH](/docs/runbooks/authoring#ssh) elige en **Iniciar sesión con** la 
 @tab Kubeconfig
 Un [paso kubectl](/docs/runbooks/authoring#kubectl) elige en **Kubeconfig** la variable secreta que contiene el kubeconfig del clúster, o **El acceso propio del Runner** para usar el del Runner.
 :::
+
+Un valor se inserta exactamente como está escrito, allí donde está la referencia, así que quien puede cambiar una variable cambia lo que ejecuta cada paso que la nombra. Da los permisos que cambian variables solo a las personas a las que dejarías escribir esos pasos. Los valores de fuera de OneUptime, como lo que envía una llamada al webhook, llegan en cambio a un paso Bash como variables de entorno, nunca como parte de su script: consulta [Valores que envía una llamada al webhook](/docs/runbooks/triggers#valores-que-envía-una-llamada-al-webhook).
 
 En la página **Pasos** de un runbook, cada script y cada solicitud HTTP listan en **Variables: haz clic para copiar** las variables que su paso puede usar, y el editor avisa cuando un paso nombra una variable que no existe, o un secreto que su Runner no puede usar.
 
