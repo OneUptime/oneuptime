@@ -147,6 +147,8 @@ describe("which lists keep themselves current", () => {
         "Monitor",
         "ScheduledMaintenance",
         "SecurityCase",
+        // What OneUptime AI does on a case shows on its AI card's log at once (#10352).
+        "SecurityCaseAiAction",
         // OneUptime checking a step of a case's Response Plan again shows on the plan at once (#10340).
         "SecurityCaseStepCheck",
         "SecurityCaseTask",

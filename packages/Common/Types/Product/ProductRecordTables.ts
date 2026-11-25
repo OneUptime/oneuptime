@@ -341,6 +341,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "SecurityBlocklistFeed",
     "SecurityBlocklistFeedFetch",
     "SecurityCase",
+    // OneUptime AI's log of a case it works (#10352).
+    "SecurityCaseAiAction",
     "SecurityCaseCustomField",
     "SecurityCaseEvidence",
     "SecurityCaseFeed",
