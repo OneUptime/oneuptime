@@ -120,7 +120,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
  */
 export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
   [MAINTENANCE_OVERVIEW]: [
-    "What it is",
+    /*
+     * Not "What it is", the comparison table's first row: the Dashboard
+     * draws it (a compliance fact's title, since 3ad48fb70f9), so the row
+     * reads as each language's Dashboard draws it, as on Core Concepts.
+     */
     "Its monitors",
     "How it moves on",
     "When subscribers are told",
