@@ -33,7 +33,6 @@ import {
   AzureCloudStreamState,
   readAzureCloudStreamState,
 } from "../../Types/CloudConnection/CloudStreamAzure";
-import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
@@ -573,13 +572,15 @@ export class Service extends DatabaseService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const connections: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { _id: true, projectId: true, provider: true },
-      skip: 0,
-      limit: LIMIT_PER_PROJECT,
-      props: { isRoot: true },
-    });
+    /*
+     * The connections the delete removes - the ones the caller may delete,
+     * in the delete's own window - and the delete held to them: a refusal
+     * names only a connection the caller would have deleted.
+     */
+    const connections: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true, provider: true },
+    );
 
     for (const connection of connections) {
       if (connection.id && connection.projectId) {
