@@ -56,6 +56,17 @@ jobs:
           # instead of re-downloading the tree from the registry every run.
           cache: npm
           cache-dependency-path: '**/package-lock.json'
+      # The suites that hold the app's copy of the server's words to
+      # Common's load the Common module itself (utils/unexplainedError reads
+      # Common/Types/Exception/UnexplainedError), and a Common module
+      # requires Common's own dependencies: UnexplainedError's Translator
+      # reads DateLanguage, which reads moment-timezone. The app's
+      # node_modules has none of them, since the app imports nothing from
+      # Common at run time.
+      - name: Install Common dependencies
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/Common
       - name: Install MobileApp dependencies
         uses: ./.github/actions/npm-install
         with:

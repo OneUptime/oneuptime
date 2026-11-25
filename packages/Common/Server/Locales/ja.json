@@ -21,7 +21,7 @@
   "A note on this incident has been updated. Here is the latest version:": "このインシデントのメモが更新されました。最新の内容は次のとおりです:",
   "A note on this scheduled event has been updated. Here is the latest version:": "この予定されたイベントのメモが更新されました。最新の内容は次のとおりです:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "購読中のサービスに影響したインシデントの事後分析レポートが公開されました。",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "プロジェクトの所有者が、{{product}} アカウントに保存されていたサインイン設定を消去しました。",
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "プロジェクト所有者が、{{product}} アカウントに保存されていたサインイン設定を消去しました。",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "サーバー管理者が、{{product}} アカウントのメールアドレスをこのアドレスから新しいアドレスに変更しました。",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "サーバー管理者が、{{product}} アカウントに保存されていたサインイン設定を消去しました。",
   "A server admin made this the email address of your {{product}} account.": "サーバー管理者が、このアドレスを {{product}} アカウントのメールアドレスに設定しました。",
