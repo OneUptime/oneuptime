@@ -331,6 +331,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DetectionRule",
     "DetectionRuleException",
     "SecurityBlock",
+    // A cloud WAF that enforces the blocklist (#10344).
+    "SecurityBlockCloudWaf",
     "SecurityBlockEnforcement",
     "SecurityCase",
     "SecurityCaseCustomField",
