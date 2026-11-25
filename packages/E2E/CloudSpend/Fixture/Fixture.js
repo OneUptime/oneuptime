@@ -48,6 +48,7 @@ import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import CloudResourceRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/CloudResourceRoutes";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -1815,6 +1816,14 @@ function answerApi(method, url, body) {
 async function handleApi(method, options) {
   const url = new URL(options.url.toString(), window.location.origin);
   fixture.apiRequests.push({ method, url: url.pathname });
+  /*
+   * A new budget's name, asked about as it is typed (#10761): no other
+   * budget of the project has it.
+   */
+  const names = method === "GET" ? answerUniqueNames({ url }) : null;
+  if (names) {
+    return new HTTPResponse(200, names, {});
+  }
   const answer = answerApi(method, url.pathname, options.data || {});
   if (answer) {
     return new HTTPResponse(200, answer, {});

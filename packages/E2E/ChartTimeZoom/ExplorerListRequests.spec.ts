@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { isSplitPairRead, splitPairReadIds } from "./ExceptionSplitPairReads";
 
 /*
  * Issue #4709 in a real browser: every load of the logs explorer - a
@@ -48,6 +49,7 @@ interface RecordedRequest {
   modelName?: string | undefined;
   url?: string | undefined;
   query?: Record<string, unknown> | undefined;
+  select?: Record<string, unknown> | undefined;
   window?: RecordedWindow | null | undefined;
   skip?: number | undefined;
   limit?: number | undefined;
@@ -415,10 +417,15 @@ test.describe("the exceptions explorer reads its list, chart and facets once per
       ).toBeVisible({ timeout: 30000 });
       await page.waitForTimeout(SETTLE_MS);
 
-      const lists: Array<RecordedRequest> = await readsOf(
+      const reads: Array<RecordedRequest> = await readsOf(
         page,
         "getList",
         "TelemetryException",
+      );
+      const lists: Array<RecordedRequest> = reads.filter(
+        (read: RecordedRequest): boolean => {
+          return !isSplitPairRead(read);
+        },
       );
       /*
        * Before: everything twice, when the service list landed a moment
@@ -426,6 +433,20 @@ test.describe("the exceptions explorer reads its list, chart and facets once per
        */
       expect(lists, `${visit}: ${describeReads(lists)}`).toHaveLength(1);
       expect(windowLength(lists[0]!)).toBe(DAY);
+      /*
+       * Once its rows are in, the list reads the exceptions a scrub rule
+       * split from them, so each pair says Split (#10897): once a page load
+       * as well, about every row it drew.
+       */
+      const splitPairReads: Array<RecordedRequest> =
+        reads.filter(isSplitPairRead);
+      expect(
+        splitPairReads,
+        `${visit}: the page's split pairs read once (${describeReads(splitPairReads)})`,
+      ).toHaveLength(1);
+      expect(new Set(splitPairReadIds(splitPairReads[0]!)).size).toBe(
+        await page.getByTestId("exception-row-actions").count(),
+      );
       expect(
         await postsTo(page, "/telemetry/exceptions/histogram"),
         `${visit}: one chart read`,
@@ -571,9 +592,21 @@ test.describe("while an explorer waits to know what it shows, every part of it s
     ).toBeVisible();
     await expect(page.getByText("no such index [products-v7]")).toHaveCount(0);
     await page.waitForTimeout(SETTLE_MS);
-    expect(await readsOf(page, "getList", "TelemetryException")).toHaveLength(
-      1,
+    const reads: Array<RecordedRequest> = await readsOf(
+      page,
+      "getList",
+      "TelemetryException",
     );
+    expect(
+      reads.filter((read: RecordedRequest): boolean => {
+        return !isSplitPairRead(read);
+      }),
+    ).toHaveLength(1);
+    // And, once, the split pairs of those two (#10897).
+    const splitPairReads: Array<RecordedRequest> =
+      reads.filter(isSplitPairRead);
+    expect(splitPairReads).toHaveLength(1);
+    expect(splitPairReadIds(splitPairReads[0]!)).toHaveLength(2);
     await expect(
       page.getByTestId("telemetry-facet-sidebar-loader"),
     ).toHaveCount(0);
