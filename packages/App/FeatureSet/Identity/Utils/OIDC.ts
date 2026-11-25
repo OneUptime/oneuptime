@@ -32,12 +32,13 @@ const GOOGLE_AUTH_TIME_CLAIMS_REQUEST: string = JSON.stringify({
  * Entra authentication & national clouds",
  * learn.microsoft.com/entra/identity-platform/authentication-national-cloud),
  * each with the aliases Microsoft's own instance discovery names for it
- * (login.microsoftonline.com/common/discovery/instance?api-version=1.1),
- * and the issuers their v1.0 discovery documents name: sts.windows.net,
- * globally and for US Government, and sts.chinacloudapi.cn for 21Vianet.
- * Azure Germany's host is still listed there, though that cloud closed in
- * 2021. Sign In Again sends none of them max_age (generateAuthorizationUrl,
- * #10529).
+ * (discovery/instance?api-version=1.1 under the global service's common
+ * authority, whose address only Sign in with Microsoft spells out:
+ * MicrosoftCommonEndpointGuard), and the issuers their v1.0 discovery
+ * documents name: sts.windows.net, globally and for US Government, and
+ * sts.chinacloudapi.cn for 21Vianet. Azure Germany's host is still listed
+ * there, though that cloud closed in 2021. Sign In Again sends none of them
+ * max_age (generateAuthorizationUrl, #10529).
  */
 export const MICROSOFT_IDENTITY_PLATFORM_HOSTNAMES: ReadonlyArray<string> = [
   "login.microsoftonline.com",
