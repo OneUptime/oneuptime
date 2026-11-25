@@ -46,6 +46,7 @@ import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import { Amber500, Indigo500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -706,6 +707,8 @@ function serialize(query) {
       plain[field] = { includes: value.values.map(String) };
     } else if (value instanceof IncludesNone) {
       plain[field] = { includesNone: value.values.map(String) };
+    } else if (value instanceof IncludesNoneOrNull) {
+      plain[field] = { includesNoneOrNull: value.values.map(String) };
     } else if (value && typeof value === "object" && value._type) {
       plain[field] = { [value._type]: String(value.value ?? "") };
     } else if (value instanceof ObjectID) {
@@ -754,8 +757,8 @@ function rowMatches(row, query) {
       continue;
     }
     /*
-     * A chip set to "is not" (Cloud Account): none of those values - and,
-     * as the server's NOT IN reads it, never a column that holds nothing.
+     * None of those values - and, as the server's NOT IN reads it, never a
+     * column that holds nothing.
      */
     if (wanted instanceof IncludesNone) {
       const refused = wanted.values.map(String);
@@ -763,6 +766,22 @@ function rowMatches(row, query) {
       if (
         held.length === 0 ||
         held.some((entry) => {
+          return refused.includes(entry);
+        })
+      ) {
+        return false;
+      }
+      continue;
+    }
+    /*
+     * A chip set to "is not" (Cloud Account): none of those values, a
+     * column that holds nothing included - the server's (NOT IN ... OR IS
+     * NULL), as every list's "is not" reads since #10581.
+     */
+    if (wanted instanceof IncludesNoneOrNull) {
+      const refused = wanted.values.map(String);
+      if (
+        idsOf(row[field]).some((entry) => {
           return refused.includes(entry);
         })
       ) {
