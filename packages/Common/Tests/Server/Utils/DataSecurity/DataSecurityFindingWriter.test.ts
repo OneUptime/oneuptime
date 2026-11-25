@@ -467,6 +467,8 @@ describe("recordContentScan: findings", () => {
       isFreeText: false,
       isNameHinted: true,
       isFoundByName: false,
+      // A pattern found it, not the names-and-addresses model.
+      isFoundByModel: false,
       locationKind: DataStoreLocationKind.Column,
       lastSeenAt: clock,
       // A detector found it: it is not, or no longer, OneUptime AI's suggestion.
@@ -482,6 +484,43 @@ describe("recordContentScan: findings", () => {
     expect(after.firstSeenAt).toEqual(NOW);
     expect(after.lastSeenAt).toEqual(clock);
     expect(after.matchCount).toBe(40);
+  });
+
+  test("a finding the names-and-addresses model made says so, until a scan finds it by a pattern", async () => {
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.orders.notes", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+              foundByModel: true,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    expect(findingAt("person-name", "public.orders.notes").isFoundByModel).toBe(
+      true,
+    );
+
+    await record({
+      result: resultOf({
+        locations: [
+          location("public.orders.notes", [
+            classification("person-name", {
+              isFreeText: true,
+              nameHinted: false,
+            }),
+          ]),
+        ],
+      }),
+    });
+
+    expect(findingAt("person-name", "public.orders.notes").isFoundByModel).toBe(
+      false,
+    );
   });
 
   test("every column written is a column of DataStoreFinding", async () => {
