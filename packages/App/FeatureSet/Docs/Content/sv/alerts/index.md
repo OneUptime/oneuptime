@@ -93,7 +93,7 @@ Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börj
 
 ## Vad som händer när ett larm skapas
 
-I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i den här ordningen:
+När ett larm skapas följer OneUptime normalt den här ordningen. När larmtrådar i Slack är på körs etikettreglerna och grupperingen före det första Slack-meddelandet, och larmets jourpolicyer väntar inte på Slack:
 
 1. **Det får ett nummer och ett tillstånd.** Larmnumret kommer från en räknare per projekt och visas med ditt prefix (`ALT-42`). Larmet börjar i ditt skapandetillstånd, om inte formuläret, API:et, ett arbetsflöde eller Fråga AI valde ett annat.
 2. **Sekretessregler körs först**, så att allt efter dem vet om larmet är privat.

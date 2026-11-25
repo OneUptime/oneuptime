@@ -11,7 +11,7 @@ Cuando se cae una base de datos, veinte monitores pueden generar veinte alertas 
 
 ## Cómo funciona la agrupación
 
-La agrupación se ejecuta una vez por cada alerta nueva, justo después de que se ejecuten sus políticas de guardia. La alerta se compara con tus reglas de agrupación habilitadas, de arriba abajo en la lista, y la primera regla que coincide con ella decide su episodio. Una alerta con la que no coincide ninguna regla se queda sola.
+La agrupación normalmente se ejecuta después de las políticas de guardia de la alerta. Si están activados los hilos de alertas en Slack, se ejecuta antes del primer mensaje de Slack para que la alerta pueda aparecer en el hilo de su episodio sin retrasar sus propias políticas de guardia. La alerta se compara con tus reglas de agrupación habilitadas, de arriba abajo en la lista, y la primera regla que coincide con ella decide su episodio. Una alerta con la que no coincide ninguna regla se queda sola.
 
 ```mermaid title="Adónde va una nueva alerta"
 flowchart TB

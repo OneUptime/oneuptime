@@ -11,7 +11,7 @@ Als een database uitvalt, kunnen twintig monitors binnen enkele minuten twintig 
 
 ## Hoe groeperen werkt
 
-Groeperen gebeurt één keer voor elke nieuwe waarschuwing, direct nadat haar bereikbaarheidsbeleid heeft gedraaid. De waarschuwing wordt getoetst aan je ingeschakelde groeperingsregels, van boven naar beneden in de lijst, en de eerste regel die overeenkomt, bepaalt haar episode. Een waarschuwing waarop geen regel overeenkomt, blijft op zichzelf.
+Groeperen gebeurt normaal nadat het bereikbaarheidsbeleid van de waarschuwing is uitgevoerd. Met waarschuwingsthreads in Slack aan gebeurt het vóór het eerste Slack-bericht, zodat de waarschuwing in de thread van haar episode kan verschijnen zonder haar eigen bereikbaarheidsbeleid te vertragen. De waarschuwing wordt getoetst aan je ingeschakelde groeperingsregels, van boven naar beneden in de lijst, en de eerste regel die overeenkomt, bepaalt haar episode. Een waarschuwing waarop geen regel overeenkomt, blijft op zichzelf.
 
 ```mermaid title="Waar een nieuwe waarschuwing heen gaat"
 flowchart TB

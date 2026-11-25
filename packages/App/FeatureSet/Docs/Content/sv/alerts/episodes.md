@@ -11,7 +11,7 @@ När en databas går ner kan tjugo monitorer utlösa tjugo larm inom några minu
 
 ## Hur gruppering fungerar
 
-Grupperingen körs en gång för varje nytt larm, direkt efter att dess jourpolicyer har körts. Larmet kontrolleras mot dina aktiverade grupperingsregler, uppifrån och ned i listan, och den första regeln som matchar det avgör dess episod. Ett larm som ingen regel matchar förblir ensamt.
+Grupperingen körs normalt efter larmets jourpolicyer. När larmtrådar i Slack är på körs grupperingen före det första Slack-meddelandet, så att larmet kan hamna i episodens tråd utan att dess egna jourpolicyer fördröjs. Larmet kontrolleras mot dina aktiverade grupperingsregler, uppifrån och ned i listan, och den första regeln som matchar det avgör dess episod. Ett larm som ingen regel matchar förblir ensamt.
 
 ```mermaid title="Vart ett nytt larm tar vägen"
 flowchart TB

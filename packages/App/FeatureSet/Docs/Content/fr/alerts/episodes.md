@@ -11,7 +11,7 @@ Quand une base de données tombe, vingt moniteurs peuvent lever vingt alertes en
 
 ## Comment fonctionne le regroupement
 
-Le regroupement s'exécute une fois pour chaque nouvelle alerte, juste après l'exécution de ses politiques d'astreinte. L'alerte est comparée à vos règles de regroupement activées, de haut en bas de la liste, et la première règle qui lui correspond décide de son épisode. Une alerte à laquelle aucune règle ne correspond reste seule.
+Le regroupement s'effectue généralement après l'exécution des politiques d'astreinte de l'alerte. Si les fils d'alertes dans Slack sont activés, il s'effectue avant le premier message Slack pour que l'alerte puisse apparaître dans le fil de son épisode sans retarder ses propres politiques d'astreinte. L'alerte est comparée à vos règles de regroupement activées, de haut en bas de la liste, et la première règle qui lui correspond décide de son épisode. Une alerte à laquelle aucune règle ne correspond reste seule.
 
 ```mermaid title="Où va une nouvelle alerte"
 flowchart TB

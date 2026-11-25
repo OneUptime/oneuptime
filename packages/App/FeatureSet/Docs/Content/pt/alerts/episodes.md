@@ -11,7 +11,7 @@ Quando um banco de dados cai, vinte monitores podem gerar vinte alertas em pouco
 
 ## Como o agrupamento funciona
 
-O agrupamento é executado uma vez para cada novo alerta, logo depois que suas políticas de plantão são executadas. O alerta é comparado com suas regras de agrupamento habilitadas, de cima para baixo na lista, e a primeira regra que corresponde a ele decide seu episódio. Um alerta ao qual nenhuma regra corresponde fica sozinho.
+O agrupamento normalmente acontece depois da execução das políticas de plantão do alerta. Com as conversas de alertas no Slack ativadas, ele acontece antes da primeira mensagem no Slack, para que o alerta possa aparecer na conversa do episódio sem atrasar suas próprias políticas de plantão. O alerta é comparado com suas regras de agrupamento habilitadas, de cima para baixo na lista, e a primeira regra que corresponde a ele decide seu episódio. Um alerta ao qual nenhuma regra corresponde fica sozinho.
 
 ```mermaid title="Para onde vai um novo alerta"
 flowchart TB

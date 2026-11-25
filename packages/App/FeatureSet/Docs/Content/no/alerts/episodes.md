@@ -11,7 +11,7 @@ Når en database går ned, kan tjue monitorer utløse tjue varsler i løpet av f
 
 ## Slik fungerer gruppering
 
-Gruppering kjører én gang for hvert nytt varsel, rett etter at vaktpolicyene har kjørt. Varselet kontrolleres mot de aktiverte grupperingsreglene dine, ovenfra og ned i listen, og den første regelen som samsvarer, avgjør episoden. Et varsel som ingen regel samsvarer med, blir stående alene.
+Gruppering skjer vanligvis etter at varselets vaktpolicyer har kjørt. Når varseltråder i Slack er slått på, skjer grupperingen før den første Slack-meldingen, slik at varselet kan vises i episodens tråd uten å forsinke varselets egne vaktpolicyer. Varselet kontrolleres mot de aktiverte grupperingsreglene dine, ovenfra og ned i listen, og den første regelen som samsvarer, avgjør episoden. Et varsel som ingen regel samsvarer med, blir stående alene.
 
 ```mermaid title="Hvor et nytt varsel havner"
 flowchart TB

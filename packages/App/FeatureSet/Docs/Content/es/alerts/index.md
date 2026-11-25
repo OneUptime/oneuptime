@@ -93,7 +93,7 @@ Si dejas **Estado inicial** vacío, la alerta empieza donde empieza toda alerta 
 
 ## Qué pasa cuando se crea una alerta
 
-En cuanto se crea una alerta, OneUptime recorre estos pasos, en este orden:
+Cuando se crea una alerta, OneUptime normalmente sigue este orden. Si los hilos de alertas en Slack están activados, las reglas de etiquetas y la agrupación se ejecutan antes del primer mensaje de Slack, y las políticas de guardia de la alerta no esperan a Slack:
 
 1. **Recibe un número y un estado.** El número de alerta sale de un contador por proyecto y se muestra con tu prefijo (`ALT-42`). La alerta empieza en tu estado de creación, salvo que el formulario, la API, un flujo de trabajo o Preguntar a la IA hayan elegido otro.
 2. **Las reglas de privacidad se ejecutan primero**, para que todo lo que viene después sepa si la alerta es privada.

@@ -11,7 +11,7 @@ When a database goes down, twenty monitors can raise twenty alerts within minute
 
 ## How grouping works
 
-Grouping runs once for each new alert, right after its on-call policies run. The alert is checked against your enabled grouping rules, from the top of the list down, and the first rule that matches it decides its episode. An alert that no rule matches stays on its own.
+Grouping usually runs after the alert's on-call policies. With Slack alert threads on, it runs before the first Slack message so the alert can go in its episode's thread without delaying its own on-call policies. The alert is checked against your enabled grouping rules, from the top of the list down, and the first rule that matches it decides its episode. An alert that no rule matches stays on its own.
 
 ```mermaid title="Where a new alert goes"
 flowchart TB

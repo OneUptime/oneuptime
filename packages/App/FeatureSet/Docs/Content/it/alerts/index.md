@@ -93,7 +93,7 @@ Lasciate vuoto **Stato iniziale** e l'avviso parte da dove parte ogni nuovo avvi
 
 ## Che cosa succede quando viene creato un avviso
 
-Nel momento in cui un avviso viene creato, OneUptime esegue questi passaggi, in quest'ordine:
+Quando viene creato un avviso, OneUptime segue normalmente questo ordine. Se le conversazioni degli avvisi in Slack sono attive, le regole delle etichette e il raggruppamento si applicano prima del primo messaggio Slack e le policy di reperibilità dell'avviso non aspettano Slack:
 
 1. **Riceve un numero e uno stato.** Il numero dell'avviso viene da un contatore per progetto ed è mostrato con il vostro prefisso (`ALT-42`). L'avviso parte dal vostro stato di creazione, a meno che il modulo, l'API, un flusso di lavoro o Chiedi all'IA non ne abbia scelto un altro.
 2. **Le regole di privacy girano per prime**, così tutto ciò che viene dopo sa se l'avviso è privato.

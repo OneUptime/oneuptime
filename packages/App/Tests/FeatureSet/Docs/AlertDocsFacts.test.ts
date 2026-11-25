@@ -1406,12 +1406,12 @@ describe("what happens when an alert is created", () => {
           "this.handleAlertWorkspaceOperationsAsync",
           "this.createAlertFeedAsync",
           "AlertOwnerRuleEngineService.applyRulesToAlert",
-          "AlertLabelRuleEngineService.applyRulesToAlert",
+          "if (!slackThreading) {\n          await applyLabels();",
           "AlertOnCallRuleEngineService.applyRulesToAlert",
           "RunbookRuleEngineService.applyRulesToAlert",
           "this.executeAlertOnCallDutyPoliciesAsync",
           "AlertIncidentRuleEngineService.applyRulesToAlert",
-          "AlertGroupingEngineService.processAlert",
+          "if (!slackThreading && isOngoing) {\n          await groupAlert();",
           "this.refreshReminderSchedule",
           "AIAlertInvestigationRunner.investigateNewAlert",
           "AutoRemediationRuleEngineService.onAlertCreated",
@@ -2400,7 +2400,7 @@ describe("alert episodes and grouping rules", () => {
     );
   });
 
-  it("groups each alert once, right after its own on-call policies run", () => {
+  it("groups ongoing alerts before the first post with Slack threads, or after on-call otherwise", () => {
     const steps: string = onCreateSuccessSteps(
       readCommonSource("Server/Services/AlertService.ts"),
     );
@@ -2408,15 +2408,18 @@ describe("alert episodes and grouping rules", () => {
     expect(
       inOrder(
         positionsIn(steps, [
-          "this.executeAlertOnCallDutyPoliciesAsync",
           "AlertGroupingEngineService.processAlert",
+          "if (slackThreading && isOngoing) {\n            await groupAlert();",
+          "this.createAlertFeedAsync",
+          "this.executeAlertOnCallDutyPoliciesAsync",
+          "if (!slackThreading && isOngoing) {\n          await groupAlert();",
         ]),
       ),
     ).toBe(true);
     // An alert already in an episode is not grouped again.
     expect(engine).toContain("if (alert.alertEpisodeId) {");
     expect(section(page, "## How grouping works")).toContain(
-      "Grouping runs once for each new alert, right after its on-call policies run.",
+      "Grouping usually runs after the alert's on-call policies. With Slack alert threads on, it runs before the first Slack message so the alert can go in its episode's thread without delaying its own on-call policies.",
     );
   });
 

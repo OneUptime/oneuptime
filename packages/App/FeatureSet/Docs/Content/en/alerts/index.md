@@ -93,7 +93,7 @@ Leave **Initial State** empty and the alert starts where every new alert does: y
 
 ## What happens when an alert is created
 
-The moment an alert is created, OneUptime works through these steps, in this order:
+When an alert is created, OneUptime usually follows this order. With Slack alert threads on, label rules and grouping run before the first Slack message, and the alert's on-call policies do not wait for Slack:
 
 1. **It gets a number and a state.** The alert number comes from a per-project counter, shown with your prefix (`ALT-42`). The alert starts in your created state unless the form, the API, a workflow or Ask AI picked another.
 2. **Privacy rules run first**, so everything after them sees whether the alert is private.
