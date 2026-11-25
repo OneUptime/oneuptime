@@ -19,6 +19,7 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Dictionary from "../../../Types/Dictionary";
 import {
   DuplicateNamesOfKind,
@@ -129,6 +130,13 @@ function buildProps(data: {
     userId: data.userId,
     userType: data.userType || UserType.User,
     userTenantAccessPermission: permissionMap,
+    /*
+     * A request's props carry its project's plan where billing is on, as
+     * it is in CI (CallerPlan.withPlan): one that holds every kind asked
+     * about here, so what a test refuses is the caller, never the plan.
+     */
+    currentPlan: PlanType.Enterprise,
+    isSubscriptionUnpaid: false,
   } as DatabaseCommonInteractionProps;
 }
 
