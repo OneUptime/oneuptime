@@ -147,9 +147,13 @@ describe("the reader of a filter's options", () => {
       const filters = [{ filterDropdownOptions: STORE_PROVIDER_OPTIONS }];
     `);
 
-    // The clouds marked; the words beside them read.
+    /*
+     * The clouds marked; the words beside them read - OneUptime too, a key
+     * that reads OneUptime in every language: it holds a service's telemetry
+     * and the security records it declares (#10398).
+     */
     expect(site.asWritten).toBe(3);
-    expect(site.words).toEqual(["Run by you", "OneUptime telemetry"]);
+    expect(site.words).toEqual(["Run by you", "OneUptime"]);
   });
 
   test("follows options an Enterprise screen takes from the Dashboard, by the name ee imports it by", () => {
