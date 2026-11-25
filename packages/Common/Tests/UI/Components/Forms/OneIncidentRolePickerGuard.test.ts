@@ -556,6 +556,9 @@ describe("2. roles are assigned with one picker", () => {
       "the declare and episode forms' review step: each role with its people, read only",
     [`${DASHBOARD}/Components/Monitor/MonitorSteps/MonitorCriteriaIncident.tsx`]:
       "a monitor rule's read-only view: the people it names for each role",
+    // #10646: it reads every rule's held ids once, so the rules' read-only views can name them.
+    [`${DASHBOARD}/Components/Monitor/MonitorSteps/MonitorSteps.tsx`]:
+      "a monitor's read-only criteria: collects the people its rules name for each role, so each rule's view shows their names",
   };
 
   const DRAWS_THE_PICKER: RegExp =
