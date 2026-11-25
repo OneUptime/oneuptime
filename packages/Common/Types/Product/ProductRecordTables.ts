@@ -380,6 +380,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataSecurityIdentity",
     "DataSecurityIssue",
     "DataSecurityIssueFeed",
+    // The issues one mistake made, fixed once (#10370).
+    "DataSecurityIssueGroup",
     "DataSecurityAiProposal",
     "DataSecurityAiDecision",
     "DataSecurityResidencyRule",
