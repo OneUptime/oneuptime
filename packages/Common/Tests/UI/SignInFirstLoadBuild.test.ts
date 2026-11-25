@@ -57,6 +57,11 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * Database Health metric catalog a Database Health step named its
  * collection groups from, which each had been kept out on its own before.
  *
+ * Every form brought the warning under a name field when another record has
+ * the name (#10761), with the API it asks through, which no sign-in page's
+ * form draws: it loads with the first form that has such a field
+ * (DuplicateNameField).
+ *
  * Every model's lists are read with the product levels (#10289), which read
  * every product's tables (Types/Product/ProductRecordTables), and that file
  * built, as it loaded, the tables of no product with why each is - which
@@ -222,6 +227,16 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the kinds of record the people picker searches, with their models",
     path: "UI/Components/PeoplePicker/PeoplePickerKinds.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the warning under a name field when another record has the name, for a form of a kind with a name of its own (#10761)",
+    path: "UI/Components/Forms/DuplicateNameNotice.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the API that warning asks about a name through",
+    path: "UI/Utils/UniqueNamesApi.ts",
     isLoadedWhenNeeded: true,
   },
   {
