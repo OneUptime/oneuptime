@@ -31,6 +31,12 @@ Stubbed:
   exists, updates it (`ModelAPI.updateById`), applied to the record so the card reads it back.
 - Your OneUptime data's Cloud audit logs count the project's cloud accounts
   (`ModelAPI.count` of `CloudConnection`): none, unless `?cloud=connected` says one.
+- Connections' More settings read the project by its id (`ModelAPI.getItem` of `Project`),
+  one read for each of Trusted Proxies, Trusted Automatically and Access Logs, with a new
+  project's settings: no trusted proxies, its own load balancers trusted, its access logs not
+  read for X-Forwarded-For. What is trusted without being listed
+  (`POST /security-trusted-proxies/automatic`) is no edge and no load balancer; a Security
+  Viewer, who may not read cloud resources, is told the load balancers could not be listed.
 - The signed-in user ("Maya Chen" of a generic "Acme Commerce" workspace) and her
   permissions. The fixture header says the data is synthetic
   ("Preview workspace · Synthetic data").
@@ -75,7 +81,8 @@ Query parameters, parsed once per page load:
 
 `window.__securityEventsEmptyStatesFixture` holds `role`, `latest`, `siem`, `events`,
 `cloud`, `cloudAudit`, `listRequests` (analytics lists carry `analytics: true`),
-`countRequests`, `aggregateRequests`, `apiRequests` (each with the body it sent), `creates`,
+`countRequests`, `itemRequests` (each with the record's id and what it selected),
+`aggregateRequests`, `apiRequests` (each with the body it sent), `creates`,
 `updates` (each with the record's id and what was written) and `unhandled`.
 Anything a page reads that the fixture does not
 model (a model table, an analytics query or an API URL), and any create, answers empty and
