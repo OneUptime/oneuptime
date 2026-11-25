@@ -239,7 +239,7 @@ describe("each enqueue path queues its job with its type's priority", () => {
         probeId: ObjectID.generate(),
         probeMonitorResponse: { monitorId: ObjectID.generate().toString() },
         jobType: jobType,
-        testId: jobType === "monitor-test" ? "a-test" : undefined,
+        ...(jobType === "monitor-test" ? { testId: "a-test" } : {}),
       });
 
       const job: QueuedJob = onlyQueuedJob();
