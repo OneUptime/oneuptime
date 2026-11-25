@@ -165,6 +165,8 @@ describe("validateSettings", () => {
         dataSecurityResponse: "off",
         // Nor does the blocklist write AWS WAF (#10344).
         wafBlocklist: "off",
+        // Nor does a security case read its IAM changes back (#10900).
+        securityCaseChecks: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },
@@ -856,6 +858,8 @@ describe("getConnectorSettings", () => {
         dataSecurity: "off",
         dataSecurityResponse: "off",
         wafBlocklist: "off",
+        // Nor does a security case read its IAM changes back (#10900).
+        securityCaseChecks: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },
