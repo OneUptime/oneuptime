@@ -10,6 +10,7 @@
   "browser": {
     "./Types/Monitor/MonitorStepsColumnTransformer.ts": "./Types/Monitor/MonitorStepsColumnTransformer.browser.ts",
     "./Utils/OutboundRequestRouting.ts": "./Utils/OutboundRequestRouting.browser.ts",
+    "./Utils/ProxyTunnelRefusal.ts": "./Utils/ProxyTunnelRefusal.browser.ts",
     "./Models/DatabaseModels/DatabaseBaseModel/UserModelType.ts": "./Models/DatabaseModels/DatabaseBaseModel/UserModelType.browser.ts"
   },
   "scripts": {
