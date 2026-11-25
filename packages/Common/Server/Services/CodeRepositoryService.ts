@@ -155,10 +155,10 @@ export class Service extends ProjectReferencesService<Model> {
    * a client that sends every column it read sends them empty. A create
    * that sets a command, or picks a Runner, is refused unless the caller may
    * write those columns on an update (mayWriteWhatRunnersRun), as an update
-   * that writes them is by the columns' own update lists. Nothing is looked
-   * up first, so the refusal says the same whatever the write names.
-   * OneUptime itself and a master admin are not asked, as no column check
-   * asks them.
+   * that writes them is by the columns' own update lists. It is asked once
+   * the project check has answered, as it answers anyone, and before the
+   * Runner a write names is read (onBeforeCreate). OneUptime itself and a
+   * master admin are not asked, as no column check asks them.
    */
   public static assertMayWriteWhatRunnersRun(
     data: Model | Record<string, unknown> | undefined,
@@ -237,29 +237,6 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
-  // Before the project check (the base hooks run this first).
-  protected override async checkCreateBeforeReferences(
-    createBy: CreateBy<Model>,
-  ): Promise<void> {
-    // Who may write what a Runner runs, before the Runner it names is read.
-    Service.assertMayWriteWhatRunnersRun(createBy.data, createBy.props);
-  }
-
-  /*
-   * An update's columns are held to their own lists by the column check; a
-   * workflow at the default permissions, which holds Project Admin, is held
-   * here, before the Runner it names is read.
-   */
-  protected override async checkUpdateBeforeReferences(
-    updateBy: UpdateBy<Model>,
-  ): Promise<void> {
-    Service.assertWorkflowDoesNotWriteWhatRunnersRun({
-      data: updateBy.data as unknown as Record<string, unknown>,
-      props: updateBy.props,
-      isCreate: false,
-    });
-  }
-
   /*
    * Last line of defence for the installation-to-project binding.
    *
@@ -279,6 +256,13 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * Who may write what a Runner runs, once the project check has answered
+     * as it answers anyone (an id of another project and one of nothing read
+     * the same), and before the Runner it names is read.
+     */
+    Service.assertMayWriteWhatRunnersRun(createBy.data, createBy.props);
 
     await Service.assertRunnerCanWorkInRepositories(createBy.data);
 
@@ -314,6 +298,17 @@ export class Service extends ProjectReferencesService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     await super.onBeforeUpdate(updateBy);
+
+    /*
+     * An update's columns are held to their own lists by the column check; a
+     * workflow at the default permissions, which holds Project Admin, is
+     * held here, before the Runner it names is read.
+     */
+    Service.assertWorkflowDoesNotWriteWhatRunnersRun({
+      data: updateBy.data as unknown as Record<string, unknown>,
+      props: updateBy.props,
+      isCreate: false,
+    });
 
     /*
      * The webhook secret is write-only: a change to it is recorded in the

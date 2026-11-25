@@ -11,6 +11,8 @@ import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
+import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferenceCheck";
+import { ProjectScopedReferenceException } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import { customDomainCaller } from "../API/CustomDomainCallers";
 import {
   InMemoryTable,
@@ -350,12 +352,12 @@ describe("a create that picks a repository's Runner", () => {
     expect(repositories.inserts).toEqual([]);
   });
 
-  test("the refusal comes before the Runner it names is looked up: an id of nothing reads the same", async () => {
+  test("a member picking one of the project's own Runners is refused before the Runner is read as OneUptime", async () => {
     const find: jest.Mock = getJestSpyOn(RunnerService, "findOneById");
 
     const error: unknown = await refusalOf(
       create(
-        { runnerId: new ObjectID("1f5f0000-0000-4000-8000-0000000000ff") },
+        { runnerId: new ObjectID(OTHER_RUNNER_ID) },
         caller([Permission.ProjectMember]),
       ),
     );
@@ -367,7 +369,37 @@ describe("a create that picks a repository's Runner", () => {
         permissionTitles: WRITERS_TITLES,
       }),
     );
+    // The in-cluster Runner check (assertRunnerCanWorkInRepositories) never ran.
     expect(find).not.toHaveBeenCalled();
+  });
+
+  test("the project check answers first, as it answers anyone: a Runner it refuses reads the same to a member and a writer", async () => {
+    const refusal: ProjectScopedReferenceException =
+      new ProjectScopedReferenceException(
+        'This Code Repository references records that are not in this project: Runner "1f5f0000-0000-4000-8000-0000000000ff".',
+      );
+
+    const check: jest.Mock = getJestSpyOn(
+      ProjectReferenceCheck,
+      "validateCreate",
+    ).mockRejectedValue(refusal as never);
+
+    for (const permissions of [
+      [Permission.ProjectMember],
+      [Permission.ProjectAdmin],
+    ]) {
+      const error: unknown = await refusalOf(
+        create(
+          { runnerId: new ObjectID("1f5f0000-0000-4000-8000-0000000000ff") },
+          caller(permissions),
+        ),
+      );
+
+      expect(error).toBe(refusal);
+    }
+
+    expect(check).toHaveBeenCalledTimes(2);
+    expect(repositories.inserts).toEqual([]);
   });
 });
 
