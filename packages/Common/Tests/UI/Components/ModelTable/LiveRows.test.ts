@@ -147,6 +147,8 @@ describe("which lists keep themselves current", () => {
         "Monitor",
         "ScheduledMaintenance",
         "SecurityCase",
+        // OneUptime checking a step of a case's Response Plan again shows on the plan at once (#10340).
+        "SecurityCaseStepCheck",
         "SecurityCaseTask",
         "SecurityPlaybookRun",
         "ServiceLevelObjective",
