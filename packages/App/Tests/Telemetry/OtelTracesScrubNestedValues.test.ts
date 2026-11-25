@@ -32,6 +32,7 @@ import {
 import TelemetryFanInWriter, {
   FanInInsertTarget,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import KeyedExceptionFingerprint from "Common/Server/Utils/Telemetry/KeyedExceptionFingerprint";
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
 import ProductType from "Common/Types/MeteredPlan/ProductType";
 import ObjectID from "Common/Types/ObjectID";
@@ -1051,23 +1052,31 @@ describe("a span's status message, its events' names and its exception's type, o
       /*
        * Grouped by the exception as it came (#10600, #10434): it tries the
        * groups it has without the rule first, so an exception made before
-       * the rule keeps its occurrences. A new one is made under the keyed
-       * fingerprint: the email the rule hid is in the text v1 and v2 hash,
-       * and an unkeyed hash of it would give it back to whoever hashes
+       * the rule keeps its occurrences - v1's, then the keyed one of v1's
+       * text, where such an exception is moved once a rule hides part of
+       * what v1 hashes (#10619), then v2's. A new one is made under the
+       * keyed fingerprint: the email the rule hid is in the text v1 and v2
+       * hash, and an unkeyed hash of it would give it back to whoever hashes
        * guesses. These exceptions cannot be read, so the occurrence keeps
        * the keyed one too.
        */
       const scrubbedPayload: TelemetryExceptionPayload = exceptionPayloads[0]!;
-      const keyed: string = scrubbedPayload.fingerprintCandidates![2]!;
+      const keyedV1: string = KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: unscrubbedPayload.projectId,
+        text: ExceptionUtil.getGroupingTextV1(unscrubbedPayload),
+      });
+      const keyed: string = scrubbedPayload.fingerprintCandidates![3]!;
 
       expect(typeof unscrubbed["fingerprint"]).toBe("string");
       expect(scrubbedPayload.fingerprintCandidates).toEqual([
         unscrubbed["fingerprint"],
+        keyedV1,
         unscrubbedPayload.fingerprintV2,
         keyed,
       ]);
       expect([
         unscrubbed["fingerprint"],
+        keyedV1,
         unscrubbedPayload.fingerprintV2,
       ]).not.toContain(keyed);
       expect(scrubbedPayload.fingerprintV2).toBe(keyed);
