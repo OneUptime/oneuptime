@@ -14,6 +14,7 @@ Les deux utilisent le même type de moniteur. Ce qui les distingue, ce sont les 
 - [Envoyer un heartbeat](#envoyer-un-heartbeat): Depuis curl, cron, Node.js, Python ou Go.
 - [Alerter quand les appels cessent](#marquer-hors-ligne-sil-ny-a-pas-de-heartbeat-en-10-minutes-un-interrupteur-de-lhomme-mort): Faire du moniteur un interrupteur de l'homme mort.
 - [Recevoir des alertes](#recevoir-les-alertes-dun-autre-système): Un incident par alerte Alertmanager ou Grafana.
+- [Publier dans Slack sans appeler personne](#publier-dans-slack-sans-appeler-personne): Prévenir un canal, et n'appeler qu'en dehors des heures de travail.
 - [S'abonner à SNS ou Event Grid](#sabonner-à-amazon-sns-ou-à-azure-event-grid): Confirmer l'abonnement en un clic.
 :::
 
@@ -421,6 +422,32 @@ La charge utile complète est disponible à côté : un titre d'incident `{{aler
 ### Exemple complet
 
 Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Pour Grafana, voir [Grafana](/docs/integrations/grafana).
+
+## Publier dans Slack sans appeler personne
+
+Un environnement de préproduction, ou un produit dont les problèmes peuvent attendre, peut vouloir qu'une requête soit publiée dans un canal de discussion sans appeler personne. Une alerte qui ne nomme aucune politique d'astreinte le fait : elle est publiée dans Slack, Microsoft Teams ou Mattermost par les règles d'espace de travail du projet, et ne lance aucune escalade.
+
+:::steps
+1. Ouvrez le critère et, sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** Laissez ses **Politiques d'astreinte** vides.
+2. Écrivez dans l'alerte ce que dit la requête, par exemple `{{requestBody.commonAnnotations.summary}}` dans sa description. Voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
+3. Dans **Alertes → Espace de travail → Slack**, ajoutez une règle pour les alertes de ce moniteur et activez **Publier dans des canaux existants**. Slack doit d'abord être [connecté au projet](/docs/workspace-connections/slack).
+:::
+
+Une alerte qui ne nomme aucune politique d'astreinte peut tout de même appeler quelqu'un par les règles du projet. Vérifiez qu'aucune règle dans **Alertes → Règles → Règles d'astreinte** n'appelle quelqu'un pour ces alertes, et qu'aucune règle dans **Alertes → Règles → Règles d'incident** ne déclare d'incident à partir d'elles.
+
+Pour publier sans créer d'alerte, activez seulement **Lorsque les filtres correspondent, modifier le statut du moniteur.**, et ajoutez plutôt la règle dans **Moniteurs → Espace de travail → Slack**. Le canal apprend alors seulement que le statut du moniteur a changé, sans rien de la requête, et seulement quand il change : d'autres requêtes pendant que le moniteur est déjà dans ce statut ne publient rien.
+
+### N'appeler qu'en dehors des heures de travail
+
+Deux critères avec les mêmes filtres se partagent la semaine, dans cet ordre :
+
+1. Le premier publie pendant les heures de travail. Dans ses **Paramètres**, activez **Évaluer ce critère uniquement certains jours et à certaines heures**, et choisissez les jours, les heures et le **Fuseau horaire**. Son alerte ne nomme aucune politique d'astreinte.
+2. Le second appelle le reste du temps. Il n'a pas d'heures, et son alerte nomme votre politique d'astreinte.
+
+Le premier critère qui correspond à une requête décide de ce qui se passe. En dehors de ses heures, le premier critère est ignoré, donc le second correspond la nuit et le week-end, et c'est seulement alors que quelqu'un est appelé. Voir [Seulement certains jours et à certaines heures](/docs/monitor/criteria-and-statuses#seulement-certains-jours-et-à-certaines-heures).
+
+- Une requête est jugée à son arrivée, selon les heures du moment. Un problème qui commence à 16:55 n'appelle quelqu'un après 17:00 que si l'expéditeur l'envoie de nouveau, comme Alertmanager le fait une fois par `repeat_interval`.
+- Une alerte avec **Résoudre automatiquement l'alerte** activé est résolue quand une requête correspond à un autre critère. La première requête après le début des heures de travail correspond au premier critère : elle résout donc l'alerte de la nuit et en ouvre une qui n'appelle personne. Laissez **Résoudre automatiquement l'alerte** désactivé sur l'alerte du second critère pour qu'elle reste ouverte jusqu'à ce que quelqu'un la résolve.
 
 ## Services qui vérifient d'abord l'URL
 
