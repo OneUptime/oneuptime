@@ -326,11 +326,13 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
         "DataSecurityIssueGroupTimelines.expireWaitingForGroup",
       ],
     },
+    // The reader's repositories, read by their ids (#10764): reads, and asks no model.
     {
       module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
       uses: [
-        "CodeTaskAccess.listReadableRepositories",
+        "CodeTaskAccess.listReadableRepositoriesByIds",
         "CodeTaskAccess.canAskInRepository",
+        "CodeTaskAccess.findReadableRepository",
       ],
     },
     {
