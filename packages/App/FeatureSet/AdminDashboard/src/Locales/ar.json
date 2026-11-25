@@ -4599,7 +4599,7 @@
   "Paste the address of a pull request as its page shows it, like https://github.com/acme/search/pull/482.": "الصق عنوان طلب السحب كما تعرضه صفحته، مثل https://github.com/acme/search/pull/482.",
   "This case has 10 pull requests linked already. Take one off before you link another.": "رُبط بهذه الحالة 10 طلبات سحب بالفعل. أزِل واحدًا قبل أن تربط آخر.",
   "This security case does not exist, or you cannot read it.": "هذه الحالة الأمنية غير موجودة، أو لا يمكنك قراءتها.",
-  "{{repository}} is not connected to this project. Connect it under Code, so OneUptime can follow its pull requests to their deploy.": "{{repository}} غير متصل بهذا المشروع. اربطه ضمن «التعليمات البرمجية» ليتمكن OneUptime من متابعة طلبات السحب الخاصة به حتى نشرها.",
+  "{{repository}} is not connected to this project. Connect it under Code, so OneUptime can follow its pull requests to their deploy.": "{{repository}} غير مرتبط بهذا المشروع. اربطه ضمن «التعليمات البرمجية» ليتمكن OneUptime من متابعة طلبات السحب الخاصة به حتى نشرها.",
   "You cannot read {{repository}} in OneUptime, so you cannot link its pull requests. Ask someone who can.": "لا يمكنك قراءة {{repository}} في OneUptime، لذا لا يمكنك ربط طلبات السحب الخاصة به. اطلب ذلك ممن يستطيع.",
   "OneUptime cannot read the pull requests of {{repository}}: it has no pull requests of its own there, or its connection is not working. Check it under Code.": "لا يستطيع OneUptime قراءة طلبات السحب في {{repository}}: لا توجد طلبات سحب هناك، أو أن اتصاله لا يعمل. تحقّق منه ضمن «التعليمات البرمجية».",
   "{{pullRequest}} does not exist, or the repository's connection cannot see it.": "{{pullRequest}} غير موجود، أو أن اتصال المستودع لا يستطيع رؤيته.",

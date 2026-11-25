@@ -404,6 +404,8 @@ export const NOT_PAGE_CATEGORIES: Array<string> = [
   "as-markdown",
   "search-index",
   "search",
+  // Where a page posts its "Was this page helpful?" answer.
+  "feedback",
 ];
 
 /*

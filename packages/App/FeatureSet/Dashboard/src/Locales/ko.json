@@ -6969,8 +6969,6 @@
   "Who owns this episode. They are notified when it is created or updated.": "이 에피소드의 소유자입니다. 생성되거나 업데이트되면 알림을 받습니다.",
   "Who owns this event. They are notified when its status changes.": "이 이벤트의 소유자입니다. 상태가 변경되면 알림을 받습니다.",
   "No owners yet": "아직 소유자가 없습니다",
-  "People and teams who own this probe. They are alerted when its status changes.": "이 프로브를 소유한 사람과 팀입니다. 상태가 변경되면 경고를 받습니다.",
-  "Add a teammate or a team so they are alerted when this probe's status changes.": "이 프로브의 상태가 변경될 때 경고를 받을 수 있도록 팀원이나 팀을 추가하세요.",
   "People and teams who own this runner. They are alerted when its status changes.": "이 Runner를 소유한 사람과 팀입니다. 상태가 변경되면 경고를 받습니다.",
   "Add a teammate or a team so they are alerted when this runner's status changes.": "이 Runner의 상태가 변경될 때 경고를 받을 수 있도록 팀원이나 팀을 추가하세요.",
   "People and teams who own every incident declared from this template. They are added as the incident's owners and notified.": "이 템플릿으로 선언되는 모든 인시던트를 소유하는 사람과 팀입니다. 인시던트의 소유자로 추가되고 알림을 받습니다.",

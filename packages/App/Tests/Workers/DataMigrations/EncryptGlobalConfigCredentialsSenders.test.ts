@@ -182,9 +182,18 @@ let createMessage: Mock<TwilioCreate>;
 let createCall: Mock<TwilioCreate>;
 let sendMail: Mock<SendMail>;
 
-// What Twilio's client was made with, call by call: the account and its token.
+/*
+ * What Twilio's client was made with, call by call: the account and its
+ * token. Its third argument is the http client every Twilio client is
+ * handed, which routes it through the outbound proxy (TwilioHttpClient,
+ * #10721): no credential, and a new one each time.
+ */
 function twilioClients(): Array<Array<unknown>> {
-  return jest.mocked(Twilio).mock.calls as Array<Array<unknown>>;
+  return (jest.mocked(Twilio).mock.calls as Array<Array<unknown>>).map(
+    (call: Array<unknown>): Array<unknown> => {
+      return call.slice(0, 2);
+    },
+  );
 }
 
 // What was posted to an HTTP API, request by request.

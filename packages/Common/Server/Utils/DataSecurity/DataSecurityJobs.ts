@@ -36,8 +36,13 @@ export const DATA_SECURITY_AI_EVALUATE_ISSUE_JOB: string =
   "DataSecurity:AiEvaluateIssue";
 export const DATA_SECURITY_NOTIFY_OWNERS_JOB: string =
   "DataSecurity:NotifyOwners";
+/*
+ * Not the daily cron's "DataSecurity:ProposeStoreOwners": a job's function
+ * is found by its name, and under one name the job's function replaced the
+ * cron's, so the daily run read no project and proposed nothing.
+ */
 export const DATA_SECURITY_PROPOSE_STORE_OWNERS_JOB: string =
-  "DataSecurity:ProposeStoreOwners";
+  "DataSecurity:ProposeProjectStoreOwners";
 export const DATA_SECURITY_PROPOSE_OWNER_RULES_JOB: string =
   "DataSecurity:ProposeOwnerRules";
 export const DATA_SECURITY_GROUP_ISSUES_JOB: string =

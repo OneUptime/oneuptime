@@ -6969,8 +6969,6 @@
   "Who owns this episode. They are notified when it is created or updated.": "此片段由誰擁有。在建立或更新時，他們會收到通知。",
   "Who owns this event. They are notified when its status changes.": "此事件由誰擁有。當其狀態變更時，他們會收到通知。",
   "No owners yet": "尚無擁有者",
-  "People and teams who own this probe. They are alerted when its status changes.": "擁有此探測器的人員和團隊。當其狀態變更時，他們會收到警示。",
-  "Add a teammate or a team so they are alerted when this probe's status changes.": "新增一位成員或一個團隊，以便在此探測器狀態變更時向他們發出警示。",
   "People and teams who own this runner. They are alerted when its status changes.": "擁有此 Runner 的人員和團隊。當其狀態變更時，他們會收到警示。",
   "Add a teammate or a team so they are alerted when this runner's status changes.": "新增一位成員或一個團隊，以便在此 Runner 狀態變更時向他們發出警示。",
   "People and teams who own every incident declared from this template. They are added as the incident's owners and notified.": "擁有從此範本宣告的每個事件的人員和團隊。他們會被新增為事件的擁有者並收到通知。",
