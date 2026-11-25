@@ -251,10 +251,11 @@ describe.each([
       LIST,
       new PositiveNumber(123456),
       BaseModel,
+      { retiredColumns: [] },
     );
     expect(
       (Response.sendEntityArrayResponse as jest.Mock).mock.calls[0],
-    ).toHaveLength(5);
+    ).toHaveLength(6);
   });
 
   it("counts up to the cap, and answers the cap with isCountCapped when more match", async () => {
@@ -276,7 +277,7 @@ describe.each([
       LIST,
       new PositiveNumber(10000),
       BaseModel,
-      { isCountCapped: true },
+      { isCountCapped: true, retiredColumns: [] },
     );
   });
 
@@ -304,10 +305,11 @@ describe.each([
         LIST,
         new PositiveNumber(expected),
         BaseModel,
+        { retiredColumns: [] },
       );
       expect(
         (Response.sendEntityArrayResponse as jest.Mock).mock.calls[0],
-      ).toHaveLength(5);
+      ).toHaveLength(6);
     },
   );
 
@@ -345,7 +347,7 @@ describe.each([
         LIST,
         new PositiveNumber(cap),
         BaseModel,
-        { isCountCapped: true },
+        { isCountCapped: true, retiredColumns: [] },
       );
     },
   );

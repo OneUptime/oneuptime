@@ -643,6 +643,8 @@ describe("BaseAPI", () => {
         res,
         { id: "mock" },
         BaseModel,
+        // The select names no retired column (BaseAPIRetiredColumns.test.ts).
+        { retiredColumns: [] },
       );
     });
   });

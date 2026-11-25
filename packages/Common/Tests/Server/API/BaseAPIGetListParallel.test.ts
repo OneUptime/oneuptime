@@ -306,7 +306,7 @@ describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
       countDeferred.resolve(count);
       await pending;
 
-      // Same envelope as before: (req, res, list, count, entityType).
+      // Same envelope as before: (req, res, list, count, entityType, options).
       expect(Response.sendEntityArrayResponse).toHaveBeenCalledTimes(1);
       expect(Response.sendEntityArrayResponse).toHaveBeenCalledWith(
         request,
@@ -314,6 +314,7 @@ describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
         list,
         count,
         BaseModel,
+        { retiredColumns: [] },
       );
     });
 
@@ -509,6 +510,7 @@ describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
         list,
         count,
         BaseModel,
+        { retiredColumns: [] },
       );
     });
 
