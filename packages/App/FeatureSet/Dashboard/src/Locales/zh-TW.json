@@ -64236,5 +64236,10 @@
   "Your Load Balancers": "你的負載平衡器",
   "Your application load balancers in AWS, Google Cloud and Azure. Each adds the client it forwards to X-Forwarded-For.": "你在 AWS、Google Cloud 和 Azure 中的應用程式負載平衡器。每一個都會把它轉送的用戶端加到 X-Forwarded-For。",
   "Your hosts, Kubernetes nodes and probes: whatever runs on one could name any client. If one of them is your proxy, add it to Trusted Proxies.": "你的主機、Kubernetes 節點和探測器：在上面執行的任何東西都可能冒稱任何用戶端。如果其中一個是你的代理伺服器，請把它加入受信任的代理伺服器。",
-  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "無法列出你的負載平衡器：你無法讀取雲端資源，或無法讀取它們。"
+  "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "無法列出你的負載平衡器：你無法讀取雲端資源，或無法讀取它們。",
+  "Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "新增一位成員或一個團隊，以便在此探測器狀態變更時向他們發出警示。",
+  "Create a mobile ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to.": "建立行動裝置遙測擷取金鑰。它可以安全地隨您的應用程式發布：它固定於應用程式的服務名稱，只傳送該應用程式的追蹤、日誌和指標。",
+  "For an iOS, Android or React Native app. Safe to ship: it sends only that app's traces, logs, metrics and session replays, and is rate limited.": "適用於 iOS、Android 或 React Native 應用程式。可安全用於應用程式內：它只傳送該應用程式的追蹤、日誌、指標和工作階段重播，並受速率限制。",
+  "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "此探測器網路介面上的位址，即探測器每次回報時列出的位址。封鎖清單從不封鎖它們。"
 }

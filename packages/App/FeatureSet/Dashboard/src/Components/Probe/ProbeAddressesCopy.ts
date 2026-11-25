@@ -30,6 +30,6 @@ export const PROBE_ADDRESSES_COPY: {
   ),
   interfacesTitle: translationKey("Interface Addresses"),
   interfacesDescription: translationKey(
-    "The addresses on this probe's network interfaces, and its host's when it is given them, as the probe lists them each time it checks in. Security Events sets the probe's own polling, discovery and monitor checks from these aside, and the blocklist never blocks them.",
+    "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.",
   ),
 };
