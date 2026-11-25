@@ -63469,7 +63469,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "GDPR 第 30 条对此数据存储的要求。OneUptime AI 会起草无人填写的内容；在您确认之前，任何内容都不会进入记录。",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "审计人员在每项要求下阅读的内容，来自数据安全的检查和问题历史记录。可编辑任何段落：您编辑过的段落永远不会被重新起草。",
   "What changed since it was confirmed": "自确认以来的变化",
-  "What it is": "它是什么",
   "What the redaction step removes": "脱敏步骤移除的内容",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "服务此后发送的内容：编码代理在工作时不读取你的任何遥测",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "自向你展示以来，此修复将要更改的内容已发生变化，因此未启动任何操作。请在请求之前重新查看。",
@@ -64247,5 +64246,6 @@
   "Issue Fix Regressed": "问题修复后再次发生",
   "Issue Fix Verified": "问题修复已验证",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
-  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "此探测器网络接口上的地址，即探测器每次上报时列出的地址。封禁列表从不封禁它们。"
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "此探测器网络接口上的地址，即探测器每次上报时列出的地址。封禁列表从不封禁它们。",
+  "What it is (store identity)": "它是什么"
 }

@@ -63469,7 +63469,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "GDPR 제30조가 이 저장소에 요구하는 내용입니다. 아무도 작성하지 않은 내용은 OneUptime AI가 초안을 작성하며, 확인하기 전까지는 기록에 아무것도 들어가지 않습니다.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "데이터 보안의 검사와 이슈 이력을 바탕으로 감사인이 각 요구 사항 아래에서 읽는 내용입니다. 어느 단락이든 편집할 수 있습니다: 편집한 단락은 다시 초안으로 작성되지 않습니다.",
   "What changed since it was confirmed": "확인 후 바뀐 내용",
-  "What it is": "기본 정보",
   "What the redaction step removes": "가림 단계가 제거하는 것",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "그 이후 서비스가 보낸 것: 코딩 에이전트는 작업하는 동안 텔레메트리를 전혀 읽지 않습니다",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "이 수정이 바꿀 내용이 표시된 이후 바뀌었기 때문에 아무것도 시작되지 않았습니다. 요청하기 전에 다시 확인하세요.",
@@ -64247,5 +64246,6 @@
   "Issue Fix Regressed": "이슈 수정 후 재발",
   "Issue Fix Verified": "이슈 수정 검증됨",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
-  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다."
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "이 프로브의 네트워크 인터페이스 주소로, 프로브가 체크인할 때마다 나열하는 그대로입니다. 차단 목록은 이 주소를 절대 차단하지 않습니다.",
+  "What it is (store identity)": "기본 정보"
 }

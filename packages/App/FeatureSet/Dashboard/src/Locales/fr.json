@@ -63469,7 +63469,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "Ce que l'article 30 du RGPD demande pour ce magasin de données. OneUptime AI rédige ce que personne n'a écrit ; rien n'entre dans le registre avant que vous ne le confirmiez.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "Ce qu'un auditeur lit sous chaque exigence, à partir des contrôles et de l'historique des problèmes de Sécurité des données. Modifiez n'importe quel paragraphe : un paragraphe que vous modifiez n'est plus jamais rédigé.",
   "What changed since it was confirmed": "Ce qui a changé depuis sa confirmation",
-  "What it is": "Ce qu'il est",
   "What the redaction step removes": "Ce que l'étape de masquage retire",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "Ce que le service a envoyé depuis : l'agent de code ne lit rien de votre télémétrie pendant qu'il travaille",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "Ce que cette correction modifierait a changé depuis qu'elle vous a été montrée, donc rien n'a été lancé. Regardez-la de nouveau avant de demander.",
@@ -64247,5 +64246,6 @@
   "Issue Fix Regressed": "Régression après le correctif d'un problème",
   "Issue Fix Verified": "Correctif d'un problème vérifié",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
-  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "Les adresses des interfaces réseau de cette sonde, telles que la sonde les liste chaque fois qu'elle se signale. La liste de blocage ne les bloque jamais."
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "Les adresses des interfaces réseau de cette sonde, telles que la sonde les liste chaque fois qu'elle se signale. La liste de blocage ne les bloque jamais.",
+  "What it is (store identity)": "Ce qu'il est"
 }

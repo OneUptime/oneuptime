@@ -63469,7 +63469,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "GDPR 第 30 条がこのデータストアについて求める内容です。誰も書いていないものは OneUptime AI が下書きします。確認するまで、記録には何も入りません。",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "データセキュリティのチェックと問題の履歴をもとに、監査人が各要件の下で読む内容です。どの段落も編集できます: 編集した段落が再び下書きされることはありません。",
   "What changed since it was confirmed": "確認後に変わったこと",
-  "What it is": "基本情報",
   "What the redaction step removes": "墨消しステップが削除するもの",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "その後サービスが送信したもの: コーディングエージェントは作業中にテレメトリを一切読みません",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "この修正で変わる内容が、表示された後に変わったため、何も開始されませんでした。依頼する前にもう一度確認してください。",
@@ -64247,5 +64246,6 @@
   "Issue Fix Regressed": "問題が修正後に再発",
   "Issue Fix Verified": "問題の修正を検証済み",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
-  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスです。プローブがチェックインのたびに一覧で送るものです。ブロックリストはこれらを決してブロックしません。"
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスです。プローブがチェックインのたびに一覧で送るものです。ブロックリストはこれらを決してブロックしません。",
+  "What it is (store identity)": "基本情報"
 }

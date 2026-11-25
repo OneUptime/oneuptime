@@ -63469,7 +63469,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "GDPR 第 30 條對此資料儲存區的要求。OneUptime AI 會草擬無人填寫的內容；在您確認之前，任何內容都不會進入紀錄。",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "稽核人員在每項要求下閱讀的內容，來自資料安全的檢查和問題歷程記錄。可編輯任何段落：您編輯過的段落永遠不會被重新草擬。",
   "What changed since it was confirmed": "自確認以來的變化",
-  "What it is": "它是什麼",
   "What the redaction step removes": "去識別化步驟移除的內容",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "服務此後傳送的內容：程式設計代理在工作時不讀取你的任何遙測",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "自向你顯示以來，此修正將要變更的內容已有變化，因此未啟動任何作業。請在要求之前重新檢視。",
@@ -64247,5 +64246,6 @@
   "Issue Fix Regressed": "問題修正後再次發生",
   "Issue Fix Verified": "問題修正已驗證",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
-  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "此探測器網路介面上的位址，即探測器每次回報時列出的位址。封鎖清單從不封鎖它們。"
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "此探測器網路介面上的位址，即探測器每次回報時列出的位址。封鎖清單從不封鎖它們。",
+  "What it is (store identity)": "它是什麼"
 }

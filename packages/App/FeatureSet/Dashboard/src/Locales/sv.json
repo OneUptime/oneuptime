@@ -63469,7 +63469,6 @@
   "What GDPR Article 30 asks of this store. OneUptime AI drafts what nobody wrote; nothing is in the record until you confirm it.": "Det som GDPR artikel 30 kräver av det här datalagret. OneUptime AI skriver utkast till det som ingen har skrivit; inget hamnar i registret förrän du bekräftar det.",
   "What an auditor reads under each requirement, from Data Security's checks and issue history. Edit any paragraph: one you edit is never drafted again.": "Det som en revisor läser under varje krav, utifrån Datasäkerhets kontroller och problemhistorik. Redigera valfritt stycke: ett stycke som du redigerar får aldrig ett nytt utkast.",
   "What changed since it was confirmed": "Vad som har ändrats sedan det bekräftades",
-  "What it is": "Vad det är",
   "What the redaction step removes": "Vad redigeringssteget tar bort",
   "What the service sent since: the coding agent reads none of your telemetry while it works": "Vad tjänsten har skickat sedan dess: kodagenten läser ingenting av din telemetri medan den arbetar",
   "What this fix would change has changed since it was shown to you, so nothing was started. Look at it again before you ask.": "Det den här åtgärden skulle ändra har ändrats sedan den visades för dig, så ingenting startades. Titta på den igen innan du frågar.",
@@ -64247,5 +64246,6 @@
   "Issue Fix Regressed": "Regression efter åtgärden av ett problem",
   "Issue Fix Verified": "Åtgärd av ett problem verifierad",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
-  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "Adresserna på den här sondens nätverksgränssnitt, så som sonden listar dem varje gång den hör av sig. Blocklistan blockerar dem aldrig."
+  "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "Adresserna på den här sondens nätverksgränssnitt, så som sonden listar dem varje gång den hör av sig. Blocklistan blockerar dem aldrig.",
+  "What it is (store identity)": "Vad det är"
 }
