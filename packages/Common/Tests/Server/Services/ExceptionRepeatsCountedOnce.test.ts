@@ -282,6 +282,8 @@ describe("every read of the table written by hand", () => {
       "asks whether a project has sent an exception at all",
     "Common/Server/Utils/Activation/TelemetryMilestones.ts":
       "names the table a milestone is read from",
+    "Common/Server/Utils/Telemetry/FormerExceptionFingerprints.ts":
+      "keeps an exception's former fingerprint while any occurrence still carries it, a repeat of a crash too: each is found through it, as the first report is",
   };
 
   const MATCHES: RegExp =
