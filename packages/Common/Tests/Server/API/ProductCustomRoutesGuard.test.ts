@@ -394,6 +394,16 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.DataSecurity, ProductKey.Code],
     leftAlone: {},
   },
+  /*
+   * Describe a data type: OneUptime AI drafts one from a sentence or a
+   * group of unplaced fields for the data type form. It saves nothing, but
+   * it asks OneUptime AI for Data Security, so it is refused while Data
+   * Security is off.
+   */
+  "packages/Common/Server/API/DataSecurityCustomDataTypeAPI.ts": {
+    products: [ProductKey.DataSecurity],
+    leftAlone: {},
+  },
   "packages/Common/Server/API/CloudConnectionAPI.ts": {
     products: [ProductKey.Cloud],
     leftAlone: {},
@@ -839,6 +849,7 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     readHelpers: {
       read: {
         '"/code-task/repositories"': READ,
+        '"/code-task/repositories-by-id"': READ,
         '"/code-task/repository/:repositoryId"': READ,
         '"/code-task/list"': READ,
         '"/code-task/branches/:repositoryId"': READ,
