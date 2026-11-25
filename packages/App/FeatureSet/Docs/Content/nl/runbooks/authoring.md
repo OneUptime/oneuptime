@@ -140,7 +140,7 @@ Een bashscript, uitgevoerd met `bash -c <script>` op een [runbook-agent](/docs/r
 | Veld | Wat het doet | Standaard |
 | --- | --- | --- |
 | **Runner** | Onder **Meer velden**. De Runner die de stap uitvoert. Alleen die Runner mag de taak oppakken. Globale Runners voeren alleen JavaScript-stappen uit. | De standaard-Runner van het project, als u er een hebt ingesteld |
-| **Bash-script** | Het script. De uitvoer (stdout en stderr) wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. | — |
+| **Bash-script** | Het script. De uitvoer (stdout en stderr) wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. Het draait met de omgeving van de Runner, zonder de eigen `ONEUPTIME_RUNNER_`-instellingen van de Runner, zijn sleutel inbegrepen; een sleutel die een script toch afdrukt, wordt opgeslagen als `[REDACTED]`. | — |
 | **Uitvoeringstime-out** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Verhoog dit voor stappen die terecht minuten duren. | 30 seconden |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. | 2 minuten |
 
@@ -195,7 +195,7 @@ Voer kubectl-opdrachten uit op een cluster. Het script loopt met bash op de Runn
 | --- | --- |
 | **Runner** | Onder **Meer velden**. De Runner die kubectl uitvoert. Hij moet de API-server van het cluster kunnen bereiken. Een stap die er geen kiest, loopt op de standaard-Runner van het project. |
 | **Kubeconfig** | De geheime variabele die de kubeconfig van het cluster bevat, of **De eigen toegang van de Runner**: de eigen kubeconfig van de Runner, of zijn serviceaccount als hij in het cluster draait. De Runner schrijft een kubeconfig naar een bestand dat alleen hij kan lezen, en verwijdert het als het script eindigt. |
-| **Script** | De kubectl-opdrachten. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
+| **Script** | De kubectl-opdrachten. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. Net als het script van een Bash-stap draait het zonder de eigen `ONEUPTIME_RUNNER_`-instellingen van de Runner. |
 | **Uitvoeringstime-out** | Hoe lang de Runner het script laat lopen voordat hij het met `SIGKILL` stopt. Standaard 30 seconden. |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
 

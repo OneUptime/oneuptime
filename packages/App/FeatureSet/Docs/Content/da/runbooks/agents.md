@@ -90,7 +90,7 @@ For at slå den medfølgende fra skal du sætte `GLOBAL_RUNNER_REPLICAS=0` i Doc
 ## Før du går i gang
 
 - **En vært med Docker** i din infrastruktur, som kan nå din OneUptime-URL over HTTPS og de systemer, dine trin virker på.
-- **En rolle, der opretter Runners.** Projektejer, Projektadministrator, Projektmedlem og Runbook-administrator kan oprette en. Kun en Projektejer, Projektadministrator eller Runbook-administrator kan se en Runners nøgle, som opsætningskommandoen indeholder.
+- **En rolle, der opretter Runners.** Projektejer, Projektadministrator, Projektmedlem og Runbook-administrator kan oprette en. Kun en Projektejer, Projektadministrator eller Runbook-administrator kan se en Runners nøgle, som opsætningskommandoen indeholder. Kun de kan også vælge en Runners nøgle: en Runner, som andre opretter, får en nøgle, som OneUptime genererer, og oprettelsen viser dem ikke nøglen.
 
 ## Installer en Runner
 

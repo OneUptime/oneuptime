@@ -4,6 +4,7 @@
   "Error details": "Felinformation",
   "Still stuck?": "Fortfarande fast?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den med OneUptime Support.",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den.",
   "Download support bundle": "Ladda ned supportpaket",
   "Send it to {{email}}": "Skicka det till {{email}}",
   "Support bundle downloaded. Review it, then attach it to your email.": "Supportpaketet har laddats ned. Granska det och bifoga det sedan i ditt mejl.",
@@ -739,6 +740,5 @@
     "note": "Obs",
     "tip": "Tips",
     "warning": "Varning"
-  },
-  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Ladda ned en lokal diagnosfil med felstacken, komponentstacken, den rensade sid-URL:en, webbläsarinformation och OneUptime-versionen. Den läser aldrig kakor, sparade webbläsardata eller formulärinnehåll. Granska den innan du delar den."
+  }
 }

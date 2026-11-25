@@ -1285,7 +1285,7 @@ describe("the rule: a default step writes no record that holds the project's sec
  */
 const HOLDS_SECRETS_BUT_NOT_HELD: Record<string, string> = {
   CodeRepository:
-    "Its address is fixed once it is made, so a token written to it reaches only that repository and the one it held reaches nobody new; a Project Member changes the rest of it as a person.",
+    "Its address is fixed once it is made, so a token written to it reaches only that repository and the one it held reaches nobody new; a Project Member changes the rest of it as a person - all but what a Runner runs for it, its commands and its Runner, which no default workflow writes either (CodeRepositoryService.assertWorkflowDoesNotWriteWhatRunnersRun).",
   DataStore:
     "Its connection string is written whole and never read back: a write replaces the one it held and sends that one nowhere.",
 };

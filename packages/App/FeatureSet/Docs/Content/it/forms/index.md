@@ -19,12 +19,12 @@ flowchart TB
     page -->|Invia| checks["Protezioni e<br/>controllo delle risposte"]
     checks --> submission["Invio, conservato<br/>con il modulo"]
     submission --> target{"Ogni invio crea"}
-    target -->|Incidente| incident["Incidente, nascosto<br/>dalle pagine di stato"]
-    target -->|Avviso| alert["Avviso, che i suoi<br/>proprietari controllano"]
-    target -->|Manutenzione programmata| event["Evento di manutenzione,<br/>nascosto salvo impostazione"]
+    target -->|Incidente| incident["Incidente, nascosto<br/>dalle pagine<br/>di stato"]
+    target -->|Avviso| alert["Avviso, che<br/>i suoi proprietari<br/>controllano"]
+    target -->|Manutenzione programmata| event["Evento di<br/>manutenzione, nascosto<br/>salvo impostazione"]
     incident --> response["Si eseguono le policy di<br/>reperibilità e le regole"]
     alert --> response
-    incident --> note["Nota privata: chi l'ha inviato,<br/>altre risposte"]
+    incident --> note["Nota privata:<br/>chi l'ha inviato,<br/>altre risposte"]
     alert --> note
     event --> note
 ```

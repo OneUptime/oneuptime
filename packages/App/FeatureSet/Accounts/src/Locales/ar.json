@@ -4,6 +4,7 @@
   "Error details": "تفاصيل الخطأ",
   "Still stuck?": "هل ما زلت تواجه مشكلة؟",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "نزّل ملف تشخيص محليًا يتضمن مكدس الخطأ ومكدس المكوّنات وعنوان URL للصفحة بعد تنقيحه وتفاصيل المتصفح وإصدار OneUptime. لا يقرأ أبدًا ملفات تعريف الارتباط أو بيانات المتصفح المحفوظة أو محتويات النماذج. راجعه قبل مشاركته مع دعم OneUptime.",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "نزّل ملف تشخيص محليًا يتضمن مكدس الخطأ ومكدس المكوّنات وعنوان URL للصفحة بعد تنقيحه وتفاصيل المتصفح وإصدار OneUptime. لا يقرأ أبدًا ملفات تعريف الارتباط أو بيانات المتصفح المحفوظة أو محتويات النماذج. راجعه قبل مشاركته.",
   "Download support bundle": "تنزيل حزمة الدعم",
   "Send it to {{email}}": "أرسلها إلى {{email}}",
   "Support bundle downloaded. Review it, then attach it to your email.": "تم تنزيل حزمة الدعم. راجعها، ثم أرفقها برسالتك.",
@@ -739,6 +740,5 @@
     "note": "ملاحظة",
     "tip": "نصيحة",
     "warning": "تحذير"
-  },
-  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "نزّل ملف تشخيص محليًا يتضمن مكدس الخطأ ومكدس المكوّنات وعنوان URL للصفحة بعد تنقيحه وتفاصيل المتصفح وإصدار OneUptime. لا يقرأ أبدًا ملفات تعريف الارتباط أو بيانات المتصفح المحفوظة أو محتويات النماذج. راجعه قبل مشاركته."
+  }
 }

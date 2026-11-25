@@ -4,7 +4,10 @@ import getCanonicalModelInstance from "../CanonicalModelInstance";
 import Dictionary from "../../Dictionary";
 import GenericObject from "../../GenericObject";
 import { ReflectionMetadataType } from "../../Reflection";
-import { withProductLevelsOnLists } from "../../Product/ProductLevels";
+import {
+  COLUMNS_KEPT_FROM_LEVELS,
+  withProductLevelsOnLists,
+} from "../../Product/ProductLevels";
 import UserAttribution from "../UserAttribution";
 import "reflect-metadata";
 
@@ -32,8 +35,10 @@ export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
  * the product whose records the table holds (Types/Product/ProductLevels),
  * as the table's own lists are read (TableAccessControl) - where the role
  * a level follows is on the column's list and on the table's for the same
- * operation. The declared object itself for a column nothing is added to;
- * otherwise one copy per column and table, made once.
+ * operation, and the column is not one whose list for the operation takes
+ * no level (COLUMNS_KEPT_FROM_LEVELS). The declared object itself for a
+ * column nothing is added to; otherwise one copy per column and table, made
+ * once.
  */
 const withLevelsCache: WeakMap<
   ColumnAccessControl,
@@ -43,9 +48,11 @@ const withLevelsCache: WeakMap<
 const withLevels: (
   model: BaseModel | null | undefined,
   accessControl: ColumnAccessControl | undefined,
+  column: string,
 ) => ColumnAccessControl | undefined = (
   model: BaseModel | null | undefined,
   accessControl: ColumnAccessControl | undefined,
+  column: string,
 ): ColumnAccessControl | undefined => {
   const tableName: string | null | undefined = model?.tableName;
 
@@ -53,9 +60,24 @@ const withLevels: (
     return accessControl;
   }
 
+  /*
+   * One answer per declared object and table - and per column, for a column
+   * whose lists take no level for some operation, so that one declared
+   * object two columns share is never answered for the one with the other's
+   * lists.
+   */
+  const isKeptColumn: boolean = Boolean(
+    Object.prototype.hasOwnProperty.call(COLUMNS_KEPT_FROM_LEVELS, tableName) &&
+      Object.prototype.hasOwnProperty.call(
+        COLUMNS_KEPT_FROM_LEVELS[tableName],
+        column,
+      ),
+  );
+  const cacheKey: string = isKeptColumn ? `${tableName}|${column}` : tableName;
+
   const known: ColumnAccessControl | undefined = withLevelsCache
     .get(accessControl)
-    ?.get(tableName);
+    ?.get(cacheKey);
 
   if (known) {
     return known;
@@ -69,6 +91,7 @@ const withLevels: (
       read: model.readRecordPermissions,
       update: model.updateRecordPermissions,
     },
+    column,
   );
 
   let byTable: Map<string, ColumnAccessControl> | undefined =
@@ -79,7 +102,7 @@ const withLevels: (
     withLevelsCache.set(accessControl, byTable);
   }
 
-  byTable.set(tableName, answer);
+  byTable.set(cacheKey, answer);
 
   return answer;
 };
@@ -98,6 +121,7 @@ export const getColumnAccessControl: GetColumnAccessControlFunction = (
     Reflect.getMetadata(accessControlSymbol, target, propertyKey) as
       | ColumnAccessControl
       | undefined,
+    propertyKey,
   ) as ColumnAccessControl;
 };
 
@@ -138,6 +162,7 @@ export const getColumnAccessControlForAllColumns: GetColumnAccessControlForAllCo
           Reflect.getMetadata(accessControlSymbol, metadataSource, key) as
             | ColumnAccessControl
             | undefined,
+          key,
         );
         if (accessControl) {
           dictonary[key] = accessControl;

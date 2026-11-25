@@ -81,7 +81,11 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Rules shape it.",
     "On-call policies page people.",
     "Episodes group the noise.",
-    "What it is",
+    /*
+     * Not "What it is", the comparison table's first row: the Dashboard
+     * draws it (a compliance fact's title, since 3ad48fb70f9), so the row
+     * reads as each language's Dashboard draws it, as on Core Concepts.
+     */
     "On status pages",
     "Starting states",
     "Starting severities",

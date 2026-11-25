@@ -26,7 +26,9 @@ delete followed by a reload shows what was saved; `setPlaylist` and `deletePlayl
 `window.__dashboardPlaylistsFixture` change one the way someone else's edit would.
 `?role=viewer` signs in a Viewer, `?lang=de`, `?lang=ja` and `?lang=fa` set the
 Dashboard's words, `?theme=dark` the dark theme, and `?reads=fail` fails every read of a
-playlist. Any read the fixture does not model, and any script error, fails the test.
+playlist. A playlist form's Dashboards picker searches, and counts, the dashboards it could
+still add as the server answers it (#10580): those the viewer may read, not archived and
+not in the list. Any read the fixture does not model, and any script error, fails the test.
 
 Desktop (1280px) Chromium covers the player: it covers the whole window and plays the
 dashboards in order, each for its time, round and round; it draws the next dashboard out of
