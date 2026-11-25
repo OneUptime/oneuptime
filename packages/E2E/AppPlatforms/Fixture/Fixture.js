@@ -874,6 +874,12 @@ const EMPTY_TABLES = [
   "IncidentNoteTemplate",
   "AlertCustomField",
   "AlertNoteTemplate",
+  /*
+   * The environments report through the collector, and no cloud account is
+   * connected: an app off App Service that no Cloud Resource is found for
+   * counts its cloud's connections to say which Setup check row it is.
+   */
+  "CloudConnection",
 ];
 
 function isModelled(modelType) {
