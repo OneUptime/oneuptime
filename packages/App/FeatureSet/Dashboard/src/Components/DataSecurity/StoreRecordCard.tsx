@@ -48,8 +48,9 @@ import React, {
  * them, Draft with OneUptime AI for what nobody wrote, and its impact
  * assessment, for a store that needs one.
  *
- * A store with no personal data is not in the record: its Settings keep
- * the plain purpose and retention they always had (whenNotInRecord).
+ * A store with no personal data is not in the record: this draws nothing,
+ * and says so (onIsInRecordChange), so its Settings draw the plain purpose
+ * and retention they always had beside it - never a card inside this one.
  */
 
 export const STORE_RECORD_CARD_TEST_ID: string =
@@ -57,10 +58,10 @@ export const STORE_RECORD_CARD_TEST_ID: string =
 
 const StoreRecordCard: FunctionComponent<{
   dataStoreId: ObjectID;
-  whenNotInRecord: ReactElement;
+  onIsInRecordChange: (isInRecord: boolean) => void;
 }> = (props: {
   dataStoreId: ObjectID;
-  whenNotInRecord: ReactElement;
+  onIsInRecordChange: (isInRecord: boolean) => void;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const [answer, setAnswer] =
@@ -84,6 +85,7 @@ const StoreRecordCard: FunctionComponent<{
         if (isCurrent) {
           setAnswer(read);
           setRow(read.rows?.[0] || null);
+          props.onIsInRecordChange(Boolean(read.rows?.[0]));
         }
       })
       .catch((err: unknown) => {
@@ -121,8 +123,9 @@ const StoreRecordCard: FunctionComponent<{
     );
   }
 
+  // Not in the record: the page draws its plain card instead (onIsInRecordChange).
   if (!row) {
-    return props.whenNotInRecord;
+    return <></>;
   }
 
   // "Not legal advice" where OneUptime AI's words wait for a person.
