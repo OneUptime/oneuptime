@@ -11,6 +11,9 @@ import {
   StoreRecordFields,
 } from "./StoreRecord";
 import LeaveWithoutSavingQuestion from "../UnsavedChanges/LeaveWithoutSavingQuestion";
+import useUnsavedParts, {
+  UnsavedParts,
+} from "../UnsavedChanges/UseUnsavedParts";
 import {
   DataSecurityRecordOfProcessingResponse,
   DataSecurityRecordOfProcessingRow,
@@ -67,7 +70,9 @@ const StoreRecordCard: FunctionComponent<{
   );
   const [error, setError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
-  const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
+  // The fields a person is mid-edit on, each with its save (#7402).
+  const unsaved: UnsavedParts = useUnsavedParts();
+  const hasUnsaved: boolean = unsaved.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -145,7 +150,7 @@ const StoreRecordCard: FunctionComponent<{
             row={row}
             canEdit={answer.canEdit !== false}
             onRowChange={setRow}
-            onUnsavedChange={setHasUnsaved}
+            onFieldEditingChange={unsaved.onPartChange}
           />
           <div className="flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-4 empty:hidden">
             <DraftRecordButton
@@ -162,6 +167,7 @@ const StoreRecordCard: FunctionComponent<{
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_RECORD}
+        onSaveChanges={unsaved.saveAll}
       />
     </Fragment>
   );

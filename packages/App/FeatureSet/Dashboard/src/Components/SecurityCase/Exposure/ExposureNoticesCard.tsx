@@ -18,6 +18,9 @@ import { getFactsByKeys } from "../../DataSecurity/ComplianceFacts";
 import CompliancePaperSection from "../../DataSecurity/CompliancePaperSection";
 import DataSecurityApi from "../../DataSecurity/DataSecurityApi";
 import LeaveWithoutSavingQuestion from "../../UnsavedChanges/LeaveWithoutSavingQuestion";
+import useUnsavedParts, {
+  UnsavedParts,
+} from "../../UnsavedChanges/UseUnsavedParts";
 import { DataSecurityExposureAssessmentResponse } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   EXPOSURE_DRAFT_PART_TITLES,
@@ -34,7 +37,10 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import ErrorLine from "Common/UI/Components/ErrorMessage/ErrorLine";
 import API from "Common/UI/Utils/API/API";
 import Toast from "Common/UI/Utils/Toast";
-import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import useLeaveGuard, {
+  LeavePrompt,
+  SaveBeforeLeavingFunction,
+} from "Common/UI/Utils/UseLeaveGuard";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -69,8 +75,9 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-  const hasUnsaved: boolean = Object.values(editing).some(Boolean);
+  // The parts a person is mid-edit on, each with its save (#7402).
+  const unsaved: UnsavedParts = useUnsavedParts();
+  const hasUnsaved: boolean = unsaved.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
   const sections: Partial<Record<ExposureDraftPart, ExposureDraftSection>> =
     props.answer.assessment?.sections || {};
@@ -196,12 +203,11 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
                         }),
                       );
                     }}
-                    onEditingChange={(isEditing: boolean) => {
-                      setEditing((current: Record<string, boolean>) => {
-                        return current[part] === isEditing
-                          ? current
-                          : { ...current, [part]: isEditing };
-                      });
+                    onEditingChange={(
+                      isEditing: boolean,
+                      save: SaveBeforeLeavingFunction,
+                    ) => {
+                      unsaved.onPartChange(part, isEditing, save);
                     }}
                   />
                 );
@@ -213,6 +219,7 @@ const ExposureNoticesCard: FunctionComponent<ComponentProps> = (
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_NOTICES}
+        onSaveChanges={unsaved.saveAll}
       />
     </Fragment>
   );

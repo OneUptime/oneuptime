@@ -45,6 +45,9 @@ import {
 } from "../../Components/DataSecurity/DataSecurityPills";
 import { getIssueViewRoute } from "../../Components/DataSecurity/IssueListRoute";
 import LeaveWithoutSavingQuestion from "../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
+import useUnsavedParts, {
+  UnsavedParts,
+} from "../../Components/UnsavedChanges/UseUnsavedParts";
 import OneUptimeDate from "Common/Types/Date";
 import {
   AUDIT_EVIDENCE_PERIODS,
@@ -85,7 +88,10 @@ import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
 import Toast from "Common/UI/Utils/Toast";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import useLeaveGuard, {
+  LeavePrompt,
+  SaveBeforeLeavingFunction,
+} from "Common/UI/Utils/UseLeaveGuard";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   Fragment,
@@ -268,8 +274,9 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-  const hasUnsaved: boolean = Object.values(editing).some(Boolean);
+  // The paragraphs a person is mid-edit on, each with its save (#7402).
+  const unsaved: UnsavedParts = useUnsavedParts();
+  const hasUnsaved: boolean = unsaved.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -278,7 +285,7 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
     setEvidence(null);
     setError("");
     setDraftError("");
-    setEditing({});
+    unsaved.forgetAll();
     Navigation.setQueryString({
       framework: framework,
       period: String(periodInDays),
@@ -608,15 +615,15 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
                         }),
                       );
                     }}
-                    onEditingChange={(isEditing: boolean) => {
-                      setEditing((current: Record<string, boolean>) => {
-                        return current[requirement.requirement] === isEditing
-                          ? current
-                          : {
-                              ...current,
-                              [requirement.requirement]: isEditing,
-                            };
-                      });
+                    onEditingChange={(
+                      isEditing: boolean,
+                      save: SaveBeforeLeavingFunction,
+                    ) => {
+                      unsaved.onPartChange(
+                        requirement.requirement,
+                        isEditing,
+                        save,
+                      );
                     }}
                   />
                 );
@@ -657,6 +664,7 @@ const DataSecurityAuditEvidencePage: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_EVIDENCE}
+        onSaveChanges={unsaved.saveAll}
       />
     </Fragment>
   );

@@ -30,6 +30,9 @@ import { downloadMarkdownPdf } from "../../../Components/DataSecurity/Compliance
 import DataSecurityApi from "../../../Components/DataSecurity/DataSecurityApi";
 import { describeTransfer } from "../../../Components/DataSecurity/StoreRecord";
 import LeaveWithoutSavingQuestion from "../../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
+import useUnsavedParts, {
+  UnsavedParts,
+} from "../../../Components/UnsavedChanges/UseUnsavedParts";
 import { useDataStoreViewContext } from "./DataStoreViewContext";
 import { DataSecurityImpactAssessmentResponse } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
@@ -53,7 +56,10 @@ import DetailListSkeleton from "Common/UI/Components/Skeleton/DetailListSkeleton
 import { getTableHeaderButtons } from "Common/UI/Components/Table/TableHeaderControls";
 import API from "Common/UI/Utils/API/API";
 import Toast from "Common/UI/Utils/Toast";
-import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import useLeaveGuard, {
+  LeavePrompt,
+  SaveBeforeLeavingFunction,
+} from "Common/UI/Utils/UseLeaveGuard";
 import {
   Translator,
   composedValue,
@@ -132,8 +138,9 @@ const DataStoreImpactAssessment: FunctionComponent<
   const [isDrafting, setIsDrafting] = useState<boolean>(false);
   const [draftError, setDraftError] = useState<string>("");
   const [isExporting, setIsExporting] = useState<boolean>(false);
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-  const hasUnsaved: boolean = Object.values(editing).some(Boolean);
+  // The parts a person is mid-edit on, each with its save (#7402).
+  const unsaved: UnsavedParts = useUnsavedParts();
+  const hasUnsaved: boolean = unsaved.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   useEffect(() => {
@@ -395,12 +402,11 @@ const DataStoreImpactAssessment: FunctionComponent<
                         }),
                       );
                     }}
-                    onEditingChange={(isEditing: boolean) => {
-                      setEditing((current: Record<string, boolean>) => {
-                        return current[part] === isEditing
-                          ? current
-                          : { ...current, [part]: isEditing };
-                      });
+                    onEditingChange={(
+                      isEditing: boolean,
+                      save: SaveBeforeLeavingFunction,
+                    ) => {
+                      unsaved.onPartChange(part, isEditing, save);
                     }}
                   />
                 );
@@ -415,6 +421,7 @@ const DataStoreImpactAssessment: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_ASSESSMENT}
+        onSaveChanges={unsaved.saveAll}
       />
     </Fragment>
   );

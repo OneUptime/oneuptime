@@ -22,6 +22,9 @@ import {
 import StoreNameCell from "../../Components/DataSecurity/StoreNameCell";
 import AppLink from "../../Components/AppLink/AppLink";
 import LeaveWithoutSavingQuestion from "../../Components/UnsavedChanges/LeaveWithoutSavingQuestion";
+import useUnsavedParts, {
+  UnsavedParts,
+} from "../../Components/UnsavedChanges/UseUnsavedParts";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
@@ -133,7 +136,9 @@ const ReviewDraftsPage: FunctionComponent<
   const [error, setError] = useState<string>("");
   const [rowError, setRowError] = useState<string>("");
   const [readCount, setReadCount] = useState<number>(0);
-  const [hasUnsaved, setHasUnsaved] = useState<boolean>(false);
+  // The fields a person is mid-edit on, each with its save (#7402).
+  const unsaved: UnsavedParts = useUnsavedParts();
+  const hasUnsaved: boolean = unsaved.hasUnsaved;
   const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsaved);
 
   // The record once: which stores wait for a person.
@@ -337,7 +342,7 @@ const ReviewDraftsPage: FunctionComponent<
           row={row}
           canEdit={canEdit}
           onRowChange={setRow}
-          onUnsavedChange={setHasUnsaved}
+          onFieldEditingChange={unsaved.onPartChange}
         />
         <div className="flex flex-wrap items-end justify-between gap-3 border-t border-gray-100 pt-4">
           <DraftRecordButton
@@ -370,6 +375,7 @@ const ReviewDraftsPage: FunctionComponent<
       <LeaveWithoutSavingQuestion
         prompt={leavePrompt}
         description={UNSAVED_RECORD}
+        onSaveChanges={unsaved.saveAll}
       />
     </Fragment>
   );
