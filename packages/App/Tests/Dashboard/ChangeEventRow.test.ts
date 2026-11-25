@@ -258,10 +258,14 @@ describe("ChangeEvent model + registries", () => {
      * The SURFACE is the assertion, not just "some auth middleware". A
      * change-event route registered with a browser-capable surface would
      * accept a key scraped off a public page, so the enum member is the
-     * thing worth pinning in source.
+     * thing worth pinning in source. The body is read inside the check,
+     * only once the key is right (#10702).
      */
     expect(route).toContain(
-      "TelemetryIngest.forSurface(TelemetryIngestSurface.ChangeEvents)",
+      "TelemetryIngest.forSurface( TelemetryIngestSurface.ChangeEvents, readChangeEventsBody, )",
+    );
+    expect(route).toContain(
+      "const readChangeEventsBody: RequestHandler = RequestBodyAfterAuthentication.readBody(",
     );
     expect(route).toContain("TelemetryIngestionDisabled.middleware");
 
