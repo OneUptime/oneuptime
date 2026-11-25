@@ -1847,7 +1847,9 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     );
     /*
      * More settings holds only what GitLab has, in GitLab's word: production
-     * review among it, on as the repository connected.
+     * review among it, on as the repository connected. Folded, it names the
+     * first four and counts the rest: the Sensitive Data Check (#10376) and
+     * the reviews' LLM provider.
      */
     const moreSettings: Locator = page.getByTestId(
       "code-repository-more-settings",
@@ -1857,8 +1859,10 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
       "Runner",
       "Merge Requests",
       "Production Review Comment",
-      "Production Review LLM Provider",
     ]);
+    await expect(moreSettings.getByTestId("folded-section-more")).toHaveText(
+      "2 more",
+    );
     await expect(
       page.getByTestId("code-repository-github-commands"),
     ).toHaveCount(0);
@@ -2559,7 +2563,7 @@ test.describe("a repository's settings", () => {
     ]);
     await expect(
       moreSettings(page).getByTestId("folded-section-more"),
-    ).toHaveText("3 more");
+    ).toHaveText("4 more");
     // Nothing folded is in sight: the page is the repository and the fold.
     await expect(commandsSwitch(page)).toBeHidden();
     await expect(page.getByTestId("code-repository-runner")).toBeHidden();
@@ -2585,6 +2589,7 @@ test.describe("a repository's settings", () => {
       "Pull Requests",
       "GitHub Trigger Label",
       "Production Review Comment",
+      "Sensitive Data Check",
       "Production Review LLM Provider",
     ]);
     await expect(
