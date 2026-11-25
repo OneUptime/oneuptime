@@ -101,6 +101,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the mustMatch and mustNotMatch patterns of the Data Security AI eval's own cases (DataSecurityEvalCases, written in code), held to the fix a model proposed: no project writes them",
   },
   {
+    file: "packages/Common/Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet.ts",
+    count: 1,
+    builtFrom:
+      "the literal words of a log line's template in the telemetry leak eval set's own recorded cases (written in code), each escaped with escapeRegExp to match itself and joined by .*, to find the line of the case's own files a leak leads to: no project writes them",
+  },
+  {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
     count: 1,
     builtFrom: "a count of spaces",

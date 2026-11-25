@@ -98,7 +98,13 @@ import ts from "typescript";
  *     the window, the reads, whose data, the secrets and the breach laws -
  *     is worked out with no model, and OneUptime AI writes it up only once
  *     Enable AI, Work on new issues and the issue's Analyze rule allow it
- *     (ExposureAssessmentRun.test).
+ *     (ExposureAssessmentRun.test);
+ *   - the job that proposes each service's telemetry fix in its code
+ *     (#10367) runs TelemetryLeakFixProposals.proposeForProject, which
+ *     reads Enable AI and Work on new issues first and proposes nothing,
+ *     and writes nothing, with either off (TelemetryLeakFixProposals.test);
+ *     a fix a rule opens without asking is asked as a person's is, through
+ *     the Code task's gate (below).
  *
  * Everything else a person can start with AI is asked for on purpose, in
  * Data Security's API: the analysis of an issue (Explain with AI) and the
@@ -113,9 +119,24 @@ import ts from "typescript";
  * DataSecurityIssueGroupFix.test), whose other reads say where the task
  * stands and in which repositories the person may ask (AIRunService,
  * CodeTaskThread, CodeTaskListRows, CodeTaskAccess, DeclaredCodeOwner,
- * CloudAiTargets) and ask no model; and Ask AI's chat, which the chat's own
+ * CloudAiTargets) and ask no model; a service's one pull request for its
+ * telemetry leaks (#10367), through the same gate (TelemetryLeakFix:
+ * DataSecurityCodeTask.requestTelemetryLeakFix asks CodeTaskGate.getBlocker
+ * before it builds the task's request, DataSecurityTelemetryFixPrompt -
+ * DataSecurityTelemetryFixRequest.test), whose other reads say whether a
+ * fix is on its way and in which repositories the person may ask
+ * (AIRunService, CodeFixOnItsWay, CodeTaskAccess,
+ * DataSecurityCodeTask.getAskableRepositories) and ask no model; where an
+ * issue's fix in code stands (DataSecurityIssueCodeFix), read for the
+ * person - its task, by the rule of who may see one (AIRunService,
+ * CodeTaskThread, CodeTaskListRows), its pull request and what production
+ * showed (FixProductionReportUtil), and its repository's name for a reader
+ * of it (CodeTaskAccess, DeclaredCodeOwner) - which asks no model
+ * (DataSecurityIssueCodeFix.test); and Ask AI's chat, which the chat's own
  * switch refuses. On the Dashboard, the issue's page draws no analysis and
- * no AI action with Enable AI off, and is whole without them
+ * no AI action with Enable AI off - so nothing opens the Fix with AI
+ * dialog of a telemetry issue (TelemetryFixModal, its words
+ * TelemetryFixCopy's) - and is whole without them
  * (DataSecurityIssuePageThroughTheServer.test); the pages below draw no
  * other.
  *
@@ -211,6 +232,14 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/DataSecurity/DataTypeDiscovery",
       uses: ["DataTypeDiscovery.runForProject"],
+    },
+    /*
+     * Each service's telemetry fix in its code (#10367): proposed only with
+     * Enable AI and Work on new issues on, and opened through the gate.
+     */
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/TelemetryLeakFixProposals",
+      uses: ["TelemetryLeakFixProposals.proposeForProject"],
     },
   ],
   "Common/Server/Utils/DataSecurity/AuditEvidenceReader.ts": [
@@ -364,6 +393,73 @@ const WHERE_IT_REACHES_AI: Record<string, Array<AiReach>> = {
     {
       module: "Common/Server/Utils/AI/ResourceAccess/CloudAiTargets",
       uses: ["CloudAiTargets.getManagedAsCode"],
+    },
+  ],
+  /*
+   * A service's one pull request for its telemetry leaks (#10367): asked
+   * through the Code task's gate before its request is built; the rest
+   * reads whether one is on its way and where the person may ask.
+   */
+  "Common/Server/Utils/DataSecurity/TelemetryLeakFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeFix/CodeFixOnItsWay",
+      uses: ["CodeFixOnItsWay.findTaskId", "CodeFixOnItsWay.ofTelemetryLeaks"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: ["CodeTaskAccess.listReadableRepositories"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityAiInput",
+      uses: ["DataSecurityAiCodeRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/DataSecurity/DataSecurityCodeTask",
+      uses: [
+        "DataSecurityCodeTask.requestTelemetryLeakFix",
+        "DataSecurityCodeTask.getAskableRepositories",
+      ],
+    },
+    {
+      module:
+        "Common/Server/Utils/AI/DataSecurity/DataSecurityTelemetryFixPrompt",
+      uses: ["buildTelemetryLeakFixRequest"],
+    },
+  ],
+  // Where an issue's fix in code stands (#10367), for the person: reads, and asks no model.
+  "Common/Server/Utils/DataSecurity/DataSecurityIssueCodeFix.ts": [
+    {
+      module: "Common/Server/Services/AIRunService",
+      uses: ["AIRunService.findOneBy"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeFix/FixProductionReportUtil",
+      uses: ["FixProductionReportUtil.fromPullRequest"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskAccess",
+      uses: ["CodeTaskAccess.listReadableRepositories"],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskListRows",
+      uses: [
+        "CodeTaskRepliesRead",
+        "CodeTaskListRows.readReplies",
+        "CodeTaskListRows.readPullRequests",
+        "CodeTaskListRows.key",
+      ],
+    },
+    {
+      module: "Common/Server/Utils/AI/CodeTask/CodeTaskThread",
+      uses: ["CodeTaskThread.findTasksHiddenFrom"],
+    },
+    {
+      module: "Common/Server/Utils/AI/Remediation/DeclaredCodeOwner",
+      uses: ["getRepositoryFullName"],
     },
   ],
 };
@@ -731,6 +827,10 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
       [path.join("Components", "DataSecurity", "IssueModals.tsx")]: [
         "Fix with AI",
       ],
+      // The title of the Fix with AI dialog a telemetry issue opens (#10367).
+      [path.join("Components", "DataSecurity", "TelemetryFixCopy.ts")]: [
+        "Fix with AI",
+      ],
     });
   });
 
@@ -754,5 +854,13 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
     // OneUptime AI's analysis (#10369), and every action it offers, is drawn once, behind the switch.
     expect(page.split("<IssueAiAnalysisCard").length).toBe(2);
     expect(page).toMatch(/\{isAiOffered \? \(\s*<IssueAiAnalysisCard\b/);
+    // A telemetry issue's Fix with AI dialog (#10367) is opened by Fix with AI alone.
+    expect(page.split('setDialog("telemetryFix")').length).toBe(2);
+    expect(
+      page.slice(
+        page.indexOf("const fixWithAi: () => Promise<void>"),
+        page.indexOf("await askForFix();"),
+      ),
+    ).toContain('setDialog("telemetryFix")');
   });
 });
