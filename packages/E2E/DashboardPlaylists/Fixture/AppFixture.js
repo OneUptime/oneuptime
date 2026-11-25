@@ -47,6 +47,7 @@ import Project from "Common/Models/DatabaseModels/Project";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
@@ -286,6 +287,43 @@ function matchesName(item, query) {
   return true;
 }
 
+/*
+ * The dashboards a read of them answers with, as the server applies its
+ * query to what this viewer may read: by id - the list's own rows
+ * (Includes), or every dashboard but those (IncludesNone, the Dashboards
+ * picker's, #10580) - not archived where it asks, and by name as the
+ * picker searches.
+ */
+function readableDashboards(query) {
+  const ids = query && query._id;
+
+  return Object.values(DASHBOARDS).filter((dashboard) => {
+    if (!isReadableDashboard(dashboard)) {
+      return false;
+    }
+
+    if (
+      ids instanceof Includes &&
+      !ids.values.map(idOf).includes(dashboard.id)
+    ) {
+      return false;
+    }
+
+    if (
+      ids instanceof IncludesNone &&
+      ids.values.map(idOf).includes(dashboard.id)
+    ) {
+      return false;
+    }
+
+    if (query && query.isArchived === false && dashboard.isArchived) {
+      return false;
+    }
+
+    return matchesName(dashboard, query);
+  });
+}
+
 ModelAPI.getItem = async (options) => {
   const table = tableOf(options);
   const id = idOf(options.id);
@@ -333,14 +371,7 @@ ModelAPI.getList = async (options) => {
     record.dashboardLists.push({ ids: ids, at: Date.now() });
 
     const data = sorted(
-      Object.values(DASHBOARDS)
-        .filter((dashboard) => {
-          return (
-            isReadableDashboard(dashboard) &&
-            (!ids || ids.includes(dashboard.id))
-          );
-        })
-        .map(toDashboard),
+      readableDashboards(options.query).map(toDashboard),
       options.sort,
     );
 
@@ -396,6 +427,14 @@ ModelAPI.count = async (options) => {
 
   if (table === "DashboardPlaylist") {
     return playlists.length;
+  }
+
+  /*
+   * What a playlist's Dashboards picker could still add (#10580), counted
+   * as it searches: not archived, and not in the list.
+   */
+  if (table === "Dashboard") {
+    return readableDashboards(options.query).length;
   }
 
   if (EMPTY_TABLES.includes(table)) {
