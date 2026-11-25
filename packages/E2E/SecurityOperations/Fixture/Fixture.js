@@ -282,6 +282,10 @@ import {
   isSecurityBlockEnforcementHolding,
 } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
 import { SECURITY_CAMPAIGN_OF_ADDRESS_DAYS } from "Common/Types/SecurityEvent/SecurityCampaignContainment";
+import {
+  DETECTION_RULE_UNCOUNTED_PERIOD_IN_HOURS,
+  detectionRulesUncountedToJSON,
+} from "Common/Types/SecurityEvent/DetectionRuleUncounted";
 import { readSecurityCaseAiLimits } from "Common/Types/SecurityCase/SecurityCaseAi";
 import { SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES } from "Common/Types/SecurityCase/SecurityCaseAiWords";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
@@ -5063,6 +5067,22 @@ async function handleApi(method, options) {
   const aiResponse = path.match(/\/security-case\/([^/]+)\/ai-response$/);
   if (method === "POST" && aiResponse) {
     return aiResponseStatus(aiResponse[1]);
+  }
+  /*
+   * What the rules Detection Rules lists could not count in the last day
+   * (#10547): every matching event of the fixture's month names an address,
+   * as Run on Past Events says (RuleExceptionsFixture.js), so no rule left
+   * one out.
+   */
+  if (method === "POST" && path.endsWith("/detection-rule/uncounted")) {
+    return new HTTPResponse(
+      200,
+      detectionRulesUncountedToJSON({
+        periodInHours: DETECTION_RULE_UNCOUNTED_PERIOD_IN_HOURS,
+        rules: [],
+      }),
+      {},
+    );
   }
   if (
     method === "POST" &&

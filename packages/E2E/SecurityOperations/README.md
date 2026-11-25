@@ -507,7 +507,9 @@ rule's id, as the server stores the relation the form's dropdown sends. `POST
 /detection-rule/retrohunt` answers what the server's statement would: by default, for the week
 (fewer firings over a day, more over a month), 42 firings for three addresses, with what the
 rule's active exceptions kept out; a correlation's YAML as a correlation, each group with what
-happened.
+happened. Every matching event names an address, so `POST /detection-rule/uncounted` (#10547),
+what each rule Detection Rules lists could not count in the last day, answers that none left one
+out.
 
 | Parameter     | Values                                                                                                                                                                                                     |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
