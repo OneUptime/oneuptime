@@ -239,6 +239,7 @@ import {
   getEmptyDropFilterImpact,
 } from "../../../Types/Telemetry/DropFilterImpact";
 import ScrubRuleReadersApi from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/FieldReaders/ScrubRuleReadersApi";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getEmptyTelemetryFieldReadersByKind } from "../../../Types/Telemetry/TelemetryFieldReaders";
 import LogScrubRule from "../../../Models/DatabaseModels/LogScrubRule";
 import TraceScrubRule from "../../../Models/DatabaseModels/TraceScrubRule";
@@ -392,6 +393,18 @@ beforeEach(() => {
         return impact;
       },
     );
+
+  /*
+   * A log or trace pipeline's name is one of its kind in a project that
+   * requires unique names, so its form asks the server, a moment after a name
+   * is typed, whether another pipeline has it (DuplicateNameNotice, #10761):
+   * none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

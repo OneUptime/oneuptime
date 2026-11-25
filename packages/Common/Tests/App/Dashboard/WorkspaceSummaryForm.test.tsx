@@ -25,6 +25,7 @@ import Permission from "../../../Types/Permission";
 import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import WorkspaceNotificationSummary from "../../../Models/DatabaseModels/WorkspaceNotificationSummary";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
@@ -391,6 +392,18 @@ beforeEach(() => {
   getJestSpyOn(OneUptimeDate, "getUserPrefers12HourFormat").mockReturnValue(
     false,
   );
+
+  /*
+   * A workspace summary's name is one of its kind in a project that requires
+   * unique names, so its form asks the server, a moment after a name is typed,
+   * whether another summary has it (DuplicateNameNotice, #10761): none has it
+   * here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

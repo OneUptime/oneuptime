@@ -27,6 +27,7 @@ import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import IncidentCustomField from "../../../Models/DatabaseModels/IncidentCustomField";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import getJestMockFunction, { MockFunction } from "../../MockType";
@@ -327,6 +328,17 @@ beforeEach(() => {
   getItemMock.mockReset();
   getListMock.mockReset();
   answerMonitorFields();
+
+  /*
+   * A custom field's name is one of its kind in its project, so its form asks
+   * the server, a moment after a name is typed, whether another field has it
+   * (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {
