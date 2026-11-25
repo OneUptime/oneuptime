@@ -177,7 +177,6 @@ jest.mock("../../../UI/Utils/Translation", () => {
 });
 
 import IncidentCreate from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Create";
-import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";

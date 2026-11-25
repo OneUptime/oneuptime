@@ -289,7 +289,7 @@ describe("an incident declared by hand, in a project that starts them acknowledg
     template.onCallDutyPolicies = [policy(POLICY_ID)];
 
     const incident: Incident = newIncident();
-    incident.createdIncidentTemplateId = new ObjectID(TEMPLATE_ID);
+    incident.createdIncidentTemplateId = TEMPLATE_ID;
 
     const declared: Declared = await declare(incident, BY_HAND);
 
@@ -310,7 +310,7 @@ describe("an incident declared by hand, in a project that starts them acknowledg
     template.initialIncidentStateId = new ObjectID(RESOLVED_STATE);
 
     const incident: Incident = newIncident();
-    incident.createdIncidentTemplateId = new ObjectID(TEMPLATE_ID);
+    incident.createdIncidentTemplateId = TEMPLATE_ID;
 
     const declared: Declared = await declare(incident, BY_HAND);
 
