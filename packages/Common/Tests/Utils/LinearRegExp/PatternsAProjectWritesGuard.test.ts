@@ -326,6 +326,18 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: DataStoreChangeMatcher's own match method, handed a cloud change",
   },
   {
+    file: "packages/Common/Server/Utils/DataSecurity/ExposureAssessmentReader.ts",
+    count: 1,
+    builtFrom:
+      "nothing: DataStoreChangeMatcher's own match method, handed a cloud change in an exposure's window",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+    count: 1,
+    builtFrom:
+      "the breach laws' names and sections LAW_NAMES_IN_TEXT lists, each a global pattern literal of alternatives with nothing repeated, to find a law a draft names that its facts do not",
+  },
+  {
     file: "packages/Common/Types/NoBreakSpaces.ts",
     count: 2,
     builtFrom:
