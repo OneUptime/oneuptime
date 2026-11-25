@@ -548,13 +548,15 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const feeds: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { _id: true, projectId: true },
-      skip: 0,
-      limit: 1000,
-      props: { isRoot: true },
-    });
+    /*
+     * The feeds the delete removes - the ones the caller may delete, in the
+     * delete's own window - and the delete held to them: only their
+     * projects' blocks are told the feed is gone.
+     */
+    const feeds: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true },
+    );
 
     return { deleteBy, carryForward: feeds };
   }
