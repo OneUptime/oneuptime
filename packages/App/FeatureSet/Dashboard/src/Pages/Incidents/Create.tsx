@@ -121,13 +121,10 @@ import { SubscriberAudienceRequest } from "../../Components/Incident/useSubscrib
 import BooleanValue from "Common/UI/Components/Detail/BooleanValue";
 import SubscriberNotificationPreviewButton from "../../Components/Incident/SubscriberNotificationPreviewButton";
 import { getIncidentCreatedPreviewRequest } from "../../Components/Incident/SubscriberNotificationPreviewRequests";
-import useNewIncidentNotifyDefault, {
-  NewIncidentNotifyDefault,
-} from "../../Components/Incident/useNewIncidentNotifyDefault";
+import useDeclareIncidentDefaults, {
+  DeclareIncidentDefaults,
+} from "../../Components/Incident/useDeclareIncidentDefaults";
 import { getNotifyBoxDescription } from "../../Components/Incident/NewIncidentNotifyDefaultCopy";
-import useIncidentDeclaredByHandStart, {
-  IncidentDeclaredByHandStartSwitch,
-} from "../../Components/Incident/useIncidentDeclaredByHandStart";
 import {
   getInitialStateDescription,
   NO_POLICY_STARTS_ACKNOWLEDGED_NOTE,
@@ -291,7 +288,7 @@ type IncidentFormPredicate = (values: FormValues<Incident>) => boolean;
 
 /*
  * 'Notify Status Page Subscribers', which starts as the project says
- * (useNewIncidentNotifyDefault): ticked unless the project turned that off.
+ * (useDeclareIncidentDefaults): ticked unless the project turned that off.
  */
 const isNotifyTicked: IncidentFormPredicate = (
   values: FormValues<Incident>,
@@ -653,23 +650,18 @@ const IncidentCreate: FunctionComponent<
   );
 
   /*
-   * Whether 'Notify Status Page Subscribers' starts ticked: as the project
-   * says on Incidents > Settings > Subscriber Notifications, read as the
-   * page opens (ticked when it cannot be read). The form waits for it, since
-   * it latches where its boxes start.
+   * What the project says about an incident someone declares, read once as
+   * the page opens (useDeclareIncidentDefaults): whether 'Notify Status Page
+   * Subscribers' starts ticked (Incidents > Settings > Subscriber
+   * Notifications; ticked when it cannot be read), and whether an incident
+   * declared by hand that pages no one starts acknowledged (Incidents >
+   * Settings > Incident State, #11137; off when it cannot be read). The
+   * server decides where the incident starts; the page says what it will
+   * decide - under Initial State, under On-Call Policy and on the review.
+   * The form waits for it, since it latches where its boxes start.
    */
-  const newIncidentNotifyDefault: NewIncidentNotifyDefault =
-    useNewIncidentNotifyDefault();
-
-  /*
-   * Whether the project starts incidents declared by hand acknowledged
-   * (Incidents > Settings > Incident State, #11137), read as the page opens
-   * (off when it cannot be read). The server decides where the incident
-   * starts; the page says what it will decide - under Initial State, under
-   * On-Call Policy and on the review - so it waits for it too.
-   */
-  const declaredByHandStart: IncidentDeclaredByHandStartSwitch =
-    useIncidentDeclaredByHandStart();
+  const declareDefaults: DeclareIncidentDefaults =
+    useDeclareIncidentDefaults();
 
   /*
    * Whether the template the incident is declared from names a state - even
@@ -689,7 +681,7 @@ const IncidentCreate: FunctionComponent<
     values: FormValues<Incident>,
   ): boolean => {
     return IncidentDeclaredByHandStart.startsAcknowledged({
-      isSwitchOn: declaredByHandStart.isSwitchOn,
+      isSwitchOn: declareDefaults.isDeclaredByHandAcknowledged,
       hasStartingState:
         Boolean((values as Record<string, unknown>)["currentIncidentState"]) ||
         doesTemplateNameState,
@@ -722,7 +714,7 @@ const IncidentCreate: FunctionComponent<
     values: FormValues<Incident>,
   ): boolean => {
     return (
-      !newIncidentNotifyDefault.isTickedByDefault &&
+      !declareDefaults.isNotifyTickedByDefault &&
       !isNotifyTicked(values) &&
       (values as Record<string, unknown>)["isPrivate"] !== true
     );
@@ -1558,8 +1550,7 @@ const IncidentCreate: FunctionComponent<
     isLoading ||
     isLoadingCustomFieldDefinitions ||
     recordToCreateFrom.isLoading ||
-    newIncidentNotifyDefault.isLoading ||
-    declaredByHandStart.isLoading;
+    declareDefaults.isLoading;
 
   return (
     <Fragment>
@@ -1970,7 +1961,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Initial State",
                   stepId: "incident-details",
                   description: getInitialStateDescription(
-                    declaredByHandStart.isSwitchOn,
+                    declareDefaults.isDeclaredByHandAcknowledged,
                   ),
                   glossaryTerm: GlossaryTerm.State,
                   fieldType: FormFieldSchemaType.Dropdown,
@@ -1991,7 +1982,7 @@ const IncidentCreate: FunctionComponent<
                    * the incident pages anyone is the one thing to read
                    * before declaring.
                    */
-                  alwaysInSummary: declaredByHandStart.isSwitchOn,
+                  alwaysInSummary: declareDefaults.isDeclaredByHandAcknowledged,
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.currentIncidentState) {
                       if (startsAcknowledged(item)) {
@@ -2006,7 +1997,7 @@ const IncidentCreate: FunctionComponent<
 
                       // Started where incidents usually start, to page.
                       if (
-                        declaredByHandStart.isSwitchOn &&
+                        declareDefaults.isDeclaredByHandAcknowledged &&
                         !doesTemplateNameState
                       ) {
                         return (
@@ -2537,10 +2528,10 @@ const IncidentCreate: FunctionComponent<
                   title: "Notify Status Page Subscribers",
                   stepId: "resources-affected",
                   description: getNotifyBoxDescription(
-                    newIncidentNotifyDefault.isTickedByDefault,
+                    declareDefaults.isNotifyTickedByDefault,
                   ),
                   fieldType: FormFieldSchemaType.Checkbox,
-                  defaultValue: newIncidentNotifyDefault.isTickedByDefault,
+                  defaultValue: declareDefaults.isNotifyTickedByDefault,
                   required: false,
                   collapsibleSection: advancedSection,
                   /*
