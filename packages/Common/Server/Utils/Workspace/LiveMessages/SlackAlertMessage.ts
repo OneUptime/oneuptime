@@ -273,10 +273,18 @@ export default class SlackAlertMessage {
   }
 
   public static async refresh(alertId: ObjectID): Promise<void> {
+    try {
+      await this.waitForInitialPost(alertId);
+      await this.refreshPostedMessages(alertId);
+    } catch (error) {
+      logger.error(error, { alertId: alertId.toString() });
+    }
+  }
+
+  public static async refreshPostedMessages(alertId: ObjectID): Promise<void> {
     const messageKey: string = WorkspaceLiveMessageKey.forSlackAlert(alertId);
 
     try {
-      await this.waitForInitialPost(alertId);
       await WorkspaceLiveMessages.withLock(messageKey, async () => {
         const alert: Alert | null = await this.findAlert(alertId);
 

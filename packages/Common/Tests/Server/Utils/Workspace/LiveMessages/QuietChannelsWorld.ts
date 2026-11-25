@@ -2505,6 +2505,11 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
 
   private alertStateId: ObjectID = STATE_IDENTIFIED;
 
+  public setAlertState(stateId: ObjectID, name: string): void {
+    this.recordStateName = name;
+    this.alertStateId = stateId;
+  }
+
   public async alertState(data: {
     to: ObjectID;
     name: string;
@@ -2513,8 +2518,7 @@ ${FeedMarkdown.asMarkdown("p95 over 2s")}
     privateNote?: AlertInternalNote | undefined;
   }): Promise<void> {
     jest.spyOn(AlertService, "updateOneBy").mockImplementation((async () => {
-      this.recordStateName = data.name;
-      this.alertStateId = data.to;
+      this.setAlertState(data.to, data.name);
       await SlackAlertMessage.refresh(ALERT_ID);
       return 1;
     }) as never);

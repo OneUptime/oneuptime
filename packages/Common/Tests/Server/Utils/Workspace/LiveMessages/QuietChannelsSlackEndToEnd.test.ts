@@ -1141,7 +1141,7 @@ describe("an alert, in its Slack channel", () => {
         return update.ts === root!.ts;
       });
     expect(rootUpdates).toHaveLength(1);
-    expect(rootUpdates[0]!.text.replaceAll("\u200b", "")).toContain(
+    expect(rootUpdates[0]!.text.replace(/\u200b/gu, "")).toContain(
       "Alert State*: Acknowledged",
     );
     expect(rootUpdates[0]!.text).toContain("Checkout latency");
@@ -1165,6 +1165,30 @@ describe("an alert, in its Slack channel", () => {
     const last: string = runUpdates[runUpdates.length - 1]!.text;
     expect(last).toContain("acknowledged");
     expect(last).toContain("Alert AL-12");
+  });
+
+  test("reconciles a resolution that another worker saved before the first Slack post finished", async () => {
+    world.recordStateName = "Created";
+    world.recordTitle = "Checkout latency";
+    jest.spyOn(LinkedAffectedResources, "readForAlert").mockResolvedValue([]);
+    slack.beforePost = (): Promise<void> => {
+      slack.beforePost = undefined;
+      world.setAlertState(STATE_RESOLVED, "Resolved");
+      return Promise.resolve();
+    };
+
+    await world.alertCreated();
+
+    expect(slack.posts()).toHaveLength(1);
+    const root: SlackRequest = slack.posts()[0]!;
+    expect(root.text).toContain("Created");
+    expect(slack.updates()).toEqual([
+      expect.objectContaining({
+        ts: root.ts,
+        text: expect.stringMatching(/Alert State\*\u200b?: Resolved/u),
+      }),
+    ]);
+    expect(slack.updates()[0]!.blocks.slice(1)).toEqual(root.blocks.slice(1));
   });
 
   test("a muted state change still updates the alert's main message", async () => {
@@ -1214,7 +1238,7 @@ describe("an alert, in its Slack channel", () => {
     expect(compact.text).toContain("Resources Affected");
     expect(compact.text).toContain("Checkout monitor");
     expect(compact.text).toContain("Service Payments");
-    expect(compact.text.replaceAll("\u200b", "")).toContain(
+    expect(compact.text.replace(/\u200b/gu, "")).toContain(
       "🟢 *Alert State*: Closed",
     );
     expect(compact.text).not.toContain("p95 over 2s");
@@ -1392,7 +1416,7 @@ describe("an alert episode, in Slack", () => {
     expect(slack.updates()[0]!.blocks.slice(1)).toEqual(root.blocks.slice(1));
 
     state.name = "Reopened";
-    episode.resolvedAt = undefined;
+    delete episode.resolvedAt;
     await SlackAlertEpisodeMessage.refresh(PROJECT_ID, episode.id!);
     expect(slack.updates()[1]).toEqual(
       expect.objectContaining({
@@ -1470,7 +1494,7 @@ describe("an alert episode, in Slack", () => {
 
       const posts: Array<SlackRequest> = slack.posts();
       expect(posts).toHaveLength(deleted ? 3 : 2);
-      expect(posts.at(-1)).toEqual(
+      expect(posts[posts.length - 1]).toEqual(
         expect.objectContaining({
           threadTs: deleted ? "" : root.ts,
           text: expect.stringContaining("Alert AL-12 Created"),
@@ -1490,7 +1514,7 @@ describe("an alert episode, in Slack", () => {
           isFirst: false,
         });
         expect(slack.posts()).toHaveLength(4);
-        expect(slack.posts().at(-1)?.threadTs).toBe(posts[2]!.ts);
+        expect(slack.posts().slice(-1)[0]?.threadTs).toBe(posts[2]!.ts);
       }
     },
   );

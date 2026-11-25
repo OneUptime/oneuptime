@@ -2336,6 +2336,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       }
     }
 
+    let keptAlertRoot: boolean = false;
     const send: () => Promise<
       Array<WorkspaceSendMessageResponse>
     > = async () => {
@@ -2401,6 +2402,8 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             ),
           });
 
+        keptAlertRoot = Boolean(alertId && kept.length > 0);
+
         for (const post of kept) {
           const deletedParent: string | undefined = episodeThreads?.get(
             post.channelId!,
@@ -2446,6 +2449,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           responses: responses,
         }),
       );
+    }
+
+    if (alertId && keptAlertRoot) {
+      // The state may have changed in another process before the root was kept.
+      await SlackAlertMessage.refreshPostedMessages(alertId);
     }
 
     await this.logSendResponses({
