@@ -76,6 +76,7 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import DataStoreSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Settings";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import Probe from "../../../Models/DatabaseModels/Probe";
@@ -164,6 +165,13 @@ beforeEach(() => {
   getItemMock.mockImplementation(async (): Promise<unknown> => {
     return storeOf();
   });
+  /*
+   * The page reads the store's record of processing too (#10375): it holds
+   * no personal data, so its record card is the plain one.
+   */
+  jest
+    .spyOn(DataSecurityApi, "getRecordOfProcessing")
+    .mockResolvedValue({ rows: [] });
 });
 
 afterEach(() => {
