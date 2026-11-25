@@ -206,6 +206,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import TelemetryRulePreviewUtil from "Common/Types/Monitor/TelemetryRulePreview";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
@@ -4181,6 +4182,17 @@ async function handleApi(method, options) {
     parsed.pathname.endsWith("/security-case/resource-security")
   ) {
     return monitorSecurity(body);
+  }
+
+  /*
+   * A new monitor's name, asked about as it is typed (#10761): no other
+   * monitor of the project has it.
+   */
+  if (method === "GET") {
+    const names = answerUniqueNames({ url });
+    if (names) {
+      return ok(names);
+    }
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

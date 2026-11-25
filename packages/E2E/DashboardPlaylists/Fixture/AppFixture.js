@@ -61,6 +61,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import {
   DASHBOARDS,
   METRIC_TYPES,
@@ -544,7 +545,18 @@ API.post = async (options) => {
 };
 
 API.get = async (options) => {
-  unexpected(`API.get ${String(options && options.url)}`);
+  const url = String(options && options.url);
+
+  /*
+   * A playlist's name, asked about as it is typed (#10761): no other
+   * playlist of the project has it.
+   */
+  const names = answerUniqueNames({ url });
+  if (names) {
+    return new HTTPResponse(200, names, {});
+  }
+
+  unexpected(`API.get ${url}`);
   return new HTTPResponse(200, {}, {});
 };
 
