@@ -66,11 +66,17 @@ import DataSecurityAiInput, { AiComplianceFacts } from "./DataSecurityAiInput";
  *
  * Its readers may read the project's stores and its issues: the evidence
  * is the issues' history. Drafting and editing take the permission to
- * change Data Security issues, as accepting a risk does.
+ * change Data Security issues, as accepting a risk does - across the
+ * whole project, since the evidence speaks for every issue in it, as a
+ * group's pull request does (DataSecurityIssueGroupFix): a grant limited
+ * to some labels, or to owned records, does not reach them all.
  */
 
 export const STORES_REFUSED_MESSAGE: string =
   "Audit evidence names the stores in each requirement's scope, and you may not read data stores in this project.";
+
+export const EVIDENCE_CHANGE_REFUSED_MESSAGE: string =
+  "Audit evidence speaks for every Data Security issue in the project, so drafting or editing it takes permission to change all of them, and yours does not reach them all.";
 
 export const EVIDENCE_NOTHING_TO_DRAFT_MESSAGE: string =
   "Every paragraph of this evidence was written by a person, so there is nothing for OneUptime AI to draft.";
@@ -87,6 +93,29 @@ interface EvidenceContext {
 }
 
 export default class AuditEvidenceDrafter {
+  /*
+   * Whether the caller may draft or edit the project's audit evidence: the
+   * permission to change Data Security issues, held across the whole
+   * project, and no block on it - a block limited to some labels too.
+   */
+  public static mayChange(props: DatabaseCommonInteractionProps): boolean {
+    return (
+      props.isRoot === true ||
+      props.isMasterAdmin === true ||
+      CallerPermission.holdsAnyOf(
+        props,
+        CallerPermission.getModelPermissions(new DataSecurityIssue(), "update"),
+        { projectWideOnly: true, labelledBlocksRefuse: true },
+      )
+    );
+  }
+
+  private static assertMayChange(props: DatabaseCommonInteractionProps): void {
+    if (!this.mayChange(props)) {
+      throw new NotAuthorizedException(EVIDENCE_CHANGE_REFUSED_MESSAGE);
+    }
+  }
+
   private static assertMayRead(props: DatabaseCommonInteractionProps): void {
     if (
       props.isRoot !== true &&
@@ -161,6 +190,8 @@ export default class AuditEvidenceDrafter {
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
   }): Promise<DataSecurityAuditEvidenceResponse> {
+    this.assertMayChange(data.props);
+
     await AIService.assertProjectAIEnabled(data.projectId);
 
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
@@ -271,6 +302,8 @@ export default class AuditEvidenceDrafter {
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
   }): Promise<DataSecurityAuditEvidenceResponse> {
+    this.assertMayChange(data.props);
+
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
     const context: EvidenceContext = await this.readContext({ ...data, now });
     const language: string =
@@ -419,12 +452,7 @@ export default class AuditEvidenceDrafter {
         props: { isRoot: true },
       });
     const isAiEnabled: boolean = project?.enableAi !== false;
-    const canEdit: boolean =
-      data.props.isRoot === true ||
-      CallerPermission.holdsModelPermission(data.props, {
-        model: new DataSecurityIssue(),
-        operation: "update",
-      });
+    const canEdit: boolean = this.mayChange(data.props);
     const editors: Record<string, string> = {};
 
     for (const paragraph of Object.values(data.stored?.paragraphs || {})) {

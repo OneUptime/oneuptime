@@ -76,7 +76,9 @@ import RecordOfProcessingDossier from "./RecordOfProcessingDossier";
  * people, or data that leaves its people's countries
  * (getImpactAssessmentTriggers); only then is one drafted. Its readers are
  * the store's who may read its issues too: the assessment's risks are its
- * open issues.
+ * open issues. Drafting and editing it are changes to the store, so they
+ * take an edit of that store, decided for its own row - its labels and
+ * owners - as an update of it is (RecordOfProcessingReader.mayChangeStore).
  *
  * The draft is written from the store's facts (RecordOfProcessingDossier,
  * DataSecurityAiInput.impactAssessmentFacts) - its record, what it holds
@@ -101,6 +103,9 @@ export const ANSWER_UNREAD_MESSAGE: string =
 
 export const ISSUES_REFUSED_MESSAGE: string =
   "An impact assessment rests on the store's issues, and you may not read Data Security issues in this project.";
+
+export const STORE_CHANGE_REFUSED_MESSAGE: string =
+  "Drafting or editing a store's impact assessment takes permission to edit that store, and you may not edit this one.";
 
 interface AssessmentContext {
   store: DataStore;
@@ -192,6 +197,16 @@ export default class ImpactAssessmentDrafter {
     };
   }
 
+  // A draft or an edit, refused to a caller who may not change this store.
+  private static async assertMayChange(data: {
+    dataStoreId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    if (!(await RecordOfProcessingReader.mayChangeStore(data))) {
+      throw new NotAuthorizedException(STORE_CHANGE_REFUSED_MESSAGE);
+    }
+  }
+
   // The assessment as the caller may read it, with the facts as they are now.
   @CaptureSpan()
   public static async read(data: {
@@ -232,6 +247,8 @@ export default class ImpactAssessmentDrafter {
       ...data,
       now,
     });
+
+    await this.assertMayChange(data);
 
     if (isDeclaredDataStoreKind(context.store.kind)) {
       throw new BadDataException(NOT_NEEDED_MESSAGE);
@@ -359,6 +376,9 @@ export default class ImpactAssessmentDrafter {
       ...data,
       now,
     });
+
+    await this.assertMayChange(data);
+
     const project: { language: string } = {
       language:
         context.assessment?.language ||
@@ -433,12 +453,10 @@ export default class ImpactAssessmentDrafter {
         props: { isRoot: true },
       });
     const isAiEnabled: boolean = project?.enableAi !== false;
-    const canEdit: boolean =
-      data.props.isRoot === true ||
-      CallerPermission.holdsModelPermission(data.props, {
-        model: new DataStore(),
-        operation: "update",
-      });
+    const canEdit: boolean = await RecordOfProcessingReader.mayChangeStore({
+      dataStoreId: new ObjectID(data.context.row.dataStoreId),
+      props: data.props,
+    });
     const editorIds: Array<string> = [
       ...new Set(
         Object.values(data.assessment?.sections || {})

@@ -48,13 +48,19 @@ import {
   RecordTransfers,
   StoreRecordDrafts,
 } from "../../../Types/DataSecurity/RecordOfProcessing";
+import ForbiddenException from "../../../Types/Exception/ForbiddenException";
+import NotAuthenticatedException from "../../../Types/Exception/NotAuthenticatedException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
 import DataSecurityFlowService from "../../Services/DataSecurityFlowService";
 import DataStoreService from "../../Services/DataStoreService";
 import ProjectService from "../../Services/ProjectService";
 import ServiceService from "../../Services/ServiceService";
-import CallerPermission from "../Permission/CallerPermission";
+import ModelPermission from "../../Types/Database/Permissions/Index";
+import Query from "../../Types/Database/Query";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import PendingInviteeProfiles, {
   WithheldProfile,
 } from "../TeamMember/PendingInviteeProfiles";
@@ -95,6 +101,8 @@ import StoreTelemetryRetention, {
 const MAX_STORES: number = 10000;
 // The most flows one record reads.
 const MAX_FLOWS: number = 20000;
+// The most stores weighed in one read of which the reader may change.
+const STORES_WEIGHED_AT_ONCE: number = 500;
 
 // What a row reads of a store.
 export const RECORD_ROW_STORE_SELECT: {
@@ -156,6 +164,21 @@ interface RecordFlags {
 
 function idOf(value: { toString: () => string } | null | undefined): string {
   return value ? value.toString().toLowerCase() : "";
+}
+
+/*
+ * What an update's checks answer a caller who may not change a store with:
+ * no update of the table at all, a plan below it, or a store out of their
+ * reach. Anything else is no answer about the store.
+ */
+function isChangeRefusal(error: unknown): boolean {
+  return (
+    error instanceof NotAuthorizedException ||
+    error instanceof NotAuthenticatedException ||
+    error instanceof ForbiddenException ||
+    error instanceof PaymentRequiredException ||
+    error instanceof NotFoundException
+  );
 }
 
 // A store's record column, by its field.
@@ -479,6 +502,7 @@ export default class RecordOfProcessingReader {
     const flags: RecordFlags = await this.readFlags({
       projectId: data.projectId,
       props: data.props,
+      dataStoreIds: [...readable],
     });
 
     if (recorded.length === 0) {
@@ -594,10 +618,15 @@ export default class RecordOfProcessingReader {
     return { rows, counts: countRecordRows(rows), ...flags };
   }
 
-  // Whether OneUptime AI may draft, and whether the reader may change the record.
+  /*
+   * Whether OneUptime AI may draft, and whether the reader may change the
+   * record of a store they read here: of one of `dataStoreIds`, each
+   * weighed as an update of it is (mayChangeAnyStore).
+   */
   private static async readFlags(data: {
     projectId: ObjectID;
     props: DatabaseCommonInteractionProps;
+    dataStoreIds: Array<string>;
   }): Promise<RecordFlags> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
@@ -609,12 +638,11 @@ export default class RecordOfProcessingReader {
       props: { isRoot: true },
     });
     const isAiEnabled: boolean = project?.enableAi !== false;
-    const canEdit: boolean =
-      data.props.isRoot === true ||
-      CallerPermission.holdsModelPermission(data.props, {
-        model: new DataStore(),
-        operation: "update",
-      });
+    const canEdit: boolean = await this.mayChangeAnyStore({
+      projectId: data.projectId,
+      dataStoreIds: data.dataStoreIds,
+      props: data.props,
+    });
 
     return {
       isAiEnabled,
@@ -623,6 +651,108 @@ export default class RecordOfProcessingReader {
       canEdit,
       canDraft: canEdit && isAiEnabled,
     };
+  }
+
+  /*
+   * Whether the caller may change the store - its record, its drafts, its
+   * impact assessment - decided for the store's own row, as an update of
+   * it is (DataStoreService.findOneUpdatableById): the table's update
+   * permissions and blocks, then the store's labels and owners. A grant
+   * limited to other labels, or to the stores the caller's teams own, does
+   * not reach it, however much of the table it reaches.
+   */
+  public static async mayChangeStore(data: {
+    dataStoreId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    if (data.props.isRoot === true) {
+      return true;
+    }
+
+    try {
+      return Boolean(
+        await DataStoreService.findOneUpdatableById({
+          id: data.dataStoreId,
+          select: { _id: true },
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      if (isChangeRefusal(error)) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Whether the caller may change at least one of the stores: the rows an
+   * update of them would be narrowed to (ModelPermission.getUpdatableQuery:
+   * the project, the stores' labels and owners, the blocks), read a batch
+   * at a time - for a page of many stores, where each change is still
+   * decided for its own store (RecordOfProcessingWriter).
+   */
+  public static async mayChangeAnyStore(data: {
+    projectId: ObjectID;
+    dataStoreIds: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    if (data.props.isRoot === true) {
+      return true;
+    }
+
+    const ids: Array<string> = [
+      ...new Set(
+        data.dataStoreIds
+          .map((id: string): string => {
+            return idOf(id);
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    ];
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += STORES_WEIGHED_AT_ONCE
+    ) {
+      let changeable: Query<DataStore>;
+
+      try {
+        changeable = await ModelPermission.getUpdatableQuery<DataStore>(
+          DataStore,
+          {
+            _id: QueryHelper.any(
+              ids.slice(start, start + STORES_WEIGHED_AT_ONCE),
+            ),
+            projectId: data.projectId,
+          } as Query<DataStore>,
+          data.props,
+        );
+      } catch (error) {
+        // No update of stores at all, or below their plan: none to change.
+        if (isChangeRefusal(error)) {
+          return false;
+        }
+
+        throw error;
+      }
+
+      const store: DataStore | null = await DataStoreService.findOneBy({
+        query: changeable,
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (store) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // One store's row, as the reader may read it, with its facts.
