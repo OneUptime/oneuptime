@@ -235,7 +235,12 @@ export class Service extends ProjectReferencesService<Model> {
     // What OneUptime read of it, written by OneUptime.
     createBy.data.projectId = projectId;
     createBy.data.pullRequestUrl = URL.fromString(link.url);
-    createBy.data.codeRepositoryId = repository.id;
+    // The ID column, and no other name of it to be stored instead.
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["codeRepositoryId", "codeRepository"],
+      repository.id,
+    );
     createBy.data.pullRequestNumber = link.number;
     createBy.data.repoOrganizationName =
       repository.organizationName || link.owner;

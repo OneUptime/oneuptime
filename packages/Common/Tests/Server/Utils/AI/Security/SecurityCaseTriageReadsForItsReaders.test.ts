@@ -242,8 +242,19 @@ describe("a security case's triage, read for everyone who may see the case", () 
         reads: [props],
       });
     }
-    // The readers' lookup reads the case as OneUptime; the context, for them.
-    expect(contextReads["case"]).toEqual([{ isRoot: true }, props]);
+    /*
+     * The readers' lookup reads the case as OneUptime; the context, for them.
+     * After the triage OneUptime reads it as itself again, never for anyone:
+     * whether OneUptime AI works the case (SecurityCaseResponse's
+     * startAfterTriage, #10352), and whether the alerts held while it
+     * responds first go out now (SecurityCaseAiHold, #10353).
+     */
+    expect(contextReads["case"]).toEqual([
+      { isRoot: true },
+      props,
+      { isRoot: true },
+      { isRoot: true },
+    ]);
   });
 
   test("a monitor set apart never reaches the triage on the case or its timeline; one nobody set apart does", async () => {

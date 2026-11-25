@@ -849,5 +849,13 @@ describe("the Dashboard's Data Security pages draw an AI action in one place, be
     // OneUptime AI's analysis (#10369), and every action it offers, is drawn once, behind the switch.
     expect(page.split("<IssueAiAnalysisCard").length).toBe(2);
     expect(page).toMatch(/\{isAiOffered \? \(\s*<IssueAiAnalysisCard\b/);
+    // A telemetry issue's Fix with AI dialog (#10367) is opened by Fix with AI alone.
+    expect(page.split('setDialog("telemetryFix")').length).toBe(2);
+    expect(
+      page.slice(
+        page.indexOf("const fixWithAi: () => Promise<void>"),
+        page.indexOf("await askForFix();"),
+      ),
+    ).toContain('setDialog("telemetryFix")');
   });
 });

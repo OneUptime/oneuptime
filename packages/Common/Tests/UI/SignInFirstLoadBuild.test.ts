@@ -57,6 +57,16 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * Database Health metric catalog a Database Health step named its
  * collection groups from, which each had been kept out on its own before.
  *
+ * Every form brought the warning under a name field when another record has
+ * the name (#10761), with the API it asks through, which no sign-in page's
+ * form draws: it loads with the first form that has such a field
+ * (DuplicateNameField). A form's entity dropdown does the same
+ * (FormEntityDropdownFirstLoadBuild.test.ts; Table's filters still bring it
+ * here). The crash screen every page is drawn inside wrote its support
+ * bundle with a module it brought along: the bundle is written only when
+ * asked for, and its module loads as the screen's support part is drawn
+ * (ErrorBoundary).
+ *
  * Every model's lists are read with the product levels (#10289), which read
  * every product's tables (Types/Product/ProductRecordTables), and that file
  * built, as it loaded, the tables of no product with why each is - which
@@ -85,6 +95,8 @@ const SHARED_MODULES: ReadonlyArray<string> = [
   "UI/Utils/Telemetry/Telemetry",
   // The logo at the top of every sign-in page.
   "UI/Components/ProductLogo/ProductLogo",
+  // What every page is drawn inside, with the screen it shows on a crash.
+  "UI/Components/ErrorBoundary",
 ];
 
 interface NamedExports {
@@ -222,6 +234,21 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "the kinds of record the people picker searches, with their models",
     path: "UI/Components/PeoplePicker/PeoplePickerKinds.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the warning under a name field when another record has the name, for a form of a kind with a name of its own (#10761)",
+    path: "UI/Components/Forms/DuplicateNameNotice.tsx",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the API that warning asks about a name through",
+    path: "UI/Utils/UniqueNamesApi.ts",
+    isLoadedWhenNeeded: true,
+  },
+  {
+    name: "the support bundle, which the crash screen writes only when asked for one",
+    path: "UI/Utils/ErrorSupportBundle.ts",
     isLoadedWhenNeeded: true,
   },
   {

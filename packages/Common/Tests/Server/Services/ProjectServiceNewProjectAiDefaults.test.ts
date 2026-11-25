@@ -75,8 +75,20 @@ const RETIRED_PULL_REQUEST_SWITCHES: Array<string> = [
   "enableAlertInstrumentationFixTasks",
 ];
 
+/*
+ * Letting OneUptime AI respond first to a new security case (#10353): it
+ * changes who hears about a case, and when, so it starts off for every
+ * project, new ones too, and a project turns it on.
+ */
+const RESPOND_FIRST_SWITCHES: Array<string> = [
+  "enableSecurityCaseAiRespondsFirst",
+];
+
 // The switches a new project starts without.
-const OFF_FOR_NEW_PROJECTS: Array<string> = [...FIX_SWITCHES];
+const OFF_FOR_NEW_PROJECTS: Array<string> = [
+  ...FIX_SWITCHES,
+  ...RESPOND_FIRST_SWITCHES,
+];
 
 /*
  * Rules on who approves what OneUptime AI proposes, never a feature to turn

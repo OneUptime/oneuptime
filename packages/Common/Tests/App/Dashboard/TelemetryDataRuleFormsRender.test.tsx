@@ -349,6 +349,15 @@ beforeEach(() => {
     rules: [],
   });
   /*
+   * What reads the values a scrub rule would hide (#10433), which the scrub
+   * rule forms ask under the name a moment after the values stop changing,
+   * and a rule's Enable asks: nothing reads them here.
+   */
+  jest.spyOn(ScrubRuleReadersApi, "getReaders").mockResolvedValue({
+    kinds: getEmptyTelemetryFieldReadersByKind(true),
+    securityEvents: { isChecked: true, sources: [], loses: [] },
+  });
+  /*
    * What a drop or sample filter would take (#10436), which the drop filter
    * forms ask as the filter is written and before it is saved: some of the
    * records, which nothing else reads, so nothing is asked before a save.
@@ -745,18 +754,6 @@ describe.each(SCRUB_RULE_PAGES)("$name", (page: ScrubRulePage) => {
    * column Attributes to Hide writes for a Named Attributes rule.
    */
   describe("Only in These Attributes (#10751)", () => {
-    /*
-     * What the form says under the name asks the server what reads the
-     * values the rule would hide, a moment after the values stop changing:
-     * nothing reads them here.
-     */
-    beforeEach(() => {
-      jest.spyOn(ScrubRuleReadersApi, "getReaders").mockResolvedValue({
-        kinds: getEmptyTelemetryFieldReadersByKind(true),
-        securityEvents: { isChecked: true, sources: [], loses: [] },
-      });
-    });
-
     function onlyInBox(): HTMLElement | null {
       return within(dialog()).queryByRole("textbox", {
         name: /^Only in These Attributes/,

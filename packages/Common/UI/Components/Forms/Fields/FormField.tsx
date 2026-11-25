@@ -18,7 +18,7 @@ import {
   DropdownChange,
   getDropdownChange,
 } from "../../Dropdown/DropdownChange";
-import EntityDropdown from "../../EntityDropdown/EntityDropdown";
+import EntityDropdown from "../../EntityDropdown/LazyEntityDropdown";
 import FilePicker from "../../FilePicker/LazyFilePicker";
 import Input, { InputType } from "../../Input/Input";
 import TimePicker from "../../TimePicker/Index";

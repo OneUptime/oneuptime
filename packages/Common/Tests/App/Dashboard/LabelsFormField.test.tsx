@@ -10,6 +10,7 @@ import {
 import * as React from "react";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -143,6 +144,7 @@ import {
   LABELS_FORM_FIELD_DESCRIPTION,
   getLabelsFormField,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/LabelsFormField";
+import { loadEntityDropdown } from "../../../UI/Components/EntityDropdown/LazyEntityDropdown";
 import ModelForm, { FormType } from "../../../UI/Components/Forms/ModelForm";
 import Field, {
   FormFieldCollapsibleSection,
@@ -398,6 +400,15 @@ describe("getLabelsFormField", () => {
 });
 
 describe("the Labels field in a real form", () => {
+  /*
+   * The form loads its entity dropdown's file as it is drawn
+   * (FormFieldControls); loaded first here, the Labels field is drawn with
+   * it at once, as it is once the file has arrived.
+   */
+  beforeAll(async () => {
+    await loadEntityDropdown();
+  });
+
   beforeEach(() => {
     permissionsForTest = [Permission.ProjectOwner];
     getItemMock.mockReset();

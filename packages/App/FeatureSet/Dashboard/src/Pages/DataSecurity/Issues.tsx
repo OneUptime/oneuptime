@@ -218,11 +218,12 @@ function hasNarrowingFilter(query: Query<DataSecurityIssue>): boolean {
  * the rows - "40 issues, one cause: the static-site module" - each with its
  * stores folded under it, how many are fixed and Fix the Cause; the rows
  * are then the issues in no group. It starts on once a group holds five
- * issues, and the reader's choice is kept in their browser. The filters
- * narrow both alike (onQueryChange). A reader whose read of issues is held
- * to labels (#10739) gets each group cut down to the stores they may read -
- * its counts and cause theirs alone - and an issue whose group they are not
- * shown (one of which they may read a single issue) stays in the rows.
+ * issues, and the reader's choice is kept in their browser, for each
+ * project. The filters narrow both alike (onQueryChange). A reader whose
+ * read of issues is held to labels (#10739) gets each group cut down to the
+ * stores they may read - its counts and cause theirs alone - and an issue
+ * whose group they are not shown (one of which they may read a single
+ * issue) stays in the rows.
  */
 const DataSecurityIssuesPage: FunctionComponent<
   PageComponentProps

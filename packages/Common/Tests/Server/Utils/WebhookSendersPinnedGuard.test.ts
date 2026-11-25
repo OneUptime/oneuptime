@@ -160,19 +160,27 @@ function sourceFiles(folder: string): Array<string> {
 /*
  * The code with its comments taken out - a comment naming a function calls
  * nothing - while string and template literals are kept whole.
+ *
+ * The code between two comments is kept as one slice of the source, joined
+ * once at the end, never built up a character at a time: every `+=` of one
+ * character leaves V8 a rope node of its own, about 24 bytes for each byte of
+ * source, and this reads every server file - 94 MB on 17.3.0 - before any
+ * test flattens them. That held 2.2 GB of one Jest worker's 4 GB heap, and on
+ * 17.3.0 it took Common Test's shard 9 past the ceiling: the worker died of
+ * "JavaScript heap out of memory", Jest 28 waits forever on a worker killed
+ * by a signal, and the shard was cancelled at its 30-minute cap.
  */
 function withoutComments(source: string): string {
-  let code: string = "";
+  const pieces: Array<string> = [];
+  let pieceStart: number = 0;
   let quote: string | null = null;
 
   for (let index: number = 0; index < source.length; index++) {
     const character: string = source[index]!;
 
     if (quote) {
-      code += character;
-
       if (character === "\\") {
-        code += source[index + 1] || "";
+        // The escaped character is kept with it, whatever it is.
         index++;
       } else if (character === quote) {
         quote = null;
@@ -181,25 +189,30 @@ function withoutComments(source: string): string {
     }
 
     if (character === "/" && source[index + 1] === "/") {
+      pieces.push(source.slice(pieceStart, index));
       const lineEnd: number = source.indexOf("\n", index);
+      // The line's end is kept: the code after the comment starts with it.
       index = lineEnd === -1 ? source.length : lineEnd - 1;
+      pieceStart = index + 1;
       continue;
     }
 
     if (character === "/" && source[index + 1] === "*") {
+      pieces.push(source.slice(pieceStart, index));
       const commentEnd: number = source.indexOf("*/", index + 2);
       index = commentEnd === -1 ? source.length : commentEnd + 1;
+      pieceStart = index + 1;
       continue;
     }
 
     if (character === '"' || character === "'" || character === "`") {
       quote = character;
     }
-
-    code += character;
   }
 
-  return code;
+  pieces.push(source.slice(pieceStart));
+
+  return pieces.join("");
 }
 
 interface SourceFile {

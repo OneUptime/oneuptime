@@ -9,7 +9,9 @@ import {
 } from "@jest/globals";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
+import MetricTypeSearch from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricTypeReads";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { getJestSpyOn } from "../../Spy";
 
 /*
  * Issue #6266: a query's service filter is shown among its filters in the
@@ -18,7 +20,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * without one shows nothing new.
  *
  * The editor is the production component; the lookup of service names is
- * stood in for.
+ * stood in for, and so is the read of the query's metric by its name: the
+ * list of metrics the page read is empty here, and the editor reads a
+ * metric the query holds outside the list (#10646).
  */
 
 const API: string = "11111111-1111-4111-8111-111111111111";
@@ -86,10 +90,17 @@ function lastChange(onDataChanged: MockFunction): MetricQueryData {
 beforeEach(() => {
   serviceNames = { [API]: "api", [CHECKOUT]: "checkout" };
   namesAskedFor.length = 0;
+
+  /*
+   * The query's metric, read by its name: no unit or kind of counter is
+   * known of it here, so the editor shows the name it holds.
+   */
+  getJestSpyOn(MetricTypeSearch, "readByName").mockResolvedValue(null);
 });
 
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
 });
 
 describe("a query read for some services, in the query editor", () => {
