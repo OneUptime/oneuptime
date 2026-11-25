@@ -107,7 +107,7 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 - **Connections empty state**: rendered by the table as its no-items message, inside the
   table card above its Refresh? link and the pagination; header (badge, heading,
-  description, Add connection) on one centre line; ten tiles in catalog order, each with its
+  description, Add connection) on one centre line; eleven tiles in catalog order, each with its
   category and a Setup guide link (`href` `/docs/integrations/<slug>`, `target="_blank"`);
   every tile built the same way with an icon of its own; the old grey requirements box and
   the Setup guides list are gone.
