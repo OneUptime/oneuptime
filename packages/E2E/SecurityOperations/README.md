@@ -119,6 +119,9 @@ Stubbed:
 - The case's OneUptime AI card's log, `POST /security-case/:id/ai-response` (#10352): the project
   does not let OneUptime AI work its cases, so nothing of it is on a case, and Respond with AI says
   why it would not start.
+- The name check a form asks as a name is typed, `GET /unique-names/check` (#10761) - a hunt
+  saved from the Events search, Create Watchlist, a note template's Create: no other record has the
+  name (`SuiteHelpers/UniqueNameAnswers.js`).
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.

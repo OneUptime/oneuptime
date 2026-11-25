@@ -289,6 +289,7 @@ import {
 import { readSecurityCaseAiLimits } from "Common/Types/SecurityCase/SecurityCaseAi";
 import { SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES } from "Common/Types/SecurityCase/SecurityCaseAiWords";
 import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -5083,6 +5084,13 @@ async function handleApi(method, options) {
       }),
       {},
     );
+  }
+  // A form's name field asks whether another record has the name (#10761).
+  if (method === "GET") {
+    const names = answerUniqueNames({ url });
+    if (names) {
+      return new HTTPResponse(200, names, {});
+    }
   }
   if (
     method === "POST" &&
