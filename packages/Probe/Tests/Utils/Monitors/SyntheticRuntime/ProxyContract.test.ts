@@ -7,7 +7,8 @@ import http, {
 import https from "https";
 import net, { AddressInfo } from "net";
 import { Browser, BrowserContext, Page, chromium } from "playwright";
-import axios from "axios";
+import OutboundProxyAgents from "Common/Server/Utils/OutboundProxyAgents";
+import { trustAsDefaultCa } from "Common/Tests/Server/TestingUtils/SelfSignedHttpsFixture";
 import WorkerController from "../../../../Utils/Monitors/SyntheticRuntime/WorkerController";
 import { SandboxExecutionResult } from "../../../../Utils/Monitors/SyntheticRuntime/RpcProtocol";
 import SelfSignedCertificate from "../MonitorTypes/SslTestCertificates";
@@ -146,11 +147,15 @@ describe("SyntheticRuntime proxy contract", () => {
     );
     await listen(proxyServer);
     const proxyUrl: string = getServerUrl(proxyServer);
-    const originalHttpsAgent: unknown = axios.defaults.httpsAgent;
-    const trustedHttpsAgent: https.Agent = new https.Agent({
-      ca: SelfSignedCertificate.cert,
-    });
-    axios.defaults.httpsAgent = trustedHttpsAgent;
+    /*
+     * The broker sends a script's request on the agents OutboundProxyAgents
+     * routes it with (#10442), never on axios's defaults, so the target's
+     * certificate is trusted as one of the process's default CAs, as
+     * NODE_EXTRA_CA_CERTS would have the probe trust it.
+     */
+    const restoreDefaultCas: () => void = trustAsDefaultCa(
+      SelfSignedCertificate.cert,
+    );
 
     try {
       const result: SandboxExecutionResult = await withProxyEnvironment(
@@ -258,8 +263,8 @@ describe("SyntheticRuntime proxy contract", () => {
       for (const socket of httpsTargetSockets) {
         socket.destroy();
       }
-      axios.defaults.httpsAgent = originalHttpsAgent;
-      trustedHttpsAgent.destroy();
+      restoreDefaultCas();
+      OutboundProxyAgents.destroySharedAgents();
       await Promise.all([
         closeServer(proxyServer),
         closeServer(httpsTargetServer),
