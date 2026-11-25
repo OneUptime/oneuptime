@@ -281,6 +281,28 @@ export default class Runner extends BaseModel {
   })
   public slug?: string = undefined;
 
+  /*
+   * This key IS the Runner's whole identity: presenting it to
+   * /runner-ingest/claim-next-job returns claimed work with every runbook
+   * secret and credential already substituted in. So reading it is
+   * equivalent to reading every secret assigned to that Runner, and it is
+   * held to the same bar as administering the Runner itself — Member and
+   * Viewer used to be able to read it, which made "Viewer" a path to the
+   * project's SSH keys and kubeconfigs.
+   *
+   * Choosing a key is knowing it, so only those who may read a key may give
+   * a Runner one. A Project Member and Create Runner used to be able to
+   * create a Runner with a key of their own choosing, and Edit Runner to
+   * change a Runner's key to one - and then run a Runner of their own as it,
+   * on a host of their choosing, with every job and secret sent to it, the
+   * key they may not read notwithstanding.
+   *
+   * So the update list is the read list. The create list is the table's,
+   * because a create that chooses no key is given one OneUptime generates
+   * (RunnerService.onBeforeCreate), which the column check after the hooks
+   * weighs as the caller's; a create that chooses one is refused for anyone
+   * not on the read list (RunnerService.assertMayChooseKey).
+   */
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -289,15 +311,6 @@ export default class Runner extends BaseModel {
       Permission.RunbookAdmin,
       Permission.CreateRunner,
     ],
-    /*
-     * This key IS the Runner's whole identity: presenting it to
-     * /runner-ingest/claim-next-job returns claimed work with every runbook
-     * secret and credential already substituted in. So reading it is
-     * equivalent to reading every secret assigned to that Runner, and it is
-     * held to the same bar as administering the Runner itself — Member and
-     * Viewer used to be able to read it, which made "Viewer" a path to the
-     * project's SSH keys and kubeconfigs.
-     */
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
@@ -307,7 +320,6 @@ export default class Runner extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.RunbookAdmin,
-      Permission.EditRunner,
     ],
   })
   @TableColumn({

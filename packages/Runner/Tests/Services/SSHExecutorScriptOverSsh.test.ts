@@ -37,7 +37,9 @@ import {
  *   - a step that names the machine's host key signs in to it, and one
  *     that names another key does not even try to sign in - nothing of its
  *     password reaches the machine - while one that names none signs in
- *     and says which key the machine presented.
+ *     and says which key the machine presented;
+ *   - nothing of the Runner's environment reaches the machine: the Runner
+ *     asks to set no variable there, its key least of all.
  * ---------------------------------------------------------------------------
  */
 
@@ -100,6 +102,8 @@ let server: Server;
 let port: number;
 // What the server was asked to run, in order.
 const commandsRun: Array<string> = [];
+// The variables a client asked to set in the session, by name.
+const variablesAskedFor: Array<string> = [];
 const children: Array<ChildProcess> = [];
 
 function isUserKey(context: AuthContext): boolean {
@@ -161,6 +165,19 @@ beforeAll(async () => {
       client.on("session", (accept: () => Session): void => {
         const session: Session = accept();
 
+        // As sshd does with AcceptEnv: a client may ask to set a variable.
+        session.on(
+          "env",
+          (
+            acceptEnv: (() => void) | undefined,
+            _rejectEnv: (() => void) | undefined,
+            info: { key: string; val: string },
+          ): void => {
+            variablesAskedFor.push(info.key);
+            acceptEnv?.();
+          },
+        );
+
         session.once(
           "exec",
           (
@@ -220,6 +237,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   commandsRun.length = 0;
+  variablesAskedFor.length = 0;
   signInAttempts = 0;
 });
 
@@ -411,5 +429,33 @@ describe("the machine's host key", () => {
     expect(result.output).toBe(
       `unchecked\n\n[OneUptime] The machine's host key was not checked: it presented ${HOST_KEY_FINGERPRINT} (ssh-ed25519). Put it in the step's Host key, under More fields, to check it on every run.`,
     );
+  });
+});
+
+describe("what of the Runner reaches the machine", () => {
+  test("no variable of the Runner's environment, its key least of all: only the script", async () => {
+    const savedKey: string | undefined = process.env["ONEUPTIME_RUNNER_KEY"];
+    process.env["ONEUPTIME_RUNNER_KEY"] =
+      "8c1f2a4e-6b7d-4e9f-a0b1-c2d3e4f5a6b7";
+
+    try {
+      const result: SSHExecResult = await run({
+        script: 'printf "[%s]" "$ONEUPTIME_RUNNER_KEY"',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.output).toContain("[]");
+      expect(variablesAskedFor).toEqual([]);
+      expect(commandsRun).toHaveLength(1);
+      expect(commandsRun[0]).not.toContain(
+        "8c1f2a4e-6b7d-4e9f-a0b1-c2d3e4f5a6b7",
+      );
+    } finally {
+      if (savedKey === undefined) {
+        delete process.env["ONEUPTIME_RUNNER_KEY"];
+      } else {
+        process.env["ONEUPTIME_RUNNER_KEY"] = savedKey;
+      }
+    }
   });
 });

@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import { MAX_OUTPUT_BYTES } from "../Config";
 import { truncateToBytes } from "./OutputTruncation";
+import { withoutRunnerOwnEnvironment } from "./RunnerOwnEnvironment";
 
 /*
  * Running a script with bash on this Runner's host: what a Bash step does,
@@ -10,6 +11,11 @@ import { truncateToBytes } from "./OutputTruncation";
  * `bash -c <script>`, killed with SIGKILL at the step's timeout. stdout and
  * stderr are kept apart, each to MAX_OUTPUT_BYTES, and reported as
  * "[stdout]" then "[stderr]"; a non-zero exit code fails the step.
+ *
+ * The script runs with the Runner's environment - or the one a step built
+ * from it, with the run's inputs - less the Runner's own settings, its id
+ * and key among them (RunnerOwnEnvironment): a step is written by the
+ * project, and nothing it does talks to OneUptime as this Runner.
  */
 
 export interface BashRunResult {
@@ -26,7 +32,10 @@ export function truncateOutput(s: string): string {
 export function runBash(data: {
   script: string;
   timeoutInMs: number;
-  // Left out: the Runner's own environment, as it always was.
+  /*
+   * Left out: the Runner's own environment. Either way without the
+   * Runner's own settings (withoutRunnerOwnEnvironment).
+   */
   environment?: NodeJS.ProcessEnv | undefined;
 }): Promise<BashRunResult> {
   return new Promise<BashRunResult>((resolve: (v: BashRunResult) => void) => {
@@ -39,7 +48,7 @@ export function runBash(data: {
     const child: ReturnType<typeof spawn> = spawn("bash", ["-c", data.script], {
       timeout: data.timeoutInMs,
       killSignal: "SIGKILL",
-      ...(data.environment ? { env: data.environment } : {}),
+      env: withoutRunnerOwnEnvironment(data.environment || process.env),
     });
 
     child.stdout?.on("data", (chunk: Buffer) => {
