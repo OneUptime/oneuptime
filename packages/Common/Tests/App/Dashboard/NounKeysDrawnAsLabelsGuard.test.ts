@@ -323,6 +323,10 @@ const SITES: Readonly<Record<string, NounSite>> = {
   "packages/Common/Types/AutoRemediation/RemediationRoundName.ts": {
     inSentence: 'A round\'s name: "AI remediation for {{kind}} "{{name}}"".',
   },
+  "packages/Common/Types/DataSecurity/BreachLaws.ts": {
+    inSentence:
+      'The data a breach law covers, in the words of the sentence that lists them ("It holds {{elements}}."): "Social Security numbers" starts with a capital for the name of the US program, not as a label.',
+  },
   "packages/Common/Types/InstallScripts/InstallScripts.ts": {
     inEnglish:
       "The titles of the install scripts' index, which is served in English.",
