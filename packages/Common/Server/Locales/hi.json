@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "एक प्रोजेक्ट स्वामी ने आपके {{product}} खाते में सहेजी गई साइन-इन सेटिंग्स हटा दी हैं।",
   "A backup code was used to confirm it's you in your {{product}} account": "आपके {{product}} खाते में यह पुष्टि करने के लिए एक बैकअप कोड इस्तेमाल किया गया कि यह आप ही हैं",
   "A backup code was used to confirm it's you.": "यह पुष्टि करने के लिए एक बैकअप कोड इस्तेमाल किया गया कि यह आप ही हैं।",
   "A backup code was used to sign in to your account.": "आपके खाते में साइन इन करने के लिए एक बैकअप कोड इस्तेमाल किया गया।",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "इस घटना का एक नोट अपडेट किया गया है। नया संस्करण इस प्रकार है:",
   "A note on this scheduled event has been updated. Here is the latest version:": "इस निर्धारित इवेंट का एक नोट अपडेट किया गया है। नया संस्करण इस प्रकार है:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "आपकी सदस्यता वाली सेवाओं को प्रभावित करने वाली एक घटना की समीक्षा रिपोर्ट प्रकाशित की गई है।",
-  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "एक प्रोजेक्ट स्वामी ने आपके {{product}} खाते में सहेजी गई साइन-इन सेटिंग्स हटा दी हैं।",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "एक सर्वर एडमिन ने आपके {{product}} खाते का ईमेल पता इस पते से बदलकर एक नया पता कर दिया है।",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "एक सर्वर एडमिन ने आपके {{product}} खाते में सहेजी गई साइन-इन सेटिंग्स हटा दी हैं।",
   "A server admin made this the email address of your {{product}} account.": "एक सर्वर एडमिन ने इस पते को आपके {{product}} खाते का ईमेल पता बना दिया है।",
