@@ -202,6 +202,52 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * A create hands back the row it saved, with the key on it - the one the
+   * caller chose or the one OneUptime generated - and BaseAPI serializes
+   * the row whole into the answer of POST /runner, without a column read
+   * check. So a Project Member, or Create Runner, who may not read a
+   * Runner's key was handed one with every Runner they created. The key is
+   * taken off the answer for anyone who may not read it (mayReadKey);
+   * they set the Runner up with someone who may, as the Runners page says.
+   * OneUptime's own creates - a Kubernetes agent's registration, the
+   * bundled global Runner - keep it.
+   */
+  @CaptureSpan()
+  public override async create(createBy: CreateBy<Model>): Promise<Model> {
+    const created: Model = await super.create(createBy);
+
+    if (!Service.mayReadKey(createBy.props)) {
+      /*
+       * Cleared rather than deleted, as BaseAPI.createItem clears a model's
+       * `_id`: an unset column holds undefined, which serializes as nothing.
+       */
+      (created as unknown as Record<string, unknown>)["key"] = undefined;
+    }
+
+    return created;
+  }
+
+  /*
+   * Whether the caller may read a Runner's key: the column's read list
+   * (Runner.key), which is who may choose one too (assertMayChooseKey).
+   * OneUptime and a master admin may.
+   */
+  public static mayReadKey(props: DatabaseCommonInteractionProps): boolean {
+    if (props.isRoot || props.isMasterAdmin) {
+      return true;
+    }
+
+    return CallerPermission.holdsAnyOf(props, Service.getKeyReaders(), {
+      projectId: props.tenantId,
+    });
+  }
+
+  // Runner.key's read list: who may read, and so choose, a Runner's key.
+  public static getKeyReaders(): Array<Permission> {
+    return new Model().getColumnAccessControlFor("key")?.read || [];
+  }
+
+  /*
    * The kubernetes-agent name marker, compared the way the database compares
    * it: the registration lookup (findWithSameText) and the query-side
    * exclusions (NOT ILIKE / ILIKE) are case-insensitive, so the in-code
@@ -435,28 +481,15 @@ export class Service extends ProjectReferencesService<Model> {
     data: { key?: string | undefined },
     props: DatabaseCommonInteractionProps,
   ): void {
-    if (!data.key || props.isRoot || props.isMasterAdmin) {
-      return;
-    }
-
-    const model: Model = new Model();
-
-    const mayChooseKey: Array<Permission> =
-      model.getColumnAccessControlFor("key")?.read || [];
-
-    if (
-      CallerPermission.holdsAnyOf(props, mayChooseKey, {
-        projectId: props.tenantId,
-      })
-    ) {
+    if (!data.key || Service.mayReadKey(props)) {
       return;
     }
 
     throw new ColumnWriteRefusedException({
       requestType: DatabaseRequestType.Create,
       columnName: "key",
-      modelName: model.singularName,
-      permissions: mayChooseKey,
+      modelName: new Model().singularName,
+      permissions: Service.getKeyReaders(),
     });
   }
 
