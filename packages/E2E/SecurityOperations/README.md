@@ -108,6 +108,17 @@ Stubbed:
 - Today's telemetry ingestion budgets (`GET /telemetry-ingestion-budget/project`), which the
   layout reads for its banner: the project sets no budget, so every signal answers without one, as
   the server answers then, and the banner stays away (`Fixture/IngestionBudgetFixture.js`).
+- What a case's Response Plan reads besides its rows, as the server would answer it:
+  `POST /security-block/for-values` (#10346), what the blocklist's destinations can hold - none,
+  or with `?blocklist=test` the test destination, which holds every kind of value at the edge - and
+  the blocks in force on the case's values, with where each holds; `/security-block/repeat-offenders`
+  (#10354), none, as nothing was blocked before a case opened; and
+  `/security-event/attack-campaigns/of-case-address` (#10354), each address's campaign as the
+  address alone, the month's events holding no web requests. No pull request is linked to a
+  case's Fix step.
+- The case's OneUptime AI card's log, `POST /security-case/:id/ai-response` (#10352): the project
+  does not let OneUptime AI work its cases, so nothing of it is on a case, and Respond with AI says
+  why it would not start.
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.

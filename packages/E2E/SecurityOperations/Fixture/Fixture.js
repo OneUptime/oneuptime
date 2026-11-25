@@ -267,12 +267,24 @@ import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRu
 import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityBlockEnforcement from "Common/Models/DatabaseModels/SecurityBlockEnforcement";
 import {
+  SECURITY_BLOCK_INDICATOR_TYPES,
   SecurityBlockDuration,
   SecurityBlockIndicatorType,
+  SecurityBlockReach,
   SecurityBlockSource,
   SecurityBlockState,
+  getSecurityBlockValueKey,
+  isSecurityBlockInForce,
+  readSecurityBlockValue,
 } from "Common/Types/SecurityBlocklist/SecurityBlock";
-import { SecurityBlockEnforcementState } from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
+import {
+  SecurityBlockEnforcementState,
+  isSecurityBlockEnforcementHolding,
+} from "Common/Types/SecurityBlocklist/SecurityBlockEnforcement";
+import { SECURITY_CAMPAIGN_OF_ADDRESS_DAYS } from "Common/Types/SecurityEvent/SecurityCampaignContainment";
+import { readSecurityCaseAiLimits } from "Common/Types/SecurityCase/SecurityCaseAi";
+import { SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES } from "Common/Types/SecurityCase/SecurityCaseAiWords";
+import SecurityCasePullRequest from "Common/Models/DatabaseModels/SecurityCasePullRequest";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -2981,6 +2993,8 @@ for (const modelType of [
   // The project's blocklist, and where each block holds: nothing blocked yet.
   SecurityBlock,
   SecurityBlockEnforcement,
+  // The pull requests linked to a case's Fix step: none linked yet.
+  SecurityCasePullRequest,
   Team,
   TeamMember,
   // A member's page asks for the project's member fields: it has none.
@@ -4208,6 +4222,158 @@ function blockFromCase(body) {
 }
 
 /*
+ * What POST /security-block/for-values answers a case's Response Plan
+ * (#10346), as SecurityBlockAPI works it out: what each destination that
+ * enforces the blocklist can hold - the test destination
+ * (TestSecurityBlockDestination) holds a value of every kind, at the edge,
+ * and quarantines no file - and the blocks in force on the values the case
+ * names, each with the destinations that hold it now.
+ */
+function caseBlocklist(body) {
+  const keys = new Set(
+    (Array.isArray(body?.values) ? body.values : [])
+      .filter((value) => {
+        return typeof value === "string";
+      })
+      .map((value) => {
+        return getSecurityBlockValueKey(value);
+      })
+      .filter(Boolean),
+  );
+  const inForce = table(SecurityBlock).filter((block) => {
+    return (
+      keys.has(getSecurityBlockValueKey(String(block.value || ""))) &&
+      isSecurityBlockInForce(block, NOW)
+    );
+  });
+
+  return new HTTPResponse(
+    200,
+    {
+      holders: BLOCKLIST_DESTINATIONS.map((destination) => {
+        return {
+          name: destination.name,
+          provider: destination.provider,
+          enforcesOnEveryMachine: false,
+          blocks: [...SECURITY_BLOCK_INDICATOR_TYPES],
+          quarantinesFiles: false,
+        };
+      }),
+      blocks: inForce.map((block) => {
+        return {
+          value: block.value || "",
+          reach: block.reach || SecurityBlockReach.Edge,
+          action: block.action || "",
+          enforcedAt: table(SecurityBlockEnforcement)
+            .filter((enforcement) => {
+              return (
+                String(enforcement.securityBlockId) === String(block._id) &&
+                isSecurityBlockEnforcementHolding(enforcement, NOW)
+              );
+            })
+            .map((enforcement) => {
+              return enforcement.destinationName || "";
+            }),
+        };
+      }),
+      cannotTell: false,
+    },
+    {},
+  );
+}
+
+/*
+ * What POST /security-event/attack-campaigns/of-case-address answers
+ * (#10354): the other addresses that sent the case's address's web
+ * requests with its tools over the last week, which Block the Whole
+ * Campaign offers. The fixture's security events hold no web requests
+ * (HTTP Activity), so each address's campaign is the address alone. Asking
+ * takes a role that may block, as Campaigns' actions do.
+ */
+function campaignOfCaseAddress(body) {
+  if (role === "viewer") {
+    return new HTTPErrorResponse(
+      403,
+      {
+        message:
+          "Blocking or challenging a campaign takes a role that can block addresses: Security Member, Security Admin, Project Admin or Project Owner.",
+      },
+      {},
+    );
+  }
+
+  if (!findCase(body?.securityCaseId)) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "Security case not found." },
+      {},
+    );
+  }
+
+  const address = String(body?.address || "");
+
+  return new HTTPResponse(
+    200,
+    {
+      address: readSecurityBlockValue(address)?.value || address,
+      userAgents: [],
+      addresses: [],
+      isTruncated: false,
+      windowInDays: SECURITY_CAMPAIGN_OF_ADDRESS_DAYS,
+    },
+    {},
+  );
+}
+
+/*
+ * What POST /security-case/:id/ai-response answers the case's OneUptime AI
+ * card (#10352), as SecurityCaseResponseStatus reads it. The project has
+ * not let OneUptime AI work its cases - Automatic Response is off until
+ * someone turns it on - so nothing of it is on the case: no run, no step
+ * taken or asked about, no hold. Respond with AI would not start, and says
+ * why.
+ */
+function aiResponseStatus(caseId) {
+  const securityCase = findCase(caseId);
+
+  if (!securityCase) {
+    return new HTTPErrorResponse(
+      404,
+      { message: "Security case not found." },
+      {},
+    );
+  }
+
+  const limits = readSecurityCaseAiLimits(PROJECT_RECORD);
+  const notStarted =
+    PROJECT_RECORD.enableAi === false ? "ai_disabled" : "response_disabled";
+  const iso = (value) => {
+    return value ? new Date(value).toISOString() : null;
+  };
+
+  return new HTTPResponse(
+    200,
+    {
+      isOn: limits.isOn,
+      modes: limits.modes,
+      state: securityCase.aiResponseState || null,
+      handOffReason: securityCase.aiHandOffReason || null,
+      tookCaseAt: iso(securityCase.aiTookCaseAt),
+      nextLookAt: iso(securityCase.aiNextLookAt),
+      closedAt: iso(securityCase.aiClosedAt),
+      run: null,
+      actions: [],
+      notStartedReason: {
+        code: notStarted,
+        message: SECURITY_CASE_RESPONSE_NOT_STARTED_MESSAGES[notStarted],
+      },
+      hold: null,
+    },
+    {},
+  );
+}
+
+/*
  * What the server does when someone decides a held step: approving runs the
  * step and the ones after it (here, at once), rejecting ends the run.
  */
@@ -4875,6 +5041,28 @@ async function handleApi(method, options) {
       { destinations: BLOCKLIST_DESTINATIONS, cannotTell: false },
       {},
     );
+  }
+  // What a case's Response Plan reads of the blocklist (#10346).
+  if (method === "POST" && path.endsWith("/security-block/for-values")) {
+    return caseBlocklist(options.data);
+  }
+  /*
+   * A case's addresses blocked before it opened (#10354): nothing was
+   * blocked before any of the fixture's cases opened - a block from a case
+   * is that case's own - so none of them is a repeat offender.
+   */
+  if (method === "POST" && path.endsWith("/security-block/repeat-offenders")) {
+    return new HTTPResponse(200, { offenders: [] }, {});
+  }
+  if (
+    method === "POST" &&
+    path.endsWith("/security-event/attack-campaigns/of-case-address")
+  ) {
+    return campaignOfCaseAddress(options.data);
+  }
+  const aiResponse = path.match(/\/security-case\/([^/]+)\/ai-response$/);
+  if (method === "POST" && aiResponse) {
+    return aiResponseStatus(aiResponse[1]);
   }
   if (
     method === "POST" &&
