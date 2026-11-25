@@ -554,6 +554,8 @@ describe("POST /probe/data-security/work", () => {
       disabledDataTypeIds: ["phone-number"],
       allowedValues: ["support@acme-corp.com"],
       fingerprintKey: expect.stringMatching(/^[0-9a-f]{64}$/),
+      // The project's names-and-addresses switch, on unless turned off (#10373).
+      findNamesAndAddresses: true,
       // No data type is being proven on it.
       shadowDataTypes: [],
     });
@@ -575,6 +577,26 @@ describe("POST /probe/data-security/work", () => {
     )["select"] as JSONObject;
 
     expect(select["connectionString"]).toBeUndefined();
+  });
+
+  test("hands each store the project's names-and-addresses switch: a project that turned it off has its probe leave the model out (#10373)", async () => {
+    settingService.getOrCreateForProject.mockResolvedValue({
+      ...settings(),
+      isModelScanEnabled: false,
+    } as never);
+
+    await call(WORK_URI, makeRequest({ body: CAPABLE }));
+
+    const handedOut: Array<JSONObject> = sentBody()[
+      "stores"
+    ] as Array<JSONObject>;
+
+    expect(handedOut).toHaveLength(2);
+    expect(
+      handedOut.map((store: JSONObject): unknown => {
+        return store["findNamesAndAddresses"];
+      }),
+    ).toEqual([false, false]);
   });
 
   test("hands a store the data types OneUptime AI is proving on it, to run in shadow (#10371)", async () => {
