@@ -228,7 +228,7 @@ Code no longer asks for setup, build and test commands, but a repository that ha
 
 A change that still fails verification is not thrown away: the pull request opens anyway, with a clearly marked "Verification failed" section that names the failing command and ends with its output. The work is kept, and the reviewer decides. A repository with no commands set is reported as skipped, rather than implying a green build.
 
-The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. A global Runner, which OneUptime runs for every project, never runs them: on a global Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change. [Run a Runner of your own](#run-a-runner-of-your-own) to have fixes built and tested before the pull request opens.
+The commands are repository settings your team writes, run on your own Runner: the same trust model as a runbook's Bash steps. The AI never writes or changes them. A global Runner, which OneUptime runs for every project, never runs them: on a global Runner the fix is written and opened for review, verification is reported as skipped, and your repository's own CI checks the change. [Run a Runner of your own](#run-a-runner-of-your-own) to have fixes built and tested before the pull request opens. Because they run on your Runner with its access, setting, changing or removing them takes what writing a runbook's steps that run takes: Project Owner, Project Admin or Runbook Admin, or **Edit Runbook**. No workflow that runs with the default permissions changes them, and they run without the Runner's own `ONEUPTIME_RUNNER_` settings, its key among them, in their environment.
 
 ## After a fix merges
 
@@ -297,7 +297,7 @@ You do not map repositories to services. When a task starts, OneUptime finds the
 
 ### Pick the repository's Runner
 
-Each repository picks the Runner AI works in it on: on its **Settings** page in Code, open **More settings**, click **Edit** on the **Runner** card and pick one. A repository that picks none works on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), the first choice, marked **Project default**, and moves with it when another Runner becomes the default. In a project with no default Runner, it works on **Global Runner**, which OneUptime runs for every project. To keep a repository on **Global Runner** while the project has a default Runner, pick it.
+Each repository picks the Runner AI works in it on: on its **Settings** page in Code, open **More settings**, click **Edit** on the **Runner** card and pick one. A repository that picks none works on the project's [default Runner](/docs/runbooks/agents#the-projects-default-runner), the first choice, marked **Project default**, and moves with it when another Runner becomes the default. In a project with no default Runner, it works on **Global Runner**, which OneUptime runs for every project. To keep a repository on **Global Runner** while the project has a default Runner, pick it. Picking it takes the same roles as setting the repository's commands - Project Owner, Project Admin or Runbook Admin, or **Edit Runbook** - because the Runner runs those commands and the AI's; for anyone else, the card's edit is locked and says who may.
 
 | Runner | What it does with a task |
 | --- | --- |

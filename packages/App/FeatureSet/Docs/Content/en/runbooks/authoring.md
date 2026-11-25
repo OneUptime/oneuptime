@@ -140,7 +140,7 @@ A bash script, run with `bash -c <script>` on a [Runbook Agent](/docs/runbooks/a
 | Field | What it does | Default |
 | --- | --- | --- |
 | **Runner** | Under **More fields**. The Runner that runs the step. Only that Runner may claim the job. Global Runners run JavaScript steps only. | The project's default Runner, if you set one |
-| **Bash script** | The script. Output (stdout and stderr) is captured up to 50 KB, and a non-zero exit code fails the step. | — |
+| **Bash script** | The script. Output (stdout and stderr) is captured up to 50 KB, and a non-zero exit code fails the step. It runs with the Runner's environment, without the Runner's own `ONEUPTIME_RUNNER_` settings, its key among them; a key a script prints anyway is stored as `[REDACTED]`. | — |
 | **Execution timeout** | How long the Runner lets the script run before killing it with `SIGKILL`. Raise it for steps that legitimately take minutes. | 30 seconds |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. | 2 minutes |
 
@@ -195,7 +195,7 @@ Run kubectl commands against a cluster. The script runs with bash on the Runner,
 | --- | --- |
 | **Runner** | Under **More fields**. The Runner that runs kubectl. It must be able to reach the cluster's API server. A step that picks none runs on the project's default Runner. |
 | **Kubeconfig** | The secret variable that holds the cluster's kubeconfig, or **The Runner's own access**: the Runner's own kubeconfig, or its service account when it runs in the cluster. The Runner writes a kubeconfig to a file only it can read, and removes it when the script ends. |
-| **Script** | The kubectl commands. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
+| **Script** | The kubectl commands. Output is captured up to 50 KB, and a non-zero exit code fails the step. Like a Bash step's script, it runs without the Runner's own `ONEUPTIME_RUNNER_` settings. |
 | **Execution timeout** | How long the Runner lets the script run before stopping it with `SIGKILL`. Default 30 seconds. |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. Default 2 minutes. |
 

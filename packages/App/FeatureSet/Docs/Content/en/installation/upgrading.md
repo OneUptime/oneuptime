@@ -283,6 +283,22 @@ with recurring templates.
   more than the default permissions: in its Settings, have it run as Project
   Owner, or as a custom role that holds that permission. See
   [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
+- **Only those who may write a runbook's steps that run set a code
+  repository's commands or pick its Runner, and only those who may read a
+  Runner's key choose one.** A repository's setup, build and test commands run
+  on your own Runner, with its access. Setting, changing or removing them, or
+  picking the repository's Runner, now takes `ProjectOwner`, `ProjectAdmin`,
+  `RunbookAdmin` or `EditRunbook` beside the repository's own permissions:
+  anyone else's write is refused, through the API, Terraform or a workflow
+  that runs with the default permissions, and the Runner card in the
+  repository's settings is locked for them. Creating a Runner with a key of
+  your choosing, or changing a Runner's key, takes `ProjectOwner`,
+  `ProjectAdmin` or `RunbookAdmin`, and creating a Runner answers with its key
+  only to them. The commands a Runner runs for a project - Bash and kubectl
+  steps, and a repository's commands - no longer see the Runner's own
+  `ONEUPTIME_RUNNER_` settings. An API key or a Terraform configuration that
+  sets these needs one of those permissions now. See
+  [Code](/docs/ai/ai-agent).
 :::
 
 ## Upgrading from OneUptime 15 → 16

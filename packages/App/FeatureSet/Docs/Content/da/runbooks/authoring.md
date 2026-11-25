@@ -140,7 +140,7 @@ Et bash-script, der køres med `bash -c <script>` på en [runbook-agent](/docs/r
 | Felt | Hvad det gør | Standard |
 | --- | --- | --- |
 | **Runner** | Under **Flere felter**. Den Runner, der kører trinnet. Kun den Runner må overtage jobbet. Globale Runnere kører kun JavaScript-trin. | Projektets standard-Runner, hvis du har angivet en |
-| **Bash-script** | Scriptet. Output (stdout og stderr) registreres op til 50 KB, og en exitkode forskellig fra nul får trinnet til at fejle. | — |
+| **Bash-script** | Scriptet. Output (stdout og stderr) registreres op til 50 KB, og en exitkode forskellig fra nul får trinnet til at fejle. Det kører med Runnerens miljø, uden Runnerens egne `ONEUPTIME_RUNNER_`-indstillinger, dens nøgle iblandt; en nøgle, som et script alligevel udskriver, gemmes som `[REDACTED]`. | — |
 | **Timeout for kørsel** | Hvor længe Runneren lader scriptet køre, før den dræber det med `SIGKILL`. Hæv den for trin, der med god grund tager minutter. | 30 sekunder |
 | **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. | 2 minutter |
 
@@ -195,7 +195,7 @@ Kør kubectl-kommandoer mod en klynge. Scriptet kører med bash på Runneren, so
 | --- | --- |
 | **Runner** | Under **Flere felter**. Den Runner, der kører kubectl. Den skal kunne nå klyngens API-server. Et trin, der ikke vælger nogen, kører på projektets standard-Runner. |
 | **Kubeconfig** | Den hemmelige variabel, der indeholder klyngens kubeconfig, eller **Runnerens egen adgang**: Runnerens egen kubeconfig eller dens tjenestekonto, når den kører i klyngen. Runneren skriver en kubeconfig til en fil, som kun den kan læse, og fjerner den, når scriptet slutter. |
-| **Script** | kubectl-kommandoerne. Output gemmes op til 50 KB, og en exitkode, der ikke er nul, får trinnet til at fejle. |
+| **Script** | kubectl-kommandoerne. Output gemmes op til 50 KB, og en exitkode, der ikke er nul, får trinnet til at fejle. Ligesom et Bash-trins script kører det uden Runnerens egne `ONEUPTIME_RUNNER_`-indstillinger. |
 | **Timeout for kørsel** | Hvor længe Runneren lader scriptet køre, før den stopper det med `SIGKILL`. Standard 30 sekunder. |
 | **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. Standard 2 minutter. |
 
