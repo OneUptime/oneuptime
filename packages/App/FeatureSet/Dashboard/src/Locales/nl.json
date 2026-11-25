@@ -64484,5 +64484,15 @@
   "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid.",
   "Date unknown": "Datum onbekend",
   "Yesterday": "Gisteren",
-  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "Het DNS-antwoord wordt als geheel vergeleken met dat van de vorige controle. ‘Niet gelijk aan’ komt overeen als de records zijn veranderd, ‘Gelijk aan’ als dat niet zo is. Dezelfde records in een andere volgorde zijn geen wijziging."
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "Het DNS-antwoord wordt als geheel vergeleken met dat van de vorige controle. ‘Niet gelijk aan’ komt overeen als de records zijn veranderd, ‘Gelijk aan’ als dat niet zo is. Dezelfde records in een andere volgorde zijn geen wijziging.",
+  "Acknowledged, as you are on it: the incident pages no one.": "Acknowledged, as you are on it: the incident pages no one.",
+  "Choose whether an incident someone declares in OneUptime, Slack or Microsoft Teams starts acknowledged, as whoever declares it is already on it.": "Choose whether an incident someone declares in OneUptime, Slack or Microsoft Teams starts acknowledged, as whoever declares it is already on it.",
+  "Incidents Declared by Hand": "Incidents Declared by Hand",
+  "Leave empty to start it acknowledged, as you are on it, unless you pick an on-call policy to page. Pick a state to start it there instead.": "Leave empty to start it acknowledged, as you are on it, unless you pick an on-call policy to page. Pick a state to start it there instead.",
+  "Start Incidents Declared by Hand Acknowledged": "Start Incidents Declared by Hand Acknowledged",
+  "Start incidents declared by hand acknowledged": "Start incidents declared by hand acknowledged",
+  "The usual starting state, so the on-call policies you picked are paged.": "The usual starting state, so the on-call policies you picked are paged.",
+  "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.",
+  "They start in the created state and page their on-call policies, as every new incident does.": "They start in the created state and page their on-call policies, as every new incident does.",
+  "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "With none picked, the incident starts acknowledged, as you are on it, and pages no one."
 }

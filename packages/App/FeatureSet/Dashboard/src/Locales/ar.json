@@ -64484,5 +64484,15 @@
   "“{{action}}” did not finish.": "لم تكتمل عملية «{{action}}».",
   "Date unknown": "تاريخ غير معروف",
   "Yesterday": "أمس",
-  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "تُقارَن إجابة DNS كاملةً بإجابة الفحص السابق. يتطابق «لا يساوي» عندما تتغير سجلاتها، ويتطابق «يساوي» عندما لا تتغير. السجلات نفسها بترتيب آخر ليست تغييرًا."
+  "The DNS answer is compared as a whole with the previous check's. Not Equal To matches when its records changed, Equal To when they did not. The same records in another order are no change.": "تُقارَن إجابة DNS كاملةً بإجابة الفحص السابق. يتطابق «لا يساوي» عندما تتغير سجلاتها، ويتطابق «يساوي» عندما لا تتغير. السجلات نفسها بترتيب آخر ليست تغييرًا.",
+  "Acknowledged, as you are on it: the incident pages no one.": "تم الإقرار بها لأنك تتولاها: لن تستدعي هذه الحادثة أحدًا.",
+  "Choose whether an incident someone declares in OneUptime, Slack or Microsoft Teams starts acknowledged, as whoever declares it is already on it.": "اختر ما إذا كانت الحادثة التي يعلنها أحدهم في OneUptime أو Slack أو Microsoft Teams تبدأ مُقرًّا بها، لأن من يعلنها يتولاها بالفعل.",
+  "Incidents Declared by Hand": "الحوادث المُعلنة يدويًا",
+  "Leave empty to start it acknowledged, as you are on it, unless you pick an on-call policy to page. Pick a state to start it there instead.": "اتركه فارغًا لتبدأ الحادثة مُقرًّا بها لأنك تتولاها، ما لم تختر سياسة مناوبة لاستدعاء أفرادها. اختر حالة لتبدأ فيها بدلًا من ذلك.",
+  "Start Incidents Declared by Hand Acknowledged": "بدء الحوادث المُعلنة يدويًا مُقرًّا بها",
+  "Start incidents declared by hand acknowledged": "بدء الحوادث المُعلنة يدويًا مُقرًّا بها",
+  "The usual starting state, so the on-call policies you picked are paged.": "حالة البداية المعتادة، لكي تُنفَّذ سياسات المناوبة التي اخترتها.",
+  "They start acknowledged and page no one, on-call rules included, unless whoever declares one picks an on-call policy to page.": "تبدأ مُقرًّا بها ولا تستدعي أحدًا، ولا حتى عبر قواعد المناوبة، ما لم يختر من يعلنها سياسة مناوبة لاستدعاء أفرادها.",
+  "They start in the created state and page their on-call policies, as every new incident does.": "تبدأ في حالة الإنشاء وتُنفَّذ سياسات المناوبة الخاصة بها، كما يحدث مع كل حادثة جديدة.",
+  "With none picked, the incident starts acknowledged, as you are on it, and pages no one.": "إن لم تختر أيًّا منها، تبدأ الحادثة مُقرًّا بها لأنك تتولاها، ولا تستدعي أحدًا."
 }
