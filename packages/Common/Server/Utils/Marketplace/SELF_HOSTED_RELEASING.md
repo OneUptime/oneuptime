@@ -374,13 +374,14 @@ the case the same evening. Release `15.0` was pushed again with the icon
 (step 8) and saved at its new digest, which cancelled the Container images
 approval. Its validation then failed Google's vulnerability scan on three
 CVEs published after the approval (step 8). The one in nginx was fixed in
-the release's own nginx image on 25 November, and the validation run again.
-The two in Go have no fixed build yet: Google offered on the case to request
-an exception for them, and the list of blocking CVEs went back on 25
-November. **Left**: the exception and a validation that passes, then the
-release submitted for review, then **Publish** again (step 10); Google's
-answer on the evidence and the listing made public; then the test cluster
-deleted and the test order cancelled (step 9).
+the release's own nginx image on 25 November, and the validation, run
+again, found only the two in Go. Those have no fixed build yet: Google
+offered on the case to request an exception for them, and the list of
+blocking CVEs went back on 25 November, then the rerun's result. **Left**:
+the exception and a validation that passes, then the release submitted for
+review, then **Publish** again (step 10); Google's answer on the evidence
+and the listing made public; then the test cluster deleted and the test
+order cancelled (step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
@@ -610,7 +611,8 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
      25 November: a layer over the released image, pushed by hand over its
      tags, from `sha256:7f416a6eaa9e` to `sha256:7d165e022ade`
      ([Releasing a version](#google-cloud-marketplace) says how). **Retry**
-     on the failed validation then ran it again.
+     on the failed validation then ran it again, and its report no longer
+     names nginx.
 
    Google's report (**View details** under the failed step) names each
    image, package and fixed version. Asked on case 77498377 that evening
@@ -618,7 +620,9 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
    Google offered to request an exception for the blocking CVEs and asked
    for the list, which went back on 25 November: CVE-2026-97040 in the
    deployer and in the runner, each with its image's digest, and the nginx
-   one fixed. Once the exception is in place, the release goes for review
+   one fixed. A follow-up the same day gave the rerun's operation
+   (`15730a2a5351c280`), whose report lists only those two. Once the
+   exception is in place, the release goes for review
    again; both images move to Go 1.26.11 builds once there are some.
 
 9. **Usage verification** (before **Publish**; Google's Partner Support
@@ -1062,9 +1066,9 @@ docker buildx rm gcp-fix
 Before pushing, compare the image's packages with the released one's
 (`apk info -v`: only the fixed ones change), and start it with the nginx
 container's environment from a test installation: `nginx -t` fails on the
-image alone. Whether **Retry** takes the new digest shows in the new
-report, which names each image's digest (the run of 25 November is still to
-be read).
+image alone. **Retry** takes the image at its new tag: the run of 25
+November, three minutes after the push, no longer flagged nginx. The report
+lists only the images with findings, each by digest.
 
 ## Checking an installation
 
@@ -1669,6 +1673,8 @@ rejection, go-live and price change.
 | 2026-11-24 | Google      | Google offered on case 77498377 to request an exception for the blocking CVEs, and asked for them   | Google     |
 | 2026-11-25 | Google      | 15.0.0's nginx image given nginx 1.30.7 by hand (CVE-2026-97205); validation run again with Retry   | Agent      |
 | 2026-11-25 | Google      | Blocking CVEs sent on case 77498377: CVE-2026-97040 in the deployer and the runner; nginx fixed     | Agent      |
+| 2026-11-25 | Google      | Validation run again: nginx cleared; only CVE-2026-97040 left, in the deployer and the runner       | Google     |
+| 2026-11-25 | Google      | The rerun's result sent on case 77498377 as a follow-up (operation 15730a2a5351c280)                | Agent      |
 
 ## Notes for agents driving the browser
 
