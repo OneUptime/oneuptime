@@ -85,6 +85,8 @@ const STORED_DATA_USES: Record<string, string> = {
     "keys the stored lookup hashes of the keys presented to OneUptime and the stored hashes of SCIM bearer tokens (#9012), which a request's key or token is looked up by",
   "packages/Common/Server/Utils/Telemetry/ScrubHashToken.ts":
     "keys each project's Hash scrub tokens, which telemetry stores in place of a value, so no one without it can hash a guess to compare (#10394)",
+  "packages/Common/Server/Utils/Telemetry/KeyedExceptionFingerprint.ts":
+    "keys each project's stored fingerprints of exceptions a scrub rule hid part of, which their occurrences are grouped by, so no one without it can hash a guess of what the rule hid to compare (#10434)",
 };
 
 /*
