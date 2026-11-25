@@ -330,6 +330,9 @@ export const PRODUCT_RECORD_TABLES: Readonly<
   [ProductKey.SecurityEvents]: [
     "DetectionRule",
     "DetectionRuleException",
+    // An automatic response policy, and what each did (#10350).
+    "SecurityAutomaticResponseAction",
+    "SecurityAutomaticResponsePolicy",
     "SecurityBlock",
     // A cloud WAF that enforces the blocklist (#10344).
     "SecurityBlockCloudWaf",
