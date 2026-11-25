@@ -193,4 +193,5 @@ Toute l'instance exige le SSO, et il s'agissait d'une connexion avec un mot de p
 - [SSO](/docs/identity/sso): Configurer le fournisseur SAML ou OIDC propre à un projet.
 - [SCIM](/docs/identity/scim): Laisser votre fournisseur d'identité ajouter et retirer des personnes automatiquement.
 - [Utilisateurs, équipes et autorisations](/docs/permissions/index): Ce que les équipes rejointes par les nouveaux venus leur permettent de faire.
+- [Aide et support](/docs/self-hosted/help-and-support): Indiquer aux personnes qui ont besoin d'une invitation à qui la demander.
 :::

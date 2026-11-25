@@ -193,4 +193,5 @@ Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passke
 - [SSO](/docs/identity/sso): Den eigenen SAML- oder OIDC-Anbieter eines Projekts einrichten.
 - [SCIM](/docs/identity/scim): Ihren Identitätsanbieter Personen automatisch hinzufügen und entfernen lassen.
 - [Benutzer, Teams & Berechtigungen](/docs/permissions/index): Was die Teams, in die Neue kommen, ihnen erlauben.
+- [Hilfe und Support](/docs/self-hosted/help-and-support): Personen, die eine Einladung brauchen, sagen, wen sie fragen sollen.
 :::

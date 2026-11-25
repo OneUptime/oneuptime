@@ -193,4 +193,5 @@ Hela instansen kräver SSO, och det här var en inloggning med lösenord, passny
 - [SSO](/docs/identity/sso): Konfigurera ett projekts egen SAML- eller OIDC-leverantör.
 - [SCIM](/docs/identity/scim): Låt din identitetsleverantör lägga till och ta bort personer automatiskt.
 - [Användare, team och behörigheter](/docs/permissions/index): Vad teamen som nya personer går med i låter dem göra.
+- [Hjälp och support](/docs/self-hosted/help-and-support): Tala om för personer som behöver en inbjudan vem de ska fråga.
 :::

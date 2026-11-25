@@ -193,4 +193,5 @@ De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, e
 - [SSO](/docs/identity/sso): De eigen SAML- of OIDC-provider van een project instellen.
 - [SCIM](/docs/identity/scim): Laat uw identiteitsprovider automatisch mensen toevoegen en verwijderen.
 - [Gebruikers, teams en machtigingen](/docs/permissions/index): Wat de teams waarin nieuwkomers komen hun toestaan.
+- [Hulp en ondersteuning](/docs/self-hosted/help-and-support): Mensen die een uitnodiging nodig hebben laten weten wie ze erom moeten vragen.
 :::
