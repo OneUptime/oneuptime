@@ -526,6 +526,17 @@ describe("Data Security's permission matrix", () => {
       expect([column, columns[column]!.update]).toEqual([column, []]);
     }
 
+    /*
+     * OneUptime AI's drafts of the store's record of processing and its
+     * impact assessment (#10375) are served and written by their own
+     * routes, never read or written through the store's API.
+     */
+    for (const column of ["recordDrafts", "impactAssessment"]) {
+      expect([column, columns[column]!.read]).toEqual([column, []]);
+      expect([column, columns[column]!.create]).toEqual([column, []]);
+      expect([column, columns[column]!.update]).toEqual([column, []]);
+    }
+
     // And nothing else of a store is hidden from the people who may read it.
     expect(
       Object.entries(columns)
@@ -541,8 +552,12 @@ describe("Data Security's permission matrix", () => {
       "contentScanState",
       "fieldSuggestionState",
       "fingerprints",
+      // The impact assessment, served by its own route.
+      "impactAssessment",
       // Data Observability's schedule: when the store's tables are next collected.
       "nextTableHealthCollectionAt",
+      // OneUptime AI's drafts of the record of processing, served by its route.
+      "recordDrafts",
       // The database a collection read, for tying services' spans to its tables.
       "tableHealthTarget",
     ]);
