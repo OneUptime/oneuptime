@@ -380,6 +380,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
   },
   {
+    file: "packages/Common/Utils/Host/AndroidAgentRedactor.ts",
+    count: 1,
+    builtFrom:
+      "the two email address patterns the file writes (ASCII_EMAIL_ADDRESS, EMAIL_ADDRESS), global pattern literals as the Android agent's redactor writes them, run on a text cut to REDACTOR_MAX_LENGTH first",
+  },
+  {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",
     count: 1,
     builtFrom: "nothing: a scanner's own match method, handed a position",
