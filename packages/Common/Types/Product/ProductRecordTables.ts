@@ -334,6 +334,9 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     // A cloud WAF that enforces the blocklist (#10344).
     "SecurityBlockCloudWaf",
     "SecurityBlockEnforcement",
+    // A feed firewalls read the blocklist from, and its fetch log (#10345).
+    "SecurityBlocklistFeed",
+    "SecurityBlocklistFeedFetch",
     "SecurityCase",
     "SecurityCaseCustomField",
     "SecurityCaseEvidence",
