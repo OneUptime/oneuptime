@@ -112,6 +112,7 @@ import {
   formatList,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import React, {
   Fragment,
   FunctionComponent,
@@ -182,7 +183,7 @@ function Quoted(props: { text: string }): ReactElement {
 const Separator: FunctionComponent = (): ReactElement => {
   return (
     <span aria-hidden="true" className="text-gray-400">
-      ·
+      <InlineSeparator markOnly />
     </span>
   );
 };

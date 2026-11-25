@@ -1026,11 +1026,20 @@ describe("a rule's updates", () => {
       [],
       "Only when an on-call policy is created",
     ],
-    // A security case rule's notices (#7936): with none, it posts nothing.
+    /*
+     * A security case rule's notices (#7936): with none, it posts nothing.
+     * Its key updates take in the cases OneUptime AI hands to people
+     * (#10352), so the three without them are a pick of their own.
+     */
+    [
+      NotificationRuleEventType.SecurityCase,
+      ["PriorityReached", "ApprovalRequested", "ResponseTargets", "AI"],
+      "Key updates only",
+    ],
     [
       NotificationRuleEventType.SecurityCase,
       ["PriorityReached", "ApprovalRequested", "ResponseTargets"],
-      "Key updates only",
+      null,
     ],
     [NotificationRuleEventType.SecurityCase, ["ApprovalRequested"], null],
     [NotificationRuleEventType.SecurityCase, [], "Posts nothing"],
