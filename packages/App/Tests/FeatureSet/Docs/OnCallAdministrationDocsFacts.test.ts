@@ -360,6 +360,10 @@ const READINESS_PAGE: string = readDashboardSource(
 const READINESS_SERVICE: string = readCommonSource(
   "Server/Services/OnCallReadinessService.ts",
 );
+// The types the service answers in, the responder sources among them.
+const READINESS_TYPES: string = readCommonSource(
+  "Types/OnCallDutyPolicy/OnCallReadiness.ts",
+);
 const USER_OVERRIDE_FORM: string = readDashboardSource(
   "Components/OnCallPolicy/UserOverrides/UserOverrideForm.ts",
 );
@@ -3140,7 +3144,7 @@ describe("readiness", () => {
     expect(READINESS_SERVICE).toContain(
       "addResponder(row.routeAlertsToUserId, ResponderSource.Override);",
     );
-    expect(READINESS_SERVICE).toContain(
+    expect(READINESS_TYPES).toContain(
       '  Direct = "Direct",\n  Team = "Team",\n  Schedule = "Schedule",\n  Override = "Override",',
     );
     /*
