@@ -6969,8 +6969,6 @@
   "Who owns this episode. They are notified when it is created or updated.": "Vem som äger den här episoden. De aviseras när den skapas eller uppdateras.",
   "Who owns this event. They are notified when its status changes.": "Vem som äger den här händelsen. De aviseras när dess status ändras.",
   "No owners yet": "Inga ägare ännu",
-  "People and teams who own this probe. They are alerted when its status changes.": "Personer och team som äger den här sonden. De meddelas när dess status ändras.",
-  "Add a teammate or a team so they are alerted when this probe's status changes.": "Lägg till en kollega eller ett team så att de meddelas när status för den här sonden ändras.",
   "People and teams who own this runner. They are alerted when its status changes.": "Personer och team som äger den här Runnern. De meddelas när dess status ändras.",
   "Add a teammate or a team so they are alerted when this runner's status changes.": "Lägg till en kollega eller ett team så att de meddelas när status för den här Runnern ändras.",
   "People and teams who own every incident declared from this template. They are added as the incident's owners and notified.": "Personer och team som äger varje incident som deklareras från den här mallen. De läggs till som incidentens ägare och aviseras.",

@@ -6969,8 +6969,6 @@
   "Who owns this episode. They are notified when it is created or updated.": "من يملك هذه الحلقة. يُبلَّغون عند إنشائها أو تحديثها.",
   "Who owns this event. They are notified when its status changes.": "من يملك هذا الحدث. يُبلَّغون عند تغير حالته.",
   "No owners yet": "لا يوجد مالكون بعد",
-  "People and teams who own this probe. They are alerted when its status changes.": "الأشخاص والفرق الذين يملكون هذا المسبار. يُنبَّهون عند تغير حالته.",
-  "Add a teammate or a team so they are alerted when this probe's status changes.": "أضف زميلًا أو فريقًا ليُنبَّهوا عندما تتغير حالة هذا المسبار.",
   "People and teams who own this runner. They are alerted when its status changes.": "الأشخاص والفرق الذين يملكون هذا المشغّل. يُنبَّهون عند تغير حالته.",
   "Add a teammate or a team so they are alerted when this runner's status changes.": "أضف زميلًا أو فريقًا ليُنبَّهوا عندما تتغير حالة هذا المشغّل.",
   "People and teams who own every incident declared from this template. They are added as the incident's owners and notified.": "الأشخاص والفرق الذين يملكون كل حادثة تُعلن من هذا القالب. يُضافون كمالكين للحادثة ويُبلَّغون.",
