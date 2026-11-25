@@ -381,9 +381,24 @@ describe("every state timeline holds its first state back from Slack and Microso
       const call: string = source.slice(at, source.indexOf("});", at));
       const compact: string = call.replace(WHITE_SPACE, "");
 
-      expect(compact).toContain(
-        "sendWorkspaceNotification:WorkspaceStateChangePosting.postsToWorkspace({stateBeforeThis:onCreate.carryForward.statusTimelineBeforeThisStatus,stateAfterThis:onCreate.carryForward.statusTimelineAfterThisStatus,",
-      );
+      const readsPostingRule: string =
+        "WorkspaceStateChangePosting.postsToWorkspace({stateBeforeThis:onCreate.carryForward.statusTimelineBeforeThisStatus,stateAfterThis:onCreate.carryForward.statusTimelineAfterThisStatus,";
+      if (file === "AlertStateTimelineService.ts") {
+        const timeline: string = source.replace(WHITE_SPACE, "");
+        expect(timeline).toContain(
+          `constpostsToWorkspace:boolean=${readsPostingRule}`,
+        );
+        expect(timeline).toContain(
+          "constthreadedDelivery:boolean=postsToWorkspace&&",
+        );
+        expect(compact).toContain(
+          "sendWorkspaceNotification:postsToWorkspace&&!threadedDelivery",
+        );
+      } else {
+        expect(compact).toContain(
+          `sendWorkspaceNotification:${readsPostingRule}`,
+        );
+      }
       expect(compact).not.toContain("sendWorkspaceNotification:true");
     },
   );

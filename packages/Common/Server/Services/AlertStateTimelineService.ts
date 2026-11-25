@@ -24,6 +24,7 @@ import AlertState from "../../Models/DatabaseModels/AlertState";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import { IsBillingEnabled } from "../EnvironmentConfig";
 import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
+import SlackAlertThreading from "../Utils/Workspace/Slack/SlackAlertThreading";
 import { JSONObject } from "../../Types/JSON";
 import AlertInternalNote from "../../Models/DatabaseModels/AlertInternalNote";
 import AlertInternalNoteService from "./AlertInternalNoteService";
@@ -32,8 +33,16 @@ import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedRefe
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger, { LogAttributes } from "../Utils/Logger";
 import AlertFeedService from "./AlertFeedService";
+import FeedWorkspaceNotificationUtil, {
+  FeedWorkspaceNotification,
+} from "../Utils/Feed/FeedWorkspaceNotification";
+import SlackAlertMessage from "../Utils/Workspace/LiveMessages/SlackAlertMessage";
 import WorkspaceStateChangePosting from "../Utils/Workspace/WorkspaceStateChangePosting";
-import NotificationRuleUpdates from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import WorkspacePostedMessage from "../../Types/Workspace/WorkspacePostedMessage";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdateKind,
+} from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -555,14 +564,97 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
 
     const projectId: ObjectID = createdItem.projectId!;
     const alertId: ObjectID = createdItem.alertId!;
+    const updateKind: NotificationRuleUpdateKind =
+      NotificationRuleUpdates.getStateChangeKind({
+        isResolved: isResolvedState,
+        wasResolved: wasResolved,
+      });
+    const postsToWorkspace: boolean =
+      WorkspaceStateChangePosting.postsToWorkspace({
+        stateBeforeThis: onCreate.carryForward.statusTimelineBeforeThisStatus,
+        stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
+      });
+    const alertNumber: string =
+      alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number;
+    const threadedDelivery: boolean =
+      postsToWorkspace && (await SlackAlertThreading.forDelivery(projectId));
+    const feedInfoInMarkdown: string =
+      mdText`${stateEmoji} Changed **[Alert ${alertNumber}](${(await AlertService.getAlertLinkInDashboard(projectId, alertId)).toString()}) State** to **${stateName}**`.toString();
+    const userId: ObjectID | undefined =
+      createdItem.createdByUserId || onCreate.createBy.props.userId;
+    const updateKinds: Array<NotificationRuleUpdateKind> = [updateKind];
+    const workspaceNotification: FeedWorkspaceNotification = {
+      sendWorkspaceNotification: postsToWorkspace,
+      leadWithAuthor: true,
+      updateKinds: updateKinds,
+    };
+    const postThreadedUpdate: () => Promise<void> = async () => {
+      await SlackAlertMessage.waitForInitialPost(alertId);
+      const slackEpisodeChannels: Array<string> = [];
+      try {
+        const alert: Alert | null = await AlertService.findOneById({
+          id: alertId,
+          select: { projectId: true, alertEpisodeId: true, isPrivate: true },
+          props: { isRoot: true },
+        });
+        if (alert?.alertEpisodeId && alert.projectId?.equals(projectId)) {
+          /*
+           * Episode rules also reach channels not subscribed to the alert.
+           * Keep its private state out of those channels.
+           */
+          await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+            {
+              projectId: projectId,
+              notificationFor: { alertEpisodeId: alert.alertEpisodeId },
+              feedInfoInMarkdown: alert.isPrivate
+                ? mdText`State changed for **Alert ${alertNumber}** (private alert).`.toString()
+                : mdText`${stateEmoji} Changed **Alert ${alertNumber} State** to **${stateName}**`.toString(),
+              workspaceTypes: [WorkspaceType.Slack],
+              slackAlertThreadOnly: true,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+                updateKinds: [
+                  NotificationRuleUpdateKind.EpisodeMembers,
+                  updateKind,
+                ],
+                onPosted: (messages: Array<WorkspacePostedMessage>): void => {
+                  slackEpisodeChannels.push(
+                    ...messages.map(
+                      (message: WorkspacePostedMessage): string => {
+                        return message.channelId;
+                      },
+                    ),
+                  );
+                },
+              },
+            },
+          );
+        }
+      } catch (error) {
+        logger.error(error, { alertId: alertId.toString() });
+      }
+      await AlertFeedService.sendWorkspaceNotification({
+        alertId,
+        projectId,
+        feedInfoInMarkdown,
+        workspaceNotification: {
+          ...workspaceNotification,
+          exceptSlackChannelIds: slackEpisodeChannels,
+        },
+        updateKinds: updateKinds,
+        author: FeedWorkspaceNotificationUtil.getAuthor({
+          workspaceNotification,
+          userId,
+        }),
+      });
+    };
 
     await AlertFeedService.createAlertFeedItem({
-      alertId: createdItem.alertId!,
-      projectId: createdItem.projectId!,
+      alertId,
+      projectId,
       alertFeedEventType: AlertFeedEventType.AlertStateChanged,
       displayColor: alertState?.color,
-      feedInfoInMarkdown:
-        mdText`${stateEmoji} Changed **[Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}](${(await AlertService.getAlertLinkInDashboard(projectId!, alertId!)).toString()}) State** to **${stateName}**`.toString(),
+      feedInfoInMarkdown,
       /*
        * The cause, when one was given. Without one the entry has no details:
        * a "Cause:" with nothing after it opened an empty box in the feed.
@@ -571,33 +663,23 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         ? mdText`**Cause:**
 ${FeedMarkdown.asMarkdown(createdItem.rootCause)}`.toString()
         : undefined,
-      userId: createdItem.createdByUserId || onCreate.createBy.props.userId,
+      userId,
       workspaceNotification: {
         /*
          * Not posted to Slack and Microsoft Teams for the record's first
          * state: the message that announced the record names it already
          * (WorkspaceStateChangePosting). The feed keeps the entry.
          */
-        sendWorkspaceNotification: WorkspaceStateChangePosting.postsToWorkspace(
-          {
-            stateBeforeThis:
-              onCreate.carryForward.statusTimelineBeforeThisStatus,
-            stateAfterThis: onCreate.carryForward.statusTimelineAfterThisStatus,
-          },
-        ),
-        leadWithAuthor: true,
-        /*
-         * Resolving it, or reopening it, is an update of its own for the
-         * rules that choose their updates: a quiet channel hears of it.
-         */
-        updateKinds: [
-          NotificationRuleUpdates.getStateChangeKind({
-            isResolved: isResolvedState,
-            wasResolved: wasResolved,
-          }),
-        ],
+        ...workspaceNotification,
+        sendWorkspaceNotification: postsToWorkspace && !threadedDelivery,
       },
     });
+
+    if (threadedDelivery) {
+      void postThreadedUpdate().catch((error: Error) => {
+        logger.error(error, { alertId: alertId.toString() });
+      });
+    }
 
     /*
      * The private notes that came with the change, which onBeforeCreate built

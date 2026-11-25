@@ -29,6 +29,7 @@ import FeedUpdateKinds, {
 import { NotificationRuleUpdateKind } from "../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -114,7 +115,12 @@ export class Service extends ProjectReferencesService<Model> {
     savedFromChatMessage?: SavedChatMessage | undefined;
     aiRunId?: ObjectID | undefined;
     // Posted to Slack and Microsoft Teams too (FeedWorkspaceNotification).
-    workspaceNotification?: FeedWorkspaceNotification | undefined;
+    workspaceNotification?:
+      | (FeedWorkspaceNotification & {
+          workspaceTypes?: ReadonlyArray<WorkspaceType> | undefined;
+          exceptSlackChannelIds?: ReadonlyArray<string> | undefined;
+        })
+      | undefined;
   }): Promise<void> {
     try {
       if (!data.alertId) {
@@ -180,8 +186,11 @@ export class Service extends ProjectReferencesService<Model> {
           await this.sendWorkspaceNotification({
             projectId: data.projectId,
             alertId: data.alertId,
+            isAlertCreated:
+              data.alertFeedEventType === AlertFeedEventType.AlertCreated,
             feedInfoInMarkdown: data.feedInfoInMarkdown,
             workspaceNotification: data.workspaceNotification,
+            workspaceTypes: data.workspaceNotification.workspaceTypes,
             // Which updates it is: posted where a rule wants one of them.
             updateKinds: FeedUpdateKinds.resolve({
               named: data.workspaceNotification.updateKinds,
@@ -227,8 +236,12 @@ export class Service extends ProjectReferencesService<Model> {
   public async sendWorkspaceNotification(data: {
     projectId: ObjectID;
     alertId: ObjectID;
+    isAlertCreated?: boolean | undefined;
+    workspaceTypes?: ReadonlyArray<WorkspaceType> | undefined;
     feedInfoInMarkdown: string;
-    workspaceNotification: FeedWorkspaceNotification;
+    workspaceNotification: FeedWorkspaceNotification & {
+      exceptSlackChannelIds?: ReadonlyArray<string> | undefined;
+    };
     // Who the message opens with (FeedWorkspaceNotificationUtil.getAuthor).
     author?: FeedWorkspaceAuthor | undefined;
     /*
@@ -244,6 +257,9 @@ export class Service extends ProjectReferencesService<Model> {
           alertId: data.alertId,
         },
         feedInfoInMarkdown: data.feedInfoInMarkdown,
+        isSlackThreadRoot: data.isAlertCreated,
+        exceptSlackChannelIds: data.workspaceNotification.exceptSlackChannelIds,
+        workspaceTypes: data.workspaceTypes,
         notificationText: data.workspaceNotification.notificationText,
         workspaceNotification:
           FeedWorkspaceNotificationUtil.toWorkspaceNotification({

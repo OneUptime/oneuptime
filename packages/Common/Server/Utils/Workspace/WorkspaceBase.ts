@@ -31,6 +31,7 @@ import { NotificationProviderConfig } from "../Telemetry/NotificationDeliveryMet
 export interface WorkspaceThread {
   channel: WorkspaceChannel;
   threadId: string;
+  parentThreadId?: string | undefined;
 }
 
 export interface WorkspaceSendMessageResponse {
@@ -233,6 +234,7 @@ export default class WorkspaceBase {
     userId: string;
     sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
     projectId: ObjectID;
+    slackThreadTsByChannel?: ReadonlyMap<string, string> | undefined;
   }): Promise<void> {
     throw new NotImplementedException();
   }

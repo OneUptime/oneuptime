@@ -93,7 +93,7 @@ Lassen Sie **Anfangsstatus** leer, beginnt die Warnung dort, wo jede neue Warnun
 
 ## Was beim Erstellen einer Warnung passiert
 
-Sobald eine Warnung erstellt wird, arbeitet OneUptime diese Schritte in dieser Reihenfolge ab:
+Wenn eine Warnung erstellt wird, folgt OneUptime normalerweise dieser Reihenfolge. Sind Warnungs-Threads in Slack aktiviert, laufen Labelregeln und Gruppierung vor der ersten Slack-Nachricht, und die Bereitschaftsrichtlinien der Warnung warten nicht auf Slack:
 
 1. **Sie bekommt eine Nummer und einen Status.** Die Warnungsnummer stammt aus einem Zähler pro Projekt und wird mit Ihrem Präfix angezeigt (`ALT-42`). Die Warnung beginnt in Ihrem Erstellungsstatus, sofern das Formular, die API, ein Workflow oder KI fragen keinen anderen gewählt hat.
 2. **Datenschutzregeln laufen zuerst**, damit alles danach weiß, ob die Warnung privat ist.

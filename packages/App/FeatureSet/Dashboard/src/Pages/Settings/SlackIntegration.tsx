@@ -7,7 +7,11 @@ const SlackIntegrationPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   return (
     <div>
-      <SlackIntegration onConnected={() => {}} onDisconnected={() => {}} />
+      <SlackIntegration
+        showAlertThreading
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+      />
     </div>
   );
 };

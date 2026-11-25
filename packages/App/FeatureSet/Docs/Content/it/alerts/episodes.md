@@ -11,7 +11,7 @@ Quando un database cade, venti monitor possono sollevare venti avvisi in pochi m
 
 ## Come funziona il raggruppamento
 
-Il raggruppamento gira una volta per ogni nuovo avviso, subito dopo l'esecuzione delle sue policy di reperibilità. L'avviso viene confrontato con le vostre regole di raggruppamento abilitate, dall'alto verso il basso dell'elenco, e la prima regola che gli corrisponde decide il suo episodio. Un avviso a cui non corrisponde nessuna regola resta da solo.
+Il raggruppamento avviene normalmente dopo l'esecuzione delle policy di reperibilità dell'avviso. Se le conversazioni degli avvisi in Slack sono attive, avviene prima del primo messaggio Slack, così l'avviso può apparire nella conversazione del suo episodio senza ritardare le proprie policy di reperibilità. L'avviso viene confrontato con le vostre regole di raggruppamento abilitate, dall'alto verso il basso dell'elenco, e la prima regola che gli corrisponde decide il suo episodio. Un avviso a cui non corrisponde nessuna regola resta da solo.
 
 ```mermaid title="Dove va un nuovo avviso"
 flowchart TB

@@ -20,6 +20,7 @@ import AlertOwnerRuleEngineService from "../../../Server/Services/AlertOwnerRule
 import AlertPrivacyRuleEngineService from "../../../Server/Services/AlertPrivacyRuleEngineService";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
+import SlackAlertThreading from "../../../Server/Utils/Workspace/Slack/SlackAlertThreading";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentEpisodeFeedService from "../../../Server/Services/IncidentEpisodeFeedService";
@@ -1162,6 +1163,7 @@ function toldCreatedResolved(probes: Probes): Array<boolean> {
 }
 
 beforeEach(() => {
+  jest.spyOn(SlackAlertThreading, "isEnabled").mockResolvedValue(false);
   stateReads = 0;
   stateListReads = 0;
   jest.mocked(logger.error).mockClear();

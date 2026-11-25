@@ -93,7 +93,7 @@ Lader du **Indledende tilstand** være tom, starter advarslen, hvor enhver ny ad
 
 ## Hvad der sker, når en advarsel oprettes
 
-I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne rækkefølge:
+Når en advarsel oprettes, følger OneUptime normalt denne rækkefølge. Med advarselstråde i Slack slået til kører etiketreglerne og grupperingen før den første Slack-besked, og advarslens vagtpolitikker venter ikke på Slack:
 
 1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et, en arbejdsgang eller Spørg AI valgte en anden.
 2. **Privatlivsregler kører først**, så alt efter dem ved, om advarslen er privat.

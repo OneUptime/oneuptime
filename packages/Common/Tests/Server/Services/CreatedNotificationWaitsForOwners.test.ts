@@ -47,6 +47,7 @@ import AlertFormTarget from "../../../Server/Utils/Form/AlertFormTarget";
 import FormTargetType from "../../../Types/Form/FormTargetType";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
+import SlackAlertThreading from "../../../Server/Utils/Workspace/Slack/SlackAlertThreading";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
@@ -1388,6 +1389,7 @@ function errorsLogged(): Array<string> {
 }
 
 beforeEach(() => {
+  jest.spyOn(SlackAlertThreading, "isEnabled").mockResolvedValue(false);
   owners = EVERY_KIND_OF_OWNER;
   records = new Map<string, StoredRecord>();
   ownerRows = [];

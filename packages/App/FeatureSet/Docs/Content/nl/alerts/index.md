@@ -93,7 +93,7 @@ Laat je **Initiële status** leeg, dan begint de waarschuwing waar elke nieuwe w
 
 ## Wat er gebeurt wanneer een waarschuwing wordt aangemaakt
 
-Zodra een waarschuwing wordt aangemaakt, doorloopt OneUptime deze stappen, in deze volgorde:
+Bij het aanmaken van een waarschuwing volgt OneUptime meestal deze volgorde. Als waarschuwingsthreads in Slack aanstaan, worden labelregels en groepering vóór het eerste Slack-bericht uitgevoerd en wacht het bereikbaarheidsbeleid van de waarschuwing niet op Slack:
 
 1. **Ze krijgt een nummer en een status.** Het waarschuwingsnummer komt van een teller per project en wordt met je voorvoegsel getoond (`ALT-42`). De waarschuwing begint in je aanmaakstatus, tenzij het formulier, de API, een workflow of AI vragen een andere koos.
 2. **Privacyregels draaien eerst**, zodat alles daarna weet of de waarschuwing privé is.

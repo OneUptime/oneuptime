@@ -30,12 +30,13 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
 import SlackChannelsCard from "./SlackChannelsCard";
+import SlackAlertThreadingCard from "./SlackAlertThreadingCard";
 import SlackOrganizationCard from "./SlackOrganizationCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
 import ConnectCallbackNotice, {
@@ -113,6 +114,7 @@ export interface ComponentProps {
   onConnected: VoidFunction;
   onDisconnected: VoidFunction;
   hideProjectCards?: boolean | undefined; // hide project-level cards (e.g. on User Settings)
+  showAlertThreading?: boolean | undefined;
   /*
    * The page this is on, which Slack sends the browser back to: the
    * project's settings unless said otherwise.
@@ -824,6 +826,14 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
             );
           }}
         />
+      )}
+
+      {isProjectAccountConnected && props.showAlertThreading && (
+        <div className="mt-6">
+          <SlackAlertThreadingCard
+            key={ProjectUtil.getCurrentProjectId()?.toString()}
+          />
+        </div>
       )}
 
       {isProjectAccountConnected && !props.hideProjectCards && (

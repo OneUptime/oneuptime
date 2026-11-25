@@ -6,6 +6,8 @@ import Express, {
 import Response from "../Utils/Response";
 import SlackAuthorization from "../Middleware/SlackAuthorization";
 import BadRequestException from "../../Types/Exception/BadRequestException";
+import Permission from "../../Types/Permission";
+import SlackAlertThreading from "../Utils/Workspace/Slack/SlackAlertThreading";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import { JSONObject } from "../../Types/JSON";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -1706,6 +1708,58 @@ export default class SlackAPI {
           return Response.sendJsonObjectResponse(req, res, {
             channelCache: channelCache as unknown as JSONObject,
           });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    router.get(
+      "/slack/alert-threading",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(
+              await CommonAPI.getDatabaseCommonInteractionProps(req),
+            );
+          return Response.sendJsonObjectResponse(req, res, {
+            enabled: await SlackAlertThreading.isEnabled(projectId),
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    router.put(
+      "/slack/alert-threading",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions: [
+              Permission.ProjectOwner,
+              Permission.ProjectAdmin,
+            ],
+            errorMessage:
+              "Only a project owner or admin can change Slack alert threading.",
+          });
+          const enabled: unknown = (req.body as JSONObject | undefined)?.[
+            "enabled"
+          ];
+          if (typeof enabled !== "boolean") {
+            throw new BadRequestException(
+              "Set Slack alert threading to on or off.",
+            );
+          }
+          await SlackAlertThreading.save(projectId, enabled);
+          return Response.sendJsonObjectResponse(req, res, { enabled });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
         }

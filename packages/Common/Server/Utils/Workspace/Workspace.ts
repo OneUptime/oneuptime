@@ -61,6 +61,7 @@ export default class WorkspaceUtil {
      */
     apiKeyName?: string | undefined;
     markdown: string;
+    workspaceTypes?: ReadonlyArray<WorkspaceType> | undefined;
     /*
      * What a workspace is sent, where it is not `markdown`: a message
      * that names somebody as each workspace knows them (issue #7549).
@@ -77,7 +78,8 @@ export default class WorkspaceUtil {
       | Partial<Record<WorkspaceType, Array<WorkspacePayloadMention>>>
       | undefined;
   }): Promise<Array<MessageBlocksByWorkspaceType>> {
-    const workspaceTypes: Array<WorkspaceType> = this.getAllWorkspaceTypes();
+    const workspaceTypes: ReadonlyArray<WorkspaceType> =
+      data.workspaceTypes ?? this.getAllWorkspaceTypes();
 
     const messageBlocksByWorkspaceType: Array<MessageBlocksByWorkspaceType> =
       [];

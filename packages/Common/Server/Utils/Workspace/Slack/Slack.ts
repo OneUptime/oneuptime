@@ -844,6 +844,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     sendMessageBeforeArchiving: WorkspacePayloadMarkdown;
     projectId: ObjectID;
+    slackThreadTsByChannel?: ReadonlyMap<string, string> | undefined;
   }): Promise<void> {
     if (data.sendMessageBeforeArchiving) {
       await this.sendMessage({
@@ -853,6 +854,7 @@ export default class SlackUtil extends WorkspaceBase {
           channelIds: data.channelIds,
           messageBlocks: [data.sendMessageBeforeArchiving],
           workspaceType: WorkspaceType.Slack,
+          slackThreadTsByChannel: data.slackThreadTsByChannel,
         },
         authToken: data.authToken,
         userId: data.userId,
@@ -2169,6 +2171,13 @@ export default class SlackUtil extends WorkspaceBase {
     }
 
     for (const channel of workspaceChannelsToPostTo) {
+      const threadTs: string | undefined =
+        data.workspaceMessagePayload.slackThreadTsByChannel?.get(channel.id);
+
+      if (data.workspaceMessagePayload.slackThreadOnly && !threadTs) {
+        continue;
+      }
+
       const post: WorkspaceChannelPost = posts.startPost();
 
       try {
@@ -2190,13 +2199,13 @@ export default class SlackUtil extends WorkspaceBase {
         }
 
         let lastThread: WorkspaceThread | undefined;
-
         try {
           lastThread = await this.sendBlocksToChannel({
             authToken: data.authToken,
             workspaceChannel: channel,
             blocks: blocks,
             text: data.workspaceMessagePayload.text,
+            threadTs: threadTs,
           });
         } catch (error) {
           /*
@@ -2206,24 +2215,39 @@ export default class SlackUtil extends WorkspaceBase {
            * its alt text, so the message itself is not lost.
            */
           if (
+            threadTs &&
+            !data.workspaceMessagePayload.slackThreadOnly &&
+            SlackRefusal.isRefusedWith(error, [
+              "thread_not_found",
+              "message_not_found",
+            ])
+          ) {
+            lastThread = await this.sendBlocksToChannel({
+              authToken: data.authToken,
+              workspaceChannel: channel,
+              blocks: blocks,
+              text: data.workspaceMessagePayload.text,
+            });
+          } else if (
             blocks === blocksWithoutImages ||
             blocks.length > SlackUtil.MAX_BLOCKS_PER_MESSAGE ||
             !SlackRefusal.isRefusedWith(error, ["invalid_blocks"])
           ) {
             throw error;
+          } else {
+            logger.warn(
+              `Slack refused a message with images in channel ${channel.id}; posting it with each image as its alt text.`,
+              sendMsgLogAttributes,
+            );
+
+            lastThread = await this.sendBlocksToChannel({
+              authToken: data.authToken,
+              workspaceChannel: channel,
+              blocks: blocksWithoutImages,
+              text: data.workspaceMessagePayload.text,
+              threadTs: threadTs,
+            });
           }
-
-          logger.warn(
-            `Slack refused a message with images in channel ${channel.id}; posting it with each image as its alt text.`,
-            sendMsgLogAttributes,
-          );
-
-          lastThread = await this.sendBlocksToChannel({
-            authToken: data.authToken,
-            workspaceChannel: channel,
-            blocks: blocksWithoutImages,
-            text: data.workspaceMessagePayload.text,
-          });
         }
 
         post.succeeded();
@@ -2300,6 +2324,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    threadTs?: string | undefined;
     // What each message's notification shows (WorkspaceMessagePayload.text).
     text?: string | undefined;
   }): Promise<WorkspaceThread | undefined> {
@@ -2321,6 +2346,7 @@ export default class SlackUtil extends WorkspaceBase {
         workspaceChannel: data.workspaceChannel,
         blocks: data.blocks.slice(index, index + maxBlocksPerMessage),
         text: data.text,
+        threadTs: data.threadTs,
       });
     }
 
@@ -2332,6 +2358,7 @@ export default class SlackUtil extends WorkspaceBase {
     authToken: string;
     workspaceChannel: WorkspaceChannel;
     blocks: Array<JSONObject>;
+    threadTs?: string | undefined;
     /*
      * Plain text: what a push notification, a message preview or a screen
      * reader shows of the blocks (Slack's top-level `text`).
@@ -2352,6 +2379,7 @@ export default class SlackUtil extends WorkspaceBase {
       channel: data.workspaceChannel.id,
       blocks: data.blocks,
       unfurl_links: false,
+      ...(data.threadTs ? { thread_ts: data.threadTs } : {}),
     };
 
     if (data.text) {
@@ -2416,6 +2444,7 @@ export default class SlackUtil extends WorkspaceBase {
           ? { ...data.workspaceChannel, id: postedInChannelId }
           : data.workspaceChannel,
       threadId: (response.jsonData as JSONObject)["ts"] as string,
+      ...(data.threadTs ? { parentThreadId: data.threadTs } : {}),
     };
   }
 
@@ -2439,9 +2468,22 @@ export default class SlackUtil extends WorkspaceBase {
       channelId: data.location.channelId,
     };
 
+    const messageBlocks: Array<WorkspaceMessageBlock> =
+      WorkspaceInlineImages.splitMessageBlocks(data.messageBlocks, {
+        repeatLinkDefinitions: true,
+      });
+    const images: Array<WorkspacePayloadInlineImage> =
+      WorkspaceInlineImages.getInlineImages(messageBlocks);
+    const uploadedImages: Map<string, string> | undefined = images.length
+      ? await SlackInlineImages.uploadImages({
+          authToken: data.authToken,
+          images: images,
+        })
+      : undefined;
     const blocks: Array<JSONObject> = this.getBlocksFromWorkspaceMessagePayload(
       {
-        messageBlocks: data.messageBlocks,
+        messageBlocks: messageBlocks,
+        uploadedImages: uploadedImages,
       },
     );
 

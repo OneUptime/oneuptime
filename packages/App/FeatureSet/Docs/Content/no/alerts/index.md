@@ -93,7 +93,7 @@ Lar du **Innledende tilstand** stå tom, starter varselet der alle nye varsler g
 
 ## Hva som skjer når et varsel opprettes
 
-I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i denne rekkefølgen:
+Når et varsel opprettes, følger OneUptime vanligvis denne rekkefølgen. Når varseltråder i Slack er slått på, kjøres etikettreglene og grupperingen før den første Slack-meldingen, og varselets vaktpolicyer venter ikke på Slack:
 
 1. **Det får et nummer og en tilstand.** Varselnummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`ALT-42`). Varselet starter i opprettelsestilstanden din, med mindre skjemaet, API-et, en arbeidsflyt eller Spør AI valgte en annen.
 2. **Personvernregler kjører først**, slik at alt etter dem vet om varselet er privat.

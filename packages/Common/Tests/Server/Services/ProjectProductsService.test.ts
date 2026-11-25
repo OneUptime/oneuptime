@@ -232,8 +232,13 @@ beforeEach(() => {
           return [answer];
         }
 
-        if (sql.startsWith(`UPDATE "Project" SET "productSettings" = $1`)) {
-          row.productSettings = JSON.parse(parameters[0] as string);
+        if (
+          sql.startsWith(`UPDATE "Project" SET "productSettings" = COALESCE`)
+        ) {
+          row.productSettings = {
+            ...(row.productSettings as JSONObject | null),
+            ...(JSON.parse(parameters[0] as string) as JSONObject),
+          };
           return [];
         }
 
@@ -890,7 +895,8 @@ describe("showing and hiding a product", () => {
     expect(row.productSettings).toBeNull();
   });
 
-  test("hiding writes the member's list straight to the project's row", async () => {
+  test("hiding writes the member's list without replacing the project's Slack preference", async () => {
+    row.productSettings = { slackAlertThreading: true };
     const update: SpyInstance<typeof ProjectService.updateOneById> = jest.spyOn(
       ProjectService,
       "updateOneById",
@@ -908,13 +914,14 @@ describe("showing and hiding a product", () => {
       chosenBy: ProjectProductsChosenBy.Member,
       changedByUserId: OWNER_ID.toString(),
     });
+    expect(row.productSettings).toMatchObject({ slackAlertThreading: true });
     const write: { sql: string; parameters: Array<unknown> } = queries.find(
       (query: { sql: string }): boolean => {
         return query.sql.startsWith("UPDATE");
       },
     )!;
     expect(write.sql).toBe(
-      `UPDATE "Project" SET "productSettings" = $1 WHERE "_id" = $2`,
+      `UPDATE "Project" SET "productSettings" = COALESCE("productSettings", '{}'::jsonb) || $1::jsonb WHERE "_id" = $2`,
     );
     expect(write.parameters[1]).toBe(PROJECT_ID.toString());
   });

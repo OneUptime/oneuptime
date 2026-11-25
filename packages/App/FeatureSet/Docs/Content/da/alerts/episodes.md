@@ -11,7 +11,7 @@ Når en database går ned, kan tyve monitorer udløse tyve advarsler inden for f
 
 ## Sådan fungerer gruppering
 
-Gruppering kører én gang for hver ny advarsel, lige efter at dens vagtpolitikker har kørt. Advarslen kontrolleres mod dine aktiverede grupperingsregler, oppefra og ned i listen, og den første regel, der matcher den, afgør dens episode. En advarsel, som ingen regel matcher, forbliver alene.
+Gruppering kører normalt efter advarslens vagtpolitikker. Når advarselstråde i Slack er slået til, sker grupperingen før den første Slack-besked, så advarslen kan vises i episodens tråd uden at forsinke dens egne vagtpolitikker. Advarslen kontrolleres mod dine aktiverede grupperingsregler, oppefra og ned i listen, og den første regel, der matcher den, afgør dens episode. En advarsel, som ingen regel matcher, forbliver alene.
 
 ```mermaid title="Hvor en ny advarsel ender"
 flowchart TB

@@ -477,9 +477,20 @@ describe("the writers hand the kinds to the message they post", () => {
   });
 
   test("each state timeline says when a change resolved or reopened its record", () => {
+    const alert: string = squeezed(
+      "Server/Services/AlertStateTimelineService.ts",
+    );
+    expect(alert).toContain(
+      "constupdateKind:NotificationRuleUpdateKind=NotificationRuleUpdates.getStateChangeKind({isResolved:isResolvedState,wasResolved:wasResolved,});",
+    );
+    expect(alert).toContain("=[updateKind];constworkspaceNotification:");
+    expect(alert).toContain("leadWithAuthor:true,updateKinds:updateKinds,");
+    expect(alert).toContain(
+      "updateKinds:[NotificationRuleUpdateKind.EpisodeMembers,updateKind,],",
+    );
+
     for (const timeline of [
       "Server/Services/IncidentStateTimelineService.ts",
-      "Server/Services/AlertStateTimelineService.ts",
       "Server/Services/IncidentEpisodeStateTimelineService.ts",
       "Server/Services/AlertEpisodeStateTimelineService.ts",
     ]) {

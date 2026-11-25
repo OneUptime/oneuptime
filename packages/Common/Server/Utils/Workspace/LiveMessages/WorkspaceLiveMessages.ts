@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import WorkspaceLiveMessage from "../../../../Models/DatabaseModels/WorkspaceLiveMessage";
+import SlackAlertMessage from "./SlackAlertMessage";
 import WorkspaceProjectAuthToken from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -73,6 +74,28 @@ export default class WorkspaceLiveMessages {
    * not kept: an edit would put the whole message in that last post.
    */
   public static readonly MAX_BLOCKS_IN_ONE_POST: number = 40;
+
+  public static async getSlackThreadTimestamps(data: {
+    projectId: ObjectID;
+    messageKey: string;
+  }): Promise<ReadonlyMap<string, string>> {
+    const threads: Map<string, string> = new Map<string, string>();
+
+    try {
+      for (const message of await WorkspaceLiveMessageService.findByMessageKey({
+        projectId: data.projectId,
+        messageKey: data.messageKey,
+      })) {
+        if (message.channelId && message.messageId) {
+          threads.set(message.channelId, message.messageId);
+        }
+      }
+    } catch (error) {
+      logger.error(error, { projectId: data.projectId.toString() });
+    }
+
+    return threads;
+  }
 
   // The tail of the work waiting for each key in this process.
   private static localHolds: Map<string, Promise<void>> = new Map<
@@ -199,6 +222,19 @@ export default class WorkspaceLiveMessages {
         continue;
       }
 
+      if (
+        workspaceType === WorkspaceType.Slack &&
+        data.notificationFor.alertId
+      ) {
+        await SlackAlertMessage.waitForInitialPost(
+          data.notificationFor.alertId,
+        );
+      }
+      const slackThreadTsByChannel: ReadonlyMap<string, string> | undefined =
+        workspaceType === WorkspaceType.Slack && destinations.length
+          ? await WorkspaceNotificationRuleService.getSlackReplyThreads(data)
+          : undefined;
+
       for (const destination of destinations) {
         const keptMessage: WorkspaceLiveMessage | null = await this.postAndKeep(
           {
@@ -207,6 +243,9 @@ export default class WorkspaceLiveMessages {
             destination: {
               ...destination,
               messageBlocks: data.messageBlocks,
+              ...(slackThreadTsByChannel?.size
+                ? { slackThreadTsByChannel: slackThreadTsByChannel }
+                : {}),
               ...(data.text ? { text: data.text } : {}),
             },
             messageData: data.messageData,
@@ -349,6 +388,8 @@ export default class WorkspaceLiveMessages {
     payloads: Array<WorkspaceMessagePayload>;
     responses: Array<WorkspaceSendMessageResponse>;
     leadBlocksByWorkspaceType: Map<WorkspaceType, Array<WorkspaceMessageBlock>>;
+    onlyWorkspaceType?: WorkspaceType | undefined;
+    onlyRootPosts?: boolean | undefined;
   }): Promise<Array<WorkspaceLiveMessage>> {
     const kept: Array<WorkspaceLiveMessage> = [];
 
@@ -357,7 +398,12 @@ export default class WorkspaceLiveMessages {
       const response: WorkspaceSendMessageResponse | undefined =
         data.responses[index];
 
-      if (!response || response.workspaceType !== payload.workspaceType) {
+      if (
+        !response ||
+        response.workspaceType !== payload.workspaceType ||
+        (data.onlyWorkspaceType &&
+          data.onlyWorkspaceType !== payload.workspaceType)
+      ) {
         continue;
       }
 
@@ -369,7 +415,11 @@ export default class WorkspaceLiveMessages {
       }
 
       for (const thread of response.threads) {
-        if (!thread.channel?.id || !thread.threadId) {
+        if (
+          !thread.channel?.id ||
+          !thread.threadId ||
+          (data.onlyRootPosts && thread.parentThreadId)
+        ) {
           continue;
         }
 

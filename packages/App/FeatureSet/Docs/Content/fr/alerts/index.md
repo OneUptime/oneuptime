@@ -93,7 +93,7 @@ Laissez **État initial** vide, et l'alerte commence là où commence toute nouv
 
 ## Ce qui se passe à la création d'une alerte
 
-Dès qu'une alerte est créée, OneUptime franchit ces étapes, dans cet ordre :
+Lorsqu'une alerte est créée, OneUptime suit généralement cet ordre. Si les fils d'alertes dans Slack sont activés, les règles d'étiquetage et le regroupement s'exécutent avant le premier message Slack, et les politiques d'astreinte de l'alerte n'attendent pas Slack :
 
 1. **Elle reçoit un numéro et un état.** Le numéro d'alerte vient d'un compteur propre au projet, affiché avec votre préfixe (`ALT-42`). L'alerte commence dans votre état de création, sauf si le formulaire, l'API, un flux de travail ou Demander à l'IA en a choisi un autre.
 2. **Les règles de confidentialité passent en premier**, pour que tout ce qui suit sache si l'alerte est privée.

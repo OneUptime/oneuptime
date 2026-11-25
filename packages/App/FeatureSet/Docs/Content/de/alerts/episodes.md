@@ -11,7 +11,7 @@ Fällt eine Datenbank aus, können zwanzig Monitore innerhalb von Minuten zwanzi
 
 ## So funktioniert das Gruppieren
 
-Das Gruppieren läuft einmal für jede neue Warnung, direkt nachdem ihre Bereitschaftsrichtlinien gelaufen sind. Die Warnung wird mit Ihren aktivierten Gruppierungsregeln abgeglichen, von oben nach unten in der Liste, und die erste Regel, die auf sie zutrifft, bestimmt ihre Episode. Eine Warnung, auf die keine Regel zutrifft, bleibt für sich.
+Warnungen werden normalerweise nach der Ausführung ihrer Bereitschaftsrichtlinien gruppiert. Sind Warnungs-Threads in Slack aktiviert, erfolgt die Gruppierung vor der ersten Slack-Nachricht, damit die Warnung im Thread ihrer Episode erscheinen kann, ohne ihre eigenen Bereitschaftsrichtlinien zu verzögern. Die Warnung wird mit Ihren aktivierten Gruppierungsregeln abgeglichen, von oben nach unten in der Liste, und die erste Regel, die auf sie zutrifft, bestimmt ihre Episode. Eine Warnung, auf die keine Regel zutrifft, bleibt für sich.
 
 ```mermaid title="Wohin eine neue Warnung geht"
 flowchart TB

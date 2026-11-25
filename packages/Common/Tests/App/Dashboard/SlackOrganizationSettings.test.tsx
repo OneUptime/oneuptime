@@ -94,6 +94,10 @@ interface RecordedRequest {
 }
 
 const requests: Array<RecordedRequest> = [];
+let mockAlertThreading: boolean = false;
+let mockRejectThreadingLoad: boolean = false;
+let mockRejectThreadingSave: boolean = false;
+let mockIsAdmin: boolean = false;
 type NavigateMock = ReturnType<
   typeof jest.fn<(...args: Array<unknown>) => void>
 >;
@@ -159,7 +163,7 @@ jest.mock("../../../UI/Utils/User", () => {
         };
       },
       isMasterAdmin: () => {
-        return false;
+        return mockIsAdmin;
       },
     },
   };
@@ -172,6 +176,13 @@ jest.mock("../../../UI/Utils/API/API", () => {
       get: async (options: { url: { toString: () => string } }) => {
         const url: string = options.url.toString();
         requests.push({ method: "GET", url: url });
+
+        if (url.endsWith("/slack/alert-threading")) {
+          if (mockRejectThreadingLoad) {
+            return new HTTPErrorResponse(502, { message: "Bad Gateway" }, {});
+          }
+          return { data: { enabled: mockAlertThreading } };
+        }
 
         if (url.includes("/slack/workspaces")) {
           if (
@@ -204,6 +215,14 @@ jest.mock("../../../UI/Utils/API/API", () => {
         const url: string = options.url.toString();
         requests.push({ method: "PUT", url: url, data: options.data });
 
+        if (url.endsWith("/slack/alert-threading")) {
+          if (mockRejectThreadingSave) {
+            throw new Error("Setting could not be saved.");
+          }
+          mockAlertThreading = options.data?.["enabled"] === true;
+          return { data: { enabled: mockAlertThreading } };
+        }
+
         const answer: JSONObject | HTTPErrorResponse = mockState.makeDefault(
           (options.data?.["workspaceId"] as string) || "",
         );
@@ -215,6 +234,13 @@ jest.mock("../../../UI/Utils/API/API", () => {
         return typeof message === "string" && message
           ? message
           : "Something went wrong.";
+      },
+      getFriendlyMessage: (error: unknown): string => {
+        return (
+          jest.requireActual(
+            "../../../UI/Utils/API/API",
+          ) as typeof import("../../../UI/Utils/API/API")
+        ).default.getFriendlyMessage(error);
       },
     },
   };
@@ -284,6 +310,10 @@ beforeEach(() => {
     );
   };
   requests.length = 0;
+  mockAlertThreading = false;
+  mockRejectThreadingLoad = false;
+  mockRejectThreadingSave = false;
+  mockIsAdmin = false;
   navigateMock.mockReset();
 });
 
@@ -311,6 +341,82 @@ async function renderUserSettings(): Promise<void> {
     );
   });
 }
+
+test("a failed Slack threading load can be retried without leaving settings", async () => {
+  mockIsAdmin = true;
+  mockRejectThreadingLoad = true;
+  await act(async () => {
+    render(
+      <SlackIntegration
+        showAlertThreading
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+      />,
+    );
+  });
+
+  expect(
+    screen.queryByRole("switch", { name: "Slack Alert Threads" }),
+  ).toBeNull();
+  expect(screen.queryByText("Bad Gateway")).toBeNull();
+  const retry: HTMLElement = screen.getByRole("button", { name: "Try again" });
+  mockRejectThreadingLoad = false;
+  await click(retry);
+  expect(
+    screen.getByRole("switch", { name: "Slack Alert Threads" }),
+  ).not.toBeChecked();
+  expect(retry).not.toBeInTheDocument();
+});
+
+test("project Slack threading saves immediately, survives a reload, and reverts on failure", async () => {
+  mockIsAdmin = true;
+  const renderSettings: () => void = () => {
+    render(
+      <SlackIntegration
+        showAlertThreading
+        onConnected={() => {}}
+        onDisconnected={() => {}}
+      />,
+    );
+  };
+  await act(async () => {
+    renderSettings();
+  });
+  const toggle: HTMLElement = screen.getByRole("switch", {
+    name: "Slack Alert Threads",
+  });
+  expect(toggle).toHaveAccessibleDescription(
+    "Post updates for alerts and alert episodes in Slack threads and update the original message when their state changes.",
+  );
+  expect(toggle).not.toBeChecked();
+  await act(async () => {
+    fireEvent.click(toggle);
+  });
+  expect(mockAlertThreading).toBe(true);
+  expect(toggle).toBeChecked();
+
+  cleanup();
+  await act(async () => {
+    renderSettings();
+  });
+  const reopened: HTMLElement = screen.getByRole("switch", {
+    name: "Slack Alert Threads",
+  });
+  expect(reopened).toBeChecked();
+  mockRejectThreadingSave = true;
+  await act(async () => {
+    fireEvent.click(reopened);
+  });
+  expect(reopened).toBeChecked();
+  expect(screen.getByText("Setting could not be saved.")).toBeInTheDocument();
+
+  mockRejectThreadingSave = false;
+  await act(async () => {
+    fireEvent.click(reopened);
+  });
+  expect(reopened).not.toBeChecked();
+  expect(mockAlertThreading).toBe(false);
+});
 
 function cardTitles(): Array<string> {
   return screen
