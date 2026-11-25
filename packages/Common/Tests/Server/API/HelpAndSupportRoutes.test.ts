@@ -57,6 +57,7 @@ jest.mock("../../../Server/Middleware/UserAuthorization", () => {
 });
 
 import GlobalConfigAPI from "../../../Server/API/GlobalConfigAPI";
+import { IsBillingEnabled } from "../../../Server/EnvironmentConfig";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import HelpAndSupportServerSettings from "../../../Server/Utils/HelpAndSupport/HelpAndSupportServerSettings";
@@ -302,7 +303,12 @@ describe("help and support, over HTTP", () => {
         value: "https://join.slack.com/t/acme/shared_invite/zt-secret",
       });
       expect(answer?.adminNotificationEmail).toBe("admins@example.com");
-      expect(answer?.isOneUptimeCloud).toBe(false);
+      /*
+       * Whether this server is OneUptime Cloud - billing on, as Common Test
+       * runs, or a self-hosted server's - which decides where Give
+       * feedback's default goes.
+       */
+      expect(answer?.isOneUptimeCloud).toBe(IsBillingEnabled);
       expect(typeof answer?.canSendEmail).toBe("boolean");
       expect(answer?.isProductRenamed).toBe(false);
     });
