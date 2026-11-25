@@ -15,7 +15,7 @@ Ouvrez **Incidents** depuis le menu **Produits** de la barre supérieure, puis d
 
 | Page                          | Ce que vous y faites                                                                               |
 | ----------------------------- | -------------------------------------------------------------------------------------------------- |
-| **État de l'incident**        | Ajouter, renommer, recolorer et réordonner les états par lesquels passe un incident.               |
+| **État de l'incident**        | Ajouter, renommer, recolorer et réordonner les états par lesquels passe un incident, et choisir si les incidents déclarés à la main démarrent pris en compte. Désactivé par défaut. |
 | **Gravité de l'incident**     | Ajouter, renommer, recolorer et réordonner les niveaux de gravité.                                 |
 | **Modèles d'incident**        | Préremplir tout un incident — titre, description, ressources, politiques d'astreinte, propriétaires, étiquettes. |
 | **Modèles de notes**          | Du texte réutilisable pour les notes publiques et privées.                                         |

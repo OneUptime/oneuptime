@@ -15,7 +15,7 @@ Konfigurationen af hændelser ligger under **Hændelser**, ikke under **Projekti
 
 | Side                         | Hvad du gør der                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Hændelsesstatus**          | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på de tilstande, en hændelse går igennem. |
+| **Hændelsesstatus**          | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på de tilstande, en hændelse går igennem, og vælge, om hændelser erklæret i hånden starter som bekræftede. Slået fra som standard. |
 | **Hændelsesalvor**           | Tilføje, omdøbe, give nye farver og ændre rækkefølgen på alvorsgraderne.                     |
 | **Hændelsesskabeloner**      | Udfylde en hel hændelse på forhånd — titel, beskrivelse, ressourcer, vagtpolitikker, ejere, etiketter. |
 | **Noteskabeloner**           | Genbrugelig tekst til offentlige og private noter.                                           |

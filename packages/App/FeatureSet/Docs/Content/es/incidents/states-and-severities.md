@@ -65,7 +65,7 @@ Con el proyecto se crean tres estados, en este orden. La creación es idempotent
 
 | Indicador             | Propósito                                                                                                                                                                                            |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | El estado que recibe un incidente cuando nadie eligió uno. Si ningún estado del proyecto lleva este indicador, crear un incidente falla con un error que te pide añadir un estado de creación de incidentes desde los ajustes. |
+| `isCreatedState`      | El estado que recibe un incidente cuando nadie eligió uno, salvo que el proyecto haga empezar reconocidos los incidentes declarados a mano y uno declarado a mano no active ninguna política de guardia: consulta [Incidentes declarados a mano](#incidentes-declarados-a-mano). Si ningún estado del proyecto lleva este indicador, crear un incidente falla con un error que te pide añadir un estado de creación de incidentes desde los ajustes. |
 | `isAcknowledgedState` | Marca el estado reconocido del proyecto: aquel al que **Reconocer** lleva un incidente y que da nombre al indicador de reconocimiento. Un incidente en él, en cualquier estado posterior, o resuelto, está reconocido: ya no se le ofrece **Reconocer**, la guardia deja de avisar por él y su SLA se marca como respondido. |
 | `isResolvedState`     | Marca el estado resuelto del proyecto: aquel al que **Resolver** lleva un incidente y que muestra el indicador de resolución. Un incidente en él, o en cualquier estado posterior, está resuelto: sale de **Incidentes activos** y de la sección activa de una página de estado, y su SLA se marca como resuelto. |
 
@@ -75,6 +75,28 @@ Se espera que solo un estado por proyecto tenga cada indicador: las búsquedas t
 - **No se pueden eliminar.** Su **Eliminar** sigue en el menú de la fila, bloqueado, con el motivo. Una eliminación masiva los omite y los lista como no eliminados. La API también se niega a eliminar el último estado de creación, reconocido o resuelto de un proyecto.
 
 Como la interfaz lee los nombres de los estados de forma dinámica, renombrar un estado cambia lo que ves en todas partes: los indicadores (**Reconocido en** y **Resuelto en** con los nombres iniciales), la confirmación **Marcar incidente como …** de un estado personalizado y la etiqueta de la lista de incidentes siguen el nombre que diste a la fila.
+
+## Incidentes declarados a mano
+
+Todo incidente nuevo empieza en tu estado de creación y espera ahí a que alguien lo reconozca. Cuando declaras uno tú mismo, lo normal es que seas tú quien responde: pasas a ser su Comandante de incidente al declararlo, y reconocerlo es un clic más. Un proyecto puede hacer que esos incidentes empiecen ya reconocidos.
+
+:::steps
+1. Abre **Incidentes → Ajustes → Estado del incidente** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Bajo la lista de estados, activa **Start incidents declared by hand acknowledged**. El interruptor se guarda en cuanto lo cambias.
+:::
+
+Está desactivado en todos los proyectos hasta que lo actives, así que una actualización nunca cambia a quién se avisa. Solo los Propietarios del proyecto y los Administradores del proyecto pueden cambiarlo; para todos los demás, el interruptor está bloqueado y dice qué permiso necesita.
+
+Mientras está activado, un incidente declarado a mano —con **Declarar incidente**, desde donde lo abras, o con el formulario de incidente de Slack o Microsoft Teams— empieza en tu estado reconocido cuando se cumplen estas dos condiciones:
+
+- **No tiene ningún estado elegido**, ni por ti ni por la plantilla desde la que se declara. Un estado elegido prevalece, como siempre.
+- **No activa ninguna política de guardia**, ni elegida por ti ni por su plantilla. Elige una política y el incidente empieza en tu estado de creación, como antes, para que la política avise a sus personas.
+
+Al empezar reconocido, no avisa a nadie: como en cualquier incidente [declarado ya reconocido](/docs/incidents/declaring-incidents#declarado-ya-reconocido-o-resuelto), no se ejecuta ninguna política de guardia, ni siquiera una que añada una regla de guardia. Su SLA empieza ya marcado como respondido, y su tiempo hasta el reconocimiento es cero, un valor que también cuenta en tu MTTA.
+
+**Declarar incidente** lo indica antes de que declares: bajo **Estado inicial**, bajo **Política de guardia** mientras no hay ninguna elegida, y en el resumen, que entonces siempre lista **Estado inicial**. Nunca rellena **Estado inicial** por ti: un estado elegido ahí prevalece, así que las políticas de guardia que eligieras en el último paso no avisarían a nadie. Slack y Microsoft Teams lo dicen bajo sus políticas de guardia, y en el mensaje que confirma el incidente.
+
+Los incidentes que nadie declara a mano —abiertos por monitores o por reglas de incidentes de alertas, mediante la API, Terraform, flujos de trabajo o formularios, desde un caso de seguridad, o por OneUptime AI— empiezan en tu estado de creación, como antes. En la API, el interruptor es el campo `startIncidentsDeclaredByHandAcknowledged` del proyecto.
 
 ## Añadir tus propios estados
 

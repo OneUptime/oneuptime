@@ -15,7 +15,7 @@ Konfigurasjonen av hendelser ligger under **Hendelser**, ikke under **Prosjektin
 
 | Side                         | Hva du gjør der                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Hendelsesstatus**          | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på tilstandene en hendelse går gjennom. |
+| **Hendelsesstatus**          | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på tilstandene en hendelse går gjennom, og velge om hendelser erklært for hånd starter som bekreftet. Slått av som standard. |
 | **Hendelsesalvor**           | Legge til, gi nytt navn, gi ny farge og endre rekkefølgen på alvorlighetsgradene.            |
 | **Hendelsesmaler**           | Forhåndsutfylle en hel hendelse — tittel, beskrivelse, ressurser, vaktpolicyer, eiere, etiketter. |
 | **Notatmaler**               | Gjenbrukbar tekst for offentlige og private notater.                                         |

@@ -76,6 +76,28 @@ Only one state per project is expected to hold each flag — the lookups fetch t
 
 Because the UI reads state names dynamically, renaming a state changes what you see everywhere — the stat tiles (**Acknowledged in** and **Resolved in** with the seeded names), the **Mark Incident as …** confirmation of a custom state, and the pill on the incidents list all follow the name you gave the row.
 
+## Incidents declared by hand
+
+Every new incident starts in your created state and waits there to be acknowledged. When you declare one yourself, you are usually the one responding: you become its Incident Commander as you declare it, and acknowledging it is one more click. A project can start those incidents acknowledged instead.
+
+:::steps
+1. Open **Incidents → Settings → Incident State** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Under the list of states, turn on **Start incidents declared by hand acknowledged**. It saves as soon as you flip it.
+:::
+
+It is off in every project until you turn it on, so an upgrade never changes who is paged. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs.
+
+While it is on, an incident declared by hand — with **Declare Incident**, wherever you open it, or with the incident form in Slack or Microsoft Teams — starts in your acknowledged state when both of these hold:
+
+- **No state is picked for it**, by you or by the template it is declared from. A state picked wins, as always.
+- **It pages no on-call policy**, picked by you or by its template. Pick a policy and the incident starts in your created state, as before, so the policy pages its people.
+
+Starting acknowledged, it pages no one: as for any incident [declared already acknowledged](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved), no on-call policy runs, not even one an on-call rule adds. Its SLA starts already responded to, and its time to acknowledge is zero, which your MTTA counts in.
+
+**Declare Incident** says so before you declare: under **Initial State**, under **On-Call Policy** while none is picked, and on the summary, which then always lists **Initial State**. It never fills **Initial State** in for you: a state picked there wins, so the on-call policies you pick on the last step would page no one. Slack and Microsoft Teams say so under their on-call policies, and in the message that confirms the incident.
+
+Incidents nobody declares by hand — opened by monitors or alert incident rules, through the API, Terraform, workflows or forms, from a security case, or by OneUptime AI — start in your created state, as before. Over the API, the switch is the project's `startIncidentsDeclaredByHandAcknowledged`.
+
 ## Adding your own states
 
 A state you add is a step in your response that the seeded three do not name: "Investigating", "Mitigated", "Monitoring", "Closed".
@@ -199,28 +221,6 @@ An incident is acknowledged from the moment it moves into your acknowledged stat
 - **An Acknowledged filter** — on a dashboard's incident list widget, say — shows the incidents in your acknowledged state and in any state after it, short of resolved.
 
 Alerts and episodes follow the same rule, with your alert states.
-
-## Incidents declared by hand
-
-Every new incident starts in your created state and waits there to be acknowledged. When you declare one yourself, you are usually the one responding: you become its Incident Commander as you declare it, and acknowledging it is one more click. A project can start those incidents acknowledged instead.
-
-:::steps
-1. Open **Incidents → Settings → Incident State** (`/dashboard/{projectId}/incidents/settings/state`).
-2. Under the list of states, turn on **Start incidents declared by hand acknowledged**. It saves as soon as you flip it.
-:::
-
-It is off in every project until you turn it on, so an upgrade never changes who is paged. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs.
-
-While it is on, an incident declared by hand — with **Declare Incident**, wherever you open it, or with the incident form in Slack or Microsoft Teams — starts in your acknowledged state when both of these hold:
-
-- **No state is picked for it**, by you or by the template it is declared from. A state picked wins, as always.
-- **It pages no on-call policy**, picked by you or by its template. Pick a policy and the incident starts in your created state, as before, so the policy pages its people.
-
-Starting acknowledged, it pages no one: as for any incident [declared already acknowledged](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved), no on-call policy runs, not even one an on-call rule adds. Its SLA starts already responded to, and its time to acknowledge is zero, which your MTTA counts in.
-
-**Declare Incident** says so before you declare: under **Initial State**, under **On-Call Policy** while none is picked, and on the summary, which then always lists **Initial State**. It never fills **Initial State** in for you: a state picked there wins, so the on-call policies you pick on the last step would page no one. Slack and Microsoft Teams say so under their on-call policies, and in the message that confirms the incident.
-
-Incidents nobody declares by hand — opened by monitors or alert incident rules, through the API, Terraform, workflows or forms, from a security case, or by OneUptime AI — start in your created state, as before. Over the API, the switch is the project's `startIncidentsDeclaredByHandAcknowledged`.
 
 ## What resolving does
 
