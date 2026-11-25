@@ -943,12 +943,14 @@ for (const [interfaceIndex, name, alias] of [
 /*
  * The cluster a Kubernetes monitor's criteria step offers (its cluster
  * picker reads the KubernetesCluster table): the one the Kubernetes monitor
- * below watches.
+ * below watches. Live, as a cluster is stored: the picker offers only
+ * clusters that are not archived (isArchived: false, #10646).
  */
 insert(KubernetesCluster, {
   _id: ID.kubernetesCluster(1),
   name: "Production cluster (eu-west-1)",
   clusterIdentifier: "prod-eu-west-1",
+  isArchived: false,
 });
 
 /*
