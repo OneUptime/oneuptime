@@ -74,7 +74,7 @@ Hver type OneUptime AI nevner, er et funn med Lav konfidens, merket **Foreslått
 
 ## Navn og gateadresser i fritekst
 
-Ingen mønstre skiller en persons navn fra et hvilket som helst annet ord. Derfor leses fritekst - et supportnotat, en logglinje, en unntaksmelding, en prompt - også av en liten språkmodell som finner personnavn og gateadresser. Modellen kjører inne i skanneren, på OneUptimes workers og på probene dine: teksten forlater aldri skanneren, ingenting lastes ned mens den kjører, og ingen prompt skrives. Den er ikke OneUptime AI, og OneUptime AIs brytere slår den ikke av eller på: det gjør **Finn navn og gateadresser**.
+Ingen mønstre skiller en persons navn fra et hvilket som helst annet ord. Derfor leses fritekst - et supportnotat, en logglinje, en unntaksmelding, en prompt - også av en liten språkmodell som finner personnavn og gateadresser. Modellen kjører inne i skanneren, på OneUptimes workers og på sondene dine: teksten forlater aldri skanneren, ingenting lastes ned mens den kjører, og ingen prompt skrives. Den er ikke OneUptime AI, og OneUptime AIs brytere slår den ikke av eller på: det gjør **Finn navn og gateadresser**.
 
 - **Hva den leser.** Et felt der verdiene i snitt er lengre enn 80 tegn, og i telemetri hver loggtekst, unntaksmelding, stakksporing og AI-samtale, uansett hvor kort. Den leser opptil 100 ulike verdier i et felt, 32 KB tekst til sammen, og opptil 16 KB av én verdi.
 - **Hva den finner.** Et **Personnavn** (`person-name`) og en **Gateadresse** (`postal-address`): et sted modellen leser ved siden av et husnummer, for eksempel `14 Calle Mayor`, med postnummeret og stedet som følger. Et sted eller et land alene er ingen gateadresse.
@@ -125,17 +125,17 @@ De fire modellene som ble målt, på det skrevne testsettet, én etter én på s
 
 ### Hvor den kjører, og hva den koster
 
-- **I hvert image.** App-imaget, som kjører workers, og Probe-imaget har med seg modellen, ordforrådet og kjøremiljøet, også luftgappede og Iron Bank-images: rundt 114 MB på disk. De hentes når imaget bygges, fra en fastlåst revisjon, og kontrolleres mot sin SHA-256. Ingenting lastes ned mens en skanning kjører.
+- **I hvert image.** App-imaget, som kjører workers, og sonde-imaget har med seg modellen, ordforrådet og kjøremiljøet, også luftgappede og Iron Bank-images: rundt 114 MB på disk. De hentes når imaget bygges, fra en fastlåst revisjon, og kontrolleres mot sin SHA-256. Ingenting lastes ned mens en skanning kjører.
 - **Minne.** Den lastes inn første gang en skanning trenger den, én gang per prosess: rundt 550 MB, som gis tilbake etter 10 minutter uten skanning.
 - **Tid.** På én kjerne mellom 30 sekunder og ett minutt per 1 000 verdier på lengde med en logglinje, og rundt 9 minutter per 1 000 verdier på 1 200 tegn. En innholdsskanning av et datalager gir den opptil 2 minutter. Telemetriskanningen hver time gir den opptil 1 minutt til sammen og 6 sekunder per datalager, til et nytt utvalg datalagre hver time.
-- **Når tiden er brukt opp**, fullføres skanningen med det modellen rakk å lese, og varslene sier hvor mange av fritekstverdiene den leste, aldri hva. En worker eller en probe uten modellen skanner som før og sier hvorfor:
+- **Når tiden er brukt opp**, fullføres skanningen med det modellen rakk å lese, og varslene sier hvor mange av fritekstverdiene den leste, aldri hva. En worker eller en sonde uten modellen skanner som før og sier hvorfor:
 
 ```text
 Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
 Names and street addresses in free text were not looked for: the model's model_quantized.onnx is not installed on this probe.
 ```
 
-**Finn navn og gateadresser** er på i hvert prosjekt: innholdsskanninger av buckets, databaser og BigQuery-datasett leser fritekst med modellen, på workers og på prober. **Finn navn og gateadresser i telemetri**, under den, er av: å lese hver loggtekst, hvert unntak og hver samtale i et travelt prosjekt med 200 tjenester én gang tar rundt 48 minutter på én kjerne, og skanningens minutt i timen leser rundt 4 % av det. Slå den på for at hver timeskanning skal lese en del av dem. Begge ligger under **Datasikkerhet → Innstillinger → Skanneinnstillinger**, i **Hva Datasikkerhet leser**. **Test det** kjører i nettleseren din, uten modellen: det modellen ville funnet, vises ikke der.
+**Finn navn og gateadresser** er på i hvert prosjekt: innholdsskanninger av buckets, databaser og BigQuery-datasett leser fritekst med modellen, på workers og på sonder. **Finn navn og gateadresser i telemetri**, under den, er av: å lese hver loggtekst, hvert unntak og hver samtale i et travelt prosjekt med 200 tjenester én gang tar rundt 48 minutter på én kjerne, og skanningens minutt i timen leser rundt 4 % av det. Slå den på for at hver timeskanning skal lese en del av dem. Begge ligger under **Datasikkerhet → Innstillinger → Skanneinnstillinger**, i **Hva Datasikkerhet leser**. **Test det** kjører i nettleseren din, uten modellen: det modellen ville funnet, vises ikke der.
 
 ## Sensitivitet
 
