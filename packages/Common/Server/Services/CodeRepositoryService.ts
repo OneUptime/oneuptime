@@ -41,10 +41,14 @@ import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import Permission, { PermissionHelper } from "../../Types/Permission";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import {
+  getDefaultWorkflowRunnerWorkRefusal,
   getRunnerWorkRefusal,
   picksRunner,
   setsCommand,
+  writesRunnerWork,
 } from "../../Types/CodeRepository/CodeRepositoryRunnerAuthoring";
+import WorkflowPrincipal from "../Utils/Workflow/WorkflowPrincipal";
+import WorkflowSecretChangeRefusedException from "../Types/Database/Permissions/WorkflowSecretChangeRefusedException";
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -171,6 +175,13 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
+    // A workflow at the default permissions acts as a Project Admin.
+    Service.assertWorkflowDoesNotWriteWhatRunnersRun({
+      data: data,
+      props: props,
+      isCreate: true,
+    });
+
     if (Service.mayWriteWhatRunnersRun(props)) {
       return;
     }
@@ -186,12 +197,67 @@ export class Service extends ProjectReferencesService<Model> {
     );
   }
 
+  /*
+   * A WORKFLOW THAT RUNS WITH THE DEFAULT PERMISSIONS WRITES NOTHING A
+   * RUNNER RUNS.
+   *
+   * Such a workflow acts as a Project Admin (WorkflowPrincipal), and a
+   * Project Member may build one, so a step of it lent the columns' update
+   * lists would let its builder set a command, or pick a Runner, that they
+   * may not as a person - the report's chain, through a workflow. Its steps
+   * write none of them - not even to clear one, which still decides where
+   * and what the project's Runners run - as they change none of the
+   * project's secrets (WorkflowPrincipal.assertDoesNotChangeSecrets), and a
+   * create of one is held to a person's rule. One a person gave Project
+   * Owner or a custom role passes on to the checks a person meets, as its
+   * giver is checked on every run.
+   */
+  public static assertWorkflowDoesNotWriteWhatRunnersRun(data: {
+    data: Model | Record<string, unknown> | undefined;
+    props: DatabaseCommonInteractionProps;
+    isCreate: boolean;
+  }): void {
+    if (
+      !WorkflowPrincipal.isWorkflow(data.props) ||
+      WorkflowPrincipal.isRaised(data.props.workflowRunAs)
+    ) {
+      return;
+    }
+
+    const writes: boolean = data.isCreate
+      ? setsCommand(data.data) || picksRunner(data.data)
+      : writesRunnerWork(data.data);
+
+    if (!writes) {
+      return;
+    }
+
+    throw new WorkflowSecretChangeRefusedException(
+      getDefaultWorkflowRunnerWorkRefusal({ isCreate: data.isCreate }),
+    );
+  }
+
   // Before the project check (the base hooks run this first).
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
     // Who may write what a Runner runs, before the Runner it names is read.
     Service.assertMayWriteWhatRunnersRun(createBy.data, createBy.props);
+  }
+
+  /*
+   * An update's columns are held to their own lists by the column check; a
+   * workflow at the default permissions, which holds Project Admin, is held
+   * here, before the Runner it names is read.
+   */
+  protected override async checkUpdateBeforeReferences(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    Service.assertWorkflowDoesNotWriteWhatRunnersRun({
+      data: updateBy.data as unknown as Record<string, unknown>,
+      props: updateBy.props,
+      isCreate: false,
+    });
   }
 
   /*

@@ -35,6 +35,12 @@
  * none - no value, null or an empty command - passes for whoever may create
  * a repository, as every page that connects one creates it.
  *
+ * A workflow that runs with the default permissions acts as a Project
+ * Admin, and a Project Member may build one: its steps write none of these
+ * columns (writesRunnerWork), as they change none of the project's secrets
+ * (Server/Utils/Workflow/WorkflowPrincipal). One a person gave Project
+ * Owner or a custom role meets the checks a person meets.
+ *
  * Kept free of server and React code, so the server and the tests read the
  * same rule and the same words.
  */
@@ -158,4 +164,42 @@ export function getRunnerWorkRefusal(data: {
   }
 
   return `You may not pick the Runner AI works in this repository on: it decides which of the project's Runners runs the repository's commands and OneUptime AI's, so picking it takes what writing a runbook step that runs takes. ${who} Create the repository without a Runner of its own - it then works on the project's default Runner - or ask someone who holds one of these permissions to pick one.`;
+}
+
+/*
+ * Whether a write gives any of the columns that decide what a Runner runs
+ * for a repository a value, nothing included: a command, cleared or set,
+ * and the Runner setting, picked, cleared or moved to the Global Runner.
+ * What a workflow that runs with the default permissions may not change.
+ */
+export function writesRunnerWork(data: unknown): boolean {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+
+  const written: Record<string, unknown> = data as Record<string, unknown>;
+
+  return [
+    ...CODE_REPOSITORY_COMMAND_COLUMNS,
+    ...CODE_REPOSITORY_RUNNER_COLUMNS,
+  ].some((column: string): boolean => {
+    return written[column] !== undefined;
+  });
+}
+
+/*
+ * What a step of a workflow that runs with the default permissions is
+ * refused with when it would write what a Runner runs for a repository. Such
+ * a workflow acts as a Project Admin, and a Project Member may build one, so
+ * a step lent that would let its builder write what they may not as a
+ * person. What would let the workflow, as a workflow's refusal of the
+ * project's secrets says it (Server/Utils/Workflow/WorkflowPrincipal): what
+ * it runs as.
+ */
+export function getDefaultWorkflowRunnerWorkRefusal(data: {
+  isCreate: boolean;
+}): string {
+  return `Workflows that run with the default permissions don't change what the project's Runners run, so this step can't ${
+    data.isCreate ? "create" : "change"
+  } a code repository's setup, build or test commands or its Runner. To let this workflow do it, choose what it runs as in its Settings: Project Owner, or a custom role that has Edit Runbook or Runbook Admin as well as the repository's own permissions.`;
 }
