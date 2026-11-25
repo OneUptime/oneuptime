@@ -331,9 +331,18 @@ describe("TeamMember acceptance transition safety", () => {
       "findRowsAndHoldUpdateToThem",
     ).mockResolvedValue([own] as never);
 
+    /*
+     * It is let through as an acceptance, carrying who of the people it
+     * accepts were members of the project before it (#10557), so whoever
+     * joins with it is told once which on-call policies page them: nobody
+     * here, as this membership names no project.
+     */
     await expect(
       callHook(TeamMemberService, "onBeforeUpdate", updateBy),
-    ).resolves.toEqual({ updateBy, carryForward: null });
+    ).resolves.toEqual({
+      updateBy,
+      carryForward: { memberKeysBefore: new Set<string>() },
+    });
   });
 
   test("an unrelated owner-scoped update is not mistaken for leaving", async () => {
