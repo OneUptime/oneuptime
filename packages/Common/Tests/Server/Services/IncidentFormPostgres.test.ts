@@ -403,6 +403,8 @@ describePostgres("Forms against a migrated Postgres", () => {
             ];
           }),
       ).toEqual([
+        // The alert a form made, as it makes incidents and events (#10760).
+        ["alertId", "Alert", "n"],
         ["formId", "Form", "c"],
         ["incidentId", "Incident", "n"],
         ["projectId", "Project", "c"],
