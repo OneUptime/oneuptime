@@ -359,7 +359,7 @@ Google approved this product on 6 November 2026 (its solution validation,
 case 77153319) and sent its onboarding email the same day. Producer Portal
 has been on since 17 November 2026, a few hours after we answered the Partner
 Support Desk case that asked for the project info form and the roles (step
-1). **Where it stands** (24 November 2026): all three reviews are approved:
+1). **Where it stands** (25 November 2026): all three reviews were approved:
 the listing (step 7) on 18 November, the pricing (step 6) and release `15.0`
 on the Container images page (step 8) on 20 November, the last after three
 validations (step 8 says what the first two found). The usage
@@ -373,12 +373,14 @@ for the listing's icon in `application.yaml`. The screenshots went back on
 the case the same evening. Release `15.0` was pushed again with the icon
 (step 8) and saved at its new digest, which cancelled the Container images
 approval. Its validation then failed Google's vulnerability scan on three
-CVEs published after the approval (step 8). Two of them have no fixed build
-yet, and Google was asked on the case how to proceed. **Left**: Google's
-answer, then a release that passes the scan, submitted for review, then
-**Publish** again (step 10); Google's answer on the evidence and the listing
-made public; then the test cluster deleted and the test order cancelled
-(step 9).
+CVEs published after the approval (step 8). The one in nginx was fixed in
+the release's own nginx image on 25 November, and the validation run again.
+The two in Go have no fixed build yet: Google offered on the case to request
+an exception for them, and the list of blocking CVEs went back on 25
+November. **Left**: the exception and a validation that passes, then the
+release submitted for review, then **Publish** again (step 10); Google's
+answer on the evidence and the listing made public; then the test cluster
+deleted and the test order cancelled (step 9).
 Google's Marketplace Operations team supports the
 onboarding for 60 days from its reminder of 9 November (until about 8 January
 2027); help after that is not guaranteed. Everything lives in the
@@ -603,12 +605,21 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
      newest releases (1.36.6 and 1.37.2) are both built with Go 1.26.10, so
      there is no fixed kubectl yet
      ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)).
-   - **CVE-2026-97205** in nginx 1.30.5, fixed in the releases from 17.1.0
-     on, which run nginx 1.30.7.
+   - **CVE-2026-97205** in nginx 1.30.5 (fixed in 1.30.6). The releases from
+     17.1.0 on run nginx 1.30.7, and release 15.0's own nginx image got it on
+     25 November: a layer over the released image, pushed by hand over its
+     tags, from `sha256:7f416a6eaa9e` to `sha256:7d165e022ade`
+     ([Releasing a version](#google-cloud-marketplace) says how). **Retry**
+     on the failed validation then ran it again.
 
    Google's report (**View details** under the failed step) names each
    image, package and fixed version. Asked on case 77498377 that evening
    whether a Go 1.26.11 `deployer_helm` is coming, and how to proceed.
+   Google offered to request an exception for the blocking CVEs and asked
+   for the list, which went back on 25 November: CVE-2026-97040 in the
+   deployer and in the runner, each with its image's digest, and the nginx
+   one fixed. Once the exception is in place, the release goes for review
+   again; both images move to Go 1.26.11 builds once there are some.
 
 9. **Usage verification** (before **Publish**; Google's Partner Support
    Desk, case 77498377): Google checks that the hours the app reports reach
@@ -1016,6 +1027,44 @@ a freshly loaded page: the page then reads "Validation is running and might
 take up to 2 hours to complete", and the releases table shows the new
 digest. If the panel spins for more than a few minutes, reload the
 **Container images** page and check the digest there before saving again.
+
+**Fixing one image by hand** (a scan finding in a package of a released
+image, before a OneUptime release with the fix can go to Google): build the
+fix as a layer over the released image's digest, and push it over both of
+that image's tags. The deployer and the other images stay as they are;
+**Retry** on the failed validation (the **Container images** page) runs it
+again. 15.0.0's nginx image got nginx 1.30.7 this way on 25 November 2026
+(CVE-2026-97205):
+
+```dockerfile
+FROM us-docker.pkg.dev/oneuptime-marketplace/oneuptime/oneuptime-enterprise/nginx@sha256:7f416a6eaa9edbc4930bd7c5eb81fcf00a49039e7e5ff56d87f60dd4d3e30354
+RUN apk add --no-cache -X "https://nginx.org/packages/alpine/v3.24/main" \
+        nginx=1.30.7-r1 \
+        nginx-module-acme=1.30.7.0.4.2-r1 \
+        nginx-module-njs=1.30.7.1.0.2-r1
+```
+
+nginx and its modules move together, since each module is built for one
+nginx version; the official image keeps nginx.org's signing key. Push it
+with a `docker-container` builder and OCI media types. Docker's default
+builder pushes a Docker manifest, which carries no annotation, so the image
+would lack the listing's service:
+
+```bash
+docker buildx create --name gcp-fix --driver docker-container
+docker buildx build --builder gcp-fix --platform linux/amd64 --provenance=false --sbom=false \
+  --annotation "manifest:com.googleapis.cloudmarketplace.product.service.name=services/$SERVICE" \
+  --output type=registry,oci-mediatypes=true \
+  --tag "$REGISTRY/nginx:$VERSION" --tag "$REGISTRY/nginx:$TRACK" .
+docker buildx rm gcp-fix
+```
+
+Before pushing, compare the image's packages with the released one's
+(`apk info -v`: only the fixed ones change), and start it with the nginx
+container's environment from a test installation: `nginx -t` fails on the
+image alone. Whether **Retry** takes the new digest shows in the new
+report, which names each image's digest (the run of 25 November is still to
+be read).
 
 ## Checking an installation
 
@@ -1617,6 +1666,9 @@ rejection, go-live and price change.
 | 2026-11-24 | Google      | Release 15.0 saved at the new digest, cancelling its approval; validation failed on 3 new CVEs      | Agent      |
 | 2026-11-24 | Google      | Asked on case 77498377 how to proceed: two Go CVEs have no fixed build (deployer_helm, kubectl)     | Agent      |
 | 2026-11-24 | Google      | ClickHouse labelled with the app's name in the Google edition (#11018), from after 17.2.0           | Agent      |
+| 2026-11-24 | Google      | Google offered on case 77498377 to request an exception for the blocking CVEs, and asked for them   | Google     |
+| 2026-11-25 | Google      | 15.0.0's nginx image given nginx 1.30.7 by hand (CVE-2026-97205); validation run again with Retry   | Agent      |
+| 2026-11-25 | Google      | Blocking CVEs sent on case 77498377: CVE-2026-97040 in the deployer and the runner; nginx fixed     | Agent      |
 
 ## Notes for agents driving the browser
 
