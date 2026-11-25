@@ -374,13 +374,47 @@ describe("DatabaseService hands every failure of a create to onCreateError", () 
   const createItself: string = methodText(classSource, "_create");
 
   test("create runs the create itself in one try, and hands what fails to onCreateError with what onBeforeCreate handed back, and which step failed", () => {
+    /*
+     * Then, in its finally, it gives back the name the create held while
+     * its project requires unique names (#10761): after onCreateError has
+     * been told, and even when it throws - a step that cannot throw, below.
+     */
     expect(create).toMatch(
-      /try\s*\{\s*return await this\._create\(createBy, handedBack\);\s*\}\s*catch \(error\)\s*\{\s*await this\.onCreateError\(\s*error as Exception,\s*handedBack\.onCreate,\s*handedBack\.progress\.getFailedStatement\(\),?\s*\);\s*throw this\.getException\(error as Exception\);\s*\}/,
+      /try\s*\{\s*return await this\._create\(createBy, handedBack\);\s*\}\s*catch \(error\)\s*\{\s*await this\.onCreateError\(\s*error as Exception,\s*handedBack\.onCreate,\s*handedBack\.progress\.getFailedStatement\(\),?\s*\);\s*throw this\.getException\(error as Exception\);\s*\}\s*finally\s*\{(?:\s*\/\*[\s\S]*?\*\/)?\s*await this\.giveBackUniqueNameOfCreate\(handedBack, createBy\.props\);\s*\}/,
     );
     // One record of the create's steps, from its start.
     expect(create).toMatch(
       /handedBack: CreateHandedBack<TBaseModel> = \{\s*onCreate: undefined,\s*progress: new WriteProgress\(\),?\s*\}/,
     );
+  });
+
+  test("the name a failed create held is given back by a step that cannot throw, so the create's own failure is what its caller gets", () => {
+    const giveBack: string = methodText(
+      classSource,
+      "giveBackUniqueNameOfCreate",
+    );
+
+    expect(giveBack).toMatch(/await RequiredUniqueNames\.giveBack\(\s*hold,/);
+    expect(giveBack).not.toMatch(/\bthrow\b/);
+
+    // What fails to give the name's lock back is logged, never thrown.
+    const release: string = methodText(
+      readClassSource(
+        path.join(
+          COMMON_DIR,
+          "Server",
+          "Utils",
+          "Database",
+          "RequiredUniqueNames.ts",
+        ),
+      ),
+      "giveBack",
+    );
+
+    expect(release).toMatch(
+      /try\s*\{\s*await Semaphore\.release\(hold\);\s*\}\s*catch \(err\)\s*\{\s*logger\.error\(err, logAttributes\);\s*\}/,
+    );
+    expect(release).not.toMatch(/\bthrow\b/);
   });
 
   /*

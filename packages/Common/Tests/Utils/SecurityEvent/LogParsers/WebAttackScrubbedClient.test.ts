@@ -131,6 +131,8 @@ describe("an access log line whose client a scrub rule hid", () => {
       target: "/login",
       status: 401,
       userAgent: "hydra",
+      // The size of the answer's body after the status (#10912): none here.
+      bodySize: 0,
     });
   });
 

@@ -72,22 +72,31 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownEditor", () => {
 });
 
 /*
- * The leave question each page asks before its unsaved words are lost: its
- * Save Changes, as the page hands it, kept for a test to press - the
- * question's own answers are LeaveWithoutSavingQuestion.test's.
+ * The leave question each page asks before its unsaved words are lost,
+ * drawn as it is: "Save Changes in the question before leaving" below
+ * answers it as a reader does. Its Save Changes, as the page hands it, is
+ * also kept for a test to press without leaving - the question's own
+ * answers are LeaveWithoutSavingQuestion.test's.
  */
 const mockLeaveSaves: Array<(() => Promise<void>) | undefined> = [];
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion",
   () => {
+    const react: typeof React = jest.requireActual("react") as typeof React;
+    const actual: {
+      default: React.FunctionComponent<LeaveQuestionProps>;
+    } = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion",
+    ) as {
+      default: React.FunctionComponent<LeaveQuestionProps>;
+    };
+
     return {
       __esModule: true,
-      default: (props: {
-        onSaveChanges?: (() => Promise<void>) | undefined;
-      }): null => {
+      default: (props: LeaveQuestionProps): ReactElement => {
         mockLeaveSaves.push(props.onSaveChanges);
-        return null;
+        return react.createElement(actual.default, props);
       },
     };
   },
@@ -108,6 +117,7 @@ async function saveBeforeLeaving(): Promise<void> {
 import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import { NOT_LEGAL_ADVICE } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/ComplianceDraftsCopy";
 import RecordOfProcessingCard from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/RecordOfProcessingCard";
+import type { ComponentProps as LeaveQuestionProps } from "../../../../App/FeatureSet/Dashboard/src/Components/UnsavedChanges/LeaveWithoutSavingQuestion";
 import DataSecurityAuditEvidencePage, {
   readEvidenceFramework,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/AuditEvidence";
@@ -136,6 +146,7 @@ import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { DataStoreKind } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   ImpactAssessmentPart,
+  ImpactAssessmentSection,
   ImpactAssessmentSectionSource,
   ImpactAssessmentTrigger,
 } from "../../../Types/DataSecurity/ImpactAssessment";
@@ -147,6 +158,8 @@ import {
   RecordPeople,
 } from "../../../Types/DataSecurity/RecordOfProcessing";
 import ObjectID from "../../../Types/ObjectID";
+import LeaveGuard from "../../../UI/Utils/LeaveGuard";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 const FIRST_ID: string = "10375000-0000-4000-8000-00000000f001";
@@ -1067,5 +1080,254 @@ describe("the record of processing on Compliance", () => {
     expect(card).toHaveTextContent("Legal obligation");
     expect(within(card).getByText("Review")).toBeInTheDocument();
     expect(screen.getByText("Export CSV")).toBeInTheDocument();
+  });
+});
+
+/*
+ * Leaving one of these pages while words are not saved yet (#7402): its
+ * question offers Save Changes, as every editor's does - each field or
+ * part being edited saved as its own Save saves it, one after another,
+ * then on to where the reader was going. A save refused keeps the reader
+ * on the page, still asked, with why, and loses nothing.
+ */
+describe("Save Changes in the question before leaving", () => {
+  const ELSEWHERE: string = `/dashboard/${PROJECT_ID}/data-security/issues`;
+
+  // Someone opens another page: the page asks first, and the step waits.
+  async function tryToLeave(): Promise<MockFunction> {
+    const leave: MockFunction = getJestMockFunction();
+
+    await act(async () => {
+      LeaveGuard.whenLeaving(ELSEWHERE, leave as () => void);
+    });
+
+    return leave;
+  }
+
+  function leaveQuestion(): HTMLElement {
+    return screen.getByRole("dialog", { name: "Leave without saving?" });
+  }
+
+  async function answerSaveChanges(): Promise<void> {
+    const submit: HTMLElement = within(leaveQuestion()).getByTestId(
+      "modal-footer-submit-button",
+    );
+
+    expect(submit).toHaveTextContent("Save Changes");
+
+    await act(async () => {
+      fireEvent.click(submit);
+    });
+    await flush();
+  }
+
+  async function write(testId: string, words: string): Promise<void> {
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`${testId}-edit`));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId(`${testId}-editor`), {
+        target: { value: words },
+      });
+    });
+  }
+
+  function draftedPart(
+    part: ImpactAssessmentPart,
+    markdown: string,
+  ): ImpactAssessmentSection {
+    return {
+      part,
+      markdown,
+      source: ImpactAssessmentSectionSource.Drafted,
+      factKeys: [HOLDS.key],
+      draftedAt: DRAFTED_AT,
+    };
+  }
+
+  beforeEach(() => {
+    LeaveGuard.reset();
+  });
+
+  afterEach(() => {
+    LeaveGuard.reset();
+  });
+
+  test("Review Drafts saves the field being edited as its Save does, then goes on", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/data-security/compliance/review-drafts`);
+    jest
+      .spyOn(DataSecurityApi, "getRecordOfProcessing")
+      .mockImplementation(
+        async (options?: {
+          dataStoreId?: ObjectID | undefined;
+        }): Promise<DataSecurityRecordOfProcessingResponse> => {
+          return recordOf(
+            options?.dataStoreId
+              ? [rowOf(options.dataStoreId.toString(), { facts: [HOLDS] })]
+              : [rowOf(FIRST_ID), rowOf(SECOND_ID)],
+          );
+        },
+      );
+    const written: SpyInstance<typeof DataSecurityApi.applyRecordField> = jest
+      .spyOn(DataSecurityApi, "applyRecordField")
+      .mockResolvedValue({
+        row: rowOf(FIRST_ID, {
+          purpose: "Orders, and the invoices they need",
+          fields: [
+            {
+              field: RecordField.Purpose,
+              status: RecordFieldStatus.Written,
+              value: "Orders, and the invoices they need",
+            },
+          ],
+        }),
+      });
+
+    await renderPage(<ReviewDraftsPage {...PAGE_PROPS} />);
+    await write(
+      "data-security-store-record-purpose",
+      "Orders, and the invoices they need",
+    );
+
+    const leave: MockFunction = await tryToLeave();
+
+    expect(leave).not.toHaveBeenCalled();
+
+    await answerSaveChanges();
+
+    expect(written).toHaveBeenCalledTimes(1);
+    expect(written).toHaveBeenCalledWith({
+      dataStoreId: FIRST_ID,
+      field: RecordField.Purpose,
+      action: RecordFieldAction.Write,
+      value: "Orders, and the invoices they need",
+      shownDraftedAt: undefined,
+    });
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("dialog", { name: "Leave without saving?" }),
+    ).toBeNull();
+  });
+
+  test("an impact assessment saves each part being edited, one after another, then goes on", async () => {
+    const sections: Partial<
+      Record<ImpactAssessmentPart, ImpactAssessmentSection>
+    > = {
+      [ImpactAssessmentPart.Risks]: draftedPart(
+        ImpactAssessmentPart.Risks,
+        "Drafted risks.",
+      ),
+      [ImpactAssessmentPart.Measures]: draftedPart(
+        ImpactAssessmentPart.Measures,
+        "Drafted measures.",
+      ),
+    };
+    const withSections: () => DataSecurityImpactAssessmentResponse =
+      (): DataSecurityImpactAssessmentResponse => {
+        return assessmentOf({
+          assessment: {
+            version: 1,
+            language: "en",
+            facts: [HOLDS],
+            triggers: [],
+            sections: { ...sections },
+          },
+        });
+      };
+
+    jest
+      .spyOn(DataSecurityApi, "getImpactAssessment")
+      .mockResolvedValue(withSections());
+    const edited: SpyInstance<typeof DataSecurityApi.editImpactAssessment> =
+      jest
+        .spyOn(DataSecurityApi, "editImpactAssessment")
+        .mockImplementation(
+          async (data: {
+            dataStoreId: ObjectID;
+            part: ImpactAssessmentPart;
+            markdown: string;
+          }): Promise<DataSecurityImpactAssessmentResponse> => {
+            sections[data.part] = {
+              part: data.part,
+              markdown: data.markdown,
+              source: ImpactAssessmentSectionSource.Edited,
+              factKeys: [],
+              editedAt: "2026-11-25T08:00:00.000Z",
+            };
+
+            return withSections();
+          },
+        );
+
+    await renderInStore(<DataStoreImpactAssessment {...PAGE_PROPS} />);
+    await write(
+      "data-security-impact-assessment-risks",
+      "Our own words about the risks.",
+    );
+    await write(
+      "data-security-impact-assessment-measures",
+      "Our own words about the measures.",
+    );
+
+    const leave: MockFunction = await tryToLeave();
+
+    await answerSaveChanges();
+
+    expect(
+      edited.mock.calls.map(
+        (
+          call: [
+            {
+              dataStoreId: ObjectID;
+              part: ImpactAssessmentPart;
+              markdown: string;
+            },
+          ],
+        ): [ImpactAssessmentPart, string] => {
+          return [call[0].part, call[0].markdown];
+        },
+      ),
+    ).toEqual([
+      [ImpactAssessmentPart.Risks, "Our own words about the risks."],
+      [ImpactAssessmentPart.Measures, "Our own words about the measures."],
+    ]);
+    expect(leave).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("dialog", { name: "Leave without saving?" }),
+    ).toBeNull();
+  });
+
+  test("a paragraph of audit evidence the server refuses keeps the reader there, still asked, with why", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/data-security/compliance/audit-evidence?framework=SOC%202`,
+    );
+    jest
+      .spyOn(DataSecurityApi, "getAuditEvidence")
+      .mockResolvedValue(evidenceOf());
+    jest
+      .spyOn(DataSecurityApi, "editAuditEvidence")
+      .mockRejectedValue(
+        new Error("You may no longer change this framework's evidence."),
+      );
+
+    await renderPage(<DataSecurityAuditEvidencePage {...PAGE_PROPS} />);
+    await write(
+      "data-security-audit-evidence-CC6-1",
+      "Public access is reviewed every week by the platform team.",
+    );
+
+    const leave: MockFunction = await tryToLeave();
+
+    await answerSaveChanges();
+
+    expect(
+      within(leaveQuestion()).getByTestId("modal-error"),
+    ).toHaveTextContent("You may no longer change this framework's evidence.");
+    expect(leave).not.toHaveBeenCalled();
+    expect(LeaveGuard.isHeld()).toBe(true);
+    // Nothing lost: the words are still in their editor.
+    expect(
+      screen.getByTestId("data-security-audit-evidence-CC6-1-editor"),
+    ).toHaveValue("Public access is reviewed every week by the platform team.");
   });
 });
