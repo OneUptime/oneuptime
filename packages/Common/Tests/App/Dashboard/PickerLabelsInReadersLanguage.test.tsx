@@ -8,13 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -202,9 +196,9 @@ describe("an archived SLO's option", () => {
       const query: Record<string, unknown> =
         (request as { query?: Record<string, unknown> }).query || {};
 
-      // The pickable list leaves archived SLOs out; the lookup by id finds it.
+      // A search leaves archived SLOs out; the read by id finds it.
       if (query["isArchived"] === false) {
-        return Promise.resolve({ data: [], count: 0, skip: 0, limit: 1000 });
+        return Promise.resolve({ data: [], count: 0, skip: 0, limit: 50 });
       }
 
       return Promise.resolve({
@@ -228,28 +222,24 @@ describe("an archived SLO's option", () => {
 
     render(element);
 
-    await act(async () => {
-      for (let i: number = 0; i < 10; i++) {
-        await Promise.resolve();
-      }
-    });
+    /*
+     * The SLO picker searches the server (#10580), and no search offers an
+     * archived SLO: the one the widget holds is read by its id and drawn as
+     * the picker's value.
+     */
+    const value: HTMLElement = await screen.findByTestId(
+      "entity-dropdown-value",
+    );
+    const label: string = withoutIsolateMarks((value.textContent || "").trim());
 
-    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
-
-    const labels: Array<string> = screen
-      .getAllByRole("option")
-      .map((option: HTMLElement): string => {
-        return withoutIsolateMarks((option.textContent || "").trim());
-      });
-
-    expect(labels).toEqual([
+    expect(label).toBe(
       withoutIsolateMarks(
         dashboardTranslator("es").translateTemplate(ARCHIVED_SLO_LABEL, {
           name: "Checkout latency",
         }),
       ),
-    ]);
-    expect(labels[0]).not.toContain("archived");
+    );
+    expect(label).not.toContain("archived");
   });
 });
 
