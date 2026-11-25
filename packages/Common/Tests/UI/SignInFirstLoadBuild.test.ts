@@ -60,7 +60,9 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * Every form brought the warning under a name field when another record has
  * the name (#10761), with the API it asks through, which no sign-in page's
  * form draws: it loads with the first form that has such a field
- * (DuplicateNameField).
+ * (DuplicateNameField). A form's entity dropdown does the same
+ * (FormEntityDropdownFirstLoadBuild.test.ts; Table's filters still bring it
+ * here).
  *
  * Every model's lists are read with the product levels (#10289), which read
  * every product's tables (Types/Product/ProductRecordTables), and that file
