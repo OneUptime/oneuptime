@@ -68,6 +68,7 @@ import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import OneUptimeDate from "../../../Types/Date";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -263,16 +264,46 @@ export default class ExposureAssessmentReader {
     );
   }
 
-  // ...and change it: start it, draft it, edit a draft, say where the people live.
-  public static mayChange(props: DatabaseCommonInteractionProps): boolean {
-    return (
-      props.isRoot === true ||
-      (ExposureAssessmentReader.mayRead(props) &&
-        CallerPermission.holdsModelPermission(props, {
-          model: new SecurityCase(),
-          operation: "update",
-        }))
-    );
+  /*
+   * ...and change it: start it, draft it, edit a draft, say where the
+   * people live. Each is a change to the case, so it is decided for the
+   * case's own row, as an update of it is
+   * (SecurityCaseService.findOneUpdatableById): the table's update
+   * permissions and blocks, then whatever of the case limits who may
+   * change it.
+   */
+  public static async mayChange(data: {
+    securityCaseId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    if (data.props.isRoot === true) {
+      return true;
+    }
+
+    if (!ExposureAssessmentReader.mayRead(data.props)) {
+      return false;
+    }
+
+    try {
+      return Boolean(
+        await SecurityCaseService.findOneUpdatableById({
+          id: data.securityCaseId,
+          select: { _id: true },
+          props: data.props,
+        }),
+      );
+    } catch (error) {
+      // No update of cases at all, below their plan, or not this case.
+      if (
+        error instanceof NotAuthorizedException ||
+        error instanceof PaymentRequiredException ||
+        error instanceof NotFoundException
+      ) {
+        return false;
+      }
+
+      throw error;
+    }
   }
 
   /*
