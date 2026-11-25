@@ -97,6 +97,14 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
     Permission.BillingAdmin,
     Permission.BillingMember,
     Permission.BillingViewer,
+    /*
+     * Security Admin is on the update list below for three columns - the
+     * hourly limit of automatic blocks and the two switches of Trusted
+     * Proxies - and a role that may change a table's records reads them by
+     * its own name too (WriteNeedsReadRoleCoverage), as the billing roles
+     * do. Each column's own read list still decides what it reads.
+     */
+    Permission.SecurityAdmin,
   ],
   delete: [Permission.ProjectOwner, Permission.DeleteProject],
   /*
