@@ -368,16 +368,16 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "nothing: the linear-time matcher's own matchAll, built by getLinearRegExp from a custom data type's pattern",
   },
   {
+    file: "packages/Common/Utils/DataSecurity/TextReadings.ts",
+    count: 1,
+    builtFrom:
+      "the built-in detectors' patterns its callers hand findDetectorRanges (IP_ADDRESS_DETECTORS, EMAIL_ADDRESS_DETECTORS and CARD_NUMBER_DETECTORS: the IP Address, Email Address and Credit Card scrub rules, and the AI toolbox's email redaction), pattern literals of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
+  },
+  {
     file: "packages/Common/Utils/DataSecurity/TextScanner.ts",
     count: 1,
     builtFrom:
       "the built-in detectors' patterns, each a pattern literal of Utils/DataSecurity/Detectors that DetectorCatalog holds to bounded quantifiers",
-  },
-  {
-    file: "packages/Common/Utils/Telemetry/ScrubIpAddress.ts",
-    count: 1,
-    builtFrom:
-      "the IP address type's two built-in detectors' patterns (IP_ADDRESS_DETECTORS), pattern literals of Utils/DataSecurity/Detectors/ContactDetectors that DetectorCatalog holds to bounded quantifiers",
   },
   {
     file: "packages/Common/Utils/Markdown/MarkdownDataUrls.ts",
