@@ -124,6 +124,23 @@ const PINNED_LEFT_OUT = Object.freeze({
 });
 
 /*
+ * Modules the package holds as their browser twin, with why. Each runs one way in
+ * OneUptime's own programs and loads Server/ code to do it, and has a twin
+ * in its directory, with the same exports, that loads none: the one
+ * packages/Common/package.json's "browser" field hands the frontends'
+ * builds. The build compiles both, then writes the twin's JavaScript and
+ * declarations in the module's place, so the modules that load it - the API
+ * client among them - are published, and run as the twin does.
+ */
+const PUBLISHED_AS_BROWSER_TWIN = Object.freeze({
+  "Utils/OutboundRequestRouting": {
+    twin: "Utils/OutboundRequestRouting.browser",
+    reason:
+      "the API client's requests go through the proxy the script's own environment names, as axios reads it: routing them through OneUptime's outbound proxy is its servers' own (Server/Utils/OutboundProxyAgents, #10442), on Node.js's proxy support, which not every Node.js the package supports has",
+  },
+});
+
+/*
  * The package root: what `require("@oneuptime/common")` and
  * `import ... from "@oneuptime/common"` hand out. Each is a module's default
  * export unless `export` names another; a typeOnly one exists for TypeScript
@@ -1317,6 +1334,45 @@ function compileSources(options) {
 }
 
 /**
+ * Writes each twin's JavaScript and declarations, as tsc compiled them, in
+ * its module's place (PUBLISHED_AS_BROWSER_TWIN). A twin sits in its module's
+ * directory, so what it requires resolves from there just as it did.
+ * Throws when a module or its twin was not compiled, or they sit apart.
+ * @param {{ compiledDirectory: string, twins: Record<string, { twin: string, reason: string }> }} input - tsc's output, and the modules to write as their twins
+ * @returns {Array<string>} the modules written as their twins, sorted
+ */
+function writeBrowserTwins(input) {
+  const written = [];
+
+  for (const id of Object.keys(input.twins).sort()) {
+    const twin = input.twins[id].twin;
+
+    if (path.posix.dirname(twin) !== path.posix.dirname(id)) {
+      throw new Error(
+        `${id} is to be published as ${twin}, which is not in its directory`,
+      );
+    }
+
+    for (const extension of [".js", ".d.ts"]) {
+      const from = path.join(input.compiledDirectory, `${twin}${extension}`);
+      const to = path.join(input.compiledDirectory, `${id}${extension}`);
+
+      if (!fs.existsSync(from) || !fs.existsSync(to)) {
+        throw new Error(
+          `${id} is to be published as ${twin}, but ${fs.existsSync(to) ? twin : id} was not compiled`,
+        );
+      }
+
+      fs.copyFileSync(from, to);
+    }
+
+    written.push(id);
+  }
+
+  return written;
+}
+
+/**
  * What tsc wrote, read on demand: for a module's JavaScript, the modules and
  * packages it requires; for its declaration, the declarations and packages it
  * refers to.
@@ -2397,6 +2453,8 @@ function buildNpmPackage(options) {
     );
   const leftOutOnPurpose = settings.leftOut || LEFT_OUT;
   const pinnedLeftOut = settings.pinnedLeftOut || PINNED_LEFT_OUT;
+  const publishedAsBrowserTwin =
+    settings.publishedAsBrowserTwin || PUBLISHED_AS_BROWSER_TWIN;
   const rootExports = settings.rootExports || ROOT_EXPORTS;
   const licenseFile =
     settings.licenseFile || path.join(REPOSITORY_ROOT, "LICENSE");
@@ -2417,6 +2475,10 @@ function buildNpmPackage(options) {
     ts,
     sourceRoot,
     outDir: compiledDirectory,
+  });
+  const writtenAsBrowserTwin = writeBrowserTwins({
+    compiledDirectory,
+    twins: publishedAsBrowserTwin,
   });
   const tree = readCompiledTree(ts, compiledDirectory);
   const candidates = [...tree.scripts].filter(isCandidateModule);
@@ -2588,6 +2650,7 @@ function buildNpmPackage(options) {
     manifest,
     compiled,
     published: selection.published,
+    publishedAsBrowserTwin: writtenAsBrowserTwin,
     leftOut: selection.leftOut,
     typeOnlyDeclarations: declarations.files.filter((id) => {
       return !publishedSet.has(id);
@@ -2624,6 +2687,7 @@ function describeBuild(report) {
         return `${directory} ${count}`;
       })
       .join(", ")})`,
+    `  ${report.publishedAsBrowserTwin.length} published as their browser twin: ${report.publishedAsBrowserTwin.join(", ")}`,
     `  ${report.leftOut.length} left out:`,
     ...report.leftOut.map((entry) => {
       return `    ${entry.module}: ${entry.reason}`;
@@ -2657,6 +2721,7 @@ module.exports = {
   PUBLIC_FILES,
   LEFT_OUT,
   PINNED_LEFT_OUT,
+  PUBLISHED_AS_BROWSER_TWIN,
   ROOT_EXPORTS,
   NODE_ENGINE,
   moduleIdOf,
@@ -2677,6 +2742,7 @@ module.exports = {
   exportsMap,
   packageManifest,
   compileRoots,
+  writeBrowserTwins,
   selectModules,
   leftOutProblems,
   selectDeclarations,
