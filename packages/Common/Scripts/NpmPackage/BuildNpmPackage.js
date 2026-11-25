@@ -117,6 +117,8 @@ const PINNED_LEFT_OUT = Object.freeze({
     "the dashboard clock widget, in the viewer's time zone (UI/Utils/Timezone)",
   "Utils/Dashboard/Components/Index":
     "every dashboard widget, the clock among them (UI/Utils/Timezone)",
+  "Utils/DataSecurity/DataStoreOwnerEvidence":
+    "maps the evidence of a data store's owners to the project's members and teams, naming a member as the activity feed does; new in 17.3.0 and never published (Server/Utils/Feed/FeedPersonNameRule)",
   "Utils/Telemetry/LockedFilterSearch":
     "a resource page's locked telemetry filters as search-bar text, with the UI's filter operators (UI/Components/Dictionary/DictionaryFilterOperator)",
   "Utils/UserPreferences":
