@@ -139,7 +139,7 @@ import { ResponseJSON } from "@clickhouse/client";
  */
 
 export const READ_REFUSED_MESSAGE: string =
-  "An exposure assessment names what a data store holds, so it takes reading the security case, the data store and the store's findings. Ask a project admin for a role that reads all three.";
+  "An exposure assessment names what a data store holds, so it takes reading the security case, the data store and the store's findings. Ask a Project Admin for a role that reads all three.";
 
 export const CHANGE_REFUSED_MESSAGE: string =
   "Changing an exposure assessment takes permission to edit the security case, and to read the data store and its findings.";

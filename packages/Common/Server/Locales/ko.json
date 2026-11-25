@@ -21,7 +21,7 @@
   "A note on this incident has been updated. Here is the latest version:": "이 사고의 메모가 업데이트되었습니다. 최신 내용은 다음과 같습니다:",
   "A note on this scheduled event has been updated. Here is the latest version:": "이 예정된 이벤트의 메모가 업데이트되었습니다. 최신 내용은 다음과 같습니다:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "구독 중인 서비스에 영향을 준 사고의 사후 분석 보고서가 게시되었습니다.",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "프로젝트 소유자가 {{product}} 계정에 저장된 로그인 설정을 지웠습니다.",
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "프로젝트 소유자가 {{product}} 계정에 저장된 로그인 설정을 지웠습니다.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "서버 관리자가 {{product}} 계정의 이메일 주소를 이 주소에서 새 주소로 변경했습니다.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "서버 관리자가 {{product}} 계정에 저장된 로그인 설정을 지웠습니다.",
   "A server admin made this the email address of your {{product}} account.": "서버 관리자가 이 주소를 {{product}} 계정의 이메일 주소로 설정했습니다.",
