@@ -106,6 +106,61 @@ export function isKnownTelemetryType(type: unknown): type is TelemetryType {
   return Object.values(TelemetryType).includes(type as TelemetryType);
 }
 
+/*
+ * MONITORING WORK GOES AHEAD OF BULK TELEMETRY (OneUptime issue #11131).
+ *
+ * Every job of both kinds is on the one Telemetry queue. Queued in the order
+ * they arrived, a probe's monitor result waited behind every log, trace and
+ * metric batch ahead of it: an installation whose ingest fell 15 million
+ * jobs behind (#11017) had its monitors' statuses, incidents and alerts trail
+ * what its probes saw by hours.
+ *
+ * So the bulk telemetry is queued with TELEMETRY_BULK_JOB_PRIORITY and the
+ * monitoring work with no priority. BullMQ takes every job without a
+ * priority before any job with one (its moveToActive script reads the wait
+ * list before the prioritized set), and keeps each in the order it was
+ * added: monitoring work is taken first, in its own order - a monitor's
+ * results are never reordered - and bulk telemetry in its own, behind it.
+ * Readers that judge how far behind ingest is read both
+ * (TelemetryIngestBacklog). A job a server of an earlier release queued has
+ * no priority, so it waits among the monitoring work, as all jobs did.
+ *
+ * A Record, so a type added to TelemetryType and not here does not compile:
+ * whoever adds one decides which it is.
+ */
+export const TELEMETRY_BULK_JOB_PRIORITY: number = 10;
+
+const IS_BULK_TELEMETRY: Record<TelemetryType, boolean> = {
+  [TelemetryType.Logs]: true,
+  [TelemetryType.Traces]: true,
+  [TelemetryType.Metrics]: true,
+  [TelemetryType.Profiles]: true,
+  [TelemetryType.Syslog]: true,
+  [TelemetryType.FluentLogs]: true,
+  [TelemetryType.SecurityEvents]: true,
+  [TelemetryType.KubernetesCostIngest]: true,
+  [TelemetryType.SessionReplay]: true,
+  [TelemetryType.ProductAnalyticsEvents]: true,
+  // A probe's monitor result or test, SNMP trap, device poll, incoming email.
+  [TelemetryType.ProbeIngest]: false,
+  [TelemetryType.ServerMonitorIngest]: false,
+  // Incoming requests: heartbeats and webhooks a monitor waits for.
+  [TelemetryType.IncomingRequestIngest]: false,
+  [TelemetryType.IncomingRequestPending]: false,
+  [TelemetryType.TelemetryMonitorEvaluation]: false,
+};
+
+export function isBulkTelemetryType(type: TelemetryType): boolean {
+  return IS_BULK_TELEMETRY[type] === true;
+}
+
+// The priority a job of this type is queued with: none for monitoring work.
+export function getTelemetryJobPriority(
+  type: TelemetryType,
+): number | undefined {
+  return isBulkTelemetryType(type) ? TELEMETRY_BULK_JOB_PRIORITY : undefined;
+}
+
 export interface IncomingEmailJobData {
   /*
    * Which monitor or workflow the mail is for, read from the recipient
@@ -1047,6 +1102,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1138,6 +1194,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1213,6 +1270,7 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1256,6 +1314,7 @@ export default class TelemetryQueueService {
       jobData as unknown as JSONObject,
       {
         skipExistenceCheck: true,
+        priority: getTelemetryJobPriority(jobData.type),
         deduplication: {
           id: TelemetryQueueService.getSnmpTrapDeduplicationId(data),
           keepLastIfActive: true,
@@ -1362,6 +1421,7 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
           ...(canCoalesce
             ? {
                 deduplication: {
@@ -1464,6 +1524,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1512,6 +1573,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1621,6 +1683,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1670,6 +1733,7 @@ export default class TelemetryQueueService {
       jobData as unknown as JSONObject,
       {
         skipExistenceCheck: true,
+        priority: getTelemetryJobPriority(jobData.type),
         ...(data.delayInMs && data.delayInMs > 0
           ? { delayInMs: data.delayInMs }
           : {}),
@@ -1729,6 +1793,7 @@ export default class TelemetryQueueService {
         jobData as unknown as JSONObject,
         {
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
           /*
            * Serialize evaluations per monitor at enqueue time. If one evaluation
            * is active and another tick arrives, BullMQ keeps the latest waiting
@@ -1780,6 +1845,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1855,6 +1921,7 @@ export default class TelemetryQueueService {
            * existence check (2 Redis round trips).
            */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
@@ -1894,6 +1961,7 @@ export default class TelemetryQueueService {
         {
           /* The random suffix makes the id unique; see the replay job. */
           skipExistenceCheck: true,
+          priority: getTelemetryJobPriority(jobData.type),
         },
       );
 
