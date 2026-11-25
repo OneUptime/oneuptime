@@ -64237,7 +64237,15 @@
   "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "无法列出你的负载均衡器：你无法读取云资源，或者无法读取它们。",
   "Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "添加一位成员或一个团队，以便在此探测器状态变化或落后一个主版本时向他们发出警报。在此之前，警报会发给项目所有者。",
   "Create a mobile ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to.": "创建移动端遥测摄取密钥。它可以安全地随您的应用分发：它只发送其所固定的应用的追踪、日志、指标和会话回放。",
+  "Fix Not Applied": "修复未应用",
+  "Fix Regressed": "修复后再次发生",
+  "Fix Shipped": "修复已发布",
+  "Fix Unverifiable": "修复无法验证",
+  "Fix Verified": "修复已验证",
   "For an iOS, Android or React Native app. Safe to ship: it sends only that app's traces, logs, metrics and session replays, and is rate limited.": "适用于 iOS、Android 或 React Native 应用。可安全用于应用内：它只发送该应用的追踪、日志、指标和会话回放，并受速率限制。",
+  "Issue Fix Not Applied": "问题修复未应用",
+  "Issue Fix Regressed": "问题修复后再次发生",
+  "Issue Fix Verified": "问题修复已验证",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
   "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "此探测器网络接口上的地址，即探测器每次上报时列出的地址。封禁列表从不封禁它们。"
 }

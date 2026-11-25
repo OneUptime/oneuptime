@@ -64237,7 +64237,15 @@
   "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "Не удалось перечислить ваши балансировщики нагрузки: у вас нет доступа к облачным ресурсам, или их не удалось прочитать.",
   "Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Добавьте коллегу или команду, чтобы они получали оповещение при изменении статуса этого зонда или при его отставании на основной выпуск. До тех пор оповещение получают Владельцы проекта.",
   "Create a mobile ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to.": "Создайте мобильный ключ приёма телеметрии. Его можно безопасно поставлять в приложении: он отправляет только трассировки, журналы, метрики и воспроизведения сеансов приложения, за которым закреплён.",
+  "Fix Not Applied": "Исправление не применено",
+  "Fix Regressed": "Регрессия после исправления",
+  "Fix Shipped": "Исправление выпущено",
+  "Fix Unverifiable": "Исправление не удалось проверить",
+  "Fix Verified": "Исправление подтверждено",
   "For an iOS, Android or React Native app. Safe to ship: it sends only that app's traces, logs, metrics and session replays, and is rate limited.": "Для приложения iOS, Android или React Native. Безопасен внутри приложения: отправляет только его трассировки, журналы, метрики и воспроизведения сеансов и ограничен по частоте запросов.",
+  "Issue Fix Not Applied": "Исправление проблемы не применено",
+  "Issue Fix Regressed": "Регрессия после исправления проблемы",
+  "Issue Fix Verified": "Исправление проблемы подтверждено",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
   "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "Адреса сетевых интерфейсов этого зонда — в том виде, в каком зонд перечисляет их при каждом выходе на связь. Список блокировки никогда их не блокирует."
 }

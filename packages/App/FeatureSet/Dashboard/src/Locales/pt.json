@@ -64237,7 +64237,15 @@
   "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "Não foi possível listar seus balanceadores de carga: você não pode ler recursos de nuvem, ou eles não puderam ser lidos.",
   "Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "Adicione um colega ou uma equipe para que sejam alertados quando o status desta sonda mudar ou ela ficar uma versão principal atrás. Até lá, os Proprietários do projeto são alertados.",
   "Create a mobile ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to.": "Crie uma chave de ingestão de telemetria para celular. Ela pode ir com segurança dentro do seu app: só envia os traços, registros, métricas e reproduções de sessões do app ao qual está fixada.",
+  "Fix Not Applied": "Correção não aplicada",
+  "Fix Regressed": "Regressão após a correção",
+  "Fix Shipped": "Correção em produção",
+  "Fix Unverifiable": "Correção não verificável",
+  "Fix Verified": "Correção verificada",
   "For an iOS, Android or React Native app. Safe to ship: it sends only that app's traces, logs, metrics and session replays, and is rate limited.": "Para um app iOS, Android ou React Native. Seguro dentro do app: só envia os traços, registros, métricas e reproduções de sessões dele, e tem limite de taxa.",
+  "Issue Fix Not Applied": "Correção de um problema não aplicada",
+  "Issue Fix Regressed": "Regressão após a correção de um problema",
+  "Issue Fix Verified": "Correção de um problema verificada",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
   "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "Os endereços das interfaces de rede desta sonda, como a sonda os lista cada vez que se comunica. A lista de bloqueio nunca os bloqueia."
 }

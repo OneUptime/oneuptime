@@ -64237,7 +64237,15 @@
   "Your load balancers couldn't be listed: you can't read cloud resources, or they couldn't be read.": "ロードバランサーを一覧表示できませんでした。クラウドリソースを読み取る権限がないか、読み取れませんでした。",
   "Add a teammate or a team to alert when this probe's status changes or it falls a major release behind. Until then, the Project Owners are alerted.": "このプローブのステータスが変わったときやメジャーリリース 1 つ分遅れたときにアラートを受け取れるよう、メンバーまたはチームを追加してください。追加するまでは、プロジェクト所有者にアラートが送られます。",
   "Create a mobile ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to.": "モバイル用のテレメトリ取り込みキーを作成します。アプリに安全に同梱できます: 固定されたアプリのトレース、ログ、メトリクス、セッションリプレイだけを送ります。",
+  "Fix Not Applied": "修正が未適用",
+  "Fix Regressed": "修正後に再発",
+  "Fix Shipped": "修正をリリース済み",
+  "Fix Unverifiable": "修正を検証できず",
+  "Fix Verified": "修正を検証済み",
   "For an iOS, Android or React Native app. Safe to ship: it sends only that app's traces, logs, metrics and session replays, and is rate limited.": "iOS、Android、React Native のアプリ用です。アプリに安全に同梱できます: そのアプリのトレース、ログ、メトリクス、セッションリプレイだけを送り、レート制限があります。",
+  "Issue Fix Not Applied": "問題の修正が未適用",
+  "Issue Fix Regressed": "問題が修正後に再発",
+  "Issue Fix Verified": "問題の修正を検証済み",
   "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.": "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
   "The addresses on this probe's network interfaces, as the probe lists them each time it checks in. The blocklist never blocks them.": "このプローブのネットワークインターフェースのアドレスです。プローブがチェックインのたびに一覧で送るものです。ブロックリストはこれらを決してブロックしません。"
 }
