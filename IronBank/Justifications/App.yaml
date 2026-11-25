@@ -55,3 +55,220 @@
     dynamic template data. Any other copy is never loaded by the server: a
     development dependency's (jest-config) or a front-end build's. No patched
     release exists.
+# OpenSSL: libcrypto3, libssl3 and openssl are one Alpine build of it, so each
+# advisory is a finding in all three. Iron Bank's base image has every one of
+# these at 3.5.9-r0, but the image's apk upgrade installs 3.5.9-r1, and
+# NewFindings.js counts a finding as inherited only at the base image's own
+# version, so it lists them as new. No OpenSSL package fixes them yet. Remove
+# them once the run lists them as matching nothing: when OpenSSL is fixed, or
+# when the base image has the image's OpenSSL and they are inherited again.
+- id: CVE-2026-107493
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-107493
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-107493
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-107494
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-107494
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-107494
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-121482
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-121482
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-121482
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-124709
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-124709
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-124709
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-35190
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-35190
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-35190
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-84786
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-84786
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-84786
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-95690
+  package: libcrypto3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-95690
+  package: libssl3
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
+- id: CVE-2026-95690
+  package: openssl
+  justification: >-
+    No fix is released. Iron Bank's base image (opensource/nodejs/nodejs26
+    26.13.0-npm12-yarn4-slim) has this OpenSSL advisory too, at 3.5.9-r0; the
+    image's apk upgrade installs Alpine 3.24's newest OpenSSL, 3.5.9-r1, which
+    fixes five of the base image's OpenSSL advisories but not this one. Grype
+    matches it to OpenSSL 3.5.9 through NVD; Alpine's security database, which
+    Trivy reads, lists no fixed package. The image takes the fix with the first
+    OpenSSL package Alpine publishes with it.
