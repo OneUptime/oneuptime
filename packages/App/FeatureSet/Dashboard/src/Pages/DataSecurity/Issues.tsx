@@ -148,15 +148,24 @@ const checkOptions: Array<DropdownOption> = DATA_SECURITY_CHECKS.map(
 );
 
 /*
- * Group by cause (#10370): the reader's own choice, kept in this browser -
- * unset, it starts on once one group holds GROUP_BY_CAUSE_DEFAULT_ON_SIZE
- * issues.
+ * Group by cause (#10370): the reader's own choice, kept in this browser for
+ * each project - the groups are the project's, and so is when it starts on:
+ * unset, it starts on once one of the project's groups holds
+ * GROUP_BY_CAUSE_DEFAULT_ON_SIZE issues. Kept under one name for every
+ * project, turning it off in one project's tab turned it off in every
+ * other's, even where one mistake had made forty issues.
  */
-const GROUP_BY_CAUSE_KEY: string = "data-security-issues-group-by-cause";
+function getGroupByCauseKey(projectId: ObjectID): string {
+  return `data-security-issues-group-by-cause-${projectId.toString()}`;
+}
 
-function readGroupByCauseChoice(): boolean | null {
+function readGroupByCauseChoice(projectId: ObjectID | null): boolean | null {
+  if (!projectId) {
+    return null;
+  }
+
   try {
-    const value: unknown = LocalStorage.getItem(GROUP_BY_CAUSE_KEY);
+    const value: unknown = LocalStorage.getItem(getGroupByCauseKey(projectId));
 
     return value === true || value === "true"
       ? true
@@ -168,9 +177,19 @@ function readGroupByCauseChoice(): boolean | null {
   }
 }
 
-function keepGroupByCauseChoice(value: boolean): void {
+function keepGroupByCauseChoice(
+  projectId: ObjectID | null,
+  value: boolean,
+): void {
+  if (!projectId) {
+    return;
+  }
+
   try {
-    LocalStorage.setItem(GROUP_BY_CAUSE_KEY, value ? "true" : "false");
+    LocalStorage.setItem(
+      getGroupByCauseKey(projectId),
+      value ? "true" : "false",
+    );
   } catch {
     // A browser that keeps nothing still switches: for this visit.
   }
@@ -213,11 +232,12 @@ function hasNarrowingFilter(query: Query<DataSecurityIssue>): boolean {
  * the rows - "40 issues, one cause: the static-site module" - each with its
  * stores folded under it, how many are fixed and Fix the Cause; the rows
  * are then the issues in no group. It starts on once a group holds five
- * issues, and the reader's choice is kept in their browser. The filters
- * narrow both alike (onQueryChange). A reader whose read of issues is held
- * to labels (#10739) gets each group cut down to the stores they may read -
- * its counts and cause theirs alone - and an issue whose group they are not
- * shown (one of which they may read a single issue) stays in the rows.
+ * issues, and the reader's choice is kept in their browser, for each
+ * project. The filters narrow both alike (onQueryChange). A reader whose
+ * read of issues is held to labels (#10739) gets each group cut down to the
+ * stores they may read - its counts and cause theirs alone - and an issue
+ * whose group they are not shown (one of which they may read a single
+ * issue) stays in the rows.
  */
 const DataSecurityIssuesPage: FunctionComponent<
   PageComponentProps
@@ -246,7 +266,9 @@ const DataSecurityIssuesPage: FunctionComponent<
     null,
   );
   const [groupByCauseChoice, setGroupByCauseChoice] = useState<boolean | null>(
-    readGroupByCauseChoice,
+    (): boolean | null => {
+      return readGroupByCauseChoice(projectId);
+    },
   );
   const [listQuery, setListQuery] = useState<Query<DataSecurityIssue> | null>(
     null,
@@ -503,7 +525,7 @@ const DataSecurityIssuesPage: FunctionComponent<
               value={isGroupedByCause}
               dataTestId="data-security-issues-group-by-cause"
               onChange={(value: boolean) => {
-                keepGroupByCauseChoice(value);
+                keepGroupByCauseChoice(projectId, value);
                 setGroupByCauseChoice(value);
 
                 if (!value && linkedGroupId) {
