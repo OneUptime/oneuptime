@@ -279,7 +279,9 @@ export default class CodeTaskAPI {
     const rawFrames: unknown = body["frames"];
 
     if (!Array.isArray(rawFrames)) {
-      throw new BadDataException("frames must be a list.");
+      throw new BadDataException(
+        "Send the frames to find as a list, each with its file name and line number.",
+      );
     }
 
     const frames: Array<SourceFrame> = [];
@@ -474,7 +476,7 @@ export default class CodeTaskAPI {
 
     if (!Array.isArray(body["repositoryIds"])) {
       throw new BadDataException(
-        "repositoryIds must be a list of repository ids.",
+        "Send the repositories to read as a list of their ids.",
       );
     }
 
@@ -1080,7 +1082,9 @@ export default class CodeTaskAPI {
    */
   private static readIds(raw: unknown): Array<ObjectID> {
     if (!Array.isArray(raw)) {
-      throw new BadDataException("taskIds must be a list of task ids.");
+      throw new BadDataException(
+        "Send the tasks to read as a list of their ids.",
+      );
     }
 
     const seen: Set<string> = new Set<string>();
