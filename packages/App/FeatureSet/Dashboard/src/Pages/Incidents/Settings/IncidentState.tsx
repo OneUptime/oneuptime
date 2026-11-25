@@ -16,6 +16,11 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import ModelListCache from "Common/UI/Utils/ModelListCache";
 import Navigation from "Common/UI/Utils/Navigation";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import Project from "Common/Models/DatabaseModels/Project";
+import ObjectID from "Common/Types/ObjectID";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import ProjectUtil from "Common/UI/Utils/Project";
+import { INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY } from "../../../Components/Incident/IncidentDeclaredByHandStartCopy";
 import useArchivableValues, {
   ArchivableValues,
 } from "../../../Components/ArchivableValue/UseArchivableValues";
@@ -36,6 +41,11 @@ const DEFINITION: StateListDefinition =
  * one saying what an incident in it counts as. The created, acknowledged and
  * resolved states are built in - renamed, never deleted - and keep their
  * order (the server refuses a move that would break it, and says why).
+ *
+ * Under them, the one switch that says which of them an incident someone
+ * declares by hand starts in (#11137, IncidentDeclaredByHandStartCopy): off
+ * for every project, saving the moment it is flipped, locked and saying why
+ * for anyone but a project owner or admin.
  */
 const IncidentStatesPage: FunctionComponent<
   PageComponentProps
@@ -49,6 +59,8 @@ const IncidentStatesPage: FunctionComponent<
 
   // The rows on the page, which "Counts as" is worked out from.
   const [rows, setRows] = useState<Array<IncidentState>>([]);
+
+  const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
   return (
     <Fragment>
@@ -110,6 +122,24 @@ const IncidentStatesPage: FunctionComponent<
         showRefreshButton={true}
       />
       {archive.element}
+      {projectId && (
+        <ModelSwitchCard<Project>
+          modelType={Project}
+          modelId={projectId}
+          column={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.column}
+          cardTitle={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.cardTitle}
+          cardDescription={
+            INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.cardDescription
+          }
+          title={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchTitle}
+          getDescription={(isOn: boolean): string => {
+            return isOn
+              ? INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchOnDescription
+              : INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.switchOffDescription;
+          }}
+          dataTestId={INCIDENT_DECLARED_BY_HAND_START_SETTING_COPY.dataTestId}
+        />
+      )}
     </Fragment>
   );
 };

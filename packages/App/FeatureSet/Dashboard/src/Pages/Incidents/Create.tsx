@@ -125,6 +125,19 @@ import useNewIncidentNotifyDefault, {
   NewIncidentNotifyDefault,
 } from "../../Components/Incident/useNewIncidentNotifyDefault";
 import { getNotifyBoxDescription } from "../../Components/Incident/NewIncidentNotifyDefaultCopy";
+import useIncidentDeclaredByHandStart, {
+  IncidentDeclaredByHandStartSwitch,
+} from "../../Components/Incident/useIncidentDeclaredByHandStart";
+import {
+  getInitialStateDescription,
+  NO_POLICY_STARTS_ACKNOWLEDGED_NOTE,
+  NO_POLICY_STARTS_ACKNOWLEDGED_NOTE_TEST_ID,
+  STARTS_ACKNOWLEDGED_SUMMARY,
+  STARTS_WHERE_POLICIES_PAGE_SUMMARY,
+} from "../../Components/Incident/IncidentDeclaredByHandStartCopy";
+import IncidentDeclaredByHandStart, {
+  INCIDENT_DECLARED_BY_HAND_KEY,
+} from "Common/Types/Incident/IncidentDeclaredByHandStart";
 import NotifySubscribersChangeToYes from "../../Components/Incident/NotifySubscribersChangeToYes";
 import IncidentStatusPageScopeCopy from "../../Components/Incident/IncidentStatusPageScopeCopy";
 import {
@@ -647,6 +660,44 @@ const IncidentCreate: FunctionComponent<
    */
   const newIncidentNotifyDefault: NewIncidentNotifyDefault =
     useNewIncidentNotifyDefault();
+
+  /*
+   * Whether the project starts incidents declared by hand acknowledged
+   * (Incidents > Settings > Incident State, #11137), read as the page opens
+   * (off when it cannot be read). The server decides where the incident
+   * starts; the page says what it will decide - under Initial State, under
+   * On-Call Policy and on the review - so it waits for it too.
+   */
+  const declaredByHandStart: IncidentDeclaredByHandStartSwitch =
+    useIncidentDeclaredByHandStart();
+
+  /*
+   * Whether the template the incident is declared from names a state - even
+   * an archived one, which Initial State is not prefilled with: the server
+   * starts the incident there, so the switch has no say.
+   */
+  const [doesTemplateNameState, setDoesTemplateNameState] =
+    useState<boolean>(false);
+
+  /*
+   * Whether the incident, declared as the form stands, starts acknowledged:
+   * the switch is on, no state is picked (or named by the template), and no
+   * on-call policy is picked to page - the rule the server applies
+   * (IncidentDeclaredByHandStart).
+   */
+  const startsAcknowledged: IncidentFormPredicate = (
+    values: FormValues<Incident>,
+  ): boolean => {
+    return IncidentDeclaredByHandStart.startsAcknowledged({
+      isSwitchOn: declaredByHandStart.isSwitchOn,
+      hasStartingState:
+        Boolean((values as Record<string, unknown>)["currentIncidentState"]) ||
+        doesTemplateNameState,
+      onCallPolicyCount: IncidentDeclaredByHandStart.countOnCallPolicies(
+        (values as Record<string, unknown>)["onCallDutyPolicies"],
+      ),
+    });
+  };
 
   /*
    * The form, for "Change to Yes" on its summary step to tick the notify
@@ -1210,6 +1261,8 @@ const IncidentCreate: FunctionComponent<
         },
       });
 
+    setDoesTemplateNameState(Boolean(incidentTemplate?.initialIncidentStateId));
+
     setTemplateCustomFields(
       incidentTemplate?.customFields &&
         typeof incidentTemplate.customFields === "object" &&
@@ -1505,7 +1558,8 @@ const IncidentCreate: FunctionComponent<
     isLoading ||
     isLoadingCustomFieldDefinitions ||
     recordToCreateFrom.isLoading ||
-    newIncidentNotifyDefault.isLoading;
+    newIncidentNotifyDefault.isLoading ||
+    declaredByHandStart.isLoading;
 
   return (
     <Fragment>
@@ -1804,6 +1858,15 @@ const IncidentCreate: FunctionComponent<
                   }
                 }
 
+                /*
+                 * Declared by hand: where nothing names its state, the
+                 * server starts it as the project starts incidents declared
+                 * by hand - acknowledged, with the switch on and no on-call
+                 * policy to page (#11137). Sent whatever the switch says:
+                 * the server reads the switch as it is now.
+                 */
+                miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY] = true;
+
                 return item;
               }}
               fields={[
@@ -1892,7 +1955,13 @@ const IncidentCreate: FunctionComponent<
                 /*
                  * Left empty, the incident starts where every new incident
                  * does - the project's starting state, or the template's -
-                 * which is what the server picks when it is not sent.
+                 * which is what the server picks when it is not sent. In a
+                 * project that starts incidents declared by hand
+                 * acknowledged, it starts acknowledged instead, unless an
+                 * on-call policy is picked to page: its help says so, and
+                 * the review always lists where it starts. Never prefilled
+                 * with the acknowledged state - a state picked wins, and the
+                 * policies picked on the last step would page nobody.
                  */
                 {
                   field: {
@@ -1900,8 +1969,9 @@ const IncidentCreate: FunctionComponent<
                   },
                   title: "Initial State",
                   stepId: "incident-details",
-                  description:
-                    "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
+                  description: getInitialStateDescription(
+                    declaredByHandStart.isSwitchOn,
+                  ),
                   glossaryTerm: GlossaryTerm.State,
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
@@ -1915,8 +1985,39 @@ const IncidentCreate: FunctionComponent<
                   required: false,
                   placeholder: "Select Initial State",
                   collapsibleSection: advancedSection,
+                  /*
+                   * Folded, but always on the review while the project
+                   * starts incidents declared by hand acknowledged: whether
+                   * the incident pages anyone is the one thing to read
+                   * before declaring.
+                   */
+                  alwaysInSummary: declaredByHandStart.isSwitchOn,
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (!item.currentIncidentState) {
+                      if (startsAcknowledged(item)) {
+                        return (
+                          <p data-testid="incident-create-starts-acknowledged">
+                            {translator.translateText(
+                              STARTS_ACKNOWLEDGED_SUMMARY,
+                            )}
+                          </p>
+                        );
+                      }
+
+                      // Started where incidents usually start, to page.
+                      if (
+                        declaredByHandStart.isSwitchOn &&
+                        !doesTemplateNameState
+                      ) {
+                        return (
+                          <p>
+                            {translator.translateText(
+                              STARTS_WHERE_POLICIES_PAGE_SUMMARY,
+                            )}
+                          </p>
+                        );
+                      }
+
                       return (
                         <p>
                           {translator.translateText(
@@ -2680,6 +2781,28 @@ const IncidentCreate: FunctionComponent<
                   },
                   required: false,
                   placeholder: "Select on-call policies",
+                  /*
+                   * Where it is decided: while none is picked, and the
+                   * project starts incidents declared by hand acknowledged,
+                   * leaving it empty starts the incident acknowledged.
+                   */
+                  getFooterElement: (values: FormValues<Incident>) => {
+                    if (!startsAcknowledged(values)) {
+                      return undefined;
+                    }
+
+                    return (
+                      <p
+                        role="note"
+                        className="mt-2 text-sm text-gray-500"
+                        data-testid={NO_POLICY_STARTS_ACKNOWLEDGED_NOTE_TEST_ID}
+                      >
+                        {translator.translateText(
+                          NO_POLICY_STARTS_ACKNOWLEDGED_NOTE,
+                        )}
+                      </p>
+                    );
+                  },
                   getSummaryElement: (item: FormValues<Incident>) => {
                     if (
                       !item.onCallDutyPolicies ||
