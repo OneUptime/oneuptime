@@ -35,8 +35,9 @@ import "@kusto/language-service-next/Kusto.Language.Bridge.min.js";
  *
  * What none of this runs is Azure itself: Resource Graph's service-side
  * parser and its subset of KQL's scalar functions (which its page does not
- * list) are not exercised here. Each function the queries call is one
- * Resource Graph's own sample queries call.
+ * list) are not exercised here. Each function the queries call is called
+ * by a query Azure already answers (the inventory's, Data Security's) or
+ * by Resource Graph's own published samples.
  *
  * Not a test file itself (jest only collects *.test.ts).
  */
