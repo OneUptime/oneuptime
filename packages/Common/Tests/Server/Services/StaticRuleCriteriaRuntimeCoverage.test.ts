@@ -411,9 +411,10 @@ describe("static rule criteria runtime coverage", () => {
    * owner rules for pipelines, on the page of its table owner rules (issue
    * #9527).
    */
-  test("all 84 static match-criteria forms route their 92 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(84);
-    expect(formsByModel.size).toBe(92);
+  // 86 and 94 with XCP-ng pools' label and owner rules, a form and a model each.
+  test("all 86 static match-criteria forms route their 94 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(86);
+    expect(formsByModel.size).toBe(94);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
     );

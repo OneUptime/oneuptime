@@ -29,10 +29,11 @@ describe("RULE_CRITERIA_SUBJECT_COPY", () => {
       [...SUBJECTS].sort(),
     );
     /*
-     * With Data Security's issues (#10364), which its AI rules are about, and
-     * the savings the AI rules for savings are about (#11010).
+     * With Data Security's issues (#10364), which its AI rules are about,
+     * the savings the AI rules for savings are about (#11010), and XCP-ng's
+     * pools, which its label and owner rules are about.
      */
-    expect(SUBJECTS.length).toBe(38);
+    expect(SUBJECTS.length).toBe(39);
   });
 
   test.each(SUBJECTS)(
