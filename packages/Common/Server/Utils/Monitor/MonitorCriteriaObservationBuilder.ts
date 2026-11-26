@@ -69,6 +69,7 @@ import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
 import SnmpOidRateUtil from "./SnmpOidRateUtil";
 import SnmpOidListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
+import SnmpFibreChannelCriteria from "./Criteria/SnmpFibreChannelCriteria";
 import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
 import ProbeStatusMonitorUtil from "../../../Utils/Monitor/ProbeStatusMonitorUtil";
@@ -311,6 +312,13 @@ export default class MonitorCriteriaObservationBuilder {
           transceivers: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
             input.dataToProcess,
           )?.snmpResponse?.transceivers,
+          criteriaFilter: input.criteriaFilter,
+        });
+      case CheckOn.SnmpFibreChannelCounterPerSecond:
+        return SnmpFibreChannelCriteria.describeObservation({
+          interfaces: MonitorCriteriaDataExtractor.getProbeMonitorResponse(
+            input.dataToProcess,
+          )?.snmpResponse?.interfaces,
           criteriaFilter: input.criteriaFilter,
         });
       case CheckOn.SnmpTrapVarbindValue:

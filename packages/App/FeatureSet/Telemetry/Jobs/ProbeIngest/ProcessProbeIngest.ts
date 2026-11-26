@@ -34,6 +34,7 @@ import MonitorPauseState, {
 } from "Common/Utils/Monitor/MonitorPauseState";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import SnmpTrapInterfaceName from "Common/Server/Utils/Monitor/SnmpTrapInterfaceName";
 import NetworkDeviceHydrationUtil, {
   NetworkDevicePollMode,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
@@ -494,6 +495,38 @@ export async function processSnmpTrapFromQueue(
 
   let matchedSteps: number = 0;
 
+  /*
+   * The interface the trap names by its index alone (a link trap, an MDS
+   * port-monitor's RMON alarm), by its name on each matched device: what
+   * the alerts say. Looked up once per device, and only for such a trap.
+   */
+  const interfaceNameByDevice: Map<string, string | undefined> = new Map();
+
+  const trapForDevice: (deviceId: string) => Promise<SnmpTrap> = async (
+    deviceId: string,
+  ): Promise<SnmpTrap> => {
+    if (SnmpTrapInterfaceName.getInterfaceIndex(snmpTrap) === null) {
+      return snmpTrap;
+    }
+
+    if (!interfaceNameByDevice.has(deviceId)) {
+      interfaceNameByDevice.set(
+        deviceId,
+        await SnmpTrapInterfaceName.findForDevice({
+          trap: snmpTrap,
+          networkDeviceId: new ObjectID(deviceId),
+        }),
+      );
+    }
+
+    const interfaceName: string | undefined =
+      interfaceNameByDevice.get(deviceId);
+
+    return interfaceName
+      ? { ...snmpTrap, interfaceName: interfaceName }
+      : snmpTrap;
+  };
+
   for (const monitor of monitors) {
     if (MonitorPauseState.isPaused(monitor)) {
       continue;
@@ -521,7 +554,7 @@ export async function processSnmpTrapFromQueue(
         monitorId: monitor.id,
         monitorStepId: monitorStep.id,
         probeId: probeId,
-        snmpTrapResponse: snmpTrap,
+        snmpTrapResponse: await trapForDevice(referencedDeviceId),
         failureCause: "",
         monitoredAt: OneUptimeDate.getCurrentDate(),
         ingestedAt: OneUptimeDate.getCurrentDate(),

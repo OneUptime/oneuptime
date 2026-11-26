@@ -617,6 +617,35 @@ export default class TemplateVariablesCatalog {
                 "Array of {oid, value} varbinds carried by the trap — only set on trap-triggered checks.",
             },
             {
+              key: "trapInterface",
+              description:
+                "The interface a trap names by its index, by the name the device's last walk recorded: a link trap's, or an RMON alarm's (an MDS port-monitor alarm).",
+              example: "fc1/5",
+            },
+            {
+              key: "trapAlarmCounter",
+              description:
+                "For an RMON alarm trap (risingAlarm, hcRisingAlarm and their falling twins): the counter that crossed its threshold.",
+              example: "Credit loss",
+            },
+            {
+              key: "trapAlarmValue",
+              description:
+                "For an RMON alarm trap: the counter's value when it crossed the threshold.",
+              example: "3",
+            },
+            {
+              key: "trapAlarmThreshold",
+              description: "For an RMON alarm trap: the threshold it crossed.",
+              example: "1",
+            },
+            {
+              key: "trapAlarmDirection",
+              description:
+                "For an RMON alarm trap: rising, or falling back below the threshold.",
+              example: "rising",
+            },
+            {
               key: "tables.<key>.rowCount",
               description:
                 "Rows walked in one of the device's SNMP tables, by the table's key.",

@@ -104,6 +104,11 @@ export interface NetworkDeviceCriteriaCatalogue {
   oids: Array<NetworkDeviceOidCatalogueEntry>;
   tables: Array<NetworkDeviceTableCatalogueEntry>;
   /*
+   * The device's vendor template (SnmpVendorTemplateUtil.matchDevice), for
+   * the alerts only its platform has: a SAN switch's Fibre Channel ones.
+   */
+  vendorTemplateId?: string | undefined;
+  /*
    * Names AND aliases of the monitored interfaces the device's last walk
    * found. Both, because the server scopes a criteria by matching
    * interfaceName against ifName or ifAlias, case-insensitively - see

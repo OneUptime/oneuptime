@@ -17,4 +17,12 @@ export default interface SnmpTrap {
   community?: string | undefined;
   receivedAt: Date;
   varbinds: Array<SnmpTrapVarbind>;
+  /*
+   * The name of the interface the trap is about, when the trap names it only
+   * by its ifIndex - a link trap, or an RMON alarm on a port's counter (an
+   * MDS port-monitor alarm): the name the device's last walk recorded for
+   * that index. Filled in by the server for each device the trap matched,
+   * never by a probe.
+   */
+  interfaceName?: string | undefined;
 }
