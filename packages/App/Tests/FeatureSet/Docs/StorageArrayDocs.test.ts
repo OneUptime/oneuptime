@@ -143,7 +143,10 @@ interface ScrapeJob {
   job_name: string;
   metrics_path: string;
   scrape_interval: string;
-  static_configs: Array<{ labels: { scrape_endpoint: string } }>;
+  static_configs: Array<{
+    targets: Array<string>;
+    labels: { scrape_endpoint: string };
+  }>;
 }
 
 function pageFile(language: string, relative: string): string {
@@ -1037,8 +1040,9 @@ describe("Storage Array docs", (): void => {
       // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
       const prefixes: string = StorageArrayPlatformRegistry.getPlatforms()
         .map((platform: StorageArrayPlatform): string => {
-          return platform.metricPrefix;
+          return platform.metricPrefix || "";
         })
+        .filter(Boolean)
         .join("|");
       const families: Array<string> = Array.from(
         collected.matchAll(

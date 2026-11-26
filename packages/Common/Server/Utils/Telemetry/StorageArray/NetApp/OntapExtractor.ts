@@ -911,8 +911,13 @@ export function getSensorStatus(state: string): string {
   if (word.includes("crit")) {
     return "critical";
   }
+  /*
+   * Past a warning line: the shared word for a part that needs a look.
+   * "warning" is an alert's severity, which a FlashArray's Active Alerts
+   * draws as a status (#11001: Pure's pages are as they were).
+   */
   if (word.includes("warn")) {
-    return "warning";
+    return "degraded";
   }
   if (word.includes("fail") || word.includes("fault")) {
     return "failed";

@@ -810,8 +810,9 @@ describe("the extractor's readers", () => {
       ["crit_low", "critical"],
       ["crit-high", "critical"],
       ["critical_high", "critical"],
-      ["warn_low", "warning"],
-      ["warning-high", "warning"],
+      // The shared word, never an alert's severity "warning".
+      ["warn_low", "degraded"],
+      ["warning-high", "degraded"],
       ["failed", "failed"],
       ["ignored", "ignored"],
     ]) {

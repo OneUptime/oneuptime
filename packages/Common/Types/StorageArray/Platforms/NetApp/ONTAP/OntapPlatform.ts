@@ -541,8 +541,6 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
       "starting",
       "stopping",
       "unassigned",
-      // A node sensor past its warning threshold (OntapExtractor's word).
-      "warning",
       "link_not_connected",
     ],
     healthy: ["online", "running", "up", "normal", "healthy", "spare"],
