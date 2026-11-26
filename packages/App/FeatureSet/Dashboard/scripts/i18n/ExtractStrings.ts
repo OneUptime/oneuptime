@@ -1128,6 +1128,24 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Billed, amortized and net (#11007): what each is called and counts,
+   * beside the switch on Costs, Overview and an account's Costs, and on
+   * Cloud > Settings > Cost Settings. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostBasis.ts",
+    kind: "keys",
+  },
+  /*
+   * A commitment's state, scope and payment option (#11011), on Cloud >
+   * Spend > Commitments. Only the words the file marks are read: a
+   * commitment's own name and type are its cloud's words, drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCommitmentInventory.ts",
+    kind: "keys",
+  },
+  /*
    * A resource's right-sizing from OneUptime's own readings: its verdict,
    * what to change and why, on its Overview. Only the words the file marks
    * are read: a size is its cloud's own name, drawn as written.

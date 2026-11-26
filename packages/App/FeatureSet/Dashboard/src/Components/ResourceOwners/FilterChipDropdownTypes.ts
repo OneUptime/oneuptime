@@ -1,6 +1,6 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import type { SharedNameFacts } from "Common/UI/Utils/SharedNameOptions";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The React-free half of FilterChipDropdown.
@@ -69,7 +69,52 @@ export interface FilterChipDropdownOption {
    * marks the ones that share a name, with what sets each apart.
    */
   sharedName?: SharedNameFacts | undefined;
+  /*
+   * A pick a link or a saved view holds whose record is no longer there -
+   * deleted, or out of the reader's reach: drawn "No longer available" in
+   * the reader's words (getFilterChipOptionLabel), never as its id, to keep
+   * or take out. The list still filters by it, as it was saved.
+   */
+  isNotFound?: boolean | undefined;
+  // An archived record: drawn "{{name}} (archived)" in the reader's words.
+  isArchived?: boolean | undefined;
 }
+
+export const FILTER_CHIP_NOT_FOUND_LABEL: string = translationKey(
+  "No longer available",
+);
+
+export const FILTER_CHIP_ARCHIVED_LABEL: string = translationKey(
+  "{{name}} (archived)",
+);
+
+/*
+ * What the chip calls an option, in its list and on the chip itself: its
+ * label as written (a record's name), "No longer available" for a pick
+ * whose record is gone, its name marked archived for an archived one.
+ */
+export const getFilterChipOptionLabel: (
+  option: FilterChipDropdownOption,
+  translator: Pick<Translator, "translateText" | "translateTemplate">,
+) => string = (
+  option: FilterChipDropdownOption,
+  translator: Pick<Translator, "translateText" | "translateTemplate">,
+): string => {
+  if (option.isNotFound) {
+    return (
+      translator.translateText(FILTER_CHIP_NOT_FOUND_LABEL) ||
+      FILTER_CHIP_NOT_FOUND_LABEL
+    );
+  }
+
+  if (option.isArchived) {
+    return translator.translateTemplate(FILTER_CHIP_ARCHIVED_LABEL, {
+      name: option.label,
+    });
+  }
+
+  return option.label;
+};
 
 export interface FilterChipPersonAvatar {
   kind: "user" | "team";

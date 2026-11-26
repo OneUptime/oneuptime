@@ -23,7 +23,7 @@ flowchart TB
 
 - **Le premier groupe qui correspond prend le coût.** Les groupes d'une vue sont ordonnés, et chaque coût va dans le premier groupe dont les règles lui correspondent, donc rien n'est compté deux fois. Les groupes et les dépenses non attribuées totalisent toujours le montant de la période.
 - **Les règles lisent tout ce que porte un coût.** Le compte, le cloud, le service, la région, la ressource et ses balises, et ce qu'OneUptime sait de la ressource : ses équipes propriétaires, ses étiquettes, son environnement et son application des plateformes d'applications.
-- **Tout est calculé à la lecture.** Rien n'est écrit par coût. Une règle modifiée répartit à nouveau chaque mois qu'OneUptime conserve, jusqu'à 400 jours en arrière, sans rien attendre.
+- **Tout est calculé à la lecture.** Rien n'est écrit par coût. Une règle modifiée répartit à nouveau chaque mois qu'OneUptime conserve, jusqu'à 400 jours en arrière, sans rien attendre. Chaque chiffre suit le sélecteur au-dessus de lui, facturé, amorti ou net, comme dans [Coûts du cloud](/docs/telemetry/cloud-costs#facturé-amorti-et-net), et une ligne personnalisée est la même sur chaque base.
 - **Plusieurs vues peuvent répartir les mêmes dépenses.** « Par équipe » et « Par centre de coûts » répartissent chacune la totalité, à leur façon.
 
 ## Avant de commencer
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-La réponse donne le `total` de chaque groupe et sa composition (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), ses chiffres par jour ou par mois, la période précédente, et la composition des dépenses non attribuées. `POST /cloud-cost-group/<group ID>/spend` répond pour un seul groupe.
+La réponse donne le `total` de chaque groupe et sa composition (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), ses chiffres par jour ou par mois, la période précédente, et la composition des dépenses non attribuées. `POST /cloud-cost-group/<group ID>/spend` répond pour un seul groupe. Envoyez `basis` à `billed`, `amortized` ou `net` pour des chiffres sur cette base ; sans lui, ils sont sur celle du projet, et le `basis` de la réponse indique laquelle.
 
 ## Limites
 

@@ -1,22 +1,21 @@
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { getCloudAccountResourcesQuery } from "../Cloud/CloudAccountScope";
-import { CloudAccountRecommendationResource } from "./CloudAccountRecommendationPlan";
-import MonitorRecommendationCreateUtil from "./MonitorRecommendationCreateUtil";
+import CloudAccountRecommendationPlan, {
+  CloudAccountRecommendationResource,
+} from "./CloudAccountRecommendationPlan";
+import MonitorRecommendationCoverageApi from "./MonitorRecommendationCoverageApi";
 import {
   CLOUD_RECOMMENDATION_CONNECTION_SELECT,
   readCloudConnectionRecommendationContext,
@@ -35,8 +34,9 @@ import {
  *     one's connection says of how its metrics come: how often it reads
  *     them, and which its stream writes instead, which each monitor's
  *     window follows (readCloudConnectionRecommendationContext, #10028);
- *   - the Metrics monitors that may already cover a recommendation, and the
- *     recommendations the team dismissed on a cloud resource's tab.
+ *   - which of their recommendations a monitor covers already, decided by
+ *     the server (#11074), and the recommendations the team dismissed on a
+ *     cloud resource's tab.
  */
 
 export interface CloudAccountRecommendationResources {
@@ -46,10 +46,11 @@ export interface CloudAccountRecommendationResources {
 }
 
 export interface CloudAccountRecommendationCoverage {
-  existingMonitors: Array<{
-    monitorId: ObjectID;
-    monitorSteps: Array<MonitorStep>;
-  }>;
+  /*
+   * The monitor that covers each recommendation of each resource, by
+   * getCloudAccountCoverageKey: decided by the server (#11074).
+   */
+  coveredMonitorIds: Map<string, ObjectID>;
   dismissals: Array<RecommendationDismissal>;
 }
 
@@ -171,19 +172,24 @@ async function loadCloudConnections(
   return connections;
 }
 
-export async function loadCloudAccountRecommendationCoverage(): Promise<CloudAccountRecommendationCoverage> {
-  const [monitorList, dismissalList]: [
-    ListResult<Monitor>,
+/*
+ * Which of the resources' recommendations a monitor covers already, and
+ * what the team dismissed. Coverage is the server's to decide, with a query
+ * over every monitor the reader may read (#11074): the page read the
+ * project's first 10,000 Metrics monitors and compared them here, so a
+ * monitor past them never covered anything, and the account offered again
+ * what was already made.
+ */
+export async function loadCloudAccountRecommendationCoverage(
+  resources: Array<CloudAccountRecommendationResource>,
+): Promise<CloudAccountRecommendationCoverage> {
+  const [coveredMonitorIds, dismissalList]: [
+    Map<string, ObjectID>,
     ListResult<RecommendationDismissal>,
   ] = await Promise.all([
-    ModelAPI.getList<Monitor>({
-      modelType: Monitor,
-      query: { monitorType: MonitorType.Metrics },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { name: true, monitorSteps: true },
-      sort: { name: SortOrder.Ascending },
-    }),
+    MonitorRecommendationCoverageApi.findCoveringMonitors(
+      CloudAccountRecommendationPlan.getCoverageQuestions(resources),
+    ),
     /*
      * Every cloud resource's dismissals: the plan reads those of the
      * account's own resources (CloudAccountRecommendationPlan.buildGroups),
@@ -209,18 +215,7 @@ export async function loadCloudAccountRecommendationCoverage(): Promise<CloudAcc
   ]);
 
   return {
-    existingMonitors: monitorList.data
-      .filter((monitor: Monitor): boolean => {
-        return Boolean(monitor.id);
-      })
-      .map((monitor: Monitor) => {
-        return {
-          monitorId: monitor.id!,
-          monitorSteps: MonitorRecommendationCreateUtil.getExistingMonitorSteps(
-            [monitor],
-          ),
-        };
-      }),
+    coveredMonitorIds,
     dismissals: dismissalList.data,
   };
 }

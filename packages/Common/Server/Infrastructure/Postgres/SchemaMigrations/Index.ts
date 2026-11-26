@@ -1204,6 +1204,7 @@ import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./180918771100
 import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
+import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
 
 export default [
@@ -2413,5 +2414,6 @@ export default [
   AddProbeSnmpTrapReceiver1809187715110,
   AddXcpNgPoolTables1809187720000,
   AddCloudSavingsActions1809187721010,
+  AddCloudCostBasesAndCommitments1809187721011,
   AddSanSwitchFibreChannelColumns1809187731166,
 ];

@@ -580,7 +580,13 @@ describe("the trace page's Fix performance with AI", () => {
     );
   }
 
-  test("the pick is searched on the server among every connected repository the person may read - as its route takes any connected one", async () => {
+  /*
+   * #11075: its route takes only a repository the person may read and ask
+   * OneUptime AI to work in now, as every other Fix with AI does - so the
+   * picker searches only those. It searched every connected one the person
+   * could read, and offered one the route would then refuse.
+   */
+  test("the pick is searched on the server among the connected repositories the person may ask OneUptime AI to work in - the ones its route takes", async () => {
     await drawStrip();
 
     expect(screen.getByTestId("trace-fix-performance")).toBeDisabled();
@@ -588,12 +594,16 @@ describe("the trace page's Fix performance with AI", () => {
     await search(TRACE_FIX_PERFORMANCE_REPOSITORY_PICKER_TEST_ID, "w");
     await screen.findByRole("option", { name: /warehouse-api/ });
 
-    expect(lastRead()).toMatchObject({ search: "w", group: "connected" });
-    expect(lastRead()).not.toHaveProperty("askableOnly");
+    expect(lastRead()).toMatchObject({
+      search: "w",
+      group: "connected",
+      askableOnly: true,
+    });
+    // The run reads no code to fix a trace: a repository it cannot read the code of is offered.
     expect(lastRead()).not.toHaveProperty("codeReadableOnly");
-    // Connected: offered, whatever else is true of it.
-    expect(hasOption("watchtower-billing")).toBe(true);
     expect(hasOption("walrus-ledger")).toBe(true);
+    // Connected, but the person may only read it: never.
+    expect(hasOption("watchtower-billing")).toBe(false);
     // Not connected: never.
     expect(hasOption("wharf-legacy")).toBe(false);
   });
@@ -645,9 +655,15 @@ describe("the trace page's Fix performance with AI", () => {
     ).toHaveAttribute("placeholder", "Pick a repository");
   });
 
-  test("with no connected repository the person can read, the list says so", async () => {
+  test("with no connected repository the person may ask OneUptime AI to work in, the list says so", async () => {
     world.repositories = [
       repository({ id: WHARF_ID, name: "wharf-legacy", isConnected: false }),
+      // Connected and readable, but not theirs to ask AI in.
+      repository({
+        id: WATCHTOWER_ID,
+        name: "watchtower-billing",
+        canAsk: false,
+      }),
     ];
 
     await drawStrip();
@@ -660,9 +676,9 @@ describe("the trace page's Fix performance with AI", () => {
 
     expect(
       await screen.findByTestId("entity-dropdown-empty-list"),
-    ).toHaveTextContent(TELEMETRY_AI_FIX_COPY.noReadableRepository);
-    expect(TELEMETRY_AI_FIX_COPY.noReadableRepository).toBe(
-      "No connected repository you can read.",
+    ).toHaveTextContent(TELEMETRY_AI_FIX_COPY.noAskableRepository);
+    expect(TELEMETRY_AI_FIX_COPY.noAskableRepository).toBe(
+      "No connected repository you may ask OneUptime AI to work in.",
     );
   });
 });

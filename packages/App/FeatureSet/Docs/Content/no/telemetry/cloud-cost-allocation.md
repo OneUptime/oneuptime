@@ -23,7 +23,7 @@ flowchart TB
 
 - **Den første gruppen som passer, tar kostnaden.** Gruppene i en visning har en rekkefølge, og hver kostnad havner i den første gruppen der reglene passer på den, så ingenting telles to ganger. Gruppene og det ikke-fordelte forbruket blir alltid til sammen periodens totalsum.
 - **Regler leser alt en kostnad har.** Kontoen, skyleverandøren, tjenesten, regionen, ressursen og taggene dens, og det OneUptime vet om ressursen: eierteamene, etikettene, App Platforms-miljøet og appen.
-- **Alt regnes ut når du ser.** Ingenting skrives per kostnad. En regel du endrer, fordeler hver måned OneUptime tar vare på, på nytt, opptil 400 dager tilbake, uten ventetid.
+- **Alt regnes ut når du ser.** Ingenting skrives per kostnad. En regel du endrer, fordeler hver måned OneUptime tar vare på, på nytt, opptil 400 dager tilbake, uten ventetid. Hvert tall følger bryteren over det, fakturert, amortisert eller netto, som under [Skykostnader](/docs/telemetry/cloud-costs#fakturert-amortisert-og-netto), og en egen post er den samme på hvert grunnlag.
 - **Flere visninger kan fordele det samme forbruket.** «Etter team» og «Etter kostnadssted» fordeler hver for seg alt, på sin egen måte.
 
 ## Før du begynner
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-Svaret har `total` for hver gruppe og hva den består av (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), tallene per dag eller per måned, perioden før, og hva det ikke-fordelte forbruket består av. `POST /cloud-cost-group/<group ID>/spend` svarer for én gruppe.
+Svaret har `total` for hver gruppe og hva den består av (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), tallene per dag eller per måned, perioden før, og hva det ikke-fordelte forbruket består av. `POST /cloud-cost-group/<group ID>/spend` svarer for én gruppe. Send `basis` som `billed`, `amortized` eller `net` for tall på det grunnlaget; uten det er de på prosjektets, og `basis` i svaret sier hvilket.
 
 ## Grenser
 

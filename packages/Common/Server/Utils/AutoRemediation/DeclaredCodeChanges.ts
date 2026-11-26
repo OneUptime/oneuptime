@@ -38,6 +38,7 @@ import {
   DeclaredCodeChangeTaskContext,
   DeclaredCodeOwnerCandidateJSON,
   DeclaredCodeOwnerJSON,
+  DeclaredCodeOwnerReason,
   DeclaredCodePrivateRecord,
   DeclaredResourceFacts,
   LastingCloudChange,
@@ -336,28 +337,41 @@ export default class DeclaredCodeChanges {
         return repository.id!.toString().toLowerCase();
       }),
     );
-    const candidates: Array<DeclaredCodeOwnerCandidate> = ranked.filter(
+    const readableRanked: Array<DeclaredCodeOwnerCandidate> = ranked.filter(
       (candidate: DeclaredCodeOwnerCandidate): boolean => {
         return readableIds.has(candidate.repository.id.toLowerCase());
       },
     );
+
+    /*
+     * Offered with why: the ones something points to, a few whatever the
+     * project has. Every repository was listed, nothing pointing to most of
+     * them, and each asked about in turn (#11076): any other is found by
+     * the dialog's search, held on the server to the ones the reader may
+     * ask AI in.
+     */
+    const candidates: Array<DeclaredCodeOwnerCandidate> = readableRanked.filter(
+      (candidate: DeclaredCodeOwnerCandidate): boolean => {
+        return candidate.reason !== DeclaredCodeOwnerReason.NoEvidence;
+      },
+    );
     const best: DeclaredCodeOwnerCandidate | null =
       DeclaredCodeOwner.getBest(candidates);
-    const [canAsk, privateRecord]: [
-      Array<boolean>,
+
+    // Who may ask AI in them: one read a batch, never one a repository.
+    const [askable, privateRecord]: [
+      Set<string>,
       DeclaredCodePrivateRecord | null,
     ] = await Promise.all([
-      Promise.all(
-        candidates.map(
-          (candidate: DeclaredCodeOwnerCandidate): Promise<boolean> => {
-            return CodeTaskAccess.canAskInRepository({
-              props: data.props,
-              projectId,
-              repositoryId: new ObjectID(candidate.repository.id),
-            });
+      CodeTaskAccess.listAskableRepositoryIds({
+        props: data.props,
+        projectId,
+        repositoryIds: candidates.map(
+          (candidate: DeclaredCodeOwnerCandidate): string => {
+            return candidate.repository.id;
           },
         ),
-      ),
+      }),
       DeclaredCodeChanges.getPrivateRecord(step.suggestion),
     ]);
 
@@ -377,7 +391,6 @@ export default class DeclaredCodeChanges {
       candidates: candidates.map(
         (
           candidate: DeclaredCodeOwnerCandidate,
-          index: number,
         ): DeclaredCodeOwnerCandidateJSON => {
           return {
             repositoryId: candidate.repository.id,
@@ -386,10 +399,12 @@ export default class DeclaredCodeChanges {
             reason: candidate.reason,
             matchedPaths: candidate.matchedPaths,
             isBest: candidate === best,
-            canAsk: Boolean(canAsk[index]),
+            canAsk: askable.has(candidate.repository.id.toLowerCase()),
           };
         },
       ),
+      // Any connected repository the reader reads, to search for.
+      hasRepository: readableRanked.length > 0,
     };
   }
 

@@ -541,7 +541,21 @@ export interface DeclaredCodeOwnerJSON {
   sentence: string;
   // Where the code keeps the value, when the guide knows: "aws_ecs_service.desired_count".
   target: DeclaredCodeTarget | null;
+  /*
+   * The repositories something points to - a tag, a file named after the
+   * resource, code of its kind, being the only one - the likeliest first:
+   * a few, whatever the project has. Any other connected repository is
+   * found by the dialog's search on the server (#11076); every one of them
+   * was listed, and asked about one at a time.
+   */
   candidates: Array<DeclaredCodeOwnerCandidateJSON>;
+  /*
+   * Whether any connected repository the reader may read could take the
+   * pull request, whether or not something points to it: false says there
+   * is none to search for (connect one in Code). Absent from an older
+   * server: as many as `candidates` holds.
+   */
+  hasRepository?: boolean | undefined;
   /*
    * The kind of private record the fix is for, when it is for one: the
    * pull request then leaves that record out, and the dialog says so
