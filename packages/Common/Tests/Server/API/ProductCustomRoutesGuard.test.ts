@@ -403,6 +403,23 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Cloud],
     leftAlone: {},
   },
+  /*
+   * Cost views (#11006): Make Groups writes a view's missing groups as the
+   * server (CloudCostViewSync), so it names Cloud; the allocation reads.
+   */
+  "packages/Common/Server/API/CloudCostViewAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:viewId/allocation`": READ,
+    },
+  },
+  // A cost group's page reads its spend (#11006).
+  "packages/Common/Server/API/CloudCostGroupAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:groupId/spend`": READ,
+    },
+  },
   "packages/Common/Server/API/NetworkControllerConnectionAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},
