@@ -841,7 +841,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    * An erasure request (#10908) taking a person out of what Security Events
    * named them in: the request's creation is recorded, and an entry for
    * each write here would copy the person's name - what the request erases
-   * - into the audit log as the old value.
+   * - into the audit log as the old value. So would rewriting the
+   * fingerprint an alert or an incident a detection opened groups on
+   * (#11130): the old one is a fingerprint of the person.
    */
   "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords.ts":
     {
@@ -849,6 +851,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "SecurityUserErasureRecords.deleteEntityRisk SecurityEntityRisk":
         Why.FollowOn,
       "SecurityUserErasureRecords.withdrawPlaybookRuns SecurityPlaybookRun":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.rewriteSeriesFingerprints Alert":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.rewriteSeriesFingerprints Incident":
         Why.FollowOn,
     },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {

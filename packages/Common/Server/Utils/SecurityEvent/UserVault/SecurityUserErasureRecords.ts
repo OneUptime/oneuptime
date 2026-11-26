@@ -1143,8 +1143,14 @@ export default class SecurityUserErasureRecords {
       return 0;
     }
 
+    // Each table's statement in full, so the audit guard reads what it writes.
+    const statement: string =
+      data.table === "Alert"
+        ? `UPDATE "Alert" AS record SET "seriesFingerprint" = split_part(record."seriesFingerprint", ':', 1) || ':' || split_part(record."seriesFingerprint", ':', 2) || ':' || change.next FROM unnest($2::text[], $3::text[], $4::text[]) AS change(kind, previous, next) WHERE record."projectId" = $1 AND split_part(record."seriesFingerprint", ':', 1) = change.kind AND split_part(record."seriesFingerprint", ':', 2) <> '' AND split_part(record."seriesFingerprint", ':', 3) = change.previous AND split_part(record."seriesFingerprint", ':', 4) = '' RETURNING record."_id"`
+        : `UPDATE "Incident" AS record SET "seriesFingerprint" = split_part(record."seriesFingerprint", ':', 1) || ':' || split_part(record."seriesFingerprint", ':', 2) || ':' || change.next FROM unnest($2::text[], $3::text[], $4::text[]) AS change(kind, previous, next) WHERE record."projectId" = $1 AND split_part(record."seriesFingerprint", ':', 1) = change.kind AND split_part(record."seriesFingerprint", ':', 2) <> '' AND split_part(record."seriesFingerprint", ':', 3) = change.previous AND split_part(record."seriesFingerprint", ':', 4) = '' RETURNING record."_id"`;
+
     return await this.write(
-      `UPDATE "${data.table}" AS record SET "seriesFingerprint" = split_part(record."seriesFingerprint", ':', 1) || ':' || split_part(record."seriesFingerprint", ':', 2) || ':' || change.next FROM unnest($2::text[], $3::text[], $4::text[]) AS change(kind, previous, next) WHERE record."projectId" = $1 AND split_part(record."seriesFingerprint", ':', 1) = change.kind AND split_part(record."seriesFingerprint", ':', 2) <> '' AND split_part(record."seriesFingerprint", ':', 3) = change.previous AND split_part(record."seriesFingerprint", ':', 4) = '' RETURNING record."_id"`,
+      statement,
       [
         data.projectId.toString(),
         data.changes.map((change: DetectionFingerprintChange): string => {
