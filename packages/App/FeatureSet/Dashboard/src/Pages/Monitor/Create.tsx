@@ -1108,6 +1108,8 @@ const MonitorCreate: FunctionComponent<
           ]
         : NetworkDeviceAlertPackUtil.buildCriteriaInstances({
             downMonitorStatusId: offlineStatus?.id || undefined,
+            // SNMP failing on a device that answers ping is up (issue #11071).
+            upMonitorStatusId: operationalStatus?.id || undefined,
             tables: SnmpTableListUtil.resolveEffectiveTables({
               templateTables: device?.oidTemplate?.tables,
               deviceTables: device?.snmpTables,

@@ -16,7 +16,7 @@ import {
   DropdownOption,
   DropdownOptionGroup,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import { MonitorCriteriaAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
+import { MonitorTemplateAlertSummary } from "Common/Utils/Monitor/MonitorTemplateAlertSummary";
 import {
   CREATE_MONITORS_ACTION_TITLE,
   NO_DEVICES_SELECTED,
@@ -53,9 +53,13 @@ const ENGLISH: Translator = createTranslator((): string | undefined => {
   return undefined;
 }, "en");
 
-const SUMMARY: MonitorCriteriaAlertSummary = {
+const SUMMARY: MonitorTemplateAlertSummary = {
   criteria: [],
-} as unknown as MonitorCriteriaAlertSummary;
+  raisesIncidents: false,
+  raisesAlerts: false,
+  raisesIncidentsOnPingOnlyDevices: false,
+  raisesAlertsOnPingOnlyDevices: false,
+};
 
 function device(data: {
   id: string;

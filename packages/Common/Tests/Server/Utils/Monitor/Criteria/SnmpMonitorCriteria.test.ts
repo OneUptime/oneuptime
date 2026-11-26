@@ -1042,3 +1042,272 @@ describe("SnmpMonitorCriteria — ping-first polling", () => {
     });
   });
 });
+
+/*
+ * THE DEVICE'S PING ON ITS OWN (OneUptime issue #11071).
+ *
+ * Every poll pings the device beside its SNMP walk, and the ICMP criteria
+ * judge the ping alone: a switch whose SNMP credentials broke answers ping
+ * and reads "reachable, SNMP failing", where judging by SNMP alone made
+ * 3,000 Meraki switches go offline over one community string.
+ */
+describe("SnmpMonitorCriteria — the device's ping on its own (#11071)", () => {
+  function poll(data: {
+    ping?: {
+      isReachable?: boolean | undefined;
+      packetLossPercent: number;
+      avgRoundTripTimeInMs?: number | undefined;
+    };
+    walk?: { isOnline: boolean } | undefined;
+  }): ProbeMonitorResponse {
+    const response: ProbeMonitorResponse = {
+      projectId: ObjectID.generate(),
+      monitorId: ObjectID.generate(),
+      monitorStepId: ObjectID.generate(),
+      probeId: ObjectID.generate(),
+      failureCause: "",
+      // The device's verdict: ping OR the walk, as the walk pipeline stamps it.
+      isOnline: Boolean(data.ping?.isReachable || data.walk?.isOnline),
+      monitoredAt: new Date(),
+    };
+
+    if (data.ping) {
+      response.pingResponse = {
+        packetsSent: 3,
+        packetsReceived: 0,
+        ...data.ping,
+      };
+    }
+
+    if (data.walk) {
+      response.snmpResponse = {
+        isOnline: data.walk.isOnline,
+        responseTimeInMs: data.walk.isOnline ? 400 : 0,
+        failureCause: data.walk.isOnline ? "" : "Request timed out",
+        oidResponses: [],
+      };
+    }
+
+    return response;
+  }
+
+  async function met(
+    dataToProcess: ProbeMonitorResponse,
+    filter: CriteriaFilter,
+  ): Promise<string | null> {
+    return await SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+      dataToProcess: dataToProcess,
+      criteriaFilter: filter,
+    });
+  }
+
+  const REACHABLE: CriteriaFilter = {
+    checkOn: CheckOn.IcmpIsReachable,
+    filterType: FilterType.True,
+    value: undefined,
+  };
+  const UNREACHABLE: CriteriaFilter = {
+    checkOn: CheckOn.IcmpIsReachable,
+    filterType: FilterType.False,
+    value: undefined,
+  };
+
+  // The report: one SNMP credential problem, a fleet that answers ping.
+  const CREDENTIALS_BROKEN: ProbeMonitorResponse = poll({
+    ping: { isReachable: true, packetLossPercent: 0, avgRoundTripTimeInMs: 2 },
+    walk: { isOnline: false },
+  });
+
+  test("a switch whose SNMP credentials broke answers ping: reachable by ICMP, its walk failing, and online", async () => {
+    expect(await met(CREDENTIALS_BROKEN, REACHABLE)).toBeTruthy();
+    expect(await met(CREDENTIALS_BROKEN, UNREACHABLE)).toBeNull();
+    expect(
+      await met(CREDENTIALS_BROKEN, {
+        checkOn: CheckOn.SnmpWalkIsSucceeding,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeTruthy();
+    expect(
+      await met(CREDENTIALS_BROKEN, {
+        checkOn: CheckOn.SnmpIsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeNull();
+  });
+
+  test("gear that drops ICMP but answers SNMP is unreachable by ping, and still online", async () => {
+    const icmpFiltered: ProbeMonitorResponse = poll({
+      ping: { isReachable: false, packetLossPercent: 100 },
+      walk: { isOnline: true },
+    });
+
+    expect(await met(icmpFiltered, UNREACHABLE)).toBeTruthy();
+    expect(
+      await met(icmpFiltered, {
+        checkOn: CheckOn.SnmpIsOnline,
+        filterType: FilterType.True,
+        value: undefined,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("a device that answers nothing is unreachable by ping and offline", async () => {
+    const down: ProbeMonitorResponse = poll({
+      ping: { isReachable: false, packetLossPercent: 100 },
+      walk: { isOnline: false },
+    });
+
+    expect(await met(down, UNREACHABLE)).toBeTruthy();
+    expect(
+      await met(down, {
+        checkOn: CheckOn.SnmpIsOnline,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeTruthy();
+  });
+
+  test("is judged on a ping-only poll, which no walk-based check is", async () => {
+    const pingOnly: ProbeMonitorResponse = poll({
+      ping: {
+        isReachable: true,
+        packetLossPercent: 0,
+        avgRoundTripTimeInMs: 1,
+      },
+    });
+
+    expect(await met(pingOnly, REACHABLE)).toBeTruthy();
+    expect(
+      await met(pingOnly, {
+        checkOn: CheckOn.SnmpWalkIsSucceeding,
+        filterType: FilterType.False,
+        value: undefined,
+      }),
+    ).toBeNull();
+  });
+
+  test("response time compares the ping's average round trip, never the walk's time", async () => {
+    const slow: ProbeMonitorResponse = poll({
+      ping: {
+        isReachable: true,
+        packetLossPercent: 0,
+        avgRoundTripTimeInMs: 150,
+      },
+      walk: { isOnline: true },
+    });
+    const filter: CriteriaFilter = {
+      checkOn: CheckOn.IcmpResponseTime,
+      filterType: FilterType.GreaterThan,
+      value: 100,
+    };
+
+    expect(await met(slow, filter)).toBeTruthy();
+    // The walk took 400 ms; the ping 150: under 200 is under 200.
+    expect(
+      await met(slow, {
+        checkOn: CheckOn.IcmpResponseTime,
+        filterType: FilterType.GreaterThan,
+        value: 200,
+      }),
+    ).toBeNull();
+  });
+
+  test("a ping no echo came back to has no response time to compare", async () => {
+    expect(
+      await met(
+        poll({ ping: { isReachable: false, packetLossPercent: 100 } }),
+        {
+          checkOn: CheckOn.IcmpResponseTime,
+          filterType: FilterType.GreaterThan,
+          value: 0,
+        },
+      ),
+    ).toBeNull();
+  });
+
+  test("packet loss compares the share of echoes that did not come back", async () => {
+    const lossy: ProbeMonitorResponse = poll({
+      ping: {
+        isReachable: true,
+        packetLossPercent: 40,
+        avgRoundTripTimeInMs: 9,
+      },
+    });
+
+    expect(
+      await met(lossy, {
+        checkOn: CheckOn.IcmpPacketLossPercent,
+        filterType: FilterType.GreaterThan,
+        value: 20,
+      }),
+    ).toBeTruthy();
+    expect(
+      await met(lossy, {
+        checkOn: CheckOn.IcmpPacketLossPercent,
+        filterType: FilterType.GreaterThan,
+        value: 50,
+      }),
+    ).toBeNull();
+  });
+
+  test("nothing is judged on a poll from a probe that ran no ping", async () => {
+    const walkOnly: ProbeMonitorResponse = poll({ walk: { isOnline: true } });
+
+    for (const filter of [
+      REACHABLE,
+      UNREACHABLE,
+      {
+        checkOn: CheckOn.IcmpResponseTime,
+        filterType: FilterType.LessThan,
+        value: 1000,
+      },
+      {
+        checkOn: CheckOn.IcmpPacketLossPercent,
+        filterType: FilterType.LessThan,
+        value: 100,
+      },
+    ]) {
+      expect(await met(walkOnly, filter)).toBeNull();
+    }
+  });
+
+  test("reads the probe's verdict, or - without one - an echo lost short of all of them", async () => {
+    expect(
+      SnmpMonitorCriteria.isIcmpReachable({
+        packetsSent: 3,
+        packetsReceived: 0,
+        packetLossPercent: 0,
+        isReachable: false,
+      }),
+    ).toBe(false);
+    expect(
+      SnmpMonitorCriteria.isIcmpReachable({
+        packetsSent: 3,
+        packetsReceived: 1,
+        packetLossPercent: 66,
+      }),
+    ).toBe(true);
+    expect(
+      SnmpMonitorCriteria.isIcmpReachable({
+        packetsSent: 3,
+        packetsReceived: 0,
+        packetLossPercent: 100,
+      }),
+    ).toBe(false);
+  });
+
+  test("a trap never judges the ping", async () => {
+    const trap: ProbeMonitorResponse = poll({
+      ping: { isReachable: false, packetLossPercent: 100 },
+    });
+    trap.snmpTrapResponse = {
+      trapOid: "1.3.6.1.6.3.1.1.5.3",
+      sourceIpAddress: "10.20.0.1",
+      varbinds: [],
+    } as unknown as ProbeMonitorResponse["snmpTrapResponse"];
+
+    expect(await met(trap, UNREACHABLE)).toBeNull();
+  });
+});

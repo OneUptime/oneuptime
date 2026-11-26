@@ -17,6 +17,7 @@ import MetricMonitorResponse from "../../../../Types/Monitor/MetricMonitor/Metri
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
 import RollingTime from "../../../../Types/RollingTime/RollingTime";
 import SnmpMonitorResponse from "../../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
+import PingMonitorResponse from "../../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import ObjectID from "../../../../Types/ObjectID";
 
@@ -851,6 +852,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — networ
     isOnline?: boolean | undefined;
     failureCause?: string | undefined;
     snmpResponse?: SnmpMonitorResponse | undefined;
+    pingResponse?: PingMonitorResponse | undefined;
   }): {
     monitor: Monitor;
     criteriaFilter: CriteriaFilter;
@@ -873,6 +875,7 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — networ
         failureCause: input.failureCause ?? "",
         isOnline: input.isOnline,
         snmpResponse: input.snmpResponse,
+        pingResponse: input.pingResponse,
         monitoredAt: new Date(),
       },
     };
@@ -957,5 +960,145 @@ describe("MonitorCriteriaObservationBuilder.describeFilterObservation — networ
         }),
       ),
     ).toBe("SNMP walk succeeded.");
+  });
+
+  /*
+   * Issue #11071. The device's ping on its own: what this poll's echoes
+   * found, beside whatever the walk did - a switch with broken SNMP
+   * credentials reads "answered ping" while its walk reads failed.
+   */
+  test("Device Is Reachable (ICMP) says what the ping found, whatever the walk did", () => {
+    const failedWalk: SnmpMonitorResponse = {
+      isOnline: false,
+      responseTimeInMs: 0,
+      failureCause: "SNMP request timed out",
+      oidResponses: [],
+    };
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpIsReachable,
+          isOnline: true,
+          snmpResponse: failedWalk,
+          pingResponse: {
+            packetsSent: 3,
+            packetsReceived: 3,
+            packetLossPercent: 0,
+            avgRoundTripTimeInMs: 2,
+            isReachable: true,
+          },
+        }),
+      ),
+    ).toBe("Device answered ping (ICMP).");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpIsReachable,
+          isOnline: true,
+          pingResponse: {
+            packetsSent: 3,
+            packetsReceived: 0,
+            packetLossPercent: 100,
+            isReachable: false,
+          },
+        }),
+      ),
+    ).toBe("Device did not answer ping (ICMP).");
+
+    // A ping-only poll's cause is the ping's own, and is said.
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpIsReachable,
+          isOnline: false,
+          failureCause: "Request timed out",
+          pingResponse: {
+            packetsSent: 3,
+            packetsReceived: 0,
+            packetLossPercent: 100,
+            isReachable: false,
+          },
+        }),
+      ),
+    ).toBe("Device did not answer ping (ICMP): Request timed out");
+
+    // Beside a walk, the poll's cause is the walk's, and is not the ping's.
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpIsReachable,
+          isOnline: false,
+          failureCause: "SNMP request timed out",
+          snmpResponse: failedWalk,
+          pingResponse: {
+            packetsSent: 3,
+            packetsReceived: 0,
+            packetLossPercent: 100,
+            isReachable: false,
+          },
+        }),
+      ),
+    ).toBe("Device did not answer ping (ICMP).");
+  });
+
+  test("the ping's response time and loss read in milliseconds and percent", () => {
+    const ping: PingMonitorResponse = {
+      packetsSent: 3,
+      packetsReceived: 2,
+      packetLossPercent: 33.333,
+      avgRoundTripTimeInMs: 12.346,
+      isReachable: true,
+    };
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpResponseTime,
+          isOnline: true,
+          pingResponse: ping,
+        }),
+      ),
+    ).toBe("ICMP response time was 12.35ms.");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpPacketLossPercent,
+          isOnline: true,
+          pingResponse: ping,
+        }),
+      ),
+    ).toBe("ICMP packet loss was 33.33%.");
+
+    expect(
+      MonitorCriteriaObservationBuilder.describeFilterObservation(
+        buildProbeInputs({
+          checkOn: CheckOn.IcmpResponseTime,
+          isOnline: false,
+          pingResponse: {
+            packetsSent: 3,
+            packetsReceived: 0,
+            packetLossPercent: 100,
+            isReachable: false,
+          },
+        }),
+      ),
+    ).toBe("No echo came back, so the ping has no response time.");
+  });
+
+  test("a poll from a probe that ran no ping says so, never 'did not answer'", () => {
+    for (const checkOn of [
+      CheckOn.IcmpIsReachable,
+      CheckOn.IcmpResponseTime,
+      CheckOn.IcmpPacketLossPercent,
+    ]) {
+      expect(
+        MonitorCriteriaObservationBuilder.describeFilterObservation(
+          buildProbeInputs({ checkOn: checkOn, isOnline: true }),
+        ),
+      ).toBe("The device's ping was not recorded on this poll.");
+    }
   });
 });

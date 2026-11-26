@@ -844,6 +844,12 @@ export default class NetworkDeviceWalkUtil {
         typeof ping.avgRttMs === "number" && isFinite(ping.avgRttMs)
           ? ping.avgRttMs
           : undefined,
+      /*
+       * The ping's own verdict (issue #11071): the poll's isOnline is the
+       * device's - ping OR the walk - and the ICMP criteria judge the ping
+       * alone.
+       */
+      isReachable: ping.isOnline === true,
     };
   }
 

@@ -866,7 +866,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           values,
         ),
         description: translator.translateTemplate(
-          "This criteria checks if the {{monitorName}} SNMP device is online",
+          "This criteria checks if {{monitorName}} answers ping (ICMP) or SNMP",
           values,
         ),
       };
@@ -1208,6 +1208,13 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     monitorType: MonitorType;
     alertSeverityId: ObjectID;
     monitorName: string;
+    /*
+     * The status a warning that keeps the monitor up sets: a Network
+     * Device's "SNMP is failing" must say Online, or a device that comes back
+     * with SNMP still failing would stay Offline (the first criteria that
+     * matches is the only one judged). Without it, there is none.
+     */
+    onlineMonitorStatusId?: ObjectID | undefined;
     // The reader's, to write the words in their language (getWordsTranslator).
     translator?: Translator | undefined;
   }): MonitorCriteriaInstance | null {
@@ -1215,6 +1222,77 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       arg.translator,
     );
     const values: TemplateValues = { monitorName: arg.monitorName };
+
+    /*
+     * SNMP FAILING IS NOT OFFLINE (issue #11071). A device whose probe's
+     * ping it answers while its SNMP walk fails - a community string
+     * changed, an agent down, an ACL - is up: it forwards traffic, and only
+     * its interfaces, inventory and health checks have stopped refreshing.
+     * So it stays Online, with an alert that says SNMP is failing, between
+     * Offline (answers neither ping nor SNMP) and Online. One credential
+     * problem across 3,000 switches is then 3,000 "SNMP is failing" alerts
+     * to fix in one place, not 3,000 devices down.
+     *
+     * Offline stays "neither answered" rather than "no ping": gear behind an
+     * ACL that drops ICMP but answers SNMP is up too. A fleet that always
+     * answers ping can still make "Device Is Reachable (ICMP) is False" its
+     * Offline.
+     */
+    if (
+      arg.monitorType === MonitorType.NetworkDevice &&
+      arg.onlineMonitorStatusId
+    ) {
+      const monitorCriteriaInstance: MonitorCriteriaInstance =
+        new MonitorCriteriaInstance();
+
+      monitorCriteriaInstance.data = {
+        id: ObjectID.generate().toString(),
+        monitorStatusId: arg.onlineMonitorStatusId,
+        filterCondition: FilterCondition.All,
+        filters: [
+          {
+            checkOn: CheckOn.IcmpIsReachable,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.SnmpWalkIsSucceeding,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        ],
+        incidents: [],
+        alerts: [
+          {
+            title: translator.translateTemplate(
+              "SNMP is failing on {{monitorName}}",
+              values,
+            ),
+            description: translator.translateTemplate(
+              "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.",
+              values,
+            ),
+            alertSeverityId: arg.alertSeverityId,
+            autoResolveAlert: true,
+            id: ObjectID.generate().toString(),
+            onCallPolicyIds: [],
+          },
+        ],
+        changeMonitorStatus: true,
+        createIncidents: false,
+        createAlerts: true,
+        name: translator.translateTemplate(
+          "Check if SNMP is failing on {{monitorName}}",
+          values,
+        ),
+        description: translator.translateTemplate(
+          "This criteria checks if {{monitorName}} answers ping while its SNMP walk fails, which keeps it online with an alert rather than offline",
+          values,
+        ),
+      };
+
+      return monitorCriteriaInstance;
+    }
 
     if (arg.monitorType === MonitorType.SSLCertificate) {
       const monitorCriteriaInstance: MonitorCriteriaInstance =
@@ -1484,7 +1562,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
               values,
             ),
             description: translator.translateTemplate(
-              "{{monitorName}} SNMP device is currently offline.",
+              "{{monitorName}} answers neither ping (ICMP) nor SNMP.",
               values,
             ),
             incidentSeverityId: arg.incidentSeverityId,
@@ -1503,7 +1581,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
               values,
             ),
             description: translator.translateTemplate(
-              "{{monitorName}} SNMP device is currently offline.",
+              "{{monitorName}} answers neither ping (ICMP) nor SNMP.",
               values,
             ),
             alertSeverityId: arg.alertSeverityId,
@@ -1517,7 +1595,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
           values,
         ),
         description: translator.translateTemplate(
-          "This criteria checks if the {{monitorName}} SNMP device is offline",
+          "This criteria checks if {{monitorName}} answers neither ping (ICMP) nor SNMP",
           values,
         ),
       };

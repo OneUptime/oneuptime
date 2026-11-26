@@ -85,6 +85,13 @@ export interface ComponentProps {
    */
   offlineMonitorStatusId?: ObjectID | undefined;
   /*
+   * The status of a device that is up - the monitor's default status. The
+   * pack's "SNMP walk failing" moves the monitor to it, so a device back
+   * from one unreachable poll with SNMP still failing is not left at the
+   * offline status (issue #11071).
+   */
+  upMonitorStatusId?: ObjectID | undefined;
+  /*
    * Start each criteria folded to its one-line header (name, what it checks,
    * what it does), not open across a screen of filters and actions. Create
    * Monitor turns this on: a new monitor's criteria are defaults that suit
@@ -638,6 +645,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                 ...(monitorCriteria.data?.monitorCriteriaInstanceArray || []),
                 ...NetworkDeviceAlertPackUtil.buildCriteriaInstances({
                   downMonitorStatusId: props.offlineMonitorStatusId,
+                  upMonitorStatusId: props.upMonitorStatusId,
                   tables: (props.networkDeviceTableCatalogue || []).map(
                     (
                       entry: NetworkDeviceTableCatalogueEntry,

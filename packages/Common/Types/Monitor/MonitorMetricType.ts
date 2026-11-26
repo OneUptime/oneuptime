@@ -15,6 +15,23 @@ enum MonitorMetricType {
   Jitter = "oneuptime.monitor.ping.jitter",
 
   /*
+   * A network device's ping on its own, one sample per poll (issue #11071):
+   * whether an echo came back (1 or 0) and the echoes' average round trip.
+   * Written for a Network Device monitor beside its IsOnline - which is the
+   * device's verdict, ping OR its SNMP walk - and its ResponseTime - which
+   * is the walk's - so the ping can be judged over a window too. A poll
+   * whose ping got no echo writes no response time.
+   *
+   * They sit in the ping namespace beside PacketLossPercent and Jitter. The
+   * round trip is the series the device's own charts already read
+   * (NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME): written once for the
+   * device, keyed to it, and once for each monitor that watches it, keyed
+   * to the monitor, as packet loss is.
+   */
+  IcmpIsReachable = "oneuptime.monitor.ping.reachable",
+  IcmpResponseTime = "oneuptime.monitor.ping.round.trip.time",
+
+  /*
    * HTTP(S) phase breakdown. Emitted by Website/API monitors when the probe
    * captured socket-level timings; absent behind proxies and on older probes.
    */

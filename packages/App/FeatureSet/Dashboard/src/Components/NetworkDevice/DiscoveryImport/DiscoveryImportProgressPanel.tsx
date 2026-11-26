@@ -587,7 +587,7 @@ function getDeviceMonitorCreationDescription(
 
   if (model.isActive) {
     return translator.translateText(
-      "You can close this window: the monitors keep being created, and the Devices list shows where it stands.",
+      "You can close this window: the monitors keep being created on the server.",
     ) as string;
   }
 

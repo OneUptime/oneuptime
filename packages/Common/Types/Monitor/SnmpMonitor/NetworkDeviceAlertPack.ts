@@ -23,11 +23,25 @@ export interface NetworkDeviceAlertPackItem {
   filters: Array<CriteriaFilter>;
   createIncidents: boolean;
   createAlerts: boolean;
+  /*
+   * A problem with a device that is up (issue #11071): met, the monitor is
+   * up - the context's upMonitorStatusId. Without it, the first criteria to
+   * match decides the status and this one changes none, so a device that
+   * was down for one poll and came back with the problem still there kept
+   * the down status for as long as the problem lasted.
+   */
+  keepsDeviceUp?: boolean | undefined;
 }
 
 export interface NetworkDeviceAlertPackContext {
   // Status to move the monitor to when a pack criteria matches (offline/degraded).
   downMonitorStatusId?: ObjectID | undefined;
+  /*
+   * The status of a device that is up: what an item that keepsDeviceUp
+   * moves the monitor to - the monitor's default status, where it goes when
+   * nothing matches. Left out, such an item changes no status, as before.
+   */
+  upMonitorStatusId?: ObjectID | undefined;
   /*
    * The severity each item's incident or alert starts on. Left out, the
    * item still gets its incident or alert - titled, auto-resolving - and
@@ -64,12 +78,23 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
    * inventory and no health OIDs until someone fixes the credentials, the
    * agent or the ACL. Never fires on a device that is only pinged: the
    * criterion is not evaluated at all when no walk ran.
+   *
+   * Issue #11071: it reads the ping itself (Device Is Reachable (ICMP)), so
+   * a device that answers nothing is down and not also told its SNMP is
+   * failing, and it keeps the device up - one SNMP credential problem
+   * across a fleet is that many "SNMP walk failing" alerts, never that
+   * many devices left Offline after one unreachable poll.
    */
   {
     name: "SNMP walk failing",
     description:
       "The device answers ping but its SNMP walk is failing — check the credentials, the SNMP agent, or an ACL.",
     filters: [
+      {
+        checkOn: CheckOn.IcmpIsReachable,
+        filterType: FilterType.True,
+        value: undefined,
+      },
       {
         checkOn: CheckOn.SnmpWalkIsSucceeding,
         filterType: FilterType.False,
@@ -78,6 +103,7 @@ const PACK: Array<NetworkDeviceAlertPackItem> = [
     ],
     createIncidents: false,
     createAlerts: true,
+    keepsDeviceUp: true,
   },
   {
     name: "Interface down",
@@ -304,9 +330,13 @@ export default class NetworkDeviceAlertPackUtil {
     return NetworkDeviceAlertPackUtil.getPackItems(context?.tables).map(
       (item: NetworkDeviceAlertPackItem) => {
         const instance: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+        const upMonitorStatusId: ObjectID | undefined = item.keepsDeviceUp
+          ? context?.upMonitorStatusId
+          : undefined;
+
         instance.data = {
           id: ObjectID.generate().toString(),
-          monitorStatusId: context?.downMonitorStatusId,
+          monitorStatusId: upMonitorStatusId || context?.downMonitorStatusId,
           filterCondition: FilterCondition.All,
           filters: item.filters,
           /*
@@ -347,8 +377,9 @@ export default class NetworkDeviceAlertPackUtil {
            * to — a caller that passes no context would otherwise produce
            * criteria that "change" the monitor to an undefined status.
            */
-          changeMonitorStatus:
-            item.createIncidents && Boolean(context?.downMonitorStatusId),
+          changeMonitorStatus: upMonitorStatusId
+            ? true
+            : item.createIncidents && Boolean(context?.downMonitorStatusId),
           isEnabled: true,
           name: item.name,
           description: item.description,

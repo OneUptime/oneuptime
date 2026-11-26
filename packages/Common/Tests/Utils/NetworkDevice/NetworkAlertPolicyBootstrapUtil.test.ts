@@ -232,6 +232,19 @@ describe("NetworkAlertPolicyBootstrapUtil.buildRecommendedMonitorTemplate", () =
     ).toBe(ONLINE_STATUS_ID.toString());
 
     for (const criteriaInstance of criteriaOf(template)) {
+      /*
+       * SNMP failing on a device that answers ping is up (issue #11071):
+       * met, it moves the monitor online, so a switch back from one
+       * unreachable poll with SNMP still failing is not left offline.
+       */
+      if (criteriaInstance.data?.name === "SNMP walk failing") {
+        expect(criteriaInstance.data?.changeMonitorStatus).toBe(true);
+        expect(criteriaInstance.data?.monitorStatusId?.toString()).toBe(
+          ONLINE_STATUS_ID.toString(),
+        );
+        continue;
+      }
+
       expect(criteriaInstance.data?.monitorStatusId?.toString()).toBe(
         OFFLINE_STATUS_ID.toString(),
       );
