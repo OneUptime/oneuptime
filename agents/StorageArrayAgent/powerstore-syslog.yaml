@@ -1,0 +1,255 @@
+receivers:
+  # Dell PowerStore's remote syslog: its alerts, and its audit log. This
+  # collector is the `powerstore-syslog` service of docker-compose.yml
+  # (COMPOSE_PROFILES=powerstore), which publishes port 5514 on this machine
+  # for TCP and UDP; the metrics come from otel-collector-config.powerstore.yaml
+  # in the agent's main container. On the PowerStore, add this machine as a
+  # remote syslog server (Settings > Security > Remote Logging, see README.md)
+  # on port 5514, TCP or UDP, and choose the audit types to send besides the
+  # alerts.
+  #
+  # PowerStore writes classic BSD syslog (RFC 3164) whose message is PowerStore's
+  # own record: its time, host, cluster id, process, message type (AlertEvent
+  # for an alert, Authentication, Config, ... for the audit log), one
+  # structured-data element in RFC 5424 form, and the text. The operators below
+  # read that record into the log's attributes; a line in any other form is kept
+  # as it came. RFC 3164 timestamps carry no time zone: set `location` to the
+  # cluster's time zone unless its clock runs on UTC. A syslog receiver honours
+  # only one of `tcp:` / `udp:`, so TCP and UDP are two receivers.
+  syslog/tcp:
+    tcp:
+      listen_address: "0.0.0.0:5514"
+    protocol: rfc3164
+    location: UTC
+    operators: &powerstore_operators
+      - type: regex_parser
+        id: powerstore-record
+        parse_from: attributes.message
+        parse_to: attributes.powerstore
+        regex: '^(?:\[[^\]]*\]:? ?)?(?P<time>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\S*) (?P<host>\S+) (?P<app>\S+) (?P<proc>\S+) (?P<msgid>\S+) \[(?P<sdid>PowerStore_[A-Za-z_]+)@1139(?P<params>(?: [A-Za-z0-9_]+="(?:[^"\\]|\\.)*")*)\] ?(?P<text>.*)$'
+        on_error: send_quiet
+      - type: key_value_parser
+        id: powerstore-structured-data
+        if: 'attributes.powerstore?.params != nil'
+        parse_from: attributes.powerstore.params
+        parse_to: attributes.powerstore.sd
+        delimiter: "="
+        pair_delimiter: " "
+        on_error: send_quiet
+  syslog/udp:
+    udp:
+      listen_address: "0.0.0.0:5514"
+    protocol: rfc3164
+    location: UTC
+    operators: *powerstore_operators
+
+  # Optional: take the syslog over TLS. PowerStore sends TLS over TCP only, and
+  # only to a server whose certificate is signed by a CA you imported into it
+  # (Settings > Security > Remote Logging > Import certificate). To enable it:
+  #   1. Put the server's certificate and key next to docker-compose.yml as
+  #      powerstore-syslog-tls.crt and powerstore-syslog-tls.key (README.md has
+  #      two openssl commands that make both and a CA to import).
+  #   2. Uncomment `syslog/tls` below, add it to the pipeline's receivers, and
+  #      uncomment the 6514 port and the two certificate mounts in
+  #      docker-compose.yml.
+  #   3. Point PowerStore at <this-machine>:6514 over TCP with TLS enabled.
+  # syslog/tls:
+  #   tcp:
+  #     listen_address: "0.0.0.0:6514"
+  #     tls:
+  #       cert_file: /etc/otelcol-contrib/powerstore-syslog-tls.crt
+  #       key_file: /etc/otelcol-contrib/powerstore-syslog-tls.key
+  #   protocol: rfc3164
+  #   location: UTC
+  #   operators: *powerstore_operators
+
+processors:
+  # PowerStore's record, as flat attributes the Logs page filters on and the
+  # alert templates read. An alert's (PowerStore_remote_logging_alert):
+  #   powerstore.alert.id        the alert, the same on the line that raises
+  #                              it and the one that clears it
+  #   powerstore.alert.state     Active or Cleared
+  #   powerstore.alert.severity  Critical, Major, Minor or Info (below)
+  #   powerstore.event.code      the event that touched the alert (0x00307404)
+  #   powerstore.event.name      its name (PORT_LINK_DOWN)
+  #   powerstore.resource.type   the kind of object it is about (fc_port)
+  #   powerstore.resource.name   the object (BaseEnclosure-NodeB-IoModule0-FEPort1)
+  #   powerstore.appliance.name, powerstore.system_impact,
+  #   powerstore.repair_flow, powerstore.event.id, powerstore.sequence_number
+  # An audit event's (PowerStore_audit_event): powerstore.audit.id, .user,
+  # .action, .status, .resource_type, .client_ip and powerstore.appliance.
+  # Every line's: powerstore.message_type (AlertEvent, Authentication,
+  # Config, Logout, Service, System, ...) and powerstore.host (the node).
+  #
+  # These attribute names are stored with every line and named by the alert
+  # templates of monitors made from them: never rename one.
+  transform/powerstore-record:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        conditions:
+          - attributes["powerstore"] != nil
+        statements:
+          - set(attributes["powerstore.message_type"], attributes["powerstore"]["msgid"])
+          - set(attributes["powerstore.host"], attributes["powerstore"]["host"])
+          - set(body, attributes["powerstore"]["text"]) where attributes["powerstore"]["text"] != nil and attributes["powerstore"]["text"] != ""
+      - context: log
+        conditions:
+          - attributes["powerstore"] != nil and attributes["powerstore"]["sdid"] == "PowerStore_remote_logging_alert" and attributes["powerstore"]["sd"] != nil
+        statements:
+          - set(attributes["powerstore.alert.id"], attributes["powerstore"]["sd"]["alert_id"])
+          - set(attributes["powerstore.alert.state"], attributes["powerstore"]["sd"]["alert_state"])
+          - set(attributes["powerstore.alert.state"], "Active") where IsMatch(attributes["powerstore.alert.state"], "(?i)^active$")
+          - set(attributes["powerstore.alert.state"], "Cleared") where IsMatch(attributes["powerstore.alert.state"], "(?i)^cleared$")
+          - set(attributes["powerstore.event.code"], attributes["powerstore"]["sd"]["event_code"])
+          - set(attributes["powerstore.event.name"], attributes["powerstore"]["sd"]["event_name"])
+          - set(attributes["powerstore.event.id"], attributes["powerstore"]["sd"]["event_id"])
+          - set(attributes["powerstore.sequence_number"], attributes["powerstore"]["sd"]["sequence_number"])
+          - set(attributes["powerstore.resource.type"], attributes["powerstore"]["sd"]["resource_type"])
+          - set(attributes["powerstore.resource.name"], attributes["powerstore"]["sd"]["resource_name"])
+          - set(attributes["powerstore.appliance.name"], attributes["powerstore"]["sd"]["appliance_name"])
+          - set(attributes["powerstore.system_impact"], attributes["powerstore"]["sd"]["system_impact"])
+          - set(attributes["powerstore.repair_flow"], attributes["powerstore"]["sd"]["repair_flow"])
+      - context: log
+        conditions:
+          - attributes["powerstore"] != nil and attributes["powerstore"]["sdid"] == "PowerStore_audit_event" and attributes["powerstore"]["sd"] != nil
+        statements:
+          - set(attributes["powerstore.audit.id"], attributes["powerstore"]["sd"]["id"])
+          - set(attributes["powerstore.audit.user"], attributes["powerstore"]["sd"]["user"])
+          - set(attributes["powerstore.audit.action"], attributes["powerstore"]["sd"]["action"])
+          - set(attributes["powerstore.audit.status"], attributes["powerstore"]["sd"]["status"])
+          - set(attributes["powerstore.audit.resource_type"], attributes["powerstore"]["sd"]["resource_type"])
+          - set(attributes["powerstore.audit.client_ip"], attributes["powerstore"]["sd"]["client_ip"])
+          - set(attributes["powerstore.appliance"], attributes["powerstore"]["sd"]["appliance"])
+      - context: log
+        conditions:
+          - attributes["powerstore"] != nil
+        statements:
+          - delete_key(attributes, "powerstore")
+          - delete_key(attributes, "message")
+
+  # An alert's severity. PowerStore's record names the event's code but not its
+  # severity, which Dell's Events and Alerts Reference Guide gives for every
+  # code (Rev A08, February 2025): the codes below are the ones it lists as
+  # Critical and as Major. A code it does not list, from a newer PowerStoreOS,
+  # takes the severity of the line's syslog priority (crit or worse is
+  # Critical, err is Major, warning is Minor). The more severe of the two wins.
+  # A Cleared line says the alert is over, so it gets none. The line's own
+  # severity follows (Critical as FATAL, Major as ERROR, Minor as WARN), so
+  # the Logs page shows PowerStore's.
+  transform/powerstore-alert-severity:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        conditions:
+          - attributes["powerstore.alert.id"] != nil and attributes["powerstore.alert.state"] != "Cleared"
+        statements:
+          - set(attributes["powerstore.alert.severity"], "Info")
+          - set(attributes["powerstore.alert.severity"], "Minor") where severity_number >= SEVERITY_NUMBER_WARN and severity_number < SEVERITY_NUMBER_ERROR
+          - >-
+            set(attributes["powerstore.alert.severity"], "Major") where severity_number == SEVERITY_NUMBER_ERROR or
+            (IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00200204|00200205|00200E03|00200F02|00201002|00201401|00201602|00201604|00202201|00202401|00300E04|00300E06|00300E07|00301202|00301505|00301506)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00301602|00301704|00301F02|00302006|00302008|00302009|00302B02|00302B03|00302B04|00302B07|00302B08|00302B0A|00303505|00303506|00303E05|00303E06)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00303F05|00303F06|00304202|00304203|00304302|00304404|00304902|00304F02|00304F03|00304F04|00305002|00305003|00305004|00305302|00305303|00305402)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00305403|00305503|00305602|00305603|00305604|00305605|00305606|00305702|00305703|00305803|00305804|00305903|00305905|00305906|00305B03|00305B04)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00305B07|00305C01|00305C04|00306C03|00306D05|00306D06|00306E05|00306E06|00306F05|00306F06|00307002|00307003|00307104|00307302|00307303|00307304)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00307404|00307701|00307705|00307706|00307707|00307D05|00307D06|00307E05|00307E06|00307F02|00308102|00308103|00308203|00308204|00308303|0030840F)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00308410|00308505|00308506|00308601|00308702|00308703|00308704|00308802|00308803|00308903|00308904|00308A03|00308B03|00308B04|00308C04|00308D05)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00308E04|00308F03|00308F04|00308F06|00309103|00309203|00309403|00309503|00309504|00309703|00309801|00309803|00309E03|0030A106|0030A202|0030A204)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:0030A205|0030A303|0030A602|0030A603|0030A604|0030A605|0030A606|0030A704|0030A705|0030A706|0030A707|0030A807|0030A902|0030AA03|0030AA04|0030AB04)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:0030AB05|0030AC02|0030AC03|0030AC04|0030AC05|0030AE01|0030AF02|0030AF03|0030AF04|0030AF05|0030AF06|0030AF07|0030B602|0030B603|0030B702|0030BA02)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:0030C102|0030C502|0030CA02|0030CB01|0030CC02|0030CC04|0030CC05|0030CD03|0030D203|0030D204|0030D206|0030D303|0030D304|0030D503|0030D504|0030D505)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:0030D601|0030D602|0030D903|0030DA03|0030DE03|0030DF03|0030E002|0030E203|0030E802|00314005|0031A403|00400303|00400402|00400502|00400601|00400703)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00400801|00400A01|00400B01|00500301|00600601|00600602|00600603|00600A01|00600B01|00700103|00700104|00700201|00700202|00700203|00700204|00700501)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00701504|00701505|00702902|00900301|00900D03|00900E01|00901001|00901303|00901501|00901601|00901703|00901801|00906501|00906701|00906B03|00906B04)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00906B05|00906B06|00906B07|00906C01|00906D01|00906E01|00906F01|00907001|00907201|0090CA01|0090CB01|00A00301|00A00401|00A00502|00B00202|00B00404)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00B00B04|00B00C02|00B01402|00B01502|00B01601|00B01701|00B01801|00B01901|00B01A01|00B01B04|00B01C03|00B01E03|00B01F03|00B02102|00D00201|00D00302)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00D00303|00D00304|00D00305|00E00109|00E0010B|00E00115|00F00201|00F00205|00F00305|01300103|01300201|01300301|01300403|01300501|01300502|01300505)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01300602|01300603|01300605|01300702|01300703|01300705|01300706|01300708|0130070A|0130070D|01300803|01300904|01300905|0130090B|01300B02|01300B03)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01300C02|01300C06|01300D01|01300F04|01300F05|01301204|01301205|01301815|01301816|01301817|01301818|01301819|0130181A|0130181B|0130181C|0130181D)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:0130181E|0130181F|01301820|01301821|01301822|01301823|01301824|01301825|01301826|01301827|01301828|01301901|01301B03|01301D09|01301D0A|01301D0B)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01301D0C|01301D0D|01301D0E|01301D0F|01301D10|01301D11|01301D12|01301D13|01301D14|01301D15|01301D16|01301D17|01301D18|01301D19|01301D1A|01301D1B)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01301D1C|01301D1D|01301D1E|01301D1F|01301D20|01301D21|01301D22|01301D23|01301D24|01301D25|01301D26|01301D27|01301D28|01301D29|01301D2A|01301D2B)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01301D2C|01301D2D|01301D2E|01301D2F|01301D30|01301D31|01301D32|01301D33|01301D34|01301D35|01301D36|01302005|01302801|01302802|01302803|01302804)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01302805|01302809|0130280A|0130280B|0130280C|0130280D|0130280E|0130280F|01302810|01302811|01302812|01302813|01302814|01302815|01302902|01302C01)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01302E03|01303001|01303101|01303201|01303401|01303502|01303602|01303703|01303704|01303806|01303807|01303808|0130390B|0130390C|0130390D|01303A01)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01303B01|01303B03|01303B04|01303C01|01303E02|01303F05|01304001|01304102|01304103|01304504|01304703|01304803|013FB101|013FB201|013FB301|01500401)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01600203|01700203|01700204|01700205|01700206|01700303|01700304|01700306|01700403|01700603|01700D05|01701201|01701501|01701602|01701701|01701802)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01701805|01702102|01702105|01702302|01702401|01702501|01800103|01800203|01800302|01800402|01800503|01800802|01800902|01800A02|01800B02|01800C03)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01800D03|01800E02|01800F02|01801002|01801202|01801302|01801402|01801502|01801602|01801702|01801802|01801902|01801A02|01801C02|01801D02|01801E02)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01801F02|01802003|01802103|01802104|01802402|01802602|01802702|01802802|01802A02|01803103|01803602|01803802|01803903|01803A03|01803B02|01803C03)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01803D03|01803E02|01803F03|01804002|01804103|01804202|01804303|01804402|01804503|01804602|01804703|01804802|01804903|01804A02|01804B03|01804C02)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01804D03|01804E02|01804F03|01805002|01805103|01805203|01805302|01805403|01805503|01805602|01805703|01805803|01805902|01805A03|01805B03|01805C02)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01805D02|01806403|01806503|01806603|01806703|01806902|01806A02|01806B02|01806C02|01806D03|01806E02|01806F03|01807002|01807103|01807202|01807303)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01807402|01807503|01807602|01807703|01807802|01807803|01807804|01807805|01807806|01807807|01807902|01807903|01807A02|01807A03|01807B03|01807B05)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01807C01|01807D02|01807E02|01808103|01A00104|01A00304|01A00502|01A00702|01B00101|01B00201|01C00401|01C00403|01C00508|01C00701|01C00801|01C00901)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01C00A01|01C00F01|01C01201|01C01302|01C01701|01C01801|01D00401|01E00201|01E00301|01E00401|01E00501|01E00601|01E00701|01E00801|02000101|02000201)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:02000301|02000302|02000401|02000402|02200103|02200105|02200202|02200302|02200305|02300102|02300401|02300601|02400101|02600102|02600202|02600302)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:02600402|02800102|02800202|02800205|02C00201|02C00301|02C00401|02C00501|03000107|0300010A|0300010C|0300010E|03300101|03300103|03500103|03500203)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:03500402|03500503|03500602|03500702|03600102|03700103)$"))
+          - >-
+            set(attributes["powerstore.alert.severity"], "Critical") where severity_number >= SEVERITY_NUMBER_ERROR2 or
+            (IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00200301|00200401|00200501|00200701|00200703|00200E04|00200E05|00200E06|00200E07|00200E08|00200E0A|00200E0B|00200E0C|00200E0D|00200E0E|00200F01)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00201001|00201201|00201301|00201501|00201801|00201901|00201A01|00201C01|00201D01|00202001|00202402|00202501|00300D05|00300D06|00300D08|00300D0C)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00300F02|00300F03|00300F04|00300F06|00300F07|00300F08|00300F09|00300F0B|00300F0C|00300F0D|00304003|00304403|00306C04|00307103|0030B902|0030BA03)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:0030BF02|0030C503|0030C601|0030C904|0030C905|0030C906|0030C909|0030D803|0030E302|00314006|00314007|00400107|00400302|00400602|00400802|00B00501)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:00B00702|00B00703|00B00704|00B00801|00D00202|00E00117|00F00107|00F00110|00F0011B|00F0011C|00F00120|00F00127|00F0020A|01300902|01300903|01300906)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01300907|01300908|01300909|0130090A|0130090C|01300A01|01300C01|01300C05|01300C09|01300D03|01300F02|01300F03|01300F06|01300F07|01301001|01301202)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01301203|01301206|01301301|01301501|01301701|01301C01|01301C02|01303E01|01303F04|01304501|01304505|01304603|01304704|01304705|01304804|01400301)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01500A08|01700F02|01700F03|01701101|01701E02|01701E03|01702001|01A00105|01A00202|01A00305|01A00402|01C00101|01C00203|01C00301|01C00302|01C00501)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:01C00502|01C00601|01C00C01|01C00D01|01C00E01|01C01001|01C01101|01C01303|01C01901|01C01A01|01D00101|01D00201|01D00301|01E00101|02200102|02200303)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:02200306|02800203|02800204|02800206|02A00101|02B00102|02B00103|02B00202|02B00203|02B00302|02B00303|02B00402|02B00403|02B00502|02B00503|02C00203)$")
+            or IsMatch(attributes["powerstore.event.code"], "(?i)^0x(?:02C00601|02D00103|03700104)$"))
+          - set(severity_number, SEVERITY_NUMBER_INFO) where attributes["powerstore.alert.severity"] == "Info"
+          - set(severity_number, SEVERITY_NUMBER_WARN) where attributes["powerstore.alert.severity"] == "Minor"
+          - set(severity_number, SEVERITY_NUMBER_ERROR) where attributes["powerstore.alert.severity"] == "Major"
+          - set(severity_number, SEVERITY_NUMBER_FATAL) where attributes["powerstore.alert.severity"] == "Critical"
+          - set(severity_text, attributes["powerstore.alert.severity"])
+
+  # Stamp every line with the array's identity, as the metrics are: OneUptime
+  # shows it on the array's Logs tab, and the alert templates scope on it.
+  # Keep it stable: changing it later registers a brand-new array.
+  resource:
+    attributes:
+      - key: storage.array.name
+        value: "${env:STORAGE_ARRAY_NAME}"
+        action: upsert
+      # The platform: dell.powerstore for this config.
+      - key: storage.system
+        value: "${env:STORAGE_SYSTEM}"
+        action: upsert
+      # Keep it in step with the collector image docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.165.0"
+        action: upsert
+      # OneUptime routes batches by service.name first: none may reach it.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 5s
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    logs:
+      receivers: [syslog/tcp, syslog/udp]
+      processors:
+        [
+          memory_limiter,
+          transform/powerstore-record,
+          transform/powerstore-alert-severity,
+          resource,
+          batch,
+        ]
+      exporters: [otlphttp]
