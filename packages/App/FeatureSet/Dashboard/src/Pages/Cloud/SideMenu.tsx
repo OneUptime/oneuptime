@@ -155,6 +155,21 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Wallet,
         },
+        /*
+         * What the spend is on course to cost in the months ahead, for
+         * everything, an account, a cost group or a service - from the
+         * history's trend and season - with a what-if, and saved as a
+         * yearly budget's plan (#11008).
+         */
+        {
+          link: {
+            title: "Forecast",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_FORECAST] as Route,
+            ),
+          },
+          icon: IconProp.ChartBar,
+        },
       ],
     },
     {

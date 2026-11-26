@@ -1298,6 +1298,9 @@ enum PageMap {
   CLOUD_COMMITMENTS = "CLOUD_COMMITMENTS",
   CLOUD_SCHEDULES = "CLOUD_SCHEDULES",
   CLOUD_BUDGETS = "CLOUD_BUDGETS",
+  // A budget's own page, and the Forecast page (#11008).
+  CLOUD_BUDGET_VIEW = "CLOUD_BUDGET_VIEW",
+  CLOUD_FORECAST = "CLOUD_FORECAST",
   // The project's cost basis and when its commitments alert.
   CLOUD_SETTINGS_COSTS = "CLOUD_SETTINGS_COSTS",
   CLOUD_COST_GROUPS = "CLOUD_COST_GROUPS",

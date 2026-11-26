@@ -600,6 +600,12 @@ const EVENT_LIBRARY: Record<
     description:
       "A scheduled hunt that names you, or a team you are on, finds security events.",
   },
+  // A cloud budget's early threshold, below 100%: told, never paged (#11008).
+  [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION]: {
+    label: "Cloud budget passes a threshold",
+    description:
+      "A cloud budget that names you, or a team you are on, passes one of its thresholds below 100%. No alert is raised and nobody is paged.",
+  },
 
   [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]: {
     label: "Missed call",
@@ -1041,6 +1047,18 @@ const security: Array<SectionDef> = [
       "Notify me when a scheduled hunt that names me, or a team I am on, finds security events.",
     ),
     [NotificationSettingEventType.SEND_SECURITY_HUNT_FOUND_NOTIFICATION],
+  ),
+  /*
+   * Cloud budgets (#11008): a budget that names the person, or a team they
+   * are on, passes an early threshold. From 100% the budget alerts, and
+   * they hear of it as the alert's owners.
+   */
+  buildSection(
+    translationKey("Cloud Budgets"),
+    translationKey(
+      "Notify me when a cloud budget that names me, or a team I am on, passes a threshold below 100%.",
+    ),
+    [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION],
   ),
   /*
    * Data stores (#9681): being made an owner, by an owner rule whose Notify

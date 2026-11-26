@@ -799,6 +799,8 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_COMMITMENTS]: `commitments`,
   [PageMap.CLOUD_SCHEDULES]: `schedules`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
+  [PageMap.CLOUD_BUDGET_VIEW]: `budgets/${RouteParams.ModelID}`,
+  [PageMap.CLOUD_FORECAST]: `forecast`,
   [PageMap.CLOUD_SETTINGS_COSTS]: `settings/costs`,
   [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
   [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
@@ -7288,6 +7290,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_BUDGET_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_BUDGET_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_FORECAST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_FORECAST]
     }`,
   ),
 

@@ -48,6 +48,8 @@ import CloudCosts from "../Pages/Cloud/Costs";
 import CloudSavings from "../Pages/Cloud/Savings";
 import CloudCommitments from "../Pages/Cloud/Commitments";
 import CloudBudgets from "../Pages/Cloud/Budgets";
+import CloudBudgetPage from "../Pages/Cloud/Budget";
+import CloudForecast from "../Pages/Cloud/Forecast";
 import CloudCostSettings from "../Pages/Cloud/Settings/Costs";
 import CloudCostGroups from "../Pages/Cloud/CostGroups";
 import CloudCostViewPage from "../Pages/Cloud/CostView";
@@ -162,6 +164,24 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudBudgets
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_BUDGETS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_BUDGET_VIEW] || ""}
+          element={
+            <CloudBudgetPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_BUDGET_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_FORECAST] || ""}
+          element={
+            <CloudForecast
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_FORECAST] as Route}
             />
           }
         />
