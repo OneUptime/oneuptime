@@ -12,6 +12,7 @@ import {
   CloudCostAllocationInterval,
   CloudCostAllocationResult,
 } from "Common/Types/Cloud/CloudCostAllocation";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
   CloudCostRule,
   readCloudCostRules,
@@ -39,6 +40,8 @@ export interface CloudCostAllocationAsk {
   endDate: Date;
   interval?: CloudCostAllocationInterval | undefined;
   currency?: string | undefined;
+  // The cost basis shown (#11007): the project's when absent.
+  basis?: CloudCostBasis | undefined;
   cloudAccountIds?: Array<ObjectID> | undefined;
 }
 
@@ -46,6 +49,7 @@ export interface CloudCostGroupSpend {
   viewId: string;
   viewName: string;
   currency: string;
+  basis?: CloudCostBasis | null | undefined;
   interval: CloudCostAllocationInterval;
   start: string;
   lastDay: string;
@@ -68,6 +72,10 @@ function toBody(ask: CloudCostAllocationAsk): JSONObject {
 
   if (ask.currency) {
     body["currency"] = ask.currency;
+  }
+
+  if (ask.basis) {
+    body["basis"] = ask.basis;
   }
 
   if (ask.cloudAccountIds && ask.cloudAccountIds.length > 0) {

@@ -3,13 +3,17 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import {
   CloudAccountCostSummary,
   CloudAccountSavingsSummary,
+  CloudCostState,
   CloudCostTotals,
   CloudSavingsTotals,
+  getCloudAccountCostSummaryInBasis,
+  hasCloudCostBasisFigures,
   readCloudAccountCostSummary,
   readCloudAccountSavingsSummary,
   totalCloudCosts,
   totalCloudSavings,
 } from "Common/Types/Cloud/CloudCost";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
@@ -73,6 +77,49 @@ export function toCloudAccountRow(
     costSummary: readCloudAccountCostSummary(account.costSummary),
     savingsSummary: readCloudAccountSavingsSummary(account.savingsSummary),
   };
+}
+
+/*
+ * The accounts with their costs on a basis (CloudCostBasis): each
+ * summary's figures swapped for the basis's - its billed ones until its
+ * costs are read with the bases - so a page's totals, unusual days and
+ * gaps all read the basis it shows.
+ */
+export function getCloudAccountsInBasis(
+  accounts: Array<CloudAccountRow>,
+  basis: CloudCostBasis,
+): Array<CloudAccountRow> {
+  if (basis === CloudCostBasis.Billed) {
+    return accounts;
+  }
+
+  return accounts.map((account: CloudAccountRow): CloudAccountRow => {
+    return account.costSummary
+      ? {
+          ...account,
+          costSummary: getCloudAccountCostSummaryInBasis(
+            account.costSummary,
+            basis,
+          ),
+        }
+      : account;
+  });
+}
+
+/*
+ * Whether some account read on the bases has none yet: its costs were
+ * last read before they were kept (its next read brings them), so its
+ * amortized and net figures are its billed ones for now.
+ */
+export function isCloudCostBasisPending(
+  accounts: Array<CloudAccountRow>,
+): boolean {
+  return accounts.some((account: CloudAccountRow): boolean => {
+    return (
+      account.costSummary?.state === CloudCostState.Reading &&
+      !hasCloudCostBasisFigures(account.costSummary, CloudCostBasis.Amortized)
+    );
+  });
 }
 
 // Every account as one: costs first, savings in the costs' currency.

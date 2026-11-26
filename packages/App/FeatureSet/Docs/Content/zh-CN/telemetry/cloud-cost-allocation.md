@@ -23,7 +23,7 @@ flowchart TB
 
 - **第一个匹配的组拿走这笔成本。** 视图中的组有先后顺序，每笔成本归入规则与之匹配的第一个组，因此不会重复计算。各组与未分摊支出之和始终等于该时段的总额。
 - **规则会读取成本携带的一切信息。** 账户、云、服务、区域、资源及其标记，以及 OneUptime 对该资源的了解：它的所有者团队、标签、App Platforms 环境和应用。
-- **一切都在查看时计算。** 不会为每笔成本写入任何内容。修改规则后，OneUptime 保留的每个月都会重新分配，最多回溯 400 天，无需等待。
+- **一切都在查看时计算。** 不会为每笔成本写入任何内容。修改规则后，OneUptime 保留的每个月都会重新分配，最多回溯 400 天，无需等待。每个数字都跟随其上方的切换器，按计费成本、摊销成本或净成本显示，与[云成本](/docs/telemetry/cloud-costs#计费成本摊销成本和净成本)中一样；自定义明细在每种基准下都相同。
 - **多个视图可以分配同一笔支出。** “按团队”和“按成本中心”各自以自己的方式分配全部支出。
 
 ## 开始之前
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-响应包含每个组的 `total` 及其构成（`cloud`、`lineItems`、`sharedIn`、`sharedOut`）、按天或按月的数字、上一时段，以及未分摊支出的构成。`POST /cloud-cost-group/<group ID>/spend` 返回单个组的结果。
+响应包含每个组的 `total` 及其构成（`cloud`、`lineItems`、`sharedIn`、`sharedOut`）、按天或按月的数字、上一时段，以及未分摊支出的构成。`POST /cloud-cost-group/<group ID>/spend` 返回单个组的结果。将 `basis` 设为 `billed`、`amortized` 或 `net` 即可获得该基准的数字；不设置时使用项目的基准，响应中的 `basis` 会说明是哪一种。
 
 ## 限制
 

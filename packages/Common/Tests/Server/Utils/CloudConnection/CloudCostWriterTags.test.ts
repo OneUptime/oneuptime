@@ -51,6 +51,9 @@ const TARGET: CloudCostWriteTarget = {
 };
 
 function point(overrides: Partial<CloudCostSeriesPoint>): CloudCostSeriesPoint {
+  // A cost with no amortized or net figure of its own counts its billed one on each.
+  const amount: number = overrides.amount ?? 10;
+
   return {
     cloudAccountId: ACCOUNT_ROW.toString(),
     accountId: "123456789012",
@@ -61,6 +64,8 @@ function point(overrides: Partial<CloudCostSeriesPoint>): CloudCostSeriesPoint {
     currency: "USD",
     tags: {},
     amount: 10,
+    amortizedAmount: amount,
+    netAmount: amount,
     ...overrides,
   };
 }
