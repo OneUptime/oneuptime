@@ -3999,6 +3999,21 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "cost alerts",
             ],
           },
+          // Required tags and how much of the spend carries them (#11012).
+          {
+            page: PageMap.CLOUD_TAGS,
+            title: "Tags",
+            icon: IconProp.Tag,
+            keywords: [
+              "required tags",
+              "tag coverage",
+              "tag compliance",
+              "tag policy",
+              "untagged resources",
+              "cost allocation tags",
+              "labels",
+            ],
+          },
         ],
       },
       ...resourceSettingsSections({

@@ -2754,6 +2754,11 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Costs",
       },
       {
+        page: PageMap.CLOUD_ACCOUNT_VIEW_TAGS,
+        section: "Basic",
+        title: "Tags",
+      },
+      {
         page: PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
         section: "AI",
         title: "Logs",

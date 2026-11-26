@@ -31,6 +31,7 @@ import {
   CloudTagAccountCoverageJSON,
   CloudTagCoverageBreakdown,
   CloudTagCoverageJSON,
+  CloudTagRequiredJSON,
   CloudTagSpendState,
   CloudTagTrendPointJSON,
   CloudTagUntaggedResourceJSON,
@@ -137,6 +138,7 @@ interface ResourceCountRow {
 
 function toRule(row: CloudRequiredTag): CloudRequiredTagRule | null {
   const key: string = (row.tagKey || "").trim();
+  const description: string = (row.description || "").trim();
 
   if (!row.id || !key) {
     return null;
@@ -151,12 +153,61 @@ function toRule(row: CloudRequiredTag): CloudRequiredTagRule | null {
         })
       : [],
     cloudAccountId: row.cloudAccountId?.toString() || null,
+    ...(description ? { description } : {}),
   };
 }
 
 function numberOf(value: unknown): number {
   const number: number = Number(value);
   return Number.isFinite(number) ? number : 0;
+}
+
+/*
+ * The required tags a page names. One account's page: the tags its account
+ * requires, its own replacing the project's of the same key. Every
+ * account's: the project's first, then each readable account's own - one
+ * account's tags are never named to a reader who may not read the account.
+ */
+export function getCloudTagRequiredTagsShown(data: {
+  rules: ReadonlyArray<CloudRequiredTagRule>;
+  readableAccountIds: ReadonlyArray<string>;
+  cloudAccountId: string | null;
+}): Array<CloudTagRequiredJSON> {
+  const toShown: (rule: CloudRequiredTagRule) => CloudTagRequiredJSON = (
+    rule: CloudRequiredTagRule,
+  ): CloudTagRequiredJSON => {
+    return {
+      key: rule.key,
+      allowedValues: rule.allowedValues,
+      cloudAccountId: rule.cloudAccountId,
+    };
+  };
+  const readable: Set<string> = new Set(
+    data.readableAccountIds.map((id: string): string => {
+      return id.toLowerCase();
+    }),
+  );
+
+  if (data.cloudAccountId) {
+    if (!readable.has(data.cloudAccountId.toLowerCase())) {
+      return [];
+    }
+
+    return getCloudRequiredTagsForAccount(data.rules, data.cloudAccountId).map(
+      toShown,
+    );
+  }
+
+  return [
+    ...data.rules.filter((rule: CloudRequiredTagRule): boolean => {
+      return !rule.cloudAccountId;
+    }),
+    ...data.rules.filter((rule: CloudRequiredTagRule): boolean => {
+      return Boolean(
+        rule.cloudAccountId && readable.has(rule.cloudAccountId.toLowerCase()),
+      );
+    }),
+  ].map(toShown);
 }
 
 // The Monday of a day's week, at its start (UTC).
@@ -184,6 +235,7 @@ export default class CloudTagCoverageReader {
         tagKey: true,
         allowedValues: true,
         cloudAccountId: true,
+        description: true,
       },
       skip: 0,
       limit: LIMIT_MAX,
@@ -612,6 +664,13 @@ export default class CloudTagCoverageReader {
     const currency: string = getMostCommonCloudCurrency(currencies);
     const empty: CloudTagCoverageJSON = {
       hasRules: rules.length > 0,
+      requiredTags: getCloudTagRequiredTagsShown({
+        rules,
+        readableAccountIds: accounts.map((account: AccountRow): string => {
+          return account.id.toString();
+        }),
+        cloudAccountId: data.cloudAccountId?.toString() || null,
+      }),
       currency,
       periodDays: CLOUD_TAG_COVERAGE_DAYS,
       accounts: [],

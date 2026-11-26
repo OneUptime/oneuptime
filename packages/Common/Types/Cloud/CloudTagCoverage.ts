@@ -101,8 +101,18 @@ export interface CloudTagUntaggedResourceJSON {
   declaredCode: string | null;
 }
 
+// A required tag as the page names it.
+export interface CloudTagRequiredJSON {
+  key: string;
+  allowedValues: Array<string>;
+  // The CloudAccount row it is for; null for every account.
+  cloudAccountId: string | null;
+}
+
 export interface CloudTagCoverageJSON {
   hasRules: boolean;
+  // The required tags the shares are of: the project's and the accounts' own.
+  requiredTags: Array<CloudTagRequiredJSON>;
   currency: string;
   periodDays: number;
   accounts: Array<CloudTagAccountCoverageJSON>;
@@ -269,6 +279,27 @@ export function readCloudTagCoverage(value: unknown): CloudTagCoverageJSON {
 
   return {
     hasRules: data["hasRules"] === true,
+    requiredTags: readList(
+      data["requiredTags"],
+      (entry: unknown): CloudTagRequiredJSON | null => {
+        const tag: Record<string, unknown> = record(entry);
+
+        if (!text(tag["key"])) {
+          return null;
+        }
+
+        return {
+          key: text(tag["key"]),
+          allowedValues: readList(
+            tag["allowedValues"],
+            (value: unknown): string | null => {
+              return text(value) || null;
+            },
+          ),
+          cloudAccountId: text(tag["cloudAccountId"]) || null,
+        };
+      },
+    ),
     currency: text(data["currency"]) || "USD",
     periodDays: count(data["periodDays"]) || CLOUD_TAG_COVERAGE_DAYS,
     accounts: readList(
