@@ -599,11 +599,25 @@ export interface DataObservabilityStoreSettings {
   isDataSecurityRelyingOnIt: boolean;
   // What the caller may do here: rename it, change how it is reached, remove it, delete it.
   canEdit: boolean;
-  // Why the caller may not change how it is reached, when they may not; null when they may.
-  connectionRefusal: string | null;
+  /*
+   * Why the caller may not change the connection Data Security samples
+   * with, when they may not (a Database Agent stays open to them); null
+   * when they may.
+   */
+  connectionRefusal: DataObservabilityStoreRefusal | null;
   canRemove: boolean;
   // Why the caller may not delete it, when they may not; null when they may.
-  deleteRefusal: string | null;
+  deleteRefusal: DataObservabilityStoreRefusal | null;
+}
+
+// Why a database's settings refuse a change, worded by the page that draws it.
+export enum DataObservabilityStoreRefusal {
+  // The caller may not connect databases to Data Observability.
+  NotPermitted = "NotPermitted",
+  // Data Security samples its content with this connection.
+  DataSecuritySamplesIt = "DataSecuritySamplesIt",
+  // Data Security relies on the database: only its admins delete it.
+  DataSecurityReliesOnIt = "DataSecurityReliesOnIt",
 }
 
 // A database's new name, or its new way in: either, or both.

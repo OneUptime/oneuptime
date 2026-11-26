@@ -90,10 +90,13 @@ export function isStoreConnected(store: {
   scanProbeId?: ObjectID | null | undefined;
   cloudConnectionId?: ObjectID | null | undefined;
   watchedPaths?: string | null | undefined;
+  // Read through the Database Agent of a database server (#11148): no login saved here.
+  tableHealthDatabaseServerId?: ObjectID | null | undefined;
 }): boolean {
   return Boolean(
     store.connectionString ||
       store.scanProbeId ||
+      store.tableHealthDatabaseServerId ||
       (store.kind === DataStoreKind.GcpBigQueryDataset &&
         store.cloudConnectionId) ||
       (isObjectStoreKind(store.kind) &&
@@ -165,6 +168,7 @@ export default class DataSourceSuggestions {
         scanProbeId: true,
         cloudConnectionId: true,
         databaseServerId: true,
+        tableHealthDatabaseServerId: true,
         tableHealthRemovedAt: true,
       },
       skip: 0,
@@ -193,6 +197,7 @@ export default class DataSourceSuggestions {
         scanProbeId: true,
         cloudConnectionId: true,
         databaseServerId: true,
+        tableHealthDatabaseServerId: true,
         tableHealthRemovedAt: true,
       },
       skip: 0,

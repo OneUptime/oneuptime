@@ -23,6 +23,7 @@ import {
   DataObservabilityAgentState,
   DataObservabilityCollector,
   DataObservabilityStoreConnection,
+  DataObservabilityStoreRefusal,
   DataObservabilityStoreSettings as StoreSettings,
   DataObservabilityStoreUses,
 } from "../../../Types/DataObservability/DataObservabilityApiTypes";
@@ -258,13 +259,13 @@ export default class DataObservabilityStoreSettings {
         canEdit &&
         isContentSampledThroughConnection(store) &&
         !mayDataSecurity(data.props, "update")
-          ? CONNECTION_CHANGE_REFUSAL
+          ? DataObservabilityStoreRefusal.DataSecuritySamplesIt
           : null,
       canRemove: canEdit,
       deleteRefusal: !canEdit
-        ? NOT_PERMITTED_MESSAGE
+        ? DataObservabilityStoreRefusal.NotPermitted
         : relies && !mayDataSecurity(data.props, "delete")
-          ? DELETE_REFUSAL
+          ? DataObservabilityStoreRefusal.DataSecurityReliesOnIt
           : null,
     };
   }

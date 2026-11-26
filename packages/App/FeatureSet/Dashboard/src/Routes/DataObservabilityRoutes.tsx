@@ -2,6 +2,8 @@ import ComponentProps from "../Pages/PageComponentProps";
 import DataObservabilityLayout from "../Pages/DataObservability/Layout";
 import TableViewLayout from "../Pages/DataObservability/TableView/Layout";
 import StoreViewLayout from "../Pages/DataObservability/View/Layout";
+import StoreSettingsPage from "../Pages/DataObservability/View/Settings";
+import StoreAuditLogsPage from "../Pages/DataObservability/View/AuditLogs";
 import PageMap from "../Utils/PageMap";
 import RouteMap, {
   DataObservabilityRoutePath,
@@ -649,6 +651,34 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[
                   PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+                ] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS,
+          )}
+          element={
+            <StoreSettingsPage
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS] as Route
+              }
+            />
+          }
+        />
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS,
+          )}
+          element={
+            <StoreAuditLogsPage
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS
                 ] as Route
               }
             />
