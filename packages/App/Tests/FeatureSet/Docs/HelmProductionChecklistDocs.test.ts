@@ -1,6 +1,11 @@
 import { DocsHeading, DocsLink, scanMarkdown } from "./DocsContentSupport";
 import { inlineCode } from "./DocsTranslationChecks";
 import { parseYaml } from "Common/Tests/Helpers/Yaml";
+import {
+  ConnectionShares,
+  computeConnectionShares,
+} from "Common/Server/Utils/Database/ConnectionShares";
+import { PROBE_SCHEDULING_METRICS_WINDOW_SECONDS } from "Common/Server/Utils/Probe/ProbeSchedulingMetrics";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -66,6 +71,7 @@ const THIRD_PART: Array<string> = [
   "Size the Postgres connections",
   "Autoscale with KEDA",
   "Keep ClickHouse inserts in budget",
+  "Running many monitors",
 ];
 
 /*
@@ -595,6 +601,29 @@ describe("the numbers the checklist quotes", () => {
     expect(text).toContain("at most one pod of each service down at a time");
   });
 
+  // Running many monitors (#10819): the defaults it moves from, and keeps.
+  it("for many monitors, start from the chart's and the app's probe scheduling defaults", () => {
+    expect(valueAt(VALUES, "probes.one.monitorFetchLimit")).toBe(10);
+    expect(text).toContain(
+      "Raise each probe's `monitorFetchLimit` from 10 to 50",
+    );
+    expect(valueAt(VALUES, "probes.one.monitoringWorkers")).toBe(3);
+    expect(text).toContain("150 with 3 workers");
+
+    const shares: ConnectionShares = computeConnectionShares({
+      poolSize: 50,
+      receivesIngressTraffic: true,
+    });
+    expect(shares.probeSchedulingMaxConcurrentRequests).toBe(10);
+    expect(text).toContain("a fifth of a pod's PostgreSQL pool: 10 of 50");
+    expect(shares.probeSchedulingMaxConcurrentMonitorTestRequests).toBe(2);
+    expect(text).toContain(
+      "(`app.probeSchedulingMaxConcurrentMonitorTestRequests`, 2 by default)",
+    );
+    expect(PROBE_SCHEDULING_METRICS_WINDOW_SECONDS).toBe(60);
+    expect(text).toContain("view over the last minute");
+  });
+
   it("say which images move by themselves, and which the chart pins", () => {
     // OneUptime's tag moves with every release, and a restart pulls it again.
     expect(valueAt(VALUES, "image.tag")).toBe("release");
@@ -693,7 +722,11 @@ describe("what points at the checklist and its sizing guidance", () => {
       return match[1] as string;
     });
 
-    expect(quoted).toEqual(["Size the Postgres connections"]);
+    expect(quoted).toEqual([
+      "Size the Postgres connections",
+      "Running many monitors",
+      "Running many monitors",
+    ]);
     for (const heading of quoted) {
       expect(anchors).toContain(heading);
     }

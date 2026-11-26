@@ -1,11 +1,14 @@
 # Cloudkosten en besparingen
 
-Een gekoppeld cloudaccount zegt ook wat het kost en hoe het minder zou kunnen kosten. OneUptime leest de kosten van elke dag uit de eigen facturering van je cloud en de aanbevelingen van de eigen aanbevelingsdienst van je cloud, toont ze onder **Cloud → Uitgaven → Kosten** en **Cloud → Uitgaven → Besparingen**, en waarschuwt voordat een maand meer kost dan het budget onder **Cloud → Uitgaven → Budgetten**.
+Een gekoppeld cloudaccount zegt ook wat het kost en hoe het minder zou kunnen kosten. OneUptime leest de kosten van elke dag uit de eigen facturering van je cloud en de aanbevelingen van de eigen aanbevelingsdienst van je cloud, toont ze onder **Cloud → Uitgaven → Kosten** en **Cloud → Uitgaven → Besparingen**, en waarschuwt voordat een maand meer kost dan het budget onder **Cloud → Uitgaven → Budgetten**. Als je het toestaat, voert het ook de besparingen door die een eigenaar goedkeurt, stopt het niet-productieresources buiten werktijd en controleert het elke wijziging aan de hand van de rekening.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer en Cost Optimization Hub, elk één keer aangezet.
 - [Microsoft Azure](#microsoft-azure): Cost Management en Azure Advisor, met één rol extra.
 - [Google Cloud](#google-cloud): Je factuurexport naar BigQuery, en de Recommender.
+- [Besparingen doorvoeren](#besparingen-doorvoeren): Pas een besparing toe met goedkeuring van de eigenaar, en maak haar ongedaan.
+- [Buiten-kantoortijdschema's](#buiten-kantoortijdschemas): Stop niet-productieresources 's nachts en in het weekend.
+- [AI-regels voor besparingen](#ai-regels-voor-besparingen): Voorstellen voor eigenaren, of wijzigingen binnen een limiet.
 - [Budgetten](#budgetten): Een waarschuwing zodra de uitgaven van een maand een deel van het budget passeren.
 :::
 
@@ -85,7 +88,7 @@ De gedetailleerde export noemt de resource waarvoor elke kostenpost is; de stand
 
 ## Manieren om minder uit te geven
 
-**Cloud → Uitgaven → Besparingen** toont elke aanbeveling, de grootste besparing eerst: wat er moet gebeuren, bij welke resource, wat er zou veranderen en wat ze per maand bespaart. De strook erboven telt ze op, in totaal en per soort: een kleiner formaat, een resource die stilstaat, een toezegging. Een aanbeveling linkt naar de pagina van haar resource als OneUptime de resource heeft.
+**Cloud → Uitgaven → Besparingen** toont elke aanbeveling, de grootste besparing eerst: wat er moet gebeuren, bij welke resource, wat er zou veranderen en wat ze per maand bespaart. De strook erboven telt ze op, in totaal en per soort: een kleiner formaat, een resource die stilstaat, een toezegging. Een aanbeveling linkt naar de pagina van haar resource als OneUptime de resource heeft, en een die OneUptime kan doorvoeren heeft **Toepassen**: zie [Besparingen doorvoeren](#besparingen-doorvoeren).
 
 ### Groottebepaling op basis van de eigen metingen van OneUptime
 
@@ -105,6 +108,62 @@ Een resource krijgt een grootte zodra er 6 dagen aan metingen zijn. De pagina to
 - Google Cloud: kortingen voor toegezegd gebruik, uit je factuurexport. De export zegt niet hoeveel van een toezegging ongebruikt bleef, dus hoeveel ervan wordt gebruikt, wordt niet getoond.
 
 Een account zonder toezegging toont wat tegen on-demandtarieven draaide en wat een toezegging goedkoper zou betalen. De cijfers van elke soort zijn die van zijn cloud, en soorten worden nooit opgeteld: een reservering en een Savings Plan kunnen allebei de uitgaven van dezelfde machine als de hunne tellen.
+
+## Besparingen doorvoeren
+
+OneUptime voert een besparing door via de cloudverbinding van het account zodra de instelling **Besparingsacties** dat toestaat: [Besparingsacties](/docs/telemetry/cloud-accounts#besparingsacties) zegt wat elke keuze verleent. Het voert alleen wijzigingen van één stap door: het stopt een ongebruikte instantie of database, zet een gp2-volume om naar gp3, verwijdert een niet-gekoppelde schijf, een oude momentopname of een ongebruikt image, geeft een ongebruikt adres vrij en wijzigt, als je het toestaat, het formaat van een instantie of database naar het aanbevolen formaat. Het koopt nooit een toezegging: **Kopen in console** opent daarvoor de pagina van je cloud.
+
+:::steps
+### Kies Toepassen
+
+Kies onder **Cloud → Uitgaven → Besparingen** bij een besparing **Toepassen**. Het dialoogvenster zegt wat er verandert, wat het per maand bespaart, hoe het ongedaan wordt gemaakt of dat dat niet kan, en wie het goedkeurt.
+
+### Een eigenaar keurt haar goed
+
+Een persoon die als eigenaar van de resource is aangewezen, of een lid van een team dat haar bezit, die haar ook mag bewerken, keurt de wijziging goed. Een resource zonder eigenaar wordt goedgekeurd door een Projecteigenaar of Projectbeheerder. Als je haar zelf mag goedkeuren, voert **Toepassen** haar meteen door, als jou. Anders wacht ze onder **Wacht op goedkeuring** tot een eigenaar **Goedkeuren** kiest, of **Verbergen** met een reden.
+
+### OneUptime voert haar door
+
+De wijziging wordt via de verbinding doorgevoerd en staat in de tijdlijnen van de resource en het account, met wie haar heeft goedgekeurd. Van een verwijderde schijf wordt eerst een laatste momentopname gemaakt, tenzij je **Eerst een laatste momentopname maken** uitzet.
+:::
+
+Elke wijziging zegt hoe ze ongedaan wordt gemaakt: **Ongedaan maken** onder **Doorgevoerde wijzigingen** start een gestopte instantie weer, zet een volume of formaat terug, of maakt een verwijderde schijf opnieuw uit haar laatste momentopname. Wat definitief verwijdert, zoals een momentopname, een image of een vrijgegeven adres, kan niet ongedaan worden gemaakt, en het dialoogvenster zegt dat voordat je het toepast. Waar het project met **Twee goedkeuringen vereisen voor riskantere oplossingen** twee goedkeuringen vraagt, heeft een wijziging die niet ongedaan kan worden gemaakt twee mensen nodig.
+
+Een resource waarvan de tags zeggen dat ze als code wordt beheerd, bijvoorbeeld door Terraform of CloudFormation, wordt in plaats daarvan in haar code gewijzigd: het dialoogvenster biedt **Pull request openen** naar de repository die haar declareert, zodat de volgende apply de besparing niet terugdraait.
+
+### Bewezen door de rekening
+
+**Deze maand bespaard** telt alleen wat de rekening van je cloud laat zien. Zodra drie dagen na een wijziging op de rekening vaststaan, worden de kosten per dag van de resource vergeleken met de week voor de wijziging: ze is **Zichtbaar in de rekening** als de kosten met minstens een kwart van wat beloofd was zijn gedaald, **Niet zichtbaar in de rekening** als dat niet zo is, en **Niet meetbaar** als je cloud de resource niet op naam factureert. **Rekening wordt gecontroleerd** telt de wijzigingen die nog op die dagen wachten.
+
+## Buiten-kantoortijdschema's
+
+Onder **Cloud → Uitgaven → Schema's** stopt een schema niet-productie-instanties en -databases buiten werktijd, en start ze weer:
+
+:::steps
+### Kies de resources
+
+Noem de cloudtag die ze kiest, bijvoorbeeld `Schedule` = `office-hours`, in één account of in alle.
+
+### Zeg wanneer ze draaien
+
+Kies de werkdagen, de tijd waarop ze starten en de tijd waarop ze stoppen, in 24-uursnotatie, en de tijdzone.
+:::
+
+Als de werktijd eindigt, stopt een schema via de verbinding van zijn account elke draaiende resource die zijn tag kiest en waarvan bekend is dat ze geen productie is, en als de werktijd begint, start het alleen weer wat het zelf heeft gestopt: een resource die iemand met de hand heeft gestopt, blijft gestopt. **Resources bekijken** toont wat een schema nu kiest en waarom het er sommige laat draaien. Het stopt EC2-instanties en RDS-databases op AWS, virtuele machines op Azure en Compute Engine-instanties op Google Cloud. AWS start een database die zeven dagen gestopt is uit zichzelf weer.
+
+Een schema stopt nooit productie, en nooit een resource waarvan niets de omgeving zegt. Van een resource is bekend dat ze geen productie is als:
+
+- een van haar tags dat zegt, onder een sleutel zoals `environment`, `env`, `stage`, `tier` of `deployment.environment`, met een woord zoals `dev`, `test`, `qa`, `staging` of `sandbox`;
+- haar account als **Niet-productie** is gemarkeerd onder **Omgeving** in de **Instellingen** van het account;
+- of een van haar labels dat zegt, bijvoorbeeld `Staging` of `env: dev`.
+
+Productie wint: een tag die `prod`, `production` of `live` zegt, of een account dat als **Productie** is gemarkeerd, houdt een resource draaiend, wat de rest ook zegt. De naam van een resource wordt daarvoor nooit gelezen. Zet je een schema uit, dan stopt het niets meer en start het wat het heeft gestopt zodra de werktijd begint; verwijder je het, dan wordt wat het heeft gestopt meteen gestart.
+
+## AI-regels voor besparingen
+
+Met **AI inschakelen** aan stelt OneUptime AI na elke lezing van de besparingen van het account elke besparing die het kan doorvoeren voor aan de eigenaren van de resource, en zij keuren haar goed of wijzen haar af onder **Wacht op goedkeuring**. Onder **Cloud → Instellingen → AI-regels voor besparingen** zegt een regel wat OneUptime AI doet met de besparingen waarop ze past, naar het soort wijziging, de omgeving van de resource en de cloud: **Uit**, **Aan de eigenaar voorstellen** of **Zonder te vragen handelen**, tot een maandlimiet. Zonder regel wordt elke besparing voorgesteld en geen enkele doorgevoerd; met regels alleen waarop een regel past, en tussen passende regels wint de voorzichtigste.
+
+Een regel handelt alleen zonder te vragen bij een resource waarvan bekend is dat ze geen productie is, alleen voor een wijziging die ongedaan kan worden gemaakt, alleen tot de kleinste limiet van de passende regels, en hoogstens 10 keer per uur in een project: al het andere wordt voorgesteld. Een wijziging die zonder te vragen is doorgevoerd, staat in de tijdlijnen met de regel die haar doorvoerde, en de eigenaren kunnen haar ongedaan maken. Een afgewezen of ongedaan gemaakte besparing wordt 30 dagen niet opnieuw voorgesteld.
 
 ## Budgetten
 
@@ -144,6 +203,7 @@ Onder de lijst zegt de kaart waar de rest op uitkwam: wat in geen enkele omgevin
 - **De uitgaven van elke dag.** **Cloud → Uitgaven → Kosten** tekent elk van de laatste 30 dagen en markeert de dagen die veel meer kostten dan gewoonlijk, toont die dagen en splitst een periode uit per dienst, regio, account, resource, omgeving van de app-platforms, app of tag. De accounts waarvan de kosten niet worden gelezen, staan eronder, elk met de reden.
 - **De kosten van een account.** De pagina **Kosten** van een account toont hetzelfde voor alleen dat account, met de toezeggingen en de manieren om minder uit te geven.
 - **De kosten van een resource.** De pagina van een resource toont wat die deze maand en in de laatste 30 dagen heeft gekost als de cloud haar op naam factureert, met de manieren om minder uit te geven en haar groottebepaling.
+- **Wat er is bespaard.** **Cloud → Uitgaven → Besparingen** opent met wat de doorgevoerde wijzigingen deze maand volgens de rekening hebben bespaard, de wijzigingen die op goedkeuring wachten en de doorgevoerde, en de uren dat schema's resources hebben gestopt.
 
 ## Problemen oplossen
 
@@ -171,6 +231,14 @@ De koppeling mag de Savings Plans en reserveringen van het account nog niet leze
 De bedragen staan in de valuta waarin de meeste van je accounts worden gefactureerd. Een account dat in een andere wordt gefactureerd, staat eronder met zijn valuta, en een budget telt alleen de accounts die in de eigen valuta worden gefactureerd.
 :::
 
+:::details Een besparing heeft geen Toepassen
+OneUptime voert alleen wijzigingen van één stap door: een toezegging, of een aanbeveling die meer dan één ding wijzigt, voer je door in de console van je cloud. Toepassen opent een dialoogvenster dat zegt waarom het hier niet kan als de verbinding van het account het niet toestaat: zet de **Besparingsacties** ervan aan en voer het installatiecommando opnieuw uit.
+:::
+
+:::details Een schema laat een resource draaien
+**Resources bekijken** zegt waarom: ze is productie, niets zegt dat ze geen productie is, of de verbinding van haar account staat geen besparingsacties toe. Tag haar, bijvoorbeeld `environment` = `dev`, of markeer haar account als **Niet-productie**.
+:::
+
 :::details Deze maand is lager dan in de console van je cloud
 Je cloud meldt de laatste dag of twee te laat, en de bedragen zijn vóór tegoeden en terugbetalingen. De volgende leesbeurten halen het in.
 :::
@@ -178,6 +246,7 @@ Je cloud meldt de laatste dag of twee te laat, en de bedragen zijn vóór tegoed
 ## Volgende stappen
 
 :::cards
+- [Toewijzing van cloudkosten](/docs/telemetry/cloud-cost-allocation): Verdeel de uitgaven over teams, producten en kostenplaatsen.
 - [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts): Koppel een ander account, of voer de opdracht ervan opnieuw uit.
 - [Cloud-resources](/docs/telemetry/cloud-resources): De metrieken van elke resource, uit een eigen collector.
 - [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost): Wat elke Kubernetes-workload kost.

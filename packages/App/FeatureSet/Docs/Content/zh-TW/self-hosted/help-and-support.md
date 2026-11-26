@@ -7,6 +7,7 @@
 - [每項設定會改變什麼](#每項設定會改變什麼)：每個位置、它的預設值和可選項目。
 - [提供意見回饋](#提供意見回饋)：使用者所寫的內容傳送到哪裡。
 - [登入訊息](#登入訊息)：應該向誰申請邀請。
+- [透過部署組態設定](#透過部署組態設定)：Helm 值或 `config.env`，用於新伺服器。
 :::
 
 ## 變更協助的去向
@@ -28,12 +29,12 @@
 
 | 設定 | 使用者在哪裡看到 | 預設 | 你自己的 |
 | --- | --- | --- | --- |
-| **支援信箱** | 說明 › **支援信箱**、找不到頁面時的 **聯絡支援團隊**，以及錯誤畫面請使用者傳送支援套件的地址 | `support@oneuptime.com` | 一個電子郵件地址 |
-| **聊天** | 說明 › **在 Slack 上聊天** | OneUptime 的 Slack 社群 | 一個連結。Slack 或 Microsoft Teams 連結保留其名稱；其他連結顯示為 **與支援團隊聊天** |
+| **支援信箱** | 說明 › **支援信箱**、找不到頁面時的 **聯絡支援團隊**、帳戶郵件，以及錯誤畫面請使用者傳送支援套件的地址 | `support@oneuptime.com` | 一個電子郵件地址 |
+| **聊天** | 說明 › **在 Slack 上聊天**，以及 API 參考頂端的聊天連結 | OneUptime 的 Slack 社群 | 一個連結。Slack 或 Microsoft Teams 連結保留其名稱；其他連結顯示為 **與支援團隊聊天** |
 | **請求示範** | 說明 › **請求示範** | 顯示 | 只能隱藏 |
 | **提供意見回饋** | 說明 › **提供意見回饋**，以及搜尋中的 **提供意見回饋** | 此伺服器的管理員 | 一個電子郵件地址，或你自己的頁面 |
-| **說明與支援** | 頁尾中的 **說明與支援**，以及登入頁面上的 **聯絡方式** | `https://oneuptime.com/support` | 一個連結 |
-| **回報錯誤或請求功能** | 產品選單底部，以及意見回饋後提供的公開 GitHub 問題 | 顯示 | 只能隱藏 |
+| **說明與支援** | 頁尾中的 **說明與支援**、登入頁面上的 **聯絡方式**，以及 API 參考頂端的 **支援** | `https://oneuptime.com/support` | 一個連結 |
+| **回報錯誤或請求功能** | 產品選單底部、意見回饋後提供的公開 GitHub 問題，以及文件和 API 參考中的 GitHub 連結 | 顯示 | 只能隱藏 |
 | **取得行動 App** | **如何聯絡我**、待命設定、新成員在首頁的第一步，以及 **專案設定** 中的 **行動應用程式** | App Store 和 Google Play | 你自己的頁面，例如裝置管理工具的公司入口網站 |
 | **給需要邀請的人的訊息** | 單一登入中顯示「You need to be invited.」和「No project access.」的畫面 | OneUptime 的句子 | 你自己的文字 |
 
@@ -41,9 +42,17 @@
 
 Admin Dashboard 自己的說明選單、頁尾和產品選單保留 OneUptime 的連結：它們是給此伺服器的管理員使用的，而管理員透過 OneUptime 取得伺服器方面的協助。
 
+### 帳戶郵件
+
+在自行託管的伺服器上，帳戶郵件（例如邀請或電子郵件地址變更）在結尾會引導使用者聯絡此伺服器的管理員，而不是 OneUptime 支援團隊。設定了你自己的支援信箱後，郵件會以連結形式寫明它：「需要協助？請寄信至 it-help@example.com。」使用預設值或隱藏時，郵件內容和以前一樣。
+
+### 文件和 API 參考
+
+此伺服器提供的文件和 API 參考也遵循相同的設定。隱藏 **回報錯誤或請求功能** 後，任何頁面都不再連結到 GitHub，而 **這個頁面有幫助嗎?** 只會在答案會被保存或傳送的地方詢問。API 參考的頂端列顯示你選擇的聊天和說明頁面；隱藏時兩者都不顯示。
+
 ### 誰能看到你的連結
 
-支援信箱和 **說明與支援** 連結也會顯示在登入頁面上，因此任何能開啟這些頁面的人都能看到它們。聊天連結和行動 App 的頁面只會傳送給已登入的使用者：聊天連結通常是加入你工作區的邀請。
+支援信箱和 **說明與支援** 連結也會顯示在登入頁面上，因此任何能開啟這些頁面的人都能看到它們。聊天連結和行動 App 的頁面只會傳送給已登入的使用者：聊天連結通常是加入你工作區的邀請。基於同樣的原因，任何人都能閱讀的文件和 API 參考只會向已登入此伺服器的使用者顯示你自己的聊天連結。
 
 ## 提供意見回饋
 
@@ -78,6 +87,39 @@ it-help@example.com or https://help.example.com/oneuptime
 - **取得行動 App** 會從新成員在首頁的第一步中移除，而這些第一步仍會在此人可以被聯絡到、而且測試呼叫已送達後完成。
 - **如何聯絡我** 和待命設定只提供瀏覽器。
 - **行動應用程式** 會從 **專案設定** 中移除。
+- 凡是 OneUptime 列出聯絡某人的方式的地方，例如引導式設定、首頁、團隊的合規性規則和詢問 AI，都不再提到該 App。
+
+## 透過部署組態設定
+
+使用 Helm 或 Docker Compose 安裝的伺服器，可以在啟動時就帶有這些設定。在 Helm chart 的 `helpAndSupport` 值中設定它們，或在 Docker Compose 的 `config.env` 中設定：
+
+```yaml
+helpAndSupport:
+  supportEmail: it-help@example.com
+  chat: https://example.slack.com/archives/C024BE91L
+  requestDemo: hidden
+  gitHub: hidden
+  inviteMessage: |
+    Ask the IT service desk to invite you to OneUptime:
+    it-help@example.com
+```
+
+| Helm 值 | `config.env` | 可填寫的內容 |
+| --- | --- | --- |
+| `supportEmail` | `HELP_AND_SUPPORT_SUPPORT_EMAIL` | 一個電子郵件地址，或 `hidden` |
+| `chat` | `HELP_AND_SUPPORT_CHAT` | 一個連結，或 `hidden` |
+| `requestDemo` | `HELP_AND_SUPPORT_REQUEST_DEMO` | `shown` 或 `hidden` |
+| `giveFeedback` | `HELP_AND_SUPPORT_GIVE_FEEDBACK` | 一個電子郵件地址、一個連結，或 `hidden` |
+| `helpLink` | `HELP_AND_SUPPORT_HELP_LINK` | 一個連結，或 `hidden` |
+| `gitHub` | `HELP_AND_SUPPORT_GITHUB` | `shown` 或 `hidden` |
+| `mobileApp` | `HELP_AND_SUPPORT_MOBILE_APP` | 一個連結，或 `hidden` |
+| `inviteMessage` | `HELP_AND_SUPPORT_INVITE_MESSAGE` | 純文字 |
+
+- 它們在伺服器啟動時讀取，而且只在 **說明與支援** 中尚未儲存任何內容時讀取。從那之後，設定由該頁面保存：在頁面上所做的變更會保留，重新啟動也絕不會把它改回去。
+- 之後在組態中變更的值不會生效，伺服器日誌會說明這一點。請在頁面上變更。
+- 每個值都按頁面的方式檢查。會被拒絕的值（例如 `javascript:` 連結）會被略過，頁面和伺服器日誌會說明原因。其他值仍會被設定。
+- 將值留空即可保留 OneUptime 的預設值。兩個開關也可以使用 `true` 和 `false`。
+- 頁面會標示每項來自你的組態的設定，直到你變更它。
 
 ## 後續步驟
 

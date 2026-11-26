@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "プロジェクト所有者が、{{product}} アカウントに保存されていたサインイン設定を消去しました。",
   "A backup code was used to confirm it's you in your {{product}} account": "{{product}} アカウントでバックアップコードが本人確認に使用されました",
   "A backup code was used to confirm it's you.": "バックアップコードが本人確認に使用されました。",
   "A backup code was used to sign in to your account.": "アカウントへのサインインにバックアップコードが使用されました。",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "このインシデントのメモが更新されました。最新の内容は次のとおりです:",
   "A note on this scheduled event has been updated. Here is the latest version:": "この予定されたイベントのメモが更新されました。最新の内容は次のとおりです:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "購読中のサービスに影響したインシデントの事後分析レポートが公開されました。",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "プロジェクトの所有者が、{{product}} アカウントに保存されていたサインイン設定を消去しました。",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "サーバー管理者が、{{product}} アカウントのメールアドレスをこのアドレスから新しいアドレスに変更しました。",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "サーバー管理者が、{{product}} アカウントに保存されていたサインイン設定を消去しました。",
   "A server admin made this the email address of your {{product}} account.": "サーバー管理者が、このアドレスを {{product}} アカウントのメールアドレスに設定しました。",
@@ -268,7 +268,9 @@
   "More than {{percent}}% of the AI's answers were bad.": "AI の回答のうち、{{percent}}% を超える回答が不適切でした。",
   "Need help?": "お困りですか？",
   "Need help? Ask your server's admin.": "お困りですか？サーバー管理者にお問い合わせください。",
+  "Need help? Ask {{inviter}}, who invited you, or write to {{address}}.": "お困りですか？あなたを招待した {{inviter}} さんにお問い合わせいただくか、{{address}} までご連絡ください。",
   "Need help? Ask {{inviter}}, who invited you, or your server's admin.": "お困りですか？あなたを招待した {{inviter}} さん、またはサーバー管理者にお問い合わせください。",
+  "Need help? Write to {{address}}.": "お困りですか？{{address}} までご連絡ください。",
   "New Alert Episode {{number}}: {{title}}": "新しいアラートエピソード {{number}}：{{title}}",
   "New Alert Episode: {{title}}": "新しいアラートエピソード：{{title}}",
   "New Alert {{number}}: {{title}}": "新しいアラート {{number}}：{{title}}",

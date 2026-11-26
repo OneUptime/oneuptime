@@ -110,6 +110,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     ["proxmoxCluster", "proxmoxClusters"],
     ["openStackCloud", "openStackClouds"],
     ["vmwareVCenter", "vmwareVCenters"],
+    ["xcpNgPool", "xcpNgPools"],
     ["cephCluster", "cephClusters"],
     ["storageArray", "storageArrays"],
     ["dockerSwarmCluster", "dockerSwarmClusters"],
@@ -324,7 +325,7 @@ describe("the chip's search", () => {
      * One lookup per offered type. Monitors are excluded here because the
      * alerts table carries a dedicated Monitor chip.
      */
-    expect(getListMock.mock.calls).toHaveLength(13);
+    expect(getListMock.mock.calls).toHaveLength(14);
   });
 
   test("searches each type on the server by the name typed, a page each", async () => {
@@ -701,7 +702,7 @@ describe("network devices in the Affected Resources filter", () => {
     expect(device!.label).toBe("WAN-RTR-01");
     expect(device!.group).toBe("Network Devices");
     // One lookup per offered type: the twelve, and devices.
-    expect(getListMock.mock.calls).toHaveLength(14);
+    expect(getListMock.mock.calls).toHaveLength(15);
   });
 
   test("is not offered, nor filtered by, where it was not asked for", async () => {

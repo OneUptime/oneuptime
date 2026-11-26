@@ -1913,6 +1913,21 @@ export const DEVELOPER_DOCS_PROFILES: Readonly<
     ],
   },
 
+  XcpNgPool: {
+    createNote:
+      "The OneUptime XCP-ng Agent adds a pool the first time Xen Orchestra reports it. Create one ahead of the agent only to set it up in advance, with the pool's UUID as its pool identifier: the xcp_ng.pool.id the agent reports.",
+    fields: [
+      field("name", literal("Production")),
+      field(
+        "poolIdentifier",
+        literal("1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c"),
+        "The pool's UUID in XCP-ng, as Xen Orchestra reports it (xcp_ng.pool.id).",
+      ),
+      field("description", literal("Production XCP-ng pool.")),
+      "labels",
+    ],
+  },
+
   CephCluster: {
     createNote:
       "The OneUptime agent adds a Ceph cluster the first time it reports. Its name must match the ceph.cluster.name the agent reports.",

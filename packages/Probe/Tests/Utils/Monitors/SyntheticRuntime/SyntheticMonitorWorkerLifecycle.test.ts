@@ -8,6 +8,7 @@ import SyntheticBrowser, {
   SyntheticBrowserSession,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticBrowser";
 import WorkerController from "../../../../Utils/Monitors/SyntheticRuntime/WorkerController";
+import SyntheticEgressProxy from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy";
 import SyntheticRuntimeFault, {
   SYNTHETIC_RUNTIME_FAULT_KIND,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticRuntimeFault";
@@ -131,12 +132,23 @@ interface InvalidStartMessageCase {
 }
 
 const fakeBrowser: Browser = { name: "launched-browser" } as unknown as Browser;
+// The check's egress proxy, which SyntheticBrowser.start starts with the browser.
+const fakeEgress: SyntheticEgressProxy = {
+  name: "egress-proxy",
+  close: async (): Promise<void> => {
+    // Nothing is listening here.
+  },
+  getBrowserRefusals: (): Array<never> => {
+    return [];
+  },
+} as unknown as SyntheticEgressProxy;
 const fakeSession: SyntheticBrowserSession = {
   browser: fakeBrowser,
   browserContext: {
     name: "ephemeral-context",
   } as unknown as BrowserContext,
   page: { name: "tenant-page" } as unknown as Page,
+  egress: fakeEgress,
 };
 
 function createDeferred<Value>(): Deferred<Value> {
@@ -526,7 +538,11 @@ describe("SyntheticMonitorWorker lifecycle", () => {
           "process:disconnect",
         ]);
         expect(closeMock).toHaveBeenCalledTimes(1);
-        expect(closeMock).toHaveBeenCalledWith({ browser: fakeBrowser });
+        // The check's egress proxy is closed with the browser it served.
+        expect(closeMock).toHaveBeenCalledWith({
+          browser: fakeBrowser,
+          egress: fakeEgress,
+        });
         expect(disconnectMock).toHaveBeenCalledTimes(1);
 
         const reply: SyntheticWorkerSuccessEnvelope<SyntheticMonitorWorkerResult> =
@@ -542,6 +558,7 @@ describe("SyntheticMonitorWorker lifecycle", () => {
         expect(startMock).toHaveBeenCalledTimes(1);
         expect(startMock.mock.calls[0]?.[0].config).toEqual(config);
         expect(executeMock).toHaveBeenCalledTimes(1);
+        // The script's axios goes out through the browser's egress proxy.
         expect(executeMock).toHaveBeenCalledWith({
           browserContext: fakeSession.browserContext,
           page: fakeSession.page,
@@ -550,6 +567,7 @@ describe("SyntheticMonitorWorker lifecycle", () => {
           screenSizeType: config.screenSizeType,
           args: config.args,
           timeoutInMs: config.timeoutInMs,
+          egress: fakeEgress,
         });
         expect(launcherMock).not.toHaveBeenCalled();
         expect(exitMock).not.toHaveBeenCalled();
@@ -621,7 +639,10 @@ describe("SyntheticMonitorWorker lifecycle", () => {
           "browser:close",
         ]);
         expect(onlySuccess().result.returnValue).toEqual({ data: "checked" });
-        expect(closeMock).toHaveBeenCalledWith({ browser: fakeBrowser });
+        expect(closeMock).toHaveBeenCalledWith({
+          browser: fakeBrowser,
+          egress: fakeEgress,
+        });
 
         /*
          * The channel is released only once closing is over, which in
@@ -777,7 +798,10 @@ describe("SyntheticMonitorWorker lifecycle", () => {
           "process:disconnect",
         ]);
         expect(closeMock).toHaveBeenCalledTimes(1);
-        expect(closeMock).toHaveBeenCalledWith({ browser: fakeBrowser });
+        expect(closeMock).toHaveBeenCalledWith({
+          browser: fakeBrowser,
+          egress: fakeEgress,
+        });
 
         const failure: SyntheticWorkerFailureEnvelope = onlyFailure();
         expect(failure.error.message).toBe(expectedMessage);

@@ -115,6 +115,11 @@ describe("every infrastructure monitor form shows its step's bound resource", ()
       field: "vcenterIdentifier",
     },
     {
+      file: "XcpNgMonitor/XcpNgMonitorStepForm.tsx",
+      step: "monitorStepXcpNgMonitor",
+      field: "poolIdentifier",
+    },
+    {
       file: "CephMonitor/CephMonitorStepForm.tsx",
       step: "monitorStepCephMonitor",
       field: "clusterIdentifier",

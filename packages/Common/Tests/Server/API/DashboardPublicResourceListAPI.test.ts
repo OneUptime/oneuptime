@@ -15,6 +15,7 @@ import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
+import XcpNgResourceService from "../../../Server/Services/XcpNgResourceService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
 import StorageArrayResourceService from "../../../Server/Services/StorageArrayResourceService";
@@ -313,6 +314,18 @@ const RESOURCE_ROUTE_CASES: Array<ResourceRouteCase> = [
     kind: "VirtualMachine",
   },
   {
+    resourceType: "xcp-ng-resource",
+    componentType: DashboardComponentType.XcpNgHostList,
+    service: XcpNgResourceService,
+    kind: "Host",
+  },
+  {
+    resourceType: "xcp-ng-resource",
+    componentType: DashboardComponentType.XcpNgVmList,
+    service: XcpNgResourceService,
+    kind: "VM",
+  },
+  {
     resourceType: "ceph-resource",
     componentType: DashboardComponentType.CephOsdList,
     service: CephResourceService,
@@ -383,6 +396,7 @@ const ALL_SERVICES: Array<ListService> = [
   PodmanResourceService,
   ProxmoxResourceService,
   VMwareResourceService,
+  XcpNgResourceService,
   CephResourceService,
   StorageArrayResourceService,
   DockerSwarmResourceService,
@@ -674,6 +688,20 @@ describe("DashboardAPI public resource-list", () => {
           service: VMwareResourceService,
           included: "cpuCapacityMhz",
           excluded: "isPoweredOn",
+        },
+        {
+          resourceType: "xcp-ng-resource",
+          componentType: DashboardComponentType.XcpNgHostList,
+          service: XcpNgResourceService,
+          included: "isEnabled",
+          excluded: "parentHostName",
+        },
+        {
+          resourceType: "xcp-ng-resource",
+          componentType: DashboardComponentType.XcpNgVmList,
+          service: XcpNgResourceService,
+          included: "parentHostName",
+          excluded: "isEnabled",
         },
         {
           resourceType: "docker-swarm-resource",

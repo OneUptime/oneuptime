@@ -1,4 +1,5 @@
 import fs from "fs";
+import net from "net";
 import {
   Browser,
   BrowserContext,
@@ -11,10 +12,14 @@ import {
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticBrowser, {
+  CHROMIUM_EGRESS_ARGUMENTS,
+  CHROMIUM_PROXY_BYPASS,
+  FIREFOX_EGRESS_PREFERENCES,
   FIREFOX_NO_SYNC_LIBRARY_PATH,
   SYNTHETIC_BROWSER_CLOSE_TIMEOUT_IN_MS,
   SyntheticBrowserSession,
 } from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticBrowser";
+import SyntheticEgressProxy from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy";
 import SyntheticRuntimeFault, {
   SYNTHETIC_RUNTIME_FAULT_KIND,
   isSyntheticRuntimeFault,
@@ -188,16 +193,35 @@ function captureTimers(): CapturedTimer[] {
   return timers;
 }
 
+// The egress proxy every SyntheticBrowser.start starts: the browser's only way out.
+const EGRESS_PROXY_SERVER: RegExp = /^http:\/\/127\.0\.0\.1:\d+$/;
+
 describe("SyntheticBrowser.start", () => {
+  const startedEgresses: Array<SyntheticEgressProxy> = [];
+
   beforeEach(() => {
     for (const launcher of [mockChromium, mockFirefox]) {
       launcher.launch.mockReset();
       launcher.launchPersistentContext.mockReset();
     }
+
+    const realStart: SyntheticEgressProxy["start"] =
+      SyntheticEgressProxy.prototype.start;
+    jest
+      .spyOn(SyntheticEgressProxy.prototype, "start")
+      .mockImplementation(async function (
+        this: SyntheticEgressProxy,
+      ): Promise<void> {
+        startedEgresses.push(this);
+        await realStart.call(this);
+      });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     jest.restoreAllMocks();
+    while (startedEgresses.length > 0) {
+      await startedEgresses.pop()!.close();
+    }
   });
 
   beforeEach(() => {
@@ -221,7 +245,12 @@ describe("SyntheticBrowser.start", () => {
 
       expect(launchOptionsOf(mockChromium)).toStrictEqual({
         executablePath: CHROMIUM_EXECUTABLE_PATH,
+        proxy: {
+          server: expect.stringMatching(EGRESS_PROXY_SERVER),
+          bypass: CHROMIUM_PROXY_BYPASS,
+        },
         chromiumSandbox: chromiumSandboxEnabled,
+        args: [...CHROMIUM_EGRESS_ARGUMENTS],
       });
       // The on-disk profile is what stalled the bootstrap on slow storage.
       expect(mockChromium.launchPersistentContext).not.toHaveBeenCalled();
@@ -244,6 +273,9 @@ describe("SyntheticBrowser.start", () => {
 
     expect(launchOptionsOf(mockFirefox)).toStrictEqual({
       executablePath: FIREFOX_EXECUTABLE_PATH,
+      // No bypass list: Firefox reads its entries as bare host suffixes.
+      proxy: { server: expect.stringMatching(EGRESS_PROXY_SERVER) },
+      firefoxUserPrefs: { ...FIREFOX_EGRESS_PREFERENCES },
     });
     expect(mockFirefox.launchPersistentContext).not.toHaveBeenCalled();
     expect(mockChromium.launch).not.toHaveBeenCalled();
@@ -274,7 +306,12 @@ describe("SyntheticBrowser.start", () => {
       await SyntheticBrowser.start({ config: firefoxConfig() });
 
       const options: LaunchOptions = launchOptionsOf(mockFirefox);
-      expect(Object.keys(options).sort()).toEqual(["env", "executablePath"]);
+      expect(Object.keys(options).sort()).toEqual([
+        "env",
+        "executablePath",
+        "firefoxUserPrefs",
+        "proxy",
+      ]);
       expect(options.env?.["LD_PRELOAD"]).toBe(FIREFOX_NO_SYNC_LIBRARY_PATH);
     });
 
@@ -345,77 +382,75 @@ describe("SyntheticBrowser.start", () => {
     );
   });
 
-  describe("proxy", () => {
-    test("passes only the server when no credentials or bypass list are set", async () => {
-      mockChromium.launch.mockResolvedValue(createFakeBrowser().browser);
+  /*
+   * GHSA-9rx7-vwfj-whp7: the browser's only proxy is the check's egress
+   * proxy, which holds every request to the probe's egress policy and goes
+   * through the operator's outbound proxy itself. The operator's proxy, its
+   * credentials and its NO_PROXY list are never handed to the browser: a
+   * NO_PROXY entry would let the browser connect around the guard.
+   */
+  describe("egress", () => {
+    const operatorProxy: SyntheticMonitorWorkerConfig["proxy"] = {
+      server: "http://proxy.internal:3128",
+      username: "probe",
+      password: "s3cret",
+      bypass: "synthetic-runtime.oneuptime.invalid,localhost,.internal",
+    };
 
-      await SyntheticBrowser.start({
-        config: createConfig({
-          proxy: { server: "http://proxy.internal:3128" },
-        }),
-      });
+    test.each([
+      { label: "Chromium", browserType: BrowserType.Chromium },
+      { label: "Firefox", browserType: BrowserType.Firefox },
+    ])(
+      "sends $label through the check's egress proxy and nowhere else, whatever proxy the operator set",
+      async ({ browserType }: { label: string; browserType: BrowserType }) => {
+        const launcher: MockLauncher =
+          browserType === BrowserType.Chromium ? mockChromium : mockFirefox;
+        launcher.launch.mockResolvedValue(createFakeBrowser().browser);
 
-      expect(launchOptionsOf(mockChromium)).toStrictEqual({
-        executablePath: CHROMIUM_EXECUTABLE_PATH,
-        chromiumSandbox: true,
-        proxy: { server: "http://proxy.internal:3128" },
-      });
-    });
+        const session: SyntheticBrowserSession = await SyntheticBrowser.start({
+          config: createConfig({
+            browserType,
+            executablePath:
+              browserType === BrowserType.Chromium
+                ? CHROMIUM_EXECUTABLE_PATH
+                : FIREFOX_EXECUTABLE_PATH,
+            proxy: operatorProxy,
+          }),
+        });
 
-    test("passes the username, password and bypass list when they are set", async () => {
-      mockFirefox.launch.mockResolvedValue(createFakeBrowser().browser);
+        const proxy: LaunchOptions["proxy"] = launchOptionsOf(launcher).proxy;
+        expect(proxy).toStrictEqual(
+          browserType === BrowserType.Chromium
+            ? {
+                server: session.egress.getProxyServer(),
+                bypass: CHROMIUM_PROXY_BYPASS,
+              }
+            : { server: session.egress.getProxyServer() },
+        );
+        expect(JSON.stringify(launchOptionsOf(launcher))).not.toContain(
+          "proxy.internal",
+        );
+        expect(JSON.stringify(launchOptionsOf(launcher))).not.toContain(
+          "s3cret",
+        );
+        // NO_PROXY's hosts are the egress proxy's to reach directly, never the browser's.
+        expect(JSON.stringify(launchOptionsOf(launcher))).not.toContain(
+          ".internal",
+        );
+      },
+    );
 
-      await SyntheticBrowser.start({
-        config: createConfig({
-          browserType: BrowserType.Firefox,
-          executablePath: FIREFOX_EXECUTABLE_PATH,
-          proxy: {
-            server: "http://proxy.internal:3128",
-            username: "probe",
-            password: "s3cret",
-            bypass: "localhost,.internal",
-          },
-        }),
-      });
-
-      expect(launchOptionsOf(mockFirefox)).toStrictEqual({
-        executablePath: FIREFOX_EXECUTABLE_PATH,
-        proxy: {
-          server: "http://proxy.internal:3128",
-          username: "probe",
-          password: "s3cret",
-          bypass: "localhost,.internal",
-        },
-      });
-    });
-
-    test("omits proxy fields that are present but undefined", async () => {
-      /*
-       * Playwright's option types are written for exactOptionalPropertyTypes:
-       * a key set to undefined is not the same as a key left out, so an
-       * undefined credential must not be forwarded as one.
-       */
-      mockChromium.launch.mockResolvedValue(createFakeBrowser().browser);
-
-      await SyntheticBrowser.start({
-        config: createConfig({
-          proxy: {
-            server: "http://proxy.internal:3128",
-            username: "probe",
-            password: undefined,
-            bypass: undefined,
-          },
-        }),
-      });
-
-      const proxy: LaunchOptions["proxy"] = launchOptionsOf(mockChromium).proxy;
-      expect(proxy).toStrictEqual({
-        server: "http://proxy.internal:3128",
-        username: "probe",
-      });
-      expect(Object.keys(proxy as Record<string, unknown>)).toEqual([
-        "server",
-        "username",
+    /*
+     * Chromium reads each entry as an exact host, never a suffix, and an
+     * empty one would match nothing; the controller host is the one name it
+     * may reach without the egress proxy, and Chromium resolves no name
+     * itself. What the browsers actually send past the proxy - WebRTC UDP,
+     * look-alike hosts - is tested in real browsers (SyntheticEgressBrowser).
+     */
+    test("lets Chromium past the egress proxy for the runtime's own host alone, and proxies its loopback", () => {
+      expect(CHROMIUM_PROXY_BYPASS.split(",")).toEqual([
+        "synthetic-runtime.oneuptime.invalid",
+        "<-loopback>",
       ]);
     });
 
@@ -423,7 +458,7 @@ describe("SyntheticBrowser.start", () => {
       { label: "left out", config: createConfig() },
       { label: "undefined", config: createConfig({ proxy: undefined }) },
     ])(
-      "sets no proxy option at all when the proxy is $label",
+      "sends the browser through the egress proxy when the operator's proxy is $label",
       async ({
         config,
       }: {
@@ -432,9 +467,149 @@ describe("SyntheticBrowser.start", () => {
       }) => {
         mockChromium.launch.mockResolvedValue(createFakeBrowser().browser);
 
-        await SyntheticBrowser.start({ config });
+        const session: SyntheticBrowserSession = await SyntheticBrowser.start({
+          config,
+        });
 
-        expect(launchOptionsOf(mockChromium)).not.toHaveProperty("proxy");
+        expect(launchOptionsOf(mockChromium).proxy).toStrictEqual({
+          server: session.egress.getProxyServer(),
+          bypass: CHROMIUM_PROXY_BYPASS,
+        });
+      },
+    );
+
+    test("starts the egress proxy, on loopback, before the browser", async () => {
+      let proxyWhenLaunched: string | undefined;
+      mockChromium.launch.mockImplementation(
+        async (options: LaunchOptions): Promise<Browser> => {
+          proxyWhenLaunched = options.proxy?.server;
+          return createFakeBrowser().browser;
+        },
+      );
+
+      const session: SyntheticBrowserSession = await SyntheticBrowser.start({
+        config: createConfig(),
+      });
+
+      expect(proxyWhenLaunched).toMatch(EGRESS_PROXY_SERVER);
+      expect(proxyWhenLaunched).toBe(session.egress.getProxyServer());
+      // It is listening: the browser can reach it.
+      const reply: string = await new Promise<string>(
+        (resolve: (value: string) => void): void => {
+          const socket: net.Socket = net.connect({
+            host: "127.0.0.1",
+            port: session.egress.getPort(),
+          });
+          let text: string = "";
+          socket.on("data", (chunk: Buffer): void => {
+            text += chunk.toString("latin1");
+          });
+          socket.on("close", (): void => {
+            resolve(text);
+          });
+          socket.write(
+            "CONNECT 169.254.169.254:80 HTTP/1.1\r\nHost: 169.254.169.254:80\r\n\r\n",
+          );
+        },
+      );
+      expect(reply).toContain("403 Forbidden");
+    });
+
+    test.each([
+      {
+        label: "the probe's policy, private addresses allowed",
+        egressPolicy: {
+          allowPrivateNetworkAddresses: true,
+          privateNetworkHint: "",
+        },
+        expected: {
+          allowPrivateNetworkAddresses: true,
+          privateNetworkHint: "",
+        },
+      },
+      {
+        label: "the probe's policy, private addresses refused",
+        egressPolicy: {
+          allowPrivateNetworkAddresses: false,
+          privateNetworkHint: " Ask the operator.",
+        },
+        expected: {
+          allowPrivateNetworkAddresses: false,
+          privateNetworkHint: " Ask the operator.",
+        },
+      },
+      {
+        label: "public addresses only when the check says nothing",
+        egressPolicy: undefined,
+        expected: {
+          allowPrivateNetworkAddresses: false,
+          privateNetworkHint: "",
+        },
+      },
+    ])(
+      "holds the egress proxy to $label",
+      async ({
+        egressPolicy,
+        expected,
+      }: {
+        label: string;
+        egressPolicy: SyntheticMonitorWorkerConfig["egressPolicy"];
+        expected: SyntheticMonitorWorkerConfig["egressPolicy"];
+      }) => {
+        mockChromium.launch.mockResolvedValue(createFakeBrowser().browser);
+
+        const session: SyntheticBrowserSession = await SyntheticBrowser.start({
+          config: createConfig({ egressPolicy }),
+        });
+
+        expect(session.egress.getPolicy()).toEqual(expected);
+      },
+    );
+
+    test("closes the egress proxy when the browser cannot start", async () => {
+      const close: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        SyntheticEgressProxy.prototype,
+        "close",
+      );
+      mockChromium.launch.mockRejectedValue(playwrightError("launch failed"));
+
+      await startExpectingFailure(createConfig());
+
+      expect(close).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The worker's config check reads only the scheme; a URL past it that
+     * still cannot be parsed used to leave the egress proxy with no outbound
+     * proxy, and the check went direct, around the operator's proxy.
+     */
+    test.each([
+      "http://[not-an-address/",
+      "http://proxy.internal:99999",
+      "http://probe:s3cret@proxy internal:3128",
+    ])(
+      "is the probe's fault, and starts no browser, when the outbound proxy %s cannot be read",
+      async (server: string) => {
+        const start: ReturnType<typeof jest.spyOn> = jest.spyOn(
+          SyntheticEgressProxy.prototype,
+          "start",
+        );
+
+        const fault: SyntheticRuntimeFault = await startExpectingFailure(
+          createConfig({ proxy: { server } }),
+        );
+
+        expect(isSyntheticRuntimeFault(fault)).toBe(true);
+        expect(fault.kind).toBe(SYNTHETIC_RUNTIME_FAULT_KIND);
+        expect(fault.message).toBe(
+          "Synthetic monitor could not start on this probe: the probe's outbound proxy setting could not be read. The monitored page was never opened, so this does not reflect the health of the monitored site.",
+        );
+        // The setting itself, which may hold the proxy's password, is not repeated.
+        expect(
+          `${fault.message} ${String(fault.internalDetail)}`,
+        ).not.toContain("s3cret");
+        expect(start).not.toHaveBeenCalled();
+        expect(mockChromium.launch).not.toHaveBeenCalled();
       },
     );
   });
@@ -728,5 +903,34 @@ describe("SyntheticBrowser.close", () => {
 
     expect(timers).toHaveLength(1);
     expect(global.clearTimeout).toHaveBeenCalledWith(timers[0]!.handle);
+  });
+
+  test("closes the egress proxy after the browser, even when the browser never finishes closing", async () => {
+    const order: Array<string> = [];
+    const fake: FakeBrowser = createFakeBrowser();
+    fake.close.mockImplementation((): Promise<void> => {
+      order.push("browser");
+      return new Promise<void>((): void => {
+        // Never settles.
+      });
+    });
+    const egress: SyntheticEgressProxy = new SyntheticEgressProxy();
+    await egress.start();
+    const close: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(egress, "close")
+      .mockImplementation(async (): Promise<void> => {
+        order.push("egress");
+      });
+
+    await SyntheticBrowser.close({
+      browser: fake.browser,
+      egress,
+      timeoutInMs: 20,
+    });
+
+    expect(order).toEqual(["browser", "egress"]);
+    expect(close).toHaveBeenCalledTimes(1);
+    close.mockRestore();
+    await egress.close();
   });
 });

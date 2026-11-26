@@ -880,8 +880,8 @@ export default class InventoryItem {
      * `storage.system` (the platform, e.g. purestorage.flasharray) is
      * descriptive, not identity: the typed Postgres row (StorageArray) and
      * the read side (`EntityKey.keyForStorageArray`) are name-based, and an
-     * agent may omit the platform (ingest also detects it from the
-     * purefa_ / purefb_ metric names). Volumes, hosts and the other objects
+     * agent may omit the platform (ingest also detects it from a
+     * platform's metric prefix). Volumes, hosts and the other objects
      * inside an array are StorageArrayResource inventory rows, not entities.
      */
     (attrs: EntityAttributes) => {
@@ -893,6 +893,26 @@ export default class InventoryItem {
         ? {
             entityType: EntityType.StorageArray,
             id: { "storage.array.name": name },
+          }
+        : null;
+    },
+
+    /*
+     * xcp_ng.pool — xcp_ng.pool.id only: the pool's XAPI UUID, which the
+     * XCP-ng Agent moves from Xen Orchestra's pool_id label to the
+     * resource (one resource per pool). Its name (xcp_ng.pool.name) and the
+     * Xen Orchestra it is read from (xen_orchestra.name) are descriptive,
+     * never identity: the typed XcpNgPool row and the read side
+     * (`EntityKey.keyForXcpNgPool`) are UUID-based, so a rename in Xen
+     * Orchestra never forks the pool. Hosts, VMs and storage repositories
+     * are XcpNgResource inventory rows, not entities.
+     */
+    (attrs: EntityAttributes) => {
+      const poolId: string | null = InventoryItem.str(attrs, "xcp_ng.pool.id");
+      return poolId
+        ? {
+            entityType: EntityType.XcpNgPool,
+            id: { "xcp_ng.pool.id": poolId.toLowerCase() },
           }
         : null;
     },

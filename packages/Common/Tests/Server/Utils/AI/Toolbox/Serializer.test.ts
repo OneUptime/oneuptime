@@ -128,6 +128,89 @@ describe("ToolResultSerializer.redact - credentials", () => {
   });
 });
 
+/*
+ * A secret in a percent-encoded URL (#11031): a redirect's token after an
+ * encoded "=", a password in an encoded query string. Each rule reads the
+ * text with its escapes read too, as Data Security's detectors do, and
+ * hides what it finds on the characters it is written with.
+ */
+describe("ToolResultSerializer.redact - credentials in a percent-encoded URL", () => {
+  // Made-up keys, put together where they are used.
+  const GITHUB_TOKEN: string = [
+    "ghp",
+    "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ",
+  ].join("_");
+  const AWS_KEY: string = ["AKIA", "QH3ZK7MR2XWD5TPL"].join("");
+
+  test("a GitHub token after an encoded = is hidden, the URL around it kept", () => {
+    const text: string = `GET /login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Ftoken%3D${GITHUB_TOKEN}&x=1`;
+
+    expect(redactionOf(text)).toBe(
+      "GET /login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Ftoken%3D[redacted-github-token]&x=1",
+    );
+    expect(countOf(text)).toBe(1);
+  });
+
+  test("a token whose own characters are escaped is hidden whole", () => {
+    const text: string = `state=${GITHUB_TOKEN.replace(/_/g, "%5F")}&y=2`;
+
+    expect(redactionOf(text)).toBe("state=[redacted-github-token]&y=2");
+  });
+
+  test("an AWS key after an encoded = is hidden", () => {
+    expect(redactionOf(`GET /s3?key%3D${AWS_KEY}%26x%3D1`)).toBe(
+      "GET /s3?key%3D[redacted-aws-key]%26x%3D1",
+    );
+  });
+
+  test("a password in an encoded query string loses its value, and keeps its key", () => {
+    const out: string = redactionOf(
+      "GET /r?next=%2Flogin%3Fuser%3Dsvc%26password%3Dhunter2000",
+    );
+
+    expect(out).toBe(
+      "GET /r?next=%2Flogin%3Fuser%3Dsvc%26password%3D[redacted]",
+    );
+  });
+
+  test("a Bearer token in an encoded header is hidden as in one written plainly", () => {
+    const token: string = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const plain: string = redactionOf(`Authorization: Bearer ${token}`);
+    const encoded: string = redactionOf(
+      `h=Authorization%3A%20Bearer%20${token}`,
+    );
+
+    expect(encoded).not.toContain(token);
+    expect(`h=${decodeURIComponent(encoded.slice(2))}`).toBe(`h=${plain}`);
+    // Out of an encoded header too, only the scheme's own word could go.
+    expect(redactionOf(`u=%2Fapi%3Fx%3D1%20Bearer%20${token}`)).toBe(
+      "u=%2Fapi%3Fx%3D1%20Bearer%20[redacted-token]",
+    );
+  });
+
+  test("what the text as written already hid is hidden once", () => {
+    const text: string = `a=${GITHUB_TOKEN} b%3D${GITHUB_TOKEN} password=hunter2000`;
+
+    expect(redactionOf(text)).toBe(
+      "a=[redacted-github-token] b%3D[redacted-github-token] password=[redacted]",
+    );
+    expect(countOf(text)).toBe(3);
+  });
+
+  test("a text of escapes without end is read in time in line with its length", () => {
+    const text: string = `${"%3D%26".repeat(60_000)}${GITHUB_TOKEN}`;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return redactionOf(text);
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.inMs).toBeLessThan(2000);
+    expect(timed.result).toContain("[redacted-github-token]");
+  });
+});
+
 describe("ToolResultSerializer.redact - personal data", () => {
   test("an email address is removed", () => {
     const out: string = redactionOf("user alice@example.com signed in");

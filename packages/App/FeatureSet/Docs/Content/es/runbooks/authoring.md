@@ -140,7 +140,7 @@ Un script de bash que se ejecuta con `bash -c <script>` en un [agente de runbook
 | Campo | Qué hace | Predeterminado |
 | --- | --- | --- |
 | **Runner** | En **Más campos**. El Runner que ejecuta el paso. Solo ese Runner puede reclamar el trabajo. Los Runners globales solo ejecutan pasos JavaScript. | El Runner predeterminado del proyecto, si has definido uno |
-| **Script de Bash** | El script. La salida (stdout y stderr) se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. | — |
+| **Script de Bash** | El script. La salida (stdout y stderr) se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. Se ejecuta con el entorno del Runner, sin los ajustes `ONEUPTIME_RUNNER_` propios del Runner, incluida su clave; una clave que un script imprima de todos modos se guarda como `[REDACTED]`. | — |
 | **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el script antes de matarlo con `SIGKILL`. Auméntalo para los pasos que tardan minutos con razón. | 30 segundos |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. | 2 minutos |
 
@@ -195,7 +195,7 @@ Ejecutar comandos kubectl contra un clúster. El script se ejecuta con bash en e
 | --- | --- |
 | **Runner** | En **Más campos**. El Runner que ejecuta kubectl. Debe poder llegar al servidor de API del clúster. Un paso que no elige ninguno se ejecuta en el Runner predeterminado del proyecto. |
 | **Kubeconfig** | La variable secreta que contiene el kubeconfig del clúster, o **El acceso propio del Runner**: el kubeconfig propio del Runner, o su cuenta de servicio cuando se ejecuta en el clúster. El Runner escribe un kubeconfig en un archivo que solo él puede leer, y lo elimina cuando termina el script. |
-| **Script** | Los comandos kubectl. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
+| **Script** | Los comandos kubectl. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. Como el script de un paso de Bash, se ejecuta sin los ajustes `ONEUPTIME_RUNNER_` propios del Runner. |
 | **Tiempo de espera de ejecución** | Cuánto tiempo deja el Runner que se ejecute el script antes de detenerlo con `SIGKILL`. 30 segundos por defecto. |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. 2 minutos por defecto. |
 

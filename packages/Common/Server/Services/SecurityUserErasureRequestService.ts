@@ -13,6 +13,7 @@ import {
   getErasureUserProblem,
   isErasureToken,
 } from "../../Types/SecurityEvent/SecurityUserErasure";
+import { ErasedName } from "../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -48,6 +49,7 @@ export const ERASURE_REQUEST_SELECT: {
   _id: true;
   projectId: true;
   userToErase: true;
+  namesToErase: true;
   tokens: true;
   status: true;
   requestedAt: true;
@@ -62,6 +64,7 @@ export const ERASURE_REQUEST_SELECT: {
   _id: true,
   projectId: true,
   userToErase: true,
+  namesToErase: true,
   tokens: true,
   status: true,
   requestedAt: true,
@@ -106,6 +109,59 @@ export function getErasureTokens(data: {
         });
       }),
     ),
+  );
+}
+
+/*
+ * Who the worker found a request's person named as, as the request keeps
+ * them (#11044): each name with what the Hash rule left in its place.
+ * Nothing that is not such a pair is read, whatever the column held.
+ */
+export function readErasureRequestNames(request: Model): Array<ErasedName> {
+  const stored: unknown = request.namesToErase;
+
+  if (typeof stored !== "string" || !stored.trim()) {
+    return [];
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(stored);
+  } catch {
+    return [];
+  }
+
+  if (!Array.isArray(parsed)) {
+    return [];
+  }
+
+  const names: Array<ErasedName> = [];
+
+  for (const item of parsed) {
+    const named: unknown = (item as { named?: unknown } | null)?.named;
+    const hashed: unknown = (item as { hashed?: unknown } | null)?.hashed;
+
+    if (
+      typeof named === "string" &&
+      typeof hashed === "string" &&
+      named.trim() &&
+      hashed.trim() &&
+      named !== hashed
+    ) {
+      names.push({ named, hashed });
+    }
+  }
+
+  return names;
+}
+
+// The names as a request keeps them: what readErasureRequestNames reads back.
+export function toStoredErasureNames(names: ReadonlyArray<ErasedName>): string {
+  return JSON.stringify(
+    names.map((name: ErasedName): ErasedName => {
+      return { named: name.named, hashed: name.hashed };
+    }),
   );
 }
 
@@ -263,6 +319,12 @@ export class Service extends ProjectReferencesService<Model> {
   public async markInProgress(data: {
     requestId: ObjectID;
     counts: SecurityUserErasureCounts;
+    /*
+     * Who the run found the person named as, kept encrypted until the
+     * request is over (#11044): the run's names, with every name an earlier
+     * run kept. Left as it is when not given.
+     */
+    names?: ReadonlyArray<ErasedName> | undefined;
   }): Promise<void> {
     await this.updateOneById({
       id: data.requestId,
@@ -270,6 +332,14 @@ export class Service extends ProjectReferencesService<Model> {
         status: SecurityUserErasureRequestStatus.InProgress,
         failureReason: null as unknown as string,
         ...data.counts,
+        ...(data.names
+          ? {
+              namesToErase:
+                data.names.length > 0
+                  ? toStoredErasureNames(data.names)
+                  : (null as unknown as string),
+            }
+          : {}),
       },
       props: { isRoot: true },
     });
@@ -277,7 +347,8 @@ export class Service extends ProjectReferencesService<Model> {
 
   /*
    * Checked done: nothing the request reaches names the person. What the
-   * requester typed is wiped, and only the tokens are kept.
+   * requester typed, and who the worker found them named as, are wiped,
+   * and only the tokens are kept.
    */
   @CaptureSpan()
   public async markCompleted(data: {
@@ -290,6 +361,7 @@ export class Service extends ProjectReferencesService<Model> {
         status: SecurityUserErasureRequestStatus.Completed,
         completedAt: OneUptimeDate.getCurrentDate(),
         userToErase: null as unknown as string,
+        namesToErase: null as unknown as string,
         failureReason: null as unknown as string,
         ...data.counts,
       },
@@ -323,7 +395,8 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Given up on, after every retry. completedAt says the request is over,
    * not that the person is gone - the status says which - and what the
-   * requester typed is wiped all the same: a failed request is filed again.
+   * requester typed, and who the worker found them named as, are wiped all
+   * the same: a failed request is filed again.
    */
   @CaptureSpan()
   public async markFailed(data: {
@@ -338,6 +411,7 @@ export class Service extends ProjectReferencesService<Model> {
         completedAt: OneUptimeDate.getCurrentDate(),
         attempts: data.attempts,
         userToErase: null as unknown as string,
+        namesToErase: null as unknown as string,
         failureReason: truncateLongText(data.failureReason),
       },
       props: { isRoot: true },

@@ -227,6 +227,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "(module) DataStoreFinding": Why.FollowOn,
   },
   /*
+   * Scrub It, which its route and Ask AI's action both press (#10378): the
+   * scrub rule is made through its own service and recorded there, and the
+   * finding marked scrubbed follows from it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityButtons.ts": {
+    "DataSecurityButtons.scrubFinding DataStoreFinding": Why.FollowOn,
+  },
+  /*
    * A proposal of OneUptime AI's made or undone (#10364): the scrub rules
    * it makes or deletes are recorded where they are, and a finding marked
    * scrubbed, or not, follows from them - as Scrub It's own route does.
@@ -470,6 +478,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
+    // MERGE_COUNTS_BY_KIND_SQL: each kind's count as a batch reports it (#11000).
+    "(module) StorageArray": Why.Reported,
   },
   "packages/Common/Server/Services/VMwareVCenterService.ts": {
     "Service.attachLabels VMwareVCenter": Why.Reported,
@@ -477,6 +487,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
+  },
+  "packages/Common/Server/Services/XcpNgPoolService.ts": {
+    "Service.attachLabels XcpNgPool": Why.Reported,
   },
   "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
     "AiAgentResetAuditLog.record *": Why.Recorded,

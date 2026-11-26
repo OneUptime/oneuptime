@@ -35,6 +35,7 @@ import { getAllPodmanMetrics } from "Common/Types/Monitor/PodmanMetricCatalog";
 import { getAllProxmoxMetrics } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import { getAllStorageArrayMetrics } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareMetrics } from "Common/Types/Monitor/VMwareMetricCatalog";
+import { getAllXcpNgMetrics } from "Common/Types/Monitor/XcpNgMetricCatalog";
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -46,12 +47,12 @@ import path from "path";
  * The line under every metric picker of a monitor's form says what the
  * chosen metric is, from its catalog (Common/Types/Monitor/*MetricCatalog):
  * the VMware, OpenStack, Kubernetes, Docker, Podman, Docker Swarm, host, IoT,
- * Proxmox, Ceph and storage array pickers, a Database Health criteria's line,
- * and a Database monitor's charts and the metric it stores. Not one of the
- * 591 descriptions was a key - eight catalogs were never read by the
- * extractor, the other four marked only their names, and the OpenStack
- * catalog glued seventy of them together at run time - so every one read
- * English in every language.
+ * Proxmox, XCP-ng, Ceph and storage array pickers, a Database Health
+ * criteria's line, and a Database monitor's charts and the metric it
+ * stores. Not one of the 591 descriptions was a key - eight catalogs were
+ * never read by the extractor, the other four marked only their names, and
+ * the OpenStack catalog glued seventy of them together at run time - so
+ * every one read English in every language.
  *
  * Each catalog is a keys root now, and every description a literal it marks
  * (translationKey), as the Database catalog's words under each of its groups
@@ -94,6 +95,25 @@ interface CatalogMetric {
 interface Catalog {
   file: string;
   metrics: Array<CatalogMetric>;
+  /*
+   * The files that hold its words, when the catalog file does not: the
+   * storage array catalog reads each platform's own (#11000).
+   */
+  wordFiles?: Array<string>;
+}
+
+// Every file under a directory of the repository, by its repository path.
+function filesUnder(directory: string): Array<string> {
+  return fs
+    .readdirSync(path.join(REPOSITORY_ROOT, directory), { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
+      const child: string = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) {
+        return filesUnder(child);
+      }
+      return entry.name.endsWith(".ts") ? [child] : [];
+    })
+    .sort();
 }
 
 const CATALOGS: ReadonlyArray<Catalog> = [
@@ -113,8 +133,10 @@ const CATALOGS: ReadonlyArray<Catalog> = [
   {
     file: "StorageArrayMetricCatalog.ts",
     metrics: getAllStorageArrayMetrics(),
+    wordFiles: filesUnder("packages/Common/Types/StorageArray/Platforms"),
   },
   { file: "VMwareMetricCatalog.ts", metrics: getAllVMwareMetrics() },
+  { file: "XcpNgMetricCatalog.ts", metrics: getAllXcpNgMetrics() },
 ];
 
 const repositoryPathOf: (catalog: Catalog) => string = (
@@ -314,6 +336,10 @@ const NAMES: ReadonlyArray<string> = [
   "vSphere",
   "vSAN",
   "ESXi",
+  "Xen Orchestra",
+  "XAPI",
+  "XOSTOR",
+  "LINSTOR",
   "Pure",
   "FlashArray",
   "FlashBlade",
@@ -345,6 +371,10 @@ const NAMES: ReadonlyArray<string> = [
   "Ethernet",
   "Fibre Channel",
   "IOPS",
+  "IPMI",
+  "DCMI",
+  "SMART",
+  "ISO",
   // A kubelet setting, beside kube-reserved.
   "system-reserved",
   // Unit symbols.
@@ -493,14 +523,18 @@ describe("a monitor metric catalog's descriptions are keys", () => {
     const unmarked: Array<string> = [];
 
     for (const catalog of CATALOGS) {
-      const file: string = repositoryPathOf(catalog);
+      const files: Array<string> = catalog.wordFiles || [
+        repositoryPathOf(catalog),
+      ];
       const marked: Set<string> = new Set<string>(
-        scanSourceText(
-          file,
-          fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
-          { kind: "keys" },
-        ).strings.map((entry: ExtractedString): string => {
-          return entry.text;
+        files.flatMap((file: string): Array<string> => {
+          return scanSourceText(
+            file,
+            fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
+            { kind: "keys" },
+          ).strings.map((entry: ExtractedString): string => {
+            return entry.text;
+          });
         }),
       );
       const texts: Array<string> = catalog.metrics.map(

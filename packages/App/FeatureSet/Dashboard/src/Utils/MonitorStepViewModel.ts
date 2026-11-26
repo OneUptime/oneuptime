@@ -44,6 +44,7 @@ import MonitorStepMetricQueries, {
   MonitorStepMetricReads,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { PROBE_DEFAULT_RETRY_COUNT_LABEL } from "./MonitorRetryHelpText";
+import { XcpNgScope } from "Common/Types/XcpNg/XcpNgTelemetry";
 
 /*
  * WHY THIS FILE EXISTS
@@ -176,6 +177,24 @@ const toText: (value: unknown) => string | undefined = (
   }
 
   return String(value);
+};
+
+/*
+ * An XCP-ng step's scope (the `xcp_ng.scope` value it filters on) by the
+ * name the form's Resource Scope gives it, in English, looked up where it
+ * is drawn.
+ */
+const XCP_NG_SCOPE_WORDS: Record<string, string> = {
+  /*
+   * Never the bare "Pool": that key is a Ceph or OpenStack storage pool,
+   * which some languages word apart from a pool of hosts.
+   */
+  [XcpNgScope.Pool]: translationKey("XCP-ng Pool"),
+  [XcpNgScope.Host]: translationKey("Host"),
+  [XcpNgScope.VM]: translationKey("VM"),
+  [XcpNgScope.StorageRepository]: translationKey("Storage Repository"),
+  [XcpNgScope.VDI]: translationKey("Virtual Disk"),
+  [XcpNgScope.Xostor]: translationKey("XOSTOR"),
 };
 
 // A timeout in the reader's words: "5,000 ms", "۵٬۰۰۰ میلی‌ثانیه" (#7418).
@@ -355,6 +374,7 @@ export default class MonitorStepViewModel {
       data.proxmoxMonitor?.rollingTime ||
       data.openstackMonitor?.rollingTime ||
       data.vmwareMonitor?.rollingTime ||
+      data.xcpNgMonitor?.rollingTime ||
       data.cephMonitor?.rollingTime ||
       data.storageArrayMonitor?.rollingTime
     );
@@ -534,6 +554,8 @@ export default class MonitorStepViewModel {
         return MonitorStepViewModel.getOpenStackRows(data);
       case MonitorType.VMware:
         return MonitorStepViewModel.getVMwareRows(data);
+      case MonitorType.XcpNg:
+        return MonitorStepViewModel.getXcpNgRows(data);
       case MonitorType.DockerSwarm:
         return MonitorStepViewModel.getDockerSwarmRows(data);
       case MonitorType.Ceph:
@@ -2153,6 +2175,66 @@ export default class MonitorStepViewModel {
       ...MonitorStepViewModel.getMetricConfigRows(data, {
         metricViewConfig: vmwareMonitor?.metricViewConfig,
         rollingTime: vmwareMonitor?.rollingTime,
+      }),
+    ]);
+  }
+
+  /*
+   * The pool by its XAPI UUID, as the step keeps it and the worker reads
+   * it, then one row per XcpNgResourceFilters key that is set. The scope is
+   * shown by the name the form's Resource Scope gives it ("Storage
+   * Repository", not "sr"), in the reader's language; a scope the form
+   * does not offer (one written through the API) is shown as written.
+   */
+  private static getXcpNgRows(
+    data: MonitorStepType,
+  ): Array<MonitorStepViewRow> {
+    const xcpNgMonitor: MonitorStepType["xcpNgMonitor"] = data.xcpNgMonitor;
+    const scope: string | undefined = toText(
+      xcpNgMonitor?.resourceFilters?.scope,
+    );
+    const scopeWords: string | undefined = scope
+      ? XCP_NG_SCOPE_WORDS[scope]
+      : undefined;
+
+    return compact([
+      {
+        key: "poolIdentifier",
+        title: "XCP-ng Pool",
+        description: "The XCP-ng pool this monitor watches, by its UUID.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(xcpNgMonitor?.poolIdentifier),
+        placeholder: "No pool selected",
+      },
+      optional({
+        key: "xcpNgScope",
+        title: "Resource Scope",
+        description: "The kind of object in the pool this monitor evaluates.",
+        valueType: MonitorStepViewValueType.Text,
+        value: scopeWords || scope,
+        placeholder: "Whole pool",
+        ...(scopeWords ? { translateValue: true } : {}),
+      }),
+      optional({
+        key: "xcpNgId",
+        title: "UUID",
+        description: "Only the object with this UUID is monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(xcpNgMonitor?.resourceFilters?.xcpNgId),
+        placeholder: "All objects",
+      }),
+      optional({
+        key: "xcpNgHostName",
+        title: "Host Name",
+        description:
+          "Only this host's own series, and the VMs running on it, are monitored.",
+        valueType: MonitorStepViewValueType.Text,
+        value: toText(xcpNgMonitor?.resourceFilters?.hostName),
+        placeholder: "All hosts",
+      }),
+      ...MonitorStepViewModel.getMetricConfigRows(data, {
+        metricViewConfig: xcpNgMonitor?.metricViewConfig,
+        rollingTime: xcpNgMonitor?.rollingTime,
       }),
     ]);
   }

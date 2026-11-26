@@ -52,8 +52,8 @@ const PROJECT_KEY_DERIVATION_LABEL: string = "oneuptime-exception-fingerprint";
 
 /*
  * Each project's key, derived once: every exception occurrence asks for one.
- * Bounded, oldest out first; a key derived again is the same. Never logged
- * or returned.
+ * Bounded, oldest out first (OldestKeyMap, as every bounded cache evicts);
+ * a key derived again is the same. Never logged or returned.
  */
 const MAX_CACHED_PROJECT_KEYS: number = 10_000;
 

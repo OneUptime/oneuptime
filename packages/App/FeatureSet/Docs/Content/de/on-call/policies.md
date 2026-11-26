@@ -87,6 +87,16 @@ Die Minuten zählen ab jeder Bestätigung, und eine Richtlinie alarmiert zu eine
 
 Wer erneut alarmiert wird, bestätigt aus der Nachricht oder mit **Erneut bestätigen** auf der Seite des Vorfalls oder der Warnung, und die Minuten beginnen von vorn; **Eskalieren** gibt die Alarmierung an die nächste Stufe weiter. Sie endet, wenn der Vorfall oder die Warnung behoben oder gelöscht, die Richtlinie archiviert oder gelöscht oder **Nicht erneut alarmieren** gewählt wird. Die Zeile **Nach einer Bestätigung** der Karte sagt, was die Richtlinie tut, und **Weitere Einstellungen** zeigt die Minuten, solange es eingeklappt ist. **Richtlinie auf einen Blick** in der **Übersicht** und die **Eskalationsübersicht** sagen dasselbe in Worten.
 
+## Den alarmierten Personen eine Vorfallsrolle geben
+
+Die **Vorfallsrollen** eines Vorfalls zeigen, wer daran arbeitet. Eine Richtlinie kann dort die Personen aufführen, die sie alarmiert: Öffnen Sie ihre Seite **Eskalationsregeln**, öffnen Sie unten **Weitere Einstellungen** und klicken Sie auf der Karte **Vorfallsrolle** auf **Bearbeiten**. **Vorfallsrolle bearbeiten** fragt nach einer **Rolle**: einer der Vorfallsrollen Ihres Projekts oder **Keine Rolle**, womit jede Richtlinie beginnt.
+
+Alle, die die Richtlinie danach zu einem Vorfall oder einer Vorfallsepisode alarmiert, erhalten diese Rolle darin, auf jeder Stufe und bei jeder erneuten Alarmierung, sofern sie Mitglied des Projekts sind. Wen sie als Beobachter alarmiert, der erhält sie nicht. Wer die Rolle schon hat, behält sie unverändert, und eine Rolle für nur eine Person, etwa **Vorfall-Kommandant**, geht an die erste alarmierte Person, solange niemand sie hat. Der Feed des Vorfalls nennt die Richtlinie, die sie hinzugefügt hat, und sie erhalten keine eigene Nachricht über die Rolle: Ihre Alarmierung hat ihnen den Vorfall schon mitgeteilt.
+
+So erscheint die Person in Bereitschaft aus dem Team, dem ein Dienst gehört, in dessen Vorfällen. Legen Sie unter **Vorfälle → Einstellungen → Vorfallsrollen** eine Rolle wie „Service-Verantwortlicher“ an, wählen Sie sie in der Richtlinie, die das Zahlungsteam alarmiert, und lassen Sie die Zahlungsmonitore diese Richtlinie ausführen, über ihre Kriterien oder eine Bereitschaftsregel. Wer für Zahlungen Bereitschaft hat, steht dann als „Service-Verantwortlicher“ im Vorfall, und wer seinen Status zuerst ändert, indem er ihn bestätigt, wird trotzdem sein **Vorfall-Kommandant**, auch wenn ihm eine Richtlinie beim Alarmieren eine andere Rolle gegeben hat.
+
+Die Zeile **Rolle der alarmierten Personen** der Karte zeigt, welche Rolle die Richtlinie vergibt, und **Weitere Einstellungen** nennt sie, solange es eingeklappt ist. Das Archivieren der Rolle hindert die Richtlinie nicht daran, sie zu vergeben, und der Archivierungsdialog der Rolle zählt die Richtlinie zu dem, was sie verwendet: Wählen Sie **Keine Rolle**, um das zu beenden. Das Löschen der Rolle setzt die Richtlinie auf **Keine Rolle** zurück.
+
 ## Wenn mehrere Richtlinien alarmieren
 
 Ein Vorfall, eine Warnung oder eine Episode führt jede ihrer Richtlinien für sich aus, gleichzeitig.
@@ -176,11 +186,14 @@ Bereitschaftsrichtlinien sind die Ressource `/api/on-call-duty-policy` und in Te
 | **Wenn nach der letzten Stufe niemand bestätigt** | `repeatPolicyIfNoOneAcknowledges` |
 | **Wie oft noch?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Nach wie vielen Minuten?** | `acknowledgementTimeoutInMinutes` |
+| **Rolle** | `incidentRoleId` |
 | Archiviert | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` ist `false` für **Alarmierung beenden** und `true` für **Erneut bei Level 1 beginnen**. Steht es auf `true`, muss `repeatPolicyIfNoOneAcknowledgesNoOfTimes` eine ganze Zahl ab 1 sein: OneUptime lehnt `0` ab. Eine ältere, mit `0` gespeicherte Richtlinie wiederholt sich nie, und das Dashboard zeigt sie als **Alarmierung beenden**.
 
 `acknowledgementTimeoutInMinutes` ist `null` für **Nicht erneut alarmieren** und eine ganze Zahl von Minuten zwischen 5 und 1440 für **Erneut alarmieren**. Alles andere lehnt OneUptime ab.
+
+`incidentRoleId` ist die ID einer der Vorfallsrollen des Projekts oder `null` für **Keine Rolle**.
 
 Wie Sie eine Richtlinie mit ihrer ersten Stufe in einer einzigen Anfrage anlegen, steht unter [Regeln mit der API oder Terraform anlegen](/docs/on-call/escalation-rules#regeln-mit-der-api-oder-terraform-anlegen).
 

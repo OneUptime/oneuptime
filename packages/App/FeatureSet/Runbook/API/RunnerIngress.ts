@@ -1115,18 +1115,30 @@ export default class RunnerIngressAPI {
       const errorMessageRaw: unknown = body["errorMessage"];
       const jobId: ObjectID = new ObjectID(jobIdRaw);
 
+      const hasText: boolean =
+        typeof outputRaw === "string" || typeof errorMessageRaw === "string";
+
       /*
        * The secrets the step was handed, hidden in what it printed before it
        * is stored (RunnerJobService.submitResult): this Runner hid them
        * already when it is new enough to, and an older one did not know to.
+       * And the Runner's own key, the one this result is sent with: a step
+       * runs as the Runner's user, and one that read the key and printed it
+       * would hand everyone who reads the run what claims the Runner's jobs
+       * and their secrets. A new Runner hides it too
+       * (Runner/Utils/RunnerCredentialRedaction).
        */
-      const secretValues: Array<string> =
-        typeof outputRaw === "string" || typeof errorMessageRaw === "string"
-          ? await RunnerJobService.getSecretValuesGivenToJob({
+      const runnerKey: string | null = RunnerAuthorization.getPresentedKey(req);
+
+      const secretValues: Array<string> = hasText
+        ? [
+            ...(await RunnerJobService.getSecretValuesGivenToJob({
               jobId,
               agentId: agent.id,
-            })
-          : [];
+            })),
+            ...(runnerKey ? [runnerKey] : []),
+          ]
+        : [];
 
       const accepted: boolean = await RunnerJobService.submitResult({
         jobId,

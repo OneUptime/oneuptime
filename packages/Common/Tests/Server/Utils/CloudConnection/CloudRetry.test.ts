@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
+import { kql } from "../../../../Server/Utils/CloudConnection/Azure/AzureKql";
 import {
   CloudReadBudget,
   CloudReadBudgetSpent,
@@ -263,7 +264,7 @@ describe("Azure Resource Graph, asked page after page", () => {
       waits,
     ).queryResourceGraph({
       subscriptionIds: ["00000000-0000-4000-8000-000000000003"],
-      query: "Resources | project id",
+      query: kql`Resources | project id`,
     });
 
     expect(result.rows).toHaveLength(1);
@@ -283,7 +284,7 @@ describe("Azure Resource Graph, asked page after page", () => {
     await expect(
       arm(fake, budget, []).queryResourceGraph({
         subscriptionIds: ["00000000-0000-4000-8000-000000000003"],
-        query: "Resources | project id",
+        query: kql`Resources | project id`,
       }),
     ).rejects.toBeInstanceOf(CloudReadBudgetSpent);
     expect(fake.queries).toHaveLength(2);

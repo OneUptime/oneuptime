@@ -430,6 +430,33 @@ function cephOsdStateColumn(): DashboardWidgetListSortColumn {
   };
 }
 
+// -- XCP-ng ----------------------------------------------------------------
+
+/*
+ * An XCP-ng host's status, worst rank first: not running (Halted, or
+ * Unknown when the pool master lost it), running but disabled (in
+ * maintenance mode, where XAPI starts no VM on it), then running and
+ * enabled. A host Xen Orchestra has not reported a state for comes last.
+ */
+function xcpNgHostStatusColumn(): DashboardWidgetListSortColumn {
+  return {
+    key: "status",
+    title: "Status",
+    kind: DashboardWidgetSortKind.Status,
+    ranks: {
+      ranks: [
+        { isUp: false },
+        { isUp: true, isEnabled: false },
+        { isUp: true, isEnabled: true },
+      ],
+      unranked: [
+        { isUp: new IsNull() },
+        { isUp: true, isEnabled: new IsNull() },
+      ],
+    },
+  };
+}
+
 // -- Storage arrays ----------------------------------------------------------
 
 /*
@@ -759,6 +786,49 @@ const DASHBOARD_WIDGET_SORT_SPECS: Partial<
         key: "vcenter",
         title: "vCenter",
         path: "vmwareVCenter.name",
+      }),
+    ],
+    defaultSort: NAME_ASCENDING,
+    thenBy: BY_NAME,
+  },
+  [DashboardComponentType.XcpNgHostList]: {
+    columns: [
+      textColumn({ key: "name", title: "Host", path: "name" }),
+      xcpNgHostStatusColumn(),
+      numberColumn({ key: "cpu", title: "CPU", path: "latestCpuPercent" }),
+      numberColumn({
+        key: "memory",
+        title: "Memory",
+        path: "latestMemoryPercent",
+      }),
+      textColumn({
+        key: "pool",
+        title: "XCP-ng Pool",
+        path: "xcpNgPool.name",
+      }),
+    ],
+    defaultSort: NAME_ASCENDING,
+    thenBy: BY_NAME,
+  },
+  /*
+   * A VM's status is Running or not by its up flag: Halted, Paused and
+   * Suspended VMs come first together.
+   */
+  [DashboardComponentType.XcpNgVmList]: {
+    columns: [
+      textColumn({ key: "name", title: "VM", path: "name" }),
+      flagStatusColumn({ key: "status", title: "Status", path: "isUp" }),
+      numberColumn({ key: "cpu", title: "CPU", path: "latestCpuPercent" }),
+      numberColumn({
+        key: "memory",
+        title: "Memory",
+        path: "latestMemoryPercent",
+      }),
+      textColumn({ key: "host", title: "Host", path: "parentHostName" }),
+      textColumn({
+        key: "pool",
+        title: "XCP-ng Pool",
+        path: "xcpNgPool.name",
       }),
     ],
     defaultSort: NAME_ASCENDING,

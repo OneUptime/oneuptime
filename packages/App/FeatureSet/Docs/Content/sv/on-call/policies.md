@@ -87,6 +87,16 @@ Minuterna räknas från varje bekräftelse, och en policy larmar igen högst 5 g
 
 Den som larmas igen bekräftar från meddelandet eller med **Bekräfta igen** på incidentens eller larmets sida, och minuterna börjar om; **Eskalera** skickar larmet vidare till nästa nivå. Att lösa eller ta bort incidenten eller larmet, arkivera eller ta bort policyn eller välja **Larma inte igen** stoppar det. Kortets rad **Efter en bekräftelse** säger vad policyn gör, och **Fler inställningar** visar minuterna medan det är hopfällt. **Policyn i korthet** på **Översikt** och **Översikt över eskalering** säger samma sak i ord.
 
+## Ge dem den larmar en incidentroll
+
+En incidents **Incidentroller** visar vem som arbetar med den. En policy kan lista dem den larmar där: öppna dess sida **Eskaleringsregler**, öppna **Fler inställningar** längst ned och klicka på **Redigera** på kortet **Incidentroll**. **Redigera incidentroll** frågar efter en **Roll**: en av projektets incidentroller, eller **Ingen roll**, som varje policy börjar med.
+
+Alla som policyn sedan larmar om en incident eller en incidentepisod får den rollen i den, på varje nivå och varje gång den larmar igen, så länge de är medlemmar i projektet. Den som den larmar som observatör får den inte. Den som redan har rollen behåller den som den är, och en roll för bara en person, som **Incidentansvarig**, går till den första som larmas så länge ingen har den. Incidentens flöde nämner policyn som lade till dem, och de får inget separat meddelande om rollen: larmet har redan berättat om incidenten för dem.
+
+Så syns den som har jour i teamet som äger en tjänst i tjänstens incidenter. Skapa en roll som "Tjänsteägare" under **Incidenter → Inställningar → Incidentroller**, välj den i policyn som larmar betalningsteamet och låt betalningsövervakningarna köra den policyn, från sina kriterier eller en jourregel. Den som har jour för betalningar står då som incidentens "Tjänsteägare", och den som först ändrar dess status genom att bekräfta den blir ändå dess **Incidentansvarig**, även när en policy gav personen en annan roll när den larmade.
+
+Kortets rad **Roll för dem den larmar** visar vilken roll policyn ger, och **Fler inställningar** nämner den medan den är hopfälld. Att arkivera rollen hindrar inte policyn från att ge den, och rollens arkiveringsdialog räknar policyn bland det som använder den: välj **Ingen roll** för att sluta. Att ta bort rollen sätter tillbaka policyn till **Ingen roll**.
+
 ## När flera policyer larmar
 
 En incident, ett larm eller en episod kör var och en av sina policyer för sig, samtidigt.
@@ -176,11 +186,14 @@ Jourpolicyer är resursen `/api/on-call-duty-policy`, och resursen `oneuptime_on
 | **Om ingen bekräftar efter den sista nivån** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hur många gånger till?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Efter hur många minuter?** | `acknowledgementTimeoutInMinutes` |
+| **Roll** | `incidentRoleId` |
 | Arkiverad | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` är `false` för **Sluta larma** och `true` för **Börja om från Level 1**. Med `true` måste `repeatPolicyIfNoOneAcknowledgesNoOfTimes` vara ett heltal på 1 eller mer: OneUptime avvisar `0`. En äldre policy som sparats med `0` upprepas aldrig, och instrumentpanelen visar den som **Sluta larma**.
 
 `acknowledgementTimeoutInMinutes` är `null` för **Larma inte igen** och ett helt antal minuter från 5 till 1440 för **Larma igen**. OneUptime avvisar allt annat.
+
+`incidentRoleId` är ID:t för en av projektets incidentroller, eller `null` för **Ingen roll**.
 
 Se [Skapa regler med API:et eller Terraform](/docs/on-call/escalation-rules#skapa-regler-med-apiet-eller-terraform) för att skapa en policy med dess första nivå i en enda begäran.
 

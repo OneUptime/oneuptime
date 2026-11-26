@@ -1,11 +1,14 @@
 # Custos e economias da nuvem
 
-Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, e alerta antes que um mês custe mais do que o orçamento em **Nuvem → Gastos → Orçamentos**.
+Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, e alerta antes que um mês custe mais do que o orçamento em **Nuvem → Gastos → Orçamentos**. Quando você permite, ele também aplica as economias que um proprietário aprova, para recursos que não são de produção fora do horário de trabalho e confere cada alteração na fatura.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer e Cost Optimization Hub, cada um ativado uma vez.
 - [Microsoft Azure](#microsoft-azure): Cost Management e Azure Advisor, com mais uma função.
 - [Google Cloud](#google-cloud): A sua exportação de faturamento para o BigQuery e o Recommender.
+- [Aplicar economias](#aplicar-economias): Aplique uma economia com a aprovação do proprietário, e desfaça-a.
+- [Agendamentos fora do horário](#agendamentos-fora-do-horário): Pare recursos que não são de produção à noite e nos fins de semana.
+- [Regras de IA para economias](#regras-de-ia-para-economias): Propostas para os proprietários, ou alterações dentro de um limite.
 - [Orçamentos](#orçamentos): Um alerta quando os gastos de um mês ultrapassam uma parte do orçamento.
 :::
 
@@ -85,7 +88,7 @@ A exportação detalhada indica o recurso a que cada custo se refere; a padrão 
 
 ## Formas de gastar menos
 
-**Nuvem → Gastos → Economias** lista cada recomendação, a maior economia primeiro: o que fazer, em qual recurso, o que mudaria e quanto economiza por mês. A faixa acima as soma, no total e por tipo: um tamanho menor, um recurso ocioso, um compromisso. Uma recomendação leva à página do recurso dela quando o OneUptime tem o recurso.
+**Nuvem → Gastos → Economias** lista cada recomendação, a maior economia primeiro: o que fazer, em qual recurso, o que mudaria e quanto economiza por mês. A faixa acima as soma, no total e por tipo: um tamanho menor, um recurso ocioso, um compromisso. Uma recomendação leva à página do recurso dela quando o OneUptime tem o recurso, e uma que o OneUptime pode aplicar tem **Aplicar**: veja [Aplicar economias](#aplicar-economias).
 
 ### Ajuste de tamanho com as leituras do próprio OneUptime
 
@@ -105,6 +108,62 @@ Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele most
 - Google Cloud: descontos por compromisso de uso, pela sua exportação de faturamento. A exportação não diz quanto de um compromisso ficou sem uso, então quanto é usado não é mostrado.
 
 Uma conta sem compromissos mostra o que rodou a preços sob demanda e que um compromisso pagaria por menos. Os valores de cada tipo são os da sua nuvem, e os tipos nunca são somados: uma reserva e um Savings Plan podem contar os dois o gasto da mesma máquina como deles para cobrir.
+
+## Aplicar economias
+
+O OneUptime aplica uma economia pela conexão de nuvem da conta assim que a configuração **Ações de economia** dela permite: [Ações de economia](/docs/telemetry/cloud-accounts#ações-de-economia) diz o que cada opção concede. Ele só faz alterações de uma etapa: para uma instância ou um banco de dados ocioso, muda um volume gp2 para gp3, exclui um disco não anexado, um instantâneo antigo ou uma imagem sem uso, libera um endereço sem uso e, quando você permite, redimensiona uma instância ou um banco de dados para o tamanho recomendado. Ele nunca compra um compromisso: **Comprar no console** abre a página da sua nuvem para isso.
+
+:::steps
+### Selecione Aplicar
+
+Em **Nuvem → Gastos → Economias**, selecione **Aplicar** em uma economia. A caixa de diálogo diz o que muda, quanto economiza por mês, como é desfeita ou que não pode ser, e quem a aprova.
+
+### Um proprietário a aprova
+
+Uma pessoa indicada como proprietária do recurso, ou um membro de uma equipe que o possui, que também possa editá-lo, aprova a alteração. Um recurso sem proprietário é aprovado por um Proprietário do projeto ou um Administrador do projeto. Quando você mesmo pode aprová-la, **Aplicar** a faz na hora, em seu nome. Caso contrário, ela aguarda em **Aguardando aprovação** até que um proprietário escolha **Aprovar**, ou **Dispensar** com um motivo.
+
+### O OneUptime a faz
+
+A alteração é feita pela conexão e fica nas linhas do tempo do recurso e da conta, com quem a aprovou. Um disco excluído recebe primeiro um instantâneo final, a menos que você desative **Fazer primeiro um instantâneo final**.
+:::
+
+Cada alteração diz como é desfeita: **Desfazer** em **Alterações feitas** inicia de novo uma instância parada, volta um volume ou um tamanho ao que era, ou recria um disco excluído a partir do instantâneo final. O que exclui para sempre, como um instantâneo, uma imagem ou um endereço liberado, não pode ser desfeito, e a caixa de diálogo diz isso antes de você aplicar. Quando o projeto exige duas aprovações com **Exigir duas aprovações para correções mais arriscadas**, uma alteração que não pode ser desfeita precisa de duas pessoas.
+
+Um recurso cujas tags dizem que é gerenciado como código, por exemplo pelo Terraform ou CloudFormation, é alterado no código: a caixa de diálogo oferece **Abrir pull request** no repositório que o declara, para que o próximo apply não desfaça a economia.
+
+### Comprovado pela fatura
+
+**Economizado neste mês** conta só o que a fatura da sua nuvem mostra. Assim que três dias após uma alteração se assentam na fatura, o custo por dia do recurso é comparado com a semana anterior à alteração: ela fica **Visível na fatura** quando o custo caiu pelo menos um quarto do que foi prometido, **Não visível na fatura** quando não caiu, e **Não pode ser medida** quando sua nuvem não fatura o recurso pelo nome. **Verificando a fatura** conta as alterações que ainda aguardam esses dias.
+
+## Agendamentos fora do horário
+
+Em **Nuvem → Gastos → Agendamentos**, um agendamento para instâncias e bancos de dados que não são de produção fora do horário de trabalho, e os inicia de novo:
+
+:::steps
+### Escolha os recursos
+
+Informe a tag da nuvem que os escolhe, por exemplo `Schedule` = `office-hours`, em uma conta ou em todas.
+
+### Diga quando funcionam
+
+Escolha os dias úteis, o horário em que iniciam e o horário em que param, no formato de 24 horas, e o fuso horário.
+:::
+
+Quando o horário de trabalho termina, um agendamento para, pela conexão da conta dele, cada recurso em execução que a tag dele escolhe e que se sabe que não é produção, e quando começa ele só inicia de novo o que parou: um recurso que alguém parou à mão continua parado. **Ver recursos** lista o que um agendamento escolhe agora e por que deixa algum em execução. Ele para instâncias EC2 e bancos de dados RDS na AWS, máquinas virtuais no Azure e instâncias do Compute Engine no Google Cloud. A AWS inicia de novo, por conta própria, um banco de dados parado há sete dias.
+
+Um agendamento nunca para a produção, nem um recurso cujo ambiente nada indica. Sabe-se que um recurso não é produção quando:
+
+- uma das tags dele diz isso, com uma chave como `environment`, `env`, `stage`, `tier` ou `deployment.environment`, e uma palavra como `dev`, `test`, `qa`, `staging` ou `sandbox`;
+- a conta dele está marcada como **Não produção** em **Ambiente** nas **Configurações** da conta;
+- ou um dos rótulos dele diz isso, por exemplo `Staging` ou `env: dev`.
+
+A produção prevalece: uma tag que diz `prod`, `production` ou `live`, ou uma conta marcada como **Produção**, mantém um recurso em execução, diga o que disser o resto. O nome de um recurso nunca é lido para isso. Desative um agendamento e ele não para mais nada, e inicia de novo o que parou quando o horário de trabalho dele começa; exclua-o e o que ele parou é iniciado na hora.
+
+## Regras de IA para economias
+
+Com **Habilitar IA** ativado, o OneUptime AI propõe aos proprietários do recurso cada economia que pode aplicar, após cada leitura das economias da conta, e eles a aprovam ou dispensam em **Aguardando aprovação**. Em **Nuvem → Configurações → Regras de IA para economias**, uma regra diz o que o OneUptime AI faz com as economias que correspondem a ela, pelo tipo de alteração, pelo ambiente do recurso e pela nuvem: **Desativado**, **Propor ao proprietário** ou **Agir sem perguntar**, até um limite mensal. Sem regras, cada economia é proposta e nenhuma é feita; com regras, só o que corresponde a uma regra, e entre as regras que correspondem prevalece a mais cautelosa.
+
+Uma regra só age sem perguntar em um recurso que se sabe que não é produção, só para uma alteração que pode ser desfeita, só até o menor limite das regras que correspondem, e no máximo 10 vezes por hora em um projeto: todo o resto é proposto. Uma alteração feita sem perguntar fica nas linhas do tempo com a regra que a fez, e os proprietários podem desfazê-la. Uma economia dispensada ou desfeita não é proposta de novo por 30 dias.
 
 ## Orçamentos
 
@@ -144,6 +203,7 @@ Abaixo da lista, o card diz quanto deu o restante: o que não está em nenhum am
 - **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
 - **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com os compromissos e as formas de gastar menos dela.
 - **O custo de um recurso.** A página de um recurso mostra quanto ele custou este mês e nos últimos 30 dias quando a nuvem dele o fatura pelo nome, com as formas de gastar menos dele e o ajuste de tamanho dele.
+- **O que foi economizado.** **Nuvem → Gastos → Economias** começa pelo que as alterações feitas economizaram neste mês, conforme a fatura, pelas alterações aguardando aprovação e as feitas, e pelas horas em que os agendamentos pararam recursos.
 
 ## Solução de problemas
 
@@ -171,6 +231,14 @@ A conexão ainda não pode ler os Savings Plans e as reservas da conta. Execute 
 Os valores estão na moeda em que a maioria das suas contas é faturada. Uma conta faturada em outra aparece abaixo com a moeda dela, e um orçamento conta só as contas faturadas na dele.
 :::
 
+:::details Uma economia não tem Aplicar
+O OneUptime só faz alterações de uma etapa: um compromisso, ou uma recomendação que muda mais de uma coisa, é feito no console da sua nuvem. Aplicar abre uma caixa de diálogo que diz por que não pode ser feita daqui quando a conexão da conta não permite: ative as **Ações de economia** dela e execute de novo o comando de configuração dela.
+:::
+
+:::details Um agendamento deixa um recurso em execução
+**Ver recursos** diz por quê: é produção, nada indica que não é produção, ou a conexão da conta dele não permite ações de economia. Adicione uma tag, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
+:::
+
 :::details Este mês está mais baixo do que no console da sua nuvem
 A sua nuvem informa o último dia ou dois com atraso, e os valores são antes de créditos e reembolsos. As leituras seguintes alcançam.
 :::
@@ -178,6 +246,7 @@ A sua nuvem informa o último dia ou dois com atraso, e os valores são antes de
 ## Próximos passos
 
 :::cards
+- [Alocação de custos da nuvem](/docs/telemetry/cloud-cost-allocation): Divida os gastos entre equipes, produtos e centros de custo.
 - [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts): Conecte outra conta ou execute o comando dela novamente.
 - [Recursos de nuvem](/docs/telemetry/cloud-resources): As métricas de cada recurso, a partir de um coletor seu.
 - [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost): Quanto custa cada carga de trabalho do Kubernetes.

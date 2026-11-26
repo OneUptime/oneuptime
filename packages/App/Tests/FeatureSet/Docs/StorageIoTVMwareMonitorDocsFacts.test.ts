@@ -35,6 +35,12 @@ import MonitorType, {
   MonitorTypeProps,
 } from "Common/Types/Monitor/MonitorType";
 import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCatalog";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayPlatform,
+  StorageArrayResourceFilter,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
+import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -1310,17 +1316,29 @@ describe("the Storage Array page against the form and the agent", () => {
       ["File System", "FlashBlade only."],
       ["Bucket", "FlashBlade only."],
     ] as Array<[string, string]>) {
-      const at: number = form.indexOf(`title: "${title}",`);
-      const platforms: string = form.slice(
-        at,
-        form.indexOf("},", form.indexOf("storageSystems:", at)),
-      );
+      // The form's title for a filter, by the filter's key...
+      const key: string | undefined = new RegExp(
+        `(\\w+): \\{\\s*title: "${title}",`,
+      ).exec(form)?.[1];
+      // ...offered on the platforms that declare that filter (#11000).
+      const platforms: Array<string> =
+        StorageArrayPlatformRegistry.getPlatforms()
+          .filter((platform: StorageArrayPlatform): boolean => {
+            return platform.resourceFilters.some(
+              (filter: StorageArrayResourceFilter): boolean => {
+                return filter.key === key;
+              },
+            );
+          })
+          .map((platform: StorageArrayPlatform): string => {
+            return platform.storageSystem;
+          });
 
-      expect(at).toBeGreaterThan(0);
-      expect(platforms.includes("PureStorageFlashArray")).toBe(
+      expect(key).toBeDefined();
+      expect(platforms.includes(StorageSystem.PureStorageFlashArray)).toBe(
         onlyOn !== "FlashBlade only.",
       );
-      expect(platforms.includes("PureStorageFlashBlade")).toBe(
+      expect(platforms.includes(StorageSystem.PureStorageFlashBlade)).toBe(
         onlyOn !== "FlashArray only.",
       );
 

@@ -78,7 +78,7 @@ flowchart TB
 
 - **Aucun projet attaché (tous les projets / invitation d'abord) :** les utilisateurs peuvent se connecter avec le fournisseur et accéder à **tout projet dont ils sont déjà membres**. Les nouveaux utilisateurs ne sont **pas** créés automatiquement — un utilisateur doit d'abord être invité dans un projet. Utilisez ce mode pour un SSO à l'échelle de l'entreprise quand les appartenances sont gérées ailleurs.
 
-- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Projets associés** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut lors de leur première connexion. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
+- **Projets attachés (approvisionnement automatique) :** Ouvrez le fournisseur et utilisez le tableau **Projets associés** pour attacher un ou plusieurs projets, chacun avec un ensemble d'équipes par défaut. Les utilisateurs qui se connectent sont **approvisionnés automatiquement** dans ces projets et ajoutés aux équipes par défaut : une nouvelle personne lors de sa première connexion, et une personne qui a déjà un compte, par exemple un compte que vous avez créé à la main, lors de la suivante. Un projet que vous attachez commence avec son équipe des membres ; choisissez d'autres équipes si les nouveaux venus doivent commencer avec un autre accès. Un projet attaché sans équipe n'ajoute personne. Ajoutez un projet + des équipes à la fois pour construire la liste ; pour modifier un attachement, supprimez-le et ajoutez-le à nouveau.
 
 Une personne déjà membre d'un projet attaché garde les équipes qu'elle y a.
 
@@ -89,7 +89,13 @@ Deux questions du fournisseur modifient ce comportement, repliées sous **Plus d
 | **Personnes sans compte** | **En obtiennent un à leur première connexion** : elles rejoignent les projets attachés ; si aucun n'est attaché, elles doivent d'abord être invitées. **Doivent d'abord être invitées** : les personnes doivent être invitées dans un projet avant de pouvoir se connecter avec ce fournisseur, même si des projets sont attachés. |
 | **Où cette connexion compte comme SSO** | **Tous les projets** : les projets qui exigent le SSO acceptent une connexion avec ce fournisseur. **Uniquement les projets attachés** : se connecter avec ce fournisseur ne satisfait l'exigence de SSO que dans les projets qui lui sont attachés ; des personnes déjà connectées peuvent donc perdre l'accès à d'autres projets. |
 
-Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
+Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés : aucune des deux réponses n'ajoute qui que ce soit à un projet. Tant qu'aucun projet avec des équipes n'est attaché, la page du fournisseur indique sous **Personnes sans compte** que les nouvelles personnes ne peuvent pas encore se connecter.
+
+## Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées
+
+Un fournisseur OpenID Connect global trouve le compte qu'il connecte grâce à l'adresse e-mail qu'il envoie, comme le fournisseur d'un projet, et les comptes des administrateurs principaux sont trouvés de la même façon. Il ne connecte donc personne avec une adresse que le fournisseur dit ne pas avoir vérifiée, avec une revendication `email_verified` à `false` ou à une valeur qui n'est ni true ni false. Sinon, quelqu'un pourrait mettre l'adresse d'un administrateur principal sur son compte chez le fournisseur et se connecter à toute l'instance à sa place. Un fournisseur qui envoie `email_verified` à `true`, ou n'en envoie pas, comme Microsoft Entra ID, connecte les personnes comme avant.
+
+Par authentik 2025.10 et versions ultérieures, personne ne se connecte tant que vous n'avez pas modifié son mappage de portée `email`, et par Keycloak, personne dont il n'a pas vérifié l'adresse. Ce qu'il faut y changer, ce qui se connecte encore et ce que voit la personne se trouvent sur la page [SSO](/docs/identity/sso#adresses-e-mail-que-votre-fournisseur-didentité-na-pas-vérifiées). Les administrateurs principaux qui ont un mot de passe peuvent se connecter avec en attendant, à `/accounts/admin-login` tant que toute l'instance exige le SSO.
 
 ## Se déconnecter aussi du fournisseur d'identité
 
@@ -160,7 +166,7 @@ Deux modifications de qui peut se connecter sont vérifiées l'une après l'autr
 ## Dépannage
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet ne lui est attaché, soit **Personnes sans compte** est réglé sur **Doivent d'abord être invitées**. Invitez-la dans un projet, ou attachez un projet au fournisseur.
+La personne n'a pas encore de compte OneUptime, et le fournisseur n'en crée pas : soit aucun projet avec des équipes ne lui est attaché, soit **Personnes sans compte** est réglé sur **Doivent d'abord être invitées**. Invitez-la dans un projet, ou attachez au fournisseur un projet, avec les équipes qu'elle rejoint. Le journal du serveur indique de quel cas il s'agit, sans nommer la personne.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -181,6 +187,10 @@ Pour un fournisseur SAML, la réponse a été créée pour une autre application
 
 :::details "SAML response was already used"
 Chaque réponse de votre fournisseur d'identité ne connecte qu'une seule fois, et seulement dans les minutes qui suivent son émission : ensuite, elle est refusée avec "SAML response has expired". Connectez-vous de nouveau. Si les réponses continuent d'expirer, vérifiez les horloges de ce serveur et de votre fournisseur d'identité.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Le fournisseur OpenID Connect a envoyé `email_verified` à `false`, ou à une valeur qui n'est ni true ni false, donc OneUptime n'a connecté personne, pas même un administrateur principal. Faites vérifier l'adresse chez votre fournisseur d'identité, ou marquez-la comme vérifiée chez lui, puis reconnectez-vous. Voir [Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées](#adresses-e-mail-que-votre-fournisseur-didentité-na-pas-vérifiées).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

@@ -12,6 +12,7 @@ import {
   PINNED_LEFT_OUT,
   PUBLIC_DIRECTORIES,
   PUBLIC_FILES,
+  PUBLISHED_AS_BROWSER_TWIN,
   ROOT_EXPORTS,
   RootExport,
   compileRoots,
@@ -212,6 +213,39 @@ describe("the package root, and what is left out on purpose", () => {
     expect(read("packages/Common/Utils/Analytics.ts")).toContain(
       'from "posthog-js"',
     );
+  });
+
+  /*
+   * The API client routes its requests on a server through the outbound
+   * proxy (Server/Utils/OutboundProxyAgents, #10442), which the package
+   * cannot hold: it publishes the routing's browser twin instead, the one
+   * Common's "browser" field gives the frontends.
+   */
+  test("publishes as its browser twin only a module whose twin Common's browser field names, with its reason", () => {
+    const browserField: Record<string, string> = JSON.parse(
+      read("packages/Common/package.json"),
+    ).browser;
+
+    expect(Object.keys(PUBLISHED_AS_BROWSER_TWIN)).toEqual([
+      "Utils/OutboundRequestRouting",
+    ]);
+
+    for (const [id, { twin, reason }] of Object.entries(
+      PUBLISHED_AS_BROWSER_TWIN,
+    )) {
+      expect({ id, twin: browserField[`./${id}.ts`] }).toEqual({
+        id,
+        twin: `./${twin}.ts`,
+      });
+      expect(reason.length).toBeGreaterThan(20);
+    }
+
+    expect(read("packages/Common/Utils/OutboundRequestRouting.ts")).toContain(
+      'from "../Server/Utils/OutboundProxyAgents"',
+    );
+    expect(
+      read("packages/Common/Utils/OutboundRequestRouting.browser.ts"),
+    ).not.toMatch(/from "\.\.\/Server\//);
   });
 
   test("pins every other module it leaves out: each exists under Types/, Utils/ or Models/, says why and what it loads, in order, and none twice", () => {

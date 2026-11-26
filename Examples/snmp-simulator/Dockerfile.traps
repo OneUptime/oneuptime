@@ -1,0 +1,14 @@
+FROM alpine:3.22
+
+# Net-SNMP's snmptrap and snmpinform: what most network gear's SNMP stacks
+# are built on or tested against. This container is a device that sends
+# SNMPv3 traps and informs - authenticated and encrypted - to the OneUptime
+# probe, the way a SAN switch set up for SNMPv3 notifications does.
+RUN apk add --no-cache net-snmp-tools
+
+COPY send-v3-traps.sh /usr/local/bin/send-v3-traps
+RUN chmod +x /usr/local/bin/send-v3-traps
+
+# Stays up, so its traps come from its fixed address whenever you send them:
+#   docker compose exec san-switch-v3 send-v3-traps
+CMD ["tail", "-f", "/dev/null"]

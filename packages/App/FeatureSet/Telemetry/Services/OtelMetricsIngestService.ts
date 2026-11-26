@@ -132,18 +132,32 @@ import VMwareResourceService, {
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
+import XcpNgResourceService, {
+  XcpNgInventorySummary,
+} from "Common/Server/Services/XcpNgResourceService";
+import {
+  ParsedXcpNgResource,
+  XcpNgPoolResourceBuffer,
+  XcpNgPoolSnapshotBufferEntry,
+  bufferXcpNgSnapshotMetric,
+  getXcpNgResourceRows,
+  isXcpNgSnapshotMetric,
+} from "Common/Server/Utils/Telemetry/XcpNgSnapshotScan";
+import XcpNgSeriesIngest from "Common/Server/Utils/Telemetry/XcpNgSeriesIngest";
 import StorageArrayResourceService, {
   ParsedStorageArrayResource,
 } from "Common/Server/Services/StorageArrayResourceService";
 import {
-  STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   StorageArrayResourceBufferEntry,
   StorageArraySnapshotBufferEntry,
   StorageArraySnapshotDerivedExtras,
   bufferStorageArraySnapshotMetric,
+  deriveStorageArrayCountsByKind,
   deriveStorageArraySnapshotExtras,
   getVolumeConnectionCounts,
   getStorageArrayResourceRows,
+  isStorageArraySnapshotMetric,
   resolveStorageArraySystem,
 } from "Common/Server/Utils/Telemetry/StorageArraySnapshotScan";
 import IoTDeviceService, {
@@ -1285,6 +1299,21 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
        */
       const storageArrayDeclaredSystems: Map<string, string> = new Map();
       /*
+       * XCP-ng pools, per pool (XcpNgSnapshotScan): the inventory rows this
+       * batch's blocks carried, whether each pool was read, and what Xen
+       * Orchestra called the pool and itself. Counts are recounted from the
+       * inventory at flush: one scrape of a big pool can arrive split
+       * across several requests.
+       */
+      const xcpNgResourceBuffer: Map<string, XcpNgPoolResourceBuffer> =
+        new Map();
+      const xcpNgPoolSnapshotBuffer: Map<string, XcpNgPoolSnapshotBufferEntry> =
+        new Map();
+      const xcpNgReportedNames: Map<
+        string,
+        { reportedName: string | null; xenOrchestraName: string | null }
+      > = new Map();
+      /*
        * Per database, per reporting agent: this batch's datapoints of the
        * queries the database's alert templates read
        * (DatabaseEngineReadingsScan), stored on the database once the rows
@@ -1413,10 +1442,12 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             vmwareVCenterId,
             cephClusterId,
             storageArrayId,
+            xcpNgPoolId,
             dockerSwarmClusterId,
             iotFleetId,
             databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1461,6 +1492,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverXcpNgPool({
+              projectId,
+              attributes: resourceAttributes_raw,
+            }),
             this.autoDiscoverDockerSwarmCluster({
               projectId,
               attributes: resourceAttributes_raw,
@@ -1499,17 +1534,61 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             }
           }
 
-          if (storageArrayId) {
-            const declaredStorageSystem: string | null =
-              this.getDeclaredStorageSystemFromAttributes(
-                resourceAttributes_raw,
-              );
-            if (declaredStorageSystem) {
-              storageArrayDeclaredSystems.set(
-                storageArrayId.toString(),
-                declaredStorageSystem,
-              );
+          /*
+           * The platform this resource's agent declared, normalized. It picks
+           * the extractor of a platform whose metric names carry no vendor
+           * prefix (StorageArrayExtractors.resolve), and is the flush's
+           * fallback for a platform OneUptime has no extractor for.
+           */
+          const storageArrayDeclaredSystem: string | null = storageArrayId
+            ? this.getDeclaredStorageSystemFromAttributes(resourceAttributes_raw)
+            : null;
+          if (storageArrayId && storageArrayDeclaredSystem) {
+            storageArrayDeclaredSystems.set(
+              storageArrayId.toString(),
+              storageArrayDeclaredSystem,
+            );
+          }
+
+          /*
+           * An XCP-ng pool's block is normalized before its rows are built
+           * (XcpNgSeriesNormalizer: any rate typed as a counter as a gauge,
+           * the xcp_ng.scope / xcp_ng.id stamps, and the derived health
+           * series), so the agent's blocks and a probe's (#10996) are stored
+           * alike. What Xen Orchestra called the pool waits for the flush.
+           */
+          if (xcpNgPoolId) {
+            const xcpNgPoolIdentifier: string | null =
+              this.getXcpNgPoolIdentifierFromAttributes(resourceAttributes_raw);
+            if (xcpNgPoolIdentifier) {
+              await XcpNgSeriesIngest.normalizeEnvelope({
+                projectId,
+                xcpNgPoolId,
+                poolIdentifier: xcpNgPoolIdentifier,
+                envelope: resourceMetric as JSONObject,
+              });
             }
+            /*
+             * One pool can arrive as several blocks of a batch (the agent
+             * groups its series by pool_id and pool_name, and a series
+             * without a name makes a block of its own): a name any block
+             * carried is kept.
+             */
+            const earlierNames:
+              | { reportedName: string | null; xenOrchestraName: string | null }
+              | undefined = xcpNgReportedNames.get(xcpNgPoolId.toString());
+            xcpNgReportedNames.set(xcpNgPoolId.toString(), {
+              reportedName:
+                this.getXcpNgPoolNameFromAttributes(resourceAttributes_raw) ||
+                earlierNames?.reportedName ||
+                null,
+              xenOrchestraName:
+                this.getXenOrchestraNameFromAttributes(
+                  resourceAttributes_raw,
+                ) ||
+                earlierNames?.xenOrchestraName ||
+                null,
+            });
           }
 
           // What a database's engine reports, as its alert templates read it.
@@ -1655,6 +1734,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               vmwareVCenterId,
               cephClusterId,
               storageArrayId,
+              xcpNgPoolId,
               dockerSwarmClusterId,
               serverlessFunctionId,
               cloudResourceId,
@@ -2334,13 +2414,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
 
                         /*
                          * Storage array identity lives in datapoint
-                         * labels too (`name`, `host`, `component_name`
-                         * on the purefa_* / purefb_* series), so the
-                         * same raw-datapoint buffering applies.
+                         * labels too (a volume's or host's name on its
+                         * platform's series), so the same raw-datapoint
+                         * buffering applies; each platform's extractor
+                         * reads its own series.
                          */
                         if (
                           storageArrayId &&
-                          STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)
+                          isStorageArraySnapshotMetric(metricName)
                         ) {
                           bufferStorageArraySnapshotMetric({
                             arrayIdStr: storageArrayId.toString(),
@@ -2348,6 +2429,24 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             datapoint: datapoint as JSONObject,
                             resourceBuffer: storageArrayResourceMetricsBuffer,
                             arrayBuffer: storageArraySnapshotBuffer,
+                            declaredStorageSystem: storageArrayDeclaredSystem,
+                          });
+                        }
+
+                        /*
+                         * XCP-ng identity lives in Xen Orchestra's
+                         * datapoint labels (uuid, sr_uuid, vdi_uuid), the
+                         * pool in the resource: the same raw-datapoint
+                         * buffering, before the pipeline rules, so the
+                         * inventory reflects the pool whatever is stored.
+                         */
+                        if (xcpNgPoolId && isXcpNgSnapshotMetric(metricName)) {
+                          bufferXcpNgSnapshotMetric({
+                            poolIdStr: xcpNgPoolId.toString(),
+                            metricName,
+                            datapoint: datapoint as JSONObject,
+                            resourceBuffer: xcpNgResourceBuffer,
+                            poolBuffer: xcpNgPoolSnapshotBuffer,
                           });
                         }
 
@@ -2714,6 +2813,13 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         resourceBuffer: storageArrayResourceMetricsBuffer,
         arrayBuffer: storageArraySnapshotBuffer,
         declaredSystems: storageArrayDeclaredSystems,
+      });
+
+      await this.flushXcpNgSnapshotBuffers({
+        projectId,
+        resourceBuffer: xcpNgResourceBuffer,
+        poolBuffer: xcpNgPoolSnapshotBuffer,
+        reportedNames: xcpNgReportedNames,
       });
 
       await this.flushIoTSnapshotBuffers({
@@ -5302,9 +5408,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
    * snapshots are best-effort and must never affect ClickHouse ingest.
    *
    * declaredSystems holds each array's declared `storage.system`; an array
-   * that sent no Pure series at all is visited for it too, so an array of a
-   * platform OneUptime has no catalog for is still labelled
-   * (resolveStorageArraySystem decides when the declaration counts).
+   * that sent no series any platform's extractor read is visited for it
+   * too, so an array of a platform OneUptime has no extractor for is still
+   * labelled (resolveStorageArraySystem decides when the declaration
+   * counts).
    */
   private static async flushStorageArraySnapshotBuffers(data: {
     projectId: ObjectID;
@@ -5381,9 +5488,8 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       /*
-       * A volume detached from its last host drops out of
-       * purefa_host_connections_info, so the upsert above never writes its
-       * count again. A batch that knows every connection zeroes the rest —
+       * A volume detached from its last host drops out of the hosts'
+       * connections, so the upsert above never writes its count again. A batch that knows every connection zeroes the rest —
        * after the upsert, outside it: an array whose last host was deleted
        * has no row to upsert and still has counts to clear.
        */
@@ -5438,6 +5544,110 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         logger.warn(
           `Storage array snapshot writeback (array) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
         );
+      }
+
+      /*
+       * The count of each kind whose complete list the batch carried
+       * (StorageArray.countsByKind), merged into what the row holds: a
+       * volumes batch never erases the hosts count, and a kind whose last
+       * object was deleted is written 0.
+       */
+      try {
+        const countsByKind: Record<string, number> | null =
+          deriveStorageArrayCountsByKind(entries, snap);
+        if (countsByKind) {
+          await StorageArrayService.mergeCountsByKind({
+            storageArrayId: new ObjectID(liveIdStr),
+            countsByKind: countsByKind,
+          });
+        }
+      } catch (err) {
+        logger.warn(
+          `Storage array snapshot writeback (counts by kind) failed for storage array ${arrayIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+  }
+
+  /*
+   * Drain the XCP-ng buffers, per pool: the inventory upsert (hosts, VMs,
+   * storage repositories, virtual disks), then - for a pool this batch read
+   * - its counts recounted from the stored inventory and its heartbeat
+   * (XcpNgPoolService.updateLastSeen), then what Xen Orchestra called the
+   * pool and itself. Failures are logged and swallowed: the inventory is
+   * best-effort and must never affect ClickHouse ingest.
+   */
+  private static async flushXcpNgSnapshotBuffers(data: {
+    projectId: ObjectID;
+    resourceBuffer: Map<string, XcpNgPoolResourceBuffer>;
+    poolBuffer: Map<string, XcpNgPoolSnapshotBufferEntry>;
+    reportedNames: Map<
+      string,
+      { reportedName: string | null; xenOrchestraName: string | null }
+    >;
+  }): Promise<void> {
+    const poolIdStrs: Set<string> = new Set<string>([
+      ...data.resourceBuffer.keys(),
+      ...data.poolBuffer.keys(),
+      ...data.reportedNames.keys(),
+    ]);
+
+    for (const poolIdStr of poolIdStrs) {
+      // The id this flush writes against: see writeForDiscoveredResource.
+      let liveIdStr: string = poolIdStr;
+      const rows: Array<ParsedXcpNgResource> = getXcpNgResourceRows(
+        data.resourceBuffer.get(poolIdStr),
+      );
+
+      if (rows.length > 0) {
+        try {
+          liveIdStr = await this.writeForDiscoveredResource({
+            kind: DiscoveredResourceKinds.XcpNgPool,
+            id: liveIdStr,
+            write: async (xcpNgPoolId: ObjectID): Promise<void> => {
+              await XcpNgResourceService.bulkUpsert({
+                projectId: data.projectId,
+                xcpNgPoolId,
+                resources: rows,
+              });
+            },
+          });
+        } catch (err) {
+          logger.warn(
+            `XCP-ng snapshot writeback (inventory) failed for XCP-ng pool ${poolIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        }
+      }
+
+      const snap: XcpNgPoolSnapshotBufferEntry | undefined =
+        data.poolBuffer.get(poolIdStr);
+      if (!snap || !snap.wasRead) {
+        // Only staleness markers, or nothing Xen Orchestra reports: not a read.
+        continue;
+      }
+
+      try {
+        const summary: XcpNgInventorySummary =
+          await XcpNgResourceService.getInventorySummary({
+            projectId: data.projectId,
+            xcpNgPoolId: new ObjectID(liveIdStr),
+          });
+        await XcpNgPoolService.updateLastSeen(new ObjectID(liveIdStr), summary);
+      } catch (err) {
+        logger.warn(
+          `XCP-ng snapshot writeback (pool) failed for XCP-ng pool ${poolIdStr}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+
+      const names:
+        | { reportedName: string | null; xenOrchestraName: string | null }
+        | undefined = data.reportedNames.get(poolIdStr);
+      if (names) {
+        await XcpNgPoolService.recordReportedNames({
+          xcpNgPoolId: new ObjectID(liveIdStr),
+          reportedName: names.reportedName || undefined,
+          xenOrchestraName: names.xenOrchestraName || undefined,
+        });
       }
     }
   }

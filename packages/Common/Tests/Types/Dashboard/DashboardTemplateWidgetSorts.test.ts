@@ -93,7 +93,7 @@ describe("the templates' list sorts", () => {
       }
     }
 
-    expect(sorted).toBe(7);
+    expect(sorted).toBe(8);
   });
 
   test.each([
@@ -115,6 +115,12 @@ describe("the templates' list sorts", () => {
     [
       DashboardTemplateType.Proxmox,
       DashboardComponentType.ProxmoxNodeList,
+      "status:desc",
+    ],
+    // Hosts not running, then disabled ones, on top.
+    [
+      DashboardTemplateType.XcpNg,
+      DashboardComponentType.XcpNgHostList,
       "status:desc",
     ],
     [
@@ -156,6 +162,7 @@ describe("the templates' list sorts", () => {
       DashboardTemplateType.VMware,
       DashboardComponentType.VMwareVirtualMachineList,
     ],
+    [DashboardTemplateType.XcpNg, DashboardComponentType.XcpNgVmList],
     // Already least error budget first.
     [DashboardTemplateType.Slo, DashboardComponentType.SloList],
   ])(

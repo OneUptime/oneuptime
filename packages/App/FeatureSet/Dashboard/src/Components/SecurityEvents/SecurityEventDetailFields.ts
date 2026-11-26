@@ -17,11 +17,13 @@ import {
   readHiddenTargetAddress,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import {
+  HashedUserSource,
   SCRUBBED_USER_ATTRIBUTES,
   ScrubbedUserRole,
   USER_HIDDEN_BY_SCRUB_RULE,
   isEventUserErased,
   readHashedEventUser,
+  readHashedUserSource,
   readHiddenEventUser,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
 import {
@@ -92,6 +94,11 @@ export interface HashedEventUser {
   hashed: string;
   // The kind of record it was read from.
   signal: HashedUserSignal;
+  /*
+   * The field of the record it was read from, `body` or `attributes.<key>`,
+   * when the event says (#11045): its records are searched there.
+   */
+  field?: string | undefined;
   // When the event happened: its records are searched around it.
   time?: Date | undefined;
 }
@@ -116,6 +123,12 @@ export function buildEventUserField(
   }
 
   const hashed: string = readHashedEventUser(event, role);
+  /*
+   * Where the token was read: a log line's user may come from the trace its
+   * request was followed into, so the event's own kind of record is only
+   * the answer when the event does not say (#11045).
+   */
+  const source: HashedUserSource = readHashedUserSource(event, role);
 
   return {
     label:
@@ -127,7 +140,13 @@ export function buildEventUserField(
       ? {
           hashedUser: {
             hashed,
-            signal: getSecurityEventSignal(event),
+            signal:
+              source.signal === "trace"
+                ? HashedUserSignal.Trace
+                : source.signal === "log"
+                  ? HashedUserSignal.Log
+                  : getSecurityEventSignal(event),
+            ...(source.field ? { field: source.field } : {}),
             time: event.time ? new Date(event.time) : undefined,
           },
         }

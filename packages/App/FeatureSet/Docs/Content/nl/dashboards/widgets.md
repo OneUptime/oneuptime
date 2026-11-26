@@ -197,6 +197,7 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **Podman** | **Hosts**, **Containers**, **Images**, **Netwerken**, **Volumes** | De Podman-agent |
 | **Proxmox** | **Knooppunten**, **Gasten** | De Proxmox-agent |
 | **VMware** | **Hosts**, **Virtuele machines** | De VMware-agent, of een vCenter die je koppelt |
+| **XCP-ng** | **Hosts**, **VM's** | De XCP-ng-agent |
 | **Ceph** | **OSD's**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
 | **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Opslagarray-agent |
 

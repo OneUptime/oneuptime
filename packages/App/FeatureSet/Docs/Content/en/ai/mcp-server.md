@@ -41,7 +41,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 55 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools; the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note; invitations, which are emailed to people who need not be in your project yet; and the tools that make or change a monitor, a data store or a BI tool, since OneUptime then reaches the address you give it. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 58 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. A kind of record with no field you can change once it is made, such as an incident's link to an alert, has no update tool. Read-only tools carry `readOnlyHint` and every tool that changes something carries `destructiveHint`, so a client can run read-only calls on its own and ask you before any change. `openWorldHint` marks the tools that reach past your project: the public status page tools; the changes that are shown on a status page and sent to its subscribers, such as a new incident, a change of its state or a public note; invitations, which are emailed to people who need not be in your project yet; and the tools that make or change a monitor, a data store or a BI tool, since OneUptime then reaches the address you give it. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -359,6 +359,25 @@ The server also has Ask AI's setup actions, one call each: what you set up, rath
 
 They act as you, signed in with OAuth: a project API key cannot use the eight that make something. Your client asks you before each of them, and its answer says what was made. What is missing, such as a permission, an address or room in the plan, is said before anything is made.
 
+## Tools for Data Security
+
+The server also has [Ask AI's Data Security actions](/docs/data-security/integrations#ask-ai), one call each. Each makes the very change its button makes in Data Security, as you and with your permissions, after the same checks:
+
+- **`query_data_security_proposals`**: what OneUptime AI proposes, waiting for a person, riskiest first. With `which: "data-types"`, the data types it found that scans do not look for yet: each one's name, category and sensitivity, how it was proven, and the stores and fields it is in, never a value. It changes nothing
+- **`draft_data_security_rule`**: a residency, owner or label rule drafted from a sentence, such as "EU personal data must stay in the EU", with the stores it matches today. It changes nothing
+- **`scrub_data_security_finding`**: **Scrub It** on a finding in telemetry
+- **`judge_data_security_finding`**: **Confirm**, or **Not Sensitive** with a reason, and the same for the findings like it
+- **`change_data_security_issue`**: **Reopen**, **Assign**, **Accept Risk** or **Not an Issue**
+- **`set_data_store_owners`**: a store's owners, added or removed
+- **`save_data_security_rule`**: a rule `draft_data_security_rule` drafted
+- **`respond_on_data_store`**: a response action through the store's cloud connection, such as **Block Public Access**
+- **`fix_data_security_issue_with_ai`**: **Fix with AI**, a pull request for someone to review and merge
+- **`decide_data_security_proposal`**: **Approve** or **Dismiss** on a proposal
+
+Ask AI asks a person before some of these in every mode, on a card that says what changes, what stops working and what it costs: responding on a store, **Not Sensitive**, **Accept Risk**, **Not an Issue**, changing a store's owners, saving a rule, deciding a proposal, a scrub that something reads, and **Confirm** in a project that pages someone for a Critical issue. This server cannot show you that card, so it refuses those, says why, and names the page in OneUptime where you make the change. Nothing is ever run without it.
+
+The others act as you, signed in with OAuth: a project API key cannot use them, and uses only the two that change nothing. On a self-hosted server, `MCP_READ_ONLY=true` leaves only the tools that change nothing, and `MCP_ALLOW_DESTRUCTIVE=false` refuses removing a store's owners, which deletes them.
+
 ## Querying Telemetry
 
 Logs, metrics, traces (spans), exceptions, monitor logs and the other kinds of telemetry come as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` and their `count_` twins). Telemetry arrives through OpenTelemetry, so there are no create tools.
@@ -509,7 +528,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Security | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Data security | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Data observability | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| Cloud | Cloud Budget |
+| Cloud | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View |
 
 | Area | Telemetry with list and count tools only |
 | --- | --- |

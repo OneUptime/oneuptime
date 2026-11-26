@@ -1,11 +1,14 @@
 # Coûts et économies du cloud
 
-Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, et alerte avant qu'un mois ne coûte plus que son budget dans **Cloud → Dépenses → Budgets**.
+Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, et alerte avant qu'un mois ne coûte plus que son budget dans **Cloud → Dépenses → Budgets**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer et Cost Optimization Hub, chacun activé une fois.
 - [Microsoft Azure](#microsoft-azure): Cost Management et Azure Advisor, avec un rôle de plus.
 - [Google Cloud](#google-cloud): Votre export de facturation vers BigQuery, et le Recommender.
+- [Appliquer des économies](#appliquer-des-économies): Appliquer une économie avec l'approbation de son propriétaire, et l'annuler.
+- [Plannings hors heures](#plannings-hors-heures): Arrêter les ressources hors production la nuit et le week-end.
+- [Règles IA d'économies](#règles-ia-déconomies): Des propositions aux propriétaires, ou des modifications dans une limite.
 - [Budgets](#budgets): Une alerte quand les dépenses d'un mois dépassent une part de son budget.
 :::
 
@@ -85,7 +88,7 @@ L'export détaillé indique la ressource à laquelle correspond chaque coût ; l
 
 ## Moyens de dépenser moins
 
-**Cloud → Dépenses → Économies** liste chaque recommandation, la plus grosse économie d'abord : quoi faire, sur quelle ressource, ce qui changerait et ce qu'elle fait économiser par mois. Le bandeau du dessus les additionne, au total et par type : une taille plus petite, une ressource inactive, un engagement. Une recommandation renvoie vers la page de sa ressource quand OneUptime possède la ressource.
+**Cloud → Dépenses → Économies** liste chaque recommandation, la plus grosse économie d'abord : quoi faire, sur quelle ressource, ce qui changerait et ce qu'elle fait économiser par mois. Le bandeau du dessus les additionne, au total et par type : une taille plus petite, une ressource inactive, un engagement. Une recommandation renvoie vers la page de sa ressource quand OneUptime possède la ressource, et celle que OneUptime peut réaliser a **Appliquer** : voir [Appliquer des économies](#appliquer-des-économies).
 
 ### Redimensionnement d'après les propres relevés de OneUptime
 
@@ -105,6 +108,62 @@ Une ressource est dimensionnée dès qu'elle a 6 jours de relevés. Sa page mont
 - Google Cloud : remises sur engagement d'utilisation, depuis votre export de facturation. L'export ne dit pas quelle part d'un engagement est restée inutilisée, donc la part utilisée n'est pas affichée.
 
 Un compte sans engagement indique ce qui a tourné au tarif à la demande et qu'un engagement paierait moins cher. Les chiffres de chaque type sont ceux de son cloud, et les types ne sont jamais additionnés : une réservation et un Savings Plan peuvent tous deux compter les dépenses d'une même machine comme les leurs à couvrir.
+
+## Appliquer des économies
+
+OneUptime réalise une économie par la connexion cloud du compte dès que son réglage **Actions d'économie** le permet : [Actions d'économie](/docs/telemetry/cloud-accounts#actions-déconomie) dit ce que chaque choix accorde. Il ne fait que des modifications en une étape : il arrête une instance ou une base de données inactive, passe un volume gp2 en gp3, supprime un disque non attaché, un ancien instantané ou une image inutilisée, libère une adresse inutilisée et, si vous le permettez, redimensionne une instance ou une base de données à la taille recommandée. Il n'achète jamais d'engagement : **Acheter dans la console** ouvre la page de votre cloud pour cela.
+
+:::steps
+### Choisir Appliquer
+
+Dans **Cloud → Dépenses → Économies**, choisissez **Appliquer** sur une économie. La boîte de dialogue dit ce qui change, ce que cela économise par mois, comment l'annuler ou que ce n'est pas possible, et qui l'approuve.
+
+### Un propriétaire l'approuve
+
+Une personne désignée comme propriétaire de la ressource, ou membre d'une équipe qui la possède, et qui peut aussi la modifier, approuve la modification. Une ressource sans propriétaire est approuvée par un Propriétaire du projet ou un Administrateur du projet. Si vous pouvez l'approuver vous-même, **Appliquer** l'effectue aussitôt, en votre nom. Sinon, elle attend dans **En attente d'approbation** qu'un propriétaire choisisse **Approuver**, ou **Masquer** avec un motif.
+
+### OneUptime l'effectue
+
+La modification passe par la connexion et figure dans les chronologies de la ressource et du compte, avec qui l'a approuvée. Un disque supprimé reçoit d'abord un instantané final, sauf si vous désactivez **Prendre d'abord un instantané final**.
+:::
+
+Chaque modification dit comment l'annuler : **Annuler** dans **Modifications effectuées** redémarre une instance arrêtée, rétablit un volume ou une taille, ou recrée un disque supprimé à partir de son instantané final. Ce qui supprime définitivement, comme un instantané, une image ou une adresse libérée, ne peut pas être annulé, et la boîte de dialogue le dit avant que vous l'appliquiez. Lorsque le projet exige deux approbations avec **Exiger deux approbations pour les correctifs plus risqués**, une modification irréversible demande deux personnes.
+
+Une ressource dont les balises disent qu'elle est gérée en tant que code, par exemple par Terraform ou CloudFormation, est modifiée dans son code à la place : la boîte de dialogue propose **Ouvrir la pull request** vers le dépôt qui la déclare, afin que le prochain apply n'annule pas l'économie.
+
+### Prouvé par la facture
+
+**Économisé ce mois-ci** ne compte que ce que la facture de votre cloud montre. Dès que trois jours après une modification sont stabilisés sur la facture, le coût par jour de la ressource est comparé à la semaine précédant la modification : elle est **Visible dans la facture** quand le coût a baissé d'au moins un quart de ce qui était promis, **Pas visible dans la facture** sinon, et **Non mesurable** quand votre cloud ne facture pas la ressource par son nom. **Vérification de la facture** compte les modifications qui attendent encore ces jours.
+
+## Plannings hors heures
+
+Dans **Cloud → Dépenses → Plannings**, un planning arrête les instances et bases de données hors production en dehors des heures de travail, et les redémarre :
+
+:::steps
+### Choisir les ressources
+
+Nommez la balise cloud qui les choisit, par exemple `Schedule` = `office-hours`, dans un compte ou dans tous.
+
+### Dire quand elles tournent
+
+Choisissez les jours ouvrés, l'heure à laquelle elles démarrent et celle à laquelle elles s'arrêtent, au format 24 heures, et le fuseau horaire.
+:::
+
+À la fin des heures de travail, un planning arrête, par la connexion de son compte, chaque ressource en marche que sa balise choisit et qui est connue comme hors production, et à leur début il ne redémarre que ce qu'il a arrêté : une ressource que quelqu'un a arrêtée à la main reste arrêtée. **Voir les ressources** liste ce qu'un planning choisit maintenant, et pourquoi il en laisse en marche. Il arrête les instances EC2 et les bases de données RDS sur AWS, les machines virtuelles sur Azure et les instances Compute Engine sur Google Cloud. AWS redémarre de lui-même une base de données arrêtée depuis sept jours.
+
+Un planning n'arrête jamais la production, ni une ressource dont rien n'indique l'environnement. Une ressource est connue comme hors production quand :
+
+- l'une de ses balises le dit, sous une clé comme `environment`, `env`, `stage`, `tier` ou `deployment.environment`, avec un mot comme `dev`, `test`, `qa`, `staging` ou `sandbox` ;
+- son compte est marqué **Hors production** dans **Environnement** des **Paramètres** du compte ;
+- ou l'une de ses étiquettes le dit, par exemple `Staging` ou `env: dev`.
+
+La production l'emporte : une balise qui dit `prod`, `production` ou `live`, ou un compte marqué **Production**, garde une ressource en marche, quoi que dise le reste. Le nom d'une ressource n'est jamais lu pour cela. Désactivez un planning et il n'arrête plus rien, et redémarre ce qu'il a arrêté au début de ses heures de travail ; supprimez-le et ce qu'il a arrêté est redémarré aussitôt.
+
+## Règles IA d'économies
+
+Avec **Activer l'IA** activé, OneUptime AI propose aux propriétaires de la ressource chaque économie qu'il peut réaliser, après chaque lecture des économies du compte, et ils l'approuvent ou la refusent dans **En attente d'approbation**. Dans **Cloud → Paramètres → Règles IA d'économies**, une règle dit ce que OneUptime AI fait des économies auxquelles elle correspond, selon le type de modification, l'environnement de la ressource et son cloud : **Désactivé**, **Proposer au propriétaire** ou **Agir sans demander**, jusqu'à une limite mensuelle. Sans règle, chaque économie est proposée et aucune n'est effectuée ; avec des règles, seulement ce à quoi une règle correspond, et entre les règles qui correspondent, la plus prudente l'emporte.
+
+Une règle n'agit sans demander que sur une ressource connue comme hors production, que pour une modification qui peut être annulée, que jusqu'à la plus petite limite des règles qui correspondent, et au plus 10 fois par heure dans un projet : tout le reste est proposé. Une modification effectuée sans demander figure dans les chronologies avec la règle qui l'a effectuée, et ses propriétaires peuvent l'annuler. Une économie refusée ou annulée n'est plus proposée pendant 30 jours.
 
 ## Budgets
 
@@ -144,6 +203,7 @@ Sous la liste, la carte indique à combien s'élève le reste : ce qui n'est dan
 - **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
 - **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
+- **Ce qui a été économisé.** **Cloud → Dépenses → Économies** s'ouvre sur ce que les modifications effectuées ont économisé ce mois-ci, selon la facture, les modifications en attente d'approbation et celles effectuées, et les heures pendant lesquelles les plannings ont arrêté des ressources.
 
 ## Dépannage
 
@@ -171,6 +231,14 @@ La connexion ne peut pas encore lire les Savings Plans et les réservations du c
 Les montants sont dans la devise dans laquelle la plupart de vos comptes sont facturés. Un compte facturé dans une autre est listé en dessous avec sa devise, et un budget ne compte que les comptes facturés dans la sienne.
 :::
 
+:::details Une économie n'a pas d'Appliquer
+OneUptime ne fait que des modifications en une étape : un engagement, ou une recommandation qui change plus d'une chose, se fait dans la console de votre cloud. Appliquer ouvre une boîte de dialogue qui dit pourquoi elle ne peut pas être faite d'ici quand la connexion du compte ne le permet pas : activez ses **Actions d'économie** et exécutez à nouveau sa commande de configuration.
+:::
+
+:::details Un planning laisse une ressource en marche
+**Voir les ressources** dit pourquoi : c'est de la production, rien n'indique que ce n'est pas de la production, ou la connexion de son compte ne permet pas les actions d'économie. Balisez-la, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+:::
+
 :::details Ce mois est plus bas que dans la console de votre cloud
 Votre cloud signale le dernier jour ou deux en retard, et les montants sont avant crédits et remboursements. Les lectures suivantes rattrapent le retard.
 :::
@@ -178,6 +246,7 @@ Votre cloud signale le dernier jour ou deux en retard, et les montants sont avan
 ## Prochaines étapes
 
 :::cards
+- [Répartition des coûts du cloud](/docs/telemetry/cloud-cost-allocation): Répartissez les dépenses entre équipes, produits et centres de coûts.
 - [Connecter un compte cloud](/docs/telemetry/cloud-accounts): Connectez un autre compte, ou exécutez de nouveau sa commande.
 - [Ressources cloud](/docs/telemetry/cloud-resources): Les métriques de chaque ressource, depuis votre propre collecteur.
 - [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost): Ce que coûte chaque charge de travail Kubernetes.

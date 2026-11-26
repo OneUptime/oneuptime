@@ -40,7 +40,7 @@ The browsers are Chromium and Firefox.
 
 ## Before you begin
 
-- A **probe** that can reach your web app. Use a [custom probe](/docs/probe/custom-probe) for an app inside your network. The probe's Docker image includes Chromium and Firefox; a probe run outside Docker needs them installed.
+- A **probe** that can reach your web app. Use a [custom probe](/docs/probe/custom-probe) for an app inside your network, with its private network setting turned on: a synthetic monitor's browser and its HTTP requests reach private addresses only on a probe whose operator allowed them, and never loopback, link-local or cloud metadata addresses. The probe's Docker image includes Chromium and Firefox; a probe run outside Docker needs them installed.
 - Any password or token the journey needs, stored as a [monitor secret](/docs/monitor/monitor-secrets).
 
 ## Create a synthetic monitor
@@ -267,7 +267,7 @@ In incident and alert templates, every run is in `{{syntheticResponses}}`: see [
 | `https` | The HTTPS equivalent of the client-only `http` facade. |
 | `Buffer`, `setTimeout`, `setInterval` | And their `clear` functions. |
 
-The script runs in a browser worker, not in Node.js, and cannot open its own network connections: `fetch`, `XMLHttpRequest` and `WebSocket` are blocked. Use `axios` for HTTP requests.
+The script runs in a browser worker, not in Node.js, and cannot open its own network connections: `fetch`, `XMLHttpRequest` and `WebSocket` are blocked. Use `axios` for HTTP requests. Everything the browser loads and every HTTP request of the script go through the probe, which holds them to its private network policy, the one API and Website monitors are held to. A navigation it refuses fails with its reason as the script's error, and the refusal is named in the run's log.
 
 ## Limits
 

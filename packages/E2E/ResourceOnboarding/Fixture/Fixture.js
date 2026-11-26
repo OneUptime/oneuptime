@@ -48,6 +48,7 @@ import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { initReactI18next } from "react-i18next";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import en from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import KubernetesLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Layout";
 import KubernetesClustersPage from "../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Clusters";
@@ -599,6 +600,17 @@ ModelAPI.create = ModelAPI.createOrUpdate;
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
+
+  /*
+   * Whether another record has the name a form holds (#10761): a RUM
+   * application's name is its project's own, so Create RUM Application's
+   * form asks as the name is typed (SuiteHelpers/UniqueNameAnswers).
+   */
+  const names = method === "GET" ? answerUniqueNames({ url }) : null;
+  if (names) {
+    return new HTTPResponse(200, names, {});
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return new HTTPErrorResponse(404, { message: "Not modelled." }, {});
 }

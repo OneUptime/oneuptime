@@ -2552,6 +2552,43 @@
             },
             "additionalProperties": false
         },
+        "helpAndSupport": {
+            "type": "object",
+            "description": "Where this server sends its people for help (Admin Dashboard > Settings > Help and Support), set while nothing is saved on that page yet.",
+            "properties": {
+                "supportEmail": {
+                    "type": "string"
+                },
+                "chat": {
+                    "type": "string"
+                },
+                "requestDemo": {
+                    "type": [
+                        "string",
+                        "boolean"
+                    ]
+                },
+                "giveFeedback": {
+                    "type": "string"
+                },
+                "helpLink": {
+                    "type": "string"
+                },
+                "gitHub": {
+                    "type": [
+                        "string",
+                        "boolean"
+                    ]
+                },
+                "mobileApp": {
+                    "type": "string"
+                },
+                "inviteMessage": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
         "sourceMaps": {
             "type": "object",
             "properties": {
@@ -2811,7 +2848,7 @@
                         },
                         "allowPrivateNetworkMonitors": {
                             "type": "boolean",
-                            "description": "Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
+                            "description": "Let API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
                         },
                         "syntheticMonitorScriptTimeoutInMs": {
                             "type": "integer",
@@ -4075,6 +4112,13 @@
                     ],
                     "minimum": 1
                 },
+                "probeSchedulingMaxConcurrentMonitorTestRequests": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "workerConcurrency": {
                     "type": "integer"
                 },
@@ -4243,6 +4287,10 @@
                         },
                         "cooldownPeriod": {
                             "type": "integer"
+                        },
+                        "probeSchedulingQueueDepthThreshold": {
+                            "type": "integer",
+                            "minimum": 0
                         },
                         "fallback": {
                             "type": "object",

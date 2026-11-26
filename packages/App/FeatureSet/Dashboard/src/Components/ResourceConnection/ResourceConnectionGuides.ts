@@ -3,6 +3,7 @@ import {
   KUBERNETES_AGENT_HELM_RELEASE,
 } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
 import { PROXMOX_FAILOVER_CONTAINER } from "../../Pages/Proxmox/Utils/DocumentationMarkdown";
+import { XCP_NG_AGENT_CONTAINER } from "../../Pages/XcpNg/Utils/DocumentationMarkdown";
 import { getServerlessPlatformForCloudPlatform } from "../Serverless/ServerlessSetupGuide";
 import {
   HostCollectorOsType,
@@ -346,6 +347,22 @@ const VCENTER_COPY: ResourceKindCopy = {
     title: translationKey("This vCenter stopped sending data"),
     description: translationKey(
       "OneUptime last heard from this vCenter {{lastHeard}}. The {{agentName}} is no longer reporting — check on it with the steps below.",
+    ),
+  },
+};
+
+// An XCP-ng pool, read from the Xen Orchestra that manages it.
+const XCP_NG_POOL_COPY: ResourceKindCopy = {
+  setupCopy: {
+    title: translationKey("Connect this pool"),
+    description: translationKey(
+      "No data has arrived from this pool yet, which is why it shows as Disconnected. Set up the {{agentName}} next to the Xen Orchestra that manages it — it takes a few minutes.",
+    ),
+  },
+  stoppedCopy: {
+    title: translationKey("This pool stopped sending data"),
+    description: translationKey(
+      "OneUptime last heard from this pool {{lastHeard}}. The {{agentName}} is no longer reporting it — check on it with the steps below.",
     ),
   },
 };
@@ -928,6 +945,129 @@ export const getVMwareVCenterConnectionGuide: (
     },
     vcenterName,
   );
+};
+
+// ---- XCP-ng (the XCP-ng Agent, beside Xen Orchestra) -----------------------
+
+/*
+ * What an XCP-ng pool's card says while its agent runs but Xen Orchestra
+ * does not report the pool (ResourceConnectionGuide.unreadableCopy). One
+ * agent reads every pool its Xen Orchestra manages, and Xen Orchestra stops
+ * reporting a pool it lost the connection to while it keeps reporting the
+ * others, so "stopped sending data" would send people to an agent that is
+ * fine.
+ */
+const XCP_NG_UNREADABLE_STOPPED_COPY: ResourceConnectionCopy = {
+  title: translationKey("Xen Orchestra no longer reports this pool"),
+  description: translationKey(
+    "The {{agentName}} is running, but Xen Orchestra last reported this pool {{lastRead}}. The hosts, VMs and storage repositories here are as it reported them then.",
+  ),
+};
+
+const XCP_NG_UNREADABLE_NOT_YET_COPY: ResourceConnectionCopy = {
+  title: translationKey("Xen Orchestra has not reported this pool yet"),
+  description: translationKey(
+    "The {{agentName}} is running and reads Xen Orchestra every minute, but Xen Orchestra has not reported this pool yet. If this does not change within a few minutes, check it with the steps below.",
+  ),
+};
+
+const getXcpNgPoolCheckSteps: (
+  poolIdentifier: string,
+  oneuptimeUrl: string,
+) => Array<ResourceConnectionGuideStep> = (
+  poolIdentifier: string,
+  oneuptimeUrl: string,
+): Array<ResourceConnectionGuideStep> => {
+  return [
+    {
+      title: "Run the diagnostic script",
+      description: translationKey(
+        "It checks the whole chain — Xen Orchestra's OpenMetrics plugin, its secret and certificate, the agent and the ingestion key — and says what is wrong.",
+      ),
+      code: `curl -fsSL ${shellQuote(troubleshootScript(oneuptimeUrl, InstallScriptName.XcpNgAgent))} -o troubleshoot.sh && bash troubleshoot.sh`,
+    },
+    {
+      title: "Check the pool in Xen Orchestra",
+      description: translationKey(
+        "Xen Orchestra reports only the pools it is connected to. Under Settings → Servers, the server of the pool with this UUID must be connected:",
+      ),
+      code: poolIdentifier,
+    },
+  ];
+};
+
+/*
+ * The card under an XCP-ng pool's hero. A pool is not named on the agent:
+ * one agent next to a Xen Orchestra reports every pool that Xen Orchestra
+ * manages, each by its UUID (xcp_ng.pool.id), so the steps name the pool by
+ * its UUID and the setup is the Xen Orchestra's - its OpenMetrics plugin,
+ * then the agent beside it.
+ */
+export const getXcpNgPoolConnectionGuide: (
+  poolIdentifier: string,
+  oneuptimeUrl: string,
+) => ResourceConnectionGuide = (
+  poolIdentifier: string,
+  oneuptimeUrl: string,
+): ResourceConnectionGuide => {
+  const psCommand: string = `docker ps --filter name=${XCP_NG_AGENT_CONTAINER}`;
+  const checkSteps: Array<ResourceConnectionGuideStep> = getXcpNgPoolCheckSteps(
+    poolIdentifier,
+    oneuptimeUrl,
+  );
+
+  return {
+    ...XCP_NG_POOL_COPY,
+    agentName: "OneUptime XCP-ng Agent",
+    setupSteps: [
+      PICK_INGESTION_KEY_STEP,
+      {
+        title: "Turn on Xen Orchestra's OpenMetrics plugin",
+        description: translationKey(
+          "In Xen Orchestra 6.9 or later, open Settings → Plugins, turn on openmetrics and copy its secret.",
+        ),
+      },
+      /*
+       * install.sh asks for Xen Orchestra's address (XO_URL, scheme
+       * included) and derives XO_SCHEME and XO_ADDRESS from it; the
+       * collector itself reads XO_ADDRESS (host[:port], https unless
+       * XO_SCHEME says otherwise), so a hand-written .env names that. The
+       * setup guide covers the xo-ca.pem the agent trusts.
+       */
+      {
+        title: "Install the agent",
+        description: translationKey(
+          "Run the install script from the setup guide on a machine that can reach Xen Orchestra. It asks for Xen Orchestra's address and the plugin's secret — or, with Docker Compose, put them in the .env file as the setup guide shows:",
+        ),
+        code: [
+          formatEnvFileLine("XO_ADDRESS", "xo.example.com"),
+          formatEnvFileLine("XO_OPENMETRICS_SECRET", "<plugin secret>"),
+        ].join("\n"),
+      },
+      waitForDataStep(
+        translationKey(
+          "Refresh this page after a few minutes — the pool switches to Connected once Xen Orchestra reports it. If it does not, check the agent container is up:",
+        ),
+        psCommand,
+      ),
+    ],
+    troubleshootingSteps: [
+      {
+        title: "Check the agent is running",
+        description: translateTemplate(
+          "The {{containerName}} container should be listed and Up. If it is missing or restarting, start it again with docker compose up -d.",
+          { containerName: XCP_NG_AGENT_CONTAINER },
+        ),
+        code: psCommand,
+      },
+      ...checkSteps,
+    ],
+    unreadableCopy: {
+      stopped: XCP_NG_UNREADABLE_STOPPED_COPY,
+      notYet: XCP_NG_UNREADABLE_NOT_YET_COPY,
+      steps: checkSteps,
+    },
+  };
 };
 
 // ---- Hosts (OpenTelemetry Collector) ---------------------------------------

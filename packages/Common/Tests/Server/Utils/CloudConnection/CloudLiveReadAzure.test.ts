@@ -2,8 +2,6 @@ import { describe, expect, test } from "@jest/globals";
 import { CloudConnectionSettings } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import AzureLiveRead, {
   buildAzureLogQuery,
-  toKqlSingleQuoted,
-  toKqlString,
   toODataString,
 } from "../../../../Server/Utils/CloudConnection/LiveRead/AzureLiveRead";
 import {
@@ -28,6 +26,13 @@ import {
   liveContext,
   liveTarget,
 } from "./CloudLiveReadFakes";
+import {
+  logAnalyticsProblems,
+  operatorsOf,
+  resourceGraphProblems,
+  shapeOf,
+  stringLiteralValuesOf,
+} from "./AzureKqlGrammar";
 import { FakeResponse, json } from "../LlmObservability/FakeProviderApi";
 
 /*
@@ -493,6 +498,7 @@ describe("Azure describe: any other resource, through Resource Graph", () => {
     expect(posted["query"]).toBe(
       `Resources | where id =~ '${STORAGE}' | project id, name, type, location, kind, sku, tags, provisioningState=properties.provisioningState`,
     );
+    expect(resourceGraphProblems(String(posted["query"]))).toEqual([]);
     expect(lines(text)).toEqual([
       `Live from Azure at 2026-10-27T10:00:00Z (Azure Resource Graph): resource ${STORAGE}`,
       "name: acct1",
@@ -897,17 +903,55 @@ describe("Azure read-logs", () => {
     expect(fake.logCalls[0]!.authorization).toBe("Bearer logs-access-token");
     expect(fake.logCalls[0]!.body).toEqual({
       query:
-        'search "connection refused" | where TimeGenerated > ago(30m) | top 5 by TimeGenerated desc',
+        "search 'connection refused' | where TimeGenerated > ago(30m) | top 5 by TimeGenerated desc",
       timespan: "PT30M",
     });
+    expect(
+      logAnalyticsProblems(String(fake.logCalls[0]!.body["query"])),
+    ).toEqual([]);
     expect(lines(text)).toEqual([
       `Live from Azure at 2026-10-27T10:00:00Z (Log Analytics query): log lines of App Service or Function App ${SITE}, the last 30 minutes, containing "connection refused", newest first`,
       "lines (3):",
       "- 2026-10-27T09:59:30.500Z [AppServiceHTTPLogs]",
       "- 2026-10-27T09:55:00.000Z [AppServiceConsoleLogs] retry: connection refused ⏎ at db.connect | Level=Warning",
       "- 2026-10-27T09:50:00.000Z [AppServiceConsoleLogs] dial tcp: connection refused | Level=Error",
-      'query: search "connection refused" | where TimeGenerated > ago(30m) | top 5 by TimeGenerated desc',
+      "query: search 'connection refused' | where TimeGenerated > ago(30m) | top 5 by TimeGenerated desc",
     ]);
+  });
+
+  /*
+   * The command takes a filter of letters, digits, spaces and . _ : / @ =
+   * , + # ( ) - only; whatever else reaches buildAzureLogQuery is held to
+   * one literal below ("what goes into an Azure query").
+   */
+  test("a --filter of every character the command takes is one literal of the query, searched for as it was typed", async () => {
+    const filter: string = "GET /api/v1 (500) user@host #12 a=b,c+d:e_f.g-h";
+    const { fake } = await read(
+      `cloud read-logs ${SITE} --filter "${filter}" --minutes 5 --limit 2`,
+      {
+        logs: (): FakeResponse => {
+          return json({ tables: [] });
+        },
+      },
+    );
+    const query: string = String(fake.logCalls[0]!.body["query"]);
+
+    expect(query).toBe(
+      `search '${filter}' | where TimeGenerated > ago(5m) | top 2 by TimeGenerated desc`,
+    );
+    expect(logAnalyticsProblems(query)).toEqual([]);
+    expect(stringLiteralValuesOf(query)).toEqual([filter]);
+    expect(operatorsOf(query)).toEqual(["SearchOperator", "where", "top"]);
+  });
+
+  test("a --filter holding a quote is refused by the command, before any query is made", async () => {
+    const error: unknown = await readError(
+      `cloud read-logs ${SITE} --filter "it's down"`,
+    );
+
+    expect(String(error)).toContain(
+      "--filter must be 1-128 letters, digits, spaces and . _ : / @ = , + # ( ) -",
+    );
   });
 
   test("without --filter, every table of the resource is read", async () => {
@@ -949,21 +993,147 @@ describe("Azure read-logs", () => {
   });
 });
 
+// Filters a person or the AI may hand read-logs: each must stay one literal (#11142).
+const AWKWARD_FILTERS: ReadonlyArray<string> = [
+  "connection refused",
+  'x" | take 1000 //',
+  "it's down",
+  "C:\\logs\\app.log",
+  "two\nlines",
+  "a\r\nwindows line",
+  "tab\there",
+  "\\'",
+  "'; Resources | project secrets //",
+  "ends with a backslash\\",
+  "nul\u0000and bell\u0007",
+  "line\u2028separator",
+  "ünïcødé ✓ 🚀",
+  "''''",
+  "```",
+];
+
 describe("what goes into an Azure query", () => {
-  test("KQL and OData literals escape what would end them", () => {
-    expect(toKqlString('a"b\\c')).toBe('"a\\"b\\\\c"');
-    expect(toKqlSingleQuoted("a'b\\c")).toBe("'a\\'b\\\\c'");
+  test("an OData literal writes a quote twice", () => {
     expect(toODataString("a'b")).toBe("'a''b'");
   });
 
-  test("the log query is made of the filter as one string and whole numbers", () => {
-    expect(buildAzureLogQuery({ filter: "", minutes: 15.7, limit: 3 })).toBe(
+  test("the log query is made of the filter as one string literal and of whole numbers", () => {
+    expect(
+      buildAzureLogQuery({ filter: "", minutes: 15.7, limit: 3 }).toString(),
+    ).toBe(
       "union * | where TimeGenerated > ago(15m) | top 3 by TimeGenerated desc",
     );
     expect(
-      buildAzureLogQuery({ filter: 'x" | take 1000 //', minutes: 5, limit: 1 }),
+      buildAzureLogQuery({
+        filter: 'x" | take 1000 //',
+        minutes: 5,
+        limit: 1,
+      }).toString(),
     ).toBe(
-      'search "x\\" | take 1000 //" | where TimeGenerated > ago(5m) | top 1 by TimeGenerated desc',
+      "search 'x\" | take 1000 //' | where TimeGenerated > ago(5m) | top 1 by TimeGenerated desc",
     );
   });
+
+  test("a filter's line break, which once ended its literal, is written \\n", () => {
+    expect(
+      buildAzureLogQuery({
+        filter: "two\nlines",
+        minutes: 5,
+        limit: 1,
+      }).toString(),
+    ).toBe(
+      "search 'two\\nlines' | where TimeGenerated > ago(5m) | top 1 by TimeGenerated desc",
+    );
+  });
+
+  test.each(AWKWARD_FILTERS)(
+    "a query searching for %j keeps to KQL, and searches for exactly that",
+    (filter: string) => {
+      const query: string = buildAzureLogQuery({
+        filter,
+        minutes: 5,
+        limit: 1,
+      }).toString();
+
+      expect(logAnalyticsProblems(query)).toEqual([]);
+      expect(stringLiteralValuesOf(query)).toEqual([filter]);
+      expect(operatorsOf(query)).toEqual(["SearchOperator", "where", "top"]);
+      expect(query.split("\n")).toHaveLength(1);
+    },
+  );
+
+  test("with no filter, every table: union * keeps to KQL", () => {
+    const query: string = buildAzureLogQuery({
+      filter: "",
+      minutes: 60,
+      limit: 50,
+    }).toString();
+
+    expect(logAnalyticsProblems(query)).toEqual([]);
+    expect(operatorsOf(query)).toEqual(["union", "where", "top"]);
+  });
+
+  test("minutes and a row limit that are no whole number are refused, never written into the query", () => {
+    expect(() => {
+      return buildAzureLogQuery({ filter: "", minutes: NaN, limit: 3 });
+    }).toThrow("A KQL query takes a whole number of zero or more here");
+    expect(() => {
+      return buildAzureLogQuery({ filter: "", minutes: 5, limit: Infinity });
+    }).toThrow("A KQL query takes a whole number of zero or more here");
+  });
+});
+
+describe("the Resource Graph row of a live read", () => {
+  // The resource IDs that may reach the query: Azure's own, and any other text.
+  const IDS: ReadonlyArray<string> = [
+    STORAGE,
+    `${PROVIDERS}/Microsoft.Storage/storageAccounts/it's`,
+    `/subscriptions/${AZURE_SUBSCRIPTION}/resourceGroups/rg.(prod)_ünï-1/providers/Microsoft.Network/virtualNetworks/vnet-1`,
+    `${STORAGE}' | project secrets = properties //`,
+    `${STORAGE}\n| take 1`,
+    `${STORAGE}\\`,
+    `${STORAGE}\\' or 1 == 1 or id =~ '`,
+  ];
+
+  async function postedQuery(id: string): Promise<string> {
+    let query: string = "";
+    const fake: FakeAzureLive = createFakeAzureLive({
+      arm: (_url: URL, request: DataSourceHttpRequest): FakeResponse => {
+        query = String(
+          (JSON.parse(String(request.body)) as JSONObject)["query"],
+        );
+        return json({ data: [] });
+      },
+    });
+    const target: ReturnType<typeof liveTarget> = liveTarget(
+      "azure",
+      `cloud describe ${STORAGE}`,
+      { accountId: AZURE_SUBSCRIPTION },
+    );
+
+    try {
+      await AzureLiveRead.read({
+        target: { ...target, resource: { ...target.resource, id } },
+        context: liveContext(fake),
+        settings: settings(),
+      });
+    } catch {
+      // Resource Graph has no such row: the read says so, the query is what is read here.
+    }
+
+    return query;
+  }
+
+  test.each(IDS)(
+    "for the resource %j, one Resource Graph runs, with the ID one literal read back as it is",
+    async (id: string) => {
+      const query: string = await postedQuery(id);
+
+      expect(resourceGraphProblems(query)).toEqual([]);
+      expect(stringLiteralValuesOf(query)).toEqual([id]);
+      // The query keeps its shape whatever the ID holds: where, then project.
+      expect(shapeOf(query)).toBe(shapeOf(await postedQuery(STORAGE)));
+      expect(operatorsOf(query)).toEqual(["where", "project"]);
+    },
+  );
 });

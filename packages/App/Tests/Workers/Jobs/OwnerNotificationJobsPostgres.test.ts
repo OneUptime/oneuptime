@@ -360,6 +360,16 @@ interface JobCase {
   arrange: () => void;
   // The feed's create, for the jobs that write a feed item (#8510).
   feedService?: () => unknown;
+  // The line that feed item names an owner it told with.
+  feedLineOf?: (owner: User) => string;
+}
+
+/*
+ * An owner named in a feed item by UserService.getUserMarkdownString, as
+ * it is stood in for below.
+ */
+function feedLineByUserMarkdown(owner: User): string {
+  return `- Owner ${owner.id!.toString()}\n`;
 }
 
 // The record the other resources' cases tell of, as the job reads it.
@@ -472,6 +482,10 @@ const CASES: Array<JobCase> = [
     feedService: () => {
       return IncidentFeedService.createIncidentFeedItem;
     },
+    // By name, never by address: the feed is read beyond the project (#10669).
+    feedLineOf: (owner: User): string => {
+      return `- ${owner.name!.toString()}\n`;
+    },
     arrange: (): void => {
       asMock(IncidentService.findCreatedNotificationsDue).mockImplementation(
         async () => {
@@ -505,6 +519,7 @@ const CASES: Array<JobCase> = [
     feedService: () => {
       return IncidentFeedService.createIncidentFeedItem;
     },
+    feedLineOf: feedLineByUserMarkdown,
     arrange: (): void => {
       // Read a page at a time, and taken by one compare-and-set.
       asMock(IncidentStateTimelineService.findBy).mockImplementation(
@@ -556,6 +571,7 @@ const CASES: Array<JobCase> = [
     feedService: () => {
       return ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem;
     },
+    feedLineOf: feedLineByUserMarkdown,
     arrange: (): void => {
       const stateChange: () => Record<string, unknown> = () => {
         return plain({
@@ -972,8 +988,10 @@ describePostgres("the owner notification jobs, against Postgres", () => {
       const written: string = String(
         (create.mock.calls[1]![0] as JSONObject)["moreInformationInMarkdown"],
       );
+      // Each owner, as the job names them; none by address (#10669).
       for (const owner of world.owners) {
-        expect(written).toContain(owner.id!.toString());
+        expect(written).toContain(jobCase.feedLineOf!(owner));
+        expect(written).not.toContain(owner.email!.toString());
       }
       expect(sends()).toEqual(everyOwnerOnce());
       expect(world.takes).toBe(1);

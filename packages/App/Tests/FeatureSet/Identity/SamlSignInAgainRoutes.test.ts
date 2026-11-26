@@ -69,6 +69,19 @@ const GLOBAL_SSO_ID: string = "4fab0000-0000-4000-8000-0000000000e1";
 const SECOND_IN_MS: number = 1000;
 const HOUR_IN_MS: number = 60 * 60 * SECOND_IN_MS;
 
+/*
+ * The teams a sign-in adds people to are read as the project's own
+ * (SsoTeamMembership.getProjectTeams, #11149): every team a provider names
+ * here is one (./SsoProjectTeamsStandIn).
+ */
+jest.mock("Common/Server/Services/TeamService", () => {
+  return (
+    jest.requireActual(
+      "./SsoProjectTeamsStandIn",
+    ) as typeof import("./SsoProjectTeamsStandIn")
+  ).everyTeamInItsProject();
+});
+
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
     jest.requireActual(

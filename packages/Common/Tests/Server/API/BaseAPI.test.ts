@@ -102,6 +102,13 @@ jest.mock(
         getTableColumns: jest.fn().mockImplementation(() => {
           return { columns: [] };
         }),
+        /*
+         * Modules BaseAPI loads read a model's permission lists when they
+         * load: Data Security's issue groups take who may read them from
+         * DataSecurityIssue's read list (DataSecurityIssueGroups). This
+         * table's lists name no one.
+         */
+        readRecordPermissions: [],
       };
     });
   },
@@ -636,6 +643,8 @@ describe("BaseAPI", () => {
         res,
         { id: "mock" },
         BaseModel,
+        // The select names no retired column (BaseAPIRetiredColumns.test.ts).
+        { retiredColumns: [] },
       );
     });
   });

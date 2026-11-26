@@ -32,6 +32,8 @@ import SsoTeamMembership, {
   SSO_NO_ROOM_ERROR,
   SSO_NO_ROOM_MESSAGE,
   SSO_NO_ROOM_TITLE,
+  SSO_NO_TEAMS_ERROR,
+  SSO_NO_TEAMS_TITLE,
   SsoTeamMembershipOutcome,
 } from "../Utils/SsoTeamMembership";
 import { DashboardRoute } from "Common/ServiceRoute";
@@ -72,6 +74,7 @@ import logger, {
 import Response from "Common/Server/Utils/Response";
 import ProjectSsoDiscovery from "Common/Server/Utils/ProjectSsoDiscovery";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
+import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
 import Name from "Common/Types/Name";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
@@ -84,6 +87,46 @@ import { SignInFailureReason } from "Common/Types/AuditLog/AuditLogSignInFailure
 import FailedSignInAuditLog from "Common/Server/Utils/AuditLog/FailedSignInAuditLog";
 
 const router: ExpressRouter = Express.getRouter();
+
+const NO_TEAMS_MESSAGE: string =
+  "No teams have been added to this SSO config. Please contact your admin and have default teams added.";
+
+/*
+ * Someone not in the project yet, and no team of the project to add them
+ * to: the page, or the mobile app's deep link.
+ */
+type RespondNoTeamsFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+}) => void;
+
+const respondNoTeams: RespondNoTeamsFunction = (data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  isMobileRequest: boolean;
+}): void => {
+  if (
+    respondToMobileSsoFailure({
+      res: data.res,
+      isMobileRequest: data.isMobileRequest,
+      error: SSO_NO_TEAMS_ERROR,
+      errorDescription: NO_TEAMS_MESSAGE,
+    })
+  ) {
+    return;
+  }
+
+  return Response.render(
+    data.req,
+    data.res,
+    "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+    {
+      title: SSO_NO_TEAMS_TITLE,
+      message: NO_TEAMS_MESSAGE,
+    },
+  );
+};
 
 /*
  * Project SAML sign-in, served by core in every edition. The ACS URL
@@ -624,6 +667,15 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
      * account, one that has not confirmed this project's sign-in, a blocked
      * one or an administrator's (#9824). See ../Utils/ProjectSsoSignInGate.ts.
      */
+    /*
+     * The provider's teams that are its project's own: where someone not
+     * in the project yet joins it, and whether someone new can (#11149).
+     */
+    const projectTeams: Array<Team> = await SsoTeamMembership.getProjectTeams({
+      projectId: new ObjectID(req.params["projectId"] as string),
+      teams: projectSSO.teams,
+    });
+
     const decision: ProjectSsoGateDecision = await ProjectSsoSignInGate.decide({
       email: email,
       name: fullName,
@@ -631,7 +683,13 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
       kind: ProjectSsoKind.SAML,
       providerId: projectSSO.id!,
       origin: RequestOriginUtil.fromRequest(req),
+      canAddNewcomers: projectTeams.length > 0,
     });
+
+    // Someone new, and no team of the project to put them in: nothing made.
+    if (decision.outcome === ProjectSsoGateOutcome.NoTeams) {
+      return respondNoTeams({ req, res, isMobileRequest });
+    }
 
     /*
      * A sign-in the provider vouched for that OneUptime refuses, for the
@@ -714,32 +772,25 @@ const loginUserWithSso: LoginUserWithSsoFunction = async (
     });
 
     if (teamMemberCount.toNumber() === 0) {
-      // user not in project, add him to default teams.
-
-      if (!projectSSO.teams || projectSSO.teams.length === 0) {
-        return Response.render(
-          req,
-          res,
-          "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
-          {
-            title: "No teams added.",
-            message:
-              "No teams have been added to this SSO config. Please contact your admin and have default teams added.",
-          },
-        );
-      }
-
       /*
-       * They take a seat like anyone invited: a project with no room for
-       * one more person adds them nowhere, and they are told so.
+       * Not in the project yet: they join the provider's teams, taking a
+       * seat like anyone invited, so a project with no room for one more
+       * person adds them nowhere, and they are told so. Only the project's
+       * own teams take them (#11149); a provider with none of them - no
+       * teams at all, or only another project's - adds nobody.
        */
-      if (
-        (await SsoTeamMembership.addToTeams({
+      const joined: SsoTeamMembershipOutcome =
+        await SsoTeamMembership.addToTeams({
           projectId: new ObjectID(req.params["projectId"] as string),
           userId: alreadySavedUser.id!,
-          teams: projectSSO.teams,
-        })) === SsoTeamMembershipOutcome.NoRoom
-      ) {
+          teams: projectTeams,
+        });
+
+      if (joined === SsoTeamMembershipOutcome.NoTeams) {
+        return respondNoTeams({ req, res, isMobileRequest });
+      }
+
+      if (joined === SsoTeamMembershipOutcome.NoRoom) {
         if (
           respondToMobileSsoFailure({
             res,

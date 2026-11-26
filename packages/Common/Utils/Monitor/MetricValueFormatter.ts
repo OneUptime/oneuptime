@@ -70,7 +70,8 @@ export default class MetricValueFormatter {
 
   /*
    * The per-platform metric catalogs (Kubernetes, Ceph, Proxmox, Docker
-   * Swarm, storage arrays) were written for humans reading a metric picker,
+   * Swarm, storage arrays, XCP-ng) were written for humans reading a metric
+   * picker,
    * so they spell two dimensionless concepts in English rather than in
    * UCUM. "count" appears on 43 catalog entries and means exactly what
    * UCUM's "1" means on a counter — printing it gives "15 count", which
@@ -78,7 +79,8 @@ export default class MetricValueFormatter {
    * metric: a value in [0, 1] that a reader wants as a percentage. A ratio
    * that is not a share — a storage array's data reduction ratio, 4.2 for
    * 4.2:1 — is told apart by its name (ValueFormatter.isFractionMetric)
-   * and stays a bare number.
+   * and stays a bare number; so is a share whose name does not say so
+   * (Xen Orchestra's xcp_vm_cpu_usage), which still reads as a percentage.
    *
    * Rewriting them here rather than in each catalog keeps the catalogs
    * legible to the people who edit them and still gives every consumer of

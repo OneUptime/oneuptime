@@ -11,6 +11,7 @@ import GitCommandError from "./GitCommandError";
 import GitPorcelain, { GIT_STATUS_PORCELAIN_ARGS } from "./GitPorcelain";
 import SecretRedactor from "./SecretRedactor";
 import GitHostGuard from "./GitHostGuard";
+import { withoutRunnerOwnEnvironment } from "./RunnerOwnEnvironment";
 import { CodeTaskChanges, CodeTaskFileStatus } from "Common/Types/AI/CodeTask";
 import {
   CodeHostRunnerInfo,
@@ -606,18 +607,22 @@ export default class RepositoryManager {
   /*
    * Commit the staged changes.
    *
-   * `--no-verify` because the repository's own hooks are not ours to run: a
-   * setup command like `npm ci` installs husky, which points core.hooksPath
-   * at the repository's committed hooks, and those hooks then run inside
-   * this commit — where a lint-staged hook can rewrite the very files being
+   * No hook of the repository's runs: they are not ours to run. A setup
+   * command like `npm ci` installs husky, which points core.hooksPath at the
+   * repository's committed hooks, and those hooks then run inside this
+   * commit — where a lint-staged hook can rewrite the very files being
    * committed, or a failing pre-commit hook aborts the fix outright. Hooks
    * are the target repository's CI concern, and its CI will run them on the
-   * pull request.
+   * pull request. `--no-verify` skips only pre-commit and commit-msg, and
+   * prepare-commit-msg and post-commit would still run here, so hooks are
+   * looked for where there are none (NO_HOOKS_OPTION), as for the push.
    */
   public async commitChanges(repoPath: string, message: string): Promise<void> {
     await this.log(`Committing changes: ${message.substring(0, 50)}...`);
 
     await this.runGitCommand(repoPath, [
+      "-c",
+      NO_HOOKS_OPTION,
       "commit",
       "--no-verify",
       "-m",
@@ -1068,6 +1073,13 @@ export default class RepositoryManager {
    *     argv by any route never gets there, and git's own reason is not
    *     pushed past the length the run's message is kept at. The command
    *     line, redacted, goes to this Runner's debug log.
+   *
+   * And none of the Runner's own settings, its id and key among them, in
+   * git's environment (withoutRunnerOwnEnvironment): the repository's
+   * commands, and the code agent's, have run in this tree, and a hook, a
+   * filter or an fsmonitor they set up runs inside git, with git's
+   * environment. A command's own credentials (`env`, GitCredentials) are
+   * added to it for that one command.
    */
   private async runGitCommand(
     repoPath: string,
@@ -1095,7 +1107,7 @@ export default class RepositoryManager {
         cwd,
         maxBuffer: GIT_MAX_BUFFER_BYTES,
         timeoutInMS: options?.timeoutInMS ?? DEFAULT_GIT_TIMEOUT_MS,
-        ...(options?.env ? { env: { ...process.env, ...options.env } } : {}),
+        env: { ...withoutRunnerOwnEnvironment(), ...(options?.env || {}) },
       });
     } catch (error) {
       logger.debug(

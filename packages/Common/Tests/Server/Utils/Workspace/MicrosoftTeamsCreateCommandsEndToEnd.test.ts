@@ -189,6 +189,7 @@ import MicrosoftTeamsReplies, {
   MICROSOFT_TEAMS_UNAVAILABLE_REFERENCE_MESSAGE,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceIncidentDeclaredByHand from "../../../../Server/Utils/Workspace/WorkspaceIncidentDeclaredByHand";
 import WorkspaceMemberActions, {
   WorkspaceEvent,
   WorkspaceEventRecord,
@@ -1606,6 +1607,15 @@ beforeEach(() => {
   projectId = ObjectID.generate();
   // A command and an action ask what the server has switched off: every product is on.
   everyServerProductIsOn();
+  /*
+   * Whether the project starts incidents declared by hand acknowledged
+   * (WorkspaceIncidentDeclaredByHand): read with the card's other reads,
+   * and not what these tests are about - off, as every project starts.
+   * WorkspaceIncidentDeclaredByHand.test and the card tests pin it.
+   */
+  jest
+    .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+    .mockResolvedValue(false);
   stubTenantAndInstallCapture(projectId);
   stubSenderCheck(projectId);
   stubDashboardUrl();

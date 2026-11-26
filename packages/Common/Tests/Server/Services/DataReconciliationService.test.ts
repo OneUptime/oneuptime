@@ -202,7 +202,17 @@ describe("an update of many reconciliations", () => {
     });
 
     expect(table.get(IDS[1]!)?.["name"]).toBe("Orders against the warehouse");
-    expect(held).not.toHaveBeenCalled();
+    /*
+     * The one read is the shared update path's, of the name alone: whether
+     * another reconciliation of a project that requires unique names has it
+     * (#10761). Nothing it compares is read.
+     */
+    expect(held).toHaveBeenCalledTimes(1);
+    expect(held.mock.calls[0]![1]).toEqual({
+      _id: true,
+      projectId: true,
+      name: true,
+    });
   });
 
   test("the hook reads the reconciliations it checks as the rows the update writes, once", async () => {

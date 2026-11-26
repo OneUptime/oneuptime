@@ -31,7 +31,7 @@ Les deux informent les visiteurs de vos pages de statut. Utilisez un événement
 
 |                              | Maintenance planifiée                                                   | Annonce                                        |
 | ---------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------- |
-| **Ce que c'est**             | Des travaux prévus, avec une fenêtre                                    | Un message pour les visiteurs de vos pages de statut |
+| **Ce qu'il est**             | Des travaux prévus, avec une fenêtre                                    | Un message pour les visiteurs de vos pages de statut |
 | **Ses moniteurs**            | Non vérifiés pendant qu'il se déroule, et affichés dans le statut choisi | Inchangés                                     |
 | **Comment il avance**        | Par vos états de maintenance, à l'heure                                 | Elle s'affiche de son heure de début jusqu'à son heure de fin, si elle en a une |
 | **Quand les abonnés sont prévenus** | Quand il est planifié, commence et se termine, et avant qu'il commence si vous le demandez | Une fois, quand elle commence à s'afficher |

@@ -835,6 +835,7 @@ describe("MonitorTemplateUtil.buildTemplateStorageMap — metric-backed types", 
     MonitorType.Proxmox,
     MonitorType.OpenStack,
     MonitorType.VMware,
+    MonitorType.XcpNg,
     MonitorType.Ceph,
     MonitorType.StorageArray,
   ];

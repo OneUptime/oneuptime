@@ -507,6 +507,43 @@ export const VMwareRoutePath: Dictionary<string> = {
   [PageMap.VMWARE_ARCHIVED]: `archived`,
 };
 
+/*
+ * An XCP-ng pool's pages, under /xcp-ng. A host's, a VM's and a storage
+ * repository's own page is keyed by the object's XAPI UUID
+ * (XcpNgResource.externalId) as :subModelId, which never changes when the
+ * object is renamed in Xen Orchestra.
+ */
+export const XcpNgRoutePath: Dictionary<string> = {
+  [PageMap.XCP_NG_POOL_VIEW]: `${RouteParams.ModelID}`,
+  [PageMap.XCP_NG_POOL_VIEW_HOSTS]: `${RouteParams.ModelID}/hosts`,
+  [PageMap.XCP_NG_POOL_VIEW_HOST_DETAIL]: `${RouteParams.ModelID}/hosts/${RouteParams.SubModelID}`,
+  [PageMap.XCP_NG_POOL_VIEW_VMS]: `${RouteParams.ModelID}/vms`,
+  [PageMap.XCP_NG_POOL_VIEW_VM_DETAIL]: `${RouteParams.ModelID}/vms/${RouteParams.SubModelID}`,
+  [PageMap.XCP_NG_POOL_VIEW_STORAGE]: `${RouteParams.ModelID}/storage`,
+  [PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
+  [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
+  [PageMap.XCP_NG_POOL_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
+  [PageMap.XCP_NG_POOL_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
+  [PageMap.XCP_NG_POOL_VIEW_LOGS]: `${RouteParams.ModelID}/logs`,
+  [PageMap.XCP_NG_POOL_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
+  [PageMap.XCP_NG_POOL_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
+  [PageMap.XCP_NG_POOL_VIEW_SCHEDULED_MAINTENANCE]: `${RouteParams.ModelID}/scheduled-maintenance`,
+  [PageMap.XCP_NG_POOL_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
+  [PageMap.XCP_NG_POOL_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
+  [PageMap.XCP_NG_POOL_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
+  [PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
+  [PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.XCP_NG_POOL_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
+  [PageMap.XCP_NG_DOCUMENTATION]: `documentation`,
+  [PageMap.XCP_NG_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.XCP_NG_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.XCP_NG_SETTINGS_LABEL_RULES]: `settings/label-rules`,
+  [PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
+  [PageMap.XCP_NG_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
+  [PageMap.XCP_NG_POOLS_ARCHIVED]: `archived`,
+};
+
 export const IoTRoutePath: Dictionary<string> = {
   [PageMap.IOT_FLEET_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.IOT_FLEET_VIEW_DEVICES]: `${RouteParams.ModelID}/devices`,
@@ -621,6 +658,8 @@ export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: `${RouteParams.ModelID}/replication`,
   [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: `${RouteParams.ModelID}/hardware`,
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
+  // A kind a platform has of its own, by its name (StorageArrayPlatform.kindDefinitions).
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
@@ -750,13 +789,18 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES]: `settings/savings-ai-rules`,
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
   [PageMap.CLOUD_CONNECT]: `connect`,
   [PageMap.CLOUD_COSTS]: `costs`,
   [PageMap.CLOUD_SAVINGS]: `savings`,
+  [PageMap.CLOUD_SCHEDULES]: `schedules`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
+  [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
+  [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
+  [PageMap.CLOUD_COST_GROUP_VIEW]: `cost-groups/${RouteParams.ModelID}/groups/${RouteParams.SubModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -5787,6 +5831,184 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  // XCP-ng
+
+  [PageMap.XCP_NG_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/*`,
+  ),
+
+  [PageMap.XCP_NG_POOLS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_HOSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_HOSTS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_HOST_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_HOST_DETAIL]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_VMS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_VMS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_VM_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_VM_DETAIL]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_STORAGE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_STORAGE]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_METRICS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_METRICS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_LOGS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_ALERTS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_INCIDENTS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_SCHEDULED_MAINTENANCE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_SCHEDULED_MAINTENANCE]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_FEED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_FEED]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_OWNERS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_OWNERS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_DELETE]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_DELETE]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_DOCUMENTATION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_DOCUMENTATION]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_SETTINGS_LABEL_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOLS_ARCHIVED]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOLS_ARCHIVED]
+    }`,
+  ),
+
   // IoT
 
   [PageMap.IOT_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/iot/*`),
@@ -6405,6 +6627,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INVENTORY]
     }`,
   ),
 
@@ -7037,9 +7265,33 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_SCHEDULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SCHEDULES]
+    }`,
+  ),
+
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_GROUPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_GROUPS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_GROUP_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_GROUP_VIEW]
     }`,
   ),
 
@@ -7135,6 +7387,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES]
     }`,
   ),
 

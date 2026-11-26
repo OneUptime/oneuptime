@@ -78,7 +78,7 @@ flowchart TB
 
 - **No projects attached (default-all / invite-first):** Users can sign in with the provider and reach **any project they are already a member of**. New users are **not** created automatically — a user must be invited to a project first. Use this for company-wide SSO where memberships are managed elsewhere.
 
-- **Projects attached (auto-provisioning):** Open the provider and use the **Attached Projects** table to attach one or more projects, each with a set of default teams. Users who sign in are **auto-provisioned** into those projects and added to the default teams on first login. A project you attach starts on its members team; pick other teams if newcomers should start with different access. Add one project + teams at a time to build the list; to change an attachment, delete it and add it again.
+- **Projects attached (auto-provisioning):** Open the provider and use the **Attached Projects** table to attach one or more projects, each with a set of default teams. Users who sign in are **auto-provisioned** into those projects and added to the default teams: someone new on their first sign-in, and someone who already has an account, such as one you created by hand, on their next. A project you attach starts on its members team; pick other teams if newcomers should start with different access. An attached project with no teams adds nobody. Add one project + teams at a time to build the list; to change an attachment, delete it and add it again.
 
 Someone who is already a member of an attached project keeps the teams they have there.
 
@@ -89,7 +89,13 @@ Two questions on the provider change this, folded under **More fields**. Each st
 | **People without an account** | **Get one on their first sign-in**: they join the attached projects; with none attached, they must be invited first. **Must be invited first**: they must be invited to a project before they can sign in with this provider, even when projects are attached. |
 | **Where this sign-in counts as SSO** | **Every project**: projects that require SSO accept a sign-in with this provider. **Attached projects only**: signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others. |
 
-With **Every project**, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added.
+With **Every project**, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added: neither answer adds anyone to a project. While no project with teams is attached, the provider's page says under **People without an account** that nobody new can sign in yet.
+
+## Email addresses your identity provider has not verified
+
+A global OpenID Connect provider finds the account it signs in by the email address it sends, as a project's provider does, and master admins' accounts are found the same way. So it signs nobody in with an address the provider says it has not verified, with an `email_verified` claim of `false` or of something that is neither true nor false. Otherwise someone could put a master admin's address on their account at the provider, and sign in to the whole instance as them. A provider that sends `email_verified` as `true`, or sends none, as Microsoft Entra ID does, signs people in as before.
+
+Through authentik 2025.10 and later, nobody signs in until you change its `email` scope mapping, and through Keycloak, nobody whose address it has not verified. What to change there, what still signs in and what the person sees are on the [SSO](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified) page. Master admins with a password can sign in with it while you do, at `/accounts/admin-login` while the whole instance requires SSO.
 
 ## Signing out of the identity provider too
 
@@ -160,7 +166,7 @@ Two changes to who can sign in are checked one after the other. If another one i
 ## Troubleshooting
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-The person has no OneUptime account yet, and the provider does not create one: either no projects are attached to it, or **People without an account** is set to **Must be invited first**. Invite them to a project, or attach a project to the provider.
+The person has no OneUptime account yet, and the provider does not create one: either no project with teams is attached to it, or **People without an account** is set to **Must be invited first**. Invite them to a project, or attach a project, with the teams they join, to the provider. The server's log says which, without naming the person.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -181,6 +187,10 @@ For a SAML provider, the response was made for another application: its audience
 
 :::details "SAML response was already used"
 Each response from your identity provider signs someone in once, and only within minutes of being issued: after that it is refused with "SAML response has expired". Sign in again. If responses keep expiring, check the clocks of this server and of your identity provider.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+The OpenID Connect provider sent `email_verified` as `false`, or as something that is neither true nor false, so OneUptime signed nobody in, a master admin included. Have the address verified at your identity provider, or mark it verified there, and sign in again. See [Email addresses your identity provider has not verified](#email-addresses-your-identity-provider-has-not-verified).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

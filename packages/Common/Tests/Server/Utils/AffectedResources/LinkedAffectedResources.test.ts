@@ -163,6 +163,7 @@ describe("the relation table", () => {
       "proxmoxClusters",
       "openStackClouds",
       "vmwareVCenters",
+      "xcpNgPools",
       "cephClusters",
       "storageArrays",
       "dockerSwarmClusters",

@@ -246,6 +246,7 @@ import { FormType } from "../../../UI/Components/Forms/ModelForm";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getJestSpyOn } from "../../Spy";
 import {
   hasSetChip,
@@ -304,6 +305,17 @@ beforeEach(() => {
       navigateCalls.push(String(route));
     },
   );
+
+  /*
+   * A team's name is one of its kind in a project, so the form asks the
+   * server whether another team has the name typed (DuplicateNameNotice,
+   * #10761): none has it here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 
   getListMock.mockImplementation(async (): Promise<any> => {
     // A project with no teams of its own yet.

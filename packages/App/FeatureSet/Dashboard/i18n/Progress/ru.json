@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64436,
-    "untranslated": 8273
+    "keys": 65322,
+    "untranslated": 8281
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -207,6 +207,7 @@
     "name",
     "nova-compute",
     "null",
+    "office-hours",
     "oneuptime",
     "oneuptime-check",
     "oneuptime-checks",

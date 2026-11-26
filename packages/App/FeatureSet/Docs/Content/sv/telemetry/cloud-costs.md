@@ -1,11 +1,14 @@
 # Molnkostnader och besparingar
 
-Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mindre. OneUptime läser varje dags kostnader från molnets egen fakturering och rekommendationerna från molnets egen rekommendationstjänst, visar dem under **Moln → Utgifter → Kostnader** och **Moln → Utgifter → Besparingar**, och larmar innan en månad kostar mer än sin budget under **Moln → Utgifter → Budgetar**.
+Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mindre. OneUptime läser varje dags kostnader från molnets egen fakturering och rekommendationerna från molnets egen rekommendationstjänst, visar dem under **Moln → Utgifter → Kostnader** och **Moln → Utgifter → Besparingar**, och larmar innan en månad kostar mer än sin budget under **Moln → Utgifter → Budgetar**. När du tillåter det genomför den också de besparingar som en ägare godkänner, stoppar resurser som inte är produktion utanför arbetstid och kontrollerar varje ändring mot fakturan.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer och Cost Optimization Hub, var och en påslagen en gång.
 - [Microsoft Azure](#microsoft-azure): Cost Management och Azure Advisor, med en roll till.
 - [Google Cloud](#google-cloud): Din faktureringsexport till BigQuery, och Recommender.
+- [Genomför besparingar](#genomför-besparingar): Tillämpa en besparing med ägarens godkännande, och ångra den.
+- [Scheman utanför arbetstid](#scheman-utanför-arbetstid): Stoppa resurser som inte är produktion på natten och på helgerna.
+- [AI-regler för besparingar](#ai-regler-för-besparingar): Förslag till ägare, eller ändringar inom en gräns.
 - [Budgetar](#budgetar): Ett larm när en månads utgifter passerar en andel av dess budget.
 :::
 
@@ -85,7 +88,7 @@ Den detaljerade exporten anger den resurs varje kostnad gäller; standardexporte
 
 ## Sätt att spendera mindre
 
-**Moln → Utgifter → Besparingar** listar varje rekommendation, den största besparingen först: vad som ska göras, för vilken resurs, vad som skulle ändras och vad den sparar per månad. Remsan ovanför summerar dem, totalt och efter typ: en mindre storlek, en resurs som står oanvänd, ett åtagande. En rekommendation länkar till sidan för sin resurs när OneUptime har resursen.
+**Moln → Utgifter → Besparingar** listar varje rekommendation, den största besparingen först: vad som ska göras, för vilken resurs, vad som skulle ändras och vad den sparar per månad. Remsan ovanför summerar dem, totalt och efter typ: en mindre storlek, en resurs som står oanvänd, ett åtagande. En rekommendation länkar till sidan för sin resurs när OneUptime har resursen, och en som OneUptime kan genomföra har **Tillämpa**: se [Genomför besparingar](#genomför-besparingar).
 
 ### Storleksanpassning utifrån OneUptimes egna mätvärden
 
@@ -105,6 +108,62 @@ En resurs bedöms så snart den har 6 dagars mätvärden. Dess sida visar dess *
 - Google Cloud: rabatter för åtagen användning, från din faktureringsexport. Exporten anger inte hur mycket av ett åtagande som förblev oanvänt, så hur mycket som används visas inte.
 
 Ett konto utan åtaganden visar vad som kördes till on demand-priser som ett åtagande skulle betala billigare för. Varje typs siffror är dess molns egna, och typer läggs aldrig ihop: en reservation och en Savings Plan kan båda räkna samma maskins utgifter som sina att täcka.
+
+## Genomför besparingar
+
+OneUptime genomför en besparing via kontots molnanslutning så snart dess inställning **Besparingsåtgärder** tillåter det: [Besparingsåtgärder](/docs/telemetry/cloud-accounts#besparingsåtgärder) säger vad varje val ger åtkomst till. Den gör bara ändringar i ett steg: Den stoppar en oanvänd instans eller databas, byter en gp2-volym till gp3, tar bort en disk som inte är ansluten, en gammal ögonblicksbild eller en oanvänd avbildning, släpper en oanvänd adress och ändrar, när du tillåter det, storleken på en instans eller databas till den rekommenderade. Den köper aldrig ett åtagande: **Köp i konsolen** öppnar molnets sida för det.
+
+:::steps
+### Välj Tillämpa
+
+Under **Moln → Utgifter → Besparingar** väljer du **Tillämpa** på en besparing. Dialogen säger vad som ändras, vad den sparar per månad, hur den ångras eller att den inte kan det, och vem som godkänner den.
+
+### En ägare godkänner den
+
+En person som är angiven som ägare av resursen, eller en medlem i ett team som äger den, och som också får redigera den, godkänner ändringen. En resurs utan ägare godkänns av en Projektägare eller Projektadministratör. När du själv får godkänna den genomför **Tillämpa** den direkt, som dig. Annars väntar den under **Väntar på godkännande** tills en ägare väljer **Godkänn**, eller **Dölj** med en orsak.
+
+### OneUptime genomför den
+
+Ändringen görs via anslutningen och finns på resursens och kontots tidslinjer, med vem som godkände den. Av en borttagen disk tas först en sista ögonblicksbild, om du inte stänger av **Ta en sista ögonblicksbild först**.
+:::
+
+Varje ändring säger hur den ångras: **Ångra** under **Genomförda ändringar** startar en stoppad instans igen, ställer tillbaka en volym eller en storlek, eller återskapar en borttagen disk från dess sista ögonblicksbild. Det som tar bort för gott, som en ögonblicksbild, en avbildning eller en släppt adress, kan inte ångras, och dialogen säger det innan du tillämpar den. Där projektet kräver två godkännanden med **Kräv två godkännanden för riskablare åtgärder** behöver en ändring som inte kan ångras två personer.
+
+En resurs vars taggar säger att den hanteras som kod, till exempel av Terraform eller CloudFormation, ändras i stället i sin kod: Dialogen erbjuder **Öppna pull request** till det repository som deklarerar den, så att nästa apply inte tar tillbaka besparingen.
+
+### Bevisat av fakturan
+
+**Sparat den här månaden** räknar bara det som molnets faktura visar. Så snart tre dagar efter en ändring har satt sig på fakturan jämförs resursens kostnad per dag med veckan före ändringen: Den **Syns på fakturan** när kostnaden har sjunkit med minst en fjärdedel av det utlovade, **Syns inte på fakturan** när den inte har det, och **Kan inte mätas** när molnet inte fakturerar resursen med namn. **Fakturan kontrolleras** räknar de ändringar som fortfarande väntar på de dagarna.
+
+## Scheman utanför arbetstid
+
+Under **Moln → Utgifter → Scheman** stoppar ett schema instanser och databaser som inte är produktion utanför arbetstid, och startar dem igen:
+
+:::steps
+### Välj resurserna
+
+Ange molntaggen som väljer dem, till exempel `Schedule` = `office-hours`, i ett konto eller i alla.
+
+### Säg när de körs
+
+Välj arbetsdagarna, tiden de startar och tiden de stoppas, i 24-timmarsformat, och tidszonen.
+:::
+
+När arbetstiden slutar stoppar ett schema via sitt kontos anslutning varje resurs som körs, som dess tagg väljer och som är känd för att inte vara produktion, och när den börjar startar det bara det som det själv stoppade: En resurs som någon stoppade för hand förblir stoppad. **Visa resurser** listar vad ett schema väljer nu och varför det låter några köras. Det stoppar EC2-instanser och RDS-databaser på AWS, virtuella maskiner på Azure och Compute Engine-instanser på Google Cloud. AWS startar själv en databas som varit stoppad i sju dagar igen.
+
+Ett schema stoppar aldrig produktion, och aldrig en resurs vars miljö inget säger. En resurs är känd för att inte vara produktion när:
+
+- en av dess taggar säger det, under en nyckel som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med ett ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
+- dess konto är markerat som **Icke-produktion** under **Miljö** i kontots **Inställningar**;
+- eller en av dess etiketter säger det, till exempel `Staging` eller `env: dev`.
+
+Produktion vinner: En tagg som säger `prod`, `production` eller `live`, eller ett konto markerat som **Produktion**, håller en resurs igång oavsett vad annat säger. En resurs namn läses aldrig för det. Stänger du av ett schema stoppar det inget mer och startar det som det stoppade när dess arbetstid börjar; tar du bort det startas det som det stoppade direkt.
+
+## AI-regler för besparingar
+
+Med **Aktivera AI** påslaget föreslår OneUptime AI efter varje läsning av kontots besparingar varje besparing den kan genomföra för resursens ägare, och de godkänner eller avvisar den under **Väntar på godkännande**. Under **Moln → Inställningar → AI-regler för besparingar** säger en regel vad OneUptime AI gör med de besparingar den matchar, efter typ av ändring, resursens miljö och dess moln: **Av**, **Föreslå för ägaren** eller **Agera utan att fråga**, upp till en månadsgräns. Utan regel föreslås varje besparing och ingen genomförs; med regler bara det en regel matchar, och mellan regler som matchar vinner den mest försiktiga.
+
+En regel agerar bara utan att fråga på en resurs som är känd för att inte vara produktion, bara för en ändring som kan ångras, bara upp till den lägsta gränsen bland reglerna som matchar, och högst 10 gånger i timmen i ett projekt: Allt annat föreslås. En ändring som görs utan att fråga finns på tidslinjerna med regeln som gjorde den, och dess ägare kan ångra den. En avvisad eller ångrad besparing föreslås inte igen på 30 dagar.
 
 ## Budgetar
 
@@ -144,6 +203,7 @@ Under listan anger kortet vad resten uppgick till: det som inte finns i någon m
 - **Varje dags utgifter.** **Moln → Utgifter → Kostnader** ritar var och en av de senaste 30 dagarna och markerar de dagar som kostade långt mer än vanligt, listar de dagarna och delar upp en period efter tjänst, region, konto, resurs, miljö i appplattformar, app eller tagg. De konton vars kostnader inte läses listas nedanför, var och en med orsaken.
 - **Ett kontos kostnader.** Ett kontos **Kostnader** visar samma sak för kontot ensamt, med dess åtaganden och dess sätt att spendera mindre.
 - **En resurs kostnad.** En resurs sida visar vad den har kostat den här månaden och de senaste 30 dagarna när dess moln fakturerar den med namn, med dess sätt att spendera mindre och dess storleksanpassning.
+- **Vad som sparades.** **Moln → Utgifter → Besparingar** börjar med vad de genomförda ändringarna har sparat den här månaden enligt fakturan, ändringarna som väntar på godkännande och de genomförda, och timmarna som scheman har stoppat resurser.
 
 ## Felsökning
 
@@ -171,6 +231,14 @@ Anslutningen får ännu inte läsa kontots Savings Plans och reservationer. Kör
 Beloppen är i den valuta som de flesta av dina konton faktureras i. Ett konto som faktureras i en annan listas nedanför med sin valuta, och en budget räknar bara de konton som faktureras i dess egen.
 :::
 
+:::details En besparing har ingen Tillämpa
+OneUptime gör bara ändringar i ett steg: Ett åtagande, eller en rekommendation som ändrar mer än en sak, görs i molnets konsol. Tillämpa öppnar en dialog som säger varför den inte kan göras härifrån när kontots anslutning inte tillåter det: Slå på dess **Besparingsåtgärder** och kör dess installationskommando igen.
+:::
+
+:::details Ett schema låter en resurs köras
+**Visa resurser** säger varför: Den är produktion, inget säger att den inte är produktion, eller dess kontos anslutning tillåter inte besparingsåtgärder. Tagga den, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
+:::
+
 :::details Den här månaden är lägre än i molnets konsol
 Molnet rapporterar den sista dagen eller två sent, och beloppen är före krediter och återbetalningar. Nästa läsningar kommer ikapp.
 :::
@@ -178,6 +246,7 @@ Molnet rapporterar den sista dagen eller två sent, och beloppen är före kredi
 ## Nästa steg
 
 :::cards
+- [Fördelning av molnkostnader](/docs/telemetry/cloud-cost-allocation): Fördela utgifterna på team, produkter och kostnadsställen.
 - [Anslut ett molnkonto](/docs/telemetry/cloud-accounts): Anslut ett annat konto, eller kör dess kommando igen.
 - [Molnresurser](/docs/telemetry/cloud-resources): Varje resurs mätvärden, från en egen collector.
 - [Kostnadsobservability för Kubernetes](/docs/telemetry/kubernetes-cost): Vad varje Kubernetes-arbetsbelastning kostar.

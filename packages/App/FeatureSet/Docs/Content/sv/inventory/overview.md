@@ -50,7 +50,7 @@ Var tredje timme tar OneUptime bort de upptäckta objekt som har varit tysta lä
 | --- | --- |
 | Poddar, deployments, Proxmox-gäster, OpenStack-instanser och virtuella VMware-maskiner | 1 dag |
 | Kubernetes-noder och -namnrymder, Proxmox-noder, OpenStack-hypervisorer, VMware-värdar, -kluster och -datalager, samt de databaser och fjärrtjänster som dina traces anropar | 7 dagar |
-| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, OpenStack-moln, lagringsarrayer, vCenters och Docker Swarm-kluster | 30 dagar |
+| Tjänster, värdar, Kubernetes-, Proxmox- och Ceph-kluster, OpenStack-moln, lagringsarrayer, vCenters, XCP-ng-pooler och Docker Swarm-kluster | 30 dagar |
 
 En relation som OneUptime har upptäckt tas bort när den inte har setts igen på 30 dagar.
 

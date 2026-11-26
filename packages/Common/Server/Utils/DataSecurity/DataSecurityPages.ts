@@ -1,0 +1,102 @@
+import { DashboardClientUrl } from "../../EnvironmentConfig";
+import {
+  AIChatCitationTarget,
+  AIChatCitationTargetType,
+} from "../../../Types/AI/AIChatTypes";
+import ObjectID from "../../../Types/ObjectID";
+
+/*
+ * THE DASHBOARD'S DATA SECURITY PAGES, BY ADDRESS (#10378).
+ *
+ * Where a person presses the button an action of Ask AI's stands in for: a
+ * store, its findings or owners, an issue, Data Security → AI and the
+ * settings of each kind of rule. The MCP server sends an agent here for an
+ * action that asks in every mode, which it cannot ask about itself
+ * (DataSecurityActionRunner), and Ask AI's cards open the same pages
+ * (AIChatCitationTarget). The paths are the Dashboard's own
+ * (Dashboard/src/Utils/RouteMap: DataSecurityRoutePath), held together by
+ * a test.
+ */
+
+export const DATA_SECURITY_PAGE_PATHS: {
+  store: string;
+  storeFindings: string;
+  storeOwners: string;
+  issue: string;
+  ai: string;
+  dataTypes: string;
+  residencyRules: string;
+  ownerRules: string;
+  labelRules: string;
+} = {
+  store: "/dashboard/:projectId/data-security/stores/:id",
+  storeFindings: "/dashboard/:projectId/data-security/stores/:id/inside",
+  storeOwners: "/dashboard/:projectId/data-security/stores/:id/owners",
+  issue: "/dashboard/:projectId/data-security/issues/:id",
+  ai: "/dashboard/:projectId/data-security/ai",
+  dataTypes: "/dashboard/:projectId/data-security/settings/data-types",
+  residencyRules: "/dashboard/:projectId/data-security/settings/residency",
+  ownerRules: "/dashboard/:projectId/data-security/settings/owner-rules",
+  labelRules: "/dashboard/:projectId/data-security/settings/label-rules",
+};
+
+/*
+ * A page, as Ask AI's cards and chips open it: a Dashboard page by its
+ * route template and its English title (AIChatCitationTargetType
+ * .DashboardPage), which the chip names in the reader's language.
+ */
+export function getDataSecurityPageTarget(data: {
+  path: string;
+  title: string;
+}): AIChatCitationTarget {
+  return {
+    type: AIChatCitationTargetType.DashboardPage,
+    params: { path: data.path, title: data.title },
+  };
+}
+
+/*
+ * The address of the page a target opens, in this project: a store's or an
+ * issue's page by its id, or a Dashboard page by its template. Null for a
+ * target this does not know, or one whose id is not one.
+ */
+export function getDataSecurityPageUrl(data: {
+  projectId: ObjectID;
+  target: AIChatCitationTarget | undefined;
+}): string | null {
+  const target: AIChatCitationTarget | undefined = data.target;
+  const params: { [key: string]: string } = target?.params || {};
+  let path: string | null = null;
+
+  switch (target?.type) {
+    case AIChatCitationTargetType.DataStoreView:
+      path = withId(DATA_SECURITY_PAGE_PATHS.store, params["dataStoreId"]);
+      break;
+    case AIChatCitationTargetType.DataSecurityIssueView:
+      path = withId(
+        DATA_SECURITY_PAGE_PATHS.issue,
+        params["dataSecurityIssueId"],
+      );
+      break;
+    case AIChatCitationTargetType.DashboardPage:
+      path = params["path"] || null;
+      break;
+    default:
+      path = null;
+  }
+
+  if (!path || !path.startsWith("/dashboard/:projectId/")) {
+    return null;
+  }
+
+  const dashboard: string = DashboardClientUrl.toString().replace(/\/+$/, "");
+
+  return `${dashboard}${path
+    .replace(/^\/dashboard/, "")
+    .replace(":projectId", data.projectId.toString())}`;
+}
+
+// A template's :id, filled with an id that is one.
+function withId(template: string, id: string | undefined): string | null {
+  return id && ObjectID.isValidUUID(id) ? template.replace(":id", id) : null;
+}

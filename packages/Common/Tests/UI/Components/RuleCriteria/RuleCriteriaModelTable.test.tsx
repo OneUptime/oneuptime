@@ -399,10 +399,15 @@ More details stay here.
      * Cloud's and App Platforms' - and RUM's and Serverless's had no help
      * panel either, until #8889 gave them the shared one: 76. 77 since Data
      * Observability's Owner Rules page lists pipeline owner rules beside its
-     * table ones (#6548), with the shared owner rule help.
+     * table ones (#6548), with the shared owner rule help. 83 with Data
+     * Security's AI rules (Data Security -> AI), which, as the other AI rules
+     * forms, have no help panel; 84 with the AI rules for savings (Cloud ->
+     * Settings -> Savings AI Rules, #11010), which have none either; 86 with
+     * XCP-ng pools' label and owner rules, with the shared help.
      */
-    expect(staticRuleFormFiles).toHaveLength(82);
-    expect(helpFormFiles).toHaveLength(77);
+    expect(staticRuleFormFiles).toHaveLength(86);
+    // 79 with XCP-ng pools' label and owner rules' shared help.
+    expect(helpFormFiles).toHaveLength(79);
     /*
      * 68, the five episode rule help texts that now have the heading too,
      * the alert incident rules', two for Data Observability's data assets,
@@ -412,7 +417,8 @@ More details stay here.
      * owner rules' shared help (#6548). Sixty of them are the resource label
      * and owner rules' shared help.
      */
-    expect(helpMarkdown).toHaveLength(89);
+    // 91 with XCP-ng pools' label and owner rules' shared help.
+    expect(helpMarkdown).toHaveLength(91);
 
     for (const markdown of helpMarkdown) {
       const transformed: string = replaceRuleCriteriaHelpMarkdown(markdown);

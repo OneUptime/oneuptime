@@ -188,6 +188,8 @@ describe("RULE_CRITERIA_SUBJECT_BY_MODEL", () => {
       RuleCriteriaSubject.CloudEnvironments,
       // Data Security → AI's AI rules, about its issues (#10364).
       RuleCriteriaSubject.DataSecurityIssues,
+      // Cloud's AI rules for savings, about the savings OneUptime could make (#11010).
+      RuleCriteriaSubject.CloudSavings,
     ]);
     // An AI rule names its records by its table: Data Security's passes its own.
     expect(getRuleCriteriaSubjectForModel("AutoRemediationRule")).toBeNull();

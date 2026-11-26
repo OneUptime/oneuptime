@@ -101,6 +101,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the mustMatch and mustNotMatch patterns of the Data Security AI eval's own cases (DataSecurityEvalCases, written in code), held to the fix a model proposed: no project writes them",
   },
   {
+    file: "packages/Common/Server/Utils/AI/Toolbox/Serializer.ts",
+    count: 1,
+    builtFrom:
+      "a copy of one of its own redaction rules' pattern literals (REDACTION_RULES), with their flags, to read a tool result with its percent-escapes read (#11031): no project writes them",
+  },
+  {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
     count: 1,
     builtFrom: "a count of spaces",

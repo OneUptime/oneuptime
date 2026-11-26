@@ -263,6 +263,7 @@ const SERVICES_TRUSTING_SERVER_WRITES: Array<string> = [
   "WebhookLogService.ts",
   "WhatsAppLogService.ts",
   "WorkspaceNotificationLogService.ts",
+  "XcpNgPoolFeedService.ts",
 ];
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -319,6 +320,17 @@ const SERVICES_CHECKING_CREATE_PERMISSION_FIRST: Array<string> = [
 const SERVICES_ANSWERING_BEFORE_THE_PERMISSION_CHECK: Record<string, string> = {
   "UserNotificationRuleService.ts":
     "anyone signed in may create their own rule; the rule's owner must be a member of the project before anything else is decided (R1, UserNotificationRuleAdminGuards.test.ts)",
+};
+
+/*
+ * References a service's writes name one at a time, by the service: a status
+ * page resource shows a monitor or a monitor group, never both (#6540), and
+ * its service refuses a write that names both before the project check reads
+ * anything (checkCreateBeforeReferences, #6558). Each of these is checked in a
+ * write of its own, beside every other reference.
+ */
+const REFERENCES_NAMED_ONE_AT_A_TIME: Record<string, Array<string>> = {
+  "StatusPageResourceService.ts": ["monitor", "monitorGroup"],
 };
 
 type ModelType = { new (): DatabaseBaseModel };
@@ -567,6 +579,40 @@ function genericallyCheckedColumns(
     service.getModel(),
     declared(service, "getRelationsCheckedByService", write),
     declared(service, "getListsCheckedByService", write),
+  );
+}
+
+/*
+ * The writes that name `columns` as the service takes them: one that names
+ * them all - or, where it takes some of them one at a time
+ * (REFERENCES_NAMED_ONE_AT_A_TIME), one for each of those, beside all the
+ * others. Every column is in one of them.
+ */
+function writesNaming(
+  file: string,
+  columns: Array<ProjectReferenceColumn>,
+): Array<Array<ProjectReferenceColumn>> {
+  const oneAtATime: Array<string> = REFERENCES_NAMED_ONE_AT_A_TIME[file] || [];
+  const alone: Array<ProjectReferenceColumn> = columns.filter(
+    (column: ProjectReferenceColumn): boolean => {
+      return oneAtATime.includes(column.column);
+    },
+  );
+
+  if (alone.length < 2) {
+    return [columns];
+  }
+
+  const beside: Array<ProjectReferenceColumn> = columns.filter(
+    (column: ProjectReferenceColumn): boolean => {
+      return !oneAtATime.includes(column.column);
+    },
+  );
+
+  return alone.map(
+    (column: ProjectReferenceColumn): Array<ProjectReferenceColumn> => {
+      return [...beside, column];
+    },
   );
 }
 
@@ -908,6 +954,31 @@ describe("services whose rows name the project's records", () => {
     }
   });
 
+  test.each(Object.keys(REFERENCES_NAMED_ONE_AT_A_TIME))(
+    "%s takes one at a time only references the project check covers",
+    (file: string) => {
+      expect(
+        CHECKED_CASES.some((serviceCase: ServiceCase): boolean => {
+          return serviceCase.file === file;
+        }),
+      ).toBe(true);
+
+      const covered: Array<string> = genericallyCheckedColumns(
+        servicesOf(file),
+      ).map((column: ProjectReferenceColumn): string => {
+        return column.column;
+      });
+
+      for (const reference of REFERENCES_NAMED_ONE_AT_A_TIME[file]!) {
+        expect({
+          file,
+          reference,
+          isCovered: covered.includes(reference),
+        }).toEqual({ file, reference, isCovered: true });
+      }
+    },
+  );
+
   test.each(
     CHECKED_CASES.map((serviceCase: ServiceCase) => {
       return [serviceCase.file];
@@ -972,26 +1043,28 @@ describe("services whose rows name the project's records", () => {
           continue;
         }
 
-        const thrown: unknown = await refusalOf(
-          callHook(service, "onBeforeCreate", {
-            data: recordWith(service, payloadWith(columns, foreignIdFor)),
-            props: props,
-          }),
-        );
-
-        expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
-
-        const message: string = (thrown as Error).message;
-
-        expect(message).toContain(
-          "references records that are not in this project",
-        );
-
-        columns.forEach((column: ProjectReferenceColumn, index: number) => {
-          expect(message).toContain(
-            `${column.modelName} "${foreignIdFor(index)}"`,
+        for (const named of writesNaming(file, columns)) {
+          const thrown: unknown = await refusalOf(
+            callHook(service, "onBeforeCreate", {
+              data: recordWith(service, payloadWith(named, foreignIdFor)),
+              props: props,
+            }),
           );
-        });
+
+          expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+
+          const message: string = (thrown as Error).message;
+
+          expect(message).toContain(
+            "references records that are not in this project",
+          );
+
+          named.forEach((column: ProjectReferenceColumn, index: number) => {
+            expect(message).toContain(
+              `${column.modelName} "${foreignIdFor(index)}"`,
+            );
+          });
+        }
       }
     },
   );
@@ -1055,17 +1128,19 @@ describe("services whose rows name the project's records", () => {
        */
       stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
 
-      const thrown: unknown = await refusalOf(
-        callHook(service, "onBeforeUpdate", {
-          query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
-          data: payloadWith(columns, foreignIdFor),
-          props: USER_PROPS,
-          limit: 1,
-          skip: 0,
-        }),
-      );
+      for (const named of writesNaming(file, columns)) {
+        const thrown: unknown = await refusalOf(
+          callHook(service, "onBeforeUpdate", {
+            query: { _id: "1c2d3e4f-0000-4000-8000-0000000000a1" },
+            data: payloadWith(named, foreignIdFor),
+            props: USER_PROPS,
+            limit: 1,
+            skip: 0,
+          }),
+        );
 
-      expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+        expect(thrown).toBeInstanceOf(ProjectScopedReferenceException);
+      }
     },
   );
 
@@ -1095,26 +1170,28 @@ describe("services whose rows name the project's records", () => {
         }),
       );
 
-      const foreign: unknown = await refusalOf(
-        callHook(service, "onBeforeCreate", {
-          data: recordWith(service, payloadWith(columns, foreignIdFor)),
-          props: USER_PROPS,
-        }),
-      );
-      const missing: unknown = await refusalOf(
-        callHook(service, "onBeforeCreate", {
-          data: recordWith(service, payloadWith(columns, missingIdFor)),
-          props: USER_PROPS,
-        }),
-      );
+      for (const named of writesNaming(file, columns)) {
+        const foreign: unknown = await refusalOf(
+          callHook(service, "onBeforeCreate", {
+            data: recordWith(service, payloadWith(named, foreignIdFor)),
+            props: USER_PROPS,
+          }),
+        );
+        const missing: unknown = await refusalOf(
+          callHook(service, "onBeforeCreate", {
+            data: recordWith(service, payloadWith(named, missingIdFor)),
+            props: USER_PROPS,
+          }),
+        );
 
-      expect(foreign).toBeInstanceOf(ProjectScopedReferenceException);
-      expect(missing).toBeInstanceOf(ProjectScopedReferenceException);
+        expect(foreign).toBeInstanceOf(ProjectScopedReferenceException);
+        expect(missing).toBeInstanceOf(ProjectScopedReferenceException);
 
-      // Word for word the same answer, but for the ids it names.
-      expect(
-        (missing as Error).message.split("d1d1d1d1").join("f1f1f1f1"),
-      ).toBe((foreign as Error).message);
+        // Word for word the same answer, but for the ids it names.
+        expect(
+          (missing as Error).message.split("d1d1d1d1").join("f1f1f1f1"),
+        ).toBe((foreign as Error).message);
+      }
     },
   );
 
@@ -1135,30 +1212,6 @@ describe("services whose rows name the project's records", () => {
         return;
       }
 
-      // The record has held these "foreign" ids since before they were checked.
-      const held: Record<string, unknown> = {};
-
-      columns.forEach((column: ProjectReferenceColumn, index: number) => {
-        held[column.column] = column.isList
-          ? [{ _id: foreignIdFor(index) }]
-          : { _id: foreignIdFor(index) };
-      });
-
-      const record: DatabaseBaseModel = recordWith(service, held);
-
-      // The record the update names - a project is its own project already.
-      if (!record._id) {
-        record._id = "1c2d3e4f-0000-4000-8000-0000000000a1";
-      }
-
-      jest.spyOn(service, "findBy").mockResolvedValue([record] as never);
-
-      /*
-       * The read of the rows the caller's update may write, which the update
-       * path makes before the hooks: what the read above answers.
-       */
-      stubRowsCallerMayWriteLikeFindBy(service, jest.spyOn(service, "findBy"));
-
       // The base class's hook: the service's own may read the database.
       const baseHook: HookFunction = (
         ProjectReferencesService.prototype as unknown as Record<
@@ -1167,26 +1220,55 @@ describe("services whose rows name the project's records", () => {
         >
       )["onBeforeUpdate"]!;
 
-      const update: (data: Record<string, unknown>) => Promise<unknown> = (
-        data: Record<string, unknown>,
-      ): Promise<unknown> => {
-        return baseHook.call(service, {
-          query: { _id: record._id },
-          data: data,
-          props: USER_PROPS,
-          limit: 1,
-          skip: 0,
+      for (const named of writesNaming(file, columns)) {
+        // The record has held these "foreign" ids since before they were checked.
+        const held: Record<string, unknown> = {};
+
+        named.forEach((column: ProjectReferenceColumn, index: number) => {
+          held[column.column] = column.isList
+            ? [{ _id: foreignIdFor(index) }]
+            : { _id: foreignIdFor(index) };
         });
-      };
 
-      await expect(
-        update(payloadWith(columns, foreignIdFor)),
-      ).resolves.toBeDefined();
+        const record: DatabaseBaseModel = recordWith(service, held);
 
-      // What it holds exempts nothing else.
-      await expect(
-        update(payloadWith(columns, missingIdFor)),
-      ).rejects.toBeInstanceOf(ProjectScopedReferenceException);
+        // The record the update names - a project is its own project already.
+        if (!record._id) {
+          record._id = "1c2d3e4f-0000-4000-8000-0000000000a1";
+        }
+
+        jest.spyOn(service, "findBy").mockResolvedValue([record] as never);
+
+        /*
+         * The read of the rows the caller's update may write, which the
+         * update path makes before the hooks: what the read above answers.
+         */
+        stubRowsCallerMayWriteLikeFindBy(
+          service,
+          jest.spyOn(service, "findBy"),
+        );
+
+        const update: (data: Record<string, unknown>) => Promise<unknown> = (
+          data: Record<string, unknown>,
+        ): Promise<unknown> => {
+          return baseHook.call(service, {
+            query: { _id: record._id },
+            data: data,
+            props: USER_PROPS,
+            limit: 1,
+            skip: 0,
+          });
+        };
+
+        await expect(
+          update(payloadWith(named, foreignIdFor)),
+        ).resolves.toBeDefined();
+
+        // What it holds exempts nothing else.
+        await expect(
+          update(payloadWith(named, missingIdFor)),
+        ).rejects.toBeInstanceOf(ProjectScopedReferenceException);
+      }
     },
   );
 

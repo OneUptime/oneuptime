@@ -9,6 +9,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -45,10 +46,10 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * Builds a unified "Affected Resources" facet that lets the user search and
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
- * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, Storage Array,
- * IoT Fleet, Database and — for Scheduled Maintenance only — Network Site,
- * and — for Incidents and Alerts only — Network Device, Cloud Resource and
- * SLO.
+ * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, XCP-ng Pool,
+ * Storage Array, IoT Fleet, Database and — for Scheduled Maintenance only —
+ * Network Site, and — for Incidents and Alerts only — Network Device, Cloud
+ * Resource and SLO.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. Its filter is
@@ -74,6 +75,7 @@ export type AffectedResourceType =
   | "proxmoxCluster"
   | "openStackCloud"
   | "vmwareVCenter"
+  | "xcpNgPool"
   | "cephCluster"
   | "storageArray"
   | "dockerSwarmCluster"
@@ -151,6 +153,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.VMware,
     modelType: VMwareVCenter,
   },
+  xcpNgPool: {
+    label: "XCP-ng Pool",
+    pluralLabel: "XCP-ng Pools",
+    icon: IconProp.XcpNg,
+    modelType: XcpNgPool,
+  },
   cephCluster: {
     label: "Ceph Cluster",
     pluralLabel: "Ceph Clusters",
@@ -216,6 +224,7 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "proxmoxCluster",
   "openStackCloud",
   "vmwareVCenter",
+  "xcpNgPool",
   "cephCluster",
   "storageArray",
   "dockerSwarmCluster",
@@ -260,6 +269,7 @@ const RESOURCE_QUERY_FIELD: Record<
   proxmoxCluster: "proxmoxClusters",
   openStackCloud: "openStackClouds",
   vmwareVCenter: "vmwareVCenters",
+  xcpNgPool: "xcpNgPools",
   cephCluster: "cephClusters",
   storageArray: "storageArrays",
   dockerSwarmCluster: "dockerSwarmClusters",

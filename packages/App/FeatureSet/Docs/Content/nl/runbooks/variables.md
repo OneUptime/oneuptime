@@ -33,7 +33,7 @@ Een naam komt één keer voor, ongeacht hoofdletters, onder de globale variabele
 
 ## Voordat u begint
 
-- **Een rol die variabelen beheert.** Projecteigenaar en Projectbeheerder, of de machtiging **Create Runbook Variable**. Runbookbeheerder leest variabelen, om ze te kiezen in de stappen die hij schrijft, maar wijzigt ze niet.
+- **Een rol die variabelen beheert.** Projecteigenaar en Projectbeheerder, of de machtiging **Create Runbook Variable**. Runbookbeheerder leest variabelen, om ze te kiezen in de stappen die hij schrijft, maar wijzigt ze niet. Een workflow wijzigt ze alleen als hij draait als Projecteigenaar of als een aangepaste rol met deze machtigingen: zie [Wat workflowstappen mogen](/docs/workflows/configuration#wat-workflowstappen-mogen).
 - **Een abonnement dat ze bevat.** Op OneUptime Cloud hebben runbookvariabelen het abonnement **Growth** of hoger nodig.
 
 ## Een variabele aanmaken
@@ -84,6 +84,8 @@ Een [SSH-stap](/docs/runbooks/authoring#ssh) kiest onder **Aanmelden met** de ge
 @tab Kubeconfig
 Een [kubectl-stap](/docs/runbooks/authoring#kubectl) kiest onder **Kubeconfig** de geheime variabele die de kubeconfig van het cluster bevat, of **De eigen toegang van de Runner** om die van de Runner te gebruiken.
 :::
+
+Een waarde wordt precies zo ingevuld als ze geschreven is, op de plek van de verwijzing, dus wie een variabele kan wijzigen, wijzigt wat elke stap die haar noemt, uitvoert. Geef de machtigingen die variabelen wijzigen alleen aan mensen die u die stappen zou laten schrijven. Waarden van buiten OneUptime, zoals wat een webhook-aanroep verstuurt, bereiken een Bash-stap in plaats daarvan als omgevingsvariabelen, nooit als deel van zijn script: zie [Waarden die een webhook-aanroep verstuurt](/docs/runbooks/triggers#waarden-die-een-webhook-aanroep-verstuurt).
 
 Op de pagina **Stappen** van een runbook tonen elk script en elk HTTP-verzoek onder **Variabelen — klik om te kopiëren** de variabelen die hun stap kan gebruiken, en de editor meldt wanneer een stap een variabele noemt die er niet is, of een geheim dat zijn Runner niet mag gebruiken.
 

@@ -5,7 +5,8 @@
  * names-and-addresses model into the App's and the probe's images while they
  * are built: it must fail the build on any byte the manifest does not pin,
  * retry a download that failed, and leave of ONNX Runtime's WebAssembly
- * package exactly what the model's thread loads.
+ * package exactly what the model's thread loads - with --runtime alone, as
+ * the ingress's image runs it, that and nothing else.
  *
  * The downloads here are a fake fetcher writing chosen bytes: no test
  * reaches the network. IronBankDataSecurityModel.test.js holds the real
@@ -282,6 +283,62 @@ describe("FetchDataSecurityModel", () => {
     expect(() => {
       script.slimRuntime(runtime);
     }).toThrow(/has no dist\/ort-wasm-simd-threaded\.mjs/);
+  });
+
+  /*
+   * The ingress image's run: its certificate sidecar reaches the code that
+   * can start the model's thread, so its prune keeps the runtime, but the
+   * image never has the model's files.
+   */
+  test("with --runtime alone, slims the runtime and fetches nothing", async () => {
+    const runtime = path.join(directory, "onnxruntime-web");
+
+    for (const file of [
+      ...script.RUNTIME_FILES,
+      "dist/ort.min.js",
+      "lib/index.ts",
+      "package.json",
+    ]) {
+      fs.mkdirSync(path.dirname(path.join(runtime, file)), { recursive: true });
+      fs.writeFileSync(path.join(runtime, file), file);
+    }
+
+    const { fetcher, calls } = fakeFetcher({});
+
+    await script.main(["--runtime", runtime], fetcher);
+
+    expect(calls).toEqual([]);
+    // Nothing but the runtime was there, and nothing else is now.
+    expect(fs.readdirSync(directory)).toEqual(["onnxruntime-web"]);
+    for (const file of [...script.RUNTIME_FILES, "package.json"]) {
+      expect({ file, kept: fs.existsSync(path.join(runtime, file)) }).toEqual({
+        file,
+        kept: true,
+      });
+    }
+    expect(fs.existsSync(path.join(runtime, "dist", "ort.min.js"))).toBe(false);
+    expect(fs.existsSync(path.join(runtime, "lib"))).toBe(false);
+  });
+
+  test("refuses a run with neither a manifest nor a runtime, and a directory without a manifest", async () => {
+    const { fetcher, calls } = fakeFetcher({});
+
+    await expect(script.main([], fetcher)).rejects.toThrow(
+      "--manifest or --runtime is required.",
+    );
+    await expect(
+      script.main(
+        [
+          "--directory",
+          path.join(directory, "model"),
+          "--runtime",
+          path.join(directory, "onnxruntime-web"),
+        ],
+        fetcher,
+      ),
+    ).rejects.toThrow("--directory needs --manifest.");
+    expect(calls).toEqual([]);
+    expect(fs.readdirSync(directory)).toEqual([]);
   });
 
   test("the files it keeps are the ones the model's thread loads", () => {

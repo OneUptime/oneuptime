@@ -37,6 +37,8 @@ import {
   Translator,
 } from "Common/Types/Translator";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getMobileAppOffer } from "Common/Types/HelpAndSupport/HelpAndSupport";
+import { useHelpAndSupport } from "Common/UI/Utils/HelpAndSupport";
 import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
@@ -70,15 +72,25 @@ export const COMPLIANCE_RULE_FORM_STEPS: Array<
   { id: RULE_FORM_STEP_SCOPE, title: translationKey("Scope") },
 ];
 
+/*
+ * A rule kind as a card. Where the server's admins took the mobile app
+ * away (Admin Dashboard > Settings > Help and Support, #10945), a kind
+ * whose sentence names the app says it without the app.
+ */
 const toCardOption: (
   definition: ComplianceRuleDefinition,
+  isMobileAppOffered: boolean,
 ) => CardSelectOption = (
   definition: ComplianceRuleDefinition,
+  isMobileAppOffered: boolean,
 ): CardSelectOption => {
   return {
     value: definition.ruleType,
     title: definition.title,
-    description: definition.description,
+    description:
+      !isMobileAppOffered && definition.descriptionWithoutApp
+        ? definition.descriptionWithoutApp
+        : definition.description,
     icon: getRuleTypeIcon(definition.ruleType),
   };
 };
@@ -133,8 +145,10 @@ export const isChannelOffered: (
 
 export const getRuleTypeCardOptions: (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isMobileAppOffered?: boolean | undefined,
 ) => Array<CardSelectOptionGroup> = (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isMobileAppOffered?: boolean | undefined,
 ): Array<CardSelectOptionGroup> => {
   const byCategory: (
     category: ComplianceRuleCategory,
@@ -149,7 +163,9 @@ export const getRuleTypeCardOptions: (
             isChannelOffered(definition.methodChannel, offeredWorkspaces))
         );
       },
-    ).map(toCardOption);
+    ).map((definition: ComplianceRuleDefinition): CardSelectOption => {
+      return toCardOption(definition, isMobileAppOffered !== false);
+    });
   };
 
   return [
@@ -522,9 +538,11 @@ export const ComplianceRulePreview: FunctionComponent<{
 export const getComplianceRuleFormFields: (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
   isCustomChannelOffered?: boolean | undefined,
+  isMobileAppOffered?: boolean | undefined,
 ) => Array<ModelField<TeamComplianceSetting>> = (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
   isCustomChannelOffered?: boolean | undefined,
+  isMobileAppOffered?: boolean | undefined,
 ): Array<ModelField<TeamComplianceSetting>> => {
   return [
     {
@@ -537,7 +555,10 @@ export const getComplianceRuleFormFields: (
         "On-call rules check that members will actually be paged; notification methods check they can be reached at all.",
       fieldType: FormFieldSchemaType.CardSelect,
       required: true,
-      cardSelectOptions: getRuleTypeCardOptions(offeredWorkspaces),
+      cardSelectOptions: getRuleTypeCardOptions(
+        offeredWorkspaces,
+        isMobileAppOffered,
+      ),
       /*
        * One column: the grid picks its column count from the VIEWPORT, so
        * inside the modal three columns squeeze each card to a few words a
@@ -680,6 +701,10 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
     isEditing ||
     Boolean(customChannels.channels && customChannels.channels.length > 0);
 
+  // Whether the server offers the mobile app (Help and Support, #10945).
+  const isMobileAppOffered: boolean =
+    getMobileAppOffer(useHelpAndSupport()) !== null;
+
   return (
     <ModelFormModal<TeamComplianceSetting>
       title={isEditing ? "Edit compliance rule" : "Add a compliance rule"}
@@ -725,6 +750,7 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
         fields: getComplianceRuleFormFields(
           isEditing ? undefined : offeredWorkspaces,
           isCustomChannelOffered,
+          isMobileAppOffered,
         ),
         steps: COMPLIANCE_RULE_FORM_STEPS,
       }}

@@ -277,6 +277,23 @@ export function keyForVMwareVCenter(
   });
 }
 
+/**
+ * `xcp_ng.pool.id` is the XCP-ng pool identity (matches the XcpNgPool row's
+ * `poolIdentifier`, the pool's XAPI UUID, written by
+ * `findOrCreateByIdentifier`). The XCP-ng Agent moves it from Xen
+ * Orchestra's pool_id label to the resource. Pass `XcpNgPool.poolIdentifier`.
+ */
+export function keyForXcpNgPool(
+  projectId: string,
+  poolIdentifier: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.XcpNgPool,
+    identifyingAttributes: { "xcp_ng.pool.id": poolIdentifier },
+  });
+}
+
 /*
  * Mirrors the resolvers' `str` / `addIfPresent`: a blank or whitespace-only
  * value is not identity-bearing, so it must be left out of the identity set

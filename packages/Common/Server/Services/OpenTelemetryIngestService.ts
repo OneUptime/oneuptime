@@ -25,6 +25,7 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../Models/DatabaseModels/XcpNgPool";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
@@ -40,6 +41,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import OpenStackCloudService from "./OpenStackCloudService";
 import VMwareVCenterService from "./VMwareVCenterService";
+import XcpNgPoolService from "./XcpNgPoolService";
 import CephClusterService from "./CephClusterService";
 import StorageArrayService from "./StorageArrayService";
 import DatabaseServerService from "./DatabaseServerService";
@@ -1302,6 +1304,22 @@ export default class OTelIngestService {
         retainTelemetryDataForDays: vcenter?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: vcenter?.telemetryRetentionConfig ?? null,
         projectId: vcenter?.projectId ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.XcpNgPool) {
+      const pool: XcpNgPool | null = await XcpNgPoolService.findOneById({
+        id: resourceId,
+        select: {
+          retainTelemetryDataForDays: true,
+          telemetryRetentionConfig: true,
+          projectId: true,
+        },
+        props: { isRoot: true },
+      });
+      return {
+        retainTelemetryDataForDays: pool?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig: pool?.telemetryRetentionConfig ?? null,
+        projectId: pool?.projectId ?? null,
       };
     }
     if (primaryEntityType === ServiceType.IoTDevice) {

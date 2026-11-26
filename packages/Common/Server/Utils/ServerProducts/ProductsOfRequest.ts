@@ -3,6 +3,7 @@ import ProductKey from "../../../Types/Product/ProductKey";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
 import { WorkspaceChannelRecordType } from "../../../Types/Workspace/WorkspaceChannelLink";
 import { isSetupActionRunOutsideChat } from "../../../Types/AI/AISetupActions";
+import { isDataSecurityActionRunOutsideChat } from "../../../Types/AI/AIDataSecurityActions";
 import { getToolProducts } from "../AI/Toolbox/ToolProducts";
 
 /*
@@ -147,6 +148,20 @@ export default class ProductsOfRequest {
     const action: string = readText(readBody(req)["action"]);
 
     return isSetupActionRunOutsideChat(action)
+      ? [...getToolProducts(action)]
+      : [];
+  }
+
+  /*
+   * The Data Security action a request runs (#10378): its body's action,
+   * by the products Ask AI's tool names - Data Security, and Code for Fix
+   * with AI. A name that is none of them names no product: the runner
+   * refuses it.
+   */
+  public static dataSecurityAction(req: RequestParts): Array<ProductKey> {
+    const action: string = readText(readBody(req)["action"]);
+
+    return isDataSecurityActionRunOutsideChat(action)
       ? [...getToolProducts(action)]
       : [];
   }

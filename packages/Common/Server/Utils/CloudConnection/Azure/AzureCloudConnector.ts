@@ -132,6 +132,8 @@ import {
   buildAzureInventoryItems,
   buildAzureInventoryQuery,
   buildAzureSubnetQuery,
+  describeAzureNetworksPastExpandedRows,
+  getAzureNetworksPastExpandedRows,
 } from "./AzureInventory";
 import { readAzureActivityEvent } from "./AzureChanges";
 import {
@@ -2204,6 +2206,19 @@ export default class AzureCloudConnector implements CloudConnector {
           }`,
         );
       }
+    }
+
+    /*
+     * A network of more subnets than Resource Graph expands of one row has
+     * the rest unlisted: the subnets are listed as far as they go, and none
+     * is taken for gone.
+     */
+    const crowded: Array<{ name: string; subnets: number }> =
+      getAzureNetworksPastExpandedRows(subnets.rows);
+
+    if (crowded.length > 0) {
+      subnets = { rows: subnets.rows, complete: false };
+      subnetWarnings.push(describeAzureNetworksPastExpandedRows(crowded));
     }
 
     // Read together: a VM runs where its interfaces do, a pool's balancer sends to them.

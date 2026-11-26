@@ -414,7 +414,12 @@ function fingerprintField(data: {
     }
 
     for (const match of findSensitiveValues(value, scanOptions)) {
-      if (data.dataTypeIds.has(match.dataTypeId) && !match.isTestValue) {
+      if (
+        data.dataTypeIds.has(match.dataTypeId) &&
+        !match.isTestValue &&
+        // A name a query parameter names is too common to fingerprint (#11034).
+        !match.fromFieldName
+      ) {
         data.fingerprints.add(
           match.dataTypeId,
           match.normalized,
@@ -641,8 +646,8 @@ export function classifyFreeText(
       linesOf.set(match.dataTypeId, (linesOf.get(match.dataTypeId) || 0) + 1);
     }
 
-    // A name is too common to say two stores hold the same data.
-    if (!match.fromModel) {
+    // A name is too common to say two stores hold the same data: the model's, a query parameter's (#11034).
+    if (!match.fromModel && !match.fromFieldName) {
       fingerprints.addMatch(match);
     }
 

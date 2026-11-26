@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import { printHclExpression } from "../../../Utils/DeveloperDocs/Hcl";
 import {
   FILTER_JSON_OPTIONS,
+  MONITOR_STEP_SUB_CONFIGS,
   MonitorStepsHclContext,
   monitorStepsToHcl,
 } from "../../../Utils/DeveloperDocs/TerraformMonitorSteps";
@@ -841,6 +842,48 @@ describe("raw-JSON sub-configs (TestMonitorStepsFromAPIMapsInjectedSubConfigs)",
     expect(
       convert(envelope([step({ requestType: "GET", logMonitor: "nope" })])),
     ).toEqual([{ request_type: "GET" }]);
+  });
+
+  /*
+   * An XCP-ng monitor's pool is its XAPI UUID, and its filters are the
+   * scope, UUID and host name the worker reads: the provider keeps all of
+   * it in xcp_ng_monitor, so applying an exported monitor watches the same
+   * pool and the same objects.
+   */
+  test("an XCP-ng monitor's step is written to xcp_ng_monitor with jsonencode, exactly as stored", () => {
+    const xcpNgMonitor: Record<string, unknown> = {
+      poolIdentifier: "6b3e4a1c-2f9d-4e8b-a7c5-0d1e2f3a4b5c",
+      resourceFilters: { scope: "host", hostName: "xcp-host-01" },
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      rollingTime: "Past 5 Minutes",
+    };
+
+    expect(
+      convert(envelope([step({ requestType: "GET", xcpNgMonitor })])),
+    ).toEqual([
+      {
+        request_type: "GET",
+        xcp_ng_monitor: { call: "jsonencode", args: [xcpNgMonitor] },
+      },
+    ]);
+  });
+
+  test("XCP-ng's attribute sits beside the other hypervisors', named as the provider names it", () => {
+    const names: Array<string> = MONITOR_STEP_SUB_CONFIGS.map(
+      (config: { attributeName: string }): string => {
+        return config.attributeName;
+      },
+    );
+
+    expect(
+      MONITOR_STEP_SUB_CONFIGS.find((config: { apiKey: string }): boolean => {
+        return config.apiKey === "xcpNgMonitor";
+      })?.attributeName,
+    ).toBe("xcp_ng_monitor");
+    expect(names.indexOf("xcp_ng_monitor")).toBe(
+      names.indexOf("vmware_monitor") + 1,
+    );
+    expect(new Set(names).size).toBe(names.length);
   });
 });
 

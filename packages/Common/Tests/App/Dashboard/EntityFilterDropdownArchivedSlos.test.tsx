@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import {
   afterEach,
   beforeEach,
@@ -19,12 +26,14 @@ import ObjectID from "../../../Types/ObjectID";
  * not be offered for a NEW widget or variable. But a widget that already points
  * at one keeps loading it by id, and its settings must not pretend nothing is
  * selected: a blank picker over a live selection is how that selection gets
- * silently dropped on the next edit. So the picker lists only live SLOs and,
- * separately, looks up any selected SLO that list is missing, showing it marked
- * "(archived)" - but only when it really is archived: a live SLO can be missing
- * from the list just by sitting past its 1000-row cap. Only SLOs narrow the
- * list; the by-id lookup itself is shared with every entity type (see
- * EntityFilterDropdownUnlistedSelection.test.tsx).
+ * silently dropped on the next edit. So the picker searches only live SLOs
+ * and, separately, reads every selected SLO by its id, showing it marked
+ * "(archived)" - but only when it really is archived: a live SLO is past the
+ * first page of a search in a project with many SLOs. An SLO picker
+ * searches the server as it is opened and typed in, 50 by name (#10580):
+ * nothing is read up front but the saved selection. Only SLOs narrow the
+ * search; the by-id lookup itself is shared with every kind searched on the
+ * server (see DashboardWidgetEntityPickerSearch.test.tsx).
  */
 
 interface ListArgs {
@@ -136,9 +145,9 @@ function listOf(rows: Array<Row>): Promise<ListResultShape> {
 }
 
 /*
- * The server as the picker sees it: the pickable list returns only the live
- * SLO within its cap, and a lookup by id returns whichever SLOs were asked
- * for, archived or not - carrying isArchived only if the lookup selected it.
+ * The server as the picker sees it: a search returns only the live SLO on
+ * its first page, and a lookup by id returns whichever SLOs were asked for,
+ * archived or not - carrying isArchived only if the lookup selected it.
  */
 function serveSlos(args: ListArgs): Promise<ListResultShape> {
   const idFilter: unknown = args.query["_id"];
@@ -191,8 +200,50 @@ async function waitForOptions(): Promise<void> {
   });
 }
 
-function listCall(index: number): ListArgs {
-  return getListMock.mock.calls[index]![0];
+/*
+ * The picker's reads, in the order it made them: a read of saved SLOs by
+ * their ids, or a search of the server as the picker is opened and typed
+ * in (#10580).
+ */
+function idReads(): Array<ListArgs> {
+  return getListMock.mock.calls
+    .map((call: [ListArgs]): ListArgs => {
+      return call[0];
+    })
+    .filter((args: ListArgs): boolean => {
+      return args.query["_id"] instanceof Includes;
+    });
+}
+
+function searches(): Array<ListArgs> {
+  return getListMock.mock.calls
+    .map((call: [ListArgs]): ListArgs => {
+      return call[0];
+    })
+    .filter((args: ListArgs): boolean => {
+      return !(args.query["_id"] instanceof Includes);
+    });
+}
+
+function idsOf(args: ListArgs): Array<string> {
+  return ((args.query["_id"] as Includes).values as Array<ObjectID>).map(
+    (id: ObjectID): string => {
+      return id.toString();
+    },
+  );
+}
+
+// Opens the picker, which searches the server for the first SLOs by name.
+async function openPicker(): Promise<void> {
+  const picker: HTMLElement = await screen.findByRole("combobox");
+
+  await act(async () => {
+    fireEvent.click(picker);
+  });
+
+  await waitFor(() => {
+    expect(searches().length).toBeGreaterThan(0);
+  });
 }
 
 beforeEach(() => {
@@ -206,23 +257,33 @@ afterEach(() => {
 describe("EntityFilterDropdown and archived SLOs", () => {
   test("offers only unarchived SLOs, within the current project", async () => {
     renderPicker({ type: EntityFilterModelType.ServiceLevelObjective });
-    await waitForOptions();
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
-    expect(listCall(0).modelType).toBe(ServiceLevelObjective);
-    expect(listCall(0).query["isArchived"]).toBe(false);
-    expect((listCall(0).query["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
-    );
+    // Nothing is read before the picker is opened.
+    await screen.findByRole("combobox");
+    expect(getListMock).not.toHaveBeenCalled();
+
+    await openPicker();
+
+    /*
+     * The search asks for live SLOs only; ModelAPI sends it for the current
+     * project, as every read of a project's records.
+     */
+    const search: ListArgs = searches()[0]!;
+    expect(search.modelType).toBe(ServiceLevelObjective);
+    expect(search.query["isArchived"]).toBe(false);
+    expect(
+      await screen.findByRole("option", { name: /Checkout availability/ }),
+    ).toBeInTheDocument();
   });
 
   test("leaves every other entity type's list exactly as it was", async () => {
     renderPicker({ type: EntityFilterModelType.Monitor });
-    await waitForOptions();
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
-    expect(listCall(0).modelType).toBe(Monitor);
-    expect(Object.keys(listCall(0).query)).toEqual(["projectId"]);
+    await openPicker();
+
+    expect(searches()[0]!.modelType).toBe(Monitor);
+    // No narrowing of its own: a monitor is never archived away from a widget.
+    expect(searches()[0]!.query["isArchived"]).toBeUndefined();
   });
 
   test("keeps showing an archived SLO a widget already points at, marked as archived", async () => {
@@ -235,25 +296,22 @@ describe("EntityFilterDropdown and archived SLOs", () => {
       await screen.findByText("Legacy search latency (archived)"),
     ).toBeInTheDocument();
 
-    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(idReads()).toHaveLength(1);
 
-    const lookup: ListArgs = listCall(1);
+    const lookup: ListArgs = idReads()[0]!;
     expect(lookup.modelType).toBe(ServiceLevelObjective);
     // By id, in the project, and NOT narrowed to live SLOs - that is the point.
     expect(Object.keys(lookup.query).sort()).toEqual(["_id", "projectId"]);
-    expect(
-      ((lookup.query["_id"] as Includes).values as Array<ObjectID>).map(
-        (id: ObjectID): string => {
-          return id.toString();
-        },
-      ),
-    ).toEqual([ARCHIVED_SLO._id]);
+    expect((lookup.query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(idsOf(lookup)).toEqual([ARCHIVED_SLO._id]);
     expect(lookup.limit).toBe(1);
     // Fetches isArchived, so the marker is earned rather than assumed.
     expect(lookup.select).toEqual({ isArchived: true, _id: true, name: true });
   });
 
-  test("in a multi-select, looks up only the selected SLOs the live list is missing", async () => {
+  test("in a multi-select, reads the selected SLOs by their ids, once, and marks only the archived one", async () => {
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
       isMultiSelect: true,
@@ -265,14 +323,8 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Checkout availability")).toBeInTheDocument();
 
-    expect(getListMock).toHaveBeenCalledTimes(2);
-    expect(
-      ((listCall(1).query["_id"] as Includes).values as Array<ObjectID>).map(
-        (id: ObjectID): string => {
-          return id.toString();
-        },
-      ),
-    ).toEqual([ARCHIVED_SLO._id]);
+    expect(idReads()).toHaveLength(1);
+    expect(idsOf(idReads()[0]!)).toEqual([LIVE_SLO._id, ARCHIVED_SLO._id]);
   });
 
   test("never sends a malformed saved value to the lookup, so it cannot cost the real selection its label", async () => {
@@ -285,28 +337,26 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     expect(
       await screen.findByText("Legacy search latency (archived)"),
     ).toBeInTheDocument();
-
-    expect(getListMock).toHaveBeenCalledTimes(2);
+    // The value that names no SLO is no longer there, for the reader to take out.
     expect(
-      ((listCall(1).query["_id"] as Includes).values as Array<ObjectID>).map(
-        (id: ObjectID): string => {
-          return id.toString();
-        },
-      ),
-    ).toEqual([ARCHIVED_SLO._id]);
+      await screen.findByRole("button", { name: "Remove No longer available" }),
+    ).toBeInTheDocument();
+
+    // Read by its id once; the malformed value never.
+    expect(idReads().map(idsOf)).toEqual([[ARCHIVED_SLO._id]]);
   });
 
-  test("makes no lookup at all when the only unlisted value is malformed", async () => {
+  test("makes no lookup at all when the only saved value is malformed", async () => {
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
       value: "not-an-id",
     });
     await waitForOptions();
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(idReads()).toEqual([]);
   });
 
-  test("makes no second lookup when every selected SLO is live", async () => {
+  test("reads a live selected SLO by its id once, and names it", async () => {
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
       value: LIVE_SLO._id,
@@ -315,10 +365,11 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     expect(
       await screen.findByText("Checkout availability"),
     ).toBeInTheDocument();
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(idReads()).toHaveLength(1);
+    expect(searches()).toEqual([]);
   });
 
-  test("makes no second lookup when nothing is selected", async () => {
+  test("reads nothing when nothing is selected, until the picker is opened", async () => {
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
       isMultiSelect: true,
@@ -326,10 +377,10 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     });
     await waitForOptions();
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(getListMock).not.toHaveBeenCalled();
   });
 
-  test("a live SLO past the list's row cap is shown by name, not marked archived", async () => {
+  test("a live SLO past the first page of a search is shown by name, not marked archived", async () => {
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
       value: LIVE_SLO_PAST_CAP._id,
@@ -342,17 +393,11 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     expect(screen.queryByText(/\(archived\)/)).not.toBeInTheDocument();
     expect(screen.queryByText("All SLOs")).not.toBeInTheDocument();
 
-    expect(getListMock).toHaveBeenCalledTimes(2);
-    expect(
-      ((listCall(1).query["_id"] as Includes).values as Array<ObjectID>).map(
-        (id: ObjectID): string => {
-          return id.toString();
-        },
-      ),
-    ).toEqual([LIVE_SLO_PAST_CAP._id]);
+    expect(idReads()).toHaveLength(1);
+    expect(idsOf(idReads()[0]!)).toEqual([LIVE_SLO_PAST_CAP._id]);
   });
 
-  test("in a multi-select, marks only the archived one of two unlisted SLOs", async () => {
+  test("in a multi-select, marks only the archived one of the SLOs it reads by id", async () => {
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
       isMultiSelect: true,
@@ -374,14 +419,10 @@ describe("EntityFilterDropdown and archived SLOs", () => {
       screen.queryByText("Zeta payments latency (archived)"),
     ).not.toBeInTheDocument();
 
-    expect(getListMock).toHaveBeenCalledTimes(2);
-    expect(
-      ((listCall(1).query["_id"] as Includes).values as Array<ObjectID>)
-        .map((id: ObjectID): string => {
-          return id.toString();
-        })
-        .sort(),
-    ).toEqual([ARCHIVED_SLO._id, LIVE_SLO_PAST_CAP._id].sort());
+    expect(idReads()).toHaveLength(1);
+    expect([...idsOf(idReads()[0]!)].sort()).toEqual(
+      [LIVE_SLO._id, ARCHIVED_SLO._id, LIVE_SLO_PAST_CAP._id].sort(),
+    );
   });
 
   test("does not mark an SLO archived when the lookup cannot tell", async () => {
@@ -405,7 +446,7 @@ describe("EntityFilterDropdown and archived SLOs", () => {
     expect(screen.queryByText(/\(archived\)/)).not.toBeInTheDocument();
   });
 
-  test("a failed lookup of the stale selection leaves the picker working", async () => {
+  test("a failed lookup of the saved selection leaves the picker working", async () => {
     getListMock.mockImplementation((args: ListArgs) => {
       if (args.query["_id"]) {
         return Promise.reject(new Error("lookup failed"));
@@ -416,23 +457,33 @@ describe("EntityFilterDropdown and archived SLOs", () => {
 
     renderPicker({
       type: EntityFilterModelType.ServiceLevelObjective,
-      value: ARCHIVED_SLO._id,
+      isMultiSelect: true,
+      value: [ARCHIVED_SLO._id],
     });
     await waitForOptions();
 
     await waitFor(() => {
-      expect(getListMock).toHaveBeenCalledTimes(2);
+      expect(idReads().length).toBeGreaterThan(0);
     });
     expect(screen.queryByText("lookup failed")).not.toBeInTheDocument();
-    expect(screen.getByText("Select...")).toBeInTheDocument();
+
+    // It still searches, and offers the live SLOs.
+    await openPicker();
+    expect(
+      await screen.findByRole("option", { name: /Checkout availability/ }),
+    ).toBeInTheDocument();
   });
 
-  test("a failed list still shows its error, as before", async () => {
+  test("a short list that fails to read still shows its error, as before", async () => {
+    /*
+     * SLOs are searched now, and read no list; a kind that is still read
+     * whole - the project's incident severities - says why it could not be.
+     */
     getListMock.mockImplementation(() => {
       return Promise.reject(new Error("list failed"));
     });
 
-    renderPicker({ type: EntityFilterModelType.ServiceLevelObjective });
+    renderPicker({ type: EntityFilterModelType.IncidentSeverity });
 
     expect(await screen.findByText("list failed")).toBeInTheDocument();
   });
