@@ -277,7 +277,7 @@ case "$CONFIG_NAME" in
   otel-collector-config.flashblade.yaml)
     MODE="fb-exporter"; NEED_PROFILE="flashblade"; EXPECT_SYSTEM="purestorage.flashblade"; INFO_METRIC="purefb_info"; PLATFORM="FlashBlade" ;;
   otel-collector-config.netapp-ontap.yaml)
-    MODE="harvest"; NEED_PROFILE="netapp-ontap"; EXPECT_SYSTEM="netapp.ontap"; INFO_METRIC="netapp_cluster_new_status"; PLATFORM="ONTAP cluster" ;;
+    MODE="harvest"; NEED_PROFILE="netapp-ontap"; EXPECT_SYSTEM="netapp.ontap"; INFO_METRIC="netapp_cluster_new_status"; PLATFORM="NetApp ONTAP cluster" ;;
   *)
     warn "STORAGE_ARRAY_COLLECTOR_CONFIG='$CONFIG_NAME' is not one of the shipped configs — skipping the array probe."
     add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray), otel-collector-config.flashblade.yaml (FlashBlade) or otel-collector-config.netapp-ontap.yaml (NetApp ONTAP)."

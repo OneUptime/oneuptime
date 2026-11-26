@@ -123,10 +123,10 @@ function assignment(block, name) {
  * configs/<engine>.yaml.
  */
 /*
- * The collector configs of the Storage Array agent's PLATFORMS table
- * (#11000): one line per platform, its config the first |-separated field.
+ * The lines of the Storage Array agent's PLATFORMS table (#11000), one per
+ * platform, as their |-separated fields.
  */
-function platformTableConfigs(script) {
+function platformTableLines(script) {
   const table = /^PLATFORMS="\n([\s\S]*?)\n"$/m.exec(script);
   expect(table).not.toBeNull();
   return table[1]
@@ -135,8 +135,26 @@ function platformTableConfigs(script) {
       return line.trim() !== "";
     })
     .map((line) => {
-      return line.split("|")[0];
+      return line.split("|");
     });
+}
+
+// Each platform's collector config: its line's first field.
+function platformTableConfigs(script) {
+  return platformTableLines(script).map((fields) => {
+    return fields[0];
+  });
+}
+
+/*
+ * The files a platform's exporter reads, which install.sh downloads with
+ * the configs (#11001: NetApp Harvest's config and templates): its line's
+ * eleventh field, comma-separated, or "-".
+ */
+function platformTableExtraFiles(script) {
+  return platformTableLines(script).flatMap((fields) => {
+    return fields[10] && fields[10] !== "-" ? fields[10].split(",") : [];
+  });
 }
 
 function fetchedFiles(entry) {
@@ -153,12 +171,24 @@ function fetchedFiles(entry) {
        * download_agent_file handing its own argument on.
        */
       const list = /^AGENT_FILES="([^"]+)"$/m.exec(script);
+      const names = list
+        ? list[1]
+            .replace(
+              "${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}",
+              " $PLATFORM_EXTRA_FILES",
+            )
+            .split(" ")
+        : [];
 
-      for (const file of list ? list[1].split(" ") : []) {
+      for (const file of names) {
         if (file === "$PLATFORM_CONFIGS") {
           // Its PLATFORMS table's collector configs: each line's first field.
           for (const config of platformTableConfigs(script)) {
             files.add(config);
+          }
+        } else if (file === "$PLATFORM_EXTRA_FILES") {
+          for (const extra of platformTableExtraFiles(script)) {
+            files.add(extra);
           }
         } else {
           files.add(file);

@@ -1,10 +1,11 @@
 "use strict";
 
 /**
- * The Storage Array Agent (agents/StorageArrayAgent): three collector
+ * The Storage Array Agent (agents/StorageArrayAgent): four collector
  * configs — a FlashArray's native OpenMetrics endpoint, Pure's FlashArray
- * exporter for an older Purity//FA, Pure's FlashBlade exporter — the compose
- * file that runs one of them, and the scripts and unit that install it.
+ * exporter for an older Purity//FA, Pure's FlashBlade exporter, and NetApp
+ * Harvest for an ONTAP cluster (#11001) — the compose file that runs one of
+ * them, Harvest's own config, and the scripts and unit that install it.
  *
  * OneUptime registers and inventories an array from what these configs
  * stamp and how they scrape, so their shape is part of the product:
@@ -23,7 +24,10 @@
  *  - the native config scrapes https://<array>/metrics/<endpoint> with
  *    `namespace=purefa`, the exporter configs scrape the compose service with
  *    `endpoint=<array>`, all with the read-only user's API token as a Bearer
- *    token;
+ *    token; the ONTAP config scrapes Harvest, which logs in to the cluster
+ *    with the read-only user and its password, so no credential travels
+ *    from the collector, and ingest learns which objects a scrape is the
+ *    complete list of from Harvest's own metadata series;
  *  - docker-compose.yml mounts the config STORAGE_ARRAY_COLLECTOR_CONFIG
  *    names and starts the exporter that config scrapes only under its
  *    profile, and install.sh writes the two consistently and recreates the
@@ -93,8 +97,58 @@ const CONFIGS = {
       ["purefb-objectstore", "objectstore", "300s"],
     ],
   },
+  "otel-collector-config.netapp-ontap.yaml": {
+    system: "netapp.ontap",
+    profile: "netapp-ontap",
+    exporterService: "netapp-harvest",
+    scheme: "http",
+    target: "netapp-harvest:12990",
+    // Harvest serves every object on one path, and logs in to the cluster itself.
+    harvest: true,
+    metricsPath: "/metrics",
+    // SnapMirror Behind Schedule's divisor: each relationship's schedule in seconds.
+    processors: ["transform/snapmirror-schedule", "filter/snapmirror-schedule"],
+    jobs: [["netapp-harvest", "harvest", "60s"]],
+  },
 };
 const CONFIG_NAMES = Object.keys(CONFIGS);
+
+/* Harvest's own config and the templates of its collectors, which install.sh downloads too. */
+const HARVEST_FILES = [
+  "netapp-harvest.yml",
+  "netapp-harvest-rest.yaml",
+  "netapp-harvest-keyperf.yaml",
+  "netapp-harvest-restperf.yaml",
+];
+
+/*
+ * Harvest's measurements of itself, and the per-disk sums RestPerf's disk
+ * template works out besides each shelf's parts: no page reads them.
+ */
+const HARVEST_DROPS = [
+  {
+    source_labels: ["__name__"],
+    regex:
+      "netapp_(poller_.*|metadata_(exporter_.*|component_count|target_goroutines|target_ping|collector_(api_time|bytesRx|calc_time|metrics|numCalls|numPartials|parse_time|pluginInstances|plugin_time|poll_time|skips|task_time)))",
+    action: "drop",
+  },
+  {
+    source_labels: ["__name__"],
+    regex: "netapp_(aggr|node|plex|raid)_disk_.*",
+    action: "drop",
+  },
+];
+
+/*
+ * The endpoint a job reads, as its scrape_endpoint label must name it: the
+ * last segment of a Pure metrics path, or `harvest` for the one path
+ * Harvest serves every object of a cluster on.
+ */
+function endpointOf(name, job) {
+  return CONFIGS[name].harvest && job.metrics_path === CONFIGS[name].metricsPath
+    ? "harvest"
+    : job.metrics_path.replace("/metrics/", "");
+}
 
 /* The per-volume / per-host latency breakdown the volumes and hosts jobs drop. */
 const LATENCY_BREAKDOWN_DROP = {
@@ -118,6 +172,12 @@ const CONFIG_ENV = [
 ];
 /* The compose-level variables .env carries besides those. */
 const COMPOSE_ENV = ["STORAGE_ARRAY_COLLECTOR_CONFIG", "COMPOSE_PROFILES"];
+/* What the compose file hands Harvest besides: the cluster and its read-only user. */
+const HARVEST_ENV = [
+  "NETAPP_ONTAP_ENDPOINT",
+  "NETAPP_ONTAP_USERNAME",
+  "NETAPP_ONTAP_PASSWORD",
+];
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -182,7 +242,7 @@ function installPlatforms() {
     })
     .map((line) => {
       const fields = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 9 });
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
       return {
         config: fields[0],
         system: fields[1],
@@ -193,6 +253,12 @@ function installPlatforms() {
         noun: fields[6],
         menu: fields[7],
         readHow: fields[8],
+        // A platform whose exporter logs in with a user: its variable.
+        userVariable: fields[9] === "-" ? "" : fields[9],
+        // The files its exporter reads, downloaded with the configs.
+        extraFiles: fields[10] === "-" ? [] : fields[10].split(","),
+        // Whether the secret is an API token (no $ allowed) or a password.
+        secretKind: fields[11],
       };
     });
 }
@@ -209,11 +275,15 @@ function installMapping() {
   return mapping;
 }
 
-/* Every address and token variable of the table, each once, in order. */
+/* Every address, token and user variable of the table, each once, in order. */
 function installPlatformVariables() {
   const names = [];
   for (const platform of installPlatforms()) {
-    for (const name of [platform.endpointVariable, platform.tokenVariable]) {
+    for (const name of [
+      platform.endpointVariable,
+      platform.tokenVariable,
+      platform.userVariable,
+    ].filter(Boolean)) {
       if (!names.includes(name)) {
         names.push(name);
       }
@@ -229,11 +299,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
     test("scrapes exactly the endpoints of its platform, each at its interval", () => {
       expect(
         scrapeConfigs(name).map((job) => {
-          return [
-            job.job_name,
-            job.metrics_path.replace("/metrics/", ""),
-            job.scrape_interval,
-          ];
+          return [job.job_name, endpointOf(name, job), job.scrape_interval];
         }),
       ).toEqual(expected.jobs);
     });
@@ -247,7 +313,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
         }).toEqual({
           job: job.job_name,
           labels: {
-            scrape_endpoint: job.metrics_path.replace("/metrics/", ""),
+            scrape_endpoint: endpointOf(name, job),
           },
         });
       }
@@ -262,10 +328,18 @@ describe("agents/StorageArrayAgent collector configs", () => {
       }
     });
 
-    test("reaches the array the way its platform serves metrics, with the read-only user's API token", () => {
+    test("reaches the array the way its platform serves metrics, with the read-only user's credential where the collector holds it", () => {
       for (const job of scrapeConfigs(name)) {
         expect(job.scheme).toBe(expected.scheme);
         expect(job.static_configs[0].targets).toEqual([expected.target]);
+        if (expected.harvest) {
+          // Harvest holds the login to the cluster: the collector sends nothing.
+          expect(job.metrics_path).toBe(expected.metricsPath);
+          expect(job).not.toHaveProperty("authorization");
+          expect(job).not.toHaveProperty("params");
+          expect(job).not.toHaveProperty("tls_config");
+          continue;
+        }
         expect(job.authorization).toEqual({
           type: "Bearer",
           credentials: expected.token,
@@ -289,7 +363,8 @@ describe("agents/StorageArrayAgent collector configs", () => {
       const lines = text.split("\n").filter((line) => {
         return /insecure_skip_verify:/.test(line) && !/^\s*#/.test(line);
       });
-      if (expected.endpointParam) {
+      if (expected.endpointParam || expected.harvest) {
+        // An exporter's own TLS to the array is its business (Harvest's below).
         expect(lines).toEqual([]);
       } else {
         expect(lines.length).toBe(expected.jobs.length);
@@ -301,10 +376,12 @@ describe("agents/StorageArrayAgent collector configs", () => {
       }
     });
 
-    test("drops only the per-volume and per-host latency breakdown", () => {
+    test("drops only what no page reads: a FlashArray's per-volume and per-host latency breakdown, Harvest's measurements of itself", () => {
       for (const job of scrapeConfigs(name)) {
-        const endpoint = job.metrics_path.replace("/metrics/", "");
-        if (
+        const endpoint = endpointOf(name, job);
+        if (expected.harvest) {
+          expect(job.metric_relabel_configs).toEqual(HARVEST_DROPS);
+        } else if (
           expected.system === "purestorage.flasharray" &&
           (endpoint === "volumes" || endpoint === "hosts")
         ) {
@@ -352,12 +429,11 @@ describe("agents/StorageArrayAgent collector configs", () => {
 
     test("runs one metrics pipeline into OneUptime, and nothing that would re-identify the batch", () => {
       const parsed = config(name);
+      const extra = expected.processors || [];
       expect(Object.keys(parsed.receivers)).toEqual(["prometheus"]);
-      expect(Object.keys(parsed.processors).sort()).toEqual([
-        "batch",
-        "memory_limiter",
-        "resource",
-      ]);
+      expect(Object.keys(parsed.processors).sort()).toEqual(
+        ["batch", "memory_limiter", "resource", ...extra].sort(),
+      );
       expect(parsed.exporters).toEqual({
         otlphttp: {
           endpoint: "${env:ONEUPTIME_URL}/otlp",
@@ -369,7 +445,7 @@ describe("agents/StorageArrayAgent collector configs", () => {
       expect(parsed.service.pipelines).toEqual({
         metrics: {
           receivers: ["prometheus"],
-          processors: ["memory_limiter", "resource", "batch"],
+          processors: ["memory_limiter", ...extra, "resource", "batch"],
           exporters: ["otlphttp"],
         },
       });
@@ -433,12 +509,23 @@ describe("agents/StorageArrayAgent collector configs", () => {
       ),
     ];
     const endpoints = new Set();
-    for (const name of CONFIG_NAMES) {
+    for (const name of CONFIG_NAMES.filter((config) => {
+      return !CONFIGS[config].harvest;
+    })) {
       for (const job of scrapeConfigs(name)) {
         endpoints.add(job.static_configs[0].labels.scrape_endpoint);
       }
     }
     endpoints.delete("array");
+    /*
+     * ONTAP's one endpoint is no complete list: Harvest's metadata series
+     * say which objects it listed in full (exporterCompletedKinds).
+     */
+    const ontap = read(
+      "packages/Common/Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts",
+    );
+    expect(ontap).toContain("  scrapeEndpoints: {},\n");
+    expect(ontap).toContain("  exporterCompletedKinds: [\n");
     for (const endpoint of endpoints) {
       expect({
         endpoint,
@@ -453,11 +540,12 @@ describe("agents/StorageArrayAgent collector configs", () => {
 });
 
 describe("agents/StorageArrayAgent/docker-compose.yml", () => {
-  test("runs the collector and Pure's two exporters, nothing else", () => {
+  test("runs the collector and each platform's exporter, nothing else", () => {
     expect(Object.keys(compose().services)).toEqual([
       COLLECTOR_SERVICE,
       "pure-fa-exporter",
       "pure-fb-exporter",
+      "netapp-harvest",
     ]);
   });
 
@@ -483,7 +571,7 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
 
   test.each(
     CONFIG_NAMES.filter((name) => {
-      return CONFIGS[name].exporterService;
+      return CONFIGS[name].exporterService && !CONFIGS[name].harvest;
     }),
   )(
     "starts the exporter %s scrapes, pinned, unpublished and credential-free, only under its profile",
@@ -506,6 +594,42 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
       expect(service.security_opt).toEqual(["no-new-privileges:true"]);
     },
   );
+
+  test("starts NetApp Harvest only under the ONTAP profile: pinned, unpublished, read-only, with only the cluster's address and user", () => {
+    const expected = CONFIGS["otel-collector-config.netapp-ontap.yaml"];
+    const service = compose().services[expected.exporterService];
+
+    expect(service.profiles).toEqual([expected.profile]);
+    expect(service.image).toMatch(/^ghcr\.io\/netapp\/harvest:\d+\.\d+\.\d+-\d+$/);
+    expect(service.command).toEqual([
+      "--poller",
+      "ontap",
+      "--config",
+      "/opt/harvest/harvest.yml",
+    ]);
+    expect(service.expose).toEqual([expected.target.split(":")[1]]);
+    expect(service).not.toHaveProperty("ports");
+    // Never .env as a whole: Harvest never sees the ingestion key.
+    expect(service).not.toHaveProperty("env_file");
+    expect(service.environment).toEqual([
+      "STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME}",
+      "NETAPP_ONTAP_ENDPOINT=${NETAPP_ONTAP_ENDPOINT}",
+      "NETAPP_ONTAP_USERNAME=${NETAPP_ONTAP_USERNAME}",
+      "NETAPP_ONTAP_PASSWORD=${NETAPP_ONTAP_PASSWORD}",
+      "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=${STORAGE_ARRAY_INSECURE_SKIP_VERIFY:-true}",
+    ]);
+    // Its config and its collectors' templates, read-only, where Harvest looks.
+    expect(service.volumes).toEqual([
+      "./netapp-harvest.yml:/opt/harvest/harvest.yml:ro",
+      "./netapp-harvest-rest.yaml:/opt/harvest/conf/rest/oneuptime.yaml:ro",
+      "./netapp-harvest-keyperf.yaml:/opt/harvest/conf/keyperf/oneuptime.yaml:ro",
+      "./netapp-harvest-restperf.yaml:/opt/harvest/conf/restperf/oneuptime.yaml:ro",
+    ]);
+    expect(service.read_only).toBe(true);
+    expect(service.tmpfs).toEqual(["/tmp"]);
+    expect(service.cap_drop).toEqual(["ALL"]);
+    expect(service.security_opt).toEqual(["no-new-privileges:true"]);
+  });
 
   test("names every shipped config where it explains the choice", () => {
     const text = read(`${AGENT_DIR}/docker-compose.yml`);
@@ -539,11 +663,31 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     ).toEqual(CONFIG_NAMES);
     for (const platform of platforms) {
       const expected = CONFIGS[platform.config];
+      if (expected.harvest) {
+        // Harvest reads the address, the user and its password; the collector none.
+        const harvest = read(`${AGENT_DIR}/netapp-harvest.yml`);
+        for (const variable of [
+          platform.endpointVariable,
+          platform.userVariable,
+          platform.tokenVariable,
+        ]) {
+          expect(harvest).toContain(`\${${variable}}`);
+          expect(configText(platform.config)).not.toContain(variable);
+        }
+        expect(platform.secretKind).toBe("password");
+        expect(platform.extraFiles).toEqual(HARVEST_FILES);
+        expect(platform.tlsToArray).toBe("yes");
+        expect(platform.noun).toBe("ONTAP cluster");
+        continue;
+      }
       // The variables the config itself reads its address and token from.
       expect(expected.token).toBe(`\${env:${platform.tokenVariable}}`);
       expect([expected.target, expected.endpointParam]).toContain(
         `\${env:${platform.endpointVariable}}`,
       );
+      expect(platform.userVariable).toBe("");
+      expect(platform.extraFiles).toEqual([]);
+      expect(platform.secretKind).toBe("token");
       // Only a config whose collector talks TLS to the array asks about it.
       expect(platform.tlsToArray).toBe(expected.endpointParam ? "no" : "yes");
       expect(platform.menu).not.toBe("");
@@ -551,12 +695,15 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     }
   });
 
-  test("downloads the compose file and the table's configs, each once", () => {
+  test("downloads the compose file, the table's configs and its exporters' files, each once", () => {
     expect(script).toMatch(
-      /^AGENT_FILES="docker-compose.yml \$PLATFORM_CONFIGS"$/m,
+      /^AGENT_FILES="docker-compose.yml \$PLATFORM_CONFIGS\$\{PLATFORM_EXTRA_FILES:\+ \$PLATFORM_EXTRA_FILES\}"$/m,
     );
     expect(script).toContain(
       `PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\\n' ' ')"`,
+    );
+    expect(script).toContain(
+      `PLATFORM_EXTRA_FILES="$(platform_lines | cut -d '|' -f 11 | tr ',' '\\n' | grep -v '^-$' | grep -v '^$' | awk '!seen[$0]++' | tr '\\n' ' ')"`,
     );
   });
 
@@ -568,16 +715,28 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     );
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();
-    // The table's configs stand in its place.
-    const downloaded = files[1].split(" ").flatMap((file) => {
-      return file === "$PLATFORM_CONFIGS"
-        ? installPlatforms().map((platform) => {
+    // The table's configs, and its exporters' files, stand in their places.
+    const downloaded = files[1]
+      .replace(
+        "${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}",
+        " $PLATFORM_EXTRA_FILES",
+      )
+      .split(" ")
+      .flatMap((file) => {
+        if (file === "$PLATFORM_CONFIGS") {
+          return installPlatforms().map((platform) => {
             return platform.config;
-          })
-        : [file];
-    });
+          });
+        }
+        if (file === "$PLATFORM_EXTRA_FILES") {
+          return installPlatforms().flatMap((platform) => {
+            return platform.extraFiles;
+          });
+        }
+        return [file];
+      });
     expect([...downloaded].sort()).toEqual(
-      ["docker-compose.yml", ...CONFIG_NAMES].sort(),
+      ["docker-compose.yml", ...CONFIG_NAMES, ...HARVEST_FILES].sort(),
     );
     for (const file of downloaded) {
       expect(fs.existsSync(path.join(REPO_ROOT, AGENT_DIR, file))).toBe(true);
@@ -605,7 +764,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         return line.split("=")[0];
       });
     expect([...written, ...installPlatformVariables()].sort()).toEqual(
-      [...CONFIG_ENV, ...COMPOSE_ENV].sort(),
+      [...CONFIG_ENV, ...COMPOSE_ENV, ...HARVEST_ENV].sort(),
     );
 
     for (const name of [
@@ -644,7 +803,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       });
     // COMPOSE_PROFILES always follows from the config, so it is never reused.
     expect(names.sort()).toEqual(
-      [...CONFIG_ENV, "STORAGE_ARRAY_COLLECTOR_CONFIG"].sort(),
+      [...CONFIG_ENV, "STORAGE_ARRAY_COLLECTOR_CONFIG", ...HARVEST_ENV].sort(),
     );
   });
 
@@ -675,6 +834,103 @@ describe("agents/StorageArrayAgent/install.sh", () => {
   });
 });
 
+describe("agents/StorageArrayAgent/netapp-harvest.yml", () => {
+  const harvest = yaml.load(read(`${AGENT_DIR}/netapp-harvest.yml`));
+  const template = (file) => {
+    return yaml.load(read(`${AGENT_DIR}/${file}`));
+  };
+  // How often a template's collector polls: its schedule's `data` step.
+  const pollEvery = (file) => {
+    return template(file).schedule.find((step) => {
+      return "data" in step;
+    }).data;
+  };
+
+  test("polls the one cluster .env names, as its read-only user, verifying TLS only when asked", () => {
+    expect(Object.keys(harvest.Pollers)).toEqual(["ontap"]);
+    expect(harvest.Pollers.ontap).toMatchObject({
+      // The array's name, so Harvest's datacenter label says which array.
+      datacenter: "${STORAGE_ARRAY_NAME}",
+      addr: "${NETAPP_ONTAP_ENDPOINT}",
+      auth_style: "basic_auth",
+      username: "${NETAPP_ONTAP_USERNAME}",
+      password: "${NETAPP_ONTAP_PASSWORD}",
+      use_insecure_tls: "${STORAGE_ARRAY_INSECURE_SKIP_VERIFY}",
+    });
+    // A literal block, so a password's # or : reaches Harvest as typed.
+    expect(read(`${AGENT_DIR}/netapp-harvest.yml`)).toContain(
+      "    password: |2-\n      ${NETAPP_ONTAP_PASSWORD}\n",
+    );
+  });
+
+  test("serves netapp_* series, with the meta tags ingest reads, on the port the collector scrapes, and never phones home", () => {
+    expect(harvest.Exporters).toEqual({
+      prometheus: {
+        exporter: "Prometheus",
+        port: Number(
+          CONFIGS["otel-collector-config.netapp-ontap.yaml"].target.split(
+            ":",
+          )[1],
+        ),
+        global_prefix: "netapp_",
+        add_meta_tags: true,
+      },
+    });
+    expect(harvest.Pollers.ontap.exporters).toEqual(["prometheus"]);
+    // AutoSupport would send NetApp a report about the install.
+    expect(harvest.Tools).toEqual({ autosupport_disabled: true });
+  });
+
+  test("runs the shipped template of each collector, mounted where Harvest reads it, at the intervals the docs give", () => {
+    expect(harvest.Pollers.ontap.collectors).toEqual([
+      { Rest: ["oneuptime.yaml"] },
+      { KeyPerf: ["oneuptime.yaml"] },
+      { RestPerf: ["oneuptime.yaml"] },
+      "Ems",
+    ]);
+    const volumes = compose().services["netapp-harvest"].volumes;
+    for (const [collector, file] of [
+      ["Rest", "netapp-harvest-rest.yaml"],
+      ["KeyPerf", "netapp-harvest-keyperf.yaml"],
+      ["RestPerf", "netapp-harvest-restperf.yaml"],
+    ]) {
+      expect(template(file).collector).toBe(collector);
+      expect(volumes).toContain(
+        `./${file}:/opt/harvest/conf/${collector.toLowerCase()}/oneuptime.yaml:ro`,
+      );
+    }
+    // Configuration and state every 3 minutes, performance every minute.
+    expect(pollEvery("netapp-harvest-rest.yaml")).toBe("3m");
+    expect(pollEvery("netapp-harvest-keyperf.yaml")).toBe("1m");
+    expect(pollEvery("netapp-harvest-restperf.yaml")).toBe("1m");
+  });
+
+  test("reads every object the ONTAP pages and alerts are built from", () => {
+    expect(Object.keys(template("netapp-harvest-rest.yaml").objects)).toEqual([
+      "Status",
+      "Subsystem",
+      "Node",
+      "Aggregate",
+      "SVM",
+      "Volume",
+      "Lun",
+      "Disk",
+      "Shelf",
+      "Sensor",
+      "NetPort",
+      "FCP",
+      "SnapMirror",
+      "Health",
+    ]);
+    expect(
+      Object.keys(template("netapp-harvest-keyperf.yaml").objects),
+    ).toEqual(["Cluster", "SystemNode", "Aggregate", "Volume", "Lun"]);
+    expect(
+      Object.keys(template("netapp-harvest-restperf.yaml").objects),
+    ).toEqual(["NicCommon", "FcpPort", "Disk"]);
+  });
+});
+
 describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
   const script = read(`${AGENT_DIR}/troubleshoot.sh`);
 
@@ -700,6 +956,8 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
     expect(script).toContain(
       'PROBE_URL="http://pure-fb-exporter:9491/metrics/array?endpoint=$ENDPOINT"',
     );
+    // Harvest serves the cluster on the compose network, with no credential.
+    expect(script).toContain('PROBE_URL="http://netapp-harvest:12990/metrics"');
   });
 
   test("hands the array's API token to curl on stdin, never on a command line", () => {
