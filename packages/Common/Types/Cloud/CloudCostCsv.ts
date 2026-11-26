@@ -360,6 +360,90 @@ export function getCloudCostGroupNames(
 
 /*
  * ---------------------------------------------------------------------------
+ * A cost group's page
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * A cost group's figures as its page shows them, in one CSV: its charge
+ * day by day (or month by month), then the services, resources and
+ * accounts it is charged for most - each row saying which list it is of.
+ */
+export function toCloudCostGroupSpendCsv(data: {
+  group: CloudCostAllocationGroupResult;
+  buckets: Array<string>;
+  start: string;
+  lastDay: string;
+  currency: string;
+  basis?: string | undefined;
+  accountNames?: Map<string, string> | undefined;
+}): string {
+  const rows: Array<Array<string | number>> = [
+    [
+      "breakdown",
+      "key",
+      "name",
+      "period_start",
+      "period_end",
+      "currency",
+      "cost_basis",
+      "amount",
+    ],
+  ];
+  const row: (
+    breakdown: string,
+    key: string,
+    name: string,
+    amount: number,
+  ) => void = (
+    breakdown: string,
+    key: string,
+    name: string,
+    amount: number,
+  ): void => {
+    rows.push([
+      breakdown,
+      key,
+      name,
+      data.start,
+      data.lastDay,
+      data.currency,
+      data.basis || "",
+      toCloudCostCsvAmount(amount),
+    ]);
+  };
+
+  data.buckets.forEach((bucket: string, index: number): void => {
+    row("day", bucket, bucket, data.group.series[index] || 0);
+  });
+
+  for (const share of data.group.topServices || []) {
+    row("service", share.key, share.key || "Unnamed service", share.amount);
+  }
+
+  for (const share of data.group.topResources || []) {
+    row(
+      "resource",
+      share.key,
+      share.key || "Not billed to a resource",
+      share.amount,
+    );
+  }
+
+  for (const share of data.group.topAccounts || []) {
+    row(
+      "account",
+      share.key,
+      data.accountNames?.get(share.key) || share.key,
+      share.amount,
+    );
+  }
+
+  return toCloudCostCsv(rows);
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * Each day's spend
  * ---------------------------------------------------------------------------
  */
@@ -379,6 +463,77 @@ export function toCloudCostDailyCsv(data: {
           data.currency,
           data.basis || "",
           toCloudCostCsvAmount(point.y),
+        ];
+      },
+    ),
+  ]);
+}
+
+/*
+ * ---------------------------------------------------------------------------
+ * Savings waiting
+ * ---------------------------------------------------------------------------
+ */
+
+// One saving as Cloud > Savings lists it (CloudCostRecommendation).
+export interface CloudCostSavingCsvRow {
+  // What to do, as the page words it.
+  recommendation: string;
+  kind: string;
+  resourceName: string;
+  resourceId: string;
+  resourceType: string;
+  account: string;
+  provider: string;
+  region: string;
+  currentConfiguration: string;
+  recommendedConfiguration: string;
+  monthlySavings: number;
+  monthlyCost: number | null;
+  currency: string;
+  source: string;
+}
+
+/*
+ * The savings as a CSV: one row per saving, the largest first, with the
+ * page's own columns - what to do, to which resource, what would change
+ * and what it saves a month.
+ */
+export function toCloudCostSavingsCsv(rows: Array<CloudCostSavingCsvRow>): string {
+  return toCloudCostCsv([
+    [
+      "recommendation",
+      "kind",
+      "resource",
+      "resource_id",
+      "resource_type",
+      "account",
+      "cloud",
+      "region",
+      "current",
+      "recommended",
+      "monthly_savings",
+      "monthly_cost",
+      "currency",
+      "source",
+    ],
+    ...rows.map(
+      (row: CloudCostSavingCsvRow): Array<string | number> => {
+        return [
+          row.recommendation,
+          row.kind,
+          row.resourceName,
+          row.resourceId,
+          row.resourceType,
+          row.account,
+          row.provider,
+          row.region,
+          row.currentConfiguration,
+          row.recommendedConfiguration,
+          toCloudCostCsvAmount(row.monthlySavings),
+          row.monthlyCost === null ? "" : toCloudCostCsvAmount(row.monthlyCost),
+          row.currency,
+          row.source,
         ];
       },
     ),

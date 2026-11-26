@@ -1,5 +1,22 @@
 import Route from "Common/Types/API/Route";
-import { CloudCostState, CloudCostTagKey } from "Common/Types/Cloud/CloudCost";
+import {
+  CloudCostState,
+  CloudCostTagKey,
+  addUtcDays,
+  fromCloudCostDay,
+} from "Common/Types/Cloud/CloudCost";
+import {
+  getCloudCostFileName,
+  getCloudCostGroupNames,
+  toCloudCostBreakdownCsv,
+} from "Common/Types/Cloud/CloudCostCsv";
+import { formatCloudCostDays } from "Common/Types/Cloud/CloudCostReportWords";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import {
+  CloudCostLinkedView,
+  getCloudCostLinkedView,
+} from "./CloudCostLinkedView";
+import { fetchCloudCostFocusExport } from "./Reports/CloudCostReportApi";
 import {
   CloudProvider,
   getManagedCloudPlatformLabel,
@@ -230,14 +247,108 @@ export function hasAwsCostsWithoutResources(
   });
 }
 
+// The period a link names (#11009): its days, offered beside the others.
+export const LINKED_PERIOD: string = "linked";
+
+export const DOWNLOAD_CSV: string = translationKey("Download CSV");
+export const EXPORT_FOCUS: string = translationKey("Export FOCUS");
+export const EXPORT_FOCUS_TOOLTIP: string = translationKey(
+  "Every cost of the period, as a FOCUS 1.2 file for finance tools.",
+);
+
+/*
+ * The first and last moment a breakdown reads: the period picked, or the
+ * days a link names - whole UTC days, as the clouds bill.
+ */
+export function getBreakdownWindow(data: {
+  period: string;
+  linked: CloudCostLinkedView;
+  now?: Date | undefined;
+}): { start: Date; end: Date } {
+  if (
+    data.period === LINKED_PERIOD &&
+    data.linked.start &&
+    data.linked.lastDay
+  ) {
+    return {
+      start: fromCloudCostDay(data.linked.start),
+      end: new Date(
+        addUtcDays(fromCloudCostDay(data.linked.lastDay), 1).getTime() - 1,
+      ),
+    };
+  }
+
+  return getCloudCostPeriodWindow(
+    (Object.values(CloudCostPeriod) as Array<string>).includes(data.period)
+      ? (data.period as CloudCostPeriod)
+      : CloudCostPeriod.ThisMonth,
+    data.now || OneUptimeDate.getCurrentDate(),
+  );
+}
+
+/*
+ * The names a breakdown's rows are shown by, for its CSV: an account's, a
+ * group's, an environment's or an app's - every other key as written.
+ */
+export function getBreakdownCsvNames(data: {
+  dimension: CloudCostDimension;
+  result: CloudCostBreakdownResult;
+  accountNames: Map<string, string>;
+  lists: CloudCostPlatformLists | null;
+}): Map<string, string> {
+  if (data.dimension === "cloudAccountId") {
+    return data.accountNames;
+  }
+
+  if (data.dimension === "group") {
+    return getCloudCostGroupNames(data.result.groups);
+  }
+
+  if (data.dimension === "environment") {
+    return new Map(
+      (data.lists?.environments || []).map(
+        (environment: { id: string; name: string }): [string, string] => {
+          return [environment.id, environment.name];
+        },
+      ),
+    );
+  }
+
+  if (data.dimension === "app") {
+    return new Map(
+      (data.lists?.apps || []).map(
+        (app: { id: string; name: string }): [string, string] => {
+          return [app.id, app.name];
+        },
+      ),
+    );
+  }
+
+  return new Map();
+}
+
 const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const [dimension, setDimension] = useState<CloudCostDimension>("service");
-  const [period, setPeriod] = useState<CloudCostPeriod>(
-    CloudCostPeriod.ThisMonth,
+  // The days, breakdown and view a link names - a report's Open Costs.
+  const linked: CloudCostLinkedView = useMemo(
+    (): CloudCostLinkedView => {
+      return getCloudCostLinkedView();
+    },
+    [],
   );
+  const [dimension, setDimension] = useState<CloudCostDimension>(
+    linked.by &&
+      (!props.isOneAccount || linked.by !== "cloudAccountId")
+      ? linked.by
+      : "service",
+  );
+  const [period, setPeriod] = useState<string>(
+    linked.start ? LINKED_PERIOD : CloudCostPeriod.ThisMonth,
+  );
+  const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [exportError, setExportError] = useState<string>("");
   const [tagKey, setTagKey] = useState<string>("");
   const [result, setResult] = useState<CloudCostBreakdownResult | null>(null);
   const [lists, setLists] = useState<CloudCostPlatformLists | null>(null);
@@ -246,7 +357,7 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
   const [showAll, setShowAll] = useState<boolean>(false);
   // By cost group: the project's views, read when the choice is first made.
   const [views, setViews] = useState<Array<CloudCostView> | null>(null);
-  const [viewId, setViewId] = useState<string>("");
+  const [viewId, setViewId] = useState<string>(linked.viewId || "");
   const scopeKey: string = JSON.stringify(props.scope);
   const activeViewId: string =
     views &&
@@ -296,10 +407,10 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     let ignore: boolean = false;
-    const window: { start: Date; end: Date } = getCloudCostPeriodWindow(
+    const window: { start: Date; end: Date } = getBreakdownWindow({
       period,
-      OneUptimeDate.getCurrentDate(),
-    );
+      linked,
+    });
 
     setResult(null);
     setError("");
@@ -592,6 +703,110 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
     },
   );
 
+  // The days read, as the file names them: "2026-11-01" to "2026-11-26".
+  const window: { start: Date; end: Date } = getBreakdownWindow({
+    period,
+    linked,
+  });
+  const days: { start: string; lastDay: string } = {
+    start: window.start.toISOString().slice(0, 10),
+    lastDay: window.end.toISOString().slice(0, 10),
+  };
+  const oneAccountName: string | undefined = props.isOneAccount
+    ? props.accounts[0]?.name || props.accounts[0]?.accountId || undefined
+    : undefined;
+  const viewName: string | undefined =
+    dimension === "group"
+      ? views?.find((view: CloudCostView): boolean => {
+          return view.id?.toString() === activeViewId;
+        })?.name || undefined
+      : undefined;
+
+  // The breakdown as shown, as a CSV: the page's own rows and the rest.
+  const downloadCsv: () => void = (): void => {
+    if (!result) {
+      return;
+    }
+
+    downloadFile({
+      content: toCloudCostBreakdownCsv({
+        breakdown: result,
+        context: {
+          dimension,
+          start: days.start,
+          lastDay: days.lastDay,
+          currency: props.scope.currency,
+          basis: props.scope.basis,
+          tagKey: dimension === "tag" ? activeTagKey : undefined,
+          names: getBreakdownCsvNames({
+            dimension,
+            result,
+            accountNames,
+            lists: scopedLists,
+          }),
+        },
+      }),
+      filename: getCloudCostFileName({
+        what: "cloud-costs",
+        dimension,
+        tagKey: dimension === "tag" ? activeTagKey : undefined,
+        viewName,
+        accountName: oneAccountName,
+        basis: props.scope.basis,
+        start: days.start,
+        lastDay: days.lastDay,
+      }),
+      mimeType: "text/csv;charset=utf-8;",
+    });
+  };
+
+  // Every cost of the period, as FOCUS 1.2: read by the server as it streams.
+  const exportFocus: () => void = (): void => {
+    setIsExporting(true);
+    setExportError("");
+
+    fetchCloudCostFocusExport({
+      startDate: window.start,
+      endDate: window.end,
+      cloudAccountIds: props.scope.cloudAccountIds,
+    })
+      .then((text: string): void => {
+        downloadFile({
+          content: text,
+          filename: getCloudCostFileName({
+            what: "cloud-costs-focus-1-2",
+            accountName: oneAccountName,
+            start: days.start,
+            lastDay: days.lastDay,
+          }),
+          mimeType: "text/csv;charset=utf-8;",
+        });
+      })
+      .catch((err: Error): void => {
+        setExportError(API.getFriendlyMessage(err));
+      })
+      .finally((): void => {
+        setIsExporting(false);
+      });
+  };
+
+  // The periods to pick from, and the days a link names among them.
+  const periodOptions: Array<{ label: string; value: string }> = [
+    ...CLOUD_COST_PERIOD_OPTIONS,
+    ...(linked.start && linked.lastDay
+      ? [
+          {
+            label: formatCloudCostDays({
+              start: linked.start,
+              lastDay: linked.lastDay,
+              language: translator.language,
+            }),
+            value: LINKED_PERIOD,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <Card
       title={BREAKDOWN_TITLE}
@@ -605,6 +820,21 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
           <CloudCostBasisPill basis={props.scope.basis} />
         ) : undefined
       }
+      buttons={[
+        {
+          title: DOWNLOAD_CSV,
+          icon: IconProp.Download,
+          disabled: !result,
+          onClick: downloadCsv,
+        },
+        {
+          title: EXPORT_FOCUS,
+          icon: IconProp.Download,
+          tooltip: EXPORT_FOCUS_TOOLTIP,
+          isLoading: isExporting,
+          onClick: exportFocus,
+        },
+      ]}
     >
       <div data-testid="cloud-cost-breakdown" data-dimension={dimension}>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -630,13 +860,20 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
             ariaLabel="Period"
             className="flex-wrap"
             dataTestId="cloud-cost-breakdown-period"
-            options={CLOUD_COST_PERIOD_OPTIONS}
+            options={periodOptions}
             selectedValue={period}
             onSelect={(value: string) => {
-              setPeriod(value as CloudCostPeriod);
+              setPeriod(value);
             }}
           />
         </div>
+        {exportError ? (
+          <div className="mb-4" data-testid="cloud-cost-breakdown-export-error">
+            <ErrorMessage message={exportError} />
+          </div>
+        ) : (
+          <></>
+        )}
         {dimension === "tag" && tagOptions.length > 0 ? (
           <div
             className="mb-4 flex flex-wrap items-center gap-2"

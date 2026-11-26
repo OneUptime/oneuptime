@@ -1,4 +1,12 @@
 import Route from "Common/Types/API/Route";
+import {
+  getCloudCostFileName,
+  toCloudCostDailyCsv,
+} from "Common/Types/Cloud/CloudCostCsv";
+import IconProp from "Common/Types/Icon/IconProp";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import { getCloudCostLinkedView } from "./CloudCostLinkedView";
+import { DOWNLOAD_CSV } from "./CloudCostBreakdownCard";
 import { addUtcDays, startOfUtcDay } from "Common/Types/Cloud/CloudCost";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
@@ -162,6 +170,38 @@ const CloudDailySpendCard: FunctionComponent<{
           <CloudCostBasisPill basis={props.scope.basis} />
         ) : undefined
       }
+      buttons={[
+        {
+          title: DOWNLOAD_CSV,
+          icon: IconProp.Download,
+          disabled: !points,
+          onClick: () => {
+            if (!points || points.length === 0) {
+              return;
+            }
+
+            const start: string = points[0]!.x.toISOString().slice(0, 10);
+            const lastDay: string = points[points.length - 1]!.x
+              .toISOString()
+              .slice(0, 10);
+
+            downloadFile({
+              content: toCloudCostDailyCsv({
+                points,
+                currency: props.scope.currency,
+                basis: props.scope.basis,
+              }),
+              filename: getCloudCostFileName({
+                what: "cloud-daily-spend",
+                basis: props.scope.basis,
+                start,
+                lastDay,
+              }),
+              mimeType: "text/csv;charset=utf-8;",
+            });
+          },
+        },
+      ]}
     >
       <div
         data-testid="cloud-daily-spend"
@@ -208,7 +248,14 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   // Billed, amortized or net: the person's pick, else the project's.
   const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
-  const basis: CloudCostBasis = basisChoice.basis;
+  /*
+   * A report's Open Costs names its basis (#11009): the page opens on it,
+   * without changing the person's own pick, until they pick another.
+   */
+  const [linkedBasis, setLinkedBasis] = useState<CloudCostBasis | undefined>(
+    getCloudCostLinkedView().basis,
+  );
+  const basis: CloudCostBasis = linkedBasis || basisChoice.basis;
   // Every figure of the page on the basis shown.
   const accounts: Array<CloudAccountRow> = useMemo(():
     | Array<CloudAccountRow>
@@ -273,7 +320,10 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
     <Fragment>
       <CloudCostBasisSwitch
         basis={basis}
-        onChange={basisChoice.setBasis}
+        onChange={(picked: CloudCostBasis) => {
+          setLinkedBasis(undefined);
+          basisChoice.setBasis(picked);
+        }}
         accounts={props.accounts}
       />
       <CloudStatStrip

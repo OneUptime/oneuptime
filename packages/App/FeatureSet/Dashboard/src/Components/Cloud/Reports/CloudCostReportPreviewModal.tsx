@@ -142,7 +142,6 @@ const CloudCostReportPreviewModal: FunctionComponent<ComponentProps> = (
             <Alert
               type={AlertType.SUCCESS}
               title={translator.translateTemplate(COPY_SENT, { email: sentTo })}
-              isTitleTranslated={true}
               dataTestId="cloud-cost-report-copy-sent"
             />
           </div>
@@ -154,7 +153,6 @@ const CloudCostReportPreviewModal: FunctionComponent<ComponentProps> = (
             <Alert
               type={AlertType.DANGER}
               title={sendError}
-              isTitleTranslated={true}
             />
           </div>
         ) : (

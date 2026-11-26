@@ -45,6 +45,7 @@ import DashboardLogChartComponentUtil from "Common/Utils/Dashboard/Components/Da
 import DashboardSecurityEventsListComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardSecurityEventsFlowComponentUtil from "Common/Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardProductAnalyticsFunnelComponentUtil from "Common/Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
+import DashboardCloudCostComponentUtil from "Common/Utils/Dashboard/Components/DashboardCloudCostComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "Common/Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import DashboardTraceListComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceListComponent";
 import DashboardTraceChartComponentUtil from "Common/Utils/Dashboard/Components/DashboardTraceChartComponent";
@@ -1244,6 +1245,10 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           if (componentType === DashboardComponentType.SecurityEventsFlow) {
             newComponent =
               DashboardSecurityEventsFlowComponentUtil.getDefaultComponent();
+          }
+
+          if (componentType === DashboardComponentType.CloudCost) {
+            newComponent = DashboardCloudCostComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.ProductAnalyticsFunnel) {
