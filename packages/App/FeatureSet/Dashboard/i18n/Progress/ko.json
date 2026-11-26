@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8039
+    "keys": 64815,
+    "untranslated": 8048
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -185,11 +185,14 @@
     "VM 102 · pve2",
     "VM CPU",
     "VM CPU Ready",
+    "VM IOPS",
     "VM vSAN IOPS",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware VM",
     "VMware vCenter",
