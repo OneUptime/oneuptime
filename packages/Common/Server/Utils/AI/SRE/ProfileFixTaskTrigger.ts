@@ -240,26 +240,25 @@ export default class ProfileFixTaskTrigger {
     );
   }
 
-  // The repositories a person may ask AI to work in, of those given.
+  /*
+   * The repositories a person may ask AI to work in, of those given, in
+   * their order: canAskInRepository's rule, asked of all of them in one
+   * read a batch (CodeTaskAccess.keepAskableRepositories, as every other
+   * Fix with AI asks it) - never three reads a repository, one repository
+   * at a time (#11076).
+   */
   private static async filterAskable(data: {
     request: ProfileFixRequest;
     repositories: Array<LocatableRepository>;
   }): Promise<Array<LocatableRepository>> {
-    const askable: Array<LocatableRepository> = [];
-
-    for (const repository of data.repositories) {
-      if (
-        await CodeTaskAccess.canAskInRepository({
-          props: data.request.props,
-          projectId: data.request.projectId,
-          repositoryId: new ObjectID(repository.id),
-        })
-      ) {
-        askable.push(repository);
-      }
-    }
-
-    return askable;
+    return await CodeTaskAccess.keepAskableRepositories<LocatableRepository>({
+      props: data.request.props,
+      projectId: data.request.projectId,
+      repositories: data.repositories,
+      getId: (repository: LocatableRepository): string => {
+        return repository.id;
+      },
+    });
   }
 
   /*
