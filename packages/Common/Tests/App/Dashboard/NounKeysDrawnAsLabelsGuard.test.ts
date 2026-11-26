@@ -159,6 +159,28 @@ const TRANSLATED_LABEL_CALL: RegExp =
 
 const SITES: Readonly<Record<string, NounSite>> = {
   // Labels.
+  [`${DASHBOARD}/Components/Cloud/CostGroups/CloudCostGroupWords.ts`]: {
+    asLabel:
+      "A cost rule's field (#11006): an option of the rule editor's picker, its label, and the first words of a condition's sentence (\"{{field}} is {{values}}\").",
+    drawnBy: [
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostGroupWords.ts`,
+        call: TRANSLATED_LABEL_CALL,
+      },
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostRuleEditor.tsx`,
+        call: /label: getFieldLabel\(field, translator\)/,
+      },
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostRuleEditor.tsx`,
+        call: /ariaLabel=\{getFieldLabel\(condition\.field, translator\)\}/,
+      },
+      {
+        file: `${DASHBOARD}/Components/Cloud/CostGroups/CloudCostRuleSummary.tsx`,
+        call: /getFieldLabel\(props\.condition\.field, translator\)/,
+      },
+    ],
+  },
   [`${DASHBOARD}/Components/NetworkTraffic/NetworkTrafficAddressNames.ts`]: {
     asLabel:
       'Where an address\'s name comes from, on the address card: "Cloud resource" beside "Host" and "DNS name".',
