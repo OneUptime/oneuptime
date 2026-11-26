@@ -1587,8 +1587,8 @@ describe("set_up_paging", () => {
       asked: [SetupReachMethod.Push],
       readiness: readiness({ verified: [] }),
       isMobileAppOffered: false,
-    }).map((sentence: AIActionSentence) => {
-      return actionTitleText(sentence);
+    }).map((sentence: AIActionSentence): string => {
+      return actionTitleText(sentence) || "";
     });
 
     expect(without).toEqual([
