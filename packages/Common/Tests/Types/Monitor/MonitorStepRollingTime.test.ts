@@ -83,6 +83,10 @@ const IDENTIFIERS: Record<string, JSONObject> = {
   proxmoxMonitor: { clusterIdentifier: "pve-1" },
   openstackMonitor: { cloudIdentifier: "openstack-1" },
   vmwareMonitor: { vcenterIdentifier: "vcenter-1" },
+  xcpNgMonitor: {
+    poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+    resourceFilters: {},
+  },
   cephMonitor: { clusterIdentifier: "ceph-1" },
   storageArrayMonitor: { arrayIdentifier: "array-1" },
   iotMonitor: { fleetIdentifier: "fleet-1" },
@@ -131,9 +135,9 @@ const TYPES_AND_KEYS: Array<[MonitorType, string]> =
   );
 
 describe("MonitorStepRollingTime's step keys", () => {
-  test("are the twelve metric-backed types' settings", () => {
-    expect(STEP_KEYS).toHaveLength(12);
-    expect(new Set(STEP_KEYS).size).toBe(12);
+  test("are the thirteen metric-backed types' settings", () => {
+    expect(STEP_KEYS).toHaveLength(13);
+    expect(new Set(STEP_KEYS).size).toBe(13);
   });
 
   /*
@@ -556,12 +560,13 @@ const KNOWN_KEYS: Array<keyof MonitorStepType> = [
   "proxmoxMonitor",
   "openstackMonitor",
   "vmwareMonitor",
+  "xcpNgMonitor",
   "cephMonitor",
   "storageArrayMonitor",
   "iotMonitor",
 ];
 
-test("the settings this file writes are the twelve step keys", () => {
+test("the settings this file writes are the thirteen step keys", () => {
   expect([...Object.keys(IDENTIFIERS)].sort()).toEqual([...KNOWN_KEYS].sort());
   expect([...STEP_KEYS].sort()).toEqual([...KNOWN_KEYS].sort());
 });

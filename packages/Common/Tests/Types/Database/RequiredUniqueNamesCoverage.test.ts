@@ -135,6 +135,7 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   StorageArrayResource: LeftOut.Discovered,
   VMwareResource: LeftOut.Discovered,
   WorkspaceUserGroup: LeftOut.Discovered,
+  XcpNgResource: LeftOut.Discovered,
 
   // Parts of another record.
   AIConversation: LeftOut.PersonalOrOnePage,
@@ -267,6 +268,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   WorkflowLabelRule: LeftOut.Rule,
   WorkflowOwnerRule: LeftOut.Rule,
   WorkspaceNotificationRule: LeftOut.Rule,
+  XcpNgPoolLabelRule: LeftOut.Rule,
+  XcpNgPoolOwnerRule: LeftOut.Rule,
 
   // Kept by one person, or on one page.
   ExceptionSavedView: LeftOut.PersonalOrOnePage,

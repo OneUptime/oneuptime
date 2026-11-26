@@ -532,6 +532,7 @@ describe("Products menu sections", () => {
       "Proxmox",
       "OpenStack",
       "VMware",
+      "XCP-ng",
       "Ceph",
       "Storage Arrays",
       "Network",
@@ -569,7 +570,7 @@ describe("Products menu sections", () => {
     ]);
   });
 
-  test("regrouping lost no product: all 47 are still listed exactly once", () => {
+  test("regrouping lost no product: all 48 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -583,11 +584,11 @@ describe("Products menu sections", () => {
      * joined Infrastructure, Data Security joined Observability, and App
      * Platforms took Cloud's environments. Moving Data Security and
      * Security Events to Security added none, Data Observability (#5647)
-     * joined Observability as the 46th, and OpenStack (#5676) joined
-     * Infrastructure as the 47th.
+     * joined Observability as the 46th, OpenStack (#5676) joined
+     * Infrastructure as the 47th, and XCP-ng (#10995) as the 48th.
      */
-    expect(titles).toHaveLength(47);
-    expect(new Set(titles).size).toBe(47);
+    expect(titles).toHaveLength(48);
+    expect(new Set(titles).size).toBe(48);
     expect(titles).toContain("App Platforms");
     expect(titles).not.toContain("Code Repositories");
     expect(titles).toContain("Forms");
@@ -645,7 +646,7 @@ describe("the Products menu opens on the essentials", () => {
 
     expect(infrastructure).toHaveAttribute("aria-expanded", "false");
     expect(infrastructure).toHaveAccessibleDescription(
-      "12 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Storage Arrays, Network, IoT",
+      "13 products Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Storage Arrays, Network, IoT",
     );
     expect(
       within(productsMenu()).getByRole("button", { name: "Cloud" }),

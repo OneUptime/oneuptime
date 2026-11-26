@@ -761,6 +761,50 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
     ],
   },
   {
+    name: "XCP-ng",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.XcpNg,
+    description:
+      "Live inventory from every XCP-ng pool Xen Orchestra manages — read by the OneUptime XCP-ng Agent.",
+    items: [
+      {
+        type: DashboardComponentType.XcpNgHostList,
+        label: "Hosts",
+        name: translationKey("XCP-ng Hosts"),
+        icon: IconProp.ServerStack,
+        description:
+          "Hosts with their power state, maintenance mode and CPU/memory.",
+        keywords: [
+          "xcp-ng",
+          "xen",
+          "xenserver",
+          "xen orchestra",
+          "xo",
+          "host",
+          "hypervisor",
+          "pool",
+        ],
+      },
+      {
+        type: DashboardComponentType.XcpNgVmList,
+        label: "VMs",
+        name: translationKey("XCP-ng VMs"),
+        icon: IconProp.Cube,
+        description: "VMs with their power state, CPU/memory and host.",
+        keywords: [
+          "xcp-ng",
+          "xen",
+          "xenserver",
+          "xen orchestra",
+          "xo",
+          "vm",
+          "virtual machine",
+          "power state",
+        ],
+      },
+    ],
+  },
+  {
     name: "Ceph",
     group: WidgetCategoryGroup.Infrastructure,
     icon: IconProp.Database,

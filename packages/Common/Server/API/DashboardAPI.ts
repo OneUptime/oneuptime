@@ -68,6 +68,7 @@ import PodmanHost from "../../Models/DatabaseModels/PodmanHost";
 import PodmanResource from "../../Models/DatabaseModels/PodmanResource";
 import ProxmoxResource from "../../Models/DatabaseModels/ProxmoxResource";
 import VMwareResource from "../../Models/DatabaseModels/VMwareResource";
+import XcpNgResource from "../../Models/DatabaseModels/XcpNgResource";
 import CephResource from "../../Models/DatabaseModels/CephResource";
 import StorageArrayResource from "../../Models/DatabaseModels/StorageArrayResource";
 import DockerSwarmResource from "../../Models/DatabaseModels/DockerSwarmResource";
@@ -90,6 +91,7 @@ import PodmanHostService from "../Services/PodmanHostService";
 import PodmanResourceService from "../Services/PodmanResourceService";
 import ProxmoxResourceService from "../Services/ProxmoxResourceService";
 import VMwareResourceService from "../Services/VMwareResourceService";
+import XcpNgResourceService from "../Services/XcpNgResourceService";
 import CephResourceService from "../Services/CephResourceService";
 import StorageArrayResourceService from "../Services/StorageArrayResourceService";
 import DockerSwarmResourceService from "../Services/DockerSwarmResourceService";
@@ -344,6 +346,14 @@ const PUBLIC_DASHBOARD_RESOURCES: Record<
     widgets: {
       [DashboardComponentType.VMwareHostList]: "Host",
       [DashboardComponentType.VMwareVirtualMachineList]: "VirtualMachine",
+    },
+  },
+  "xcp-ng-resource": {
+    modelType: XcpNgResource,
+    service: XcpNgResourceService,
+    widgets: {
+      [DashboardComponentType.XcpNgHostList]: "Host",
+      [DashboardComponentType.XcpNgVmList]: "VM",
     },
   },
   "ceph-resource": {

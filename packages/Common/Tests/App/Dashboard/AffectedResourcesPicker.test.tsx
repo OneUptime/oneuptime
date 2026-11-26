@@ -102,6 +102,7 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import FormSummary from "../../../UI/Components/Forms/FormSummary";
 import Fields from "../../../UI/Components/Forms/Types/Fields";
@@ -244,6 +245,7 @@ const ALL_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "PodmanHost",
   "ProxmoxCluster",
   "VMwareVCenter",
+  "XcpNgPool",
   "CephCluster",
   "StorageArray",
   "DockerSwarmCluster",
@@ -452,6 +454,7 @@ describe("toItems", () => {
       proxmoxClusters: [],
       openStackClouds: [],
       vmwareVCenters: [],
+      xcpNgPools: [],
       cephClusters: [],
       storageArrays: [],
       dockerSwarmClusters: [],
@@ -488,6 +491,7 @@ describe("toItems", () => {
       "Unknown Kubernetes Cluster",
     );
     expect(getUnknownResourceLabel("VMwareVCenter")).toBe("Unknown vCenter");
+    expect(getUnknownResourceLabel("XcpNgPool")).toBe("Unknown XCP-ng Pool");
     expect(getUnknownResourceLabel("Service")).toBe("Unknown Service");
   });
 });
@@ -571,6 +575,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       ProxmoxCluster: ProxmoxCluster,
       OpenStackCloud: OpenStackCloud,
       VMwareVCenter: VMwareVCenter,
+      XcpNgPool: XcpNgPool,
       CephCluster: CephCluster,
       StorageArray: StorageArray,
       DockerSwarmCluster: DockerSwarmCluster,
@@ -598,6 +603,7 @@ describe("AffectedResourcesPicker chips for resources that arrive as bare IDs", 
       podmanHosts: idFor("PodmanHost"),
       proxmoxClusters: idFor("ProxmoxCluster"),
       vmwareVCenters: idFor("VMwareVCenter"),
+      xcpNgPools: idFor("XcpNgPool"),
       cephClusters: idFor("CephCluster"),
       storageArrays: idFor("StorageArray"),
       dockerSwarmClusters: idFor("DockerSwarmCluster"),

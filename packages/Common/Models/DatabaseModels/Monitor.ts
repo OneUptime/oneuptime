@@ -5,6 +5,7 @@ import KubernetesCluster from "./KubernetesCluster";
 import DockerHost from "./DockerHost";
 import PodmanHost from "./PodmanHost";
 import ProxmoxCluster from "./ProxmoxCluster";
+import XcpNgPool from "./XcpNgPool";
 import OpenStackCloud from "./OpenStackCloud";
 import VMwareVCenter from "./VMwareVCenter";
 import CephCluster from "./CephCluster";
@@ -1124,6 +1125,61 @@ export default class Monitor extends BaseModel {
     },
   })
   public proxmoxClusters?: Array<ProxmoxCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: XcpNgPool,
+    title: "XCP-ng Pools",
+    description:
+      "XCP-ng pools this monitor watches. Incidents and alerts it creates are linked to them.",
+  })
+  @ManyToMany(
+    () => {
+      return XcpNgPool;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "MonitorXcpNgPool",
+    inverseJoinColumn: {
+      name: "xcpNgPoolId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "monitorId",
+      referencedColumnName: "_id",
+    },
+  })
+  public xcpNgPools?: Array<XcpNgPool> = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -42,6 +42,18 @@ import {
   STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES,
 } from "../../../Utils/Dashboard/Components/DashboardStorageArrayResourceListShared";
 import {
+  XCP_NG_HOST_ATTRIBUTE_TO_COLUMN,
+  XCP_NG_HOST_STATUS_FILTER_VALUES,
+  XCP_NG_HOST_WIDGET_SELECT,
+  XCP_NG_VM_ATTRIBUTE_TO_COLUMN,
+  XCP_NG_VM_STATUS_FILTER_VALUES,
+  XCP_NG_VM_WIDGET_SELECT,
+  getXcpNgHostListQuery,
+  getXcpNgHostStatusFilterQuery,
+  getXcpNgVmListQuery,
+  getXcpNgVmStatusFilterQuery,
+} from "../../../Utils/Dashboard/Components/DashboardXcpNgResourceListShared";
+import {
   DashboardWidgetSortChoice,
   readDashboardWidgetSortChoiceForColumns,
 } from "../../../Types/Dashboard/DashboardWidgetSort";
@@ -636,6 +648,17 @@ export default class PublicDashboardResourceListPolicy {
           vmwareVCenterId: true,
           vmwareVCenter: { name: true },
         };
+      // The XCP-ng widgets read the select they share with this policy.
+      case DashboardComponentType.XcpNgHostList:
+        return {
+          ...XCP_NG_HOST_WIDGET_SELECT,
+          xcpNgPool: { ...XCP_NG_HOST_WIDGET_SELECT.xcpNgPool },
+        };
+      case DashboardComponentType.XcpNgVmList:
+        return {
+          ...XCP_NG_VM_WIDGET_SELECT,
+          xcpNgPool: { ...XCP_NG_VM_WIDGET_SELECT.xcpNgPool },
+        };
       case DashboardComponentType.CephOsdList:
         return {
           _id: true,
@@ -964,6 +987,14 @@ export default class PublicDashboardResourceListPolicy {
         );
       case DashboardComponentType.VMwareVirtualMachineList:
         return PublicDashboardResourceListPolicy.buildVMwareVirtualMachinePolicy(
+          argumentsObject,
+        );
+      case DashboardComponentType.XcpNgHostList:
+        return PublicDashboardResourceListPolicy.buildXcpNgHostPolicy(
+          argumentsObject,
+        );
+      case DashboardComponentType.XcpNgVmList:
+        return PublicDashboardResourceListPolicy.buildXcpNgVmPolicy(
           argumentsObject,
         );
       case DashboardComponentType.CephOsdList:
@@ -1574,6 +1605,73 @@ export default class PublicDashboardResourceListPolicy {
         argumentsObject,
       }),
       attributeToColumn: VMWARE_VIRTUAL_MACHINE_ATTRIBUTE_TO_COLUMN,
+    };
+  }
+
+  /*
+   * XCP-ng hosts. The kind, the status filter's values and what each
+   * reads, and the dashboard variables that narrow the list are the
+   * widget's own (DashboardXcpNgResourceListShared), read from one copy.
+   */
+  private static buildXcpNgHostPolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = getXcpNgHostListQuery();
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "xcpNgPoolId",
+      argumentsObject,
+      argumentKey: "xcpNgPoolIds",
+    });
+
+    const statusFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "statusFilter",
+        [...XCP_NG_HOST_STATUS_FILTER_VALUES],
+      );
+    Object.assign(query, getXcpNgHostStatusFilterQuery(statusFilter));
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "xcp-ng-resource",
+        query,
+        argumentsObject,
+      }),
+      attributeToColumn: XCP_NG_HOST_ATTRIBUTE_TO_COLUMN,
+    };
+  }
+
+  /*
+   * XCP-ng VMs, never the control domains (dom0), which the widget leaves
+   * out too.
+   */
+  private static buildXcpNgVmPolicy(
+    argumentsObject: Record<string, unknown>,
+  ): PolicyDraft {
+    const query: Record<string, unknown> = getXcpNgVmListQuery();
+    PublicDashboardResourceListPolicy.addIncludesFromArgument({
+      query,
+      queryKey: "xcpNgPoolId",
+      argumentsObject,
+      argumentKey: "xcpNgPoolIds",
+    });
+
+    const statusFilter: string | undefined =
+      PublicDashboardResourceListPolicy.optionalEnum(
+        argumentsObject,
+        "statusFilter",
+        [...XCP_NG_VM_STATUS_FILTER_VALUES],
+      );
+    Object.assign(query, getXcpNgVmStatusFilterQuery(statusFilter));
+
+    return {
+      ...PublicDashboardResourceListPolicy.listDraft({
+        resourceType: "xcp-ng-resource",
+        query,
+        argumentsObject,
+      }),
+      attributeToColumn: XCP_NG_VM_ATTRIBUTE_TO_COLUMN,
     };
   }
 

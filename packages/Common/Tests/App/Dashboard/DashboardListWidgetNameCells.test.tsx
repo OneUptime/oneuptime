@@ -182,6 +182,8 @@ import DashboardStorageArrayVolumeListComponentElement from "../../../../App/Fea
 import DashboardTraceListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceListComponent";
 import DashboardVMwareHostListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
+import DashboardXcpNgHostListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardXcpNgVmListComponent";
 
 // The names the rows carry: one English name for each kind of cell.
 const NAME: string = "checkout-api-production-7d9f8b6c4";
@@ -198,6 +200,7 @@ const PROXMOX_NODE: string = "pve-eu-west-1";
 const STORAGE_ARRAY: string = "flasharray-eu-west";
 const VCENTER: string = "vcenter.eu-west.example.com";
 const ESXI_HOST: string = "esxi-07.eu-west.example.com";
+const XCP_NG_HOST: string = "xcp-ng-eu-west-2";
 const EVENT_CLASS: string = "Authentication";
 const EVENT_MESSAGE: string = "Failed login for admin from 203.0.113.7";
 const SITE_TYPE: string = "Edge data center";
@@ -266,6 +269,8 @@ function modelRow(name: string): JSONObject {
     clusterName: CLUSTER,
     vmwareVCenter: { name: VCENTER },
     hostName: ESXI_HOST,
+    parentHostName: XCP_NG_HOST,
+    xcpNgPool: { name: CLUSTER },
     networkSiteType: { name: SITE_TYPE },
     latitude: 52.37,
     longitude: 4.9,
@@ -485,6 +490,16 @@ const LIST_WIDGETS: Array<ListWidgetCase> = [
     element: widget(DashboardVMwareVirtualMachineListComponentElement),
     names: [NAME, ESXI_HOST, VCENTER],
   },
+  {
+    type: DashboardComponentType.XcpNgHostList,
+    element: widget(DashboardXcpNgHostListComponentElement),
+    names: [NAME, CLUSTER],
+  },
+  {
+    type: DashboardComponentType.XcpNgVmList,
+    element: widget(DashboardXcpNgVmListComponentElement),
+    names: [NAME, XCP_NG_HOST, CLUSTER],
+  },
   // Drawn as its list (viewMode "list"), the network map's sites.
   {
     type: DashboardComponentType.NetworkMap,
@@ -650,8 +665,8 @@ afterAll(() => {
 });
 
 test("every list widget is drawn here", () => {
-  // Thirty-six lists: a new one joins this suite, or the count says so.
-  expect(LIST_WIDGETS).toHaveLength(36);
+  // Thirty-eight lists: a new one joins this suite, or the count says so.
+  expect(LIST_WIDGETS).toHaveLength(38);
   expect(
     new Set(
       LIST_WIDGETS.map((listWidget: ListWidgetCase): string => {

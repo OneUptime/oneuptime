@@ -50,7 +50,7 @@ OneUptime은 3시간마다, 종류별 기간보다 오래 조용한 검색된 �
 | --- | --- |
 | 파드, 디플로이먼트, Proxmox 게스트, OpenStack 인스턴스, VMware 가상 머신 | 1일 |
 | Kubernetes 노드와 네임스페이스, Proxmox 노드, OpenStack 하이퍼바이저, VMware 호스트, 클러스터, 데이터스토어, 그리고 트레이스가 호출하는 데이터베이스와 원격 서비스 | 7일 |
-| 서비스, 호스트, Kubernetes·Proxmox·Ceph 클러스터, OpenStack 클라우드, 스토리지 어레이, vCenter, Docker Swarm 클러스터 | 30일 |
+| 서비스, 호스트, Kubernetes·Proxmox·Ceph 클러스터, OpenStack 클라우드, 스토리지 어레이, vCenter, XCP-ng 풀, Docker Swarm 클러스터 | 30일 |
 
 OneUptime이 검색한 관계는 30일 동안 다시 확인되지 않으면 제거됩니다.
 

@@ -1463,6 +1463,8 @@ export const AI_READ_RESOURCE_KINDS: ReadonlyArray<string> = [
   translationKey("OpenStack Clouds"),
   translationKey("vCenter"),
   translationKey("vCenters"),
+  translationKey("XCP-ng Pool"),
+  translationKey("XCP-ng Pools"),
   translationKey("Ceph Cluster"),
   translationKey("Ceph Clusters"),
   translationKey("Storage Array"),

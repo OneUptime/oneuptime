@@ -16,6 +16,7 @@ import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import AIChatPageContextType from "Common/Types/AI/AIChatPageContext";
@@ -317,6 +318,33 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
       },
     ],
   },
+  /*
+   * A pool's hosts, VMs and storage repositories, each page keyed by the
+   * object's XAPI UUID (XcpNgResource.externalId).
+   */
+  [AIResourceType.XcpNgPool]: {
+    listPage: PageMap.XCP_NG_POOLS,
+    detailPage: PageMap.XCP_NG_POOL_VIEW,
+    modelType: XcpNgPool,
+    noun: translationKey("XCP-ng pool"),
+    subresources: [
+      {
+        kind: AIResourceSubresourceKind.Host,
+        collectionPage: PageMap.XCP_NG_POOL_VIEW_HOSTS,
+        detailPage: PageMap.XCP_NG_POOL_VIEW_HOST_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.VirtualMachine,
+        collectionPage: PageMap.XCP_NG_POOL_VIEW_VMS,
+        detailPage: PageMap.XCP_NG_POOL_VIEW_VM_DETAIL,
+      },
+      {
+        kind: AIResourceSubresourceKind.StorageRepository,
+        collectionPage: PageMap.XCP_NG_POOL_VIEW_STORAGE,
+        detailPage: PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL,
+      },
+    ],
+  },
   [AIResourceType.CephCluster]: {
     listPage: PageMap.CEPH_CLUSTERS,
     detailPage: PageMap.CEPH_CLUSTER_VIEW,
@@ -496,6 +524,8 @@ const SUBRESOURCE_LABELS: Record<AIResourceSubresourceKind, string> = {
   [AIResourceSubresourceKind.Host]: translationKey("host"),
   [AIResourceSubresourceKind.VirtualMachine]: translationKey("virtual machine"),
   [AIResourceSubresourceKind.Datastore]: translationKey("datastore"),
+  [AIResourceSubresourceKind.StorageRepository]:
+    translationKey("storage repository"),
   [AIResourceSubresourceKind.Cluster]: translationKey("cluster"),
   [AIResourceSubresourceKind.Osd]: translationKey("OSD"),
   [AIResourceSubresourceKind.Pool]: translationKey("pool"),

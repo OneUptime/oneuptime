@@ -32,6 +32,9 @@ import {
   UNSURE_SCORE,
 } from "Common/Utils/DataSecurity/Model/RecognizedEntity";
 import { isFreeTextFieldName } from "Common/Utils/DataSecurity/FreeTextFieldNames";
+import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
+import { readableForModel } from "Common/Utils/DataSecurity/Model/ModelTextReading";
+import { maskUnprovenWords } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
 import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -239,7 +242,9 @@ import {
   maskValue,
 } from "Common/Utils/DataSecurity/Masking";
 import {
+  findSensitiveValues,
   MAX_SCANNED_TEXT_LENGTH,
+  TextMatch,
   WINDOW_OVERLAP,
   WINDOW_SIZE,
 } from "Common/Utils/DataSecurity/TextScanner";
@@ -4098,6 +4103,123 @@ describe("Data Security Integrations", () => {
     expect(
       source("Common/Models/DatabaseModels/DataStoreOwnerRule.ts"),
     ).toContain('title: "Cloud Tag Pattern"');
+  });
+});
+
+/*
+ * HOW A VALUE IS READ, AND WHAT A LEAK'S TEMPLATE KEEPS (#11031-#11034,
+ * #11098): what the Data types page says a scan reads - a URL's escapes, a
+ * character's UTF-8 bytes too, a person's name a URL's query parameter
+ * names, a URL as the model reads it - and what the Telemetry page says a
+ * template keeps of a line read from one record, held to the code.
+ */
+describe("What a value is read as, and what a leak's template keeps", () => {
+  const lineOf: (page: string, start: string) => string = (
+    page: string,
+    start: string,
+  ): string => {
+    const line: string | undefined = english(page)
+      .split("\n")
+      .find((each: string): boolean => {
+        return each.startsWith(start);
+      });
+
+    expect({ page, start, found: line !== undefined }).toEqual({
+      page,
+      start,
+      found: true,
+    });
+
+    return line || "";
+  };
+
+  function foundWhole(value: string, dataTypeId: string): string | null {
+    const match: TextMatch | undefined = findSensitiveValues(value).find(
+      (each: TextMatch): boolean => {
+        return each.dataTypeId === dataTypeId;
+      },
+    );
+
+    return match ? value.slice(match.start, match.end) : null;
+  }
+
+  it("finds each value the paragraph on how people write a value names, whole, as it is written", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "A value is also read as people write it.",
+    );
+
+    for (const [value, dataTypeId] of [
+      ["jane%40example.com", "email-address"],
+      ["jos%C3%A9%40example.com", "email-address"],
+      ["４１１１ １１１１ １１１１ １１１１", "credit-card-number"],
+      ["张伟@example.com", "email-address"],
+      ["почта@пример.рф", "email-address"],
+    ] as Array<[string, string]>) {
+      expect(paragraph).toContain(`\`${value}\``);
+      expect({ value, found: foundWhole(value, dataTypeId) }).toEqual({
+        value,
+        found: value,
+      });
+    }
+  });
+
+  it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "Some data types cannot be told by their values:",
+    );
+    const url: string = "/contacts?full_name=Jos%C3%A9%20Garc%C3%ADa";
+    const [name] = findSensitiveValues(url).filter(
+      (match: TextMatch): boolean => {
+        return match.dataTypeId === "person-name";
+      },
+    );
+
+    expect(paragraph).toContain(`\`${url}\``);
+    expect(paragraph).toContain(
+      "A parameter named only `name` is left to the model.",
+    );
+    expect(url.slice(name!.start, name!.end)).toBe("Jos%C3%A9%20Garc%C3%ADa");
+    expect(name!.normalized).toBe("José García");
+    expect(name!.confidence).toBe(DataConfidence.High);
+    expect(
+      findSensitiveValues("/contacts?name=Jos%C3%A9%20Garc%C3%ADa").filter(
+        (match: TextMatch): boolean => {
+          return match.dataTypeId === "person-name";
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  it("hands the model a URL as a URL reads, its escapes read and a + between letters a space (#11034)", () => {
+    const bullet: string = lineOf(DATA_TYPES, "- **What it reads.**");
+
+    expect(bullet).toContain("`/profile?name=Jos%C3%A9%20Garc%C3%ADa`");
+    expect(readableForModel("/profile?name=Jos%C3%A9%20Garc%C3%ADa")).toBe(
+      "/profile?name=José García",
+    );
+    expect(readableForModel("full_name=Lars+Eriksson")).toBe(
+      "full_name=Lars Eriksson",
+    );
+  });
+
+  it("masks every word a line read from one record does not prove is the code's, as the page's example (#11098)", () => {
+    const bullet: string = lineOf(TELEMETRY, "- **A log line**:");
+
+    expect(bullet).toContain(
+      "`Payment declined for Maria Gonzalez`, read from one record, is `Payment declined for <value>`",
+    );
+    expect(
+      maskUnprovenWords("Payment declined for Maria Gonzalez", {
+        isAligned: false,
+      }),
+    ).toBe("Payment declined for <value>");
+    // The page's other example keeps every word: each is the code's.
+    expect(bullet).toContain("`User <Email address> signed up`");
+    expect(
+      maskUnprovenWords("User <Email address> signed up", { isAligned: false }),
+    ).toBe("User <Email address> signed up");
   });
 });
 

@@ -452,7 +452,7 @@ Les noms de séries dans `metrics` contiennent des points, comme `oneuptime.moni
 
 ### Moniteurs de métriques et d'infrastructure
 
-Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Baie de stockage et Appareil IoT ont une variable qui leur est propre :
+Les moniteurs Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Baie de stockage et Appareil IoT ont une variable qui leur est propre :
 
 | Variable | Ce qu'elle contient | Type |
 | --- | --- | --- |

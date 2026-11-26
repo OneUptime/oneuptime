@@ -586,6 +586,16 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "workflowNamePattern",
     "workflowDescriptionPattern",
   ],
+  XcpNgPoolLabelRule: [
+    "xcpNgPoolLabels",
+    "xcpNgPoolNamePattern",
+    "xcpNgPoolDescriptionPattern",
+  ],
+  XcpNgPoolOwnerRule: [
+    "xcpNgPoolLabels",
+    "xcpNgPoolNamePattern",
+    "xcpNgPoolDescriptionPattern",
+  ],
 } as const;
 
 export type RegisteredRuleCriteriaModelName =

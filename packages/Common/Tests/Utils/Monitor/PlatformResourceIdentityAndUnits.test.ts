@@ -1333,6 +1333,7 @@ describe("PlatformMetricUnitUtil.getPlatformForMonitorType", () => {
     [MonitorType.Proxmox, "proxmox"],
     [MonitorType.OpenStack, "openstack"],
     [MonitorType.VMware, "vmware"],
+    [MonitorType.XcpNg, "xcpNg"],
     [MonitorType.DockerSwarm, "dockerSwarm"],
     [MonitorType.Ceph, "ceph"],
     [MonitorType.Docker, "docker"],

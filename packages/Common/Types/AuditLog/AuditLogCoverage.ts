@@ -192,6 +192,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   TelemetryIngestionKeyRefusal: AuditLogExemptionKind.Reported,
   TelemetryUsageBilling: AuditLogExemptionKind.Reported,
   VMwareResource: AuditLogExemptionKind.Reported,
+  XcpNgResource: AuditLogExemptionKind.Reported,
 
   // Activity feeds.
   AlertEpisodeFeed: AuditLogExemptionKind.ActivityFeed,
@@ -220,6 +221,7 @@ export const AUDIT_LOG_EXEMPT_TABLES: Readonly<
   ServiceLevelObjectiveFeed: AuditLogExemptionKind.ActivityFeed,
   StorageArrayFeed: AuditLogExemptionKind.ActivityFeed,
   VMwareVCenterFeed: AuditLogExemptionKind.ActivityFeed,
+  XcpNgPoolFeed: AuditLogExemptionKind.ActivityFeed,
 
   // OneUptime's working state.
   CodeRepositoryConnection: AuditLogExemptionKind.WorkingState,
@@ -316,6 +318,7 @@ export const AUDIT_LOG_ROOT_RESOURCE_TABLES: ReadonlySet<string> =
     "TelemetryException",
     "VMwareVCenter",
     "Workflow",
+    "XcpNgPool",
   ]);
 
 /*
@@ -424,6 +427,17 @@ export const AUDIT_LOG_REPORTED_COLUMNS: Readonly<
     "firstSeenInRelease",
     "lastSeenInRelease",
     "regressedAt",
+  ],
+  XcpNgPool: [
+    "hostCount",
+    "runningHostCount",
+    "disabledHostCount",
+    "vmCount",
+    "runningVmCount",
+    "storageRepositoryCount",
+    "vdiCount",
+    "storageCapacityBytes",
+    "storageUsedBytes",
   ],
 };
 

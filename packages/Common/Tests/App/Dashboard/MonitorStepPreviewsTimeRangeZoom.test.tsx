@@ -195,6 +195,7 @@ import PodmanMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Comp
 import ProxmoxMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMonitorStepForm";
 import OpenStackMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
+import XcpNgMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMonitorStepForm";
 import CephMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephMonitorStepForm";
 import IoTMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMonitorStepForm";
 import MonitorStepElement from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/MonitorSteps/MonitorStep";
@@ -233,6 +234,9 @@ import MonitorStepOpenStackMonitor, {
 import MonitorStepVMwareMonitor, {
   MonitorStepVMwareMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepXcpNgMonitor, {
+  MonitorStepXcpNgMonitorUtil,
+} from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
 import MonitorStepCephMonitor, {
   MonitorStepCephMonitorUtil,
 } from "../../../Types/Monitor/MonitorStepCephMonitor";
@@ -540,6 +544,23 @@ const FORM_CASES: Array<FormCase> = [
         <VMwareMonitorStepForm
           monitorStepVMwareMonitor={step as MonitorStepVMwareMonitor}
           onChange={onChange as (step: MonitorStepVMwareMonitor) => void}
+        />
+      );
+    },
+  },
+  {
+    name: "XCP-ng",
+    metricName: "form.xcp_ng.cpu",
+    opensOnAdvancedTab: true,
+    initial: stepFor(
+      MonitorStepXcpNgMonitorUtil.getDefault(),
+      "form.xcp_ng.cpu",
+    ),
+    renderForm: (step: FormStep, onChange: (step: FormStep) => void) => {
+      return (
+        <XcpNgMonitorStepForm
+          monitorStepXcpNgMonitor={step as MonitorStepXcpNgMonitor}
+          onChange={onChange as (step: MonitorStepXcpNgMonitor) => void}
         />
       );
     },

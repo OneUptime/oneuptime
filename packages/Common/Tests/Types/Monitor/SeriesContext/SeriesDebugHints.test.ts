@@ -1190,6 +1190,111 @@ describe("SeriesDebugHints", () => {
       ).toEqual([]);
     });
 
+    /*
+     * XAPI's `xe`, read-only, on the pool master, by the object's UUID. The
+     * shipped templates group by `xcp_ng.id` alone: what kind of object the
+     * UUID is comes from `xcp_ng.scope`, else from the metric the monitor
+     * reads.
+     */
+    test("XCP-ng reads a host by its UUID, then the VMs running on it", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: {
+            "xcp_ng.scope": "host",
+            "xcp_ng.id": "a1b2c3d4-0000-4000-8000-000000000001",
+          },
+        }),
+      ).toEqual([
+        "xe host-param-list uuid=a1b2c3d4-0000-4000-8000-000000000001",
+        "xe vm-list resident-on=a1b2c3d4-0000-4000-8000-000000000001 is-control-domain=false params=name-label,power-state",
+      ]);
+    });
+
+    test("XCP-ng tells a VM's UUID from the metric when the series names no scope", () => {
+      const vm: Array<string> = getCommandStrings({
+        monitorType: MonitorType.XcpNg,
+        seriesLabels: { "xcp_ng.id": "b1b2c3d4-0000-4000-8000-000000000011" },
+        metricNames: ["xcp_ng.vm.running"],
+      });
+
+      expect(vm[0]).toBe(
+        "xe vm-list uuid=b1b2c3d4-0000-4000-8000-000000000011 params=name-label,power-state,resident-on",
+      );
+      expect(vm).toContain(
+        "xe vm-param-list uuid=b1b2c3d4-0000-4000-8000-000000000011",
+      );
+
+      // The series' own scope wins over the metric's.
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: {
+            "xcp_ng.scope": "vdi",
+            "xcp_ng.id": "d1b2c3d4-0000-4000-8000-000000000031",
+          },
+          metricNames: ["xcp_vm_cpu_usage"],
+        }),
+      ).toEqual([
+        "xe vdi-param-list uuid=d1b2c3d4-0000-4000-8000-000000000031",
+      ]);
+    });
+
+    test("XCP-ng reads a storage repository, and whether every host has it plugged", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: { "xcp_ng.id": "c1b2c3d4-0000-4000-8000-000000000021" },
+          metricNames: ["xcp_sr_physical_usage_bytes"],
+        }),
+      ).toEqual([
+        "xe sr-param-list uuid=c1b2c3d4-0000-4000-8000-000000000021",
+        "xe pbd-list sr-uuid=c1b2c3d4-0000-4000-8000-000000000021 params=host-uuid,currently-attached",
+      ]);
+    });
+
+    test("XCP-ng looks a host up by name when the series names no UUID, quoting it", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: { host_name: "xcp-host-01" },
+        }),
+      ).toEqual([
+        "xe host-list name-label=xcp-host-01 params=uuid,enabled,host-metrics-live",
+      ]);
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: { host_name: "Host 1; rm -rf /" },
+        }),
+      ).toEqual([
+        "xe host-list name-label='Host 1; rm -rf /' params=uuid,enabled,host-metrics-live",
+      ]);
+    });
+
+    test("XCP-ng quotes a UUID that is not one, and guesses no command for a UUID of no known kind", () => {
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: { "xcp_ng.scope": "host", "xcp_ng.id": "x; reboot" },
+        })[0],
+      ).toBe("xe host-param-list uuid='x; reboot'");
+
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: { "xcp_ng.id": "a1b2c3d4-0000-4000-8000-000000000001" },
+          metricNames: ["a.metric"],
+        }),
+      ).toEqual([]);
+      expect(
+        getCommandStrings({
+          monitorType: MonitorType.XcpNg,
+          seriesLabels: { "service.name": "api" },
+        }),
+      ).toEqual([]);
+    });
+
     test("Ceph always starts from health detail", () => {
       const commands: Array<string> = getCommandStrings({
         monitorType: MonitorType.Ceph,

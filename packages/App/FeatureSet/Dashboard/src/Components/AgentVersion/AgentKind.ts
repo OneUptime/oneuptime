@@ -71,6 +71,11 @@ export enum AgentKind {
   VMwareAgent = "vmware-agent",
   // agents/StorageArrayAgent: a storage array.
   StorageArrayAgent = "storage-array-agent",
+  /*
+   * agents/XcpNgAgent: an XCP-ng pool - every pool of the Xen Orchestra it
+   * reads reports the same agent.
+   */
+  XcpNgAgent = "xcp-ng-agent",
   // The OpenTelemetry SDK or gateway on the customer's devices: an IoT fleet.
   IoTExporter = "iot-exporter",
   // The OpenTelemetry SDK in the customer's function: a serverless function.
@@ -177,8 +182,8 @@ export const DATABASE_AGENT_VERSION: string = "0.165.0";
 export const DATABASE_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 
 /*
- * The collector versions the Proxmox, Ceph, VMware and Storage Array agents
- * report: the oneuptime.agent.version each
+ * The collector versions the Proxmox, Ceph, VMware, Storage Array and XCP-ng
+ * agents report: the oneuptime.agent.version each
  * agents/<Agent>/otel-collector-config.yaml stamps (each of the Storage
  * Array agent's three configs does), kept equal to the collector image its
  * docker-compose.yml pins (and to the Dashboard's embedded copy of that
@@ -211,6 +216,12 @@ export const OPENSTACK_AGENT_COLLECTOR_VERSION: string = "0.165.0";
 export const CEPH_AGENT_VERSION: string = "0.165.0";
 export const VMWARE_AGENT_VERSION: string = "0.165.0";
 export const STORAGE_ARRAY_AGENT_VERSION: string = "0.165.0";
+/*
+ * The version the XCP-ng agent reports, on every pool it reads: the
+ * collector its docker-compose.yml pins, until its files change on that
+ * collector.
+ */
+export const XCP_NG_AGENT_VERSION: string = "0.165.0";
 
 /*
  * The otelcol-contrib release the host guide installs (every install method:
@@ -300,6 +311,16 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: STORAGE_ARRAY_AGENT_VERSION,
     collectorVersion: STORAGE_ARRAY_AGENT_VERSION,
+  },
+  /*
+   * The XCP-ng agent, too: the collector its compose file pins, with a
+   * config that stamps the pin on every pool of its Xen Orchestra.
+   */
+  [AgentKind.XcpNgAgent]: {
+    name: "OneUptime XCP-ng Agent",
+    latestVersionSource: AgentLatestVersionSource.PinnedCollector,
+    pinnedVersion: XCP_NG_AGENT_VERSION,
+    collectorVersion: XCP_NG_AGENT_VERSION,
   },
   /*
    * IoT, serverless and RUM versions come from the customer's own

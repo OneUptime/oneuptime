@@ -348,6 +348,8 @@ enum IconProp {
   Podman = "Podman",
   Proxmox = "Proxmox",
   VMware = "VMware",
+  // XCP-ng: Xen Orchestra over a pool of hosts (vendor-neutral, no brand mark).
+  XcpNg = "XcpNg",
   IoT = "IoT",
   Ceph = "Ceph",
   StorageArray = "StorageArray",

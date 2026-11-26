@@ -1307,6 +1307,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
     kind: "keys",
   },
+  {
+    directory: "packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
+    kind: "keys",
+  },
   /*
    * What a monitor's evaluation says, for the Dashboard to word in each
    * reader's language (issue #6542): the sentences the engine stores beside

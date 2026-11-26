@@ -384,6 +384,16 @@ export const DEVELOPER_DOCS_PARENT_PAGES: ReadonlyArray<DeveloperDocsParentPage>
       tableName: "VMwareVCenter",
     },
     {
+      pageKey: PageMap.XCP_NG_POOLS,
+      scope: DeveloperDocsScope.List,
+      tableName: "XcpNgPool",
+    },
+    {
+      pageKey: PageMap.XCP_NG_POOL_VIEW,
+      scope: DeveloperDocsScope.View,
+      tableName: "XcpNgPool",
+    },
+    {
       pageKey: PageMap.CEPH_CLUSTERS,
       scope: DeveloperDocsScope.List,
       tableName: "CephCluster",
