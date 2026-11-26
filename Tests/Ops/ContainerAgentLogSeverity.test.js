@@ -77,9 +77,11 @@
  */
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 
+const behaviour = require("./Utils/LogSeverityBehaviour.js");
 const { CASES, PROSE } = require("./Utils/LogSeverityCorpus.js");
 const {
   STDOUT_ROUTE_EXPR,
@@ -1170,5 +1172,252 @@ describe("the helpers this suite reads the chain with", () => {
     expect(() => {
       return classify(drifted, "x", "stdout");
     }).toThrow(/cannot parse a body its route admitted/);
+  });
+});
+
+/*
+ * agent-log-severity-behaviour.sh runs the corpus through the real collector.
+ * What it proves is only worth as much as its inputs: the records must land
+ * where each config reads its runtime's logs, in the line format it parses,
+ * and the filter run must expect what the chart's filter keeps.
+ */
+describe("agent-log-severity-behaviour.sh", () => {
+  const SCRIPT = "Tests/Ops/agent-log-severity-behaviour.sh";
+  const WORKFLOW = ".github/workflows/test.ops.yaml";
+  const readRepoFile = (file) => {
+    return fs.readFileSync(path.join(REPO_ROOT, file), "utf8");
+  };
+
+  /** A filelog include/exclude glob as a regex over a whole path. */
+  const globToRegExp = (glob) => {
+    const source = glob
+      .split("**")
+      .map((part) => {
+        return part
+          .split("*")
+          .map((piece) => {
+            return piece.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+          })
+          .join("[^/]*");
+      })
+      .join(".*");
+
+    return new RegExp(`^${source}$`);
+  };
+
+  /** Every file a layout writes, as the collector sees it under `mount`. */
+  const writtenFiles = (layout, mount) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "log-severity-"));
+
+    try {
+      behaviour.fixtures(layout, path.join(dir, "logs"));
+
+      const cases = JSON.parse(
+        fs.readFileSync(path.join(dir, "cases.json"), "utf8"),
+      );
+      const files = [];
+      const walk = (at) => {
+        for (const name of fs.readdirSync(at)) {
+          const full = path.join(at, name);
+
+          if (fs.statSync(full).isDirectory()) {
+            walk(full);
+          } else {
+            files.push({
+              path: `${mount}/${path.relative(path.join(dir, "logs"), full)}`,
+              lines: fs.readFileSync(full, "utf8").split("\n").filter(Boolean),
+            });
+          }
+        }
+      };
+
+      walk(path.join(dir, "logs"));
+
+      return { cases, files };
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  test("runs the chart on the collector it pins and on 0.96.0, with and without minSeverity=ERROR, and the three agents", () => {
+    const script = readRepoFile(SCRIPT);
+    const render = script.substring(
+      script.indexOf("helm template behaviour"),
+      script.indexOf('>"${dir}/rendered.yaml"'),
+    );
+
+    expect(render).toContain("--set logs.enabled=true");
+    expect(render).toContain("--set logs.mode=daemonset");
+    expect(script).toContain("\nkubernetes_case kubernetes-pinned\n");
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-0.96.0 --set image.tag=0.96.0\n",
+    );
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-min-error --min-severity ERROR --set filters.logs.minSeverity=ERROR\n",
+    );
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-0.96.0-min-error --min-severity ERROR --set filters.logs.minSeverity=ERROR --set image.tag=0.96.0\n",
+    );
+
+    for (const agent of AGENTS) {
+      expect(script).toMatch(new RegExp(`\\nagent_case ${agent} `));
+    }
+  });
+
+  test("writes every case, and every line of prose on both streams, as its own container", () => {
+    const records = behaviour.allRecords();
+
+    expect(records).toHaveLength(CASES.length + 2 * PROSE.length);
+
+    for (const layout of ["pods", "docker", "podman"]) {
+      const { cases, files } = writtenFiles(layout, "/logs");
+
+      expect(cases).toHaveLength(records.length);
+      expect(files).toHaveLength(records.length);
+      expect(
+        new Set(
+          cases.map((entry) => {
+            return entry.id;
+          }),
+        ).size,
+      ).toBe(records.length);
+    }
+  });
+
+  test("puts a node's pod logs where the chart reads them, as containerd writes them", () => {
+    const template = fs.readFileSync(KUBERNETES_CONFIGMAP_PATH, "utf8");
+    const filePathRegex = compileRe2AsJs(
+      /id: extract-metadata-from-filepath\s+regex: '([^']+)'/.exec(template)[1],
+    );
+    const containerdRegex = compileRe2AsJs(
+      /id: parser-containerd\s+regex: '([^']+)'/.exec(template)[1],
+    );
+    const { cases, files } = writtenFiles("pods", "/var/log/pods");
+
+    for (const file of files) {
+      expect(globToRegExp("/var/log/pods/*/*/*.log").test(file.path)).toBe(
+        true,
+      );
+
+      const podName = filePathRegex.exec(file.path).groups.pod_name;
+
+      expect(
+        cases.some((entry) => {
+          return entry.id === podName;
+        }),
+      ).toBe(true);
+
+      for (const line of file.lines) {
+        expect(containerdRegex.test(line)).toBe(true);
+      }
+    }
+  });
+
+  test.each([
+    ["DockerAgent", "docker", "/var/lib/docker/containers"],
+    ["DockerSwarmAgent", "docker", "/var/lib/docker/containers"],
+    ["PodmanAgent", "podman", "/var/lib/containers/storage/overlay-containers"],
+  ])(
+    "puts %s's logs where it reads them, in its runtime's format",
+    (agent, layout, mount) => {
+      const config = yaml.load(
+        readRepoFile(`agents/${agent}/otel-collector-config.yaml`),
+      );
+      const receiver = config.receivers.filelog;
+      const operators = indexOperatorsById(receiver.operators);
+      const idRegex = compileRe2AsJs(
+        operators.get("extract-container-id").regex,
+      );
+      const { cases, files } = writtenFiles(layout, mount);
+
+      for (const file of files) {
+        expect(
+          receiver.include.some((glob) => {
+            return globToRegExp(glob).test(file.path);
+          }),
+        ).toBe(true);
+        // The script runs the collector as host "severity-behaviour", which
+        // is the ${env:HOSTNAME} the agents exclude their own log by.
+        expect(
+          receiver.exclude.some((glob) => {
+            return globToRegExp(
+              glob.replace("${env:HOSTNAME}", "severity-behaviour"),
+            ).test(file.path);
+          }),
+        ).toBe(false);
+
+        const id = idRegex.exec(file.path).groups.container_id;
+
+        expect(
+          cases.some((entry) => {
+            return entry.id === id;
+          }),
+        ).toBe(true);
+
+        for (const line of file.lines) {
+          if (layout === "docker") {
+            expect(Object.keys(JSON.parse(line)).sort()).toEqual([
+              "log",
+              "stream",
+              "time",
+            ]);
+          } else {
+            expect(
+              compileRe2AsJs(operators.get("parser-podman").regex).test(line),
+            ).toBe(true);
+          }
+        }
+      }
+    },
+  );
+
+  test("expects the filter run to keep exactly what the chart's filter keeps", () => {
+    // The chart drops `severity_number != UNSPECIFIED and severity_number <
+    // SEVERITY_NUMBER_<min>`: an unread line, which has no number, is kept.
+    expect(behaviour.keptBy("ERROR", "Unspecified")).toBe(true);
+    expect(behaviour.keptBy("ERROR", "Error")).toBe(true);
+    expect(behaviour.keptBy("ERROR", "Fatal")).toBe(true);
+    expect(behaviour.keptBy("ERROR", "Warning")).toBe(false);
+    expect(behaviour.keptBy("ERROR", "Information")).toBe(false);
+    expect(behaviour.keptBy("WARN", "Warning")).toBe(true);
+    expect(behaviour.keptBy("", "Trace")).toBe(true);
+
+    const helpers = readRepoFile(
+      "HelmChart/Public/kubernetes-agent/templates/_helpers.tpl",
+    );
+
+    expect(helpers).toContain(
+      "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_%s",
+    );
+  });
+
+  test("reads OneUptime's level off an exported record by its number, as ingest does", () => {
+    expect(behaviour.severityOf({})).toBe("Unspecified");
+    expect(behaviour.severityOf({ severityNumber: 9 })).toBe("Information");
+    expect(behaviour.severityOf({ severityNumber: 17 })).toBe("Error");
+    expect(behaviour.severityOf({ severityNumber: 21 })).toBe("Fatal");
+    expect(behaviour.severityOf({ severityNumber: 25 })).toBe("Unspecified");
+  });
+
+  test("in the Ops Config Test workflow, after the event severity test", () => {
+    const workflow = yaml.load(readRepoFile(WORKFLOW));
+    const runs = workflow.jobs.test.steps
+      .map((step) => {
+        return step.run;
+      })
+      .filter(Boolean);
+    const events = runs.indexOf(
+      "bash Tests/Ops/agent-event-severity-behaviour.sh",
+    );
+
+    expect(events).toBeGreaterThan(-1);
+    expect(runs.indexOf(`bash ${SCRIPT}`)).toBe(events + 1);
+  });
+
+  test("and the README says what it checks", () => {
+    const readme = readRepoFile("Tests/Ops/README.md");
+
+    expect(readme).toContain("### `agent-log-severity-behaviour.sh`");
+    expect(readme).toContain("### `ContainerAgentLogSeverity.test.js`");
   });
 });

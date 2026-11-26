@@ -218,6 +218,18 @@ jobs:
       # namespaces) must leave as WARN, Normal Events and resource specs as
       # INFO, none dropped.
       - run: bash Tests/Ops/agent-event-severity-behaviour.sh
+      # And for pod and container logs (issue #10972): the severity chain of
+      # the Kubernetes agent's DaemonSet (on the collector the chart pins and
+      # on 0.96.0, with and without filters.logs.minSeverity=ERROR) and of the
+      # Docker, Docker Swarm and Podman agents, each config exactly as it
+      # ships, over the log lines of Tests/Ops/Utils/LogSeverityCorpus.js
+      # written as each runtime writes them to disk. Every line must leave at
+      # the level it names (hclog behind a time ending in Z, klog's letter,
+      # PostgreSQL's LOG, Spring Boot 3, pino's numbers, an exception's
+      # header), a line that names none on stderr with no severity rather
+      # than ERROR, none dropped or doubled, nothing below ERROR kept under
+      # the filter, and no error logged by the chain.
+      - run: bash Tests/Ops/agent-log-severity-behaviour.sh
       # And for a host's journal (issue #9748): the journald operators of
       # OneUptime's default host collector config, as the server sends it,
       # on the release the host installers pin, fed entries as journalctl

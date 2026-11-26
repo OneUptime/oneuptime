@@ -421,4 +421,11 @@ if (require.main === module) {
   process.exit(main(process.argv.slice(2)));
 }
 
-module.exports = { allRecords, keptBy, severityOf };
+module.exports = {
+  allRecords,
+  config,
+  exported,
+  fixtures,
+  keptBy,
+  severityOf,
+};
