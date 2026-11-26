@@ -359,6 +359,25 @@ O servidor também tem as ações de configuração do Pergunte à IA, uma chama
 
 Elas agem como você, conectado com OAuth: uma chave de API de projeto não pode usar as oito que criam algo. Seu cliente pergunta a você antes de cada uma, e a resposta diz o que foi criado. O que falta, como uma permissão, um endereço ou espaço no plano, é dito antes de qualquer coisa ser criada.
 
+## Ferramentas para Segurança de dados
+
+O servidor também tem [as ações de Segurança de dados do Pergunte à IA](/docs/data-security/integrations#pergunte-à-ia), uma chamada cada. Cada uma faz exatamente a alteração que o seu botão faz na Segurança de dados, como você e com as suas permissões, depois das mesmas verificações:
+
+- **`query_data_security_proposals`**: o que o OneUptime AI propõe e aguarda uma pessoa, as mais arriscadas primeiro. Com `which: "data-types"`, os tipos de dados que ele encontrou e que as varreduras ainda não procuram: o nome, a categoria e a sensibilidade de cada um, como foi comprovado e os repositórios e campos em que está, nunca um valor. Não muda nada
+- **`draft_data_security_rule`**: uma regra de residência, de proprietário ou de rótulos redigida a partir de uma frase, como «os dados pessoais da UE devem ficar na UE», com os repositórios que ela abrange hoje. Não muda nada
+- **`scrub_data_security_finding`**: **Limpar** em uma descoberta na telemetria
+- **`judge_data_security_finding`**: **Confirmar**, ou **Não sensível** com um motivo, e o mesmo para as descobertas parecidas
+- **`change_data_security_issue`**: **Reabrir**, **Atribuir**, **Aceitar o risco** ou **Não é um problema**
+- **`set_data_store_owners`**: os proprietários de um repositório, adicionados ou removidos
+- **`save_data_security_rule`**: uma regra que `draft_data_security_rule` redigiu
+- **`respond_on_data_store`**: uma ação de resposta pela conexão de nuvem do repositório, como **Block Public Access**
+- **`fix_data_security_issue_with_ai`**: **Corrigir com IA**, um pull request que alguém revisa e mescla
+- **`decide_data_security_proposal`**: **Aprovar** ou **Dispensar** uma proposta
+
+Pergunte à IA pergunta a uma pessoa antes de algumas delas em todos os modos, em um cartão que diz o que muda, o que para de funcionar e quanto custa: responder em um repositório, **Não sensível**, **Aceitar o risco**, **Não é um problema**, mudar os proprietários de um repositório, salvar uma regra, decidir uma proposta, uma limpeza que algo lê e **Confirmar** em um projeto que aciona alguém por um problema crítico. Este servidor não pode mostrar esse cartão a você, então as recusa, diz por quê e nomeia a página do OneUptime em que você faz a alteração. Nada é executado sem ele.
+
+As outras agem como você, conectado com OAuth: uma chave de API do projeto não pode usá-las e só usa as duas que não mudam nada. Em um servidor auto-hospedado, `MCP_READ_ONLY=true` deixa só as ferramentas que não mudam nada, e `MCP_ALLOW_DESTRUCTIVE=false` recusa remover os proprietários de um repositório, o que os exclui.
+
 ## Consultar a telemetria
 
 Logs, métricas, traces (spans), exceções, logs de monitores e os outros tipos de telemetria vêm como ferramentas `list_` e `count_` somente leitura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e as gêmeas `count_` delas). A telemetria chega pelo OpenTelemetry, então não há ferramentas de criação.
