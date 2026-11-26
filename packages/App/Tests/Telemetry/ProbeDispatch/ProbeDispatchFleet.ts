@@ -86,8 +86,9 @@ export function websiteMonitorStepsAsStored(index: number): unknown {
     defaultAlertSeverityId: ObjectID.generate(),
   });
 
-  const step: { data?: { monitorDestination?: unknown } } | undefined =
-    steps.data?.monitorStepsInstanceArray[0];
+  const step:
+    | { data?: { monitorDestination?: unknown } | undefined }
+    | undefined = steps.data?.monitorStepsInstanceArray[0];
 
   if (step?.data) {
     step.data.monitorDestination = URL.fromString(
