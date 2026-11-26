@@ -137,7 +137,6 @@ export async function startFakeXenOrchestra(options: {
     ...(options.settings || {}),
   };
   const requests: Array<FakeXoRequest> = [];
-  let scrapesServed: number = 0;
 
   const handler: http.RequestListener = (
     request: http.IncomingMessage,
@@ -199,9 +198,11 @@ export async function startFakeXenOrchestra(options: {
           return send(200, OPENMETRICS_CONTENT_TYPE, "# No connected hosts\n# EOF");
         }
 
+        // Served in turn, the last one again and again.
         const body: string =
-          settings.scrapes[Math.min(scrapesServed, settings.scrapes.length - 1)]!;
-        scrapesServed++;
+          settings.scrapes.length > 1
+            ? settings.scrapes.shift()!
+            : settings.scrapes[0] || "# EOF";
         return send(200, OPENMETRICS_CONTENT_TYPE, body);
       }
 
