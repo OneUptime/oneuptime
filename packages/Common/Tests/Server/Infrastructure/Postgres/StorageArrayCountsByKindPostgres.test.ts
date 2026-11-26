@@ -7,10 +7,9 @@ import { DataSource, QueryRunner } from "typeorm";
 /*
  * STORAGEARRAY.COUNTSBYKIND ON A REAL POSTGRES (#11000).
  *
- * The StorageArray table is cloned from public into a schema of its own (so
- * no row of the source is read or changed), put back as it was before the
- * migration - without the column - and filled with arrays of every kind of
- * platform. Then:
+ * A StorageArray table of the columns the migration and the merge read is
+ * made in a schema of its own, as it was before the migration - without the
+ * column - and filled with arrays of every kind of platform. Then:
  *
  *   - up() fills each FlashArray and FlashBlade with the counts of the kinds
  *     its platform reports, from the count columns, leaves out a NULL
@@ -23,12 +22,12 @@ import { DataSource, QueryRunner } from "typeorm";
  *     transaction holds;
  *   - down() drops the column and up() adds it back.
  *
- * Opt in with RUN_POSTGRES_STORAGE_ARRAY_COUNTS_TESTS=true against a
- * migrated database. Locally, against a throwaway container:
+ * Opt in with RUN_POSTGRES_STORAGE_ARRAY_COUNTS_TESTS=true (the Common test
+ * workflow does). It needs no migrated database: the schema it makes is
+ * dropped after. Locally, against a throwaway container:
  *
  *   docker run -d --name storage-array-counts-pg -e POSTGRES_PASSWORD=password \
  *     -e POSTGRES_DB=oneuptimedb -p 127.0.0.1:55436:5432 postgres:15
- *   (apply the migrations: DATABASE_MIGRATIONS_PORT=55436 npm run check-postgres-schema-drift)
  *   RUN_POSTGRES_STORAGE_ARRAY_COUNTS_TESTS=true \
  *   STORAGE_ARRAY_COUNTS_TEST_DATABASE_PORT=55436 DATABASE_PASSWORD=password \
  *     npx jest Tests/Server/Infrastructure/Postgres/StorageArrayCountsByKindPostgres.test.ts
@@ -170,12 +169,23 @@ describePostgres("StorageArray countsByKind against Postgres", () => {
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
+    // The columns the migration and the merge read, as before the migration.
     await database.query(
-      `CREATE TABLE "${schema}"."StorageArray" (LIKE public."StorageArray" INCLUDING DEFAULTS)`,
-    );
-    // The table as it was BEFORE the migration.
-    await database.query(
-      `ALTER TABLE "${schema}"."StorageArray" DROP COLUMN IF EXISTS "countsByKind"`,
+      `CREATE TABLE "${schema}"."StorageArray" (
+         "_id" uuid PRIMARY KEY,
+         "version" integer NOT NULL DEFAULT 1,
+         "projectId" uuid NOT NULL,
+         "name" character varying NOT NULL,
+         "slug" character varying NOT NULL,
+         "storageSystem" character varying,
+         "volumeCount" integer,
+         "hostCount" integer,
+         "podCount" integer,
+         "fileSystemCount" integer,
+         "bucketCount" integer,
+         "hardwareComponentCount" integer,
+         "deletedAt" timestamp with time zone
+       )`,
     );
 
     let index: number = 0;

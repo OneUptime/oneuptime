@@ -154,6 +154,11 @@ jobs:
       # (MonitorStatusTimelineBritishColumbiaPostgres, #9999, #10039).
       # Creates nothing.
       RUN_POSTGRES_TIME_ZONE_DATA_TESTS: "true"
+      # AddStorageArrayCountsByKind1809187690000 on real rows, and the
+      # ingest's merge of each kind's count into StorageArray.countsByKind
+      # (StorageArrayCountsByKindPostgres, #11000). A schema of its own,
+      # dropped after.
+      RUN_POSTGRES_STORAGE_ARRAY_COUNTS_TESTS: "true"
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
