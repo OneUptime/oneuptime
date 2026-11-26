@@ -1,11 +1,13 @@
 # Coûts et économies du cloud
 
-Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, et alerte avant qu'un mois ne coûte plus que son budget dans **Cloud → Dépenses → Budgets**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
+Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, liste vos Savings Plans, réservations et remises sur engagement d'utilisation dans **Cloud → Dépenses → Engagements**, et alerte avant qu'un mois ne coûte plus que son budget dans **Cloud → Dépenses → Budgets**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer et Cost Optimization Hub, chacun activé une fois.
 - [Microsoft Azure](#microsoft-azure): Cost Management et Azure Advisor, avec un rôle de plus.
 - [Google Cloud](#google-cloud): Votre export de facturation vers BigQuery, et le Recommender.
+- [Facturé, amorti et net](#facturé-amorti-et-net): Chaque coût de trois façons, pour que les engagements et les crédits tombent là où l'argent est allé.
+- [Engagements et renouvellements](#engagements-et-renouvellements): Chaque engagement, des alertes avant la fin de l'un d'eux ou quand il est sous-utilisé, et ce qu'il faut renouveler ou acheter.
 - [Appliquer des économies](#appliquer-des-économies): Appliquer une économie avec l'approbation de son propriétaire, et l'annuler.
 - [Plannings hors heures](#plannings-hors-heures): Arrêter les ressources hors production la nuit et le week-end.
 - [Règles IA d'économies](#règles-ia-déconomies): Des propositions aux propriétaires, ou des modifications dans une limite.
@@ -23,7 +25,7 @@ flowchart TB
     savings --> overview
 ```
 
-- **Les coûts viennent de la facturation de votre cloud.** AWS Cost Explorer, Azure Cost Management et l'export de facturation de Google Cloud vers BigQuery, avant crédits et remboursements, dans la devise dans laquelle le compte est facturé. Chaque montant est celui d'un jour, en jours UTC, comme votre cloud les facture.
+- **Les coûts viennent de la facturation de votre cloud.** AWS Cost Explorer, Azure Cost Management et l'export de facturation de Google Cloud vers BigQuery, dans la devise dans laquelle le compte est facturé, chacun conservé facturé, amorti et net : voir [Facturé, amorti et net](#facturé-amorti-et-net). Chaque montant est celui d'un jour, en jours UTC, comme votre cloud les facture.
 - **Un cloud signale le dernier jour ou deux en retard.** Chaque lecture reprend la dernière semaine, et tout le mois dernier dans les premiers jours d'un mois, si bien que le coût d'un jour se stabilise à mesure que votre cloud le clôt. La première lecture d'une connexion remonte au début de l'avant-dernier mois.
 - **La projection du mois suit le rythme de la dernière semaine.** C'est ce que le mois a coûté jusqu'ici, avec chaque jour restant à la moyenne des sept derniers jours complets.
 - **Les économies viennent du moteur de recommandation de votre cloud.** AWS Cost Optimization Hub, Azure Advisor et le Recommender de Google Cloud : une taille plus petite, une ressource inactive, un engagement qui vaut la peine, chacun avec ce qu'il ferait économiser par mois. Une recommandation que vous appliquez ou rejetez dans la console de votre cloud disparaît à la lecture suivante.
@@ -34,7 +36,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-La connexion lit les coûts avec `ce:GetCostAndUsage`, ses engagements avec `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` et `ce:GetReservationUtilization`, et les recommandations avec `cost-optimization-hub:ListRecommendations`. Cost Explorer et Cost Optimization Hub doivent d'abord être activés dans le compte :
+La connexion lit les coûts avec `ce:GetCostAndUsage`, ses engagements avec `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetSavingsPlansUtilizationDetails`, `ce:GetReservationCoverage` et `ce:GetReservationUtilization`, les Savings Plans achetés avec `savingsplans:DescribeSavingsPlans`, et les recommandations avec `cost-optimization-hub:ListRecommendations` et `cost-optimization-hub:GetRecommendation`. La commande de configuration accorde les lectures de Cost Explorer en trois familles, `ce:GetCostAndUsage*`, `ce:GetSavingsPlans*` et `ce:GetReservation*`, toutes des lectures, pour que l'utilisateur d'une clé d'accès tienne encore dans les 2 048 caractères qu'IAM accorde à sa politique. Cost Explorer et Cost Optimization Hub doivent d'abord être activés dans le compte :
 
 :::steps
 ### Activer Cost Explorer
@@ -46,7 +48,7 @@ Ouvrez Cost Explorer une fois dans la console AWS Billing and Cost Management : 
 Ouvrez Cost Optimization Hub dans la même console et activez-le, pour l'organisation depuis son compte de gestion ou pour le compte seul. Ses recommandations arrivent en moins d'un jour.
 :::
 
-Cost Explorer facture $0.01 par requête : une lecture des coûts en fait quelques-unes, et les engagements sont lus avec quatre par jour. Cost Optimization Hub est gratuit.
+Cost Explorer facture $0.01 par requête : une lecture des coûts en fait deux ou quelques-unes de plus, une pour facturé et amorti et une pour net, et les engagements sont lus avec quatre par jour pour leur couverture et leur utilisation, et six à douze de plus par jour pour ceux de chacun. L'API Savings Plans et Cost Optimization Hub sont gratuits.
 
 ### Coûts par ressource
 
@@ -64,7 +66,16 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 Cost Management répond pour chaque abonnement, avec la ressource à laquelle correspond chaque coût, et sa lecture ne coûte rien. Quand il ne peut pas répondre pour un abonnement, les **Coûts** du compte disent pourquoi.
 
-Cost Management limite la vitesse de lecture des coûts d'un locataire, la même pour tous ceux qui les lisent : chaque requête coûte une unité de traitement de requête (QPU) par mois de données lu, et un locataire dispose de 12 QPU toutes les 10 secondes, 60 par minute et 600 par heure. OneUptime lit les abonnements d'un locataire l'un après l'autre en restant sous les deux tiers de chaque quota, attend aussi longtemps que Cost Management le demande quand il refuse une requête, et reprend à la lecture suivante là où il s'est arrêté. Un abonnement pas encore lu indique **En file d'attente**, avec le moment où il est lu ; un abonnement qui a déjà des montants les garde entre-temps.
+Cost Management limite la vitesse de lecture des coûts d'un locataire, la même pour tous ceux qui les lisent : chaque requête coûte une unité de traitement de requête (QPU) par mois de données lu, et un locataire dispose de 12 QPU toutes les 10 secondes, 60 par minute et 600 par heure. OneUptime lit les abonnements d'un locataire l'un après l'autre en restant sous les deux tiers de chaque quota, attend aussi longtemps que Cost Management le demande quand il refuse une requête, et reprend à la lecture suivante là où il s'est arrêté. Un abonnement pas encore lu indique **En file d'attente**, avec le moment où il est lu ; un abonnement qui a déjà des montants les garde entre-temps. Son coût amorti est lu à chaque lecture et son coût réel une fois par jour, donc la première lecture d'un abonnement interroge Cost Management deux fois et consomme deux fois plus d'unités de requête : les premiers montants d'un grand locataire demandent quelques lectures de plus.
+
+Les réservations et les plans d'économies du locataire sont lus avec **Reservations Reader** et **Savings plan Reader**, qu'Azure accorde au niveau du locataire lui-même, où seul un administrateur général disposant d'un accès élevé peut les accorder. La commande de configuration essaie, et le signale si elle ne le peut pas. Pour les accorder plus tard, en tant qu'administrateur général disposant d'un accès élevé :
+
+```bash
+az role assignment create --assignee <APP_ID> --role "Reservations Reader" --scope /providers/Microsoft.Capacity
+az role assignment create --assignee <APP_ID> --role "Savings plan Reader" --scope /providers/Microsoft.BillingBenefits
+```
+
+Sans eux, les coûts et les recommandations sont lus comme avant, et **Cloud → Dépenses → Engagements** indique le rôle à accorder.
 
 ## Google Cloud
 
@@ -84,7 +95,25 @@ Donnez au compte de service de la connexion **BigQuery Data Viewer** sur l'ensem
 Modifiez la connexion dans **Cloud → Connecter** et, dans **Plus de champs**, renseignez **Table de l'export de facturation** avec le nom complet de la table : `<PROJECT_ID>.<DATASET>.gcp_billing_export_resource_v1_<BILLING_ACCOUNT_ID>`.
 :::
 
-L'export détaillé indique la ressource à laquelle correspond chaque coût ; l'export standard ne donne que le service et la région. BigQuery facture la requête : le premier 1 Tio par mois est gratuit, puis $6.25 par Tio, et un mois d'export représente de quelques mégaoctets à quelques gigaoctets. Les recommandations de type de machine et de ressources inactives du Recommender sont lues avec **Compute Recommender Viewer**, que la commande de configuration accorde, et ne coûtent rien.
+L'export détaillé indique la ressource à laquelle correspond chaque coût ; l'export standard ne donne que le service et la région. BigQuery facture la requête : le premier 1 Tio par mois est gratuit, puis $6.25 par Tio, et un mois d'export représente de quelques mégaoctets à quelques gigaoctets. Les recommandations de type de machine et de ressources inactives du Recommender sont lues avec **Compute Recommender Viewer**, que la commande de configuration accorde, et ne coûtent rien. Les engagements de Compute Engine sont listés depuis Cloud Asset Inventory avec **Cloud Asset Viewer**, que la commande de configuration accorde déjà : rien de plus à donner.
+
+## Facturé, amorti et net
+
+Chaque coût est conservé de trois façons, et **Cloud → Dépenses → Coûts**, les **Coûts** d'un compte, la vue d'ensemble de Cloud et les budgets affichent celle que vous choisissez :
+
+- **Facturé** est chaque frais le jour où votre cloud l'a facturé, avant crédits et remboursements. Un Savings Plan ou une réservation payé d'avance est un seul gros frais le jour de son achat, et l'utilisation qu'il couvre semble gratuite pour le reste de sa durée.
+- **Amorti** répartit les frais de chaque engagement sur les jours et les ressources qu'il couvre, pour que l'argent tombe là où il a été dépensé. Toujours avant crédits et remboursements. C'est ce qu'affichent les pages, sauf si vous en choisissez une autre.
+- **Net** est l'amorti, moins les crédits, remboursements et remises : le montant de la facture.
+
+| | Facturé | Amorti | Net |
+|---|---|---|---|
+| AWS | Le coût non combiné (unblended) de Cost Explorer | Le coût amorti de Cost Explorer | Le coût amorti net de Cost Explorer, crédits et remboursements inclus |
+| Azure | Le coût réel de Cost Management | Le coût amorti de Cost Management | Le coût amorti : Azure déduit les crédits au niveau du compte de facturation, que la connexion d'un abonnement ne lit pas |
+| Google Cloud | Le coût de l'export | Le coût moins les crédits des remises sur engagement d'utilisation et des abonnements | Le coût moins chaque crédit |
+
+Le sélecteur au-dessus des montants change la base sur la page, et OneUptime retient votre choix pour ce projet, dans votre navigateur. La base propre au projet, celle sur laquelle les pages s'ouvrent et que surveillent les budgets, se trouve dans **Cloud → Paramètres → Paramètres de coûts**. Un budget peut surveiller sa propre base : modifiez-le et définissez **Base de coût**.
+
+Les coûts lus avant que les trois soient conservés affichent leur montant facturé sur chaque base. Chaque connexion relit ses coûts une fois, aussi loin qu'une première lecture, pour que chaque base se remplisse.
 
 ## Moyens de dépenser moins
 
@@ -107,7 +136,37 @@ Une ressource est dimensionnée dès qu'elle a 6 jours de relevés. Sa page mont
 - Azure : plans d'économies et réservations, depuis Cost Management, en coût amorti.
 - Google Cloud : remises sur engagement d'utilisation, depuis votre export de facturation. L'export ne dit pas quelle part d'un engagement est restée inutilisée, donc la part utilisée n'est pas affichée.
 
-Un compte sans engagement indique ce qui a tourné au tarif à la demande et qu'un engagement paierait moins cher. Les chiffres de chaque type sont ceux de son cloud, et les types ne sont jamais additionnés : une réservation et un Savings Plan peuvent tous deux compter les dépenses d'une même machine comme les leurs à couvrir.
+Un compte sans engagement indique ce qui a tourné au tarif à la demande et qu'un engagement paierait moins cher. Les chiffres de chaque type sont ceux de son cloud, et les types ne sont jamais additionnés : une réservation et un Savings Plan peuvent tous deux compter les dépenses d'une même machine comme les leurs à couvrir. Chaque engagement à part est listé dans **Cloud → Dépenses → Engagements** : voir [Engagements et renouvellements](#engagements-et-renouvellements).
+
+## Engagements et renouvellements
+
+**Cloud → Dépenses → Engagements** liste chaque Savings Plan, réservation et remise sur engagement d'utilisation que vos connexions peuvent lire, pour qu'aucun ne se termine sans qu'on le remarque :
+
+- **Engagements actifs**, au-dessus, compte les engagements actifs et ceux qui se terminent dans les 90 jours, **Utilisation** la part utilisée sur les 30 derniers jours et ce qui est resté inutilisé, et **Couverture** la part des dépenses qu'ils couvrent.
+- **Se terminent bientôt** liste ceux qui se terminent dans les 90 jours et ne se renouvellent pas d'eux-mêmes, chacun avec son plan de renouvellement : ce qu'il faut acheter pour garder sa remise (son engagement horaire, ou ses instances, à la part qui a été utilisée), ce que cela coûte et économise par mois, quand c'est rentabilisé, et la part des dépenses couverte maintenant et après sa fin. **Renouveler dans la console** ouvre la page où votre cloud le renouvelle.
+- **Tous les engagements** est la liste complète : ce qu'est et couvre chacun, son compte, sa date de fin, sa durée et son option de paiement, la part utilisée sur les 30 derniers jours, et l'utilisation qu'il a payée et ce qu'elle a économisé.
+- **Plans d'achat** sont ce que le moteur de recommandation de votre cloud suggère d'acheter, chacun avec ce qu'il coûterait et économiserait par mois, quand il serait rentabilisé, et comment la couverture changerait. **Acheter dans la console** ouvre la page où l'acheter.
+- En dessous, les engagements de chaque compte par type, comme ses **Coûts** les affichent, et quand les engagements alertent, avec **Modifier les alertes**.
+
+OneUptime ne fait que planifier : il n'achète, ne renouvelle ni ne restitue jamais un engagement. Vous achetez dans la console de votre cloud.
+
+| | D'où viennent les engagements | Ce qu'on sait de chacun |
+|---|---|---|
+| AWS | Les Savings Plans et instances réservées de Cost Explorer, chacun avec sa propre utilisation, et l'API Savings Plans pour les plans achetés, y compris ceux en file d'attente pour démarrer | Sa fin, sa durée, son option de paiement, son engagement horaire ou ses instances, ses frais, et son utilisation sur les 30 et 7 derniers jours |
+| Azure | Les réservations et les plans d'économies du locataire | Sa fin, sa durée, son plan de facturation, s'il se renouvelle de lui-même, et son utilisation sur les 30 et 7 derniers jours |
+| Google Cloud | Les engagements de Compute Engine, depuis Cloud Asset Inventory | Sa fin, son plan, ses ressources et s'il se renouvelle de lui-même. Google Cloud n'indique pas la part utilisée d'un engagement |
+
+Le compte de gestion d'une organisation liste ceux de chaque compte sur AWS. Les remises sur engagement d'utilisation basées sur les dépenses, que Google Cloud garde sur le compte de facturation plutôt que dans un projet, ne sont pas encore listées.
+
+### Alertes d'engagement
+
+Les engagements lèvent des alertes, appelées via les politiques d'astreinte comme toute alerte. Dans **Cloud → Paramètres → Paramètres de coûts**, **Alertes d'engagement** dit quand :
+
+- **Alerter avant la fin d'un engagement** : 90, 30 et 7 jours avant sa fin pour commencer. Une alerte au plus proche de ces jours que l'engagement a atteint, chaque plus proche remplaçant la précédente. Un engagement qui se renouvelle de lui-même, ou dont le renouvellement est en file d'attente pour démarrer à sa fin, n'en lève aucune.
+- **Alerter quand l'utilisation est inférieure à** : 80 % pour commencer, sur les 7 derniers jours d'un engagement, une fois qu'il a tourné une semaine. L'alerte se résout quand son utilisation revient.
+- **Alerter quand la couverture passe sous** : 60 % pour commencer, des dépenses que les engagements d'un type d'un compte pourraient couvrir, après en avoir couvert plus. Elle se résout quand la couverture revient. Vide, la couverture ne lève aucune alerte.
+
+**Alerter sur les engagements** les désactive toutes, et **Gravité de l'alerte**, **Politiques d'astreinte** et **Propriétaires** disent leur gravité, qui est appelé et à qui elles appartiennent. Chaque alerte dit ce que l'engagement couvre et ce qu'il a payé, et renvoie à son plan de renouvellement. Une alerte se résout d'elle-même quand son engagement se termine, se renouvelle ou n'est plus listé.
 
 ## Appliquer des économies
 
@@ -170,14 +229,14 @@ Une règle n'agit sans demander que sur une ressource connue comme hors producti
 :::steps
 ### Créer un budget
 
-Dans **Cloud → Dépenses → Budgets**, créez un budget : son **Montant mensuel** et le **Compte** concerné, ou aucun pour tous les comptes.
+Dans **Cloud → Dépenses → Budgets**, créez un budget : son **Montant mensuel**, le **Compte** concerné, ou aucun pour tous les comptes, et la **Base de coût** qu'il compte, ou aucune pour celle du projet.
 
 ### Choisir quand il alerte
 
 **Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'un jour qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
 :::
 
-Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses du mois franchissent un seuil, une alerte est levée pour lui, la plus haute si une lecture en franchit plusieurs à la fois, et un nouveau mois résout les alertes du mois précédent. Un budget ne compte que les comptes facturés dans sa devise.
+Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses du mois franchissent un seuil, une alerte est levée pour lui, la plus haute si une lecture en franchit plusieurs à la fois, et un nouveau mois résout les alertes du mois précédent. Un budget ne compte que les comptes facturés dans sa devise, sur sa base : un budget amorti n'est pas déclenché par un engagement acheté d'avance, qu'un budget facturé compte le jour de son achat.
 
 Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/docs/ai/mcp-server), et les scripts avec la commande `oneuptime cloud-budget` de la CLI : voir [Opérations sur les ressources](/docs/cli/resource-operations).
 
@@ -200,7 +259,8 @@ Sous la liste, la carte indique à combien s'élève le reste : ce qui n'est dan
 ## Ce que vous voyez dans OneUptime
 
 - **La vue d'ensemble de Cloud.** **Cloud → Vue d'ensemble** montre les dépenses du mois face à celles du mois dernier au même jour, les services qui coûtent le plus et les plus gros moyens de dépenser moins, à côté de ce qui demande votre attention.
-- **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
+- **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette, facturé, amorti ou net. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
+- **Chaque engagement.** **Cloud → Dépenses → Engagements** liste chacun avec sa date de fin et sa part utilisée, ceux qui se terminent bientôt avec ce qu'il faut renouveler, et ce qu'il faut acheter.
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
 - **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
 - **Ce qui a été économisé.** **Cloud → Dépenses → Économies** s'ouvre sur ce que les modifications effectuées ont économisé ce mois-ci, selon la facture, les modifications en attente d'approbation et celles effectuées, et les heures pendant lesquelles les plannings ont arrêté des ressources.
@@ -224,7 +284,15 @@ Les données au niveau des ressources ne sont pas activées pour le compte. Acti
 :::
 
 :::details Les engagements indiquent Autorisation requise
-La connexion ne peut pas encore lire les Savings Plans et les réservations du compte. Relancez sa commande de configuration depuis **Cloud → Connecter** : elle ajoute les quatre actions avec lesquelles ils sont lus.
+La connexion ne peut pas encore lire les Savings Plans et les réservations du compte. Relancez sa commande de configuration depuis **Cloud → Connecter** : elle ajoute les actions avec lesquelles ils sont lus. Sur Azure, un administrateur général disposant d'un accès élevé accorde **Reservations Reader** et **Savings plan Reader** : voir [Microsoft Azure](#microsoft-azure).
+:::
+
+:::details Amorti et net affichent la même chose que facturé
+Les coûts lus avant que les trois soient conservés affichent leur montant facturé sur chaque base jusqu'à la prochaine lecture des coûts de la connexion, qui les relit aussi loin que sa première. Sur Azure, le net est toujours le coût amorti.
+:::
+
+:::details Un engagement se termine et aucune alerte n'est venue
+Un engagement qui se renouvelle de lui-même, ou dont le renouvellement est en file d'attente pour démarrer à sa fin, n'en lève aucune, pas plus qu'un engagement d'un projet dont les alertes d'engagement sont désactivées dans **Cloud → Paramètres → Paramètres de coûts**. Une alerte a aussi besoin que le projet ait une gravité d'alerte.
 :::
 
 :::details Les montants laissent un compte de côté
@@ -240,7 +308,7 @@ OneUptime ne fait que des modifications en une étape : un engagement, ou une re
 :::
 
 :::details Ce mois est plus bas que dans la console de votre cloud
-Votre cloud signale le dernier jour ou deux en retard, et les montants sont avant crédits et remboursements. Les lectures suivantes rattrapent le retard.
+Votre cloud signale le dernier jour ou deux en retard, et les montants facturés et amortis sont avant crédits et remboursements. Les lectures suivantes rattrapent le retard. Comparez avec la base qu'affiche la console de votre cloud : AWS s'ouvre sur les coûts non combinés, c'est-à-dire facturés.
 :::
 
 ## Prochaines étapes

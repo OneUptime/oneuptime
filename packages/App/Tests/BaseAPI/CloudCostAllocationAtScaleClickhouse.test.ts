@@ -9,6 +9,7 @@ import ClickhouseDatabase, {
 import CloudCostGroupService from "Common/Server/Services/CloudCostGroupService";
 import CloudCostLineItemService from "Common/Server/Services/CloudCostLineItemService";
 import CloudCostService from "Common/Server/Services/CloudCostService";
+import CloudCostSettingService from "Common/Server/Services/CloudCostSettingService";
 import CloudCostViewService from "Common/Server/Services/CloudCostViewService";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
@@ -28,6 +29,7 @@ import {
   toCloudCostMonth,
 } from "Common/Types/Cloud/CloudCostAllocation";
 import { roundCost, toCloudCostDay } from "Common/Types/Cloud/CloudCost";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
   CloudCostPartPlacement,
   CloudCostRule,
@@ -866,6 +868,10 @@ integration("cost groups over a year of a busy project's costs", () => {
     jest.restoreAllMocks();
     viewGroups = EVERY_KIND;
 
+    // The project's cost basis, as its Cost Settings would answer (#11007).
+    jest
+      .spyOn(CloudCostSettingService, "getCostBasisOfProject")
+      .mockResolvedValue(CloudCostBasis.Billed);
     jest
       .spyOn(CloudCostViewService, "findOneBy")
       .mockImplementation(async () => {

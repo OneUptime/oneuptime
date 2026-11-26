@@ -192,6 +192,7 @@ import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSla
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
+import AddAmortizedAndNetCostColumnsToCloudCost from "./AddAmortizedAndNetCostColumnsToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
@@ -925,6 +926,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new AddTagsColumnToCloudCost(),
+  /*
+   * Cloud costs keep their amortized and net figures
+   * (CloudCostV1.amortizedCost, netCost; #11007), so Cloud > Costs shows
+   * the spend billed, amortized or net. Metadata-only and idempotent; rows
+   * written before read their billed figure in both (DEFAULT cost). No
+   * ordering requirement, so it sits above the runbook moves, which keep
+   * their places before the last slot AddAuditLogMcpClientColumns asserts
+   * for itself.
+   */
+  new AddAmortizedAndNetCostColumnsToCloudCost(),
   /*
    * Postmortem statuses (Incidents > Postmortems): every project from before
    * them gets the four a new project starts with, then every incident the
