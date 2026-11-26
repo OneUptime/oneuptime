@@ -358,7 +358,7 @@ The cluster's **Overview** takes its health from OneFS's own, counts its nodes a
 
 ### What the agent does not read yet
 
-- **OneFS's events and its storage pools.** SNMP carries neither: they come from the OneFS API, which a OneUptime probe will read ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Until then, send the events to a [custom probe](/docs/probe/custom-probe) as SNMP traps, and add the cluster's nodes to it as [network devices](/docs/monitor/network-device-monitor): the traps arrive on UDP 162, and the **SNMP Trap Received (Trap OID)** criteria alert on them. On the cluster, create the channel and send an alert to it:
+- **OneFS's events and its storage pools.** SNMP carries neither: they come from the OneFS API, which a OneUptime probe will read ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Until then, send the events to a [custom probe](/docs/probe/custom-probe) as SNMP traps, and add the cluster's nodes to it as [network devices](/docs/monitor/network-device-monitor): the traps arrive on UDP 162, and the **SNMP Trap Received (Trap OID)** criteria alert on them. For SNMPv3 traps, give the network devices the cluster's SNMPv3 user ([SNMPv3 traps and informs](/docs/monitor/network-device-monitor#snmpv3-traps-and-informs)). On the cluster, create the channel and send an alert to it:
 
 ```bash
 isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
