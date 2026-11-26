@@ -281,10 +281,15 @@ export type CollectLogsInsightsResourceRefsFunction = (data: {
    * (see TOP_ERROR_PATTERN_RESOURCE_LABEL_LIMIT).
    */
   errorPatterns?: Array<{ resourceIds: Array<string> }> | undefined;
-  // The scope picker's facet values, per facet key.
-  scopeFacets: Record<string, Array<{ value: string; displayName: string }>>;
-  // The picker's selected `<facetKey>:<id>` values.
-  selectedScopeValues: Array<string>;
+  /*
+   * Facet values to name, per facet key, and `<facetKey>:<id>` selections:
+   * the Logs Insights page's scope picker names what it offers and holds
+   * itself (TelemetryResourceScopePicker, #10921), so it hands neither.
+   */
+  scopeFacets?:
+    | Record<string, Array<{ value: string; displayName: string }>>
+    | undefined;
+  selectedScopeValues?: Array<string> | undefined;
 }) => Array<LogsResourceRef>;
 
 /**
@@ -297,8 +302,10 @@ export const collectLogsInsightsResourceRefs: CollectLogsInsightsResourceRefsFun
   (data: {
     breakdownResourceIds: Array<string>;
     errorPatterns?: Array<{ resourceIds: Array<string> }> | undefined;
-    scopeFacets: Record<string, Array<{ value: string; displayName: string }>>;
-    selectedScopeValues: Array<string>;
+    scopeFacets?:
+      | Record<string, Array<{ value: string; displayName: string }>>
+      | undefined;
+    selectedScopeValues?: Array<string> | undefined;
   }): Array<LogsResourceRef> => {
     const refs: Array<LogsResourceRef> = [];
     const namedByFacet: Set<string> = new Set<string>();
@@ -321,7 +328,7 @@ export const collectLogsInsightsResourceRefs: CollectLogsInsightsResourceRefsFun
       }
     }
 
-    for (const [facetKey, values] of Object.entries(data.scopeFacets)) {
+    for (const [facetKey, values] of Object.entries(data.scopeFacets || {})) {
       for (const value of values || []) {
         const displayName: string = (value.displayName || "").trim();
 
@@ -337,7 +344,7 @@ export const collectLogsInsightsResourceRefs: CollectLogsInsightsResourceRefsFun
       }
     }
 
-    for (const selected of data.selectedScopeValues) {
+    for (const selected of data.selectedScopeValues || []) {
       if (namedByFacet.has(selected)) {
         continue;
       }

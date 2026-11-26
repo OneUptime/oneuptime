@@ -368,9 +368,13 @@ describe("what the Dashboard draws, in Persian", () => {
     ).toEqual([]);
   });
 
+  /*
+   * An app such as these is an اپلیکیشن, the Persian word for the
+   * authenticator app on its card and the sign-in page (#10915).
+   */
   test("the authenticator apps help #6733 named reads in Persian, the apps by their names", () => {
     expect(PERSIAN.get(AUTHENTICATOR_HELP)).toBe(
-      "یک کد یک‌بارمصرف از برنامه‌ای مانند 1Password، Google Authenticator یا Microsoft Authenticator بگیرید.",
+      "یک کد یک‌بارمصرف از اپلیکیشنی مانند 1Password، Google Authenticator یا Microsoft Authenticator بگیرید.",
     );
   });
 
@@ -2010,6 +2014,10 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     {
       name: "Application Load Balancer",
       why: "AWS's name for its application load balancer (ALB), a product's name",
+    },
+    {
+      name: "Classic Load Balancer",
+      why: "AWS's name for its first load balancer (ELB Classic), a product's name, as Security Events' Trusted Proxies names it (#10546)",
     },
     {
       name: "Share link",

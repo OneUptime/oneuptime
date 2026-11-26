@@ -147,6 +147,21 @@ Det ingen standard sender, går ut slik det ville gjort uten en konfigurasjon: s
 
 Statussider tilbyr bare konfigurasjonene som sender SMS, og **Send test-SMS** og **Send testanrop** vises bare for det en konfigurasjon sender. Alle eksisterende konfigurasjoner er som før satt til **Anrop og SMS**. Gjennom API-et og Terraform er valget feltet `usedFor`, og en konfigurasjon uten numrene valget trenger, blir avvist.
 
+### Stemmen anropene bruker
+
+Anrop bruker stemmen Twilio-kontoen din har som standard: Twilios gratis Basic-stemme, med mindre du har valgt en annen i Twilio Console. Twilio sier at Basic-stemmene ikke er ment for produksjon, så hver konto kan i stedet bruke en av disse nevrale stemmene. For kontoen for hele installasjonen velger du den i kortet **Stemme for anrop** på **Admin Dashboard > Innstillinger > Anrop og SMS**, og for en prosjektkonfigurasjon i **Stemme for anrop** under **Flere felt**.
+
+| Stemme | Laget av | Hvordan den høres ut |
+| --- | --- | --- |
+| `Polly.Joanna-Neural` | Amazon Polly | Amerikansk engelsk, kvinnelig stemme |
+| `Polly.Matthew-Neural` | Amazon Polly | Amerikansk engelsk, mannlig stemme |
+| `Polly.Amy-Neural` | Amazon Polly | Britisk engelsk, kvinnelig stemme |
+| `Polly.Brian-Neural` | Amazon Polly | Britisk engelsk, mannlig stemme |
+| `Google.en-US-Neural2-F` | Google | Amerikansk engelsk, kvinnelig stemme |
+| `Google.en-US-Neural2-J` | Google | Amerikansk engelsk, mannlig stemme |
+
+Alle anrop gjennom kontoen bruker den stemmen: vaktvarslinger og svaret på tasten du trykker på, meldingen som legges igjen i taleposten, bekreftelseskoder, **Send testanrop** og hilsenene i en policy for innkommende anrop. Med disse stemmene staves et nummer som `INC-42` med SSML, som høres mer naturlig ut enn bokstavene med mellomrom som andre stemmer får. Twilio tar betalt for disse stemmene på kontoen som ringer: $0.0032 per 100 tegn i november 2026, under 2 amerikanske cent per varslingsanrop. Se [Twilios priser for taleanrop](https://www.twilio.com/en-us/voice/pricing/us). La feltet **Stemme for anrop** stå tomt for å beholde kontoens standardstemme. Gjennom API-et og Terraform er stemmen feltet `twilioCallVoice`, og en stemme som ikke står i tabellen, blir avvist.
+
 ### Talepost ved vaktanrop
 
 For Twilio er et anrop som taleposten svarer på, besvart, akkurat som et anrop en person svarer på. Derfor spør hvert vaktanrop Twilio i bakgrunnen om en person eller taleposten svarte, med [telefonsvarergjenkjenning](https://www.twilio.com/docs/voice/answering-machine-detection): Den som svarer, hører varslingen med en gang. Et anrop som taleposten svarer på, regnes som ubesvart, akkurat som et anrop som ringer ut, og varslingen fortsetter som for et tapt anrop. Så snart hilsenen er ferdig, legger OneUptime igjen en kort melding med det anropet sa. Loggen til anropet sier om en melding ble lagt igjen, og det gjør også hendelsens feed: "Nitin Kumar did not answer the phone call from on-call policy Payments at Level 1 of 3. It went to voicemail, and a message was left."

@@ -449,6 +449,7 @@ import SecurityCaseNoteService from "./SecurityCaseNoteService";
 import SecurityCaseTaskService from "./SecurityCaseTaskService";
 import SecurityCaseStepCheckService from "./SecurityCaseStepCheckService";
 import SecurityCasePullRequestService from "./SecurityCasePullRequestService";
+import DataSecurityIssuePullRequestService from "./DataSecurityIssuePullRequestService";
 import SecurityCaseAiActionService from "./SecurityCaseAiActionService";
 import SecurityCaseEvidenceService from "./SecurityCaseEvidenceService";
 import SecurityCasePriorityService from "./SecurityCasePriorityService";
@@ -506,6 +507,7 @@ import DataObservabilitySettingService from "./DataObservabilitySettingService";
 import DataAssetLineageService from "./DataAssetLineageService";
 import DataAlertService from "./DataAlertService";
 import SecurityProtectedEntityService from "./SecurityProtectedEntityService";
+import SecurityUserErasureRequestService from "./SecurityUserErasureRequestService";
 import SecurityBlockService from "./SecurityBlockService";
 import SecurityBlockEnforcementService from "./SecurityBlockEnforcementService";
 import SecurityBlocklistFeedService from "./SecurityBlocklistFeedService";
@@ -629,6 +631,9 @@ import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
+import CloudCostGroupService from "./CloudCostGroupService";
+import CloudCostLineItemService from "./CloudCostLineItemService";
+import CloudCostViewService from "./CloudCostViewService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudConnectionService from "./CloudConnectionService";
 import CloudResourceLabelRuleService from "./CloudResourceLabelRuleService";
@@ -1090,6 +1095,7 @@ const services: Array<BaseService> = [
   SecurityCaseTaskService,
   SecurityCaseStepCheckService,
   SecurityCasePullRequestService,
+  DataSecurityIssuePullRequestService,
   SecurityCaseAiActionService,
   SecurityCaseEvidenceService,
   SecurityCasePriorityService,
@@ -1145,6 +1151,7 @@ const services: Array<BaseService> = [
   DataAssetLineageService,
   DataAlertService,
   SecurityProtectedEntityService,
+  SecurityUserErasureRequestService,
   SecurityBlockService,
   SecurityBlockEnforcementService,
   SecurityBlocklistFeedService,
@@ -1255,6 +1262,9 @@ const services: Array<BaseService> = [
   CloudAccountService,
   CloudAccountFeedService,
   CloudBudgetService,
+  CloudCostViewService,
+  CloudCostGroupService,
+  CloudCostLineItemService,
   CloudCostRecommendationService,
   CloudConnectionService,
   CloudResourceLabelRuleService,

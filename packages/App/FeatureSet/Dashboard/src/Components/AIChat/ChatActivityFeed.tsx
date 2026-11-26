@@ -21,6 +21,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import {
   CALL_MCP_TOOL_TOOL_NAME,
+  CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME } from "Common/Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
@@ -486,6 +487,10 @@ export const friendlyToolNames: { [key: string]: string } = {
     "Listing the tools of your MCP servers",
   ),
   [CALL_MCP_TOOL_TOOL_NAME]: translationKey("Using a tool of an MCP server"),
+  // A tool that may change something, called once a person approved it (#10879).
+  [CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME]: translationKey(
+    "Using a tool of an MCP server that may change something",
+  ),
 };
 
 function friendlyToolName(

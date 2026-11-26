@@ -2,6 +2,7 @@ import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgen
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../../../Server/Services/AutoRemediationSuggestionService";
+import CodeRepositoryService from "../../../../../Server/Services/CodeRepositoryService";
 import DataSecurityAiDecisionService from "../../../../../Server/Services/DataSecurityAiDecisionService";
 import DataSecurityAiProposalService from "../../../../../Server/Services/DataSecurityAiProposalService";
 import DataSecurityIssueService from "../../../../../Server/Services/DataSecurityIssueService";
@@ -86,7 +87,9 @@ type TableName =
   | "llmLogs"
   | "proposals"
   | "decisions"
-  | "issues";
+  | "issues"
+  // The repositories whose production reviews caught leaks (#10376).
+  | "codeRepositories";
 
 type Tables = Record<TableName, Array<FakeRow>>;
 
@@ -133,6 +136,7 @@ function install(
       proposals: [],
       decisions: [],
       issues: [],
+      codeRepositories: [],
       ...tables,
     },
     access: {
@@ -146,6 +150,7 @@ function install(
       proposals: "read",
       decisions: "read",
       issues: "read",
+      codeRepositories: "read",
       ...access,
     },
     readableIssueIds: readableIssueIds ? new Set(readableIssueIds) : undefined,
@@ -235,6 +240,9 @@ function install(
   jest
     .spyOn(DataSecurityIssueService, "findBy")
     .mockImplementation(find("issues") as never);
+  jest
+    .spyOn(CodeRepositoryService, "findBy")
+    .mockImplementation(find("codeRepositories") as never);
 
   return store;
 }
@@ -247,12 +255,13 @@ function callsTo(table: TableName): Array<Call> {
 
 /*
  * The reads of the issues a change was proven for. OneUptime AI's verdicts
- * (#10369) read the issues it analyzed on their own, with their verdicts:
- * AiOutcomesReaderRecords.test's.
+ * (#10369) read the issues it analyzed on their own, with their verdicts,
+ * and the leaks the scans found after production reviews (#10376) are read
+ * by their checks: AiOutcomesReaderRecords.test's.
  */
 function provenIssueReads(): Array<Call> {
   return callsTo("issues").filter((call: Call): boolean => {
-    return !("aiVerdict" in call.select);
+    return !("aiVerdict" in call.select) && !("checkId" in call.query);
   });
 }
 

@@ -30,6 +30,7 @@ import CodeApi, {
 import {
   CodeRepositoryListGroup,
   CodeRepositoryListOrder,
+  CodeTaskSummaryJSON,
 } from "Common/Types/AI/CodeTask";
 import { GitPullRequestMark } from "../../Code/CodeMarks";
 import CodeTaskStageBadge from "../../Code/CodeTaskStageBadge";
@@ -43,7 +44,6 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import IncidentPostmortemActionItem from "Common/Models/DatabaseModels/IncidentPostmortemActionItem";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
-import { CodeTaskSummaryJSON } from "Common/Types/AI/CodeTask";
 import CodeTaskStageUtil, {
   CodeTaskStage,
 } from "Common/Types/AI/CodeTaskStage";

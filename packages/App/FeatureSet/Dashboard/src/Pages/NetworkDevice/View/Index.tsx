@@ -9,6 +9,7 @@ import DeviceMonitorLookupUtil, {
 } from "../../../Components/NetworkDevice/DeviceMonitorLookupUtil";
 import DeviceMonitorsCard from "../../../Components/NetworkDevice/DeviceMonitorsCard";
 import DeviceVendorTemplateBanner from "../../../Components/NetworkDevice/DeviceVendorTemplateBanner";
+import DeviceSnmpTrapRefusals from "../../../Components/NetworkDevice/DeviceSnmpTrapRefusals";
 import DeviceAttachmentCard from "../../../Components/NetworkDevice/DeviceAttachmentCard";
 import DeviceDiagnosticsCard from "../../../Components/NetworkDevice/DeviceDiagnosticsCard";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
@@ -205,6 +206,7 @@ const NetworkDeviceView: FunctionComponent<
        */}
       <DeviceStatusHero modelId={modelId} refreshKey={readAgainCount} />
       <DeviceVendorTemplateBanner modelId={modelId} />
+      <DeviceSnmpTrapRefusals modelId={modelId} />
       {/*
        * The device's open incidents and alerts (issue #5341): the ones linked
        * to it by a person, by the monitors that report on it, or by

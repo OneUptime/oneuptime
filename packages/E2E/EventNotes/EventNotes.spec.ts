@@ -2599,6 +2599,224 @@ test.describe("links and quotes in a note", () => {
 });
 
 /*
+ * ---------------------------------------------------------------------------
+ * A write the server could not explain (#7680)
+ * ---------------------------------------------------------------------------
+ *
+ * A note's edit, its delete and an approver's Approve that fail as a server
+ * that could not explain it does (?unexplained=, a 500 with its reference)
+ * say first what failed, in the reader's language - "Couldn't save your
+ * changes.", "Couldn't delete the note.", "Couldn't approve the note." -
+ * then why and what to do next, with the reference to give and its copy
+ * button. Only a post could fail so in a browser (#7677's note-post-fail);
+ * the others were held to it in jest alone. Read on a Persian page, which
+ * reads from the right, where an English sentence left in it would read
+ * backwards.
+ */
+
+// The reference a ?unexplained= failure names (Fixture.js).
+const FAILED_WRITE_REFERENCE: string = "5e1c9a7d";
+
+// The newest public note on #1042 when ?approval=waiting: Sam's, waiting for an approver.
+const WAITING_NOTE_TEXT: string = "Card payments in the EU work again.";
+
+test.describe("a write the server could not explain, in Persian (#7680)", () => {
+  // What a failure nobody explained says, as a Persian page draws it.
+  const expectExplained: (
+    where: Locator,
+    whatFailed: string,
+    words: Record<string, string>,
+  ) => Promise<void> = async (
+    where: Locator,
+    whatFailed: string,
+    words: Record<string, string>,
+  ): Promise<void> => {
+    expect(words[whatFailed], whatFailed).toBeTruthy();
+    await expect(where.getByTestId("error-what-failed")).toHaveText(
+      words[whatFailed]!,
+    );
+    await expect(where.getByTestId("error-why-and-next")).toContainText(
+      words["The server ran into a problem it could not explain."]!,
+    );
+
+    // The reference as written, left to right, with its copy button.
+    const reference: Locator = where.getByTestId("error-reference");
+    await expect(reference.locator("code")).toHaveText(FAILED_WRITE_REFERENCE);
+    await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+    await expect(reference.getByRole("button")).toBeVisible();
+
+    // No English left in it: neither what failed, nor the server's sentence.
+    for (const english of [
+      whatFailed,
+      "This did not finish.",
+      "The server ran into a problem",
+      "so this did not finish",
+    ]) {
+      await expect(where).not.toContainText(english);
+    }
+  };
+
+  test("an edit says the changes were not saved, keeps what was typed, and gives the reference", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = await dashboardWords("fa");
+
+    await open(page, INCIDENT_PUBLIC, "lang=fa&unexplained=update");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+    const noteCard: Locator = card(page, "rotating it now");
+    await noteCard
+      .getByRole("button", { name: words["Note actions"]! })
+      .click();
+    await page.getByRole("menuitem", { name: words["Edit note"]! }).click();
+
+    const composer: Locator = noteCard.getByTestId("note-edit-composer");
+    await expect(composer).toBeVisible();
+    await composer.locator('[contenteditable="true"]').first().click();
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type(" Rotation complete.");
+    await composer.getByTestId("note-submit").click();
+
+    const error: Locator = composer.getByTestId("note-composer-error");
+    await expect(error).toBeVisible();
+    await expectExplained(error, "Couldn't save your changes.", words);
+
+    // The edit stays open, with what was typed, to save again.
+    await expect(composer).toContainText("Rotation complete.");
+    expect((await fixture(page)).updates).toHaveLength(1);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "note-edit-unexplained-fa");
+  });
+
+  test("a delete says the note was not deleted, in its dialog, with the reference", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = await dashboardWords("fa");
+
+    await open(page, INCIDENT_PRIVATE, "lang=fa&unexplained=delete");
+
+    const noteCard: Locator = card(page, "Paged the edge on-call.");
+    await noteCard
+      .getByRole("button", { name: words["Note actions"]! })
+      .click();
+    await page.getByRole("menuitem", { name: words["Delete note"]! }).click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText(words["Delete this private note?"]!);
+    await dialog.getByRole("button", { name: words["Delete note"]! }).click();
+
+    await expectExplained(
+      dialog.getByTestId("modal-error"),
+      "Couldn't delete the note.",
+      words,
+    );
+
+    // The note is still there, and so is the dialog, to try again.
+    await expect(dialog).toBeVisible();
+    await expect(card(page, "Paged the edge on-call.")).toHaveCount(1);
+    expect((await fixture(page)).deletes).toHaveLength(1);
+    await screenshot(page, "note-delete-unexplained-fa");
+  });
+
+  test("an approval says the note was not approved, in its dialog, with the reference", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = await dashboardWords("fa");
+
+    await open(
+      page,
+      INCIDENT_PUBLIC,
+      "lang=fa&approval=waiting&unexplained=approve",
+    );
+
+    const noteCard: Locator = card(page, WAITING_NOTE_TEXT);
+    await expect(noteCard.getByTestId("note-approval-waiting")).toBeVisible();
+    await noteCard.getByTestId("note-approval-approve").click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText(words["Approve this public note?"]!);
+    await dialog
+      .getByRole("button", { name: words["Approve and publish"]! })
+      .click();
+
+    await expectExplained(
+      dialog.getByTestId("modal-error"),
+      "Couldn't approve the note.",
+      words,
+    );
+
+    // Still waiting, for another try.
+    await expect(noteCard.getByTestId("note-approval-waiting")).toBeVisible();
+    await screenshot(page, "note-approve-unexplained-fa");
+  });
+
+  test("an approval that goes through publishes the note, so the fixture's approval is the product's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PUBLIC, "approval=waiting");
+
+    const noteCard: Locator = card(page, WAITING_NOTE_TEXT);
+    await expect(noteCard.getByTestId("note-approval-waiting")).toBeVisible();
+    await noteCard.getByTestId("note-approval-approve").click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: "Approve and publish" }).click();
+
+    await expect(dialog).toHaveCount(0);
+    await expect(
+      card(page, WAITING_NOTE_TEXT).getByTestId("note-approval-waiting"),
+    ).toHaveCount(0);
+    expect(
+      (await fixture(page)).apiRequests.filter(
+        (request: { url: string }): boolean => {
+          return request.url.endsWith("/approve");
+        },
+      ),
+    ).toHaveLength(1);
+  });
+
+  test("on a phone, in the dark theme, the delete's failure fits its dialog", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: Record<string, string> = await dashboardWords("fa");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PRIVATE, "lang=fa&theme=dark&unexplained=delete");
+
+    const noteCard: Locator = card(page, "Paged the edge on-call.");
+    await noteCard
+      .getByRole("button", { name: words["Note actions"]! })
+      .click();
+    await page.getByRole("menuitem", { name: words["Delete note"]! }).click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: words["Delete note"]! }).click();
+
+    const alert: Locator = dialog.getByTestId("modal-error");
+    await expectExplained(alert, "Couldn't delete the note.", words);
+
+    // Nothing of it reaches past the dialog.
+    expect(
+      await alert.evaluate((element: Element): number => {
+        return element.scrollWidth - element.clientWidth;
+      }),
+    ).toBeLessThanOrEqual(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "note-delete-unexplained-fa-dark-phone");
+  });
+});
+
+/*
  * The fixture loads its locales as the Dashboard does (#8645). It imported
  * German and Arabic whole, parsed on every page load of every test. English
  * is in the bundle now, and each other language a chunk of its own, loaded
@@ -2606,7 +2824,7 @@ test.describe("links and quotes in a note", () => {
  * Dashboard ships it (SuiteHelpers/FixtureLocalesBuild.js).
  */
 describePageLanguages({
-  languages: ["de", "ar"],
+  languages: ["de", "ar", "fa"],
   address: (language: string): string => {
     return language === "en"
       ? `${INCIDENT}/public-notes`

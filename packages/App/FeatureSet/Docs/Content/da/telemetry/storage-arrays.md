@@ -13,11 +13,11 @@ OneUptimes Lagerarray-agent overvåger lagerarrays: kapacitet og datareduktion, 
 
 Storage Arrays er et produkt, der virker på samme måde for alle leverandører. Det understøtter:
 
-| Array | Sådan læser agenten det | Collector-konfiguration |
-| --- | --- | --- |
-| **Pure Storage FlashArray**, Purity//FA 6.7 og senere | Arrayets eget OpenMetrics-endpoint (`https://<array>/metrics/...?namespace=purefa`): intet kører ved siden af collectoren | `otel-collector-config.yaml` (standarden) |
-| **Pure Storage FlashArray**, ældre Purity//FA | Pures FlashArray OpenMetrics-exporter, som den samme Compose-fil kører som tjenesten `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
-| **Pure Storage FlashBlade** | Pures FlashBlade OpenMetrics-exporter, som den samme Compose-fil kører som tjenesten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| Array | `storage.system` | Sådan læser agenten det | Collector-konfiguration |
+| --- | --- | --- | --- |
+| **Pure Storage FlashArray**, Purity//FA 6.7 og senere | `purestorage.flasharray` | Arrayets eget OpenMetrics-endpoint (`https://<array>/metrics/...?namespace=purefa`): intet kører ved siden af collectoren | `otel-collector-config.yaml` (standarden) |
+| **Pure Storage FlashArray**, ældre Purity//FA | `purestorage.flasharray` | Pures FlashArray OpenMetrics-exporter, som den samme Compose-fil kører som tjenesten `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
+| **Pure Storage FlashBlade** | `purestorage.flashblade` | Pures FlashBlade OpenMetrics-exporter, som den samme Compose-fil kører som tjenesten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 
 Pure Storage skiftede navn til **Everpure** i februar 2026. FlashArray, FlashBlade og Purity beholdt deres navne, og det gjorde metrikkerne `purefa_*` og `purefb_*` også, så alt på denne side gælder for arrays, der sælges under begge navne.
 

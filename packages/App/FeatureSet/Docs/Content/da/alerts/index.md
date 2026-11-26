@@ -97,8 +97,8 @@ I det øjeblik en advarsel oprettes, gennemgår OneUptime disse trin i denne ræ
 
 1. **Den får et nummer og en tilstand.** Advarselsnummeret kommer fra en tæller pr. projekt og vises med dit præfiks (`ALT-42`). Advarslen starter i din oprettelsestilstand, medmindre formularen, API'et, en arbejdsgang eller Spørg AI valgte en anden.
 2. **Privatlivsregler kører først**, så alt efter dem ved, om advarslen er privat.
-3. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarselsfeed**, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen.
-4. **Ejere og etiketter tilføjes**: dem, monitorens kriterier eller forespørgslen nævner, derefter dem fra matchende ejer- og etiketregler.
+3. **Ejere og etiketter tilføjes**: dem, monitorens kriterier eller forespørgslen nævner, derefter dem fra matchende ejer- og etiketregler.
+4. **Feedet og dine chatværktøjer hører om den.** En post **Advarsel oprettet** skrives i **Advarselsfeed** som feedets første post, og de kanaler, dine Slack- og Microsoft Teams-regler nævner, får besked; en regel kan oprette en kanal til advarslen. Reglerne ser de ejere og etiketter, advarslen blev oprettet med, så en regel, der spørger, hvem der ejer en advarsel, eller hvilke etiketter den har, også slår den op. Det, der i mellemtiden er sagt om advarslen, f.eks. de netop tilføjede ejere, følger efter **Advarsel oprettet** i de kanaler.
 5. **Vagtregler tilføjer deres politikker**, derefter starter runbook-regler de runbooks, der matcher.
 6. **Vagtpolitikker kører.** Hver politik på advarslen tilkalder sine personer parallelt; at én fejler, stopper ikke de andre. Derefter erklærer den første matchende hændelsesregel en hændelse ud fra advarslen, med det samme eller når dens ventetid er gået.
 7. **Grupperingsregler lægger den i en episode**, når en af dem matcher. Se [Advarselsepisoder og grupperingsregler](/docs/alerts/episodes).

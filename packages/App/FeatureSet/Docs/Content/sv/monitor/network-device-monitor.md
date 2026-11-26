@@ -868,6 +868,10 @@ Vid en avsökning där ingen walk kördes ger kriterierna markerade "Utvärderas
 
 Gränssnittskontrollerna kräver **Walk Interfaces** påslaget i enhetens avsökningsinställningar, vilket det är som standard. OID-kontrollerna läser enhetens konfigurerade hälso-OID:er. Administrativt avaktiverade gränssnitt är nere med avsikt och räknas aldrig som fel.
 
+**SNMP-gränssnittsanvändning (i %)** tar också **Onormalt hög**, **Onormalt låg** och **Avvikande**, med **Känslighet** och **Baslinjefönster** som på en [Metrikövervakning](/docs/monitor/metrics-monitor). Varje gränssnitt i omfattningen jämförs med sitt eget utnyttjande under samma timme i veckan tidigare dagar, så som det här steget i monitorn har avsökt det, så en reservlänk som går fullt varje natt bedöms efter sina egna nätter, inte efter de lugna portarna bredvid. Incidenten eller larmet nämner det gränssnitt som ligger längst utanför sitt intervall, och hur många fler som ligger utanför sina. Ett gränssnitt lär sig fortfarande, och utlöser ingenting, tills den timmen i veckan har två veckors historik för det.
+
+Utnyttjande som avsöktes innan varje steg fick sin egen historik hör inte till något steg. En monitor med ett steg läser det som sitt eget, så den behöver inte lära sig om; en monitor med flera steg utelämnar det, och varje steg lär sig av sina egna avsökningar. Ett gränssnitts historik når så långt tillbaka som monitormetriker sparas: 30 dagar, om inte en självhostad installation ändrar det. Sparas de kortare än två veckor jämför en monitor med ett steg varje gränssnitt med intervallet för alla dess gränssnitt tillsammans, och en monitor med flera steg fortsätter att lära sig.
+
 Kriterier för SNMP-tabeller väljer en tabell, en kolumn (för SNMP Table Value) och en radomfattning. Tomt bedömer varje rad som ett sammanslaget larm; `*` ger ett separat larm för varje rad, som var och en löses för sig och är namngiven efter sin rad; allt annat namnger en rad efter namn eller index. Tal jämförs som tal, och text jämförs både med det råa värdet och med dess etikett, så Inte lika med `active` och Inte lika med `1` fångar båda en Sophos-tunnel som är nere. En tabell vars walk misslyckades vid den här avsökningen utvärderas inte i stället för att läsas som tom, och tabellkriterier bedömer bara den aktuella walken, inte ett tidsintervall.
 
 Transceiverkriterier har omfattning som gränssnittskontrollerna: tomt bedömer varje modul som ett sammanslaget larm, `*` ger ett separat larm för varje port med en modul (var och en löses för sig och är namngiven efter sin port), och allt annat namnger en port efter namn eller alias. De bedömer enhetens [transceivrar](#transceivrar) så som de är vid den här avsökningen, som redan bär sin historik — hur många avsökningar en modul har saknats, en månads mottagen effekt — så inte heller de utvärderas över ett tidsintervall. En avsökning vars läsning av transceivrar misslyckades låter dem bedöma den senaste bra läsningen, så ett öppet larm löses inte vid en avsökning som inte kunde titta.
@@ -897,7 +901,7 @@ När du har lagt till paketet väljer du allvarlighetsgrader och jourpolicyer f�
 
 ## SNMP-traps
 
-Avsökning fångar ett problem vid nästa avsökning; traps fångar det inom sekunder. Varje sond kör en SNMP-trapmottagare som tar emot v1- och v2c-traps och -informs och vidarebefordrar dem till OneUptime.
+Avsökning fångar ett problem vid nästa avsökning; traps fångar det inom sekunder. Varje sond kör en SNMP-trapmottagare som tar emot v1-, v2c- och v3-traps och -informs och vidarebefordrar dem till OneUptime. Den kvitterar varje inform, så att enheten slutar skicka den igen.
 
 ```mermaid title="Från en trap till en incident"
 flowchart TB
@@ -921,6 +925,7 @@ Mottagaren är påslagen som standard och lyssnar på UDP 162. Konfigurera den p
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Sätt till `false` för att stänga av trapmottagaren. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | UDP-porten som mottagaren lyssnar på. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Hur många traps den vidarebefordrar per minut innan den kastar resten. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | Sondens SNMPv3-motor-ID i hex (5 till 32 oktetter). Ange det bara för att behålla motor-ID:t för en mottagare som den här sonden ersätter. | Härlett från sondens ID |
 
 Om sonden körs i Docker, publicera UDP-porten så att traps kan nå den:
 
@@ -936,6 +941,42 @@ Peka sedan dina enheters trapdestination mot sonden; på Cisco IOS till exempel:
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3-traps och -informs
+
+En SNMPv3-trap är signerad, och oftast krypterad, med en användares nycklar, så en sond tar bara emot en från en användare som den känner till: SNMPv3-autentiseringsuppgifterna för de enheter som är tilldelade den. Varje enhets egna SNMP-autentiseringsuppgifter, dess autentiseringsprofil och dess plats standard räknas alla, så en enhet som avsöks över v2c kan ändå skicka sina traps som platsens SNMPv3-användare. Inget ställs in på sonden:
+
+1. Ge enheten, dess autentiseringsprofil eller dess plats den SNMPv3-användare som enheten skickar sina traps som: användarnamn, säkerhetsnivå samt autentiserings- och sekretessprotokoll med sina lösenfraser (se [SNMP-autentiseringsuppgifter och autentiseringsprofiler](#snmp-autentiseringsuppgifter-och-autentiseringsprofiler)).
+2. Rikta enhetens SNMPv3-traps mot sonden. På Cisco IOS till exempel:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime ger varje sond SNMPv3-användarna för dess egna enheter var trettionde sekund, så ändrade autentiseringsuppgifter, en ändrad profil eller en enhet som flyttas till en annan sond gäller inom en minut, medan mottagaren fortsätter att lyssna. Autentiseringsuppgifterna förblir krypterade i vila, som vid avsökning, och sonden håller dem bara i minnet och loggar dem aldrig. Ett projekts användare når aldrig ett annat projekts sond.
+
+Mottagaren tar emot de protokoll som avsökningen använder: MD5-, SHA-1-, SHA-256- och SHA-512-autentisering och DES-, AES-128- och AES-256-sekretess. En trap måste komma med minst den säkerhet som dess användare är inställd för: en authPriv-användares traps avvisas om de kommer oautentiserade eller okrypterade.
+
+**Traps, informs och sondens motor-ID.** En trap autentiseras med enhetens eget SNMP-motor-ID, så det finns inget att ställa in. En inform autentiseras med sondens motor-ID, som de flesta enheter hittar själva. Vissa behöver få det inskrivet: på Cisco IOS anger du `snmp-server engineID remote <probe-ip> <engine-id>` innan du skapar användaren. Öppna **Monitorer → Inställningar → Sonder** och välj sonden: dess kort **SNMP-traps** visar motor-ID:t att kopiera. Det härleds från sondens ID och förblir därför detsamma över omstarter, uppgraderingar och mellan repliker av sonden; ange `PROBE_SNMP_ENGINE_ID` för att välja ett annat.
+
+Informs kvitteras, både för v2c och v3. En inform som skickas igen för att dess kvittens gick förlorad kvitteras igen och registreras en gång.
+
+**Tidsfönstret.** Precis som `snmptrapd` från Net-SNMP avvisar mottagaren en trap vars motor-boots och -tid går mer än 150 sekunder bakåt jämfört med enhetens senaste trap: en uppspelad eller fördröjd kopia, eller en enhet som startade om utan att räkna omstarten i sina motor-boots. En inform måste ligga inom 150 sekunder från sondens egen tid.
+
+**Avvisade SNMPv3-traps** vidarebefordras aldrig, och inget av det de innehöll sparas eller loggas: bara varifrån de kom, vilken användare de skickades som och varför. Sondens kort **SNMP-traps** visar dem från det senaste dygnet, till exempel ”12 SNMPv3-traps från 10.20.0.5 misslyckades: okänd användare ”san-monitor””, var och en med vad som ska ändras. En enhets sidor **Översikt** och **Loggar** säger samma sak när adressen är en av enhetens egna. En trap som tas emot från den adressen som den användaren tar bort det.
+
+| Orsak | Vad som ska ändras |
+| --- | --- |
+| Okänd användare | Ingen enhet på sonden har en SNMPv3-användare med det namnet. Lägg till den i enhetens autentiseringsuppgifter, dess autentiseringsprofil eller dess plats standard, eller rätta namnet på enheten. |
+| Fel lösenfras eller protokoll för autentisering | Gör enhetens lösenfras och protokoll för autentisering lika med dem som OneUptime har för användaren. |
+| Fel lösenfras eller protokoll för sekretess | Gör enhetens lösenfras och protokoll för sekretess lika med dem som OneUptime har för användaren. |
+| Utanför tidsfönstret | Enhetens motorklocka gick bakåt. Dess traps tas emot igen så snart den räknar en omstart i sina motor-boots. |
+| Skickad till ett annat motor-ID | En inform skickades till ett annat motor-ID än sondens. Ge enheten sondens motor-ID. |
+| Lägre säkerhet än användaren är inställd för | Ställ in enhetens säkerhetsnivå för traps till den som OneUptime har för användaren. |
+
+I trap-historiken säger en SNMPv3-trap vad som kom, bredvid dess OID och varbinds: version 3, användaren den autentiserades som, om den också var krypterad och motor-ID:t för enheten som skickade den.
+
 ### Så kopplas traps till monitorer
 
 Traps matchas via enhetsinventariet:
@@ -944,7 +985,7 @@ Traps matchas via enhetsinventariet:
 2. OneUptime letar efter de nätverksenheter som är tilldelade den sonden vars värdnamn, eller någon av vars **Övriga adresser**, är trapens käll-IP-adress.
 3. Trapen loggas i enhetens traphistorik, och varje nätverksenhetsmonitor på en matchande enhet utvärderar den mot sina kriterier, oftast ett filter **SNMP-trap mottagen (trap-OID)**.
 
-Matchningen sker på adress, inte på autentiseringsuppgifter, så en enhet med bara ping kan ändå ta emot traps: en enhet som du saknar läsuppgifter för kan ändå skicka dem. Registrera enheten med den adress som den skickar traps från, eller lägg till den adressen i dess **Övriga adresser** på dess sida **Inställningar**. Generiska SNMPv1-traps (coldStart, linkDown, linkUp och så vidare) omvandlas till sina standard-SNMPv2-notifierings-OID:er, så linkDown matchar trap-OID `1.3.6.1.6.3.1.1.5.3` oavsett SNMP-version.
+Matchningen sker på adress, inte på autentiseringsuppgifter, så en enhet med bara ping kan ändå ta emot v1- och v2c-traps: en enhet som du saknar läsuppgifter för kan ändå skicka dem. En SNMPv3-trap behöver dessutom den användare den är signerad med (se [SNMPv3-traps och -informs](#snmpv3-traps-och-informs)), och matchas sedan på sin adress på samma sätt. Registrera enheten med den adress som den skickar traps från, eller lägg till den adressen i dess **Övriga adresser** på dess sida **Inställningar**. Generiska SNMPv1-traps (coldStart, linkDown, linkUp och så vidare) omvandlas till sina standard-SNMPv2-notifierings-OID:er, så linkDown matchar trap-OID `1.3.6.1.6.3.1.1.5.3` oavsett SNMP-version.
 
 #### Exempel: skapa en incident vid linkDown
 
@@ -1172,6 +1213,13 @@ När enheterna finns där men inte monitorerna: enheter och monitorer är separa
 - Publicera och tillåt UDP 162 hela vägen till sonden, eller porten i `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Kontrollera att enhetens värdnamn, eller någon av dess **Övriga adresser**, är den adress som den skickar traps från: det är så traps matchas mot enheter.
 - Kontrollera sondens loggar efter bindningsfel: porten används redan, eller behörighet saknas för en port under 1024.
+:::
+
+:::details SNMPv3-traps avvisas
+- Öppna **Monitorer → Inställningar → Sonder** och välj sonden: dess kort **SNMP-traps** visar varje avvisad källa med orsak och vad som ska ändras.
+- SNMPv3-användaren måste höra till en enhet som är tilldelad den sonden: dess egna autentiseringsuppgifter, dess autentiseringsprofil eller dess plats standard. En användare på en enhet som är tilldelad en annan sond räknas inte.
+- En inform behöver dessutom sondens motor-ID, som visas på samma kort. En enhet som har fått ett felaktigt listas som att den skickar till ett annat motor-ID.
+- Efter en ändring tar sonden de nya användarna i bruk inom en minut.
 :::
 
 :::details Testa SNMP från sondens nätverk

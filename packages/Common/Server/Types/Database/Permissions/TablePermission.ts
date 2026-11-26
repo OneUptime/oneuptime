@@ -77,6 +77,19 @@ export default class TablePermission {
       type: type,
     });
 
+    /*
+     * Nor, on the default permissions, the project's secrets, where
+     * OneUptime sends them or what its runbooks run: no runbook variable,
+     * monitor secret, BI tool connection or threat intel feed
+     * (WorkflowPrincipal.assertDoesNotChangeSecrets). Asked as early, for
+     * the same reason.
+     */
+    WorkflowPrincipal.assertDoesNotChangeSecrets({
+      modelType: modelType,
+      props: props,
+      type: type,
+    });
+
     // 2nd CHECK: Is user project in active state, and on the plan this needs?
     BillingPermissions.checkBillingPermissions(
       modelType,
@@ -119,7 +132,10 @@ export default class TablePermission {
 
       if (permissions.length === 0) {
         throw new NotAuthorizedException(
-          `${type} on ${new modelType().singularName} is not allowed.`,
+          HeldPermissionsUtil.getNobodyMayRefusal({
+            recordName: new modelType().singularName,
+            operation: type,
+          }),
         );
       }
 

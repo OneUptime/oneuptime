@@ -451,8 +451,10 @@ describe.each([
           properties: { region: { type: "string" } },
         },
         readsOnly: true,
+        saysWhetherItReads: true,
       });
       expect(list.tools[1]!.readsOnly).toBe(false);
+      expect(list.tools[1]!.saysWhetherItReads).toBe(true);
     });
 
     test("calls a tool and hands its result on as the SDK sent it", async () => {

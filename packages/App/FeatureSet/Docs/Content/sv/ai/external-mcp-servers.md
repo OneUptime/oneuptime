@@ -1,10 +1,11 @@
 # Externa MCP-servrar
 
-OneUptime AI kan använda verktygen på MCP-servrar utanför OneUptime – de som ditt moln, din kodvärd eller ditt eget team kör, till exempel AWS, Azure eller GitHub – medan den utreder och åtgärdar incidenter och larm. Lägg till en server en gång under **Projektinställningar → AI → Externa MCP-servrar**, så använder OneUptime AI den från nästa incident.
+OneUptime AI kan använda verktygen på MCP-servrar utanför OneUptime – de som ditt moln, din kodvärd eller ditt eget team kör, till exempel AWS, Azure eller GitHub – i Fråga AI och medan den utreder och åtgärdar incidenter och larm. Lägg till en server en gång under **Projektinställningar → AI → Externa MCP-servrar**, så använder OneUptime AI den från din nästa fråga och nästa incident.
 
 :::cards
 - [Lägg till en server](#lägg-till-en-server): Dess adress, och hur OneUptime loggar in.
 - [Vad OneUptime AI gör med en server](#vad-oneuptime-ai-gör-med-en-server): Verktyg som läser i utredningar, de andra i åtgärder.
+- [I Fråga AI](#i-fråga-ai): Be den lista en servers verktyg eller använda ett; en ändring väntar på ditt godkännande.
 - [Välj de servrar en regel får använda](#välj-de-servrar-en-regel-får-använda): Alla, om inte en regel väljer några.
 - [Säkerhet](#säkerhet): Vad en server kan och inte kan få OneUptime AI att göra.
 :::
@@ -51,9 +52,9 @@ Lägg aldrig en token eller ett lösenord i **URL**: Alla som kan läsa servern 
 
 ## Vad OneUptime AI gör med en server
 
-Varje verktyg som en server erbjuder antingen bara läser eller kan ändra något. OneUptime går efter vad servern säger om verktyget (dess `readOnlyHint`): Ett verktyg som servern inte märker som skrivskyddat räknas som ett som kan ändra något.
+Varje verktyg som en server erbjuder antingen bara läser eller kan ändra något. OneUptime går efter vad servern säger om verktyget (dess `readOnlyHint`): Ett verktyg som servern inte märker som skrivskyddat räknas som ett som kan ändra något. Vissa servrar märker inget av sina verktyg: En utredning har då inget av deras verktyg att använda, och i Fråga AI väntar varje anrop av ett sådant verktyg på ditt godkännande.
 
-```mermaid title="Vilka verktyg OneUptime AI använder, och när"
+```mermaid title="Vilka verktyg OneUptime AI använder på egen hand, och när"
 flowchart TB
     T["Ett verktyg på<br/>din MCP-server"] --> Q{"Läser det<br/>bara?"}
     Q -->|"ja"| R["Används i<br/>utredningar<br/>och åtgärder"]
@@ -67,6 +68,7 @@ flowchart TB
 | --- | --- | --- |
 | **Utredningar** | Används, tillsammans med OneUptimes egna data | Används aldrig: OneUptime avvisar anropet |
 | **Åtgärder** | Används för att ta fram åtgärden | Föreslås för godkännande eller används direkt, så som **Åtgärd** i AI-regeln säger |
+| **Fråga AI** | Används när du ber om det | Används när du har godkänt varje anrop |
 
 **I en utredning** listar OneUptime AI verktygen på de servrar den får använda och anropar dem som läser, för att titta på det som OneUptime inte själv ser: ditt molnkonto, en driftsättning, ett ärendesystem. Svaren använder den i sin rotorsaksanalys. Se [AI SRE](/docs/ai/ai-sre).
 
@@ -79,6 +81,16 @@ En åtgärd gör högst 5 ändringar. Sedan bevakar OneUptime incidentens monito
 
 För att få OneUptime AI att sluta använda en server stänger du av **Låt OneUptime AI använda den här servern** på dess sida. Den frågar först: Servern används inte längre i någon utredning eller åtgärd, och en föreslagen åtgärd via den kan inte längre godkännas.
 
+## I Fråga AI
+
+Fråga AI, och samtalet under en incidents eller ett larms kort **OneUptime AI**, kan använda varje påslagen server, för den som frågar. Frågar du "Vilka verktyg har AWS?" listar OneUptime AI dem, vart och ett märkt med vad det kan göra; ber du den använda ett, med dess server och dess namn, anropar den det och svarar utifrån det som kom tillbaka.
+
+- **Verktyg som bara läser** körs direkt, i alla behörighetslägen.
+- **Alla andra verktyg** väntar på dig, även i läget **Kör automatiskt**: Godkännandekortet anger servern och verktyget och visar exakt vad som skickas, och inget når servern förrän du tillåter det. Ett samtal i läget **Skrivskyddad** erbjuder aldrig något sådant verktyg.
+- **Dina behörigheter avgör.** Att använda en server kräver samma behörighet som att läsa projektets externa MCP-servrar; att godkänna en ändring via en av dem kräver behörighet att starta runbook-körningar, precis som när du godkänner en åtgärd via MCP-servrar. Ett avvisat anrop säger varför och skickar ingenting.
+
+Servrarna som en AI-regel nämner är de som OneUptime AI använder på egen hand, för det regeln matchar; i Fråga AI väljer du servern.
+
 ## Välj de servrar en regel får använda
 
 Varje AI-regel kan nämna de MCP-servrar som OneUptime AI får använda för det den matchar. Fältet är **MCP-servrar**, under **Fler fält**. Tills du väljer några får OneUptime AI använda alla, och det hopfällda avsnittet säger det.
@@ -86,14 +98,16 @@ Varje AI-regel kan nämna de MCP-servrar som OneUptime AI får använda för det
 - **Ingen vald** – alla projektets påslagna servrar.
 - **Några valda** – bara de. På en AI-regel som åtgärdar utan att fråga är det också att nämna dess servrar som låter OneUptime AI göra deras ändringar utan att fråga.
 
-När flera regler som utreder matchar får OneUptime AI använda varje server som någon av dem tillåter; om reglerna inte kan läsas använder utredningen ingen MCP-server alls. Varje matchande regel som åtgärdar tar fram sin egen åtgärd via sina servrar, och de regler som inte nämner någon delar på en åtgärd via alla.
+När flera regler som utreder matchar får OneUptime AI använda varje server som någon av dem tillåter; om reglerna inte kan läsas använder utredningen ingen MCP-server alls. En utredning som någon startar på en incident eller ett larm som ingen regel matchar får använda alla. Varje matchande regel som åtgärdar tar fram sin egen åtgärd via sina servrar, och de regler som inte nämner någon delar på en åtgärd via alla.
 
 ## Säkerhet
 
 - **Det en server skickar tillbaka är data, aldrig instruktioner.** OneUptime AI läser beskrivningarna och svaren från dess verktyg som text utifrån: De ändrar aldrig en regel, ett godkännande eller vad OneUptime AI får göra.
+- **Ett verktyg får bara det som det tar emot.** OneUptime skickar till ett verktyg bara de argument som dess schema anger; allt annat som OneUptime AI skrev stannar i OneUptime.
+- **Aktivera AI stoppar varje anrop.** När **Aktivera AI** är avstängt skickar OneUptime ingenting till en server: inget anrop från en utredning, en åtgärd eller Fråga AI, inte ens ett som en person redan har godkänt.
 - **Adressen kontrolleras vid varje anslutning.** OneUptime ansluter aldrig till sin egen adress eller en link-local-adress. På OneUptime Cloud avvisar den också privata nätverksadresser: Använd serverns offentliga adress. En egen driftad OneUptime når privata adresser om inte `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` är satt. Den följer inte omdirigeringar.
 - **Gränser.** Ett projekt har högst 20 servrar, och OneUptime läser högst 200 verktyg per server. Anslutningen får timeout efter 20 sekunder, listningen av verktyg efter 30 och ett verktygsanrop efter 60. Ett svar större än 2 MB avvisas. En körnings anrop till MCP-servrar räknas in i projektets gränser per körning, när det sätter dem.
-- **Varje anrop registreras.** Varje anrop är ett steg i körningen, synligt i dess aktivitet, och varje ändring en åtgärd gör står i steget **Åtgärd** med vad servern svarade. Modellanropen bakom dem finns under **Projektinställningar → AI → AI-loggar**.
+- **Varje anrop registreras.** Varje anrop är ett steg i körningen, synligt i dess aktivitet (i Fråga AI bland svarets steg), och varje ändring en åtgärd gör står i steget **Åtgärd** med vad servern svarade. Modellanropen bakom dem finns under **Projektinställningar → AI → AI-loggar**.
 
 ## Felsökning
 
@@ -102,7 +116,7 @@ Dialogrutan **Testa anslutningen** säger vad som gick fel och vad du ska kontro
 :::
 
 :::details OneUptime AI använder inte en server
-Kontrollera att **Låt OneUptime AI använda den här servern** är påslaget, att regeln som matchade incidenten inte nämner andra servrar under **Fler fält**, och att serverns verktyg har lästs: Dess kort **Verktyg** listar dem. En utredning använder bara verktyg märkta med **Endast läsning**.
+Kontrollera att **Låt OneUptime AI använda den här servern** är påslaget och att serverns verktyg har lästs: Dess kort **Verktyg** listar dem, vart och ett märkt med **Endast läsning** eller **Kan ändra saker**, och **Testa anslutningen** läser dem igen. Ställ sedan frågan "Vilka verktyg har AWS?" i Fråga AI, med din servers namn: Den listar dem, eller säger varför den inte kan nå servern eller inte får använda den. För en utredning kontrollerar du också att regeln som matchade incidenten inte nämner andra servrar under **Fler fält**: En utredning använder bara verktyg märkta med **Endast läsning**, så en server som inte märker något av sina verktyg ger den inga att använda.
 :::
 
 ## Nästa steg

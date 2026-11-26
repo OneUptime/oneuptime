@@ -257,7 +257,7 @@ const ADD_TO_PROJECT_TITLE_KEY: string = "pages.users.bulkAddToProject";
  * rather than as a failure of the run.
  */
 const ALREADY_INVITED_MESSAGE: string =
-  "This user has already been invited to this team";
+  "This person has already been invited to this team, or is a member of it. If they have not joined yet, use Resend Invitation on their row to send their invitation email again.";
 
 const SELECTION: BulkAddUsersToProjectSelection = {
   projectId: ObjectID.generate(),

@@ -103,6 +103,8 @@ const NOTHING_CARRIED: Record<string, unknown> = {
   declaredByAlertIncidentRuleName: null,
   // No alerts: no alert owners to carry over.
   carryOverAlertOwners: false,
+  // When its feed starts, taken before it is written (#10911).
+  feedStartsAt: expect.any(Date),
 };
 
 type HookFunction = (...args: Array<unknown>) => Promise<unknown>;
@@ -397,9 +399,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID],
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        true,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(true);
     });
 
     test("is on when the declaration asks for it in so many words", async () => {
@@ -408,9 +408,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: true,
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        true,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(true);
     });
 
     test("is off when the declaration says false: the dashboard's Owners field holds them", async () => {
@@ -419,9 +417,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: false,
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        false,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(false);
     });
 
     test("a null value is no value: the default stands", async () => {
@@ -430,9 +426,7 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
         [INCIDENT_CARRY_OVER_ALERT_OWNERS_KEY]: null,
       });
 
-      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(
-        true,
-      );
+      expect((result.carryForward as Carried).carryOverAlertOwners).toBe(true);
     });
 
     test("is off for an incident declared from no alerts, and false is accepted there", async () => {
@@ -724,7 +718,14 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       return chain[name]!.mock.invocationCallOrder[0]!;
     }
 
-    test("the alerts are announced once, after Incident Created and the workspace channels", async () => {
+    /*
+     * #10911: declaring the incident from the alerts is what made it, so the
+     * announcement is the chain's first step - ahead of its first state, its
+     * owners, its channels and "Incident Created". Its message waits for
+     * "Incident Created" in the incident's channels
+     * (WorkspaceCreatedMessageFirst).
+     */
+    test("the alerts are announced once, first: before the first state, the channels and Incident Created", async () => {
       await onCreateSuccess(
         { alertIdsToLink: alertIds },
         createdIncident(USER_ID),
@@ -743,13 +744,34 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
 
       const summaryOrder: number = summary.mock.invocationCallOrder[0]!;
 
-      expect(order("handleIncidentWorkspaceOperationsAsync")).toBeLessThan(
-        summaryOrder,
-      );
-      expect(order("createIncidentFeedAsync")).toBeLessThan(summaryOrder);
-      // ...and it is the very next step, ahead of the rest of the chain.
       expect(summaryOrder).toBeLessThan(
         order("handleIncidentStateChangeAsync"),
+      );
+      expect(summaryOrder).toBeLessThan(
+        order("handleIncidentWorkspaceOperationsAsync"),
+      );
+      expect(summaryOrder).toBeLessThan(order("createIncidentFeedAsync"));
+    });
+
+    /*
+     * Its entry is filed a millisecond before the incident's feed starts,
+     * where "Incident Created" is filed: the first two lines of the feed,
+     * in that order, whenever each is written (#10911).
+     */
+    test("the announcement is filed just before the feed starts, and Incident Created as it starts", async () => {
+      const feedStartsAt: Date = new Date("2026-11-24T11:30:00.000Z");
+
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds, feedStartsAt: feedStartsAt },
+        createdIncident(USER_ID),
+      );
+      await settle();
+
+      expect(
+        (summary.mock.calls[0]![0] as { postedAt?: Date }).postedAt,
+      ).toEqual(new Date("2026-11-24T11:29:59.999Z"));
+      expect(chain["createIncidentFeedAsync"]!.mock.calls[0]![2]).toEqual(
+        feedStartsAt,
       );
     });
 
@@ -878,7 +900,7 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       return chain[name]!.mock.invocationCallOrder[0]!;
     }
 
-    test("the owners are added once the incident's channels exist, after Incident Created and the announcement", async () => {
+    test("the owners are added after the announcement and the first state, before the channels are opened and Incident Created is posted", async () => {
       await onCreateSuccess(
         { alertIdsToLink: alertIds },
         createdIncident(USER_ID, true),
@@ -894,17 +916,20 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       });
 
       /*
-       * The owners' own hooks invite them to the incident's Slack / Teams
-       * channels, so the copy must come after the step that records them.
+       * #11146: a notification rule that asks who owns the incident is
+       * matched on them when its channels are opened and "Incident
+       * Created" is posted, so the copy comes before both. The channels'
+       * setup invites them (NotificationRuleInvites), and their "owner
+       * added" messages follow "Incident Created".
        */
       const copyOrder: number = copyOwners.mock.invocationCallOrder[0]!;
 
-      expect(order("handleIncidentWorkspaceOperationsAsync")).toBeLessThan(
-        copyOrder,
-      );
-      expect(order("createIncidentFeedAsync")).toBeLessThan(copyOrder);
       expect(summary.mock.invocationCallOrder[0]!).toBeLessThan(copyOrder);
-      expect(copyOrder).toBeLessThan(order("handleIncidentStateChangeAsync"));
+      expect(order("handleIncidentStateChangeAsync")).toBeLessThan(copyOrder);
+      expect(copyOrder).toBeLessThan(
+        order("handleIncidentWorkspaceOperationsAsync"),
+      );
+      expect(copyOrder).toBeLessThan(order("createIncidentFeedAsync"));
     });
 
     test("an incident a privacy rule makes private takes on the owners too", async () => {

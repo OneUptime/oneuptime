@@ -1,4 +1,5 @@
 import ServerOwned from "../../Types/Database/ServerOwned";
+import IncidentRole from "./IncidentRole";
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
@@ -741,6 +742,119 @@ export default class OnCallDutyPolicy extends BaseModel {
     type: ColumnType.Number,
   })
   public acknowledgementTimeoutInMinutes?: number = undefined;
+
+  /*
+   * THE INCIDENT ROLE OF THE PEOPLE THIS POLICY PAGES
+   * (Server/Utils/OnCall/OnCallPolicyIncidentRole).
+   *
+   * Everybody this policy pages about an incident or an incident episode -
+   * as a responder, never as an observer - is given this role on it, so the
+   * incident's Incident Roles say who the policy reached: the on-call person
+   * of the team that owns a service shows up as its Service Owner, say,
+   * without anybody adding them. A role that takes one person goes to the
+   * first person paged while nobody holds it.
+   *
+   * Empty, as it is on every policy until somebody sets it: paging gives
+   * nobody a role, as it never did. Deleting the role empties it (SET NULL).
+   * Archiving it does not: the policy goes on giving the role it was set up
+   * with, as every automation keeps the values it was set up with
+   * (ArchivedValueCheck), and the role's archive dialog counts the policy
+   * among what uses it (ArchivableValueUsage).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.CreateProjectOnCallDutyPolicy,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicy,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditProjectOnCallDutyPolicy,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "incidentRoleId",
+    type: TableColumnType.Entity,
+    modelType: IncidentRole,
+    title: "Incident Role",
+    description:
+      "The role given to everybody this policy pages about an incident or an incident episode, so they are listed in its incident roles. Empty: no role.",
+  })
+  @ManyToOne(
+    () => {
+      return IncidentRole;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "incidentRoleId" })
+  public incidentRole?: IncidentRole = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.CreateProjectOnCallDutyPolicy,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.OnCallViewer,
+      Permission.ReadProjectOnCallDutyPolicy,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.OnCallAdmin,
+      Permission.OnCallMember,
+      Permission.EditProjectOnCallDutyPolicy,
+    ],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Incident Role ID",
+    description:
+      "ID of the incident role given to everybody this policy pages about an incident or an incident episode. Empty: no role.",
+    example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public incidentRoleId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [

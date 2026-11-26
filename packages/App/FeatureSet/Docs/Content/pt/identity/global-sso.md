@@ -78,7 +78,7 @@ flowchart TB
 
 - **Nenhum projeto anexado (todos os projetos / convite primeiro):** os usuários podem fazer login com o provedor e acessar **qualquer projeto do qual já sejam membros**. Usuários novos **não** são criados automaticamente — o usuário precisa ser convidado para um projeto primeiro. Use isso para um SSO de toda a empresa quando as associações são gerenciadas em outro lugar.
 
-- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Projetos vinculados** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão no primeiro login. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
+- **Projetos anexados (provisionamento automático):** Abra o provedor e use a tabela **Projetos vinculados** para anexar um ou mais projetos, cada um com um conjunto de equipes padrão. Os usuários que fazem login são **provisionados automaticamente** nesses projetos e adicionados às equipes padrão: quem é novo, no primeiro login, e quem já tem conta, como uma que você criou à mão, no próximo. Um projeto que você anexa começa com a equipe de membros dele; escolha outras equipes se os recém-chegados devem começar com outro acesso. Um projeto anexado sem equipes não adiciona ninguém. Adicione um projeto + equipes por vez para construir a lista; para alterar um anexo, exclua-o e adicione-o novamente.
 
 Quem já é membro de um projeto anexado mantém as equipes que tem lá.
 
@@ -89,7 +89,13 @@ Duas perguntas do provedor mudam isso, recolhidas em **Mais campos**. Cada uma c
 | **Pessoas sem conta** | **Ganham uma no primeiro login**: elas entram nos projetos anexados; se não houver nenhum anexado, precisam ser convidadas primeiro. **Precisam ser convidadas primeiro**: as pessoas precisam ser convidadas para um projeto antes de poderem fazer login com este provedor, mesmo quando há projetos anexados. |
 | **Onde este login conta como SSO** | **Todos os projetos**: os projetos que exigem SSO aceitam um login com este provedor. **Apenas os projetos anexados**: fazer login com este provedor atende à exigência de SSO apenas nos projetos anexados a ele, então pessoas que já fizeram login podem perder o acesso a outros projetos. |
 
-Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados.
+Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados: nenhuma das duas respostas adiciona alguém a um projeto. Enquanto nenhum projeto com equipes estiver anexado, a página do provedor diz em **Pessoas sem conta** que ninguém novo pode fazer login ainda.
+
+## Endereços de email que o seu provedor de identidade não verificou
+
+Um provedor OpenID Connect global encontra a conta em que faz o login pelo endereço de email que envia, como o provedor de um projeto, e as contas dos administradores mestres são encontradas da mesma forma. Por isso ele não faz o login de ninguém com um endereço que o provedor diz não ter verificado, com uma claim `email_verified` igual a `false` ou a algo que não é nem true nem false. Do contrário, alguém poderia colocar o endereço de um administrador mestre na própria conta no provedor e entrar na instância inteira como ele. Um provedor que envia `email_verified` como `true`, ou não a envia, como o Microsoft Entra ID, faz o login das pessoas como antes.
+
+Pelo authentik 2025.10 e posteriores, ninguém entra até você mudar o mapeamento de escopo `email` dele, e pelo Keycloak, ninguém cujo endereço ele não tenha verificado. O que mudar lá, o que continua entrando e o que a pessoa vê estão na página [SSO](/docs/identity/sso#endereços-de-email-que-o-seu-provedor-de-identidade-não-verificou). Os administradores mestres com senha podem entrar com ela enquanto isso, em `/accounts/admin-login` enquanto a instância inteira exigir SSO.
 
 ## Sair também do provedor de identidade
 
@@ -121,8 +127,8 @@ Enquanto a instância inteira exige SSO:
 
 - A página de login oferece só SSO: um botão para cada provedor global ligado, e nada de senha, chave de acesso, link enviado por e-mail, login com o Google ou a Microsoft, ou cadastro. Ela mantém a busca por e-mail, que encontra o provedor próprio de um projeto, só enquanto algum projeto tiver um.
 - O OneUptime recusa uma senha, uma chave de acesso, um link enviado por e-mail, um login com o Google ou a Microsoft e um cadastro com "This server requires single sign-on (SSO). Sign in with SSO instead." Só a senha ou a chave de acesso de um administrador mestre ainda fazem o login dele. As pessoas recebem a conta fazendo login com SSO ou por convite.
-- Quem não é administrador mestre não pode definir senha, chave de acesso, chave de segurança, aplicativo autenticador, códigos de backup nem autenticação de dois fatores, e a redefinição de senha não lhe envia nenhum link. O **Perfil do usuário** dessa pessoa não tem a seção **Segurança**, e a **Visão geral** dele mostra os provedores com que ela faz login. O que ela configurou antes continua salvo, mas sem uso, até que a exigência seja desligada.
-- O cartão **Exigir SSO** diz quantas dessas pessoas ainda têm uma senha ou a autenticação de dois fatores salva, que as faria entrar de novo se o SSO deixasse de ser exigido. **Limpar configurações de login** exclui suas senhas, chaves de acesso, chaves de segurança, aplicativos autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que elas abriram sem SSO, depois de pedir confirmação. Não dá para desfazer, os administradores mestres mantêm as suas, os projetos de cada pessoa registram isso em seus registros de auditoria, e cada pessoa recebe um e-mail com o que foi removido e como entra agora.
+- Quem não é administrador mestre não pode definir senha, chave de acesso, chave de segurança, app autenticador, códigos de backup nem autenticação de dois fatores, e a redefinição de senha não lhe envia nenhum link. O **Perfil do usuário** dessa pessoa não tem a seção **Segurança**, e a **Visão geral** dele mostra os provedores com que ela faz login. O que ela configurou antes continua salvo, mas sem uso, até que a exigência seja desligada.
+- O cartão **Exigir SSO** diz quantas dessas pessoas ainda têm uma senha ou a autenticação de dois fatores salva, que as faria entrar de novo se o SSO deixasse de ser exigido. **Limpar configurações de login** exclui suas senhas, chaves de acesso, chaves de segurança, apps autenticadores e códigos de backup, desliga a autenticação de dois fatores e encerra as sessões que elas abriram sem SSO, depois de pedir confirmação. Não dá para desfazer, os administradores mestres mantêm as suas, os projetos de cada pessoa registram isso em seus registros de auditoria, e cada pessoa recebe um e-mail com o que foi removido e como entra agora.
 - Na página **Autenticação** de uma pessoa em **Usuários**, **Limpar configurações de login** faz o mesmo só para essa pessoa, e **Definir senha** e **Enviar link de redefinição de senha** avisam que uma senha não fará o login dela. Ali você não pode limpar as suas, e limpar as de outro administrador mestre pede que você confirme que ele é um.
 - Quem já fez login com uma senha faz login com SSO para abrir um projeto. Essa pessoa chega à página de login único do projeto, que oferece os provedores próprios do projeto e os provedores globais que fazem login nele. O cartão **Exigir SSO** diz quantas pessoas ainda estão conectadas sem SSO, e **Desconectá-las** encerra as sessões delas em todos os dispositivos de uma vez. Os administradores principais continuam conectados.
 - Os administradores mestres fazem login com a senha em `/accounts/admin-login`, um endereço para o qual a página de login não aponta. O cartão **Exigir SSO** mostra o endereço completo abaixo do interruptor, como **Login de administrador principal**: guarde-o, para desligar a exigência se o seu provedor de identidade parar de funcionar.
@@ -160,7 +166,7 @@ Duas alterações sobre quem pode fazer login são verificadas uma depois da out
 ## Solução de problemas
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-A pessoa ainda não tem conta no OneUptime, e o provedor não cria uma: ou não há projetos anexados a ele, ou **Pessoas sem conta** está em **Precisam ser convidadas primeiro**. Convide-a para um projeto ou anexe um projeto ao provedor.
+A pessoa ainda não tem conta no OneUptime, e o provedor não cria uma: ou não há nenhum projeto com equipes anexado a ele, ou **Pessoas sem conta** está em **Precisam ser convidadas primeiro**. Convide-a para um projeto ou anexe ao provedor um projeto, com as equipes em que ela entra. O log do servidor diz qual dos dois motivos é, sem nomear a pessoa.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -183,6 +189,10 @@ Em um provedor SAML, a resposta foi criada para outro aplicativo: a audience del
 Cada resposta do seu provedor de identidade faz o login uma única vez, e só nos minutos seguintes à emissão: depois disso, ela é recusada com "SAML response has expired". Faça o login de novo. Se as respostas continuarem expirando, confira os relógios deste servidor e do seu provedor de identidade.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+O provedor OpenID Connect enviou `email_verified` como `false`, ou como algo que não é nem true nem false, então o OneUptime não fez o login de ninguém, nem de um administrador mestre. Peça a verificação do endereço no seu provedor de identidade, ou marque-o como verificado lá, e entre novamente. Veja [Endereços de email que o seu provedor de identidade não verificou](#endereços-de-email-que-o-seu-provedor-de-identidade-não-verificou).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 A instância inteira exige SSO, e este foi um login com senha, chave de acesso, um link enviado por e-mail, Google ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para entrar** em **Login único**.
 :::
@@ -193,4 +203,5 @@ A instância inteira exige SSO, e este foi um login com senha, chave de acesso, 
 - [SSO](/docs/identity/sso): Configurar o provedor SAML ou OIDC próprio de um projeto.
 - [SCIM](/docs/identity/scim): Deixe seu provedor de identidade adicionar e remover pessoas automaticamente.
 - [Usuários, equipes e permissões](/docs/permissions/index): O que as equipes em que os recém-chegados entram permitem que eles façam.
+- [Ajuda e suporte](/docs/self-hosted/help-and-support): Dizer a quem precisa de um convite a quem pedi-lo.
 :::

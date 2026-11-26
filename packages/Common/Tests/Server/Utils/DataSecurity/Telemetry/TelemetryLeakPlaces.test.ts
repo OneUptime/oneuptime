@@ -250,9 +250,49 @@ describe("a log line", () => {
     expect(
       placeOf(TelemetrySampleSource.Logs, { readScope: "accounts" }, "body"),
     ).toBeNull();
+    // A browser log or span with no page, line, name, file or stack (#10933).
     expect(
-      placeOf(TelemetrySampleSource.RumSessions, { readName: "x" }),
+      placeOf(
+        TelemetrySampleSource.RumLogs,
+        { readServiceVersion: "web-1.4.2" },
+        "logs.attributes.user.email",
+      ),
     ).toBeNull();
+    expect(
+      placeOf(
+        TelemetrySampleSource.RumSpans,
+        {},
+        "spans.attributes.user.email",
+      ),
+    ).toBeNull();
+  });
+
+  test("a session's user details name the session recorder call that gave them, whatever else the row holds (#10933)", () => {
+    for (const location of [
+      "sessions.identifiedUserLabel",
+      "sessions.identifiedUserTraits.email",
+    ]) {
+      expect(
+        placeOf(TelemetrySampleSource.RumSessions, { readName: "x" }, location),
+      ).toEqual({ recordCount: 1, recorderCall: "identify" });
+    }
+  });
+
+  test("a session's own attributes are the host page's, not identify()'s: only the page it started on names them (#10933)", () => {
+    expect(
+      placeOf(
+        TelemetrySampleSource.RumSessions,
+        { readName: "x" },
+        "sessions.attributes.plan",
+      ),
+    ).toBeNull();
+    expect(
+      placeOf(
+        TelemetrySampleSource.RumSessions,
+        { readPage: "https://shop.example.com/pricing?ref=mail" },
+        "sessions.attributes.plan",
+      ),
+    ).toEqual({ recordCount: 1, page: "/pricing" });
   });
 });
 

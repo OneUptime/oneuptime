@@ -44,6 +44,11 @@ export const MONITOR_STEP_SUB_CONFIGS: ReadonlyArray<{
   apiKey: string;
 }> = [
   { attributeName: "log_monitor", apiKey: "logMonitor" },
+  // A Security Events monitor's step (#10984).
+  {
+    attributeName: "security_events_monitor",
+    apiKey: "securityEventsMonitor",
+  },
   { attributeName: "trace_monitor", apiKey: "traceMonitor" },
   { attributeName: "llm_monitor", apiKey: "llmMonitor" },
   { attributeName: "metric_monitor", apiKey: "metricMonitor" },
@@ -440,6 +445,10 @@ function incidentOrAlertToHcl(
   }
 
   if (kind === "incident") {
+    attributes.add(
+      "incident_member_roles",
+      incidentMemberRolesToHcl(template["incidentMemberRoles"], context),
+    );
     attributes.addBool(
       "show_incident_on_status_page",
       apiBool(template["showIncidentOnStatusPage"]),
@@ -449,6 +458,36 @@ function incidentOrAlertToHcl(
   attributes.addBool("is_private", apiBool(template["isPrivate"]));
 
   return attributes.toObject();
+}
+
+/*
+ * The people an incident template gives a role (#10984): one
+ * { role_id, user_id } per person and role, each id a string or an
+ * ObjectID wrapper, as the provider reads them. A pair without both is left
+ * out, as the provider leaves it out.
+ */
+function incidentMemberRolesToHcl(
+  value: unknown,
+  context: MonitorStepsHclContext,
+): HclExpression | null {
+  return objectList(value, (item: unknown): HclExpression | null => {
+    if (!isJSONObject(item)) {
+      return null;
+    }
+
+    const roleId: string | null = unwrapApiString(item["roleId"]);
+    const userId: string | null = unwrapApiString(item["userId"]);
+
+    if (roleId === null || userId === null) {
+      return null;
+    }
+
+    const role: AttributeList = new AttributeList(context.describeId);
+    role.addId("role_id", roleId);
+    role.addId("user_id", userId);
+
+    return role.toObject();
+  });
 }
 
 function objectList(
@@ -755,6 +794,11 @@ function stepToHcl(
     apiInteger(step["requestTimeoutInMs"]),
   );
   attributes.addNumber("retry_count", apiInteger(step["retryCount"]));
+  // What a template's monitors keep as their own when it syncs (#10984).
+  attributes.addStringList(
+    "do_not_sync_fields",
+    apiStringList(step["doNotSyncFields"]),
+  );
 
   for (const subConfig of MONITOR_STEP_SUB_CONFIGS) {
     attributes.add(

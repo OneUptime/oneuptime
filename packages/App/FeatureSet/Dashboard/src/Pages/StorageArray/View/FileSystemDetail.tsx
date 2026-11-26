@@ -21,7 +21,8 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 
 /*
  * One FlashBlade file system. Its series carry the file system's name in
- * the `name` label (purefb_file_systems_*), which scopes the Metrics tab.
+ * the `name` label of its file system series, which scopes the Metrics
+ * tab.
  */
 const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,

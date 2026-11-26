@@ -1133,6 +1133,195 @@ describe("raw-JSON filter options", () => {
   });
 });
 
+/*
+ * The three settings the provider writes since #10984: a Security Events
+ * step's query, what a template's monitors keep when it syncs, and the
+ * people an incident template gives a role. Without them the export left
+ * them out, and the configuration it wrote would have removed them.
+ */
+describe("settings the provider writes since #10984", () => {
+  test("a Security Events step's query is written with jsonencode, exactly as stored", () => {
+    const query: Record<string, unknown> = {
+      attributes: {},
+      messageContains: "Failed password",
+      severityNames: ["High"],
+      classNames: ["Authentication"],
+      telemetryServiceIds: [],
+      lastXSecondsOfEvents: 300,
+      watchlistFilters: [],
+    };
+
+    expect(convert(envelope([step({ securityEventsMonitor: query })]))).toEqual(
+      [{ security_events_monitor: { call: "jsonencode", args: [query] } }],
+    );
+  });
+
+  test("a template's sync fields are written as a list, and none as no attribute", () => {
+    expect(
+      convert(
+        envelope([
+          step({
+            requestType: "GET",
+            doNotSyncFields: ["monitorDestination", "requestHeaders"],
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        request_type: "GET",
+        do_not_sync_fields: ["monitorDestination", "requestHeaders"],
+      },
+    ]);
+    expect(
+      convert(envelope([step({ requestType: "GET", doNotSyncFields: [] })])),
+    ).toEqual([{ request_type: "GET" }]);
+  });
+
+  test("an incident's roles are written one { role_id, user_id } per person and role, from strings or ObjectID wrappers", () => {
+    const converted: HclTestValue = convert(
+      envelope([
+        step({
+          monitorCriteria: criteriaEnvelope([
+            {
+              name: "Offline",
+              incidents: [
+                {
+                  title: "Down",
+                  description: "The site is down.",
+                  incidentMemberRoles: [
+                    {
+                      roleId: "a1000000-0000-4000-8000-000000000001",
+                      userId: "a1000000-0000-4000-8000-000000000002",
+                    },
+                    {
+                      roleId: {
+                        _type: "ObjectID",
+                        value: "a1000000-0000-4000-8000-000000000001",
+                      },
+                      userId: {
+                        _type: "ObjectID",
+                        value: "a1000000-0000-4000-8000-000000000003",
+                      },
+                    },
+                    // Without its user: left out, as the provider leaves it.
+                    { roleId: "a1000000-0000-4000-8000-000000000001" },
+                  ],
+                },
+              ],
+              alerts: [
+                {
+                  title: "Down",
+                  description: "The site is down.",
+                  incidentMemberRoles: [
+                    {
+                      roleId: "a1000000-0000-4000-8000-000000000001",
+                      userId: "a1000000-0000-4000-8000-000000000002",
+                    },
+                  ],
+                },
+              ],
+            },
+          ]),
+        }),
+      ]),
+    );
+
+    expect(converted).toEqual([
+      {
+        criteria: [
+          {
+            name: "Offline",
+            incidents: [
+              {
+                title: "Down",
+                description: "The site is down.",
+                incident_member_roles: [
+                  {
+                    role_id: "a1000000-0000-4000-8000-000000000001",
+                    user_id: "a1000000-0000-4000-8000-000000000002",
+                  },
+                  {
+                    role_id: "a1000000-0000-4000-8000-000000000001",
+                    user_id: "a1000000-0000-4000-8000-000000000003",
+                  },
+                ],
+              },
+            ],
+            // An alert has no roles: the provider has no such attribute on one.
+            alerts: [{ title: "Down", description: "The site is down." }],
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("an incident whose roles are all incomplete writes none", () => {
+    expect(
+      convert(
+        envelope([
+          step({
+            monitorCriteria: criteriaEnvelope([
+              {
+                name: "Offline",
+                incidents: [
+                  {
+                    title: "Down",
+                    description: "The site is down.",
+                    incidentMemberRoles: [{ userId: "u" }, "not a role"],
+                  },
+                ],
+              },
+            ]),
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        criteria: [
+          {
+            name: "Offline",
+            incidents: [{ title: "Down", description: "The site is down." }],
+          },
+        ],
+      },
+    ]);
+  });
+
+  test("each role names its role and person in a comment when the page knows them", () => {
+    const printed: string = printHclExpression(
+      monitorStepsToHcl(
+        envelope([
+          step({
+            monitorCriteria: criteriaEnvelope([
+              {
+                name: "Offline",
+                incidents: [
+                  {
+                    title: "Down",
+                    description: "The site is down.",
+                    incidentMemberRoles: [
+                      { roleId: "role-1", userId: "user-1" },
+                    ],
+                  },
+                ],
+              },
+            ]),
+          }),
+        ]),
+        {
+          ...context(),
+          describeId: (id: string): string | undefined => {
+            return { "role-1": "Incident Commander", "user-1": "Ada" }[id];
+          },
+        },
+      )!,
+    );
+
+    expect(printed).toContain('role_id = "role-1" # Incident Commander');
+    expect(printed).toContain('user_id = "user-1" # Ada');
+  });
+});
+
 describe("secrets never reach the page", () => {
   test("the TLS client key and passphrase are read from variables", () => {
     const data: MonitorStepsHclContext = context();

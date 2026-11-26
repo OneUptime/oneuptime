@@ -75,7 +75,7 @@ Un incidente declarado a través de un formulario es un incidente normal, con al
 
 - **Oculto en las páginas de estado.** **Visible en la página de estado** está desactivado, igual que **Notificar a suscriptores de la página de estado**. Hasta que un respondedor lo publica, nada del incidente llega a una página de estado ni a un suscriptor — salvo el cambio de estado de monitor de una plantilla, descrito arriba.
 - **No lo declara nadie.** El remitente no es un usuario de OneUptime, así que no queda registrado ningún usuario como quien declaró el incidente.
-- **Se avisa a sus propietarios.** Los propietarios que nombran los ajustes y la plantilla se añaden en cuanto existen los canales de Slack y Microsoft Teams del incidente, y reciben el aviso — la notificación **Incidente creado** del incidente espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto.
+- **Se avisa a sus propietarios.** Los propietarios que nombran los ajustes y la plantilla se añaden antes de que se creen los canales de Slack y Microsoft Teams del incidente, así que tus reglas de notificación los ven, y reciben el aviso — la notificación **Incidente creado** del incidente espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto.
 - **Una nota privada registra el envío** — consulta [La nota privada](#la-nota-privada).
 
 Todo lo que se ejecuta para un incidente nuevo se ejecuta también para estos: las reglas de privacidad, de propietarios, de etiquetas, de guardia y de runbooks, las políticas de guardia y los flujos de trabajo **Al crear Incidente**. Las reglas de guardia coinciden con los incidentes de un formulario como con cualquier otro — también por su título y su descripción, que escribió el remitente.
@@ -117,7 +117,7 @@ Como el incidente se declaró con **Notificar a suscriptores de la página de es
 
 Una alerta creada a través de un formulario es una alerta normal, creada igual que una que se crea a mano con **Crear alerta**:
 
-- **Se avisa a sus propietarios, una sola vez.** Los propietarios que nombran los ajustes se añaden en cuanto existen los canales de Slack y Microsoft Teams de la alerta, y la notificación **Alerta creada** de la alerta espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto — y es el único aviso que reciben de ella.
+- **Se avisa a sus propietarios, una sola vez.** Los propietarios que nombran los ajustes se añaden antes de que se creen los canales de Slack y Microsoft Teams de la alerta, así que tus reglas de notificación los ven, y la notificación **Alerta creada** de la alerta espera a que sean sus propietarios, para que les llegue a ellos y no a los Propietarios del proyecto — y es el único aviso que reciben de ella.
 - **Empieza donde tú digas.** En el estado inicial habitual, salvo que el ajuste **Estado inicial** nombre uno posterior. Una alerta que empieza reconocida o resuelta no avisa a nadie: un formulario para avisos que solo necesitan un vistazo puede indicarlo así.
 - **No la crea nadie, y no es privada.** El remitente no es un usuario de OneUptime, así que no queda registrado ningún usuario como quien la creó. Una regla de privacidad puede hacerla privada de todos modos.
 - **Una nota privada registra el envío** — consulta [La nota privada](#la-nota-privada).

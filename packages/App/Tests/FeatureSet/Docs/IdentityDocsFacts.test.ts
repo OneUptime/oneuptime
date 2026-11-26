@@ -1,6 +1,13 @@
 import { readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import SSOUtil from "../../../FeatureSet/Identity/Utils/SSO";
+import OidcEmailVerification, {
+  PROVIDER_EMAIL_NOT_VERIFIED_ERROR,
+  PROVIDER_EMAIL_NOT_VERIFIED_MESSAGE,
+  PROVIDER_EMAIL_NOT_VERIFIED_TITLE,
+  ProviderEmailVerification,
+  STANDARD_EMAIL_CLAIM,
+} from "../../../FeatureSet/Identity/Utils/OidcEmailVerification";
 import RequireSsoForLoginSwitchCopy from "../../../FeatureSet/Dashboard/src/Components/Project/RequireSsoForLoginSwitchCopy";
 import {
   REQUIRE_SSO_COPY,
@@ -81,10 +88,23 @@ const SOURCES: Record<string, string> = {
   globalSsoApi: `${IDENTITY}/API/GlobalSSO.ts`,
   statusPageSsoApi: `${IDENTITY}/API/StatusPageSSO.ts`,
   oidcUtil: `${IDENTITY}/Utils/OIDC.ts`,
+  /*
+   * Where an OpenID Connect sign-in stops when its provider has not verified
+   * the address (GHSA-8gwc-w386-fh6w), and the sign-ins of status pages,
+   * dashboards and forms, which make private users and do not ask it.
+   */
+  oidcEmailVerificationGate: `${IDENTITY}/Utils/OidcEmailVerificationGate.ts`,
+  statusPageOidcApi: `${IDENTITY}/API/StatusPageOIDC.ts`,
+  dashboardOidcApi: `${IDENTITY}/API/DashboardOIDC.ts`,
+  formOidcApi: `${IDENTITY}/API/FormOIDC.ts`,
   // Sign In Again's half of the sign-ins, and the rule it holds them to (#10217, #10332).
   signInAgainUtil: `${IDENTITY}/Utils/SignInAgain.ts`,
   reauthenticationTypes: "packages/Common/Types/Accounts/Reauthentication.ts",
   globalOidcApi: `${IDENTITY}/API/GlobalOIDC.ts`,
+  // Whom the server's own providers give an account, and where they add people (#11149).
+  globalSsoProvisioning: `${IDENTITY}/Utils/GlobalSsoProvisioning.ts`,
+  // The teams a sign-in adds people to: the project's own (#11149).
+  ssoTeamMembership: `${IDENTITY}/Utils/SsoTeamMembership.ts`,
   globalSsoService: "packages/Common/Server/Services/GlobalSsoService.ts",
   globalOidcService: "packages/Common/Server/Services/GlobalOidcService.ts",
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
@@ -624,7 +644,9 @@ describe("the SSO guide", () => {
     const server: string =
       readSource("ssoApi") +
       readSource("ssoUtil") +
-      readSource("ssoOneTimeUse");
+      readSource("ssoOneTimeUse") +
+      // "No teams added.", which a project's SAML and OIDC sign-ins both say.
+      readSource("ssoTeamMembership");
     const page: string = english(SSO);
 
     for (const message of [
@@ -659,11 +681,38 @@ describe("the SSO guide", () => {
     expect(ssoApi).toMatch(
       /isEnabled: true,[\s\S]{0,400}?if \(!projectSSO\) \{[\s\S]{0,200}?"SSO Config not found"/,
     );
-    // A newcomer with a provider that has no teams to put them in.
-    expect(ssoApi).toMatch(
-      /if \(teamMemberCount\.toNumber\(\) === 0\) \{[\s\S]{0,200}?projectSSO\.teams\.length === 0[\s\S]{0,300}?title: "No teams added\."/,
+    /*
+     * A newcomer with a provider that has no teams of its project to put
+     * them in: none at all, or only another project's (#11149).
+     */
+    // Someone new: no account is made, and the page says so.
+    const newcomerRefused: RegExp =
+      /canAddNewcomers: projectTeams\.length > 0,[\s\S]{0,300}?if \(decision\.outcome === ProjectSsoGateOutcome\.NoTeams\) \{\s*return respondNoTeams\(/;
+    // Someone with an account, in none of the project's teams.
+    const memberRefused: RegExp =
+      /if \(teamMemberCount\.toNumber\(\) === 0\) \{[\s\S]{0,900}?SsoTeamMembership\.addToTeams\([\s\S]{0,300}?if \(joined === SsoTeamMembershipOutcome\.NoTeams\) \{\s*return respondNoTeams\(/;
+    const noTeamsPage: RegExp =
+      /const respondNoTeams: RespondNoTeamsFunction = [\s\S]{0,900}?title: SSO_NO_TEAMS_TITLE,/;
+
+    for (const key of ["ssoApi", "oidcApi"]) {
+      const source: string = readSource(key);
+
+      expect({
+        key,
+        newcomer: newcomerRefused.test(source),
+        member: memberRefused.test(source),
+        page: noTeamsPage.test(source),
+      }).toEqual({ key, newcomer: true, member: true, page: true });
+    }
+
+    const teamMembership: string = readSource("ssoTeamMembership");
+
+    expect(teamMembership).toContain(
+      'export const SSO_NO_TEAMS_TITLE: string = "No teams added.";',
     );
-    expect(readSource("oidcApi")).toContain('title: "No teams added."');
+    expect(teamMembership).toMatch(
+      /if \(teams\.length === 0\) \{\s*return SsoTeamMembershipOutcome\.NoTeams;/,
+    );
 
     const page: string = english(SSO);
 
@@ -814,6 +863,205 @@ describe("the SSO guide", () => {
     expect(oidc).toContain("code_verifier: data.codeVerifier");
     expect(english(SSO)).toContain(
       "Register an app (an OIDC client) with your identity provider that may use the authorization code flow with PKCE",
+    );
+  });
+
+  /*
+   * An OpenID Connect sign-in never uses an address its provider says it
+   * has not verified (GHSA-8gwc-w386-fh6w): the guide's table of what
+   * email_verified does, held to the reader that decides it.
+   */
+  it("says which email_verified values an OpenID Connect sign-in takes and which it refuses, as the reader decides them (GHSA-8gwc-w386-fh6w)", () => {
+    const rows: Array<{
+      values: Array<unknown>;
+      row: string;
+      read: ProviderEmailVerification;
+    }> = [
+      {
+        values: [true, "true", " TRUE ", 1, "1"],
+        row: '| `true`, or `"true"` and `1` | Goes ahead |',
+        read: ProviderEmailVerification.Verified,
+      },
+      {
+        values: [undefined, null],
+        row: "| Not sent, as Microsoft Entra ID and AD FS do | Goes ahead |",
+        read: ProviderEmailVerification.NotStated,
+      },
+      {
+        values: [false, "false", "False", 0, "0"],
+        row: '| `false`, or `"false"` and `0` | Is refused |',
+        read: ProviderEmailVerification.Unverified,
+      },
+      {
+        values: ["yes", "", 2, {}],
+        row: '| Anything else, such as `"yes"` | Is refused: OneUptime cannot tell |',
+        read: ProviderEmailVerification.Unreadable,
+      },
+    ];
+    const page: string = english(SSO);
+
+    expect(page).toContain(
+      "\n## Email addresses your identity provider has not verified\n",
+    );
+
+    for (const entry of rows) {
+      const refused: boolean = entry.row.includes("| Is refused");
+
+      for (const value of entry.values) {
+        const read: ProviderEmailVerification = OidcEmailVerification.read({
+          emailClaimName: STANDARD_EMAIL_CLAIM,
+          emailVerified: value,
+        });
+
+        expect({
+          value: String(value),
+          read,
+          refused: OidcEmailVerification.refusesSignIn(read),
+        }).toEqual({ value: String(value), read: entry.read, refused });
+      }
+
+      expect({ row: entry.row, stated: page.includes(entry.row) }).toEqual({
+        row: entry.row,
+        stated: true,
+      });
+    }
+
+    // Read only beside the email claim: an address from another one signs in as before.
+    for (const claim of ["preferred_username", "upn"]) {
+      expect({
+        claim,
+        refused: OidcEmailVerification.refusesSignIn(
+          OidcEmailVerification.read({
+            emailClaimName: claim,
+            emailVerified: false,
+          }),
+        ),
+      }).toEqual({ claim, refused: false });
+    }
+
+    expect(page).toContain(
+      "A provider set up to send the address in another claim, such as `preferred_username` or `upn`, signs people in as before, so use a claim your people cannot change themselves.",
+    );
+  });
+
+  it("says email_verified is read where the address came from, the ID token or userinfo, as the token exchange reads it", () => {
+    const oidc: string = readSource("oidcUtil");
+
+    expect(oidc).toContain(
+      "let emailVerifiedValue: unknown = claims[EMAIL_VERIFIED_CLAIM];",
+    );
+    expect(oidc).toMatch(
+      /if \(!emailValue\) \{\s*emailValue = userInfo\[data\.emailClaimName\];\s*emailVerifiedValue = userInfo\[EMAIL_VERIFIED_CLAIM\];\s*\}/,
+    );
+    expect(oidc).toMatch(
+      /emailVerification: OidcEmailVerification\.read\(\{\s*emailClaimName: data\.emailClaimName,\s*emailVerified: emailVerifiedValue,\s*\}\)/,
+    );
+    expect(english(SSO)).toContain(
+      "OneUptime reads `email_verified` where the address came from, the ID token or the userinfo endpoint, and only when the address is the `email` claim.",
+    );
+  });
+
+  it("says project and global OpenID Connect sign-ins ask it before any account is read, made or emailed, and SAML and the private users' sign-ins do not (GHSA-8gwc-w386-fh6w)", () => {
+    const gateCall: string =
+      "OidcEmailVerificationGate.refuseUnverifiedAddress(";
+    // The first thing each callback does with an account, after the gate.
+    const firstAccountWork: Record<string, string> = {
+      oidcApi: "ProjectSsoSignInGate.decide(",
+      globalOidcApi: "UserService.findOneBy(",
+    };
+
+    for (const [key, accountWork] of Object.entries(firstAccountWork)) {
+      const source: string = readSource(key);
+      const exchange: number = source.indexOf(
+        "OIDCUtil.exchangeCodeAndValidate(",
+      );
+      const gate: number = source.indexOf(gateCall);
+
+      expect({
+        key,
+        afterTheExchange: exchange > 0 && gate > exchange,
+        beforeAnyAccount: source.indexOf(accountWork) > gate,
+        calls: source.split(gateCall).length - 1,
+      }).toEqual({
+        key,
+        afterTheExchange: true,
+        beforeAnyAccount: true,
+        calls: 1,
+      });
+    }
+
+    for (const key of [
+      "ssoApi",
+      "globalSsoApi",
+      "statusPageSsoApi",
+      "statusPageOidcApi",
+      "dashboardOidcApi",
+      "formOidcApi",
+    ]) {
+      expect({
+        key,
+        asks: readSource(key).includes("OidcEmailVerification"),
+      }).toEqual({ key, asks: false });
+    }
+
+    const page: string = english(SSO);
+
+    expect(page).toContain(
+      "The rule holds for every account, on the web and in the mobile app: one that exists, an administrator's included, and one the sign-in would create. A refused sign-in creates no account, adds nobody to a team, accepts no invitation and sends no email.",
+    );
+    expect(page).toContain(
+      "SAML providers do not read `email_verified`, and nor do the OpenID Connect providers of status pages, dashboards and forms, which sign people in as their own private users.",
+    );
+  });
+
+  it("quotes what a refused person sees, and the mobile app's code, as the gate answers them (GHSA-8gwc-w386-fh6w)", () => {
+    expect(PROVIDER_EMAIL_NOT_VERIFIED_TITLE).toBe(
+      "Your identity provider did not confirm your email address.",
+    );
+    expect(PROVIDER_EMAIL_NOT_VERIFIED_ERROR).toBe(
+      "provider_email_not_verified",
+    );
+    expect(PROVIDER_EMAIL_NOT_VERIFIED_MESSAGE).toContain(
+      "Verify your email address with your identity provider, or ask your administrator to mark it verified there, then sign in again.",
+    );
+
+    const gate: string = readSource("oidcEmailVerificationGate");
+
+    expect(gate).toMatch(
+      /respondToMobileSsoFailure\(\{[\s\S]*?error: PROVIDER_EMAIL_NOT_VERIFIED_ERROR,\s*errorDescription: PROVIDER_EMAIL_NOT_VERIFIED_MESSAGE,/,
+    );
+    expect(gate).toMatch(
+      /Response\.render\(data\.req, data\.res, MESSAGE_VIEW, \{\s*title: PROVIDER_EMAIL_NOT_VERIFIED_TITLE,\s*message: PROVIDER_EMAIL_NOT_VERIFIED_MESSAGE,/,
+    );
+    // In the audit logs of the account that has the address, as a failed sign-in.
+    expect(gate).toMatch(
+      /if \(account\?\.id\) \{\s*FailedSignInAuditLog\.record\(\{[\s\S]*?reason: SignInFailureReason\.EmailNotVerified,/,
+    );
+
+    const page: string = english(SSO);
+
+    expect(page).toContain(
+      `The person sees "${PROVIDER_EMAIL_NOT_VERIFIED_TITLE}", and is asked to verify their address with your identity provider, or to ask you to mark it verified there, then sign in again. The mobile app shows \`${PROVIDER_EMAIL_NOT_VERIFIED_ERROR}\` with the same advice. When an account has the address, its projects' audit logs record the attempt as a failed sign-in.`,
+    );
+    expect(page).toContain(`:::details "${PROVIDER_EMAIL_NOT_VERIFIED_TITLE}"`);
+  });
+
+  it("has the upgrade guide's other changes in 17 say it, and send the reader here (GHSA-8gwc-w386-fh6w)", () => {
+    // The guide wraps its notes: a line that goes on is indented.
+    const upgrading: string = readPage("en", "installation/upgrading").replace(
+      /\n +/g,
+      " ",
+    );
+    const otherChanges: string = upgrading.slice(
+      upgrading.indexOf(":::details Read the other changes in 17"),
+      upgrading.indexOf("\n## Upgrading from OneUptime 15 → 16"),
+    );
+
+    expect(otherChanges).toContain(
+      "- **OpenID Connect sign-in refuses an email address the identity provider says it has not verified.**",
+    );
+    expect(otherChanges).toContain(
+      "authentik 2025.10 and later sends `false` for everyone with its default `email` scope mapping, and Keycloak sends it for people whose address it has not verified: change them as [Email addresses your identity provider has not verified](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified) says.",
     );
   });
 
@@ -1968,13 +2216,32 @@ describe("the Global SSO guide", () => {
     expect(reachRow).toContain(
       "signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others.",
     );
-    // A newcomer gets an account only when there is a project to put them in.
+    /*
+     * A newcomer gets an account only when there is a project to put them
+     * in: an attached project with teams (#11149), for both protocols.
+     */
     expect(signUpRow).toContain(
       "with none attached, they must be invited first",
     );
-    expect(readSource("globalSsoApi")).toContain(
-      "Boolean(globalSso.disableSignUpWithSso) || isDefaultAllMode;",
+
+    const provisioning: string = readSource("globalSsoProvisioning");
+
+    expect(provisioning).toMatch(
+      /if \(data\.attachments\.isDefaultAllMode\) \{\s*return GlobalSsoNewcomerRefusal\.NoProjectAttached;/,
     );
+    expect(provisioning).toMatch(
+      /if \(data\.attachments\.joinableProjects\.length === 0\) \{\s*return GlobalSsoNewcomerRefusal\.NoAttachedProjectHasTeams;/,
+    );
+
+    const asksTheNewcomerRule: RegExp =
+      /if \(!alreadySavedUser\) \{[\s\S]{0,400}?GlobalSsoProvisioning\.getNewcomerRefusal\(/;
+
+    for (const key of ["globalSsoApi", "globalOidcApi"]) {
+      expect({
+        key,
+        asks: asksTheNewcomerRule.test(readSource(key)),
+      }).toEqual({ key, asks: true });
+    }
 
     // The troubleshooting names the answer that turns people away.
     expect(page).toContain(`**${signUp}** is set to **${signUpAnswers[1]}**`);
@@ -2020,6 +2287,41 @@ describe("the Global SSO guide", () => {
 
     expect(english(GLOBAL_SSO)).toContain(
       "Adding, changing or deleting a global provider asks you to [confirm it's you](/docs/introduction/your-account#confirm-its-you) first.",
+    );
+  });
+
+  it("says a global OpenID Connect provider refuses an address it has not verified, a master admin's included, and where master admins sign in meanwhile (GHSA-8gwc-w386-fh6w)", () => {
+    const api: string = readSource("globalOidcApi");
+    const exchange: number = api.indexOf("OIDCUtil.exchangeCodeAndValidate(");
+    const gate: number = api.indexOf(
+      "OidcEmailVerificationGate.refuseUnverifiedAddress(",
+    );
+
+    // Asked once the provider has answered, before any account is read.
+    expect(exchange).toBeGreaterThan(0);
+    expect(gate).toBeGreaterThan(exchange);
+    expect(api.indexOf("UserService.findOneBy(")).toBeGreaterThan(gate);
+    expect(MASTER_ADMIN_SIGN_IN_PATH).toBe("/accounts/admin-login");
+
+    const page: string = english(GLOBAL_SSO);
+
+    expect(page).toContain(
+      "\n## Email addresses your identity provider has not verified\n",
+    );
+    expect(page).toContain(
+      "A global OpenID Connect provider finds the account it signs in by the email address it sends, as a project's provider does, and master admins' accounts are found the same way. So it signs nobody in with an address the provider says it has not verified, with an `email_verified` claim of `false` or of something that is neither true nor false.",
+    );
+    expect(page).toContain(
+      "A provider that sends `email_verified` as `true`, or sends none, as Microsoft Entra ID does, signs people in as before.",
+    );
+    expect(page).toContain(
+      "What to change there, what still signs in and what the person sees are on the [SSO](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified) page.",
+    );
+    expect(page).toContain(
+      `Master admins with a password can sign in with it while you do, at \`${MASTER_ADMIN_SIGN_IN_PATH}\` while the whole instance requires SSO.`,
+    );
+    expect(page).toContain(
+      `:::details "${PROVIDER_EMAIL_NOT_VERIFIED_TITLE}"\nThe OpenID Connect provider sent \`email_verified\` as \`false\`, or as something that is neither true nor false, so OneUptime signed nobody in, a master admin included.`,
     );
   });
 });

@@ -457,7 +457,7 @@ Une sonde interroge jusqu'à `PROBE_NETWORK_DEVICE_POLL_CONCURRENCY` équipement
 ### Autres problèmes
 
 :::details La sonde s'arrête juste après avoir démarré
-Son journal nomme ce qui manque : `PROBE_KEY is not set`, `PROBE_INGEST_URL or ONEUPTIME_URL is not set` ou `PROBE_ID or REGISTER_PROBE_KEY should be set`. Si les trois sont définies mais que l'ID et la clé ne correspondent à aucune sonde, la sonde essaie 10 fois, à 30 secondes d'intervalle, puis s'arrête avec `Unable to register probe after 10 attempts`. Copiez de nouveau l'ID et la clé avec **Afficher l'ID et la clé**.
+Son journal nomme ce qui manque : `PROBE_KEY is not set`, `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` ou `PROBE_ID is not set`. Si les trois sont définies mais que l'ID et la clé ne correspondent à aucune sonde, la sonde essaie 10 fois, à 30 secondes d'intervalle, puis s'arrête avec `Unable to register probe after 10 attempts`. Copiez de nouveau l'ID et la clé avec **Afficher l'ID et la clé**.
 :::
 
 :::details La sonde fonctionnait jusqu'à ce que quelqu'un réinitialise sa clé

@@ -60,6 +60,24 @@ services:
       snmpsim:
         ipv4_address: 172.30.99.13
 
+  # A SAN switch set up for SNMPv3 notifications: sends authenticated,
+  # encrypted SNMPv3 traps and informs to the probe with Net-SNMP's own
+  # snmptrap and snmpinform (send-v3-traps.sh, "SNMPv3 traps and informs"
+  # in the README).
+  san-switch-v3:
+    build:
+      context: .
+      dockerfile: Dockerfile.traps
+    image: oneuptime-snmp-simulator-traps:local
+    restart: unless-stopped
+    environment:
+      # Where the host-networked probe listens: this bridge's gateway.
+      PROBE_ADDRESS: "172.30.99.1"
+      PROBE_TRAP_PORT: "162"
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.17
+
 networks:
   snmpsim:
     driver: bridge

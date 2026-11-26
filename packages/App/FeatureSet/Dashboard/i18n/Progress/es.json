@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64815,
-    "untranslated": 2310
+    "keys": 65322,
+    "untranslated": 2320
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -144,6 +144,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Daemon",
     "Daemons",
     "DeploymentConfigs",

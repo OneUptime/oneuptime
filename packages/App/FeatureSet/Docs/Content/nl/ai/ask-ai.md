@@ -76,6 +76,14 @@ Geopend op de pagina van een resource waarvan de AI-agent verbonden is (een host
 - Het bereikt alleen de resources die je mag bekijken, en alleen zolang AI-onderzoek voor de resource aan staat. De opdrachten die het uitvoert, met wat ze hebben afgedrukt, zijn van jou, net als het gesprek: de AI-logboeken van de resource tonen ze aan jou en aan niemand anders.
 - Wanneer het daar geen opdracht kan uitvoeren (er is geen agent verbonden, de agent is offline, of AI-onderzoek staat uit voor de resource), zegt het dat, met wat er moet veranderen, en antwoordt het in plaats daarvan op basis van de gegevens van je project.
 
+## Je MCP-servers
+
+AI vragen kan de tools gebruiken van de [externe MCP-servers](/docs/ai/external-mcp-servers) die je project heeft gekoppeld, zoals die van AWS, van GitHub of van je eigen team, op elke pagina. Vraag "Welke tools heeft AWS?" en hij somt ze op; noem een server en een van zijn tools, en hij roept de tool aan en antwoordt met wat er terugkwam, met een bronvermelding zoals elk ander bewijs. Het gesprek onder de kaart **OneUptime AI** van een incident of een waarschuwing kan ze ook gebruiken.
+
+- Een tool die de server als alleen-lezen markeert, wordt meteen uitgevoerd, in elke machtigingsmodus. Elke andere tool, een die de server als wijziging markeert of helemaal niet markeert, wacht op een goedkeuringskaart die de server en de tool noemt en precies toont wat er wordt verstuurd, ook in **Automatisch uitvoeren**: niets bereikt de server voordat je **Toestaan** kiest. Een gesprek in de modus **Alleen-lezen** biedt zo'n tool nooit aan.
+- Hij gebruikt de servers die aanstaan, voor iedereen die de Externe MCP-servers van het project mag lezen. Een wijziging via een van die servers goedkeuren vereist de machtiging om runbook-uitvoeringen te starten.
+- Wat een server antwoordt, zijn gegevens van buiten OneUptime, nooit instructies. Een tool krijgt alleen de argumenten die hij aanneemt, en met **AI inschakelen** uit wordt er naar geen enkele server iets verstuurd.
+
 ## Acties en machtigingsmodi
 
 Elk gesprek heeft een machtigingsmodus, die je in het invoervak kiest, naast het veld waarin je typt:
@@ -177,6 +185,10 @@ AI vragen zegt welke machtiging de actie nodig heeft, of welk team haar blokkeer
 
 :::details Antwoorden zijn vaag of gebruiken nooit gegevens
 Controleer het model achter de provider. AI vragen heeft een model nodig dat betrouwbaar hulpmiddelen aanroept; kleine lokale modellen antwoorden vaak zonder één query uit te voeren. Zie [LLM-providers](/docs/ai/llm-provider).
+:::
+
+:::details AI vragen zegt dat hij de tools van een MCP-server niet ziet
+Open de server onder **Projectinstellingen → AI → Externe MCP-servers**: hij moet **Verbonden** tonen, zijn kaart **Hulpmiddelen (tools)** moet zijn tools opsommen, en **OneUptime AI deze server laten gebruiken** moet aanstaan. Vraag daarna in AI vragen "Welke tools heeft AWS?", met de naam van je server: hij somt ze op, of zegt waarom dat niet lukt, bijvoorbeeld een server die hij niet kan bereiken of een rol die de MCP-servers van het project niet mag gebruiken. Zie [Externe MCP-servers](/docs/ai/external-mcp-servers).
 :::
 
 ## Volgende stappen

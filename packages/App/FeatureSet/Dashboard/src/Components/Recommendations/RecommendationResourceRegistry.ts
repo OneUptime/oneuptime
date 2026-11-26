@@ -77,7 +77,7 @@ import { getCloudResourceTypeDisplayName } from "Common/Types/Cloud/CloudResourc
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import { OPENSHIFT_KUBERNETES_PROVIDER } from "Common/Types/Kubernetes/KubernetesClusterProvider";
-import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import {
   DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
   fetchDatabaseEngineMetricsArrived,
@@ -1272,10 +1272,10 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
     displayNameFieldName: "name",
   },
   /*
-   * A storage array's recommendations depend on its platform: FlashArray
-   * and FlashBlade export different metric families (purefa_* and
-   * purefb_*), and a template over the other platform's series would never
-   * fire (getStorageArrayAlertTemplatesForSystem). Ingest writes
+   * A storage array's recommendations depend on its platform: each
+   * platform exports metric families of its own (a FlashArray's are not a
+   * FlashBlade's), and a template over another platform's series would
+   * never fire (getStorageArrayAlertTemplatesForSystem). Ingest writes
    * `storageSystem` from the array's first batch; until then — or for a
    * platform OneUptime has no templates for — nothing is offered, as for a
    * database with no engine recorded.

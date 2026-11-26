@@ -2,8 +2,8 @@ import { JSONObject } from "Common/Types/JSON";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 
 /*
- * Whether this probe's API, Website, External Status Page and Custom
- * JavaScript Code monitors may reach private network addresses (RFC-1918,
+ * Whether this probe's API, Website, External Status Page, Custom JavaScript
+ * Code and Synthetic monitors may reach private network addresses (RFC-1918,
  * CGNAT, IPv6 unique-local), and what the probe says about that decision: in
  * the refusal a monitor reports, and once at startup.
  *
@@ -167,7 +167,7 @@ export default class PrivateNetworkMonitorPolicy {
     policy: ResolvedPrivateNetworkMonitorPolicy,
   ): PrivateNetworkMonitorStartupMessage {
     const monitors: string =
-      "API, Website, External Status Page and Custom JavaScript Code monitors";
+      "API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors";
     const alwaysBlocked: string =
       "Loopback, link-local and cloud metadata addresses stay blocked.";
 

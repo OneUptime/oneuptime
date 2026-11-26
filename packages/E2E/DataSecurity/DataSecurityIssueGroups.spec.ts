@@ -337,9 +337,17 @@ test.describe("Fix the Cause", () => {
 
     const dialog: Locator = page.getByTestId(FIX);
 
+    /*
+     * One kind of store, so one change for all ten, listed under the
+     * sentence with how many stores it runs on (#10742).
+     */
     await expect(dialog.getByTestId(`${FIX}-cloud`)).toContainText(
-      "Block Public Access on each of the 10 stores made in the console",
+      "Each of the 10 stores made in the console takes the change below, through its cloud connection.",
     );
+    const cloudAction: Locator = dialog.getByTestId(`${FIX}-cloud-action`);
+    await expect(cloudAction).toHaveCount(1);
+    await expect(cloudAction).toContainText("Block Public Access");
+    await expect(cloudAction).toContainText("10 stores");
     await expect(dialog.getByTestId(`${FIX}-left-out`)).toContainText(
       "Marked Public By Design, so its access is never closed.",
     );

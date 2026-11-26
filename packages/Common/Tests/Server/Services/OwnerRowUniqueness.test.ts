@@ -152,7 +152,7 @@ const OWNER_TABLES_CREATED_AFTER_MIGRATION: Array<string> = [
   // 1809187000000-AddNetworkSiteOwnersAndLabels
   "NetworkSiteOwnerTeam",
   "NetworkSiteOwnerUser",
-  // 1809187680000-AddXcpNgPoolTables
+  // 1809187720000-AddXcpNgPoolTables
   "XcpNgPoolOwnerTeam",
   "XcpNgPoolOwnerUser",
 ];

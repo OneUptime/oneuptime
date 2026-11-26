@@ -3,6 +3,9 @@ import Telemetry, {
   TelemetryHistogram,
   TelemetryUpDownCounter,
 } from "../Telemetry";
+import type { Attributes, ObservableResult } from "@opentelemetry/api";
+
+type TelemetryObservableResult = ObservableResult<Attributes>;
 
 /**
  * Central catalog of metric instruments emitted by OneUptime services about
@@ -325,6 +328,133 @@ export default class AppMetrics {
     return this.notificationDeliveryDuration;
   }
 
+  // -- Probe scheduling (issue #10819) ------------------------------------
+
+  /*
+   * How the App servers hand work to the probes: how long a probe's request
+   * waited for a slot of the probe scheduling limit, how many were answered
+   * busy, how late each monitor was handed out past its due time, and how
+   * long each Test Monitor run waited for a probe. Recorded through
+   * Probe/ProbeSchedulingMetrics, which owns the attributes: `lane` (work,
+   * monitor-tests) and `reason` (queue-full, waited-too-long).
+   */
+
+  private static probeSchedulingSlotWait: TelemetryHistogram | null = null;
+  private static probeSchedulingRefusedCounter: TelemetryCounter | null = null;
+  private static probeDispatchLag: TelemetryHistogram | null = null;
+  private static probeMonitorTestWait: TelemetryHistogram | null = null;
+  private static probeSchedulingGaugesRegistered: boolean = false;
+
+  // Up to the lane's wait limit (5 s), and past it for a slower one.
+  public static readonly PROBE_SCHEDULING_SLOT_WAIT_BUCKETS_IN_MS: ReadonlyArray<number> =
+    [1, 5, 10, 25, 50, 100, 250, 500, 1000, 2000, 5000, 10000, 30000];
+
+  /*
+   * From half a second to an hour: a probe that keeps up is handed a
+   * monitor within seconds of it being due; one a whole interval late has
+   * skipped a check.
+   */
+  public static readonly PROBE_LATENESS_BUCKETS_IN_MS: ReadonlyArray<number> = [
+    500, 1000, 2000, 5000, 10000, 15000, 20000, 30000, 45000, 60000, 90000,
+    120000, 300000, 600000, 1800000, 3600000,
+  ];
+
+  public static getProbeSchedulingSlotWait(): TelemetryHistogram {
+    if (!this.probeSchedulingSlotWait) {
+      this.probeSchedulingSlotWait = Telemetry.getHistogram({
+        name: "probe.scheduling.slot_wait",
+        description:
+          "How long a probe's request for work waited for a slot of this App server's probe scheduling limit before it ran, partitioned by lane: work (monitors, network devices and the rest) or monitor-tests.",
+        unit: "ms",
+        explicitBucketBoundaries: [
+          ...this.PROBE_SCHEDULING_SLOT_WAIT_BUCKETS_IN_MS,
+        ],
+      });
+    }
+
+    return this.probeSchedulingSlotWait;
+  }
+
+  public static getProbeSchedulingRefusedCounter(): TelemetryCounter {
+    if (!this.probeSchedulingRefusedCounter) {
+      this.probeSchedulingRefusedCounter = Telemetry.getCounter({
+        name: "probe.scheduling.refused.count",
+        description:
+          "Probe requests for work answered busy by this App server's probe scheduling limit, partitioned by lane and by reason: queue-full (the queue was full when it arrived) or waited-too-long. Nothing is lost: what it would have been handed stays due.",
+        unit: "1",
+      });
+    }
+
+    return this.probeSchedulingRefusedCounter;
+  }
+
+  public static getProbeDispatchLag(): TelemetryHistogram {
+    if (!this.probeDispatchLag) {
+      this.probeDispatchLag = Telemetry.getHistogram({
+        name: "probe.dispatch.lag",
+        description:
+          "How late each monitor was handed to its probe, past the moment its interval made it due. A value of a whole interval or more is a check that was skipped.",
+        unit: "ms",
+        explicitBucketBoundaries: [...this.PROBE_LATENESS_BUCKETS_IN_MS],
+      });
+    }
+
+    return this.probeDispatchLag;
+  }
+
+  public static getProbeMonitorTestWait(): TelemetryHistogram {
+    if (!this.probeMonitorTestWait) {
+      this.probeMonitorTestWait = Telemetry.getHistogram({
+        name: "probe.monitor_test.wait",
+        description:
+          "How long each Test Monitor run waited, from the moment someone asked for it to the moment a probe was handed it.",
+        unit: "ms",
+        explicitBucketBoundaries: [...this.PROBE_LATENESS_BUCKETS_IN_MS],
+      });
+    }
+
+    return this.probeMonitorTestWait;
+  }
+
+  /*
+   * The probe scheduling limit's requests running and waiting now, per lane,
+   * observed at export time. Registered once, and only when OneUptime sends
+   * its own metrics.
+   */
+  public static registerProbeSchedulingGauges(
+    read: () => Array<{ lane: string; running: number; waiting: number }>,
+  ): void {
+    if (this.probeSchedulingGaugesRegistered || !Telemetry.isMetricsEnabled()) {
+      return;
+    }
+
+    this.probeSchedulingGaugesRegistered = true;
+
+    Telemetry.getObservableGauge({
+      name: "probe.scheduling.waiting",
+      description:
+        "Probe requests for work waiting now for a slot of this App server's probe scheduling limit - its queue depth - partitioned by lane.",
+      unit: "1",
+      callback: (result: TelemetryObservableResult): void => {
+        for (const lane of read()) {
+          result.observe(lane.waiting, { lane: lane.lane });
+        }
+      },
+    });
+
+    Telemetry.getObservableGauge({
+      name: "probe.scheduling.running",
+      description:
+        "Probe requests for work running now under this App server's probe scheduling limit, partitioned by lane.",
+      unit: "1",
+      callback: (result: TelemetryObservableResult): void => {
+        for (const lane of read()) {
+          result.observe(lane.running, { lane: lane.lane });
+        }
+      },
+    });
+  }
+
   // -- OTLP / telemetry ingestion ---------------------------------------
 
   private static ingestCounter: TelemetryCounter | null = null;
@@ -450,14 +580,16 @@ export default class AppMetrics {
    * Users ingest handed Security Events' user vault, counted by how the
    * write ended. A failed or skipped write never fails or delays the
    * batch, whose records keep the token: the only loss is that Security
-   * Events cannot name those users, so this is where it shows.
+   * Events cannot name those users, so this is where it shows. A refused
+   * one is a person erased from the vault on request (#10908), whose token
+   * the vault never keeps again.
    */
   public static getUserVaultWriteCounter(): TelemetryCounter {
     if (!this.userVaultWriteCounter) {
       this.userVaultWriteCounter = Telemetry.getCounter({
         name: "oneuptime.security.user_vault.write.count",
         description:
-          "Users a Hash scrub rule hid that ingest wrote to Security Events' user vault, partitioned by signal and outcome (written, failed, skipped).",
+          "Users a Hash scrub rule hid that ingest wrote to Security Events' user vault, partitioned by signal and outcome (written, failed, skipped, refused).",
         unit: "1",
       });
     }

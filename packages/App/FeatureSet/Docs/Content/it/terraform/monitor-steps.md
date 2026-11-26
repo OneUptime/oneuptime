@@ -177,11 +177,12 @@ Ogni elemento di `monitor_steps` è una cosa da controllare:
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` e `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` e `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | I nuovi tentativi quando lo script fallisce: `0` lo esegue una volta. |
+| `do_not_sync_fields` | list(string) | Modelli di monitor | I campi che ogni monitor creato dal modello mantiene come propri quando il modello sincronizza i suoi passaggi su di esso, come `monitorDestination` o `dnsMonitor.queryName`: quelli che elenca la sua scheda **Impostazioni di sincronizzazione del modello**. |
 | `criteria` | list (obbligatorio) | Tutti | Come viene giudicato ogni risultato: vedi [Attributi di un criterio](#attributi-di-un-criterio). |
 
 ### Impostazioni di ogni tipo di monitor
 
-I tipi di monitor con più da impostare di un indirizzo tengono le loro impostazioni (una query sui log, una connessione a un database, un cluster da sorvegliare) in un attributo proprio, come JSON grezzo scritto con `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` e `probe_status_monitor`.
+I tipi di monitor con più da impostare di un indirizzo tengono le loro impostazioni (una query sui log, una connessione a un database, un cluster da sorvegliare) in un attributo proprio, come JSON grezzo scritto con `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` e `probe_status_monitor`.
 
 Il loro JSON è lo stesso della dashboard, con le chiavi in camelCase. Un ID al suo interno si scrive come lo scrive l'API: `{ _type = "ObjectID", value = "..." }`. Un monitor Logs che conta gli errori di un servizio:
 
@@ -254,7 +255,7 @@ I monitor di metriche raggruppati sono l'unica eccezione. Quando la query di un 
 
 ### Incidenti e avvisi
 
-Un elemento di `incidents` accetta `title` e `description` (entrambi obbligatori), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` e `is_private`. Un elemento di `alerts` accetta gli stessi, con `alert_severity_id` e `auto_resolve_alert`, e senza `show_incident_on_status_page`.
+Un elemento di `incidents` accetta `title` e `description` (entrambi obbligatori), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` e `is_private`. Un elemento di `alerts` accetta gli stessi, con `alert_severity_id` e `auto_resolve_alert`, e senza `show_incident_on_status_page` né `incident_member_roles`. `incident_member_roles` dà a delle persone un ruolo in ogni incidente che il criterio apre, come quello di responsabile dell'incidente: un `{ role_id, user_id }` per persona e ruolo.
 
 Questo criterio mette il monitor offline, apre un incidente che avvisa la politica di reperibilità e lo risolve quando il sito torna:
 
@@ -479,6 +480,14 @@ Un controllo a cui non corrisponde nessun criterio mette il monitor nel suo stat
 ## Un monitor senza passaggi
 
 `monitor_steps` è facoltativo, ma un monitor creato senza di esso non ha criteri con cui giudicare un risultato: le sonde saltano un monitor senza passaggi, e resta nello stato in cui è partito. Il tuo stato lascia l'attributo vuoto, e il piano resta pulito. Un monitor manuale non ha mai bisogno di passaggi: il suo stato lo imposti tu. Ogni altro tipo ha bisogno di almeno un passaggio per controllare qualcosa.
+
+## Cosa mantiene un apply
+
+Un apply che cambia `monitor_steps` invia i passaggi interi, e OneUptime sostituisce con essi i passaggi che tiene. Un'impostazione che la tua configurazione può scrivere e tralascia viene rimossa, come mostra il plan. Due tipi di impostazione vengono invece mantenuti come li tiene OneUptime, perché nessun plan può mostrarli. L'apply legge prima i passaggi che tiene OneUptime, e fallisce senza scrivere nulla se non ci riesce.
+
+Un'impostazione per cui il provider non ha un attributo, come lo `snmpMonitor` che i passaggi del tipo di monitor SNMP ritirato tengono ancora, o una che ha un OneUptime più recente e che la tua versione del provider non conosce ancora, resta sul suo passaggio, criterio, incidente o avviso. Ciascuna viene abbinata come OneUptime li abbina per mantenerne gli ID: un passaggio per posizione, un criterio per nome e un incidente o un avviso per titolo, altrimenti per posizione. Quando la tua configurazione toglie quel passaggio, criterio, incidente o avviso, l'impostazione se ne va con esso.
+
+Un'impostazione che scrivi con `jsonencode()`, come `dns_monitor`, `incident_grouping` o le `metric_monitor_options` di un filtro, viene confrontata su ciò che scrive. OneUptime può tenerci di più, un proprio valore predefinito o una chiave impostata nella dashboard: non è una modifica, e un apply lo mantiene. Una chiave che togli dal `jsonencode()` viene rimossa. In una lista, ciò che OneUptime tiene in più viene mantenuto elemento per elemento, finché la lista ha tanti elementi quanti quella di OneUptime.
 
 ## Il formato di trasferimento
 

@@ -93,6 +93,11 @@ import LogDropFilterService, {
   LoadedLogDropFilter,
 } from "./LogDropFilterService";
 import LogScrubRuleService from "./LogScrubRuleService";
+import LogScrubRule from "Common/Models/DatabaseModels/LogScrubRule";
+import {
+  CompiledScrubRule,
+  withOwnPhoneAndSsnPatterns,
+} from "Common/Server/Utils/Telemetry/ScrubEngine/CompiledScrubRule";
 import KubernetesResourceService from "Common/Server/Services/KubernetesResourceService";
 import KubernetesContainerService from "Common/Server/Services/KubernetesContainerService";
 import DockerResourceService, {
@@ -1555,6 +1560,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                         logRow,
                         arrivedRow,
                         scrubbedRow,
+                        scrubRules: loadedScrubRules,
                         pipelines: loadedPipelines,
                         projectId,
                         primaryEntityId,
@@ -1935,6 +1941,8 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
     arrivedRow: JSONObject | null;
     // What the scrub rules left of it, before the pipelines.
     scrubbedRow: JSONObject;
+    // The project's scrub rules, as they ran over it.
+    scrubRules?: Array<CompiledScrubRule<LogScrubRule>> | undefined;
     pipelines: Array<LoadedPipeline>;
     projectId: ObjectID;
     primaryEntityId: ObjectID;
@@ -1986,6 +1994,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
      * found, as before.
      */
     let arrived: ExtractedLogException = extracted;
+    /*
+     * What the rules left of it before #11030, when that differs from what
+     * they leave now: an exception found in a log before #10434 is found by
+     * it (ExceptionUtil.fingerprintsOfEarlierStoredText).
+     */
+    let storedByEarlierRules: ExtractedLogException | null = null;
 
     if (
       data.arrivedRow &&
@@ -1994,6 +2008,17 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
         data.scrubbedRow,
       )
     ) {
+      // Not for a crash, whose frames are named below.
+      storedByEarlierRules = getMobileAppFaultKind(finalAttributes)
+        ? null
+        : OtelLogsIngestService.storedByEarlierRules({
+            arrivedRow: data.arrivedRow,
+            scrubRules: data.scrubRules || [],
+            pipelines: data.pipelines,
+            severityNumber: data.severityNumber,
+            stored: extracted,
+          });
+
       const arrivedRow: JSONObject =
         data.pipelines.length > 0
           ? LogPipelineService.processLog(data.arrivedRow, data.pipelines)
@@ -2064,6 +2089,15 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           exceptionType: extracted.exceptionType,
         },
         findsGroupsOfStoredText: true,
+        ...(storedByEarlierRules
+          ? {
+              storedByEarlierRules: {
+                message: storedByEarlierRules.message,
+                stackTrace: storedByEarlierRules.stackTrace,
+                exceptionType: storedByEarlierRules.exceptionType,
+              },
+            }
+          : {}),
       });
 
     const release: string =
@@ -2250,6 +2284,70 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
    * and copies a list or a map it changes (ScrubNestedValues), so an
    * attribute it left alone is the very value that arrived.
    */
+  /*
+   * THE EXCEPTION AS THE RULES LEFT IT BEFORE #11030.
+   *
+   * Since #11030 a Phone Number or SSN rule hides what Data Security finds
+   * - an international number, a Social Security number set apart by dots,
+   * one in another script's digits - beside its own pattern's matches.
+   * Before #10434 an exception found in a log was grouped by what the rules
+   * left of it, and it is still found by that: read here as the rules left
+   * it then (withOwnPhoneAndSsnPatterns), from the record as it arrived,
+   * through the same pipelines and the same way, so an occurrence still
+   * finds it. Counted nowhere and told to no vault: only read. Null when the
+   * project has no Phone Number or SSN rule, or the rules leave the
+   * exception as they do now (`stored`).
+   */
+  private static storedByEarlierRules(data: {
+    arrivedRow: JSONObject;
+    scrubRules: Array<CompiledScrubRule<LogScrubRule>>;
+    pipelines: Array<LoadedPipeline>;
+    severityNumber: number;
+    stored: ExtractedLogException;
+  }): ExtractedLogException | null {
+    const earlierRules: Array<CompiledScrubRule<LogScrubRule>> | null =
+      withOwnPhoneAndSsnPatterns(data.scrubRules);
+
+    if (!earlierRules) {
+      return null;
+    }
+
+    // Its own copy: a rule changes the attributes in place.
+    const scrubbed: JSONObject = LogScrubRuleService.scrubLog(
+      {
+        ...data.arrivedRow,
+        attributes: mergeOwnValues<JSONValue>(
+          (data.arrivedRow["attributes"] as JSONObject) || {},
+        ),
+      },
+      earlierRules,
+      null,
+      { countValues: false },
+    );
+    const row: JSONObject =
+      data.pipelines.length > 0
+        ? LogPipelineService.processLog(scrubbed, data.pipelines)
+        : scrubbed;
+    const earlier: ExtractedLogException | null =
+      LogExceptionExtractor.extractFromLogRecord({
+        body: (row["body"] as string) || "",
+        attributes: (row["attributes"] as JSONObject) || {},
+        severityNumber: data.severityNumber,
+        hasTraceAndSpan: Boolean(row["traceId"]) && Boolean(row["spanId"]),
+      });
+
+    if (
+      !earlier ||
+      ((earlier.message || "") === (data.stored.message || "") &&
+        (earlier.stackTrace || "") === (data.stored.stackTrace || "") &&
+        (earlier.exceptionType || "") === (data.stored.exceptionType || ""))
+    ) {
+      return null;
+    }
+
+    return earlier;
+  }
+
   private static scrubChangedRecord(
     arrived: JSONObject,
     scrubbed: JSONObject,

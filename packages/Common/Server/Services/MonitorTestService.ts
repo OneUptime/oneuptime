@@ -10,6 +10,15 @@ import { MonitorStepProbeResponse } from "../../Models/DatabaseModels/MonitorPro
 import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import MonitorStepLimit from "../../Types/Monitor/MonitorStepLimit";
+import ProbeSchedulingMetrics from "../Utils/Probe/ProbeSchedulingMetrics";
+
+// A test the claim handed out, as Postgres answers it.
+interface ClaimedMonitorTestRow {
+  _id: string;
+  createdAt?: Date | string | null;
+  // Whether it was in the queue: false for a stale test handed out again.
+  wasQueued?: boolean | null;
+}
 
 /*
  * A result for a test the reporting probe was not handed (or one that is
@@ -136,7 +145,7 @@ export class Service extends ProjectReferencesService<MonitorTest> {
 
     const claimQuery: string = `
       WITH "pending" AS (
-        SELECT mt."_id", mt."createdAt"
+        SELECT mt."_id", mt."createdAt", mt."isInQueue" AS "wasQueued"
         FROM "MonitorTest" mt
         WHERE mt."probeId" = $1
           AND (
@@ -160,7 +169,7 @@ export class Service extends ProjectReferencesService<MonitorTest> {
         WHERE mt."_id" = "pending"."_id"
         RETURNING mt."_id"
       )
-      SELECT "pending"."_id"
+      SELECT "pending"."_id", "pending"."createdAt", "pending"."wasQueued"
       FROM "pending"
       INNER JOIN "claimed" ON "claimed"."_id" = "pending"."_id"
       ORDER BY "pending"."createdAt" ASC
@@ -176,11 +185,45 @@ export class Service extends ProjectReferencesService<MonitorTest> {
       [data.probeId.toString(), data.limit, staleClaimThreshold],
     );
 
-    return Array.isArray(claimedRows)
-      ? claimedRows.map((row: { _id: string }): ObjectID => {
-          return new ObjectID(row._id);
-        })
+    const rows: Array<ClaimedMonitorTestRow> = Array.isArray(claimedRows)
+      ? (claimedRows as Array<ClaimedMonitorTestRow>)
       : [];
+
+    Service.recordWaits(rows);
+
+    return rows.map((row: ClaimedMonitorTestRow): ObjectID => {
+      return new ObjectID(row._id);
+    });
+  }
+
+  /*
+   * How long each test handed out for the first time waited for a probe,
+   * from the moment it was asked for (ProbeSchedulingMetrics, #10819). A
+   * stale test handed out again is not counted: its wait was counted once.
+   */
+  private static recordWaits(rows: Array<ClaimedMonitorTestRow>): void {
+    const askedAt: Array<Date> = [];
+
+    for (const row of rows) {
+      if (row.wasQueued === false) {
+        continue;
+      }
+
+      const createdAt: Date | null = row.createdAt
+        ? new Date(row.createdAt)
+        : null;
+
+      if (createdAt && !isNaN(createdAt.getTime())) {
+        askedAt.push(createdAt);
+      }
+    }
+
+    if (askedAt.length > 0) {
+      ProbeSchedulingMetrics.recordMonitorTestsHandedOut({
+        handedOutAt: OneUptimeDate.getCurrentDate(),
+        askedAt: askedAt,
+      });
+    }
   }
 
   /**

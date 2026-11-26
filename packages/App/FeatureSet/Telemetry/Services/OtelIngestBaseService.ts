@@ -23,7 +23,7 @@ import IoTFleetService from "Common/Server/Services/IoTFleetService";
 import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
-import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
 import {
   XCP_NG_POOL_ID_ATTRIBUTE,
@@ -3084,10 +3084,10 @@ export default abstract class OtelIngestBaseService {
           );
           /*
            * The platform is deliberately not written here. The metrics
-           * snapshot derives it from the metric names (purefa_ / purefb_),
-           * which a collector config cannot get wrong, and takes the
-           * declared `storage.system` only for a platform it has no
-           * catalog for (OtelMetricsIngestService.
+           * snapshot derives it from the series a platform's extractor
+           * read, which a collector config cannot get wrong, and takes
+           * the declared `storage.system` only for a platform it has no
+           * extractor for (OtelMetricsIngestService.
            * flushStorageArraySnapshotBuffers). Writing it from both made
            * the column flip whenever the two disagreed: a FlashBlade .env
            * without STORAGE_SYSTEM gets the compose default,

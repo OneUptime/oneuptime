@@ -65,7 +65,7 @@ Tre tilstander opprettes med prosjektet, i denne rekkefølgen. Opprettelsen er i
 
 | Flagg                 | Formål                                                                                                                                                                                               |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | Tilstanden en hendelse får når ingen har valgt en. Har ingen tilstand i prosjektet dette flagget, feiler opprettelsen av en hendelse med en feil som ber deg legge til en opprettelsestilstand for hendelser fra innstillingene. |
+| `isCreatedState`      | Tilstanden en hendelse får når ingen har valgt en — med mindre prosjektet lar hendelser erklært for hånd starte som bekreftet, og en slik hendelse ikke tilkaller noen vaktpolicy: se [Hendelser erklært for hånd](#hendelser-erklært-for-hånd). Har ingen tilstand i prosjektet dette flagget, feiler opprettelsen av en hendelse med en feil som ber deg legge til en opprettelsestilstand for hendelser fra innstillingene. |
 | `isAcknowledgedState` | Markerer prosjektets bekreftede tilstand: den **Bekreft** flytter en hendelse til, og som statistikkflisen for bekreftelse er oppkalt etter. En hendelse i den, i en senere tilstand, eller løst, er bekreftet — **Bekreft** tilbys ikke lenger for den, vakten slutter å tilkalle for den, og SLA-en merkes som besvart. |
 | `isResolvedState`     | Markerer prosjektets løste tilstand: den **Løs** flytter en hendelse til, og som statistikkflisen for løsning viser. En hendelse i den, eller i en senere tilstand, er løst — den forsvinner fra **Aktive hendelser** og fra den aktive delen av en statusside, og SLA-en merkes som løst. |
 
@@ -75,6 +75,28 @@ Det forventes bare én tilstand per prosjekt med hvert flagg — oppslagene hent
 - **De kan ikke slettes.** **Slett** blir værende i radens meny, låst, med årsaken. En massesletting hopper over dem og nevner dem som ikke slettet. API-et nekter også å slette et prosjekts siste opprettelses-, bekreftede eller løste tilstand.
 
 Fordi grensesnittet leser tilstandsnavn dynamisk, endrer et nytt navn det du ser overalt — statistikkflisene (**Bekreftet etter** og **Løst etter** med de forhåndsopprettede navnene), bekreftelsen **Merk hendelse som …** for en egen tilstand og merket i listen over hendelser følger alle navnet du ga raden.
+
+## Hendelser erklært for hånd
+
+Hver ny hendelse starter i opprettelsestilstanden din og venter der på å bli bekreftet. Når du erklærer en selv, er det som regel du som tar deg av den: du blir Hendelsesleder for den idet du erklærer den, og å bekrefte den er bare ett klikk til. Et prosjekt kan i stedet la slike hendelser starte som bekreftet.
+
+:::steps
+1. Åpne **Hendelser → Innstillinger → Hendelsesstatus** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Slå på **Start incidents declared by hand acknowledged** under listen over tilstander. Den lagres så snart du slår den om.
+:::
+
+Den er slått av i alle prosjekter til du slår den på, så en oppgradering endrer aldri hvem som blir tilkalt. Bare Prosjekteiere og Prosjektadministratorer kan endre den; for alle andre er bryteren låst og sier hvilken tillatelse den krever.
+
+Så lenge den er slått på, starter en hendelse som erklæres for hånd — med **Erklær hendelse**, uansett hvor du åpner den, eller med hendelsesskjemaet i Slack eller Microsoft Teams — i den bekreftede tilstanden din når begge disse vilkårene er oppfylt:
+
+- **Ingen tilstand er valgt for den**, verken av deg eller av malen den erklæres fra. En valgt tilstand vinner, som alltid.
+- **Den tilkaller ingen vaktpolicy**, verken en du har valgt, eller en fra malen dens. Velger du en policy, starter hendelsen i opprettelsestilstanden din, som før, slik at policyen tilkaller personene sine.
+
+Når den starter som bekreftet, tilkaller den ingen: som for enhver hendelse som [erklæres allerede bekreftet](/docs/incidents/declaring-incidents#erklært-allerede-bekreftet-eller-løst), kjører ingen vaktpolicy, heller ikke en som en vaktregel legger til. SLA-en starter allerede som besvart, og tiden til bekreftelse er null, noe som teller med i MTTA-en din.
+
+**Erklær hendelse** sier det før du erklærer: under **Innledende tilstand**, under **Vaktpolicy** så lenge ingen er valgt, og i sammendraget, som da alltid nevner **Innledende tilstand**. Det fyller aldri ut **Innledende tilstand** for deg: en tilstand som er valgt der, vinner, så vaktpolicyene du velger i det siste trinnet, ville ikke tilkalle noen. Slack og Microsoft Teams sier det under vaktpolicyene sine og i meldingen som bekrefter hendelsen.
+
+Hendelser som ingen erklærer for hånd — åpnet av monitorer eller av hendelsesregler for varsler, via API-et, Terraform, arbeidsflyter eller skjemaer, fra en sikkerhetssak eller av OneUptime AI — starter i opprettelsestilstanden din, som før. Via API-et er bryteren prosjektets `startIncidentsDeclaredByHandAcknowledged`.
 
 ## Legg til dine egne tilstander
 

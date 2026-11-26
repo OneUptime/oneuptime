@@ -4,6 +4,10 @@ import LogSeverity from "Common/Types/Log/LogSeverity";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import SnmpTrap from "Common/Types/Monitor/SnmpMonitor/SnmpTrap";
+import SnmpSecurityLevel, {
+  SnmpSecurityLevelUtil,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import SnmpTrapReceiverUtil from "Common/Types/Probe/SnmpTrapReceiver";
 import {
   getSnmpTrapEventAttributes,
   getSnmpTrapInterfaceIndex,
@@ -228,6 +232,14 @@ export default class SnmpTrapLogWriter {
       attributes["snmpTrap.name"] = trapName;
     }
 
+    /*
+     * What says who sent it, beside the OID and the varbinds (#11005): an
+     * inform says so, and an SNMPv3 one the user it was authenticated as,
+     * how (authNoPriv, authPriv), the sending engine and its context. Each
+     * only when the probe said it, each only as itself.
+     */
+    Object.assign(attributes, SnmpTrapLogWriter.getSenderAttributes(snmpTrap));
+
     if (!data.device) {
       attributes["snmpTrap.unmatched"] = true;
     }
@@ -278,6 +290,9 @@ export default class SnmpTrapLogWriter {
     );
 
     const bodyName: string = trapName ? ` (${trapName})` : "";
+    const bodyKind: string = `SNMP${snmpTrap.snmpVersion === "3" ? "v3" : ""} ${
+      snmpTrap.isInform === true ? "inform" : "trap"
+    }`;
 
     return {
       _id: ObjectID.generateTimeOrdered().toString(),
@@ -295,8 +310,54 @@ export default class SnmpTrapLogWriter {
       attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
       traceId: "",
       spanId: "",
-      body: `SNMP trap ${snmpTrap.trapOid}${bodyName} received from ${snmpTrap.sourceIpAddress}`,
+      body: `${bodyKind} ${snmpTrap.trapOid}${bodyName} received from ${snmpTrap.sourceIpAddress}`,
       retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),
     } satisfies JSONObject;
+  }
+
+  /*
+   * The attributes that say who sent a trap and how, each only when the
+   * probe said it and only as what it can be: a user name and a context of
+   * SNMPv3's 32 octets at most, a level SNMPv3 has, an engine ID of hex.
+   */
+  public static getSenderAttributes(
+    snmpTrap: SnmpTrap,
+  ): Dictionary<AttributeType> {
+    const attributes: Dictionary<AttributeType> = {};
+
+    if (snmpTrap.isInform === true) {
+      attributes["snmpTrap.isInform"] = true;
+    }
+
+    if (typeof snmpTrap.securityName === "string" && snmpTrap.securityName) {
+      attributes["snmpTrap.securityName"] =
+        SnmpTrapReceiverUtil.toDisplayableUserName(snmpTrap.securityName);
+    }
+
+    const securityLevel: SnmpSecurityLevel | undefined =
+      SnmpSecurityLevelUtil.parse(
+        typeof snmpTrap.securityLevel === "string"
+          ? snmpTrap.securityLevel
+          : undefined,
+      );
+
+    if (securityLevel) {
+      attributes["snmpTrap.securityLevel"] = securityLevel;
+    }
+
+    const engineId: string | null = SnmpTrapReceiverUtil.normalizeEngineId(
+      snmpTrap.engineId,
+    );
+
+    if (engineId) {
+      attributes["snmpTrap.engineId"] = engineId;
+    }
+
+    if (typeof snmpTrap.contextName === "string" && snmpTrap.contextName) {
+      attributes["snmpTrap.contextName"] =
+        SnmpTrapReceiverUtil.toDisplayableUserName(snmpTrap.contextName);
+    }
+
+    return attributes;
   }
 }

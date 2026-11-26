@@ -5117,8 +5117,8 @@ function createStorageArrayDashboardConfig(): DashboardViewConfig {
    *   the same reasoning the Ceph / Kubernetes templates use for their
    *   inventory widgets.
    *
-   * - Every metric widget reads a FlashArray series (purefa_*) built by
-   *   storageArrayMetricConfig from the catalog. Pure puts read, write and
+   * - Every metric widget reads a FlashArray series built by
+   *   storageArrayMetricConfig from the catalog, by its catalog id. Pure puts read, write and
    *   queue figures on ONE metric name, told apart only by the `dimension`
    *   label, so every query pins its dimension, and read and write share a
    *   chart as two queries rather than being two charts of one series.
@@ -5128,13 +5128,13 @@ function createStorageArrayDashboardConfig(): DashboardViewConfig {
    *   nothing is transformAsRate'd (unlike the Ceph template's cumulative
    *   ceph_pool_*_bytes counters) and nothing Sums a gauge.
    *
-   * - purefa_alerts_open is one series per open alert, valued 1, so a Sum
+   * - The open alerts series is one series per open alert, valued 1, so a Sum
    *   would count each alert once per scrape in the bucket. The alerts
    *   chart takes the Max per severity instead: 1 while at least one alert
    *   of that severity is open — the reading the critical and warning alert
    *   templates fire on.
    *
-   * - purefa_array_space_utilization is already a percent (0-100), not a
+   * - The array's space utilization is already a percent (0-100), not a
    *   [0, 1] fraction, and the data reduction ratio is the N of "N:1".
    */
   const components: Array<DashboardBaseComponent> = [

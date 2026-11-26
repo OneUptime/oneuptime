@@ -251,9 +251,11 @@ describePostgres(
         ORDER BY 1`,
       );
 
-      // "c": ON DELETE CASCADE. A deleted key, or project, takes its counts with it.
+      /*
+       * "c": ON DELETE CASCADE. A deleted key, or project, takes its counts
+       * with it. Nothing else: no row says who deleted it (#10469).
+       */
       expect(foreignKeys).toEqual([
-        { columnName: "deletedByUserId", referenced: "User", onDelete: "n" },
         { columnName: "projectId", referenced: "Project", onDelete: "c" },
         {
           columnName: "telemetryIngestionKeyId",

@@ -1625,8 +1625,19 @@ describe("Nginx", () => {
   describe("ships only what the certificate sidecar runs", () => {
     const PRUNE_COPY =
       "COPY ./Scripts/Docker/PruneUnreachablePackages.js /tmp/PruneUnreachablePackages.js";
-    const PRUNE_RUN =
-      "RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --package /usr/src/Common && npm prune --omit=dev --offline --no-audit --no-fund && node -e \"for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }\" && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests && chmod +x /usr/src/app/run.sh";
+    /*
+     * Data Security's names-and-addresses model, whose worker thread alone
+     * requires ONNX Runtime. The sidecar reaches, through Common, the code
+     * that starts it, so the prune walks the worker as an entry and lets its
+     * starter through as an entry loader, as the App's image does.
+     */
+    const MODEL = "/usr/src/Common/Server/Utils/DataSecurity/Model";
+    const PRUNE_RUN = `RUN node /tmp/PruneUnreachablePackages.js --entry /usr/src/app/Index.ts --entry ${MODEL}/NameAddressModelWorker.cjs --entry /usr/src/Common/Server/Utils/TsNode/PrecompiledSourceMaps.js --entry-loader ${MODEL}/NameAddressModelThread.ts --package /usr/src/Common && npm prune --omit=dev --offline --no-audit --no-fund && node -e "for (const name of ['ts-node', 'typescript']) for (const from of ['/usr/src/app', '/usr/src/Common']) { let found = ''; try { found = require.resolve(name, { paths: [from] }); } catch {} if (found) throw new Error(found + ' is still installed, and the image runs JavaScript'); }" && rm -rf /tmp/PruneUnreachablePackages.js /usr/src/Common/Tests /usr/src/app/build /usr/src/app/Tests && chmod +x /usr/src/app/run.sh`;
+    // What the prune keeps of ONNX Runtime: what the model's thread loads.
+    const SLIM_COPY =
+      "COPY ./Scripts/Docker/FetchDataSecurityModel.js /tmp/FetchDataSecurityModel.js";
+    const SLIM_RUN =
+      "RUN node /tmp/FetchDataSecurityModel.js --runtime /usr/src/Common/node_modules/onnxruntime-web && rm /tmp/FetchDataSecurityModel.js";
     const PRECOMPILE =
       "RUN node /usr/src/Common/Server/Utils/TsNode/Precompile.js --project /usr/src/app/tsconfig.json --root /usr/src/app --root /usr/src/Common";
 
@@ -1679,6 +1690,61 @@ describe("Nginx", () => {
       expect(prune).toBe(lines.length - 1);
     });
 
+    /*
+     * The prune keeps ONNX Runtime's WebAssembly package, which the model's
+     * worker requires: 146 MB, of which the thread loads 15 in Node.js. The
+     * App's image slims it as it fetches the model; this one fetches no
+     * model, since the sidecar never scans.
+     */
+    test("the build stage keeps of ONNX Runtime only what the model's thread loads, and fetches none of the model", () => {
+      const lines = build.instructions;
+      const commonInstall = indexOf(lines, "RUN npm ci --no-audit --no-fund");
+      const slim = indexOf(lines, SLIM_RUN);
+
+      expect(lines[slim - 1]).toBe(SLIM_COPY);
+      // After the install that puts the package there, before Common's
+      // sources, so a change to them does not slim it again.
+      expect(slim - 1).toBe(commonInstall + 1);
+      expect(lines[slim + 1]).toBe("COPY ./packages/Common /usr/src/Common");
+      expect(
+        stages
+          .flatMap((stage) => {
+            return stage.instructions;
+          })
+          .filter((line) => {
+            return /NameAddressModel\.json|--manifest|huggingface/.test(line);
+          }),
+      ).toEqual([]);
+    });
+
+    test("every file the prune walks or lets load is where the build stage copies it", () => {
+      const inImage = [
+        ["/usr/src/app/", "packages/Nginx/"],
+        ["/usr/src/Common/", "packages/Common/"],
+      ];
+      const prune = build.instructions.find((line) => {
+        return line.startsWith("RUN node /tmp/PruneUnreachablePackages.js");
+      });
+      const files = [...prune.matchAll(/--(?:entry|entry-loader) (\S+)/g)].map(
+        (match) => {
+          return match[1];
+        },
+      );
+
+      expect(files).toHaveLength(4);
+      for (const file of files) {
+        const [prefix, repository] = inImage.find(([candidate]) => {
+          return file.startsWith(candidate);
+        });
+        expect({
+          file,
+          exists: fs.existsSync(
+            path.join(REPO_ROOT, repository, file.slice(prefix.length)),
+          ),
+        }).toEqual({ file, exists: true });
+      }
+    });
+
     test("the prune walks the TypeScript of the file the sidecar's start script runs, from the folder it is copied to", () => {
       const nginxPackage = readJson("packages/Nginx/package.json");
       expect(nginxPackage.scripts.start).toMatch(
@@ -1696,15 +1762,17 @@ describe("Nginx", () => {
       );
     });
 
-    test("the build context lets the prune script in", () => {
-      expect(dockerignored("Scripts/Docker/PruneUnreachablePackages.js")).toBe(
-        false,
-      );
-      expect(
-        fs.existsSync(
-          path.join(REPO_ROOT, "Scripts/Docker/PruneUnreachablePackages.js"),
-        ),
-      ).toBe(true);
+    test("the build context lets the prune script and the runtime's slimmer in", () => {
+      for (const script of [
+        "Scripts/Docker/PruneUnreachablePackages.js",
+        "Scripts/Docker/FetchDataSecurityModel.js",
+      ]) {
+        expect({ script, ignored: dockerignored(script) }).toEqual({
+          script,
+          ignored: false,
+        });
+        expect(fs.existsSync(path.join(REPO_ROOT, script))).toBe(true);
+      }
     });
   });
 });

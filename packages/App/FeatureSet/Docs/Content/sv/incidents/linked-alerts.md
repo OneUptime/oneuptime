@@ -155,7 +155,7 @@ sequenceDiagram
 
 När du skickar kontrollerar servern larmen innan den skapar något: högst 50 av dem, vart och ett ett larm i det här projektet som du får se, och du måste få länka larm till incidenter. Misslyckas en kontroll avvisas begäran och ingen incident skapas — så ett felaktigt larm-ID förbrukar aldrig ett incidentnummer. När incidenten finns — och när dess sekretessregler har körts, så att länkarna vet om den är privat — länkas varje larm innan begäran returneras, så att incidentens sida **Länkade larm** redan listar dem. Misslyckas en enskild länk — för att larmet togs bort ett ögonblick tidigare, till exempel — deklareras incidenten ändå och de andra larmen länkas ändå.
 
-Incidentens flöde får en enda post **Larm länkat** som listar larmen, skriven efter **Incident skapad**, i stället för en per larm — se [Flödet, Slack och Microsoft Teams](#flödet-slack-och-microsoft-teams).
+Incidentens flöde får en enda post **Larm länkat** som listar larmen, i stället för en per larm, och den är flödets första post, före **Incident skapad** — se [Flödet, Slack och Microsoft Teams](#flödet-slack-och-microsoft-teams).
 
 ### Larmens ägare äger incidenten
 
@@ -312,7 +312,7 @@ Det gäller även när båda är privata, eftersom ett privat larm och en privat
 
 **Bara incidentens poster når Slack och Microsoft Teams.** **Larm länkat** och **Larm avlänkat** publiceras där incidentens andra flödesuppdateringar går. Posterna på larmets sida stannar i instrumentpanelen, så att en länk ger ett meddelande i stället för två. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams) för att konfigurera de kanalerna.
 
-**Att deklarera en incident från larm skriver en post, inte en per larm.** Länkarna som skapas medan incidenten deklareras skriver inga egna poster **Larm länkat**. I stället får incidenten, när dess post **Incident skapad** är ute — och incidentens egna Slack- och Microsoft Teams-kanaler, om du använder dem, har skapats — en enda post **Larm länkat**: "Declared from 3 alerts:", följt av en rad per larm med dess nummer och titel (ett privat larm utan sin titel). Det är det enda meddelandet som publiceras i Slack och Microsoft Teams. Varje larm får fortfarande sin egen post **Länkat till incident**.
+**Att deklarera en incident från larm skriver en post, inte en per larm.** Länkarna som skapas medan incidenten deklareras skriver inga egna poster **Larm länkat**. I stället får incidenten en enda post **Larm länkat**: "Declared from 3 alerts:", följt av en rad per larm med dess nummer och titel (ett privat larm utan sin titel). Incidenten skapades genom att den deklarerades från larmen, så det här är den första posten i dess flöde, före **Incident skapad** och före de ägare och roller som den får medan den deklareras. Det är det enda meddelandet som publiceras i Slack och Microsoft Teams, där det kommer efter **Incident skapad**. Varje larm får fortfarande sin egen post **Länkat till incident**.
 
 Båda flödenas dialoger **Filtrera efter händelsetyp**, i varje flödes meny **⋯**, listar de här händelsetyperna, så att du kan visa eller dölja länkningsaktivitet som vilken annan sorts post som helst. Mer om incidentens flöde i [Incidentanteckningar, ägare och flöde](/docs/incidents/notes-owners-and-feed).
 

@@ -201,6 +201,15 @@ Een geheim heeft meer nodig dan een codecorrectie: de code stopt alleen nieuwe k
 
 Met **Aan nieuwe problemen werken** aan stelt OneUptime AI ook uit zichzelf de correctie van elke service voor, de riskantste service eerst, onder **Gegevensbeveiliging → AI** en bij het riskantste probleem van de service. Standaard wacht die op jou. Een AI-regel van Gegevensbeveiliging die **Herstel** voor het riskantste probleem van de service op **Automatisch** zet, opent de pull request zonder te vragen, in een repository waarover iets heeft beslist. **Max. open fix-pull-requests** van de repository begrenst beide: bij de grens wacht een pull request die een regel zou openen op jou, en gaat er geen nieuwe correctie-pull-request open totdat er een is samengevoegd of gesloten.
 
+### De front-end van een RUM-applicatie
+
+**Oplossen met AI** bij een probleem in sessieherhalingen doet hetzelfde voor een RUM-applicatie: één pull request die de front-endcode ervan elk lek laat stoppen dat OneUptime nog ziet in de browserlogboeken, de browserspans en de details van de sessies. Waar elk lek wordt geschreven, komt uit de records waarin het werd gezien, binnen OneUptime gelezen:
+
+- **Een browserlogboek of -span**: het bestand, de regel en de functie waarnaar de JavaScript-stack ervan verwijst via de source maps die je builds hebben geüpload (zie [Source Maps](/docs/telemetry/source-maps)), anders de `code.*`-attributen; de regel van het logboek of de naam van de span als sjabloon; en de pagina waarop het werd geschreven, alleen het pad ervan, met elke ID en elke waarde gemaskeerd.
+- **De gebruikersdetails van een sessie**: de `identify()`-aanroep van de sessierecorder die ze gaf, en de pagina waarop de sessie begon.
+
+De pull request gaat naar de repository met die bestanden, anders naar de repository met de meeste bestanden die de source maps van de nieuwste release noemen, anders naar de repository die heet zoals de **App-identifier** van de applicatie, of naar de enige van het project; als niets beslist, kies jij. Hij wijzigt de browsercode op elke plek, waarbij de gebruiker van een sessie wordt geïdentificeerd met een ondoorzichtige ID en nooit met een e-mailadres, of voegt één redactiestap toe waar de applicatie haar browsertelemetrie instelt. De opname van een sessie wordt nooit gelezen, en de codeeragent leest niets van je telemetrie. Elk probleem wordt opgelost als **Hersteld in de code** zodra de nieuwe release van de applicatie de gegevens niet meer verstuurt. OneUptime AI stelt de oplossing van een applicatie nog niet uit zichzelf voor: vraag erom met **Oplossen met AI**.
+
 ## Deze metriek verwerpen
 
 Geen regel haalt de gegevens uit de naam van een metriek, dus tot de code die de metriek een naam geeft is gerepareerd, blijven de gegevens binnenkomen. **Deze metriek verwerpen** op een bevinding in de naam van een metriek stopt het opslaan van de metrieken waarvan de naam ze bevat, ten koste van hun gegevens, en gebeurt dus alleen als je erom vraagt:

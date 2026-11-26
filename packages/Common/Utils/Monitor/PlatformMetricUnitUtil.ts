@@ -102,9 +102,9 @@ export default class PlatformMetricUnitUtil {
    * unit.
    *
    * `attributes` are the query's datapoint filters. Only the storage array
-   * catalog reads them: Pure puts several quantities on one metric name
-   * and tells them apart by a label (purefb_file_systems_space_bytes is
-   * bytes for `space = total_physical` but a 0–1 ratio for
+   * catalog reads them: a platform may put several quantities on one metric
+   * name and tell them apart by a label (a FlashBlade's file system space
+   * series is bytes for `space = total_physical` but a 0–1 ratio for
    * `space = available_ratio`), so the name alone can name the wrong unit.
    */
   public static getCatalogUnit(input: {

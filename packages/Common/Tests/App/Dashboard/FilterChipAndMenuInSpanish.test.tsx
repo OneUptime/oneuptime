@@ -430,6 +430,75 @@ async function openFilterMenu(field: string): Promise<{
   return readFilterMenu(field);
 }
 
+/*
+ * A filter of records searches the server as its picker is typed in
+ * (EntityDropdown, #10646): what it has picked is its chips, and its menu
+ * opens as the picker takes focus, with the first records by name.
+ */
+async function readSearchedFilterMenu(
+  field: string,
+  picker: HTMLElement,
+): Promise<{
+  picked: Array<string>;
+  options: Array<string>;
+}> {
+  /*
+   * A multi-select's picks are chips; a single select's pick is a button
+   * that gives way to the search field when pressed.
+   */
+  const pickedValue: HTMLElement | null = picker.querySelector<HTMLElement>(
+    '[data-testid="entity-dropdown-value"] button',
+  );
+  const picked: Array<string> = pickedValue
+    ? [(pickedValue.textContent || "").trim()]
+    : within(picker)
+        .queryAllByTestId("entity-dropdown-chip-label")
+        .map((value: HTMLElement): string => {
+          return value.textContent || "";
+        });
+
+  if (pickedValue) {
+    await act(async () => {
+      fireEvent.click(pickedValue);
+    });
+    await settle();
+  }
+
+  const input: HTMLInputElement | null = picker.querySelector<HTMLInputElement>(
+    "input[role='combobox']",
+  );
+
+  if (!input) {
+    throw new Error(`The ${field} filter has no picker`);
+  }
+
+  await act(async () => {
+    fireEvent.focus(input);
+  });
+  await settle();
+
+  const menu: HTMLElement | null = document.querySelector<HTMLElement>(
+    '[data-testid="entity-dropdown-menu"]',
+  );
+
+  if (!menu) {
+    throw new Error(`The ${field} menu did not open`);
+  }
+
+  const options: Array<string> = within(menu)
+    .queryAllByRole("option")
+    .map((option: HTMLElement): string => {
+      return option.textContent || "";
+    });
+
+  await act(async () => {
+    fireEvent.keyDown(input, { key: "Escape", code: "Escape" });
+  });
+  await settle();
+
+  return { picked, options };
+}
+
 // One filter's menu in the open Filter dialog, read and closed again.
 async function readFilterMenu(field: string): Promise<{
   picked: Array<string>;
@@ -437,6 +506,14 @@ async function readFilterMenu(field: string): Promise<{
 }> {
   const label: HTMLElement = screen.getByText(field, { selector: "label" });
   const row: HTMLElement = label.parentElement!.parentElement as HTMLElement;
+  const searched: HTMLElement | null = row.querySelector<HTMLElement>(
+    '[data-testid="entity-filter-search"]',
+  );
+
+  if (searched) {
+    return readSearchedFilterMenu(field, searched);
+  }
+
   const picked: Array<string> = within(row)
     .queryAllByTestId("dropdown-value-label")
     .map((value: HTMLElement): string => {

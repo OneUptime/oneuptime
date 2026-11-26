@@ -43,8 +43,8 @@ import {
 import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 /*
- * `name` is the datapoint label every per-volume series carries
- * (purefa_volume_performance_*, purefa_volume_space_*) and is stored verbatim
+ * `name` is the datapoint label every per-volume series carries (a
+ * FlashArray volume's performance and space series) and is stored verbatim
  * as StorageArrayResource.externalId, so a dashboard variable bound to `name`
  * narrows this list too. This map must stay byte-identical to
  * STORAGE_ARRAY_VOLUME_ATTRIBUTE_TO_COLUMN in

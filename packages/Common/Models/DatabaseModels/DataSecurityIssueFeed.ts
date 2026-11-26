@@ -88,6 +88,14 @@ export enum DataSecurityIssueFeedEventType {
   FixNotApplied = "FixNotApplied",
   FixRegressed = "FixRegressed",
   FixUnverifiable = "FixUnverifiable",
+  /*
+   * A person's own pull request, linked as the issue's fix (#10831): who
+   * linked it, its being closed without merging, and who took it off. Its
+   * way to production is said by the entries above, as an AI fix's is.
+   */
+  FixLinked = "FixLinked",
+  FixClosed = "FixClosed",
+  FixUnlinked = "FixUnlinked",
 }
 
 /*

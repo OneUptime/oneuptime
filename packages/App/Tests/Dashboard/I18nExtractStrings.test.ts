@@ -1659,6 +1659,15 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DataSecurity/DataSecurityIssueGroup.ts",
       // OneUptime AI's verdict on a finding that waits for a person, and the signs of a wrong match (#10372).
       "keys packages/Common/Types/DataSecurity/DataStoreFindingVerdict.ts",
+      "keys packages/Common/Types/DataSecurity/RecordOfProcessing.ts",
+      "keys packages/Common/Types/DataSecurity/ComplianceFacts.ts",
+      "keys packages/Common/Types/DataSecurity/ImpactAssessment.ts",
+      "keys packages/Common/Types/DataSecurity/AuditEvidence.ts",
+      "keys packages/Common/Types/DataSecurity/BreachLaws.ts",
+      "keys packages/Common/Types/DataSecurity/ExposureAssessment.ts",
+      // Why a pull request a person links to a Data Security issue is refused (#10831).
+      "keys packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
+      "keys packages/Common/Types/DataSecurity/ScanWarnings.ts",
       // What the compliance page says is wrong with a rule, and why a member fails one (#8632).
       "keys packages/Common/Types/Team/TeamComplianceFindings.ts",
       // Why a team or a label may not take a name: another one of the project has it (#9674).
@@ -1723,6 +1732,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Email/AmazonSesRoleWords.ts",
       // The common schedules a workflow's Schedule trigger offers.
       "ui packages/Common/Utils/CronTab.ts",
+      "keys packages/Common/Utils/MomentPhrases.ts",
       // What each placeholder of a playbook's note or message stands for.
       "ui packages/Common/Utils/SecurityCase/SecurityCaseMarkdown.ts",
       // A case's Response Plan, shared with the server: its steps' words and what its checks say.
@@ -1807,6 +1817,10 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/CustomDomain/UploadedCertificateRefusals.ts",
       // An error nobody explained: what happened, what to do, where to look.
       "keys packages/Common/Types/Exception/UnexplainedError.ts",
+      "keys packages/Common/Types/UserNotification/ChannelVerificationMessages.ts",
+      "keys packages/Common/Server/Utils/Errors.ts",
+      "keys packages/Common/Types/Billing/PlanRequiredRefusal.ts",
+      "keys packages/Common/Types/Database/UniqueValueTaken.ts",
       // Why a data check or a reconciliation was not written, added or set up.
       "keys packages/Common/Types/DataObservability/DataCheckRefusals.ts",
       // A RUM application's status and what each means - not its stored values.
@@ -1867,6 +1881,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/DatabaseServer/DatabaseServerMetricCatalog.ts",
       "keys packages/Common/Types/MessageQueue/MessageQueueMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+      // Each storage platform's words: its catalog, kinds and pages (#11000).
+      "keys packages/Common/Types/StorageArray/Platforms",
       "keys packages/Common/Types/Monitor/ProxmoxMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/OpenStackMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/CephMetricCatalog.ts",

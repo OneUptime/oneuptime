@@ -112,9 +112,9 @@ See [Workflow Triggers](/docs/workflows/triggers) for the fields each trigger pa
 
 ## Pull requests
 
-A leak is cheapest to fix before it merges. In a repository connected under **Code** with production reviews on, each pull request's review has a **Sensitive data** section, read from its diff: code that writes personal data or a secret to telemetry, infrastructure code that makes a store public or turns off its encryption, backups or logging, and migrations that add columns for personal data, passwords or card data. Each point names the Data Security check it would fail once the change ships, and your own data types are read by their name hints, as the scans read them. See [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
+A leak is cheapest to fix before it merges. In a repository connected under **Code** with production reviews on, each pull request's review has a **Sensitive data** section, read from its diff: code that writes personal data or a secret to telemetry, in a log, a span, a metric, an exception's message or an error tracker's report, infrastructure code that makes a store public or turns off its encryption, backups or logging, and migrations that add columns for personal data, passwords or card data. Each point names the Data Security check it would fail once the change ships, and your own data types are read by their name hints, as the scans read them. See [Production review of pull requests](/docs/ai/ai-agent#production-review-of-pull-requests).
 
-What Data Security knows makes those points sharper, in a private repository's comment and, in Code, for whoever may read Data Security's findings: where the service's telemetry held the same kind of data in the last 7 days, the scrub rule that masks it at ingest, and the store a resource is, with its sensitivity. A store marked **Public By Design** makes no point for being public. A public repository's comment says only what the diff shows.
+What Data Security knows makes those points sharper, in a private repository's comment and, in Code, for whoever may read Data Security's findings: where the service's telemetry held the same kind of data in the last 7 days, the scrub rule that masks it at ingest, and the store a resource is, with its sensitivity. For a migration, in a private repository only, it names the store the table is in, what that store holds, whether the store is reachable from outside or not encrypted at rest, and the table's columns already found holding the same kind of data. A store marked **Public By Design** makes no point for being public. A public repository's comment says only what the diff shows.
 
 **Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**, counts the leaks reviews caught in pull requests, fixed there or not yet, beside the issues the scans opened on the same checks after the code shipped.
 
@@ -158,7 +158,7 @@ Everything Data Security keeps is a record of the OneUptime API, read with the s
 | Records | API path |
 | --- | --- |
 | Data stores, their timelines, their findings, who can reach them and each identity that does | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Issues, their timelines and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Issues, their timelines, their linked pull requests and data flows | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Custom data types, check settings, compliance settings and residency rules | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | The project's settings | `/data-security-setting` |

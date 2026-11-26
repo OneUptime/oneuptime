@@ -241,6 +241,30 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a pull request a person links to a Data Security issue is refused
+   * (#10831): the issue holds ten already, was set aside, or has it linked
+   * already. The server refuses in English, and the Link Pull Request
+   * dialog says each in the reader's language; the refusals a security
+   * case's links share are read from Types/SecurityCase. Only the words the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
+    kind: "keys",
+  },
+  /*
+   * What a Data Security scan could not read (#10930): each warning a
+   * content scan, the telemetry scan and the names-and-addresses model
+   * write, and the formats they name, as a scan's details draw them in the
+   * reader's language. The server writes the same file's English into the
+   * scan. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.
@@ -883,6 +907,37 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a notification method could not be verified or sent a test (#7272):
+   * the server's refusals, which the verify dialog and a Send Test's dialog
+   * say in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/UserNotification/ChannelVerificationMessages.ts",
+    kind: "keys",
+  },
+  /*
+   * Why an invitation was refused - the person is in the team already, or
+   * the Free plan has no room (#7271): the invite dialog says them in the
+   * reader's language. Only the words the file marks are read: the rest of
+   * the server's errors stay as they are.
+   */
+  { directory: "packages/Common/Server/Utils/Errors.ts", kind: "keys" },
+  /*
+   * A feature the project's plan does not include, and a value another
+   * record holds in a column that holds each value once (#7276): refusals
+   * with values in them, which every form and dialog says in the reader's
+   * language (ErrorInSentence). Only the words each file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Billing/PlanRequiredRefusal.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Database/UniqueValueTaken.ts",
+    kind: "keys",
+  },
+  /*
    * Why a data check or a reconciliation was not written, added or set up
    * (#7530): the server's refusals, which Write a Check from a Sentence,
    * Suggested Checks and the Reconciliations page say in the reader's
@@ -1161,6 +1216,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Types/Monitor/StorageArrayMetricCatalog.ts",
+    kind: "keys",
+  },
+  /*
+   * Each storage platform's catalog and the words its pages say (#11000):
+   * its metric names and descriptions, its Resource Usage cards, its
+   * hardware tables, its monitor filters, its setup guide options and the
+   * words of the kinds only it has. Only the text the files mark is read.
+   */
+  {
+    directory: "packages/Common/Types/StorageArray/Platforms",
     kind: "keys",
   },
   {

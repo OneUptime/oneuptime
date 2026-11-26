@@ -868,6 +868,10 @@ Bei einer Abfrage ohne Walk liefern die als „Nicht ausgewertet“ markierten K
 
 Die Schnittstellenprüfungen brauchen **Schnittstellen abfragen** an in den Abfrageeinstellungen des Geräts, was standardmäßig der Fall ist. Die OID-Prüfungen lesen die konfigurierten Integritäts-OIDs des Geräts. Administrativ deaktivierte Schnittstellen sind absichtlich aus und zählen nie als Fehler.
 
+**SNMP-Schnittstellenauslastung (in %)** nimmt auch **Anomal hoch**, **Anomal niedrig** und **Anomal**, mit **Empfindlichkeit** und **Baseline-Fenster** wie bei der [Metriken-Überwachung](/docs/monitor/metrics-monitor). Jede Schnittstelle im Geltungsbereich wird mit ihrer eigenen Auslastung zur selben Stunde der Woche an früheren Tagen verglichen, so wie dieser Schritt des Monitors sie abgefragt hat, eine Backup-Leitung, die jede Nacht voll ausgelastet ist, wird also an ihren eigenen Nächten gemessen, nicht an den ruhigen Ports daneben. Der Vorfall oder die Warnung nennt die Schnittstelle, die am weitesten außerhalb ihres Bereichs liegt, und wie viele weitere außerhalb ihres eigenen liegen. Eine Schnittstelle lernt noch und löst nichts aus, solange diese Stunde der Woche keine zwei Wochen ihres Verlaufs hat.
+
+Auslastung, die abgefragt wurde, bevor jeder Schritt seinen eigenen Verlauf bekam, gehört zu keinem Schritt. Ein Monitor mit einem Schritt liest sie als seine eigene und muss daher nicht neu lernen; ein Monitor mit mehreren Schritten lässt sie aus, und jeder Schritt lernt aus seinen eigenen Abfragen. Der Verlauf einer Schnittstelle reicht so weit zurück, wie Monitormetriken aufbewahrt werden: 30 Tage, sofern eine selbst gehostete Installation das nicht ändert. Werden sie kürzer als zwei Wochen aufbewahrt, vergleicht ein Monitor mit einem Schritt jede Schnittstelle mit dem Bereich all seiner Schnittstellen zusammen, und ein Monitor mit mehreren Schritten lernt weiter.
+
 Kriterien für SNMP-Tabellen wählen eine Tabelle, eine Spalte (für SNMP Table Value) und einen Zeilenbereich. Leer beurteilt jede Zeile als eine kombinierte Warnung; `*` löst für jede Zeile eine eigene Warnung aus, die sich jeweils selbst auflöst und nach ihrer Zeile benannt ist; alles andere nennt eine Zeile nach Name oder Index. Zahlen werden als Zahlen verglichen, und Text sowohl mit dem Rohwert als auch mit seiner Bezeichnung, Ungleich `active` und Ungleich `1` erkennen also beide einen ausgefallenen Sophos-Tunnel. Eine Tabelle, deren Walk bei dieser Abfrage fehlgeschlagen ist, wird nicht ausgewertet, statt als leer gelesen zu werden, und Tabellenkriterien beurteilen nur den aktuellen Walk, keinen Zeitraum.
 
 Transceiver-Kriterien haben einen Geltungsbereich wie die Schnittstellenprüfungen: leer beurteilt jede Optik als eine kombinierte Warnung, `*` löst für jeden Port mit Optik eine eigene Warnung aus (die sich jeweils selbst auflöst und nach ihrem Port benannt ist), und alles andere nennt einen Port nach Name oder Alias. Sie beurteilen die [Transceiver](#transceiver) des Geräts zum Stand dieser Abfrage, die ihre Geschichte schon mitbringen — wie viele Abfragen eine Optik gefehlt hat, einen Monat Empfangsleistung —, sie werden also auch nicht über einen Zeitraum ausgewertet. Eine Abfrage, deren Transceiver-Lesen fehlgeschlagen ist, lässt sie das letzte gute Lesen beurteilen, eine offene Warnung löst sich also nicht bei einer Abfrage auf, die nicht nachsehen konnte.
@@ -897,7 +901,7 @@ Legen Sie nach dem Hinzufügen des Pakets wie üblich für jedes Kriterium Schwe
 
 ## SNMP-Traps
 
-Die Abfrage erkennt ein Problem bei der nächsten Abfrage; Traps erkennen es in Sekunden. Jede Sonde betreibt einen SNMP-Trap-Empfänger, der v1- und v2c-Traps und Informs annimmt und an OneUptime weiterleitet.
+Die Abfrage erkennt ein Problem bei der nächsten Abfrage; Traps erkennen es in Sekunden. Jede Sonde betreibt einen SNMP-Trap-Empfänger, der v1-, v2c- und v3-Traps und Informs annimmt und an OneUptime weiterleitet. Er bestätigt jeden Inform, damit das Gerät ihn nicht erneut sendet.
 
 ```mermaid title="Vom Trap zum Vorfall"
 flowchart TB
@@ -921,6 +925,7 @@ Der Empfänger ist standardmäßig an und lauscht auf UDP 162. Konfigurieren Sie
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Auf `false` setzen, um den Trap-Empfänger abzuschalten. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | Der UDP-Port, auf dem der Empfänger lauscht. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Wie viele Traps er pro Minute weiterleitet, bevor er den Rest verwirft. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | Die SNMPv3-Engine-ID der Sonde, in Hex (5 bis 32 Oktette). Setzen Sie sie nur, um die Engine-ID eines Empfängers zu behalten, den diese Sonde ersetzt. | Aus der ID der Sonde abgeleitet |
 
 Wenn die Sonde in Docker läuft, veröffentlichen Sie den UDP-Port, damit Traps sie erreichen:
 
@@ -936,6 +941,42 @@ Richten Sie dann das Trap-Ziel Ihrer Geräte auf die Sonde, auf Cisco IOS zum Be
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3-Traps und -Informs
+
+Ein SNMPv3-Trap ist mit den Schlüsseln eines Benutzers signiert und meist auch verschlüsselt, daher nimmt eine Sonde ihn nur von einem Benutzer an, den sie kennt: den SNMPv3-Anmeldedaten der ihr zugewiesenen Geräte. Die eigenen SNMP-Anmeldedaten jedes Geräts, sein Anmeldedatenprofil und das Standardprofil seines Standorts zählen alle, ein über v2c abgefragtes Gerät kann seine Traps also trotzdem als SNMPv3-Benutzer des Standorts senden. Auf der Sonde wird nichts eingerichtet:
+
+1. Geben Sie dem Gerät, seinem Anmeldedatenprofil oder seinem Standort den SNMPv3-Benutzer, als der das Gerät seine Traps sendet: Benutzername, Sicherheitsstufe sowie Authentifizierungs- und Privacy-Protokoll mit ihren Passphrasen (siehe [SNMP-Anmeldedaten und Anmeldedatenprofile](#snmp-anmeldedaten-und-anmeldedatenprofile)).
+2. Richten Sie die SNMPv3-Traps des Geräts auf die Sonde. Auf Cisco IOS zum Beispiel:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime übergibt jeder Sonde alle dreißig Sekunden die SNMPv3-Benutzer ihrer eigenen Geräte. Geänderte Anmeldedaten, ein geändertes Profil oder ein Gerät, das zu einer anderen Sonde wechselt, gelten daher innerhalb einer Minute, während der Empfänger weiter lauscht. Die Anmeldedaten bleiben im Ruhezustand verschlüsselt wie bei der Abfrage, und die Sonde hält sie nur im Arbeitsspeicher und protokolliert sie nie. Die Benutzer eines Projekts erreichen nie die Sonde eines anderen Projekts.
+
+Der Empfänger nimmt die Protokolle an, die die Abfrage verwendet: MD5-, SHA-1-, SHA-256- und SHA-512-Authentifizierung sowie DES-, AES-128- und AES-256-Verschlüsselung. Ein Trap muss mit mindestens der Sicherheit kommen, für die sein Benutzer eingerichtet ist: Traps eines authPriv-Benutzers werden abgelehnt, wenn sie unauthentifiziert oder unverschlüsselt ankommen.
+
+**Traps, Informs und die Engine-ID der Sonde.** Ein Trap wird mit der eigenen SNMP-Engine-ID des Geräts authentifiziert, es gibt also nichts einzurichten. Ein Inform wird mit der Engine-ID der Sonde authentifiziert, die die meisten Geräte selbst ermitteln. Manche brauchen sie eingetippt: Geben Sie auf Cisco IOS `snmp-server engineID remote <probe-ip> <engine-id>` ein, bevor Sie den Benutzer anlegen. Öffnen Sie **Monitore → Einstellungen → Sonden** und wählen Sie die Sonde: Ihre Karte **SNMP-Traps** zeigt die Engine-ID zum Kopieren. Sie wird aus der ID der Sonde abgeleitet und bleibt daher über Neustarts, Upgrades und Replikate der Sonde hinweg gleich; setzen Sie `PROBE_SNMP_ENGINE_ID`, um eine andere zu wählen.
+
+Informs werden bestätigt, bei v2c wie bei v3. Ein Inform, der erneut gesendet wird, weil seine Bestätigung verloren ging, wird erneut bestätigt und nur einmal erfasst.
+
+**Das Zeitfenster.** Wie `snmptrapd` von Net-SNMP lehnt der Empfänger einen Trap ab, dessen Engine-Boots und -Zeit um mehr als 150 Sekunden hinter den letzten Trap des Geräts zurückgehen: eine wiederholte oder verspätete Kopie oder ein Gerät, das neu gestartet ist, ohne den Neustart in seinen Engine-Boots zu zählen. Ein Inform muss innerhalb von 150 Sekunden der eigenen Zeit der Sonde liegen.
+
+**Abgelehnte SNMPv3-Traps** werden nie weitergeleitet, und nichts von ihrem Inhalt wird gespeichert oder protokolliert: nur woher sie kamen, als welcher Benutzer sie gesendet wurden und warum. Die Karte **SNMP-Traps** der Sonde listet die des letzten Tages auf, etwa „12 SNMPv3-Traps von 10.20.0.5 sind fehlgeschlagen: unbekannter Benutzer „san-monitor““, jeweils mit dem, was zu ändern ist. Die Seiten **Übersicht** und **Protokolle** eines Geräts sagen dasselbe, wenn die Adresse eine der eigenen Adressen des Geräts ist. Ein von dieser Adresse als dieser Benutzer angenommener Trap hebt es auf.
+
+| Grund | Was zu ändern ist |
+| --- | --- |
+| Unbekannter Benutzer | Kein Gerät der Sonde hat einen SNMPv3-Benutzer dieses Namens. Fügen Sie ihn den Anmeldedaten des Geräts, seinem Anmeldedatenprofil oder dem Standardprofil seines Standorts hinzu, oder korrigieren Sie den Namen auf dem Gerät. |
+| Falsche Authentifizierungs-Passphrase oder falsches Protokoll | Gleichen Sie Authentifizierungs-Passphrase und -Protokoll des Geräts an die an, die OneUptime für diesen Benutzer hat. |
+| Falsche Passphrase oder falsches Protokoll für die Verschlüsselung | Gleichen Sie Passphrase und Protokoll des Geräts für die Verschlüsselung an die an, die OneUptime für diesen Benutzer hat. |
+| Außerhalb des Zeitfensters | Die Engine-Uhr des Geräts ist zurückgegangen. Seine Traps werden wieder angenommen, sobald es einen Neustart in seinen Engine-Boots zählt. |
+| An eine andere Engine-ID gesendet | Ein Inform wurde an eine andere Engine-ID als die der Sonde gesendet. Geben Sie dem Gerät die Engine-ID der Sonde. |
+| Weniger Sicherheit, als für den Benutzer eingerichtet ist | Stellen Sie die Trap-Sicherheitsstufe des Geräts auf die ein, die OneUptime für den Benutzer hat. |
+
+Im Trap-Verlauf sagt ein SNMPv3-Trap neben seiner OID und seinen Varbinds, was angekommen ist: Version 3, den Benutzer, als der er authentifiziert wurde, ob er auch verschlüsselt war, und die Engine-ID des Geräts, das ihn gesendet hat.
+
 ### Wie Traps Monitoren zugeordnet werden
 
 Traps werden über das Geräteinventar zugeordnet:
@@ -944,7 +985,7 @@ Traps werden über das Geräteinventar zugeordnet:
 2. OneUptime sucht die dieser Sonde zugewiesenen Netzwerkgeräte, deren Hostname, oder eine ihrer **Weitere Adressen**, die Quell-IP-Adresse des Traps ist.
 3. Der Trap wird im Trap-Verlauf des Geräts protokolliert, und jeder Netzwerkgerät-Monitor auf einem passenden Gerät wertet ihn gegen seine Kriterien aus, typischerweise einen Filter **SNMP-Trap empfangen (Trap-OID)**.
 
-Die Zuordnung erfolgt über die Adresse, nicht über Anmeldedaten, ein nur angepingtes Gerät kann also trotzdem Traps empfangen: Ein Gerät, für das Sie keine Leseberechtigungen haben, kann sie trotzdem senden. Registrieren Sie das Gerät mit der Adresse, von der es Traps sendet, oder fügen Sie diese Adresse auf seiner **Einstellungen**-Seite zu seinen **Weitere Adressen** hinzu. Generische SNMPv1-Traps (coldStart, linkDown, linkUp und so weiter) werden in ihre Standard-SNMPv2-Benachrichtigungs-OIDs umgewandelt, linkDown passt also unabhängig von der SNMP-Version auf die Trap-OID `1.3.6.1.6.3.1.1.5.3`.
+Die Zuordnung erfolgt über die Adresse, nicht über Anmeldedaten, ein nur angepingtes Gerät kann also trotzdem v1- und v2c-Traps empfangen: Ein Gerät, für das Sie keine Leseberechtigungen haben, kann sie trotzdem senden. Ein SNMPv3-Trap braucht außerdem den Benutzer, mit dem er signiert ist (siehe [SNMPv3-Traps und -Informs](#snmpv3-traps-und-informs)), und wird dann genauso über seine Adresse zugeordnet. Registrieren Sie das Gerät mit der Adresse, von der es Traps sendet, oder fügen Sie diese Adresse auf seiner **Einstellungen**-Seite zu seinen **Weitere Adressen** hinzu. Generische SNMPv1-Traps (coldStart, linkDown, linkUp und so weiter) werden in ihre Standard-SNMPv2-Benachrichtigungs-OIDs umgewandelt, linkDown passt also unabhängig von der SNMP-Version auf die Trap-OID `1.3.6.1.6.3.1.1.5.3`.
 
 #### Beispiel: einen Vorfall bei linkDown auslösen
 
@@ -1172,6 +1213,13 @@ Wenn die Geräte alle da sind, die Monitore aber nicht: Geräte und Monitore sin
 - Veröffentlichen und erlauben Sie UDP 162 bis zur Sonde, oder den Port in `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Prüfen Sie, ob der Hostname des Geräts, oder eine seiner **Weitere Adressen**, die Adresse ist, von der es Traps sendet: So werden Traps Geräten zugeordnet.
 - Prüfen Sie die Protokolle der Sonde auf Bind-Fehler: Port belegt oder keine Rechte für einen Port unter 1024.
+:::
+
+:::details SNMPv3-Traps werden abgelehnt
+- Öffnen Sie **Monitore → Einstellungen → Sonden** und wählen Sie die Sonde: Ihre Karte **SNMP-Traps** listet jede abgelehnte Quelle mit ihrem Grund und dem, was zu ändern ist.
+- Der SNMPv3-Benutzer muss zu einem Gerät gehören, das dieser Sonde zugewiesen ist: zu seinen eigenen Anmeldedaten, seinem Anmeldedatenprofil oder dem Standardprofil seines Standorts. Ein Benutzer auf einem Gerät, das einer anderen Sonde zugewiesen ist, zählt nicht.
+- Ein Inform braucht außerdem die Engine-ID der Sonde, die auf derselben Karte steht. Ein Gerät, dem eine falsche gegeben wurde, wird als an eine andere Engine-ID sendend aufgeführt.
+- Nach einer Änderung übernimmt die Sonde die neuen Benutzer innerhalb einer Minute.
 :::
 
 :::details SNMP aus dem Netzwerk der Sonde testen

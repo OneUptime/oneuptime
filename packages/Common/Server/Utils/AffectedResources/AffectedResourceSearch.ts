@@ -16,7 +16,6 @@ import ServiceService from "../../Services/ServiceService";
 import StorageArrayService from "../../Services/StorageArrayService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import XcpNgPoolService from "../../Services/XcpNgPoolService";
-import { escapeLikePattern } from "../../Types/Database/JSONColumnQuery";
 import ColumnPermissions from "../../Types/Database/Permissions/ColumnPermission";
 import logger from "../Logger";
 import BaseModel, {
@@ -275,7 +274,9 @@ export default class AffectedResourceSearch {
    * The query a kind is listed and counted by: the project's resources, not
    * archived ones, and - when the person typed something - those with the
    * text in a field they may read. The text is matched literally: a % or _
-   * someone typed is not a wildcard.
+   * someone typed is not a wildcard. MultiSearch and StartsWith escape them
+   * themselves (QueryHelper.multiSearch and startsWith, #10545), so the text
+   * goes as typed.
    */
   public static buildKindQuery(data: {
     kind: AffectedResourceKind;
@@ -297,7 +298,7 @@ export default class AffectedResourceSearch {
     if (data.search) {
       query["_multiFieldSearch"] = new MultiSearch({
         fields: data.searchFields,
-        value: escapeLikePattern(data.search),
+        value: data.search,
       }) as unknown as JSONObject;
     }
 
@@ -317,9 +318,7 @@ export default class AffectedResourceSearch {
     const query: JSONObject = { ...data.kindQuery };
 
     delete query["_multiFieldSearch"];
-    query["name"] = new StartsWith(
-      escapeLikePattern(data.search),
-    ) as unknown as JSONObject;
+    query["name"] = new StartsWith(data.search) as unknown as JSONObject;
 
     return query;
   }

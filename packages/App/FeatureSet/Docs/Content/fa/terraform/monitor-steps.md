@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`، `Tablet` و `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` و `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | تلاش‌های دوباره وقتی اسکریپت شکست می‌خورد: `0` آن را یک بار اجرا می‌کند. |
+| `do_not_sync_fields` | list(string) | قالب‌های مانیتور | فیلدهایی که هر مانیتور ساخته‌شده از قالب، وقتی قالب مراحلش را روی آن همگام می‌کند، به‌عنوان مال خودش نگه می‌دارد، مانند `monitorDestination` یا `dnsMonitor.queryName`: همان‌هایی که کارت **تنظیمات همگام‌سازی قالب** آن فهرست می‌کند. |
 | `criteria` | list (الزامی) | همه | هر نتیجه چگونه سنجیده می‌شود: [ویژگی‌های معیار](#ویژگیهای-معیار) را ببینید. |
 
 ### تنظیمات هر نوع مانیتور
 
-نوع‌های مانیتوری که چیزی بیش از یک نشانی برای تعیین دارند، تنظیماتشان (یک کوئری لاگ، یک اتصال پایگاه داده، یک کلاستر برای پایش) را در ویژگی خودشان نگه می‌دارند، به‌صورت JSON خام که با `jsonencode()` نوشته می‌شود: `log_monitor`، `trace_monitor`، `llm_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `openstack_monitor`، `vmware_monitor`، `xcp_ng_monitor`، `ceph_monitor`، `storage_array_monitor`، `iot_monitor` و `probe_status_monitor`.
+نوع‌های مانیتوری که چیزی بیش از یک نشانی برای تعیین دارند، تنظیماتشان (یک کوئری لاگ، یک اتصال پایگاه داده، یک کلاستر برای پایش) را در ویژگی خودشان نگه می‌دارند، به‌صورت JSON خام که با `jsonencode()` نوشته می‌شود: `log_monitor`، `security_events_monitor`، `trace_monitor`، `llm_monitor`، `metric_monitor`، `exception_monitor`، `profile_monitor`، `dns_monitor`، `domain_monitor`، `dnssec_monitor`، `sql_monitor`، `database_monitor`، `external_status_page_monitor`، `network_device_monitor`، `kubernetes_monitor`، `docker_monitor`، `docker_swarm_monitor`، `host_monitor`، `podman_monitor`، `proxmox_monitor`، `openstack_monitor`، `vmware_monitor`، `xcp_ng_monitor`، `ceph_monitor`، `storage_array_monitor`، `iot_monitor` و `probe_status_monitor`.
 
 JSON آن‌ها همان JSON داشبورد است، با کلیدهای camelCase. یک ID در آن همان‌طور نوشته می‌شود که API می‌نویسد: `{ _type = "ObjectID", value = "..." }`. یک مانیتور Logs که خطاهای یک سرویس را می‌شمارد:
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### حادثه‌ها و هشدارها
 
-هر مورد از `incidents`، `title` و `description` (هر دو الزامی)، `incident_severity_id`، `auto_resolve_incident`، `remediation_notes`، `on_call_policy_ids`، `label_ids`، `owner_team_ids`، `owner_user_ids`، `show_incident_on_status_page` و `is_private` را می‌پذیرد. هر مورد از `alerts` همین‌ها را می‌پذیرد، با `alert_severity_id` و `auto_resolve_alert`، و بدون `show_incident_on_status_page`.
+هر مورد از `incidents`، `title` و `description` (هر دو الزامی)، `incident_severity_id`، `auto_resolve_incident`، `remediation_notes`، `on_call_policy_ids`، `label_ids`، `owner_team_ids`، `owner_user_ids`، `incident_member_roles`، `show_incident_on_status_page` و `is_private` را می‌پذیرد. هر مورد از `alerts` همین‌ها را می‌پذیرد، با `alert_severity_id` و `auto_resolve_alert`، و بدون `show_incident_on_status_page` و `incident_member_roles`. `incident_member_roles` به افراد در هر حادثه‌ای که معیار باز می‌کند نقشی می‌دهد، مثلاً فرماندهٔ حادثه: یک `{ role_id, user_id }` برای هر فرد و نقش.
 
 این معیار مانیتور را offline علامت می‌زند، حادثه‌ای باز می‌کند که سیاست آنکال را فرامی‌خواند، و وقتی سایت برگشت آن را حل می‌کند:
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## مانیتور بدون مرحله
 
 `monitor_steps` اختیاری است، ولی مانیتوری که بدون آن ساخته شود معیاری برای سنجیدن نتیجه ندارد: پراب‌ها از مانیتور بدون مرحله می‌گذرند، و مانیتور در همان وضعیتی می‌ماند که با آن شروع کرده است. state شما ویژگی را خالی نگه می‌دارد، و پلن تمیز می‌ماند. یک مانیتور دستی هرگز به مرحله نیاز ندارد: وضعیت آن را خودتان تعیین می‌کنید. هر نوع دیگر برای بررسی هر چیزی دست‌کم به یک مرحله نیاز دارد.
+
+## آنچه apply نگه می‌دارد
+
+apply‌ای که `monitor_steps` را تغییر می‌دهد کل مراحل را می‌فرستد، و OneUptime مراحلی را که نگه می‌دارد با آن‌ها جایگزین می‌کند. تنظیمی که پیکربندی شما می‌تواند بنویسد و ننوشته است حذف می‌شود، همان‌طور که plan نشان می‌دهد. در عوض، دو نوع تنظیم همان‌طور که OneUptime نگه‌شان می‌دارد حفظ می‌شوند، چون هیچ planی نمی‌تواند نشانشان دهد. apply ابتدا مراحلی را که OneUptime نگه می‌دارد می‌خواند، و اگر نتواند، بدون نوشتن چیزی شکست می‌خورد.
+
+تنظیمی که ارائه‌دهنده هیچ ویژگی‌ای برایش ندارد، مانند `snmpMonitor` که مراحل نوع مانیتور SNMP بازنشسته هنوز نگه می‌دارند، یا تنظیمی که OneUptime جدیدتری دارد و نسخهٔ ارائه‌دهندهٔ شما هنوز آن را نمی‌شناسد، روی مرحله، معیار، حادثه یا هشدار خودش می‌ماند. هر کدام همان‌طور جفت می‌شود که OneUptime آن‌ها را برای نگه داشتن شناسه‌هایشان جفت می‌کند: مرحله با جایگاهش، معیار با نامش و حادثه یا هشدار با عنوانش، وگرنه با جایگاه. وقتی پیکربندی شما آن مرحله، معیار، حادثه یا هشدار را حذف کند، تنظیم هم همراهش می‌رود.
+
+تنظیمی که با `jsonencode()` می‌نویسید، مانند `dns_monitor`، `incident_grouping` یا `metric_monitor_options` یک فیلتر، با آنچه می‌نویسد مقایسه می‌شود. OneUptime ممکن است چیزهای بیشتری در آن نگه دارد، پیش‌فرضی از خودش یا کلیدی که در داشبورد تنظیم شده: این تغییر نیست، و apply آن را نگه می‌دارد. کلیدی که از `jsonencode()` بیرون بیاورید حذف می‌شود. در یک فهرست، آنچه OneUptime بیشتر نگه می‌دارد مورد به مورد حفظ می‌شود، تا وقتی فهرست به اندازهٔ فهرست OneUptime مورد دارد.
 
 ## قالب انتقال
 

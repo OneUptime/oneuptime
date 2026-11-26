@@ -1,5 +1,7 @@
 import QueueWorker from "../../../Server/Infrastructure/QueueWorker";
-import JobDeadline from "../../../Server/Utils/JobDeadline";
+import JobDeadline, {
+  JOB_DEADLINE_GRACE_MS,
+} from "../../../Server/Utils/JobDeadline";
 import TimeoutException from "../../../Types/Exception/TimeoutException";
 
 jest.mock("../../../Server/Utils/Telemetry/CaptureSpan", () => {
@@ -123,7 +125,7 @@ describe("QueueWorker.runJobWithTimeout timer lifecycle", () => {
     await expect(result).resolves.toBeUndefined();
   });
 
-  it("rejects at the deadline with the existing timeout error", async () => {
+  it("rejects a job still going at the end of the grace with the existing timeout error", async () => {
     const job: DeferredJob = deferredJob();
     const result: Promise<void> = QueueWorker.runJobWithTimeout(100, () => {
       return job.promise;
@@ -131,7 +133,7 @@ describe("QueueWorker.runJobWithTimeout timer lifecycle", () => {
     const rejection: Promise<void> = expect(result).rejects.toEqual(
       new TimeoutException("Job Timeout"),
     );
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(100 + JOB_DEADLINE_GRACE_MS);
     await rejection;
     expect(jest.getTimerCount()).toBe(0);
     // The timeout is a deadline, not cancellation of the underlying work.
@@ -139,14 +141,14 @@ describe("QueueWorker.runJobWithTimeout timer lifecycle", () => {
     await job.promise;
   });
 
-  it("observes a job rejection after its deadline without an unhandled rejection", async () => {
+  it("observes a job rejection after its grace without an unhandled rejection", async () => {
     const job: DeferredJob = deferredJob();
     const result: Promise<void> = QueueWorker.runJobWithTimeout(10, () => {
       return job.promise;
     });
     const rejection: Promise<void> =
       expect(result).rejects.toBeInstanceOf(TimeoutException);
-    jest.advanceTimersByTime(10);
+    jest.advanceTimersByTime(10 + JOB_DEADLINE_GRACE_MS);
     await rejection;
     job.reject(new Error("late failure"));
     await Promise.resolve();
@@ -175,7 +177,7 @@ describe("QueueWorker.runJobWithTimeout timer lifecycle", () => {
     first.resolve();
     await firstResult;
     expect(jest.getTimerCount()).toBe(1);
-    jest.advanceTimersByTime(200);
+    jest.advanceTimersByTime(200 + JOB_DEADLINE_GRACE_MS);
     await secondRejection;
     expect(jest.getTimerCount()).toBe(0);
     second.resolve();
@@ -191,16 +193,30 @@ describe("QueueWorker.runJobWithTimeout timer lifecycle", () => {
     expect(jobTimer).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the original deadline-first ordering for equal-time completion", async () => {
+  it("records a job that finishes the moment its time limit runs out as finished", async () => {
     const result: Promise<void> = QueueWorker.runJobWithTimeout(100, () => {
       return new Promise<void>((resolve: () => void) => {
         setTimeout(resolve, 100);
       });
     });
+    jest.advanceTimersByTime(100);
+    await expect(result).resolves.toBeUndefined();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("fails a job that finishes a moment after its grace ends", async () => {
+    const result: Promise<void> = QueueWorker.runJobWithTimeout(100, () => {
+      return new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 100 + JOB_DEADLINE_GRACE_MS + 1);
+      });
+    });
     const rejection: Promise<void> =
       expect(result).rejects.toBeInstanceOf(TimeoutException);
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(100 + JOB_DEADLINE_GRACE_MS);
     await rejection;
+    // Only the job's own timer is left: it runs on, only failed.
+    expect(jest.getTimerCount()).toBe(1);
+    jest.advanceTimersByTime(1);
     expect(jest.getTimerCount()).toBe(0);
   });
 
@@ -256,9 +272,10 @@ describe("QueueWorker.runJobWithTimeout deadline", () => {
     expect(seen!.hasPassed()).toBe(false);
   });
 
-  it("passes the deadline with the timeout error when the limit runs out", async () => {
+  it("passes the deadline with the timeout error when the limit runs out, and fails the job with it after the grace", async () => {
     const job: DeferredJob = deferredJob();
     let seen: JobDeadline | null = null;
+    let isSettled: boolean = false;
 
     const result: Promise<void> = QueueWorker.runJobWithTimeout(
       100,
@@ -267,22 +284,30 @@ describe("QueueWorker.runJobWithTimeout deadline", () => {
         return job.promise;
       },
     );
+    result.catch(() => {
+      isSettled = true;
+    });
     const rejection: Promise<void> =
       expect(result).rejects.toBeInstanceOf(TimeoutException);
 
     expect(seen!.hasPassed()).toBe(false);
-    jest.advanceTimersByTime(100);
-    await rejection;
+    await advanceTimers(100);
 
+    // The deadline passes at the limit; the job is not failed for it yet.
     expect(seen!.hasPassed()).toBe(true);
     expect(seen!.signal.aborted).toBe(true);
     expect(seen!.getReason()).toBeInstanceOf(TimeoutException);
+    expect(isSettled).toBe(false);
+
+    await advanceTimers(JOB_DEADLINE_GRACE_MS, 1_000);
+    await rejection;
+
     // The job is failed with the same error its deadline passed with.
     await expect(result).rejects.toBe(seen!.getReason());
     job.resolve();
   });
 
-  it("stops a job that loops at its next check once the limit runs out", async () => {
+  it("stops a job that loops at its next check once the limit runs out, and records it as finished", async () => {
     let pagesRead: number = 0;
     let stoppedBecause: Error | null = null;
 
@@ -300,18 +325,16 @@ describe("QueueWorker.runJobWithTimeout deadline", () => {
         stoppedBecause = deadline.getReason();
       },
     );
-    const rejection: Promise<void> =
-      expect(looping).rejects.toBeInstanceOf(TimeoutException);
 
     await advanceTimers(1_000);
-    await rejection;
 
     // Pages at 300, 600 and 900 ms; the one in flight at 1,000 ms finishes.
     await advanceTimers(200);
+    await expect(looping).resolves.toBeUndefined();
     expect(pagesRead).toBe(4);
     expect(stoppedBecause).toBeInstanceOf(TimeoutException);
 
-    // And it reads nothing more after that.
+    // And it reads nothing more after that, and holds no timer.
     await advanceTimers(5_000);
     expect(pagesRead).toBe(4);
     expect(jest.getTimerCount()).toBe(0);
@@ -336,10 +359,225 @@ describe("QueueWorker.runJobWithTimeout deadline", () => {
     });
 
     jest.advanceTimersByTime(100);
-    await firstRejection;
 
     expect(deadlines[0]!.hasPassed()).toBe(true);
     expect(deadlines[1]!.hasPassed()).toBe(false);
+
+    jest.advanceTimersByTime(JOB_DEADLINE_GRACE_MS);
+    await firstRejection;
     first.resolve();
   });
+});
+
+/*
+ * A run that stops at its deadline used to be failed in the same instant
+ * ("Job Timeout"), so a job working through a backlog over several runs -
+ * the owner notification jobs, CheckStalePolls, ProcessAutoImportRules -
+ * read as a failing job every run (OneUptime issue #11017). Now a job has
+ * JOB_DEADLINE_GRACE_MS past its limit to finish what is in flight, and is
+ * recorded as it settles; only a job still going after that is failed.
+ */
+describe("QueueWorker.runJobWithTimeout grace after the deadline", () => {
+  const FIVE_MINUTES: number = 5 * 60 * 1000;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it("is thirty seconds", () => {
+    expect(JOB_DEADLINE_GRACE_MS).toBe(30 * 1000);
+  });
+
+  it("records a backlog run that stops at its deadline as finished, not as a timeout", async () => {
+    // A page of owners told every 10 s; far more pages than one run reaches.
+    const backlogPages: number = 1_000;
+    let pagesTold: number = 0;
+    let stoppedAtDeadline: boolean = false;
+
+    const run: Promise<void> = QueueWorker.runJobWithTimeout(
+      FIVE_MINUTES,
+      async (deadline: JobDeadline): Promise<void> => {
+        while (pagesTold < backlogPages) {
+          if (deadline.hasPassed()) {
+            stoppedAtDeadline = true;
+            return;
+          }
+
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 10_000);
+          });
+          pagesTold++;
+        }
+      },
+    );
+
+    await advanceTimers(FIVE_MINUTES, 1_000);
+    await advanceTimers(10_000, 1_000);
+
+    await expect(run).resolves.toBeUndefined();
+    expect(stoppedAtDeadline).toBe(true);
+    // 30 pages in five minutes; the next run carries on with the rest.
+    expect(pagesTold).toBe(30);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("records a job that returns a moment before its grace ends as finished", async () => {
+    const result: Promise<void> = QueueWorker.runJobWithTimeout(100, () => {
+      return new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 100 + JOB_DEADLINE_GRACE_MS - 1);
+      });
+    });
+
+    jest.advanceTimersByTime(100 + JOB_DEADLINE_GRACE_MS - 1);
+    await expect(result).resolves.toBeUndefined();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("fails a job whose page in flight outlasts the grace, with the deadline's reason", async () => {
+    let seen: JobDeadline | null = null;
+
+    // One page takes two minutes: the one in flight at the limit overruns.
+    const run: Promise<void> = QueueWorker.runJobWithTimeout(
+      FIVE_MINUTES,
+      async (deadline: JobDeadline): Promise<void> => {
+        seen = deadline;
+
+        while (!deadline.hasPassed()) {
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 2 * 60 * 1000);
+          });
+        }
+      },
+    );
+    const rejection: Promise<void> = expect(run).rejects.toEqual(
+      new TimeoutException("Job Timeout"),
+    );
+
+    await advanceTimers(FIVE_MINUTES + JOB_DEADLINE_GRACE_MS, 1_000);
+    await rejection;
+    await expect(run).rejects.toBe(seen!.getReason());
+
+    // The page in flight still finishes, and the loop stops there.
+    await advanceTimers(60_000, 1_000);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("fails a job that throws during the grace with its own error", async () => {
+    const failure: Error = new Error("the page could not be written");
+
+    const run: Promise<void> = QueueWorker.runJobWithTimeout(
+      100,
+      async (deadline: JobDeadline): Promise<void> => {
+        await new Promise<void>((resolve: () => void) => {
+          deadline.onPassed(() => {
+            setTimeout(resolve, 1_000);
+          });
+        });
+
+        throw failure;
+      },
+    );
+
+    await advanceTimers(100 + 1_000);
+    await expect(run).rejects.toBe(failure);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("holds one timer at a time: the deadline's, then the grace's", async () => {
+    const job: DeferredJob = deferredJob();
+
+    const result: Promise<void> = QueueWorker.runJobWithTimeout(100, () => {
+      return job.promise;
+    });
+
+    expect(jest.getTimerCount()).toBe(1);
+    jest.advanceTimersByTime(100);
+    // The deadline's timer fired; the grace's waits in its place.
+    expect(jest.getTimerCount()).toBe(1);
+
+    job.resolve();
+    await expect(result).resolves.toBeUndefined();
+    // A job that settles in its grace leaves no timer behind.
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("still fails a job that hangs after its deadline was ended early, at the limit and the grace", async () => {
+    const job: DeferredJob = deferredJob();
+    let seen: JobDeadline | null = null;
+    let isSettled: boolean = false;
+
+    const result: Promise<void> = QueueWorker.runJobWithTimeout(
+      1_000,
+      (deadline: JobDeadline) => {
+        seen = deadline;
+        return job.promise;
+      },
+    );
+    result.catch(() => {
+      isSettled = true;
+    });
+    const rejection: Promise<void> = expect(result).rejects.toEqual(
+      new TimeoutException("Job Timeout"),
+    );
+
+    // Whoever runs the job ends it early: a cron run whose lock lapsed.
+    const lockLapsed: Error = new Error("its lock lapsed");
+    seen!.end(lockLapsed);
+
+    await advanceTimers(1_000 + JOB_DEADLINE_GRACE_MS - 1_000, 1_000);
+    expect(isSettled).toBe(false);
+
+    await advanceTimers(1_000);
+    await rejection;
+    // The first reason the deadline passed with stands.
+    expect(seen!.getReason()).toBe(lockLapsed);
+    job.resolve();
+  });
+
+  it("records a job that returns after its deadline was ended early as finished", async () => {
+    const result: Promise<void> = QueueWorker.runJobWithTimeout(
+      FIVE_MINUTES,
+      async (deadline: JobDeadline): Promise<void> => {
+        deadline.end(new Error("its lock lapsed"));
+
+        while (!deadline.hasPassed()) {
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 1_000);
+          });
+        }
+      },
+    );
+
+    await expect(result).resolves.toBeUndefined();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it.each([0, 1, 60_000])(
+    "gives a %i ms time limit the same grace",
+    async (limit: number) => {
+      const job: DeferredJob = deferredJob();
+      let isSettled: boolean = false;
+
+      const result: Promise<void> = QueueWorker.runJobWithTimeout(limit, () => {
+        return job.promise;
+      });
+      result.catch(() => {
+        isSettled = true;
+      });
+      const rejection: Promise<void> =
+        expect(result).rejects.toBeInstanceOf(TimeoutException);
+
+      await advanceTimers(limit + JOB_DEADLINE_GRACE_MS - 1, 1_000);
+      expect(isSettled).toBe(false);
+
+      await advanceTimers(1);
+      await rejection;
+      job.resolve();
+    },
+  );
 });

@@ -249,11 +249,9 @@ beforeEach(() => {
   infoSpy = jest.spyOn(logger, "info").mockImplementation(() => {
     return undefined as never;
   });
-  jest
-    .spyOn(ProjectLanguage, "getLanguage")
-    .mockImplementation((async () => {
-      return projectLanguage;
-    }) as never);
+  jest.spyOn(ProjectLanguage, "getLanguage").mockImplementation((async () => {
+    return projectLanguage;
+  }) as never);
   warnSpy = jest.spyOn(logger, "warn").mockImplementation(() => {
     return undefined as never;
   });

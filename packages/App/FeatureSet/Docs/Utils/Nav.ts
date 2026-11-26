@@ -977,6 +977,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/cloud-costs",
       },
       {
+        title: "Cloud Cost Allocation",
+        url: "/docs/telemetry/cloud-cost-allocation",
+      },
+      {
         title: "Stream CloudWatch Metrics and Logs",
         url: "/docs/telemetry/cloud-streaming",
       },

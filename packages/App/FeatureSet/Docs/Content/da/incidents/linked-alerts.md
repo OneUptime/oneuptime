@@ -155,7 +155,7 @@ sequenceDiagram
 
 Når du sender, kontrollerer serveren advarslerne, før den opretter noget: højst 50 af dem, hver en advarsel i dette projekt, som du må se, og du skal have lov til at knytte advarsler til hændelser. Fejler en kontrol, afvises anmodningen, og ingen hændelse oprettes — så et forkert advarsels-id bruger aldrig et hændelsesnummer. Når hændelsen findes — og når dens privatlivsregler har kørt, så tilknytningerne ved, om den er privat — knyttes hver advarsel, før anmodningen vender tilbage, så hændelsens side **Tilknyttede advarsler** allerede viser dem. Fejler en enkelt tilknytning — fordi advarslen blev slettet et øjeblik forinden for eksempel — erklæres hændelsen alligevel, og de andre advarsler knyttes alligevel.
 
-Hændelsens feed får én post **Advarsel tilknyttet**, der nævner advarslerne, skrevet efter **Hændelse oprettet**, i stedet for én pr. advarsel — se [Feedet, Slack og Microsoft Teams](#feedet-slack-og-microsoft-teams).
+Hændelsens feed får én post **Advarsel tilknyttet**, der nævner advarslerne, i stedet for én pr. advarsel, og den er feedets første post, før **Hændelse oprettet** — se [Feedet, Slack og Microsoft Teams](#feedet-slack-og-microsoft-teams).
 
 ### Advarslernes ejere ejer hændelsen
 
@@ -312,7 +312,7 @@ Det gælder også, når begge er private, fordi en privat advarsel og en privat 
 
 **Kun hændelsens poster når Slack og Microsoft Teams.** **Advarsel tilknyttet** og **Advarsel frakoblet** slås op, hvor hændelsens andre feedopdateringer går hen. Posterne på advarslens side bliver i dashboardet, så en tilknytning giver én besked i stedet for to. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams) for at sætte de kanaler op.
 
-**At erklære en hændelse fra advarsler skriver én post, ikke én pr. advarsel.** De tilknytninger, der laves, mens hændelsen erklæres, skriver ingen egne poster **Advarsel tilknyttet**. I stedet får hændelsen, når dens post **Hændelse oprettet** er ude — og hændelsens egne Slack- og Microsoft Teams-kanaler, hvis du bruger dem, er oprettet — én post **Advarsel tilknyttet**: "Declared from 3 alerts:", efterfulgt af én linje pr. advarsel med dens nummer og titel (en privat advarsel uden sin titel). Det er den ene besked, der slås op i Slack og Microsoft Teams. Hver advarsel får stadig sin egen post **Tilknyttet hændelse**.
+**At erklære en hændelse fra advarsler skriver én post, ikke én pr. advarsel.** De tilknytninger, der laves, mens hændelsen erklæres, skriver ingen egne poster **Advarsel tilknyttet**. I stedet får hændelsen én post **Advarsel tilknyttet**: "Declared from 3 alerts:", efterfulgt af én linje pr. advarsel med dens nummer og titel (en privat advarsel uden sin titel). Det var erklæringen fra advarslerne, der skabte hændelsen, så posten er den første i hændelsens feed, før **Hændelse oprettet** og før de ejere og roller, den får, mens den erklæres. Det er den ene besked, der slås op i Slack og Microsoft Teams, hvor den følger efter **Hændelse oprettet**. Hver advarsel får stadig sin egen post **Tilknyttet hændelse**.
 
 Begge feeds' dialoger **Filtrér efter begivenhedstype**, i hvert feeds menu **⋯**, viser disse begivenhedstyper, så du kan vise eller skjule tilknytningsaktivitet som enhver anden slags post. Mere om hændelsens feed i [Hændelsesnoter, ejere og feed](/docs/incidents/notes-owners-and-feed).
 

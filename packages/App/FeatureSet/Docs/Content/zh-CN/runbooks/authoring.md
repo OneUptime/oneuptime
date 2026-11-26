@@ -140,7 +140,7 @@ config = {
 | 字段 | 作用 | 默认值 |
 | --- | --- | --- |
 | **Runner** | 位于 **更多字段** 中。运行该步骤的 Runner。只有这个 Runner 可以领取该作业。全局 Runner 只运行 JavaScript 步骤。 | 你设置的项目默认 Runner |
-| **Bash 脚本** | 脚本。输出（stdout 和 stderr）最多记录 50 KB，非零退出码会使步骤失败。 | — |
+| **Bash 脚本** | 脚本。输出（stdout 和 stderr）最多记录 50 KB，非零退出码会使步骤失败。它在 Runner 的环境中运行，但不带 Runner 自己的 `ONEUPTIME_RUNNER_` 设置，包括其密钥；即使脚本仍打印出密钥，也会存储为 `[REDACTED]` 。 | — |
 | **执行超时** | Runner 在用 `SIGKILL` 终止脚本之前允许其运行的时长。对于确实需要几分钟的步骤，请调高它。 | 30 秒 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。 | 2 分钟 |
 
@@ -195,7 +195,7 @@ systemctl status nginx --no-pager
 | --- | --- |
 | **Runner** | 位于 **更多字段** 中。运行 kubectl 的 Runner。它必须能访问集群的 API 服务器。未选择 Runner 的步骤在项目默认 Runner 上运行。 |
 | **Kubeconfig** | 保存集群 kubeconfig 的机密变量，或 **Runner 自身的访问权限** ：使用 Runner 自己的 kubeconfig，或在集群内运行时使用其服务账号。Runner 会把 kubeconfig 写入只有它能读取的文件，并在脚本结束时删除。 |
-| **脚本** | kubectl 命令。输出最多记录 50 KB，退出码非零会让步骤失败。 |
+| **脚本** | kubectl 命令。输出最多记录 50 KB，退出码非零会让步骤失败。与 Bash 步骤的脚本一样，它运行时不带 Runner 自己的 `ONEUPTIME_RUNNER_` 设置。 |
 | **执行超时** | Runner 在用 `SIGKILL` 停止脚本之前允许它运行的时长。默认 30 秒。 |
 | **领取超时** | Worker 等待 Runner 领取作业的时长。默认 2 分钟。 |
 

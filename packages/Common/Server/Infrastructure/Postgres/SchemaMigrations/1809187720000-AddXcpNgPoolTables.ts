@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddXcpNgPoolTables1809187680000 implements MigrationInterface {
-  public name = "AddXcpNgPoolTables1809187680000";
+export class AddXcpNgPoolTables1809187720000 implements MigrationInterface {
+  public name = "AddXcpNgPoolTables1809187720000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

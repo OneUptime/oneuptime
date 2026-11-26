@@ -22,8 +22,10 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
  * and its AI credits are still topped up - by hand or by Auto Recharge - and
  * the top-up is billed through the marketplace with the next hourly usage
  * report (MarketplaceChargeService) instead of being charged to a card. When
- * the marketplace subscription is not active, nothing is credited and the
- * owners are told to put the subscription right - not to add a card.
+ * the marketplace subscription is not active, nothing is credited, and
+ * whoever needs to put the subscription right is told so - not to add a
+ * card: the person who pressed Add to Balance, in its dialog, or the owners,
+ * by email, when it was Auto Recharge that was refused (#11052).
  *
  * Card projects are untouched: the same suite pins that they still charge
  * the card.
@@ -64,6 +66,9 @@ const marketplaceProject: () => Project = (): Project => {
   project.enableAutoRechargeSmsOrCallBalance = true;
   project.autoRechargeSmsOrCallByBalanceInUSD = 20;
   project.autoRechargeSmsOrCallWhenCurrentBalanceFallsInUSD = 10;
+  project.enableAutoRechargeAiBalance = true;
+  project.autoAiRechargeByBalanceInUSD = 20;
+  project.autoRechargeAiWhenCurrentBalanceFallsInUSD = 10;
   return project;
 };
 
@@ -186,11 +191,24 @@ describe("a marketplace-billed project's SMS and call balance", () => {
     expect(sendEmailSpy).not.toHaveBeenCalled();
   });
 
-  test("an inactive subscription credits nothing, and the owners are told to fix it there - once", async () => {
+  test("by hand: an inactive subscription credits nothing, the person who asked reads why, and no owner is emailed", async () => {
+    recordChargeSpy.mockRejectedValue(new BadDataException(INACTIVE_MESSAGE));
+
+    // What the dialog shows: the subscription to put right, not a card.
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 50),
+    ).rejects.toThrow(new BadDataException(INACTIVE_MESSAGE));
+
+    expect(smsCreditSpy).not.toHaveBeenCalled();
+    expect(sendEmailSpy).not.toHaveBeenCalled();
+    expect(updateOneByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("Auto Recharge: an inactive subscription credits nothing, and the owners are told to fix it there - once", async () => {
     recordChargeSpy.mockRejectedValue(new BadDataException(INACTIVE_MESSAGE));
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 50),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow(INACTIVE_MESSAGE);
 
     expect(smsCreditSpy).not.toHaveBeenCalled();
@@ -222,17 +240,33 @@ describe("a marketplace-billed project's SMS and call balance", () => {
     expect(rememberFailureSpy).toHaveBeenCalled();
   });
 
-  test("an unexpected failure is not quoted to the owners", async () => {
+  test("an unexpected failure of Auto Recharge is not quoted to the owners", async () => {
     recordChargeSpy.mockRejectedValue(
       new Error('relation "MarketplaceCharge" does not exist'),
     );
 
     await expect(
-      NotificationService.rechargeBalance(PROJECT_ID, 50),
+      NotificationService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow();
 
     expect(sendEmailSpy.mock.calls[0]![2]).toContain("Please try again later.");
     expect(sendEmailSpy.mock.calls[0]![2]).not.toContain("relation");
+  });
+
+  test("an unexpected failure by hand emails nobody, and reaches the dialog as it came", async () => {
+    recordChargeSpy.mockRejectedValue(
+      new Error('relation "MarketplaceCharge" does not exist'),
+    );
+
+    /*
+     * Not one of OneUptime's refusals: the server answers it as a failure
+     * nobody explained, with a reference, and keeps its words for the log.
+     */
+    await expect(
+      NotificationService.rechargeBalance(PROJECT_ID, 50),
+    ).rejects.toThrow('relation "MarketplaceCharge" does not exist');
+
+    expect(sendEmailSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -258,11 +292,23 @@ describe("a marketplace-billed project's AI credits", () => {
     );
   });
 
-  test("an inactive subscription credits nothing, and the owners are told to fix it there", async () => {
+  test("by hand: an inactive subscription credits nothing, the person who asked reads why, and no owner is emailed", async () => {
     recordChargeSpy.mockRejectedValue(new BadDataException(INACTIVE_MESSAGE));
 
     await expect(
       AIBillingService.rechargeBalance(PROJECT_ID, 30),
+    ).rejects.toThrow(new BadDataException(INACTIVE_MESSAGE));
+
+    expect(atomicAddSpy).not.toHaveBeenCalled();
+    expect(sendEmailSpy).not.toHaveBeenCalled();
+    expect(updateOneByIdSpy).not.toHaveBeenCalled();
+  });
+
+  test("Auto Recharge: an inactive subscription credits nothing, and the owners are told to fix it there", async () => {
+    recordChargeSpy.mockRejectedValue(new BadDataException(INACTIVE_MESSAGE));
+
+    await expect(
+      AIBillingService.rechargeIfBalanceIsLow(PROJECT_ID),
     ).rejects.toThrow(INACTIVE_MESSAGE);
 
     expect(atomicAddSpy).not.toHaveBeenCalled();

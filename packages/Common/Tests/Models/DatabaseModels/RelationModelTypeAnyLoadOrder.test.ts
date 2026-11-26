@@ -106,8 +106,9 @@ const requiresOf: (file: string) => Set<string> = (
    * Only the requires that run as the file loads make a cycle: one inside a
    * function runs when the function is called, once every model has loaded
    * - DatabaseBaseModel reads User so for whoever last modified a record,
-   * as User extends it (#10290). A require at the top of the file, in a
-   * class's decorators or in a property's initial value runs as it loads.
+   * as User extends it (#10290), through UserModelType. A require at the
+   * top of the file, in a class's decorators or in a property's initial
+   * value runs as it loads.
    */
   const emitted: ts.SourceFile = ts.createSourceFile(
     file,
@@ -390,8 +391,10 @@ describe("the models' import cycles", () => {
 
   /*
    * The base model reads User only once a relation to whoever last
-   * modified a record is resolved (#10290): User extends it, so a require
-   * as it loads would be a cycle every model is in.
+   * modified a record is resolved (#10290), through UserModelType: User
+   * extends it, so a require as it loads would be a cycle every model is
+   * in. On a server UserModelType requires User when it is called; User says
+   * it is the User model as it loads, through the same module.
    */
   test("leave out a require that runs only when it is called", () => {
     const baseModel: string = path.join(
@@ -399,8 +402,19 @@ describe("the models' import cycles", () => {
       "DatabaseBaseModel",
       "DatabaseBaseModel.ts",
     );
+    const userModelType: string = path.join(
+      DATABASE_MODELS,
+      "DatabaseBaseModel",
+      "UserModelType.ts",
+    );
 
-    expect(fs.readFileSync(baseModel, "utf8")).toContain('require("../User")');
+    expect(requiresOf(baseModel).has(userModelType)).toBe(true);
+    expect(fs.readFileSync(userModelType, "utf8")).toContain(
+      'require("../User")',
+    );
+    expect(
+      requiresOf(userModelType).has(path.join(DATABASE_MODELS, "User.ts")),
+    ).toBe(false);
     expect(
       requiresOf(baseModel).has(path.join(DATABASE_MODELS, "User.ts")),
     ).toBe(false);

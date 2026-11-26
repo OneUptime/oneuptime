@@ -3,6 +3,12 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
 import { AddIncidentPostmortemStatus1805900000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1805900000000-AddIncidentPostmortemStatus";
 import { AddIncidentPostmortemStatusIndexesAndKey1805910000000 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1805910000000-AddIncidentPostmortemStatusIndexesAndKey";
+import { getAddRecordActorColumnsStatement } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187400000-AddRecordCreatedByAndLastModifiedColumns";
+import {
+  DELETED_BY_USER_TABLES,
+  DeletedByUserTable,
+  getDropDeletedByUserStatement,
+} from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187480000-DropDeletedByUserColumns";
 import IncidentPostmortemStatusService, {
   getPostmortemStatusBackfillSql,
 } from "../../../Server/Services/IncidentPostmortemStatusService";
@@ -231,6 +237,22 @@ describePostgres(
         await queryRunner.rollbackTransaction();
         throw error;
       }
+
+      /*
+       * And what two migrations after it do to every table, this one among
+       * them: add what created a row and what last changed it
+       * (AddRecordCreatedByAndLastModifiedColumns, #10290), and drop who
+       * deleted it (DropDeletedByUserColumns, #10469). Then the table is
+       * the one the whole chain leaves.
+       */
+      await queryRunner.query(getAddRecordActorColumnsStatement(STATUS_TABLE));
+      await queryRunner.query(
+        getDropDeletedByUserStatement(
+          DELETED_BY_USER_TABLES.find((entry: DeletedByUserTable): boolean => {
+            return entry.table === STATUS_TABLE;
+          })!,
+        ),
+      );
 
       /*
        * Column for column as the drift checked table, the id's default

@@ -65,6 +65,7 @@ Abra **Produtos → Eventos de segurança**, em **Segurança**. O menu dele tem 
 | **Modelos de notas** | Configurações | Texto pronto para as notas que sua equipe escreve em seus casos |
 | **Numeração** | Configurações | O texto antes dos números de caso e o número que o próximo caso recebe |
 | **Pontuação de risco** | Configurações | Se o risco de uma entidade abre um caso, com que risco, e quanto importa cada entidade |
+| **Solicitações de apagamento** | Configurações | As pessoas apagadas a pedido, e o que cada apagamento mudou |
 
 **Detecções**, **IA**, **Conexões** e **Configurações**, configuradas uma vez, ficam recolhidas até você abri-las. Novo na segurança? [Primeiros passos com a segurança](/docs/telemetry/security-getting-started) a configura em dois cliques.
 
@@ -246,7 +247,7 @@ Ative **Fluxos de rede**, em **Seus dados do OneUptime** na página **Conexões*
 - o intervalo de cada uma das descobertas dela, enquanto a varredura está em andamento;
 - os hosts e as portas que os monitores dela verificam.
 
-Ele é guardado como um evento informativo, `oneuptime-probe-traffic`, que nomeia a sonda, e nenhuma regra o lê. **Fluxos de rede** diz quantos foram postos de lado no último dia, com **Ver**. Qualquer outra coisa vinda do endereço de uma sonda é contada como o tráfego de qualquer um, e uma varredura além do trabalho da sonda é relatada, nomeando a sonda. Uma sonda é reconhecida pelo endereço de onde ela se apresenta e pelos endereços das suas próprias interfaces de rede, que ela lista sempre que se apresenta.
+Ele é guardado como um evento informativo, `oneuptime-probe-traffic`, que nomeia a sonda, e nenhuma regra o lê. **Fluxos de rede** diz quantos foram postos de lado no último dia, com **Ver**. Qualquer outra coisa vinda do endereço de uma sonda é contada como o tráfego de qualquer um, e uma varredura além do trabalho da sonda é relatada, nomeando a sonda. Uma sonda é reconhecida pelo endereço de onde ela se apresenta e pelos endereços das suas próprias interfaces de rede, que ela lista sempre que se apresenta. Uma sonda personalizada sem a rede do host, como um pod do Kubernetes ou um contêiner em uma rede bridge do Docker, é reconhecida também pelos endereços do seu host, que `PROBE_HOST_IP_ADDRESSES` informa a ela: até tê-los, as consultas dela saem de um endereço pelo qual não é reconhecida e são relatadas como varreduras. Veja [O que uma sonda envia quando se comunica](/docs/probe/custom-probe#o-que-uma-sonda-envia-quando-se-comunica).
 
 ### Conecte um produto de segurança
 
@@ -288,6 +289,55 @@ Cada evento é salvo com campos tipados e o payload de origem:
 
 Os eventos armazenados antes do OneUptime 14.0.84 deixam vazios os campos de processo e nomeiam seu processo apenas como `principalProcess`, o processo que agiu. Eles não são preenchidos depois: mantêm o que tinham ao serem armazenados até o fim da retenção.
 
+### Qual endereço um evento indica
+
+Um evento indica o endereço de onde veio uma requisição somente quando o remetente da requisição não poderia tê-lo escrito. Esse endereço é verificado e se torna o **IP de origem** do evento: as regras de detecção o contam, a inteligência de ameaças o compara e o **Plano de resposta** de um caso oferece bloqueá-lo. Qualquer outro endereço que uma requisição indique é apenas declarado: o evento o guarda como **IP declarado**, e nada o conta nem o bloqueia.
+
+- O endereço da própria conexão é verificado: o `network.peer.address` de um span de servidor, ou o primeiro campo de uma linha do log de acesso de um servidor web. Ninguém pode escrevê-lo em uma requisição.
+- Atrás de um proxy em que você confia, o endereço da conexão é o do proxy, e o cliente é o endereço que o proxy encaminhou em `X-Forwarded-For`. Cada proxy acrescenta o endereço de onde recebeu a conexão, então o OneUptime lê o cabeçalho a partir da direita e pega o primeiro endereço que não é um proxy em que você confia. O que um remetente escreve no cabeçalho fica à esquerda e continua sendo uma declaração.
+- Um endereço que uma requisição indica sobre si mesma é declarado: `client.address`, que a instrumentação preenche a partir da esquerda do cabeçalho, o resto de `X-Forwarded-For` e `Forwarded`.
+
+Um endereço declarado nunca é bloqueado a partir de um caso: qualquer um pode enviar `X-Forwarded-For: 192.0.2.44`, e um bloqueio cortaria quem quer que seja 192.0.2.44. Um evento com apenas um endereço declarado tem um **Plano de resposta** que pede que você encontre o verdadeiro nos logs do seu balanceador de carga ou firewall.
+
+Registre duas coisas nos spans de servidor do seu app para que os endereços dele sejam verificados: o endereço da própria conexão, `network.peer.address`, que as instrumentações HTTP do OpenTelemetry definem, e, atrás de um proxy, o cabeçalho `X-Forwarded-For`, que elas registram como `http.request.header.x-forwarded-for` assim que você o lista em `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. Um log de acesso JSON é lido da mesma forma: o campo de cliente dele, como `remote_addr`, é o endereço da conexão, e o campo `http_x_forwarded_for` é o cabeçalho.
+
+#### Proxies confiáveis
+
+O Eventos de segurança confia que um proxy diga quem foi o cliente dele quando o endereço dele é:
+
+| Confiável | Por quê |
+| --- | --- |
+| Privado, de loopback ou link-local, como `10.0.0.5` | Sempre: ninguém o tem na internet, então é um balanceador de carga ou um ingress dentro da sua rede |
+| Listado em **Proxies confiáveis** | Você o listou |
+| Nos intervalos publicados de uma borda que você conectou, como [Cloudflare](/docs/integrations/cloudflare) | Enquanto a conexão existir |
+| Um dos seus próprios balanceadores de carga de aplicação | A menos que você o desative |
+
+**Eventos de segurança → Conexões → Mais configurações** contém **Proxies confiáveis**, a lista que você escreve, e **Confiáveis automaticamente**, que mostra o resto e o porquê. Liste um proxy em **Proxies confiáveis**, um endereço ou intervalo por linha, quando o endereço dele é público e nada mais confia nele: uma CDN que você não conectou, um balanceador de carga que chega ao seu app pela internet, ou um proxy reverso como o nginx em um servidor com endereço público na frente do seu app. Até você fazer isso, todo ataque por ele é atribuído ao proxy. Atrás de um Application Load Balancer externo global do Google Cloud, as conexões do seu app vêm dos front-ends do Google: liste `35.191.0.0/16` e `130.211.0.0/22`.
+
+Os seus próprios balanceadores de carga de aplicação são os que as suas [contas de nuvem conectadas](/docs/telemetry/cloud-accounts) listam: AWS Application Load Balancers, AWS Classic Load Balancers cujos listeners são todos HTTP ou HTTPS, Google Cloud Application Load Balancers e Azure Application Gateways, pelos endereços públicos deles. Cada um acrescenta a `X-Forwarded-For` o cliente que encaminha. Um balanceador de carga do Google Cloud acrescenta o próprio endereço depois do endereço do cliente, e um Application Gateway chega a um backend público a partir do próprio endereço, então sem eles todo ataque por um deles seria atribuído ao balanceador de carga. **Seus balanceadores de carga**, em **Confiáveis automaticamente**, os lista, e um Proprietário do projeto, Administrador do projeto ou Administrador de segurança pode desativá-lo.
+
+Nada mais seu é confiável automaticamente: nem seus hosts, nós do Kubernetes, sondas ou máquinas virtuais, nem um gateway NAT, nem um Network, Gateway ou Azure Load Balancer. Eles não encaminham ninguém, ou repassam uma requisição como ela chegou, então o que roda neles poderia indicar qualquer cliente: uma requisição que um monitor envia com cabeçalhos próprios, um pod, um notebook atrás do gateway. Se um deles for o seu proxy, adicione-o a **Proxies confiáveis**. Um ingress do Kubernetes é confiável como o balanceador de carga que ele é: um ingress do GKE é um Google Cloud Application Load Balancer, um ingress do Application Gateway no AKS um Application Gateway, e um ingress do EKS da classe `alb` um AWS Application Load Balancer. Um controlador de ingress dentro do seu cluster encaminha a partir de um endereço privado, que é sempre confiável.
+
+Uma mudança em qualquer um deles entra em vigor em até um minuto, e um novo balanceador de carga passa a ser confiável em até cinco.
+
+#### Logs de acesso que terminam com X-Forwarded-For
+
+Atrás de um balanceador de carga, muitos servidores web registram o endereço encaminhado por último, como faz o próprio formato `main` do nginx:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+Uma linha nunca diz o que são os campos dela, então o último campo só é lido como `X-Forwarded-For` depois que você ativa **Logs terminam com X-Forwarded-For**, em **Logs de acesso** dentro de **Mais configurações**, e apenas:
+
+- quando o primeiro campo da linha é um proxy em que você confia: uma linha de um cliente que chegou ao seu servidor web diretamente é desse cliente;
+- no formato combined, com exatamente um campo entre aspas depois do user agent e nada depois dele;
+- quando esse campo é `-` ou uma lista de endereços cujo último não tem porta.
+
+Deixe desativado quando o seu formato termina com outro cabeçalho que contém um endereço, como `X-Real-IP`, ou quando o seu servidor web escreve cabeçalhos sem escapar as aspas deles, como faz o `morgan` do Express: o próprio user agent de uma requisição poderia então acrescentar um campo. Um log de acesso JSON não precisa de nenhuma opção, já que os campos dele têm nome.
+
 ### Ocultado por uma regra de limpeza
 
 Uma regra de endereço IP que apaga ou mascara seus logs ou traces oculta o endereço de onde veio um ataque antes que Eventos de segurança os leia. O evento é guardado mesmo assim, sem endereço, e onde quer que fosse nomear o endereço, diz que uma regra de mascaramento o ocultou:
@@ -303,6 +353,8 @@ Uma regra que aplica hash guarda o endereço para Eventos de segurança, então 
 Uma regra de detecção que conta por endereço deve contar por `principalIp` ou `targetIp`, que nomeiam o endereço por trás do token de uma regra que aplica hash, como fazem as regras da biblioteca de regras. O campo de endereço próprio de um formato, como `openstack.audit.initiator_address` ou `asa.src_ip`, só guarda um endereço escrito no log, então fica vazio onde quer que uma regra de mascaramento tenha ocultado um.
 
 Uma regra que apaga ou mascara um usuário o oculta da mesma forma: onde o evento nomearia o usuário, **Usuário de origem** ou **Usuário de destino** diz que uma regra de mascaramento o ocultou. Onde Eventos de segurança lê um usuário, uma regra que aplica hash guarda o usuário para ele: o `enduser.id` ou o `user.id` de uma requisição, o usuário de uma chamada de IA e o usuário que uma linha de log nomeia, como o principal de um log de auditoria da nuvem. Assim, o evento nomeia o usuário por trás do token, um caso sobre ele nomeia a conta, e um playbook pode agir sobre ela como sobre qualquer outro usuário. O que a regra deixou fica em `oneuptime.principal_user_hashed_as` ou em `oneuptime.target_user_hashed_as`, para você encontrar o usuário nos seus logs e traces, que guardam só o token. Um token sem usuário guardado, como um criado antes de os tokens terem uma chave, continua sendo o usuário do evento: as regras o contam como uma só conta, e nenhum playbook age sobre ele.
+
+O painel do evento indica isso sob o usuário que ele nomeia em **Usuário de origem** e **Usuário de destino**: “Com hash nos seus registros como …”, ou “Com hash nos seus traços como …” para um usuário lido dos seus traces, em que … é o token. O token é um link que o procura nos seus logs ou traces, de um dia antes do evento a um dia depois, no campo de onde o usuário foi lido: o corpo de uma linha de log ou um dos seus atributos, ou um atributo de um span, como `user.id` ou o usuário de uma chamada de IA. Esse campo está em `oneuptime.principal_user_hashed_field` ou `oneuptime.target_user_hashed_field`. Um usuário apagado a pedido mostra **Apagada a pedido** em vez disso, e o evento mostra o token dele: veja [Apagar uma pessoa](#apagar-uma-pessoa).
 
 ## Explorar os eventos de segurança
 
@@ -548,6 +600,8 @@ O agrupamento e a contagem distinta aceitam os mesmos nomes de campo que a regra
 | Password spraying: um IP falhando em 5 contas diferentes | `principalIp` | `principalUser` | 5 |
 | Varredura de portas: um IP alcançando 20 portas diferentes | `principalIp` | `targetPort` | 20 |
 
+Uma regra com um **Campo de agrupamento** que precisa de mais de um evento em um grupo, por um limite acima de 1 ou um **Campo de contagem distinta**, deixa de fora os eventos que não têm valor para o campo dela: contados, todos se somariam como um único valor, cada login com falha sem endereço como um único endereço IP. Uma regra que dispara a cada evento continua disparando para eles. **Regras de detecção** diz, abaixo do nome de uma regra, quantos dos eventos correspondentes do último dia ela não conseguiu contar, e a linha abre o porquê: quantos não tinham valor e quantos deles uma regra de mascaramento ocultou, com **Abrir regras de mascaramento**. Uma regra que não conseguiu contar nada do que encontrou não pode disparar, e o **Status** dela diz **Requer atenção**. **Executar em eventos passados** diz o mesmo para o período que lê.
+
 ### Quando uma regra roda
 
 O OneUptime verifica a cada minuto quais regras habilitadas já passaram do intervalo desde a última execução. Cada execução lê os eventos que chegaram ao OneUptime entre a execução anterior e dois minutos atrás, não importa quando aconteceram, e depois avança. Os dois minutos dão tempo aos eventos que ainda estão sendo gravados:
@@ -696,6 +750,29 @@ Tudo em Eventos de segurança que lê eventos passados lê só os eventos ainda 
 - Uma caçada cujo **Intervalo de tempo** é maior do que o tempo em que os eventos são mantidos não encontra nada mais antigo, e seu formulário diz isso.
 
 **Configurações do projeto → Telemetria e APM → Retenção de dados** lista as regras ativas que olham mais para trás do que sua **Retenção Padrão (Dias)**. Para cobri-las, mantenha os eventos por mais tempo, com **Alterar retenção** sob uma regra, ou encurte o intervalo de uma regra para o que é mantido. O OneUptime mantém 15 dias, a menos que você mude, porque a retenção define quanto sua telemetria custa e por quanto tempo os dados pessoais dos eventos, como endereços e nomes de usuário, são mantidos. Uma nova retenção vale para os eventos que chegam a partir de então, então as regras veem mais para trás conforme esses eventos envelhecem.
+
+## Apagar uma pessoa
+
+Quando alguém pedir que você apague os dados dele, por exemplo nos termos do artigo 17 do RGPD, apague a pessoa em **Eventos de segurança → Configurações → Solicitações de apagamento**. Selecione **Apagar pessoa** e informe o ID de usuário ou o endereço de e-mail como os seus logs o continham antes de sua regra de limpeza Hash ocultá-lo, ou o token que um evento mostra no lugar dele. Um endereço de e-mail também é apagado em minúsculas. Adicione sua própria referência em **Referência**, como o número do ticket da solicitação, nunca o nome da pessoa.
+
+O que a solicitação faz:
+
+- Em até um minuto, a pessoa deixa de ser nomeada. A partir daí, o cofre de usuários recusa os tokens dela, então nenhum evento, caso ou playbook a nomeia de novo, mesmo quando um evento posterior traz o mesmo token: esse evento mantém o token como seu usuário, como qualquer token sem usuário guardado. Guardar um token que volta nomearia a pessoa de novo, que é justamente o que ela pediu para você parar.
+- Em poucos minutos, exclui as entradas do cofre sobre ela e coloca o token de volta no lugar dela nos eventos que a nomeavam pelo cofre: **Usuário de origem**, **Usuário de destino**, os observáveis e os atributos. Faz o mesmo nos Detection Findings que uma regra de detecção ou um feed de inteligência de ameaças escreveu sobre ela, em sua mensagem, seus observáveis e seus atributos, e marca cada um desses achados com `oneuptime.finding_user_erased`. Remove-a dos títulos, entidades e eventos guardados de casos e detecções, e do risco de entidades.
+- Uma execução de playbook ou uma ação da OneUptime AI que aguarda aprovação para agir sobre ela é retirada, e diz por quê.
+
+Cada solicitação mostra seu status, **Na fila**, **Apagando**, **Apagada** ou **Falhou**, e o que mudou: as entradas do cofre excluídas, os eventos e casos que deixaram de nomeá-la e as propostas retiradas. O apagamento começa dois minutos após o registro da solicitação, quando nenhum servidor do OneUptime nomeia mais a pessoa, e uma solicitação mostra **Apagada** só quando cada mudança foi aplicada. Uma solicitação que falha é tentada de novo; após cinco tentativas, mostra **Falhou** com o motivo, e os proprietários do projeto recebem um e-mail. A pessoa continua sem ser nomeada, e registrar a solicitação de novo a tenta outra vez.
+
+O que deixa:
+
+- O que as pessoas escreveram: notas, notas de encerramento, tarefas, evidências, campos personalizados e o que a OneUptime AI escreveu sobre um caso.
+- Eventos que nomeavam a pessoa porque seus logs, ou um produto que você conectou, a continham em claro, e os próprios logs e traces, que contêm apenas o token.
+- Notificações já enviadas, incidentes e alertas que uma detecção abriu, a atividade de um caso, exportações, backups e o log de auditoria.
+- Em um OneUptime auto-hospedado cujo `ENCRYPTION_SECRET` mudou, os tokens criados antes da mudança: apague cada um pelo token que um evento mostra.
+
+A solicitação guarda quem a registrou e quando, sua referência e os tokens da pessoa, com os quais o cofre continua a recusá-la. O ID de usuário ou endereço de e-mail, e os nomes com que o apagamento encontra a pessoa, são armazenados criptografados, onde nenhuma página, exportação ou API pode lê-los, e são apagados quando o apagamento termina; o ClickHouse só recebe os tokens. As solicitações não podem ser editadas nem excluídas: são o seu registro do apagamento.
+
+Proprietários do projeto, Administradores do projeto, Administradores de segurança e qualquer pessoa com Create Security Erasure Request, como seu encarregado de proteção de dados, podem registrar uma solicitação, pela página ou por `/security-user-erasure-request` da API. Todas as funções de segurança podem lê-las.
 
 ## Solução de problemas
 

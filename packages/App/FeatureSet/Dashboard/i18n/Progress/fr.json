@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64815,
-    "untranslated": 4745
+    "keys": 65322,
+    "untranslated": 4753
   },
   "sameAsEnglish": [
     " incidents",
@@ -180,6 +180,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Daemon",
     "Daemons",
     "Danger",
@@ -435,6 +436,7 @@
     "PVC",
     "Page",
     "Page {{current}}",
+    "Page {{name}}",
     "Page {{number}}",
     "Page {{page}}",
     "Pages",

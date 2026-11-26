@@ -21,6 +21,7 @@ import FetchNetworkDeviceList from "./Jobs/NetworkDevice/FetchList";
 import FetchNetworkDeviceDiagnostics from "./Jobs/NetworkDevice/FetchDiagnostics";
 import FetchPacketCaptures from "./Jobs/PacketCapture/FetchPacketCaptures";
 import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability";
+import SyncSnmpTrapReceiver from "./Jobs/SnmpTrap/SyncSnmpTrapReceiver";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
 import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
 import FetchOpenStackChecks from "./Jobs/OpenStack/FetchOpenStackChecks";
@@ -39,6 +40,7 @@ import PrivateNetworkMonitorPolicy from "./Utils/PrivateNetworkMonitorPolicy";
 import ProcessTreeMemory from "./Utils/Monitors/SyntheticRuntime/ProcessTreeMemory";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger from "Common/Server/Utils/Logger";
+import { ProbeStartupMessages } from "Common/Types/Probe/ProbeConnectionRefusals";
 import App from "Common/Server/Utils/StartServer";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
@@ -213,6 +215,13 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
       SnmpTrapReceiver.start();
 
       /*
+       * Every thirty seconds: the receiver reported to OneUptime - on or
+       * off, its SNMPv3 engine ID and the SNMPv3 traps it refused - and the
+       * SNMPv3 users of this probe's devices handed back to it.
+       */
+      SyncSnmpTrapReceiver();
+
+      /*
        * Syslog receiver: UDP and TCP 5140. On unless
        * PROBE_SYSLOG_RECEIVER_ENABLED=false.
        */
@@ -226,7 +235,7 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
 
       await Register.reportIfOffline();
     } catch (err) {
-      logger.error("Register probe failed");
+      logger.error(ProbeStartupMessages.couldNotConnect);
       logger.error(err);
       throw err;
     }

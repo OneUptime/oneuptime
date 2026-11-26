@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64815,
+    "keys": 65322,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -90,6 +90,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Data Plane — eBPF",
     "Databricks",
     "Datadog",
@@ -243,8 +244,11 @@
     "SLI %",
     "SLOs",
     "SNMP Community String",
+    "SNMP inform",
     "SNMP trap",
     "SNMP:",
+    "SNMPv3 inform",
+    "SNMPv3 trap",
     "SQL Server",
     "SSH",
     "SSH: {{command}}",

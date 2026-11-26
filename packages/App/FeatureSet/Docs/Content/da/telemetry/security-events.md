@@ -65,6 +65,7 @@ flowchart TB
 | **Noteskabeloner** | Indstillinger | Færdig tekst til de noter, dit team skriver på sine sager |
 | **Nummerering** | Indstillinger | Teksten foran sagsnumrene og det nummer, den næste sag får |
 | **Risikoscoring** | Indstillinger | Om en entitets risiko åbner en sag, ved hvilken risiko, og hvor meget hver entitet betyder |
+| **Sletteanmodninger** | Indstillinger | Personer, der er slettet efter anmodning, og hvad hver sletning ændrede |
 
 **Detektioner**, **AI**, **Forbindelser** og **Indstillinger**, som sættes op én gang, forbliver foldet sammen, indtil du åbner dem. Ny i sikkerhed? [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started) sætter det op med to klik.
 
@@ -246,7 +247,7 @@ Slå **Netværksflows** til under **Dine OneUptime-data** på **Forbindelser**, 
 - området for hver af dens opdagelser, mens scanningen kører;
 - de værter og porte, dens monitorer tjekker.
 
-Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig.
+Den gemmes som en informativ hændelse, `oneuptime-probe-traffic`, der navngiver sonden, og ingen regel læser den. **Netværksflows** viser, hvor mange der blev lagt til side det seneste døgn, med **Se dem**. Alt andet fra en sondes adresse tælles som alles trafik, og et sweep eller en scanning ud over sondens arbejde rapporteres med sondens navn. En sonde genkendes på den adresse, den melder sig fra, og på adresserne på dens egne netværksgrænseflader, som den oplister, hver gang den melder sig. En brugerdefineret sonde uden værtens netværk, som en Kubernetes-pod eller en container på et Docker-bridgenetværk, genkendes også på værtens adresser, som `PROBE_HOST_IP_ADDRESSES` giver den: indtil den har dem, forlader dens forespørgsler maskinen fra en adresse, den ikke genkendes på, og rapporteres som sweeps. Se [Hvad en sonde sender, når den melder sig](/docs/probe/custom-probe#hvad-en-sonde-sender-når-den-melder-sig).
 
 ### Forbind et sikkerhedsprodukt
 
@@ -288,6 +289,55 @@ Hver begivenhed gemmes med typede felter og kildens payload:
 
 Hændelser, der blev gemt før OneUptime 14.0.84, lader procesfelterne stå tomme og nævner kun deres proces som `principalProcess`, den proces, der handlede. De udfyldes ikke bagefter: de beholder det, de blev gemt med, indtil deres opbevaring udløber.
 
+### Hvilken adresse en begivenhed nævner
+
+En begivenhed nævner kun den adresse, en anmodning kom fra, når anmodningens afsender ikke selv kunne have skrevet den. Den adresse er verificeret, og den bliver begivenhedens **Kilde-IP**: Detektionsregler tæller den, trusselsintelligens matcher den, og en sags **Responsplan** tilbyder at blokere den. Enhver anden adresse, en anmodning nævner, er kun angivet: Begivenheden beholder den som **Angivet IP**, og intet tæller eller blokerer den.
+
+- Forbindelsens egen adresse er verificeret: `network.peer.address` i et serverspan eller det første felt i en linje i en webservers adgangslog. Ingen kan skrive den ind i en anmodning.
+- Bag en proxy, du stoler på, er forbindelsens adresse proxyens, og klienten er den adresse, proxyen videresendte i `X-Forwarded-For`. Hver proxy tilføjer den adresse, den modtog forbindelsen fra, så OneUptime læser headeren fra højre og tager den første adresse, der ikke er en proxy, du stoler på. Det, en afsender skriver i headeren, havner til venstre for den og forbliver en påstand.
+- En adresse, en anmodning nævner om sig selv, er kun angivet: `client.address`, som instrumenteringen udfylder fra venstre side af headeren, resten af `X-Forwarded-For` og `Forwarded`.
+
+En angivet adresse blokeres aldrig fra en sag: Alle kan sende `X-Forwarded-For: 192.0.2.44`, og en blokering ville afskære den, der nu end har 192.0.2.44. En begivenhed med kun en angivet adresse har en **Responsplan**, der beder dig finde den rigtige i din load balancers eller firewalls logs.
+
+Registrér to ting på din apps serverspans, så dens adresser er verificerede: forbindelsens egen adresse, `network.peer.address`, som OpenTelemetrys HTTP-instrumenteringer sætter, og bag en proxy headeren `X-Forwarded-For`, som de registrerer som `http.request.header.x-forwarded-for`, når du angiver den i `OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST`. En JSON-adgangslog læses på samme måde: Dens klientfelt, såsom `remote_addr`, er forbindelsens adresse, og dens felt `http_x_forwarded_for` er headeren.
+
+#### Betroede proxyer
+
+Sikkerhedshændelser tror på, hvad en proxy siger om, hvem dens klient var, når dens adresse er:
+
+| Betroet | Hvorfor |
+| --- | --- |
+| Privat, loopback eller link-local, såsom `10.0.0.5` | Altid: Ingen har den på internettet, så den er en load balancer eller en ingress i dit netværk |
+| Angivet under **Betroede proxyer** | Du har angivet den |
+| I de offentliggjorte intervaller for en edge, du har forbundet, såsom [Cloudflare](/docs/integrations/cloudflare) | Så længe forbindelsen findes |
+| En af dine egne application load balancere | Medmindre du slår det fra |
+
+**Sikkerhedshændelser → Forbindelser → Yderligere indstillinger** rummer **Betroede proxyer**, listen du skriver, og **Betroet automatisk**, som viser resten og hvorfor. Angiv en proxy under **Betroede proxyer**, én adresse eller ét interval på hver linje, når dens adresse er offentlig, og intet andet stoler på den: et CDN, du ikke har forbundet, en load balancer, der når din app over internettet, eller en reverse proxy såsom nginx på en server med en offentlig adresse foran din app. Indtil du gør det, tilskrives hvert angreb gennem den selve proxyen. Bag en global ekstern Application Load Balancer i Google Cloud kommer din apps forbindelser fra Googles front-ends: Angiv `35.191.0.0/16` og `130.211.0.0/22`.
+
+Dine egne application load balancere er dem, dine [forbundne cloudkonti](/docs/telemetry/cloud-accounts) viser: AWS Application Load Balancers, AWS Classic Load Balancers, hvis listeners alle er HTTP eller HTTPS, Google Cloud Application Load Balancers og Azure Application Gateways, med deres offentlige adresser. Hver føjer den klient, den videresender, til `X-Forwarded-For`. En load balancer i Google Cloud tilføjer sin egen adresse efter klientens, og en Application Gateway når en offentlig backend fra sin egen adresse, så uden dem ville hvert angreb gennem en af dem blive tilskrevet load balanceren. **Dine load balancere** på **Betroet automatisk** viser dem, og en Projektejer, Projektadministrator eller Sikkerhedsadministrator kan slå det fra.
+
+Intet andet af dit er automatisk betroet: ikke dine værter, Kubernetes-noder, sonder eller virtuelle maskiner, en NAT-gateway eller en Network, Gateway eller Azure load balancer. De videresender ingen, eller de sender en anmodning videre, som den kom, så det, der kører på dem, kunne angive en hvilken som helst klient: en anmodning, som en monitor sender med sine egne headere, en pod, en bærbar bag gatewayen. Hvis en af dem er din proxy, så tilføj den til **Betroede proxyer**. En Kubernetes-ingress er betroet som den load balancer, den er: En GKE-ingress er en Google Cloud Application Load Balancer, en AKS-ingress til Application Gateway en Application Gateway, og en EKS-ingress af klassen `alb` en AWS Application Load Balancer. En ingress-controller i dit cluster videresender fra en privat adresse, som altid er betroet.
+
+En ændring af en hvilken som helst af disse træder i kraft inden for et minut, og en ny load balancer bliver betroet inden for fem.
+
+#### Adgangslogs, der slutter med X-Forwarded-For
+
+Bag en load balancer logger mange webservere den videresendte adresse sidst, som nginx' eget format `main` gør:
+
+```nginx
+log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                '$status $body_bytes_sent "$http_referer" '
+                '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+En linje siger aldrig, hvad dens felter er, så dens sidste felt læses først som `X-Forwarded-For`, når du slår **Logs slutter med X-Forwarded-For** til på **Adgangslogs** under **Yderligere indstillinger**, og da kun:
+
+- når linjens første felt er en proxy, du stoler på: En linje fra en klient, der nåede din webserver direkte, er den klients;
+- i formatet combined, med præcis ét felt i anførselstegn efter user agent og intet efter det;
+- når det felt er `-` eller en liste af adresser, hvis sidste ikke har nogen port.
+
+Lad det være slået fra, når dit format slutter med en anden header, der indeholder en adresse, såsom `X-Real-IP`, eller når din webserver skriver headere uden at escape deres anførselstegn, som `morgan` til Express gør: En anmodnings egen user agent kunne så tilføje et felt. En JSON-adgangslog behøver ingen kontakt, da dens felter har navne.
+
 ### Skjult af en rensningsregel
 
 En IP-adresseregel, der sletter eller maskerer dine logs eller traces, skjuler den adresse, et angreb kom fra, før Sikkerhedsbegivenheder læser dem. Begivenheden gemmes alligevel, uden adresse, og overalt, hvor den ville navngive adressen, siger den, at en scrub-regel skjulte den:
@@ -303,6 +353,8 @@ En regel, der hasher, gemmer adressen til Sikkerhedsbegivenheder, så begivenhed
 En detektionsregel, der tæller pr. adresse, bør tælle pr. `principalIp` eller `targetIp`, som navngiver adressen bag tokenet fra en regel, der hasher, sådan som regelbibliotekets regler gør. Et formats eget adressefelt, såsom `openstack.audit.initiator_address` eller `asa.src_ip`, indeholder kun en adresse, der stod i loggen, så det forbliver tomt, overalt hvor en scrub-regel skjulte en.
 
 En regel, der sletter eller maskerer en bruger, skjuler den på samme måde: Hvor begivenheden ville navngive brugeren, siger **Kildebruger** eller **Målbruger**, at en scrub-regel skjulte den. Hvor Sikkerhedsbegivenheder læser en bruger, gemmer en regel, der hasher, brugeren til den: en requests `enduser.id` eller `user.id`, et AI-kalds bruger og en bruger, som en loglinje navngiver, såsom en cloud-auditlogs principal. Så begivenheden navngiver brugeren bag tokenet, en sag om brugeren navngiver kontoen, og en playbook kan handle på den som på enhver anden bruger. Det, reglen efterlod, står i `oneuptime.principal_user_hashed_as` eller `oneuptime.target_user_hashed_as`, så du kan finde brugeren i dine logs og traces, som kun indeholder tokenet. Et token, som der ikke er gemt nogen bruger for, såsom et, der blev lavet, før tokens havde en nøgle, forbliver begivenhedens bruger: Regler tæller det som én konto, og ingen playbook handler på det.
+
+Hændelsens panel siger det under den bruger, den nævner i **Kildebruger** og **Målbruger**: »Hashet i dine protokoller som …«, eller »Hashet i dine spor som …« for en bruger læst fra dine traces, hvor … er tokenet. Tokenet er et link, der søger efter det i dine logs eller traces, fra en dag før hændelsen til en dag efter, i det felt, brugeren blev læst fra: en loglinjes brødtekst eller en af dens attributter, eller en spans attribut, såsom `user.id` eller et AI-kalds bruger. Det felt står i `oneuptime.principal_user_hashed_field` eller `oneuptime.target_user_hashed_field`. En bruger, der er slettet efter anmodning, viser i stedet **Slettet efter anmodning**, og hændelsen viser vedkommendes token: se [Slet en person](#slet-en-person).
 
 ## Udforsk sikkerhedsbegivenheder
 
@@ -548,6 +600,8 @@ Group By og Distinct Count tager de samme feltnavne som reglen. Med dem siger t�
 | Password spraying: én IP, der fejler mod 5 forskellige konti | `principalIp` | `principalUser` | 5 |
 | Portscanning: én IP, der rammer 20 forskellige porte | `principalIp` | `targetPort` | 20 |
 
+En regel med et **Grupperingsfelt**, der kræver mere end én begivenhed i en gruppe, gennem en tærskel over 1 eller et **Felt til unik optælling**, udelader de begivenheder, der ikke har nogen værdi for dens felt: Talt med ville de alle lægges sammen som én værdi, hvert mislykket login uden adresse som én IP-adresse. En regel, der udløses ved hver begivenhed, bliver ved med at udløses for dem. **Detektionsregler** viser under en regels navn, hvor mange af det seneste døgns matchende begivenheder den ikke kunne tælle, og linjen åbner hvorfor: hvor mange der ikke havde nogen værdi, og hvor mange af dem en scrub-regel skjulte, med **Åbn scrub-regler**. En regel, der ikke kunne tælle noget af det, den matchede, kan ikke udløses, og dens **Status** siger **Kræver opmærksomhed**. **Kør på tidligere hændelser** siger det samme for den periode, den læser.
+
 ### Hvornår en regel kører
 
 OneUptime tjekker hvert minut for aktiverede regler, hvis interval er gået siden deres sidste kørsel. Hver kørsel læser de begivenheder, der er nået frem til OneUptime mellem den forrige kørsel og for to minutter siden, uanset hvornår de skete, og går så videre. De to minutter giver plads til begivenheder, der stadig er ved at blive skrevet:
@@ -696,6 +750,29 @@ Alt i Sikkerhedshændelser, der læser tidligere hændelser, læser kun de hænd
 - En hunt, hvis **Tidsinterval** er længere end hændelserne opbevares, finder intet ældre, og dens formular siger det.
 
 **Projektindstillinger → Telemetri og APM → Dataopbevaring** viser de aktiverede regler, der kigger længere tilbage end dens **Standardopbevaring (dage)**. For at dække dem skal du opbevare hændelser længere, med **Skift opbevaring** under en regel, eller forkorte en regels tidsrum til det, der opbevares. OneUptime opbevarer 15 dage, medmindre du ændrer det, fordi opbevaringen bestemmer, hvad din telemetri koster, og hvor længe persondata i hændelser, såsom adresser og brugernavne, opbevares. En ny opbevaring gælder for hændelser, der ankommer fra da af, så reglerne ser længere tilbage, efterhånden som de hændelser bliver ældre.
+
+## Slet en person
+
+Når nogen beder dig slette deres data, for eksempel efter GDPR artikel 17, så slet dem i **Sikkerhedshændelser → Indstillinger → Sletteanmodninger**. Vælg **Slet person**, og indtast deres bruger-id eller e-mailadresse, som dine logs indeholdt det, før din Hash-scrubbingregel skjulte det, eller det token, en hændelse viser i stedet. En e-mailadresse slettes også med små bogstaver. Angiv din egen reference under **Reference**, for eksempel anmodningens ticketnummer, aldrig personens navn.
+
+Hvad anmodningen gør:
+
+- Inden for et minut holder Sikkerhedshændelser op med at nævne personen. Brugerboksen afviser fra da af deres tokens, så ingen hændelse, sag eller playbook nævner dem igen, heller ikke når en senere hændelse bærer det samme token: den hændelse beholder tokenet som sin bruger, som for ethvert token uden en gemt bruger. At gemme et token, der kommer igen, ville nævne personen igen, og det er netop det, de har bedt dig om at stoppe.
+- Inden for få minutter sletter den boksens poster om dem og sætter tokenet tilbage på deres plads i de hændelser, der nævnte dem via boksen: **Kildebruger**, **Målbruger**, observables og attributter. Det samme gør den i de Detection Findings, som en detektionsregel eller et threat intel-feed skrev om dem, i deres besked, observables og attributter, og den markerer hvert af disse fund med `oneuptime.finding_user_erased`. Den fjerner dem fra titler, entiteter og gemte hændelser i sager og detektioner og fra entitetsrisiko.
+- En playbook-kørsel eller en handling fra OneUptime AI, der venter på godkendelse til at handle på dem, trækkes tilbage og siger hvorfor.
+
+Hver anmodning viser sin status, **I kø**, **Sletter**, **Slettet** eller **Mislykkedes**, og hvad den ændrede: de slettede boksposter, de hændelser og sager, der ikke længere nævner dem, og de tilbagetrukne forslag. Sletningen begynder to minutter efter, at anmodningen er indsendt, når ingen OneUptime-server længere nævner personen, og en anmodning viser først **Slettet**, når hver ændring er anvendt. En anmodning, der fejler, prøves igen; efter fem forsøg viser den **Mislykkedes** med årsagen, og projektets ejere får en e-mail. Sikkerhedshændelser nægter stadig at nævne personen, og at indsende anmodningen igen prøver igen.
+
+Hvad den lader være:
+
+- Det, mennesker har skrevet: noter, afslutningsnoter, opgaver, beviser, brugerdefinerede felter og det, OneUptime AI har skrevet om en sag.
+- Hændelser, der nævnte personen, fordi dine logs eller et produkt, du har forbundet, indeholdt dem i klartekst, og dine logs og traces selv, som kun indeholder tokenet.
+- Allerede sendte notifikationer, incidenter og alarmer, som en detektion åbnede, en sags aktivitet, eksporter, backups og auditloggen.
+- På en selvhostet OneUptime, hvis `ENCRYPTION_SECRET` er ændret, tokens lavet før ændringen: slet hvert af dem via det token, en hændelse viser.
+
+Anmodningen gemmer, hvem der indsendte den og hvornår, din reference og personens tokens, som boksen bliver ved med at afvise dem med. Bruger-id'et eller e-mailadressen og de navne, sletningen finder personen under, gemmes krypteret, hvor ingen side, eksport eller API kan læse dem, og slettes, når sletningen er færdig; ClickHouse får kun nogensinde tokens. Anmodninger kan ikke redigeres eller slettes: de er din dokumentation for sletningen.
+
+Projektejere, Projektadministratorer, Sikkerhedsadministratorer og alle med Create Security Erasure Request, for eksempel din databeskyttelsesrådgiver, kan indsende en anmodning, fra siden eller via API'ets `/security-user-erasure-request`. Alle sikkerhedsroller kan læse dem.
 
 ## Fejlfinding
 

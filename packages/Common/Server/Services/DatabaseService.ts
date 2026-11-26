@@ -137,6 +137,7 @@ import QueryOperator from "../../Types/BaseDatabase/QueryOperator";
 import OneUptimeDate from "../../Types/Date";
 import Dictionary from "../../Types/Dictionary";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { getUniqueValueTakenMessage } from "../../Types/Database/UniqueValueTaken";
 import NameTakenException from "../../Types/Exception/NameTakenException";
 import ValueTakenException from "../../Types/Exception/ValueTakenException";
 import { ARCHIVED_COLUMN } from "../../Utils/ArchivableValues";
@@ -895,7 +896,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
   protected isValid(data: TBaseModel): boolean {
     if (!data) {
-      throw new BadDataException("Data cannot be null");
+      throw new BadDataException(
+        "There was nothing to save. Fill in the form, then try again.",
+      );
     }
 
     return true;
@@ -945,11 +948,10 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
 
         if (count.toNumber() > 0) {
           throw new BadDataException(
-            `${metadata.title} ${data
-              .getColumnValue(columnName)
-              ?.toString()} already exists. Please choose a different ${
-              metadata.title
-            }`,
+            getUniqueValueTakenMessage({
+              field: metadata.title || columnName,
+              value: data.getColumnValue(columnName)?.toString() || "",
+            }),
           );
         }
       }
@@ -970,6 +972,21 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     value: unknown,
   ): boolean {
     return Boolean(value);
+  }
+
+  /*
+   * A required column with no value (#7276): its name, which an API client
+   * sends, and its title, which a form shows, and what to do. It said only
+   * "projectId is required".
+   */
+  protected getRequiredFieldMessage(
+    data: TBaseModel,
+    requiredField: string,
+  ): string {
+    const title: string =
+      data.getTableColumnMetadata(requiredField)?.title || requiredField;
+
+    return `${requiredField} is required. Fill in ${title}, then try again.`;
   }
 
   protected checkRequiredFields(data: TBaseModel): TBaseModel {
@@ -993,7 +1010,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           (data as any)[requiredField] !== false &&
           !data.isDefaultValueColumn(requiredField)
         ) {
-          throw new BadDataException(`${requiredField} is required`);
+          throw new BadDataException(
+            this.getRequiredFieldMessage(data, requiredField),
+          );
         }
       } else if (
         !this.isRequiredColumnValueGiven(
@@ -1021,7 +1040,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           continue;
         }
 
-        throw new BadDataException(`${requiredField} is required`);
+        throw new BadDataException(
+          this.getRequiredFieldMessage(data, requiredField),
+        );
       } else if (
         (data as any)[requiredField] === null &&
         data.isDefaultValueColumn(requiredField)
@@ -7414,15 +7435,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
-      // The name a refused or failed create held is free again.
-      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
-
       await this.onCreateError(
         error as Exception,
         handedBack.onCreate,
         handedBack.progress.getFailedStatement(),
       );
       throw this.getException(error as Exception);
+    } finally {
+      /*
+       * The name a refused or failed create held is free again, however
+       * the create ended: after onCreateError has been told, and even when
+       * it throws. A create that wrote its row gave the name back then
+       * (_create), so it has none left to give.
+       */
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
     }
   }
 
@@ -7737,7 +7763,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     await this.checkForUniqueValues(data);
 
     if (!this.isValid(data)) {
-      throw new BadDataException("Data is not valid");
+      throw new BadDataException(
+        "What was sent could not be saved. Check its values, then try again.",
+      );
     }
 
     // check total items by.
@@ -10343,7 +10371,9 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
       );
 
       if (this.doNotAllowDelete && !deleteBy.props.isRoot) {
-        throw new BadDataException("Delete not allowed");
+        throw new BadDataException(
+          `${this.getModel().singularName || "These"} records cannot be deleted: OneUptime keeps them.`,
+        );
       }
 
       // The rows the table keeps from a delete by query stay. See the helper.
@@ -14056,10 +14086,11 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         (await this.getPrivateRecordWriteRefusal(data)) ||
         (await this.getTeamOwnedRuleWriteRefusal(data));
 
+      const refused: string = `You do not have permission to ${data.type} this ${name.toLowerCase()}.`;
+
+      // The reason, a sentence of its own, after it.
       return new NotAuthorizedException(
-        `You do not have permission to ${data.type} this ${name.toLowerCase()}.${
-          reason ? ` ${reason}` : ""
-        }`,
+        reason ? `${refused} ${reason}` : refused,
       );
     }
 
@@ -15141,7 +15172,7 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * error and not a zero, which would read as a fresh allowance.
        */
       throw new BadDataException(
-        `Item with ID ${data.id.toString()} not found`,
+        "This record was not found: it may have been deleted. Reload the page, then try again.",
       );
     }
 

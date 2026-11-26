@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64815,
-    "untranslated": 8307
+    "keys": 65322,
+    "untranslated": 8315
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -78,6 +78,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Daemon",
     "Data",
     "Database",

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64815,
+    "keys": 65322,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -89,6 +89,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Databricks",
     "Datadog",
     "Delete",

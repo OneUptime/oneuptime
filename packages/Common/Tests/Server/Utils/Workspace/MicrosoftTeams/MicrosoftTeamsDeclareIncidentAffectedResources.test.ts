@@ -28,6 +28,7 @@ import MicrosoftTeamsCreateCommands from "../../../../../Server/Utils/Workspace/
 import { MICROSOFT_TEAMS_CARD_SIZE_BUDGETS_IN_BYTES } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsMessageSize";
 import MicrosoftTeamsReplies from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsReplies";
 import WorkspaceActionAuthorization from "../../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import WorkspaceIncidentDeclaredByHand from "../../../../../Server/Utils/Workspace/WorkspaceIncidentDeclaredByHand";
 import WorkspaceAffectedResources, {
   WorkspaceAffectedResourcePicks,
   WorkspaceAffectedResourcesToLink,
@@ -41,6 +42,7 @@ import URL from "../../../../../Types/API/URL";
 import { AiAffectedResourceKind } from "../../../../../Types/AI/AiAffectedResources";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../../../Types/Incident/IncidentAlertLink";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../../../Types/Incident/IncidentDeclaredByHandStart";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../../../Types/Permission";
@@ -244,6 +246,15 @@ function submitDataOf(card: JSONObject): JSONObject {
 
 beforeEach(() => {
   jest.spyOn(logger, "debug").mockImplementation((): void => {});
+  /*
+   * Whether the project starts incidents declared by hand acknowledged
+   * (WorkspaceIncidentDeclaredByHand): read with the card's other reads,
+   * and not what these tests are about - off, as every project starts.
+   * WorkspaceIncidentDeclaredByHand.test and the card tests pin it.
+   */
+  jest
+    .spyOn(WorkspaceIncidentDeclaredByHand, "readIsOn")
+    .mockResolvedValue(false);
   jest
     .spyOn(ProductBrandingText, "getProductName")
     .mockReturnValue("OneUptime");
@@ -978,8 +989,13 @@ describe("the submit", () => {
     expect(ids(created[0]!.data.hosts)).toEqual([HOST_ID]);
     expect(ids(created[0]!.data.services)).toEqual([SERVICE_ID]);
     expect(created[0]!.props).toBe(MEMBER_PROPS);
-    // No card names an alert: none is linked, none asked about.
-    expect(created[0]!.miscDataProps).toBeUndefined();
+    /*
+     * No card names an alert: none is linked, none asked about. It is
+     * declared by hand, as every card's incident is (#11137).
+     */
+    expect(created[0]!.miscDataProps).toEqual({
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+    });
     expect(checkLinkSpy).not.toHaveBeenCalled();
 
     expect(sent).toEqual([
@@ -1039,6 +1055,7 @@ describe("the submit", () => {
     });
     expect(created[0]!.miscDataProps).toEqual({
       [INCIDENT_ALERT_IDS_TO_LINK_KEY]: [ALERT_ID.toString()],
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
     });
     expect(created[0]!.data.isPrivate).toBeUndefined();
     // The alert first, then the resources.
@@ -1066,7 +1083,10 @@ describe("the submit", () => {
 
     await submit({ declaredFrom: `alert:${ALERT_ID.toString()}` });
 
-    expect(created[0]!.miscDataProps).toBeUndefined();
+    // No alert linked: only that it is declared by hand.
+    expect(created[0]!.miscDataProps).toEqual({
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+    });
     expect(created[0]!.data.isPrivate).toBeUndefined();
     expect(sent).toEqual([
       {
@@ -1091,7 +1111,10 @@ describe("the submit", () => {
 
     await submit({ declaredFrom: `alert:${ALERT_ID.toString()}` });
 
-    expect(created[0]!.miscDataProps).toBeUndefined();
+    // No alert linked: only that it is declared by hand.
+    expect(created[0]!.miscDataProps).toEqual({
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+    });
     expect(created[0]!.data.isPrivate).toBe(true);
     expect(sent[1]).toEqual({
       kind: "answer",
@@ -1103,7 +1126,10 @@ describe("the submit", () => {
     await submit({ declaredFrom: "C0OPS" });
 
     expect(checkLinkSpy).not.toHaveBeenCalled();
-    expect(created[0]!.miscDataProps).toBeUndefined();
+    // No alert linked: only that it is declared by hand.
+    expect(created[0]!.miscDataProps).toEqual({
+      [INCIDENT_DECLARED_BY_HAND_KEY]: true,
+    });
   });
 
   test("a submit missing its title is refused before anything is read", async () => {

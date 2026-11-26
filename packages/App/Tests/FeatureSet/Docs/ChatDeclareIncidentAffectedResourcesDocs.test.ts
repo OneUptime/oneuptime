@@ -105,6 +105,8 @@ describe.each(PAGES)(
         ALERT_LEAD,
         // ChatDeclareIncidentSubscribersDocs holds it to the forms (#7917).
         "Status page subscribers.",
+        // Where an incident the form declares starts (#11137).
+        "Where the incident starts.",
         "What a form may name.",
       ]);
     });

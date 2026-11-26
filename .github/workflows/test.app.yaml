@@ -141,6 +141,17 @@ jobs:
       # at 4 GB keep the ceiling at 8 GB, as Common Test's pool is held
       # (test.common.yaml).
       - run: cd packages/App && npm run test -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+      # Common's suites that run their SQL against a real ClickHouse
+      # (*ClickhouseIntegration.test.ts: the monitor windows of each step, the
+      # SNMP baselines of each step, DNS answers against the previous check,
+      # LogQL, telemetry scrubbing...), on this job's server. Common Test has
+      # none, so they skipped there and ran nowhere (#10985). Spread over the
+      # shards as App's own tests are; runs even when those failed, so one
+      # run reports both (Tests/Ops/ClickhouseSuitesRunInCi.test.js).
+      - name: Run Common's ClickHouse suites
+        if: ${{ !cancelled() }}
+        working-directory: packages/Common
+        run: npm run test-clickhouse -- --shard=${{ matrix.shard }}/${{ strategy.job-total }}
 
   session-replay-ui:
     name: Session Replay UI

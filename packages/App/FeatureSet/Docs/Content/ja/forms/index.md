@@ -19,9 +19,9 @@ flowchart TB
     page -->|送信| checks["保護と回答のチェック"]
     checks --> submission["フォームとともに<br/>保存される送信"]
     submission --> target{"送信ごとに作成されるもの"}
-    target -->|インシデント| incident["インシデント<br/>(ステータスページには非表示)"]
+    target -->|インシデント| incident["インシデント<br/>(ステータスページ<br/>には非表示)"]
     target -->|アラート| alert["アラート<br/>(所有者が確認する)"]
-    target -->|定期メンテナンス| event["メンテナンスイベント<br/>(設定しない限り非表示)"]
+    target -->|定期メンテナンス| event["メンテナンスイベント<br/>(設定しない限り<br/>非表示)"]
     incident --> response["オンコールポリシーと<br/>ルールが実行される"]
     alert --> response
     incident --> note["非公開メモ: 送信者と<br/>その他の回答"]

@@ -81,6 +81,22 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 // What the installation's logger was asked to warn about.
 const mockWarnings: Array<string> = [];
 
+/*
+ * A refused request is also counted by its route, at warn once a minute
+ * (ClientRefusalLog, #10768): "Refused 11 requests from clients (...) ...".
+ * Those lines say nothing of the cluster key's limit - and name no key,
+ * which the tests below hold every line to - so the limit's warnings are
+ * the others.
+ */
+const ROUTE_REFUSAL_COUNT_ENDING: string =
+  "Each such refusal is logged at debug; these counts at most once a minute for each route.";
+
+function limitWarnings(): Array<string> {
+  return mockWarnings.filter((line: string): boolean => {
+    return !line.endsWith(ROUTE_REFUSAL_COUNT_ENDING);
+  });
+}
+
 jest.mock("../../../Server/Utils/Logger", () => {
   return {
     __esModule: true,
@@ -384,8 +400,8 @@ describe("a client that sends wrong cluster keys", () => {
 
     await present(address, RIGHT_KEY);
 
-    expect(mockWarnings).toHaveLength(1);
-    expect(mockWarnings[0]).toBe(
+    expect(limitWarnings()).toHaveLength(1);
+    expect(limitWarnings()[0]).toBe(
       `ClusterKeyAuthorization: ${address} sent more than 10 different wrong cluster keys in 15 minutes, so its requests are refused until the window ends (wrong cluster key limit)`,
     );
 
@@ -652,7 +668,7 @@ describe("a cluster key from a private network address is never counted", () => 
 
     expect(redis.sent).toEqual([]);
     expect(redis.keys()).toEqual([]);
-    expect(mockWarnings).toEqual([]);
+    expect(limitWarnings()).toEqual([]);
   });
 
   test.each([
@@ -838,7 +854,7 @@ describe("when the count cannot be made, keys are compared as they always were",
 
     expect(await present(address, RIGHT_KEY)).toEqual(LET_THROUGH);
     expect(redis.sent).toEqual([]);
-    expect(mockWarnings).toEqual([]);
+    expect(limitWarnings()).toEqual([]);
   });
 
   test("no Valkey client at all: the same", async () => {

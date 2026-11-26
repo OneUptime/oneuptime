@@ -3,6 +3,7 @@ import { MAX_NETBIOS_MAX_HOSTS_OVERRIDE } from "./Utils/Discovery/NetbiosNameRes
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import logger from "Common/Server/Utils/Logger";
+import { ProbeStartupMessages } from "Common/Types/Probe/ProbeConnectionRefusals";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
 import {
@@ -41,7 +42,7 @@ import ProbeInterfaceAddressesUtil, {
 } from "Common/Types/Probe/ProbeInterfaceAddresses";
 
 if (!process.env["PROBE_INGEST_URL"] && !process.env["ONEUPTIME_URL"]) {
-  logger.error("PROBE_INGEST_URL or ONEUPTIME_URL is not set");
+  logger.error(ProbeStartupMessages.noServerAddress);
   process.exit(1);
 }
 
@@ -75,7 +76,7 @@ export const PROBE_ID: ObjectID | null = process.env["PROBE_ID"]
   : null;
 
 if (!process.env["PROBE_KEY"]) {
-  logger.error("PROBE_KEY is not set");
+  logger.error(ProbeStartupMessages.noProbeKey);
   process.exit(1);
 }
 
@@ -160,7 +161,10 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
 /*
  * Whether HTTP-capable monitors on THIS probe may reach private network
  * addresses. API and Website monitors enforce this policy at their socket
- * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge.
+ * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge;
+ * Synthetic monitors enforce it in the egress proxy every request of their
+ * browser and their script's axios goes through (SyntheticEgressProxy, which
+ * the worker builds from this decision: the worker cannot read this file).
  *
  * Probes are monitoring agents deliberately placed inside the networks they
  * watch, so a self-managed probe often needs to check http://10.0.0.5/health.
@@ -528,12 +532,14 @@ export const PROBE_INGRESS_PORT: Port | null = process.env["PROBE_INGRESS_PORT"]
   : null;
 
 /*
- * SNMP trap receiver. The probe listens for SNMP traps/informs (v1 and
- * v2c) on the configured UDP port and forwards them to the OneUptime
- * instance, where they are matched against SNMP monitors by source IP and
- * evaluated against trap criteria — link-down incidents in seconds instead
- * of waiting for the next poll. Point your devices' trap destination at
- * this probe.
+ * SNMP trap receiver. The probe listens for SNMP traps and informs (v1,
+ * v2c and v3) on the configured UDP port and forwards them to the
+ * OneUptime instance, where they are matched against SNMP monitors by
+ * source IP and evaluated against trap criteria — link-down incidents in
+ * seconds instead of waiting for the next poll. Point your devices' trap
+ * destination at this probe. SNMPv3 traps are accepted from the SNMPv3
+ * users of the devices assigned to this probe, which OneUptime hands it
+ * (Jobs/SnmpTrap/SyncSnmpTrapReceiver).
  *
  * On by default: inside a container the port is unreachable until the
  * operator publishes it, and a failed bind (port in use, or no privilege
@@ -549,6 +555,17 @@ export const PROBE_SNMP_TRAP_RECEIVER_PORT: number =
     defaultValue: 162,
     min: 1,
   });
+
+/*
+ * The probe's SNMPv3 engine ID, which a device sending SNMPv3 informs
+ * authenticates them with (Utils/Snmp/V3/SnmpEngine). Unset, it is derived
+ * from the probe's ID: the same across restarts, upgrades and replicas.
+ * Set it (hex, 5 to 32 octets) to keep the engine ID of a receiver this
+ * probe replaces. A value that is not an engine ID is reported and the
+ * derived one is used.
+ */
+export const PROBE_SNMP_ENGINE_ID: string | null =
+  process.env["PROBE_SNMP_ENGINE_ID"]?.trim() || null;
 
 // Safety valve: max traps forwarded per minute before dropping (per probe).
 export const PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE: number =

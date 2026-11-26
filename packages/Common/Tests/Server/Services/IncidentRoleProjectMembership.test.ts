@@ -188,6 +188,7 @@ describe("incident roles are for project members only", () => {
         .mockResolvedValue(primaryRole);
       // No commander on the incident, and the user holds no role on it.
       jest.spyOn(IncidentMemberService, "findOneBy").mockResolvedValue(null);
+      jest.spyOn(IncidentMemberService, "findBy").mockResolvedValue([]);
 
       return jest
         .spyOn(IncidentMemberService, "create")

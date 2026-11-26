@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` और `Desktop`। |
 | `browser_types` | list(string) | Synthetic | `Chromium` और `Firefox`। |
 | `retry_count_on_error` | number | Synthetic | स्क्रिप्ट विफल होने पर पुनःप्रयास: `0` इसे एक बार चलाता है। |
+| `do_not_sync_fields` | list(string) | मॉनिटर टेम्पलेट | वे फ़ील्ड जिन्हें टेम्पलेट से बना हर मॉनिटर अपने रूप में रखता है, जब टेम्पलेट अपने चरण उस पर सिंक करता है, जैसे `monitorDestination` या `dnsMonitor.queryName`: वे जो उसका **टेम्पलेट सिंक सेटिंग्स** कार्ड सूचीबद्ध करता है। |
 | `criteria` | list (आवश्यक) | सभी | हर नतीजे को कैसे परखा जाता है: [मानदंड के एट्रिब्यूट](#मानदंड-के-एट्रिब्यूट) देखें। |
 
 ### हर मॉनिटर प्रकार की सेटिंग्स
 
-जिन मॉनिटर प्रकारों में पते से ज़्यादा सेट करना होता है, वे अपनी सेटिंग्स (लॉग क्वेरी, डेटाबेस कनेक्शन, निगरानी करने का क्लस्टर) अपने ख़ुद के एट्रिब्यूट में रखते हैं, `jsonencode()` से लिखे कच्चे JSON के रूप में: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` और `probe_status_monitor`।
+जिन मॉनिटर प्रकारों में पते से ज़्यादा सेट करना होता है, वे अपनी सेटिंग्स (लॉग क्वेरी, डेटाबेस कनेक्शन, निगरानी करने का क्लस्टर) अपने ख़ुद के एट्रिब्यूट में रखते हैं, `jsonencode()` से लिखे कच्चे JSON के रूप में: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` और `probe_status_monitor`।
 
 इनका JSON डैशबोर्ड वाला ही होता है, कुंजियाँ camelCase में। इसके भीतर ID वैसे ही लिखा जाता है जैसे API लिखता है: `{ _type = "ObjectID", value = "..." }`। एक Logs मॉनिटर जो किसी एक सेवा की त्रुटियाँ गिनता है:
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### घटनाएँ और अलर्ट
 
-`incidents` की कोई प्रविष्टि `title` और `description` (दोनों आवश्यक), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` और `is_private` लेती है। `alerts` की कोई प्रविष्टि यही लेती है, `alert_severity_id` और `auto_resolve_alert` के साथ, और `show_incident_on_status_page` के बिना।
+`incidents` की कोई प्रविष्टि `title` और `description` (दोनों आवश्यक), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` और `is_private` लेती है। `alerts` की कोई प्रविष्टि यही लेती है, `alert_severity_id` और `auto_resolve_alert` के साथ, और `show_incident_on_status_page` व `incident_member_roles` के बिना। `incident_member_roles` मानदंड द्वारा खोली गई हर घटना पर लोगों को कोई भूमिका देता है, जैसे घटना कमांडर: हर व्यक्ति और भूमिका के लिए एक `{ role_id, user_id }`।
 
 यह मानदंड मॉनिटर को offline चिह्नित करता है, ऑन-कॉल नीति को पेज करने वाली एक घटना खोलता है, और साइट वापस आने पर उसे हल कर देता है:
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## बिना चरणों वाला मॉनिटर
 
 `monitor_steps` वैकल्पिक है, पर इसके बिना बने मॉनिटर के पास नतीजा परखने के लिए कोई मानदंड नहीं होता: प्रोब बिना चरणों वाले मॉनिटर को छोड़ देते हैं, और वह उसी स्थिति में रहता है जिसमें उसने शुरुआत की थी। आपकी state एट्रिब्यूट को खाली रखती है, और प्लान साफ़ रहता है। मैन्युअल मॉनिटर को कभी चरणों की ज़रूरत नहीं होती: उसकी स्थिति आप ख़ुद सेट करते हैं। हर दूसरे प्रकार को कुछ भी जाँचने के लिए कम से कम एक चरण चाहिए।
+
+## apply क्या रखता है
+
+`monitor_steps` बदलने वाला apply पूरे चरण भेजता है, और OneUptime अपने पास रखे चरणों को उनसे बदल देता है। जो सेटिंग आपका कॉन्फ़िगरेशन लिख सकता है और छोड़ देता है, वह हटा दी जाती है, जैसा plan दिखाता है। दो तरह की सेटिंग इसके बजाय वैसे ही रखी जाती हैं जैसे OneUptime उन्हें रखता है, क्योंकि कोई plan उन्हें नहीं दिखा सकता। apply पहले वे चरण पढ़ता है जो OneUptime के पास हैं, और न पढ़ पाए तो कुछ लिखे बिना विफल हो जाता है।
+
+ऐसी सेटिंग जिसके लिए प्रदाता के पास कोई एट्रिब्यूट नहीं है, जैसे `snmpMonitor` जो सेवानिवृत्त SNMP मॉनिटर प्रकार के चरणों में अब भी है, या ऐसी सेटिंग जो किसी नए OneUptime में है और जिसे आपके प्रदाता का संस्करण अभी नहीं जानता, अपने चरण, मानदंड, घटना या अलर्ट पर बनी रहती है। हर एक का मिलान वैसे होता है जैसे OneUptime उनकी ID बनाए रखने के लिए करता है: चरण अपनी स्थिति से, मानदंड अपने नाम से और घटना या अलर्ट अपने शीर्षक से, नहीं तो स्थिति से। जब आपका कॉन्फ़िगरेशन वह चरण, मानदंड, घटना या अलर्ट हटा देता है, तो सेटिंग भी उसके साथ चली जाती है।
+
+जो सेटिंग आप `jsonencode()` से लिखते हैं, जैसे `dns_monitor`, `incident_grouping` या किसी फ़िल्टर के `metric_monitor_options`, उसकी तुलना उसी से होती है जो वह लिखती है। OneUptime उसमें और भी रख सकता है, अपना कोई डिफ़ॉल्ट या डैशबोर्ड में सेट की गई कोई कुंजी: यह बदलाव नहीं है, और apply उसे रखता है। जो कुंजी आप `jsonencode()` से निकाल देते हैं, वह हटा दी जाती है। किसी सूची में, OneUptime के पास जो अधिक है वह आइटम-दर-आइटम रखा जाता है, जब तक सूची में उतने ही आइटम हों जितने OneUptime की सूची में।
 
 ## वायर फ़ॉर्मैट
 

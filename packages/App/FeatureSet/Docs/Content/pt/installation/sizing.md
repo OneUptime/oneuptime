@@ -106,6 +106,51 @@ Cada uma roda Node.js, que dimensiona o heap pelo limite de memória do seu cont
 
 O chart inclui o **KEDA**, para que o app, os workers, as sondas e o Runner global escalem conforme a fila acumulada. Ative `keda.enabled` junto com o `keda.enabled` de cada serviço (por exemplo, `app.keda.enabled`). Num cluster que ainda não tem KEDA, a primeira instalação precisa de uma passagem extra: veja o [guia do KEDA](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) do chart. Serviços que o KEDA não gerencia podem usar em vez disso um autoscaler por CPU ou memória (`autoscaling`).
 
+## Executar muitos monitores
+
+Cada worker de cada sonda pede aos pods da aplicação, em lotes, os monitores que estão na hora de verificar, e cada monitor pendente vai para exatamente um deles. Todos os monitores verificados a cada minuto ficam pendentes juntos no início de cada minuto, por isso o que conta é a rapidez com que os monitores de um minuto inteiro são distribuídos. Os números abaixo foram medidos com 39.700 monitores (28.200 verificados a cada minuto e 11.500 a cada cinco minutos) numa sonda de 20 réplicas, com cada instrução da base de dados 50 ou 100 ms mais lenta do que numa máquina ociosa, como numa base de dados ocupada.
+
+### Distribuir os monitores em lotes maiores
+
+Aumente o limite de busca de cada sonda (`monitorFetchLimit` no chart do Helm, `PROBE_MONITOR_FETCH_LIMIT` nos outros casos) de 10 para 50. Cada pedido distribui então cinco vezes mais monitores por mais ou menos o mesmo custo. Com três pods da aplicação e instruções 50 ms mais lentas, os 28.200 monitores de cada minuto foram distribuídos em 19 segundos, contra 44 com um limite de 10, e os 39.700 que ficam pendentes a cada cinco minutos em 19 segundos, contra 57. Uma réplica da sonda executa então até workers × limite de busca verificações ao mesmo tempo, 150 com 3 workers: dê-lhe a memória para isso, ou adicione réplicas.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### Manter o limite de agendamento no padrão
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) é quantos pedidos de sondas cada pod da aplicação atende ao mesmo tempo: um quinto do seu pool da base de dados, 10 de 50. Cada pod tem o seu, por isso os pods da aplicação que adiciona trazem o deles. Com os 39.700 pendentes ao mesmo tempo e instruções 100 ms mais lentas, uma sonda recebeu 313 monitores por segundo de um pod da aplicação, 659 de três e 763 de seis, e subir o limite para 20 acrescentou 7%. Uma sonda sozinha pode usar todas as vagas de um pod, e as sondas que competem repartem-nas de forma justa. As execuções de Test Monitor têm 2 vagas próprias, por isso um teste chega a uma sonda dentro do seu ciclo de dez segundos, por mais ocupados que estejam os monitores. Aumente o limite apenas se os pedidos das sondas continuarem à espera de uma vaga enquanto a base de dados tem folga, e aumente com ele o pool da base de dados do pod.
+
+### Uma sonda ou muitas
+
+Coloque cada monitor nas sondas a partir das quais precisa de verificar. Cada monitor pendente vai para uma única réplica da sua sonda, por mais réplicas que peçam ao mesmo tempo, por isso uma sonda com muitas réplicas acompanha tão bem como muitas sondas. Quando os monitores estão atrasados e nenhum pedido espera por uma vaga, faltam sondas: adicione réplicas, ou deixe o KEDA escalar cada sonda pelos monitores que tem pendentes.
+
+### Escalar pelo que as sondas esperam
+
+`/metrics/probe-scheduling`, na porta da aplicação, soma a visão de cada pod da aplicação do último minuto. Escale os pods da aplicação pelo seu `queueDepth` com o KEDA, além de CPU e memória, e alerte quando os monitores forem distribuídos com atraso:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Campo | O que indica |
+| --- | --- |
+| `queueDepth` | Os pedidos de sondas à espera de uma vaga agora, em todos os pods da aplicação. Acima de 0 durante minutos: adicione pods da aplicação. |
+| `slotWaitP95Ms` | Quanto tempo os pedidos esperaram por uma vaga, no pod da aplicação mais ocupado. |
+| `refusalsPerMinute` | Os pedidos de sondas a que o servidor respondeu estar ocupado. |
+| `dispatchLagP95Seconds` | Com que atraso os monitores foram distribuídos, desde o momento em que o seu intervalo os tornou pendentes. Perto do seu intervalo mais curto enquanto nenhum pedido espera: adicione réplicas das sondas. |
+| `monitorsLateByAnIntervalPerMinute` | Os monitores distribuídos com um intervalo inteiro de atraso: verificações que ficaram por fazer. |
+| `monitorTestWaitP95Seconds` | Quanto tempo as execuções de Test Monitor esperaram por uma sonda. |
+
 ## Camadas iniciais
 
 Escolha como ponto de partida a camada mais próxima do seu ambiente, depois acompanhe o uso real (`kubectl top pods`, o crescimento do disco do ClickHouse e do PostgreSQL) e ajuste.

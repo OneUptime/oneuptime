@@ -75,7 +75,7 @@ En incident som deklareras via ett formulär är en vanlig incident, med några 
 
 - **Dold från statussidor.** **Synlig på statussidan** är avstängt, och det är **Meddela statussideprenumeranter** också. Tills en responder publicerar den når inget om incidenten en statussida eller en prenumerant — förutom en malls ändring av monitorstatus, ovan.
 - **Deklarerad av ingen.** Inlämnaren är inte en OneUptime-användare, så ingen användare registreras som den som deklarerade incidenten.
-- **Dess ägare får veta.** De ägare som inställningarna och mallen anger läggs till så snart incidentens Slack- och Microsoft Teams-kanaler finns, och aviseras — incidentens avisering **Incident skapad** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare.
+- **Dess ägare får veta.** De ägare som inställningarna och mallen anger läggs till innan incidentens Slack- och Microsoft Teams-kanaler skapas, så att dina aviseringsregler ser dem, och aviseras — incidentens avisering **Incident skapad** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare.
 - **En privat anteckning registrerar inlämningen** — se [Den privata anteckningen](#den-privata-anteckningen).
 
 Allt som körs för en ny incident körs även för dessa: integritets-, ägar-, etikett-, jour- och runbook-regler, jourpolicyer och arbetsflöden med **Vid skapande: Incident**. Jourregler matchar ett formulärs incidenter som alla andra — även på deras titel och beskrivning, som inlämnaren skrev.
@@ -117,7 +117,7 @@ Eftersom incidenten deklarerades med **Meddela statussideprenumeranter** avstän
 
 Ett larm som skapas via ett formulär är ett vanligt larm, skapat på samma sätt som ett som skapas för hand med **Skapa larm**:
 
-- **Dess ägare får veta, en gång.** De ägare som inställningarna anger läggs till så snart larmets Slack- och Microsoft Teams-kanaler finns, och larmets avisering **Larm skapat** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare — och det är det enda meddelande de får om larmet.
+- **Dess ägare får veta, en gång.** De ägare som inställningarna anger läggs till innan larmets Slack- och Microsoft Teams-kanaler skapas, så att dina aviseringsregler ser dem, och larmets avisering **Larm skapat** väntar tills de är dess ägare, så att den går till dem i stället för till Projektägare — och det är det enda meddelande de får om larmet.
 - **Det börjar där du bestämmer.** I det vanliga starttillståndet, om inte inställningen **Inledande tillstånd** anger ett senare. Ett larm som börjar bekräftat eller löst larmar ingen: ett formulär för rapporter som bara behöver en titt kan ange det.
 - **Skapat av ingen, och inte privat.** Inlämnaren är inte en OneUptime-användare, så ingen användare registreras som den som skapade larmet. En sekretessregel kan ändå göra det privat.
 - **En privat anteckning registrerar inlämningen** — se [Den privata anteckningen](#den-privata-anteckningen).

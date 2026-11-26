@@ -199,7 +199,7 @@ describe("NTP checks over a period of time", () => {
     );
   });
 
-  test("the two true/false checks offer only All Values and Any Value", () => {
+  test("the two true/false checks offer All Values, Any Value and the window's counts, never a number's average, sum, extremes or percentile", () => {
     for (const checkOn of [CheckOn.NtpIsOnline, CheckOn.NtpIsSynchronized]) {
       expect(CommonCriteriaFilterUtil.isBooleanSeries(checkOn)).toBe(true);
       expect(
@@ -211,6 +211,11 @@ describe("NTP checks over a period of time", () => {
       ).toEqual([
         EvaluateOverTimeType.AllValues,
         EvaluateOverTimeType.AnyValue,
+        // The window's checks counted (#10355), and each with the one before it (#10821).
+        EvaluateOverTimeType.Count,
+        EvaluateOverTimeType.Percentage,
+        EvaluateOverTimeType.StatusChanges,
+        EvaluateOverTimeType.PreviousCheck,
       ]);
     }
   });

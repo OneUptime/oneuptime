@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 64815,
-    "untranslated": 8042
+    "keys": 65322,
+    "untranslated": 8050
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -40,6 +40,7 @@
     "DES",
     "DHCP",
     "DNSSEC",
+    "DSR-1042",
     "DeploymentConfigs",
     "Docker CLI",
     "Docker Compose",
@@ -142,7 +143,10 @@
     "SHA256",
     "SLI %",
     "SLOs",
+    "SNMP inform",
     "SNMP trap",
+    "SNMPv3 inform",
+    "SNMPv3 trap",
     "SQL Server",
     "SSH",
     "ScheduledMaintenance",

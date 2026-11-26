@@ -65,7 +65,7 @@ Trois états sont créés avec le projet, dans cet ordre. La création est idemp
 
 | Indicateur            | Rôle                                                                                                                                                                                                 |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | L'état que reçoit un incident quand personne n'en a choisi. Si aucun état du projet ne porte cet indicateur, la création d'un incident échoue avec une erreur qui vous demande d'ajouter un état d'incident de création depuis les paramètres. |
+| `isCreatedState`      | L'état que reçoit un incident quand personne n'en a choisi — sauf si le projet fait démarrer pris en compte les incidents déclarés à la main et qu'un incident déclaré à la main ne déclenche aucune politique d'astreinte : voir [Incidents déclarés à la main](#incidents-déclarés-à-la-main). Si aucun état du projet ne porte cet indicateur, la création d'un incident échoue avec une erreur qui vous demande d'ajouter un état d'incident de création depuis les paramètres. |
 | `isAcknowledgedState` | Marque l'état pris en compte du projet : celui vers lequel **Prendre en compte** fait passer un incident et dont la tuile de statistiques « pris en compte » porte le nom. Un incident dans cet état, dans un état qui le suit, ou résolu, est pris en compte — **Prendre en compte** ne lui est plus proposé, l'astreinte cesse d'alerter pour lui, et son SLA est marqué comme répondu. |
 | `isResolvedState`     | Marque l'état résolu du projet : celui vers lequel **Résoudre** fait passer un incident et que montre la tuile de statistiques « résolu ». Un incident dans cet état, ou dans un état qui le suit, est résolu — il quitte **Incidents actifs** et la section active d'une page de statut, et son SLA est marqué comme résolu. |
 
@@ -75,6 +75,28 @@ Un seul état par projet est censé porter chaque indicateur — les recherches 
 - **Ils ne peuvent pas être supprimés.** Leur **Supprimer** reste dans le menu de la ligne, verrouillé, avec la raison. Une suppression groupée les ignore et les liste comme non supprimés. L'API refuse aussi de supprimer le dernier état de création, de prise en compte ou de résolution d'un projet.
 
 Comme l'interface lit les noms d'état dynamiquement, renommer un état change ce que vous voyez partout — les tuiles de statistiques (**Pris en compte en** et **Résolu en** avec les noms créés d'office), la confirmation **Marquer l'incident comme …** d'un état personnalisé, et la pastille de la liste des incidents suivent tous le nom que vous avez donné à la ligne.
+
+## Incidents déclarés à la main
+
+Tout nouvel incident démarre dans votre état de création et y attend d'être pris en compte. Quand vous en déclarez un vous-même, c'est en général vous qui intervenez : vous en devenez le Responsable d'incident en le déclarant, et le prendre en compte n'est qu'un clic de plus. Un projet peut plutôt faire démarrer ces incidents déjà pris en compte.
+
+:::steps
+1. Ouvrez **Incidents → Paramètres → État de l'incident** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Sous la liste des états, activez **Start incidents declared by hand acknowledged**. L'interrupteur s'enregistre dès que vous le basculez.
+:::
+
+Il est désactivé dans chaque projet tant que vous ne l'activez pas, si bien qu'une mise à niveau ne change jamais qui est alerté. Seuls les Propriétaires du projet et les Administrateurs du projet peuvent le changer ; pour tous les autres, l'interrupteur est verrouillé et indique la permission nécessaire.
+
+Tant qu'il est activé, un incident déclaré à la main — avec **Déclarer un incident**, où que vous l'ouvriez, ou avec le formulaire d'incident de Slack ou de Microsoft Teams — démarre dans votre état pris en compte quand ces deux conditions sont réunies :
+
+- **Aucun état n'est choisi pour lui**, ni par vous ni par le modèle à partir duquel il est déclaré. Un état choisi l'emporte, comme toujours.
+- **Il ne déclenche aucune politique d'astreinte**, ni choisie par vous ni venue de son modèle. Choisissez une politique et l'incident démarre dans votre état de création, comme avant, pour que la politique alerte ses personnes.
+
+Puisqu'il démarre pris en compte, il n'alerte personne : comme pour tout incident [déclaré déjà pris en compte](/docs/incidents/declaring-incidents#déclaré-déjà-pris-en-compte-ou-résolu), aucune politique d'astreinte ne s'exécute, pas même celle qu'ajoute une règle d'astreinte. Son SLA démarre déjà marqué comme répondu, et son délai de prise en compte est nul, ce qui compte aussi dans votre MTTA.
+
+**Déclarer un incident** le signale avant que vous ne déclariez : sous **État initial**, sous **Politique d'astreinte** tant qu'aucune n'est choisie, et sur le récapitulatif, qui liste alors toujours **État initial**. Il ne remplit jamais **État initial** à votre place : un état choisi là l'emporte, si bien que les politiques d'astreinte que vous choisissez à la dernière étape n'alerteraient personne. Slack et Microsoft Teams le signalent sous leurs politiques d'astreinte, et dans le message qui confirme l'incident.
+
+Les incidents que personne ne déclare à la main — ouverts par des moniteurs ou des règles d'incident des alertes, par l'API, Terraform, des flux de travail ou des formulaires, depuis un dossier de sécurité, ou par OneUptime AI — démarrent dans votre état de création, comme avant. Par l'API, l'interrupteur est le champ `startIncidentsDeclaredByHandAcknowledged` du projet.
 
 ## Ajouter vos propres états
 

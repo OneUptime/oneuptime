@@ -358,7 +358,7 @@ const VERDICTS = {
   plan: {
     status: 402,
     body: {
-      message: "Please upgrade your plan to Growth to access this feature",
+      message: "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
     },
   },
   // What an older server answered every member: the customer's report.

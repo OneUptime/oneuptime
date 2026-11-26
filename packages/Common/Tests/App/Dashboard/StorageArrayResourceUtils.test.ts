@@ -31,12 +31,12 @@ import {
   getGoldenChartQueries,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index";
 import {
-  FLASHARRAY_INSIGHTS_SECTIONS,
-  FLASHBLADE_INSIGHTS_SECTIONS,
   InsightsSection,
   getInsightsQueries,
   getInsightsSections,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Insights";
+import { FLASHARRAY_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
+import { FLASHBLADE_INSIGHTS_SECTIONS } from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import {
   INVENTORY_MENU_ITEMS,
   InventoryMenuItem,
@@ -514,6 +514,15 @@ describe("charts are built from the metric catalog", () => {
     for (const source of sources) {
       for (const match of source.matchAll(/"(pure(?:fa|fb)-[a-z0-9-]+)"/g)) {
         ids.add(match[1]!);
+      }
+    }
+    // The Resource Usage page's sections are each platform's data (#11000).
+    for (const section of [
+      ...FLASHARRAY_INSIGHTS_SECTIONS,
+      ...FLASHBLADE_INSIGHTS_SECTIONS,
+    ]) {
+      for (const id of section.metricIds) {
+        ids.add(id);
       }
     }
 

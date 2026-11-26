@@ -16,9 +16,26 @@ import TimeoutException from "../../Types/Exception/TimeoutException";
  * on from what is still due. Work already in flight - one query, one page
  * being sent - is not cut off half way.
  *
+ * A run that stops at its deadline has done what it was asked to, so it is
+ * not failed for it: it has JOB_DEADLINE_GRACE_MS past its time limit to
+ * finish the work in flight and return, and only a run still going after
+ * that is failed (QueueWorker.runJobWithTimeout).
+ *
  * A deadline can belong to another (a parent): it passes when its parent
  * does, and can also be ended on its own.
  */
+
+/*
+ * How long past its time limit a run has to finish the work in flight when
+ * its deadline passed - the page being written, the owner being told - and
+ * return. Its cron lock waits as long for it (CronLock), and the queue fails
+ * the job only once it has not returned by then (QueueWorker). Before this
+ * grace, a run that stopped at its deadline was failed in the same instant
+ * ("Job Timeout"), so a backlog worked through over several runs read as a
+ * failing job every run (OneUptime issue #11017).
+ */
+export const JOB_DEADLINE_GRACE_MS: number = 30 * 1000;
+
 export default class JobDeadline {
   private readonly controller: AbortController = new AbortController();
 

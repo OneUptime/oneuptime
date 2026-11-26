@@ -105,6 +105,9 @@ import {
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import MetricType from "../../Models/DatabaseModels/MetricType";
 import Dictionary from "../../Types/Dictionary";
@@ -227,6 +230,22 @@ interface AlertStoredValues {
   valuesBeforeUpdate: Dictionary<EventValuesBeforeUpdate>;
   customFieldsBeforeUpdate: Dictionary<JSONObject | null>;
 }
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess: how far along the alert
+ * starts (StartingStage), which decides what its create sets off, and when
+ * its feed starts.
+ */
+type AlertCreateCarryForward = StartingStageCarryForward & {
+  /*
+   * The moment the alert's create began, taken before it is written - so
+   * before anything about it can be. Its "Alert Created" entry is filed at
+   * it, whenever the step that writes it runs: the first line of its feed,
+   * ahead of its owners, its first state and whatever else its create
+   * writes (#10911, #11146).
+   */
+  feedStartsAt: Date;
+};
 
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
@@ -1058,6 +1077,12 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     /*
+     * When the alert's feed starts (AlertCreateCarryForward): now, before
+     * the alert is written and so before any entry about it can be.
+     */
+    const feedStartsAt: Date = OneUptimeDate.getCurrentDate();
+
+    /*
      * The check that opened the alert, without a Synthetic monitor's
      * screenshots, as its state timeline keeps it: they are megabytes a row,
      * and nothing shows them - the alert's monitor summary is its own copy,
@@ -1266,8 +1291,9 @@ export class Service extends ProjectReferencesService<Model> {
      * as none).
      */
 
-    const carryForward: StartingStageCarryForward = {
+    const carryForward: AlertCreateCarryForward = {
       startingStage: startingStage,
+      feedStartsAt: feedStartsAt,
     };
 
     return { createBy, carryForward: carryForward };
@@ -1368,6 +1394,26 @@ export class Service extends ProjectReferencesService<Model> {
      */
     AlertOnCallRulesOnOwnerChange.startCreating(createdItem.id);
 
+    /*
+     * When the alert's feed starts (AlertCreateCarryForward): its "Alert
+     * Created" entry is filed at it, whenever the step below writes it.
+     */
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
+    /*
+     * The alert's Slack, Microsoft Teams and Mattermost messages. Its rules
+     * are matched - its channels opened, its "Alert Created" posted - once
+     * its owners and labels are in, so a rule that asks who owns it or how
+     * it is labelled matches it (#11146): its owners picked on create and
+     * its owner rules', its label rules' labels, and the owners its creator
+     * and the code that made it add. Every other message about it - "Added
+     * team Platform to the Alert as the owner" - waits for "Alert Created"
+     * until then, and follows it in the order it was made
+     * (WorkspaceCreatedMessageFirst): its channels hear of the alert first,
+     * then of what happened to it, then its pages.
+     */
+    WorkspaceCreatedMessageFirst.hold({ alertId: createdItem.id });
+
     // Execute operations sequentially with error handling
     Promise.resolve()
       .then(async () => {
@@ -1390,71 +1436,10 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         /*
-         * No channel is opened for an alert created resolved. Its created
-         * feed entry still goes to the channels the workspace rules name.
+         * Its first state, which its feed lists right under "Alert
+         * Created", ahead of its owners. Not posted to Slack and Microsoft
+         * Teams: "Alert Created" names it (WorkspaceStateChangePosting).
          */
-        if (createdItem.projectId && createdItem.id && isOngoing) {
-          try {
-            membersNotAddedToNewChannels =
-              await this.handleAlertWorkspaceOperationsAsync(createdItem);
-            return Promise.resolve();
-          } catch (error) {
-            logger.error(
-              `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
-              {
-                projectId: createdItem.projectId?.toString(),
-                alertId: createdItem.id?.toString(),
-              } as LogAttributes,
-            );
-            return Promise.resolve();
-          }
-        }
-        return Promise.resolve();
-      })
-      .then(async () => {
-        try {
-          return await this.createAlertFeedAsync(createdItem.id!);
-        } catch (error) {
-          logger.error(
-            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              alertId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve(); // Continue chain even on error
-        }
-      })
-      .then(async () => {
-        // Under "Alert Created": who could not be added to the new channels.
-        await ChannelMembersNotAddedNotice.noteAll({
-          projectId: createdItem.projectId,
-          membersNotAdded: membersNotAddedToNewChannels,
-        });
-      })
-      .then(() => {
-        /*
-         * The video calls the workspace rules ask for, posted after "Alert
-         * Created" in the channels the rules just created. Not waited on: a
-         * meeting provider that is slow to answer must never hold up paging
-         * the on-call below. No call for an alert created resolved.
-         */
-        if (createdItem.projectId && createdItem.id && isOngoing) {
-          VideoCallRuleExecutor.startCallsForAlert({
-            projectId: createdItem.projectId,
-            alertId: createdItem.id,
-          }).catch((error: unknown) => {
-            logger.error(
-              `Starting video calls failed in AlertService.onCreateSuccess: ${error}`,
-              {
-                projectId: createdItem.projectId?.toString(),
-                alertId: createdItem.id?.toString(),
-              } as LogAttributes,
-            );
-          });
-        }
-      })
-      .then(async () => {
         try {
           return await this.handleAlertStateChangeAsync(createdItem);
         } catch (error) {
@@ -1469,6 +1454,12 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * The owners picked on its create - the form's, a workflow's, the
+         * API's - before its channels are opened and "Alert Created" is
+         * posted: its rules match on them, and the channels' setup invites
+         * them. Their "owner added" messages wait for "Alert Created".
+         */
         try {
           if (
             onCreate.createBy.miscDataProps &&
@@ -1538,6 +1529,98 @@ export class Service extends ProjectReferencesService<Model> {
               alertId: createdItem.id?.toString(),
             } as LogAttributes,
           );
+        }
+      })
+      .then(async () => {
+        /*
+         * Its rules are matched from here on, on what it ends up with: the
+         * owners and labels this chain adds are in. Those its creator and
+         * the code that made it add - a monitor's criteria's - are waited
+         * for a moment, in a project with a rule that asks who owns an
+         * alert (WorkspaceRuleOwnersOnCreate). Never throws.
+         */
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId!,
+          eventType: NotificationRuleEventType.Alert,
+          recordId: createdItem.id!,
+        });
+      })
+      .then(async () => {
+        /*
+         * No channel is opened for an alert created resolved. Its created
+         * feed entry still goes to the channels the workspace rules name.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          try {
+            membersNotAddedToNewChannels =
+              await this.handleAlertWorkspaceOperationsAsync(createdItem);
+            return Promise.resolve();
+          } catch (error) {
+            logger.error(
+              `Workspace operations failed in AlertService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                alertId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+            return Promise.resolve();
+          }
+        }
+        return Promise.resolve();
+      })
+      .then(async () => {
+        try {
+          return await this.createAlertFeedAsync(createdItem.id!, feedStartsAt);
+        } catch (error) {
+          logger.error(
+            `Create alert feed failed in AlertService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              alertId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve(); // Continue chain even on error
+        }
+      })
+      .then(async () => {
+        // Under "Alert Created": who could not be added to the new channels.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Then what waited for "Alert Created", in the order it was made:
+         * the owners added above - "Added team Platform to the Alert as the
+         * owner" - and anything else posted about the alert meanwhile.
+         * Never throws.
+         */
+        await WorkspaceCreatedMessageFirst.postHeld({
+          alertId: createdItem.id!,
+        });
+      })
+      .then(() => {
+        /*
+         * The video calls the workspace rules ask for, posted after "Alert
+         * Created" in the channels the rules just created. Not waited on: a
+         * meeting provider that is slow to answer must never hold up paging
+         * the on-call below. No call for an alert created resolved.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          VideoCallRuleExecutor.startCallsForAlert({
+            projectId: createdItem.projectId,
+            alertId: createdItem.id,
+          }).catch((error: unknown) => {
+            logger.error(
+              `Starting video calls failed in AlertService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                alertId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       })
       .then(async () => {
@@ -1802,9 +1885,28 @@ export class Service extends ProjectReferencesService<Model> {
           onCreate.createBy,
           OwnersAddedBy.Chain,
         );
+
+        /*
+         * Maybe of "Alert Created" too: what waited for it goes out now,
+         * rather than once its hold runs out. Never throws.
+         */
+        void WorkspaceCreatedMessageFirst.postHeld({
+          alertId: createdItem.id!,
+        });
       });
 
     return createdItem;
+  }
+
+  // When the alert's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(onCreate: OnCreate<Model>): Date | undefined {
+    const carryForward: Partial<AlertCreateCarryForward> | null =
+      (onCreate.carryForward as Partial<AlertCreateCarryForward> | null) ||
+      null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
   }
 
   /*
@@ -1979,8 +2081,18 @@ export class Service extends ProjectReferencesService<Model> {
     }
   }
 
+  /*
+   * The alert's "Alert Created" entry, posted to its Slack, Microsoft Teams
+   * and Mattermost channels as the message that announces it - ahead of the
+   * messages its create held back until it (WorkspaceCreatedMessageFirst).
+   * Filed at `postedAt` when given - when the alert's feed starts - so it is
+   * the first line of the feed whenever it is written.
+   */
   @CaptureSpan()
-  private async createAlertFeedAsync(alertId: ObjectID): Promise<void> {
+  private async createAlertFeedAsync(
+    alertId: ObjectID,
+    postedAt?: Date | undefined,
+  ): Promise<void> {
     try {
       // Get alert data for feed creation
       const alert: Model | null = await this.findOneById({
@@ -2117,9 +2229,11 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
         displayColor: Red500,
         feedInfoInMarkdown: feedInfoInMarkdown,
         userId: createdByUserId || undefined,
+        ...(postedAt ? { postedAt: postedAt } : {}),
         workspaceNotification: {
           appendMessageBlocks: alertCreateMessageBlocks,
           sendWorkspaceNotification: true,
+          announcesRecord: true,
         },
       });
     } catch (error) {

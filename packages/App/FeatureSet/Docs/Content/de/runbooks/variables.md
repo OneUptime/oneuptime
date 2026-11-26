@@ -33,7 +33,7 @@ Ein Name kommt unter den globalen Variablen des Projekts nur einmal vor, unabhä
 
 ## Bevor Sie beginnen
 
-- **Eine Rolle, die Variablen verwaltet.** Projektinhaber und Projektadministrator oder die Berechtigung **Create Runbook Variable**. Runbook-Administrator liest Variablen, um sie in den Schritten auszuwählen, die er schreibt, ändert sie aber nicht.
+- **Eine Rolle, die Variablen verwaltet.** Projektinhaber und Projektadministrator oder die Berechtigung **Create Runbook Variable**. Runbook-Administrator liest Variablen, um sie in den Schritten auszuwählen, die er schreibt, ändert sie aber nicht. Ein Workflow ändert sie nur, wenn er als Projektinhaber läuft oder als benutzerdefinierte Rolle mit diesen Berechtigungen: siehe [Was Workflow-Schritte dürfen](/docs/workflows/configuration#was-workflow-schritte-dürfen).
 - **Ein Tarif, der sie enthält.** In OneUptime Cloud brauchen Runbook-Variablen den Tarif **Growth** oder höher.
 
 ## Eine Variable erstellen
@@ -84,6 +84,8 @@ Ein [SSH-Schritt](/docs/runbooks/authoring#ssh) wählt unter **Anmelden mit** di
 @tab Kubeconfig
 Ein [kubectl-Schritt](/docs/runbooks/authoring#kubectl) wählt unter **Kubeconfig** die geheime Variable, die die kubeconfig des Clusters enthält, oder **Der eigene Zugriff des Runners**, um den des Runners zu verwenden.
 :::
+
+Ein Wert wird genau so eingesetzt, wie er geschrieben ist, an der Stelle des Verweises, sodass, wer eine Variable ändern kann, ändert, was jeder Schritt ausführt, der sie nennt. Geben Sie die Berechtigungen, die Variablen ändern, nur Personen, die Sie diese Schritte schreiben lassen würden. Werte von außerhalb von OneUptime, etwa das, was ein Webhook-Aufruf sendet, erreichen einen Bash-Schritt stattdessen als Umgebungsvariablen, nie als Teil seines Skripts: siehe [Werte, die ein Webhook-Aufruf sendet](/docs/runbooks/triggers#werte-die-ein-webhook-aufruf-sendet).
 
 Auf der Seite **Schritte** eines Runbooks listen jedes Skript und jede HTTP-Anfrage unter **Variablen – zum Kopieren klicken** die Variablen auf, die ihr Schritt verwenden kann, und der Editor sagt, wenn ein Schritt eine Variable nennt, die es nicht gibt, oder ein Geheimnis, das sein Runner nicht nutzen darf.
 

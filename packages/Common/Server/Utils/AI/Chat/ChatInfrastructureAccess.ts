@@ -438,6 +438,12 @@ export default class ChatInfrastructureAccess {
      * a caller sets a cap; none by default (the run's own limits hold it).
      */
     maxCommands?: number | undefined;
+    /*
+     * The turn's pager, which its other tools - the project's external MCP
+     * servers' - page with too, so one read_tool_output reads every long
+     * output. Left out, one of its own.
+     */
+    outputPager?: ToolOutputPager | undefined;
   }): Promise<ChatInfrastructureTools> {
     const linkedCount: number =
       data.statuses.clusters.length + data.statuses.resources.length;
@@ -459,7 +465,8 @@ export default class ChatInfrastructureAccess {
     const isAnyWithheld: boolean =
       clusters.length + resources.length < linkedCount;
 
-    const outputPager: ToolOutputPager = new ToolOutputPager();
+    const outputPager: ToolOutputPager =
+      data.outputPager || new ToolOutputPager();
     const extraTools: Array<ChatExtraTool> = [];
 
     const kubectlTools: Array<ChatExtraTool> = new KubectlInvestigationToolkit({
@@ -634,6 +641,8 @@ export default class ChatInfrastructureAccess {
     aiRunId: ObjectID;
     props: DatabaseCommonInteractionProps;
     pageContext: AIChatPageContext | undefined;
+    // The turn's pager (buildTools).
+    outputPager?: ToolOutputPager | undefined;
   }): Promise<ChatPageInfrastructure | null> {
     try {
       const statuses: ChatInfrastructureStatuses =
@@ -653,6 +662,7 @@ export default class ChatInfrastructureAccess {
         props: data.props,
         statuses,
         offeredIn: "an Ask AI conversation",
+        outputPager: data.outputPager,
       });
 
       if (tools.contextSections.length === 0) {

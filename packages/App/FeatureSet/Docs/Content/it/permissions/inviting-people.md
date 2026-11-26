@@ -132,8 +132,8 @@ Rimuovere qualcuno lo toglie da ogni team del progetto. Perde subito l'accesso, 
 
 ## Risoluzione dei problemi
 
-:::details "This user has already been invited to this team"
-La persona è già in quel team, come membro o con un invito che non ha accettato. Aprila in **Utenti** per vedere i suoi team, oppure invitala in un altro team.
+:::details "This person has already been invited to this team, or is a member of it"
+La persona è già in quel team, come membro o con un invito che non ha accettato. Aprila in **Utenti** per vedere i suoi team, oppure invitala in un altro team. Se non si è ancora unita, **Invia di nuovo l'invito** nel menu della sua riga le manda di nuovo l'email di invito.
 :::
 
 :::details "You have reached the user limit for the free plan"

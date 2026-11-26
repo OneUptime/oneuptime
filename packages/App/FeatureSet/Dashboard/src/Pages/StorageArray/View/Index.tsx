@@ -46,12 +46,23 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "Common/Types/StorageArray/StorageArrayResourceKind";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayGoldenCharts,
+  StorageArrayPlatform,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayInventoryTileWords,
+  StorageArrayKindWords,
+  StorageArrayTopListWords,
+  getStorageArrayInventoryTileWords,
+  getStorageArrayKindCount,
+  getStorageArrayKindWords,
+  getStorageArrayTopListWords,
+} from "../Utils/StorageArrayKindWords";
 import StorageArrayResourceUtils, {
   STORAGE_ARRAY_ATTRIBUTE,
   UNHEALTHY_RESOURCE_STATUSES,
@@ -252,22 +263,20 @@ export const StorageArrayMetricTitle: FunctionComponent<
 };
 
 /*
- * The golden charts of a platform, from StorageArrayMetricCatalog: read and
- * write latency, IOPS and bandwidth drawn on one panel each, and capacity
- * used. Nothing for a platform OneUptime has no catalog for.
+ * The golden charts of a platform (its overview.goldenCharts, catalog ids
+ * from StorageArrayMetricCatalog): read and write latency, IOPS and
+ * bandwidth drawn on one panel each, and capacity used. Nothing for a
+ * platform OneUptime has no catalog for.
  */
 export function getGoldenChartQueries(data: {
   storageSystem: string | null | undefined;
   arrayName: string;
 }): Array<MetricQueryConfigData> {
-  const prefix: string | null =
-    data.storageSystem === StorageSystem.PureStorageFlashArray
-      ? "purefa"
-      : data.storageSystem === StorageSystem.PureStorageFlashBlade
-        ? "purefb"
-        : null;
+  const charts: StorageArrayGoldenCharts | undefined =
+    StorageArrayPlatformRegistry.getPlatform(data.storageSystem)?.overview
+      .goldenCharts;
 
-  if (!prefix) {
+  if (!charts) {
     return [];
   }
 
@@ -278,7 +287,7 @@ export function getGoldenChartQueries(data: {
    */
   return StorageArrayResourceUtils.buildCatalogQueries([
     {
-      metricId: `${prefix}-array-read-latency`,
+      metricId: charts.readLatency,
       arrayName: data.arrayName,
       title: translationKey("Latency"),
       description: translationKey(
@@ -287,13 +296,13 @@ export function getGoldenChartQueries(data: {
       legend: translationKey("Read"),
     },
     {
-      metricId: `${prefix}-array-write-latency`,
+      metricId: charts.writeLatency,
       arrayName: data.arrayName,
       legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
-      metricId: `${prefix}-array-read-iops`,
+      metricId: charts.readIops,
       arrayName: data.arrayName,
       title: translationKey("IOPS"),
       description: translationKey(
@@ -302,13 +311,13 @@ export function getGoldenChartQueries(data: {
       legend: translationKey("Read"),
     },
     {
-      metricId: `${prefix}-array-write-iops`,
+      metricId: charts.writeIops,
       arrayName: data.arrayName,
       legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
-      metricId: `${prefix}-array-read-bandwidth`,
+      metricId: charts.readBandwidth,
       arrayName: data.arrayName,
       title: translationKey("Throughput"),
       description: translationKey(
@@ -317,37 +326,39 @@ export function getGoldenChartQueries(data: {
       legend: translationKey("Read"),
     },
     {
-      metricId: `${prefix}-array-write-bandwidth`,
+      metricId: charts.writeBandwidth,
       arrayName: data.arrayName,
       legend: translationKey("Write"),
       overlayWithPreviousQuery: true,
     },
     {
-      metricId: `${prefix}-array-space-utilization`,
+      metricId: charts.capacityUsed,
       arrayName: data.arrayName,
       title: translationKey("Capacity Used"),
-      description: translationKey(
-        "Share of the array's usable capacity in use. Pure raises its own capacity alerts at 80%, 90% and 100%.",
-      ),
+      description: charts.capacityUsedDescription,
       legend: translationKey("Capacity Used"),
     },
   ]);
 }
 
 /*
- * The alert series of a platform (one series per open alert, value 1);
- * both for an array whose platform is not known yet.
+ * The alert series of a platform (one series per open alert, value 1,
+ * overview.alertMetricName); every platform's for an array whose platform
+ * is not known yet.
  */
 export function getAlertMetricNames(
   storageSystem: string | null | undefined,
 ): Array<string> {
-  if (storageSystem === StorageSystem.PureStorageFlashArray) {
-    return ["purefa_alerts_open"];
-  }
-  if (storageSystem === StorageSystem.PureStorageFlashBlade) {
-    return ["purefb_alerts_open"];
-  }
-  return ["purefa_alerts_open", "purefb_alerts_open"];
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  const platforms: ReadonlyArray<StorageArrayPlatform> = platform
+    ? [platform]
+    : StorageArrayPlatformRegistry.getPlatforms();
+  return platforms.flatMap((candidate: StorageArrayPlatform): Array<string> => {
+    return candidate.overview.alertMetricName
+      ? [candidate.overview.alertMetricName]
+      : [];
+  });
 }
 
 const StorageArrayOverview: FunctionComponent<
@@ -443,6 +454,7 @@ const StorageArrayOverview: FunctionComponent<
         podCount: true,
         fileSystemCount: true,
         bucketCount: true,
+        countsByKind: true,
         hardwareComponentCount: true,
         unhealthyHardwareCount: true,
         healthStatus: true,
@@ -518,16 +530,17 @@ const StorageArrayOverview: FunctionComponent<
   const fetchInventory: (item: StorageArray) => Promise<void> = async (
     item: StorageArray,
   ): Promise<void> => {
-    const kinds: Array<StorageArrayResourceKind> =
-      StorageArrayResourceKindUtil.getKindsForSystem(item.storageSystem);
-
-    // Volumes on a FlashArray, file systems on a FlashBlade.
-    const topKind: StorageArrayResourceKind | null = kinds.includes(
-      StorageArrayResourceKind.Volume,
-    )
-      ? StorageArrayResourceKind.Volume
-      : kinds.includes(StorageArrayResourceKind.FileSystem)
-        ? StorageArrayResourceKind.FileSystem
+    /*
+     * The kind the platform's Slowest and Largest lists rank
+     * (overview.topKind): volumes on a FlashArray, file systems on a
+     * FlashBlade.
+     */
+    const topKindName: string | undefined =
+      StorageArrayPlatformRegistry.getPlatform(item.storageSystem)?.overview
+        .topKind;
+    const topKind: StorageArrayResourceKind | null =
+      topKindName && getStorageArrayTopListWords(topKindName)
+        ? (topKindName as StorageArrayResourceKind)
         : null;
 
     if (!topKind) {
@@ -647,7 +660,7 @@ const StorageArrayOverview: FunctionComponent<
           return null;
         }),
         kinds.includes(StorageArrayResourceKind.FileSystem)
-          ? loadFileSystemAvailableRatios(arrayName).catch(
+          ? loadFileSystemAvailableRatios(arrayName, item.storageSystem).catch(
               (): Map<string, number> => {
                 return new Map();
               },
@@ -944,12 +957,12 @@ const StorageArrayOverview: FunctionComponent<
     });
   };
 
-  const isFlashBlade: boolean = StorageSystemUtil.isFlashBlade(
-    storageArray?.storageSystem,
-  );
-  const isFlashArray: boolean = StorageSystemUtil.isFlashArray(
-    storageArray?.storageSystem,
-  );
+  /*
+   * The array's platform, which says which of its counts the hero shows and
+   * which kind its tile and ranked lists are about (overview).
+   */
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageArray?.storageSystem);
 
   const routes: StorageArrayPartRoutes = getStorageArrayPartRoutes(modelId);
 
@@ -1022,54 +1035,19 @@ const StorageArrayOverview: FunctionComponent<
       label: string;
     }> = [];
 
-    if (isFlashArray) {
-      if (storageArray.volumeCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Disc,
-          label: translator.translatePlural(
-            { one: "{{count}} volume", other: "{{count}} volumes" },
-            storageArray.volumeCount || 0,
-          ),
-        });
+    for (const chip of platform?.overview.countChips || []) {
+      const count: number | undefined = getStorageArrayKindCount(
+        storageArray,
+        chip.kind,
+      );
+      if (count === undefined || (!chip.showWhenZero && !count)) {
+        continue;
       }
-      if (storageArray.hostCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Server,
-          label: translator.translatePlural(
-            { one: "{{count}} host", other: "{{count}} hosts" },
-            storageArray.hostCount || 0,
-          ),
-        });
-      }
-      if (storageArray.podCount) {
-        specChips.push({
-          icon: IconProp.Refresh,
-          label: translator.translatePlural(
-            { one: "{{count}} pod", other: "{{count}} pods" },
-            storageArray.podCount,
-          ),
-        });
-      }
-    }
-    if (isFlashBlade) {
-      if (storageArray.fileSystemCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Folder,
-          label: translator.translatePlural(
-            { one: "{{count}} file system", other: "{{count}} file systems" },
-            storageArray.fileSystemCount || 0,
-          ),
-        });
-      }
-      if (storageArray.bucketCount !== undefined) {
-        specChips.push({
-          icon: IconProp.Archive,
-          label: translator.translatePlural(
-            { one: "{{count}} bucket", other: "{{count}} buckets" },
-            storageArray.bucketCount || 0,
-          ),
-        });
-      }
+      const words: StorageArrayKindWords = getStorageArrayKindWords(chip.kind);
+      specChips.push({
+        icon: words.icon,
+        label: translator.translatePlural(words.count, count || 0),
+      });
     }
     if (storageArray.hardwareComponentCount) {
       specChips.push({
@@ -1336,12 +1314,59 @@ const StorageArrayOverview: FunctionComponent<
                     "The array closed its alerts within the last few minutes; the counts update with its next report.",
                   )
                 : translator.translateText(
-                    "Alert details are unavailable right now. Open Pure1 or run purealert list on the array for the full list.",
+                    StorageArrayPlatformRegistry.getPlatformOrDefault(
+                      storageArray.storageSystem,
+                    ).overview.alertDetailsUnavailable || "",
                   )}
             </div>
           )}
         </Card>
       </div>
+    );
+  };
+
+  /*
+   * The last golden tile: the count of the platform's main kind, with the
+   * count of the kind beside it under it (overview.inventoryTile) - a
+   * FlashArray's volumes and hosts, a FlashBlade's file systems and
+   * buckets. An array whose platform is not known shows the default
+   * platform's, at the counts it has.
+   */
+  const renderInventoryTile: () => ReactElement = (): ReactElement => {
+    if (!storageArray) {
+      return <Fragment />;
+    }
+    const tile: StorageArrayPlatform["overview"]["inventoryTile"] =
+      StorageArrayPlatformRegistry.getPlatformOrDefault(
+        storageArray.storageSystem,
+      ).overview.inventoryTile;
+    if (!tile) {
+      return <Fragment />;
+    }
+    const tileWords: StorageArrayInventoryTileWords =
+      getStorageArrayInventoryTileWords(tile.kind);
+    const count: number | undefined = getStorageArrayKindCount(
+      storageArray,
+      tile.kind,
+    );
+    return (
+      <GoldenMetricTile
+        title={tileWords.title}
+        description={tileWords.description}
+        icon={getStorageArrayKindWords(tile.kind).icon}
+        iconColor="sky"
+        value={
+          count === null || count === undefined ? undefined : String(count)
+        }
+        sublabel={
+          tile.sublabelKind
+            ? translator.translatePlural(
+                getStorageArrayKindWords(tile.sublabelKind).count,
+                getStorageArrayKindCount(storageArray, tile.sublabelKind) || 0,
+              )
+            : undefined
+        }
+      />
     );
   };
 
@@ -1447,41 +1472,7 @@ const StorageArrayOverview: FunctionComponent<
               : undefined
           }
         />
-        {isFlashBlade ? (
-          <GoldenMetricTile
-            title="File Systems"
-            description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.fileSystemsTile}
-            icon={IconProp.Folder}
-            iconColor="sky"
-            value={
-              storageArray.fileSystemCount === null ||
-              storageArray.fileSystemCount === undefined
-                ? undefined
-                : String(storageArray.fileSystemCount)
-            }
-            sublabel={translator.translatePlural(
-              { one: "{{count}} bucket", other: "{{count}} buckets" },
-              storageArray.bucketCount || 0,
-            )}
-          />
-        ) : (
-          <GoldenMetricTile
-            title="Volumes"
-            description={STORAGE_ARRAY_METRIC_DESCRIPTIONS.volumesTile}
-            icon={IconProp.Disc}
-            iconColor="sky"
-            value={
-              storageArray.volumeCount === null ||
-              storageArray.volumeCount === undefined
-                ? undefined
-                : String(storageArray.volumeCount)
-            }
-            sublabel={translator.translatePlural(
-              { one: "{{count}} host", other: "{{count}} hosts" },
-              storageArray.hostCount || 0,
-            )}
-          />
-        )}
+        {renderInventoryTile()}
       </div>
     );
   };
@@ -1596,30 +1587,12 @@ const StorageArrayOverview: FunctionComponent<
       return <Fragment />;
     }
 
-    if (isFlashBlade) {
-      return (
-        <CardGrid
-          columns={2}
-          cardWidth="narrow"
-          className="!mb-6"
-          dataTestId="storage-array-top-objects"
-        >
-          {renderTopList({
-            title: "Slowest File Systems",
-            description: "File systems with the highest read or write latency.",
-            tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.slowestFileSystems,
-            rows: slowestObjects,
-            detailPageKey: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL,
-          })}
-          {renderTopList({
-            title: "Largest File Systems",
-            description: "File systems using the most flash.",
-            tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.largestFileSystems,
-            rows: largestObjects,
-            detailPageKey: PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL,
-          })}
-        </CardGrid>
-      );
+    const topKind: string | undefined = platform?.overview.topKind;
+    const words: StorageArrayTopListWords | null = topKind
+      ? getStorageArrayTopListWords(topKind)
+      : null;
+    if (!words) {
+      return <Fragment />;
     }
 
     return (
@@ -1630,18 +1603,18 @@ const StorageArrayOverview: FunctionComponent<
         dataTestId="storage-array-top-objects"
       >
         {renderTopList({
-          title: "Slowest Volumes",
-          description: "Volumes with the highest read or write latency.",
-          tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.slowestVolumes,
+          title: words.slowestTitle,
+          description: words.slowestDescription,
+          tooltip: words.slowestTooltip,
           rows: slowestObjects,
-          detailPageKey: PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL,
+          detailPageKey: words.detailPageKey,
         })}
         {renderTopList({
-          title: "Largest Volumes",
-          description: "Volumes using the most flash after data reduction.",
-          tooltip: STORAGE_ARRAY_METRIC_DESCRIPTIONS.largestVolumes,
+          title: words.largestTitle,
+          description: words.largestDescription,
+          tooltip: words.largestTooltip,
           rows: largestObjects,
-          detailPageKey: PageMap.STORAGE_ARRAY_VIEW_VOLUME_DETAIL,
+          detailPageKey: words.detailPageKey,
         })}
       </CardGrid>
     );

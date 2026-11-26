@@ -15,7 +15,7 @@ Konfigurationen av incidenter finns under **Incidenter**, inte under **Projektin
 
 | Sida                         | Vad du gör där                                                                               |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Incidentstatus**           | Lägga till, byta namn på, byta färg på och ändra ordningen på tillstånden som en incident går igenom. |
+| **Incidentstatus**           | Lägga till, byta namn på, byta färg på och ändra ordningen på tillstånden som en incident går igenom, och välja om incidenter som deklareras för hand ska börja som bekräftade. Avslaget som standard. |
 | **Incidentallvar**           | Lägga till, byta namn på, byta färg på och ändra ordningen på allvarlighetsgraderna.         |
 | **Incidentmallar**           | Förifylla en hel incident — titel, beskrivning, resurser, jourpolicyer, ägare, etiketter.    |
 | **Anteckningsmallar**        | Återanvändbar text för offentliga och privata anteckningar.                                  |
@@ -82,7 +82,7 @@ flowchart TB
     merge --> incident
 ```
 
-- **I instrumentpanelen** — knappen **Skapa från mall** i listan över incidenter öppnar en väljare **Välj incidentmall**, och deklarationssidan läser mallen från frågeparametern `incidentTemplateId` och förifyller sedan formuläret med mallen plus dess ägarteam och ägaranvändare. Dess steg **Detaljer** följer mallens [anpassade fält vid skapande](#anpassade-fält-vid-skapande). Ägarna blir incidentens ägare utan att meddelas, när incidentens Slack- och Microsoft Teams-kanaler finns, så att en aviseringsregel som bjuder in incidentens ägare till en ny kanal också bjuder in dem.
+- **I instrumentpanelen** — knappen **Skapa från mall** i listan över incidenter öppnar en väljare **Välj incidentmall**, och deklarationssidan läser mallen från frågeparametern `incidentTemplateId` och förifyller sedan formuläret med mallen plus dess ägarteam och ägaranvändare. Dess steg **Detaljer** följer mallens [anpassade fält vid skapande](#anpassade-fält-vid-skapande). Ägarna blir incidentens ägare utan att meddelas, innan incidentens Slack- och Microsoft Teams-kanaler skapas, så att en aviseringsregel som frågar vem som äger incidenten matchar dem, och en regel som bjuder in incidentens ägare till en ny kanal också bjuder in dem.
 - **På servern** — ett [formulär](/docs/forms/on-submit#incidentmallen) som har en **Incidentmall**, och ett arbetsflödes steg **Skapa Incident (en post)** med en vald **Incidentmall**, deklarerar incidenten från mallen på servern. Steget läser mallen som Projektadministratör för arbetsflödets projekt, så en mall från ett annat projekt, eller en som har tagits bort, avvisas, och på ett abonnemang som inte omfattar incidentmallar avvisas steget med det abonnemang som det kräver. Mallens ägare blir incidentens ägare, som i instrumentpanelen. Se [Deklarera en incident från en mall](/docs/workflows/components#deklarera-en-incident-från-en-mall).
 
 En incident som deklareras på servern registrerar mallen i `createdIncidentTemplateId`. Bara OneUptime sätter den kolumnen, för ett formulär eller ett arbetsflödessteg som nämner en mall: en API-nyckel eller en inloggad användare kan inte det, och en begäran som skickar `createdIncidentTemplateId` avvisas. För att deklarera från en mall via API:t läser du den från `/api/incident-templates` och skickar dess värden i begäran.

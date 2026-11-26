@@ -28,9 +28,20 @@
  *               private incident or episode takes no new public notes.
  *   ?fail=      comma separated: list, create, update, delete, resend,
  *               templates, ai. The matching call throws HTTPErrorResponse.
+ *   ?unexplained=
+ *               comma separated: update, delete, approve. The matching
+ *               write fails as a server that could not explain it does
+ *               (#6836): a 500 with its sentence and the reference of its
+ *               log lines (FAILED_WRITE_REFERENCE), which the note's
+ *               editor or dialog draws after what failed (#7680).
+ *   ?approval=  waiting: incident #1042's public notes are approved before
+ *               they are published, at one step the reader (Maya Chen) is
+ *               on, and Sam's newest public note waits for it - so its card
+ *               offers Approve and Reject.
  *   ?theme=     dark adds html.dark (handled by server.js).
- *   ?lang=      en (default) | de | ar: the Dashboard's own words in
- *               German or Arabic (an Arabic page reads from the right).
+ *   ?lang=      en (default) | de | ar | fa: the Dashboard's own words in
+ *               German, Arabic or Persian (an Arabic or a Persian page
+ *               reads from the right).
  *
  * Every read and write is recorded on window.__eventNotesFixture:
  *   getItemRequests, listRequests, countRequests, apiRequests, creates,
@@ -87,6 +98,14 @@ import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/Sched
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  ERROR_REFERENCE_FIELD,
+  getUnexplainedServerErrorMessage,
+} from "Common/Types/Exception/UnexplainedError";
+import {
+  PublicNoteApprovalState,
+  PublicNoteApprovalStatus,
+} from "Common/Types/StatusPage/PublicNoteApproval";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Search from "Common/Types/BaseDatabase/Search";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -136,8 +155,14 @@ const templatesMode = ["none", "many"].includes(params.get("templates"))
 const isQuietIncident = params.get("quiet") === "1";
 const isPrivateEvent = params.get("private") === "1";
 const failures = new Set((params.get("fail") || "").split(",").filter(Boolean));
-// ?lang=de|ar: the page in German or Arabic, from the Dashboard's own files.
-const language = ["de", "ar"].includes(params.get("lang"))
+// ?unexplained=: the writes that fail as a server that could not explain it does.
+const unexplainedFailures = new Set(
+  (params.get("unexplained") || "").split(",").filter(Boolean),
+);
+// ?approval=waiting: #1042's public notes wait for an approver, the reader.
+const isApprovalWaiting = params.get("approval") === "waiting";
+// ?lang=de|ar|fa: the page in German, Arabic or Persian, from the Dashboard's own files.
+const language = ["de", "ar", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -215,6 +240,25 @@ function ok(data) {
 
 function fail(statusCode, message) {
   return new HTTPErrorResponse(statusCode, { message }, {});
+}
+
+// The reference a ?unexplained= failure names for the server's log lines.
+const FAILED_WRITE_REFERENCE = "5e1c9a7d";
+
+/*
+ * What a server answers for a failure it could not explain
+ * (Common/Server/Utils/UnexplainedServerError): its sentence, and the
+ * reference of its log lines.
+ */
+function unexplained() {
+  return new HTTPErrorResponse(
+    500,
+    {
+      message: getUnexplainedServerErrorMessage(FAILED_WRITE_REFERENCE),
+      [ERROR_REFERENCE_FIELD]: FAILED_WRITE_REFERENCE,
+    },
+    {},
+  );
 }
 
 function make(modelType, record) {
@@ -444,6 +488,21 @@ if (notesMode !== "empty") {
     updateStatusMessage: SubscriberUpdateNotification.sentMessage,
     note: "Some customers in Europe may see errors when paying. Our engineers have been paged.",
   });
+
+  /*
+   * ?approval=waiting: Sam's newest public note waits for an approver, so it
+   * is not published yet (PublicNoteApproval.getState).
+   */
+  if (isApprovalWaiting) {
+    const waiting = note(IncidentPublicNote, "incidentId", incidentId, {
+      isPublic: true,
+      createdAt: ago(4 * MINUTE),
+      by: people.sam,
+      note: "**Resolved.** Card payments in the EU work again. We will post what happened tomorrow.",
+    });
+    waiting.isPublished = false;
+    waiting.approvalStatus = PublicNoteApprovalStatus.WaitingForApproval;
+  }
 
   if (notesMode === "many") {
     for (let i = 0; i < 30; i++) {
@@ -802,6 +861,9 @@ ModelAPI.createOrUpdate = async (options) => {
     data: serialize(data),
     miscDataProps: serialize(options.miscDataProps),
   });
+  if (isUpdate && unexplainedFailures.has("update")) {
+    throw unexplained();
+  }
   if (failures.has(isUpdate ? "update" : "create")) {
     throw fail(
       400,
@@ -871,6 +933,9 @@ ModelAPI.deleteItem = async (options) => {
   const modelName = tableName(options.modelType);
   const id = options.id?.toString();
   fixture.deletes.push({ modelName, id });
+  if (unexplainedFailures.has("delete")) {
+    throw unexplained();
+  }
   if (failures.has("delete")) {
     throw fail(403, "You can only delete notes you wrote.");
   }
@@ -881,6 +946,62 @@ ModelAPI.deleteItem = async (options) => {
     });
   }
 };
+
+/*
+ * ?approval=waiting: incident public notes are approved at one step, its
+ * people the reader.
+ */
+const APPROVAL_POLICY = {
+  isRequired: true,
+  steps: [
+    {
+      id: "approval-step-1",
+      number: 1,
+      name: "Comms lead",
+      people: [people.maya.name.toString()],
+      teams: [],
+    },
+  ],
+};
+
+// Where each of the notes asked about stands, for the reader.
+function approvalSummaries(noteIds) {
+  const records = tables.get(tableName(IncidentPublicNote))?.records || [];
+
+  return noteIds
+    .map((noteId) => {
+      return records.find((item) => {
+        return String(item._id) === String(noteId);
+      });
+    })
+    .filter((record) => {
+      return (
+        record &&
+        record.approvalStatus === PublicNoteApprovalStatus.WaitingForApproval
+      );
+    })
+    .map((record) => {
+      return {
+        noteId: String(record._id),
+        state: PublicNoteApprovalState.WaitingForApproval,
+        isEdit: false,
+        submittedAt: new Date(record.createdAt).toISOString(),
+        submittedBy: people.sam.name.toString(),
+        step: {
+          number: 1,
+          count: 1,
+          name: "Comms lead",
+          isFinal: true,
+          isAskedAgain: false,
+          people: [people.maya.name.toString()],
+          teams: [],
+        },
+        approvals: [],
+        canApprove: true,
+        canReject: true,
+      };
+    });
+}
 
 const AI_DRAFT =
   "**Update.** We have identified the cause of the elevated error rates and a fix is being deployed. We will post another update within 30 minutes.";
@@ -1018,7 +1139,38 @@ async function handleApi(method, options) {
    * it on, so a note is published as it is posted.
    */
   if (method === "POST" && url.endsWith("/approval/policy")) {
-    return ok({ isRequired: false, steps: [] });
+    return ok(
+      isApprovalWaiting && url.includes("/incident-public-note/")
+        ? APPROVAL_POLICY
+        : { isRequired: false, steps: [] },
+    );
+  }
+
+  /*
+   * ?approval=waiting: where each note of the page stands (POST <note
+   * path>/approval/notes): Sam's newest public note waits for the one step,
+   * and the reader, on it, may approve or reject it.
+   */
+  if (method === "POST" && url.endsWith("/approval/notes")) {
+    return ok({ notes: approvalSummaries(body.noteIds || []) });
+  }
+
+  // ?approval=waiting: an approver's Approve (POST <note path>/:id/approve).
+  const approval = url.match(/\/incident-public-note\/([^/]+)\/approve$/);
+  if (method === "POST" && approval) {
+    if (unexplainedFailures.has("approve")) {
+      throw unexplained();
+    }
+    const record = (
+      tables.get(tableName(IncidentPublicNote))?.records || []
+    ).find((item) => {
+      return String(item._id) === approval[1];
+    });
+    if (record) {
+      record.isPublished = true;
+      record.approvalStatus = PublicNoteApprovalStatus.Approved;
+    }
+    return ok({});
   }
 
   fixture.unhandled.push({ kind: "api", method, url });
@@ -1042,8 +1194,8 @@ followLanguageForPage(i18next);
 followLanguageForDates(i18next);
 
 /*
- * English, the fallback, is in the bundle; German and Arabic are each a
- * chunk of its own, loaded only by a page drawn in that language, as the
+ * English, the fallback, is in the bundle; German, Arabic and Persian are
+ * each a chunk of its own, loaded only by a page drawn in that language, as the
  * Dashboard loads a locale (src/Utils/I18nLocaleLoader.ts), and built as the
  * Dashboard ships them (server.js, SuiteHelpers/FixtureLocalesBuild.js).
  * Imported whole, they were parsed on every page load of every test (#8366).
@@ -1054,6 +1206,9 @@ const LOCALE_LOADERS = {
   },
   ar: () => {
     return import("../../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+  },
+  fa: () => {
+    return import("../../../App/FeatureSet/Dashboard/src/Locales/fa.json");
   },
 };
 

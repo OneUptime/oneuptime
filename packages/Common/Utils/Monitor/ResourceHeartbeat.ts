@@ -6,6 +6,8 @@ import {
   XCP_NG_POOL_RESOURCE_ATTRIBUTE,
   getXcpNgStepPoolIdentifier,
 } from "./MonitorStepMetricQueries";
+import StorageArrayPlatformRegistry from "../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "../../Types/StorageArray/StorageArrayPlatform";
 
 /*
  * What a resource always sends while it reports, and the attributes that
@@ -25,9 +27,10 @@ import {
  * while it is connected to the pool and stops - rather than sending 0 - when
  * it loses the pool, while its other pools carry on.
  *
- * A storage array names both of Pure's series, so that a monitor whose
- * platform is not known reads the right one; its array name tells the arrays
- * apart. IoT has none: a fleet sends nothing of its own, only its devices do.
+ * A storage array names every platform's heartbeat series
+ * (StorageArrayPlatform.heartbeat), so that a monitor whose platform is not
+ * known reads the right one; its array name tells the arrays apart. IoT has
+ * none: a fleet sends nothing of its own, only its devices do.
  *
  * InfrastructureStoppedReportingTemplates.test.ts holds these to the templates,
  * and MonitorTelemetryMonitorResourceStillReporting.test.ts to the scope the
@@ -156,7 +159,11 @@ export default class ResourceHeartbeatUtil {
 
     if (data.storageArrayMonitor) {
       return {
-        metricNames: ["purefa_info", "purefb_info"],
+        metricNames: StorageArrayPlatformRegistry.getPlatforms().map(
+          (platform: StorageArrayPlatform): string => {
+            return platform.heartbeat.metricName;
+          },
+        ),
         attributes: ResourceHeartbeatUtil.scopedTo(
           "resource.storage.array.name",
           data.storageArrayMonitor.arrayIdentifier,

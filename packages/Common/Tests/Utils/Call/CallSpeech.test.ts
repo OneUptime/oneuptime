@@ -13,6 +13,7 @@ import {
   toSpokenText,
   toTwimlText,
 } from "../../../Utils/Call/CallSpeech";
+import { CALL_VOICE_VALUES } from "../../../Types/Call/CallVoice";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import { describe, expect, test } from "@jest/globals";
@@ -166,13 +167,24 @@ describe("the product's name, as the voice says it", () => {
 });
 
 describe("which voices read SSML", () => {
-  test("Amazon Polly's and Google's, standard or neural", () => {
+  /*
+   * Only the voices OneUptime offers (Types/Call/CallVoice, #10948): each is
+   * a neural Amazon Polly or Google voice known to read say-as characters.
+   * A call names no other voice, so no other gets SSML.
+   */
+  test("every voice OneUptime offers, as the list writes it", () => {
+    expect(CALL_VOICE_VALUES.length).toBeGreaterThan(0);
+
+    for (const voice of CALL_VOICE_VALUES) {
+      expect(isSsmlVoice(voice)).toBe(true);
+      // The spaces around it are let go, as everywhere a voice is read.
+      expect(isSsmlVoice(` ${voice} `)).toBe(true);
+    }
+
     for (const voice of [
-      "Polly.Joanna",
       "Polly.Joanna-Neural",
-      "Google.en-US-Standard-C",
+      "Polly.Matthew-Neural",
       "Google.en-US-Neural2-F",
-      " polly.matthew ",
     ]) {
       expect(isSsmlVoice(voice)).toBe(true);
     }
@@ -188,6 +200,26 @@ describe("which voices read SSML", () => {
       "alice",
       "Polly",
       "ElevenLabs.UgBBYS2sOqTuMpoF3BR0",
+      // Google's Chirp3-HD voices read no SSML at all.
+      "Google.en-US-Chirp3-HD-Aoede",
+    ]) {
+      expect(isSsmlVoice(voice)).toBe(false);
+    }
+  });
+
+  test("not a Polly or Google voice OneUptime does not offer, nor one written another way: the call names none of them", () => {
+    for (const voice of [
+      // Standard and generative voices, which OneUptime does not offer.
+      "Polly.Joanna",
+      "Polly.Joanna-Generative",
+      "Google.en-US-Standard-C",
+      "Google.en-US-Wavenet-F",
+      // A listed voice in another casing, or misspelled.
+      "polly.joanna-neural",
+      "POLLY.JOANNA-NEURAL",
+      "Polly.Joanna_Neural",
+      // Markup in a voice's place.
+      'Polly.Joanna-Neural"><Dial>+19005550100</Dial>',
     ]) {
       expect(isSsmlVoice(voice)).toBe(false);
     }

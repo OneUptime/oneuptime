@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Un problème est survenu",
-  "An unexpected error has occurred. Please reload the page to continue": "Une erreur inattendue s'est produite. Veuillez recharger la page pour continuer",
+  "This page stopped working": "Cette page a cessé de fonctionner",
+  "Part of this page ran into a problem. Reload the page to continue.": "Une partie de cette page a rencontré un problème. Rechargez la page pour continuer.",
   "Error details": "Détails de l'erreur",
   "a11y": {
     "skipToMainContent": "Passer au contenu principal",
@@ -524,5 +524,29 @@
     "sessionExpired": "La session a expiré. Veuillez vous reconnecter.",
     "signedOut": "Vous êtes déconnecté. Veuillez vous reconnecter.",
     "magicLinkTurnedOff": "Les liens de connexion sont désactivés pour cette page de statut. Connectez-vous avec votre adresse e-mail et votre mot de passe."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "Le serveur a rencontré un problème qu'il n'a pas pu expliquer, l'opération n'a donc pas abouti. Réessayez, et si l'échec persiste, transmettez cette référence à votre administrateur ou au support OneUptime : {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "Le serveur a rencontré un problème qu'il n'a pas pu expliquer, l'opération n'a donc pas abouti. Réessayez dans un instant.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime est injoignable, l'opération n'a donc pas abouti. Vérifiez votre connexion Internet, puis réessayez.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Cette page a rencontré un problème, l'opération n'a donc pas abouti. Rechargez la page, puis réessayez.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Ce qui a été envoyé était trop volumineux pour que le serveur l'accepte, l'opération n'a donc pas abouti. Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Ce qui a été envoyé dépasse les 50 Mo qu'accepte OneUptime en une requête, l'opération n'a donc pas abouti. Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "This did not finish.": "L'opération n'a pas abouti.",
+  "The {{itemName}} was not deleted.": "Échec de la suppression : {{itemName}}.",
+  "“{{action}}” did not finish.": "L'opération « {{action}} » n'a pas abouti.",
+  "The server ran into a problem it could not explain.": "Le serveur a rencontré un problème qu'il n'a pas pu expliquer.",
+  "The OneUptime server did not answer.": "Le serveur OneUptime n'a pas répondu.",
+  "OneUptime could not be reached.": "OneUptime est injoignable.",
+  "This page ran into a problem.": "Cette page a rencontré un problème.",
+  "What was sent was too large for the server to accept.": "Ce qui a été envoyé était trop volumineux pour que le serveur l'accepte.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Ce qui a été envoyé dépasse les 50 Mo qu'accepte OneUptime en une requête.",
+  "Try again in a moment.": "Réessayez dans un instant.",
+  "It may be starting or restarting. Try again in a few minutes.": "Il est peut-être en train de démarrer ou de redémarrer. Réessayez dans quelques minutes.",
+  "Check your internet connection, then try again.": "Vérifiez votre connexion Internet, puis réessayez.",
+  "Reload the page, then try again.": "Rechargez la page, puis réessayez.",
+  "Try again with less at once, such as a smaller file.": "Réessayez avec moins de données à la fois, par exemple un fichier plus petit.",
+  "The {{itemName}} was not created.": "Échec de la création : {{itemName}}.",
+  "The {{itemName}} was not saved.": "Échec de l'enregistrement : {{itemName}}.",
+  "The {{itemName}} could not be loaded.": "Échec du chargement : {{itemName}}.",
+  "Page Did Not Load": "La page ne s'est pas chargée"
 }

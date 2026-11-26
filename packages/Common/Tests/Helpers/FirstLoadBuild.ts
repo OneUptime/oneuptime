@@ -49,6 +49,13 @@ export interface FirstLoadBuild {
   loadedLater: Array<string>;
   firstLoadFiles: number;
   laterFiles: number;
+  /*
+   * The modules OneUptime's own code require()s, as the metafile names them.
+   * The bundler runs such a module, and every module it imports, only when
+   * first asked for, wrapping each: a require of User wrapped most of
+   * Common, which every public page downloaded (#10290).
+   */
+  requiredByOwnCode: Array<string>;
 }
 
 export const buildFirstLoad: (
@@ -166,6 +173,21 @@ export const buildFirstLoad: (
           loadedLater.delete(input);
         }
 
+        // What OneUptime's own modules require(): not a package's.
+        const requiredByOwnCode = new Set();
+
+        for (const [input, data] of Object.entries(result.metafile.inputs)) {
+          if (input.includes("node_modules/")) {
+            continue;
+          }
+
+          for (const imported of data.imports) {
+            if (imported.kind === "require-call" && !imported.external) {
+              requiredByOwnCode.add(imported.path);
+            }
+          }
+        }
+
         console.log(JSON.stringify({
           firstLoad: [...firstLoad].sort(),
           loadedLater: [...loadedLater].sort(),
@@ -173,6 +195,7 @@ export const buildFirstLoad: (
           laterFiles: Object.keys(outputs).filter((file) => {
             return file.endsWith(".js") && !first.has(file);
           }).length,
+          requiredByOwnCode: [...requiredByOwnCode].sort(),
         }));
       }).catch((error) => {
         console.error(error);

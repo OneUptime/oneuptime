@@ -173,6 +173,7 @@ import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
+import UniqueNamesApi from "Common/UI/Utils/UniqueNamesApi";
 import UserUtil from "Common/UI/Utils/User";
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -234,6 +235,16 @@ beforeEach(() => {
     .mockImplementation((async (data: { model: BaseModel }) => {
       return { data: data.model, miscData: {} };
     }) as never);
+  /*
+   * A connection's name is one of its kind in a project, so the form asks
+   * the server whether another connection has the name typed
+   * (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

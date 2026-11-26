@@ -1,5 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import { ProbeConnectionRefusals } from "Common/Types/Probe/ProbeConnectionRefusals";
 import { JSONObject } from "Common/Types/JSON";
 import {
   IsRegisterProbeKeyShipped,
@@ -123,7 +124,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("ProbeId or ProbeKey is missing"),
+          new BadDataException(
+            ProbeConnectionRefusals.missingRegistrationProbeKey,
+          ),
         );
       }
 

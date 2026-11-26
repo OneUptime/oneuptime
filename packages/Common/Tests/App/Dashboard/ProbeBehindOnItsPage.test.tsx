@@ -422,8 +422,12 @@ describe("the pages", () => {
     expect(source).toMatch(
       /showIf: \(item: Probe\): boolean => \{\s*return \(\s*item\.connectionStatus === ProbeConnectionStatus\.Connected\s*\);/,
     );
-    expect(source).toContain(
-      "<ProbeStatusElement probe={item} isConnectionOnly={true} />",
+    /*
+     * Connection Status says the connection alone - and, the probe being
+     * the project's own, what to check once it is disconnected (#7273).
+     */
+    expect(source).toMatch(
+      /<ProbeStatusElement\s+probe=\{item\}\s+isConnectionOnly=\{true\}\s+isProjectProbe=\{true\}\s*\/>/,
     );
   });
 

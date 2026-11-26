@@ -1185,12 +1185,24 @@ import { AddProbeMajorVersionBehindNotifiedFor1809187570000 } from "./1809187570
 import { AddDataStoreFindingAiScrubRules1809187570752 } from "./1809187570752-AddDataStoreFindingAiScrubRules";
 import { AddDataSecurityIssueCodeFixTask1809187580367 } from "./1809187580367-AddDataSecurityIssueCodeFixTask";
 import { AddDataSecurityIssueCodeFixTaskIndex1809187580377 } from "./1809187580377-AddDataSecurityIssueCodeFixTaskIndex";
+import { AddProjectSecurityTrustedProxySwitches1809187580546 } from "./1809187580546-AddProjectSecurityTrustedProxySwitches";
 import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
 import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
 import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddTwilioCallVoice1809187620948 } from "./1809187620948-AddTwilioCallVoice";
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
-import { AddXcpNgPoolTables1809187680000 } from "./1809187680000-AddXcpNgPoolTables";
+import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
+import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-AddDataSecurityIssuePullRequest";
+import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
+import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
+import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from "./1809187680000-AddProjectStartIncidentsDeclaredByHandAcknowledged";
+import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
+import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
+import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
+import { AddCloudCostViewsGroupsAndLineItems1809187711006 } from "./1809187711006-AddCloudCostViewsGroupsAndLineItems";
+import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeSnmpTrapReceiver";
+import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 
 export default [
   InitialMigration,
@@ -2380,10 +2392,22 @@ export default [
   AddDataStoreFindingAiScrubRules1809187570752,
   AddDataSecurityIssueCodeFixTask1809187580367,
   AddDataSecurityIssueCodeFixTaskIndex1809187580377,
+  AddProjectSecurityTrustedProxySwitches1809187580546,
   AddSecurityCaseExposureAssessment1809187590377,
   AddHelpAndSupport1809187600000,
   AddGroupIncidentsByEpisodeToStatusPage1809187610767,
+  AddTwilioCallVoice1809187620948,
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
-  AddXcpNgPoolTables1809187680000,
+  AddSecurityUserErasureRequest1809187650908,
+  AddDataSecurityIssuePullRequest1809187660831,
+  AddOnCallPolicyIncidentRole1809187670000,
+  AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
+  AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000,
+  AddStorageArrayCountsByKind1809187690000,
+  AddSecurityUserErasureRequestNamesToErase1809187691044,
+  AddMonitorTestUnansweredIndex1809187700819,
+  AddCloudCostViewsGroupsAndLineItems1809187711006,
+  AddProbeSnmpTrapReceiver1809187715110,
+  AddXcpNgPoolTables1809187720000,
 ];

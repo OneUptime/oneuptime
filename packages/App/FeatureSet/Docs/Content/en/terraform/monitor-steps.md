@@ -177,11 +177,12 @@ Each item of `monitor_steps` is one thing to check:
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` and `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` and `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Retries when the script fails: `0` runs it once. |
+| `do_not_sync_fields` | list(string) | Monitor templates | The fields each monitor made from the template keeps as its own when the template syncs its steps onto it, such as `monitorDestination` or `dnsMonitor.queryName`: those its **Template sync settings** card lists. |
 | `criteria` | list (required) | All | How each result is judged: see [Criteria attributes](#criteria-attributes). |
 
 ### Settings of each monitor type
 
-Monitor types with more to set than an address keep their settings (a log query, a database connection, a cluster to watch) in an attribute of their own, as raw JSON written with `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` and `probe_status_monitor`.
+Monitor types with more to set than an address keep their settings (a log query, a database connection, a cluster to watch) in an attribute of their own, as raw JSON written with `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` and `probe_status_monitor`.
 
 Their JSON is the same as the dashboard's, keys in camelCase. An ID in it is written as the API writes one, `{ _type = "ObjectID", value = "..." }`. A Logs monitor that counts errors from one service:
 
@@ -254,7 +255,7 @@ Grouped metric monitors are the one exception. When a metric monitor's query is 
 
 ### Incidents and alerts
 
-An item of `incidents` takes `title` and `description` (both required), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` and `is_private`. An item of `alerts` takes the same, with `alert_severity_id` and `auto_resolve_alert`, and without `show_incident_on_status_page`.
+An item of `incidents` takes `title` and `description` (both required), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` and `is_private`. An item of `alerts` takes the same, with `alert_severity_id` and `auto_resolve_alert`, and without `show_incident_on_status_page` and `incident_member_roles`. `incident_member_roles` gives people a role on each incident the criteria opens, such as an incident commander: one `{ role_id, user_id }` per person and role.
 
 This criteria marks the monitor offline, opens an incident that pages the on-call policy, and resolves it when the site is back:
 
@@ -479,6 +480,14 @@ A check that matches none of the criteria puts the monitor in its default status
 ## A monitor without steps
 
 `monitor_steps` is optional, but a monitor created without it has no criteria to judge a result by: probes skip a monitor without steps, and it stays in the status it started in. Your state keeps the attribute empty, and the plan stays clean. A Manual monitor never needs steps: you set its status yourself. Every other type needs at least one step to check anything.
+
+## What an apply keeps
+
+An apply that changes `monitor_steps` sends the whole steps, and OneUptime replaces the steps it holds with them. A setting your configuration can write and leaves out is removed, as the plan shows. Two kinds of setting are kept as OneUptime holds them instead, because no plan can show them. The apply reads the steps OneUptime holds first, and fails without writing anything if it cannot.
+
+A setting the provider has no attribute for, such as the `snmpMonitor` that steps of the retired SNMP monitor type still hold, or one a newer OneUptime has that your version of the provider does not know yet, stays on its step, criteria, incident or alert. Each is matched as OneUptime matches them to keep their IDs: a step by its position, a criteria by its name and an incident or alert by its title, else by position. When your configuration takes that step, criteria, incident or alert out, the setting goes with it.
+
+A setting you write with `jsonencode()`, such as `dns_monitor`, `incident_grouping` or a filter's `metric_monitor_options`, is compared by what it writes. OneUptime may hold more in it, a default of its own or a key set in the dashboard: that is no change, and an apply keeps it. A key you take out of the `jsonencode()` is removed. In a list, what OneUptime holds more is kept item by item, while the list has as many items as OneUptime's.
 
 ## The wire format
 

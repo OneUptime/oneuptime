@@ -90,7 +90,9 @@ const OTHER_CLIENTS: Record<string, string> = {
   "packages/Probe/Utils/Monitors/MonitorTypes/WebsiteMonitor.ts":
     "a website monitor's request, to the address it checks",
   "packages/Probe/Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker.ts":
-    "a synthetic monitor's browser requests",
+    "a synthetic monitor's axios bridge, through the check's egress proxy",
+  "packages/Probe/Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy.ts":
+    "a synthetic monitor's browser and axios requests, to the addresses the egress guard approved",
   "packages/Probe/Utils/OpenStack/OpenStackHttp.ts":
     "an OpenStack cloud's APIs",
   "packages/Probe/Utils/OpenStack/OpenStackTls.ts":

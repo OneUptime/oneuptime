@@ -880,8 +880,8 @@ export default class InventoryItem {
      * `storage.system` (the platform, e.g. purestorage.flasharray) is
      * descriptive, not identity: the typed Postgres row (StorageArray) and
      * the read side (`EntityKey.keyForStorageArray`) are name-based, and an
-     * agent may omit the platform (ingest also detects it from the
-     * purefa_ / purefb_ metric names). Volumes, hosts and the other objects
+     * agent may omit the platform (ingest also detects it from a
+     * platform's metric prefix). Volumes, hosts and the other objects
      * inside an array are StorageArrayResource inventory rows, not entities.
      */
     (attrs: EntityAttributes) => {

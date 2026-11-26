@@ -21,6 +21,7 @@ import Dictionary from "../../Types/Dictionary";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import { ProbeVersionReport } from "../../Types/Probe/ProbeReportedVersion";
 import ProbeInterfaceAddressesUtil from "../../Types/Probe/ProbeInterfaceAddresses";
+import { SnmpTrapReceiverReport } from "../../Types/Probe/SnmpTrapReceiver";
 import NetworkAddressBlockUtil from "../../Utils/NetworkTraffic/NetworkAddressBlock";
 import OneUptimeDate from "../../Types/Date";
 import UserNotificationSettingService from "./UserNotificationSettingService";
@@ -694,6 +695,46 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     return true;
+  }
+
+  /*
+   * Keeps what a probe last said about its SNMP trap receiver (#11005;
+   * Types/Probe/SnmpTrapReceiver), already sanitized by the route: its
+   * engine ID, its users count and the SNMPv3 traps it refused. A probe
+   * reports every thirty seconds, so one statement that writes only when
+   * the report changed, held to a project's own probe: a global probe's
+   * refusals name other projects' addresses and user names, so it keeps
+   * none. Returns whether the probe keeps reports at all.
+   */
+  @CaptureSpan()
+  public async recordSnmpTrapReceiverReport(data: {
+    probeId: ObjectID;
+    report: SnmpTrapReceiverReport;
+  }): Promise<boolean> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        WITH probe AS (
+          SELECT "_id" FROM "Probe"
+          WHERE "_id" = $1
+            AND "projectId" IS NOT NULL
+            AND "isGlobalProbe" = false
+            AND "deletedAt" IS NULL
+        ),
+        written AS (
+          UPDATE "Probe"
+          SET "snmpTrapReceiver" = $2::jsonb
+          WHERE "_id" IN (SELECT "_id" FROM probe)
+            AND "snmpTrapReceiver" IS DISTINCT FROM $2::jsonb
+          RETURNING "_id"
+        )
+        SELECT (SELECT count(*) FROM probe)::int AS "isKept"
+      `,
+      [data.probeId.toString(), JSON.stringify(data.report)],
+    );
+
+    const first: unknown = Array.isArray(rows) ? rows[0] : undefined;
+
+    return Number((first as { isKept?: unknown } | undefined)?.isKept) > 0;
   }
 
   // Best-effort: on failure the throttle simply expires on its own.

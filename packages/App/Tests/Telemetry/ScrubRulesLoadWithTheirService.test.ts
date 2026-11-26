@@ -259,16 +259,14 @@ describe("whose spans, and exceptions, a loaded rule scrubs", () => {
 
 describe("a RUM application's session replays", () => {
   test("run the rules for every service and app, never one for a service", async () => {
-    findByMock.mockResolvedValueOnce([
-      savedLogRule(CHECKOUT),
-      savedLogRule(),
-    ]);
+    findByMock.mockResolvedValueOnce([savedLogRule(CHECKOUT), savedLogRule()]);
 
-    const rules: Awaited<ReturnType<typeof SessionReplayScrubService.loadRules>> =
-      await SessionReplayScrubService.loadRules(
-        ObjectID.generate(),
-        new ObjectID(RUM_APP),
-      );
+    const rules: Awaited<
+      ReturnType<typeof SessionReplayScrubService.loadRules>
+    > = await SessionReplayScrubService.loadRules(
+      ObjectID.generate(),
+      new ObjectID(RUM_APP),
+    );
 
     expect(
       rules.map((compiled: { rule: LogScrubRule }) => {

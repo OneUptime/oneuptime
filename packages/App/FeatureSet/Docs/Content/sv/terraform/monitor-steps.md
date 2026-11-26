@@ -177,11 +177,12 @@ Varje element i `monitor_steps` är en sak att kontrollera:
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` och `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` och `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Nya försök när skriptet misslyckas: `0` kör det en gång. |
+| `do_not_sync_fields` | list(string) | Monitormallar | Fälten som varje monitor som skapats från mallen behåller som sina egna när mallen synkroniserar sina steg till den, till exempel `monitorDestination` eller `dnsMonitor.queryName`: de som kortet **Inställningar för mallsynkronisering** listar. |
 | `criteria` | list (obligatorisk) | Alla | Hur varje resultat bedöms: se [Attribut för ett kriterium](#attribut-för-ett-kriterium). |
 
 ### Inställningar för varje monitortyp
 
-Monitortyper med mer att ange än en adress har sina inställningar (en loggfråga, en databasanslutning, ett kluster att bevaka) i ett eget attribut, som rå JSON skriven med `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` och `probe_status_monitor`.
+Monitortyper med mer att ange än en adress har sina inställningar (en loggfråga, en databasanslutning, ett kluster att bevaka) i ett eget attribut, som rå JSON skriven med `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `xcp_ng_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` och `probe_status_monitor`.
 
 Deras JSON är densamma som instrumentpanelens, med nycklar i camelCase. Ett ID i den skrivs som API:et skriver det: `{ _type = "ObjectID", value = "..." }`. En Logs-monitor som räknar fel från en tjänst:
 
@@ -254,7 +255,7 @@ Grupperade metrikmonitorer är det enda undantaget. När en metrikmonitors fråg
 
 ### Incidenter och larm
 
-Ett element i `incidents` tar `title` och `description` (båda obligatoriska), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` och `is_private`. Ett element i `alerts` tar samma, med `alert_severity_id` och `auto_resolve_alert`, och utan `show_incident_on_status_page`.
+Ett element i `incidents` tar `title` och `description` (båda obligatoriska), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` och `is_private`. Ett element i `alerts` tar samma, med `alert_severity_id` och `auto_resolve_alert`, och utan `show_incident_on_status_page` och `incident_member_roles`. `incident_member_roles` ger personer en roll i varje incident som kriteriet öppnar, till exempel som incidentledare: en `{ role_id, user_id }` per person och roll.
 
 Det här kriteriet markerar monitorn som offline, öppnar en incident som larmar jourpolicyn och löser den när webbplatsen är tillbaka:
 
@@ -479,6 +480,14 @@ En kontroll som inte stämmer med något kriterium sätter monitorn i dess stand
 ## En monitor utan steg
 
 `monitor_steps` är valfritt, men en monitor som skapas utan det har inga kriterier att bedöma ett resultat efter: sonder hoppar över en monitor utan steg, och den stannar i den status som den startade i. Din state håller attributet tomt, och planen förblir ren. En manuell monitor behöver aldrig steg: du sätter dess status själv. Alla andra typer behöver minst ett steg för att kontrollera något.
+
+## Vad en apply behåller
+
+En apply som ändrar `monitor_steps` skickar hela stegen, och OneUptime ersätter stegen den har med dem. En inställning som din konfiguration kan skriva och utelämnar tas bort, som planen visar. Två sorters inställningar behålls i stället så som OneUptime har dem, eftersom ingen plan kan visa dem. Applyn läser först stegen som OneUptime har, och misslyckas utan att skriva något om den inte kan.
+
+En inställning som providern inte har något attribut för, till exempel den `snmpMonitor` som steg av den utfasade SNMP-monitortypen fortfarande har, eller en som en nyare OneUptime har och som din version av providern inte känner till ännu, stannar på sitt steg, kriterium, sin incident eller sitt larm. Var och en paras ihop så som OneUptime parar ihop dem för att behålla deras ID:n: ett steg efter position, ett kriterium efter namn och en incident eller ett larm efter titel, annars efter position. När din konfiguration tar bort det steget, kriteriet, den incidenten eller det larmet följer inställningen med.
+
+En inställning som du skriver med `jsonencode()`, till exempel `dns_monitor`, `incident_grouping` eller ett filters `metric_monitor_options`, jämförs efter det den skriver. OneUptime kan ha mer i den, ett eget standardvärde eller en nyckel som satts i instrumentpanelen: det är ingen ändring, och en apply behåller det. En nyckel som du tar bort ur `jsonencode()` tas bort. I en lista behålls det OneUptime har utöver, element för element, så länge listan har lika många element som OneUptimes.
 
 ## Överföringsformatet
 

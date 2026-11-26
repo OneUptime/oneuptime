@@ -14,8 +14,8 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 
 /*
  * The hosts defined on a FlashArray (kind=Host): connectivity as the array
- * sees it (purefa_host_connectivity_info), the volumes connected to each
- * (purefa_host_connections_info) and the performance the host gets.
+ * sees it (its connectivity series), the volumes connected to each (its
+ * connections series) and the performance the host gets.
  */
 const StorageArrayHosts: FunctionComponent<
   PageComponentProps

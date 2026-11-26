@@ -5,6 +5,7 @@ import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import EntityDropdown, {
   EntityDropdownProps,
 } from "../../../UI/Components/EntityDropdown/EntityDropdown";
+import { loadEntityDropdown } from "../../../UI/Components/EntityDropdown/LazyEntityDropdown";
 import FormField from "../../../UI/Components/Forms/Fields/FormField";
 import Field from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
@@ -17,6 +18,7 @@ import {
 import {
   afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -623,6 +625,15 @@ describe("a form's entity dropdown with a value picked", () => {
   interface TeamForm extends JSONObject {
     team?: string;
   }
+
+  /*
+   * A form loads its entity dropdown's file as it is drawn
+   * (FormFieldControls); the field is drawn on its own here, so the file is
+   * loaded first.
+   */
+  beforeAll(async () => {
+    await loadEntityDropdown();
+  });
 
   test("draws no control inside another and no nesting warning, and clears to null", async () => {
     const user: UserEventController = userEvent.setup();

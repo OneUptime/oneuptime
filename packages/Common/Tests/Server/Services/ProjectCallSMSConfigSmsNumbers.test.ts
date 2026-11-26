@@ -281,6 +281,8 @@ describe("the project's default Twilio config", () => {
         "twilioPrimaryPhoneNumber",
         "twilioSecondaryPhoneNumbers",
         "twilioSmsPhoneNumbers",
+        // The voice a call through it speaks with (#10948).
+        "twilioCallVoice",
       ].sort(),
     );
     expect(Object.keys(GLOBAL_TWILIO_CONFIG_SELECT).sort()).toEqual(
@@ -291,6 +293,7 @@ describe("the project's default Twilio config", () => {
         "twilioPrimaryPhoneNumber",
         "twilioSecondaryPhoneNumbers",
         "twilioSmsPhoneNumbers",
+        "twilioCallVoice",
       ].sort(),
     );
   });
