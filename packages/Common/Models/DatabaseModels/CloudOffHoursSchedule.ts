@@ -11,7 +11,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableMCP from "../../Types/Database/EnableMCP";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -83,7 +82,6 @@ const deletePermissions: Array<Permission> = [
 ];
 
 @EnableDocumentation()
-@EnableMCP()
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
