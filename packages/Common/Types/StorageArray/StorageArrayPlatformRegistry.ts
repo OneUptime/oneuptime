@@ -1,5 +1,7 @@
 import {
   StorageArrayKindDefinition,
+  StorageArrayKindPage,
+  StorageArrayManagedDeployment,
   StorageArrayPlatform,
 } from "./StorageArrayPlatform";
 import StorageArrayResourceKind from "./StorageArrayResourceKind";
@@ -104,6 +106,14 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
   for (const table of platform.hardwareTables) {
     named.push([table.kind, "its hardware tables"]);
   }
+  for (const kind of Object.keys(platform.kindPages || {})) {
+    named.push([kind, "its kind pages"]);
+  }
+  for (const deployment of platform.managedDeployments || []) {
+    for (const kind of deployment.kinds) {
+      named.push([kind, `its ${deployment.osName} deployments`]);
+    }
+  }
   for (const [kind, where] of named) {
     if (!kinds.has(kind)) {
       return `${where} names the kind ${kind}, which is not one of its kinds`;
@@ -143,9 +153,50 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       charted.push([id, "its overview"]);
     }
   }
+  for (const [kind, page] of Object.entries(platform.kindPages || {})) {
+    for (const chart of page?.part?.charts || []) {
+      charted.push([chart.metricId, `its ${kind} part page`]);
+    }
+  }
   for (const [id, where] of charted) {
     if (!metricIds.has(id)) {
       return `${where} charts the metric ${id}, which is not in its catalog`;
+    }
+  }
+
+  /*
+   * A part page offers to turn on the platform's own templates only: an id
+   * it does not have would be a card that turns nothing on.
+   */
+  const templateIds: Set<string> = new Set<string>([
+    platform.heartbeat.templateId,
+    ...platform.alertTemplates.map(
+      (template: StorageArrayPlatform["alertTemplates"][number]): string => {
+        return template.id;
+      },
+    ),
+  ]);
+  for (const [kind, page] of Object.entries(platform.kindPages || {})) {
+    for (const templateId of page?.part?.alerts?.templateIds || []) {
+      if (!templateIds.has(templateId)) {
+        return `its ${kind} part page offers the template ${templateId}, which is not one of its templates`;
+      }
+    }
+    if (page?.part && page.part.labels.length === 0) {
+      return `its ${kind} part page names no label its series name a part by`;
+    }
+  }
+
+  /*
+   * The open problems it reports are counted by the ingest, so the ingest
+   * must read their series.
+   */
+  const readByIngest: Set<string> = new Set<string>(
+    platform.snapshotMetricNames,
+  );
+  for (const problem of platform.overview.openProblems || []) {
+    if (!readByIngest.has(problem.metricName)) {
+      return `its open problems' series ${problem.metricName} is not one its ingest reads (snapshotMetricNames)`;
     }
   }
   return null;
@@ -231,13 +282,24 @@ export default class StorageArrayPlatformRegistry {
 
   /*
    * The words of a kind a platform declared for itself
-   * (StorageArrayPlatform.kindDefinitions), or null.
+   * (StorageArrayPlatform.kindDefinitions), or null. Two platforms can
+   * each have a kind of one name (an aggregate is NetApp's, and a test's
+   * platform's): the platform `storageSystem` names is asked first, then
+   * every platform in order.
    */
   public static getKindDefinition(
     kind: string | null | undefined,
+    storageSystem?: string | null | undefined,
   ): StorageArrayKindDefinition | null {
     if (!kind) {
       return null;
+    }
+    const own: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform(storageSystem);
+    for (const definition of own?.kindDefinitions || []) {
+      if (definition.kind === kind) {
+        return definition;
+      }
     }
     for (const platform of StorageArrayPlatformRegistry.platforms) {
       for (const definition of platform.kindDefinitions || []) {
@@ -247,6 +309,51 @@ export default class StorageArrayPlatformRegistry {
       }
     }
     return null;
+  }
+
+  /*
+   * What a kind's pages say and chart on the platform `storageSystem`
+   * names (StorageArrayPlatform.kindPages), or null: an array of a platform
+   * OneUptime does not know, or a kind its platform says nothing of, reads
+   * the pages' own words. Never indexes an object by the agent-supplied
+   * kind or value: `constructor` must not find Object.prototype's.
+   */
+  public static getKindPage(
+    storageSystem: string | null | undefined,
+    kind: string | null | undefined,
+  ): StorageArrayKindPage | null {
+    const platform: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform(storageSystem);
+    if (!platform || !kind || !platform.kindPages) {
+      return null;
+    }
+    if (!Object.prototype.hasOwnProperty.call(platform.kindPages, kind)) {
+      return null;
+    }
+    return platform.kindPages[kind] || null;
+  }
+
+  /*
+   * The managed deployment (StorageArrayManagedDeployment) an array of the
+   * platform `storageSystem` names is, by the osName its extractor wrote,
+   * or null for an array on hardware of its own.
+   */
+  public static getManagedDeployment(
+    storageSystem: string | null | undefined,
+    osName: string | null | undefined,
+  ): StorageArrayManagedDeployment | null {
+    if (!osName) {
+      return null;
+    }
+    const platform: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform(storageSystem);
+    return (
+      platform?.managedDeployments?.find(
+        (deployment: StorageArrayManagedDeployment): boolean => {
+          return deployment.osName === osName;
+        },
+      ) || null
+    );
   }
 
   /*
