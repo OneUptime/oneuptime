@@ -246,6 +246,7 @@ Votre cloud signale le dernier jour ou deux en retard, et les montants sont avan
 ## Prochaines étapes
 
 :::cards
+- [Répartition des coûts du cloud](/docs/telemetry/cloud-cost-allocation): Répartissez les dépenses entre équipes, produits et centres de coûts.
 - [Connecter un compte cloud](/docs/telemetry/cloud-accounts): Connectez un autre compte, ou exécutez de nouveau sa commande.
 - [Ressources cloud](/docs/telemetry/cloud-resources): Les métriques de chaque ressource, depuis votre propre collecteur.
 - [Observabilité des coûts Kubernetes](/docs/telemetry/kubernetes-cost): Ce que coûte chaque charge de travail Kubernetes.

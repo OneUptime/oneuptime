@@ -3983,6 +3983,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.CLOUD_COST_GROUPS,
+            title: "Cost Groups",
+            icon: IconProp.RectangleStack,
+            keywords: [
+              "cost allocation",
+              "chargeback",
+              "showback",
+              "cost views",
+              "cost centers",
+              "unallocated",
+              "shared costs",
+              "perspectives",
+              "cost categories",
+              "custom line items",
+            ],
+          },
+          {
             page: PageMap.CLOUD_SAVINGS,
             title: "Savings",
             icon: IconProp.ArrowTrendingDown,

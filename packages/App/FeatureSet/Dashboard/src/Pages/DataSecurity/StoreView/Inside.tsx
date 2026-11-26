@@ -1,5 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import {
+  getConfirmFindingWrite,
+  getSensitiveAgainFindingWrite,
+} from "Common/Utils/DataSecurity/DataStoreFindingDecisions";
+import {
   ConfidencePill,
   SensitivityPill,
 } from "../../../Components/DataSecurity/DataSecurityPills";
@@ -266,10 +270,11 @@ const DataStoreInside: FunctionComponent<
               onError: ErrorFunction,
             ): Promise<void> => {
               try {
+                // The write Ask AI's judge_data_security_finding makes too (#10378).
                 await ModelAPI.updateById<DataStoreFinding>({
                   modelType: DataStoreFinding,
                   id: new ObjectID(item._id!.toString()),
-                  data: { isConfirmed: true },
+                  data: getConfirmFindingWrite(),
                 });
                 onCompleteAction();
                 refresh();
@@ -326,10 +331,7 @@ const DataStoreInside: FunctionComponent<
                 await ModelAPI.updateById<DataStoreFinding>({
                   modelType: DataStoreFinding,
                   id: new ObjectID(item._id!.toString()),
-                  data: {
-                    isSuppressed: false,
-                    suppressedReason: "",
-                  },
+                  data: getSensitiveAgainFindingWrite(),
                 });
                 onCompleteAction();
                 refresh();

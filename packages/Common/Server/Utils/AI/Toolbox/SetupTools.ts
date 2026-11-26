@@ -55,6 +55,8 @@ import {
   SET_UP_WEBSITE_MONITORING_TOOL_NAME,
 } from "../../../../Types/AI/AISetupActions";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import { getMobileAppOffer } from "../../../../Types/HelpAndSupport/HelpAndSupport";
+import HelpAndSupportServerSettings from "../../HelpAndSupport/HelpAndSupportServerSettings";
 import { LIMIT_PER_PROJECT } from "../../../../Types/Database/LimitMax";
 import Email from "../../../../Types/Email";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -1825,6 +1827,12 @@ function describePagedForPerson(
 export function describeReachForPerson(data: {
   asked: ReadonlyArray<SetupReachMethod>;
   readiness: Pick<UserReadiness, "status" | "methods"> | null;
+  /*
+   * Whether the server offers the mobile app (Admin Dashboard > Settings >
+   * Help and Support, #10945). Where it does not, a push that cannot reach
+   * the person names a browser, never the app. Left out, it does.
+   */
+  isMobileAppOffered?: boolean | undefined;
 }): Array<AIActionSentence> {
   if (!data.readiness) {
     return [];
@@ -1856,7 +1864,13 @@ export function describeReachForPerson(data: {
     data.asked.includes(SetupReachMethod.Push) &&
     !isVerified(ReadinessMethodType.Push)
   ) {
-    sentences.push(aiActionSentence(AI_ACTION_LINES.noMobileApp));
+    sentences.push(
+      aiActionSentence(
+        data.isMobileAppOffered === false
+          ? AI_ACTION_LINES.noPushDeviceWithoutApp
+          : AI_ACTION_LINES.noMobileApp,
+      ),
+    );
   }
 
   if (
@@ -2524,6 +2538,10 @@ export const SetUpPagingTool: ObservabilityTool = {
         ...describeReachForPerson({
           asked: readReachMethods(args),
           readiness: await readMyReadiness(ctx),
+          isMobileAppOffered:
+            getMobileAppOffer(
+              await HelpAndSupportServerSettings.getSettings(),
+            ) !== null,
         }),
       );
     }

@@ -266,6 +266,7 @@ export const WELCOME_MORE_COPY: {
   description: string;
   phoneTitle: string;
   phoneDescription: string;
+  phoneDescriptionWithoutApp: string;
 } = {
   title: translationKey("More to set up"),
   description: translationKey(
@@ -275,6 +276,13 @@ export const WELCOME_MORE_COPY: {
   phoneTitle: translationKey("Get paged by SMS or phone call"),
   phoneDescription: translationKey(
     "Only email can page you now. Add your phone or the mobile app, and send yourself a test page.",
+  ),
+  /*
+   * The same, where the server's admins took the mobile app away (Admin
+   * Dashboard > Settings > Help and Support, #10945): the phone only.
+   */
+  phoneDescriptionWithoutApp: translationKey(
+    "Only email can page you now. Add your phone and send yourself a test page.",
   ),
 };
 

@@ -14,6 +14,7 @@ import NotificationAPI from "Common/Server/API/NotificationAPI";
 import AIBillingAPI from "Common/Server/API/AIBillingAPI";
 import AIChatAPI from "Common/Server/API/AIChatAPI";
 import SetupActionAPI from "Common/Server/API/SetupActionAPI";
+import DataSecurityActionAPI from "Common/Server/API/DataSecurityActionAPI";
 import AIReadinessAPI from "Common/Server/API/AIReadinessAPI";
 import AIDailyUsageAPI from "Common/Server/API/AIDailyUsageAPI";
 import AIInvestigationAPI from "Common/Server/API/AIInvestigationAPI";
@@ -671,6 +672,12 @@ import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectio
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
+import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
+import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
+import CloudCostLineItemService, {
+  Service as CloudCostLineItemServiceType,
+} from "Common/Server/Services/CloudCostLineItemService";
 import NetworkControllerConnectionAPI from "Common/Server/API/NetworkControllerConnectionAPI";
 import DeviceManagementConnectionAPI from "Common/Server/API/DeviceManagementConnectionAPI";
 import ManagedDevice from "Common/Models/DatabaseModels/ManagedDevice";
@@ -3939,6 +3946,29 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudBudget, CloudBudgetServiceType>(
         CloudBudget,
         CloudBudgetService,
+      ).getRouter(),
+    );
+
+    /*
+     * Cost views and their groups: the spend sorted into teams, products
+     * and cost centers, read through /cloud-cost-view/:id/allocation and
+     * /cloud-cost-group/:id/spend; and the custom line items added to it.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostViewAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostGroupAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostLineItem, CloudCostLineItemServiceType>(
+        CloudCostLineItem,
+        CloudCostLineItemService,
       ).getRouter(),
     );
 
@@ -7998,6 +8028,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * server's outcome-level tools (#7241).
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupActionAPI);
+
+    /*
+     * Ask AI's Data Security actions, one call each, outside the chat: the
+     * MCP server's scrub, judge, accept, owners, rule and response tools
+     * (#10378).
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, DataSecurityActionAPI);
 
     // AI code-fix readiness — the gates a code-fix run passes, project-wide
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AIReadinessAPI);

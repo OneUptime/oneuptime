@@ -246,6 +246,7 @@ Molnet rapporterar den sista dagen eller två sent, och beloppen är före kredi
 ## Nästa steg
 
 :::cards
+- [Fördelning av molnkostnader](/docs/telemetry/cloud-cost-allocation): Fördela utgifterna på team, produkter och kostnadsställen.
 - [Anslut ett molnkonto](/docs/telemetry/cloud-accounts): Anslut ett annat konto, eller kör dess kommando igen.
 - [Molnresurser](/docs/telemetry/cloud-resources): Varje resurs mätvärden, från en egen collector.
 - [Kostnadsobservability för Kubernetes](/docs/telemetry/kubernetes-cost): Vad varje Kubernetes-arbetsbelastning kostar.

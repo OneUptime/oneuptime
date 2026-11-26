@@ -997,9 +997,12 @@ export class Service extends ProjectReferencesService<Model> {
    * posted to its Slack / Microsoft Teams channels. The links themselves are
    * written without incident-side entries (INCIDENT_ALERT_DECLARED_WITH_
    * INCIDENT_KEY), so the incident's channels get one message instead of one
-   * per alert. IncidentService calls this from its create chain once the
-   * "Incident Created" entry is out, which is also when the incident's own
-   * channels exist. Nothing is written when none of the alerts can be found.
+   * per alert. IncidentService calls this first thing in its create chain,
+   * filed (postedAt) ahead of "Incident Created": declaring the incident
+   * from the alerts is what made it, so it is the first line of its feed
+   * (#10911). Its message waits for "Incident Created" and follows it in the
+   * incident's channels (WorkspaceCreatedMessageFirst). Nothing is written
+   * when none of the alerts can be found.
    */
   @CaptureSpan()
   public async createDeclaredFromAlertsFeedItem(data: {
@@ -1011,6 +1014,12 @@ export class Service extends ProjectReferencesService<Model> {
     apiKeyActor?: FeedApiKeyActor | undefined;
     // The alert incident rule that declared it, when one did, by name.
     declaredByRuleName?: string | undefined;
+    /*
+     * When the entry is filed: as the incident's feed starts, ahead of
+     * "Incident Created" - declaring the incident from the alerts is what
+     * made it (#10911). Now, when not given.
+     */
+    postedAt?: Date | undefined;
   }): Promise<void> {
     const markdown: string | null = await this.buildDeclaredFromAlertsMarkdown({
       projectId: data.projectId,
@@ -1030,6 +1039,7 @@ export class Service extends ProjectReferencesService<Model> {
       feedInfoInMarkdown: markdown,
       userId: data.actorUserId,
       apiKeyActor: data.apiKeyActor,
+      ...(data.postedAt ? { postedAt: data.postedAt } : {}),
       workspaceNotification: {
         sendWorkspaceNotification: true,
         leadWithAuthor: true,

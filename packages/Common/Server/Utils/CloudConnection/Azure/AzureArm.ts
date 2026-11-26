@@ -24,6 +24,7 @@ import {
   CloudReadBudgetSpent,
 } from "../CloudConnectorTypes";
 import { withCloudRetries } from "../CloudRetry";
+import { KqlText } from "./AzureKql";
 import { AzureRateLimit, readAzureRateLimit } from "./AzureRateLimit";
 
 /*
@@ -792,11 +793,23 @@ export default class AzureArm {
   /*
    * Every row of a Resource Graph query over the subscriptions, page by
    * page. `complete` is false when it stopped at RESOURCE_GRAPH_MAX_PAGES.
+   *
+   * The query is a KqlText, written with the `kql` tag (AzureKql), so
+   * every value in it is a literal of its own. The subscriptions are no
+   * part of its text: they go in the request's own `subscriptions`, each
+   * a GUID, checked before anything is sent.
    */
   public async queryResourceGraph(data: {
     subscriptionIds: Array<string>;
-    query: string;
+    query: KqlText;
   }): Promise<{ rows: Array<JSONObject>; complete: boolean }> {
+    const subscriptions: Array<string> = data.subscriptionIds.map(
+      (subscriptionId: string): string => {
+        EntraTokenClient.validateGuid(subscriptionId, "Each subscription");
+        return subscriptionId.trim();
+      },
+    );
+    const query: string = data.query.toString();
     const url: string = `${this.getManagementBaseUrl()}/providers/Microsoft.ResourceGraph/resources?${buildQueryString(
       [["api-version", AZURE_RESOURCE_GRAPH_API_VERSION]],
     )}`;
@@ -816,8 +829,8 @@ export default class AzureArm {
       const response: JSONObject = await this.post(
         url,
         {
-          subscriptions: data.subscriptionIds,
-          query: data.query,
+          subscriptions,
+          query,
           options,
         },
         "resource graph query",

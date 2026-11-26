@@ -80,9 +80,10 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
       ],
     },
     /*
-     * What the accounts cost, from each cloud's own billing; the ways to
-     * spend less, from each cloud's own recommender; and the budgets that
-     * alert before a month costs more than it should.
+     * What the accounts cost, from each cloud's own billing, and who spent
+     * it (cost groups); the ways to spend less, from each cloud's own
+     * recommender; and the budgets that alert before a month costs more
+     * than it should.
      */
     {
       title: "Spend",
@@ -95,6 +96,20 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.Billing,
+        },
+        /*
+         * Who spent it: the spend sorted into teams, products and cost
+         * centers by cost views and their groups, and the custom line items
+         * added to it for chargeback.
+         */
+        {
+          link: {
+            title: "Cost Groups",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_COST_GROUPS] as Route,
+            ),
+          },
+          icon: IconProp.RectangleStack,
         },
         {
           link: {

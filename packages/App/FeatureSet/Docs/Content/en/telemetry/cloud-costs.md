@@ -246,6 +246,7 @@ Your cloud reports the last day or two late, and the figures are before credits 
 ## Next steps
 
 :::cards
+- [Cloud Cost Allocation](/docs/telemetry/cloud-cost-allocation): Sort the spend into teams, products and cost centers.
 - [Connect a Cloud Account](/docs/telemetry/cloud-accounts): Connect another account, or run its command again.
 - [Cloud Resources](/docs/telemetry/cloud-resources): Every resource's metrics, from a collector of your own.
 - [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost): What each Kubernetes workload costs.

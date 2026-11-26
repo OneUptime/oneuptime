@@ -41,7 +41,7 @@ O servidor não guarda estado: ele não emite ids de sessão e cada requisição
 - **Manutenção programada**: criar e gerenciar eventos de manutenção.
 - **Telemetria**: consultar logs, métricas, traces, exceções, logs de monitores, eventos de segurança e mais, somente leitura.
 
-Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 55 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. Um tipo de registro sem nenhum campo que você possa alterar depois de criado, como o vínculo de um incidente com um alerta, não tem ferramenta de atualizar. As ferramentas somente leitura levam `readOnlyHint` e toda ferramenta que altera algo leva `destructiveHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. `openWorldHint` marca as ferramentas que vão além do seu projeto: as ferramentas de páginas de status públicas; as alterações exibidas em uma página de status e enviadas aos seus assinantes, como um novo incidente, uma mudança do seu estado ou uma nota pública; os convites, enviados por e-mail a pessoas que ainda não precisam estar no seu projeto; e as ferramentas que criam ou alteram um monitor, um armazenamento de dados ou uma ferramenta de BI, já que depois o OneUptime acessa o endereço que você informa. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
+Há ferramentas de criar, obter, listar, atualizar, excluir e contar para 58 tipos de registro, ferramentas de listar e contar para 9 tipos de telemetria e ferramentas feitas para a resposta a incidentes. Um tipo de registro sem nenhum campo que você possa alterar depois de criado, como o vínculo de um incidente com um alerta, não tem ferramenta de atualizar. As ferramentas somente leitura levam `readOnlyHint` e toda ferramenta que altera algo leva `destructiveHint`, então um cliente pode executar sozinho as chamadas somente leitura e perguntar a você antes de qualquer alteração. `openWorldHint` marca as ferramentas que vão além do seu projeto: as ferramentas de páginas de status públicas; as alterações exibidas em uma página de status e enviadas aos seus assinantes, como um novo incidente, uma mudança do seu estado ou uma nota pública; os convites, enviados por e-mail a pessoas que ainda não precisam estar no seu projeto; e as ferramentas que criam ou alteram um monitor, um armazenamento de dados ou uma ferramenta de BI, já que depois o OneUptime acessa o endereço que você informa. Uma chamada de ferramenta que falha volta como resultado da ferramenta (`isError: true`) com um `statusCode`, os detalhes e uma sugestão, não como um erro do protocolo MCP, então o agente consegue ler a falha e se corrigir.
 
 ## Antes de começar
 
@@ -359,6 +359,25 @@ O servidor também tem as ações de configuração do Pergunte à IA, uma chama
 
 Elas agem como você, conectado com OAuth: uma chave de API de projeto não pode usar as oito que criam algo. Seu cliente pergunta a você antes de cada uma, e a resposta diz o que foi criado. O que falta, como uma permissão, um endereço ou espaço no plano, é dito antes de qualquer coisa ser criada.
 
+## Ferramentas para Segurança de dados
+
+O servidor também tem [as ações de Segurança de dados do Pergunte à IA](/docs/data-security/integrations#pergunte-à-ia), uma chamada cada. Cada uma faz exatamente a alteração que o seu botão faz na Segurança de dados, como você e com as suas permissões, depois das mesmas verificações:
+
+- **`query_data_security_proposals`**: o que o OneUptime AI propõe e aguarda uma pessoa, as mais arriscadas primeiro. Com `which: "data-types"`, os tipos de dados que ele encontrou e que as varreduras ainda não procuram: o nome, a categoria e a sensibilidade de cada um, como foi comprovado e os repositórios e campos em que está, nunca um valor. Não muda nada
+- **`draft_data_security_rule`**: uma regra de residência, de proprietário ou de rótulos redigida a partir de uma frase, como «os dados pessoais da UE devem ficar na UE», com os repositórios que ela abrange hoje. Não muda nada
+- **`scrub_data_security_finding`**: **Limpar** em uma descoberta na telemetria
+- **`judge_data_security_finding`**: **Confirmar**, ou **Não sensível** com um motivo, e o mesmo para as descobertas parecidas
+- **`change_data_security_issue`**: **Reabrir**, **Atribuir**, **Aceitar o risco** ou **Não é um problema**
+- **`set_data_store_owners`**: os proprietários de um repositório, adicionados ou removidos
+- **`save_data_security_rule`**: uma regra que `draft_data_security_rule` redigiu
+- **`respond_on_data_store`**: uma ação de resposta pela conexão de nuvem do repositório, como **Bloquear acesso público**
+- **`fix_data_security_issue_with_ai`**: **Corrigir com IA**, um pull request que alguém revisa e mescla
+- **`decide_data_security_proposal`**: **Aprovar** ou **Dispensar** uma proposta
+
+Pergunte à IA pergunta a uma pessoa antes de algumas delas em todos os modos, em um cartão que diz o que muda, o que para de funcionar e quanto custa: responder em um repositório, **Não sensível**, **Aceitar o risco**, **Não é um problema**, mudar os proprietários de um repositório, salvar uma regra, decidir uma proposta, uma limpeza que algo lê e **Confirmar** em um projeto que aciona alguém por um problema crítico. Este servidor não pode mostrar esse cartão a você, então as recusa, diz por quê e nomeia a página do OneUptime em que você faz a alteração. Nada é executado sem ele.
+
+As outras agem como você, conectado com OAuth: uma chave de API do projeto não pode usá-las e só usa as duas que não mudam nada. Em um servidor auto-hospedado, `MCP_READ_ONLY=true` deixa só as ferramentas que não mudam nada, e `MCP_ALLOW_DESTRUCTIVE=false` recusa remover os proprietários de um repositório, o que os exclui.
+
 ## Consultar a telemetria
 
 Logs, métricas, traces (spans), exceções, logs de monitores e os outros tipos de telemetria vêm como ferramentas `list_` e `count_` somente leitura (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` e as gêmeas `count_` delas). A telemetria chega pelo OpenTelemetry, então não há ferramentas de criação.
@@ -509,7 +528,7 @@ O servidor MCP não guarda estado: ele nem emite nem rastreia ids de sessão, en
 | Segurança | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | Segurança de dados | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | Observabilidade de dados | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| Nuvem | Cloud Budget |
+| Nuvem | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View |
 
 | Área | Telemetria só com ferramentas de listar e contar |
 | --- | --- |

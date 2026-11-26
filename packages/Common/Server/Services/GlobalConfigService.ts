@@ -1636,6 +1636,30 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Seeds where the server sends its people for help from its configuration
+   * (HelpAndSupportSeeding, #10938), checked as the page checks it: written
+   * only while nothing is saved yet, in one statement that holds to it
+   * (helpAndSupport IS NULL), so an admin's save - or another server's seed
+   * - made a moment before is never overwritten. Whether it was written: no
+   * when the settings were saved before, or the server's settings row is
+   * not there yet (a new server's first start, which seeds it once the row
+   * is made, UpdateGlobalConfigFromEnv).
+   */
+  public async seedHelpAndSupport(settings: JSONObject): Promise<boolean> {
+    const data: PartialEntity<Model> = {};
+    const expectedData: PartialEntity<Model> = {};
+
+    (data as Record<string, unknown>)["helpAndSupport"] = settings;
+    (expectedData as Record<string, unknown>)["helpAndSupport"] = null;
+
+    return await this.compareAndSetColumnsByIdWithoutHooks({
+      id: ObjectID.getZeroObjectID(),
+      data: data,
+      expectedData: expectedData,
+    });
+  }
+
+  /*
    * Writes what admins chose on the setup checklist: one statement, no
    * hooks, updatedAt kept - a choice on a checklist, not a change of the
    * server's settings.

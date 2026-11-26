@@ -171,7 +171,7 @@ Et par hurtige regler:
 - Trinnet **Detaljer** følger skabelonens **Brugerdefinerede felter ved oprettelse**, som [beskrevet ovenfor](#detaljer-dine-brugerdefinerede-hændelsesfelter).
 - Værdier i brugerdefinerede felter flettes ét felt ad gangen. En skabelons værdier udfylder de brugerdefinerede felter, hændelsen erklæres uden; en værdi, der er sat i trinnet **Detaljer** eller sendt i anmodningens `customFields`, vinder altid — `0`, `false` og `null` inklusive. Et felt, der kopieres fra et brugerdefineret monitorfelt, får stadig monitorens værdi.
 - En eksisterende skabelons værdier i brugerdefinerede felter står på dens kort **Brugerdefinerede felter**, ved siden af dens andre kort.
-- Skabelonens **Ejere** tilføjes, når hændelsens Slack- og Microsoft Teams-kanaler findes, så en notifikationsregel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem. At erklære fra en skabelon i dashboardet tilføjer dem uden beskeden "du er blevet tilføjet"; en [formular](/docs/forms/on-submit) med en skabelon giver dem besked og holder hændelsens notifikation **Hændelse oprettet** tilbage, indtil de er tilføjet, så den går til dem og ikke til Projektejere.
+- Skabelonens **Ejere** tilføjes, før hændelsens Slack- og Microsoft Teams-kanaler oprettes, så en notifikationsregel, der spørger, hvem der ejer hændelsen, matcher dem, og en regel, der inviterer hændelsens ejere til en ny kanal, også inviterer dem. At erklære fra en skabelon i dashboardet tilføjer dem uden beskeden "du er blevet tilføjet"; en [formular](/docs/forms/on-submit) med en skabelon giver dem besked og holder hændelsens notifikation **Hændelse oprettet** tilbage, indtil de er tilføjet, så den går til dem og ikke til Projektejere.
 
 ## Erklær automatisk fra monitorkriterier
 

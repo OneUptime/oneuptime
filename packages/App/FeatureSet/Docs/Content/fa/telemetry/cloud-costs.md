@@ -246,6 +246,7 @@ OneUptime فقط تغییرهای یک‌گامی را انجام می‌دهد:
 ## گام‌های بعدی
 
 :::cards
+- [تخصیص هزینه‌های ابر](/docs/telemetry/cloud-cost-allocation): هزینه‌ها را میان تیم‌ها، محصولات و مراکز هزینه تقسیم کنید.
 - [اتصال یک حساب ابری](/docs/telemetry/cloud-accounts): حساب دیگری را متصل کنید، یا فرمانش را دوباره اجرا کنید.
 - [منابع ابری](/docs/telemetry/cloud-resources): متریک‌های هر منبع، از Collector خودتان.
 - [مشاهده‌پذیری هزینهٔ Kubernetes](/docs/telemetry/kubernetes-cost): هزینهٔ هر بار کاری Kubernetes.

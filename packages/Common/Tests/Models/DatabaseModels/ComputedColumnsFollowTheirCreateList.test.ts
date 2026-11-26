@@ -904,6 +904,8 @@ describe("nothing that builds a record from what was sent marks one", () => {
 
   const BUILDERS_OF_SENT_RECORDS: Array<string> = [
     "Server/API/BaseAPI.ts",
+    // How BaseAPI and Ask AI's Data Security actions read a write (#10378).
+    "Server/Utils/Database/CrudRouteWrites.ts",
     "Server/Types/Workflow/Components/BaseModel/CreateOneBaseModel.ts",
     "Server/Types/Workflow/Components/BaseModel/CreateManyBaseModel.ts",
     "Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel.ts",

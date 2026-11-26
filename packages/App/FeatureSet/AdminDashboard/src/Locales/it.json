@@ -75,9 +75,9 @@
     "userProfile": "Profilo utente"
   },
   "help": {
-    "supportEmail": "E-mail di supporto",
+    "supportEmail": "Email di supporto",
     "chatSlack": "Chatta su Slack",
-    "requestDemo": "Richiedi demo"
+    "requestDemo": "Richiedi una demo"
   },
   "userProfile": {
     "exitAdmin": "Esci dall'admin",
@@ -86,13 +86,13 @@
   "footer": {
     "copyright": "HackerBay, Inc.",
     "helpSupport": "Aiuto e supporto",
-    "legal": "Legale",
+    "legal": "Note legali",
     "version": "Versione",
     "versionModalTitle": "Versione di OneUptime",
     "versionLabel": "Versione",
     "commitLabel": "Commit",
-    "versionUnavailable": "Dati di versione non disponibili",
-    "versionUnavailableWithError": "Dati di versione non disponibili: {{error}}"
+    "versionUnavailable": "I dati della versione non sono disponibili",
+    "versionUnavailableWithError": "I dati della versione non sono disponibili: {{error}}"
   },
   "navbar": {
     "users": "Utenti",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Prova questo provider OIDC",
   "Attach": "Allega",
   "Attached Projects": "Progetti collegati",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "I progetti a cui questo provider fa accedere le persone, e i team in cui entrano i nuovi arrivati. Senza progetti collegati, funziona per ogni progetto di cui una persona fa già parte.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Le persone che accedono con questo provider entrano in questi progetti, nei team scelti per ciascuno. Senza progetti collegati, nessuna nuova persona può accedere.",
   "No projects attached to this provider.": "Nessun progetto è collegato a questo provider.",
   "Select Project": "Seleziona progetto",
   "Runs JavaScript steps and AI code fixes for every project.": "Esegue i passaggi JavaScript e le correzioni del codice con l'IA per ogni progetto.",
@@ -4545,11 +4545,17 @@
   "Chat on Microsoft Teams": "Chatta su Microsoft Teams",
   "Chat with Support": "Chatta con l'assistenza",
   "Show it": "Mostralo",
-  "Support Email": "E-mail di supporto",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Aiuto › E-mail di supporto, «Contatta l'assistenza» nella pagina «Pagina non trovata», e l'indirizzo a cui una schermata di errore chiede di inviare un pacchetto di supporto.",
+  "From this server's configuration": "Dalla configurazione di questo server",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Alcune impostazioni qui sotto sono state impostate dalla configurazione di questo server (valori Helm o config.env) quando qui non era salvato nulla. Una modifica fatta qui viene mantenuta: un riavvio non la annulla mai.",
+  "Set from {{variable}} in this server's configuration.": "Impostato da {{variable}} nella configurazione di questo server.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} nella configurazione di questo server non è stato usato: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Questa impostazione non può essere nascosta. Lasciala vuota per mantenere il valore predefinito di OneUptime.",
+  "Use \"shown\" or \"hidden\".": "Usa \"shown\" o \"hidden\".",
+  "Support Email": "Email di supporto",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Aiuto › Email di supporto, «Contatta l'assistenza» nella pagina «Pagina non trovata», le email sull'account, e l'indirizzo a cui una schermata di errore chiede di inviare un pacchetto di supporto.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Aiuto › Chatta su Slack. Un tuo link prende il nome della chat che apre: Slack, Microsoft Teams o «Chatta con l'assistenza».",
-  "Request Demo": "Richiedi demo",
+  "Request Demo": "Richiedi una demo",
   "Help › Request Demo, which opens OneUptime's page to book a demo.": "Aiuto › Richiedi demo, che apre la pagina di OneUptime per prenotare una demo.",
   "Give Feedback": "Invia un feedback",
   "Help › Give feedback and Give feedback in Search: where what people write goes.": "Aiuto › Invia un feedback e «Invia un feedback» nella ricerca: dove va ciò che le persone scrivono.",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Questo modello di monitor non appartiene a nessun progetto, quindi nessun monitor può esservi collegato. Crea di nuovo il modello in questo progetto.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Questo modello di monitor non ha un tipo di monitor, quindi i suoi monitor non possono essere sincronizzati. Crea di nuovo il modello con un tipo di monitor.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Le impostazioni di sincronizzazione del modello richiedono il tipo di monitor del modello. Scegli prima il tipo di monitor, poi scegli di nuovo le impostazioni di sincronizzazione.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modello di monitor non può sincronizzare \"{{field}}\". Scegli tra le impostazioni di sincronizzazione offerte dal modello, poi salva di nuovo."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modello di monitor non può sincronizzare \"{{field}}\". Scegli tra le impostazioni di sincronizzazione offerte dal modello, poi salva di nuovo.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Nessuna nuova persona può ancora accedere. Collega un progetto, con i team in cui entrano, in «Progetti collegati»."
 }

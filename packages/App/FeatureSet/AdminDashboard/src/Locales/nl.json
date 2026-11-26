@@ -76,7 +76,7 @@
   },
   "help": {
     "supportEmail": "Support-e-mail",
-    "chatSlack": "Chatten op Slack",
+    "chatSlack": "Chat op Slack",
     "requestDemo": "Demo aanvragen"
   },
   "userProfile": {
@@ -85,7 +85,7 @@
   },
   "footer": {
     "copyright": "HackerBay, Inc.",
-    "helpSupport": "Help en ondersteuning",
+    "helpSupport": "Hulp en ondersteuning",
     "legal": "Juridisch",
     "version": "Versie",
     "versionModalTitle": "OneUptime-versie",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Deze OIDC-provider testen",
   "Attach": "Bijvoegen",
   "Attached Projects": "Gekoppelde projecten",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "De projecten waarbij deze provider mensen aanmeldt, en de teams waar nieuwkomers bij komen. Zonder gekoppelde projecten werkt hij voor elk project waar iemand al bij hoort.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Mensen die zich met deze provider aanmelden, komen in deze projecten, in de teams die per project zijn gekozen. Zonder gekoppelde projecten kan niemand nieuw zich aanmelden.",
   "No projects attached to this provider.": "Er zijn geen projecten aan deze provider gekoppeld.",
   "Select Project": "Project selecteren",
   "Runs JavaScript steps and AI code fixes for every project.": "Voert JavaScript-stappen en codecorrecties door AI uit voor elk project.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Chat op Microsoft Teams",
   "Chat with Support": "Chat met support",
   "Show it": "Tonen",
+  "From this server's configuration": "Uit de configuratie van deze server",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Sommige instellingen hieronder zijn ingesteld vanuit de configuratie van deze server (Helm-waarden of config.env) terwijl hier nog niets was opgeslagen. Een wijziging die u hier maakt, blijft staan: een herstart zet die nooit terug.",
+  "Set from {{variable}} in this server's configuration.": "Ingesteld vanuit {{variable}} in de configuratie van deze server.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} in de configuratie van deze server is niet gebruikt: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Deze instelling kan niet worden verborgen. Laat haar leeg om de standaard van OneUptime te houden.",
+  "Use \"shown\" or \"hidden\".": "Gebruik \"shown\" of \"hidden\".",
   "Support Email": "Support-e-mail",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Hulp › Support-e-mail, ‘Contact opnemen met support’ op ‘Pagina niet gevonden’, en het adres waarnaar een foutscherm mensen vraagt een ondersteuningsbundel te sturen.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Hulp › Support-e-mail, ‘Contact opnemen met support’ op ‘Pagina niet gevonden’, e-mails over het account, en het adres waarnaar een foutscherm mensen vraagt een ondersteuningsbundel te sturen.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Hulp › Chat op Slack. Een eigen link wordt genoemd naar de chat die hij opent: Slack, Microsoft Teams of ‘Chat met support’.",
   "Request Demo": "Demo aanvragen",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Dit monitorsjabloon hoort bij geen enkel project, dus er kan geen monitor aan worden gekoppeld. Maak het sjabloon opnieuw aan in dit project.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Dit monitorsjabloon heeft geen monitortype, dus de monitors ervan kunnen niet worden gesynchroniseerd. Maak het sjabloon opnieuw aan met een monitortype.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "De instellingen voor sjabloonsynchronisatie hebben het monitortype van het sjabloon nodig. Kies eerst het monitortype en kies daarna de synchronisatie-instellingen opnieuw.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Een monitorsjabloon kan \"{{field}}\" niet synchroniseren. Kies uit de instellingen voor sjabloonsynchronisatie die het sjabloon biedt en sla daarna opnieuw op."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Een monitorsjabloon kan \"{{field}}\" niet synchroniseren. Kies uit de instellingen voor sjabloonsynchronisatie die het sjabloon biedt en sla daarna opnieuw op.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Nog niemand nieuw kan zich aanmelden. Koppel onder ‘Gekoppelde projecten’ een project, met de teams waar ze bij komen."
 }

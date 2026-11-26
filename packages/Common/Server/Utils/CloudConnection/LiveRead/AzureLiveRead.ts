@@ -21,6 +21,7 @@ import LlmProviderHttp, {
   readText,
 } from "../../LlmObservability/LlmProviderHttp";
 import AzureArm from "../Azure/AzureArm";
+import { KqlText, kql } from "../Azure/AzureKql";
 import { explainExpiredAzureSecret } from "../Azure/AzureCloudConnector";
 import {
   CloudConnectionSettings,
@@ -275,34 +276,28 @@ export interface AzureLiveReadInput {
   settings: CloudConnectionSettings;
 }
 
-// A KQL string literal: double quotes, with backslashes and quotes escaped.
-export function toKqlString(text: string): string {
-  return `"${text.split("\\").join("\\\\").split('"').join('\\"')}"`;
-}
-
-// A KQL single-quoted literal, for Resource Graph's `id =~ '...'`.
-export function toKqlSingleQuoted(text: string): string {
-  return `'${text.split("\\").join("\\\\").split("'").join("\\'")}'`;
-}
-
 // An OData string literal: single quotes, a quote written twice.
 export function toODataString(text: string): string {
   return `'${text.split("'").join("''")}'`;
 }
 
-// The Log Analytics query of a read-logs: built only from checked text and whole numbers.
+/*
+ * The Log Analytics query of a read-logs: the filter one string literal,
+ * whatever it holds - a quote, a line break (AzureKql) - and the minutes
+ * and the row limit whole numbers.
+ */
 export function buildAzureLogQuery(data: {
   filter: string;
   minutes: number;
   limit: number;
-}): string {
+}): KqlText {
   const minutes: number = Math.max(1, Math.floor(data.minutes));
   const limit: number = Math.max(1, Math.floor(data.limit));
-  const source: string = data.filter
-    ? `search ${toKqlString(data.filter)}`
-    : "union *";
+  const source: KqlText = data.filter
+    ? kql`search ${data.filter}`
+    : kql`union *`;
 
-  return `${source} | where TimeGenerated > ago(${minutes}m) | top ${limit} by TimeGenerated desc`;
+  return kql`${source} | where TimeGenerated > ago(${minutes}m) | top ${limit} by TimeGenerated desc`;
 }
 
 // A plain value off ARM's JSON as text; "" for an object or a list.
@@ -470,9 +465,7 @@ export default class AzureLiveRead {
         try {
           return await this.arm.queryResourceGraph({
             subscriptionIds: [this.subscriptionId()],
-            query: `Resources | where id =~ ${toKqlSingleQuoted(
-              this.id,
-            )} | project id, name, type, location, kind, sku, tags, provisioningState=properties.provisioningState`,
+            query: kql`Resources | where id =~ ${this.id} | project id, name, type, location, kind, sku, tags, provisioningState=properties.provisioningState`,
           });
         } catch (error) {
           throw explainExpiredAzureSecret(error);
@@ -1101,7 +1094,7 @@ export default class AzureLiveRead {
 
   // One Log Analytics query of the resource: its result's tables.
   private async queryLogAnalytics(
-    query: string,
+    query: KqlText,
     minutes: number,
   ): Promise<JSONObject> {
     const base: string = LOG_ANALYTICS_BASE_URLS[this.cloud];
@@ -1146,7 +1139,10 @@ export default class AzureLiveRead {
                   Accept: "application/json",
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ query, timespan: `PT${minutes}M` }),
+                body: JSON.stringify({
+                  query: query.toString(),
+                  timespan: `PT${minutes}M`,
+                }),
                 timeoutInMs: this.context.requestTimeoutInMs,
                 step: "log query",
                 providerTitle: "Azure Log Analytics",
@@ -1224,7 +1220,7 @@ export default class AzureLiveRead {
     );
     const limit: number = this.integerFlag("limit", CLOUD_DEFAULT_ROW_LIMIT);
     const filter: string = this.textFlag("filter");
-    const query: string = buildAzureLogQuery({ filter, minutes, limit });
+    const query: KqlText = buildAzureLogQuery({ filter, minutes, limit });
     const answer: JSONObject = await this.queryLogAnalytics(query, minutes);
     const lines: Array<{ timeMs: number; text: string }> = [];
 
@@ -1268,7 +1264,7 @@ export default class AzureLiveRead {
         maxItemLength: LIVE_READ_MAX_LOG_LINE_LENGTH + 200,
       },
     );
-    text.line(`query: ${query}`);
+    text.line(`query: ${query.toString()}`);
 
     return this.finish(text);
   }

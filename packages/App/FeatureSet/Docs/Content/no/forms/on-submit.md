@@ -75,7 +75,7 @@ En hendelse som er opprettet via et skjema, er en vanlig hendelse med noen få e
 
 - **Skjult fra statussider.** **Synlig på statussiden** er slått av, og det samme er **Varsle statussideabonnenter**. Til en responder publiserer den, når ingenting om hendelsen en statusside eller en abonnent — bortsett fra en mals endring av monitorstatus, ovenfor.
 - **Opprettet av ingen.** Innsenderen er ikke en OneUptime-bruker, så ingen bruker registreres som den som opprettet hendelsen.
-- **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til så snart hendelsens Slack- og Microsoft Teams-kanaler finnes, og får varsling — hendelsens varsling **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til Prosjekteiere.
+- **Eierne får beskjed.** Eierne innstillingene og malen nevner, legges til før hendelsens Slack- og Microsoft Teams-kanaler opprettes, slik at varslingsreglene dine ser dem, og får varsling — hendelsens varsling **Hendelse opprettet** venter til de er eierne, så det går til dem i stedet for til Prosjekteiere.
 - **Et privat notat registrerer innsendingen** — se [Det private notatet](#det-private-notatet).
 
 Alt som kjører for en ny hendelse, kjører også for disse: personvern-, eier-, etikett-, vakt- og runbook-regler, vaktpolicyer og arbeidsflyter med **Ved oppretting: Hendelse**. Vaktregler matcher et skjemas hendelser som alle andre — også på tittelen og beskrivelsen, som innsenderen skrev.
@@ -117,7 +117,7 @@ Fordi hendelsen ble opprettet med **Varsle statussideabonnenter** slått av, sen
 
 Et varsel som er opprettet via et skjema, er et vanlig varsel, opprettet på samme måte som et som opprettes manuelt med **Opprett varsel**:
 
-- **Eierne får beskjed, én gang.** Eierne innstillingene nevner, legges til så snart varselets Slack- og Microsoft Teams-kanaler finnes, og varslingen **Varsel opprettet** venter til de er eierne, så den går til dem i stedet for til Prosjekteiere — og det er den eneste beskjeden de får om varselet.
+- **Eierne får beskjed, én gang.** Eierne innstillingene nevner, legges til før varselets Slack- og Microsoft Teams-kanaler opprettes, slik at varslingsreglene dine ser dem, og varslingen **Varsel opprettet** venter til de er eierne, så den går til dem i stedet for til Prosjekteiere — og det er den eneste beskjeden de får om varselet.
 - **Det starter der du bestemmer.** I den vanlige starttilstanden, med mindre innstillingen **Innledende tilstand** nevner en senere. Et varsel som starter bekreftet eller løst, tilkaller ingen: et skjema for meldinger som bare trenger en titt, kan angi det.
 - **Opprettet av ingen, og ikke privat.** Innsenderen er ikke en OneUptime-bruker, så ingen bruker registreres som den som opprettet varselet. En personvernregel kan likevel gjøre det privat.
 - **Et privat notat registrerer innsendingen** — se [Det private notatet](#det-private-notatet).

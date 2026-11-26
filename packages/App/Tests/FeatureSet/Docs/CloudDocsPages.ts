@@ -36,6 +36,7 @@ export const CLOUD_OTHER_PLATFORMS: string = "telemetry/cloud-other-platforms";
 export const CLOUD_TROUBLESHOOTING: string = "telemetry/cloud-troubleshooting";
 export const CLOUD_ACCOUNTS: string = "telemetry/cloud-accounts";
 export const CLOUD_COSTS: string = "telemetry/cloud-costs";
+export const CLOUD_COST_ALLOCATION: string = "telemetry/cloud-cost-allocation";
 export const CLOUD_RESOURCES: string = "telemetry/cloud-resources";
 export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
 export const CLOUD_STREAMING_AZURE: string = "telemetry/cloud-streaming-azure";
@@ -74,6 +75,7 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
   },
   { page: CLOUD_ARMOR_BLOCKLIST, navTitle: "Block Addresses in Cloud Armor" },
   { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
+  { page: CLOUD_COST_ALLOCATION, navTitle: "Cloud Cost Allocation" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
 
@@ -364,6 +366,26 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "An account's costs.",
     "A resource's cost.",
     "What was saved.",
+  ],
+  // Cost groups (#11006): an example group's name is a lead too.
+  [CLOUD_COST_ALLOCATION]: [
+    "cost view",
+    "cost groups",
+    "The first group that matches takes the cost.",
+    "Rules read everything a cost carries.",
+    "Everything is worked out when you look.",
+    "Several views can sort the same spend.",
+    "Costs that are read.",
+    "Tags or owners, if you want them.",
+    "any",
+    "all",
+    "or",
+    "Payments",
+    "Once or every month.",
+    "On an account or a group.",
+    "Always apart.",
+    "A view's page",
+    "A group's page",
   ],
   [CLOUD_RESOURCES]: [
     "The provider already measures your resources.",

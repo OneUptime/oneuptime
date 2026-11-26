@@ -5,8 +5,8 @@
  */
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddCloudSavingsActions1809187711010 implements MigrationInterface {
-  public name: string = "AddCloudSavingsActions1809187711010";
+export class AddCloudSavingsActions1809187721010 implements MigrationInterface {
+  public name: string = "AddCloudSavingsActions1809187721010";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
