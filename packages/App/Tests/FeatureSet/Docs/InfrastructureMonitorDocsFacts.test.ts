@@ -101,6 +101,7 @@ import {
   SustainedEvaluation,
 } from "Common/Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { KUBERNETES_TEMPLATE_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
@@ -2592,11 +2593,21 @@ describe("the criteria of the telemetry-backed monitors", () => {
 
 describe("when the telemetry-backed monitors are checked", () => {
   it("every minute", () => {
+    /*
+     * The scheduler runs every 10 seconds and queues each evaluation at its
+     * monitor's own moment of its interval (#11060); a monitor with no
+     * interval of its own, as the create page makes these, is evaluated
+     * every minute.
+     */
     expect(
       source(
         "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations.ts",
       ),
-    ).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+    ).toContain("{ schedule: EVERY_TEN_SECONDS, runOnStartup: false }");
+    expect(TelemetryMonitorSchedule.read(undefined)).toMatchObject({
+      cron: "* * * * *",
+      cadenceInMs: 60 * 1000,
+    });
 
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
       expect(englishPage(page)).toContain(
