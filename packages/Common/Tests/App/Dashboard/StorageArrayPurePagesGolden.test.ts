@@ -30,6 +30,7 @@ import {
   STORAGE_ARRAY_PLATFORMS,
   STORAGE_ARRAY_PLATFORM_SETTINGS,
   StorageArrayPlatform,
+  StorageArrayWholeConfigPlatform,
   getStorageArrayEnvFile,
   getStorageArrayInstallScriptCommand,
   getStorageArrayPlatformForSystem,
@@ -237,7 +238,10 @@ async function computeGolden(): Promise<JSONObject> {
     const platform: StorageArrayPlatform = option.key;
     guides[platform] = {
       settings: asJson(STORAGE_ARRAY_PLATFORM_SETTINGS[platform]),
-      collectorConfigLength: STORAGE_ARRAY_COLLECTOR_CONFIGS[platform].length,
+      collectorConfigLength:
+        STORAGE_ARRAY_COLLECTOR_CONFIGS[
+          platform as StorageArrayWholeConfigPlatform
+        ].length,
       guideForAnArray: asJson(
         getStorageArraySetupGuide({
           oneuptimeUrl: "https://oneuptime.example.com",

@@ -351,7 +351,7 @@ describe("the platform picker", () => {
   });
 });
 
-describe.each(PLATFORMS)("the %s guide", (platform: StorageArrayPlatform) => {
+describe.each(PLATFORMS)("the %s guide", (platform: StorageArrayWholeConfigPlatform) => {
   const guide: SetupGuideContent = guideFor(platform);
 
   test("starts with the read-only user, then (native only) the endpoint check, install and verify", () => {
@@ -549,7 +549,7 @@ describe("the native FlashArray endpoint check", () => {
 describe("the install script", () => {
   test.each(PLATFORMS)(
     "carries the reader's URL, key and the %s config on the command line",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const command: string = getStorageArrayInstallScriptCommand({
         oneuptimeUrl: URL,
         apiKey: KEY,
@@ -702,7 +702,7 @@ describe("the install script", () => {
 describe("the Docker Compose install", () => {
   test.each(PLATFORMS)(
     "the %s tab downloads the compose file and every config, writes .env, then starts the agent",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const variant: string = variantOf(
         guideFor(platform),
         "Docker Compose",
@@ -722,7 +722,7 @@ describe("the Docker Compose install", () => {
 
   test.each(PLATFORMS)(
     "the %s .env file carries the reader's URL and key and the platform's settings",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const variables: Map<string, string> = envVariablesOf(
         envFileOf(guideFor(platform)),
       );
@@ -837,7 +837,7 @@ describe("the array name", () => {
  */
 describe.each(PLATFORMS)(
   "the %s guide's upgrade",
-  (platform: StorageArrayPlatform) => {
+  (platform: StorageArrayWholeConfigPlatform) => {
     const upgrade: SetupGuideTopic = topicTitled(
       guideFor(platform).advanced,
       "Upgrade or uninstall the agent",
@@ -913,7 +913,7 @@ describe.each(PLATFORMS)(
 describe("the whole guide reads as one document", () => {
   test.each(PLATFORMS)(
     "the %s guide renders to markdown with every step numbered after the key",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const markdown: string = getSetupGuideMarkdown(guideFor(platform));
       expect(markdown).toContain(
         "## Step 2: Create a read-only user and API token",
@@ -927,7 +927,7 @@ describe("the whole guide reads as one document", () => {
 describe("drift guards against agents/StorageArrayAgent", () => {
   test.each(PLATFORMS)(
     "the %s collector config is the shipped file, byte for byte",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       expect(STORAGE_ARRAY_COLLECTOR_CONFIGS[platform]).toBe(
         readAgentFile(
           STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile,
@@ -938,7 +938,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
 
   test.each(PLATFORMS)(
     "the %s config stamps storage.array.name and storage.system and drops service.name",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const config: Record<string, any> = yaml.load(
         STORAGE_ARRAY_COLLECTOR_CONFIGS[platform],
       ) as Record<string, any>;
@@ -977,8 +977,8 @@ describe("drift guards against agents/StorageArrayAgent", () => {
   );
 
   test("the scrape intervals the guide describes are the configs'", () => {
-    const intervals: (platform: StorageArrayPlatform) => Map<string, string> = (
-      platform: StorageArrayPlatform,
+    const intervals: (platform: StorageArrayWholeConfigPlatform) => Map<string, string> = (
+      platform: StorageArrayWholeConfigPlatform,
     ): Map<string, string> => {
       const config: Record<string, any> = yaml.load(
         STORAGE_ARRAY_COLLECTOR_CONFIGS[platform],
@@ -1123,7 +1123,7 @@ describe("drift guards against agents/StorageArrayAgent", () => {
    */
   test.each(PLATFORMS)(
     "the compose file runs the pinned collector, and the %s config reports the pin",
-    (platform: StorageArrayPlatform) => {
+    (platform: StorageArrayWholeConfigPlatform) => {
       const image: string =
         compose()["services"][STORAGE_ARRAY_AGENT_CONTAINER]["image"];
       expect(image).toMatch(
