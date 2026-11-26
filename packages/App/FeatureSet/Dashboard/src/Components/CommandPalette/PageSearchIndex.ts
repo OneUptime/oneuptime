@@ -3979,7 +3979,6 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Commitments",
             icon: IconProp.Calendar,
             keywords: [
-              "commitments",
               "savings plans",
               "reserved instances",
               "reservations",

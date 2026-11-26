@@ -218,6 +218,9 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
      * each language's Dashboard draws them.
      */
     "Storage Blob Data Reader",
+    // The tenant's readers of its reservations and savings plans (#11011).
+    "Reservations Reader",
+    "Savings plan Reader",
   ],
   [CLOUD_COSTS]: [
     "Cost Management Reader",
@@ -225,6 +228,10 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "BigQuery Data Viewer",
     "BigQuery Job User",
     "Compute Recommender Viewer",
+    "Reservations Reader",
+    "Savings plan Reader",
+    // What lists Compute Engine's commitments, which the command grants already.
+    "Cloud Asset Viewer",
   ],
   [CLOUD_RESOURCES]: [
     "Monitoring Reader",
@@ -359,6 +366,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A connected account.",
     "Cloud's Overview.",
     "Every day's spend.",
+    "Every commitment.",
     "An account's costs.",
     "A resource's cost.",
   ],

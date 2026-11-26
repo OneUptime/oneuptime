@@ -507,9 +507,16 @@ describe("the menu paths", () => {
         title: "Cloud",
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
-      // What the accounts cost, how to spend less, and the budgets.
-      { title: "Spend", items: ["Costs", "Savings", "Budgets"] },
-      { title: "Settings", items: ["Owner Rules", "Label Rules"] },
+      // What the accounts cost, how to spend less, the commitments and the budgets.
+      {
+        title: "Spend",
+        items: ["Costs", "Savings", "Commitments", "Budgets"],
+      },
+      // The cost basis the pages open on, and when commitments alert.
+      {
+        title: "Settings",
+        items: ["Owner Rules", "Label Rules", "Cost Settings"],
+      },
       { title: "Advanced", items: ["Archived"] },
     ]);
     expect(menuSections(APP_PLATFORMS_SIDE_MENU)).toEqual([
@@ -528,6 +535,8 @@ describe("the menu paths", () => {
     expect(isMenuPath("Cloud", ["Label Rules"])).toBe(false);
     expect(isMenuPath("Cloud", ["Spend", "Costs"])).toBe(true);
     expect(isMenuPath("Cloud", ["Costs"])).toBe(false);
+    expect(isMenuPath("Cloud", ["Spend", "Commitments"])).toBe(true);
+    expect(isMenuPath("Cloud", ["Settings", "Cost Settings"])).toBe(true);
     expect(isMenuPath("Cloud", ["Overview"])).toBe(true);
     expect(
       isMenuPath("Project Settings", ["Telemetry & APM", "Ingestion Keys"]),

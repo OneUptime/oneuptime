@@ -23,7 +23,6 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
-import EnableMCP from "../../Types/Database/EnableMCP";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
@@ -99,8 +98,11 @@ const createOnlyColumnAccess: {
   update: [],
 };
 
+/*
+ * No MCP tools: a project has one row, made on first use, which create and
+ * delete tools would only get in the way of. The API reads and changes it.
+ */
 @EnableDocumentation()
-@EnableMCP()
 @TableBillingAccessControl({
   create: PlanType.Free,
   read: PlanType.Free,
