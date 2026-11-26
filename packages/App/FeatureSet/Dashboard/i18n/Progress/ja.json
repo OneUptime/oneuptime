@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 1422
+    "keys": 64815,
+    "untranslated": 1432
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -273,6 +273,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID",
     "VMID {{vmid}}",
     "VMware VM",
