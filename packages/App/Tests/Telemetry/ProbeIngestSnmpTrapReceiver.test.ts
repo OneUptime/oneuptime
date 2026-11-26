@@ -27,6 +27,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 jest.mock("Common/Server/Utils/Express", () => {
   return {
@@ -98,16 +99,16 @@ jest.mock("../../FeatureSet/Telemetry/Middleware/ProbeAuthorization", () => {
 
 import { INVALID_REPORT_MESSAGE } from "../../FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver";
 
-const recordReport: jest.Mock =
-  ProbeService.recordSnmpTrapReceiverReport as unknown as jest.Mock;
-const getUsers: jest.Mock =
-  SnmpTrapReceiverUsers.getUsersForProbe as unknown as jest.Mock;
+const recordReport: Mock =
+  ProbeService.recordSnmpTrapReceiverReport as unknown as Mock;
+const getUsers: Mock =
+  SnmpTrapReceiverUsers.getUsersForProbe as unknown as Mock;
 const responseUtil: {
-  sendErrorResponse: jest.Mock;
-  sendJsonObjectResponse: jest.Mock;
+  sendErrorResponse: Mock;
+  sendJsonObjectResponse: Mock;
 } = Response as unknown as {
-  sendErrorResponse: jest.Mock;
-  sendJsonObjectResponse: jest.Mock;
+  sendErrorResponse: Mock;
+  sendJsonObjectResponse: Mock;
 };
 
 const URI: string = "/probe/snmp-trap/receiver";
@@ -164,8 +165,8 @@ function request(data: {
   return req as unknown as ExpressRequest;
 }
 
-async function call(req: ExpressRequest): Promise<{ next: jest.Mock }> {
-  const next: jest.Mock = jest.fn();
+async function call(req: ExpressRequest): Promise<{ next: Mock }> {
+  const next: Mock = jest.fn();
   const route: { middlewares: Array<RouteStep>; handlerFunction: RouteStep } =
     mockRouter.match("post", URI);
 
