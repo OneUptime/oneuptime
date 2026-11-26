@@ -320,7 +320,9 @@ describe("monitorXcpNg: scoping to the pool", () => {
     ).rejects.toThrow(BadDataException);
     await expect(
       monitorXcpNg({ monitorStep: step, monitorId, projectId }),
-    ).rejects.toThrow("XCP-ng monitor config is missing");
+    ).rejects.toThrow(
+      "This XCP-ng monitor step has no XCP-ng settings. Edit the monitor and pick its XCP-ng pool.",
+    );
   });
 
   test("the worker reads each query exactly as the monitor's charts say it does", async () => {

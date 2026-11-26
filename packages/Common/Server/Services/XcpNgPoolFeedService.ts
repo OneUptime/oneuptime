@@ -52,19 +52,27 @@ export class Service extends ProjectReferencesService<XcpNgPoolFeed> {
       const feed: XcpNgPoolFeed = new XcpNgPoolFeed();
 
       if (!data.xcpNgPoolId) {
-        throw new BadDataException("XCP-ng Pool ID is required");
+        throw new BadDataException(
+          "This feed item names no XCP-ng pool. Set xcpNgPoolId to the pool it is about.",
+        );
       }
 
       if (!data.feedInfoInMarkdown) {
-        throw new BadDataException("Log in markdown is required");
+        throw new BadDataException(
+          "This feed item has no text. Set feedInfoInMarkdown to what happened.",
+        );
       }
 
       if (!data.xcpNgPoolFeedEventType) {
-        throw new BadDataException("XCP-ng Pool feed event is required");
+        throw new BadDataException(
+          "This feed item has no event type. Set xcpNgPoolFeedEventType to the kind of event it records.",
+        );
       }
 
       if (!data.projectId) {
-        throw new BadDataException("Project ID is required");
+        throw new BadDataException(
+          "This feed item names no project. Set projectId to the XCP-ng pool's project.",
+        );
       }
 
       if (!data.displayColor) {

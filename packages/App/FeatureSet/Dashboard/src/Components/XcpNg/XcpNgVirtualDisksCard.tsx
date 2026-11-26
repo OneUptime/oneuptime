@@ -142,6 +142,10 @@ const XcpNgVirtualDisksCard: FunctionComponent<ComponentProps> = (
       title: "Virtual Disk",
       type: FieldType.Element,
       disableSort: true,
+      // The words the cell shows: its name, or the start of its UUID.
+      getLineText: (disk: XcpNgResource): string => {
+        return getXcpNgDisplayName(disk);
+      },
       getElement: (disk: XcpNgResource): ReactElement => {
         return (
           <bdi

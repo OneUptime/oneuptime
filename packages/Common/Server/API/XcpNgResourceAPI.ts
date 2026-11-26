@@ -75,14 +75,18 @@ export default class XcpNgResourceAPI extends BaseAPI<
   }> {
     const poolIdParam: string | undefined = req.params["poolId"];
     if (!poolIdParam) {
-      throw new BadDataException("XCP-ng pool ID is required");
+      throw new BadDataException(
+        "The request names no XCP-ng pool. Put the pool's ID at the end of the address.",
+      );
     }
 
     let xcpNgPoolId: ObjectID;
     try {
       xcpNgPoolId = new ObjectID(poolIdParam);
     } catch {
-      throw new BadDataException("Invalid XCP-ng pool ID");
+      throw new BadDataException(
+        "The XCP-ng pool ID in the address is not a valid ID. Copy it from the pool's page.",
+      );
     }
 
     const props: DatabaseCommonInteractionProps =
@@ -98,7 +102,9 @@ export default class XcpNgResourceAPI extends BaseAPI<
     });
 
     if (!pool || !pool.projectId) {
-      throw new NotFoundException("XCP-ng pool not found");
+      throw new NotFoundException(
+        "No XCP-ng pool with this ID is in this project. Check the ID, and that you can see the pool.",
+      );
     }
 
     return {

@@ -4247,7 +4247,9 @@ export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
     data.monitorStep.data?.xcpNgMonitor;
 
   if (!xcpNgMonitorConfig) {
-    throw new BadDataException("XCP-ng monitor config is missing");
+    throw new BadDataException(
+      "This XCP-ng monitor step has no XCP-ng settings. Edit the monitor and pick its XCP-ng pool.",
+    );
   }
 
   const startAndEndDate: InBetween<Date> =

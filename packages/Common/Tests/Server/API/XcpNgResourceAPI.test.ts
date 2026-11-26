@@ -230,7 +230,7 @@ describe("XcpNgResourceAPI", () => {
       expect(call.nextCallCount).toBe(1);
       expect(call.thrown).toBeInstanceOf(BadDataException);
       expect((call.thrown as BadDataException).message).toBe(
-        "XCP-ng pool ID is required",
+        "The request names no XCP-ng pool. Put the pool's ID at the end of the address.",
       );
       expect(findOneById).not.toHaveBeenCalled();
       expect(getInventorySummary).not.toHaveBeenCalled();
@@ -242,7 +242,7 @@ describe("XcpNgResourceAPI", () => {
 
       expect(call.thrown).toBeInstanceOf(BadDataException);
       expect((call.thrown as BadDataException).message).toBe(
-        "XCP-ng pool ID is required",
+        "The request names no XCP-ng pool. Put the pool's ID at the end of the address.",
       );
       expect(findOneById).not.toHaveBeenCalled();
     });
@@ -300,7 +300,7 @@ describe("XcpNgResourceAPI", () => {
       expect(call.nextCallCount).toBe(1);
       expect(call.thrown).toBeInstanceOf(NotFoundException);
       expect((call.thrown as NotFoundException).message).toBe(
-        "XCP-ng pool not found",
+        "No XCP-ng pool with this ID is in this project. Check the ID, and that you can see the pool.",
       );
       expect(getInventorySummary).not.toHaveBeenCalled();
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
