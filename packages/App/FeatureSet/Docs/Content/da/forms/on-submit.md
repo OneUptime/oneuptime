@@ -75,7 +75,7 @@ En hændelse, der er oprettet via en formular, er en almindelig hændelse med no
 
 - **Skjult fra statussider.** **Synlig på statussiden** er slået fra, og det samme er **Underret statussideabonnenter**. Indtil en responder offentliggør den, når intet om hændelsen en statusside eller en abonnent — bortset fra en skabelons ændring af monitorstatus, ovenfor.
 - **Oprettet af ingen.** Indsenderen er ikke en OneUptime-bruger, så ingen bruger registreres som den, der oprettede hændelsen.
-- **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, så snart hændelsens Slack- og Microsoft Teams-kanaler findes, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere.
+- **Dens ejere får besked.** De ejere, indstillingerne og skabelonen nævner, tilføjes, før hændelsens Slack- og Microsoft Teams-kanaler oprettes, så dine notifikationsregler ser dem, og får besked — hændelsens notifikation **Hændelse oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere.
 - **En privat note registrerer indsendelsen** — se [Den private note](#den-private-note).
 
 Alt, der kører for en ny hændelse, kører også for disse: privatlivs-, ejer-, etiket-, vagt- og runbook-regler, vagtpolitikker og arbejdsgange med **Ved oprettelse: Hændelse**. Vagtregler matcher en formulars hændelser som alle andre — også på deres titel og beskrivelse, som indsenderen skrev.
@@ -117,7 +117,7 @@ Fordi hændelsen blev oprettet med **Underret statussideabonnenter** slået fra,
 
 En advarsel, der er oprettet via en formular, er en almindelig advarsel, oprettet på samme måde som en, der oprettes manuelt med **Opret advarsel**:
 
-- **Dens ejere får besked, én gang.** De ejere, indstillingerne nævner, tilføjes, så snart advarslens Slack- og Microsoft Teams-kanaler findes, og advarslens notifikation **Advarsel oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere — og det er den eneste besked, de får om advarslen.
+- **Dens ejere får besked, én gang.** De ejere, indstillingerne nævner, tilføjes, før advarslens Slack- og Microsoft Teams-kanaler oprettes, så dine notifikationsregler ser dem, og advarslens notifikation **Advarsel oprettet** venter, til de er dens ejere, så den går til dem i stedet for til Projektejere — og det er den eneste besked, de får om advarslen.
 - **Den starter, hvor du bestemmer.** I den sædvanlige starttilstand, medmindre indstillingen **Indledende tilstand** nævner en senere. En advarsel, der starter bekræftet eller løst, tilkalder ingen: en formular til meldinger, der kun skal ses på, kan angive det.
 - **Oprettet af ingen, og ikke privat.** Indsenderen er ikke en OneUptime-bruger, så ingen bruger registreres som den, der oprettede advarslen. En privatlivsregel kan stadig gøre den privat.
 - **En privat note registrerer indsendelsen** — se [Den private note](#den-private-note).
