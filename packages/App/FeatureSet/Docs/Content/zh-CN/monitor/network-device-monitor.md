@@ -134,6 +134,7 @@ flowchart TB
 | SNMP v3 Authentication Key | 认证密码短语。 | 使用认证时 |
 | SNMP v3 Privacy Protocol | DES、AES 或 AES-256。 | 使用加密时 |
 | SNMP v3 Privacy Key | 隐私（加密）密码短语。 | 使用加密时 |
+| SNMP v3 Context | 仅用于在一个地址上为多台设备应答、且每台在各自上下文中的代理：例如 Brocade 逻辑交换机的 `VF:128`。 | 否 |
 :::
 
 在设备上输入的凭据优先于在旁边选择的凭据配置文件，设备所在站点也可以带有默认配置文件。配置文件上的凭据经过静态加密。输入到设备上的凭据同样经过静态加密，并受相同的读取权限保护。
@@ -250,6 +251,12 @@ flowchart TB
 
 当项目中有使用绑定监视器覆盖但没有绑定任何监视器的设备（没有东西轮询、也没有东西报告的设备）时，**设备** 页面会显示一条横幅，并链接到可修复它们的选择。
 
+### SNMPv3 上下文
+
+一个代理可以在同一地址上为多台设备应答，每台在各自的 SNMPv3 上下文中：启用 Virtual Fabrics 的 Brocade 机箱在上下文 `VF:` 加其 Fabric ID 中应答每个逻辑交换机。在该地址为每个逻辑交换机添加一台使用 SNMP v3 的设备，并在其 **设置** 页面设置 **SNMP v3 上下文**；没有上下文的设备在代理的默认上下文中轮询。上下文属于设备而不是其凭据，因此无论设备使用哪个凭据配置文件都有效。
+
+早于 SNMPv3 上下文的探测器会改为轮询默认上下文，因此在更新之前，它只会 ping 这样的设备。每个 SNMPv3 trap 也带有其上下文，只在该上下文中轮询的设备上触发；在没有设备轮询的上下文中的 trap 会记录为未匹配。
+
 ## 站点监控默认值
 
 [网络站点](/docs/monitor/network-sites#监控默认值)为其中的设备提供两个默认值。它的 **Default Probe** 会复制到在该站点中创建、或移入该站点且没有自己探测器的设备上。它的 **Default SNMP Credential Profile** 会在每次轮询该站点中没有自己凭据的设备时被读取。在站点上设置这两项后，那里的设备只凭地址就能添加，并从首次轮询起被 Ping 和遍历。站点指南说明了每个默认值沿站点树向下传递多远。
@@ -303,9 +310,11 @@ flowchart TB
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU 负载、总 RAM 和可用 RAM、平均负载 | CPU 核心（每个核心一行，无论平台如何编号） |
 | Arista EOS | CPU 负载、平均负载、总 RAM 和可用 RAM | — |
+| Brocade Fabric OS (SAN switches) | 交换机状态、固件版本、CPU、内存 | 交换机状态、传感器（温度、风扇、电源）、可更换部件（FRU） |
 | Cambium Networks cnMatrix | CPU、RAM、闪存、温度、供电电压 | 风扇、PoE 端口、冗余电源 |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU、可用内存、Wi-Fi 客户端、cnMaestro 连接 | Wi-Fi 射频（频段、信道、带宽、发射功率、客户端、底噪、空口时间、状态）、SSID |
 | Cisco IOS / IOS-XE | CPU、已用和空闲内存、温度、风扇状态、电源状态 | — |
+| Cisco MDS 9000 (SAN switches) | CPU、内存 | 电源、模块、风扇托盘、VSAN |
 | Dell Force10 / OS9 | CPU、内存 | — |
 | Extreme Networks EXOS / Switch Engine | CPU、温度、过温告警、电源状态 | 电源、风扇、每个插槽的内存、堆叠成员 |
 | Extreme Networks Fabric Engine / VOSS | vIST 会话、I-SID 数量 | 按邻居命名的 Fabric（IS-IS）邻接、每个插槽的 CPU 和内存、温度传感器、风扇、电源 |
@@ -853,6 +862,7 @@ flowchart TB
 | SNMP Interface Is Down | 管理上已启用的接口在运行上宕机时为 true。 | 不评估 |
 | SNMP Interface Utilization (in %) | 最繁忙接口的链路利用率。 | 不评估 |
 | SNMP Interface Errors (per second) | 最差接口的错误率。 | 不评估 |
+| SNMP Fibre Channel Counter (per second) | SAN 交换机端口的一个 Fibre Channel 计数器（CRC 错误、丢弃的帧、信用丢失等）的每秒值，按范围内最差的端口判断；`*` 为每个端口发出一条告警。 | 不评估 |
 | SNMP Transceiver Not Detected | 曾有光模块的端口在仍启用的情况下连续两次轮询没有报告光模块时为 true。 | 不评估 |
 | SNMP Transceiver Past Alarm Threshold | 光模块的读数达到或超过设备报告的告警阈值，或设备标记了信号丢失或发射器故障时为 true。 | 不评估 |
 | SNMP Transceiver Past Warning Threshold | 在警告阈值上的相同判断；超过告警阈值的光模块也算在内。 | 不评估 |
@@ -1028,6 +1038,9 @@ Trap 通过设备清单进行匹配：
 | `{{trapOid}}` | Trap OID，用于由 Trap 触发的检查 |
 | `{{trapSourceIp}}` | Trap 的来源地址，用于由 Trap 触发的检查 |
 | `{{trapVarbinds}}` | Trap 携带的 varbind，每个都带有 `oid` 和 `value` |
+| `{{trapInterface}}` | trap 所涉及的接口：trap 携带的名称，或设备遍历为其索引记录的名称 |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | 在 RMON 告警（MDS 端口监控告警）中，越过阈值的计数器，以及 `rising` 或 `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | 在 RMON 告警中，计数器的值和越过的阈值 |
 | `{{tables.<key>.rowCount}}` | 按键指定的 [SNMP 表](#snmp-表)中遍历到的行数：`{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | 状态超出其健康值的行，每行都带有 `name`、`index` 和 `values.<column>` |
 | `{{tables.<key>.rows}}` | 每一行（最多 50 行），每行都带有 `name`、`index` 和 `values.<column>`，列名为小写，空格写作 `_` |

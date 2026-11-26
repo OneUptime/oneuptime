@@ -134,6 +134,7 @@ Laissez-le replié et l'équipement est seulement pingué : la section repliée 
 | SNMP v3 Authentication Key | La phrase secrète d'authentification. | Avec authentification |
 | SNMP v3 Privacy Protocol | DES, AES ou AES-256. | Avec chiffrement |
 | SNMP v3 Privacy Key | La phrase secrète de chiffrement. | Avec chiffrement |
+| SNMP v3 Context | Uniquement pour un agent qui répond pour plusieurs appareils à une même adresse, chacun dans son propre contexte : le `VF:128` d'un commutateur logique Brocade. | Non |
 :::
 
 Les identifiants saisis sur l'équipement l'emportent sur un profil d'identifiants choisi à côté, et le site de l'équipement peut aussi porter un profil par défaut. Les identifiants d'un profil sont chiffrés au repos. Les identifiants saisis sur un équipement sont eux aussi chiffrés au repos, et protégés par les mêmes permissions de lecture.
@@ -250,6 +251,12 @@ Sélectionnez des équipements dans la liste **Appareils** et utilisez :
 
 La page **Appareils** affiche une bannière quand le projet contient des équipements en remplacement par un moniteur lié sans moniteur lié — des équipements que rien n'interroge et dont rien ne rend compte — et renvoie vers la sélection qui les corrige.
 
+### Contextes SNMPv3
+
+Un agent peut répondre pour plusieurs appareils à une même adresse, chacun dans son propre contexte SNMPv3 : un châssis Brocade avec Virtual Fabrics répond pour chaque commutateur logique dans le contexte `VF:` suivi de son identifiant de fabric. Ajoutez un appareil par commutateur logique à cette adresse, en SNMP v3, et renseignez pour chacun le **Contexte SNMP v3** sur sa page **Paramètres** ; un appareil sans contexte est relevé dans le contexte par défaut de l'agent. Le contexte appartient à l'appareil, pas à ses identifiants, et vaut donc quel que soit le profil d'identifiants qu'il utilise.
+
+Une sonde antérieure aux contextes SNMPv3 relèverait le contexte par défaut à la place : tant qu'elle n'est pas mise à jour, elle ne fait que pinguer un tel appareil. Chaque trap SNMPv3 nomme aussi son contexte et ne se déclenche que sur l'appareil relevé dans ce contexte ; un trap dans un contexte où aucun appareil n'est relevé est journalisé comme non associé.
+
 ## Valeurs par défaut de surveillance du site
 
 Un [site réseau](/docs/monitor/network-sites#valeurs-par-défaut-de-surveillance) porte deux valeurs par défaut pour ses équipements. Sa **Sonde par défaut** est copiée sur un équipement créé dans le site, ou déplacé dedans, sans sonde propre. Son **Profil d'identifiants SNMP par défaut** est lu à chaque interrogation d'un équipement du site qui n'a pas d'identifiants propres. Définissez les deux sur un site et un équipement de ce site peut être ajouté par sa seule adresse, puis pingué et interrogé dès sa première interrogation. Le guide des sites indique jusqu'où chaque valeur par défaut descend dans l'arborescence des sites.
@@ -303,9 +310,11 @@ Dans l'éditeur **OID de santé**, **Vendor Health Template** applique un jeu d'
 | --- | --- | --- |
 | Generic (Host Resources MIB) | Charge CPU, RAM totale et disponible, charge moyenne | Cœurs CPU (une ligne par cœur, quelle que soit la numérotation de la plateforme) |
 | Arista EOS | Charge CPU, charge moyenne, RAM totale et disponible | — |
+| Brocade Fabric OS (SAN switches) | État du commutateur, version du firmware, CPU, mémoire | État du commutateur, capteurs (température, ventilateurs, alimentations), unités remplaçables (FRU) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, température, tension d'alimentation | Ventilateurs, ports PoE, alimentation redondante |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, mémoire libre, clients Wi-Fi, connexion cnMaestro | Radios Wi-Fi (bande, canal, largeur, puissance d'émission, clients, bruit de fond, temps d'antenne, état), SSID |
 | Cisco IOS / IOS-XE | CPU, mémoire utilisée et libre, température, état des ventilateurs, état des alimentations | — |
+| Cisco MDS 9000 (SAN switches) | CPU, mémoire | Alimentations, modules, tiroirs de ventilation, VSAN |
 | Dell Force10 / OS9 | CPU, mémoire | — |
 | Extreme Networks EXOS / Switch Engine | CPU, température, alarme de surchauffe, état de l'alimentation | Alimentations, ventilateurs, mémoire par emplacement, membres de la pile |
 | Extreme Networks Fabric Engine / VOSS | Session vIST, nombre d'I-SID | Adjacences de fabric (IS-IS) nommées par voisin, CPU et mémoire par emplacement, capteurs de température, ventilateurs, alimentations |
@@ -853,6 +862,7 @@ Les critères examinent chaque résultat d'interrogation et chaque trap, et ouvr
 | SNMP Interface Is Down | Vrai quand une interface activée administrativement est hors service opérationnellement. | Non évalué |
 | SNMP Interface Utilization (in %) | L'utilisation du lien de l'interface la plus chargée. | Non évalué |
 | SNMP Interface Errors (per second) | Le taux d'erreurs de la pire interface. | Non évalué |
+| SNMP Fibre Channel Counter (per second) | Un compteur Fibre Channel des ports d'un commutateur SAN — erreurs CRC, trames rejetées, perte de crédit et les autres — par seconde, sur le pire port du périmètre ; `*` déclenche une alerte par port. | Non évalué |
 | SNMP Transceiver Not Detected | Vrai quand un port qui avait une optique n'en a pas rapporté pendant deux interrogations de suite, alors que le port est activé. | Non évalué |
 | SNMP Transceiver Past Alarm Threshold | Vrai quand une mesure d'une optique atteint ou dépasse un seuil d'alarme que l'équipement rapporte, ou que l'équipement signale une perte de signal ou un défaut d'émetteur. | Non évalué |
 | SNMP Transceiver Past Warning Threshold | La même chose pour les seuils d'avertissement ; une optique au-delà d'un seuil d'alarme compte aussi. | Non évalué |
@@ -1028,6 +1038,9 @@ Les modèles d'incident et d'alerte d'un moniteur Équipement réseau peuvent ut
 | `{{trapOid}}` | L'OID du trap, pour les vérifications déclenchées par un trap |
 | `{{trapSourceIp}}` | L'adresse d'où vient le trap, pour les vérifications déclenchées par un trap |
 | `{{trapVarbinds}}` | Les varbinds que portait le trap, chacune avec `oid` et `value` |
+| `{{trapInterface}}` | L'interface dont parle un trap : le nom qu'il porte, ou celui que le parcours de l'appareil a relevé pour son index |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | Sur une alarme RMON (une alarme de port-monitor MDS), le compteur qui a franchi son seuil, et `rising` ou `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | Sur une alarme RMON, la valeur du compteur et le seuil franchi |
 | `{{tables.<key>.rowCount}}` | Les lignes parcourues dans une [table SNMP](#tables-snmp), par sa clé : `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Les lignes dont le statut est hors de leurs valeurs saines, chacune avec `name`, `index` et `values.<column>` |
 | `{{tables.<key>.rows}}` | Chaque ligne (jusqu'à 50), chacune avec `name`, `index` et `values.<column>`, avec les noms de colonnes en minuscules et les espaces remplacés par `_` |

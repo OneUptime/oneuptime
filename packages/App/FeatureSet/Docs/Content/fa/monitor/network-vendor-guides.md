@@ -1,11 +1,13 @@
 # راهنماهای سازندگان تجهیزات شبکه (Sophos، Extreme، Cambium)
 
-چگونه سه مجموعهٔ رایج را با OneUptime از آغاز تا پایان پایش کنید: یک Sophos Firewall ‏(XGS، SFOS) با تونل‌های IPsec، پیوندهای WAN و SD-WAN آن؛ سوئیچ‌های Extreme Networks ‏(EXOS / Switch Engine و Fabric Engine / VOSS) با فابریکشان؛ و سوئیچ‌های cnMatrix و نقطه‌های دسترسی Wi-Fi سازمانی Cambium Networks، تا کانال و توان ارسال هر رادیو.
+چگونه سه مجموعهٔ رایج را با OneUptime از آغاز تا پایان پایش کنید: یک Sophos Firewall ‏(XGS، SFOS) با تونل‌های IPsec، پیوندهای WAN و SD-WAN آن؛ سوئیچ‌های Extreme Networks ‏(EXOS / Switch Engine و Fabric Engine / VOSS) با فابریکشان؛ و سوئیچ‌های cnMatrix و نقطه‌های دسترسی Wi-Fi سازمانی Cambium Networks، تا کانال و توان ارسال هر رادیو. این راهنماها سوئیچ‌های SAN را هم پوشش می‌دهند، Brocade Fabric OS و Cisco MDS 9000، تا خطاهای هر پورت Fibre Channel.
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): تونل‌ها، پیوندهای WAN، دروازه‌ها و SD-WAN.
 - [Extreme Networks](#extreme-networks-exos-switch-engine-و-fabric-engine-voss): سوئیچ‌ها، فابریک و سخت‌افزار آن.
 - [Cambium Networks](#cambium-networks-wi-fi-سازمانی-و-cnmatrix): نقطه‌های دسترسی تا هر رادیو، و سوئیچ‌های cnMatrix.
+- [Brocade Fabric OS](#brocade-fabric-os): پورت‌های Fibre Channel، ماژول‌های نوری، حسگرها و رویدادهای فابریک.
+- [Cisco MDS 9000](#cisco-mds-9000): رابط‌های Fibre Channel، VSANها، slow drain و هشدارهای port-monitor.
 :::
 
 ## چگونه کار می‌کند
@@ -145,6 +147,76 @@ Sophos سلامت دروازه یا SD-WAN را از راه SNMP، در هیچ �
 ### آلارم‌های cnMaestro
 
 ‏cnMaestro می‌تواند آلارم‌هایش، مانند آفلاین شدن یک نقطهٔ دسترسی، را به یک وب‌هوک HTTPS بفرستد. آن را به یک [مانیتور درخواست ورودی](/docs/monitor/incoming-request-monitor) نشانه بروید تا آن آلارم‌ها کنار دادهٔ SNMP به حادثه‌های OneUptime تبدیل شوند.
+
+## Brocade Fabric OS
+
+| آنچه می‌خواهید ببینید | از کجا می‌آید |
+| --- | --- |
+| وضعیت سوئیچ، فریم‌ور، CPU و حافظه | SNMP، با قالب سازنده **Brocade Fabric OS (SAN switches)** |
+| وضعیت سوئیچ، حسگرها و واحدهای قابل تعویض (FRU) آن، ردیف به ردیف | جدول‌های `switch_status`، `sensors` و `frus` قالب |
+| نوع هر پورت Fibre Channel، علت قطع پورت قطع‌شده، و خطاها، فریم‌های دورریخته و انتظارهای اعتبار آن در ثانیه | SW-MIB و FCMGMT-MIB، در صفحه **رابط‌ها** دستگاه |
+| توان دریافتی و ارسالی، دما، ولتاژ و جریان بایاس هر ماژول نوری | FA-EXT-MIB، در کارت **فرستنده‌گیرنده‌ها** |
+| قطع پیوند میان سوئیچ‌ها، تقسیم یا پیکربندی دوباره فابریک، تغییر zoning، هشدار MAPS، تغییر یک FRU | trapهای SNMPv3 |
+
+هر سوئیچ و director با Fabric OS یک شناسه شیء سیستم زیر `1.3.6.1.4.1.1588.2.1.1` گزارش می‌کند، پس قالب روی همه آن‌ها اعمال می‌شود و روی هیچ محصول دیگری از Brocade نه: سوئیچ‌های VDX و SLX قالب خود را نگه می‌دارند.
+
+### راه‌اندازی SNMP در Fabric OS
+
+:::steps
+1. یک کاربر SNMPv3 با احراز هویت و رمزنگاری، SHA و AES، اضافه کنید: `snmpconfig --set snmpv3` کاربر، پروتکل‌ها و عبارت‌های عبور آن را می‌پرسد.
+2. FA-MIB را با `snmpconfig --set mibCapability` روشن کنید. شمارنده‌های خطای ۶۴ بیتی هر پورت و ماژول نوری آن در آن است؛ بدون آن، پورت فقط خطاهای CRC، خطاهای کدگذاری، فریم‌های دورریخته کلاس ۳ و انتظارهای اعتبار خود را به‌صورت شمارنده ۳۲ بیتی گزارش می‌کند.
+3. در OneUptime سوئیچ را با نشانی مدیریتی آن و همان کاربر اضافه کنید. با روشن بودن **اعمال خودکار قالب سلامت سازنده**، نخستین پرس‌وجو قالب **Brocade Fabric OS (SAN switches)** را اعمال می‌کند؛ در غیر این صورت آن را از **قالب سلامت سازنده** در صفحه **تنظیمات** دستگاه اعمال کنید.
+:::
+
+سپس صفحه **رابط‌ها** دستگاه نوع هر پورت Fibre Channel را، مانند E-Port یا F-Port، نشان می‌دهد و می‌گوید پورت قطع‌شده چرا قطع است، همان‌طور که `switchshow` می‌گوید: No light، No module، Disabled. کارت **پورت‌های Fibre Channel** آن خطاها، فریم‌های دورریخته و شمارنده‌های اعتبار هر پورت را در ثانیه رسم می‌کند.
+
+خطاهای CRC، واژه‌های انتقال نامعتبر، خرابی‌های پیوند و از دست رفتن همگام‌سازی و سیگنال یک پورت خطاهای آن هستند: **خطاهای رابط SNMP (در ثانیه)** روی آن‌ها هشدار می‌دهد، و هشدارهای پیشنهادی شامل **Fibre Channel port errors** است، برای بیش از یک خطا در ده ثانیه. فریم‌های دورریخته و انتظارهای اعتبار خطا نیستند؛ برای هشدار روی یکی از آن‌ها از **شمارنده Fibre Channel در SNMP (در ثانیه)** استفاده کنید.
+
+### Virtual Fabrics
+
+شاسی با Virtual Fabrics هر سوئیچ منطقی را در زمینه SNMPv3 خودش پاسخ می‌دهد: `VF:` و شناسه فابریک سوئیچ منطقی. برای هر سوئیچ منطقی یک دستگاه اضافه کنید، همه با نشانی مدیریتی شاسی، و برای هر کدام **زمینه SNMP v3** را تنظیم کنید (`VF:128`، `VF:20`)؛ دستگاه بدون زمینه سوئیچ منطقی پیش‌فرض را می‌خواند.
+
+### trapهای Brocade
+
+Fabric OS trapهای خود را روی SNMPv3 می‌فرستد. با `snmpconfig --set snmpv3` پراب را به‌عنوان گیرنده trap برای کاربری که OneUptime با آن پرس‌وجو می‌کند، روی پورت UDP شماره 162، اضافه کنید: پراب trapهای SNMPv3 کاربران دستگاه‌هایی را که پرس‌وجو می‌کند می‌پذیرد (ببینید [trapها و informهای SNMPv3](/docs/monitor/network-device-monitor#تلهها-و-informهای-snmpv3))، و trapهای هر سوئیچ منطقی زمینه آن را نام می‌برند، پس فقط روی دستگاه خودش رخ می‌دهند. ارتقای Fabric OS می‌تواند برخی trapها را دوباره خاموش کند: پس از ارتقا آن‌ها را با `snmpconfig --show mibCapability` بررسی کنید و هر کدام را با `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn` دوباره روشن کنید.
+
+هشدارهای پیشنهادی روی سوئیچ Brocade برای هر رویداد مهم فابریک یکی دارند: **Inter-switch link down** (یک E-Port که آفلاین می‌شود)، **Fabric segmented**، **Fabric reconfigured**، **Zone configuration changed**، **MAPS alert** و **Field-replaceable unit changed**.
+
+## Cisco MDS 9000
+
+| آنچه می‌خواهید ببینید | از کجا می‌آید |
+| --- | --- |
+| CPU و حافظه | SNMP، با قالب سازنده **Cisco MDS 9000 (SAN switches)** |
+| منبع‌های تغذیه، ماژول‌ها و سینی‌های فن، ردیف به ردیف | جدول‌های `power_supplies`، `modules` و `fan_trays` قالب |
+| هر VSAN با وضعیت آن | جدول `vsans` قالب |
+| نوع هر رابط fc، علت قطع رابط قطع‌شده، و خطاها، فریم‌های دورریخته، از دست رفتن اعتبار و انتظارهای اعتبار آن در ثانیه | CISCO-FC-FE-MIB، در صفحه **رابط‌ها** دستگاه |
+| مقدارها و آستانه‌های هشدار هر ماژول نوری | CISCO-ENTITY-SENSOR-MIB، در کارت **فرستنده‌گیرنده‌ها** |
+| هشدارهای port-monitor، پیوندهای قطع‌شده، تغییرهای zone، VSAN، فابریک و FRU | trapها |
+
+MDS شماره سازمانی Cisco را با همه دستگاه‌های دیگر Cisco شریک است، پس OneUptime آن را از مدلش یا از توضیح سیستمی‌ای که با `Cisco NX-OS(tm) m9` شروع می‌شود می‌شناسد: سوئیچ‌های IOS، IOS-XE و Nexus قالب Cisco خود را نگه می‌دارند.
+
+### راه‌اندازی SNMP در NX-OS
+
+:::steps
+1. یک کاربر SNMPv3 فقط‌خواندنی اضافه کنید: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. نقش `network-operator` می‌خواند و نمی‌تواند چیزی را تغییر دهد.
+2. trapها را با همان کاربر به پراب بفرستید: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+3. trapهایی را که به‌طور پیش‌فرض خاموش‌اند روشن کنید: `snmp-server enable traps zone`، `snmp-server enable traps vsan`، `snmp-server enable traps fcdomain`، `snmp-server enable traps fspf` و، برای ماژول‌های نوری، `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
+4. در OneUptime سوئیچ را با نشانی مدیریتی آن و همان کاربر اضافه کنید: قالب **Cisco MDS 9000 (SAN switches)** به همان شکل اعمال می‌شود.
+:::
+
+هشدارهای پیشنهادی روی MDS شامل **Credit loss (slow drain)** و **Timeout discards (slow drain)** است، یک بار برای هر رابط: میزبان یا آرایه‌ای که دیگر اعتبار بافر را برنمی‌گرداند هر جریانی را که پشت آن است کند می‌کند، و این شمارنده‌ها آن را زودتر از همه نشان می‌دهند.
+
+### هشدارهای port-monitor
+
+سیاست port-monitor روی MDS وقتی شمارنده یک پورت از آستانه‌اش بگذرد هشدار RMON می‌دهد. هشدارهای پیشنهادی شامل **Port monitor alarm** است که هشدارش شمارنده و رابط را نام می‌برد، مانند "Port monitor: Credit loss rising on fc1/5". سیاستی که slow drain را زیر نظر دارد:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## رفع اشکال
 
