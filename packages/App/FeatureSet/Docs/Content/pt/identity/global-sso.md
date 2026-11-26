@@ -91,6 +91,12 @@ Duas perguntas do provedor mudam isso, recolhidas em **Mais campos**. Cada uma c
 
 Com **Todos os projetos**, fazer login com o provedor atende à exigência de SSO em todos os projetos de que a pessoa faz parte, e os projetos anexados só decidem onde os recém-chegados são adicionados.
 
+## Endereços de email que o seu provedor de identidade não verificou
+
+Um provedor OpenID Connect global encontra a conta em que faz o login pelo endereço de email que envia, como o provedor de um projeto, e as contas dos administradores mestres são encontradas da mesma forma. Por isso ele não faz o login de ninguém com um endereço que o provedor diz não ter verificado, com uma claim `email_verified` igual a `false` ou a algo que não é nem true nem false. Do contrário, alguém poderia colocar o endereço de um administrador mestre na própria conta no provedor e entrar na instância inteira como ele. Um provedor que envia `email_verified` como `true`, ou não a envia, como o Microsoft Entra ID, faz o login das pessoas como antes.
+
+Pelo authentik 2025.10 e posteriores, ninguém entra até você mudar o mapeamento de escopo `email` dele, e pelo Keycloak, ninguém cujo endereço ele não tenha verificado. O que mudar lá, o que continua entrando e o que a pessoa vê estão na página [SSO](/docs/identity/sso#endereços-de-email-que-o-seu-provedor-de-identidade-não-verificou). Os administradores mestres com senha podem entrar com ela enquanto isso, em `/accounts/admin-login` enquanto a instância inteira exigir SSO.
+
 ## Sair também do provedor de identidade
 
 Sair do OneUptime deixa a pessoa conectada no provedor de identidade, então, em um computador compartilhado, a próxima pessoa que entra com esse provedor entra como quem saiu. Em um provedor SAML ou OpenID Connect, clique em **Editar configuração** e ative **Sair também do provedor de identidade** em **Mais campos**: sair do OneUptime passa então a encerrar também a sessão no provedor, e o provedor devolve o navegador ao OneUptime. Vem desativado, pois em um notebook pessoal também encerraria a sessão da pessoa em todos os outros apps que usam o provedor.
@@ -181,6 +187,10 @@ Em um provedor SAML, a resposta foi criada para outro aplicativo: a audience del
 
 :::details "SAML response was already used"
 Cada resposta do seu provedor de identidade faz o login uma única vez, e só nos minutos seguintes à emissão: depois disso, ela é recusada com "SAML response has expired". Faça o login de novo. Se as respostas continuarem expirando, confira os relógios deste servidor e do seu provedor de identidade.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+O provedor OpenID Connect enviou `email_verified` como `false`, ou como algo que não é nem true nem false, então o OneUptime não fez o login de ninguém, nem de um administrador mestre. Peça a verificação do endereço no seu provedor de identidade, ou marque-o como verificado lá, e entre novamente. Veja [Endereços de email que o seu provedor de identidade não verificou](#endereços-de-email-que-o-seu-provedor-de-identidade-não-verificou).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

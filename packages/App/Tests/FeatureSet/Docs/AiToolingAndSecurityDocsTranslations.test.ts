@@ -954,12 +954,16 @@ describe("the helpers, on these pages' shapes", () => {
     expect(drawnMenuItem("da", "Monitors")).toBe(
       drawnActionLabel("da", "Monitors"),
     );
-    // Chat's page draws no title, so its menu item is a word of its own.
-    expect(drawnPathSegment("fa", ["Chat", "Monitors"], 0)).toBe(
-      drawnMenuItem("fa", "Chat"),
+    /*
+     * The Persian menu said "Chat" in its own word over the Ask AI panel
+     * until #7474; it says the panel's name now, as every menu entry says
+     * the name of the page it opens.
+     */
+    expect(drawnPathSegment("fa", ["Ask AI", "Monitors"], 0)).toBe(
+      drawnMenuItem("fa", "Ask AI"),
     );
-    expect(drawnMenuItem("fa", "Chat")).not.toBe(
-      drawnActionLabel("fa", "Chat"),
+    expect(drawnMenuItem("fa", "Ask AI")).toBe(
+      drawnActionLabel("fa", "Ask AI"),
     );
   });
 

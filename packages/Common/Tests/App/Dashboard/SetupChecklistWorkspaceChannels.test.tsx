@@ -156,23 +156,29 @@ describe("the channels the checklist reads", () => {
    * its space, is not the workspace type's own spelling.
    */
   test("name each method as the server's readiness does", () => {
-    const service: string = fs.readFileSync(
+    // The types OnCallReadinessService answers in.
+    const readiness: string = fs.readFileSync(
       path.join(
         __dirname,
         "..",
         "..",
         "..",
-        "Server",
-        "Services",
-        "OnCallReadinessService.ts",
+        "Types",
+        "OnCallDutyPolicy",
+        "OnCallReadiness.ts",
       ),
       "utf8",
     );
-    const start: number = service.indexOf("export enum ReadinessMethodType {");
+    const start: number = readiness.indexOf(
+      "export enum ReadinessMethodType {",
+    );
 
     expect(start).toBeGreaterThan(-1);
 
-    const reported: string = service.slice(start, service.indexOf("}", start));
+    const reported: string = readiness.slice(
+      start,
+      readiness.indexOf("}", start),
+    );
 
     for (const channel of SETTING_CHANNELS) {
       expect({

@@ -39,6 +39,7 @@ import {
 } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import IncidentRoleFeedText from "../../../Server/Utils/Incident/IncidentRoleFeedText";
+import OnCallPolicyIncidentRole from "../../../Server/Utils/OnCall/OnCallPolicyIncidentRole";
 import WorkflowPrincipal from "../../../Server/Utils/Workflow/WorkflowPrincipal";
 import MicrosoftTeamsUtil from "../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
@@ -121,6 +122,9 @@ const EPISODE_ID: ObjectID = new ObjectID(
   "7d000000-0000-4000-8000-00000000000a",
 );
 const ANA_ID: ObjectID = new ObjectID("7d000000-0000-4000-8000-00000000000b");
+const SCRIBE_ROLE_ID: ObjectID = new ObjectID(
+  "7d000000-0000-4000-8000-00000000000c",
+);
 
 const PEOPLE: Record<string, { name: string; email: string }> = {
   [VALERIA_ID.toString()]: {
@@ -137,6 +141,7 @@ const PEOPLE: Record<string, { name: string; email: string }> = {
 const ROLES: Record<string, string> = {
   [RESPONDER_ROLE_ID.toString()]: "Responder",
   [COMMANDER_ROLE_ID.toString()]: "Incident Commander",
+  [SCRIBE_ROLE_ID.toString()]: "Scribe",
 };
 
 const personPage: (userId: ObjectID) => string = (userId: ObjectID): string => {
@@ -1099,6 +1104,8 @@ describe("OneUptime itself", () => {
 
     jest.spyOn(IncidentRoleService, "findOneBy").mockResolvedValue(primary);
     jest.spyOn(IncidentMemberService, "findOneBy").mockResolvedValue(null);
+    // Deane holds no role on it yet.
+    jest.spyOn(IncidentMemberService, "findBy").mockResolvedValue([]);
     jest
       .spyOn(TeamMemberService, "isUserMemberOfProject")
       .mockResolvedValue(true);
@@ -1168,6 +1175,24 @@ describe("OneUptime itself", () => {
     );
   });
 
+  test("an on-call policy that paged them: the line names the policy, and is by no one", async () => {
+    await add({
+      userId: DEANE_ID,
+      props: { isRoot: true },
+      miscDataProps:
+        OnCallPolicyIncidentRole.getMiscDataProps("Payments Primary"),
+    });
+
+    const row: IncidentFeed = onlyFeedRow();
+    expect(row.userId).toBeUndefined();
+    expect(slackShows().reads).toBe(
+      "👤 On-Call Policy Payments Primary added Deane Looi as Responder to Incident INC-18.",
+    );
+    expect(teamsShows().reads).toBe(
+      "👤 On-Call Policy Payments Primary added Deane Looi as Responder to Incident INC-18.",
+    );
+  });
+
   test("a request that sends a cause of its own is not believed: the person did it", async () => {
     await add({
       userId: DEANE_ID,
@@ -1191,6 +1216,109 @@ describe("OneUptime itself", () => {
     expect(slackShows().reads).toBe(
       "👤 Added Deane Looi as Responder to Incident INC-18.",
     );
+  });
+});
+
+describe("the first person to change the state, holding a role already", () => {
+  const takeCommand: () => Promise<void> = async (): Promise<void> => {
+    await (
+      IncidentStateTimelineService as unknown as {
+        autoAssignIncidentCommander: (data: {
+          incidentId: ObjectID;
+          projectId: ObjectID;
+          userId: ObjectID;
+          stateName: string;
+        }) => Promise<void>;
+      }
+    ).autoAssignIncidentCommander({
+      incidentId: INCIDENT_ID,
+      projectId: PROJECT_ID,
+      userId: DEANE_ID,
+      stateName: "Acknowledged",
+    });
+  };
+
+  let create: ReturnType<typeof jest.spyOn>;
+  let rolesGivenByPages: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    const primary: IncidentRole = new IncidentRole();
+    primary._id = COMMANDER_ROLE_ID.toString();
+
+    jest.spyOn(IncidentRoleService, "findOneBy").mockResolvedValue(primary);
+    // Nobody commands it yet.
+    jest.spyOn(IncidentMemberService, "findOneBy").mockResolvedValue(null);
+    // Deane is its Responder.
+    jest
+      .spyOn(IncidentMemberService, "findBy")
+      .mockResolvedValue([memberRow({ userId: DEANE_ID })]);
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockResolvedValue(true);
+
+    create = jest
+      .spyOn(IncidentMemberService, "create")
+      .mockImplementation(createAsTheDatabaseDoes as never);
+    rolesGivenByPages = jest.spyOn(
+      OnCallPolicyIncidentRole,
+      "getRoleIdsGivenByPages",
+    );
+  });
+
+  test("Responder because their page made them one: they take command, as anybody who acknowledges first does", async () => {
+    rolesGivenByPages.mockResolvedValue(
+      new Set<string>([RESPONDER_ROLE_ID.toString().toLowerCase()]),
+    );
+
+    await takeCommand();
+
+    expect(rolesGivenByPages).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      userId: DEANE_ID,
+    });
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(
+      (create.mock.calls[0]![0] as CreateBy<IncidentMember>).data
+        .incidentRoleId,
+    ).toEqual(COMMANDER_ROLE_ID);
+    expect(slackShows().reads).toBe(
+      "👤 Deane Looi became the Incident Commander of Incident INC-18 when they changed its state to Acknowledged.",
+    );
+  });
+
+  test("Responder because somebody made them one: they keep that part, and nobody is made commander", async () => {
+    rolesGivenByPages.mockResolvedValue(new Set<string>());
+
+    await takeCommand();
+
+    expect(create).not.toHaveBeenCalled();
+    expect(feedRows).toHaveLength(0);
+  });
+
+  test("a role of their own beside one a page gave: they keep their part", async () => {
+    jest
+      .spyOn(IncidentMemberService, "findBy")
+      .mockResolvedValue([
+        memberRow({ userId: DEANE_ID }),
+        memberRow({ userId: DEANE_ID, roleId: SCRIBE_ROLE_ID }),
+      ]);
+    rolesGivenByPages.mockResolvedValue(
+      new Set<string>([RESPONDER_ROLE_ID.toString().toLowerCase()]),
+    );
+
+    await takeCommand();
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("holding no role at all: the pages are not even read", async () => {
+    jest.spyOn(IncidentMemberService, "findBy").mockResolvedValue([]);
+
+    await takeCommand();
+
+    expect(rolesGivenByPages).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1287,6 +1415,76 @@ describe("a role given on an incident episode, copied to its incidents", () => {
     ).toEqual({ isRoot: true, userId: VALERIA_ID });
     expect(slackShows().reads).toBe(
       "👤 Valeria Mustafaeva removed Deane Looi as Responder from Incident INC-18.",
+    );
+  });
+
+  test("an on-call policy's that paged them about the episode: each incident's line names the policy, and tells them nothing more", async () => {
+    const create: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentMemberService, "create")
+      .mockImplementation(createAsTheDatabaseDoes as never);
+
+    const episodeRole: IncidentEpisodeRoleMember =
+      new IncidentEpisodeRoleMember();
+    episodeRole.projectId = PROJECT_ID;
+    episodeRole.incidentEpisodeId = EPISODE_ID;
+    episodeRole.userId = DEANE_ID;
+    episodeRole.incidentRoleId = RESPONDER_ROLE_ID;
+
+    await IncidentEpisodeRoleMemberService.onCreateSuccess(
+      {
+        createBy: {
+          data: episodeRole,
+          props: { isRoot: true },
+          miscDataProps:
+            OnCallPolicyIncidentRole.getMiscDataProps("Payments Primary"),
+        },
+        carryForward: null,
+      } as OnCreate<IncidentEpisodeRoleMember>,
+      episodeRole,
+    );
+
+    const createBy: CreateBy<IncidentMember> = create.mock
+      .calls[0]![0] as CreateBy<IncidentMember>;
+    expect(createBy.props).toEqual({ isRoot: true });
+    // Their page told them: no message about the role on each incident.
+    expect(createBy.data.isMemberNotified).toBe(true);
+    expect(onlyFeedRow().userId).toBeUndefined();
+    expect(slackShows().reads).toBe(
+      "👤 On-Call Policy Payments Primary added Deane Looi as Responder to Incident INC-18.",
+    );
+  });
+
+  test("a person's cause on the episode is not believed: the line is theirs, and they are told", async () => {
+    const create: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(IncidentMemberService, "create")
+      .mockImplementation(createAsTheDatabaseDoes as never);
+
+    const episodeRole: IncidentEpisodeRoleMember =
+      new IncidentEpisodeRoleMember();
+    episodeRole.projectId = PROJECT_ID;
+    episodeRole.incidentEpisodeId = EPISODE_ID;
+    episodeRole.userId = DEANE_ID;
+    episodeRole.incidentRoleId = RESPONDER_ROLE_ID;
+    episodeRole.createdByUserId = VALERIA_ID;
+
+    await IncidentEpisodeRoleMemberService.onCreateSuccess(
+      {
+        createBy: {
+          data: episodeRole,
+          props: memberProps(VALERIA_ID),
+          miscDataProps: OnCallPolicyIncidentRole.getMiscDataProps("Spoofed"),
+        },
+        carryForward: null,
+      } as OnCreate<IncidentEpisodeRoleMember>,
+      episodeRole,
+    );
+
+    const createBy: CreateBy<IncidentMember> = create.mock
+      .calls[0]![0] as CreateBy<IncidentMember>;
+    expect(createBy.miscDataProps).toBeUndefined();
+    expect(createBy.data.isMemberNotified).toBeUndefined();
+    expect(slackShows().reads).toBe(
+      "👤 Valeria Mustafaeva added Deane Looi as Responder to Incident INC-18.",
     );
   });
 

@@ -807,6 +807,39 @@ describe("who sees it: the case's readers who may read the store and its finding
   });
 
   /*
+   * A change to the case is decided for the case's own row, as an update of
+   * it is - not by holding the case's edit permission somewhere: a case
+   * that is not the project's is changed by nobody.
+   */
+  test("whether a role may change it is asked of the case's own row", async () => {
+    const props: DatabaseCommonInteractionProps = caller([
+      Permission.ReadSecurityCase,
+      Permission.EditSecurityCase,
+      Permission.ReadDataStore,
+      Permission.ReadDataStoreFinding,
+    ]);
+    const updatable: SpyInstance<
+      typeof SecurityCaseService.findOneUpdatableById
+    > = jest.spyOn(SecurityCaseService, "findOneUpdatableById");
+
+    expect(
+      await ExposureAssessmentReader.mayChange({
+        securityCaseId: new ObjectID(CASE_ID),
+        props,
+      }),
+    ).toBe(true);
+    expect(updatable).toHaveBeenCalledTimes(1);
+    expect(updatable.mock.calls[0]![0].id.toString()).toBe(CASE_ID);
+    expect(updatable.mock.calls[0]![0].props).toBe(props);
+    expect(
+      await ExposureAssessmentReader.mayChange({
+        securityCaseId: ObjectID.generate(),
+        props,
+      }),
+    ).toBe(false);
+  });
+
+  /*
    * A change is decided by the case's own row, as an update of it through
    * the API would decide (SecurityCaseService.findOneUpdatableById) - not by
    * holding a case-editing permission somewhere in the project.

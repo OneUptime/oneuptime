@@ -1,5 +1,6 @@
 import http, { IncomingMessage, Server, ServerResponse } from "http";
-import { AddressInfo } from "net";
+import net, { AddressInfo } from "net";
+import { chromium } from "playwright";
 import BrowserType from "Common/Types/Monitor/SyntheticMonitors/BrowserType";
 import ScreenSizeType from "Common/Types/Monitor/SyntheticMonitors/ScreenSizeType";
 import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/SyntheticMonitorResponse";
@@ -10,6 +11,8 @@ import MonitorSecretValueRedaction, {
   HiddenSecretValues,
 } from "Common/Server/Utils/Monitor/MonitorSecretValueRedaction";
 import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import escapeRegExp from "Common/Utils/RegExpEscape";
+import FakeInternet from "../SyntheticRuntime/Fixtures/FakeInternet";
 
 /*
  * A MONITOR SECRET A SYNTHETIC SCRIPT SAYS BACK, IN REAL PLAYWRIGHT (#10825).
@@ -21,7 +24,7 @@ import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
  * the two places the value went:
  *
  *   - what the probe reports: Playwright's error quotes the URL a page
- *     failed to load, token and all (net::ERR_NAME_NOT_RESOLVED at
+ *     failed to load, token and all (net::ERR_CONNECTION_CLOSED at
  *     https://...?token=...), a script logs what it holds, and a page
  *     echoes the URL it was asked for. The server reads that report for the
  *     monitor's secrets as it takes it in (MonitorSecretValueRedaction):
@@ -29,9 +32,19 @@ import { SeededRandom, seededRandom } from "Common/Tests/Helpers/SeededRandom";
  *     error, the host, the path, the parameter's name - is;
  *   - the probe's own log lines, which say the script failed but never what
  *     it failed with: the probe cannot tell which text was a secret.
+ *
+ * The pages are on public addresses, as a monitored site is: every request
+ * of a check goes through its egress proxy, which refuses loopback
+ * (GHSA-9rx7-vwfj-whp7). The probe's outbound proxy here is FakeInternet,
+ * which answers for those addresses from servers on loopback.
  */
 
 jest.setTimeout(600_000);
+
+// A site that echoes the address it was asked for.
+const ECHO_SITE: string = "93.184.215.14";
+// A site whose TLS port closes every connection it accepts.
+const CLOSING_SITE: string = "93.184.215.15";
 
 // A value of the alphabets a secret is written in: quotes, spaces, unicode.
 function makeSecret(random: SeededRandom): string {
@@ -133,6 +146,12 @@ interface SyntheticMonitorClass {
   }): Promise<Array<SyntheticMonitorResponse> | null>;
 }
 
+interface ProxyConfigClass {
+  isProxyConfigured(): boolean;
+  getHttpProxyUrl(): string | null;
+  getHttpsProxyUrl(): string | null;
+}
+
 interface LoggerClass {
   error(message: unknown, attributes?: unknown): void;
   warn(message: unknown, attributes?: unknown): void;
@@ -145,10 +164,16 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
   const originalProbeKey: string | undefined = process.env["PROBE_KEY"];
   const random: SeededRandom = seededRandom(10825);
 
-  let SyntheticMonitor: SyntheticMonitorClass;
+  let SyntheticMonitor: SyntheticMonitorClass & {
+    getChromeExecutablePath(): Promise<string>;
+  };
+  let ProxyConfig: ProxyConfigClass;
   let logger: LoggerClass;
   let echoServer: Server;
   let echoUrl: string;
+  let closingServer: net.Server;
+  let fakeInternet: FakeInternet;
+  let chromeExecutablePath: string;
   let logged: Array<string> = [];
 
   beforeAll(async () => {
@@ -156,11 +181,22 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
     process.env["PROBE_KEY"] = "test-probe-key";
 
     SyntheticMonitor = jest.requireActual<{
-      default: SyntheticMonitorClass;
+      default: typeof SyntheticMonitor;
     }>("../../../../Utils/Monitors/MonitorTypes/SyntheticMonitor").default;
+    ProxyConfig = jest.requireActual<{ default: ProxyConfigClass }>(
+      "../../../../Utils/ProxyConfig",
+    ).default;
     logger = jest.requireActual<{ default: LoggerClass }>(
       "Common/Server/Utils/Logger",
     ).default;
+    /*
+     * The probe's own lookup finds the Linux builds its image installs;
+     * elsewhere - a developer's machine - Playwright's own Chromium is used.
+     */
+    chromeExecutablePath =
+      await SyntheticMonitor.getChromeExecutablePath().catch((): string => {
+        return chromium.executablePath();
+      });
 
     // An error page that quotes the address it was asked for, as many do.
     echoServer = http.createServer(
@@ -190,7 +226,31 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
       echoServer.listen(0, "127.0.0.1", resolve);
     });
 
-    echoUrl = `http://127.0.0.1:${(echoServer.address() as AddressInfo).port}`;
+    // A TLS port that closes every connection: the browser's load fails.
+    closingServer = net.createServer((socket: net.Socket): void => {
+      socket.on("error", (): void => {
+        // The tunnel went away first.
+      });
+      socket.destroy();
+    });
+    await new Promise<void>((resolve: () => void) => {
+      closingServer.listen(0, "127.0.0.1", resolve);
+    });
+
+    fakeInternet = new FakeInternet();
+    await fakeInternet.start();
+    fakeInternet.route(
+      ECHO_SITE,
+      80,
+      (echoServer.address() as AddressInfo).port,
+    );
+    fakeInternet.route(
+      CLOSING_SITE,
+      443,
+      (closingServer.address() as AddressInfo).port,
+    );
+
+    echoUrl = `http://${ECHO_SITE}`;
   });
 
   beforeEach(() => {
@@ -211,6 +271,16 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
     for (const level of ["error", "warn", "info", "debug"] as const) {
       jest.spyOn(logger, level).mockImplementation(record);
     }
+
+    // The probe's outbound proxy: what the check's egress proxy goes through.
+    jest.spyOn(ProxyConfig, "isProxyConfigured").mockReturnValue(true);
+    jest
+      .spyOn(ProxyConfig, "getHttpsProxyUrl")
+      .mockReturnValue(fakeInternet.url());
+    jest.spyOn(ProxyConfig, "getHttpProxyUrl").mockReturnValue(null);
+    jest
+      .spyOn(SyntheticMonitor, "getChromeExecutablePath")
+      .mockResolvedValue(chromeExecutablePath);
   });
 
   afterEach(() => {
@@ -218,8 +288,14 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
   });
 
   afterAll(async () => {
+    await fakeInternet.stop();
     await new Promise<void>((resolve: () => void) => {
       echoServer.close(() => {
+        resolve();
+      });
+    });
+    await new Promise<void>((resolve: () => void) => {
+      closingServer.close(() => {
         resolve();
       });
     });
@@ -239,7 +315,13 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
 
   test("Playwright's error for a page it cannot load quotes the token, and the server's reading leaves none of it", async () => {
     const secret: string = makeSecret(random);
-    const target: string = `https://app.secret-echo.invalid/login?user=ops&token=${secret}`;
+    /*
+     * A site the egress proxy lets through, whose load then fails in the
+     * browser: an error of Playwright's, which quotes the URL. (A host the
+     * proxy cannot reach is reported in the proxy's words instead, which
+     * name the host alone.)
+     */
+    const target: string = `https://${CLOSING_SITE}/login?user=ops&token=${secret}`;
 
     // The script as the server hands it over: the value filled in.
     const responses: Array<SyntheticMonitorResponse> | null =
@@ -255,8 +337,10 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
     const reported: SyntheticMonitorResponse = responses![0]!;
 
     // What Playwright says, as it said it: the URL quoted, the value in it.
-    expect(reported.scriptError).toContain(
-      "page.goto: net::ERR_NAME_NOT_RESOLVED at",
+    expect(reported.scriptError).toMatch(
+      new RegExp(
+        `page\\.goto: net::ERR_[A-Z_]+ at https://${escapeRegExp(CLOSING_SITE)}/login`,
+      ),
     );
     expect(reported.scriptError).toContain("navigating to");
     expect(formsLeftIn(reported.scriptError, secret).length).toBeGreaterThan(0);
@@ -269,14 +353,16 @@ describe("a monitor secret a Synthetic script says back, in real Playwright", ()
     expect(formsLeftIn(read, secret)).toEqual([]);
 
     // The rest is as Playwright wrote it: what failed, where, and which parameter.
-    expect(readRun.scriptError).toContain(
-      "page.goto: net::ERR_NAME_NOT_RESOLVED at https://app.secret-echo.invalid/login?user=ops&token=",
+    expect(readRun.scriptError).toMatch(
+      new RegExp(
+        `page\\.goto: net::ERR_[A-Z_]+ at https://${escapeRegExp(CLOSING_SITE)}/login\\?user=ops&token=`,
+      ),
     );
     expect(readRun.scriptError).toContain(HIDDEN_SECRET_MARKER);
     expect(readRun.scriptError).toContain('waiting until "load"');
 
     for (const attempt of readRun.retryAttempts || []) {
-      expect(attempt.scriptError).toContain("ERR_NAME_NOT_RESOLVED");
+      expect(attempt.scriptError).toMatch(/net::ERR_[A-Z_]+ at https:/);
       expect(attempt.scriptError).toContain(HIDDEN_SECRET_MARKER);
     }
 

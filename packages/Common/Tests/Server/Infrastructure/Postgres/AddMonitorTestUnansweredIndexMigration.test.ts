@@ -2,7 +2,7 @@ import MonitorTest from "../../../../Models/DatabaseModels/MonitorTest";
 import OnlineDdl, {
   OnlineIndex,
 } from "../../../../Server/Infrastructure/Postgres/OnlineDdl";
-import { AddMonitorTestUnansweredIndex1809187670819 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187670819-AddMonitorTestUnansweredIndex";
+import { AddMonitorTestUnansweredIndex1809187690819 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187690819-AddMonitorTestUnansweredIndex";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import {
   DefaultNamingStrategy,
@@ -66,14 +66,14 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("AddMonitorTestUnansweredIndex1809187670819", () => {
+describe("AddMonitorTestUnansweredIndex1809187690819", () => {
   test("the index is named as TypeORM names it", () => {
     expect(UNANSWERED_INDEX).toBe("IDX_3757a5e288a418e78a71a91316");
   });
 
   test("builds it online, outside a transaction", async () => {
-    const migration: AddMonitorTestUnansweredIndex1809187670819 =
-      new AddMonitorTestUnansweredIndex1809187670819();
+    const migration: AddMonitorTestUnansweredIndex1809187690819 =
+      new AddMonitorTestUnansweredIndex1809187690819();
 
     expect(migration.transaction).toBe(false);
     expect(
@@ -96,7 +96,7 @@ describe("AddMonitorTestUnansweredIndex1809187670819", () => {
   test("down() drops it online", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddMonitorTestUnansweredIndex1809187670819().down(runner);
+        return new AddMonitorTestUnansweredIndex1809187690819().down(runner);
       }),
     ).toEqual([`online: DROP INDEX "public"."${UNANSWERED_INDEX}"`]);
   });
@@ -109,16 +109,18 @@ describe("AddMonitorTestUnansweredIndex1809187670819", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddMonitorTestUnansweredIndex1809187670819;
+        return candidate === AddMonitorTestUnansweredIndex1809187690819;
       }),
     ).toHaveLength(1);
     expect(
-      names.indexOf("AddMonitorTestUnansweredIndex1809187670819"),
+      names.indexOf("AddMonitorTestUnansweredIndex1809187690819"),
     ).toBeGreaterThan(
-      names.indexOf("AddDataSecurityIssuePullRequest1809187660831"),
+      names.indexOf(
+        "AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000",
+      ),
     );
-    expect(new AddMonitorTestUnansweredIndex1809187670819().name).toBe(
-      "AddMonitorTestUnansweredIndex1809187670819",
+    expect(new AddMonitorTestUnansweredIndex1809187690819().name).toBe(
+      "AddMonitorTestUnansweredIndex1809187690819",
     );
   });
 });

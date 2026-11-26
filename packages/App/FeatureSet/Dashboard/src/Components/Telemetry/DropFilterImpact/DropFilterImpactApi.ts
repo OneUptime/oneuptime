@@ -43,7 +43,7 @@ export interface DropFilterImpactRule {
 // How long an answer is kept.
 export const DROP_FILTER_IMPACT_CACHE_MS: number = 60 * 1000;
 
-// How many answers are kept.
+// How many answers are kept: the oldest goes first (OldestKeyMap).
 const MAX_CACHED_ANSWERS: number = 50;
 
 interface CachedAnswer {

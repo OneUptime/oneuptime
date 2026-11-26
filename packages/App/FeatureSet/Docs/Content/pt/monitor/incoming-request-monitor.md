@@ -14,6 +14,7 @@ Os dois usam o mesmo tipo de monitor. O que os separa são os critérios que voc
 - [Enviar um heartbeat](#enviar-um-heartbeat): Pelo curl, cron, Node.js, Python ou Go.
 - [Alertar quando as chamadas param](#marcar-como-offline-se-não-houver-heartbeat-em-10-minutos-um-interruptor-de-homem-morto): Transforme o monitor em um interruptor de homem morto.
 - [Receber alertas](#receber-alertas-de-outro-sistema): Um incidente por alerta do Alertmanager ou do Grafana.
+- [Publicar no Slack sem acionar ninguém](#publicar-no-slack-sem-acionar-ninguém): Avisar um canal e acionar o plantão só fora do expediente.
 - [Assinar o SNS ou o Event Grid](#assinar-o-amazon-sns-ou-o-azure-event-grid): Confirme a assinatura com um clique.
 :::
 
@@ -421,6 +422,32 @@ O payload completo fica disponível ao lado dela, então funcionam tanto um tít
 ### Exemplo completo
 
 Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para o Grafana, veja [Grafana](/docs/integrations/grafana).
+
+## Publicar no Slack sem acionar ninguém
+
+Um ambiente de staging, ou um produto cujos problemas podem esperar, pode querer que uma requisição seja publicada em um canal de chat sem acionar ninguém. Um alerta que não nomeia nenhuma política de plantão faz isso: ele é publicado no Slack, Microsoft Teams ou Mattermost pelas regras de espaço de trabalho do projeto e não inicia nenhuma escalação.
+
+:::steps
+1. Abra o critério e, em **Ações**, ative **Quando os filtros corresponderem, criar um alerta.** Deixe suas **Políticas de plantão** vazias.
+2. Escreva no alerta o que a requisição diz, como `{{requestBody.commonAnnotations.summary}}` na descrição. Veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating).
+3. Em **Alertas → Espaço de trabalho → Slack**, adicione uma regra para os alertas deste monitor e ative **Publicar em canais existentes**. Antes, o Slack precisa estar [conectado ao projeto](/docs/workspace-connections/slack).
+:::
+
+Um alerta que não nomeia nenhuma política de plantão ainda pode acionar alguém pelas regras do projeto. Verifique se nenhuma regra em **Alertas → Regras → Regras de plantão** aciona alguém por esses alertas e se nenhuma regra em **Alertas → Regras → Regras de incidentes** declara um incidente a partir deles.
+
+Para publicar sem criar um alerta, ative apenas **Quando os filtros corresponderem, alterar o status do monitor.** e adicione a regra em **Monitores → Espaço de trabalho → Slack**. O canal fica sabendo então apenas que o status do monitor mudou, sem nada da requisição, e só quando ele muda: novas requisições enquanto o monitor já está nesse status não publicam nada.
+
+### Acionar só fora do expediente
+
+Dois critérios com os mesmos filtros dividem a semana entre si, nesta ordem:
+
+1. O primeiro publica durante o expediente. Em suas **Configurações**, ative **Avaliar este critério apenas em certos dias e horários** e escolha os dias, os horários e o **Fuso horário**. O alerta dele não nomeia nenhuma política de plantão.
+2. O segundo aciona o plantão no resto do tempo. Ele não tem horários, e o alerta dele nomeia sua política de plantão.
+
+O primeiro critério que corresponde a uma requisição decide o que acontece. Fora dos seus horários, o primeiro critério é ignorado, então o segundo corresponde à noite e nos fins de semana, e só então alguém é acionado. Veja [Apenas em certos dias e horários](/docs/monitor/criteria-and-statuses#apenas-em-certos-dias-e-horários).
+
+- Uma requisição é avaliada quando chega, pelos horários daquele momento. Um problema que começa às 16:55 aciona alguém depois das 17:00 só se o remetente o enviar de novo, como o Alertmanager faz uma vez a cada `repeat_interval`.
+- Um alerta com **Resolver alerta automaticamente** ativado é resolvido quando uma requisição corresponde a outro critério. A primeira requisição depois que o expediente começa corresponde ao primeiro critério, então resolve o alerta da noite e abre um que não aciona ninguém. Deixe **Resolver alerta automaticamente** desativado no alerta do segundo critério para mantê-lo aberto até alguém resolvê-lo.
 
 ## Serviços que verificam a URL primeiro
 

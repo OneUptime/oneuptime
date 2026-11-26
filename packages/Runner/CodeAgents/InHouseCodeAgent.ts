@@ -31,6 +31,10 @@ import RepositoryInstructions, {
 } from "../Utils/RepositoryInstructions";
 import RepositoryProfile from "../Utils/RepositoryProfile";
 import SecretRedactor from "../Utils/SecretRedactor";
+import {
+  getCodeFixCommandEnvironment,
+  withoutRunnerOwnEnvironment,
+} from "../Utils/RunnerOwnEnvironment";
 import CodeAgentWorkspaceGuard, {
   CommandGuardDecision,
 } from "Common/Server/Utils/AI/CodeFix/CodeAgentWorkspaceGuard";
@@ -2068,21 +2072,13 @@ export default class InHouseCodeAgent implements CodeAgent {
    * variables, which exist only for the pipeline's own git commands.
    */
   private static buildCommandEnvironment(): NodeJS.ProcessEnv {
-    const environment: NodeJS.ProcessEnv = { ...process.env };
-
-    for (const name of [
-      "ONEUPTIME_RUNNER_KEY",
-      "ONEUPTIME_RUNNER_ID",
-      "GIT_ASKPASS",
-      "ONEUPTIME_GIT_ACCESS_TOKEN",
-    ]) {
-      delete environment[name];
-    }
-
-    // Verification must never sit on an interactive prompt.
-    environment["CI"] = "true";
-
-    return environment;
+    /*
+     * Every setting of the Runner's own, not only its key and id
+     * (RunnerOwnEnvironment), and the pipeline's git credentials, with
+     * CI=true - exactly what the repository's own commands get
+     * (BuildVerification).
+     */
+    return getCodeFixCommandEnvironment();
   }
 
   /*
@@ -2099,12 +2095,17 @@ export default class InHouseCodeAgent implements CodeAgent {
     workingDirectory: string,
   ): Promise<Array<string>> {
     try {
+      /*
+       * Without the Runner's own settings: a command the model ran in this
+       * tree may have set up an fsmonitor or a hook that git runs.
+       */
       const result: string = await Execute.executeCommandFile({
         command: "git",
         args: GIT_STATUS_PORCELAIN_ARGS,
         cwd: workingDirectory,
         maxBuffer: 32 * 1024 * 1024,
         timeoutInMS: 60 * 1000,
+        env: withoutRunnerOwnEnvironment(),
       });
 
       return GitPorcelain.dirtyPaths(result);

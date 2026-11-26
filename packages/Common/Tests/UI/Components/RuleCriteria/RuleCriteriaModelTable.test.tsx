@@ -399,9 +399,11 @@ More details stay here.
      * Cloud's and App Platforms' - and RUM's and Serverless's had no help
      * panel either, until #8889 gave them the shared one: 76. 77 since Data
      * Observability's Owner Rules page lists pipeline owner rules beside its
-     * table ones (#6548), with the shared owner rule help.
+     * table ones (#6548), with the shared owner rule help. 83 with Data
+     * Security's AI rules (Data Security -> AI), which, as the other AI rules
+     * forms, have no help panel.
      */
-    expect(staticRuleFormFiles).toHaveLength(82);
+    expect(staticRuleFormFiles).toHaveLength(83);
     expect(helpFormFiles).toHaveLength(77);
     /*
      * 68, the five episode rule help texts that now have the heading too,

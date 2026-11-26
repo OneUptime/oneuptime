@@ -1789,9 +1789,10 @@ probes:
     # Probes do not call the Kubernetes API. Keep cluster credentials out of
     # the pod—and therefore out of synthetic browser processes—by default.
     automountServiceAccountToken: false
-    # Let API, Website, External Status Page and Custom JavaScript Code monitors
-    # on this probe reach private network addresses (RFC-1918, CGNAT, IPv6
-    # unique-local), e.g. http://10.0.0.5/health. Honored on this chart probe.
+    # Let API, Website, External Status Page, Custom JavaScript Code and
+    # Synthetic monitors on this probe reach private network addresses
+    # (RFC-1918, CGNAT, IPv6 unique-local), e.g. http://10.0.0.5/health.
+    # Honored on this chart probe.
     # Chart probes auto-register as GLOBAL probes, so turning it on lets those
     # monitors from EVERY project on this instance reach private addresses
     # through this probe. Loopback, link-local and the cloud metadata endpoint

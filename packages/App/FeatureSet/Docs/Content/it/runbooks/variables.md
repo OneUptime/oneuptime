@@ -33,7 +33,7 @@ Un nome si usa una sola volta, senza distinzione tra maiuscole e minuscole, tra 
 
 ## Prima di iniziare
 
-- **Un ruolo che gestisce le variabili.** Proprietario del progetto e Amministratore del progetto, oppure il permesso **Create Runbook Variable**. Amministratore dei runbook legge le variabili, per sceglierle nei passaggi che scrive, ma non le modifica.
+- **Un ruolo che gestisce le variabili.** Proprietario del progetto e Amministratore del progetto, oppure il permesso **Create Runbook Variable**. Amministratore dei runbook legge le variabili, per sceglierle nei passaggi che scrive, ma non le modifica. Un flusso di lavoro le modifica solo quando viene eseguito come Proprietario del progetto o come un ruolo personalizzato che ha questi permessi: vedi [Cosa possono fare i passaggi di un flusso di lavoro](/docs/workflows/configuration#cosa-possono-fare-i-passaggi-di-un-flusso-di-lavoro).
 - **Un piano che le includa.** Su OneUptime Cloud, le variabili dei runbook richiedono il piano **Growth** o superiore.
 
 ## Creare una variabile
@@ -84,6 +84,8 @@ Un [passaggio SSH](/docs/runbooks/authoring#ssh) sceglie in **Accedi con** la va
 @tab Kubeconfig
 Un [passaggio kubectl](/docs/runbooks/authoring#kubectl) sceglie in **Kubeconfig** la variabile segreta che contiene il kubeconfig del cluster, oppure **L'accesso proprio del Runner** per usare quello del Runner.
 :::
+
+Un valore viene inserito esattamente come è scritto, dove si trova il riferimento, quindi chi può modificare una variabile modifica ciò che esegue ogni passaggio che la nomina. Dai i permessi che modificano le variabili solo alle persone a cui lasceresti scrivere quei passaggi. I valori provenienti dall'esterno di OneUptime, come ciò che invia una chiamata al webhook, raggiungono invece un passaggio Bash come variabili d'ambiente, mai come parte del suo script: vedi [Valori inviati da una chiamata al webhook](/docs/runbooks/triggers#valori-inviati-da-una-chiamata-al-webhook).
 
 Nella pagina **Passaggi** di un runbook, ogni script e ogni richiesta HTTP elencano in **Variabili — clicca per copiare** le variabili che il loro passaggio può usare, e l'editor segnala quando un passaggio nomina una variabile che non esiste, o un segreto che il suo Runner non può usare.
 

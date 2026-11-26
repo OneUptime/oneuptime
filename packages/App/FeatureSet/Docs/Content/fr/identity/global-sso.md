@@ -91,6 +91,12 @@ Deux questions du fournisseur modifient ce comportement, repliées sous **Plus d
 
 Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence de SSO dans chaque projet dont la personne fait partie, et les projets attachés décident seulement où les nouveaux venus sont ajoutés.
 
+## Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées
+
+Un fournisseur OpenID Connect global trouve le compte qu'il connecte grâce à l'adresse e-mail qu'il envoie, comme le fournisseur d'un projet, et les comptes des administrateurs principaux sont trouvés de la même façon. Il ne connecte donc personne avec une adresse que le fournisseur dit ne pas avoir vérifiée, avec une revendication `email_verified` à `false` ou à une valeur qui n'est ni true ni false. Sinon, quelqu'un pourrait mettre l'adresse d'un administrateur principal sur son compte chez le fournisseur et se connecter à toute l'instance à sa place. Un fournisseur qui envoie `email_verified` à `true`, ou n'en envoie pas, comme Microsoft Entra ID, connecte les personnes comme avant.
+
+Par authentik 2025.10 et versions ultérieures, personne ne se connecte tant que vous n'avez pas modifié son mappage de portée `email`, et par Keycloak, personne dont il n'a pas vérifié l'adresse. Ce qu'il faut y changer, ce qui se connecte encore et ce que voit la personne se trouvent sur la page [SSO](/docs/identity/sso#adresses-e-mail-que-votre-fournisseur-didentité-na-pas-vérifiées). Les administrateurs principaux qui ont un mot de passe peuvent se connecter avec en attendant, à `/accounts/admin-login` tant que toute l'instance exige le SSO.
+
 ## Se déconnecter aussi du fournisseur d'identité
 
 Se déconnecter de OneUptime laisse la personne connectée chez le fournisseur d'identité : sur un ordinateur partagé, la personne suivante qui se connecte avec ce fournisseur entre donc à la place de celle qui est partie. Sur un fournisseur SAML ou OpenID Connect, cliquez sur **Modifier la configuration** et activez **Se déconnecter aussi du fournisseur d'identité** sous **Plus de champs** : une déconnexion de OneUptime met alors aussi fin à la session chez le fournisseur, et le fournisseur renvoie le navigateur vers OneUptime. C'est désactivé par défaut, car sur un ordinateur portable personnel cela déconnecterait aussi la personne de toutes les autres applications qui utilisent le fournisseur.
@@ -181,6 +187,10 @@ Pour un fournisseur SAML, la réponse a été créée pour une autre application
 
 :::details "SAML response was already used"
 Chaque réponse de votre fournisseur d'identité ne connecte qu'une seule fois, et seulement dans les minutes qui suivent son émission : ensuite, elle est refusée avec "SAML response has expired". Connectez-vous de nouveau. Si les réponses continuent d'expirer, vérifiez les horloges de ce serveur et de votre fournisseur d'identité.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Le fournisseur OpenID Connect a envoyé `email_verified` à `false`, ou à une valeur qui n'est ni true ni false, donc OneUptime n'a connecté personne, pas même un administrateur principal. Faites vérifier l'adresse chez votre fournisseur d'identité, ou marquez-la comme vérifiée chez lui, puis reconnectez-vous. Voir [Adresses e-mail que votre fournisseur d'identité n'a pas vérifiées](#adresses-e-mail-que-votre-fournisseur-didentité-na-pas-vérifiées).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

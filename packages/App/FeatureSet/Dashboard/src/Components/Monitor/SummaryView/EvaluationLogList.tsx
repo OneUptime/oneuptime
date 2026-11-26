@@ -37,6 +37,7 @@ import { joinList } from "Common/UI/Utils/ListSeparator";
 import { wordEvaluationText } from "../../../Utils/EvaluationText";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import MonitorEvaluationTime from "Common/Utils/Monitor/MonitorEvaluationTime";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import {
   getSeriesJudged,
   getSlowEvaluationWords,
@@ -960,7 +961,11 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
             (fact: { key: string; text: string }, index: number) => {
               return (
                 <React.Fragment key={fact.key}>
-                  {index > 0 && <span aria-hidden="true">·</span>}
+                  {index > 0 && (
+                    <span aria-hidden="true">
+                      <InlineSeparator markOnly />
+                    </span>
+                  )}
                   <span>{fact.text}</span>
                 </React.Fragment>
               );

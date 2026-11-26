@@ -161,7 +161,10 @@ export const PROBE_CUSTOM_CODE_MONITOR_SCRIPT_TIMEOUT_IN_MS: number =
 /*
  * Whether HTTP-capable monitors on THIS probe may reach private network
  * addresses. API and Website monitors enforce this policy at their socket
- * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge.
+ * boundary; Custom JavaScript Code monitors enforce it in the sandbox bridge;
+ * Synthetic monitors enforce it in the egress proxy every request of their
+ * browser and their script's axios goes through (SyntheticEgressProxy, which
+ * the worker builds from this decision: the worker cannot read this file).
  *
  * Probes are monitoring agents deliberately placed inside the networks they
  * watch, so a self-managed probe often needs to check http://10.0.0.5/health.

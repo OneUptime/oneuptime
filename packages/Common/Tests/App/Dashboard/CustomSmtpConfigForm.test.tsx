@@ -24,6 +24,7 @@ import Permission from "../../../Types/Permission";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { getJestSpyOn } from "../../Spy";
 
@@ -547,6 +548,17 @@ beforeEach(() => {
   capturedModels = [];
   capturedSelects = [];
   tableProps = [];
+
+  /*
+   * An SMTP config's name is one of its kind in its project, so its form asks
+   * the server, a moment after the config is named, whether another config has
+   * the name (DuplicateNameNotice, #10761): none has it here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

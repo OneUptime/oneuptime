@@ -60,6 +60,7 @@ import OnCallReadinessService, {
   UserReadiness,
 } from "./OnCallReadinessService";
 import UserOnCallLogService from "./UserOnCallLogService";
+import OnCallPolicyIncidentRole from "../Utils/OnCall/OnCallPolicyIncidentRole";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import {
   whenNotificationRequestAnswers,
@@ -7803,6 +7804,64 @@ export class Service extends ProjectReferencesService<Model> {
         userId: userId?.toString(),
       } as LogAttributes);
     });
+
+    // A responder's page, as asked above.
+    this.giveIncidentRoleOfPolicy(userId, options, {
+      isKnownResponderPage: true,
+    });
+  }
+
+  /*
+   * THE ROLE THE PAGING POLICY GIVES THE PEOPLE IT PAGES, on the incident or
+   * the incident episode it paged them about (OnCallPolicyIncidentRole):
+   * "Payments Primary" lists the person it paged as the incident's Service
+   * Owner. Asked once the person's log of the page is written, and never
+   * waited for: the page is what matters, and a role that could not be
+   * given is logged. Never for somebody paged as an observer, who is kept
+   * informed rather than pulled into the response - as the record's
+   * channels do not add them either.
+   */
+  private giveIncidentRoleOfPolicy(
+    userId: ObjectID,
+    options: UserOnCallLogPageOptions,
+    data: {
+      // The caller has asked already whether the page is an observer's.
+      isKnownResponderPage: boolean;
+    },
+  ): void {
+    const onCallDutyPolicyId: ObjectID | undefined = options.onCallPolicyId;
+
+    if (
+      !onCallDutyPolicyId ||
+      (!options.triggeredByIncidentId && !options.triggeredByIncidentEpisodeId)
+    ) {
+      return;
+    }
+
+    const give: () => Promise<void> = async (): Promise<void> => {
+      if (
+        !data.isKnownResponderPage &&
+        (await this.isObserverRun(options.onCallPolicyExecutionLogId))
+      ) {
+        return;
+      }
+
+      await OnCallPolicyIncidentRole.giveRoleToPagedPerson({
+        projectId: options.projectId,
+        onCallDutyPolicyId: onCallDutyPolicyId,
+        userId: userId,
+        incidentId: options.triggeredByIncidentId,
+        incidentEpisodeId: options.triggeredByIncidentEpisodeId,
+      });
+    };
+
+    give().catch((error: unknown) => {
+      logger.error(error, {
+        projectId: options.projectId?.toString(),
+        userId: userId?.toString(),
+        onCallDutyPolicyId: onCallDutyPolicyId.toString(),
+      } as LogAttributes);
+    });
   }
 
   /*
@@ -7839,6 +7898,14 @@ export class Service extends ProjectReferencesService<Model> {
       props: {
         isRoot: true,
       },
+    });
+
+    /*
+     * The policy reached them too, through the page it stands on: they are
+     * given its role, as anybody it pages is - unless it pages observers.
+     */
+    this.giveIncidentRoleOfPolicy(userId, options, {
+      isKnownResponderPage: false,
     });
   }
 

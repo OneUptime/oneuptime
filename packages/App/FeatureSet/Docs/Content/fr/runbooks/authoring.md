@@ -140,7 +140,7 @@ Un script bash, exécuté avec `bash -c <script>` sur un [agent Runbook](/docs/r
 | Champ | Ce qu'il fait | Valeur par défaut |
 | --- | --- | --- |
 | **Agent Runbook** | Sous **Plus de champs**. L'agent Runbook qui exécute l'étape. Seul cet agent peut prendre en charge la tâche. Les agents Runbook globaux n'exécutent que les étapes JavaScript. | L'agent Runbook par défaut du projet, si vous en avez défini un |
-| **Script Bash** | Le script. La sortie (stdout et stderr) est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. | — |
+| **Script Bash** | Le script. La sortie (stdout et stderr) est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. Il s'exécute avec l'environnement de l'agent, sans les paramètres `ONEUPTIME_RUNNER_` propres à l'agent, sa clé comprise ; une clé qu'un script affiche malgré tout est enregistrée sous la forme `[REDACTED]`. | — |
 | **Délai d'exécution** | Combien de temps l'agent Runbook laisse tourner le script avant de le tuer avec `SIGKILL`. Augmentez-le pour les étapes qui prennent légitimement des minutes. | 30 secondes |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. | 2 minutes |
 
@@ -195,7 +195,7 @@ Exécuter des commandes kubectl sur un cluster. Le script s'exécute avec bash s
 | --- | --- |
 | **Agent Runbook** | Sous **Plus de champs**. L'agent Runbook qui exécute kubectl. Il doit pouvoir joindre le serveur d'API du cluster. Une étape qui n'en choisit aucun s'exécute sur l'agent Runbook par défaut du projet. |
 | **Kubeconfig** | La variable secrète qui contient le kubeconfig du cluster, ou **L'accès propre de l'agent Runbook** : le kubeconfig propre de l'agent Runbook, ou son compte de service quand il s'exécute dans le cluster. L'agent Runbook écrit un kubeconfig dans un fichier que lui seul peut lire, et le supprime quand le script se termine. |
-| **Script** | Les commandes kubectl. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
+| **Script** | Les commandes kubectl. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. Comme le script d'une étape Bash, il s'exécute sans les paramètres `ONEUPTIME_RUNNER_` propres à l'agent. |
 | **Délai d'exécution** | Le temps pendant lequel l'agent Runbook laisse le script s'exécuter avant de l'arrêter avec `SIGKILL`. 30 secondes par défaut. |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. 2 minutes par défaut. |
 

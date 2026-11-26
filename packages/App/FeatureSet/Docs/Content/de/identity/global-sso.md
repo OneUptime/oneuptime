@@ -91,6 +91,12 @@ Zwei Fragen am Anbieter ändern das, eingeklappt unter **Weitere Felder**. Jede 
 
 Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.
 
+## E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat
+
+Ein globaler OpenID-Connect-Anbieter findet das Konto, das er anmeldet, über die E-Mail-Adresse, die er sendet, wie der Anbieter eines Projekts, und die Konten von Master-Admins werden genauso gefunden. Deshalb meldet er niemanden mit einer Adresse an, die der Anbieter als nicht verifiziert ausweist, mit einem Claim `email_verified` von `false` oder von etwas, das weder true noch false ist. Sonst könnte jemand die Adresse eines Master-Admins in sein Konto beim Anbieter eintragen und sich als dieser bei der ganzen Instanz anmelden. Ein Anbieter, der `email_verified` als `true` oder gar nicht sendet, wie Microsoft Entra ID, meldet Personen wie bisher an.
+
+Über authentik ab 2025.10 meldet sich niemand an, bis Sie dessen Scope-Zuordnung für `email` ändern, und über Keycloak niemand, dessen Adresse es nicht verifiziert hat. Was Sie dort ändern, was sich weiterhin anmeldet und was die Person sieht, steht auf der Seite [SSO](/docs/identity/sso#e-mail-adressen-die-ihr-identitätsanbieter-nicht-verifiziert-hat). Master-Admins mit Passwort können sich währenddessen damit anmelden, unter `/accounts/admin-login`, solange die ganze Instanz SSO verlangt.
+
 ## Auch beim Identitätsanbieter abmelden
 
 Wer sich von OneUptime abmeldet, bleibt beim Identitätsanbieter angemeldet. An einem gemeinsam genutzten Computer kommt die nächste Person, die sich mit diesem Anbieter anmeldet, deshalb als die Person hinein, die gegangen ist. Klicken Sie bei einem SAML- oder OpenID-Connect-Anbieter auf **Konfiguration bearbeiten** und schalten Sie **Auch beim Identitätsanbieter abmelden** unter **Weitere Felder** ein: Eine Abmeldung von OneUptime beendet dann auch die Sitzung beim Anbieter, und der Anbieter schickt den Browser zu OneUptime zurück. Die Einstellung ist standardmäßig aus, da sie auf einem persönlichen Laptop die Person auch bei jeder anderen App abmelden würde, die den Anbieter nutzt.
@@ -181,6 +187,10 @@ Bei einem SAML-Anbieter ist die Audience der Antwort nicht die **Issuer (Entity 
 
 :::details "SAML response was already used"
 Jede Antwort Ihres Identitätsanbieters gilt für genau eine Anmeldung, und nur wenige Minuten nach ihrer Ausstellung: Danach wird sie mit "SAML response has expired" abgelehnt. Melden Sie sich erneut an. Laufen Antworten immer wieder ab, prüfen Sie die Uhren dieses Servers und Ihres Identitätsanbieters.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Der OpenID-Connect-Anbieter hat `email_verified` als `false` gesendet oder als etwas, das weder true noch false ist, daher hat OneUptime niemanden angemeldet, auch keinen Master-Admin. Lassen Sie die Adresse bei Ihrem Identitätsanbieter verifizieren oder markieren Sie sie dort als verifiziert, und melden Sie sich erneut an. Siehe [E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat](#e-mail-adressen-die-ihr-identitätsanbieter-nicht-verifiziert-hat).
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."

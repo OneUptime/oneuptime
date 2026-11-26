@@ -6,7 +6,12 @@ import {
   isOneUptimeSupportEmail,
 } from "../../Types/HelpAndSupport/HelpAndSupport";
 import HelpAndSupport from "../Utils/HelpAndSupport";
-import { downloadErrorSupportBundle } from "../Utils/ErrorSupportBundle";
+/*
+ * Type-only on purpose: the one place the support bundle is loaded is the
+ * import() below (errorSupportBundle).
+ */
+import type { DownloadErrorSupportBundleFunction } from "../Utils/ErrorSupportBundle";
+import { LazyLibrary } from "../Utils/LazyLibrary";
 import {
   isChunkLoadError,
   reloadPage,
@@ -33,6 +38,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -153,6 +159,29 @@ export const SUPPORT_BUNDLE_SENTENCE_FOR_OWN_TEAM: string = translationKey(
 );
 
 /*
+ * The support bundle is written only when somebody asks for one, from the
+ * support part of the screen. So it is a file of its own - 2 to 3.5 KiB
+ * gzipped of every page's first load
+ * (packages/Common/Scripts/first-load-budgets.js) - asked for as the
+ * support part is drawn, and there by the time its button is pressed. A
+ * status page's or a public dashboard's screen has no support part, and
+ * never loads it.
+ */
+const errorSupportBundle: LazyLibrary<DownloadErrorSupportBundleFunction> =
+  new LazyLibrary<DownloadErrorSupportBundleFunction>(
+    async (): Promise<DownloadErrorSupportBundleFunction> => {
+      return (await import("../Utils/ErrorSupportBundle"))
+        .downloadErrorSupportBundle;
+    },
+  );
+
+// Loads the support bundle's file, once however many ask; a failed load is retried.
+export const loadErrorSupportBundle: () => Promise<DownloadErrorSupportBundleFunction> =
+  (): Promise<DownloadErrorSupportBundleFunction> => {
+    return errorSupportBundle.load();
+  };
+
+/*
  * What the screen says when a part of the page threw while it was drawn
  * (#7270): what happened, in the title, and what to do next, under it. It
  * read "Something went wrong" over "An unexpected error has occurred.
@@ -184,9 +213,29 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
 
   type DownloadSupportBundleFunction = () => void;
 
-  const downloadSupportBundle: DownloadSupportBundleFunction = (): void => {
-    setSupportBundleStatus(null);
+  type SayDownloadFailedFunction = (error: unknown) => void;
 
+  const sayDownloadFailed: SayDownloadFailedFunction = (
+    error: unknown,
+  ): void => {
+    // eslint-disable-next-line no-console
+    console.error("Unable to download the error support bundle:", error);
+    setSupportBundleStatus({
+      type: "error",
+      message:
+        translator.translateText(
+          "The support bundle could not be downloaded. Please try again.",
+        ) || "",
+    });
+  };
+
+  type WriteSupportBundleFunction = (
+    downloadErrorSupportBundle: DownloadErrorSupportBundleFunction,
+  ) => void;
+
+  const writeSupportBundle: WriteSupportBundleFunction = (
+    downloadErrorSupportBundle: DownloadErrorSupportBundleFunction,
+  ): void => {
     try {
       const capturedErrorDetails: CapturedErrorDetails | null =
         props.getCapturedErrorDetails?.(props.error) || null;
@@ -206,16 +255,28 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
           ) || "",
       });
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Unable to download the error support bundle:", error);
-      setSupportBundleStatus({
-        type: "error",
-        message:
-          translator.translateText(
-            "The support bundle could not be downloaded. Please try again.",
-          ) || "",
-      });
+      sayDownloadFailed(error);
     }
+  };
+
+  const downloadSupportBundle: DownloadSupportBundleFunction = (): void => {
+    setSupportBundleStatus(null);
+
+    /*
+     * Its file arrived as the support part was drawn: the bundle is written
+     * at once, while the press still counts as one for the browser's
+     * download. Should it still be on its way, or have failed, it is asked
+     * for again and written as it arrives.
+     */
+    const loaded: DownloadErrorSupportBundleFunction | null =
+      errorSupportBundle.getLoaded();
+
+    if (loaded) {
+      writeSupportBundle(loaded);
+      return;
+    }
+
+    errorSupportBundle.load().then(writeSupportBundle, sayDownloadFailed);
   };
 
   const language: string =
@@ -223,6 +284,15 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
   const showsSupport: boolean =
     props.showSupport ??
     NewVersion.getAudience() === NewVersionAudience.Members;
+
+  // The support bundle's file, asked for as the support part is drawn.
+  useEffect(() => {
+    if (showsSupport) {
+      errorSupportBundle.load().catch((): void => {
+        // Said if the button is pressed and it still cannot be loaded.
+      });
+    }
+  }, [showsSupport]);
 
   /*
    * Where the bundle goes: OneUptime's support, the server's own address,

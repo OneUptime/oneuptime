@@ -1,6 +1,7 @@
 import File from "./File";
 import Project from "./Project";
 import UserModel from "../../Models/DatabaseModels/DatabaseBaseModel/UserModel";
+import { setUserModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/UserModelType";
 import Route from "../../Types/API/Route";
 import CompanySize from "../../Types/Company/CompanySize";
 import JobRole from "../../Types/Company/JobRole";
@@ -1194,5 +1195,12 @@ class User extends UserModel {
   })
   public sampleProjectId?: ObjectID = undefined;
 }
+
+/*
+ * Every record's relation to whoever last changed it reads User from here
+ * (DatabaseBaseModel.lastModifiedByUser): this class extends that one, so
+ * it cannot import User (UserModelType).
+ */
+setUserModelType(User);
 
 export default User;

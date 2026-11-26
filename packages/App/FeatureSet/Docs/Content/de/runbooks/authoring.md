@@ -140,7 +140,7 @@ Ein Bash-Skript, ausgeführt mit `bash -c <script>` auf einem [Runbook-Agent](/d
 | Feld | Was es tut | Standard |
 | --- | --- | --- |
 | **Runner** | Unter **Weitere Felder**. Der Runner, der den Schritt ausführt. Nur dieser Runner darf den Job übernehmen. Globale Runner führen nur JavaScript-Schritte aus. | Der Standard-Runner des Projekts, wenn Sie einen festgelegt haben |
-| **Bash-Skript** | Das Skript. Die Ausgabe (stdout und stderr) wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. | — |
+| **Bash-Skript** | Das Skript. Die Ausgabe (stdout und stderr) wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. Es läuft mit der Umgebung des Runners, ohne die eigenen `ONEUPTIME_RUNNER_`-Einstellungen des Runners, seinen Schlüssel eingeschlossen; ein Schlüssel, den ein Skript trotzdem ausgibt, wird als `[REDACTED]` gespeichert. | — |
 | **Ausführungs-Timeout** | Wie lange der Runner das Skript laufen lässt, bevor er es mit `SIGKILL` beendet. Erhöhen Sie ihn für Schritte, die zu Recht Minuten dauern. | 30 Sekunden |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. | 2 Minuten |
 
@@ -195,7 +195,7 @@ kubectl-Befehle gegen einen Cluster ausführen. Das Skript läuft mit bash auf d
 | --- | --- |
 | **Runner** | Unter **Weitere Felder**. Der Runner, der kubectl ausführt. Er muss den API-Server des Clusters erreichen können. Ein Schritt, der keinen wählt, läuft auf dem Standard-Runner des Projekts. |
 | **Kubeconfig** | Die geheime Variable, die die kubeconfig des Clusters enthält, oder **Der eigene Zugriff des Runners**: die eigene kubeconfig des Runners oder sein Dienstkonto, wenn er im Cluster läuft. Der Runner schreibt eine kubeconfig in eine Datei, die nur er lesen kann, und entfernt sie, wenn das Skript endet. |
-| **Skript** | Die kubectl-Befehle. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
+| **Skript** | Die kubectl-Befehle. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. Wie das Skript eines Bash-Schritts läuft es ohne die eigenen `ONEUPTIME_RUNNER_`-Einstellungen des Runners. |
 | **Ausführungs-Timeout** | Wie lange der Runner das Skript laufen lässt, bevor er es mit `SIGKILL` stoppt. Standard 30 Sekunden. |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. Standard 2 Minuten. |
 

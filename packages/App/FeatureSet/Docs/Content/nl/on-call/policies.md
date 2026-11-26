@@ -87,6 +87,16 @@ De minuten tellen vanaf elke bevestiging, en een beleid roept voor één inciden
 
 Wie opnieuw wordt opgeroepen, bevestigt vanuit het bericht of met **Opnieuw bevestigen** op de pagina van het incident of de waarschuwing, en de minuten beginnen opnieuw; **Escaleren** geeft de oproep door aan het volgende niveau. Het incident of de waarschuwing oplossen of verwijderen, het beleid archiveren of verwijderen, of **Niet opnieuw oproepen** kiezen stopt het. De rij **Na een bevestiging** op de kaart zegt wat het beleid doet, en **Meer instellingen** toont de minuten zolang het is ingeklapt. **Beleid in één oogopslag** op het **Overzicht** en **Escalatieoverzicht** zeggen hetzelfde in woorden.
 
+## De opgeroepen personen een incidentrol geven
+
+De **Incidentrollen** van een incident zeggen wie eraan werkt. Een beleid kan daar de personen vermelden die het oproept: open de pagina **Escalatieregels** ervan, open onderaan **Meer instellingen** en klik op de kaart **Incidentrol** op **Bewerken**. **Incidentrol bewerken** vraagt om een **Rol**: een van de incidentrollen van uw project, of **Geen rol**, waarmee elk beleid begint.
+
+Iedereen die het beleid daarna over een incident of een incidentepisode oproept, krijgt die rol erin, op elk niveau en telkens als het opnieuw oproept, zolang diegene lid is van het project. Wie het als waarnemer oproept, krijgt hem niet. Wie de rol al heeft, houdt hem zoals hij is, en een rol voor één persoon, zoals **Incidentcommandant**, gaat naar de eerste opgeroepen persoon zolang niemand hem heeft. De feed van het incident noemt het beleid dat diegene heeft toegevoegd, en diegene krijgt geen apart bericht over de rol: de oproep heeft diegene al over het incident verteld.
+
+Zo verschijnt wie dienst heeft in het team dat een service bezit, in de incidenten van die service. Maak onder **Incidenten → Instellingen → Incidentrollen** een rol aan zoals "Service-eigenaar", kies die in het beleid dat het betalingsteam oproept, en laat de betalingsmonitors dat beleid uitvoeren, vanuit hun criteria of een bereikbaarheidsregel. Wie dienst heeft voor betalingen, staat dan als "Service-eigenaar" in het incident, en wie de status ervan als eerste wijzigt, door het te bevestigen, wordt toch de **Incidentcommandant** ervan, ook als een beleid diegene bij het oproepen een andere rol gaf.
+
+De rij **Rol van de opgeroepen personen** van de kaart zegt welke rol het beleid geeft, en **Meer instellingen** noemt die zolang het ingeklapt is. Het archiveren van de rol houdt het beleid niet tegen om hem te geven, en het archiveringsvenster van de rol telt het beleid mee bij wat hem gebruikt: kies **Geen rol** om te stoppen. Het verwijderen van de rol zet het beleid terug op **Geen rol**.
+
 ## Als meerdere beleidsregels oproepen
 
 Een incident, waarschuwing of episode voert elk van zijn beleidsregels apart uit, tegelijk.
@@ -176,11 +186,14 @@ Bereikbaarheidsbeleid is de resource `/api/on-call-duty-policy`, en in Terraform
 | **Als niemand bevestigt na het laatste niveau** | `repeatPolicyIfNoOneAcknowledges` |
 | **Hoe vaak nog?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Na hoeveel minuten?** | `acknowledgementTimeoutInMinutes` |
+| **Rol** | `incidentRoleId` |
 | Gearchiveerd | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` is `false` voor **Stoppen met oproepen** en `true` voor **Opnieuw beginnen bij Level 1**. Met `true` moet `repeatPolicyIfNoOneAcknowledgesNoOfTimes` een geheel getal van 1 of meer zijn: OneUptime weigert `0`. Een ouder beleid dat met `0` is opgeslagen, herhaalt zich nooit, en het dashboard toont het als **Stoppen met oproepen**.
 
 `acknowledgementTimeoutInMinutes` is `null` voor **Niet opnieuw oproepen**, en een heel aantal minuten van 5 tot 1440 voor **Opnieuw oproepen**. OneUptime weigert elke andere waarde.
+
+`incidentRoleId` is de ID van een van de incidentrollen van het project, of `null` voor **Geen rol**.
 
 Hoe je een beleid met zijn eerste niveau in één verzoek maakt, lees je bij [Regels maken met de API of Terraform](/docs/on-call/escalation-rules#regels-maken-met-de-api-of-terraform).
 

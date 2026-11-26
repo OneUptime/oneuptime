@@ -91,6 +91,12 @@ flowchart TB
 
 **모든 프로젝트**이면 이 공급자로 로그인할 때 그 사람이 속한 모든 프로젝트에서 SSO 요건을 충족하며, 연결된 프로젝트는 새로 온 사람을 어디에 추가할지만 결정합니다.
 
+## ID 공급자가 인증하지 않은 이메일 주소
+
+글로벌 OpenID Connect 공급자는 프로젝트의 공급자처럼, 보내는 이메일 주소로 로그인시킬 계정을 찾으며, 마스터 관리자의 계정도 같은 방식으로 찾습니다. 그래서 공급자가 인증하지 않았다고 하는 주소, 즉 `email_verified` 클레임이 `false`이거나 true도 false도 아닌 값인 주소로는 아무도 로그인시키지 않습니다. 그렇지 않으면 누군가 공급자의 자기 계정에 마스터 관리자의 주소를 넣고 그 사람으로 인스턴스 전체에 로그인할 수 있습니다. `email_verified`를 `true`로 보내거나 Microsoft Entra ID처럼 보내지 않는 공급자는 이전처럼 로그인시킵니다.
+
+authentik 2025.10 이상에서는 그 `email` 범위 매핑을 바꾸기 전까지 아무도 로그인할 수 없고, Keycloak에서는 주소가 인증되지 않은 사람은 로그인할 수 없습니다. 그곳에서 바꿀 내용, 계속 로그인되는 경우, 본인에게 표시되는 내용은 [SSO](/docs/identity/sso#id-공급자가-인증하지-않은-이메일-주소) 페이지에 있습니다. 비밀번호가 있는 마스터 관리자는 그동안에도 비밀번호로 로그인할 수 있으며, 인스턴스 전체에 SSO가 필수인 동안에는 `/accounts/admin-login`에서 로그인합니다.
+
 ## ID 공급자에서도 로그아웃
 
 OneUptime에서 로그아웃해도 ID 공급자에는 로그인된 상태로 남습니다. 그래서 공용 컴퓨터에서는 다음에 그 공급자로 로그인한 사람이 떠난 사람으로 들어가게 됩니다. SAML 또는 OpenID Connect 공급자에서 **구성 편집**을 클릭하고 **추가 필드**의 **ID 공급자에서도 로그아웃**을 켜면, OneUptime에서 로그아웃할 때 공급자의 세션도 끝나고 공급자가 브라우저를 OneUptime으로 돌려보냅니다. 기본값은 꺼짐입니다. 개인 노트북에서는 그 공급자를 쓰는 다른 모든 앱에서도 로그아웃되기 때문입니다.
@@ -181,6 +187,10 @@ SAML 공급자의 경우, 응답의 audience가 공급자의 **Issuer (Entity ID
 
 :::details "SAML response was already used"
 ID 공급자의 각 응답으로는 한 번만 로그인할 수 있으며, 그것도 발급 후 몇 분 안에만 가능합니다. 그 뒤에는 "SAML response has expired"로 거부됩니다. 다시 로그인하세요. 응답이 계속 만료된다면 이 서버와 ID 공급자의 시계를 확인하세요.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect 공급자가 `email_verified`를 `false`로, 또는 true도 false도 아닌 값으로 보냈기 때문에 OneUptime이 아무도 로그인시키지 않았습니다. 마스터 관리자도 마찬가지입니다. ID 공급자에서 주소를 인증받거나 그곳에서 인증된 것으로 표시한 다음 다시 로그인하세요. [ID 공급자가 인증하지 않은 이메일 주소](#id-공급자가-인증하지-않은-이메일-주소)를 참고하세요.
 :::
 
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
