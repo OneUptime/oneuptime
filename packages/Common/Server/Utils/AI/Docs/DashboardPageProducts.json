@@ -1353,6 +1353,9 @@
   "/dashboard/:projectId/cloud/savings": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/commitments": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/budgets": [
     "cloud"
   ],
@@ -1360,6 +1363,9 @@
     "cloud"
   ],
   "/dashboard/:projectId/cloud/settings/label-rules": [
+    "cloud"
+  ],
+  "/dashboard/:projectId/cloud/settings/costs": [
     "cloud"
   ],
   "/dashboard/:projectId/cloud/archived": [
