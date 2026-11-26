@@ -34,6 +34,7 @@ import WorkspaceNotificationRuleService, {
   WorkspaceChannelsCreated,
 } from "./WorkspaceNotificationRuleService";
 import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
@@ -142,6 +143,17 @@ const noOnDutyPolicies: () => OnDutyPolicies = (): OnDutyPolicies => {
     escalationRulesByTeam: [],
     escalationRulesBySchedule: [],
   };
+};
+
+// What onBeforeCreate hands to onCreateSuccess.
+type OnCallDutyPolicyCreateCarryForward = {
+  /*
+   * The moment the policy's create began, taken before it is written - so
+   * before anything about it can be. Its "On-Call Policy Created" entry is
+   * filed at it: the first line of its feed, ahead of the owners its owner
+   * rules add first.
+   */
+  feedStartsAt: Date;
 };
 
 export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
@@ -963,7 +975,77 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     }
   }
 
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<OnCallDutyPolicy>,
+  ): Promise<OnCreate<OnCallDutyPolicy>> {
+    const onCreate: OnCreate<OnCallDutyPolicy> = await super.onBeforeCreate(
+      createBy,
+    );
+
+    /*
+     * When the policy's feed starts (OnCallDutyPolicyCreateCarryForward):
+     * now, before the policy is written and so before any entry about it
+     * can be.
+     */
+    const carryForward: OnCallDutyPolicyCreateCarryForward = {
+      feedStartsAt: OneUptimeDate.getCurrentDate(),
+    };
+
+    return { createBy: onCreate.createBy, carryForward: carryForward };
+  }
+
+  // When the policy's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(
+    onCreate: OnCreate<OnCallDutyPolicy>,
+  ): Date | undefined {
+    const carryForward: Partial<OnCallDutyPolicyCreateCarryForward> | null =
+      (onCreate.carryForward as Partial<OnCallDutyPolicyCreateCarryForward> | null) ||
+      null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
+  }
+
   protected override async onCreateSuccess(
+    onCreate: OnCreate<OnCallDutyPolicy>,
+    createdItem: OnCallDutyPolicy,
+  ): Promise<OnCallDutyPolicy> {
+    if (!createdItem.id) {
+      throw new BadDataException("The new on-call policy has no ID.");
+    }
+
+    /*
+     * The policy's label and owner rules run first, so its notification
+     * rules match on what they add; adding owners writes "Added team
+     * Platform to the On-Call Policy as the owner", which is posted too.
+     * Every such message waits for "On-Call Policy Created", on every App
+     * server, and follows it in the order it was made
+     * (WorkspaceCreatedMessageFirst): its channels hear of the policy first,
+     * then of what happened to it - and they are let go however this hook
+     * ends.
+     */
+    await WorkspaceCreatedMessageFirst.hold({
+      onCallDutyPolicyId: createdItem.id,
+    });
+
+    try {
+      return await this.announceCreatedPolicy(onCreate, createdItem);
+    } finally {
+      // What waited for "On-Call Policy Created", in the order it was made.
+      await WorkspaceCreatedMessageFirst.postHeld({
+        onCallDutyPolicyId: createdItem.id,
+      });
+    }
+  }
+
+  /*
+   * A new policy's rules, channels and "On-Call Policy Created" entry - filed
+   * when its feed starts, the first line of its feed ahead of the owners its
+   * owner rules add (onBeforeCreate) - and the note under it.
+   */
+  private async announceCreatedPolicy(
     onCreate: OnCreate<OnCallDutyPolicy>,
     createdItem: OnCallDutyPolicy,
   ): Promise<OnCallDutyPolicy> {
@@ -1023,6 +1105,8 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
     const createdByUserId: ObjectID | undefined | null =
       createdItem.createdByUserId || createdItem.createdByUser?.id;
 
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
     let feedInfoInMarkdown: string = mdText`#### 📞 On-Call Policy Created: 
               
 **${onCallPolicy.name || "No name provided."}**:
@@ -1074,9 +1158,11 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       displayColor: Green500,
       feedInfoInMarkdown: feedInfoInMarkdown,
       userId: createdByUserId || undefined,
+      ...(feedStartsAt ? { postedAt: feedStartsAt } : {}),
       workspaceNotification: {
         appendMessageBlocks: onCallDutyPolicyCreateMessageBlocks,
         sendWorkspaceNotification: true,
+        announcesRecord: true,
       },
     });
 

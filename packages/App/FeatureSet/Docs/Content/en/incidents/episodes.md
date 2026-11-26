@@ -25,7 +25,7 @@ Both take up to 100 selected incidents. The result says how many were added, how
 
 ## What adding does
 
-- **One entry on the episode's feed** names every incident added: the first 20 by number and title, then how many more. It is posted once to the episode's Slack or Microsoft Teams channel, not once per incident. A private incident is named by its number only.
+- **One entry on the episode's feed** names every incident added: the first 20 by number and title, then how many more. It is posted once to the episode's Slack or Microsoft Teams channel, not once per incident, and for an episode created with them it follows the episode's created message there. A private incident is named by its number only.
 - **Each incident's own feed** says which episode it was added to.
 - **The episode's severity** is raised to the most severe incident added to an existing episode, and never lowered. A new episode starts at the severity you pick.
 - **A resolved episode stays resolved.** Adding to it does not reopen it, and adding never changes the state of an incident.
