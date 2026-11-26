@@ -116,6 +116,8 @@ describe("what became of one notification, by its log's own status", () => {
     [WhoWasToldLogKind.SMS, SmsStatus.LowBalance, "Failed"],
     [WhoWasToldLogKind.SMS, SmsStatus.Error, "Failed"],
     [WhoWasToldLogKind.Call, CallStatus.Success, "Sent"],
+    // Placed and still ringing (#11138): it went out, as a placed call always did.
+    [WhoWasToldLogKind.Call, CallStatus.Calling, "Sent"],
     [WhoWasToldLogKind.Call, CallStatus.MissedCall, "Not Answered"],
     [WhoWasToldLogKind.Call, CallStatus.Busy, "Not Answered"],
     // Voicemail answered it (#6594): it reached the phone, nobody picked up.
