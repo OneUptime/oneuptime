@@ -2086,6 +2086,16 @@ const bitcoinPrivateKeyDetector: DataTypeDetector = {
   },
 };
 
+/*
+ * Every secret read percent-encoded too (readsPercentEncoded, #11031): a
+ * redirect's GitHub token after an encoded "=" (?next=...%3Ftoken%3Dghp_...,
+ * which a token's own look-behind refuses as written), an AWS secret whose
+ * "/" and "+" are %2F and %2B, a Slack webhook's URL inside another URL's
+ * query string, "password%3Dhunter2". Read decoded, each is found as its
+ * provider writes it, and placed on the characters it is written with,
+ * escapes and all - what a scrub rule made from its patterns hides too, as
+ * a Custom Regex rule reads a value's escapes (ScrubRule.ts).
+ */
 export const SECRET_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   awsAccessKeyIdDetector,
   awsSecretAccessKeyDetector,
@@ -2128,6 +2138,8 @@ export const SECRET_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   authorizationBearerDetector,
   genericSecretDetector,
   bitcoinPrivateKeyDetector,
-];
+].map((detector: DataTypeDetector): DataTypeDetector => {
+  return { ...detector, readsPercentEncoded: true };
+});
 
 export default SECRET_DETECTORS;

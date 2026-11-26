@@ -197,6 +197,7 @@ Ognuno di questi widget elenca le risorse che un agent o un collector comunica a
 | **Podman** | **Host**, **Contenitori**, **Immagini**, **Reti**, **Volumi** | L'agent Podman |
 | **Proxmox** | **Nodi**, **Guest** | L'agent Proxmox |
 | **VMware** | **Host**, **Macchine virtuali** | L'agent VMware, o un vCenter che colleghi |
+| **XCP-ng** | **Host**, **VM** | L'agent XCP-ng |
 | **Ceph** | **OSD**, come un muro colorato per stato, e **Pools** | L'agent Ceph |
 | **Array di storage** | **Volumi**, e **Hardware** come un muro colorato per stato | L'agent per array di storage |
 

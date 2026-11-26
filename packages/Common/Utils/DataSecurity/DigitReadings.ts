@@ -18,10 +18,12 @@
  * number typed in two scripts is read whole: ４１１１ 1111 1111 1111, or a
  * Persian card typed with a few Arabic-Indic digits. ASCII digits alone are
  * the text as it is written, which every detector reads anyway. A script is
- * read alone only where it holds a run of a card's twelve digits at least,
- * and at most four are - a text of every script's digits costs a few
- * readings, not one for each of the 37: every script is still read in the
- * reading of all of them.
+ * read alone only where it holds a run of the shortest number's digits at
+ * least (MIN_DIGITS_OF_A_SCRIPT_READ_ALONE: a card, a Social Security or
+ * phone number, an IBAN, a national ID number, #11030, #11033), and at most
+ * four are - a text of every script's digits costs a few readings, not one
+ * for each of the 37: every script is still read in the reading of all of
+ * them.
  *
  * A digit is one UTF-16 unit in either form, so a reading is exactly as
  * long as the text, and a match found in it is on the very characters the
@@ -156,10 +158,12 @@ function readingOfScript(text: string, scriptZero: number): string {
 /*
  * The fewest digits of one script, each group apart by at most one space
  * or dash, a value read alone in that script's digits can be: a card has
- * twelve at least. A script with no such run has no reading of its own -
- * nothing to find in one - and is read with every other's.
+ * twelve at least, and the shortest of the other numbers read in every
+ * script's digits (#11033) - a DEA number's, a phone number's - seven. A
+ * script with no such run has no reading of its own - nothing to find in
+ * one - and is read with every other's.
  */
-export const MIN_DIGITS_OF_A_SCRIPT_READ_ALONE: number = 12;
+export const MIN_DIGITS_OF_A_SCRIPT_READ_ALONE: number = 7;
 
 /*
  * The most scripts read alone in one text, the first to hold such a run

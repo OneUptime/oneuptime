@@ -31,6 +31,7 @@ export enum RuleCriteriaSubject {
   ProxmoxClusters = "ProxmoxClusters",
   OpenStackClouds = "OpenStackClouds",
   VMwareVCenters = "VMwareVCenters",
+  XcpNgPools = "XcpNgPools",
   CephClusters = "CephClusters",
   CloudResources = "CloudResources",
   ServerlessFunctions = "ServerlessFunctions",
@@ -192,6 +193,8 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   VMwareVCenterOwnerRule: RuleCriteriaSubject.VMwareVCenters,
   WorkflowLabelRule: RuleCriteriaSubject.Workflows,
   WorkflowOwnerRule: RuleCriteriaSubject.Workflows,
+  XcpNgPoolLabelRule: RuleCriteriaSubject.XcpNgPools,
+  XcpNgPoolOwnerRule: RuleCriteriaSubject.XcpNgPools,
 };
 
 const SUBJECT_LOOKUP: Readonly<Record<string, RuleCriteriaSubject | null>> =

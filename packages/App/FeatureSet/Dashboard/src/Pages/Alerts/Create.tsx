@@ -20,6 +20,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -90,8 +91,9 @@ const advancedSection: FormFieldCollapsibleSection<Alert> =
 /*
  * Every resource type besides the monitor that an alert can affect: what
  * the alert's own Edit offers, so an alert created from a Proxmox cluster's,
- * a vCenter's, a Ceph or Docker Swarm cluster's, a storage array's or an IoT
- * fleet's Alerts tab keeps it picked (Components/CreateFromRecord).
+ * a vCenter's, an XCP-ng pool's, a Ceph or Docker Swarm cluster's, a storage
+ * array's or an IoT fleet's Alerts tab keeps it picked
+ * (Components/CreateFromRecord).
  */
 const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "Host",
@@ -102,6 +104,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "OpenStackCloud",
   "VMwareVCenter",
+  "XcpNgPool",
   "CephCluster",
   "StorageArray",
   "DockerSwarmCluster",
@@ -384,6 +387,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         vmwareVCenters={
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
+                        xcpNgPools={values.xcpNgPools as Array<XcpNgPool>}
                         cephClusters={values.cephClusters as Array<CephCluster>}
                         storageArrays={
                           values.storageArrays as Array<StorageArray>
@@ -426,6 +430,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                           proxmoxClusters: payload.proxmoxClusters,
                           openStackClouds: payload.openStackClouds,
                           vmwareVCenters: payload.vmwareVCenters,
+                          xcpNgPools: payload.xcpNgPools,
                           cephClusters: payload.cephClusters,
                           storageArrays: payload.storageArrays,
                           dockerSwarmClusters: payload.dockerSwarmClusters,
@@ -472,6 +477,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       item.proxmoxClusters,
                       item.openStackClouds,
                       item.vmwareVCenters,
+                      item.xcpNgPools,
                       item.cephClusters,
                       item.storageArrays,
                       item.dockerSwarmClusters,
@@ -512,6 +518,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         vmwareVCenters={
                           item.vmwareVCenters as Array<VMwareVCenter>
                         }
+                        xcpNgPools={item.xcpNgPools as Array<XcpNgPool>}
                         cephClusters={item.cephClusters as Array<CephCluster>}
                         storageArrays={
                           item.storageArrays as Array<StorageArray>
@@ -538,7 +545,7 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/proxmoxClusters/
-                 * vmwareVCenters/cephClusters/storageArrays/
+                 * vmwareVCenters/xcpNgPools/cephClusters/storageArrays/
                  * dockerSwarmClusters/iotFleets/databaseServers/
                  * cloudResources/services.
                  * (hosts is already the picker's anchor field above so it
@@ -606,6 +613,16 @@ const AlertCreate: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 },
                 {
                   field: { vmwareVCenters: true },
+                  stepId: "on-call",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { xcpNgPools: true },
                   stepId: "on-call",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

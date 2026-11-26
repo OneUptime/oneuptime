@@ -157,6 +157,7 @@ beforeEach(() => {
       iotFleetIds: [],
       databaseServerIds: [],
       storageArrayIds: [],
+      xcpNgPoolIds: [],
       cloudResourceIds: [],
       networkDeviceIds: [],
     });

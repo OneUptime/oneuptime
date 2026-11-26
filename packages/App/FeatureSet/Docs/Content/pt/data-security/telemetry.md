@@ -111,7 +111,7 @@ A regra recebe o nome do que oculta, como "Data Security: Email address in log a
 | Qualquer outro tipo de dados que um padrão encontra sozinho, como um token do GitHub | Uma regra **Regex personalizado** feita a partir dos próprios padrões do tipo de dados. Um segredo é suprimido. |
 | Um dos seus próprios tipos de dados, com um padrão | Esse padrão, só no atributo em que foi encontrado |
 | Um tipo de dados que se distingue pelas palavras ao redor, como um número de roteamento bancário | O formato dele, só no atributo em que foi encontrado |
-| Um tipo de dados encontrado pelo nome do campo, como o nome de uma pessoa sob `customer_name`, ou um valor sob uma chave que nomeia um segredo | Uma regra **Atributos nomeados**, que oculta o valor inteiro desse atributo |
+| Um tipo de dados encontrado pelo nome do campo, como o nome de uma pessoa sob `customer_name` ou sob o parâmetro `full_name` de uma URL, ou um valor sob uma chave que nomeia um segredo | Uma regra **Atributos nomeados**, que oculta o valor inteiro desse atributo |
 | Um valor sob uma chave que parece sensível, quando nada mais estreito o oculta | Uma regra **Chaves de atributos sensíveis**, que suprime o valor inteiro de todo atributo desse tipo |
 | Qualquer tipo de dados no atributo de uma métrica | Uma regra de pipeline de métricas **Ocultar Atributo** para o serviço, que substitui por `[REDACTED]` os valores do atributo que contêm o tipo de dados. Para um endereço IP, um endereço de e-mail ou um número de cartão, o filtro dela é **Corresponde ao tipo de padrão** com esse tipo, que encontra o que uma regra de logs ou de traces desse **Tipo de padrão** encontra, incluindo endereços IPv6 e valores com codificação percentual ou noutra escrita. Para outro tipo de dados, é o próprio padrão do tipo, e quando nenhum padrão encontra o tipo de dados, a regra substitui todo valor do atributo |
 
@@ -170,7 +170,7 @@ Antes que o OneUptime AI comece, a Segurança de dados lê de novo, dentro do On
 
 - **Um span ou uma chamada de IA**: o arquivo, a linha e a função que seus atributos `code.*` nomeiam, e o nome do span.
 - **Uma exceção**: seus próprios frames do topo, os do código do serviço.
-- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`.
+- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`, e cada palavra que seus registros não provam que o código escreveu, como o nome de uma pessoa, por `<value>`: `Payment declined for Maria Gonzalez`, lida de um só registro, passa a ser `Payment declined for <value>`. O nome de um span e o nome de uma métrica são lidos da mesma forma.
 - **Uma métrica**: o nome da métrica.
 - **Qualquer vazamento**: sua chave de atributo, como `user.email`, que o código costuma escrever como está.
 

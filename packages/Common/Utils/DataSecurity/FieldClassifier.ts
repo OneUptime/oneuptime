@@ -327,7 +327,10 @@ export function classifyField(
   const valuesForModel: Set<string> = recognitions
     ? new Set(chooseValuesForModel(values))
     : new Set();
-  // By type, the highest confidence a match the model found earned alone.
+  /*
+   * By type, the highest confidence a match earned alone: one the model
+   * found, or one a URL's query parameter named for it (#11034).
+   */
   const modelConfidences: Map<string, DataConfidence> = new Map();
 
   const maxMatchedValueIndexes: number = Math.max(
@@ -448,7 +451,7 @@ export function classifyField(
       });
       typesCounted.add(match.dataTypeId);
 
-      if (match.fromModel && !match.isTestValue) {
+      if ((match.fromModel || match.fromFieldName) && !match.isTestValue) {
         const known: DataConfidence | undefined = modelConfidences.get(
           match.dataTypeId,
         );
@@ -522,7 +525,8 @@ export function classifyField(
     /*
      * A name or an address the model found in a log body keeps what it
      * earned on its own, as in free text: one in five hundred short log
-     * lines is still a person's name.
+     * lines is still a person's name. So does one a URL's query parameter
+     * names (full_name=...): one in five hundred URLs is still a person's.
      */
     if (modelConfidence) {
       confidence = higherConfidence(confidence, modelConfidence);

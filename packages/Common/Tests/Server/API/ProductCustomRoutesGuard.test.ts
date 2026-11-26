@@ -578,6 +578,13 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
     },
   },
+  "packages/Common/Server/API/XcpNgResourceAPI.ts": {
+    products: [ProductKey.XcpNg],
+    leftAlone: {
+      "`${new this.entityType() .getCrudApiPath() ?.toString()}/inventory-summary/:poolId`":
+        READ,
+    },
+  },
   "packages/Common/Server/API/HostAPI.ts": {
     products: [ProductKey.Hosts],
     leftAlone: {

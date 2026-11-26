@@ -82,7 +82,10 @@ function agentsWithTheFallback() {
       if (
         entry.sourceDirectory.startsWith("agents/") &&
         fs
-          .readFileSync(path.join(REPO_ROOT, entry.sourceDirectory, file), "utf8")
+          .readFileSync(
+            path.join(REPO_ROOT, entry.sourceDirectory, file),
+            "utf8",
+          )
           .includes("fetch_agent_file()")
       ) {
         allowed[`${entry.sourceDirectory}/${file}`] = {
@@ -239,6 +242,7 @@ describe("downloads from GitHub's copy of the repository", () => {
       "agents/ProxmoxAgent/install.sh",
       "agents/StorageArrayAgent/install.sh",
       "agents/VMwareAgent/install.sh",
+      "agents/XcpNgAgent/install.sh",
     ]);
   });
 });

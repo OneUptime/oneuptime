@@ -92,6 +92,7 @@ describe("TelemetryMonitorWindow.getWindowInMs", () => {
         [MonitorType.Proxmox, "proxmoxMonitor"],
         [MonitorType.OpenStack, "openstackMonitor"],
         [MonitorType.VMware, "vmwareMonitor"],
+        [MonitorType.XcpNg, "xcpNgMonitor"],
         [MonitorType.DockerSwarm, "dockerSwarmMonitor"],
         [MonitorType.Ceph, "cephMonitor"],
         [MonitorType.StorageArray, "storageArrayMonitor"],

@@ -8,6 +8,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -29,6 +30,7 @@ import IoTFleetElement from "../IoT/IoTFleetElement";
 import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
 import OpenStackCloudElement from "../OpenStack/OpenStackCloudElement";
 import VMwareVCenterElement from "../VMware/VMwareVCenterElement";
+import XcpNgPoolElement from "../XcpNg/XcpNgPoolElement";
 import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
@@ -72,6 +74,7 @@ type ResourceItem =
   | { _key: string; type: "ProxmoxCluster"; model: ProxmoxCluster }
   | { _key: string; type: "OpenStackCloud"; model: OpenStackCloud }
   | { _key: string; type: "VMwareVCenter"; model: VMwareVCenter }
+  | { _key: string; type: "XcpNgPool"; model: XcpNgPool }
   | { _key: string; type: "CephCluster"; model: CephCluster }
   | { _key: string; type: "StorageArray"; model: StorageArray }
   | { _key: string; type: "DockerSwarmCluster"; model: DockerSwarmCluster }
@@ -96,6 +99,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
+  xcpNgPools?: Array<XcpNgPool> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
@@ -183,6 +187,13 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
       _key: `VMwareVCenter:${vcenter._id ? String(vcenter._id) : Math.random()}`,
       type: "VMwareVCenter",
       model: vcenter,
+    });
+  }
+  for (const pool of props.xcpNgPools || []) {
+    items.push({
+      _key: `XcpNgPool:${pool._id ? String(pool._id) : Math.random()}`,
+      type: "XcpNgPool",
+      model: pool,
     });
   }
   for (const cluster of props.cephClusters || []) {
@@ -345,6 +356,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
           return (
             <VMwareVCenterElement
               vmwareVCenter={item.model}
+              showIcon={true}
+              onNavigateComplete={props.onNavigateComplete}
+            />
+          );
+        }
+        if (item.type === "XcpNgPool") {
+          return (
+            <XcpNgPoolElement
+              xcpNgPool={item.model}
               showIcon={true}
               onNavigateComplete={props.onNavigateComplete}
             />

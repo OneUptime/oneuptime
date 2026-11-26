@@ -24,6 +24,13 @@ import { stampStoredIoTFleetName } from "../Utils/StoredIoTFleetName";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
+import {
+  XCP_NG_POOL_ID_ATTRIBUTE,
+  XCP_NG_POOL_NAME_ATTRIBUTE,
+  XEN_ORCHESTRA_NAME_ATTRIBUTE,
+  XcpNgTelemetryUtil,
+} from "Common/Types/XcpNg/XcpNgTelemetry";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import ProxmoxResourceService from "Common/Server/Services/ProxmoxResourceService";
 import HostService from "Common/Server/Services/HostService";
@@ -159,6 +166,17 @@ export interface DiscoveredResourceIdentity {
   kindName: DiscoveredResourceKindName;
   projectId: ObjectID;
   identity: string;
+  /*
+   * What an XCP-ng pool is called when it is first created: Xen Orchestra's
+   * name for it (may be empty) and the Xen Orchestra it is read from. Never
+   * part of the key - a pool is found by its UUID alone.
+   */
+  xcpNgPool?:
+    | {
+        reportedName?: string | undefined;
+        xenOrchestraName?: string | undefined;
+      }
+    | undefined;
   cloudEnvironment?:
     | {
         name: string;
@@ -696,6 +714,14 @@ export default abstract class OtelIngestBaseService {
           name: identity,
         });
         break;
+      case "XcpNgPool":
+        row = await XcpNgPoolService.findOrCreateByIdentifier({
+          projectId: projectId,
+          poolIdentifier: identity,
+          reportedName: resource.xcpNgPool?.reportedName,
+          xenOrchestraName: resource.xcpNgPool?.xenOrchestraName,
+        });
+        break;
       case "ServerlessFunction":
         row = await ServerlessFunctionService.findOrCreateByFunctionIdentifier({
           projectId: projectId,
@@ -1149,6 +1175,7 @@ export default abstract class OtelIngestBaseService {
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     storageArrayId?: ObjectID | null;
+    xcpNgPoolId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
@@ -1355,6 +1382,7 @@ export default abstract class OtelIngestBaseService {
     vmwareVCenterId?: ObjectID | null;
     cephClusterId?: ObjectID | null;
     storageArrayId?: ObjectID | null;
+    xcpNgPoolId?: ObjectID | null;
     dockerSwarmClusterId?: ObjectID | null;
     serverlessFunctionId?: ObjectID | null;
     cloudResourceId?: ObjectID | null;
@@ -1504,6 +1532,23 @@ export default abstract class OtelIngestBaseService {
         serviceName: vcenterName ? `vmware/${vcenterName}` : "vCenter",
         resourceId: data.vmwareVCenterId,
         primaryEntityType: ServiceType.VMwareVCenter,
+        projectId: data.projectId,
+      });
+    }
+
+    /*
+     * An XCP-ng pool (xcp_ng.pool.id, one resource per pool): the agent's
+     * prometheus receiver synthesizes a service.name, so its config deletes
+     * it and the batch lands here, on the pool, with the pool's retention.
+     */
+    if (data.xcpNgPoolId) {
+      const poolLabel: string | null =
+        this.getXcpNgPoolNameFromAttributes(data.attributes) ||
+        this.getXcpNgPoolIdentifierFromAttributes(data.attributes);
+      return await OTelIngestService.buildResourceMetadataForNonService({
+        serviceName: poolLabel ? `xcp-ng/${poolLabel}` : "XCP-ng Pool",
+        resourceId: data.xcpNgPoolId,
+        primaryEntityType: ServiceType.XcpNgPool,
         projectId: data.projectId,
       });
     }
@@ -3105,6 +3150,189 @@ export default abstract class OtelIngestBaseService {
     } catch (err) {
       logger.warn(
         `Storage array label promotion failed for ${data.storageArrayId.toString()}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /*
+   * `xcp_ng.pool.id` is the XCP-ng pool join key: Xen Orchestra's pool_id
+   * label (the pool's XAPI UUID), which the XCP-ng Agent's collector moves to
+   * the resource so each pool is one resource (XcpNgTelemetry). Lower-cased,
+   * as XAPI writes UUIDs and the XcpNgPool row stores them.
+   */
+  protected static getXcpNgPoolIdentifierFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    const value: string | null = this.getStringAttribute(
+      attributes,
+      XCP_NG_POOL_ID_ATTRIBUTE,
+    );
+    const normalized: string =
+      XcpNgTelemetryUtil.normalizePoolIdentifier(value);
+    return normalized || null;
+  }
+
+  /*
+   * Xen Orchestra's name for the pool: descriptive, never identity. Until
+   * Xen Orchestra has loaded a pool's own object it labels the hosts' RRD
+   * series with the pool's UUID in its name's place (xo-server-openmetrics:
+   * poolLabel falls back to $poolId), so a name that is the pool's UUID is
+   * no name: the pool must not be named, or renamed, after it.
+   */
+  protected static getXcpNgPoolNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    const name: string = (
+      this.getStringAttribute(attributes, XCP_NG_POOL_NAME_ATTRIBUTE) || ""
+    ).trim();
+    if (!name) {
+      return null;
+    }
+    const poolIdentifier: string | null =
+      this.getXcpNgPoolIdentifierFromAttributes(attributes);
+    if (
+      poolIdentifier &&
+      XcpNgTelemetryUtil.normalizePoolIdentifier(name) === poolIdentifier
+    ) {
+      return null;
+    }
+    return name;
+  }
+
+  // The Xen Orchestra the pool is read from (the agent's XO_NAME).
+  protected static getXenOrchestraNameFromAttributes(
+    attributes: JSONArray,
+  ): string | null {
+    return this.getStringAttribute(attributes, XEN_ORCHESTRA_NAME_ATTRIBUTE);
+  }
+
+  protected static async autoDiscoverXcpNgPool(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const poolIdentifier: string | null = this.readDiscoveryMatch({
+      resource: "XCP-ng pool",
+      read: (): string | null => {
+        return this.getXcpNgPoolIdentifierFromAttributes(data.attributes);
+      },
+    });
+
+    if (!poolIdentifier) {
+      return null;
+    }
+
+    return await this.discoverMatchedXcpNgPool({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      poolIdentifier: poolIdentifier,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverXcpNgPool" })
+  private static async discoverMatchedXcpNgPool(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    poolIdentifier: string;
+  }): Promise<ObjectID | null> {
+    /*
+     * Fences armed below, released by the catch block. See
+     * releaseMaintenanceFences.
+     */
+    const armedFences: Array<MaintenanceFence> = [];
+    try {
+      const poolIdStr: string | null = await this.resolveDiscoveredResourceId({
+        kindName: "XcpNgPool",
+        projectId: data.projectId,
+        identity: data.poolIdentifier,
+        xcpNgPool: {
+          reportedName:
+            this.getXcpNgPoolNameFromAttributes(data.attributes) || undefined,
+          xenOrchestraName:
+            this.getXenOrchestraNameFromAttributes(data.attributes) ||
+            undefined,
+        },
+      });
+
+      if (!poolIdStr) {
+        return null;
+      }
+
+      /*
+       * Same fence rationale as the other discovered resources: skip the
+       * per-batch maintenance UPDATE and label upsert when it already ran
+       * within the fence window. Its heartbeat says the agent was heard;
+       * Connected (lastSeenAt) is the snapshot flush's to write, for a batch
+       * that read the pool.
+       */
+      const liveIdStr: string | null = await this.maintainDiscoveredResource({
+        kind: DiscoveredResourceKinds.XcpNgPool,
+        id: poolIdStr,
+        fenceScope: "xcp-ng-pool",
+        armedFences: armedFences,
+        heartbeat: async (
+          xcpNgPoolId: ObjectID,
+        ): Promise<ResourceHeartbeatResult> => {
+          const agentVersion: string | null = this.getStringAttribute(
+            data.attributes,
+            "oneuptime.agent.version",
+          );
+          return await XcpNgPoolService.updateAgentLastSeen(xcpNgPoolId, {
+            agentVersion: agentVersion || undefined,
+          });
+        },
+        promoteLabels: async (xcpNgPoolId: ObjectID): Promise<void> => {
+          await this.promoteOneuptimeLabelsToXcpNgPool({
+            projectId: data.projectId,
+            xcpNgPoolId: xcpNgPoolId,
+            attributes: data.attributes,
+          });
+        },
+      });
+
+      return liveIdStr ? new ObjectID(liveIdStr) : null;
+    } catch (err) {
+      await this.releaseMaintenanceFences(armedFences);
+      logger.error(
+        "Error auto-discovering XCP-ng pool: " + (err as Error).message,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Promote `oneuptime.label.<dim>=<val>` resource attributes into project
+   * labels and attach them to the discovered pool, as for every other
+   * discovered resource. Throttled per pool inside `attachLabels`.
+   */
+  protected static async promoteOneuptimeLabelsToXcpNgPool(data: {
+    projectId: ObjectID;
+    xcpNgPoolId: ObjectID;
+    attributes: JSONArray;
+  }): Promise<void> {
+    try {
+      const labelNames: Array<string> = extractOneuptimeLabelNames(
+        data.attributes,
+      );
+      if (labelNames.length === 0) {
+        return;
+      }
+      const labelIds: Array<ObjectID> =
+        await LabelService.findOrCreateLabelsByNames({
+          projectId: data.projectId,
+          labelNames,
+        });
+      if (labelIds.length === 0) {
+        return;
+      }
+      await XcpNgPoolService.attachLabels({
+        xcpNgPoolId: data.xcpNgPoolId,
+        labelIds,
+      });
+    } catch (err) {
+      logger.warn(
+        `XCP-ng pool label promotion failed for ${data.xcpNgPoolId.toString()}: ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

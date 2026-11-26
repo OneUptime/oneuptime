@@ -200,6 +200,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.Proxmox]: "name",
   [MonitorRecommendationResourceType.OpenStack]: "name",
   [MonitorRecommendationResourceType.VMware]: "name",
+  [MonitorRecommendationResourceType.XcpNg]: "poolIdentifier",
   [MonitorRecommendationResourceType.Ceph]: "name",
   [MonitorRecommendationResourceType.StorageArray]: "name",
   [MonitorRecommendationResourceType.IoTDevice]: "name",

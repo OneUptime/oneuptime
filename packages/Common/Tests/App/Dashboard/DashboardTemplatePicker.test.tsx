@@ -573,7 +573,7 @@ describe("the category select", () => {
         });
       }),
     );
-    expect(new Set(listed()).size).toBe(16);
+    expect(new Set(listed()).size).toBe(17);
     expect(
       within(getListbox())
         .getAllByRole("group")

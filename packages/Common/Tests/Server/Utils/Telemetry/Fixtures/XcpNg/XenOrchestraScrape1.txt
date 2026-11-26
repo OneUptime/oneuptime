@@ -1,0 +1,422 @@
+# HELP xcp_pool_connected Indicates if a pool is connected (1) or not (0)
+# TYPE xcp_pool_connected gauge
+xcp_pool_connected{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",pool_name="Production"} 1
+xcp_pool_connected{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",pool_name=""} 1
+# HELP xcp_host_cpu_average Host average CPU usage ratio
+# TYPE xcp_host_cpu_average gauge
+xcp_host_cpu_average{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 0.08 1794999900
+xcp_host_cpu_average{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 0.35 1794999900
+xcp_host_cpu_average{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 0.62 1794999900
+# HELP xcp_host_cpu_core_usage Host CPU core usage ratio
+# TYPE xcp_host_cpu_core_usage gauge
+xcp_host_cpu_core_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",core="0"} 0.08 1794999900
+xcp_host_cpu_core_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",core="1"} 0.09 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",core="0"} 0.35 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",core="1"} 0.36 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",core="2"} 0.37 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",core="3"} 0.38 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",core="0",tags="rack-a"} 0.62 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",core="1",tags="rack-a"} 0.63 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",core="2",tags="rack-a"} 0.64 1794999900
+xcp_host_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",core="3",tags="rack-a"} 0.65 1794999900
+# HELP xcp_host_disk_iops_read Host disk read IOPS
+# TYPE xcp_host_disk_iops_read gauge
+xcp_host_disk_iops_read{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 120 1794999900
+xcp_host_disk_iops_read{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 120 1794999900
+xcp_host_disk_iops_read{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 120 1794999900
+xcp_host_disk_iops_read{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 120 1794999900
+# HELP xcp_host_disk_iops_total Total IOPS (read + write) per SR
+# TYPE xcp_host_disk_iops_total gauge
+xcp_host_disk_iops_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 430 1794999900
+xcp_host_disk_iops_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 430 1794999900
+xcp_host_disk_iops_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 430 1794999900
+xcp_host_disk_iops_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 430 1794999900
+# HELP xcp_host_disk_iops_write Host disk write IOPS
+# TYPE xcp_host_disk_iops_write gauge
+xcp_host_disk_iops_write{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 310 1794999900
+xcp_host_disk_iops_write{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 310 1794999900
+xcp_host_disk_iops_write{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 310 1794999900
+xcp_host_disk_iops_write{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 310 1794999900
+# HELP xcp_host_disk_iowait Host disk IO wait ratio
+# TYPE xcp_host_disk_iowait gauge
+xcp_host_disk_iowait{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 0.012 1794999900
+xcp_host_disk_iowait{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 0.012 1794999900
+xcp_host_disk_iowait{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 0.012 1794999900
+xcp_host_disk_iowait{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 0.012 1794999900
+# HELP xcp_host_disk_latency_seconds Combined I/O latency per SR in seconds
+# TYPE xcp_host_disk_latency_seconds gauge
+xcp_host_disk_latency_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 0.0029 1794999900
+xcp_host_disk_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 0.0612 1794999900
+xcp_host_disk_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 0.0612 1794999900
+xcp_host_disk_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 0.0029 1794999900
+# HELP xcp_host_disk_read_latency_seconds Host disk read latency in seconds
+# TYPE xcp_host_disk_read_latency_seconds gauge
+xcp_host_disk_read_latency_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 0.0021 1794999900
+xcp_host_disk_read_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 0.0021 1794999900
+xcp_host_disk_read_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 0.0021 1794999900
+xcp_host_disk_read_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 0.0021 1794999900
+# HELP xcp_host_disk_throughput_read_bytes Host disk read throughput in bytes per second
+# TYPE xcp_host_disk_throughput_read_bytes gauge
+xcp_host_disk_throughput_read_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 3670016 1794999900
+xcp_host_disk_throughput_read_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 3670016 1794999900
+xcp_host_disk_throughput_read_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 3670016 1794999900
+xcp_host_disk_throughput_read_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 3670016 1794999900
+# HELP xcp_host_disk_throughput_total_bytes Total I/O throughput per SR in bytes per second
+# TYPE xcp_host_disk_throughput_total_bytes gauge
+xcp_host_disk_throughput_total_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 11272192 1794999900
+xcp_host_disk_throughput_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 11272192 1794999900
+xcp_host_disk_throughput_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 11272192 1794999900
+xcp_host_disk_throughput_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 11272192 1794999900
+# HELP xcp_host_disk_throughput_write_bytes Host disk write throughput in bytes per second
+# TYPE xcp_host_disk_throughput_write_bytes gauge
+xcp_host_disk_throughput_write_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 7602176 1794999900
+xcp_host_disk_throughput_write_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 7602176 1794999900
+xcp_host_disk_throughput_write_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 7602176 1794999900
+xcp_host_disk_throughput_write_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 7602176 1794999900
+# HELP xcp_host_disk_write_latency_seconds Host disk write latency in seconds
+# TYPE xcp_host_disk_write_latency_seconds gauge
+xcp_host_disk_write_latency_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",sr_type="ext",sr="77aa88bb"} 0.0034 1794999900
+xcp_host_disk_write_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a"} 0.0743 1794999900
+xcp_host_disk_write_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",sr_type="nfs",sr="1d2c3b4a",tags="rack-a"} 0.0743 1794999900
+xcp_host_disk_write_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",sr_type="lvm",sr="ad4b8c63",tags="rack-a"} 0.0034 1794999900
+# HELP xcp_host_load Normalized host load
+# TYPE xcp_host_load gauge
+xcp_host_load{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 0.088 1794999900
+xcp_host_load{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 0.385 1794999900
+xcp_host_load{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 0.682 1794999900
+# HELP xcp_host_load_average Host load average
+# TYPE xcp_host_load_average gauge
+xcp_host_load_average{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 0.32 1794999900
+xcp_host_load_average{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 1.4 1794999900
+xcp_host_load_average{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 2.48 1794999900
+# HELP xcp_host_memory_free_bytes Host free memory in bytes
+# TYPE xcp_host_memory_free_bytes gauge
+xcp_host_memory_free_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 42949672960 1794999900
+xcp_host_memory_free_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 42949672960 1794999900
+xcp_host_memory_free_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 9663676416 1794999900
+# HELP xcp_host_memory_reclaimed_bytes Reclaimed host memory in bytes
+# TYPE xcp_host_memory_reclaimed_bytes gauge
+xcp_host_memory_reclaimed_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 0 1794999900
+xcp_host_memory_reclaimed_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 0 1794999900
+xcp_host_memory_reclaimed_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 0 1794999900
+# HELP xcp_host_memory_reclaimed_max_bytes Maximum reclaimable host memory in bytes
+# TYPE xcp_host_memory_reclaimed_max_bytes gauge
+xcp_host_memory_reclaimed_max_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 2147483648 1794999900
+xcp_host_memory_reclaimed_max_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 2147483648 1794999900
+xcp_host_memory_reclaimed_max_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 2147483648 1794999900
+# HELP xcp_host_memory_total_bytes Host total memory in bytes
+# TYPE xcp_host_memory_total_bytes gauge
+xcp_host_memory_total_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 68719476736 1794999900
+xcp_host_memory_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 68719476736 1794999900
+xcp_host_memory_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 68719476736 1794999900
+# HELP xcp_host_network_aggregated_receive_bytes Aggregated received bytes per second
+# TYPE xcp_host_network_aggregated_receive_bytes gauge
+xcp_host_network_aggregated_receive_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 1873421.5 1794999900
+xcp_host_network_aggregated_receive_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 1873421.5 1794999900
+xcp_host_network_aggregated_receive_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 1873421.5 1794999900
+# HELP xcp_host_network_aggregated_transmit_bytes Aggregated transmitted bytes per second
+# TYPE xcp_host_network_aggregated_transmit_bytes gauge
+xcp_host_network_aggregated_transmit_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 958231.75 1794999900
+xcp_host_network_aggregated_transmit_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 958231.75 1794999900
+xcp_host_network_aggregated_transmit_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 958231.75 1794999900
+# HELP xcp_host_network_receive_bytes_total Host network interface received bytes
+# TYPE xcp_host_network_receive_bytes_total counter
+xcp_host_network_receive_bytes_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",network_name="Pool-wide network associated with eth0",interface="eth0"} 1873421.5 1794999900
+xcp_host_network_receive_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",network_name="Pool-wide network associated with eth0",interface="eth0"} 1873421.5 1794999900
+xcp_host_network_receive_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",network_name="Pool-wide network associated with eth0",interface="eth0",tags="rack-a"} 1873421.5 1794999900
+# HELP xcp_host_network_transmit_bytes_total Host network interface transmitted bytes
+# TYPE xcp_host_network_transmit_bytes_total counter
+xcp_host_network_transmit_bytes_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01",network_name="Pool-wide network associated with eth0",interface="eth0"} 958231.75 1794999900
+xcp_host_network_transmit_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02",network_name="Pool-wide network associated with eth0",interface="eth0"} 958231.75 1794999900
+xcp_host_network_transmit_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",network_name="Pool-wide network associated with eth0",interface="eth0",tags="rack-a"} 958231.75 1794999900
+# HELP xcp_host_power_consumption_watts Host power consumption in watts (IPMI)
+# TYPE xcp_host_power_consumption_watts gauge
+xcp_host_power_consumption_watts{uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",source="ipmi",host_name="xcp-prod-01"} 241 1795000000
+# HELP xcp_host_running_vcpus Total number of running vCPUs
+# TYPE xcp_host_running_vcpus gauge
+xcp_host_running_vcpus{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",type="host",host_name="xcp-lab-01"} 3 1794999900
+xcp_host_running_vcpus{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",type="host",pool_name="Production",host_name="xcp-prod-02"} 8 1794999900
+xcp_host_running_vcpus{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",type="host",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 6 1794999900
+# HELP xcp_vm_cpu_core_usage VM CPU core usage ratio
+# TYPE xcp_vm_cpu_core_usage gauge
+xcp_vm_cpu_core_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true",core="0"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true",core="1"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",core="0"} 0.24 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true",core="0"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true",core="1"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true",core="2"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true",core="3"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true",core="0"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true",core="1"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true",core="2"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true",core="3"} 0.05 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",core="0",tags="production"} 0.71 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",core="1",tags="production"} 0.71 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",core="2",tags="production"} 0.71 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",core="3",tags="production"} 0.71 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",core="0",tags="production,web"} 0.24 1794999900
+xcp_vm_cpu_core_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",core="1",tags="production,web"} 0.24 1794999900
+# HELP xcp_vm_cpu_usage VM CPU usage ratio
+# TYPE xcp_vm_cpu_usage gauge
+xcp_vm_cpu_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.05 1794999900
+xcp_vm_cpu_usage{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.24 1794999900
+xcp_vm_cpu_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.05 1794999900
+xcp_vm_cpu_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.05 1794999900
+xcp_vm_cpu_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.71 1794999900
+xcp_vm_cpu_usage{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.24 1794999900
+# HELP xcp_vm_disk_inflight VM disk inflight operations
+# TYPE xcp_vm_disk_inflight gauge
+xcp_vm_disk_inflight{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 0 1794999900
+xcp_vm_disk_inflight{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 0 1794999900
+xcp_vm_disk_inflight{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 0 1794999900
+# HELP xcp_vm_disk_iops_read VM disk read IOPS
+# TYPE xcp_vm_disk_iops_read gauge
+xcp_vm_disk_iops_read{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 42 1794999900
+xcp_vm_disk_iops_read{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 42 1794999900
+xcp_vm_disk_iops_read{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 42 1794999900
+# HELP xcp_vm_disk_iops_total VM disk total IOPS
+# TYPE xcp_vm_disk_iops_total gauge
+xcp_vm_disk_iops_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 139 1794999900
+xcp_vm_disk_iops_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 139 1794999900
+xcp_vm_disk_iops_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 139 1794999900
+# HELP xcp_vm_disk_iops_write VM disk write IOPS
+# TYPE xcp_vm_disk_iops_write gauge
+xcp_vm_disk_iops_write{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 97 1794999900
+xcp_vm_disk_iops_write{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 97 1794999900
+xcp_vm_disk_iops_write{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 97 1794999900
+# HELP xcp_vm_disk_iowait VM disk IO wait ratio
+# TYPE xcp_vm_disk_iowait gauge
+xcp_vm_disk_iowait{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 0.004 1794999900
+xcp_vm_disk_iowait{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 0.004 1794999900
+xcp_vm_disk_iowait{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 0.004 1794999900
+# HELP xcp_vm_disk_latency_seconds VM disk average IO latency in seconds
+# TYPE xcp_vm_disk_latency_seconds gauge
+xcp_vm_disk_latency_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 0.0031 1794999900
+xcp_vm_disk_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 0.0031 1794999900
+xcp_vm_disk_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 0.0031 1794999900
+# HELP xcp_vm_disk_queue_size VM disk average queue size
+# TYPE xcp_vm_disk_queue_size gauge
+xcp_vm_disk_queue_size{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 0.02 1794999900
+xcp_vm_disk_queue_size{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 0.02 1794999900
+xcp_vm_disk_queue_size{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 0.02 1794999900
+# HELP xcp_vm_disk_read_bytes_total VM disk read bytes
+# TYPE xcp_vm_disk_read_bytes_total counter
+xcp_vm_disk_read_bytes_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 2097152 1794999900
+xcp_vm_disk_read_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 2097152 1794999900
+xcp_vm_disk_read_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 2097152 1794999900
+# HELP xcp_vm_disk_read_latency_seconds VM disk read latency in seconds
+# TYPE xcp_vm_disk_read_latency_seconds gauge
+xcp_vm_disk_read_latency_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 0.0018 1794999900
+xcp_vm_disk_read_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 0.0018 1794999900
+xcp_vm_disk_read_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 0.0018 1794999900
+# HELP xcp_vm_disk_throughput_read_bytes VM disk read throughput in bytes per second
+# TYPE xcp_vm_disk_throughput_read_bytes gauge
+xcp_vm_disk_throughput_read_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 2097152 1794999900
+xcp_vm_disk_throughput_read_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 2097152 1794999900
+xcp_vm_disk_throughput_read_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 2097152 1794999900
+# HELP xcp_vm_disk_throughput_total_bytes VM disk total throughput in bytes per second
+# TYPE xcp_vm_disk_throughput_total_bytes gauge
+xcp_vm_disk_throughput_total_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 6291456 1794999900
+xcp_vm_disk_throughput_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 6291456 1794999900
+xcp_vm_disk_throughput_total_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 6291456 1794999900
+# HELP xcp_vm_disk_throughput_write_bytes VM disk write throughput in bytes per second
+# TYPE xcp_vm_disk_throughput_write_bytes gauge
+xcp_vm_disk_throughput_write_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 4194304 1794999900
+xcp_vm_disk_throughput_write_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 4194304 1794999900
+xcp_vm_disk_throughput_write_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 4194304 1794999900
+# HELP xcp_vm_disk_write_bytes_total VM disk write bytes
+# TYPE xcp_vm_disk_write_bytes_total counter
+xcp_vm_disk_write_bytes_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 4194304 1794999900
+xcp_vm_disk_write_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 4194304 1794999900
+xcp_vm_disk_write_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 4194304 1794999900
+# HELP xcp_vm_disk_write_latency_seconds VM disk write latency in seconds
+# TYPE xcp_vm_disk_write_latency_seconds gauge
+xcp_vm_disk_write_latency_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",vdi_name="lab-vm-01 system",sr_name="Local storage",sr_type="ext",device="xvda"} 0.0041 1794999900
+xcp_vm_disk_write_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",vdi_name="db-01 data",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production"} 0.0041 1794999900
+xcp_vm_disk_write_latency_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",vdi_name="web-01 system",sr_name="NFS VM store",sr_type="nfs",device="xvda",tags="production,web"} 0.0041 1794999900
+# HELP xcp_vm_memory_bytes VM memory usage in bytes
+# TYPE xcp_vm_memory_bytes gauge
+xcp_vm_memory_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 1073741824 1794999900
+xcp_vm_memory_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 1073741824 1794999900
+xcp_vm_memory_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 2147483648 1794999900
+xcp_vm_memory_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 2147483648 1794999900
+xcp_vm_memory_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 17179869184 1794999900
+xcp_vm_memory_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 4294967296 1794999900
+# HELP xcp_vm_memory_internal_free_bytes VM internal free memory in bytes
+# TYPE xcp_vm_memory_internal_free_bytes gauge
+xcp_vm_memory_internal_free_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 375809638 1794999900
+xcp_vm_memory_internal_free_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 6012954214 1794999900
+xcp_vm_memory_internal_free_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 1503238554 1794999900
+# HELP xcp_vm_memory_target_bytes VM memory target in bytes
+# TYPE xcp_vm_memory_target_bytes gauge
+xcp_vm_memory_target_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 1073741824 1794999900
+xcp_vm_memory_target_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 1073741824 1794999900
+xcp_vm_memory_target_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 2147483648 1794999900
+xcp_vm_memory_target_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 2147483648 1794999900
+xcp_vm_memory_target_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 17179869184 1794999900
+xcp_vm_memory_target_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 4294967296 1794999900
+# HELP xcp_vm_network_receive_bytes_total VM network interface received bytes
+# TYPE xcp_vm_network_receive_bytes_total counter
+xcp_vm_network_receive_bytes_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0"} 524288.5 1794999900
+xcp_vm_network_receive_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production"} 524288.5 1794999900
+xcp_vm_network_receive_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production,web"} 524288.5 1794999900
+# HELP xcp_vm_network_receive_errors_total VM network interface receive errors
+# TYPE xcp_vm_network_receive_errors_total counter
+xcp_vm_network_receive_errors_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0"} 0.5 1794999900
+xcp_vm_network_receive_errors_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production"} 0.5 1794999900
+xcp_vm_network_receive_errors_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production,web"} 0.5 1794999900
+# HELP xcp_vm_network_transmit_bytes_total VM network interface transmitted bytes
+# TYPE xcp_vm_network_transmit_bytes_total counter
+xcp_vm_network_transmit_bytes_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0"} 262144 1794999900
+xcp_vm_network_transmit_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production"} 262144 1794999900
+xcp_vm_network_transmit_bytes_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production,web"} 262144 1794999900
+# HELP xcp_vm_network_transmit_errors_total VM network interface transmit errors
+# TYPE xcp_vm_network_transmit_errors_total counter
+xcp_vm_network_transmit_errors_total{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0"} 0 1794999900
+xcp_vm_network_transmit_errors_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production"} 0 1794999900
+xcp_vm_network_transmit_errors_total{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",network_name="Pool-wide network associated with eth0",vif="0",tags="production,web"} 0 1794999900
+# HELP xcp_vm_power_consumption_watts Estimated VM power consumption in watts (estimate, host power split by CPU load)
+# TYPE xcp_vm_power_consumption_watts gauge
+xcp_vm_power_consumption_watts{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web",estimate="true"} 241 1794999900
+# HELP xcp_vm_runstate_blocked VM runstate blocked ratio
+# TYPE xcp_vm_runstate_blocked gauge
+xcp_vm_runstate_blocked{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.95 1794999900
+xcp_vm_runstate_blocked{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.76 1794999900
+xcp_vm_runstate_blocked{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.95 1794999900
+xcp_vm_runstate_blocked{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.95 1794999900
+xcp_vm_runstate_blocked{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.29 1794999900
+xcp_vm_runstate_blocked{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.76 1794999900
+# HELP xcp_vm_runstate_concurrency_hazard VM runstate concurrency hazard ratio
+# TYPE xcp_vm_runstate_concurrency_hazard gauge
+xcp_vm_runstate_concurrency_hazard{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.001 1794999900
+xcp_vm_runstate_concurrency_hazard{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.001 1794999900
+xcp_vm_runstate_concurrency_hazard{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.001 1794999900
+xcp_vm_runstate_concurrency_hazard{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.001 1794999900
+xcp_vm_runstate_concurrency_hazard{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.001 1794999900
+xcp_vm_runstate_concurrency_hazard{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.001 1794999900
+# HELP xcp_vm_runstate_full_contention VM runstate full contention ratio
+# TYPE xcp_vm_runstate_full_contention gauge
+xcp_vm_runstate_full_contention{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.004 1794999900
+xcp_vm_runstate_full_contention{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.004 1794999900
+xcp_vm_runstate_full_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.004 1794999900
+xcp_vm_runstate_full_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.004 1794999900
+xcp_vm_runstate_full_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.142 1794999900
+xcp_vm_runstate_full_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.004 1794999900
+# HELP xcp_vm_runstate_fullrun VM runstate fullrun ratio
+# TYPE xcp_vm_runstate_fullrun gauge
+xcp_vm_runstate_fullrun{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.04 1794999900
+xcp_vm_runstate_fullrun{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.192 1794999900
+xcp_vm_runstate_fullrun{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.04 1794999900
+xcp_vm_runstate_fullrun{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.04 1794999900
+xcp_vm_runstate_fullrun{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.568 1794999900
+xcp_vm_runstate_fullrun{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.192 1794999900
+# HELP xcp_vm_runstate_partial_contention VM runstate partial contention ratio
+# TYPE xcp_vm_runstate_partial_contention gauge
+xcp_vm_runstate_partial_contention{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.003 1794999900
+xcp_vm_runstate_partial_contention{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.003 1794999900
+xcp_vm_runstate_partial_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.003 1794999900
+xcp_vm_runstate_partial_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.003 1794999900
+xcp_vm_runstate_partial_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.003 1794999900
+xcp_vm_runstate_partial_contention{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.003 1794999900
+# HELP xcp_vm_runstate_partial_run VM runstate partial run ratio
+# TYPE xcp_vm_runstate_partial_run gauge
+xcp_vm_runstate_partial_run{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="Control domain on host: xcp-lab-01",is_control_domain="true"} 0.05 1794999900
+xcp_vm_runstate_partial_run{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",type="vm",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",vm_name="lab-vm-01",is_control_domain="false"} 0.05 1794999900
+xcp_vm_runstate_partial_run{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="0f1e2d3c-4b5a-4968-8778-695a4b3c2d1e",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="Control domain on host: xcp-prod-01",is_control_domain="true"} 0.05 1794999900
+xcp_vm_runstate_partial_run{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="Control domain on host: xcp-prod-02",is_control_domain="true"} 0.05 1794999900
+xcp_vm_runstate_partial_run{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",type="vm",host_id="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02",vm_name="db-01",is_control_domain="false",tags="production"} 0.05 1794999900
+xcp_vm_runstate_partial_run{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",type="vm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",vm_name="web-01",is_control_domain="false",tags="production,web"} 0.05 1794999900
+# HELP xcp_sr_virtual_size_bytes SR virtual allocated size in bytes
+# TYPE xcp_sr_virtual_size_bytes gauge
+xcp_sr_virtual_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",pool_name="Production",content_type="user",sr_type="lvm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",host_name="xcp-prod-01"} 214748364800 1795000000
+xcp_sr_virtual_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",pool_name="Production",content_type="user",sr_type="nfs",tags="shared-storage"} 2858730232218 1795000000
+xcp_sr_virtual_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="c0ffee00-1111-4222-8333-444455556666",sr_name="XCP-ng Tools",pool_name="Production",content_type="iso",sr_type="iso"} 0 1795000000
+xcp_sr_virtual_size_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",content_type="user",sr_type="ext",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01"} 64424509440 1795000000
+# HELP xcp_sr_physical_size_bytes SR physical size in bytes
+# TYPE xcp_sr_physical_size_bytes gauge
+xcp_sr_physical_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",pool_name="Production",content_type="user",sr_type="lvm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",host_name="xcp-prod-01"} 536870912000 1795000000
+xcp_sr_physical_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",pool_name="Production",content_type="user",sr_type="nfs",tags="shared-storage"} 2199023255552 1795000000
+xcp_sr_physical_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="c0ffee00-1111-4222-8333-444455556666",sr_name="XCP-ng Tools",pool_name="Production",content_type="iso",sr_type="iso"} 0 1795000000
+xcp_sr_physical_size_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",content_type="user",sr_type="ext",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01"} 268435456000 1795000000
+# HELP xcp_sr_physical_usage_bytes SR physical space used in bytes
+# TYPE xcp_sr_physical_usage_bytes gauge
+xcp_sr_physical_usage_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="ad4b8c63-1f2e-4d3c-8b4a-596877665544",sr_name="Local storage",pool_name="Production",content_type="user",sr_type="lvm",host_id="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",host_name="xcp-prod-01"} 128849018880 1795000000
+xcp_sr_physical_usage_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",pool_name="Production",content_type="user",sr_type="nfs",tags="shared-storage"} 2034096511386 1795000000
+xcp_sr_physical_usage_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="c0ffee00-1111-4222-8333-444455556666",sr_name="XCP-ng Tools",pool_name="Production",content_type="iso",sr_type="iso"} 0 1795000000
+xcp_sr_physical_usage_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",content_type="user",sr_type="ext",host_id="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01"} 42949672960 1795000000
+# HELP xcp_vdi_virtual_size_bytes VDI virtual size in bytes
+# TYPE xcp_vdi_virtual_size_bytes gauge
+xcp_vdi_virtual_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",vdi_uuid="aa11bb22-cc33-4d44-8e55-ff6677889900",vdi_name="web-01 system",pool_name="Production",sr_type="nfs",vm_uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",vm_name="web-01"} 21474836480 1795000000
+xcp_vdi_virtual_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",vdi_uuid="bb22cc33-dd44-4e55-8f66-007788990011",vdi_name="db-01 data",pool_name="Production",sr_type="nfs",vm_uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",vm_name="db-01"} 107374182400 1795000000
+xcp_vdi_virtual_size_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",vdi_uuid="cc33dd44-ee55-4f66-8077-118899001122",vdi_name="old-backup",pool_name="Production",sr_type="nfs"} 53687091200 1795000000
+xcp_vdi_virtual_size_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",vdi_uuid="dd44ee55-ff66-4077-8188-229900112233",vdi_name="lab-vm-01 system",sr_type="ext",vm_uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",vm_name="lab-vm-01"} 10737418240 1795000000
+# HELP xcp_vdi_physical_usage_bytes VDI physical space used in bytes (allocated on SR)
+# TYPE xcp_vdi_physical_usage_bytes gauge
+xcp_vdi_physical_usage_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",vdi_uuid="aa11bb22-cc33-4d44-8e55-ff6677889900",vdi_name="web-01 system",pool_name="Production",sr_type="nfs",vm_uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",vm_name="web-01"} 8589934592 1795000000
+xcp_vdi_physical_usage_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",vdi_uuid="bb22cc33-dd44-4e55-8f66-007788990011",vdi_name="db-01 data",pool_name="Production",sr_type="nfs",vm_uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",vm_name="db-01"} 65498251264 1795000000
+xcp_vdi_physical_usage_bytes{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",sr_uuid="1d2c3b4a-5e6f-4789-9abc-def012345678",sr_name="NFS VM store",vdi_uuid="cc33dd44-ee55-4f66-8077-118899001122",vdi_name="old-backup",pool_name="Production",sr_type="nfs"} 53687091200 1795000000
+xcp_vdi_physical_usage_bytes{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",sr_uuid="77aa88bb-99cc-4ddd-8eee-ff0011223344",sr_name="Local storage",vdi_uuid="dd44ee55-ff66-4077-8188-229900112233",vdi_name="lab-vm-01 system",sr_type="ext",vm_uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",vm_name="lab-vm-01"} 3221225472 1795000000
+# HELP xcp_host_status Host status (1 = current state)
+# TYPE xcp_host_status gauge
+xcp_host_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",host_name="xcp-prod-01",power_state="Running",enabled="true",pool_name="Production",tags="rack-a"} 1 1795000000
+xcp_host_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",host_name="xcp-prod-02",power_state="Running",enabled="false",pool_name="Production"} 1 1795000000
+xcp_host_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="f0e1d2c3-b4a5-4968-8776-655443322110",host_name="xcp-prod-03",power_state="Halted",enabled="true",pool_name="Production"} 1 1795000000
+xcp_host_status{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01",power_state="Running",enabled="true"} 1 1795000000
+# HELP xcp_host_uptime_seconds Host uptime in seconds since boot
+# TYPE xcp_host_uptime_seconds gauge
+xcp_host_uptime_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",pool_name="Production",host_name="xcp-prod-01",tags="rack-a"} 864000 1795000000
+xcp_host_uptime_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="4e1d3a2b-7c8d-4e9f-a0b1-c2d3e4f5a6b7",pool_name="Production",host_name="xcp-prod-02"} 18000 1795000000
+xcp_host_uptime_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",host_name="xcp-lab-01"} 259200 1795000000
+# HELP xcp_vm_status VM power state indicator (always 1; current state is carried by the power_state label)
+# TYPE xcp_vm_status gauge
+xcp_vm_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",power_state="Running",pool_name="Production",vm_name="web-01",tags="production,web"} 1 1795000000
+xcp_vm_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",power_state="Running",pool_name="Production",vm_name="db-01",tags="production"} 1 1795000000
+xcp_vm_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",power_state="Halted",pool_name="Production",vm_name="app-02"} 1 1795000000
+xcp_vm_status{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a",power_state="Suspended",pool_name="Production",vm_name="win-03",tags="windows"} 1 1795000000
+xcp_vm_status{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",power_state="Running",vm_name="lab-vm-01"} 1 1795000000
+# HELP xcp_vm_uptime_seconds VM uptime in seconds since boot
+# TYPE xcp_vm_uptime_seconds gauge
+xcp_vm_uptime_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",pool_name="Production",vm_name="web-01",tags="production,web"} 172800 1795000000
+xcp_vm_uptime_seconds{pool_id="b7569d99-30f8-178a-7d94-801de3e29b5b",uuid="3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",pool_name="Production",vm_name="db-01",tags="production"} 14400 1795000000
+xcp_vm_uptime_seconds{pool_id="2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",uuid="5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",vm_name="lab-vm-01"} 172800 1795000000
+# HELP xo_task_pending Total number of tasks pending
+# TYPE xo_task_pending gauge
+xo_task_pending 0 1795000000
+# HELP xo_pool_total Total number of pools
+# TYPE xo_pool_total gauge
+xo_pool_total 2 1795000000
+# HELP xo_host_total Total number of hosts
+# TYPE xo_host_total gauge
+xo_host_total 4 1795000000
+# HELP xo_vm_total Total number of virtual machines
+# TYPE xo_vm_total gauge
+xo_vm_total 5 1795000000
+# HELP xo_user_total Total number of users
+# TYPE xo_user_total gauge
+xo_user_total 3 1795000000
+# HELP xo_group_total Total number of groups
+# TYPE xo_group_total gauge
+xo_group_total 1 1795000000
+# HELP xo_socket_total Total number of CPU sockets across all hosts
+# TYPE xo_socket_total gauge
+xo_socket_total 4 1795000000
+# HELP xo_sr_total Total number of storage repositories by content type
+# TYPE xo_sr_total gauge
+xo_sr_total{content_type="user"} 3 1795000000
+xo_sr_total{content_type="iso"} 1 1795000000
+# HELP xo_host_version_total Total number of hosts by product brand and version
+# TYPE xo_host_version_total gauge
+xo_host_version_total{product_brand="XCP-ng",version="8.3.0"} 4 1795000000
+# HELP xo_host_license_total Total number of hosts by license SKU type
+# TYPE xo_host_license_total gauge
+xo_host_license_total{sku_type="free"} 4 1795000000
+# HELP xo_nodejs_process_memory_bytes Memory usage of the XO main process in bytes
+# TYPE xo_nodejs_process_memory_bytes gauge
+xo_nodejs_process_memory_bytes{type="rss"} 412131328 1795000000
+# HELP xo_nodejs_heap_size_limit_bytes V8 heap size limit in bytes — OOM occurs when heap_used approaches this value
+# TYPE xo_nodejs_heap_size_limit_bytes gauge
+xo_nodejs_heap_size_limit_bytes 4345298944 1795000000
+# HELP xo_backup_job_total Total number of backup jobs by type
+# TYPE xo_backup_job_total gauge
+xo_backup_job_total{type="backup"} 2 1795000000
+# EOF

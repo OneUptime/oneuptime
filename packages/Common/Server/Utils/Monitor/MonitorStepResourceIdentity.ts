@@ -54,6 +54,7 @@ type NameRefKey = keyof Pick<
   | "proxmoxClusterNames"
   | "openStackCloudNames"
   | "vmwareVCenterNames"
+  | "xcpNgPoolIdentifiers"
   | "cephClusterNames"
   | "storageArrayNames"
   | "dockerSwarmClusterNames"
@@ -304,6 +305,7 @@ export default class MonitorStepResourceIdentity {
     input.refs.proxmoxClusterNames.push(...logRefs.proxmoxClusterNames);
     input.refs.openStackCloudNames.push(...logRefs.openStackCloudNames);
     input.refs.vmwareVCenterNames.push(...logRefs.vmwareVCenterNames);
+    input.refs.xcpNgPoolIdentifiers.push(...logRefs.xcpNgPoolIdentifiers);
     input.refs.cephClusterNames.push(...logRefs.cephClusterNames);
     input.refs.storageArrayNames.push(...logRefs.storageArrayNames);
     input.refs.iotFleetNames.push(...logRefs.iotFleetNames);
@@ -546,6 +548,16 @@ export default class MonitorStepResourceIdentity {
           key: "vmwareVCenterNames",
           value: stepData.vmwareMonitor?.vcenterIdentifier,
         };
+      case MonitorType.XcpNg:
+        /*
+         * The pool's XAPI UUID (`xcp_ng.pool.id`), matched on
+         * XcpNgPool.poolIdentifier. Returned untrimmed and untyped for the
+         * same reason as VMware's.
+         */
+        return {
+          key: "xcpNgPoolIdentifiers",
+          value: stepData.xcpNgMonitor?.poolIdentifier,
+        };
       case MonitorType.Ceph:
         return {
           key: "cephClusterNames",
@@ -692,6 +704,7 @@ export default class MonitorStepResourceIdentity {
       stepData.proxmoxMonitor?.metricViewConfig,
       stepData.openstackMonitor?.metricViewConfig,
       stepData.vmwareMonitor?.metricViewConfig,
+      stepData.xcpNgMonitor?.metricViewConfig,
       stepData.cephMonitor?.metricViewConfig,
       stepData.storageArrayMonitor?.metricViewConfig,
       stepData.dockerSwarmMonitor?.metricViewConfig,
@@ -807,6 +820,7 @@ export default class MonitorStepResourceIdentity {
       proxmoxClusterNames: [],
       openStackCloudNames: [],
       vmwareVCenterNames: [],
+      xcpNgPoolIdentifiers: [],
       cephClusterNames: [],
       storageArrayNames: [],
       iotFleetNames: [],

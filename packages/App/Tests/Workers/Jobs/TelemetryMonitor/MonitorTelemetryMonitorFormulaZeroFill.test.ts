@@ -32,6 +32,7 @@ import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorSte
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorStepCephMonitorUtil } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import { MonitorStepIoTMonitorUtil } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
@@ -139,6 +140,7 @@ import {
   monitorProxmox,
   monitorStorageArray,
   monitorVMware,
+  monitorXcpNg,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 const MINUTE: number = 60_000;
@@ -300,6 +302,13 @@ function stepFor(
         metricViewConfig,
         rollingTime,
       });
+    case MonitorType.XcpNg:
+      return step.setXcpNgMonitor({
+        ...MonitorStepXcpNgMonitorUtil.getDefault(),
+        poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+        metricViewConfig,
+        rollingTime,
+      });
     case MonitorType.IoTDevice:
       return step.setIoTMonitor({
         ...MonitorStepIoTMonitorUtil.getDefault(),
@@ -333,6 +342,7 @@ const READERS: Partial<Record<MonitorType, Reader>> = {
   [MonitorType.VMware]: monitorVMware,
   [MonitorType.Ceph]: monitorCeph,
   [MonitorType.StorageArray]: monitorStorageArray,
+  [MonitorType.XcpNg]: monitorXcpNg,
   [MonitorType.IoTDevice]: monitorIoT,
 };
 

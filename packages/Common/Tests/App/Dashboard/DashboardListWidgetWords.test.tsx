@@ -187,6 +187,8 @@ import DashboardStorageArrayVolumeListComponentElement from "../../../../App/Fea
 import DashboardTraceListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardTraceListComponent";
 import DashboardVMwareHostListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardVMwareVirtualMachineListComponent";
+import DashboardXcpNgHostListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardXcpNgVmListComponent";
 
 const NAME: string = "checkout-api-production-7d9f8b6c4";
 const OTHER_NAME: string = "search-api-production-5c8d7e6f1";
@@ -251,6 +253,8 @@ function modelRow(name: string, overrides: JSONObject = {}): JSONObject {
     clusterName: CLUSTER,
     vmwareVCenter: { name: "vcenter.eu-west.example.com" },
     hostName: "esxi-07.eu-west.example.com",
+    parentHostName: "xcp-ng-eu-west-2",
+    xcpNgPool: { name: CLUSTER },
     networkSiteType: { name: "Edge data center" },
     latitude: 52.37,
     longitude: 4.9,
@@ -505,6 +509,18 @@ const LIST_WIDGETS: Array<ListWidgetCase> = [
     countLabel: count("virtual machine", "virtual machines"),
     namesTheUnnamed: true,
   },
+  {
+    type: DashboardComponentType.XcpNgHostList,
+    element: widget(DashboardXcpNgHostListComponentElement),
+    countLabel: count("host", "hosts"),
+    namesTheUnnamed: true,
+  },
+  {
+    type: DashboardComponentType.XcpNgVmList,
+    element: widget(DashboardXcpNgVmListComponentElement),
+    countLabel: count("VM", "VMs"),
+    namesTheUnnamed: true,
+  },
   // Drawn as its list (viewMode "list"), the network map's sites.
   {
     type: DashboardComponentType.NetworkMap,
@@ -672,8 +688,8 @@ afterAll(() => {
 });
 
 test("every list widget is drawn here", () => {
-  // Thirty-six lists, as the name cells suite has: a new one joins both.
-  expect(LIST_WIDGETS).toHaveLength(36);
+  // Thirty-eight lists, as the name cells suite has: a new one joins both.
+  expect(LIST_WIDGETS).toHaveLength(38);
   expect(
     new Set(
       LIST_WIDGETS.map((listWidget: ListWidgetCase): string => {
@@ -881,8 +897,8 @@ describe("a row with no name, in the reader's language", () => {
     },
   );
 
-  test("twenty-nine lists name a row that has no name", () => {
-    expect(NAMING_WIDGETS).toHaveLength(29);
+  test("thirty-one lists name a row that has no name", () => {
+    expect(NAMING_WIDGETS).toHaveLength(31);
   });
 
   test.each(

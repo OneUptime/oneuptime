@@ -162,7 +162,7 @@ Vedi [Agent Kubernetes](/docs/telemetry/kubernetes-agent).
 
 ### Infrastruttura
 
-Il gruppo del menu con le macchine e le piattaforme che gestisci: Host, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Array di storage, Rete e IoT. Un agente o una connessione popola ciascuna voce, e ciascuna dice come sta ogni macchina, cluster o dispositivo che contiene.
+Il gruppo del menu con le macchine e le piattaforme che gestisci: Host, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Array di storage, Rete e IoT. Un agente o una connessione popola ciascuna voce, e ciascuna dice come sta ogni macchina, cluster o dispositivo che contiene.
 
 Vedi [Host](/docs/telemetry/hosts).
 

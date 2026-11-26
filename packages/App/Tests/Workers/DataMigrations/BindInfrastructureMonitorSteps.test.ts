@@ -269,6 +269,7 @@ describe("BindInfrastructureMonitorSteps", () => {
         MonitorType.VMware,
         MonitorType.Ceph,
         MonitorType.StorageArray,
+        MonitorType.XcpNg,
         MonitorType.IoTDevice,
       ]) {
         expect(types).toContain(type);

@@ -84,12 +84,12 @@ Klicken Sie auf einen Pfeil, um seine Anfragerate, Fehlerrate und durchschnittli
 
 ## Die eigene Karte einer Ressource öffnen
 
-Ein vCenter, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Warnung an dem Teil, den er betrifft.
+Ein vCenter, ein XCP-ng-Pool, ein Kubernetes-Cluster, ein Host, ein Docker- oder Podman-Host, ein Docker-Swarm-, Proxmox- oder Ceph-Cluster und ein Storage-Array haben jeweils eine eigene Seite **Topologie**. Sie zeichnet diese eine Ressource im Detail, aus ihrem eigenen Inventar: was worin liegt, jeden Teil gefärbt nach seinem Zustand, und jeden offenen Vorfall und Warnung an dem Teil, den er betrifft.
 
 - **Als Baum lesen.** Die Ressource steht oben, und die Teile jedes Teils stehen rechts daneben, mit ihm verbunden durch eine Linie, die rot oder orange wird, wo etwas Aufmerksamkeit erfordert. Teile mit einem Problem darin öffnen sich von selbst, die runde Schaltfläche an einem Teil öffnet oder schließt ihn, und die Pfeiltasten bewegen sich durch die Karte.
 - **Finden, was Aufmerksamkeit erfordert.** **Erfordert Aufmerksamkeit** behält nur die Teile mit Problemen und den Weg zu jedem, und die Suche findet einen Teil überall in der Ressource.
 - **Genauer hinsehen.** Klicken Sie auf einen Teil, um zu sehen, was er ist, mit einem Link zu seiner eigenen Seite, und auf **Darauf fokussieren**, um nur diesen Teil zu zeichnen, was darin liegt und womit er in Beziehung steht.
-- **In beide Richtungen.** **In der Topologie öffnen** öffnet die Ressource in **Infrastruktur**, und ihre Schaltfläche **vCenter-Topologie öffnen**, **Cluster-Topologie öffnen**, **Host-Topologie öffnen** oder **Storage-Array-Topologie öffnen** führt zurück.
+- **In beide Richtungen.** **In der Topologie öffnen** öffnet die Ressource in **Infrastruktur**, und ihre Schaltfläche **vCenter-Topologie öffnen**, **Pool-Topologie öffnen**, **Cluster-Topologie öffnen**, **Host-Topologie öffnen** oder **Storage-Array-Topologie öffnen** führt zurück.
 
 ## Ihr Netzwerk sehen
 

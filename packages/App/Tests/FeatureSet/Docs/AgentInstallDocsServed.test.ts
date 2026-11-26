@@ -36,6 +36,7 @@ const PAGES: Array<string> = [
   "telemetry/proxmox",
   "telemetry/storage-arrays",
   "telemetry/vmware",
+  "telemetry/xcp-ng",
 ];
 
 const GITHUB_FILES: string = "raw.githubusercontent.com/OneUptime/oneuptime/";

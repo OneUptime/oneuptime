@@ -360,6 +360,7 @@ const PROPER_NOUNS: Array<string> = [
   "Ubiquiti",
   "Vercel",
   "Windows",
+  "Xen",
   "Zabbix",
 ];
 
@@ -372,6 +373,7 @@ const PROPER_NOUN_PAIRS: Array<[string, string]> = [
   ["Google", "Cloud"],
   ["Microsoft", "Teams"],
   ["Tencent", "Cloud"],
+  ["Xen", "Orchestra"],
 ];
 
 /*

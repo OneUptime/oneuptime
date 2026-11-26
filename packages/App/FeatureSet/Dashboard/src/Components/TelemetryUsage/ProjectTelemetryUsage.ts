@@ -64,6 +64,7 @@ export const TELEMETRY_USAGE_RESOURCE_PAGES: Partial<
   [ServiceType.StorageArray]: PageMap.STORAGE_ARRAY_VIEW,
   [ServiceType.DockerSwarmCluster]: PageMap.DOCKER_SWARM_CLUSTER_VIEW,
   [ServiceType.VMwareVCenter]: PageMap.VMWARE_VCENTER_VIEW,
+  [ServiceType.XcpNgPool]: PageMap.XCP_NG_POOL_VIEW,
   // An IoTDevice row carries its fleet's id.
   [ServiceType.IoTDevice]: PageMap.IOT_FLEET_VIEW,
   [ServiceType.ServerlessFunction]: PageMap.SERVERLESS_FUNCTION_VIEW,

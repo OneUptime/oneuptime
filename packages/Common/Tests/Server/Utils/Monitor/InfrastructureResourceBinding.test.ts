@@ -25,6 +25,7 @@ interface Row {
   projectId: string;
   name?: string;
   hostIdentifier?: string;
+  poolIdentifier?: string;
 }
 
 let rows: Array<Row> = [];
@@ -53,7 +54,7 @@ const findOneBy: (data: {
         return row._id === String(query["_id"]);
       }
 
-      for (const column of ["name", "hostIdentifier"]) {
+      for (const column of ["name", "hostIdentifier", "poolIdentifier"]) {
         const wanted: { sameText?: string } | undefined = query[column] as
           | { sameText?: string }
           | undefined;
@@ -102,6 +103,16 @@ jest.mock("../../../../Server/Services/OpenStackCloudService", () => {
   };
 });
 jest.mock("../../../../Server/Services/VMwareVCenterService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneBy: (d: never) => {
+        return findOneBy(d);
+      },
+    },
+  };
+});
+jest.mock("../../../../Server/Services/XcpNgPoolService", () => {
   return {
     __esModule: true,
     default: {
@@ -540,6 +551,114 @@ describe("an OpenStack monitor follows its cloud", () => {
     expect(configOf(resolved, "openstackMonitor")["cloudIdentifier"]).toBe(
       "production-east",
     );
+  });
+});
+
+/*
+ * An XCP-ng pool is matched on its XAPI UUID, never its name: a pool can
+ * have no name, two Xen Orchestras can each have a "Production", and a
+ * rename - on its Settings page or in Xen Orchestra - must not move its
+ * monitors.
+ */
+describe("an XCP-ng monitor follows its pool by the pool's UUID, never its name", () => {
+  const POOL_ID: string = "77777777-7777-4777-8777-777777777777";
+  const POOL_UUID: string = "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c";
+
+  function xcpNgStep(config: Record<string, unknown>): MonitorStep {
+    const step: MonitorStep = new MonitorStep();
+    step.data!.id = STEP_ID;
+    (step.data as unknown as Record<string, unknown>)["xcpNgMonitor"] = {
+      resourceFilters: {},
+      metricViewConfig: { queryConfigs: [], formulaConfigs: [] },
+      ...config,
+    };
+    return step;
+  }
+
+  beforeEach(() => {
+    rows.push({
+      _id: POOL_ID,
+      projectId: PROJECT_ID.toString(),
+      name: "Production",
+      poolIdentifier: POOL_UUID,
+    });
+  });
+
+  test("a step naming the pool's UUID, in capitals and with spaces, is bound to it, its value kept as written", async () => {
+    const written: MonitorSteps = stepsOf(
+      xcpNgStep({ poolIdentifier: ` ${POOL_UUID.toUpperCase()} ` }),
+    );
+
+    expect(
+      await InfrastructureResourceBinding.bindMonitorSteps({
+        projectId: PROJECT_ID,
+        monitorType: MonitorType.XcpNg,
+        monitorSteps: written,
+      }),
+    ).toBe(true);
+    expect(
+      configOf(written.data!.monitorStepsInstanceArray[0]!, "xcpNgMonitor"),
+    ).toMatchObject({
+      poolIdentifier: ` ${POOL_UUID.toUpperCase()} `,
+      resourceId: POOL_ID,
+    });
+  });
+
+  test("the pool's name binds it to nothing", async () => {
+    const written: MonitorSteps = stepsOf(
+      xcpNgStep({ poolIdentifier: "Production" }),
+    );
+
+    await InfrastructureResourceBinding.bindMonitorSteps({
+      projectId: PROJECT_ID,
+      monitorType: MonitorType.XcpNg,
+      monitorSteps: written,
+    });
+
+    expect(
+      configOf(written.data!.monitorStepsInstanceArray[0]!, "xcpNgMonitor")[
+        "resourceId"
+      ],
+    ).toBeUndefined();
+  });
+
+  test("a pool renamed since the monitor was saved is evaluated on the same UUID", async () => {
+    rows[rows.length - 1]!.name = "Production (old)";
+
+    const resolved: MonitorStep =
+      await InfrastructureResourceBinding.resolveForEvaluation({
+        projectId: PROJECT_ID,
+        monitorType: MonitorType.XcpNg,
+        monitorStep: xcpNgStep({
+          poolIdentifier: POOL_UUID,
+          resourceId: POOL_ID,
+        }),
+      });
+
+    expect(configOf(resolved, "xcpNgMonitor")).toMatchObject({
+      poolIdentifier: POOL_UUID,
+      resourceId: POOL_ID,
+    });
+  });
+
+  test("another project's pool with the same UUID is never bound", async () => {
+    rows[rows.length - 1]!.projectId = "99999999-9999-4999-8999-999999999999";
+
+    const written: MonitorSteps = stepsOf(
+      xcpNgStep({ poolIdentifier: POOL_UUID }),
+    );
+
+    await InfrastructureResourceBinding.bindMonitorSteps({
+      projectId: PROJECT_ID,
+      monitorType: MonitorType.XcpNg,
+      monitorSteps: written,
+    });
+
+    expect(
+      configOf(written.data!.monitorStepsInstanceArray[0]!, "xcpNgMonitor")[
+        "resourceId"
+      ],
+    ).toBeUndefined();
   });
 });
 

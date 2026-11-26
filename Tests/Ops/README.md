@@ -448,7 +448,11 @@ Not part of `npm test`, because it needs docker and helm. It runs
 image over the Docker, Podman, Docker Swarm and VMware agent configs, over the
 Storage Array Agent's three configs (as shipped, and again with their
 commented-out syslog receivers and `logs` pipeline uncommented — and it checks
-that an empty `STORAGE_ARRAY_NAME` stops the collector), over the Database
+that an empty `STORAGE_ARRAY_NAME` stops the collector), over the XCP-ng
+Agent's config (as `install.sh` writes its settings for https, a lab's http,
+an IPv6 Xen Orchestra and a certificate checked against another name, and with
+a secret and a name YAML would read as a list and a map; it checks that no
+component is named by a deprecated alias), over the Database
 Agent's per-receiver configs (as shipped, and again with every optional metric
 their comments list switched on), and over both collector ConfigMaps rendered
 out of the `kubernetes-agent` chart, on its default values and on its OpenShift
@@ -632,6 +636,109 @@ per node in `PVE_NODES` (`cluster=0&node=1`) — names a listed node the
 exporter cannot read, warns when the cluster has more nodes than the list,
 falls back to `PVE_HOST` alone as `docker-compose.yml` does, and reports a
 list without its square brackets as the error that stops the collector.
+
+### `XcpNgAgentConfigs.test.js`
+
+The XCP-ng Agent (`agents/XcpNgAgent`) is config-only: a stock collector
+scraping Xen Orchestra's OpenMetrics plugin, which serves every pool that Xen
+Orchestra manages from one endpoint. OneUptime registers each pool from what
+the config sends, so its shape is pinned, against the names the ingest reads
+(`packages/Common/Types/XcpNg/XcpNgTelemetry.ts`, loaded as the module it is)
+and the recorded scrape (`Fixtures/XcpNg/XenOrchestraScrape.js`):
+
+- one job, `https://<XO>/openmetrics/metrics` every 60 seconds with a timeout
+  that leaves room for a slow pool, the plugin's secret as a Bearer token,
+  Xen Orchestra's timestamps kept, and its certificate checked against
+  `/etc/oneuptime/xo-ca.pem` (the file `docker-compose.yml` mounts, in the long
+  form that never creates it) - `insecure_skip_verify` appears nowhere;
+- only `xcp_*` leaves the collector; exactly the eight rate series Xen
+  Orchestra types `counter` become gauges, which are every counter it serves
+  and the ingest's `XCP_NG_RATE_TYPED_AS_COUNTER_SERIES`;
+- `groupbyattrs` on `pool_id` / `pool_name`, then the `resource` processor moves
+  them to `xcp_ng.pool.id` / `xcp_ng.pool.name`, stamps `oneuptime.agent.version`
+  (the compose pin) and deletes `service.name` / `service.instance.id`, and a
+  transform stamps `xen_orchestra.name`; what is left without a pool - in the
+  recorded scrape the IPMI host power alone - is dropped; the batch never
+  splits a scrape; the exporter is `otlp_http`, the type collector 0.165.0
+  knows it by;
+- no value a person types is a `${env:...}` on its own, which collector
+  0.165.0 reads as YAML (measured: an IPv6 address or a secret like `a: b`
+  stopped the config loading, a secret like `TRUE` or `+12` reached Xen
+  Orchestra as another value, a name like `XO: lab` arrived as a map): the
+  address sits behind `xo=` and is relabeled out, the secret is followed by a
+  space HTTP drops, and the name is set inside an OTTL string;
+- `install.sh` keeps every variable the compose file reads plus `XO_URL`,
+  `XO_TLS_FINGERPRINT` and `XO_CA_FILE`, quotes them for Compose and escapes the
+  secret for the collector, shares its `.env` helpers with the VMware and
+  Database installers, never turns certificate checking off, never echoes the
+  secret, and starts the agent once with `--force-recreate`;
+  `troubleshoot.sh` hands the secret and the key to a digest-pinned curl image
+  on stdin and checks the chain in the order data travels it;
+- OneUptime serves every file of the agent but its README at
+  `/install/xcp-ng-agent`.
+
+### `XcpNgAgentScripts.test.js`
+
+Runs the XCP-ng Agent's `install.sh` and `troubleshoot.sh` for real against a
+stand-in Xen Orchestra (`Utils/FakeXenOrchestra.js`: HTTPS behind a
+certificate the suite makes, the plugin's routes, its secret check and 401
+bodies, the recorded scrape), with the real `curl` and `openssl`; only
+`docker` and the agent files' download are stubbed, and `xo.example.test`
+resolves to this machine. It pins:
+
+- `XO_URL` into `XO_SCHEME` and `XO_ADDRESS`: ports, IPv6 in brackets, upper
+  case, no scheme, and the refusals (a path, a user, a bare IPv6 address, a
+  port that is not one);
+- the certificate trusted exactly one way - this machine's CA bundle when it
+  trusts it, `XO_CA_FILE` checked against Xen Orchestra, or Xen Orchestra's own
+  certificate pinned by `XO_TLS_FINGERPRINT` in any spelling - else its
+  fingerprint shown, and pinned only when someone at a terminal confirms it
+  (run under `script(1)`; CI must have it). A fingerprint that does not match,
+  a CA that did not issue it, Xen Orchestra's own self-signed certificate (no
+  subjectAltName) and a name the certificate does not list each stop the
+  install before anything is written, started, or sent the secret; an address
+  the certificate does not list takes the name it does (`XO_TLS_SERVER_NAME`);
+- the secret checked with Xen Orchestra (the plugin's two 401 reasons, its
+  proxy error when the plugin is off, a Xen Orchestra with no pools), never on
+  a command line or in the output, written to a mode-600 `.env` quoted for
+  Compose and with every `$` doubled for the collector, and Compose started
+  from `.env` alone; `http://` works, with its warning;
+- a re-run is the upgrade: nothing asked, the pin checked again (a changed
+  certificate stops it and leaves the agent as it was), an edited config kept
+  as `<file>.bak.<timestamp>`, and a Xen Orchestra that does not answer keeps
+  the certificate already trusted;
+- the doctor names the first step that fails: Xen Orchestra unreachable, its
+  plugin off, a certificate that is not the pinned one (both fingerprints),
+  one that names no host, a CA that no longer issues it, a refused secret, no
+  pools, a missing `xo-ca.pem`, `localhost` - and reads the collector's own log
+  lines for each - and a secret with `$` reaches Xen Orchestra as typed.
+
+### `xcp-ng-agent-scrape-behaviour.sh` and `XcpNgAgentScrapeFixtures.test.js`
+
+Runs the XCP-ng Agent's collector from `agents/XcpNgAgent/docker-compose.yml`,
+exactly as it ships but scraping every 5 seconds, against the stand-in Xen
+Orchestra in a container (the recorded scrape over HTTPS, losing the unnamed
+pool from its third scrape), its own `otlp_http` exporter sending to a
+stand-in OneUptime that logs the path and token and hands each export to an
+OTLP sink (a second collector of the same image with a file exporter). Its
+node half (`Utils/XcpNgAgentScrapeBehaviour.js`) matches each exported
+resource to the scrape it came from and checks, sample for sample, that every
+served `xcp_*` sample of a pool arrives with its value and time and nothing
+else does: one resource per pool with its identity, the eight rate series as
+gauges with the values served (also those that went down), no resource
+without a pool, and one staleness marker - for the lost pool's
+`xcp_pool_connected`. Then a wrong secret, a certificate that is not the pinned
+one and Xen Orchestra's own self-signed certificate must each send nothing,
+with the collector saying why. It needs docker, node and openssl, and runs in
+the Ops workflow.
+
+Its export of the first two scrapes is kept as
+`packages/Common/Tests/Server/Utils/Telemetry/Fixtures/XcpNg/AgentOtlpScrape{1,2}.json`
+(the README there says how they are normalized), which the ingest's tests read:
+every run is held to them, and `--write-fixtures` writes them again after a
+deliberate change. `XcpNgAgentScrapeFixtures.test.js` needs no Docker: it holds
+the committed files to the recorded scrape, the helper to how it matches a
+resource to its scrape, and the script to how it runs.
 
 ### `OpenStackAgentInstallers.test.js`
 
@@ -833,8 +940,8 @@ copies in.
 
 ### `AgentTroubleshootTokenCheck.test.js`
 
-Runs the ingestion-key check of the Ceph, Proxmox, OpenStack, VMware, Storage Array and
-Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
+Runs the ingestion-key check of the Ceph, Proxmox, OpenStack, VMware, Storage Array,
+XCP-ng and Docker Swarm agents' `troubleshoot.sh` (with `docker` stubbed) and of the Kubernetes agent
 chart's (with `kubectl`, and the local `curl` and `sleep`, stubbed) against
 each answer a OneUptime server can give (GH#3978). Ingest refuses a bad key
 with 401 (missing, unknown, expired) or 422 (disabled, or a browser key from a
@@ -851,7 +958,7 @@ The Docker Swarm check has no `/fluentd` fallback, so there an old server that
 does not refuse the key stays inconclusive.
 
 With the collector down there is no container environment to read, and the
-Ceph, Proxmox, OpenStack, VMware and Storage Array checks fall back to the `.env` their
+Ceph, Proxmox, OpenStack, VMware, Storage Array and XCP-ng checks fall back to the `.env` their
 `install.sh` writes quoted for Docker Compose: the suite pins that they read
 it as Compose does, so the probe asks the URL and sends the key without the
 quotes.

@@ -498,6 +498,7 @@ describe("scheduled maintenance overview: affected resources", () => {
       model: "VMwareVCenter",
       type: "VMwareVCenter",
     },
+    { relation: "xcpNgPools", model: "XcpNgPool", type: "XcpNgPool" },
     { relation: "cephClusters", model: "CephCluster", type: "CephCluster" },
     { relation: "storageArrays", model: "StorageArray", type: "StorageArray" },
     {
@@ -569,7 +570,7 @@ describe("scheduled maintenance overview: affected resources", () => {
   test("the pickers' resource types list every relation, the monitors apart, in the incident page's order plus network sites", () => {
     expect(editFields).toContain('resourceTypes={["Monitor"]}');
     expect(editFields).toContain(
-      'resourceTypes={[ "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "OpenStackCloud", "VMwareVCenter", "CephCluster", "StorageArray", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "CloudResource", "NetworkSite", "Service", ]}',
+      'resourceTypes={[ "Host", "KubernetesCluster", "DockerHost", "PodmanHost", "ProxmoxCluster", "OpenStackCloud", "VMwareVCenter", "XcpNgPool", "CephCluster", "StorageArray", "DockerSwarmCluster", "IoTFleet", "DatabaseServer", "CloudResource", "NetworkSite", "Service", ]}',
     );
   });
 });

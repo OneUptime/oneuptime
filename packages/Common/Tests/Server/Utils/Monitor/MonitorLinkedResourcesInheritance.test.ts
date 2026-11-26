@@ -300,6 +300,7 @@ describe("Incidents and alerts inherit what their monitor is linked to", () => {
       vmwareVCenterIds: ["v-1"],
       cephClusterIds: ["ceph-1"],
       storageArrayIds: ["array-1"],
+      xcpNgPoolIds: [],
       dockerSwarmClusterIds: ["sw-1"],
       iotFleetIds: ["iot-1"],
       databaseServerIds: ["db-1"],
@@ -632,6 +633,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
           linked(LinkedAffectedResourceType.VMwareVCenter, "v-1"),
           linked(LinkedAffectedResourceType.CephCluster, "ceph-1"),
           linked(LinkedAffectedResourceType.StorageArray, "array-1"),
+          linked(LinkedAffectedResourceType.XcpNgPool, "xcp-1"),
           linked(LinkedAffectedResourceType.DockerSwarmCluster, "sw-1"),
           linked(LinkedAffectedResourceType.IoTFleet, "iot-1"),
           linked(LinkedAffectedResourceType.DatabaseServer, "db-1"),
@@ -654,6 +656,7 @@ describe("MonitorResourceContextUtil.resolveLinkedResourcesForMonitor", () => {
       vmwareVCenterIds: ["v-1"],
       cephClusterIds: ["ceph-1"],
       storageArrayIds: ["array-1"],
+      xcpNgPoolIds: ["xcp-1"],
       dockerSwarmClusterIds: ["sw-1"],
       iotFleetIds: ["iot-1"],
       databaseServerIds: ["db-1"],
@@ -832,6 +835,7 @@ describe("LinkedAffectedResources.readForMonitors", () => {
         "services",
         "storageArrays",
         "vmwareVCenters",
+        "xcpNgPools",
       ].sort(),
     );
 

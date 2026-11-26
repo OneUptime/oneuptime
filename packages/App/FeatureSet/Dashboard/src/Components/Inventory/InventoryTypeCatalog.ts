@@ -352,6 +352,13 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     description:
       "A storage array, such as a Pure Storage FlashArray or FlashBlade.",
   },
+  [EntityType.XcpNgPool]: {
+    label: "XCP-ng Pool",
+    pluralLabel: "XCP-ng Pools",
+    category: InventoryCategory.Clusters,
+    icon: IconProp.XcpNg,
+    description: "An XCP-ng pool, read from the Xen Orchestra that manages it.",
+  },
   [EntityType.DockerSwarmCluster]: {
     label: "Swarm Cluster",
     pluralLabel: "Swarm Clusters",
