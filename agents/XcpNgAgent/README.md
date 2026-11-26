@@ -115,7 +115,124 @@ openssl s_client -connect xo.example.com:443 -servername xo.example.com </dev/nu
 openssl x509 -in xo-ca.pem -noout -fingerprint -sha256
 ```
 
-Then create a `.env` file next to them. Write `XO_SCHEME` and `XO_ADDRESS` (host:port) yourself, and every `$` in the secret as `$$`:
+Then create a `.env` file next to them. Write `XO_ADDRESS` (host:port) yourself (and `XO_SCHEME=http` only for a lab: it defaults to `https`), and every `# OneUptime XCP-ng Agent
+
+Monitor XCP-ng pools — hosts, VMs, storage repositories and virtual disks — with OneUptime, through the OpenMetrics plugin of the Xen Orchestra that manages them.
+
+The agent is config-only: a stock `otel/opentelemetry-collector-contrib` container with a tuned config that scrapes Xen Orchestra's own OpenMetrics endpoint once a minute and ships what it reads to OneUptime over OTLP. One Xen Orchestra serves every pool it manages from that one endpoint, so **one agent adds every pool**: each pool becomes its own XCP-ng pool in OneUptime, matched on its XAPI UUID. No XCP-ng host password ever reaches the agent or OneUptime — only the plugin's read-only secret.
+
+## Prerequisites
+
+- **Xen Orchestra 6.9 or later** with its **OpenMetrics plugin** (`xo-server-openmetrics`, version 1.9 or later). Xen Orchestra built from sources includes the plugin; on the Xen Orchestra Appliance (XOA) it needs a Premium licence. 6.9 brings the plugin's scrape memory-leak fixes (6.8 already stopped its secret changing on every restart of xo-server).
+- **XCP-ng 8.3 LTS** pools, connected to that Xen Orchestra.
+- Docker Engine 20.10+ with the Docker Compose v2 plugin, `curl` and `openssl`, on any machine that reaches Xen Orchestra's web port (443 on an XOA, 80 on Xen Orchestra built from sources unless you gave it HTTPS).
+- A **OneUptime ingestion key** — create one from *Project Settings → Telemetry & APM → Ingestion Keys*.
+
+Without the plugin (an XOA without Premium, or a pool with no Xen Orchestra at all) a pool cannot be read this way yet; reading XAPI directly is planned in [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
+
+### Turning on the OpenMetrics plugin
+
+1. In Xen Orchestra, open **Settings → Plugins** and find **openmetrics**.
+2. Leave **Prometheus secret** empty (one is generated, and kept, the first time the plugin loads) or set your own long random value (`openssl rand -hex 32`), then **Save** and turn the plugin **on**.
+3. Open the plugin again and copy the secret: the agent sends it as a Bearer token. Anyone who has it can read every pool's metrics, so treat it like a password.
+
+Check it from the agent's machine (the health check needs no secret):
+
+```bash
+curl -k https://xo.example.com/openmetrics/health
+# {"status":"ok"}
+```
+
+`-k` skips the certificate check for this one request only: it carries no secret and only asks whether the plugin runs, and Xen Orchestra's certificate may well be the self-signed one [below](#when-xen-orchestra-uses-its-own-self-signed-certificate). The agent never skips the check.
+
+## Xen Orchestra's certificate
+
+The agent checks Xen Orchestra's certificate and never skips the check: the secret would otherwise go to whoever answers in Xen Orchestra's place. It trusts exactly what `xo-ca.pem` (next to `docker-compose.yml`) holds, which `install.sh` writes in one of three ways:
+
+| Your Xen Orchestra has | Set | `xo-ca.pem` holds |
+| --- | --- | --- |
+| A certificate this machine already trusts (a public CA such as Let's Encrypt, or your own CA installed on this machine) | nothing | This machine's CA bundle |
+| A certificate from your own CA | `XO_CA_FILE=/path/to/ca.pem` | That CA bundle |
+| A self-signed certificate that names its address | `XO_TLS_FINGERPRINT=<SHA-256 fingerprint>` | Xen Orchestra's certificate itself (pinned) |
+
+With none of them set and a certificate this machine does not trust, `install.sh` shows the certificate and its fingerprint and pins it once you confirm it is Xen Orchestra's; with no one at a terminal to confirm, it stops. Read the fingerprint on Xen Orchestra's machine to compare:
+
+```bash
+openssl x509 -noout -fingerprint -sha256 -in <the certificate xo-server uses>
+```
+
+A pinned certificate is trusted until it changes: when Xen Orchestra's certificate is renewed, run `install.sh` again with the new `XO_TLS_FINGERPRINT`. Until then the agent reads nothing, and `troubleshoot.sh` says the certificate is no longer the pinned one. A CA bundle survives renewals.
+
+### When Xen Orchestra uses its own self-signed certificate
+
+The certificate Xen Orchestra makes for itself when it has none (`autoCert`) names no host: it has no subjectAltName. The collector, like every current TLS client, checks that a certificate is issued to the address it connects to, from its subjectAltName only, so it can never trust that certificate — not even pinned. `install.sh` stops on it and says so. Give Xen Orchestra a certificate that names its address instead, for example a self-signed one made on Xen Orchestra's machine:
+
+```bash
+sudo mkdir -p /etc/ssl/xo
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+  -subj "/CN=xo.example.com" \
+  -addext "subjectAltName=DNS:xo.example.com,IP:10.0.0.5" \
+  -keyout /etc/ssl/xo/key.pem -out /etc/ssl/xo/cert.pem
+```
+
+Name every address the agent may use in `subjectAltName` (`DNS:` for a name, `IP:` for an address). Point xo-server's HTTPS listener at the two files (readable by the user xo-server runs as, root by default) (in a configuration file of its own: `/etc/xo-server/config.httpscert.toml` on an XOA, or next to xo-server's `config.toml` for Xen Orchestra built from sources), restart xo-server (`systemctl restart xo-server`) and pin the new certificate:
+
+```toml
+[http.listen.1]
+port = 443
+cert = '/etc/ssl/xo/cert.pem'
+key = '/etc/ssl/xo/key.pem'
+```
+
+Or let Xen Orchestra request a Let's Encrypt certificate itself (XOA supports it, see Xen Orchestra's documentation): it is publicly trusted, so the agent needs nothing set.
+
+`XO_TLS_SERVER_NAME` is the name the certificate is checked against when `XO_URL` uses an address the certificate does not list (an IP address, say). `install.sh` fills it from the certificate's subjectAltName when `XO_URL`'s address is not in it.
+
+### http:// in a lab
+
+`XO_URL=http://...` works, with a warning: the secret and everything Xen Orchestra reports then cross the network in clear. Use it in a lab only.
+
+## Quick Start — Install Script
+
+```bash
+curl -fsSL https://oneuptime.com/install/xcp-ng-agent -o install.sh
+bash install.sh
+```
+
+Every OneUptime serves this script and the agent's files for its own release, at `<your OneUptime URL>/install/xcp-ng-agent`: on a self-hosted OneUptime, use its URL in place of `https://oneuptime.com` in the commands here. The first line saves the script as `install.sh`, so you can read it before you run it.
+
+The script asks for your OneUptime URL and ingestion key, Xen Orchestra's address (`XO_URL`), the plugin's secret (not echoed) and what to call this Xen Orchestra in OneUptime. Before it writes or starts anything it reads Xen Orchestra's certificate and decides how to trust it (above), then asks Xen Orchestra for its metrics with the secret and tells you which pools it reports. Then it installs to `/opt/oneuptime-xcp-ng-agent`, writes `xo-ca.pem` and a `0600` `.env`, and starts the agent with Docker Compose. Values are quoted for Docker Compose as they are written, and the secret is also written with every `$` doubled, because the collector expands `$` once more. Re-running the script reuses everything in an existing `.env` instead of asking again, which is how you [upgrade](#upgrading).
+
+Without a terminal (Ansible, a CI job), give everything in the environment:
+
+```bash
+ONEUPTIME_URL=https://oneuptime.com \
+ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key \
+XO_URL=https://xo.example.com \
+XO_OPENMETRICS_SECRET=your-plugin-secret \
+XO_NAME=xo-prod \
+XO_TLS_FINGERPRINT=AB:CD:...:EF \
+bash install.sh
+```
+
+## Quick Start — Docker Compose
+
+Download `docker-compose.yml` and `otel-collector-config.yaml` from your OneUptime into a folder:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/xcp-ng-agent/docker-compose.yml
+curl -fsSLO https://oneuptime.com/install/xcp-ng-agent/otel-collector-config.yaml
+```
+
+Save the certificates the agent trusts for Xen Orchestra as `xo-ca.pem` next to them — your CA's bundle, or Xen Orchestra's own certificate once you have checked its fingerprint:
+
+```bash
+openssl s_client -connect xo.example.com:443 -servername xo.example.com </dev/null 2>/dev/null \
+  | openssl x509 > xo-ca.pem
+openssl x509 -in xo-ca.pem -noout -fingerprint -sha256
+```
+
+Then create a `.env` file next to them.  in the secret as `$`:
 
 ```bash
 ONEUPTIME_URL=https://oneuptime.com
@@ -141,7 +258,7 @@ Without `xo-ca.pem`, `docker compose up` stops with `bind source path does not e
 | `ONEUPTIME_URL` | Yes | Your OneUptime instance URL |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Ingestion key (*Project Settings → Telemetry & APM → Ingestion Keys*) |
 | `XO_URL` | Yes (install script) | Xen Orchestra's address with its scheme, e.g. `https://xo.example.com`, `https://10.0.0.5:8443` or `https://[fd00::5]`. No path. `install.sh` writes `XO_SCHEME` and `XO_ADDRESS` from it |
-| `XO_SCHEME` | Yes (Compose) | `https`, or `http` in a lab (default: `https`) |
+| `XO_SCHEME` | No | `https`, or `http` in a lab (default: `https`) |
 | `XO_ADDRESS` | Yes (Compose) | Xen Orchestra's `host:port`, an IPv6 address in brackets (`[fd00::5]:443`) |
 | `XO_OPENMETRICS_SECRET` | Yes | The OpenMetrics plugin's secret (*Settings → Plugins → openmetrics*), every `$` written as `$$` |
 | `XO_NAME` | No | What to call this Xen Orchestra in OneUptime, stamped on every pool as `xen_orchestra.name` and shown on the pool's Settings (default: `XO_URL`'s host) |
@@ -177,7 +294,7 @@ Where to run it: anywhere that reaches Xen Orchestra. A machine outside the pool
 
 ## Auto-tag with Project Labels
 
-Any resource attribute prefixed with `oneuptime.label.` is promoted to a project Label and attached to every pool the agent reports. Pattern: `oneuptime.label.<dimension>=<value>` becomes a label named `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml` (next to `xen_orchestra.name`):
+Any resource attribute prefixed with `oneuptime.label.` is promoted to a project Label and attached to every pool the agent reports. Pattern: `oneuptime.label.<dimension>=<value>` becomes a label named `<dimension>:<value>`. Add them to the `resource` processor in `otel-collector-config.yaml` (next to `oneuptime.agent.version`):
 
 ```yaml
 processors:
@@ -201,7 +318,7 @@ The unit assumes the agent lives in `/opt/oneuptime-xcp-ng-agent` (the install s
 
 ## Upgrading
 
-The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on each pool's page; select it to see these commands.
+The collector image is pinned in `docker-compose.yml`, and `otel-collector-config.yaml` reports that pin to OneUptime as the agent's version (`oneuptime.agent.version`). When a newer OneUptime release pins a newer collector, a warning sign appears beside the **Agent Version** on each pool's Overview and Settings; select it to see these commands.
 
 Re-run `install.sh`: it reuses every value in your existing `.env` (nothing is asked again; an exported variable still overrides it), checks Xen Orchestra's certificate the same way again (a pinned certificate that changed stops the upgrade, leaving the running agent as it was; a Xen Orchestra that does not answer keeps the `xo-ca.pem` you have), refreshes `docker-compose.yml` and `otel-collector-config.yaml`, pulls the image and recreates the agent so the collector reads its new config. A file you edited since `install.sh` installed it is kept next to the new one as `<file>.bak.<timestamp>`, and the script names it at the end.
 
