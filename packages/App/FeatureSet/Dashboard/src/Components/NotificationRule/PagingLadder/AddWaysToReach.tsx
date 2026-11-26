@@ -9,9 +9,9 @@ import {
   parsePhoneNumber,
 } from "../../GuidedSetup/OnCall/OnCallSetup";
 import {
-  BROWSER_PUSH_PROBLEM_MESSAGES,
   BrowserPushError,
   BrowserPushProblem,
+  getBrowserPushProblemMessage,
   getThisBrowserDeviceId,
 } from "../../NotificationMethods/BrowserPushRegistration";
 import MobileAppCodes from "../../NotificationMethods/MobileAppCodes";
@@ -522,7 +522,10 @@ const AddWaysToReach: FunctionComponent<ComponentProps> = (
         >
           {browserError.problem ? (
             translator.translateText(
-              BROWSER_PUSH_PROBLEM_MESSAGES[browserError.problem],
+              getBrowserPushProblemMessage(
+                browserError.problem,
+                mobileAppOffer !== null,
+              ),
             )
           ) : (
             <ErrorInSentence

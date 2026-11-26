@@ -64454,5 +64454,17 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "この問題は保留されています。リスクが受け入れられたか、問題ではないとされました。修正するプルリクエストをリンクするには、問題を再度開いてください。",
   "Took {{pullRequest}} off this issue.": "{{pullRequest}} とこの問題のリンクを解除しました。",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "この問題に対するあなた自身の修正です。OneUptime は OneUptime AI の修正と同様に、これを本番環境まで追跡し、本番環境で確認されると問題は修正済みとして扱われます。",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} はすでにこの問題にリンクされています。",
+  "Each message above says whether it was sent, and why not. Check your spam folder, and that your email or phone number is added and verified in your notification methods.": "上の各メッセージには、送信されたかどうかと、送信されなかった理由が表示されます。迷惑メールフォルダーを確認し、メールアドレスまたは電話番号が通知方法に追加され、確認済みであることも確かめてください。",
+  "Members have a browser registered for push notifications.": "メンバーがプッシュ通知用にブラウザーを登録しています。",
+  "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen. In Safari, tap Share, then Add to Home Screen, open OneUptime from your Home Screen and register it there.": "iPhone と iPad では、OneUptime をホーム画面に追加するとプッシュ通知が使えます。Safari で共有をタップし、ホーム画面に追加を選び、ホーム画面から OneUptime を開いてそこで登録してください。",
+  "Only email can page you now. Add your phone and send yourself a test page.": "現在、あなたを呼び出せるのはメールだけです。電話を追加して、自分にテスト呼び出しを送信してください。",
+  "People you invited accept their invitation, then add a phone number or an email address to be paged on.": "招待された人は招待を承諾し、呼び出しを受ける電話番号またはメールアドレスを追加します。",
+  "Push notifications": "プッシュ通知",
+  "Push notifications are not set up for you yet. Register this browser in Notification Methods to get them.": "プッシュ通知がまだ設定されていません。受け取るには、通知方法からこのブラウザーを登録してください。",
+  "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.": "このブラウザーではここでプッシュ通知を受け取れません。最新の Chrome、Edge、Firefox、Safari の通常の (プライベートでない) ウィンドウを使ってください。",
+  "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email still reaches you.": "このサーバーはまだ SMS の送信や電話の発信ができません。サーバーの管理者が Admin Dashboard で Twilio を設定します。それまでは、メールで連絡が届きます。",
+  "This server can't send SMS or make calls yet. Set up Twilio for the server; until then, email still reaches you.": "このサーバーはまだ SMS の送信や電話の発信ができません。サーバーの Twilio を設定してください。それまでは、メールで連絡が届きます。",
+  "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods, or set up email now.": "このサーバーはまだメールを送信できないため、誰にもメールは届きません。それでも、通知方法に電話を追加すれば、SMS や電話で呼び出しを受け取れます。今すぐメールを設定することもできます。",
+  "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods. Ask your server's admin to set up email.": "このサーバーはまだメールを送信できないため、誰にもメールは届きません。それでも、通知方法に電話を追加すれば、SMS や電話で呼び出しを受け取れます。メールの設定は、サーバーの管理者に依頼してください。"
 }

@@ -87,6 +87,12 @@ export interface ComplianceRuleDefinition {
   title: string;
   // One sentence on what the rule checks.
   description: string;
+  /*
+   * The same sentence where the server's admins took the mobile app away
+   * (Admin Dashboard > Settings > Help and Support, #10945), for a rule
+   * whose sentence names the app; undefined for every other rule.
+   */
+  descriptionWithoutApp?: string | undefined;
   // NotificationMethod rules: the channel whose verified method is required.
   methodChannel?: ComplianceMethodChannel | undefined;
   // OnCallRule rules: the notification rule type the member must have.
@@ -162,17 +168,22 @@ const methodRule: (data: {
   channel: ComplianceMethodChannel;
   title: string;
   description: string;
+  descriptionWithoutApp?: string | undefined;
 }) => ComplianceRuleDefinition = (data: {
   ruleType: ComplianceRuleType;
   channel: ComplianceMethodChannel;
   title: string;
   description: string;
+  descriptionWithoutApp?: string | undefined;
 }): ComplianceRuleDefinition => {
   return {
     ruleType: data.ruleType,
     category: ComplianceRuleCategory.NotificationMethod,
     title: data.title,
     description: data.description,
+    ...(data.descriptionWithoutApp
+      ? { descriptionWithoutApp: data.descriptionWithoutApp }
+      : {}),
     methodChannel: data.channel,
   };
 };
@@ -273,6 +284,9 @@ export const COMPLIANCE_RULE_DEFINITIONS: ReadonlyArray<ComplianceRuleDefinition
       title: translationKey("Verified push device"),
       description: translationKey(
         "Members have the mobile app or a browser registered for push notifications.",
+      ),
+      descriptionWithoutApp: translationKey(
+        "Members have a browser registered for push notifications.",
       ),
     }),
     methodRule({

@@ -64454,5 +64454,17 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "이 이슈는 보류되었습니다. 위험이 수락되었거나 이슈가 아닌 것으로 처리되었습니다. 이 이슈를 수정하는 풀 리퀘스트를 연결하려면 다시 여세요.",
   "Took {{pullRequest}} off this issue.": "이 이슈에서 {{pullRequest}} 연결을 해제했습니다.",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "이 이슈에 대해 직접 만든 수정입니다. OneUptime이 OneUptime AI의 수정처럼 프로덕션까지 추적하며, 프로덕션에서 확인되면 이슈가 수정된 것으로 간주됩니다.",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}}은(는) 이미 이 이슈에 연결되어 있습니다."
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}}은(는) 이미 이 이슈에 연결되어 있습니다.",
+  "Each message above says whether it was sent, and why not. Check your spam folder, and that your email or phone number is added and verified in your notification methods.": "위 각 메시지에는 전송 여부와 전송되지 않은 이유가 표시됩니다. 스팸 폴더를 확인하고, 이메일 또는 전화번호가 알림 방법에 추가되고 인증되었는지 확인하세요.",
+  "Members have a browser registered for push notifications.": "구성원이 푸시 알림용으로 브라우저를 등록했습니다.",
+  "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen. In Safari, tap Share, then Add to Home Screen, open OneUptime from your Home Screen and register it there.": "iPhone과 iPad에서는 OneUptime이 홈 화면에 있어야 푸시 알림이 작동합니다. Safari에서 공유를 탭한 다음 홈 화면에 추가를 탭하고, 홈 화면에서 OneUptime을 열어 그곳에서 등록하세요.",
+  "Only email can page you now. Add your phone and send yourself a test page.": "지금은 이메일로만 호출을 받을 수 있습니다. 전화를 추가하고 자신에게 테스트 호출을 보내세요.",
+  "People you invited accept their invitation, then add a phone number or an email address to be paged on.": "초대받은 사람은 초대를 수락한 뒤, 호출을 받을 전화번호 또는 이메일 주소를 추가합니다.",
+  "Push notifications": "푸시 알림",
+  "Push notifications are not set up for you yet. Register this browser in Notification Methods to get them.": "푸시 알림이 아직 설정되지 않았습니다. 받으려면 알림 방법에서 이 브라우저를 등록하세요.",
+  "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.": "이 브라우저는 여기에서 푸시 알림을 받을 수 없습니다. 최신 Chrome, Edge, Firefox 또는 Safari의 일반(비공개가 아닌) 창을 사용하세요.",
+  "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email still reaches you.": "이 서버는 아직 SMS를 보내거나 전화를 걸 수 없습니다. 서버 관리자가 Admin Dashboard에서 Twilio를 설정합니다. 그때까지는 이메일로 연락이 갑니다.",
+  "This server can't send SMS or make calls yet. Set up Twilio for the server; until then, email still reaches you.": "이 서버는 아직 SMS를 보내거나 전화를 걸 수 없습니다. 서버의 Twilio를 설정하세요. 그때까지는 이메일로 연락이 갑니다.",
+  "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods, or set up email now.": "이 서버는 아직 이메일을 보낼 수 없어 아무도 이메일을 받지 못합니다. 알림 방법에 전화를 추가하면 SMS나 전화로 호출은 받을 수 있습니다. 지금 이메일을 설정할 수도 있습니다.",
+  "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods. Ask your server's admin to set up email.": "이 서버는 아직 이메일을 보낼 수 없어 아무도 이메일을 받지 못합니다. 알림 방법에 전화를 추가하면 SMS나 전화로 호출은 받을 수 있습니다. 이메일 설정은 서버 관리자에게 요청하세요."
 }

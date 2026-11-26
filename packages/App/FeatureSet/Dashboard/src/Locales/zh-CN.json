@@ -64454,5 +64454,17 @@
   "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "此问题已被搁置：其风险已被接受，或它不是问题。重新打开它，才能关联修复它的拉取请求。",
   "Took {{pullRequest}} off this issue.": "已从此问题中移除 {{pullRequest}}。",
   "Your own fix for this issue. OneUptime follows it to production, as it follows OneUptime AI's fixes, and the issue counts as fixed once production shows it.": "你为此问题做的修复。OneUptime 会像跟踪 OneUptime AI 的修复一样将其跟踪到生产环境，一旦生产环境证实，该问题即视为已修复。",
-  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} 已关联到此问题。"
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} 已关联到此问题。",
+  "Each message above says whether it was sent, and why not. Check your spam folder, and that your email or phone number is added and verified in your notification methods.": "上方每条消息都会说明是否已发送，以及未发送的原因。请检查垃圾邮件文件夹，并确认你的电子邮件或电话号码已添加到通知方式中并通过验证。",
+  "Members have a browser registered for push notifications.": "成员已为推送通知注册浏览器。",
+  "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen. In Safari, tap Share, then Add to Home Screen, open OneUptime from your Home Screen and register it there.": "在 iPhone 和 iPad 上，将 OneUptime 添加到主屏幕后才能使用推送通知。在 Safari 中轻点“共享”，再轻点“添加到主屏幕”，然后从主屏幕打开 OneUptime 并在那里注册。",
+  "Only email can page you now. Add your phone and send yourself a test page.": "目前只能通过电子邮件呼叫您。添加您的电话，然后给自己发送一条测试呼叫。",
+  "People you invited accept their invitation, then add a phone number or an email address to be paged on.": "被邀请的人接受邀请后，添加用于接收呼叫的电话号码或电子邮件地址。",
+  "Push notifications": "推送通知",
+  "Push notifications are not set up for you yet. Register this browser in Notification Methods to get them.": "你还没有设置推送通知。请在通知方式中注册此浏览器，以接收推送通知。",
+  "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.": "此浏览器无法在这里接收推送通知。请使用较新版本的 Chrome、Edge、Firefox 或 Safari 的普通（非隐私）窗口。",
+  "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email still reaches you.": "此服务器还无法发送短信或拨打电话。服务器管理员需在 Admin Dashboard 中设置 Twilio。在此之前，电子邮件仍能联系到你。",
+  "This server can't send SMS or make calls yet. Set up Twilio for the server; until then, email still reaches you.": "此服务器还无法发送短信或拨打电话。请为服务器设置 Twilio；在此之前，电子邮件仍能联系到你。",
+  "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods, or set up email now.": "此服务器目前还不能发送电子邮件，所以没有人会收到电子邮件。只要在通知方式中添加你的电话，呼叫仍然可以通过 SMS 或电话送达你；或者现在就设置电子邮件。",
+  "This server cannot send email yet, so nobody is emailed. A page can still reach you by SMS or a phone call once you add your phone to your notification methods. Ask your server's admin to set up email.": "此服务器目前还不能发送电子邮件，所以没有人会收到电子邮件。只要在通知方式中添加你的电话，呼叫仍然可以通过 SMS 或电话送达你。请让服务器管理员设置电子邮件。"
 }
