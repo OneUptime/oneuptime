@@ -18,6 +18,14 @@ export default interface SnmpTrap {
   receivedAt: Date;
   varbinds: Array<SnmpTrapVarbind>;
   /*
+   * SNMPv3 only, when not empty: the context the notification names - for
+   * a logical switch of a Brocade Virtual Fabric, "VF:<fabric ID>". It says
+   * which of the devices sharing the address the trap is about
+   * (SnmpTrapContextRouting). Filled in by probes that receive SNMPv3
+   * traps (#11005); absent from every other.
+   */
+  contextName?: string | undefined;
+  /*
    * The name of the interface the trap is about, when the trap names it only
    * by its ifIndex - a link trap, or an RMON alarm on a port's counter (an
    * MDS port-monitor alarm): the name the device's last walk recorded for
