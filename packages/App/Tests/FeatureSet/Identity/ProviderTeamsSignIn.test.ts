@@ -41,6 +41,19 @@ const MEMBERS_TEAM_ID: string = "62000000-0000-4000-8000-000000000004";
 const ADMIN_TEAM_ID: string = "62000000-0000-4000-8000-000000000005";
 const ISSUER: string = "https://idp.example.com/metadata";
 
+/*
+ * The teams a sign-in adds people to are read as the project's own
+ * (SsoTeamMembership.getProjectTeams, #11149): every team a provider names
+ * here is one (./SsoProjectTeamsStandIn).
+ */
+jest.mock("Common/Server/Services/TeamService", () => {
+  return (
+    jest.requireActual(
+      "./SsoProjectTeamsStandIn",
+    ) as typeof import("./SsoProjectTeamsStandIn")
+  ).everyTeamInItsProject();
+});
+
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
     jest.requireActual(

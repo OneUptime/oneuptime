@@ -697,6 +697,24 @@ describePostgres(
       );
     };
 
+    /*
+     * Whether the team lists the person among its members, as the on-call
+     * escalations and notifications that name the team read it: by the
+     * team alone, whatever project the membership says it is in
+     * (TeamMemberService.getUsersInTeams).
+     */
+    const isOnTeam: (teamId: ObjectID, userId: ObjectID) => Promise<boolean> =
+      async (teamId: ObjectID, userId: ObjectID): Promise<boolean> => {
+        const users: Array<User> = await TeamMemberService.getUsersInTeams(
+          [teamId],
+          { acceptedOnly: true },
+        );
+
+        return users.some((user: User): boolean => {
+          return user.id?.toString() === userId.toString();
+        });
+      };
+
     // ---------------------------------------------------------------------
     // The providers, saved as their services save them.
     // ---------------------------------------------------------------------
@@ -1570,6 +1588,9 @@ describePostgres(
 
         expect(await hasProjectAccess(account.id!, platform.id)).toBe(true);
         expect(await hasProjectAccess(account.id!, payments.id)).toBe(false);
+        // On the team they joined, as its on-call reads it; on no other.
+        expect(await isOnTeam(platform.membersTeam, account.id!)).toBe(true);
+        expect(await isOnTeam(payments.membersTeam, account.id!)).toBe(false);
 
         // The PKCE verifier the token endpoint took answered the challenge.
         expect(idp.tokenRequests[0]!.codeVerifier).toBeTruthy();
@@ -1718,6 +1739,8 @@ describePostgres(
           },
         ]);
         expect(await hasProjectAccess(account.id!, payments.id)).toBe(false);
+        // Not on the other project's team: its on-call and notifications.
+        expect(await isOnTeam(payments.ownersTeam, account.id!)).toBe(false);
         expect(
           loggedLines("warn").some((line: string): boolean => {
             return line.includes("not teams of that project");
@@ -2025,6 +2048,8 @@ describePostgres(
           },
         ]);
         expect(await hasProjectAccess(account.id!, payments.id)).toBe(false);
+        // Not on the other project's team: its on-call and notifications.
+        expect(await isOnTeam(payments.ownersTeam, account.id!)).toBe(false);
       });
 
       test("a provider naming only another project's team adds nobody to anything, and says it has no teams", async () => {
@@ -2181,6 +2206,9 @@ describePostgres(
             hasAcceptedInvitation: true,
           },
         ]);
+        expect(await hasProjectAccess(account.id!, payments.id)).toBe(false);
+        // Not on the other project's team: its on-call and notifications.
+        expect(await isOnTeam(payments.ownersTeam, account.id!)).toBe(false);
       });
     });
 
@@ -2212,6 +2240,8 @@ describePostgres(
           },
         ]);
         expect(await hasProjectAccess(account.id!, payments.id)).toBe(false);
+        // Not on the other project's team: its on-call and notifications.
+        expect(await isOnTeam(payments.ownersTeam, account.id!)).toBe(false);
       });
 
       test("a provider naming only another project's team adds nobody to anything, and says it has no teams", async () => {

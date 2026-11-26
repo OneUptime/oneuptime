@@ -101,6 +101,10 @@ const SOURCES: Record<string, string> = {
   signInAgainUtil: `${IDENTITY}/Utils/SignInAgain.ts`,
   reauthenticationTypes: "packages/Common/Types/Accounts/Reauthentication.ts",
   globalOidcApi: `${IDENTITY}/API/GlobalOIDC.ts`,
+  // Whom the server's own providers give an account, and where they add people (#11149).
+  globalSsoProvisioning: `${IDENTITY}/Utils/GlobalSsoProvisioning.ts`,
+  // The teams a sign-in adds people to: the project's own (#11149).
+  ssoTeamMembership: `${IDENTITY}/Utils/SsoTeamMembership.ts`,
   globalSsoService: "packages/Common/Server/Services/GlobalSsoService.ts",
   globalOidcService: "packages/Common/Server/Services/GlobalOidcService.ts",
   ssoConfirmation: `${IDENTITY}/Utils/ProjectSsoSignInConfirmation.ts`,
@@ -640,7 +644,9 @@ describe("the SSO guide", () => {
     const server: string =
       readSource("ssoApi") +
       readSource("ssoUtil") +
-      readSource("ssoOneTimeUse");
+      readSource("ssoOneTimeUse") +
+      // "No teams added.", which a project's SAML and OIDC sign-ins both say.
+      readSource("ssoTeamMembership");
     const page: string = english(SSO);
 
     for (const message of [
@@ -675,11 +681,27 @@ describe("the SSO guide", () => {
     expect(ssoApi).toMatch(
       /isEnabled: true,[\s\S]{0,400}?if \(!projectSSO\) \{[\s\S]{0,200}?"SSO Config not found"/,
     );
-    // A newcomer with a provider that has no teams to put them in.
-    expect(ssoApi).toMatch(
-      /if \(teamMemberCount\.toNumber\(\) === 0\) \{[\s\S]{0,200}?projectSSO\.teams\.length === 0[\s\S]{0,300}?title: "No teams added\."/,
+    /*
+     * A newcomer with a provider that has no teams of its project to put
+     * them in: none at all, or only another project's (#11149).
+     */
+    for (const key of ["ssoApi", "oidcApi"]) {
+      expect({
+        key,
+        says: /if \(teamMemberCount\.toNumber\(\) === 0\) \{[\s\S]{0,900}?SsoTeamMembership\.addToTeams\([\s\S]{0,300}?if \(joined === SsoTeamMembershipOutcome\.NoTeams\) \{[\s\S]{0,700}?title: SSO_NO_TEAMS_TITLE,/.test(
+          readSource(key),
+        ),
+      }).toEqual({ key, says: true });
+    }
+
+    const teamMembership: string = readSource("ssoTeamMembership");
+
+    expect(teamMembership).toContain(
+      'export const SSO_NO_TEAMS_TITLE: string = "No teams added.";',
     );
-    expect(readSource("oidcApi")).toContain('title: "No teams added."');
+    expect(teamMembership).toMatch(
+      /if \(teams\.length === 0\) \{\s*return SsoTeamMembershipOutcome\.NoTeams;/,
+    );
 
     const page: string = english(SSO);
 
@@ -2183,13 +2205,31 @@ describe("the Global SSO guide", () => {
     expect(reachRow).toContain(
       "signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others.",
     );
-    // A newcomer gets an account only when there is a project to put them in.
+    /*
+     * A newcomer gets an account only when there is a project to put them
+     * in: an attached project with teams (#11149), for both protocols.
+     */
     expect(signUpRow).toContain(
       "with none attached, they must be invited first",
     );
-    expect(readSource("globalSsoApi")).toContain(
-      "Boolean(globalSso.disableSignUpWithSso) || isDefaultAllMode;",
+
+    const provisioning: string = readSource("globalSsoProvisioning");
+
+    expect(provisioning).toMatch(
+      /if \(data\.attachments\.isDefaultAllMode\) \{\s*return GlobalSsoNewcomerRefusal\.NoProjectAttached;/,
     );
+    expect(provisioning).toMatch(
+      /if \(data\.attachments\.joinableProjects\.length === 0\) \{\s*return GlobalSsoNewcomerRefusal\.NoAttachedProjectHasTeams;/,
+    );
+
+    for (const key of ["globalSsoApi", "globalOidcApi"]) {
+      expect({
+        key,
+        asks: /if \(!alreadySavedUser\) \{[\s\S]{0,400}?GlobalSsoProvisioning\.getNewcomerRefusal\(/.test(
+          readSource(key),
+        ),
+      }).toEqual({ key, asks: true });
+    }
 
     // The troubleshooting names the answer that turns people away.
     expect(page).toContain(`**${signUp}** is set to **${signUpAnswers[1]}**`);
