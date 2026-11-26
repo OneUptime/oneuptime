@@ -1225,6 +1225,8 @@ describe("Ask AI turns reach the infrastructure their page is about (issue #5259
     expect(ChatAgentRunner.runTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         offersPageInfrastructure: true,
+        // And the project's external MCP servers, on every page (#10879).
+        offersExternalMcpServers: true,
         projectId: PROJECT_B_ID,
         userId: ATTACKER_USER_ID,
         pageContext: {
@@ -1285,6 +1287,8 @@ describe("Ask AI turns reach the infrastructure their page is about (issue #5259
     expect(ChatAgentRunner.resumeTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         offersPageInfrastructure: true,
+        // An approved MCP call runs through tools built again (#10879).
+        offersExternalMcpServers: true,
         projectId: PROJECT_B_ID,
         aiRunId: runId,
       }),

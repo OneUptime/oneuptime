@@ -87,6 +87,7 @@ import {
   SENSITIVE_DATA_LIMITS,
   SensitiveDataLeakKind,
   SensitiveDataPosting,
+  SensitiveDataSink,
 } from "Common/Types/CodeRepository/ProductionReviewSensitiveData";
 import DataSensitivity from "Common/Types/DataSecurity/DataSensitivity";
 import SecuritySeverity from "Common/Types/SecuritySeverity";
@@ -1378,7 +1379,11 @@ describe("Code", () => {
       numberConstant(verification, "VERIFICATION_COMMAND_TIMEOUT_MS") / 60000;
     const repairs: number = numberConstant(verification, "MAX_REPAIR_ATTEMPTS");
 
-    expect(verification).toContain('CI: "true"');
+    // CI=true, in the environment every code-fix command gets.
+    expect(verification).toContain("env: getCodeFixCommandEnvironment(),");
+    expect(readRepoFile("Runner/Utils/RunnerOwnEnvironment.ts")).toContain(
+      'environment["CI"] = "true";',
+    );
     expect(section).toContain(
       `Each one gets up to ${minutes} minutes and runs with \`CI=true\``,
     );
@@ -1457,9 +1462,20 @@ describe("Code", () => {
       "canRunCommands: runsProjectAuthoredCommands(),",
     );
 
-    // A command the model composed runs without the Runner's own key.
-    expect(flat(agent)).toContain(
-      'for (const name of [ "ONEUPTIME_RUNNER_KEY", "ONEUPTIME_RUNNER_ID", "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ]) { delete environment[name]; }',
+    /*
+     * A command the model composed runs without the Runner's own settings -
+     * its key and id among them - nor the pipeline's git credentials.
+     */
+    const environment: string = flat(
+      readRepoFile("Runner/Utils/RunnerOwnEnvironment.ts"),
+    );
+
+    expect(flat(agent)).toContain("return getCodeFixCommandEnvironment();");
+    expect(environment).toContain(
+      'export const RUNNER_OWN_ENVIRONMENT_PREFIX: string = "ONEUPTIME_RUNNER_";',
+    );
+    expect(environment).toContain(
+      'export const CODE_FIX_PIPELINE_ENVIRONMENT_NAMES: ReadonlyArray<string> = [ "GIT_ASKPASS", "ONEUPTIME_GIT_ACCESS_TOKEN", ];',
     );
 
     expect(rowStartingWith(checks, "One of your Runners")[1]).toContain(
@@ -2344,9 +2360,11 @@ describe("MCP Server", () => {
      * frameworks and requirements a resource turned off (Compliance Setting,
      * #9555, #9708), a Data Security setting like Check Setting, so an agent
      * can say what is off where and why, as Data Security's Integrations
-     * page promises.
+     * page promises; and Cloud's cost views, groups and custom line items
+     * (Cloud Cost View, Cloud Cost Group, Cloud Cost Line Item, #11006), so
+     * finance and agents sort the spend as the Cost Groups pages do.
      */
-    expect(records()).toHaveLength(55);
+    expect(records()).toHaveLength(58);
     expect(namesIn(0)).toEqual(records());
     /*
      * Every database model with MCP on gets these tools, the update tool
@@ -3357,7 +3375,88 @@ describe("Production review of pull requests", () => {
       // Once per point: the keys a review already suggested are remembered.
       expect(runner).toContain("return !posted.includes(point.key);");
       expect(sensitive).toContain(
-        "On GitHub, each point whose change fixes one line is also posted on that line, once, as a suggestion its author can commit.",
+        "Each point whose change fixes one line is also posted on that line, once, in the host's own review comments: on GitHub and GitLab as a suggestion its author can apply, and on Forgejo from version 18 too.",
+      );
+    });
+
+    /*
+     * Each host's own review comments (#10777): GitLab's suggestion block
+     * names its line, Forgejo applies one from 18, Gitea none - there the
+     * change is a diff - and a line a host refuses stays in the comment.
+     */
+    it("posts each one-line change on its line in each host's own words, and keeps a refused one in the comment", () => {
+      const composer: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer.ts",
+        ),
+      );
+      const host: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewHost.ts",
+        ),
+      );
+      const forgejo: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/CodeHost/ForgejoApi.ts",
+        ),
+      );
+
+      expect(composer).toContain('? "suggestion:-0+0"');
+      expect(host).toContain("createMergeRequestDiffDiscussion(");
+      expect(host).toContain("forgejo.createPullRequestReview(");
+      expect(forgejo).toContain(
+        "export const FORGEJO_SUGGESTIONS_VERSION: number = 18;",
+      );
+      expect(sensitive).toContain(
+        "Gitea and older versions of Forgejo cannot apply a suggestion, so there the change is posted on its line as a diff.",
+      );
+      expect(sensitive).toContain(
+        "A line the host will not take, such as one a later push moved, keeps its change in the comment alone.",
+      );
+    });
+
+    // Exceptions are telemetry too (#10778), and a field's name is no value.
+    it("reads an exception's message and an error tracker's report as telemetry", () => {
+      const rules: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/SensitiveData/TelemetryWriteRules.ts",
+        ),
+      );
+
+      expect(Object.values(SensitiveDataSink)).toContain("Exception");
+      expect(rules).toContain('"captureexception",');
+      expect(rules).toContain('"recordexception",');
+      expect(rules).toContain('"errorf",');
+      expect(flat(kinds[0]!.join(" "))).toContain(
+        "an exception's message, an error tracker's report or a prompt sent to an LLM",
+      );
+      expect(flat(kinds[0]!.join(" "))).toContain(
+        "and nor does a message that names only the field it is about, such as `email is required`.",
+      );
+    });
+
+    // A migration's table (#10779): only in a private repository.
+    it("says what Data Security knows of a migration's table in a private repository alone", () => {
+      const runner: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewRunner.ts",
+        ),
+      );
+      const sensitiveData: string = flat(
+        readRepoFile(
+          "Common/Server/Utils/CodeRepository/ProductionReview/ProductionReviewSensitiveData.ts",
+        ),
+      );
+
+      expect(runner).toContain(
+        "return (await isRepositoryPublic()) === false;",
+      );
+      expect(sensitiveData).toContain("(await data.isRepositoryPrivate())");
+      expect(sensitive).toContain(
+        "For a migration, and only in a private repository, it names the data store the table is in and what that store holds",
+      );
+      expect(sensitive).toContain(
+        "a public repository's review never looks it up.",
       );
     });
 

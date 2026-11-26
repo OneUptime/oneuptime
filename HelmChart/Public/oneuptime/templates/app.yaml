@@ -153,10 +153,16 @@ spec:
               value: {{ $.Values.app.databaseMaxQueueJobConnections | squote }}
             {{- end }}
             {{- if $.Values.app.probeSchedulingMaxConcurrentRequests }}
-            # Probe scheduling requests this pod runs at once. Unset: a fifth
-            # of the Postgres pool.
+            # Probe scheduling requests this pod runs at once, shared fairly
+            # among the probes asking. Unset: a fifth of the Postgres pool.
             - name: PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS
               value: {{ $.Values.app.probeSchedulingMaxConcurrentRequests | squote }}
+            {{- end }}
+            {{- if $.Values.app.probeSchedulingMaxConcurrentMonitorTestRequests }}
+            # Test Monitor runs this pod hands to probes at once, in a lane of
+            # their own. Unset: 2.
+            - name: PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS
+              value: {{ $.Values.app.probeSchedulingMaxConcurrentMonitorTestRequests | squote }}
             {{- end }}
             {{- if $.Values.app.networkDevicePollFetchLimit }}
             # How many NetworkDevice SNMP walks one probe is handed per fetch,

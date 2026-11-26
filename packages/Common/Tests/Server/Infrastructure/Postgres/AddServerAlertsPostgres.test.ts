@@ -9,6 +9,7 @@ import {
 } from "../../../../../App/FeatureSet/Workers/Jobs/ServerAlerts/TellMasterAdmins";
 import { AddServerAlerts1809183400000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809183400000-AddServerAlerts";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
+import Entities from "../../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import logger from "../../../../Server/Utils/Logger";
 import ServerSendingStatus from "../../../../Server/Utils/ServerSending/ServerSendingStatus";
@@ -208,12 +209,17 @@ describePostgres("AddServerAlerts against Postgres", () => {
       await new AddServerAlerts1809183400000().up(queryRunner);
     });
 
-    // The model, on the migrated copy: how GlobalConfigService reads and writes it.
+    /*
+     * The model, on the migrated copy: how GlobalConfigService reads and
+     * writes it. Every model is registered, as the server registers them:
+     * each one relates to the person who last modified it (RecordActor,
+     * #10290), and TypeORM reads a relation from the model it names.
+     */
     models = new DataSource({
       type: "postgres",
       ...connection,
       schema: schema,
-      entities: [GlobalConfig],
+      entities: Entities,
       synchronize: false,
       extra: { options: `-c search_path=${schema},public` },
     });

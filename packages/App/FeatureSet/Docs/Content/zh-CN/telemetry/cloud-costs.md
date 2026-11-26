@@ -246,6 +246,7 @@ AI 智能体可以通过 [MCP 服务器](/docs/ai/mcp-server) 创建和更改预
 ## 后续步骤
 
 :::cards
+- [云成本分摊](/docs/telemetry/cloud-cost-allocation): 将支出分摊到团队、产品和成本中心。
 - [连接云账户](/docs/telemetry/cloud-accounts): 连接另一个账户，或重新运行它的命令。
 - [云资源](/docs/telemetry/cloud-resources): 每个资源的指标，来自你自己的采集器。
 - [Kubernetes 成本可观测性](/docs/telemetry/kubernetes-cost): 每个 Kubernetes 工作负载的成本。

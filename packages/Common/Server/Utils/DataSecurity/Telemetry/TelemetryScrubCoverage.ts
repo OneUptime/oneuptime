@@ -388,8 +388,11 @@ function ruleScrubsField(
  * the type is read when a value is, not frozen into the rule. Rules made
  * before with the frozen pattern were moved to it (App/FeatureSet/Workers/
  * DataMigrations/MetricScrubRulesMatchTheirPatternType). Every other type
- * keeps its own pattern: the Phone Number and SSN patterns find less than
- * theirs does.
+ * keeps its own pattern. Phone Number and SSN do too for now: their
+ * built-in patterns hide what the detectors find since #11030, but the
+ * metric rules "Scrub it" made for them are known by their frozen filter,
+ * which coverage compares exactly, so moving them takes a migration of
+ * their own, as the three above had.
  */
 export const METRIC_PATTERN_TYPE_OF_DATA_TYPE: ReadonlyMap<string, string> =
   new Map<string, string>([

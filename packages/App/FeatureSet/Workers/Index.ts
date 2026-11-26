@@ -333,6 +333,7 @@ import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/SecurityEvents/RunScheduledHunts";
 import "./Jobs/SecurityEvents/SendSecurityHuntNotification";
 import "./Jobs/SecurityEvents/SecurityWatchlists";
+import "./Jobs/SecurityEvents/EraseSecurityUsers";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";
 import "./Jobs/ThreatIntel/MatchThreatIntelIndicators";
 import "./Jobs/SecurityPlaybooks/RunSecurityPlaybook";
@@ -417,6 +418,7 @@ import "./Jobs/Cloud/ReadCloudConnections";
 import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/Cloud/EvaluateCloudCommitments";
+import "./Jobs/Cloud/MakeCloudCostGroups";
 // What still reads a metric its cloud deprecates, moved again every hour.
 import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";
 import "./Jobs/DataSecurity/DataSecurityJobs";

@@ -3,7 +3,9 @@ import Semaphore, {
   SemaphoreLockTimeoutError,
   SemaphoreMutex,
 } from "Common/Server/Infrastructure/Semaphore";
-import JobDeadline from "Common/Server/Utils/JobDeadline";
+import JobDeadline, {
+  JOB_DEADLINE_GRACE_MS,
+} from "Common/Server/Utils/JobDeadline";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -52,9 +54,11 @@ export const CRON_LOCK_KEEP_EVERY_MS: number = 15 * 1000;
 
 /*
  * How long past its time limit a run keeps the lock, for the work in flight
- * when its deadline passed - the page being written - to finish.
+ * when its deadline passed - the page being written - to finish. The same
+ * grace the queue gives the run before it fails the job (JobDeadline), so a
+ * run that is failed for running over has also given its lock back.
  */
-export const CRON_LOCK_GRACE_MS: number = 30 * 1000;
+export const CRON_LOCK_GRACE_MS: number = JOB_DEADLINE_GRACE_MS;
 
 export enum CronLockTakeResult {
   // This run holds the lock.

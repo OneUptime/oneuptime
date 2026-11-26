@@ -1,10 +1,11 @@
 # Serveurs MCP externes
 
-OneUptime AI peut utiliser les outils de serveurs MCP hors de OneUptime — ceux de votre cloud, de votre hébergeur de code ou de votre propre équipe, comme AWS, Azure ou GitHub — pendant qu'il investigue et corrige les incidents et les alertes. Ajoutez un serveur une fois dans **Paramètres du projet → IA → Serveurs MCP externes**, et OneUptime AI l'utilise dès l'incident suivant.
+OneUptime AI peut utiliser les outils de serveurs MCP hors de OneUptime — ceux de votre cloud, de votre hébergeur de code ou de votre propre équipe, comme AWS, Azure ou GitHub — dans Demander à l'IA, et pendant qu'il investigue et corrige les incidents et les alertes. Ajoutez un serveur une fois dans **Paramètres du projet → IA → Serveurs MCP externes**, et OneUptime AI l'utilise dès votre prochaine question et dès l'incident suivant.
 
 :::cards
 - [Ajouter un serveur](#ajouter-un-serveur): Son adresse, et comment OneUptime s'y connecte.
 - [Ce que OneUptime AI fait d'un serveur](#ce-que-oneuptime-ai-fait-dun-serveur): Les outils qui lisent dans les investigations, les autres dans les corrections.
+- [Dans Demander à l'IA](#dans-demander-à-lia): Demandez-lui de lister les outils d'un serveur ou d'en utiliser un ; une modification attend votre approbation.
 - [Choisir les serveurs qu'une règle peut utiliser](#choisir-les-serveurs-quune-règle-peut-utiliser): Tous, sauf si une règle en choisit certains.
 - [Sécurité](#sécurité): Ce qu'un serveur peut et ne peut pas faire faire à OneUptime AI.
 :::
@@ -51,9 +52,9 @@ Ne mettez jamais de jeton ni de mot de passe dans l'**URL** : toute personne qui
 
 ## Ce que OneUptime AI fait d'un serveur
 
-Chaque outil qu'un serveur propose soit ne fait que lire, soit peut modifier quelque chose. OneUptime se fie à ce que le serveur dit de l'outil (son `readOnlyHint`) : un outil que le serveur ne marque pas en lecture seule compte comme un outil qui peut modifier quelque chose.
+Chaque outil qu'un serveur propose soit ne fait que lire, soit peut modifier quelque chose. OneUptime se fie à ce que le serveur dit de l'outil (son `readOnlyHint`) : un outil que le serveur ne marque pas en lecture seule compte comme un outil qui peut modifier quelque chose. Certains serveurs ne marquent aucun de leurs outils : une investigation n'a alors aucun de leurs outils à utiliser, et dans Demander à l'IA chaque appel de l'un d'eux attend votre approbation.
 
-```mermaid title="Quels outils OneUptime AI utilise, et quand"
+```mermaid title="Quels outils OneUptime AI utilise de lui-même, et quand"
 flowchart TB
     T["Un outil de<br/>votre serveur MCP"] --> Q{"Ne fait-il<br/>que lire ?"}
     Q -->|"oui"| R["Utilisé dans les<br/>investigations<br/>et corrections"]
@@ -67,6 +68,7 @@ flowchart TB
 | --- | --- | --- |
 | **Investigations** | Utilisés, avec les données propres de OneUptime | Jamais utilisés : OneUptime refuse l'appel |
 | **Corrections** | Utilisés pour élaborer la correction | Proposés pour approbation, ou utilisés aussitôt, comme le dit la **Correction** de la règle IA |
+| **Demander à l'IA** | Utilisés quand vous le demandez | Utilisés une fois que vous approuvez chaque appel |
 
 **Dans une investigation**, OneUptime AI liste les outils des serveurs qu'il peut utiliser et appelle ceux qui lisent, pour regarder ce que OneUptime ne voit pas lui-même : votre compte cloud, un déploiement, un outil de suivi des tickets. Il utilise leurs réponses dans son analyse de cause racine. Voir [AI SRE](/docs/ai/ai-sre).
 
@@ -79,6 +81,16 @@ Une correction fait au plus 5 modifications. OneUptime surveille ensuite les mon
 
 Pour que OneUptime AI cesse d'utiliser un serveur, désactivez **Autoriser OneUptime AI à utiliser ce serveur** sur sa page. Il demande d'abord : le serveur n'est plus utilisé dans aucune investigation ni correction, et une correction proposée par lui ne peut plus être approuvée.
 
+## Dans Demander à l'IA
+
+Demander à l'IA, et la conversation sous la carte **OneUptime AI** d'un incident ou d'une alerte, peuvent utiliser chaque serveur activé, pour la personne qui pose la question. Demandez « Quels outils propose AWS ? » et OneUptime AI les liste, chacun marqué selon ce qu'il peut faire ; demandez-lui d'en utiliser un, en indiquant son serveur et son nom, et il l'appelle et répond à partir de ce qui est revenu.
+
+- **Les outils qui ne font que lire** s'exécutent aussitôt, dans tous les modes d'autorisation.
+- **Tout autre outil** vous attend, en **Exécution automatique** aussi : la carte d'approbation nomme le serveur et l'outil et montre exactement ce qui est envoyé, et rien n'atteint le serveur tant que vous ne l'avez pas autorisé. Une conversation en **Lecture seule** n'en propose jamais.
+- **Vos autorisations décident.** Utiliser un serveur demande ce que demande la lecture des serveurs MCP externes du projet ; approuver une modification par l'un d'eux demande l'autorisation de lancer des exécutions de runbooks, comme approuver une correction par des serveurs MCP. Un appel refusé dit pourquoi, et n'envoie rien.
+
+Les serveurs qu'une règle IA nomme sont ceux que OneUptime AI utilise de lui-même, pour ce que la règle cible ; dans Demander à l'IA, c'est vous qui choisissez le serveur.
+
 ## Choisir les serveurs qu'une règle peut utiliser
 
 Chaque règle IA peut nommer les serveurs MCP que OneUptime AI peut utiliser pour ce qu'elle cible. Le champ est **Serveurs MCP**, dans **Plus de champs**. Tant que vous n'en choisissez aucun, OneUptime AI peut tous les utiliser, et la section repliée l'indique.
@@ -86,14 +98,16 @@ Chaque règle IA peut nommer les serveurs MCP que OneUptime AI peut utiliser pou
 - **Aucun choisi** — tous les serveurs activés du projet.
 - **Certains choisis** — seulement ceux-là. Sur une règle IA qui corrige sans demander, nommer ses serveurs est aussi ce qui permet à OneUptime AI de faire leurs modifications sans demander.
 
-Quand plusieurs règles qui investiguent correspondent, OneUptime AI peut utiliser chaque serveur que l'une d'elles autorise ; si les règles ne peuvent pas être lues, l'investigation n'utilise aucun serveur MCP. Chaque règle correspondante qui corrige élabore sa propre correction par ses serveurs, et les règles qui n'en nomment aucun partagent une correction par tous.
+Quand plusieurs règles qui investiguent correspondent, OneUptime AI peut utiliser chaque serveur que l'une d'elles autorise ; si les règles ne peuvent pas être lues, l'investigation n'utilise aucun serveur MCP. Une investigation que quelqu'un lance sur un incident ou une alerte qu'aucune règle ne cible peut tous les utiliser. Chaque règle correspondante qui corrige élabore sa propre correction par ses serveurs, et les règles qui n'en nomment aucun partagent une correction par tous.
 
 ## Sécurité
 
 - **Ce qu'un serveur renvoie, ce sont des données, jamais des instructions.** OneUptime AI lit les descriptions et les réponses de ses outils comme du texte venu d'hors de OneUptime : elles ne changent jamais une règle, une approbation ni ce que OneUptime AI peut faire.
+- **Un outil ne reçoit que ce qu'il accepte.** OneUptime n'envoie à un outil que les arguments que nomme son schéma ; tout ce que OneUptime AI a écrit d'autre reste dans OneUptime.
+- **L'interrupteur Activer l'IA arrête tout appel.** Quand **Activer l'IA** est désactivé, OneUptime n'envoie rien à un serveur : aucun appel d'une investigation, d'une correction ou de Demander à l'IA, pas même un appel qu'une personne a déjà approuvé.
 - **L'adresse est vérifiée à chaque connexion.** OneUptime ne se connecte jamais à sa propre adresse ni à une adresse link-local. Sur OneUptime Cloud, il refuse aussi les adresses de réseau privé : utilisez l'adresse publique du serveur. Un OneUptime auto-hébergé atteint les adresses privées sauf si `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` est défini. Les redirections ne sont pas suivies.
 - **Limites.** Un projet a au plus 20 serveurs, et OneUptime lit au plus 200 outils de chacun. La connexion expire après 20 secondes, la liste des outils après 30 et un appel d'outil après 60. Une réponse de plus de 2 Mo est refusée. Les appels d'une exécution aux serveurs MCP comptent dans les limites par exécution du projet, lorsqu'il en fixe.
-- **Chaque appel est enregistré.** Chaque appel est une étape de l'exécution, visible dans son activité, et chaque modification d'une correction figure dans l'étape **Remédiation** avec ce que le serveur a répondu. Les appels au modèle derrière eux sont dans **Paramètres du projet → IA → Journaux IA**.
+- **Chaque appel est enregistré.** Chaque appel est une étape de l'exécution, visible dans son activité (dans Demander à l'IA, parmi les étapes de la réponse), et chaque modification d'une correction figure dans l'étape **Remédiation** avec ce que le serveur a répondu. Les appels au modèle derrière eux sont dans **Paramètres du projet → IA → Journaux IA**.
 
 ## Dépannage
 
@@ -102,7 +116,7 @@ La boîte de dialogue **Tester la connexion** dit ce qui n'a pas marché et quoi
 :::
 
 :::details OneUptime AI n'utilise pas un serveur
-Vérifiez que **Autoriser OneUptime AI à utiliser ce serveur** est activé, que la règle qui a ciblé l'incident ne nomme pas d'autres serveurs dans **Plus de champs**, et que les outils du serveur ont été lus : sa carte **Outils** les liste. Une investigation n'utilise que les outils marqués **Lecture seule**.
+Vérifiez que **Autoriser OneUptime AI à utiliser ce serveur** est activé, et que les outils du serveur ont été lus : sa carte **Outils** les liste, chacun marqué **Lecture seule** ou **Peut modifier des éléments**, et **Tester la connexion** les relit. Demandez ensuite à Demander à l'IA « Quels outils propose AWS ? », avec le nom de votre serveur : il les liste, ou dit pourquoi il ne peut pas atteindre le serveur ou n'a pas le droit de l'utiliser. Pour une investigation, vérifiez aussi que la règle qui a ciblé l'incident ne nomme pas d'autres serveurs dans **Plus de champs** : une investigation n'utilise que les outils marqués **Lecture seule**, si bien qu'un serveur qui ne marque aucun de ses outils ne lui en donne aucun à utiliser.
 :::
 
 ## Étapes suivantes

@@ -65,6 +65,7 @@ Apri **Prodotti → Eventi di sicurezza**, sotto **Sicurezza**. Il suo menu ha u
 | **Modelli di note** | Impostazioni | Testo pronto per le note che il tuo team scrive sui suoi casi |
 | **Numerazione** | Impostazioni | Il testo davanti ai numeri dei casi e il numero che riceve il prossimo caso |
 | **Valutazione del rischio** | Impostazioni | Se il rischio di un'entità apre un caso, a quale rischio, e quanto conta ogni entità |
+| **Richieste di cancellazione** | Impostazioni | Le persone cancellate su richiesta, e cosa ha cambiato ogni cancellazione |
 
 **Rilevamenti**, **IA**, **Connessioni** e **Impostazioni**, che si configurano una volta, restano chiuse finché non le apri. Nuovo alla sicurezza? [Primi passi con la sicurezza](/docs/telemetry/security-getting-started) la configura in due clic.
 
@@ -246,7 +247,7 @@ Attiva **Flussi di rete**, in **I tuoi dati OneUptime** su **Connessioni**, e i 
 - l'intervallo di ciascun suo rilevamento, mentre la scansione è in corso;
 - gli host e le porte che i suoi monitor controllano.
 
-Viene conservato come evento informativo, `oneuptime-probe-traffic`, che nomina la sonda, e nessuna regola lo legge. **Flussi di rete** dice quanti ne sono stati messi da parte nell'ultimo giorno, con **Vedili**. Qualsiasi altra cosa dall'indirizzo di una sonda viene contata come il traffico di chiunque, e uno sweep o una scansione oltre il lavoro della sonda viene segnalato, nominando la sonda. Una sonda è riconosciuta dall'indirizzo da cui si collega e dagli indirizzi delle sue interfacce di rete, che elenca ogni volta che si collega.
+Viene conservato come evento informativo, `oneuptime-probe-traffic`, che nomina la sonda, e nessuna regola lo legge. **Flussi di rete** dice quanti ne sono stati messi da parte nell'ultimo giorno, con **Vedili**. Qualsiasi altra cosa dall'indirizzo di una sonda viene contata come il traffico di chiunque, e uno sweep o una scansione oltre il lavoro della sonda viene segnalato, nominando la sonda. Una sonda è riconosciuta dall'indirizzo da cui si collega e dagli indirizzi delle sue interfacce di rete, che elenca ogni volta che si collega. Una sonda personalizzata senza la rete dell'host, come un pod Kubernetes o un container su una rete bridge Docker, è riconosciuta anche dagli indirizzi del suo host, che le indica `PROBE_HOST_IP_ADDRESSES`: finché non li ha, le sue interrogazioni partono da un indirizzo da cui non è riconosciuta e vengono segnalate come sweep. Vedi [Cosa invia una sonda quando comunica](/docs/probe/custom-probe#cosa-invia-una-sonda-quando-comunica).
 
 ### Collegare un prodotto di sicurezza
 
@@ -352,6 +353,8 @@ Una regola che applica l'hash conserva l'indirizzo per Eventi di sicurezza, cos�
 Una regola di rilevamento che conta per indirizzo dovrebbe contare per `principalIp` o `targetIp`, come fanno le regole della Libreria di regole, perché questi campi nominano l'indirizzo dietro il token di una regola che applica l'hash. Il campo indirizzo proprio di un formato, come `openstack.audit.initiator_address` o `asa.src_ip`, contiene solo un indirizzo scritto dal log, quindi resta vuoto ovunque una regola di mascheramento ne abbia nascosto uno.
 
 Una regola che cancella o maschera un utente lo nasconde allo stesso modo: ovunque l'evento nominerebbe l'utente, **Utente di origine** o **Utente di destinazione** dice che una regola di mascheramento l'ha nascosto. Dove Eventi di sicurezza legge un utente, una regola che applica l'hash conserva l'utente per lui: il campo `enduser.id` o `user.id` di una richiesta, l'utente di una chiamata di IA e l'utente che una riga di log nomina, come il principal di un log di audit del cloud. Così l'evento nomina l'utente dietro il token, un caso che lo riguarda nomina l'account e un playbook può agire su di esso come su qualsiasi altro utente. Ciò che la regola ha lasciato si trova in `oneuptime.principal_user_hashed_as` o in `oneuptime.target_user_hashed_as`, per trovare l'utente nei tuoi log e nelle tue tracce, che contengono solo il token. Un token per cui non è conservato alcun utente, come uno creato prima che i token avessero una chiave, resta l'utente dell'evento: le regole lo contano come un solo account e nessun playbook agisce su di esso.
+
+Il pannello dell'evento lo indica sotto l'utente che nomina in **Utente di origine** e **Utente di destinazione**: «Sottoposto a hash nei tuoi log come …», oppure «Sottoposto a hash nelle tue tracce come …» per un utente letto dalle tue tracce, dove … è il token. Il token è un link che lo cerca nei tuoi log o nelle tue tracce, da un giorno prima dell'evento a un giorno dopo, nel campo da cui è stato letto l'utente: il corpo di una riga di log o uno dei suoi attributi, oppure un attributo di uno span, come `user.id` o l'utente di una chiamata di IA. Quel campo si trova in `oneuptime.principal_user_hashed_field` o `oneuptime.target_user_hashed_field`. Un utente cancellato su richiesta mostra invece **Cancellata su richiesta** e l'evento mostra il suo token: vedi [Cancellare una persona](#cancellare-una-persona).
 
 ## Esplorare gli eventi di sicurezza
 
@@ -747,6 +750,29 @@ Tutto ciò che in Eventi di sicurezza legge eventi passati legge solo gli eventi
 - Una caccia il cui **Intervallo di tempo** supera la conservazione degli eventi non trova nulla di più vecchio, e il suo modulo lo dice.
 
 **Impostazioni del progetto → Telemetria e APM → Conservazione dei dati** elenca le regole attive che guardano più indietro della sua **Conservazione predefinita (giorni)**. Per coprirle, conserva gli eventi più a lungo, con **Modifica conservazione** sotto una regola, oppure accorcia l'intervallo di una regola a ciò che è conservato. OneUptime conserva 15 giorni se non lo cambi, perché la conservazione stabilisce quanto costa la tua telemetria e per quanto tempo vengono conservati i dati personali negli eventi, come indirizzi e nomi utente. Una nuova conservazione si applica agli eventi che arrivano da quel momento, quindi le regole vedono più indietro man mano che quegli eventi invecchiano.
+
+## Cancellare una persona
+
+Quando qualcuno ti chiede di cancellare i suoi dati, ad esempio ai sensi dell'articolo 17 del GDPR, cancellalo in **Eventi di sicurezza → Impostazioni → Richieste di cancellazione**. Seleziona **Cancella persona** e inserisci il suo ID utente o indirizzo email come lo contenevano i tuoi log prima che la tua regola di pulizia Hash lo nascondesse, oppure il token che un evento mostra al suo posto. Un indirizzo email viene cancellato anche in minuscolo. Aggiungi un tuo riferimento in **Riferimento**, come il numero di ticket della richiesta, mai il nome della persona.
+
+Cosa fa la richiesta:
+
+- Entro un minuto, la persona non viene più nominata. Da quel momento il vault degli utenti rifiuta i suoi token, quindi nessun evento, caso o playbook la nomina più, anche quando un evento successivo porta lo stesso token: quell'evento mantiene il token come utente, come per ogni token senza un utente conservato. Conservare un token che ritorna nominerebbe di nuovo la persona, ed è proprio ciò che ti ha chiesto di interrompere.
+- Entro pochi minuti, elimina le voci del vault che la riguardano e rimette il token al suo posto negli eventi che la nominavano tramite il vault: **Utente di origine**, **Utente di destinazione**, gli osservabili e gli attributi. Fa lo stesso nei Detection Finding che una regola di rilevamento o un feed di threat intel ha scritto su di lei, nel loro messaggio, nei loro osservabili e nei loro attributi, e contrassegna ciascuno di questi finding con `oneuptime.finding_user_erased`. La toglie dai titoli, dalle entità e dagli eventi conservati di casi e rilevamenti, e dal rischio delle entità.
+- Un'esecuzione di playbook o un'azione di OneUptime AI che attende l'approvazione per agire su di lei viene ritirata, e spiega perché.
+
+Ogni richiesta mostra il suo stato, **In coda**, **Cancellazione in corso**, **Cancellata** o **Non riuscito**, e cosa ha cambiato: le voci del vault eliminate, gli eventi e i casi che non la nominano più e le proposte ritirate. La cancellazione inizia due minuti dopo l'invio della richiesta, quando nessun server OneUptime nomina più la persona, e una richiesta mostra **Cancellata** solo quando ogni modifica è stata applicata. Una richiesta che fallisce viene ritentata; dopo cinque tentativi mostra **Non riuscito** con il motivo, e i proprietari del progetto ricevono un'email. La persona continua a non essere nominata, e inviare di nuovo la richiesta la ritenta.
+
+Cosa lascia:
+
+- Ciò che hanno scritto le persone: note, note di chiusura, attività, prove, campi personalizzati e ciò che OneUptime AI ha scritto su un caso.
+- Gli eventi che nominavano la persona perché i tuoi log, o un prodotto che hai collegato, la contenevano in chiaro, e i tuoi log e tracce stessi, che contengono solo il token.
+- Le notifiche già inviate, gli incidenti e gli avvisi aperti da un rilevamento, l'attività di un caso, le esportazioni, i backup e il registro di audit.
+- In un OneUptime self-hosted il cui `ENCRYPTION_SECRET` è cambiato, i token creati prima della modifica: cancella ciascuno tramite il token che mostra un evento.
+
+La richiesta conserva chi l'ha inviata e quando, il tuo riferimento e i token della persona, con cui il vault continua a rifiutarla. L'ID utente o l'indirizzo email, e i nomi con cui la cancellazione trova la persona, sono salvati cifrati, dove nessuna pagina, esportazione o API può leggerli, e vengono eliminati una volta completata la cancellazione; a ClickHouse vengono inviati solo i token. Le richieste non si possono modificare né eliminare: sono la tua traccia della cancellazione.
+
+I Proprietari del progetto, gli Amministratori del progetto, gli Amministratori della sicurezza e chiunque abbia Create Security Erasure Request, come il tuo responsabile della protezione dei dati, possono inviare una richiesta, dalla pagina o tramite `/security-user-erasure-request` dell'API. Ogni ruolo di sicurezza può leggerle.
 
 ## Risoluzione dei problemi
 

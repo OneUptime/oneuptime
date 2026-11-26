@@ -18,6 +18,7 @@ import {
   getProjectRemovalLockReason,
   usePersonRemovalReach,
 } from "../../Utils/ProjectRemovalReach";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { ReactElement, useEffect, useState } from "react";
 import {
   composedValue,
@@ -247,6 +248,12 @@ const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
         <ConfirmModal
           description={error}
           title={`Remove User Error`}
+          // What failed is the Remove from Project the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Remove from Project") ||
+              "Remove from Project",
+          )}
           onSubmit={() => {
             setShowErrorModal(false);
             setError("");

@@ -225,17 +225,21 @@ describe("McpClient over Streamable HTTP", () => {
           required: ["region"],
         },
         readsOnly: true,
+        saysWhetherItReads: true,
       },
       {
         name: "restart_service",
         description: "Restarts an ECS service.",
         inputSchema: { type: "object", properties: {} },
         readsOnly: false,
+        saysWhetherItReads: true,
       },
+      // The protocol does not say whether it changes anything (#10879).
       {
         name: "unannotated_tool",
         inputSchema: { type: "object", properties: {} },
         readsOnly: false,
+        saysWhetherItReads: false,
       },
     ]);
   });
@@ -859,6 +863,7 @@ describe("readMcpToolDescription", () => {
       description: "Reads logs.",
       inputSchema: { type: "object", properties: {} },
       readsOnly: true,
+      saysWhetherItReads: true,
     });
   });
 

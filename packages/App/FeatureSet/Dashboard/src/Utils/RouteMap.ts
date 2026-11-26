@@ -621,6 +621,8 @@ export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: `${RouteParams.ModelID}/replication`,
   [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: `${RouteParams.ModelID}/hardware`,
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
+  // A kind a platform has of its own, by its name (StorageArrayPlatform.kindDefinitions).
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
@@ -759,6 +761,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_COMMITMENTS]: `commitments`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
   [PageMap.CLOUD_SETTINGS_COSTS]: `settings/costs`,
+  [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
+  [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
+  [PageMap.CLOUD_COST_GROUP_VIEW]: `cost-groups/${RouteParams.ModelID}/groups/${RouteParams.SubModelID}`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -1099,6 +1104,8 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
     "settings/response-targets",
   [PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES]: "settings/case-statuses",
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: "settings/risk-scoring",
+  [PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS]:
+    "settings/erasure-requests",
   [PageMap.SECURITY_EVENTS_SETTINGS_CUSTOM_FIELDS]: "settings/custom-fields",
   [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATES]: "settings/note-templates",
   [PageMap.SECURITY_EVENTS_SETTINGS_NOTE_TEMPLATE_VIEW]: `settings/note-templates/${RouteParams.ModelID}`,
@@ -6408,6 +6415,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INVENTORY]
+    }`,
+  ),
+
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]
@@ -7052,6 +7065,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_GROUPS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_GROUPS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_COST_GROUP_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COST_GROUP_VIEW]
     }`,
   ),
 
@@ -8903,6 +8934,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_RISK_SCORING]
+    }`,
+  ),
+
+  [PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS]
     }`,
   ),
 

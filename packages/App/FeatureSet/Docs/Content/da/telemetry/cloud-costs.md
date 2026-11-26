@@ -246,6 +246,7 @@ Din cloud rapporterer den sidste dag eller to for sent, og fakturerede og amorti
 ## Næste trin
 
 :::cards
+- [Fordeling af cloudomkostninger](/docs/telemetry/cloud-cost-allocation): Fordel udgifterne på teams, produkter og omkostningssteder.
 - [Forbind en cloudkonto](/docs/telemetry/cloud-accounts): Forbind en anden konto, eller kør dens kommando igen.
 - [Cloud-ressourcer](/docs/telemetry/cloud-resources): Hver ressources metrikker, fra din egen collector.
 - [Kubernetes-omkostningsobservability](/docs/telemetry/kubernetes-cost): Hvad hver Kubernetes-workload koster.

@@ -23,10 +23,13 @@ import { escapeRegExp } from "../../../../../Utils/RegExpEscape";
  *   - the model is imported only by its service;
  *   - the service is imported only by the services registry (so boot
  *     creates the table: its generic reads are refused,
- *     SecurityUserVaultService.test.ts), the writer and the lookup;
+ *     SecurityUserVaultService.test.ts), the writer, the lookup and the
+ *     erasure (#10908), which deletes a person's rows by their tokens;
  *   - the lookup is imported only by the trace scan and the log scan;
  *   - the writer is imported only by the ingest services that scrub logs
- *     and traces.
+ *     and traces;
+ *   - the erasure is imported only by the cron that carries out the
+ *     project's erasure requests.
  *
  * A file that needs the vault for something else fails here, and its
  * review is the decision. Each link is also checked to hold the files it
@@ -157,6 +160,7 @@ const LINKS: ReadonlyArray<Link> = [
     },
     allowed: [
       "packages/Common/Server/Services/Index.ts",
+      "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasure.ts",
       "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultLookup.ts",
       "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserVaultWriter.ts",
     ],
@@ -182,6 +186,15 @@ const LINKS: ReadonlyArray<Link> = [
       "packages/App/FeatureSet/Telemetry/Services/OtelTracesIngestService.ts",
       "packages/App/FeatureSet/Telemetry/Services/ProbeSyslogIngestService.ts",
       "packages/App/FeatureSet/Telemetry/Services/SyslogIngestService.ts",
+    ],
+  },
+  {
+    what: "the vault's erasure, which deletes a person's rows (#10908)",
+    makes: (source: string): boolean => {
+      return importsModule(source, "UserVault/SecurityUserErasure");
+    },
+    allowed: [
+      "packages/App/FeatureSet/Workers/Jobs/SecurityEvents/EraseSecurityUsers.ts",
     ],
   },
 ];

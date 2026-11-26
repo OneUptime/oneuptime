@@ -246,6 +246,7 @@ AI 代理可以透過 [MCP 伺服器](/docs/ai/mcp-server) 建立和變更預算
 ## 後續步驟
 
 :::cards
+- [雲端成本分攤](/docs/telemetry/cloud-cost-allocation): 將支出分攤到團隊、產品和成本中心。
 - [連線雲端帳戶](/docs/telemetry/cloud-accounts): 連線另一個帳戶，或重新執行它的指令。
 - [雲端資源](/docs/telemetry/cloud-resources): 每個資源的指標，來自你自己的收集器。
 - [Kubernetes 成本可觀測性](/docs/telemetry/kubernetes-cost): 每個 Kubernetes 工作負載的成本。

@@ -246,6 +246,7 @@ Je cloud meldt de laatste dag of twee te laat, en gefactureerde en geamortiseerd
 ## Volgende stappen
 
 :::cards
+- [Toewijzing van cloudkosten](/docs/telemetry/cloud-cost-allocation): Verdeel de uitgaven over teams, producten en kostenplaatsen.
 - [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts): Koppel een ander account, of voer de opdracht ervan opnieuw uit.
 - [Cloud-resources](/docs/telemetry/cloud-resources): De metrieken van elke resource, uit een eigen collector.
 - [Kubernetes-kostenobservability](/docs/telemetry/kubernetes-cost): Wat elke Kubernetes-workload kost.

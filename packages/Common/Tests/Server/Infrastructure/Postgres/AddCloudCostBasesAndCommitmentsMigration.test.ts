@@ -4,7 +4,7 @@ import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import { RecordActorUtil } from "../../../../Types/Database/RecordActor";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddCloudCostBasesAndCommitments1809187660117 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187660117-AddCloudCostBasesAndCommitments";
+import { AddCloudCostBasesAndCommitments1809187711011 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187711011-AddCloudCostBasesAndCommitments";
 import CloudCommitment from "../../../../Models/DatabaseModels/CloudCommitment";
 import CloudCostSetting from "../../../../Models/DatabaseModels/CloudCostSetting";
 import {
@@ -31,7 +31,7 @@ import { CLOUD_COST_DEFAULT_BASIS } from "../../../../Types/Cloud/CloudCostBasis
  * its tables).
  */
 
-const MIGRATION_TIMESTAMP: string = "1809187660117";
+const MIGRATION_TIMESTAMP: string = "1809187711011";
 const MIGRATION_BASE_NAME: string = "AddCloudCostBasesAndCommitments";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -56,7 +56,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddCloudCostBasesAndCommitments1809187660117();
+    new AddCloudCostBasesAndCommitments1809187711011();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -97,7 +97,7 @@ function declaredColumns(
   });
 }
 
-describe("AddCloudCostBasesAndCommitments1809187660117", () => {
+describe("AddCloudCostBasesAndCommitments1809187711011", () => {
   test("creates the commitments' table with every column the model declares", async () => {
     const create: string = createOf(
       await statementsOf("up"),
@@ -384,7 +384,7 @@ describe("AddCloudCostBasesAndCommitments1809187660117", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddCloudCostBasesAndCommitments1809187660117().name).toBe(
+    expect(new AddCloudCostBasesAndCommitments1809187711011().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 

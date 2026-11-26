@@ -6,6 +6,7 @@ import {
   test,
 } from "@playwright/test";
 import { formatFacetCount } from "Common/UI/Components/TelemetryViewer/FacetCount";
+import { isSplitPairRead } from "./ExceptionSplitPairReads";
 
 /*
  * "I'm not able to uncheck when I click on this. Please check if we have the
@@ -54,6 +55,7 @@ interface RecordedRequest {
   url?: string | undefined;
   body?: Record<string, unknown> | undefined;
   query?: Record<string, unknown> | undefined;
+  select?: Record<string, unknown> | undefined;
 }
 
 interface SpecWindow {
@@ -186,7 +188,11 @@ async function lastOwnCountOf(
   return calls.length > 0 ? calls[calls.length - 1]!.body || {} : null;
 }
 
-// The query of the newest list read of a table.
+/*
+ * The query of the newest list read of a table: the explorer's own read, not
+ * the small one the exceptions list makes of each page's split pairs once
+ * its rows are in (#10897).
+ */
 async function lastQueryOf(
   page: Page,
   kind: string,
@@ -194,7 +200,11 @@ async function lastQueryOf(
 ): Promise<Record<string, unknown> | null> {
   const reads: Array<RecordedRequest> = (await requests(page)).filter(
     (request: RecordedRequest): boolean => {
-      return request.kind === kind && request.modelName === modelName;
+      return (
+        request.kind === kind &&
+        request.modelName === modelName &&
+        !isSplitPairRead(request)
+      );
     },
   );
   return reads.length > 0 ? reads[reads.length - 1]!.query || {} : null;

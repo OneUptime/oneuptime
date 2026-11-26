@@ -90,7 +90,7 @@ Para desligar o incluído, defina `GLOBAL_RUNNER_REPLICAS=0` no `config.env` do 
 ## Antes de começar
 
 - **Um host com Docker** dentro da sua infraestrutura, que alcance a URL do seu OneUptime por HTTPS e os sistemas sobre os quais suas etapas agem.
-- **Uma função que cria Runners.** Proprietário do projeto, Administrador do projeto, Membro do projeto e Administrador de runbooks podem criar um. Só um Proprietário do projeto, Administrador do projeto ou Administrador de runbooks pode ver a chave de um Runner, que o comando de instalação contém.
+- **Uma função que cria Runners.** Proprietário do projeto, Administrador do projeto, Membro do projeto e Administrador de runbooks podem criar um. Só um Proprietário do projeto, Administrador do projeto ou Administrador de runbooks pode ver a chave de um Runner, que o comando de instalação contém. Só eles também podem escolher a chave de um Runner: um Runner que outra pessoa cria recebe uma chave gerada pelo OneUptime, e criá-lo não mostra a chave a ela.
 
 ## Instalar um Runner
 

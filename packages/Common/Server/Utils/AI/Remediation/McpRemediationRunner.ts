@@ -63,6 +63,10 @@ import McpRunToolkit, {
 } from "../Mcp/McpRunToolkit";
 import McpClientError from "../Mcp/McpClientError";
 import { McpToolResultText, readMcpToolResult } from "../Mcp/McpToolResult";
+import AiCommandKillSwitch, {
+  AI_MCP_CALLS_OFF_MESSAGE,
+  AI_MCP_CALLS_UNCONFIRMED_MESSAGE,
+} from "../AiCommandKillSwitch";
 import { escapeUntrustedContext, redactAndCap } from "./RemediationPlanRunner";
 import RemediationExecutionRunner from "./RemediationExecutionRunner";
 import Semaphore, { SemaphoreMutex } from "../../../Infrastructure/Semaphore";
@@ -982,6 +986,24 @@ export default class McpRemediationRunner {
           continue;
         }
 
+        /*
+         * Enable AI, read now (AiCommandKillSwitch): a fix approved before
+         * the switch went off makes no change after it, as an approved
+         * command plan's commands are never handed to an agent (#10879).
+         */
+        const aiOffReason: string | null = await this.getAiOffReason(
+          suggestion.projectId!,
+        );
+
+        if (aiOffReason) {
+          call.status = ExternalMcpToolCallStatus.Failed;
+          call.completedAt = call.startedAt;
+          call.errorMessage = aiOffReason;
+          stopReason = "Skipped because an earlier change failed.";
+          await this.persistPlan(data.suggestionId, plan);
+          continue;
+        }
+
         call.status = ExternalMcpToolCallStatus.Running;
         await this.persistPlan(data.suggestionId, plan);
 
@@ -1064,6 +1086,25 @@ export default class McpRemediationRunner {
   }
 
   // ---- helpers --------------------------------------------------------------
+
+  /*
+   * Why no change may be sent now - Enable AI is off, or could not be read
+   * (the switch fails closed) - or null.
+   */
+  private static async getAiOffReason(
+    projectId: ObjectID,
+  ): Promise<string | null> {
+    try {
+      return (await AiCommandKillSwitch.isAiOff(projectId))
+        ? AI_MCP_CALLS_OFF_MESSAGE
+        : null;
+    } catch (error) {
+      logger.error(
+        `McpRemediationRunner: could not read Enable AI of project ${projectId.toString()}; making no change: ${error}`,
+      );
+      return AI_MCP_CALLS_UNCONFIRMED_MESSAGE;
+    }
+  }
 
   private static getVerificationDeadline(
     suggestion: AutoRemediationSuggestion,

@@ -93,6 +93,7 @@ import UserUtil from "Common/UI/Utils/User";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 import { getUsedByRelations } from "Common/Types/UsedBy/UsedBy";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
@@ -523,6 +524,14 @@ API.get = async (options) => {
     return {
       data: { findings: [], checkedAt: new Date().toISOString() },
     };
+  }
+  /*
+   * Project Settings' Unique Names card (#10761): the names the project
+   * holds more than once - none - and that it does not require unique names.
+   */
+  const names = answerUniqueNames({ url });
+  if (names) {
+    return { data: names };
   }
   window.__fixture.unmodelled.push(`API.get ${url}`);
   return { data: { data: [], count: 0 } };

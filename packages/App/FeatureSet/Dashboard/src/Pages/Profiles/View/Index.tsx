@@ -370,7 +370,8 @@ const ProfileSummaryCard: FunctionComponent<ProfileSummaryCardProps> = (
         {entityId && (
           <div>
             <div className="text-xs uppercase tracking-wider text-gray-500">
-              {source.typeLabel}
+              {/* Its kind, a key: in the reader's words. */}
+              {translator.translateText(source.typeLabel)}
             </div>
             <div
               className={`text-sm font-medium text-gray-900 mt-0.5 truncate max-w-[16rem] ${

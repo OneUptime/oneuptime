@@ -259,6 +259,41 @@ A project can also sign in through an OpenID Connect provider, such as Google Wo
 6. Open the link in the **SSO Sign-in Link** card and pick the provider, to sign in through it before you require SSO for the project.
 :::
 
+## Email addresses your identity provider has not verified
+
+An OpenID Connect sign-in finds the person's OneUptime account by the email address your identity provider sends, and can create an account with that address. Some providers let people put an address on their own account without proving that it is theirs, and say so in the standard `email_verified` claim. So OneUptime signs nobody in with an address your provider says it has not verified: someone could have put another person's address on their account to sign in as them.
+
+| `email_verified` | The sign-in |
+| --- | --- |
+| `true`, or `"true"` and `1` | Goes ahead |
+| Not sent, as Microsoft Entra ID and AD FS do | Goes ahead |
+| `false`, or `"false"` and `0` | Is refused |
+| Anything else, such as `"yes"` | Is refused: OneUptime cannot tell |
+
+- The rule holds for every account, on the web and in the mobile app: one that exists, an administrator's included, and one the sign-in would create. A refused sign-in creates no account, adds nobody to a team, accepts no invitation and sends no email.
+- OneUptime reads `email_verified` where the address came from, the ID token or the userinfo endpoint, and only when the address is the `email` claim. A provider set up to send the address in another claim, such as `preferred_username` or `upn`, signs people in as before, so use a claim your people cannot change themselves.
+- The person sees "Your identity provider did not confirm your email address.", and is asked to verify their address with your identity provider, or to ask you to mark it verified there, then sign in again. The mobile app shows `provider_email_not_verified` with the same advice. When an account has the address, its projects' audit logs record the attempt as a failed sign-in.
+- SAML providers do not read `email_verified`, and nor do the OpenID Connect providers of status pages, dashboards and forms, which sign people in as their own private users.
+
+Providers that verify the addresses they send, such as Google and Okta, sign people in as before. authentik and Keycloak may need a change:
+
+:::tabs
+@tab authentik
+authentik 2025.10 and later sends `email_verified` as `false` for everyone with its default `email` scope mapping, so nobody signs in through it until you replace that mapping, as authentik's guide [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/) describes:
+
+1. In **Customization** > **Property Mappings**, click **New Property Mapping**, select **Scope Mapping** and click **Next**.
+2. Name the mapping, set **Scope name** to `email`, enter the **Expression** from the guide that matches how your people's addresses are verified, and click **Finish**.
+3. Open your application's provider, replace the default `email` mapping in **Scopes** with yours, and save the provider.
+
+Do not send `true` for every address while people can change their own address in authentik: the mapping would vouch for whatever address someone puts on their account. Releases before 2025.10 send `true` for every address, so do not let people change their own address there.
+@tab Keycloak
+Keycloak sends `email_verified` as `false` for people whose address it has not verified: people an administrator created with **Email verified** off, and people who registered or changed their address while **Verify email** was off.
+
+- To have them verify it, turn on **Verify email** in **Realm settings** > **Login** > **Email settings**. Keycloak then asks each of them to verify their address with an email the next time they sign in, so the realm needs its email server set up.
+- To vouch for one person's address yourself, turn on **Email verified** on their page in Keycloak and click **Save**.
+- For people from LDAP or Active Directory, turn on **Trust Email** in the **Advanced settings** of the provider in **User federation**. Keycloak then marks an address verified when it imports the person: turn on **Email verified** for the people it imported before.
+:::
+
 ## Signing out of the identity provider too
 
 Signing out of OneUptime leaves the person signed in at the identity provider, so on a shared computer, such as a NOC screen or a kiosk, the next person who picks the provider on the sign-in page gets in as the one who left. Turn on **Sign Out of the Identity Provider Too** under **More fields**, on a SAML or an OIDC provider, to end the provider's session as well when someone signs out of OneUptime. It is off by default: on a personal laptop it would also sign the person out of every other app that uses the provider. It applies to people who sign in with a browser after it is turned on; the mobile app signs out of OneUptime alone.
@@ -456,6 +491,10 @@ Each response from your IdP signs someone in once. Going back in the browser aft
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID signed someone in with the email address of an account that is linked, through this provider, to another object ID: another person holds the address in Entra ID now, or the person's Entra ID account was created again. OneUptime refuses the sign-in, so whoever holds the address next cannot use the account. If the account is the person's, remove them from the project and add them back: their next sign-in links the account to their new object ID.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Your OpenID Connect provider sent `email_verified` as `false`, or as something that is neither true nor false, so OneUptime signed nobody in. Have the address verified at your identity provider, or mark it verified there, and sign in again. [Email addresses your identity provider has not verified](#email-addresses-your-identity-provider-has-not-verified) says what to change in authentik and Keycloak.
 :::
 
 :::details Sign-in fails with a signature or certificate error

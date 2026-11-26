@@ -1,9 +1,7 @@
-import StorageArrayResourceKind, {
-  StorageArrayResourceKindUtil,
-} from "../../../Types/StorageArray/StorageArrayResourceKind";
-import StorageSystem, {
-  StorageSystemUtil,
-} from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
+import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { describe, expect, test } from "@jest/globals";
 
 /*

@@ -652,6 +652,21 @@ const NUMBERS: Record<string, Array<string>> = {
     "75",
     "256",
     "8096",
+    /*
+     * Running many monitors (#10819): the install measured, how much slower
+     * its database was, and what each setting gave.
+     */
+    "39700",
+    "28200",
+    "11500",
+    "100",
+    "19",
+    "44",
+    "57",
+    "150",
+    "313",
+    "659",
+    "763",
   ],
   [SLACK]: ["443", "15"],
   // ...and the most projects the bot's question offers a button for.

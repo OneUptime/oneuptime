@@ -49,6 +49,9 @@ import CloudSavings from "../Pages/Cloud/Savings";
 import CloudCommitments from "../Pages/Cloud/Commitments";
 import CloudBudgets from "../Pages/Cloud/Budgets";
 import CloudCostSettings from "../Pages/Cloud/Settings/Costs";
+import CloudCostGroups from "../Pages/Cloud/CostGroups";
+import CloudCostViewPage from "../Pages/Cloud/CostView";
+import CloudCostGroupPage from "../Pages/Cloud/CostGroup";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudResourceLabelRule from "Common/Models/DatabaseModels/CloudResourceLabelRule";
 import CloudResourceOwnerRule from "Common/Models/DatabaseModels/CloudResourceOwnerRule";
@@ -146,6 +149,33 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudCostSettings
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_SETTINGS_COSTS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COST_GROUPS] || ""}
+          element={
+            <CloudCostGroups
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COST_GROUPS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COST_VIEW] || ""}
+          element={
+            <CloudCostViewPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COST_VIEW] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_COST_GROUP_VIEW] || ""}
+          element={
+            <CloudCostGroupPage
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_COST_GROUP_VIEW] as Route}
             />
           }
         />

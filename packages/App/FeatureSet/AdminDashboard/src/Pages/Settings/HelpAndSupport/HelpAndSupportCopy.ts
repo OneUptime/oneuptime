@@ -214,7 +214,7 @@ export const HELP_ITEM_COPY: Readonly<Record<HelpItem, HelpItemCopy>> = {
   [HelpItem.MobileApp]: {
     title: translationKey("Get the Mobile App"),
     where: translationKey(
-      "How to Reach Me, the on-call setup, a new member's first steps on Home, and Project Settings › Mobile Apps.",
+      "How to Reach Me, the on-call setup, a new member's first steps on Home, and Project Settings › Notifications › Mobile Apps.",
     ),
     icon: IconProp.DevicePhoneMobile,
     card: HelpCard.MobileApp,

@@ -507,10 +507,10 @@ describe("the menu paths", () => {
         title: "Cloud",
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
-      // What the accounts cost, how to spend less, the commitments and the budgets.
+      // What the accounts cost, who it is for, how to spend less, the commitments and the budgets.
       {
         title: "Spend",
-        items: ["Costs", "Savings", "Commitments", "Budgets"],
+        items: ["Costs", "Cost Groups", "Savings", "Commitments", "Budgets"],
       },
       // The cost basis the pages open on, and when commitments alert.
       {

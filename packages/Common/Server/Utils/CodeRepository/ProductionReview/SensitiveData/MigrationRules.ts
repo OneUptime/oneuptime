@@ -302,6 +302,198 @@ const LINE_PATTERNS: ReadonlyArray<{
   },
 ];
 
+/*
+ * A line that opens what a migration or a model declares columns for, and
+ * the table it names (#10779): the columns its ORM declares under it, on
+ * lines that do not name a table themselves, are that table's - until
+ * another such line, or the hunk's end.
+ */
+const TABLE_HEADERS: ReadonlyArray<RegExp> = [
+  // Rails: create_table :customers do |t|, change_table "customers"
+  /\b(?:create_table|change_table)\s{0,10}\(?\s{0,10}:?["']?(\w{1,120})/,
+  /*
+   * Knex, Sequelize and TypeORM: createTable("customers", ...),
+   * alterTable("customers", ...), knex.schema.table("customers", ...),
+   * queryRunner.addColumn("customers", new TableColumn(...))
+   */
+  /\b(?:createTable|createTableIfNotExists|alterTable|table|addColumns?)\(\s{0,10}["'`](\w{1,120})["'`]/,
+  // Alembic: op.create_table("customers", ...), op.batch_alter_table("customers")
+  /\b(?:create_table|batch_alter_table)\(\s{0,10}["'](\w{1,120})["']/,
+  // SQLAlchemy: __tablename__ = "customers"
+  /\b__tablename__\s{0,10}=\s{0,10}["'](\w{1,120})["']/,
+  // Ecto: create table(:customers) do, alter table("customers") do
+  /\b(?:create|alter)\s{1,10}table\(\s{0,10}:?["']?(\w{1,120})/,
+  // Ecto's schemas: schema "customers" do
+  /^\s{0,40}schema\s{1,10}["'](\w{1,120})["']/,
+  // Liquibase: <createTable tableName="customers">, <addColumn tableName="customers">
+  /\btableName\s{0,5}=\s{0,5}"(\w{1,120})"/,
+  // TypeORM's entities: @Entity("customers"), @Entity({ name: "customers" })
+  /@Entity\(\s{0,10}(?:\{\s{0,10}name\s{0,10}:\s{0,10})?["'`](\w{1,120})["'`]/,
+  // TypeORM's migrations: new Table({ name: "customers", ...
+  /\bnew\s{1,10}Table\(\s{0,10}\{\s{0,10}name\s{0,10}:\s{0,10}["'`](\w{1,120})["'`]/,
+  // Prisma: model Customer {
+  /^\s{0,40}model\s{1,10}(\w{1,120})\s{0,10}\{/,
+];
+
+// A call's own `name=` keyword, never another's (`model_name=`): Django's AddField on one line.
+const OWN_NAME_KEYWORD: RegExp =
+  /(?:^|[^\w])name\s{0,10}=\s{0,10}["'](\w{1,120})["']/;
+
+// Entity Framework's AddColumn, and one that names its column on its own line.
+const ENTITY_FRAMEWORK_ADD_COLUMN: RegExp = /\bAddColumn</;
+const ENTITY_FRAMEWORK_ADD_COLUMN_NAMED: RegExp =
+  /\bAddColumn<\w{1,40}>\(\s{0,20}name:/;
+
+// Django names a model's table after its app: accounts_customer.
+const DJANGO_MODEL_HEADERS: ReadonlyArray<RegExp> = [
+  // A migration's AddField, RemoveField, AlterField: model_name="customer"
+  /\bmodel_name\s{0,10}=\s{0,10}["'](\w{1,120})["']/,
+  // A model: class Customer(models.Model):
+  /^\s{0,40}class\s{1,10}(\w{1,120})\s{0,10}\(\s{0,10}(?:models\.)?Model\s{0,10}\)/,
+];
+
+// A header that names its table on one of the lines after it, and how far to look.
+const TABLE_NAMED_BELOW: ReadonlyArray<{
+  opens: RegExp;
+  names: RegExp;
+  lines: number;
+  isDjangoModel: boolean;
+}> = [
+  // Entity Framework: migrationBuilder.CreateTable(\n name: "Customers",
+  {
+    opens: /\bCreateTable\(/,
+    names: /\bname:\s{0,10}"(\w{1,120})"/,
+    lines: 3,
+    isDjangoModel: false,
+  },
+  // Entity Framework: AddColumn<string>(\n name: "Ssn",\n table: "Customers",
+  {
+    opens: /\bAddColumn</,
+    names: /\btable:\s{0,10}"(\w{1,120})"/,
+    lines: 8,
+    isDjangoModel: false,
+  },
+  // Alembic: op.create_table(\n "customers",
+  {
+    opens: /\bop\.create_table\(\s{0,10}$/,
+    names: /^\s{0,40}["'](\w{1,120})["']\s{0,10},?\s{0,10}$/,
+    lines: 2,
+    isDjangoModel: false,
+  },
+  // TypeORM: new Table({\n name: "customers",
+  {
+    opens: /\bnew\s{1,10}Table\(\s{0,10}\{\s{0,10}$/,
+    names: /^\s{0,40}name\s{0,10}:\s{0,10}["'`](\w{1,120})["'`]/,
+    lines: 2,
+    isDjangoModel: false,
+  },
+  // Django: migrations.CreateModel(\n name="Customer",
+  {
+    opens: /\bCreateModel\(/,
+    names: /(?:^|[^\w])name\s{0,10}=\s{0,10}["'](\w{1,120})["']/,
+    lines: 3,
+    isDjangoModel: true,
+  },
+];
+
+/*
+ * The table Django gives a model of an app: the app's folder - the one a
+ * migrations folder or a models module is in - then the model's name, in
+ * lower case (accounts/migrations/0002_ssn.py, model Customer:
+ * accounts_customer). The model's name alone where the path says no app.
+ */
+export function djangoTableOf(path: string, model: string): string {
+  const parts: Array<string> = path.split("/").filter(Boolean);
+  let at: number = parts.lastIndexOf("migrations");
+
+  if (at < 0) {
+    at = parts.lastIndexOf("models");
+  }
+
+  if (at < 0 && parts[parts.length - 1] === "models.py") {
+    at = parts.length - 1;
+  }
+
+  const app: string = at > 0 ? parts[at - 1]! : "";
+
+  return app ? `${app}_${model.toLowerCase()}` : model.toLowerCase();
+}
+
+/*
+ * The table each of `lines` declares its columns for, by the lines that
+ * open one above it in its hunk (TABLE_HEADERS): null where none is open.
+ * Read from every line the change shows, so a model whose class line is
+ * context above an added field still names its table.
+ */
+export function readTablesInScope(
+  lines: ReadonlyArray<Pick<PatchLine, "text" | "hunk">>,
+  path: string,
+): Array<string | null> {
+  const tables: Array<string | null> = [];
+  let current: string | null = null;
+  let hunk: number = -1;
+
+  for (let index: number = 0; index < lines.length; index++) {
+    const line: Pick<PatchLine, "text" | "hunk"> = lines[index]!;
+
+    if (line.hunk !== hunk) {
+      hunk = line.hunk;
+      current = null;
+    }
+
+    const text: string = line.text;
+
+    for (const header of TABLE_HEADERS) {
+      const match: RegExpMatchArray | null = text.match(header);
+
+      if (match) {
+        current = match[1]!;
+        break;
+      }
+    }
+
+    for (const header of DJANGO_MODEL_HEADERS) {
+      const match: RegExpMatchArray | null = text.match(header);
+
+      if (match) {
+        current = djangoTableOf(path, match[1]!);
+        break;
+      }
+    }
+
+    for (const below of TABLE_NAMED_BELOW) {
+      if (!below.opens.test(text)) {
+        continue;
+      }
+
+      for (
+        let ahead: number = index;
+        ahead <= Math.min(lines.length - 1, index + below.lines);
+        ahead++
+      ) {
+        if (lines[ahead]!.hunk !== hunk) {
+          break;
+        }
+
+        const match: RegExpMatchArray | null = lines[ahead]!.text.match(
+          below.names,
+        );
+
+        if (match) {
+          current = below.isDjangoModel
+            ? djangoTableOf(path, match[1]!)
+            : match[1]!;
+          break;
+        }
+      }
+    }
+
+    tables.push(current);
+  }
+
+  return tables;
+}
+
 // The words a property's declaration may start with: TypeORM's columns.
 const PROPERTY_MODIFIERS: ReadonlySet<string> = new Set<string>([
   "public",
@@ -673,6 +865,8 @@ export function isModelPath(path: string): boolean {
  */
 export function readNewColumns(
   newLines: Array<PatchLine>,
+  // The file's path: a Django model's table is named after its app's folder.
+  path: string = "",
 ): Array<NewColumn & { index: number }> {
   const columns: Array<NewColumn & { index: number }> = [];
   const added: Array<{ text: string; index: number }> = [];
@@ -706,6 +900,7 @@ export function readNewColumns(
 
   let isAfterColumnDecorator: boolean = false;
   let addFieldLines: number = 0;
+  let addColumnLines: number = 0;
 
   for (const line of added) {
     const text: string = line.text;
@@ -741,9 +936,16 @@ export function readNewColumns(
       }
     }
 
-    // Django's AddField: its name on one of the lines after it.
+    // Django's AddField: its name on its line, or on one of the lines after it.
     if (text.includes("AddField(")) {
-      addFieldLines = 6;
+      const name: RegExpMatchArray | null = text.match(OWN_NAME_KEYWORD);
+
+      if (name) {
+        columns.push({ column: name[1]!, table: null, index: line.index });
+        addFieldLines = 0;
+      } else {
+        addFieldLines = 6;
+      }
     } else if (addFieldLines > 0) {
       addFieldLines--;
 
@@ -756,21 +958,50 @@ export function readNewColumns(
         addFieldLines = 0;
       }
     }
+
+    // Entity Framework's AddColumn written across lines: its name on one after it.
+    if (ENTITY_FRAMEWORK_ADD_COLUMN.test(text)) {
+      addColumnLines = ENTITY_FRAMEWORK_ADD_COLUMN_NAMED.test(text) ? 0 : 4;
+    } else if (addColumnLines > 0) {
+      addColumnLines--;
+
+      const name: RegExpMatchArray | null = text.match(
+        /^\s{0,40}name:\s{0,10}"(\w{1,120})"/,
+      );
+
+      if (name) {
+        columns.push({ column: name[1]!, table: null, index: line.index });
+        addColumnLines = 0;
+      }
+    }
   }
+
+  // A column whose own line names no table: the one its block opened (#10779).
+  const tables: Array<string | null> = readTablesInScope(newLines, path);
 
   // Each column once, the first line that names it.
   const seen: Set<string> = new Set<string>();
 
-  return columns.filter((column: NewColumn & { index: number }): boolean => {
-    const key: string = `${column.index}\u0000${column.column.toLowerCase()}`;
+  return columns
+    .filter((column: NewColumn & { index: number }): boolean => {
+      const key: string = `${column.index}\u0000${column.column.toLowerCase()}`;
 
-    if (seen.has(key)) {
-      return false;
-    }
+      if (seen.has(key)) {
+        return false;
+      }
 
-    seen.add(key);
-    return true;
-  });
+      seen.add(key);
+      return true;
+    })
+    .map(
+      (
+        column: NewColumn & { index: number },
+      ): NewColumn & { index: number } => {
+        return column.table
+          ? column
+          : { ...column, table: tables[column.index] || null };
+      },
+    );
 }
 
 // Whether a column's name is a password's, with nothing in it saying it is hashed.
@@ -831,7 +1062,7 @@ export function findSensitiveColumns(data: {
   const newLines: Array<PatchLine> = readNewLines(data.lines);
   const candidates: Array<SensitiveDataCandidate> = [];
 
-  for (const found of readNewColumns(newLines)) {
+  for (const found of readNewColumns(newLines, data.path)) {
     const line: PatchLine = newLines[found.index]!;
 
     if (isMarkedNotSensitive(newLines, found.index)) {

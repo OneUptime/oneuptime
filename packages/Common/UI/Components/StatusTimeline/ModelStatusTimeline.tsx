@@ -71,6 +71,10 @@ import {
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  getDeleteWhatFailed,
+  getLoadWhatFailed,
+} from "../../Utils/DialogWhatFailed";
 import React, {
   ReactElement,
   useEffect,
@@ -318,6 +322,11 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
     useState<DeleteConfirmation | null>(null);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [errorModalText, setErrorModalText] = useState<string>("");
+  /*
+   * What the Error dialog's failure was, said first when nobody explained
+   * it: its title, "Error", names nothing (#7680).
+   */
+  const [errorModalWhatFailed, setErrorModalWhatFailed] = useState<string>("");
   const [viewId, setViewId] = useState<string | null>(null);
   const [cause, setCause] = useState<{
     isLoading: boolean;
@@ -535,6 +544,9 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         totalCount: Math.max(older.count, loaded.totalCount),
       });
     } catch (err) {
+      setErrorModalWhatFailed(
+        getLoadWhatFailed(translator, model.pluralName || singularName),
+      );
       setErrorModalText(API.getFriendlyMessage(err));
     }
 
@@ -897,6 +909,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       })
       .catch((err: unknown) => {
         setCause(null);
+        setErrorModalWhatFailed(getLoadWhatFailed(translator, "Cause"));
         setErrorModalText(API.getFriendlyMessage(err));
       });
   };
@@ -922,6 +935,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       })
       .catch((err: unknown) => {
         setLogs(null);
+        setErrorModalWhatFailed(getLoadWhatFailed(translator, "Logs"));
         setErrorModalText(API.getFriendlyMessage(err));
       });
   };
@@ -1022,6 +1036,9 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       refresh();
     } catch (err) {
       setItemToDelete(null);
+      setErrorModalWhatFailed(
+        getDeleteWhatFailed(translator, singularName || "Item"),
+      );
       setErrorModalText(API.getFriendlyMessage(err));
     }
 
@@ -1308,6 +1325,7 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         <ConfirmModal
           title="Error"
           description={errorModalText}
+          errorWhatFailed={errorModalWhatFailed || undefined}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={() => {

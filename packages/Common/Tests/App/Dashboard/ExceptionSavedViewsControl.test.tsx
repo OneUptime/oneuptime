@@ -135,6 +135,7 @@ const LIST_NOW: TelemetrySavedViewState = {
   exceptionStatus: "archived",
   exceptionClassScope: "all",
   exceptionAssignedToMe: true,
+  exceptionSplitByScrubRule: true,
   exceptionSort: "most-events",
 };
 
@@ -290,6 +291,7 @@ describe("the exceptions list's saved views, through the control", () => {
         status: "archived",
         classScope: null,
         assignedToMe: false,
+        splitByScrubRule: false,
         sort: ExceptionListSort.LastSeen,
       });
 

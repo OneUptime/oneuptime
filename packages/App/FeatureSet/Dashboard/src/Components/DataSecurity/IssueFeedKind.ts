@@ -101,6 +101,13 @@ export const getDataSecurityIssueFeedKind: GetDataSecurityIssueFeedKindFunction 
         return { icon: IconProp.Refresh, tone: FeedTone.Danger };
       case DataSecurityIssueFeedEventType.FixUnverifiable:
         return { icon: IconProp.QuestionMarkCircle, tone: FeedTone.Record };
+      // A person's own pull request, linked as the issue's fix (#10831).
+      case DataSecurityIssueFeedEventType.FixLinked:
+        return { icon: IconProp.Link, tone: FeedTone.Info };
+      case DataSecurityIssueFeedEventType.FixClosed:
+        return { icon: IconProp.Close, tone: FeedTone.Record };
+      case DataSecurityIssueFeedEventType.FixUnlinked:
+        return { icon: IconProp.Link, tone: FeedTone.Record };
       default:
         return undefined;
     }

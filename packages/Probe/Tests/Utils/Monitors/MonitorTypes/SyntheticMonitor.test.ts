@@ -66,6 +66,10 @@ describe("SyntheticMonitor secure worker orchestration", () => {
   let noProxy: Array<string>;
   let originalNoProxy: Array<string>;
   let logger: LoggerClass;
+  let probeConfig: {
+    PROBE_ALLOW_PRIVATE_NETWORK_MONITORS: boolean;
+    PROBE_PRIVATE_NETWORK_HINT: string;
+  };
 
   beforeAll(() => {
     process.env["ONEUPTIME_URL"] = "http://oneuptime.test";
@@ -87,6 +91,7 @@ describe("SyntheticMonitor secure worker orchestration", () => {
       "../../../../Config",
     ).NO_PROXY;
     originalNoProxy = [...noProxy];
+    probeConfig = jest.requireActual<typeof probeConfig>("../../../../Config");
     logger = jest.requireActual<{ default: LoggerClass }>(
       "Common/Server/Utils/Logger",
     ).default;
@@ -155,6 +160,12 @@ describe("SyntheticMonitor secure worker orchestration", () => {
       executablePath: "/playwright/chromium",
       viewport: { width: 1920, height: 1080 },
       args: {},
+      // The probe's own egress policy (GHSA-9rx7-vwfj-whp7).
+      egressPolicy: {
+        allowPrivateNetworkAddresses:
+          probeConfig.PROBE_ALLOW_PRIVATE_NETWORK_MONITORS,
+        privateNetworkHint: probeConfig.PROBE_PRIVATE_NETWORK_HINT,
+      },
     });
     expect(typeof payload.chromiumSandboxEnabled).toBe("boolean");
     expect(runSpy.mock.calls[0]?.[0].validateResult).toEqual(

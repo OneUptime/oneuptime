@@ -30,6 +30,7 @@ jest.mock("../../../UI/Utils/Translation", () => {
 
 import ErrorMessage from "../../../UI/Components/ErrorMessage/ErrorMessage";
 import { getUnexplainedServerErrorMessage } from "../../../Types/Exception/UnexplainedError";
+import { getReferenceAlignment } from "../../Helpers/ReferenceLineAlignment";
 
 describe("ErrorMessage refresh control", () => {
   afterEach(() => {
@@ -84,8 +85,9 @@ describe("ErrorMessage refresh control", () => {
 
   /*
    * Its lines are centred, so a failure the server could not explain has
-   * its reference's row centred under them too: it sat at their start, under
-   * a centred "Try again", in every list that failed.
+   * its reference's line centred under them too: it sat at their start,
+   * under a centred "Try again", in every list that failed. The line takes
+   * the lines' alignment itself (ErrorReference, #7622).
    */
   test("centres the reference of a failure nobody explained under its centred lines", () => {
     render(
@@ -95,6 +97,8 @@ describe("ErrorMessage refresh control", () => {
       />,
     );
 
-    expect(screen.getByTestId("error-reference")).toHaveClass("justify-center");
+    expect(getReferenceAlignment(screen.getByTestId("error-reference"))).toBe(
+      "center",
+    );
   });
 });

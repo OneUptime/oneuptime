@@ -95,6 +95,7 @@ import WorkspaceIncidentSubscriberNotification, {
   WORKSPACE_NOTIFY_SUBSCRIBERS_TEXT,
   WorkspaceNotifySubscribersField,
 } from "../../WorkspaceIncidentSubscriberNotification";
+import WorkspaceIncidentDeclaredByHand from "../../WorkspaceIncidentDeclaredByHand";
 import { OnCallPageRecordType } from "../../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import { getExecuteOnCallPolicyFormDescription } from "../../WorkspaceExecuteOnCallPolicyForm";
 
@@ -383,12 +384,18 @@ export default class SlackIncidentActions {
           requester: slackRequest,
           action: "declare the incident",
           run: async (): Promise<Incident> => {
+            /*
+             * Declared by hand, as on Declare Incident: the project's
+             * switch may start it acknowledged (#11137,
+             * WorkspaceIncidentDeclaredByHand) - alongside the alert to
+             * link, when it is declared from one.
+             */
             return await IncidentService.create({
               data: incident,
               props: props,
-              ...(linkedAlert
-                ? { miscDataProps: linkedAlert.miscDataProps }
-                : {}),
+              miscDataProps: WorkspaceIncidentDeclaredByHand.withDeclaredByHand(
+                linkedAlert?.miscDataProps,
+              ),
             });
           },
         });
@@ -438,6 +445,20 @@ export default class SlackIncidentActions {
 
       if (linkedLine) {
         lines.push(linkedLine);
+      }
+
+      /*
+       * Started acknowledged, as the project starts incidents declared by
+       * hand that page no one: so nobody wonders why nobody was paged.
+       */
+      const startedAcknowledgedLine: MarkdownText | null =
+        await WorkspaceIncidentDeclaredByHand.getConfirmationLine({
+          projectId: slackRequest.projectId!,
+          created: createdIncident,
+        });
+
+      if (startedAcknowledgedLine) {
+        lines.push(startedAcknowledgedLine);
       }
 
       /*
@@ -616,7 +637,9 @@ export default class SlackIncidentActions {
      *   Monitors (multi select; optional - picking one pauses its checks)
      *   Change Monitor Status to (single select; optional)
      *   Notify Status Page Subscribers (a box, starting as the project says)
-     *   Execute On-Call Policies (multi select; optional)
+     *   Execute On-Call Policies (multi select; optional - with a hint that
+     *     leaving it empty starts the incident acknowledged, where the
+     *     project starts incidents declared by hand acknowledged)
      *   Labels (multi select; optional)
      *
      * Opened in an alert's own channel, it opens with the alert it is
@@ -635,6 +658,7 @@ export default class SlackIncidentActions {
       isAffectedResourcesOffered,
       isAiEnabled,
       isNotifyTickedByDefault,
+      isDeclaredByHandAcknowledged,
     ]: [
       Array<IncidentSeverity>,
       Array<Monitor>,
@@ -645,6 +669,7 @@ export default class SlackIncidentActions {
       boolean,
       boolean,
       boolean | null,
+      boolean,
     ] = await Promise.all([
       WorkspaceActionAuthorization.findReadable({
         service: IncidentSeverityService,
@@ -737,6 +762,12 @@ export default class SlackIncidentActions {
         projectId: projectId,
         props: props,
       }),
+      /*
+       * Whether an incident declared here with no on-call policy starts
+       * acknowledged (Incidents > Settings > Incident State): the
+       * policies' hint says so.
+       */
+      WorkspaceIncidentDeclaredByHand.readIsOn(projectId),
     ]);
 
     // The alert it is declared from, said first.
@@ -906,6 +937,10 @@ export default class SlackIncidentActions {
         blockId: "onCallDutyPolicies",
         placeholder:
           "Select on-call policies to execute when this incident is created",
+        // Left empty, it starts acknowledged where the project says so.
+        description: WorkspaceIncidentDeclaredByHand.getOnCallPoliciesHint(
+          isDeclaredByHandAcknowledged,
+        ),
         options: onCallPolicyDropdownOptions,
         multiSelect: true,
         optional: true,

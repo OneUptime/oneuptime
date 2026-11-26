@@ -467,12 +467,25 @@ describe("the CodeRequest recipe", () => {
     const given: Array<CodeFixTaskType> =
       CodeFixTaskTypeHelper.getTaskTypesForRunnersThatDoNotSay();
 
-    expect(given).not.toContain(CodeFixTaskType.CodeRequest);
+    /*
+     * Nor are the recipes added since: the fix of a group of Data Security
+     * issues' cause (#10370) and of a service's telemetry leaks (#10367). A
+     * Runner built before them has no handler for them.
+     */
+    const added: Array<CodeFixTaskType> = [
+      CodeFixTaskType.CodeRequest,
+      CodeFixTaskType.FixInfrastructureCode,
+      CodeFixTaskType.FixSensitiveDataInTelemetry,
+    ];
+
+    for (const type of added) {
+      expect(given).not.toContain(type);
+    }
+
     expect(given).toEqual(
       Object.values(CodeFixTaskType).filter((type: CodeFixTaskType) => {
         return (
-          type !== CodeFixTaskType.CodeRequest &&
-          !CodeFixTaskTypeHelper.isRunByServer(type)
+          !added.includes(type) && !CodeFixTaskTypeHelper.isRunByServer(type)
         );
       }),
     );

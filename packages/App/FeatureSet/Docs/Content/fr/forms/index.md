@@ -19,12 +19,12 @@ flowchart TB
     page -->|Soumettre| checks["Protections et<br/>vérification des réponses"]
     checks --> submission["Soumission, conservée<br/>avec le formulaire"]
     submission --> target{"Chaque soumission crée"}
-    target -->|Incident| incident["Incident, masqué<br/>sur les pages de statut"]
-    target -->|Alerte| alert["Alerte, à vérifier<br/>par ses propriétaires"]
-    target -->|Maintenance planifiée| event["Événement de maintenance,<br/>masqué sauf réglage contraire"]
+    target -->|Incident| incident["Incident, masqué<br/>sur les pages<br/>de statut"]
+    target -->|Alerte| alert["Alerte, à<br/>vérifier par ses<br/>propriétaires"]
+    target -->|Maintenance planifiée| event["Événement de<br/>maintenance, masqué<br/>sauf réglage contraire"]
     incident --> response["Les politiques d'astreinte<br/>et les règles s'exécutent"]
     alert --> response
-    incident --> note["Note privée : qui l'a envoyé,<br/>autres réponses"]
+    incident --> note["Note privée :<br/>qui l'a envoyé,<br/>autres réponses"]
     alert --> note
     event --> note
 ```

@@ -1,0 +1,182 @@
+{
+  "description": "The names-and-addresses model on short values (#10927), measured through the scanner's own code on ShortFreeTextTestSet.json: precision and recall of the findings it makes at Medium or above, by language, over the fields a rule has it read, and false findings per 1,000 read values that hold neither a name nor an address. namedForFreeText is the rule chosen (FreeTextFieldNames.ts); atLeastFourWords is the rule the issue suggested, measured and not chosen.",
+  "namedForFreeText": {
+    "fieldsRead": 21,
+    "catalogValuesRead": 0,
+    "negatives": 140,
+    "falseFindings": 2,
+    "falseFindingsPerThousandNegatives": 14.3,
+    "languages": {
+      "en": {
+        "person-name": {
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "es": {
+        "person-name": {
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "de": {
+        "person-name": {
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "fr": {
+        "person-name": {
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "it": {
+        "person-name": {
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "pt": {
+        "person-name": {
+          "precision": 0.857,
+          "recall": 0.923
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "nl": {
+        "person-name": {
+          "precision": 1.0,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "all": {
+        "person-name": {
+          "precision": 0.978,
+          "recall": 0.989
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      }
+    }
+  },
+  "atLeastFourWords": {
+    "fieldsRead": 30,
+    "catalogValuesRead": 108,
+    "catalogFalseFindings": 53,
+    "negatives": 248,
+    "falseFindings": 55,
+    "falseFindingsPerThousandNegatives": 221.8,
+    "languages": {
+      "en": {
+        "person-name": {
+          "precision": 0.542,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "es": {
+        "person-name": {
+          "precision": 0.481,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "de": {
+        "person-name": {
+          "precision": 0.722,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "fr": {
+        "person-name": {
+          "precision": 0.65,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "it": {
+        "person-name": {
+          "precision": 0.765,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "pt": {
+        "person-name": {
+          "precision": 0.632,
+          "recall": 0.923
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "nl": {
+        "person-name": {
+          "precision": 0.65,
+          "recall": 1.0
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      },
+      "all": {
+        "person-name": {
+          "precision": 0.621,
+          "recall": 0.989
+        },
+        "postal-address": {
+          "precision": 1.0,
+          "recall": 1.0
+        }
+      }
+    }
+  }
+}

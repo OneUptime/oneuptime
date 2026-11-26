@@ -62,12 +62,6 @@ const NO_APPROVED_TEMPLATE: ReadonlyArray<NotificationSettingEventType> = [
   // And the monitor group's and the Runner's new owners (#9758).
   E.SEND_MONITOR_GROUP_OWNER_ADDED_NOTIFICATION,
   E.SEND_RUNNER_OWNER_ADDED_NOTIFICATION,
-  /*
-   * A probe a major release behind (#9977): the probe status template's
-   * "Probe X status is Y" is not true of it - a probe's status is
-   * Connected, Disconnected or Behind on its checks - so none is reused.
-   */
-  E.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
 ];
 
 const EVERY_EVENT: Array<NotificationSettingEventType> = Object.values(
@@ -138,6 +132,68 @@ describe("the events WhatsApp can send", () => {
     expect(
       getWhatsAppTemplateIdOfEvent(E.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS),
     ).toBe(WhatsAppTemplateIds.OnCallUserIsNextNotification);
+  });
+
+  /*
+   * A probe a major release behind (#9977) has a template of its own
+   * (#10913): the probe status template's "Probe X status is Y" is not true
+   * of it - a probe's status is Connected, Disconnected or Behind on its
+   * checks - so none is reused.
+   */
+  test("a probe a major release behind goes through a template of its own, never the probe status one", () => {
+    expect(
+      getWhatsAppTemplateIdOfEvent(
+        E.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
+      ),
+    ).toBe(WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification);
+    expect(WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification).toBe(
+      "oneuptime_probe_major_release_behind_owner_notification",
+    );
+    expect(
+      getWhatsAppTemplateIdOfEvent(
+        E.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
+      ),
+    ).not.toBe(WhatsAppTemplateIds.ProbeStatusChangedOwnerNotification);
+    expect(
+      isNotificationChannelOfferedForEvent({
+        channel: "alertByWhatsApp",
+        eventType: E.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION,
+      }),
+    ).toBe(true);
+  });
+
+  test("its template's words: which probe, its version and OneUptime's, how far behind, and its page", () => {
+    expect(
+      WhatsAppTemplateMessages[
+        WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification
+      ],
+    ).toBe(
+      "Probe {{probe_name}} runs {{probe_version}}, {{major_releases_behind}} behind OneUptime {{server_version}}, which it reports to. See what it misses and how to update it using {{probe_link}} on the OneUptime dashboard.",
+    );
+    expect(
+      WhatsAppTemplateLanguage[
+        WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification
+      ],
+    ).toBe("en");
+  });
+
+  /*
+   * Shaped like the probe templates Meta has approved: it opens and closes
+   * with words of its own, never a variable, and its link is the probe's
+   * page on the dashboard, as theirs is.
+   */
+  test("its template opens and closes with words, and links the probe as the other probe templates do", () => {
+    const text: string =
+      WhatsAppTemplateMessages[
+        WhatsAppTemplateIds.ProbeMajorReleaseBehindOwnerNotification
+      ];
+
+    expect(text.startsWith("Probe ")).toBe(true);
+    expect(text.endsWith("on the OneUptime dashboard.")).toBe(true);
+    expect(text).toContain("using {{probe_link}} on the OneUptime dashboard");
+    expect(
+      WhatsAppTemplateMessages[WhatsAppTemplateIds.ProbeOwnerAddedNotification],
+    ).toContain("using {{probe_link}} on the OneUptime dashboard");
   });
 
   test("an SLA breach goes through the approved 'still open' reminder", () => {

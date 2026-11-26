@@ -12,6 +12,7 @@ import {
 } from "Common/Types/HelpAndSupport/HelpAndSupport";
 import SignInAgain from "../Utils/SignInAgain";
 import OIDCUtil, { OidcCallbackResult } from "../Utils/OIDC";
+import OidcEmailVerificationGate from "../Utils/OidcEmailVerificationGate";
 import {
   clearMobileSsoIntentCookie,
   isMobileSsoRequest,
@@ -20,9 +21,10 @@ import {
   respondToMobileSsoSuccess,
   startMobileSsoHandOff,
 } from "../Utils/MobileSso";
-import SsoTeamMembership, {
-  SsoTeamMembershipOutcome,
-} from "../Utils/SsoTeamMembership";
+import GlobalSsoProvisioning, {
+  GlobalSsoAttachments,
+  GlobalSsoNewcomerRefusal,
+} from "../Utils/GlobalSsoProvisioning";
 import { DashboardRoute } from "Common/ServiceRoute";
 import Hostname from "Common/Types/API/Hostname";
 import Protocol from "Common/Types/API/Protocol";
@@ -34,7 +36,6 @@ import Exception from "Common/Types/Exception/Exception";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
-import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
 import {
@@ -50,7 +51,6 @@ import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import GlobalOIDCService from "Common/Server/Services/GlobalOidcService";
-import GlobalOIDCProjectService from "Common/Server/Services/GlobalOidcProjectService";
 import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import UserService from "Common/Server/Services/UserService";
 import UserSessionService, {
@@ -74,7 +74,6 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
-import GlobalOIDCProject from "Common/Models/DatabaseModels/GlobalOidcProject";
 import User from "Common/Models/DatabaseModels/User";
 import { Client } from "openid-client";
 
@@ -602,19 +601,39 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       );
     }
 
-    // Resolve attached projects. No attachment => "default-all" mode.
-    const attachments: Array<GlobalOIDCProject> =
-      await GlobalOIDCProjectService.findBy({
-        query: { globalOidcId: globalOidcId, isEnabled: true },
-        select: { projectId: true, teams: { _id: true } },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        props: { isRoot: true },
-      });
+    /*
+     * An address the provider says it has not verified signs nobody in -
+     * not the account that has it, a master admin's included, and not a new
+     * one - before any account is read, made, provisioned or emailed
+     * (GHSA-8gwc-w386-fh6w, ../Utils/OidcEmailVerification).
+     */
+    if (
+      await OidcEmailVerificationGate.refuseUnverifiedAddress({
+        req,
+        res,
+        isMobileRequest,
+        identity: result,
+        provider: `Global OIDC provider ${globalOidcId.toString()}`,
+        signIn: {
+          method: SignInMethod.OpenIdConnect,
+          ssoProviderName: globalOidc.name,
+        },
+      })
+    ) {
+      return;
+    }
 
-    const isDefaultAllMode: boolean = attachments.length === 0;
-    const isSignUpDisabled: boolean =
-      Boolean(globalOidc.disableSignUpWithSso) || isDefaultAllMode;
+    /*
+     * The projects attached to the provider, and those people join: one
+     * with teams of its own project. With none on, "default-all": the
+     * sign-in counts in every project people belong to, and adds nobody
+     * to any (../Utils/GlobalSsoProvisioning).
+     */
+    const attachments: GlobalSsoAttachments =
+      await GlobalSsoProvisioning.readAttachments({
+        providerType: SsoProviderType.GlobalOIDC,
+        providerId: globalOidcId,
+      });
 
     let alreadySavedUser: User | null = await UserService.findOneBy({
       query: { email: result.email },
@@ -634,7 +653,25 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
     let isNewUser: boolean = false;
 
     if (!alreadySavedUser) {
-      if (isSignUpDisabled) {
+      /*
+       * Someone with no account gets one only with "Get one on their first
+       * sign-in" and an attached project to put them in (#11149).
+       */
+      const newcomerRefusal: GlobalSsoNewcomerRefusal | null =
+        GlobalSsoProvisioning.getNewcomerRefusal({
+          disableSignUpWithSso: globalOidc.disableSignUpWithSso,
+          attachments: attachments,
+        });
+
+      if (newcomerRefusal) {
+        GlobalSsoProvisioning.logNewcomerTurnedAway({
+          req: req,
+          providerType: SsoProviderType.GlobalOIDC,
+          providerId: globalOidcId,
+          providerName: globalOidc.name,
+          refusal: newcomerRefusal,
+        });
+
         /*
          * Whom to ask for an invitation: the server's own words, where a
          * master admin wrote them (Settings > Help and Support), or the
@@ -746,50 +783,17 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
       });
     }
 
-    if (!isDefaultAllMode) {
-      for (const attachment of attachments) {
-        if (!attachment.projectId) {
-          continue;
-        }
-
-        if (!attachment.teams || attachment.teams.length === 0) {
-          continue;
-        }
-
-        const teamMemberCount: PositiveNumber = await TeamMemberService.countBy(
-          {
-            query: {
-              projectId: attachment.projectId,
-              userId: alreadySavedUser!.id!,
-            },
-            props: { isRoot: true },
-          },
-        );
-
-        if (teamMemberCount.toNumber() > 0) {
-          continue;
-        }
-
-        /*
-         * They take a seat in each project like anyone invited. A project
-         * with no room for one more person adds them nowhere, and is left
-         * out: they still sign in to every other project, and join this one
-         * on a later sign-in once it has room.
-         */
-        if (
-          (await SsoTeamMembership.addToTeams({
-            projectId: attachment.projectId,
-            userId: alreadySavedUser!.id!,
-            teams: attachment.teams,
-          })) === SsoTeamMembershipOutcome.NoRoom
-        ) {
-          logger.info(
-            `Global OIDC did not add ${result.email.toString()} to project ${attachment.projectId.toString()}: it has no room for another person.`,
-            getLogAttributesFromRequest(req as RequestLike),
-          );
-        }
-      }
-    }
+    /*
+     * Everyone who signs in - new, or an account made by hand - joins each
+     * attached project they are not in yet, in its teams, taking a seat
+     * like anyone invited (../Utils/GlobalSsoProvisioning).
+     */
+    await GlobalSsoProvisioning.addToAttachedProjects({
+      req: req,
+      providerType: SsoProviderType.GlobalOIDC,
+      attachments: attachments,
+      userId: alreadySavedUser.id!,
+    });
 
     alreadySavedUser.email = result.email;
 
@@ -797,9 +801,9 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
 
     /*
      * A Global OIDC session is only useful if the user belongs to at least one
-     * project (access is still gated per-project by team membership). In
-     * default-all mode there is no JIT provisioning, so a brand-new member of
-     * nothing is sent back with a clear message instead of an empty session.
+     * project (access is still gated per-project by team membership). With
+     * no project attached nobody is added to one, so a member of nothing is
+     * sent back with a clear message instead of an empty session.
      */
     const memberProjectCount: PositiveNumber = await TeamMemberService.countBy({
       query: { userId: alreadySavedUser.id! },
@@ -814,45 +818,32 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
      * re-authenticating producing an identical token - a dead end with no way
      * out from inside the product.
      */
-    if (globalOidc.restrictToAttachedProjects && !isDefaultAllMode) {
-      const governedProjectIds: Array<ObjectID> = attachments
-        .filter((attachment: GlobalOIDCProject) => {
-          return Boolean(attachment.projectId);
-        })
-        .map((attachment: GlobalOIDCProject) => {
-          return attachment.projectId!;
-        });
-
-      const governedMembershipCount: PositiveNumber =
-        governedProjectIds.length === 0
-          ? new PositiveNumber(0)
-          : await TeamMemberService.countBy({
-              query: {
-                userId: alreadySavedUser.id!,
-                projectId: QueryHelper.any(governedProjectIds),
-              },
-              props: { isRoot: true },
-            });
-
-      if (governedMembershipCount.toNumber() === 0) {
-        if (
-          respondToMobileSsoFailure({
-            res,
-            isMobileRequest,
-            error: "no_project_access",
-            errorDescription:
-              "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
-          })
-        ) {
-          return;
-        }
-
-        return Response.render(req, res, MESSAGE_VIEW, {
-          title: "No project access.",
-          message:
+    if (
+      globalOidc.restrictToAttachedProjects &&
+      (await GlobalSsoProvisioning.isSignInRestrictedFromEveryProject({
+        providerType: SsoProviderType.GlobalOIDC,
+        providerId: globalOidcId,
+        attachments: attachments,
+        userId: alreadySavedUser.id!,
+      }))
+    ) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "no_project_access",
+          errorDescription:
             "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
-        });
+        })
+      ) {
+        return;
       }
+
+      return Response.render(req, res, MESSAGE_VIEW, {
+        title: "No project access.",
+        message:
+          "This SSO provider does not grant access to any project you are a member of. Please contact your administrator.",
+      });
     }
 
     if (memberProjectCount.toNumber() === 0) {

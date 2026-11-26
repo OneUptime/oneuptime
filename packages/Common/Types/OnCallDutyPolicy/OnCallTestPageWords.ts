@@ -221,5 +221,9 @@ export const ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED: string =
 export const ON_CALL_TEST_PAGE_CALL_NO_INPUT: string =
   "You did not press a key, so this test page is not acknowledged. Good bye.";
 
+/*
+ * What the test's call says to a wrong key once it has asked again as often
+ * as it may (Utils/Call/CallKeypad), before it ends.
+ */
 export const ON_CALL_TEST_PAGE_CALL_INVALID_INPUT: string =
-  "Invalid input. Good bye";
+  "That key does nothing, so this test page is not acknowledged. Good bye.";

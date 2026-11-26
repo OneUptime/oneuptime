@@ -829,6 +829,22 @@ export const buildSearchTokenValue: BuildSearchTokenValueFunction = (
   );
 };
 
+type BuildSearchContainsValueFunction = (literal: string) => string;
+
+/**
+ * Render text that came from the DATA into a search token value that means
+ * "contains exactly this text": `~` and the text in quotes, its backslashes
+ * and quotes escaped. The grammar reads it back as written (parseSearchValue
+ * strips the quotes and resolves the escapes), and a contains match takes
+ * `*` and `?` as themselves - so a Hash rule's token, brackets, colon and
+ * all, is found inside a longer value ("auth0|[HASHED:...]").
+ */
+export const buildSearchContainsValue: BuildSearchContainsValueFunction = (
+  literal: string,
+): string => {
+  return `~"${literal.replace(/[\\"]/g, "\\$&")}"`;
+};
+
 type BuildSearchTokenGlobFunction = (glob: string) => string;
 
 /**

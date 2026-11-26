@@ -53,16 +53,18 @@ loads; the spec pins the browser clock.
 
 Query parameters, parsed once per page load:
 
-| Parameter     | Values                                                                                                                               |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `?notes=`     | `full` (default), `empty` (no notes anywhere), `many` (#1042 needs a second page) or `links-and-quotes` (see below)                  |
-| `?role=`      | `owner` (default, a master admin), `viewer` (reads, cannot write) or `member` (a Project Member, through the real permission checks) |
-| `?templates=` | `some` (default), `none` or `many`                                                                                                   |
-| `?quiet=1`    | incident #1042 was declared without notifying subscribers                                                                            |
-| `?private=1`  | incident #1042 and incident episode #12 are private: their public notes pages take no new public note                                |
-| `?fail=`      | comma separated: `list`, `create`, `update`, `delete`, `resend`, `templates`, `ai`                                                   |
-| `?theme=`     | `dark` adds `html.dark`                                                                                                              |
-| `?lang=`      | `en` (default), `de` or `ar`: the Dashboard's own words from its locale files; an Arabic page reads from the right (`dir="rtl"`)     |
+| Parameter       | Values                                                                                                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?notes=`       | `full` (default), `empty` (no notes anywhere), `many` (#1042 needs a second page) or `links-and-quotes` (see below)                                                                                               |
+| `?role=`        | `owner` (default, a master admin), `viewer` (reads, cannot write) or `member` (a Project Member, through the real permission checks)                                                                              |
+| `?templates=`   | `some` (default), `none` or `many`                                                                                                                                                                                |
+| `?quiet=1`      | incident #1042 was declared without notifying subscribers                                                                                                                                                         |
+| `?private=1`    | incident #1042 and incident episode #12 are private: their public notes pages take no new public note                                                                                                             |
+| `?fail=`        | comma separated: `list`, `create`, `update`, `delete`, `resend`, `templates`, `ai`                                                                                                                                |
+| `?unexplained=` | comma separated: `update`, `delete`, `approve`: the write fails as a server that could not explain it does, a 500 with its reference (`5e1c9a7d`), which the editor or the dialog draws after what failed (#7680) |
+| `?approval=`    | `waiting`: incident #1042's public notes are approved at one step the reader is on, and Sam's newest public note waits for it, with Approve and Reject                                                            |
+| `?theme=`       | `dark` adds `html.dark`                                                                                                                                                                                           |
+| `?lang=`        | `en` (default), `de`, `ar` or `fa`: the Dashboard's own words from its locale files; an Arabic or a Persian page reads from the right (`dir="rtl"`)                                                               |
 
 Every read and write is recorded on `window.__eventNotesFixture` (`listRequests`,
 `getItemRequests`, `apiRequests`, `creates`, `updates`, `deletes`, `unhandled`). The spec

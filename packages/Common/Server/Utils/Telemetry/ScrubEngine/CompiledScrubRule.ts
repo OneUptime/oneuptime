@@ -2,6 +2,7 @@ import LogScrubPatternType from "../../../../Types/Log/LogScrubPatternType";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   compileScrubRuleCustomRegex,
+  SCRUB_RULE_BUILT_IN_PATTERNS,
   SCRUB_RULE_SENSITIVE_KEY_REGEX,
   ScrubRegExp,
   scrubRegExpFromBuiltIn,
@@ -119,6 +120,49 @@ export function getScrubRuleRegex(rule: ScrubEngineRule): ScrubRegExp | null {
    * pattern type no table lists.
    */
   return compileBuiltInScrubPattern(patternType);
+}
+
+/*
+ * THE RULES AS THEY READ BEFORE #11030.
+ *
+ * Since #11030 a Phone Number or SSN rule hides what Data Security finds -
+ * an international number, a Social Security number set apart by dots, a
+ * number in another script's digits - beside its own pattern's matches.
+ * Before, each hid its own pattern's matches alone. An exception found in a
+ * log before #10434 was grouped by what the rules then left of it, and it
+ * is still found by that (App's ExceptionUtil, findsGroupsOfStoredText):
+ * these rules leave it as they did then, so an occurrence finds it, and the
+ * exception is moved to a private fingerprint rather than split. Null when
+ * the rules hold no Phone Number or SSN rule: they read as they did.
+ */
+export function withOwnPhoneAndSsnPatterns<TRule extends ScrubEngineRule>(
+  rules: Array<CompiledScrubRule<TRule>>,
+): Array<CompiledScrubRule<TRule>> | null {
+  let differs: boolean = false;
+
+  const earlier: Array<CompiledScrubRule<TRule>> = rules.map(
+    (compiled: CompiledScrubRule<TRule>): CompiledScrubRule<TRule> => {
+      const patternType: string = compiled.rule.patternType || "";
+
+      if (
+        patternType !== LogScrubPatternType.PhoneNumber &&
+        patternType !== LogScrubPatternType.SSN
+      ) {
+        return compiled;
+      }
+
+      differs = true;
+
+      return {
+        ...compiled,
+        regex: scrubRegExpFromBuiltIn(
+          SCRUB_RULE_BUILT_IN_PATTERNS[patternType]!,
+        ),
+      };
+    },
+  );
+
+  return differs ? earlier : null;
 }
 
 /*

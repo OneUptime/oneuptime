@@ -15,7 +15,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 
 | Pagina                       | Wat je daar doet                                                                             |
 | ---------------------------- | -------------------------------------------------------------------------------------------- |
-| **Status incident**          | De statussen waar een incident doorheen gaat toevoegen, hernoemen, een andere kleur geven en anders ordenen. |
+| **Status incident**          | De statussen waar een incident doorheen gaat toevoegen, hernoemen, een andere kleur geven en anders ordenen, en kiezen of met de hand gemelde incidenten al bevestigd beginnen. Standaard uit. |
 | **Ernst van incident**       | Ernstniveaus toevoegen, hernoemen, een andere kleur geven en anders ordenen.                 |
 | **Incident-sjablonen**       | Een heel incident vooraf invullen — titel, beschrijving, middelen, bereikbaarheidsbeleid, eigenaren, labels. |
 | **Notitie-sjablonen**        | Herbruikbare tekst voor openbare en privénotities.                                           |

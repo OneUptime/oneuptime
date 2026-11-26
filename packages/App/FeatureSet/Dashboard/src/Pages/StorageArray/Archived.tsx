@@ -15,7 +15,7 @@ import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
-import { StorageSystemUtil } from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 

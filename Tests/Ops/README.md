@@ -1664,6 +1664,30 @@ reason: `test-release.yaml` builds the same images on every push to main). A
 workflow that checks only the pull requests touching certain paths may run on
 pushes touching them, and must filter those pushes by path too.
 
+### `JobsAfterToleratedFailures.test.js`
+
+No job is skipped by a failure another job runs past. Actions reads an `if`
+that calls no status function as `success() && if`, and a job's success() is
+false once any job before it failed, a job it needs or one before those. So
+when a job runs past a failure (`!cancelled()` or `always()`, without asking
+for that need's success), each job after it with a plain `if` is skipped by
+that failure even when every job it needs succeeded. release.yml's
+`finalize-github-release` publishes without the Android agent's APK, an app
+or the SBOM scan, and `android-agent-build` fails while the APK's signing key
+is not set: 17.1.0 and 17.2.0 published neither the MCP Registry entry, the
+coding agent plugin, the infrastructure agent's apt, yum, Homebrew and winget
+packages nor the Android agent on Google Play.
+
+The suite reads every workflow and, for each job that may fail, works out the
+jobs its failure keeps from running the way Actions does, then fails on each
+one with a plain `if` all of whose needs ran. It holds the six jobs after
+`finalize-github-release` to `afterEveryNeedSucceeded` (each need's result by
+name after `!cancelled()`, for `release`, in `Utils/ReleaseWorkflow.js`), and
+evaluates their conditions with success() read over every job before them:
+each runs whichever optional job failed, and none runs when a job it needs did
+not succeed, the run was cancelled or the branch is not `release`. A planted
+publisher with a plain `if` shows the check is real.
+
 ### `ReleaseE2ePipeline.test.js`
 
 How the release workflows run the e2e suite. test-release.yaml runs on every

@@ -797,9 +797,25 @@ const SearchedEntityFilterDropdown: FunctionComponent<
     );
   }
 
-  // What the widget holds, each named where its name was read.
+  /*
+   * What the widget holds, each named where its name was read. A saved
+   * value that is not an id names no record: it reads as one no longer
+   * there, for the reader to take out, and is never looked up. EntityDropdown
+   * reads a value it holds no name for by its id, and the server refuses a
+   * read that holds a malformed one whole - costing the values read with it
+   * their names, as the read above would.
+   */
   const held: Array<DropdownOption | string> = getSelectedIds(props.value).map(
     (id: string): DropdownOption | string => {
+      if (!ObjectID.isValidUUID(id)) {
+        return {
+          value: id,
+          label: ENTITY_FILTER_NOT_FOUND_LABEL,
+          isUserContent: false,
+          isNotFound: true,
+        };
+      }
+
       return savedOptions.get(id.toLowerCase()) || id;
     },
   );

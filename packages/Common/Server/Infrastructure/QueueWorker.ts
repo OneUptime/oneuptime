@@ -1,7 +1,7 @@
 import { QueueJob, QueueName } from "./Queue";
 import QueueJobConnections from "./Postgres/QueueJobConnections";
 import TimeoutException from "../../Types/Exception/TimeoutException";
-import JobDeadline from "../Utils/JobDeadline";
+import JobDeadline, { JOB_DEADLINE_GRACE_MS } from "../Utils/JobDeadline";
 import { Worker } from "bullmq";
 import { Link, ROOT_CONTEXT, context } from "@opentelemetry/api";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -421,48 +421,60 @@ export default class QueueWorker {
   }
 
   /*
-   * Runs a job with a time limit. Once the limit runs out the job is failed
-   * with a TimeoutException AND its deadline passes: the job is handed that
-   * deadline (JobDeadline), so its own loops stop at their next check
-   * instead of going on beside the job's next run. Nothing cuts off work
-   * already in flight - a job that never checks its deadline runs on as
-   * before, only failed.
+   * Runs a job with a time limit. The job is handed its deadline
+   * (JobDeadline), which passes when the limit runs out, so its own loops
+   * stop at their next check instead of going on beside the job's next run.
+   *
+   * A job that stops there and returns within JOB_DEADLINE_GRACE_MS of its
+   * limit is recorded as it settled: a backlog worked through over several
+   * runs - each run stopping at its deadline, the next carrying on - is not
+   * a failure. A job still going at the end of the grace is failed with a
+   * TimeoutException ("Job Timeout") - the reason its deadline passed with,
+   * unless something ended the deadline earlier (CronLock, its lock lost).
+   * Nothing cuts off work already in flight - a job that never checks its
+   * deadline runs on as before, only failed.
    */
   @CaptureSpan()
   public static async runJobWithTimeout(
     timeoutInMS: number,
     jobCallback: (deadline: JobDeadline) => Promise<void>,
   ): Promise<void> {
-    let timeout: ReturnType<typeof setTimeout> | undefined;
+    // The deadline's timer, then the grace's: one at a time.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const limitInMS: number = Math.max(0, timeoutInMS);
 
     const deadline: JobDeadline = new JobDeadline({
-      endsAt: new Date(Date.now() + Math.max(0, timeoutInMS)),
+      endsAt: new Date(Date.now() + limitInMS),
     });
 
     try {
       const timeoutPromise: Promise<void> = new Promise<void>(
         (_resolve: () => void, reject: (reason: Error) => void) => {
-          timeout = setTimeout(() => {
+          timer = setTimeout(() => {
             const timedOut: TimeoutException = new TimeoutException(
               "Job Timeout",
             );
 
             deadline.end(timedOut);
-            reject(timedOut);
-          }, timeoutInMS);
+
+            timer = setTimeout(() => {
+              reject(timedOut);
+            }, JOB_DEADLINE_GRACE_MS);
+          }, limitInMS);
         },
       );
 
       await Promise.race([timeoutPromise, jobCallback(deadline)]);
     } finally {
       /*
-       * A settled job no longer needs its deadline. Leaving this timer alive
-       * retains its async context until the timeout and schedules needless
-       * callbacks for every completed job. This also covers synchronous throws
-       * from jobCallback.
+       * A settled job no longer needs its deadline or its grace. Leaving
+       * the timer alive retains its async context until it fires and
+       * schedules needless callbacks for every completed job. This also
+       * covers synchronous throws from jobCallback.
        */
-      if (timeout !== undefined) {
-        clearTimeout(timeout);
+      if (timer !== undefined) {
+        clearTimeout(timer);
       }
     }
   }

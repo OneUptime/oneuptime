@@ -32,10 +32,6 @@ import {
 } from "Common/UI/Components/TelemetryViewer/types";
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import Service from "Common/Models/DatabaseModels/Service";
-import Host from "Common/Models/DatabaseModels/Host";
-import DockerHost from "Common/Models/DatabaseModels/DockerHost";
-import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
-import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
 import {
@@ -131,12 +127,21 @@ import {
 import Dictionary from "Common/Types/Dictionary";
 import Search from "Common/Types/BaseDatabase/Search";
 import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ErrorClass, {
   NON_ACTIONABLE_ERROR_CLASSES,
   isNonActionableErrorClass,
 } from "Common/Types/Telemetry/ErrorClass";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  ServiceNameSearch,
+  useServiceNameSearch,
+} from "Common/UI/Utils/TelemetryServiceNameSearch";
+import {
+  TelemetryServicesOnPage,
+  useTelemetryServicesOnPage,
+} from "../Telemetry/TelemetryServicesOnPage";
 import useAttributeValueSuggestions, {
   AttributeValueSuggestionsState,
 } from "Common/UI/Utils/Telemetry/UseAttributeValueSuggestions";
@@ -163,7 +168,6 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
@@ -205,7 +209,12 @@ import {
   readEveryMatchingException,
 } from "./ExceptionListRead";
 import {
+  SPLIT_BY_SCRUB_RULE_PARAM,
+  SPLIT_BY_SCRUB_RULE_PARAM_VALUE,
+  countSplitExceptions,
+  getOccurrenceFingerprints,
   idOf,
+  readSplitExceptionFingerprints,
   readSplitPairExceptionIds,
 } from "../../Utils/ExceptionSplitPairs";
 import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
@@ -418,6 +427,11 @@ interface InitialUrlState {
   classScope: ExceptionClassScope | null;
   // `assigned=me`: only the exceptions assigned to the reader.
   assignedToMe: boolean;
+  /*
+   * `split=scrub-rule`: only the exceptions a scrub rule split from another
+   * one (ExceptionSplitPairs, #11026).
+   */
+  splitByScrubRule: boolean;
   // `sort=`: the list's order (ExceptionListSort), last seen by default.
   sort: ExceptionListSort;
   // `savedView=`: the saved view a link opens (ExceptionSavedView).
@@ -527,6 +541,8 @@ function readInitialUrlState(): InitialUrlState {
       : null;
 
   const assignedToMe: boolean = params.get("assigned") === "me";
+  const splitByScrubRule: boolean =
+    params.get(SPLIT_BY_SCRUB_RULE_PARAM) === SPLIT_BY_SCRUB_RULE_PARAM_VALUE;
   const sort: ExceptionListSort = readExceptionListSort(params.get("sort"));
 
   const savedViewRaw: string | null = params.get("savedView");
@@ -542,6 +558,7 @@ function readInitialUrlState(): InitialUrlState {
     status,
     classScope,
     assignedToMe,
+    splitByScrubRule,
     sort,
     savedViewId,
     hasRange,
@@ -621,6 +638,9 @@ export interface ExceptionsViewerProps {
   disableUrlSync?: boolean | undefined;
 }
 
+// No `@service:` token: no services to search for.
+const NO_PREDICATES: Array<SearchValuePredicate> = [];
+
 const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   props: ExceptionsViewerProps,
 ): ReactElement => {
@@ -681,6 +701,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     !(entityKeysFilter && entityKeysFilter.length > 0);
 
   /*
+   * Split by a scrub rule (#11026) belongs to the Exceptions list itself,
+   * as its saved views do: tidying up the pairs a scrub rule split is a
+   * chore of the whole project, and the list counts the project's pairs to
+   * offer it. A service's or an inventory item's exceptions, and an
+   * event's, are a slice that count would not describe.
+   */
+  const offersSplitFilter: boolean = enableSavedViews;
+
+  /*
    * Parse filter state from the URL once on first mount so refresh and
    * back-from-exception-detail restore the view.
    */
@@ -695,6 +724,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         status: null,
         classScope: null,
         assignedToMe: false,
+        splitByScrubRule: false,
         sort: DEFAULT_EXCEPTION_LIST_SORT,
         savedViewId: null,
         hasRange: false,
@@ -724,6 +754,21 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   const [assignedToMe, setAssignedToMe] = useState<boolean>(
     initialUrlState.assignedToMe,
+  );
+  /*
+   * Split by a scrub rule: only the exceptions a scrub rule split from
+   * another one, each pair once, by its split one (ExceptionSplitPairs).
+   */
+  const [splitByScrubRule, setSplitByScrubRule] = useState<boolean>(
+    offersSplitFilter && initialUrlState.splitByScrubRule,
+  );
+  /*
+   * How many exceptions a scrub rule split the project has, counted once as
+   * the list opens: the filter is offered while there are any. Null while
+   * it is counted, and when the count failed.
+   */
+  const [splitExceptionCount, setSplitExceptionCount] = useState<number | null>(
+    null,
   );
   const [sort, setSort] = useState<ExceptionListSort>(initialUrlState.sort);
   /*
@@ -772,20 +817,17 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
    */
   const [hasListAnswered, setHasListAnswered] = useState<boolean>(false);
 
-  const [services, setServices] = useState<Array<Service>>([]);
-  const [hosts, setHosts] = useState<Array<Host>>([]);
-  const [dockerHosts, setDockerHosts] = useState<Array<DockerHost>>([]);
-  const [podmanHosts, setPodmanHosts] = useState<Array<PodmanHost>>([]);
-  const [kubernetesClusters, setKubernetesClusters] = useState<
-    Array<KubernetesCluster>
-  >([]);
   /*
-   * Whether the Service / host / cluster lists above have settled (loaded or
-   * failed). Chip ids are held back from the name resolver until then — see
-   * collectExceptionEntityChipIds.
+   * The services the page names - its rows' and its Service facet's - read
+   * by their ids as they land (TelemetryServicesOnPage). The page read the
+   * project's first 10,000 services by name instead, and its first 10,000
+   * hosts, Docker and Podman hosts and Kubernetes clusters: a row whose
+   * service sorted past them showed none, and a typed `@service:` name past
+   * them matched no service (#10921). A typed name is searched for on the
+   * server now (useServiceNameSearch, below); hosts and clusters are named
+   * by their facets' server-side names and the entity resolver.
    */
-  const [areResourceListsLoaded, setAreResourceListsLoaded] =
-    useState<boolean>(false);
+  const servicesOnPage: TelemetryServicesOnPage = useTelemetryServicesOnPage();
 
   const [searchValue, setSearchValue] = useState<string>(
     initialUrlState.search,
@@ -845,6 +887,12 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   >(undefined);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
+  /*
+   * Whether the facets have answered (or failed) once. Chip ids are held
+   * back from the name resolver until then: the facets name most of them,
+   * from Postgres - see collectExceptionEntityChipIds.
+   */
+  const [haveFacetsAnswered, setHaveFacetsAnswered] = useState<boolean>(false);
   const [timedOutFacets, setTimedOutFacets] = useState<Array<string>>([]);
   const [facetError, setFacetError] = useState<TelemetryLoadError | undefined>(
     undefined,
@@ -949,6 +997,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       class: classScope === DEFAULT_EXCEPTION_CLASS_SCOPE ? null : classScope,
       // As `class`: written only off its default, and cleared explicitly.
       assigned: assignedToMe ? "me" : null,
+      [SPLIT_BY_SCRUB_RULE_PARAM]: splitByScrubRule
+        ? SPLIT_BY_SCRUB_RULE_PARAM_VALUE
+        : null,
       sort: sort === DEFAULT_EXCEPTION_LIST_SORT ? null : sort,
       // The saved view picked, so the link opens it; cleared with it.
       savedView: selectedSavedViewId || null,
@@ -964,89 +1015,32 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     defaultStatus,
     classScope,
     assignedToMe,
+    splitByScrubRule,
     sort,
     selectedSavedViewId,
   ]);
 
-  // Load services / hosts / docker hosts / k8s clusters once
+  /*
+   * The project's split exceptions, counted once (countSplitExceptions).
+   * Best effort: a count that fails offers no filter, as none does.
+   */
   useEffect(() => {
-    const loadResources: () => Promise<void> = async () => {
-      try {
-        const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-        if (!projectId) {
-          return;
-        }
-        const [
-          serviceResult,
-          hostResult,
-          dockerHostResult,
-          podmanHostResult,
-          clusterResult,
-        ]: [
-          ModelListResult<Service>,
-          ModelListResult<Host>,
-          ModelListResult<DockerHost>,
-          ModelListResult<PodmanHost>,
-          ModelListResult<KubernetesCluster>,
-        ] = await Promise.all([
-          ModelAPI.getList({
-            modelType: Service,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, serviceColor: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: Host,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: DockerHost,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: PodmanHost,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, hostIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-          ModelAPI.getList({
-            modelType: KubernetesCluster,
-            query: { projectId },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { name: true, clusterIdentifier: true },
-            sort: { name: SortOrder.Ascending },
-          }),
-        ]);
-        setServices(serviceResult.data || []);
-        setHosts(hostResult.data || []);
-        setDockerHosts(dockerHostResult.data || []);
-        setPodmanHosts(podmanHostResult.data || []);
-        setKubernetesClusters(clusterResult.data || []);
-      } catch {
-        // non-critical
-      } finally {
-        /*
-         * Settled either way: on failure the resolver is the only name source
-         * left, so the held chip ids must be released.
-         */
-        setAreResourceListsLoaded(true);
+    if (!offersSplitFilter) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void countSplitExceptions().then((count: number | null): void => {
+      if (!isCancelled) {
+        setSplitExceptionCount(count);
       }
+    });
+
+    return () => {
+      isCancelled = true;
     };
-    void loadResources();
-  }, []);
+  }, [offersSplitFilter]);
 
   useEffect(() => {
     const loadAttributes: () => Promise<void> = async () => {
@@ -1101,15 +1095,23 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       },
     });
 
-  const serviceById: Record<string, Service> = useMemo(() => {
-    const map: Record<string, Service> = {};
-    for (const service of services) {
-      if (service.id) {
-        map[service.id.toString()] = service;
-      }
-    }
-    return map;
-  }, [services]);
+  // The ids of the services the rows and the Service facet name.
+  const serviceIdsOnPage: Array<string> = useMemo(() => {
+    return [
+      ...exceptions.map((exception: TelemetryException): string => {
+        return exception.primaryEntityId?.toString() || "";
+      }),
+      ...(facetData["primaryEntityId"] || []).map(
+        (facet: FacetValue): string => {
+          return facet.value;
+        },
+      ),
+    ];
+  }, [exceptions, facetData]);
+
+  useEffect(() => {
+    void servicesOnPage.readServicesOf(serviceIdsOnPage);
+  }, [serviceIdsOnPage]);
 
   /*
    * Parse the search bar with the shared telemetry grammar, so a filter
@@ -1121,6 +1123,54 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const parsedSearch: ExceptionSearchFilters = useMemo(() => {
     return parseExceptionSearch(submittedSearch);
   }, [submittedSearch]);
+
+  /*
+   * The services a typed `@service:` name may match, searched for on the
+   * server by the text each must contain (#10921); the token's own
+   * matcher (resolveExceptionServiceIds) keeps exactly the ones it names.
+   */
+  const serviceNameSearch: ServiceNameSearch = useServiceNameSearch(
+    parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || NO_PREDICATES,
+  );
+
+  // Every service the page knows of: its rows', its facet's and a token's.
+  const services: Array<Service> = useMemo(() => {
+    const byId: Map<string, Service> = new Map<string, Service>();
+
+    for (const id of serviceIdsOnPage) {
+      const service: Service | undefined = servicesOnPage.knownServices.get(
+        id.toLowerCase(),
+      );
+
+      if (service?.id) {
+        byId.set(service.id.toString().toLowerCase(), service);
+      }
+    }
+
+    for (const service of serviceNameSearch.services) {
+      const id: string = service.id?.toString().toLowerCase() || "";
+
+      if (id && !byId.has(id)) {
+        byId.set(id, service);
+      }
+    }
+
+    return Array.from(byId.values());
+  }, [
+    serviceIdsOnPage,
+    servicesOnPage.knownServices,
+    serviceNameSearch.services,
+  ]);
+
+  const serviceById: Record<string, Service> = useMemo(() => {
+    const map: Record<string, Service> = {};
+    for (const service of services) {
+      if (service.id) {
+        map[service.id.toString()] = service;
+      }
+    }
+    return map;
+  }, [services]);
 
   const searchFieldFilters: ExceptionFieldFilters = useMemo(() => {
     return splitExceptionFieldPredicates(parsedSearch.fieldPredicates);
@@ -1141,8 +1191,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
 
   /*
    * `@service:` is documented as taking a service NAME while the column
-   * stores a uuid, so the name resolves against the service list this
-   * component already loads — the same resolution MetricsViewer does. Bound
+   * stores a uuid, so the name resolves against the services the server's
+   * search found for it — the same resolution MetricsViewer does. Bound
    * straight to the column, as it was, `@service:api` asked for an exception
    * whose service id is the literal string "api", which no row has.
    */
@@ -1163,14 +1213,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     useStableValue(resolvedServicesNow);
 
   /*
-   * A `@service:` token names services, and the names resolve against that
-   * list: until it is in, the token resolves to no service at all. Reading
-   * then would query "no such service" and read everything again a moment
-   * later with the real ids, so the reads wait for the list instead.
+   * A `@service:` token names services, and the names resolve against the
+   * services the server's search finds for them: until they are in, the
+   * token resolves to no service at all. Reading then would query "no such
+   * service" and read everything again a moment later with the real ids,
+   * so the reads wait for the search instead.
    */
   const isWaitingForServiceNames: boolean =
-    (parsedSearch.fieldPredicates["primaryEntityId"] || []).length > 0 &&
-    !areResourceListsLoaded;
+    (parsedSearch.fieldPredicates[EXCEPTION_SERVICE_COLUMN] || []).length > 0 &&
+    serviceNameSearch.isSearching;
 
   const facetGroups: Record<string, Array<string>> = useMemo(() => {
     const groups: Record<string, Array<string>> = {};
@@ -1558,14 +1609,67 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   );
 
   /*
-   * Whether the reads below wait (issue #4709): for the service names a
-   * `@service:` token resolves against, or for the fingerprints of the
-   * instance scope. Read before, the list, the chart, the facets and the
-   * error-class counts each went out once with a stand-in (every service,
-   * the no-match sentinel) and once more a moment later with the answer.
-   * Now each goes out once, with it.
+   * With Split by a scrub rule on, the chart and the facet counts read the
+   * split exceptions' occurrences only, by their fingerprints
+   * (readSplitExceptionFingerprints): read once, the first time it is on.
+   * Null until they are in.
    */
-  const holdsReads: boolean = isWaitingForServiceNames || isResolvingScope;
+  const [splitFingerprints, setSplitFingerprints] =
+    useState<Array<string> | null>(null);
+
+  useEffect(() => {
+    if (!splitByScrubRule || splitFingerprints !== null) {
+      return;
+    }
+
+    let isCancelled: boolean = false;
+
+    void readSplitExceptionFingerprints().then(
+      (fingerprints: Array<string>): void => {
+        if (!isCancelled) {
+          setSplitFingerprints(fingerprints);
+        }
+      },
+    );
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [splitByScrubRule, splitFingerprints]);
+
+  const isResolvingSplitScope: boolean =
+    splitByScrubRule && splitFingerprints === null;
+
+  /*
+   * The fingerprints the chart and the facet counts read occurrences of
+   * (getOccurrenceFingerprints): the instance scope's, within the split
+   * exceptions' while Split by a scrub rule is on. Null when neither
+   * narrows them.
+   */
+  const occurrenceFingerprints: Array<string> | null = useMemo(() => {
+    return getOccurrenceFingerprints({
+      scopeFingerprints: instanceScopeKey
+        ? resolvedScopeFingerprints || []
+        : null,
+      splitFingerprints: splitByScrubRule ? splitFingerprints || [] : null,
+    });
+  }, [
+    instanceScopeKey,
+    resolvedScopeFingerprints,
+    splitByScrubRule,
+    splitFingerprints,
+  ]);
+
+  /*
+   * Whether the reads below wait (issue #4709): for the service names a
+   * `@service:` token resolves against, for the fingerprints of the
+   * instance scope, or for the split exceptions'. Read before, the list,
+   * the chart, the facets and the error-class counts each went out once
+   * with a stand-in (every service, the no-match sentinel) and once more a
+   * moment later with the answer. Now each goes out once, with it.
+   */
+  const holdsReads: boolean =
+    isWaitingForServiceNames || isResolvingScope || isResolvingSplitScope;
 
   /*
    * The Exceptions pages' first steps: shown while the list is empty, nothing
@@ -1603,6 +1707,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     // Assigned to me: the reader's own, the ones assigned to them by name.
     if (assignedToMe) {
       q.assignToUserId = UserUtil.getUserId();
+    }
+
+    /*
+     * Split by a scrub rule: each pair once, by its split one, whose page
+     * offers Merge Exceptions (ExceptionSplitPairs). A merged pair is left
+     * out by the server, as every merged exception is.
+     */
+    if (splitByScrubRule) {
+      (q as Record<string, unknown>)["splitFromTelemetryExceptionId"] =
+        new NotNull();
     }
 
     if (status === "unresolved") {
@@ -1722,6 +1836,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     primaryEntityId,
     status,
     assignedToMe,
+    splitByScrubRule,
     columnLiterals,
     errorClassClause,
     resourceIds,
@@ -1932,12 +2047,15 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     /*
      * Instance scope: the endpoint has no attribute dimension and takes
      * literal lists only, but it accepts `fingerprints` — the resolved scope
-     * is what carries an attribute or wildcard filter to the chart.
+     * is what carries an attribute or wildcard filter to the chart. So does
+     * Split by a scrub rule, which the occurrences know nothing of: the
+     * split exceptions' fingerprints (getOccurrenceFingerprints), a bounded
+     * list unlike the class lens's, so the chart counts what the list lists.
      */
-    if (instanceScopeKey) {
+    if (occurrenceFingerprints) {
       payload["fingerprints"] =
-        resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
-          ? resolvedScopeFingerprints
+        occurrenceFingerprints.length > 0
+          ? occurrenceFingerprints
           : [NO_MATCH_FINGERPRINT];
     }
 
@@ -1970,8 +2088,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     resolvedServices,
     parsedSearch,
     primaryEntityId,
-    instanceScopeKey,
-    resolvedScopeFingerprints,
+    occurrenceFingerprints,
     exclusions,
   ]);
 
@@ -2026,38 +2143,6 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       }
     }
 
-    const hostNameMap: Record<string, string> = {};
-    for (const host of hosts) {
-      if (host.id) {
-        hostNameMap[host.id.toString()] =
-          host.name || host.hostIdentifier || unknownName;
-      }
-    }
-
-    const dockerHostNameMap: Record<string, string> = {};
-    for (const dockerHost of dockerHosts) {
-      if (dockerHost.id) {
-        dockerHostNameMap[dockerHost.id.toString()] =
-          dockerHost.name || dockerHost.hostIdentifier || unknownName;
-      }
-    }
-
-    const podmanHostNameMap: Record<string, string> = {};
-    for (const podmanHost of podmanHosts) {
-      if (podmanHost.id) {
-        podmanHostNameMap[podmanHost.id.toString()] =
-          podmanHost.name || podmanHost.hostIdentifier || unknownName;
-      }
-    }
-
-    const clusterNameMap: Record<string, string> = {};
-    for (const cluster of kubernetesClusters) {
-      if (cluster.id) {
-        clusterNameMap[cluster.id.toString()] =
-          cluster.name || cluster.clusterIdentifier || unknownName;
-      }
-    }
-
     return [
       // Never folded away while empty — only the resource type facets below are.
       {
@@ -2072,17 +2157,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       /*
        * One facet per catalog resource type (Host … IoT Fleet), at 2.00 –
        * 2.11 so they stay grouped under Service and above Exception Type.
-       * Each folds away while empty. Types without a preloaded list are
-       * named by the server's facet displayName.
+       * Each folds away while empty. Each value is named by the server's
+       * facet displayName, read from Postgres by its id.
        */
       ...buildResourceFacetConfigs({
         basePriority: 2,
-        valueDisplayMaps: {
-          hostId: hostNameMap,
-          dockerHostId: dockerHostNameMap,
-          podmanHostId: podmanHostNameMap,
-          kubernetesClusterId: clusterNameMap,
-        },
       }),
       {
         key: "exceptionType",
@@ -2106,14 +2185,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         priority: 8,
       },
     ];
-  }, [
-    services,
-    hosts,
-    dockerHosts,
-    podmanHosts,
-    kubernetesClusters,
-    translator.language,
-  ]);
+  }, [services, translator.language]);
 
   /*
    * Fetch facets from the backend. Counts come from ClickHouse aggregation
@@ -2184,11 +2256,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       if (Object.keys(facetSearchTextActive).length > 0) {
         payload["facetSearchText"] = facetSearchTextActive;
       }
-      // The instance scope narrows facet counts too (see fetchHistogram).
-      if (instanceScopeKey) {
+      /*
+       * The instance scope and Split by a scrub rule narrow the facet
+       * counts too (see fetchHistogram).
+       */
+      if (occurrenceFingerprints) {
         payload["fingerprints"] =
-          resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
-            ? resolvedScopeFingerprints
+          occurrenceFingerprints.length > 0
+            ? occurrenceFingerprints
             : [NO_MATCH_FINGERPRINT];
       }
 
@@ -2226,6 +2301,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       setFacetError(TelemetryLoadErrorUtil.fromError(err));
     } finally {
       setFacetLoading(false);
+      setHaveFacetsAnswered(true);
     }
   }, [
     timeRange,
@@ -2236,8 +2312,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     parsedSearch,
     primaryEntityId,
     facetSearchText,
-    instanceScopeKey,
-    resolvedScopeFingerprints,
+    occurrenceFingerprints,
   ]);
 
   useEffect(() => {
@@ -2479,14 +2554,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       scopeEntityType: props.scopeEntityType,
       chips: entityChipRefs,
       knownIds: knownEntityChipIds,
-      isKnownIdsPending: !areResourceListsLoaded,
+      isKnownIdsPending: !haveFacetsAnswered,
     });
   }, [
     scopeEntityId,
     props.scopeEntityType,
     entityChipRefs,
     knownEntityChipIds,
-    areResourceListsLoaded,
+    haveFacetsAnswered,
   ]);
 
   const entityTypeHints: Record<string, ServiceType> = useMemo(() => {
@@ -2737,6 +2812,53 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     </button>
   );
 
+  /*
+   * Split by a scrub rule, beside Assigned to me and drawn as it is, with
+   * how many the project has (ExceptionSplitPairs, #11026). Only a project
+   * whose scrub rules split exceptions before #10434 has any, so it shows
+   * only while the count says there are some: never while it is counted,
+   * nor when the count failed. Or while it is on, which a link or a saved
+   * view can ask for when there are none: the list is then never narrowed
+   * to nothing by a filter nobody can see, and the toggle, pressed, with
+   * its 0, says why and is the one control that widens it again.
+   */
+  const showsSplitToggle: boolean =
+    offersSplitFilter && (splitByScrubRule || (splitExceptionCount || 0) > 0);
+
+  const splitByScrubRuleToggle: ReactElement = showsSplitToggle ? (
+    <button
+      type="button"
+      aria-pressed={splitByScrubRule}
+      data-testid="exceptions-split-by-scrub-rule"
+      title={translator.translateText(
+        "Only the exceptions a scrub rule split from another one, each pair once. Open one to merge the two.",
+      )}
+      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+        splitByScrubRule
+          ? "border-indigo-200 bg-indigo-50 text-indigo-700"
+          : "border-gray-200 bg-white text-gray-500 hover:text-gray-800"
+      }`}
+      onClick={() => {
+        setSplitByScrubRule(!splitByScrubRule);
+        setPage(1);
+      }}
+    >
+      {translator.translateText("Split by a scrub rule")}
+      {splitExceptionCount !== null ? (
+        <span
+          data-testid="exceptions-split-by-scrub-rule-count"
+          className="font-semibold tabular-nums"
+        >
+          {translator.formatNumber(splitExceptionCount)}
+        </span>
+      ) : (
+        <></>
+      )}
+    </button>
+  ) : (
+    <></>
+  );
+
   const sortMenu: ReactElement = (
     <MoreMenu
       text={translator.translateTemplate("Sort: {{order}}", {
@@ -2771,9 +2893,9 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   /*
    * SAVED VIEWS (ExceptionSavedView, Utils/ExceptionSavedView): the list as
    * someone left it - search, filters, window, status, lens, Assigned to
-   * me, order, page size - saved for the project, applied from the
-   * toolbar, and opened by its link (`savedView=`), as in the traces
-   * explorer.
+   * me, Split by a scrub rule, order, page size - saved for the project,
+   * applied from the toolbar, and opened by its link (`savedView=`), as in
+   * the traces explorer.
    */
   const savedViewDefaults: ExceptionsListViewDefaults = useMemo(() => {
     return {
@@ -2798,6 +2920,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     initialUrlState.status !== null ||
     initialUrlState.classScope !== null ||
     initialUrlState.assignedToMe ||
+    initialUrlState.splitByScrubRule ||
     initialUrlState.sort !== DEFAULT_EXCEPTION_LIST_SORT;
 
   // What the link said besides the view it named, laid over that view.
@@ -2815,6 +2938,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         status: initialUrlState.status,
         classScope: initialUrlState.classScope,
         assignedToMe: initialUrlState.assignedToMe,
+        splitByScrubRule: initialUrlState.splitByScrubRule,
         sort: initialUrlState.sort,
       });
     }, [initialUrlState]);
@@ -2831,6 +2955,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         status,
         classScope,
         assignedToMe,
+        splitByScrubRule,
         sort,
       });
     }, [
@@ -2841,6 +2966,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       status,
       classScope,
       assignedToMe,
+      splitByScrubRule,
       sort,
     ]);
 
@@ -2875,10 +3001,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         setStatus(view.status);
         setClassScope(view.classScope);
         setAssignedToMe(view.assignedToMe);
+        setSplitByScrubRule(offersSplitFilter && view.splitByScrubRule);
         setSort(view.sort);
         setPage(1);
       },
-      [savedViewDefaults],
+      [savedViewDefaults, offersSplitFilter],
     );
 
   const savedViewsControl: ReactElement = enableSavedViews ? (
@@ -2904,6 +3031,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       {statusPills}
       {classPills}
       {assignedToMeToggle}
+      {splitByScrubRuleToggle}
       {sortMenu}
     </div>
   );

@@ -90,7 +90,7 @@ Para desactivar el incluido, define `GLOBAL_RUNNER_REPLICAS=0` en el `config.env
 ## Antes de empezar
 
 - **Un host con Docker** dentro de tu infraestructura, que llegue a la URL de tu OneUptime por HTTPS y a los sistemas sobre los que actúan tus pasos.
-- **Un rol que cree Runners.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto y Administrador de runbooks pueden crear uno. Solo un Propietario del proyecto, un Administrador del proyecto o un Administrador de runbooks pueden ver la clave de un Runner, que incluye el comando de instalación.
+- **Un rol que cree Runners.** Propietario del proyecto, Administrador del proyecto, Miembro del proyecto y Administrador de runbooks pueden crear uno. Solo un Propietario del proyecto, un Administrador del proyecto o un Administrador de runbooks pueden ver la clave de un Runner, que incluye el comando de instalación. Solo ellos pueden elegir también la clave de un Runner: un Runner que crea otra persona recibe una clave que genera OneUptime, y crearlo no le muestra la clave.
 
 ## Instalar un Runner
 

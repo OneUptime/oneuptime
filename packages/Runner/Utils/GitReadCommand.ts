@@ -1,5 +1,6 @@
 import { ChildProcess, spawn } from "child_process";
 import { StringDecoder } from "string_decoder";
+import { withoutRunnerOwnEnvironment } from "./RunnerOwnEnvironment";
 
 /*
  * A read-only git command the code agent's tools run themselves (issue
@@ -51,10 +52,12 @@ const BASE_ARGS: ReadonlyArray<string> = [
   "--no-pager",
 ];
 
-// The environment's variables a read-only git command must not see.
+/*
+ * The environment's variables a read-only git command must not see: every
+ * setting of the Runner's own (withoutRunnerOwnEnvironment, its key and id
+ * among them), and these.
+ */
 const STRIPPED_ENVIRONMENT: ReadonlyArray<string> = [
-  "ONEUPTIME_RUNNER_KEY",
-  "ONEUPTIME_RUNNER_ID",
   "GIT_ASKPASS",
   "ONEUPTIME_GIT_ACCESS_TOKEN",
   "GIT_DIR",
@@ -202,7 +205,7 @@ export default class GitReadCommand {
   private static buildEnvironment(
     indexFile: string | undefined,
   ): NodeJS.ProcessEnv {
-    const environment: NodeJS.ProcessEnv = { ...process.env };
+    const environment: NodeJS.ProcessEnv = withoutRunnerOwnEnvironment();
 
     for (const name of STRIPPED_ENVIRONMENT) {
       delete environment[name];

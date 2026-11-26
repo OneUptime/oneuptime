@@ -185,6 +185,14 @@ export const TELEMETRY_AI_FIX_COPY: {
   button: string;
   pickRepository: string;
   pickRepositoryPlaceholder: string;
+  /*
+   * What a Fix with AI picker's open list says when it has nothing to offer
+   * (#10921): none of the repositories the person may ask OneUptime AI to
+   * work in is one the fix works in - and, for Fix performance with AI, none
+   * of the connected ones is theirs to read.
+   */
+  noAskableRepository: string;
+  noReadableRepository: string;
   working: string;
   viewTask: string;
   couldNotStart: string;
@@ -193,6 +201,10 @@ export const TELEMETRY_AI_FIX_COPY: {
   button: translationKey("Fix with AI"),
   pickRepository: translationKey("Which repository holds this code?"),
   pickRepositoryPlaceholder: translationKey("Pick a repository"),
+  noAskableRepository: translationKey(
+    "No connected repository you may ask OneUptime AI to work in.",
+  ),
+  noReadableRepository: translationKey("No connected repository you can read."),
   working: translationKey("OneUptime AI is working on it."),
   viewTask: translationKey("View the task"),
   couldNotStart: translationKey("Could not start the fix: {{reason}}"),
@@ -222,6 +234,8 @@ export const TELEMETRY_AI_FIX_TEST_IDS: {
   lead: string;
   button: string;
   repository: string;
+  // The repository field itself: its search box, or its value once picked.
+  repositoryPicker: string;
   progress: string;
   taskLink: string;
   // A fix on its way in a task the person may not read.
@@ -233,6 +247,7 @@ export const TELEMETRY_AI_FIX_TEST_IDS: {
   lead: "telemetry-ai-fix-lead",
   button: "telemetry-ai-fix-with-ai",
   repository: "telemetry-ai-fix-repository",
+  repositoryPicker: "telemetry-ai-fix-repository-picker",
   progress: "telemetry-ai-fix-progress",
   taskLink: "telemetry-ai-fix-task-link",
   hidden: "telemetry-ai-fix-hidden",

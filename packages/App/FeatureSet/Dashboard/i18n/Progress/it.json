@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8227
+    "keys": 64602,
+    "untranslated": 8245
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -103,6 +103,7 @@
     "DHCP",
     "DNS:",
     "DNSSEC",
+    "DSR-1042",
     "Daemon",
     "Dashboard",
     "Data stream",
@@ -378,6 +379,7 @@
     "TX",
     "Tablet",
     "Tag",
+    "Tag {{key}}",
     "Task · 31% CPU · 380 MB",
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",

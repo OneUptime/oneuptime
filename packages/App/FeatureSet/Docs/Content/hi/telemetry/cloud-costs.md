@@ -246,6 +246,7 @@ AI एजेंट [MCP सर्वर](/docs/ai/mcp-server) के ज़र�
 ## अगले कदम
 
 :::cards
+- [क्लाउड लागत आवंटन](/docs/telemetry/cloud-cost-allocation): खर्च को टीमों, उत्पादों और लागत केंद्रों में बाँटें।
 - [क्लाउड खाता कनेक्ट करें](/docs/telemetry/cloud-accounts): कोई दूसरा खाता कनेक्ट करें, या उसका कमांड फिर से चलाएँ।
 - [क्लाउड संसाधन](/docs/telemetry/cloud-resources): हर संसाधन के मेट्रिक्स, आपके अपने कलेक्टर से।
 - [Kubernetes लागत ऑब्ज़र्वेबिलिटी](/docs/telemetry/kubernetes-cost): हर Kubernetes वर्कलोड की लागत।

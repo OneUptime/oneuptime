@@ -564,9 +564,23 @@ describe("the create-incident page", () => {
   test("reads the alert ids from the shared query parameter", () => {
     const code: string = dense(CREATE_PAGE);
 
-    expect(code).toContain(
-      'INCIDENT_ALERT_IDS_TO_LINK_KEY,INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,MAX_ALERTS_PER_INCIDENT_LINK_ACTION,}from"Common/Types/Incident/IncidentAlertLink";',
-    );
+    /*
+     * The shared names, from the one module both sides read: the page
+     * imports more from it since (the carry-over and acknowledge keys), so
+     * the import is read as a whole rather than as one exact run of names.
+     */
+    const sharedImport: string | undefined = code.match(
+      /import\{([^}]*)\}from"Common\/Types\/Incident\/IncidentAlertLink";/,
+    )?.[1];
+
+    expect(sharedImport).toBeDefined();
+    for (const name of [
+      "INCIDENT_ALERT_IDS_TO_LINK_KEY",
+      "INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM",
+      "MAX_ALERTS_PER_INCIDENT_LINK_ACTION",
+    ]) {
+      expect(sharedImport!.split(",")).toContain(name);
+    }
     expect(code).toContain(
       "IncidentFromAlerts.parseAlertIdsQueryParam(Navigation.getQueryStringByName(INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM),);",
     );
