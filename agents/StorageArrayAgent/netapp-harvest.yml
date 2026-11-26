@@ -20,6 +20,13 @@
 # Keep this file as shipped. install.sh replaces it on every re-run (a copy
 # you edited is kept as netapp-harvest.yml.bak.<time>).
 
+# Harvest's own AutoSupport sends NetApp a daily report about this Harvest
+# (its version, the cluster's model and how many objects it reads) and
+# writes it to disk first. The agent sends nothing to anyone but your
+# OneUptime, and Harvest's container is read-only, so it is off.
+Tools:
+  autosupport_disabled: true
+
 Exporters:
   prometheus:
     exporter: Prometheus

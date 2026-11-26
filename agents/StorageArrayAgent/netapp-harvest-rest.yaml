@@ -28,8 +28,9 @@ objects:
   SVM: svm.yaml
   Volume: volume.yaml
   Lun: lun.yaml
-  # Hardware: disks, shelves (and their fans, power supplies and sensors)
-  # and the nodes' environment sensors. Amazon FSx reports none of them.
+  # Hardware: disks, shelves and the nodes' environment sensors (a shelf's
+  # fans, power supplies and sensors come from netapp-harvest-restperf.yaml).
+  # Amazon FSx reports none of them.
   Disk: disk.yaml
   Shelf: shelf.yaml
   Sensor: sensor.yaml
