@@ -222,7 +222,7 @@ describe("a subscription's records on each basis", () => {
     const record: (
       resourceId: string,
       amount: number,
-      day: string = "2026-11-19",
+      day?: string,
     ) => CloudCostRecord = (
       resourceId: string,
       amount: number,

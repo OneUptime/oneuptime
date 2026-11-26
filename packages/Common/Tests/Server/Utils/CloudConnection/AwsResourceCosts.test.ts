@@ -123,12 +123,17 @@ function record(fields: Partial<CloudCostRecord>): CloudCostRecord {
 }
 
 function cost(fields: Partial<AwsResourceCost>): AwsResourceCost {
+  const amount: number = fields.amount ?? 0;
+
   return {
     day: "2026-11-19",
     service: EC2,
     resourceId: "",
     currency: "USD",
-    amount: 0,
+    amount,
+    // A cost no commitment or credit touched: the same on every basis.
+    amortizedAmount: amount,
+    netAmount: amount,
     ...fields,
   };
 }
