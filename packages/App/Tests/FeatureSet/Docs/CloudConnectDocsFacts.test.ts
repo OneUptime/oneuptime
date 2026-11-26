@@ -1782,7 +1782,21 @@ describe("Cloud Costs and Savings", () => {
     expect(budgets).toContain("[MCP server](/docs/ai/mcp-server)");
     expect(budgets).toContain("`oneuptime cloud-budget`");
     expect(source("cliReadme")).toContain("`cloud-budget`");
-    expect(readPage("en", "ai/mcp-server")).toContain("| Cloud Budget |");
+
+    // Among the Cloud records the MCP Server page lists, with the others Cloud's pages add.
+    const cloudRow: string =
+      readPage("en", "ai/mcp-server")
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("| Cloud | ");
+        }) || "";
+
+    expect(
+      cloudRow
+        .replace(/^\| Cloud \| /, "")
+        .replace(/ \|$/, "")
+        .split(", "),
+    ).toContain("Cloud Budget");
   });
 
   it("names Cloud's pages as the side menu draws them: the Spend pages under their section", () => {
