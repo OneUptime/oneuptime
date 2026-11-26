@@ -94,9 +94,17 @@ import ModelType from "../Types/ModelType";
  * acts on Data Security as its buttons do, as the person signed in (#10378,
  * #10889). They were cut by 990 bytes first: the actions a response can take
  * are named once, in its schema, and a saved draft's fields say only which
- * kind of rule they belong to.
+ * kind of rule they belong to. 310,000 on 2026-11-26, when cost views,
+ * groups and line items (#11006, #11094) came to the API, so to MCP, as
+ * every model does: their 18 tools took the answer, with the Data Security
+ * ones, to 308,815 bytes, so an agent allocates a cloud bill to teams as
+ * people do. They are generated, and say only what every model's tools
+ * say, so there was nothing on them to cut. The Data Security tools were
+ * cut by 726 bytes first, by their own rule: what an argument is, its schema
+ * says once (no description restates an argument's values, and no ID says
+ * it is an ID), which took the answer to 308,089.
  */
-const MAX_TOOLS_LIST_BYTES: number = 300_000;
+const MAX_TOOLS_LIST_BYTES: number = 310_000;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;
