@@ -82,6 +82,7 @@ jest.mock(
 
 import SettingsHelpAndSupport from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/HelpAndSupport/Index";
 import {
+  HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID,
   HELP_AND_SUPPORT_PAGE_TEST_ID,
   HELP_CARDS,
   HELP_ITEM_COPY,
@@ -104,6 +105,7 @@ import {
   getDefaultHelpAndSupportSettings,
 } from "../../../Types/HelpAndSupport/HelpAndSupport";
 import { HelpAndSupportAnswer } from "../../../Types/HelpAndSupport/HelpAndSupportAnswer";
+import { HelpAndSupportSeedProblems } from "../../../Types/HelpAndSupport/HelpAndSupportSeed";
 import Toast from "../../../UI/Utils/Toast";
 
 const ADMIN_SRC: string = path.join(
@@ -140,6 +142,8 @@ const answer: (
     adminNotificationEmail: null,
     canSendEmail: true,
     isProductRenamed: false,
+    seededItems: [],
+    seedProblems: [],
     ...(extra || {}),
   };
 };
@@ -924,10 +928,254 @@ describe("the words the page draws", () => {
         },
       ),
       ...Object.values(HelpAndSupportProblems),
+      ...Object.values(HelpAndSupportSeedProblems),
     ];
 
     for (const key of keys) {
       expect({ key, english: ENGLISH[key] }).toEqual({ key, english: key });
     }
+  });
+});
+
+/*
+ * WHAT CAME FROM THE SERVER'S CONFIGURATION (#10938). The Helm chart's
+ * helpAndSupport values, or config.env's HELP_AND_SUPPORT_*, set these
+ * settings while nothing was saved here. The page says so once, above the
+ * cards, and on each place set so, by its variable, until an admin changes
+ * that place; and each value the configuration sets that was refused, with
+ * why. A server whose configuration sets nothing shows none of it.
+ */
+describe("what came from the server's configuration", () => {
+  const seeded: () => HelpAndSupportAnswer = (): HelpAndSupportAnswer => {
+    return answer(
+      {
+        [HelpItem.SupportEmail]: {
+          choice: HelpChoice.Email,
+          value: "it-help@example.com",
+        },
+        [HelpItem.GitHub]: { choice: HelpChoice.Hidden, value: null },
+      },
+      { seededItems: [HelpItem.SupportEmail, HelpItem.GitHub] },
+    );
+  };
+
+  test("a server whose configuration sets nothing shows none of it", async () => {
+    mockFetch.mockResolvedValue(answer());
+    await renderPage();
+
+    expect(
+      screen.queryByTestId(HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID),
+    ).toBeNull();
+
+    for (const item of HELP_ITEMS) {
+      expect(
+        screen.queryByTestId(`${getHelpItemTestId(item)}-from-configuration`),
+      ).toBeNull();
+    }
+  });
+
+  test("says once, above the cards, that a change made here is kept", async () => {
+    mockFetch.mockResolvedValue(seeded());
+    await renderPage();
+
+    const notice: HTMLElement = screen.getByTestId(
+      HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID,
+    );
+
+    expect(notice).toHaveTextContent(HelpAndSupportCopy.fromConfigurationTitle);
+    expect(notice).toHaveTextContent(
+      HelpAndSupportCopy.fromConfigurationDescription,
+    );
+    expect(notice).toHaveAttribute("role", "note");
+
+    // Above every card.
+    const page: HTMLElement = screen.getByTestId(HELP_AND_SUPPORT_PAGE_TEST_ID);
+    const firstCard: HTMLElement = screen.getByTestId(
+      getHelpCardTestId(HELP_CARDS[0]!.card),
+    );
+
+    expect(page.firstElementChild).toBe(notice);
+    expect(
+      notice.compareDocumentPosition(firstCard) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("each place set from it names its variable, and only those places", async () => {
+    mockFetch.mockResolvedValue(seeded());
+    await renderPage();
+
+    expect(
+      screen.getByTestId(
+        `${getHelpItemTestId(HelpItem.SupportEmail)}-from-configuration`,
+      ),
+    ).toHaveTextContent(
+      "Set from HELP_AND_SUPPORT_SUPPORT_EMAIL in this server's configuration.",
+    );
+    expect(
+      screen.getByTestId(
+        `${getHelpItemTestId(HelpItem.GitHub)}-from-configuration`,
+      ),
+    ).toHaveTextContent(
+      "Set from HELP_AND_SUPPORT_GITHUB in this server's configuration.",
+    );
+
+    for (const item of HELP_ITEMS) {
+      if (item === HelpItem.SupportEmail || item === HelpItem.GitHub) {
+        continue;
+      }
+
+      expect(
+        screen.queryByTestId(`${getHelpItemTestId(item)}-from-configuration`),
+      ).toBeNull();
+    }
+
+    // The place still reads as it always does: its pill and its value.
+    expect(stateOf(HelpItem.SupportEmail)).toBe("Your Own");
+    expect(valueOf(HelpItem.SupportEmail)).toBe("it-help@example.com");
+  });
+
+  test("a place an admin changes is their own from then on: its line goes", async () => {
+    mockFetch.mockResolvedValue(seeded());
+    mockPost.mockResolvedValue(
+      answer(
+        {
+          [HelpItem.SupportEmail]: {
+            choice: HelpChoice.Email,
+            value: "desk@example.com",
+          },
+          [HelpItem.GitHub]: { choice: HelpChoice.Hidden, value: null },
+        },
+        { seededItems: [HelpItem.GitHub] },
+      ),
+    );
+    await renderPage();
+
+    const dialog: HTMLElement = await openDialog(HelpItem.SupportEmail);
+
+    typeInto("help-and-support-dialog-email-input", "desk@example.com");
+    await save();
+
+    expect(
+      screen.queryByTestId(
+        `${getHelpItemTestId(HelpItem.SupportEmail)}-from-configuration`,
+      ),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(
+        `${getHelpItemTestId(HelpItem.GitHub)}-from-configuration`,
+      ),
+    ).toBeInTheDocument();
+    expect(valueOf(HelpItem.SupportEmail)).toBe("desk@example.com");
+    expect(dialog).not.toBeInTheDocument();
+  });
+
+  test("the last place changed takes the notice away", async () => {
+    mockFetch.mockResolvedValue(
+      answer(
+        { [HelpItem.GitHub]: { choice: HelpChoice.Hidden, value: null } },
+        { seededItems: [HelpItem.GitHub] },
+      ),
+    );
+    mockPost.mockResolvedValue(answer());
+    await renderPage();
+
+    expect(
+      screen.getByTestId(HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByTestId(`${getHelpItemTestId(HelpItem.GitHub)}-switch`),
+    );
+    await flush();
+
+    expect(
+      screen.queryByTestId(HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID),
+    ).toBeNull();
+  });
+
+  test("a value the configuration sets that was refused is said, with why, in the page's words", async () => {
+    mockFetch.mockResolvedValue(
+      answer(
+        {},
+        {
+          seedProblems: [
+            {
+              item: HelpItem.Chat,
+              variable: "HELP_AND_SUPPORT_CHAT",
+              problem: HelpAndSupportProblems.linkScheme,
+            },
+            {
+              item: HelpItem.RequestDemo,
+              variable: "HELP_AND_SUPPORT_REQUEST_DEMO",
+              problem: HelpAndSupportSeedProblems.notShownOrHidden,
+            },
+          ],
+        },
+      ),
+    );
+    await renderPage();
+
+    const notice: HTMLElement = screen.getByTestId(
+      HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID,
+    );
+
+    expect(notice).toHaveTextContent(HelpAndSupportCopy.fromConfigurationTitle);
+    // Nothing was seeded, so it says nothing about what was.
+    expect(
+      screen.queryByTestId(
+        `${HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}-description`,
+      ),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(
+        `${HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}-chat-not-used`,
+      ),
+    ).toHaveTextContent(
+      `HELP_AND_SUPPORT_CHAT in this server's configuration was not used: ${HelpAndSupportProblems.linkScheme}`,
+    );
+    expect(
+      screen.getByTestId(
+        `${HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID}-requestDemo-not-used`,
+      ),
+    ).toHaveTextContent('Use "shown" or "hidden".');
+  });
+
+  test("in the admin's language: German, the variable as written", async () => {
+    const GERMAN: Record<string, unknown> = JSON.parse(
+      fs.readFileSync(path.join(ADMIN_SRC, "Locales", "de.json"), "utf8"),
+    ) as Record<string, unknown>;
+    const instance: i18n = createInstance();
+
+    await instance.init({
+      lng: "de",
+      fallbackLng: "en",
+      resources: {
+        en: { translation: ENGLISH },
+        de: { translation: GERMAN },
+      },
+      interpolation: { escapeValue: false },
+      keySeparator: ".",
+    });
+
+    mockFetch.mockResolvedValue(seeded());
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <SettingsHelpAndSupport />
+      </I18nextProvider>,
+    );
+    await flush();
+
+    expect(
+      screen.getByTestId(HELP_AND_SUPPORT_FROM_CONFIGURATION_TEST_ID),
+    ).toHaveTextContent("Aus der Konfiguration dieses Servers");
+    expect(
+      screen.getByTestId(
+        `${getHelpItemTestId(HelpItem.SupportEmail)}-from-configuration`,
+      ),
+    ).toHaveTextContent(
+      "Aus HELP_AND_SUPPORT_SUPPORT_EMAIL in der Konfiguration dieses Servers gesetzt.",
+    );
   });
 });
