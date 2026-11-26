@@ -50,6 +50,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     tableColumnOid: Zod.string().optional(),
     tableRow: Zod.string().optional(),
     transceiverReading: Zod.string().optional(),
+    fibreChannelCounter: Zod.string().optional(),
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),
