@@ -31,7 +31,10 @@
                   </path>
                </svg>
             </a>
+            <%# OneUptime's GitHub, unless this server's admins hid it (#10940). -%>
+            <% if (typeof helpLinks === 'undefined' || !helpLinks || helpLinks.isGitHubShown !== false) { %>
             <a class="group flex h-9 w-9 items-center justify-center rounded-lg border border-line bg-surface transition-colors hover:border-accent/40 hover:bg-accent-soft"
+               data-reference-github
                href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noreferrer">
                <span class="sr-only"><%= t('ui.followGithub') %></span>
                <svg viewBox="0 0 20 20" aria-hidden="true" class="h-4 w-4 fill-ink-subtle transition-colors group-hover:fill-accent">
@@ -40,6 +43,7 @@
                   </path>
                </svg>
             </a>
+            <% } %>
          </div>
       </div>
    </div>

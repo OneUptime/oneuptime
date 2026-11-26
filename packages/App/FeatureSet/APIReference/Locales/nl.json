@@ -3,6 +3,8 @@
     "apiReference": "API-referentie",
     "home": "Start",
     "slack": "Slack",
+    "microsoftTeams": "Microsoft Teams",
+    "chat": "Chat",
     "support": "Ondersteuning",
     "github": "GitHub",
     "signIn": "Inloggen",
