@@ -42,6 +42,7 @@ import {
   isXcpNgStorageOverAllocated,
   isXcpNgVmStoppedAfterRunning,
 } from "../../../Pages/XcpNg/Utils/XcpNgHealth";
+import { getXcpNgContentTypeWord } from "../../../Pages/XcpNg/Utils/XcpNgPartFacts";
 import {
   XCP_NG_METRIC_STALE_MS,
   getXcpNgDisplayName,
@@ -254,6 +255,9 @@ function assessVm(row: XcpNgResource, now: Date): Assessment {
   };
 }
 
+// What an ISO library and removable media hold: no VM disk, no size to fill.
+const NO_VM_DISK_CONTENT: ReadonlyArray<string> = ["iso", "disk"];
+
 function assessStorage(row: XcpNgResource): Assessment {
   const usage: StorageUsage | null = getXcpNgStorageUsage(row);
   const facts: Array<ResourceTopologyFact> = [];
@@ -267,9 +271,20 @@ function assessStorage(row: XcpNgResource): Assessment {
   }
 
   if (!usage) {
+    /*
+     * An ISO library or removable media has no size to fill: it says what
+     * it is, not "No data yet" about a repository that reports fine.
+     */
+    const holdsNoVmDisks: boolean = NO_VM_DISK_CONTENT.includes(
+      (row.contentType || "").trim().toLowerCase(),
+    );
     return {
       health: "unknown",
-      status: text(translationKey("No data yet")),
+      status: text(
+        holdsNoVmDisks
+          ? getXcpNgContentTypeWord(row.contentType)
+          : translationKey("No data yet"),
+      ),
       reasons: [],
       facts: facts,
     };

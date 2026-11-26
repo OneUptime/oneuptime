@@ -351,7 +351,11 @@ describe("an XCP-ng pool's topology", () => {
     expect(thin.reasons?.[0]?.text).toBe(
       "Its disks are allocated {{percent}} of its size: they can fill it as they grow.",
     );
+    // An ISO library has no size to fill: it says what it is.
     expect(node(graph, xcpNgStorageNodeId("s4")).health).toBe("unknown");
+    expect(node(graph, xcpNgStorageNodeId("s4")).status?.text).toBe(
+      "ISO library",
+    );
   });
 
   test("a VM uses the storage repositories its virtual disks are on, once each", () => {

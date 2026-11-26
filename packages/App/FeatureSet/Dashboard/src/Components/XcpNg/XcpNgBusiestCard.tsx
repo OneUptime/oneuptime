@@ -11,7 +11,7 @@ import WordsWithInfoTooltip from "Common/UI/Components/Tooltip/WordsWithInfoTool
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { formatStorageBytes } from "Common/Utils/Storage/StorageUsage";
-import { getCpuBarColor } from "../Infrastructure/ResourceTable";
+import { getXcpNgLoadBarClassName } from "./XcpNgHostsCard";
 import ResourcePartRow from "../ResourcePart/ResourcePartRow";
 import { XcpNgBusyPart } from "../../Pages/XcpNg/Utils/XcpNgPartFacts";
 import {
@@ -248,7 +248,12 @@ const XcpNgBusiestCard: FunctionComponent<ComponentProps> = (
             ranking: props.cpu,
             icon: IconProp.CPUChip,
             iconClassName: "bg-blue-50 text-blue-600",
-            barClassName: getCpuBarColor,
+            barClassName: (percent: number): string => {
+              return getXcpNgLoadBarClassName({
+                percent: percent,
+                metric: "cpu",
+              });
+            },
           })}
           {renderRanking({
             key: "memory",
@@ -256,13 +261,11 @@ const XcpNgBusiestCard: FunctionComponent<ComponentProps> = (
             icon: IconProp.SquareStack,
             iconClassName: "bg-violet-50 text-violet-600",
             barClassName: (percent: number): string => {
-              if (percent > 95) {
-                return "bg-red-500";
-              }
-              if (percent > 85) {
-                return "bg-amber-500";
-              }
-              return "bg-violet-500";
+              return getXcpNgLoadBarClassName({
+                percent: percent,
+                metric: "memory",
+                normalClassName: "bg-violet-500",
+              });
             },
           })}
         </div>

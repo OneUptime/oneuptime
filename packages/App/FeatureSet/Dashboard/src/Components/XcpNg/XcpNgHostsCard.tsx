@@ -56,14 +56,33 @@ export interface ComponentProps {
   now: Date;
 }
 
-function barClassName(percent: number): string {
-  if (percent >= 90) {
+/*
+ * Where a host's or a VM's CPU and memory turn amber and red: where their
+ * tiles and the lists' bars do, so one reading is one colour on every card
+ * of the pool's pages.
+ */
+export const XCP_NG_LOAD_THRESHOLDS: Record<
+  "cpu" | "memory",
+  { warning: number; danger: number }
+> = {
+  cpu: { warning: 80, danger: 90 },
+  memory: { warning: 85, danger: 95 },
+};
+
+export function getXcpNgLoadBarClassName(data: {
+  percent: number;
+  metric: "cpu" | "memory";
+  normalClassName?: string | undefined;
+}): string {
+  const thresholds: { warning: number; danger: number } =
+    XCP_NG_LOAD_THRESHOLDS[data.metric];
+  if (data.percent >= thresholds.danger) {
     return "bg-red-500";
   }
-  if (percent >= 75) {
+  if (data.percent >= thresholds.warning) {
     return "bg-amber-500";
   }
-  return "bg-emerald-500";
+  return data.normalClassName || "bg-emerald-500";
 }
 
 const XcpNgHostsCard: FunctionComponent<ComponentProps> = (
@@ -89,11 +108,11 @@ const XcpNgHostsCard: FunctionComponent<ComponentProps> = (
   const shown: Array<XcpNgResource> = hosts.slice(0, XCP_NG_HOSTS_CARD_SHOWN);
 
   const renderBar: (data: {
-    key: string;
+    key: "cpu" | "memory";
     label: string;
     percent: number | null;
   }) => ReactElement = (data: {
-    key: string;
+    key: "cpu" | "memory";
     label: string;
     percent: number | null;
   }): ReactElement => {
@@ -124,7 +143,10 @@ const XcpNgHostsCard: FunctionComponent<ComponentProps> = (
             <></>
           ) : (
             <div
-              className={`h-1.5 rounded-full ${barClassName(percent)}`}
+              className={`h-1.5 rounded-full ${getXcpNgLoadBarClassName({
+                percent: percent,
+                metric: data.key,
+              })}`}
               style={{ width: `${Math.max(percent, 2)}%` }}
             />
           )}
