@@ -180,30 +180,38 @@ describe("readDigitsOfEveryScript", () => {
   });
 
   test("a run is a script's own digits, each group apart by one space or dash at most", () => {
-    const eleven: string = inScript("41111111111", 0xff10);
-    const twelve: string = inScript("411111111111", 0xff10);
+    const six: string = inScript("411111", 0xff10);
+    const seven: string = inScript("4111111", 0xff10);
 
-    // Eleven fullwidth digits and an ASCII one: no run of twelve, so one reading of all.
-    expect(readDigitsOfEveryScript(`${eleven}1`)).toHaveLength(1);
-    // Twelve: a reading of their own, and one of all.
-    expect(readDigitsOfEveryScript(`${twelve}1`)).toHaveLength(2);
+    // Six fullwidth digits and an ASCII one: no run of seven, so one reading of all.
+    expect(readDigitsOfEveryScript(`${six}1`)).toHaveLength(1);
+    // Seven: a reading of their own, and one of all.
+    expect(readDigitsOfEveryScript(`${seven}1`)).toHaveLength(2);
     // Two spaces end a run; one does not.
     expect(
       readDigitsOfEveryScript(
-        `${inScript("411111", 0xff10)}  ${inScript("111111", 0xff10)}1`,
+        `${inScript("4111", 0xff10)}  ${inScript("1111", 0xff10)}1`,
       ),
     ).toHaveLength(1);
     expect(
       readDigitsOfEveryScript(
-        `${inScript("411111", 0xff10)} ${inScript("111111", 0xff10)}1`,
+        `${inScript("4111", 0xff10)} ${inScript("1111", 0xff10)}1`,
       ),
     ).toHaveLength(2);
     // Another script's digit ends a run too.
     expect(
       readDigitsOfEveryScript(
-        `${inScript("411111", 0xff10)}٤${inScript("111111", 0xff10)}`,
+        `${inScript("4111", 0xff10)}٤${inScript("1111", 0xff10)}`,
       ),
     ).toHaveLength(1);
+  });
+
+  test("a Social Security number's nine digits of one script are read alone, beside another script's digit (#11033)", () => {
+    const text: string = `ssn ${inScript("536-22-8731", 0x0660)}۵`;
+    const [alone] = readDigitsOfEveryScript(text);
+
+    // Arabic-Indic alone: the Persian digit after it is none, so the number ends where it does.
+    expect(alone).toBe(`ssn 536-22-8731${NUL}`);
   });
 
   test("reads at most four scripts alone, and every script with all the others", () => {
@@ -215,7 +223,7 @@ describe("readDigitsOfEveryScript", () => {
     const readings: Array<string> = readDigitsOfEveryScript(text);
 
     expect(MAX_SCRIPTS_READ_ALONE).toBe(4);
-    expect(MIN_DIGITS_OF_A_SCRIPT_READ_ALONE).toBe(12);
+    expect(MIN_DIGITS_OF_A_SCRIPT_READ_ALONE).toBe(7);
     expect(readings).toHaveLength(MAX_SCRIPTS_READ_ALONE + 1);
     expect(readings[readings.length - 1]).toBe(foldDigits(text));
   });

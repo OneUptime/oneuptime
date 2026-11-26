@@ -111,7 +111,7 @@ Regelen får navn etter det den skjuler, for eksempel «Data Security: Email add
 | Enhver annen datatype et mønster finner på egen hånd, for eksempel et GitHub-token | En regel av typen **Egendefinert regex**, laget av datatypens egne mønstre. En hemmelighet sladdes. |
 | En av dine egne datatyper, med et mønster | Det mønsteret, bare i attributtet det ble funnet i |
 | En datatype som skilles ut av ordene rundt den, for eksempel et routingnummer | Formen dens, bare i attributtet den ble funnet i |
-| En datatype som finnes ut fra feltets navn, for eksempel en persons navn under `customer_name`, eller en verdi under en nøkkel som nevner en hemmelighet | En regel av typen **Navngitte attributter**, som skjuler hele verdien av det attributtet |
+| En datatype som finnes ut fra feltets navn, for eksempel en persons navn under `customer_name` eller under parameteren `full_name` i en URL, eller en verdi under en nøkkel som nevner en hemmelighet | En regel av typen **Navngitte attributter**, som skjuler hele verdien av det attributtet |
 | En verdi under en nøkkel som ser sensitiv ut, der ingenting smalere skjuler den | En regel av typen **Sensitive attributtnøkler**, som sladder hele verdien til hvert slikt attributt |
 | Enhver datatype i attributtet til en måling | En pipelineregel for målinger av typen **Sladd attributt** for tjenesten, som erstatter verdiene i attributtet som inneholder datatypen, med `[REDACTED]`. For en IP-adresse, en e-postadresse eller et kortnummer er filteret **Samsvarer med mønstertype** med den typen, som finner det en regel for logger eller traces med den **Mønstertype** finner, blant annet IPv6-adresser og verdier som er prosentkodet eller i en annen skrift. For en annen datatype er det typens eget mønster, og der ingen mønstre finner datatypen, erstatter regelen hver verdi i attributtet |
 
@@ -170,7 +170,7 @@ Før OneUptime AI starter, leser Datasikkerhet postene hver lekkasje ble sett i 
 
 - **Et span eller et AI-kall**: filen, linjen og funksjonen som attributtene `code.*` nevner, og navnet på spannet.
 - **Et unntak**: dets egne øverste rammer, de i tjenestens kode.
-- **En logglinje**: filen, linjen og funksjonen som attributtene nevner, når den har dem, loggeren, og linjen som mal, der hver verdi er erstattet av navnet på typen, for eksempel `User <Email address> signed up`.
+- **En logglinje**: filen, linjen og funksjonen som attributtene nevner, når den har dem, loggeren, og linjen som mal, der hver verdi er erstattet av navnet på typen, for eksempel `User <Email address> signed up`, og hvert ord postene ikke beviser at koden skrev, for eksempel en persons navn, av `<value>`: `Payment declined for Maria Gonzalez`, lest fra én post, blir `Payment declined for <value>`. Navnet på et span og navnet på en måling leses på samme måte.
 - **En måling**: navnet på målingen.
 - **Enhver lekkasje**: attributtnøkkelen, for eksempel `user.email`, som koden vanligvis skriver som den er.
 
