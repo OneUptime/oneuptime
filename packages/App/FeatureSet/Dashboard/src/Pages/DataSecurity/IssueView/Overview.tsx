@@ -31,6 +31,11 @@ import {
 import { getStoreViewRoute } from "../../../Components/DataSecurity/IssueListRoute";
 import IssueAiAnalysisCard from "../../../Components/DataSecurity/IssueAiAnalysisCard";
 import IssueCodeFix from "../../../Components/DataSecurity/IssueCodeFix";
+import IssueLinkedPullRequests, {
+  LinkIssuePullRequestModal,
+} from "../../../Components/DataSecurity/IssueLinkedPullRequests";
+import { LINK_PULL_REQUEST } from "../../../Components/DataSecurity/IssueLinkedPullRequestsCopy";
+import { canLinkIssuePullRequest } from "../../../Components/DataSecurity/IssueLinkedPullRequestsModel";
 import {
   AcceptIssueRiskModal,
   AssignIssueModal,
@@ -44,7 +49,7 @@ import IssueRiskScore, {
   readIssueRiskFactors,
 } from "../../../Components/DataSecurity/IssueRiskScore";
 import IssueTelemetryFindings from "../../../Components/DataSecurity/IssueTelemetryFindings";
-import { isServiceTelemetryFix } from "../../../Components/DataSecurity/TelemetryFixCopy";
+import { isTelemetryCodeFix } from "../../../Components/DataSecurity/TelemetryFixCopy";
 import TelemetryFixModal from "../../../Components/DataSecurity/TelemetryFixModal";
 import {
   STORE_DATA_TYPES_NOT_LOADED,
@@ -58,13 +63,11 @@ import DataSecurityIssueViewContext, {
   useDataSecurityIssueView,
 } from "./IssueViewContext";
 import DataSecurityIssue from "Common/Models/DatabaseModels/DataSecurityIssue";
+import DataSecurityIssuePullRequest from "Common/Models/DatabaseModels/DataSecurityIssuePullRequest";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  DataSecurityFixRepository,
-  DataSecurityFixResult,
-} from "Common/Types/DataSecurity/DataSecurityApiTypes";
+import { DataSecurityFixResult } from "Common/Types/DataSecurity/DataSecurityApiTypes";
 import {
   DataSecurityCheckInfo,
   FrameworkRequirementRef,
@@ -156,6 +159,8 @@ type IssueDialog =
   | "notAnIssue"
   // Fix with AI's plan for a service's telemetry leaks (#10367).
   | "telemetryFix"
+  // A person's own pull request, linked as the issue's fix (#10831).
+  | "linkPullRequest"
   | null;
 
 // Why Fix with AI started nothing, in the server's words.
@@ -267,10 +272,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const [draftReason, setDraftReason] = useState<string>("");
   const [isFixing, setIsFixing] = useState<boolean>(false);
   const [fixNotice, setFixNotice] = useState<FixNotice | null>(null);
-  // The repositories Fix with AI may be asked in, when there is a choice.
-  const [repositoryChoices, setRepositoryChoices] = useState<
-    Array<DataSecurityFixRepository>
-  >([]);
 
   const check: DataSecurityCheckInfo | undefined = issue.checkId
     ? getDataSecurityCheck(issue.checkId)
@@ -281,9 +282,11 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
   const storeName: string = store?.name || "";
   /*
    * An issue in a service's telemetry: Fix with AI shows the one pull
-   * request that stops the service writing all of its leaks first (#10367).
+   * request that stops the service writing all of its leaks first (#10367)
+   * - and for a RUM application's session replays, the one that fixes its
+   * front-end code (#10933).
    */
-  const isServiceTelemetry: boolean = isServiceTelemetryFix({
+  const isServiceTelemetry: boolean = isTelemetryCodeFix({
     isTelemetryCheck: isTelemetryFindingCheck(issue.checkId),
     storeKind: store?.kind,
     serviceId: store?.serviceId,
@@ -340,8 +343,10 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
    * when something stands in the way - AI is off, no Runner is online, no
    * repository the person may change is connected - and says what to fix;
    * or, when the person may ask in several repositories, lists them to
-   * choose from (#10362). A run that started says so in a toast, and the
-   * How to Fix card says where it stands from then on (IssueCodeFix).
+   * choose from (#10362). The dialog then searches them on the server, as
+   * the person types (#10921): the list says only that there is a choice.
+   * A run that started says so in a toast, and the How to Fix card says
+   * where it stands from then on (IssueCodeFix).
    */
   const askForFix: (
     codeRepositoryId?: ObjectID | undefined,
@@ -360,7 +365,6 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
     }
 
     if (!codeRepositoryId && (result.repositories || []).length > 0) {
-      setRepositoryChoices(result.repositories || []);
       setDialog("repository");
       return false;
     }
@@ -503,6 +507,31 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
 
     if (fixButton) {
       fixButtons.push(fixButton);
+    }
+  }
+
+  /*
+   * Fixed it in a pull request of your own: link it, and OneUptime follows
+   * it to production as it follows OneUptime AI's (#10831). Offered on an
+   * open or a resolved issue, to who may change the issue.
+   */
+  if (canLinkIssuePullRequest({ status: issue.status, isAllowed: true })) {
+    const linkButton: CardButtonSchema | null = PermissionGate.gateCardButton(
+      {
+        title: LINK_PULL_REQUEST,
+        icon: IconProp.Link,
+        buttonStyle: ButtonStyleType.OUTLINE,
+        onClick: () => {
+          setDialog("linkPullRequest");
+        },
+      },
+      new DataSecurityIssuePullRequest(),
+      ModelAction.Create,
+      { sentence: ISSUE_MOVES_LOCKED },
+    );
+
+    if (linkButton) {
+      fixButtons.push(linkButton);
     }
   }
 
@@ -960,6 +989,14 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
             issueId={view.issueId}
             refreshToggle={view.refreshToggle}
           />
+          {/* The pull requests people linked as its fix, followed to production (#10831). */}
+          <IssueLinkedPullRequests
+            issueId={view.issueId}
+            refreshToggle={view.refreshToggle}
+            onChanged={() => {
+              view.refresh();
+            }}
+          />
           {issue.status === DataSecurityIssueStatus.Open && storeId ? (
             <IssueResponseAction
               issueId={view.issueId}
@@ -1080,9 +1117,23 @@ const DataSecurityIssueOverviewPage: FunctionComponent<
         <></>
       )}
 
+      {dialog === "linkPullRequest" ? (
+        <LinkIssuePullRequestModal
+          issueId={view.issueId}
+          onClose={() => {
+            setDialog(null);
+          }}
+          onLinked={() => {
+            setDialog(null);
+            view.refresh();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
       {dialog === "repository" ? (
         <IssueRepositoryModal
-          repositories={repositoryChoices}
           isTelemetry={isTelemetryFindingCheck(issue.checkId)}
           onClose={() => {
             setDialog(null);

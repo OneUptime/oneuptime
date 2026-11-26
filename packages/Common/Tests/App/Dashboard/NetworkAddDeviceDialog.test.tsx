@@ -24,6 +24,7 @@ import Route from "../../../Types/API/Route";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   getByTextOutsideFoldedHeaders,
@@ -361,6 +362,17 @@ const COMMUNITY_PLACEHOLDER: string = "public";
 beforeEach(() => {
   capturedModels = [];
   window.history.replaceState(null, "", "/dashboard/network-devices");
+
+  /*
+   * A network device's name is one of its kind in its project, so Add Device
+   * asks the server, a moment after the device is named, whether another device
+   * has the name (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

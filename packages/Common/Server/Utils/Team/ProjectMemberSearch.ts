@@ -1,6 +1,5 @@
 import TeamMemberService from "../../Services/TeamMemberService";
 import DatabaseRequestType from "../../Types/BaseDatabase/DatabaseRequestType";
-import { escapeLikePattern } from "../../Types/Database/JSONColumnQuery";
 import QueryPermission from "../../Types/Database/Permissions/QueryPermission";
 import SelectPermission from "../../Types/Database/Permissions/SelectPermission";
 import TablePermission from "../../Types/Database/Permissions/TablePermission";
@@ -179,8 +178,13 @@ export default class ProjectMemberSearch {
       user: userSelect,
     } as Select<TeamMember>;
 
-    // Literal: "%" and "_" typed are matched as written.
-    const pattern: string = escapeLikePattern(data.text);
+    /*
+     * Literal: "%" and "_" typed are matched as written. Search escapes
+     * them itself (QueryHelper.search, #10545), so the text goes as typed;
+     * escaped here as well, it was escaped twice, and "50%" looked for
+     * "50\%".
+     */
+    const pattern: string = data.text;
 
     const read: (column: "name" | "email") => Promise<Array<TeamMember>> = (
       column: "name" | "email",

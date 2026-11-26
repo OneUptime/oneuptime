@@ -5064,6 +5064,23 @@
     "kind": "page"
   },
   {
+    "title": "Erasure Requests",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "erase person",
+      "right to erasure",
+      "gdpr",
+      "forget user",
+      "user vault",
+      "data subject request"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/erasure-requests",
+    "kind": "page"
+  },
+  {
     "title": "Overview",
     "where": [
       "Data Security"

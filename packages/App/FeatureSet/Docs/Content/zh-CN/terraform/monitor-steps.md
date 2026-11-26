@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`、`Tablet` 和 `Desktop`。 |
 | `browser_types` | list(string) | Synthetic | `Chromium` 和 `Firefox`。 |
 | `retry_count_on_error` | number | Synthetic | 脚本失败时的重试次数：`0` 只运行一次。 |
+| `do_not_sync_fields` | list(string) | 监视器模板 | 模板将其步骤同步到由它创建的监视器时，每个监视器作为自己的值保留的字段，例如 `monitorDestination` 或 `dnsMonitor.queryName`：即模板的 **模板同步设置** 卡片列出的字段。 |
 | `criteria` | list（必填） | 全部 | 如何判定每个结果：参见 [条件属性](#条件属性)。 |
 
 ### 各监视器类型的设置
 
-除地址外还有更多设置的监视器类型，会把设置（日志查询、数据库连接、要监视的集群）放在各自的属性中，以 `jsonencode()` 写成原始 JSON：`log_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
+除地址外还有更多设置的监视器类型，会把设置（日志查询、数据库连接、要监视的集群）放在各自的属性中，以 `jsonencode()` 写成原始 JSON：`log_monitor`、`security_events_monitor`、`trace_monitor`、`llm_monitor`、`metric_monitor`、`exception_monitor`、`profile_monitor`、`dns_monitor`、`domain_monitor`、`dnssec_monitor`、`sql_monitor`、`database_monitor`、`external_status_page_monitor`、`network_device_monitor`、`kubernetes_monitor`、`docker_monitor`、`docker_swarm_monitor`、`host_monitor`、`podman_monitor`、`proxmox_monitor`、`openstack_monitor`、`vmware_monitor`、`ceph_monitor`、`storage_array_monitor`、`iot_monitor` 和 `probe_status_monitor`。
 
 它们的 JSON 与仪表板的相同，键使用 camelCase。其中的 ID 按 API 的写法书写：`{ _type = "ObjectID", value = "..." }`。一个统计某个服务错误数的 Logs 监视器：
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### 事件和警报
 
-`incidents` 的每一项接受 `title` 和 `description`（两者都必填）、`incident_severity_id`、`auto_resolve_incident`、`remediation_notes`、`on_call_policy_ids`、`label_ids`、`owner_team_ids`、`owner_user_ids`、`show_incident_on_status_page` 和 `is_private`。`alerts` 的每一项接受同样的属性，但使用 `alert_severity_id` 和 `auto_resolve_alert`，并且没有 `show_incident_on_status_page`。
+`incidents` 的每一项接受 `title` 和 `description`（两者都必填）、`incident_severity_id`、`auto_resolve_incident`、`remediation_notes`、`on_call_policy_ids`、`label_ids`、`owner_team_ids`、`owner_user_ids`、`incident_member_roles`、`show_incident_on_status_page` 和 `is_private`。`alerts` 的每一项接受同样的属性，但使用 `alert_severity_id` 和 `auto_resolve_alert`，并且没有 `show_incident_on_status_page` 和 `incident_member_roles`。`incident_member_roles` 为条件打开的每个事件中的人员指定角色，例如事件指挥官：每个人员和角色写一个 `{ role_id, user_id }`。
 
 这个条件会把监视器标记为 offline，创建一个呼叫值班策略的事件，并在网站恢复后解决它：
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## 没有步骤的监视器
 
 `monitor_steps` 是可选的，但没有它而创建的监视器没有用来判定结果的条件：探测器会跳过没有步骤的监视器，它会一直停留在初始状态。你的 state 会让该属性保持为空，计划也保持干净。手动监视器从不需要步骤：它的状态由你自己设置。其他所有类型都至少需要一个步骤才能检查任何东西。
+
+## apply 保留什么
+
+更改 `monitor_steps` 的 apply 会发送完整的步骤，OneUptime 用它们替换自己保存的步骤。你的配置可以编写却省略的设置会被移除，正如 plan 所示。有两类设置则会按 OneUptime 保存的样子保留，因为任何 plan 都无法显示它们。apply 会先读取 OneUptime 保存的步骤，如果读取失败，则不写入任何内容并报错。
+
+提供程序没有对应属性的设置，例如已停用的 SNMP 监视器类型的步骤仍保存的 `snmpMonitor`，或者较新的 OneUptime 拥有而你的提供程序版本尚不认识的设置，会留在它所在的步骤、条件、事件或警报上。每一项都按 OneUptime 为保留 ID 而进行的匹配方式来匹配：步骤按位置，条件按名称，事件或警报按标题，否则按位置。当你的配置移除该步骤、条件、事件或警报时，该设置也随之移除。
+
+你用 `jsonencode()` 编写的设置，例如 `dns_monitor`、`incident_grouping` 或筛选器的 `metric_monitor_options`，按你编写的内容进行比较。OneUptime 可能在其中保存更多内容，例如它自己的默认值或在仪表板中设置的键：这不算变化，apply 也会保留它。你从 `jsonencode()` 中去掉的键会被移除。在列表中，只要列表的项数与 OneUptime 的列表相同，OneUptime 多保存的内容就会逐项保留。
 
 ## 传输格式
 

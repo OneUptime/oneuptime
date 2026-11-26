@@ -1,4 +1,3 @@
-import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
 import { DataSecurityIssueFeedEventType } from "../../../../Models/DatabaseModels/DataSecurityIssueFeed";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
@@ -29,7 +28,10 @@ import DataSecurityFixTarget, {
   DataSecurityFixTargetRead,
 } from "./DataSecurityFixTarget";
 import { FixProductionVerdict } from "./FixProductionVerdict";
-import FixProductionVerifier, { VerifierRun } from "./FixProductionVerifier";
+import FixProductionVerifier, {
+  FollowedFix,
+  VerifierRun,
+} from "./FixProductionVerifier";
 import {
   StoreConfigurationFixCounts,
   decideStoreConfigurationVerdict,
@@ -68,7 +70,7 @@ export enum IssueStanding {
 
 export default class StoreConfigurationFixWatch {
   public static async verify(
-    fix: AIAgentTaskPullRequest,
+    fix: FollowedFix,
     run: VerifierRun,
   ): Promise<void> {
     const mergedAt: Date = FixProductionVerifier.mergedAtOf(fix, run);
@@ -76,9 +78,9 @@ export default class StoreConfigurationFixWatch {
       fix.productionBaseline?.storeConfiguration;
 
     if (!baseline) {
-      const target: DataSecurityFixTargetRead | null = fix.aiRunId
-        ? await DataSecurityFixTarget.read(fix.aiRunId)
-        : null;
+      // OneUptime AI's fix's task, or the issue a person linked their own fix to (#10831).
+      const target: DataSecurityFixTargetRead | null =
+        await DataSecurityFixTarget.readOfFix(fix);
 
       if (!target) {
         await FixProductionVerifier.settle(fix, run, {
@@ -232,7 +234,7 @@ export default class StoreConfigurationFixWatch {
    * once - as Check Now reads them - and the issues told it merged.
    */
   public static async startWatching(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     target: DataSecurityFixTargetRead;
     now: Date;
   }): Promise<StoreConfigurationFixBaseline> {
@@ -265,7 +267,7 @@ export default class StoreConfigurationFixWatch {
       });
     const baseline: StoreConfigurationFixBaseline = {
       issues: kept,
-      taskId: data.target.taskId.toString(),
+      ...(data.target.taskId ? { taskId: data.target.taskId.toString() } : {}),
       ...(data.target.askedByUserId
         ? { askedByUserId: data.target.askedByUserId.toString() }
         : {}),

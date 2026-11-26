@@ -7,7 +7,7 @@ import SetupGuideCard, {
 } from "../SetupGuide/SetupGuideCard";
 import { SetupGuideContent } from "../SetupGuide/SetupGuide";
 import {
-  STORAGE_ARRAY_PLATFORMS,
+  getStorageArrayPlatformOptions,
   getStorageArrayPlatformForSystem,
   getStorageArraySetupGuide,
   resolveStorageArrayPlatform,
@@ -39,7 +39,7 @@ const StorageArrayDocumentationCard: FunctionComponent<ComponentProps> = (
       icon={IconProp.StorageArray}
       newKeyName={translationKey("Storage Array key")}
       optionsLabel="Which array are you connecting?"
-      options={STORAGE_ARRAY_PLATFORMS}
+      options={getStorageArrayPlatformOptions()}
       initialOption={getStorageArrayPlatformForSystem(props.storageSystem)}
       keyStepDescription={translationKey(
         "The agent sends your array's metrics to OneUptime with this key. Pick an existing key or create a new one — the commands below update to use it.",

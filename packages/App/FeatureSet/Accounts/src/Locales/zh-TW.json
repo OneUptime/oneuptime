@@ -4,6 +4,7 @@
   "Error details": "錯誤詳細資料",
   "Still stuck?": "還是無法解決？",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享給 OneUptime 支援團隊之前請先檢查。",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享之前請先檢查。",
   "Download support bundle": "下載支援套件",
   "Send it to {{email}}": "將它傳送到 {{email}}",
   "Support bundle downloaded. Review it, then attach it to your email.": "支援套件已下載。請檢查後再附加到你的郵件中。",
@@ -642,6 +643,8 @@
   "The {{itemName}} was not created.": "{{itemName}}未建立。",
   "The {{itemName}} was not saved.": "{{itemName}}未儲存。",
   "This did not finish.": "操作未完成。",
+  "The {{itemName}} was not deleted.": "{{itemName}}未刪除。",
+  "“{{action}}” did not finish.": "「{{action}}」操作未完成。",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "此頁面遇到了問題，因此操作未完成。請重新載入頁面，然後再試一次。",
   "This page ran into a problem.": "此頁面遇到了問題。",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "要查看失敗原因，請在伺服器的 oneuptime 資料夾中執行 npm run doctor -- --logs，並尋找這個參考編號。",
@@ -737,6 +740,5 @@
     "note": "注意",
     "tip": "提示",
     "warning": "警告"
-  },
-  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "下載一個本機診斷檔，其中包含錯誤堆疊、元件堆疊、已清理的頁面 URL、瀏覽器資訊和 OneUptime 版本。它從不讀取 Cookie、瀏覽器儲存的資料或表單內容。分享之前請先檢查。"
+  }
 }

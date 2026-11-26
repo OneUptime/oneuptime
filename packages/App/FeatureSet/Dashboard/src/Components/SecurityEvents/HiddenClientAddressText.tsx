@@ -1,5 +1,6 @@
 import AppLink from "../AppLink/AppLink";
 import { CLAIMED_NOT_VERIFIED } from "./ClaimedClientAddressCopy";
+import EventUserText from "./EventUserText";
 import {
   HIDDEN_BY_A_SCRUB_RULE,
   HIDDEN_BY_THE_SCRUB_RULE,
@@ -15,6 +16,7 @@ import {
   ScrubbedAddressRole,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export const HIDDEN_CLIENT_ADDRESS_TEST_ID: string =
   "security-hidden-client-address";
@@ -123,11 +125,25 @@ export function readFieldValue(
       <span data-testid={CLAIMED_CLIENT_ADDRESS_TEST_ID}>
         <span className="[overflow-wrap:anywhere]">{value}</span>
         <span className="text-gray-500">
-          {" · "}
+          <InlineSeparator />
           {translator.translateText(CLAIMED_NOT_VERIFIED) ||
             CLAIMED_NOT_VERIFIED}
         </span>
       </span>
+    );
+  }
+
+  /*
+   * A user Security Events named behind a token, or one an erasure request
+   * took out again: said with what the records hold (#10909, #10908).
+   */
+  if (field.hashedUser || field.isErasedUser) {
+    return (
+      <EventUserText
+        user={field.value}
+        hashedUser={field.hashedUser}
+        isErasedUser={field.isErasedUser}
+      />
     );
   }
 

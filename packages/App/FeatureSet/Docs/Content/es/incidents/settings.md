@@ -15,7 +15,7 @@ Abre **Incidentes** desde el menú **Productos** de la barra superior y desplieg
 
 | Página                             | Qué haces allí                                                                                     |
 | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Estado del incidente**           | Añadir, renombrar, recolorear y reordenar los estados por los que pasa un incidente.               |
+| **Estado del incidente**           | Añadir, renombrar, recolorear y reordenar los estados por los que pasa un incidente, y elegir si los incidentes declarados a mano empiezan reconocidos. Desactivado por defecto. |
 | **Gravedad del incidente**         | Añadir, renombrar, recolorear y reordenar los niveles de gravedad.                                 |
 | **Plantillas de incidente**        | Rellenar de antemano un incidente entero: título, descripción, recursos, políticas de guardia, propietarios, etiquetas. |
 | **Plantillas de notas**            | Texto reutilizable para notas públicas y privadas.                                                 |

@@ -1008,7 +1008,9 @@ describe("the addresses the README gives", () => {
 
   test("Welcome says where no card stops, on OneUptime Cloud only", () => {
     const billing = WELCOME.indexOf("{BILLING_ENABLED && (");
-    const drawn = WELCOME.indexOf("translator.translateText(WELCOME_CARD_LINE)");
+    const drawn = WELCOME.indexOf(
+      "translator.translateText(WELCOME_CARD_LINE)",
+    );
 
     expect(WELCOME_CARD_LINE).toBe(
       "A project needs no card. On the Free plan, checking a website needs a payment method.",
@@ -1035,19 +1037,50 @@ describe("the addresses the README gives", () => {
     );
   });
 
+  /*
+   * The Dashboard's Help menu opens the chat the server's Help and Support
+   * settings name (Admin Dashboard > Settings > Help and Support, #10864):
+   * on a server that keeps the default, OneUptime's community Slack,
+   * ONEUPTIME_CHAT_URL, which getChatLink gives for the Default choice
+   * (Common's HelpAndSupport.test.ts holds it to that).
+   */
+  const DASHBOARD_HELP =
+    "packages/App/FeatureSet/Dashboard/src/Components/Header/Help.tsx";
+  const HELP_AND_SUPPORT =
+    "packages/Common/Types/HelpAndSupport/HelpAndSupport.ts";
+
+  // The chat the Default choice opens, as HelpAndSupport.ts spells it.
+  function defaultChatOf(text) {
+    const match = /export const ONEUPTIME_CHAT_URL: string =\s*"([^"]*)";/.exec(
+      text,
+    );
+
+    return match ? match[1] : undefined;
+  }
+
+  test("the Dashboard's Help menu opens the chat getChatLink gives: OneUptime's Slack, by default", () => {
+    const help = read(DASHBOARD_HELP);
+    const settings = read(HELP_AND_SUPPORT);
+
+    expect(help).toContain(
+      "const chat: ChatLink | null = getChatLink(helpAndSupport);",
+    );
+    expect(help).toContain("url: URL.fromStringLenient(chat.url),");
+    expect(settings).toContain(
+      "const url: string | null = getLink(setting, ONEUPTIME_CHAT_URL);",
+    );
+    expect(slackInvitesOf(defaultChatOf(settings) || "")).toEqual([
+      defaultChatOf(settings),
+    ]);
+  });
+
   test.each(byLanguage)(
     "%s invites to the Slack the Dashboard's Help menu and the website's Support page open",
     (_language, readme) => {
       const invites = slackInvitesOf(readme.text);
 
       expect(invites).toHaveLength(1);
-      expect(
-        slackInvitesOf(
-          read(
-            "packages/App/FeatureSet/Dashboard/src/Components/Header/Help.tsx",
-          ),
-        ),
-      ).toContain(invites[0]);
+      expect(defaultChatOf(read(HELP_AND_SUPPORT))).toBe(invites[0]);
       expect(slackInvitesOf(read("packages/Home/Views/support.ejs"))).toContain(
         invites[0],
       );

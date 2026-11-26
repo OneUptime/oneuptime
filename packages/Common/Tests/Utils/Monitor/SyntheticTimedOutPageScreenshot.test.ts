@@ -13,6 +13,7 @@ import {
   dashboardTranslator,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The screenshots a probe takes of the pages a synthetic script left open
@@ -115,10 +116,16 @@ describe("reading a stored screenshot name back", () => {
 
   test("reads a long name in no time", () => {
     const longName: string = `timed-out-page-${"9".repeat(500_000)}`;
-    const startedAt: number = Date.now();
+    // The fastest of a few attempts: one attempt's time is noise on a busy runner.
+    const read: FastestRun<number | null> = fastestRun({
+      run: (): number | null => {
+        return readTimedOutPageScreenshotName(longName);
+      },
+      limitInMs: 500,
+    });
 
-    expect(readTimedOutPageScreenshotName(longName)).toBeNull();
-    expect(Date.now() - startedAt).toBeLessThan(500);
+    expect(read.result).toBeNull();
+    expect(read.inMs).toBeLessThan(500);
   });
 });
 

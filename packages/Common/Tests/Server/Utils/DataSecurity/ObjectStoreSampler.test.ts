@@ -5,6 +5,7 @@ import {
   ObjectStoreReader,
 } from "../../../../Server/Utils/DataSecurity/Cloud/DataSecurityCloudTypes";
 import {
+  capObjectStoreState,
   LISTING_FACTOR,
   REREAD_AFTER_DAYS,
   SAMPLES_PER_PATTERN,
@@ -18,6 +19,10 @@ import {
 } from "../../../../Server/Utils/DataSecurity/DataSecurityScanTypes";
 import { JSONObject } from "../../../../Types/JSON";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
+import { ModelBudget } from "../../../../Server/Utils/DataSecurity/Model/ModelBudget";
+import { ModelScanContext } from "../../../../Server/Utils/DataSecurity/Model/ModelScan";
+import FakeEntityRecognizer from "./Model/FakeEntityRecognizer";
+import { UnavailableRecognizer } from "../../../../Server/Utils/DataSecurity/Model/EntityRecognizer";
 
 /*
  * A BUCKET, SAMPLED THE WAY A SCAN SAMPLES ONE.
@@ -751,5 +756,226 @@ describe("what the result says about the store", () => {
     expect(result.plaintextPasswordFields).toEqual([
       "deploy/prod.env › DB_PASSWORD",
     ]);
+  });
+});
+
+describe("objects take turns at the model's time (#10928)", () => {
+  // A support note, free text with a person's name in it, one a day.
+  function note(index: number, body?: string): FakeObject {
+    return {
+      key: `notes/note-${String(index).padStart(4, "0")}.txt`,
+      body: Buffer.from(
+        body ||
+          `Support note ${index}: refund approved for Maria Gonzalez, 14 Calle Mayor, Madrid. The customer will be called back tomorrow.`,
+      ),
+      lastModified: daysAgo(index),
+      etag: `"note-${index}"`,
+    };
+  }
+
+  // A model with time for `texts` texts a scan, ten milliseconds each.
+  function modelWithTimeFor(
+    texts: number,
+    recognizer: FakeEntityRecognizer = new FakeEntityRecognizer({
+      millisecondsPerText: 10,
+    }),
+  ): ModelScanContext {
+    return {
+      recognizer,
+      budget: new ModelBudget({
+        scanLimitInMs: texts * 10,
+        storeLimitInMs: texts * 10,
+      }),
+    };
+  }
+
+  function pendingKeys(state: JSONObject | undefined): Array<string> {
+    const etags: JSONObject = (state?.["etags"] as JSONObject) || {};
+
+    return Object.keys(etags)
+      .filter((key: string): boolean => {
+        return (etags[key] as JSONObject)["modelPending"] === true;
+      })
+      .sort();
+  }
+
+  test("an object read while the model had no time for it stays due, and is read first next scan", async () => {
+    const objects: Array<FakeObject> = [note(1), note(2), note(3), note(4)];
+    const first: ContentScanResult = await sampleObjectStore(
+      new FakeBucket(objects),
+      options({}, { model: modelWithTimeFor(2) }),
+    );
+
+    // Notes 1 and 2 had the model's time; 3 and 4 were read without it.
+    expect(first.objectsRead).toBe(4);
+    expect(pendingKeys(first.nextState)).toEqual([
+      "notes/note-0003.txt",
+      "notes/note-0004.txt",
+    ]);
+
+    const recognizer: FakeEntityRecognizer = new FakeEntityRecognizer({
+      millisecondsPerText: 10,
+    });
+    const bucket: FakeBucket = new FakeBucket(objects);
+    const second: ContentScanResult = await sampleObjectStore(
+      bucket,
+      options(
+        {},
+        {
+          model: modelWithTimeFor(2, recognizer),
+          previousState: first.nextState,
+        },
+      ),
+    );
+
+    // Only the two the model had no time for: the others are unchanged.
+    expect(bucket.readKeys).toEqual([
+      "notes/note-0003.txt",
+      "notes/note-0004.txt",
+    ]);
+    expect(recognizer.given.length).toBe(2);
+    expect(pendingKeys(second.nextState)).toEqual([]);
+
+    // And then none is due: each was read with the model's time once.
+    const third: FakeBucket = new FakeBucket(objects);
+
+    await sampleObjectStore(
+      third,
+      options(
+        {},
+        { model: modelWithTimeFor(2), previousState: second.nextState },
+      ),
+    );
+
+    expect(third.readKeys).toEqual([]);
+  });
+
+  test("before #10928, every object read was skipped as unchanged next scan, the model's or not", async () => {
+    const objects: Array<FakeObject> = [note(1), note(2), note(3)];
+    const first: ContentScanResult = await sampleObjectStore(
+      new FakeBucket(objects),
+      options({}, { model: modelWithTimeFor(1) }),
+    );
+    const withoutPending: JSONObject = JSON.parse(
+      JSON.stringify(first.nextState).replace(/,"modelPending":true/g, ""),
+    );
+    const bucket: FakeBucket = new FakeBucket(objects);
+
+    await sampleObjectStore(
+      bucket,
+      options(
+        {},
+        { model: modelWithTimeFor(1), previousState: withoutPending },
+      ),
+    );
+
+    expect(bucket.readKeys).toEqual([]);
+  });
+
+  test("pending objects come before the newest objects of every pattern", async () => {
+    const objects: Array<FakeObject> = [note(5), note(6), ...dailyExports(3)];
+    const state: JSONObject = {
+      etags: {
+        "notes/note-0006.txt": {
+          etag: '"note-6"',
+          readAt: new Date(NOW - DAY_IN_MS).toISOString(),
+          modelPending: true,
+        },
+      },
+    };
+    const bucket: FakeBucket = new FakeBucket(objects);
+
+    await sampleObjectStore(
+      bucket,
+      options({}, { model: modelWithTimeFor(10), previousState: state }),
+    );
+
+    expect(bucket.readKeys[0]).toBe("notes/note-0006.txt");
+    expect(new Set(bucket.readKeys).size).toBe(bucket.readKeys.length);
+  });
+
+  test("the first object the model started on, too big for all its time, is not kept due: it would take that time every scan", async () => {
+    const rows: Array<string> = ["id,notes"];
+
+    for (let index: number = 0; index < 6; index++) {
+      rows.push(
+        `${index},"Customer ${index} asked about the delivery window for the order and was told it would arrive tomorrow morning."`,
+      );
+    }
+
+    const big: FakeObject = {
+      key: "exports/tickets.csv",
+      body: Buffer.from(rows.join("\n") + "\n"),
+      lastModified: daysAgo(0),
+      etag: '"tickets"',
+    };
+    const result: ContentScanResult = await sampleObjectStore(
+      new FakeBucket([big, note(1)]),
+      options({}, { model: modelWithTimeFor(3) }),
+    );
+
+    expect(pendingKeys(result.nextState)).toEqual(["notes/note-0001.txt"]);
+  });
+
+  test("without the model, nothing is kept due", async () => {
+    const result: ContentScanResult = await sampleObjectStore(
+      new FakeBucket([note(1), note(2)]),
+      options(),
+    );
+
+    expect(pendingKeys(result.nextState)).toEqual([]);
+  });
+
+  test("where the model cannot run, nothing is kept due: there is no time to wait for", async () => {
+    const model: ModelScanContext = {
+      recognizer: new UnavailableRecognizer(
+        "the model could not start on this server",
+      ),
+      budget: ModelBudget.forScope("content"),
+    };
+    const result: ContentScanResult = await sampleObjectStore(
+      new FakeBucket([note(1), note(2), note(3)]),
+      options({}, { model }),
+    );
+
+    expect(pendingKeys(result.nextState)).toEqual([]);
+  });
+
+  test("an object kept due holds its key, its etag and when it was read: nothing of what it holds", async () => {
+    const result: ContentScanResult = await sampleObjectStore(
+      new FakeBucket([note(1), note(2)]),
+      options({}, { model: modelWithTimeFor(1) }),
+    );
+    const entry: JSONObject = (result.nextState!["etags"] as JSONObject)[
+      "notes/note-0002.txt"
+    ] as JSONObject;
+
+    expect(Object.keys(entry).sort()).toEqual([
+      "etag",
+      "modelPending",
+      "readAt",
+    ]);
+    expect(JSON.stringify(result.nextState)).not.toContain("Maria");
+  });
+
+  test("a storage account's state keeps each container's newest entries, all of them no more than a bucket's", () => {
+    const etags: JSONObject = {};
+
+    for (let index: number = 0; index < 10; index++) {
+      etags[`k${index}`] = {
+        etag: String(index),
+        readAt: "2026-11-24T00:00:00Z",
+      };
+    }
+
+    expect(
+      Object.keys(
+        capObjectStoreState({ etags, model: { resumeAt: "x" } }, 3)![
+          "etags"
+        ] as JSONObject,
+      ),
+    ).toEqual(["k0", "k1", "k2"]);
+    expect(capObjectStoreState(undefined, 3)).toBeUndefined();
+    expect(capObjectStoreState({ other: 1 }, 3)).toEqual({ other: 1 });
   });
 });

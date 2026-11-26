@@ -617,7 +617,8 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
       ["Project Settings > Billing and Invoices > Billing"],
     ],
     [
-      "Common/Server/API/BillingInvoiceAPI.ts",
+      // A declined payment, for paying an invoice and adding to a balance alike.
+      "Common/Server/Utils/Billing/PaymentProviderRefusal.ts",
       ["Project Settings > Billing and Invoices > Billing"],
     ],
     [

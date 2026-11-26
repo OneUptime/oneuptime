@@ -30,6 +30,7 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -124,6 +125,14 @@ export const LinkSyslogSourceModal: FunctionComponent<{
       isLoading={isSaving}
       disableSubmitButton={!selected}
       error={error || undefined}
+      /*
+       * What failed is the Use this device the person pressed, as its
+       * button names it: the title names no action (#7680).
+       */
+      errorWhatFailed={getDialogWhatFailed(
+        translator,
+        translator.translateText("Use this device") || "Use this device",
+      )}
     >
       <div data-testid="network-event-link-source">
         <EntityDropdown

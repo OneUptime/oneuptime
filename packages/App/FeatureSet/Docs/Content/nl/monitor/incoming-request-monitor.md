@@ -14,6 +14,7 @@ Beide gebruiken hetzelfde monitortype. Wat ze onderscheidt, zijn de criteria die
 - [Een heartbeat sturen](#een-heartbeat-sturen): Vanuit curl, cron, Node.js, Python of Go.
 - [Waarschuwen als aanroepen uitblijven](#als-offline-markeren-als-er-10-minuten-geen-heartbeat-komt-een-dodemansknop): Maak van de monitor een dodemansknop.
 - [Waarschuwingen ontvangen](#waarschuwingen-uit-een-ander-systeem-ontvangen): Eén incident per waarschuwing uit Alertmanager of Grafana.
+- [In Slack plaatsen zonder iemand op te roepen](#in-slack-plaatsen-zonder-iemand-op-te-roepen): Een kanaal informeren, en alleen buiten werktijd oproepen.
 - [Abonneren op SNS of Event Grid](#abonneren-op-amazon-sns-of-azure-event-grid): Bevestig het abonnement met één klik.
 :::
 
@@ -421,6 +422,32 @@ De volledige payload is ernaast beschikbaar, dus zowel een incidenttitel `{{aler
 ### Uitgewerkt voorbeeld
 
 Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Voor Grafana, zie [Grafana](/docs/integrations/grafana).
+
+## In Slack plaatsen zonder iemand op te roepen
+
+Een stagingomgeving, of een product waarvan de problemen kunnen wachten, wil een verzoek misschien in een chatkanaal plaatsen zonder iemand op te roepen. Een waarschuwing die geen bereikbaarheidsbeleid noemt doet dat: ze wordt via de werkruimteregels van het project in Slack, Microsoft Teams of Mattermost geplaatst en start geen escalatie.
+
+:::steps
+1. Open het criterium en zet onder **Acties** de optie **Wanneer filters overeenkomen, maak een waarschuwing aan.** aan. Laat het **Bereikbaarheidsbeleid** ervan leeg.
+2. Schrijf in de waarschuwing wat het verzoek zegt, zoals `{{requestBody.commonAnnotations.summary}}` in de beschrijving. Zie [Incident- en waarschuwingstemplates](/docs/monitor/incident-alert-templating).
+3. Voeg in **Waarschuwingen → Werkruimte → Slack** een regel toe voor de waarschuwingen van deze monitor en zet **In bestaande kanalen plaatsen** aan. Slack moet eerst [met het project verbonden](/docs/workspace-connections/slack) zijn.
+:::
+
+Een waarschuwing die geen bereikbaarheidsbeleid noemt, kan toch iemand oproepen via de regels van het project. Controleer dat geen regel in **Waarschuwingen → Regels → Bereikbaarheidsregels** iemand oproept voor deze waarschuwingen, en dat geen regel in **Waarschuwingen → Regels → Incidentregels** er een incident van verklaart.
+
+Om te plaatsen zonder een waarschuwing aan te maken, zet u alleen **Wanneer filters overeenkomen, wijzig de monitorstatus.** aan en voegt u de regel in plaats daarvan toe in **Monitoren → Werkruimte → Slack**. Het kanaal hoort dan alleen dat de status van de monitor is veranderd, zonder iets uit het verzoek, en alleen wanneer die verandert: meer verzoeken terwijl de monitor al in die status is, plaatsen niets.
+
+### Alleen buiten werktijd oproepen
+
+Twee criteria met dezelfde filters verdelen de week onder elkaar, in deze volgorde:
+
+1. Het eerste plaatst tijdens werktijd. Zet in de **Instellingen** ervan **Dit criterium alleen op bepaalde dagen en tijden beoordelen** aan, en kies de dagen, de uren en de **Tijdzone**. De waarschuwing ervan noemt geen bereikbaarheidsbeleid.
+2. Het tweede roept de rest van de tijd op. Het heeft geen uren, en de waarschuwing ervan noemt uw bereikbaarheidsbeleid.
+
+Het eerste criterium dat bij een verzoek past, bepaalt wat er gebeurt. Buiten de uren ervan wordt het eerste criterium overgeslagen, dus past 's nachts en in het weekend het tweede, en alleen dan wordt iemand opgeroepen. Zie [Alleen op bepaalde dagen en tijden](/docs/monitor/criteria-and-statuses#alleen-op-bepaalde-dagen-en-tijden).
+
+- Een verzoek wordt beoordeeld wanneer het binnenkomt, naar de uren van dat moment. Een probleem dat om 16:55 begint, roept na 17:00 alleen iemand op als de afzender het opnieuw stuurt, zoals Alertmanager eenmaal per `repeat_interval` doet.
+- Een waarschuwing met **Waarschuwing automatisch oplossen** aan wordt opgelost wanneer een verzoek bij een ander criterium past. Het eerste verzoek nadat de werktijd begint, past bij het eerste criterium, lost dus de waarschuwing van de nacht op en opent er een die niemand oproept. Laat **Waarschuwing automatisch oplossen** uit bij de waarschuwing van het tweede criterium om die open te houden tot iemand haar oplost.
 
 ## Diensten die eerst de URL controleren
 

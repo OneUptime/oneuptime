@@ -71,6 +71,12 @@ export function getStorageArrayBreadcrumbs(
       "View Storage Array",
       "Directories",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAY_VIEW_INVENTORY, [
+      "Project",
+      "Storage Arrays",
+      "View Storage Array",
+      "Inventory",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS, [
       "Project",
       "Storage Arrays",

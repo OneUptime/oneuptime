@@ -1351,8 +1351,9 @@ export default class DataSecurityAPI extends BaseAPI<
          * open telemetry leak of the service, from the places its records
          * name - the plan the person was shown, held to it.
          */
+        // A RUM application's front-end leaks are planned the same way (#10933).
         if (
-          await TelemetryLeakFix.serviceOfIssue({
+          await TelemetryLeakFix.ownerOfIssue({
             projectId,
             issue,
           })
@@ -1884,6 +1885,7 @@ export default class DataSecurityAPI extends BaseAPI<
           dataStoreId: true,
           sampleRecords: true,
           lastSeenAt: true,
+          isFoundByModel: true,
           dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
@@ -1956,6 +1958,8 @@ export default class DataSecurityAPI extends BaseAPI<
         ? OneUptimeDate.fromString(finding.lastSeenAt)
         : null,
       now,
+      // Only the model tells what it found: it reads the records again (#10926).
+      isFoundByModel: finding.isFoundByModel === true,
     });
   }
 

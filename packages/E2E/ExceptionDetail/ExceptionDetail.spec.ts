@@ -36,6 +36,22 @@ const SCREENSHOTS: string = path.resolve(
 // An explorer's total, "24 spans" (TelemetryResultTotal).
 const RESULT_TOTAL_TEST_ID: string = "telemetry-result-total";
 
+/*
+ * What a record's line reads of it (getRecordActivitySelect, #10290): when
+ * it was created and by what, when and by whom it was last modified, each
+ * person by name.
+ */
+const RECORD_ACTIVITY_SELECT: Record<string, unknown> = {
+  createdAt: true,
+  createdByActorType: true,
+  createdByActorId: true,
+  lastModifiedAt: true,
+  lastModifiedByActorType: true,
+  lastModifiedByActorId: true,
+  createdByUser: { name: true, email: true },
+  lastModifiedByUser: { name: true, email: true },
+};
+
 interface RecordedApiRequest {
   method: string;
   url: string;
@@ -68,6 +84,7 @@ interface FixtureState {
   analyticsCountRequests: Array<RecordedCountRequest>;
   getItemRequests: Array<{
     modelName: string;
+    id?: string;
     select: Record<string, unknown>;
   }>;
   updates: Array<RecordedUpdate>;
@@ -216,15 +233,26 @@ test.describe("header", () => {
       summary.getByRole("button", { name: "Copy exception message" }),
     ).toBeVisible();
 
+    // The summary's foot: the exception's line, its ID first (#10461).
+    const recordLine: Locator = summary.getByTestId(
+      "exception-summary-record-line",
+    );
+    await expect(recordLine.getByTestId("detail-record-line")).toContainText(
+      "ID",
+    );
+    await expect(recordLine.getByRole("code")).toHaveText(EXCEPTION_ID);
+
     /*
      * One read of the exception: what the header needs, and - on the
      * Overview, for Where it happened - its stack trace.
      */
     const state: FixtureState = await fixture(page);
-    const exceptionReads: Array<{ select: Record<string, unknown> }> =
-      state.getItemRequests.filter((request: { modelName: string }) => {
-        return request.modelName === "TelemetryException";
-      });
+    const exceptionReads: Array<{
+      id?: string;
+      select: Record<string, unknown>;
+    }> = state.getItemRequests.filter((request: { modelName: string }) => {
+      return request.modelName === "TelemetryException";
+    });
     const headerRead: { select: Record<string, unknown> } | undefined =
       exceptionReads.find((request: { select: Record<string, unknown> }) => {
         return "message" in request.select;
@@ -235,19 +263,22 @@ test.describe("header", () => {
       stackTrace: true,
     });
     /*
-     * Besides it, nothing reads the exception: the security events above the
-     * overview ask once for the fingerprints its occurrences carry, its own
-     * and those merged into it (#5468).
+     * Besides it, the summary ends with the exception's line - its ID, who
+     * created it and who last modified it (#10461) - which reads those
+     * columns alone, in one read of its own by the exception's id. Nothing
+     * else reads the exception: the security events above the overview ask
+     * once for the fingerprints its occurrences carry, its own and those
+     * merged into it (#5468).
      */
     expect(
       exceptionReads
         .filter((request: { select: Record<string, unknown> }) => {
           return request !== headerRead;
         })
-        .map((request: { select: Record<string, unknown> }) => {
-          return request.select;
+        .map((request: { id?: string; select: Record<string, unknown> }) => {
+          return { id: request.id, select: request.select };
         }),
-    ).toEqual([]);
+    ).toEqual([{ id: EXCEPTION_ID, select: RECORD_ACTIVITY_SELECT }]);
     expect(
       state.apiRequests
         .filter((request: RecordedApiRequest) => {

@@ -138,6 +138,11 @@ with both `jest-expo/ios` and `jest-expo/android`. Tests live next to the code t
 (`src/**/*.test.ts[x]`); shared native-module mocks are in
 `src/__tests__/setup.ts`.
 
+A few suites hold the app's copy of the server's words to Common's, so they
+load Common's own modules, and those need Common's dependencies
+(`src/utils/unexplainedError.test.ts` reaches moment-timezone). Run
+`npm install` in `packages/Common` as well, as MobileApp Test does.
+
 See [UI redesign and visual testing](docs/UI_REDESIGN.md) for browser journeys,
 screenshot capture, project isolation checks and the limits of browser previews.
 

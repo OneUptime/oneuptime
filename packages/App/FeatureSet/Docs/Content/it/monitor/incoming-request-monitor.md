@@ -14,6 +14,7 @@ Entrambi usano lo stesso tipo di monitor. A distinguerli sono i criteri che conf
 - [Inviare un heartbeat](#inviare-un-heartbeat): Da curl, cron, Node.js, Python o Go.
 - [Avvisare quando le chiamate si fermano](#segnare-offline-se-non-arriva-un-heartbeat-in-10-minuti-un-interruttore-a-uomo-morto): Trasformate il monitor in un interruttore a uomo morto.
 - [Ricevere avvisi](#ricevere-avvisi-da-un-altro-sistema): Un incidente per ogni avviso di Alertmanager o Grafana.
+- [Pubblicare su Slack senza chiamare nessuno](#pubblicare-su-slack-senza-chiamare-nessuno): Notificare un canale e chiamare chi è di turno solo fuori orario.
 - [Sottoscrivere SNS o Event Grid](#sottoscrivere-amazon-sns-o-azure-event-grid): Confermate la sottoscrizione con un clic.
 :::
 
@@ -421,6 +422,32 @@ Accanto è disponibile l'intero payload, quindi funzionano sia un titolo di inci
 ### Esempio completo
 
 Per una configurazione completa di Alertmanager, consultate [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Per Grafana, consultate [Grafana](/docs/integrations/grafana).
+
+## Pubblicare su Slack senza chiamare nessuno
+
+Un ambiente di staging, o un prodotto i cui problemi possono aspettare, può voler pubblicare una richiesta in un canale di chat senza chiamare nessuno. Lo fa un avviso che non nomina alcuna policy di reperibilità: viene pubblicato su Slack, Microsoft Teams o Mattermost tramite le regole dell'area di lavoro del progetto, e non avvia alcuna escalation.
+
+:::steps
+1. Aprite il criterio e, in **Azioni**, attivate **Quando i filtri corrispondono, crea un avviso.** Lasciate vuote le sue **Policy di reperibilità**.
+2. Scrivete nell'avviso ciò che dice la richiesta, come `{{requestBody.commonAnnotations.summary}}` nella sua descrizione. Vedete [Modelli di incidenti e avvisi](/docs/monitor/incident-alert-templating).
+3. In **Avvisi → Area di lavoro → Slack**, aggiungete una regola per gli avvisi di questo monitor e attivate **Pubblica in canali esistenti**. Prima, Slack deve essere [collegato al progetto](/docs/workspace-connections/slack).
+:::
+
+Un avviso che non nomina alcuna policy di reperibilità può comunque chiamare qualcuno tramite le regole del progetto. Controllate che nessuna regola in **Avvisi → Regole → Regole di reperibilità** chiami qualcuno per questi avvisi, e che nessuna regola in **Avvisi → Regole → Regole degli incidenti** dichiari un incidente a partire da essi.
+
+Per pubblicare senza creare un avviso, attivate solo **Quando i filtri corrispondono, modifica lo stato del monitor.**, e aggiungete invece la regola in **Monitor → Area di lavoro → Slack**. Il canale viene allora a sapere solo che lo stato del monitor è cambiato, senza nulla della richiesta, e solo quando cambia: altre richieste mentre il monitor è già in quello stato non pubblicano nulla.
+
+### Chiamare solo fuori dall'orario di lavoro
+
+Due criteri con gli stessi filtri si dividono la settimana, in quest'ordine:
+
+1. Il primo pubblica durante l'orario di lavoro. Nelle sue **Impostazioni**, attivate **Valuta questi criteri solo in determinati giorni e orari**, e scegliete i giorni, gli orari e il **Fuso orario**. Il suo avviso non nomina alcuna policy di reperibilità.
+2. Il secondo chiama il resto del tempo. Non ha orari, e il suo avviso nomina la vostra policy di reperibilità.
+
+Il primo criterio che corrisponde a una richiesta decide cosa succede. Fuori dai suoi orari il primo criterio viene saltato, quindi il secondo corrisponde di notte e nei fine settimana, e solo allora viene chiamato qualcuno. Vedete [Solo in certi giorni e orari](/docs/monitor/criteria-and-statuses#solo-in-certi-giorni-e-orari).
+
+- Una richiesta viene valutata quando arriva, in base agli orari di quel momento. Un problema che inizia alle 16:55 chiama qualcuno dopo le 17:00 solo se il mittente lo invia di nuovo, come fa Alertmanager una volta ogni `repeat_interval`.
+- Un avviso con **Risoluzione automatica dell'avviso** attiva si risolve quando una richiesta corrisponde a un altro criterio. La prima richiesta dopo l'inizio dell'orario di lavoro corrisponde al primo criterio, quindi risolve l'avviso della notte e ne apre uno che non chiama nessuno. Lasciate **Risoluzione automatica dell'avviso** disattivata sull'avviso del secondo criterio per tenerlo aperto finché qualcuno non lo risolve.
 
 ## Servizi che verificano prima l'URL
 

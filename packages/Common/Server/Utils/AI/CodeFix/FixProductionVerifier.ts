@@ -1,5 +1,6 @@
 import ChangeEvent from "../../../../Models/AnalyticsModels/ChangeEvent";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
+import DataSecurityIssuePullRequest from "../../../../Models/DatabaseModels/DataSecurityIssuePullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import TelemetryException from "../../../../Models/DatabaseModels/TelemetryException";
 import FixProductionBaseline from "../../../../Types/AI/FixProductionBaseline";
@@ -28,6 +29,7 @@ import {
 } from "../../../../Utils/Telemetry/ChangeEventFields";
 import { getOccurrenceFingerprintQuery } from "../../../../Types/Telemetry/ExceptionGroupFingerprints";
 import AIAgentTaskPullRequestService from "../../../Services/AIAgentTaskPullRequestService";
+import DataSecurityIssuePullRequestService from "../../../Services/DataSecurityIssuePullRequestService";
 import AIRunService from "../../../Services/AIRunService";
 import ChangeEventService from "../../../Services/ChangeEventService";
 import ExceptionInstanceService from "../../../Services/ExceptionInstanceService";
@@ -181,6 +183,21 @@ export type FixCommitSource = Pick<
   | "codeRepository"
 >;
 
+/*
+ * A merged fix the production checks follow: one OneUptime AI opened
+ * (AIAgentTaskPullRequest), or one a person linked to a Data Security issue
+ * as its fix (DataSecurityIssuePullRequest, #10831) - the same columns,
+ * written by the same checks, each on its own table.
+ */
+export type FollowedFix = AIAgentTaskPullRequest | DataSecurityIssuePullRequest;
+
+// Whether a followed fix is a person's own pull request, linked to an issue.
+export function isLinkedFix(
+  fix: FollowedFix,
+): fix is DataSecurityIssuePullRequest {
+  return Boolean((fix as DataSecurityIssuePullRequest).dataSecurityIssueId);
+}
+
 // A recorded deploy that contains the fix.
 export interface FixDeploy {
   changeId: string;
@@ -221,7 +238,7 @@ export default class FixProductionVerifier {
       failedCompares: new Set<string>(),
     };
 
-    let fixes: Array<AIAgentTaskPullRequest> = [];
+    let fixes: Array<FollowedFix> = [];
 
     try {
       fixes = await AIAgentTaskPullRequestService.findBy({
@@ -245,6 +262,21 @@ export default class FixProductionVerifier {
       return;
     }
 
+    /*
+     * The pull requests people linked to Data Security issues as their
+     * fixes (#10831), followed with the same checks.
+     */
+    try {
+      fixes = [
+        ...fixes,
+        ...(await FixProductionVerifier.readLinkedFixesToVerify()),
+      ];
+    } catch (error) {
+      logger.error(
+        `Fix verification: could not read the linked fix pull requests to check: ${error}`,
+      );
+    }
+
     for (let index: number = 0; index < fixes.length; index++) {
       if (
         OneUptimeDate.getCurrentDate().getTime() - run.now.getTime() >=
@@ -256,7 +288,7 @@ export default class FixProductionVerifier {
         return;
       }
 
-      const fix: AIAgentTaskPullRequest = fixes[index]!;
+      const fix: FollowedFix = fixes[index]!;
 
       try {
         await FixProductionVerifier.verifyFix(fix, run);
@@ -276,13 +308,52 @@ export default class FixProductionVerifier {
     }
   }
 
+  /*
+   * The merged pull requests people linked to Data Security issues whose
+   * production check is not decided yet (#10831), the longest-waiting
+   * first.
+   */
+  public static async readLinkedFixesToVerify(): Promise<
+    Array<DataSecurityIssuePullRequest>
+  > {
+    return await DataSecurityIssuePullRequestService.findBy({
+      query: {
+        pullRequestState: PullRequestState.Merged,
+        productionStatus: QueryHelper.any([
+          FixProductionStatus.AwaitingDeploy,
+          FixProductionStatus.Watching,
+        ]),
+      } as never,
+      select: FixProductionVerifier.linkedFixSelect(),
+      sort: { productionStatusAt: SortOrder.Ascending } as never,
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+  }
+
   // One fix's check, by what its recipe is watched for.
   public static async verifyFix(
-    fix: AIAgentTaskPullRequest,
+    fix: FollowedFix,
     run: VerifierRun,
   ): Promise<void> {
     const check: FixProductionCheck | undefined =
       FixProductionCheckHelper.fromDatabaseValue(fix.productionCheck);
+
+    // A person's own fix of an issue: a leak in code, or a store's configuration.
+    if (isLinkedFix(fix)) {
+      switch (check) {
+        case FixProductionCheck.TelemetryLeak:
+          return TelemetryLeakFixWatch.verify(fix, run);
+        case FixProductionCheck.StoreConfiguration:
+          return StoreConfigurationFixWatch.verify(fix, run);
+        default:
+          logger.debug(
+            `Fix verification: linked fix pull request ${fix.id?.toString()} has no check this server follows (${String(fix.productionCheck)}).`,
+          );
+          return;
+      }
+    }
 
     switch (check) {
       case FixProductionCheck.Exception:
@@ -393,10 +464,7 @@ export default class FixProductionVerifier {
   }
 
   // When the fix merged: GitHub's time, else when its watch started.
-  public static mergedAtOf(
-    fix: AIAgentTaskPullRequest,
-    run: VerifierRun,
-  ): Date {
+  public static mergedAtOf(fix: FollowedFix, run: VerifierRun): Date {
     return fix.mergedAt
       ? new Date(fix.mergedAt)
       : fix.productionStatusAt
@@ -412,13 +480,13 @@ export default class FixProductionVerifier {
    * Unverifiable on the way.
    */
   public static async awaitDeploy(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     run: VerifierRun;
     // The service whose deploys ship it; none reads every change of the project.
     serviceId?: ObjectID | undefined;
     mergedAt: Date;
   }): Promise<ShippedFix | null> {
-    const fix: AIAgentTaskPullRequest = data.fix;
+    const fix: FollowedFix = data.fix;
 
     if (
       fix.productionStatus === FixProductionStatus.Watching &&
@@ -559,16 +627,38 @@ export default class FixProductionVerifier {
 
   // What the check measured before the merge, kept for every later check.
   public static async saveBaseline(
-    fix: AIAgentTaskPullRequest,
+    fix: FollowedFix,
     baseline: FixProductionBaseline,
   ): Promise<void> {
-    await AIAgentTaskPullRequestService.updateOneById({
-      id: fix.id!,
-      data: { productionBaseline: baseline } as never,
-      props: { isRoot: true },
+    await FixProductionVerifier.writeFix(fix, {
+      productionBaseline: baseline,
     });
 
     fix.productionBaseline = baseline;
+  }
+
+  /*
+   * Writes a followed fix's production columns on its own table: OneUptime
+   * AI's pull request, or the link a person made (written as OneUptime's,
+   * without the hooks a person's change runs).
+   */
+  public static async writeFix(
+    fix: FollowedFix,
+    data: Record<string, unknown>,
+  ): Promise<void> {
+    if (isLinkedFix(fix)) {
+      await DataSecurityIssuePullRequestService.updateColumnsByIdWithoutHooks({
+        id: fix.id!,
+        data: data as never,
+      });
+      return;
+    }
+
+    await AIAgentTaskPullRequestService.updateOneById({
+      id: fix.id!,
+      data: data as never,
+      props: { isRoot: true },
+    });
   }
 
   /*
@@ -578,7 +668,7 @@ export default class FixProductionVerifier {
    * the fix is settled Unverifiable instead of being retried for good.
    */
   public static async readOrSettle<T>(data: {
-    fix: AIAgentTaskPullRequest;
+    fix: FollowedFix;
     run: VerifierRun;
     isOver: boolean;
     // Why it cannot be told, when it is over.
@@ -1137,7 +1227,7 @@ export default class FixProductionVerifier {
 
   // Records a verdict on the fix; the status time moves only when the status does.
   public static async settle(
-    fix: AIAgentTaskPullRequest,
+    fix: FollowedFix,
     run: VerifierRun,
     unfitVerdict: FixProductionVerdict,
     deploy?: {
@@ -1158,25 +1248,21 @@ export default class FixProductionVerifier {
       return;
     }
 
-    await AIAgentTaskPullRequestService.updateOneById({
-      id: fix.id!,
-      data: {
-        productionStatus: verdict.status,
-        productionSummary: verdict.summary,
-        ...(statusChanged ? { productionStatusAt: run.now } : {}),
-        ...(deploy
-          ? {
-              deployedAt: deploy.deployedAt,
-              ...(deploy.deployedVersion
-                ? { deployedVersion: deploy.deployedVersion }
-                : {}),
-              ...(deploy.deployedCommitSha
-                ? { deployedCommitSha: deploy.deployedCommitSha }
-                : {}),
-            }
-          : {}),
-      } as never,
-      props: { isRoot: true },
+    await FixProductionVerifier.writeFix(fix, {
+      productionStatus: verdict.status,
+      productionSummary: verdict.summary,
+      ...(statusChanged ? { productionStatusAt: run.now } : {}),
+      ...(deploy
+        ? {
+            deployedAt: deploy.deployedAt,
+            ...(deploy.deployedVersion
+              ? { deployedVersion: deploy.deployedVersion }
+              : {}),
+            ...(deploy.deployedCommitSha
+              ? { deployedCommitSha: deploy.deployedCommitSha }
+              : {}),
+          }
+        : {}),
     });
   }
 
@@ -1205,6 +1291,22 @@ export default class FixProductionVerifier {
         : { isResolved: false, regressedAt: now },
       props: { isRoot: true },
     });
+  }
+
+  // What a linked fix is followed with: fixSelect's columns, its issue and who linked it.
+  public static linkedFixSelect(): never {
+    const select: Record<string, unknown> = {
+      ...(FixProductionVerifier.fixSelect() as unknown as Record<
+        string,
+        unknown
+      >),
+      dataSecurityIssueId: true,
+      createdByUserId: true,
+    };
+
+    delete select["aiRunId"];
+
+    return select as never;
   }
 
   private static fixSelect(): never {

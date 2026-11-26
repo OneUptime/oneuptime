@@ -264,9 +264,14 @@ describe("WithholdAuditRecordNamesInSecurityEvents", () => {
     expect(registered[registered.length - 2]).toBe(
       "BackfillIncidentCallTranscriptSignInAccount",
     );
-    expect(registered.indexOf("WithholdAuditRecordNamesInSecurityEvents")).toBe(
-      registered.length - 3,
-    );
+    /*
+     * Before them, as every migration added after it is too: it has no
+     * ordering requirement of its own but the one below, so it need not
+     * stay just before them.
+     */
+    expect(
+      registered.indexOf("WithholdAuditRecordNamesInSecurityEvents"),
+    ).toBeLessThan(registered.length - 2);
     // After the scan that wrote the names, and the copies' tables, existed.
     expect(
       registered.indexOf("WithholdAuditRecordNamesInSecurityEvents"),

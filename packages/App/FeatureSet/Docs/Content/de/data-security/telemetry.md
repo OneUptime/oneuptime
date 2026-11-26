@@ -201,6 +201,15 @@ Ein Geheimnis braucht mehr als eine Codekorrektur: Der Code verhindert nur neue 
 
 Mit **An neuen Problemen arbeiten** schlägt OneUptime AI die Korrektur jedes Dienstes auch von sich aus vor, den riskantesten Dienst zuerst, unter **Datensicherheit → KI** und beim riskantesten Problem des Dienstes. Standardmäßig wartet sie auf Sie. Eine KI-Regel der Datensicherheit, die **Behebung** für das riskanteste Problem des Dienstes auf **Automatisch** setzt, öffnet den Pull Request ohne Nachfrage, in einem Repository, über das etwas entschieden hat. **Max. offene Korrektur-Pull-Requests** des Repositorys begrenzt beides: Ist die Grenze erreicht, wartet ein Pull Request, den eine Regel öffnen würde, auf Sie, und kein neuer Korrektur-Pull-Request wird geöffnet, bis einer zusammengeführt oder geschlossen ist.
 
+### Das Frontend einer RUM-Anwendung
+
+**Mit KI beheben** bei einem Problem in der Sitzungswiedergabe tut dasselbe für eine RUM-Anwendung: ein Pull Request, nach dem ihr Frontend-Code kein Leck mehr sendet, das OneUptime noch in ihren Browser-Protokollen, ihren Browser-Spans und den Details ihrer Sitzungen sieht. Wo jedes Leck geschrieben wird, ergibt sich aus den Datensätzen, in denen es gesehen wurde, gelesen innerhalb von OneUptime:
+
+- **Ein Browser-Protokoll oder -Span**: die Datei, Zeile und Funktion, zu der sein JavaScript-Stack über die Source Maps aufgelöst wird, die Ihre Builds hochgeladen haben (siehe [Source Maps](/docs/telemetry/source-maps)), sonst seine `code.*`-Attribute; die Zeile des Protokolls oder der Name des Spans als Vorlage; und die Seite, auf der es geschrieben wurde, nur mit ihrem Pfad, jede ID und jeder Wert darin maskiert.
+- **Die Benutzerdetails einer Sitzung**: der `identify()`-Aufruf des Sitzungsrecorders, der sie übergeben hat, und die Seite, auf der die Sitzung begann.
+
+Der Pull Request geht an das Repository, das diese Dateien enthält, sonst an das, das die meisten der Dateien enthält, die die Source Maps des neuesten Releases nennen, sonst an das Repository, das wie der **App-Bezeichner** der Anwendung heißt, oder an das einzige des Projekts; entscheidet nichts, wählen Sie. Er ändert den Browser-Code an jeder Stelle, wobei der Benutzer einer Sitzung über eine undurchsichtige ID identifiziert wird und nie über eine E-Mail-Adresse, oder fügt einen Schwärzungsschritt dort hinzu, wo die Anwendung ihre Browser-Telemetrie einrichtet. Die Aufzeichnung einer Sitzung wird nie gelesen, und der Coding-Agent liest nichts von Ihrer Telemetrie. Jedes Problem wird als **Im Code korrigiert** gelöst, sobald das neue Release der Anwendung die Daten nicht mehr sendet. OneUptime AI schlägt die Korrektur einer Anwendung noch nicht von sich aus vor: Fordern Sie sie mit **Mit KI beheben** an.
+
 ## Diese Metrik verwerfen
 
 Keine Regel nimmt die Daten aus dem Namen einer Metrik heraus, daher kommen sie weiter an, bis der Code behoben ist, der die Metrik benennt. **Diese Metrik verwerfen** an einem Fund im Namen einer Metrik beendet das Speichern der Metriken, deren Namen sie enthalten, auf Kosten ihrer Daten, und geschieht daher nur, wenn Sie es verlangen:

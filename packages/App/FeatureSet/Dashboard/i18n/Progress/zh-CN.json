@@ -39,6 +39,7 @@
     "DES",
     "DHCP",
     "DNSSEC",
+    "DSR-1042",
     "DeploymentConfigs",
     "Docker CLI",
     "Docker Compose",

@@ -393,7 +393,7 @@ export const getIngestionKeyFormFields: (
                 title: "Mobile",
                 icon: IconProp.DevicePhoneMobile,
                 description:
-                  "For an iOS, Android or React Native app. Safe to ship in the app: it sends only that app's traces, logs, metrics and session replays, and is rate limited.",
+                  "For an iOS, Android or React Native app. Safe to ship: it sends only that app's traces, logs, metrics and session replays, and is rate limited.",
               },
             ],
             required: true,

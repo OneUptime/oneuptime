@@ -20,6 +20,7 @@ import {
   RecordTimeKind,
 } from "./DetailRecordTime";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "../InlineSeparator/InlineSeparator";
 
 /*
  * The small line a details card ends with: the record's own ID (DetailIdLine)
@@ -215,7 +216,7 @@ export const DetailRecordActivityElement: FunctionComponent<
       {props.event.at ? (
         <>
           <span aria-hidden="true" className="text-gray-400">
-            ·
+            <InlineSeparator markOnly />
           </span>
           <RecordLineTime date={props.event.at} testId={`${testId}-at`} />
         </>

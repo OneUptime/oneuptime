@@ -91,6 +91,12 @@ To spørgsmål på udbyderen ændrer dette, foldet sammen under **Flere felter**
 
 Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes.
 
+## E-mailadresser, som din identitetsudbyder ikke har bekræftet
+
+En global OpenID Connect-udbyder finder den konto, den logger ind, ud fra den e-mailadresse, den sender, ligesom et projekts udbyder, og master-admins' konti findes på samme måde. Derfor logger den ingen ind med en adresse, som udbyderen siger, at den ikke har bekræftet, med et claim `email_verified` på `false` eller på noget, der hverken er true eller false. Ellers kunne nogen sætte en master-admins adresse på sin konto hos udbyderen og logge ind på hele instansen som vedkommende. En udbyder, der sender `email_verified` som `true` eller slet ikke sender det, som Microsoft Entra ID, logger folk ind som før.
+
+Via authentik 2025.10 og nyere logger ingen ind, før du ændrer dens scope-mapping for `email`, og via Keycloak ingen, hvis adresse den ikke har bekræftet. Hvad du skal ændre dér, hvad der stadig logger ind, og hvad personen ser, står på siden [SSO](/docs/identity/sso#e-mailadresser-som-din-identitetsudbyder-ikke-har-bekræftet). Master-admins med en adgangskode kan logge ind med den imens, på `/accounts/admin-login`, så længe hele instansen kræver SSO.
+
 ## Log også ud af identitetsudbyderen
 
 Når man logger ud af OneUptime, forbliver man logget ind hos identitetsudbyderen, så på en delt computer kommer den næste, der logger ind med den udbyder, ind som den, der gik. Klik på **Rediger konfiguration** på en SAML- eller OpenID Connect-udbyder, og slå **Log også ud af identitetsudbyderen** til under **Flere felter**: Når man logger ud af OneUptime, afsluttes sessionen hos udbyderen så også, og udbyderen sender browseren tilbage til OneUptime. Den er slået fra som standard, da den på en personlig bærbar også ville logge personen ud af alle andre apps, der bruger udbyderen.
@@ -183,6 +189,10 @@ For en SAML-udbyder er svarets audience ikke udbyderens **Issuer (Entity ID)**: 
 Hvert svar fra din identitetsudbyder logger kun ind én gang og kun inden for få minutter, efter at det blev udstedt: derefter afvises det med "SAML response has expired". Log ind igen. Hvis svarene bliver ved med at udløbe, så kontrollér urene på denne server og hos din identitetsudbyder.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect-udbyderen sendte `email_verified` som `false` eller som noget, der hverken er true eller false, så OneUptime loggede ingen ind, heller ikke en master-admin. Få adressen bekræftet hos din identitetsudbyder, eller markér den som bekræftet dér, og log ind igen. Se [E-mailadresser, som din identitetsudbyder ikke har bekræftet](#e-mailadresser-som-din-identitetsudbyder-ikke-har-bekræftet).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle, et link sendt på e-mail, Google eller Microsoft eller en tilmelding. Log i stedet ind med en af SSO-knapperne på loginsiden. En master-admin logger ind med sin adgangskode på `/accounts/admin-login`; for at lade alle logge ind med adgangskode igen slår vedkommende **Kræv SSO for at logge ind** fra på **Single sign-on**.
 :::
@@ -193,4 +203,5 @@ Hele instansen kræver SSO, og dette var et login med adgangskode, adgangsnøgle
 - [SSO](/docs/identity/sso): Opsæt et projekts egen SAML- eller OIDC-udbyder.
 - [SCIM](/docs/identity/scim): Lad din identitetsudbyder tilføje og fjerne personer automatisk.
 - [Brugere, teams og tilladelser](/docs/permissions/index): Hvad de teams, nye personer kommer med i, giver dem lov til.
+- [Hjælp og support](/docs/self-hosted/help-and-support): Fortæl folk, der har brug for en invitation, hvem de skal spørge.
 :::

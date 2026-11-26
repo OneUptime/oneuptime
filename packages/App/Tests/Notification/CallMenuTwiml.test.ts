@@ -20,6 +20,7 @@ import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
 import { MAX_CALL_TWIML_LENGTH } from "Common/Utils/MessageFit";
+import { CALL_VOICES } from "Common/Types/Call/CallVoice";
 import {
   DOMParser,
   Element as XmlElement,
@@ -379,24 +380,34 @@ describe("a record's number is spelled, so INC is never read as Incorporated", (
     }
   });
 
-  test("for a Basic voice named, with spaced letters too: it reads no SSML", () => {
-    for (const voice of ["man", "woman", "alice"]) {
+  test("a voice OneUptime does not offer - a Basic voice, or a Polly or Google voice not on its list - is never named: the account's default speaks, with spaced letters", () => {
+    for (const voice of [
+      "man",
+      "woman",
+      "alice",
+      "Polly.Joanna",
+      "Google.en-US-Standard-C",
+      "Google.en-US-Chirp3-HD-Aoede",
+    ]) {
       const twiml: string = twimlOf(pageCall(), voice);
 
       expect(twiml).toContain(
-        `<Say voice="${voice}">A new Critical Incident has been created: I N C 42.</Say>`,
+        "<Say>A new Critical Incident has been created: I N C 42.</Say>",
       );
       expect(twiml).not.toContain("say-as");
+      expect(twiml).not.toContain("voice=");
+      expect(twiml).not.toContain(voice);
     }
   });
 
-  test("for an Amazon Polly or Google voice, with SSML's say-as characters", () => {
-    for (const voice of ["Polly.Joanna", "Google.en-US-Standard-C"]) {
+  test("for each voice OneUptime offers - Amazon Polly's and Google's - with SSML's say-as characters", () => {
+    for (const { value: voice, language } of CALL_VOICES) {
       const twiml: string = twimlOf(pageCall(), voice);
       const headline: XmlElement = childrenOf(gatherOf(twiml))[1]!;
       const sayAs: Array<XmlElement> = childrenOf(headline);
 
       expect(headline.getAttribute("voice")).toBe(voice);
+      expect(headline.getAttribute("language")).toBe(language);
       expect(sayAs).toHaveLength(1);
       expect(sayAs[0]!.tagName).toBe("say-as");
       expect(sayAs[0]!.getAttribute("interpret-as")).toBe("characters");
@@ -405,15 +416,16 @@ describe("a record's number is spelled, so INC is never read as Incorporated", (
         "A new Critical Incident has been created: INC 42.",
       );
       expect(twiml).toContain(
-        `<Say voice="${voice}">A new Critical Incident has been created: <say-as interpret-as="characters">INC</say-as> 42.</Say>`,
+        `<Say voice="${voice}" language="${language}">A new Critical Incident has been created: <say-as interpret-as="characters">INC</say-as> 42.</Say>`,
       );
-      // Every sentence is spoken by the voice named.
+      // Every sentence is spoken by the voice named, in the language it speaks.
       for (const say of allElements(responseOf(twiml)).filter(
         (element: XmlElement): boolean => {
           return element.tagName === "Say";
         },
       )) {
         expect(say.getAttribute("voice")).toBe(voice);
+        expect(say.getAttribute("language")).toBe(language);
       }
     }
   });
@@ -479,11 +491,11 @@ describe("a number written with one of the project's prefixes is spelled in any 
   test("with SSML for a voice that reads it", () => {
     const twiml: string = CallService.generateTwimlForCall(
       { data: [{ sayMessage: "New alert created: ALT-7." }] },
-      { voice: "Polly.Joanna", recordNumberPrefixes: ["ALT-"] },
+      { voice: "Polly.Joanna-Neural", recordNumberPrefixes: ["ALT-"] },
     );
 
     expect(twiml).toContain(
-      `<Say voice="Polly.Joanna">New alert created: <say-as interpret-as="characters">ALT</say-as> 7.</Say>`,
+      `<Say voice="Polly.Joanna-Neural" language="en-US">New alert created: <say-as interpret-as="characters">ALT</say-as> 7.</Say>`,
     );
   });
 
@@ -560,7 +572,7 @@ describe("no title, project or severity can change the call's TwiML", () => {
     `&lt;Dial&gt; &amp;&amp; &#x3C;Play&#x3E;`,
   ];
 
-  for (const voice of [undefined, "Polly.Joanna"]) {
+  for (const voice of [undefined, "Polly.Joanna-Neural"]) {
     describe(`for ${voice || "the account's default voice"}`, () => {
       test.each(HOSTILE)("a title %s is only ever spoken", (title: string) => {
         const twiml: string = twimlOf(pageCall({ title: title }), voice);

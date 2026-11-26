@@ -2485,6 +2485,8 @@ describe("Create a notification rule for security cases", () => {
       "Assignments",
       "Approvals needed",
       "Response targets",
+      // OneUptime AI handing a case it worked to people (#10352).
+      "Handed to people by OneUptime AI",
     ]);
 
     // Only the approvals.
@@ -2492,6 +2494,7 @@ describe("Create a notification rule for security cases", () => {
       "New and raised cases",
       "Assignments",
       "Response targets",
+      "Handed to people by OneUptime AI",
     ]) {
       await user.click(
         within(dialog()).getByRole("checkbox", {

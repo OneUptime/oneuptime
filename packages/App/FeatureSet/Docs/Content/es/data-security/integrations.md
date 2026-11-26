@@ -158,7 +158,7 @@ Todo lo que guarda Seguridad de datos es un registro de la API de OneUptime, que
 | Registros | Ruta de la API |
 | --- | --- |
 | Los almacenes de datos, sus cronologías, sus hallazgos, quién puede acceder a ellos y cada identidad que puede | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Los problemas, sus cronologías y los flujos de datos | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Los problemas, sus cronologías, sus pull requests vinculadas y los flujos de datos | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Los escaneos | `/data-security-scan` |
 | Los tipos de datos personalizados, los ajustes de las comprobaciones, los ajustes de cumplimiento y las reglas de residencia | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Los ajustes del proyecto | `/data-security-setting` |

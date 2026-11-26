@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import {
   act,
   cleanup,
@@ -17,6 +24,7 @@ import Route from "../../../Types/API/Route";
 import { FormType, ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelFormModal from "../../../UI/Components/ModelFormModal/ModelFormModal";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 
 /*
@@ -242,8 +250,24 @@ function renderPage(Page: FunctionComponent<PageComponentProps>): void {
   );
 }
 
+beforeEach(() => {
+  /*
+   * A note or postmortem template's name and an SLO's are each one of
+   * their kind in a project while the project requires unique names, and
+   * an OID collection template's always, so a create form asks the
+   * server, a moment after a name is typed, whether another record of the
+   * kind has it (DuplicateNameNotice, #10761): none has it here.
+   */
+  jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
+});
+
 afterEach(() => {
   cleanup();
+  jest.restoreAllMocks();
   capturedModels = [];
 });
 

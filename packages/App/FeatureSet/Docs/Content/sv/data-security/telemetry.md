@@ -201,6 +201,15 @@ En hemlighet behöver mer än en kodändring: koden stoppar bara nya kopior, och
 
 Med **Arbeta med nya problem** påslaget föreslår OneUptime AI också på egen hand varje tjänsts åtgärd, den mest riskfyllda tjänsten först, under **Datasäkerhet → AI** och på tjänstens mest riskfyllda problem. Som standard väntar den på dig. En AI-regel i Datasäkerhet som sätter **Åtgärd** till **Automatiskt** för tjänstens mest riskfyllda problem öppnar pull requesten utan att fråga, i ett arkiv som något har avgjort. Arkivets **Max antal öppna pull requests med korrigeringar** begränsar båda: vid gränsen väntar en pull request som en regel skulle öppna på dig, och ingen ny pull request med korrigeringar öppnas förrän en har sammanfogats eller stängts.
 
+### Frontenden i en RUM-applikation
+
+**Åtgärda med AI** på ett problem i sessionsuppspelningar gör detsamma för en RUM-applikation: en pull request som får dess frontendkod att sluta skicka varje läcka som OneUptime fortfarande ser i dess webbläsarloggar, dess webbläsarspans och dess sessioners detaljer. Var varje läcka skrivs kommer från posterna den sågs i, lästa inuti OneUptime:
+
+- **En webbläsarlogg eller ett webbläsarspan**: filen, raden och funktionen som dess JavaScript-stack löses upp till via de source maps som dina byggen har laddat upp (se [Source Maps](/docs/telemetry/source-maps)), annars dess `code.*`-attribut; loggens rad eller spannets namn som mall; och sidan den skrevs på, bara med sin sökväg, med varje ID och varje värde maskerat.
+- **En sessions användardetaljer**: sessionsinspelarens `identify()`-anrop som gav dem, och sidan som sessionen började på.
+
+Pull requesten går till den lagringsplats som innehåller de filerna, annars till den som innehåller flest av de filer som den senaste versionens source maps nämner, annars till den lagringsplats som heter som applikationens **App-identifierare**, eller till projektets enda; när inget avgör väljer du. Den ändrar webbläsarkoden på varje ställe, där en sessions användare identifieras med ett ogenomskinligt ID och aldrig med en e-postadress, eller lägger till ett redigeringssteg där applikationen konfigurerar sin webbläsartelemetri. En sessions inspelning läses aldrig, och kodagenten läser inget av din telemetri. Varje problem löses som **Åtgärdat i koden** så snart applikationens nya version inte längre skickar datan. OneUptime AI föreslår ännu inte en applikations åtgärd på egen hand: be om den med **Åtgärda med AI**.
+
 ## Kassera det här mätvärdet
 
 Ingen regel tar bort data ur ett mätvärdes namn, så tills koden som namnger mätvärdet är rättad fortsätter data att komma in. **Kassera det här mätvärdet** på ett fynd i ett mätvärdes namn slutar lagra de mätvärden vars namn innehåller dem, på bekostnad av deras data, och sker därför bara när du ber om det:

@@ -167,14 +167,49 @@ describe("Data Security registry wiring", () => {
     expect(index).toContain("OnlineDdl");
   });
 
+  /*
+   * A person's own pull request, linked to an issue as its fix (#10831):
+   * registered, mounted - the issue's Linked pull requests are read,
+   * linked and taken off through it - and made by its own migration.
+   */
+  test("a linked pull request is registered, mounted and made by its own migration", () => {
+    const model: string = "DataSecurityIssuePullRequest";
+
+    expect(readSquashed("Common/Models/DatabaseModels/Index.ts")).toContain(
+      `${model},`,
+    );
+    expect(readSquashed("Common/Server/Services/Index.ts")).toContain(
+      `${model}Service,`,
+    );
+    expect(readSquashed("App/FeatureSet/BaseAPI/Index.ts")).toMatch(
+      new RegExp(
+        `new BaseAPI<\\s*${model},\\s*${model}ServiceType\\s*>\\(\\s*${model},\\s*${model}Service,?\\s*\\)`,
+      ),
+    );
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+      ),
+    ).toContain("AddDataSecurityIssuePullRequest1809187660831,");
+    expect(
+      readSquashed(
+        "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809187660831-AddDataSecurityIssuePullRequest.ts",
+      ),
+    ).toContain(`CREATE TABLE "${model}"`);
+  });
+
   test("the stores' own API (with its actions) and every other model's CRUD API are mounted", () => {
     const baseApi: string = readSquashed("App/FeatureSet/BaseAPI/Index.ts");
 
     // DataStore's CRUD routes come with Data Security's own: the Overview, Scan now, Scrub It...
     expect(baseApi).toContain("new DataSecurityAPI().getRouter()");
+    // The project's own data types' CRUD routes come with Describe It (#10371).
+    expect(baseApi).toContain(
+      "new DataSecurityCustomDataTypeAPI().getRouter()",
+    );
 
     for (const model of DATA_SECURITY_MODELS) {
-      if (model === "DataStore") {
+      if (model === "DataStore" || model === "DataSecurityCustomDataType") {
         continue;
       }
 
@@ -193,6 +228,20 @@ describe("Data Security registry wiring", () => {
       /class DataSecurityAPI extends BaseAPI<\s*DataStore,\s*DataStoreServiceType\s*>/,
     );
     expect(api).toContain("super(DataStore, DataStoreService)");
+  });
+
+  test("the data types' API extends their CRUD API, so the Dashboard's model calls and Describe It share one router", () => {
+    const api: string = readSquashed(
+      "Common/Server/API/DataSecurityCustomDataTypeAPI.ts",
+    );
+
+    expect(api).toMatch(
+      /class DataSecurityCustomDataTypeAPI extends BaseAPI<\s*DataSecurityCustomDataType,\s*DataSecurityCustomDataTypeServiceType\s*>/,
+    );
+    expect(api).toContain(
+      "super(DataSecurityCustomDataType, DataSecurityCustomDataTypeService)",
+    );
+    expect(api).toContain("DESCRIBE_DATA_TYPE_ROUTE");
   });
 
   test("every route the Dashboard calls is one the API serves", () => {

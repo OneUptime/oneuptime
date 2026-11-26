@@ -10,6 +10,7 @@ import Semaphore from "../../../../../Server/Infrastructure/Semaphore";
 import LogScrubRuleService from "../../../../../Server/Services/LogScrubRuleService";
 import { TelemetryServiceMetadata } from "../../../../../Server/Services/OpenTelemetryIngestService";
 import SecurityEventService from "../../../../../Server/Services/SecurityEventService";
+import SecurityUserErasureRequestService from "../../../../../Server/Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService from "../../../../../Server/Services/SecurityUserVaultService";
 import TraceScrubRuleService from "../../../../../Server/Services/TraceScrubRuleService";
 import OneUptimeAwsSessions from "../../../../../Server/Utils/CloudConnection/Aws/OneUptimeAwsSessions";
@@ -23,6 +24,7 @@ import SecurityEventDedupe from "../../../../../Server/Utils/SecurityEvent/Secur
 import SecurityTrustedProxies from "../../../../../Server/Utils/SecurityEvent/SecurityTrustedProxies";
 import TraceSecurityScan from "../../../../../Server/Utils/SecurityEvent/TelemetryScan/TraceSecurityScan";
 import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
+import SecurityUserErasedTokens from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
 import ScrubHashToken from "../../../../../Server/Utils/Telemetry/ScrubHashToken";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -99,6 +101,12 @@ beforeEach(() => {
   vault = {};
   lookups = 0;
   inserted = [];
+
+  // Nobody erased from the vault on request (#10908).
+  SecurityUserErasedTokens.clearCache();
+  jest
+    .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+    .mockResolvedValue(new Set<string>());
 
   jest
     .spyOn(SecurityUserVaultService, "findUsersOfTokens")

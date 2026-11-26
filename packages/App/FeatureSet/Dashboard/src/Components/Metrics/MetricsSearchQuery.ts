@@ -85,10 +85,22 @@ export interface ParsedMetricsSearch {
   /** `name:`, or the free text when no `name:` was typed. */
   nameFilter: MetricNameFilter | null;
   /**
-   * `service:` — matched against the service names already loaded for the
-   * facet sidebar, because the metric list filters by service id.
+   * `service:` — matched against the services the server's search found for
+   * it (#10921), because the metric list filters by service id.
    */
   serviceMatcher: MetricsTextMatcher | null;
+  /**
+   * `service:` as it is matched (a fragment reads as "contains"): what the
+   * server's search for its services narrows by.
+   */
+  servicePredicate: SearchValuePredicate | null;
+  /**
+   * A negated `service:` (`-service:api`), as the services it leaves out:
+   * matched against the services the server's search found for it, the
+   * metrics none of them reports - as a chip that leaves a service out
+   * reads. Null for a token that keeps.
+   */
+  serviceExclusionMatcher: MetricsTextMatcher | null;
   attributes: MetricsAttributeFilters;
 }
 
@@ -283,6 +295,19 @@ const normalizeFragmentPredicate: NormalizeFragmentPredicateFunction = (
   return predicate;
 };
 
+/*
+ * A negated operator, and the one it negates: `-service:api` leaves out the
+ * services `service:api` keeps.
+ */
+const NEGATION_TO_KEPT: Partial<
+  Record<SearchValueOperator, SearchValueOperator>
+> = {
+  [SearchValueOperator.NotContains]: SearchValueOperator.Contains,
+  [SearchValueOperator.NotWildcard]: SearchValueOperator.Wildcard,
+  [SearchValueOperator.NotIn]: SearchValueOperator.In,
+  [SearchValueOperator.NotEquals]: SearchValueOperator.Equals,
+};
+
 type BuildNameFilterFunction = (
   predicate: SearchValuePredicate,
 ) => MetricNameFilter;
@@ -404,12 +429,27 @@ export function parseMetricsSearch(raw: string): ParsedMetricsSearch {
     });
   }
 
+  const normalizedService: SearchValuePredicate | null = servicePredicate
+    ? normalizeFragmentPredicate(servicePredicate)
+    : null;
+  const keptByNegation: SearchValueOperator | undefined = normalizedService
+    ? NEGATION_TO_KEPT[normalizedService.operator]
+    : undefined;
+
   return {
     freeText,
     nameFilter,
-    serviceMatcher: servicePredicate
-      ? createPredicateMatcher(normalizeFragmentPredicate(servicePredicate))
+    serviceMatcher: normalizedService
+      ? createPredicateMatcher(normalizedService)
       : null,
+    servicePredicate: normalizedService,
+    serviceExclusionMatcher:
+      normalizedService && keptByNegation
+        ? createPredicateMatcher({
+            ...normalizedService,
+            operator: keptByNegation,
+          })
+        : null,
     attributes,
   };
 }

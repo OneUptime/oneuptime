@@ -1,3 +1,4 @@
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -254,6 +255,11 @@ const SendTestNotificationButton: FunctionComponent<ComponentProps> = (
             { setsValuesApart: true },
           )}
           error={error}
+          // What failed is the Send Test the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Send Test") || "Send Test",
+          )}
           submitButtonText="Close"
           submitButtonType={ButtonStyleType.NORMAL}
           onSubmit={closeErrorModal}

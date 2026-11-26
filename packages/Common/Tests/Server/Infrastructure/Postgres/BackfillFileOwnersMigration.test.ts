@@ -96,6 +96,14 @@ const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   "ServiceLevelObjectiveErrorBudgetPolicyTier.whatWeDo",
   // A postmortem's action items, each with its description (#6801).
   "IncidentPostmortemActionItem.description",
+  /*
+   * What OneUptime AI proposes about a Data Security issue - the change, why,
+   * how it is proven and undone (#10364) - came after it too.
+   */
+  "DataSecurityAiProposal.changeMarkdown",
+  "DataSecurityAiProposal.proofMarkdown",
+  "DataSecurityAiProposal.reasonMarkdown",
+  "DataSecurityAiProposal.undoMarkdown",
 ];
 
 async function statementsFor(

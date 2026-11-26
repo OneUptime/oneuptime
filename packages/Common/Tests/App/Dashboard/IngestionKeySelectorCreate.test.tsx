@@ -32,6 +32,7 @@ import Permission from "../../../Types/Permission";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import { ComponentProps as CodeEditorProps } from "../../../UI/Components/CodeEditor/CodeEditor";
 import ProjectUtil from "../../../UI/Utils/Project";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -279,6 +280,18 @@ describe("Creating an ingestion key from a setup guide", () => {
     jest
       .spyOn(ProjectUtil, "getCurrentProjectId")
       .mockReturnValue(new ObjectID(PROJECT_ID));
+
+    /*
+     * An ingestion key's name is one of its kind in a project that requires
+     * unique names, so the create form asks the server, a moment after a name
+     * is typed, whether another key has it (DuplicateNameNotice, #10761): none
+     * has it here.
+     */
+    jest.spyOn(UniqueNamesApi, "check").mockResolvedValue({
+      isRequired: false,
+      takenBy: null,
+      isTakenByUnreadable: false,
+    });
   });
 
   afterEach(() => {

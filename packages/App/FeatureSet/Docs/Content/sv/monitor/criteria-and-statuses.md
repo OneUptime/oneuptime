@@ -111,7 +111,7 @@ För det andra slår du på **Återställ bara när ett eget villkor är uppfyll
 
 ### Jämföra en kontroll med den föregående
 
-**Föregående kontroll** jämför varje kontroll med samma sonds föregående kontroll, och för en disks användning med samma disks. **Under de senaste** är hur länge sedan den kontrollen får vara, så gör den längre än övervakningsintervallet. Den erbjuds för samma filter som **Antal**.
+**Föregående kontroll** jämför varje kontroll med samma sonds föregående kontroll, och för en disks användning med samma disks. **Under de senaste** är hur länge sedan den kontrollen får vara, så gör den längre än övervakningsintervallet. Den erbjuds för samma filter som **Antal**. Den erbjuds också för **Värde för DNS-post**, där den jämför hela DNS-svaret med svaret vid föregående kontroll, med **Inte lika med** eller **Lika med**: se [När DNS-svaret ändras](/docs/monitor/dns-monitor#när-dns-svaret-ändras).
 
 Ett uppmätt värde, till exempel en svarstid, matchar när det ligger mer än ändringen under **Förändring från föregående kontroll** över den föregående kontrollen, med **Större än**, eller under den, med **Mindre än**. Ändringen är ett **Värde i kontrollens egen enhet**, till exempel 200 ms, eller en **Procent av föregående kontroll**, till exempel 50 %, och 0 matchar varje ökning eller minskning. **Lika med** och **Inte lika med** jämför med själva det föregående värdet.
 

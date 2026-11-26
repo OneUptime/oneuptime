@@ -108,6 +108,20 @@ Stubbed:
 - Today's telemetry ingestion budgets (`GET /telemetry-ingestion-budget/project`), which the
   layout reads for its banner: the project sets no budget, so every signal answers without one, as
   the server answers then, and the banner stays away (`Fixture/IngestionBudgetFixture.js`).
+- What a case's Response Plan reads besides its rows, as the server would answer it:
+  `POST /security-block/for-values` (#10346), what the blocklist's destinations can hold - none,
+  or with `?blocklist=test` the test destination, which holds every kind of value at the edge - and
+  the blocks in force on the case's values, with where each holds; `/security-block/repeat-offenders`
+  (#10354), none, as nothing was blocked before a case opened; and
+  `/security-event/attack-campaigns/of-case-address` (#10354), each address's campaign as the
+  address alone, the month's events holding no web requests. No pull request is linked to a
+  case's Fix step.
+- The case's OneUptime AI card's log, `POST /security-case/:id/ai-response` (#10352): the project
+  does not let OneUptime AI work its cases, so nothing of it is on a case, and Respond with AI says
+  why it would not start.
+- The name check a form asks as a name is typed, `GET /unique-names/check` (#10761) - a hunt
+  saved from the Events search, Create Watchlist, a note template's Create: no other record has the
+  name (`SuiteHelpers/UniqueNameAnswers.js`).
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.
@@ -496,7 +510,9 @@ rule's id, as the server stores the relation the form's dropdown sends. `POST
 /detection-rule/retrohunt` answers what the server's statement would: by default, for the week
 (fewer firings over a day, more over a month), 42 firings for three addresses, with what the
 rule's active exceptions kept out; a correlation's YAML as a correlation, each group with what
-happened.
+happened. Every matching event names an address, so `POST /detection-rule/uncounted` (#10547),
+what each rule Detection Rules lists could not count in the last day, answers that none left one
+out.
 
 | Parameter     | Values                                                                                                                                                                                                     |
 | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

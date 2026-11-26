@@ -201,6 +201,15 @@ En hemmelighet trenger mer enn en kodeendring: Koden stopper bare nye kopier, og
 
 Med **Jobb med nye problemer** slått på foreslår OneUptime AI også på egen hånd hver tjenestes fiks, den mest risikable tjenesten først, under **Datasikkerhet → KI** og på tjenestens mest risikable problem. Som standard venter den på deg. En AI-regel i Datasikkerhet som setter **Rettelse** til **Automatisk** for tjenestens mest risikable problem, åpner pull-forespørselen uten å spørre, i et kodelager noe har avgjort. Kodelagerets **Maks. åpne pull-forespørsler med rettelser** begrenser begge: Ved grensen venter en pull-forespørsel en regel ville åpnet, på deg, og ingen ny pull-forespørsel med rettelser åpnes før én er slått sammen eller lukket.
 
+### Frontenden i en RUM-applikasjon
+
+**Fiks med AI** på et problem i øktavspillinger gjør det samme for en RUM-applikasjon: én pull-forespørsel som får frontend-koden dens til å slutte å sende hver lekkasje OneUptime fortsatt ser i nettleserloggene, i nettleserspans og i øktdetaljene dens. Hvor hver lekkasje skrives, kommer fra postene den ble sett i, lest inne i OneUptime:
+
+- **En nettleserlogg eller -span**: filen, linjen og funksjonen JavaScript-stakken dens peker til via source maps som byggene dine har lastet opp (se [Source Maps](/docs/telemetry/source-maps)), ellers `code.*`-attributtene; loggens linje eller spannets navn som mal; og siden den ble skrevet på, bare med stien, med hver ID og hver verdi maskert.
+- **Brukerdetaljene til en økt**: øktopptakerens `identify()`-kall som ga dem, og siden økten startet på.
+
+Pull-forespørselen går til kodelageret som inneholder de filene, ellers til det som inneholder flest av filene som source maps for den nyeste utgivelsen nevner, ellers til kodelageret som heter som applikasjonens **App-identifikator**, eller til prosjektets eneste; når ingenting avgjør, velger du. Den endrer nettleserkoden på hvert sted, der brukeren til en økt identifiseres med en ugjennomsiktig ID og aldri med en e-post, eller legger til ett sladdetrinn der applikasjonen setter opp nettlesertelemetrien sin. Opptaket av en økt leses aldri, og kodeagenten leser ingenting av telemetrien din. Hvert problem løses som **Rettet i koden** så snart applikasjonens nye utgivelse ikke lenger sender dataene. OneUptime AI foreslår ennå ikke en applikasjons rettelse av seg selv: be om den med **Fiks med AI**.
+
 ## Forkast denne målingen
 
 Ingen regel fjerner dataene fra navnet til en måling, så til koden som navngir målingen er rettet, fortsetter dataene å komme. **Forkast denne målingen** på et funn i navnet til en måling slutter å lagre målingene der navnet inneholder dem, på bekostning av dataene deres, og skjer derfor bare når du ber om det:

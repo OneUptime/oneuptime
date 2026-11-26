@@ -1189,9 +1189,18 @@ import { AddProjectSecurityTrustedProxySwitches1809187580546 } from "./180918758
 import { AddSecurityCaseExposureAssessment1809187590377 } from "./1809187590377-AddSecurityCaseExposureAssessment";
 import { AddHelpAndSupport1809187600000 } from "./1809187600000-AddHelpAndSupport";
 import { AddGroupIncidentsByEpisodeToStatusPage1809187610767 } from "./1809187610767-AddGroupIncidentsByEpisodeToStatusPage";
+import { AddTwilioCallVoice1809187620948 } from "./1809187620948-AddTwilioCallVoice";
 import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddProjectRequireUniqueNames";
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
-import { AddCloudSavingsActions1809187661010 } from "./1809187661010-AddCloudSavingsActions";
+import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
+import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-AddDataSecurityIssuePullRequest";
+import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
+import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
+import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from "./1809187680000-AddProjectStartIncidentsDeclaredByHandAcknowledged";
+import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
+import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
+import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
+import { AddCloudSavingsActions1809187711010 } from "./1809187711010-AddCloudSavingsActions";
 
 export default [
   InitialMigration,
@@ -2385,7 +2394,16 @@ export default [
   AddSecurityCaseExposureAssessment1809187590377,
   AddHelpAndSupport1809187600000,
   AddGroupIncidentsByEpisodeToStatusPage1809187610767,
+  AddTwilioCallVoice1809187620948,
   AddProjectRequireUniqueNames1809187640000,
   AddUniqueNameIndexes1809187640010,
-  AddCloudSavingsActions1809187661010,
+  AddSecurityUserErasureRequest1809187650908,
+  AddDataSecurityIssuePullRequest1809187660831,
+  AddOnCallPolicyIncidentRole1809187670000,
+  AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
+  AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000,
+  AddStorageArrayCountsByKind1809187690000,
+  AddSecurityUserErasureRequestNamesToErase1809187691044,
+  AddMonitorTestUnansweredIndex1809187700819,
+  AddCloudSavingsActions1809187711010,
 ];

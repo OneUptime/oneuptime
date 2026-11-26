@@ -100,6 +100,83 @@ describe("SyntheticMonitorWorkerTypes", () => {
     ).toBe(false);
   });
 
+  /*
+   * The probe's egress policy, as the supervisor hands it to the worker
+   * (GHSA-9rx7-vwfj-whp7). Anything that is not exactly that shape is
+   * refused, so a malformed value can never be read as a looser policy.
+   */
+  test.each([
+    {
+      label: "private addresses allowed, no hint",
+      egressPolicy: {
+        allowPrivateNetworkAddresses: true,
+        privateNetworkHint: "",
+      },
+    },
+    {
+      label: "private addresses refused, with the probe's hint",
+      egressPolicy: {
+        allowPrivateNetworkAddresses: false,
+        privateNetworkHint:
+          " Set PROBE_ALLOW_PRIVATE_NETWORK_MONITORS=true on the probe running this monitor to allow it.",
+      },
+    },
+    { label: "left out", egressPolicy: undefined },
+  ])(
+    "accepts the egress policy: $label",
+    ({ egressPolicy }: { label: string; egressPolicy: unknown }) => {
+      expect(
+        isSyntheticMonitorWorkerConfig({ ...validConfig(), egressPolicy }),
+      ).toBe(true);
+    },
+  );
+
+  test.each([
+    {
+      label: "a string flag",
+      egressPolicy: {
+        allowPrivateNetworkAddresses: "true",
+        privateNetworkHint: "",
+      },
+    },
+    { label: "a missing flag", egressPolicy: { privateNetworkHint: "" } },
+    {
+      label: "a missing hint",
+      egressPolicy: { allowPrivateNetworkAddresses: false },
+    },
+    {
+      label: "a hint that is not text",
+      egressPolicy: {
+        allowPrivateNetworkAddresses: false,
+        privateNetworkHint: 1,
+      },
+    },
+    {
+      label: "an unknown field",
+      egressPolicy: {
+        allowPrivateNetworkAddresses: false,
+        privateNetworkHint: "",
+        allowLoopback: true,
+      },
+    },
+    {
+      label: "an overlong hint",
+      egressPolicy: {
+        allowPrivateNetworkAddresses: false,
+        privateNetworkHint: "x".repeat(2_001),
+      },
+    },
+    { label: "not an object", egressPolicy: true },
+    { label: "null", egressPolicy: null },
+  ])(
+    "refuses an egress policy with $label",
+    ({ egressPolicy }: { label: string; egressPolicy: unknown }) => {
+      expect(
+        isSyntheticMonitorWorkerConfig({ ...validConfig(), egressPolicy }),
+      ).toBe(false);
+    },
+  );
+
   test("accepts legacy long timeouts through the exact safe boundary", () => {
     expect(
       isSyntheticMonitorWorkerConfig({

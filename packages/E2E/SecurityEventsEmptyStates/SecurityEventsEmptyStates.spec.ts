@@ -73,6 +73,12 @@ interface Provider {
   title: string;
   category: string;
   docsSlug: string;
+  /*
+   * The step Next opens from Provider: Connection, or Credentials for a
+   * product whose settings are all picked from what its credentials read -
+   * Cloudflare's account and zones, read with its API token (#10339).
+   */
+  settingsStep?: "Credentials";
 }
 
 const PROVIDERS: ReadonlyArray<Provider> = [
@@ -129,6 +135,13 @@ const PROVIDERS: ReadonlyArray<Provider> = [
     title: "Google Workspace",
     category: "Identity",
     docsSlug: "google-workspace",
+  },
+  {
+    value: "cloudflare",
+    title: "Cloudflare",
+    category: "Cloud security",
+    docsSlug: "cloudflare",
+    settingsStep: "Credentials",
   },
   {
     value: "google-secops",
@@ -1200,7 +1213,7 @@ async function nameFits(page: Page): Promise<Array<NameFit>> {
 // Tiles grouped into rows by their top edge, top to bottom.
 /*
  * How many tiles each row holds when `count` tiles fill rows of `columns`:
- * full rows, then what is left. Ten tiles in four columns: 4, 4, 2.
+ * full rows, then what is left. Eleven tiles in four columns: 4, 4, 3.
  */
 function rowLengths(count: number, columns: number): Array<number> {
   const lengths: Array<number> = [];
@@ -3910,11 +3923,16 @@ test.describe("connections empty state actions", () => {
         }),
       ).toBeVisible();
 
-      // Next skips straight to that product's own settings.
+      /*
+       * Next skips straight to that product's own settings: on Connection,
+       * or with its credentials where they are read from them.
+       */
       await addConnectionDialog(page)
         .getByRole("button", { name: "Next", exact: true })
         .click();
-      await expect(activeStep(page)).toHaveText("Connection");
+      await expect(activeStep(page)).toHaveText(
+        item.settingsStep || "Connection",
+      );
       await expect(
         addConnectionDialog(page).getByText(`${item.title} settings`, {
           exact: true,

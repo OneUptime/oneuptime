@@ -2394,8 +2394,10 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
         "4111 1111 1111 1111",
         "４１１１ １１１１ １１１１ １１１１",
       ],
-      [LogScrubPatternType.SSN]: ["123-45-6789"],
-      [LogScrubPatternType.PhoneNumber]: ["555-123-4567"],
+      // In another script's digits too (#11030).
+      [LogScrubPatternType.SSN]: ["123-45-6789", "１２３-４５-６７８９"],
+      // An international one too (#11025).
+      [LogScrubPatternType.PhoneNumber]: ["555-123-4567", "+44 20 7946 0958"],
       /*
        * Public ones: a private address is no one's, and is kept (#10393). One
        * group each side of "::" is an address too (#10466).
@@ -2447,6 +2449,62 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
 
     // A custom pattern is matched with its case, and only with the g flag.
     expect(SCRUB_RULE_REGEX_FLAGS).toBe("g");
+  });
+
+  /*
+   * #11025, #11030: what the SSN and Phone Number rows say beside their
+   * examples - each written the other ways the row names, and what the
+   * Phone Number rule leaves.
+   */
+  it("hides a Social Security number and a phone number the ways their rows say, and leaves what is no phone number", () => {
+    const rows: Array<Array<string>> = tableRows(page, "Pattern Type");
+    const rowOf: (label: string) => string = (label: string): string => {
+      return rows.find((row: Array<string>): boolean => {
+        return unbold(row[0] as string) === label;
+      })![1] as string;
+    };
+    const leftOf: (patternType: string, value: string) => string = (
+      patternType: string,
+      value: string,
+    ): string => {
+      return (getRegexForPattern(patternType) as ScrubRegExp).replace(
+        value,
+        (): string => {
+          return "";
+        },
+      );
+    };
+
+    expect(rowOf("SSN (Social Security Number)")).toContain(
+      "also set apart by dots or spaces and in another script's digits",
+    );
+    for (const value of ["536.22.8731", "536 22 8731", "٥٣٦-٢٢-٨٧٣١"]) {
+      expect({ value, left: leftOf(LogScrubPatternType.SSN, value) }).toEqual({
+        value,
+        left: "",
+      });
+    }
+
+    expect(rowOf("Phone Number")).toContain(
+      "international ones in the groups people write them in, also in a percent-encoded URL and in another script's digits, but not a decimal, a time zone's offset or a version",
+    );
+    for (const value of [
+      "+49 30 123456",
+      "+44 (0)20 7946 0958",
+      "%2B44%2020%207946%200958",
+      "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨",
+    ]) {
+      expect({
+        value,
+        left: leftOf(LogScrubPatternType.PhoneNumber, value),
+      }).toEqual({ value, left: "" });
+    }
+    for (const value of ["+51.507217", "UTC +1 2026-11-24", "v1.2.3+build.5"]) {
+      expect({
+        value,
+        left: leftOf(LogScrubPatternType.PhoneNumber, value),
+      }).toEqual({ value, left: value });
+    }
   });
 
   it("redacts, masks or hashes the example as the page shows, and redacts unless told otherwise", () => {

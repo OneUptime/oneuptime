@@ -259,6 +259,41 @@ Ett projekt kan också logga in via en OpenID Connect-leverantör, till exempel 
 6. Öppna länken i kortet **SSO-inloggningslänk** och välj leverantören för att logga in via den innan du kräver SSO för projektet.
 :::
 
+## E-postadresser som din identitetsleverantör inte har verifierat
+
+En inloggning med OpenID Connect hittar personens OneUptime-konto utifrån den e-postadress som din identitetsleverantör skickar, och kan skapa ett konto med den adressen. Vissa leverantörer låter folk lägga en adress på sitt eget konto utan att bevisa att den är deras, och säger det i standardanspråket `email_verified`. Därför loggar OneUptime inte in någon med en adress som din leverantör säger att den inte har verifierat: någon kunde ha lagt en annan persons adress på sitt konto för att logga in som hen.
+
+| `email_verified` | Inloggningen |
+| --- | --- |
+| `true`, eller `"true"` och `1` | Fortsätter |
+| Skickas inte, som hos Microsoft Entra ID och AD FS | Fortsätter |
+| `false`, eller `"false"` och `0` | Avvisas |
+| Allt annat, till exempel `"yes"` | Avvisas: OneUptime kan inte avgöra det |
+
+- Regeln gäller alla konton, på webben och i mobilappen: ett som finns, även en administratörs, och ett som inloggningen skulle skapa. En avvisad inloggning skapar inget konto, lägger inte till någon i ett team, accepterar ingen inbjudan och skickar inget e-postmeddelande.
+- OneUptime läser `email_verified` där adressen kom ifrån, ID-token eller userinfo-slutpunkten, och bara när adressen är anspråket `email`. En leverantör som är inställd att skicka adressen i ett annat anspråk, till exempel `preferred_username` eller `upn`, loggar in folk som förut, så använd ett anspråk som dina användare inte kan ändra själva.
+- Personen ser "Your identity provider did not confirm your email address." och ombeds verifiera sin adress hos din identitetsleverantör, eller be dig markera den som verifierad där, och sedan logga in igen. Mobilappen visar `provider_email_not_verified` med samma råd. När ett konto har adressen registrerar granskningsloggarna för dess projekt försöket som en misslyckad inloggning.
+- SAML-leverantörer läser inte `email_verified`, och det gör inte heller OpenID Connect-leverantörerna för statussidor, instrumentpaneler och formulär, som loggar in folk som sina egna privata användare.
+
+Leverantörer som verifierar de adresser de skickar, till exempel Google och Okta, loggar in folk som förut. authentik och Keycloak kan behöva en ändring:
+
+:::tabs
+@tab authentik
+authentik 2025.10 och senare skickar `email_verified` som `false` för alla med sin förvalda omfattningsmappning för `email`, så ingen loggar in via authentik förrän du ersätter den mappningen, som authentiks guide [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/) beskriver:
+
+1. Under **Customization** > **Property Mappings** klickar du på **New Property Mapping**, väljer **Scope Mapping** och klickar på **Next**.
+2. Namnge mappningen, sätt **Scope name** till `email`, ange den **Expression** från guiden som passar hur dina användares adresser verifieras och klicka på **Finish**.
+3. Öppna din applikations leverantör, ersätt den förvalda mappningen för `email` i **Scopes** med din och spara leverantören.
+
+Skicka inte `true` för varje adress så länge folk kan ändra sin egen adress i authentik: mappningen skulle då gå i god för vilken adress som helst som någon lägger på sitt konto. Versioner före 2025.10 skickar `true` för varje adress, så låt inte folk ändra sin egen adress där.
+@tab Keycloak
+Keycloak skickar `email_verified` som `false` för personer vars adress den inte har verifierat: personer som en administratör har skapat med **Email verified** avstängt, och personer som har registrerat sig eller ändrat sin adress medan **Verify email** var avstängt.
+
+- För att få dem att verifiera den slår du på **Verify email** under **Realm settings** > **Login** > **Email settings**. Keycloak ber då var och en av dem att verifiera sin adress med ett e-postmeddelande nästa gång de loggar in, så realmen behöver en konfigurerad e-postserver.
+- För att själv gå i god för en persons adress slår du på **Email verified** på personens sida i Keycloak och klickar på **Save**.
+- För personer från LDAP eller Active Directory slår du på **Trust Email** under **Advanced settings** för leverantören i **User federation**. Keycloak markerar då en adress som verifierad när den importerar personen: slå på **Email verified** för de personer den importerade tidigare.
+:::
+
 ## Logga även ut från identitetsleverantören
 
 När man loggar ut från OneUptime förblir man inloggad hos identitetsleverantören, så på en delad dator, som en NOC-skärm eller en kiosk, kommer nästa person som väljer leverantören på inloggningssidan in som den som gick. Slå på **Logga även ut från identitetsleverantören** under **Fler fält** på en SAML- eller OIDC-leverantör för att avsluta sessionen hos leverantören när någon loggar ut från OneUptime. Den är avstängd som standard: på en personlig bärbar dator skulle den även logga ut personen från alla andra appar som använder leverantören. Den gäller personer som loggar in i en webbläsare efter att den har slagits på; mobilappen loggar bara ut från OneUptime.
@@ -456,6 +491,10 @@ Varje svar från din IdP loggar in en enda gång. Om du går tillbaka i webbläs
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID loggade in någon med e-postadressen till ett konto som via den här leverantören är kopplat till ett annat objekt-ID: en annan person har adressen i Entra ID nu, eller så har personens Entra ID-konto skapats på nytt. OneUptime avvisar inloggningen, så att den som får adressen härnäst inte kan använda kontot. Om kontot tillhör personen tar du bort hen från projektet och lägger till hen igen: hens nästa inloggning kopplar kontot till hens nya objekt-ID.
+:::
+
+:::details "Your identity provider did not confirm your email address."
+Din OpenID Connect-leverantör skickade `email_verified` som `false`, eller som något som varken är true eller false, så OneUptime loggade inte in någon. Låt verifiera adressen hos din identitetsleverantör, eller markera den som verifierad där, och logga in igen. [E-postadresser som din identitetsleverantör inte har verifierat](#e-postadresser-som-din-identitetsleverantör-inte-har-verifierat) säger vad du ska ändra i authentik och Keycloak.
 :::
 
 :::details Inloggningen misslyckas med ett signatur- eller certifikatfel

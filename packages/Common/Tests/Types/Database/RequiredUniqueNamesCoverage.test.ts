@@ -627,7 +627,9 @@ describe("a kind held by the setting", () => {
     const migration: string = fs.readFileSync(INDEX_MIGRATION, "utf8");
 
     const built: Array<string> = Array.from(
-      migration.matchAll(/CREATE INDEX "(IDX_[A-Z]+_PROJECT_NAME_KEY)" ON "([A-Za-z]+)" \("projectId", LOWER\(BTRIM\(REGEXP_REPLACE\("([A-Za-z]+)", '\$\{NAME_WHITE_SPACE_RUN\}', ' ', 'g'\)\)\)\) WHERE "deletedAt" IS NULL/g),
+      migration.matchAll(
+        /CREATE INDEX "(IDX_[A-Z]+_PROJECT_NAME_KEY)" ON "([A-Za-z]+)" \("projectId", LOWER\(BTRIM\(REGEXP_REPLACE\("([A-Za-z]+)", '\$\{NAME_WHITE_SPACE_RUN\}', ' ', 'g'\)\)\)\) WHERE "deletedAt" IS NULL/g,
+      ),
     ).map((match: RegExpMatchArray): string => {
       return `${match[2]}.${match[3]} ${match[1]}`;
     });

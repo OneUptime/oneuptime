@@ -75,8 +75,19 @@ export interface CodeRepositoriesResponse {
   tasksWithoutRepositoryCount: number;
 }
 
+/*
+ * What a read of the reader's repositories is held to: every one they may
+ * read, unless said (#10921).
+ */
+export interface CodeRepositoriesScope {
+  // Only those the reader may ask OneUptime AI to work in: a Fix with AI pick.
+  askableOnly?: boolean | undefined;
+  // Only those whose code OneUptime reads: a finding's or a profile's fix.
+  codeReadableOnly?: boolean | undefined;
+}
+
 // Which page of the reader's repositories to read.
-export interface CodeRepositoriesQuery {
+export interface CodeRepositoriesQuery extends CodeRepositoriesScope {
   search?: string | undefined;
   // One of the two lists; both unless named (those AI can work in first).
   group?: CodeRepositoryListGroup | undefined;
@@ -85,6 +96,16 @@ export interface CodeRepositoriesQuery {
   skip?: number | undefined;
   limit?: number | undefined;
 }
+
+// What a body says of a scope: each only when it holds the read to it.
+const getScopeBody: (scope: CodeRepositoriesScope) => JSONObject = (
+  scope: CodeRepositoriesScope,
+): JSONObject => {
+  return {
+    ...(scope.askableOnly ? { askableOnly: true } : {}),
+    ...(scope.codeReadableOnly ? { codeReadableOnly: true } : {}),
+  };
+};
 
 // What a page says when the server says nothing of its repositories at all.
 export const NO_CODE_REPOSITORY_FACTS: CodeRepositoryListFactsJSON = {
@@ -346,7 +367,9 @@ export default class CodeApi {
   /*
    * A page of the reader's repositories - searched, in one of the two
    * lists or both, by name or by activity - over every repository the
-   * reader may read (#10764). Nothing named: the first page, by name.
+   * reader may read (#10764), or only those a Fix with AI picker offers
+   * (askableOnly, codeReadableOnly: #10921). Nothing named: the first page,
+   * by name.
    */
   public static async getRepositories(
     query: CodeRepositoriesQuery = {},
@@ -359,6 +382,7 @@ export default class CodeApi {
       ...(query.order ? { order: query.order } : {}),
       ...(query.skip ? { skip: query.skip } : {}),
       ...(query.limit ? { limit: query.limit } : {}),
+      ...getScopeBody(query),
     });
 
     const repositories: Array<CodeRepositoryListItem> = Array.isArray(
@@ -402,15 +426,20 @@ export default class CodeApi {
   /*
    * Repositories by their ids - what a page holds, named however far past
    * any first page it is (#10764). Only those the reader may read come
-   * back. The server reads so many ids a request
-   * (MAX_CODE_TASKS_PER_REQUEST), so a longer list goes in several.
+   * back - and of those, only the ones a scope holds the read to (#10921).
+   * The server reads so many ids a request (MAX_CODE_TASKS_PER_REQUEST), so
+   * a longer list goes in several.
    */
   public static async getRepositoriesById(
     repositoryIds: Array<string>,
+    scope: CodeRepositoriesScope = {},
   ): Promise<Array<CodeRepositoryListItem>> {
     const answers: Array<JSONObject> = await Promise.all(
       getIdBatches(repositoryIds).map((batch: Array<string>) => {
-        return CodeApi.post("/repositories-by-id", { repositoryIds: batch });
+        return CodeApi.post("/repositories-by-id", {
+          repositoryIds: batch,
+          ...getScopeBody(scope),
+        });
       }),
     );
 

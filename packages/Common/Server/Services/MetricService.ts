@@ -3500,6 +3500,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     attributes?: MonitorCheckAttributeFilter | undefined;
     // The attributes each group is one value of: probeId, and diskPath.
     groupByAttributeKeys: Array<string>;
+    /*
+     * An attribute of the previous check's row to read beside its value: what
+     * the value stands for, in words (a DNS answer beside its fingerprint).
+     */
+    textAttributeKey?: string | undefined;
   }): Promise<Array<MonitorPreviousCheckRow>> {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -3531,6 +3536,18 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
      * summarizeMonitorChecks: the WHERE keeps only checks with a value, so
      * it is read as one.
      */
+    // The newest row's own text, as its value is: of the same row.
+    if (data.textAttributeKey) {
+      statement
+        .append(
+          SQL`argMax(attributes[${{
+            value: data.textAttributeKey,
+            type: TableColumnType.Text,
+          }}], time)`,
+        )
+        .append(` AS previousText, `);
+    }
+
     statement
       .append(
         ` argMax(assumeNotNull(value), time) AS previousValue, max(time) AS previousAt FROM ${databaseName}.${this.model.tableName}`,
@@ -3593,7 +3610,14 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
         group[key] = String(row[`g${index}`] ?? "");
       });
 
-      rows.push({ group: group, value: value, at: at });
+      rows.push({
+        group: group,
+        value: value,
+        at: at,
+        ...(data.textAttributeKey
+          ? { text: String(row["previousText"] ?? "") }
+          : {}),
+      });
     }
 
     return rows;
@@ -3717,6 +3741,11 @@ export interface MonitorPreviousCheckRow {
   value: number;
   // When its row was written, on the server's clock.
   at: Date;
+  /*
+   * What the value stands for, in words, when the read asked for it
+   * (textAttributeKey): a DNS answer beside its fingerprint.
+   */
+  text?: string | undefined;
 }
 
 export default new MetricService();

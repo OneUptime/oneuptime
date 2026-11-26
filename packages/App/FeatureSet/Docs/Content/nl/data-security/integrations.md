@@ -158,7 +158,7 @@ Alles wat Gegevensbeveiliging bewaart, is een record van de OneUptime-API, gelez
 | Records | API-pad |
 | --- | --- |
 | Gegevensopslagen, hun tijdlijnen, hun bevindingen, wie erbij kan en elke identiteit die dat kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problemen, hun tijdlijnen en gegevensstromen | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problemen, hun tijdlijnen, hun gekoppelde pull requests en gegevensstromen | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Scans | `/data-security-scan` |
 | Aangepaste gegevenstypen, controle-instellingen, compliance-instellingen en residentieregels | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | De instellingen van het project | `/data-security-setting` |

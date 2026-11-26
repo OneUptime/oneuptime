@@ -73,6 +73,7 @@ import {
   getVoicemailMessage,
   VOICEMAIL_MACHINE_DETECTION,
   VOICEMAIL_MESSAGE_CALL_DATA_KEY,
+  VOICEMAIL_VOICE_CALL_DATA_KEY,
 } from "../Utils/AnsweredBy";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -92,26 +93,30 @@ import {
   getSpeechParts,
   isSsmlVoice,
   renderSpeechAsText,
-  SpeechPart,
-  toSpokenText,
-  toTwimlText,
 } from "Common/Utils/Call/CallSpeech";
+import {
+  CALL_KEYPAD_FINISH_ON_KEY,
+  CALL_PROMPT_REPEATS,
+  CALL_PROMPT_REPEAT_PAUSE_IN_SECONDS,
+  CALL_DEFAULT_PROMPT_TIMEOUT_IN_SECONDS,
+} from "Common/Utils/Call/CallKeypad";
+import {
+  CallSpeechOptions,
+  SayParent,
+  sayInto,
+} from "Common/Server/Utils/Call/CallTwimlSpeech";
+import { toCallVoiceValue } from "Common/Types/Call/CallVoice";
 import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
 import NumberPrefixUtil, {
   NUMBER_PREFIX_COLUMNS,
 } from "Common/Utils/Project/NumberPrefix";
 
 /*
- * A call that asks for a key says its details and prompt this many times
- * more while no key is pressed: twice in all, as the issue that asked for it
- * suggested (#10762). A key pressed at any moment answers it, and a call
- * that goes unanswered still ends inside its first minute - a call is
- * billed by the minute.
+ * How often a call says its details and prompt again while no key is
+ * pressed, and the pause before each time: the keypad route asks again
+ * after a wrong key by the same rules (Common/Utils/Call/CallKeypad).
  */
-export const CALL_PROMPT_REPEATS: number = 1;
-
-// The silence before each time it says them again, listening for a key all the while.
-export const CALL_PROMPT_REPEAT_PAUSE_IN_SECONDS: number = 5;
+export { CALL_PROMPT_REPEATS, CALL_PROMPT_REPEAT_PAUSE_IN_SECONDS };
 
 /*
  * How long a text is once Twilio's TwiML builder has escaped it: "&", "<"
@@ -232,15 +237,46 @@ export function getCallVoicemailWords(
   return sentences.join(" ");
 }
 
-// Where a call's sentences go: the call itself, or its prompt for a key.
-type SayParent = VoiceResponse | VoiceResponse.Gather;
+/*
+ * The ways a call's TwiML is built, the first that builds: in the voice
+ * chosen, its record numbers in SSML where the voice reads it; in the voice
+ * chosen, its record numbers in spaced letters; in the account's default
+ * voice, as every call was before voices could be chosen. A voice never
+ * stops a call from being placed (#10948).
+ */
+const getSpeechAttempts: (
+  voice: string | undefined,
+  recordNumberPrefixes: ReadonlyArray<string>,
+) => Array<CallSpeechOptions> = (
+  voice: string | undefined,
+  recordNumberPrefixes: ReadonlyArray<string>,
+): Array<CallSpeechOptions> => {
+  const attempts: Array<CallSpeechOptions> = [];
 
-// How a call speaks: its voice, and the number prefixes it spells.
-interface CallSpeechOptions {
-  // None: the Twilio account's default voice.
-  voice: string | undefined;
-  recordNumberPrefixes: ReadonlyArray<string>;
-}
+  if (voice && isSsmlVoice(voice)) {
+    attempts.push({
+      voice: voice,
+      recordNumberPrefixes: recordNumberPrefixes,
+      isSsmlAllowed: true,
+    });
+  }
+
+  if (voice) {
+    attempts.push({
+      voice: voice,
+      recordNumberPrefixes: recordNumberPrefixes,
+      isSsmlAllowed: false,
+    });
+  }
+
+  attempts.push({
+    voice: undefined,
+    recordNumberPrefixes: recordNumberPrefixes,
+    isSsmlAllowed: false,
+  });
+
+  return attempts;
+};
 
 export default class CallService {
   public static async makeCall(
@@ -780,14 +816,34 @@ export default class CallService {
         const recordNumberPrefixes: Array<string> =
           this.getRecordNumberPrefixes(project);
 
-        if (voicemailCallbackUrl && !options.isSensitive) {
+        /*
+         * The voice the call speaks with: the one chosen for the Twilio
+         * account it goes out on - the project's own config, or the
+         * server's (#10948) - or none, the account's default voice, as
+         * every call was before voices could be chosen.
+         */
+        const voice: string | undefined = toCallVoiceValue(
+          twilioConfig?.callVoice,
+        );
+
+        if (voicemailCallbackUrl) {
           callLog.callData = {
             ...((callLog.callData as unknown as Record<string, unknown>) || {}),
-            [VOICEMAIL_MESSAGE_CALL_DATA_KEY]: ProductBrandingText.brandText(
-              getVoicemailMessage(
-                getCallVoicemailWords(callRequest, recordNumberPrefixes),
-              ),
-            ),
+            ...(options.isSensitive
+              ? {}
+              : {
+                  [VOICEMAIL_MESSAGE_CALL_DATA_KEY]:
+                    ProductBrandingText.brandText(
+                      getVoicemailMessage(
+                        getCallVoicemailWords(
+                          callRequest,
+                          recordNumberPrefixes,
+                        ),
+                      ),
+                    ),
+                }),
+            // The message left on voicemail is said in the call's voice.
+            ...(voice ? { [VOICEMAIL_VOICE_CALL_DATA_KEY]: voice } : {}),
           } as any;
         }
 
@@ -798,6 +854,7 @@ export default class CallService {
         const twiml: string = this.generateTwimlForCall(callRequest, {
           userOnCallLogTimelineId: options.userOnCallLogTimelineId,
           recordNumberPrefixes: recordNumberPrefixes,
+          voice: voice,
         });
 
         // Handed to Twilio from here on.
@@ -1037,12 +1094,22 @@ export default class CallService {
   /*
    * The TwiML a call is turned to once voicemail has answered it and its
    * greeting ended: the message, which the voicemail records, then the
-   * call ends. Cut to fit as any call's TwiML is (generateTwimlForCall).
+   * call ends - in the voice the call spoke with. Cut to fit as any call's
+   * TwiML is (generateTwimlForCall).
    */
-  public static generateVoicemailTwiml(message: string): string {
-    return this.generateTwimlForCall({
-      data: [{ sayMessage: message }],
-    });
+  public static generateVoicemailTwiml(
+    message: string,
+    options?: {
+      // The voice the call was placed with (VOICEMAIL_VOICE_CALL_DATA_KEY).
+      voice?: string | undefined;
+    },
+  ): string {
+    return this.generateTwimlForCall(
+      {
+        data: [{ sayMessage: message }],
+      },
+      { voice: options?.voice },
+    );
   }
 
   /*
@@ -1053,6 +1120,11 @@ export default class CallService {
    * ending with a note that the rest is in OneUptime (fitTextsToBudget). The
    * TwiML is built again and measured, and the texts cut shorter while it is
    * still over. A call that fits is made whole.
+   *
+   * In the voice chosen for the account (#10948), and - should its SSML, or
+   * the voice itself, ever fail to build - in spaced letters, then in the
+   * account's default voice (getSpeechAttempts): a voice never stops a page
+   * from being placed.
    */
   public static generateTwimlForCall(
     callRequest: CallRequestMessage,
@@ -1064,9 +1136,10 @@ export default class CallService {
        */
       userOnCallLogTimelineId?: ObjectID | string | undefined;
       /*
-       * The Twilio voice the call speaks with: "Polly.Joanna", say. None -
-       * as every call OneUptime places - is the Twilio account's default
-       * voice, which may read no SSML (Utils/Call/CallSpeech).
+       * The Twilio voice the call speaks with, from OneUptime's list
+       * (Types/Call/CallVoice): "Polly.Joanna-Neural", say. None - or one
+       * the list does not hold - is the Twilio account's default voice,
+       * which may read no SSML (Utils/Call/CallSpeech).
        */
       voice?: string | undefined;
       /*
@@ -1077,11 +1150,59 @@ export default class CallService {
       recordNumberPrefixes?: ReadonlyArray<string> | undefined;
     },
   ): string {
+    const attempts: Array<CallSpeechOptions> = getSpeechAttempts(
+      toCallVoiceValue(options?.voice),
+      options?.recordNumberPrefixes || [],
+    );
+
+    for (let index: number = 0; index < attempts.length; index++) {
+      const speech: CallSpeechOptions = attempts[index]!;
+
+      try {
+        return this.generateFittedTwiml(callRequest, speech, {
+          userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+        });
+      } catch (error) {
+        // The last way is the one every call was built with: its error is the call's.
+        if (index === attempts.length - 1) {
+          throw error;
+        }
+
+        logger.warn(
+          `A call's TwiML could not be built in ${
+            speech.voice || "the account's default voice"
+          }${speech.isSsmlAllowed ? " with SSML" : ""}, so it is built ${
+            attempts[index + 1]!.voice
+              ? "with spaced letters instead"
+              : "in the account's default voice instead"
+          }: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+
+    // Not reached: the last attempt returns or throws.
+    throw new BadDataException("The call's TwiML could not be built.");
+  }
+
+  /*
+   * The TwiML of a call, built and fitted (generateTwimlForCall) in one
+   * way of speaking.
+   */
+  private static generateFittedTwiml(
+    callRequest: CallRequestMessage,
+    speech: CallSpeechOptions,
+    options: {
+      userOnCallLogTimelineId?: ObjectID | string | undefined;
+    },
+  ): string {
     const spoken: Array<string> = [];
 
     /*
      * Signed once, for every build below: a token signed again a second
-     * later would make the TwiML measured differ from the TwiML sent.
+     * later would make the TwiML measured differ from the TwiML sent. It
+     * carries the prompt, so a wrong key is asked again in its words
+     * (#10949), and the voice the call speaks with, which every answer to
+     * a key is said in (#10948).
      */
     const keypadTokens: Map<GatherInput, string> = new Map();
 
@@ -1092,18 +1213,21 @@ export default class CallService {
         keypadTokens.set(
           gather,
           OnCallKeypadToken.sign({
-            userOnCallLogTimelineId: options?.userOnCallLogTimelineId,
+            userOnCallLogTimelineId: options.userOnCallLogTimelineId,
             answers: gather.onInputCallRequest,
+            prompt: {
+              sayMessage: gather.introMessage,
+              noInputMessage: gather.noInputMessage,
+              timeoutInSeconds:
+                gather.timeoutInSeconds ||
+                CALL_DEFAULT_PROMPT_TIMEOUT_IN_SECONDS,
+            },
+            voice: speech.voice,
           }),
         );
       }
 
       return keypadTokens.get(gather)!;
-    };
-
-    const speech: CallSpeechOptions = {
-      voice: options?.voice,
-      recordNumberPrefixes: options?.recordNumberPrefixes || [],
     };
 
     const twiml: string = this.buildTwimlForCall(
@@ -1209,12 +1333,16 @@ export default class CallService {
    * no-input words and ends: the page is left as it was, not acknowledged,
    * as before. A key Twilio posts to the prompt's keypad action
    * (getKeypadAction), with the call's keypad token (`keypadTokenOf`) -
-   * keys 1 and 2 answer exactly as before.
+   * keys 1 and 2 answer exactly as before, and any other key is asked
+   * again (Common/Utils/Call/CallKeypad, #10949). No key ends the prompt
+   * early (CALL_KEYPAD_FINISH_ON_KEY): # used to, and the call hung up as
+   * if no key had been pressed.
    *
    * Every text goes through the TwiML builder, which escapes it - a title is
    * never TwiML or SSML - in characters it can carry (toTwimlText), and a
-   * record's number is spelled (CallSpeech): with SSML for a voice that reads
-   * it, with spaced letters for any other, the account's default among them.
+   * record's number is spelled (CallTwimlSpeech): with SSML for a voice that
+   * reads it, with spaced letters for any other, the account's default
+   * among them.
    */
   private static buildTwimlForCall(
     callRequest: CallRequestMessage,
@@ -1238,12 +1366,14 @@ export default class CallService {
         const gather: VoiceResponse.Gather = response.gather({
           input: ["dtmf"],
           numDigits: prompt.numDigits,
-          timeout: prompt.timeoutInSeconds || 5,
+          timeout:
+            prompt.timeoutInSeconds || CALL_DEFAULT_PROMPT_TIMEOUT_IN_SECONDS,
           action: this.getKeypadAction(
             prompt.responseUrl,
             keypadTokenOf(prompt),
           ),
           method: "POST",
+          finishOnKey: CALL_KEYPAD_FINISH_ON_KEY,
         });
 
         for (const sentence of sentences) {
@@ -1289,12 +1419,9 @@ export default class CallService {
   }
 
   /*
-   * One sentence into the TwiML, as `say` has its texts: a <Say> - or
-   * nothing, for a sentence with no words. For a voice that reads SSML, its
-   * record's number is a <say-as interpret-as="characters">; for any other -
-   * the account's default voice among them - it is spelled with spaces.
-   * Every text is put in characters TwiML can carry, and the builder escapes
-   * it.
+   * One sentence into the TwiML, as `say` has its texts: in the call's
+   * voice, its record numbers spelled for it (CallTwimlSpeech, which writes
+   * every <Say> of a call - the keypad's answers too).
    */
   private static sayInto(
     parent: SayParent,
@@ -1302,59 +1429,6 @@ export default class CallService {
     say: (text: string) => string,
     speech: CallSpeechOptions,
   ): void {
-    const voice: string | undefined = speech.voice;
-    const parts: Array<SpeechPart> = getSpeechParts(
-      typeof sentence === "string" ? { sayMessage: sentence } : sentence,
-      speech.recordNumberPrefixes,
-    );
-
-    const attributes: VoiceResponse.SayAttributes = voice
-      ? { voice: voice as NonNullable<VoiceResponse.SayAttributes["voice"]> }
-      : {};
-
-    if (!isSsmlVoice(voice)) {
-      const text: string = renderSpeechAsText(
-        parts.map((part: SpeechPart): SpeechPart => {
-          return "characters" in part
-            ? { characters: toTwimlText(part.characters) }
-            : { text: toSpokenText(part.text) };
-        }),
-      );
-
-      if (!text.trim()) {
-        return;
-      }
-
-      parent.say(attributes, say(text));
-      return;
-    }
-
-    const spoken: Array<SpeechPart> = parts
-      .map((part: SpeechPart): SpeechPart => {
-        return "characters" in part
-          ? { characters: toTwimlText(part.characters).trim() }
-          : { text: toSpokenText(part.text) };
-      })
-      .filter((part: SpeechPart): boolean => {
-        return "characters" in part ? part.characters !== "" : part.text !== "";
-      });
-
-    const hasWords: boolean = spoken.some((part: SpeechPart): boolean => {
-      return "characters" in part || part.text.trim() !== "";
-    });
-
-    if (!hasWords) {
-      return;
-    }
-
-    const node: VoiceResponse.Say = parent.say(attributes, "");
-
-    for (const part of spoken) {
-      if ("characters" in part) {
-        node.sayAs({ "interpret-as": "characters" }, part.characters);
-      } else {
-        node.addText(say(part.text));
-      }
-    }
+    sayInto(parent, sentence, speech, say);
   }
 }

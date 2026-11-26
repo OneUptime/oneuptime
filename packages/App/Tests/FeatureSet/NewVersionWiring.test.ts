@@ -45,7 +45,10 @@ interface EntryWiring {
   startAudiences: Array<string>;
   startAt: Array<number>;
   renderAt: number | null;
-  // Names of the elements directly inside each <BrowserRouter>.
+  /*
+   * Names of the elements directly inside each <BrowserRouter>, a context
+   * provider read as the elements it holds (elementsThroughProviders).
+   */
   routerChildren: Array<Array<string>>;
   // Every JSX element name, in source order.
   elements: Array<string>;
@@ -64,6 +67,32 @@ function elementName(node: ts.JsxElement | ts.JsxSelfClosingElement): string {
     : node.tagName;
 
   return tagName.getText();
+}
+
+function jsxChildren(
+  node: ts.JsxElement,
+): Array<ts.JsxElement | ts.JsxSelfClosingElement> {
+  return node.children.filter(
+    (child: ts.JsxChild): child is ts.JsxElement | ts.JsxSelfClosingElement => {
+      return ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child);
+    },
+  );
+}
+
+/*
+ * A context provider draws nothing but what it holds, so the elements it
+ * holds stand where it stands: the Dashboard hands App where each record's
+ * history and page are (#10290, #10761) without moving App out of the
+ * router.
+ */
+function elementsThroughProviders(
+  node: ts.JsxElement | ts.JsxSelfClosingElement,
+): Array<string> {
+  if (ts.isJsxElement(node) && elementName(node).endsWith(".Provider")) {
+    return jsxChildren(node).flatMap(elementsThroughProviders);
+  }
+
+  return [elementName(node)];
 }
 
 function analyzeEntry(source: string): EntryWiring {
@@ -135,19 +164,7 @@ function analyzeEntry(source: string): EntryWiring {
 
     if (ts.isJsxElement(node) && elementName(node) === "BrowserRouter") {
       wiring.routerChildren.push(
-        node.children
-          .filter(
-            (
-              child: ts.JsxChild,
-            ): child is ts.JsxElement | ts.JsxSelfClosingElement => {
-              return (
-                ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child)
-              );
-            },
-          )
-          .map((child: ts.JsxElement | ts.JsxSelfClosingElement): string => {
-            return elementName(child);
-          }),
+        jsxChildren(node).flatMap(elementsThroughProviders),
       );
     }
 
@@ -225,4 +242,26 @@ test("the notice sits inside the app's last-resort boundary, beside the router",
     expect(notice).toBeGreaterThan(routerClose);
     expect(boundaryClose).toBeGreaterThan(notice);
   }
+});
+
+test("a router's children are read through context providers, and through nothing else (control)", () => {
+  const wiring: EntryWiring = analyzeEntry(`
+    root.render(
+      <BrowserRouter>
+        <NewVersionNavigation />
+        <RecordHistoryContext.Provider value={history}>
+          <RecordPageContext.Provider value={page}>
+            <App />
+          </RecordPageContext.Provider>
+        </RecordHistoryContext.Provider>
+        <Layout>
+          <App />
+        </Layout>
+      </BrowserRouter>,
+    );
+  `);
+
+  expect(wiring.routerChildren).toEqual([
+    ["NewVersionNavigation", "App", "Layout"],
+  ]);
 });

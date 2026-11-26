@@ -31,12 +31,16 @@ jobs:
   # the drift check), then runs its share of the real-Postgres suites: each
   # suite step after the drift check carries `if: matrix.shard == N`. One
   # job running them all in a row had grown to 29 minutes of its 30 and
-  # started running out of time with nothing failing (2026-10-26). The
-  # shards were balanced on that run's step times, about 9 minutes of suites
-  # each; App's installs and every suite after them (the probe and
-  # Enterprise ones) are shard 3's. Put a new suite in the shard with the
-  # least time, and add a shard rather than raise the cap.
-  # Tests/Ops/PostgresSchemaDriftShards holds these rules.
+  # started running out of time with nothing failing (2026-10-26), so it
+  # became three shards of about 9 minutes of suites each. By 2026-11-26
+  # the suites had grown to some 68 minutes, the three shards took 25 to 30
+  # minutes each, and one ran out of time on a slow runner, so there are
+  # five, balanced on the median step times of the last six release runs:
+  # about 14 minutes of suites each. App's and ee's installs, the suites
+  # that run in packages/App and ee (the probe and Enterprise ones) and the
+  # PostgreSQL client tools the backup suite needs are shard 3's. Put a new
+  # suite in the shard with the least time, and add a shard rather than
+  # raise the cap. Tests/Ops/PostgresSchemaDriftShards holds these rules.
   postgres-schema-drift:
     name: postgres-schema-drift (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest
@@ -45,7 +49,7 @@ jobs:
       # One shard's failure should not hide the others' results.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4, 5]
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
       # LocalMigrationGenerationDataSource defaults to localhost:5400, which is
@@ -99,7 +103,7 @@ jobs:
       # The suite clones the migrated Alert and Incident table structures into
       # an isolated schema, so it must run after the registered migrations.
       - name: Test AI investigation decision persistence
-        if: matrix.shard == 1
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_AI_INVESTIGATION_TESTS: "true"
@@ -181,7 +185,7 @@ jobs:
       # fix tried again since, settled, dismissed or deleted is never
       # written, and a run never created puts the fix back as it was read.
       - name: Test why AI remediation did not run, and Try again, on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_AI_REMEDIATION_TESTS: "true"
@@ -204,7 +208,7 @@ jobs:
       # from the junction rows of structure-only copies of the migrated
       # tables in a schema of their own.
       - name: Test what incidents and alerts are linked to, on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_AI_AFFECTED_RESOURCE_LINKS_TESTS: "true"
@@ -224,7 +228,7 @@ jobs:
       # on structure-only copies of the migrated tables and their foreign
       # keys - and a create while nothing changed reads no rule.
       - name: Test the rules kept between creates, on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_RULE_SET_CACHE_TESTS: "true"
@@ -521,7 +525,7 @@ jobs:
       # delete and a retention purge's alike, and a file something else
       # still uses - another event's note, a status page's logo - stays.
       - name: Test the files deleted with scheduled maintenance and announcements on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_ATTACHED_FILES_TESTS: "true"
@@ -620,7 +624,7 @@ jobs:
       # route, a bulk delete, the retention purge, its project's deletion -
       # for each kind: nothing that named it is left (#9103).
       - name: Test that a deleted private record leaves nothing about it behind on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_PRIVATE_RECORD_DELETION_TESTS: "true"
@@ -643,7 +647,7 @@ jobs:
       # and one about a private incident or alert only for those who see it
       # (#9155).
       - name: Test that what an AI run ran and printed follows the run on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_AI_RUN_OUTPUT_TESTS: "true"
@@ -672,7 +676,7 @@ jobs:
       # a postmortem action item's task, a chat's pull request - and the
       # turns AIRunService writes carry what they name (#9186).
       - name: Test that OneUptime AI's code work about a private record follows its owners on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_CODE_FIX_RUN_TESTS: "true"
@@ -745,7 +749,7 @@ jobs:
       # a create or update that names it is refused for every caller, and
       # joining and leaving through the members still moves it.
       - name: Test episode reference writes on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_EPISODE_REFERENCE_WRITE_TESTS: "true"
@@ -765,7 +769,7 @@ jobs:
       # a level, the roster refresh or the calendar resolver is seen whole
       # or not at all, and the read takes no lock.
       - name: Test saving a schedule's layers at once, and reading them in one snapshot, on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_SCHEDULE_LAYERS_SAVE_TESTS: "true"
@@ -946,7 +950,7 @@ jobs:
       # label-less row names), private incidents, a person's own AI
       # conversation, and deletes decided before the rows go.
       - name: Test who hears about a record's live updates on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_REALTIME_AUDIENCE_TESTS: "true"
@@ -1042,7 +1046,7 @@ jobs:
       # to two claims, and - while its locks are held - lets the device's
       # interfaces be written, which FOR UPDATE did not.
       - name: Test the network device poll claim against Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_NETWORK_DEVICE_POLL_CLAIM_TESTS: "true"
@@ -1054,11 +1058,13 @@ jobs:
           Tests/Server/Services/NetworkDevicePollClaimPostgres.test.ts --forceExit
 
       # Clones the migrated MonitorProbe, Monitor and Project tables into an
-      # isolated schema and runs a probe's monitor claim (issue #7194): a read
-      # of the due rows without a lock, then one statement that claims those
-      # still due that nobody else holds. Only a database shows that it skips
-      # a held row, never hands a row to two claims, and passes over a row
-      # another instance claimed between its read and its claim.
+      # isolated schema and runs a probe's monitor claim (issues #7194,
+      # #10819): one statement that takes the due rows nobody else holds
+      # (FOR NO KEY UPDATE SKIP LOCKED) and writes their next runs. Only a
+      # database shows that it skips a held row, never hands a row to two
+      # claims, and - with other claims holding the oldest rows - hands out
+      # the next ones rather than an empty batch, so claims for the same
+      # probe made at once each get a full one.
       - name: Test the monitor probe claim against Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -1070,6 +1076,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
+
+      # Seeds an isolated schema with issue #10819's install - 39,800 monitor
+      # assignments, two days of answered Test Monitor runs - on the migrated
+      # tables and their indexes, and reads the plan of each statement a
+      # probe's requests run: the monitor claim reads its probe's due rows by
+      # index and in proportion to the batch, its check for what it stepped
+      # over goes by key lookups, and the Test Monitor claim reads only the
+      # unanswered tests' partial index. A table read whole fails it.
+      - name: Test the probe dispatch statements' plans on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_DISPATCH_PLAN_TESTS: "true"
+          PROBE_DISPATCH_PLAN_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_DISPATCH_PLAN_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_DISPATCH_PLAN_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProbeDispatchQueryPlansPostgres.test.ts --forceExit
 
       # Checks the migrated MonitorProbe and NetworkDevice tables' indexes and
       # fillfactor, then clones them (with Project, Probe and Monitor) into an
@@ -1204,7 +1229,7 @@ jobs:
       # writes must be HOT updates (MatchMonitorIndexesToTheirReads,
       # SetMonitorFillfactor).
       - name: Test Monitor's indexes and HOT updates against Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_MONITOR_INDEX_TESTS: "true"
@@ -1244,7 +1269,7 @@ jobs:
       # project and to a label the caller is held to, and never a private
       # incident, alert or episode - a workflow does not act on one (#8914).
       - name: Test Run Workflow's record lookup on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_RUN_RECORD_SEARCH_TESTS: "true"
@@ -1453,7 +1478,7 @@ jobs:
       # it; an older walk processed late leaves what a newer one confirmed;
       # no walk writes isMonitored.
       - name: Test which network interface writes repeated polls make against Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_NETWORK_INTERFACE_WRITE_TESTS: "true"
@@ -1585,7 +1610,7 @@ jobs:
       # Clones the migrated IncidentAlert (and its FKs/unique index) into an
       # isolated schema, so it must run after the registered migrations.
       - name: Test IncidentAlert link table on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_INCIDENT_ALERT_TESTS: "true"
@@ -1722,7 +1747,7 @@ jobs:
       # and the migration suite runs the entity-key index migration's build
       # and skip branches against a clone of InventoryItem.
       - name: Test the Topology API's SQL against the migrated schema
-        if: matrix.shard == 1
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_TOPOLOGY_TESTS: "true"
@@ -1773,7 +1798,7 @@ jobs:
       # row is not private, even when a privacy change commits while the
       # write waits for the row.
       - name: Test incident status page scope on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_INCIDENT_STATUS_PAGE_SCOPE_TESTS: "true"
@@ -1981,7 +2006,7 @@ jobs:
       # a monitor field's renames on the fields that copy it; move all stores
       # or none; and count the option editor's values over live records only.
       - name: Test custom field option renames on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_CUSTOM_FIELD_OPTION_TESTS: "true"
@@ -2138,7 +2163,7 @@ jobs:
       # how long a part has been in its state, the rule that a failing service never
       # empties its parts, and 500,000 rows of one cloud.
       - name: Test the OpenStack inventory SQL on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
@@ -2213,7 +2238,7 @@ jobs:
       # A reading of usage, on a real database: its grouped reads, a time counted once however
       # many workers read it, and a whole cloud within budget at the largest size tested.
       - name: Check OpenStack usage against Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
@@ -2256,7 +2281,7 @@ jobs:
       # What keeps the inventory table standing up at OpenStack's largest clouds: writes that only
       # write what changed, deletes and statements of a stated size, reads that don't slow down.
       - name: Test the OpenStack inventory at scale on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OPENSTACK_INVENTORY_TESTS: "true"
@@ -2344,7 +2369,7 @@ jobs:
       # choice, and gets a rule that holds it only when it has no enabled
       # rule of that kind.
       - name: Test moving the fix pull request switches into the rules on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_FIX_PULL_REQUEST_SWITCH_TESTS: "true"
@@ -2383,7 +2408,7 @@ jobs:
       # off, then on with the plans config.env sets, where the project's plan
       # decides what comes over.
       - name: Test an import from another tool on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_TOOL_IMPORT_TESTS: "true"
@@ -2394,7 +2419,7 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/ToolImport/ToolImportPostgres.test.ts --forceExit
       - name: Test an import from another tool with billing on, on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_TOOL_IMPORT_TESTS: "true"
@@ -2419,7 +2444,7 @@ jobs:
       # the count the project shows stays what the Monitor table holds.
       # Billing is turned on inside the suite.
       - name: Test the active monitor limit on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_ACTIVE_MONITOR_LIMIT_TESTS: "true"
@@ -2439,7 +2464,7 @@ jobs:
       # room for (each INSERT is counted again in its own transaction under
       # a per-project advisory lock). Billing is turned on inside the suite.
       - name: Test a project's plan limits on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_PLAN_LIMIT_TESTS: "true"
@@ -2459,7 +2484,7 @@ jobs:
       # write under the project's lock on override times); back to back,
       # other people, other policies and global beside a policy's all save.
       - name: Test user overrides that may not overlap on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_USER_OVERRIDE_OVERLAP_TESTS: "true"
@@ -2482,7 +2507,7 @@ jobs:
       # sends one welcome, and a cancelled subscription is not turned back on
       # where its contact is taken.
       - name: Test one subscriber per contact per status page on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_SUBSCRIBER_CONTACT_TESTS: "true"
@@ -2569,7 +2594,7 @@ jobs:
       # device's serial number finds when telemetry names the device another
       # way (#9586).
       - name: Test the inventory overview, status facets and hosts by serial number on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_INVENTORY_FACET_TESTS: "true"
@@ -2599,7 +2624,7 @@ jobs:
           --forceExit
 
       - name: Test who may create on-call policy children on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_ON_CALL_AUTHORIZATION_TESTS: "true"
@@ -2618,7 +2643,7 @@ jobs:
       # unique keeps the oldest row of each copy and soft-deletes the rest,
       # writing nothing when run again; all on copies of the migrated tables.
       - name: Test that a responder is on an escalation rule once, on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_ESCALATION_RULE_RESPONDER_TESTS: "true"
@@ -2650,7 +2675,7 @@ jobs:
       # declared, and a member's permissions through a role compared with
       # the same permissions given directly.
       - name: Test custom roles on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_CUSTOM_ROLE_TESTS: "true"
@@ -2982,7 +3007,7 @@ jobs:
       # With node-postgres' own query_timeout the next borrower committed it.
       # Its table lives in a schema of its own; it needs no migrated table.
       - name: Test statements the app stops waiting for on Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_ABANDONED_STATEMENT_TESTS: "true"
@@ -3181,7 +3206,7 @@ jobs:
       # delete that read none reaches only rows deleted before, so the
       # retention job's purge still removes them.
       - name: Test sign-in changes named by a filter on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_SSO_FILTER_WRITES_TESTS: "true"
@@ -3391,7 +3416,7 @@ jobs:
       # and must reach the same records; and none outside the reader's labels.
       # Clones the migrated tables into an isolated schema.
       - name: Test label-limited lists before and after on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_LABEL_LIMITED_LIST_TESTS: "true"
@@ -3429,7 +3454,7 @@ jobs:
       # caller's project, and grants and blocks with or without labels hold
       # on every path, for teams and API keys, across projects too.
       - name: Test the records the CRUD API reaches on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_RECORD_SCOPE_TESTS: "true"
@@ -3475,7 +3500,7 @@ jobs:
       # before - a matrix of team grants, owners and incidents, about a
       # minute.
       - name: Test that a private incident is changed only through its owners on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_RECORD_SCOPE_TESTS: "true"
@@ -3496,7 +3521,7 @@ jobs:
       # incidents, a team's block on a label and a private incident - and
       # holds each answer to what the same writes then do.
       - name: Test what the reader may do on an incident, against the real rule on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_RECORD_ACCESS_TESTS: "true"
@@ -3606,7 +3631,7 @@ jobs:
       # an owner of a monitor they may not read, and the records of a monitor
       # or a status page keep to the owned ones.
       - name: Test what a member limited to owned records deletes on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OWNED_RECORDS_DELETE_TESTS: "true"
@@ -3648,7 +3673,7 @@ jobs:
       # project's record or a read-only member is refused with nothing
       # written.
       - name: Test what Slack and Teams buttons write, and for whom, on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_WORKSPACE_MEMBER_ACTION_TESTS: "true"
@@ -3703,7 +3728,7 @@ jobs:
       # and nothing else while the on-call history stays, and the data
       # migration's walk removes former members' leftovers only.
       - name: Test project membership and leaving a project on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_PROJECT_MEMBERSHIP_TESTS: "true"
@@ -3843,7 +3868,7 @@ jobs:
       # different people signed in from in the last 30 days, each person
       # counted once, removed and older sessions left out.
       - name: Test where people sign in from on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_SHARED_VISITOR_ADDRESSES_TESTS: "true"
@@ -4111,7 +4136,7 @@ jobs:
       # old one's buckets to within a microsecond, and times both on a
       # flapping page.
       - name: Test a monitor's day bars against the previous day split on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_DAILY_UPTIME_AGGREGATE_TESTS: "true"
@@ -4428,6 +4453,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ProbeShippedKeyUpgradePostgres.test.ts --forceExit
+
+      # Handing monitors out to probes at issue #10819's scale does not
+      # regress: the benchmark (scripts/benchmark-probe-dispatch.ts) runs three
+      # App replicas, each a process with its own pool, with the real
+      # /monitor/list and /monitor-test/list, probe scheduling limit and
+      # claims, and one probe of 20 replicas of 3 workers asking for the
+      # issue's 39,700 due monitors, all due at once, for 45 seconds. It fails
+      # under 300 monitors a second (121 before the fix, 1,036 after, on a
+      # development machine), on short batches while the backlog is due, on
+      # a busy answer, or on a Test Monitor run not handed out in time. Its
+      # tables are copied into a schema of its own and dropped after.
+      - name: Test probe dispatch throughput at the issue's scale on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_PROBE_DISPATCH_BENCHMARK_TESTS: "true"
+          PROBE_DISPATCH_BENCHMARK_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_DISPATCH_BENCHMARK_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_DISPATCH_BENCHMARK_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Telemetry/ProbeDispatchThroughputPostgres.test.ts --forceExit
 
       # A Docker host deleted while its agent runs (#5214), end to end: Docker
       # metric batches through the metrics ingest worker, on copies of the
@@ -4907,6 +4954,29 @@ jobs:
           Tests/Workers/DataMigrations/BackfillMonitorFirstMeasuredAtForUptimeHistoryPostgres.test.ts
           --forceExit
 
+      # #11023: the on-call time logs that policies deleted before #10983
+      # left open, which User On-Call Time counted as on call around the
+      # clock. EndOnCallTimeLogsOfDeletedPolicies ends exactly the open,
+      # undeleted logs of a policy no row has: when the audit log says it
+      # was deleted, else at the last stint started on it, else at their
+      # own start, never past the deletion; more than a page of them; a
+      # second run, or two at once, changes nothing more; and the report's
+      # own query and totals, before and after. Clones the migrated
+      # OnCallDutyPolicy and OnCallDutyPolicyTimeLog tables into an
+      # isolated schema. An App suite, so in shard 3, which installs App.
+      - name: Test ending the time logs deleted on-call policies left open on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_ORPHANED_ON_CALL_TIME_LOGS_TESTS: "true"
+          ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          ORPHANED_ON_CALL_TIME_LOGS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/EndOnCallTimeLogsOfDeletedPoliciesPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when
@@ -4915,7 +4985,7 @@ jobs:
       # usage counts of the Archive and Delete dialogs run by Postgres for
       # every reference the models declare.
       - name: Test archiving states, severities, statuses, labels and roles on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_ARCHIVABLE_VALUES_TESTS: "true"
@@ -5011,7 +5081,7 @@ jobs:
       # before; and KeepSampleProjectColumns puts them back where 15.0.0
       # already dropped them. In a schema of its own.
       - name: Test removing the sample projects on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_SAMPLE_REMOVAL_TESTS: "true"
@@ -5054,7 +5124,7 @@ jobs:
       # again; and the repair of rules whose lists hold only soft-deleted
       # records.
       - name: Test rules limited to deleted records on migrated Postgres
-        if: matrix.shard == 1
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_RULE_EMPTIED_LIMITS_TESTS: "true"
@@ -5073,7 +5143,7 @@ jobs:
       # the status its postmortem is in, and the list's reads through the
       # incident service.
       - name: Test postmortem statuses and their backfill on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_POSTMORTEM_STATUS_TESTS: "true"
@@ -5093,7 +5163,7 @@ jobs:
       # tables read through their indexes, and a reader who may not read the
       # owners refused.
       - name: Test every list filtered by its owners on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 4
         working-directory: packages/Common
         env:
           RUN_POSTGRES_OWNER_FILTER_TESTS: "true"
@@ -5153,9 +5223,13 @@ jobs:
       # label's reader; and the lower pickers past their first 10,000 - the
       # on-call setup's and Setup Health's policies, a budget's team or
       # label, a workflow step's workflow (never the one being edited) and
-      # incident template, and Add to Dashboard's dashboards.
+      # incident template, and Add to Dashboard's dashboards. #10921: Logs
+      # Insights' scope - services, hosts, clusters and the other resources
+      # telemetry names - searched by name or identifier and named by id;
+      # and Fix with AI's repository choices searched, each held to the
+      # repositories its fix accepts.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
-        if: matrix.shard == 2
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_PICKER_SEARCH_TESTS: "true"
@@ -5178,6 +5252,8 @@ jobs:
           Tests/Server/API/CodeRepositorySearchPostgres.test.ts
           Tests/Server/API/TelemetryServicePickerSearchPostgres.test.ts
           Tests/Server/API/LowerPickersSearchPostgres.test.ts
+          Tests/Server/API/TelemetryResourceScopeSearchPostgres.test.ts
+          Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
           --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two
@@ -5271,7 +5347,7 @@ jobs:
       # widening it in place), and every Rule Library entry and playbook
       # template created as it is.
       - name: Test Turn on recommended on migrated Postgres
-        if: matrix.shard == 3
+        if: matrix.shard == 5
         working-directory: packages/Common
         env:
           RUN_POSTGRES_TURN_ON_RECOMMENDED_TESTS: "true"
@@ -5301,6 +5377,26 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskPostgres.test.ts
+          --forceExit
+
+      # Erasing one person from Security Events' user vault (#10908) on
+      # copies of the migrated tables it changes, through the real SQL and
+      # services: detections, cases, entity risk and proposals take the
+      # token in the person's place (found by the name in a jsonb column's
+      # text), a waiting run is cancelled and an AI action withdrawn, a
+      # second run changes nothing; a request keeps what was typed
+      # encrypted and wipes it once over, and its claim is atomic.
+      - name: Test Security Events erasure requests on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SECURITY_USER_ERASURE_TESTS: "true"
+          SECURITY_USER_ERASURE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SECURITY_USER_ERASURE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SECURITY_USER_ERASURE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/SecurityEvent/UserVault/SecurityUserErasurePostgres.test.ts
           --forceExit
 
       # The Enterprise half: GET /team/compliance-status/:teamId end to end -

@@ -48,10 +48,8 @@ export default (): ReflectionMetadataType => {
 };
 
 // What each model's marked column is, worked out once per model.
-const columnByModel: WeakMap<object, string | null> = new WeakMap<
-  object,
-  string | null
->();
+const columnByModel: WeakMap<{ new (): BaseModel }, string | null> =
+  new WeakMap<{ new (): BaseModel }, string | null>();
 
 /*
  * The column a model holds one of its kind in its project while the project
@@ -66,15 +64,16 @@ export const getUniqueNameWhenRequiredColumn: (
     return null;
   }
 
-  const modelType: object =
-    typeof model === "function" ? model : model.constructor;
+  const modelType: { new (): BaseModel } =
+    typeof model === "function"
+      ? model
+      : (model.constructor as { new (): BaseModel });
 
   if (columnByModel.has(modelType)) {
     return columnByModel.get(modelType) || null;
   }
 
-  const instance: BaseModel =
-    typeof model === "function" ? new model() : model;
+  const instance: BaseModel = typeof model === "function" ? new model() : model;
 
   let found: string | null = null;
 

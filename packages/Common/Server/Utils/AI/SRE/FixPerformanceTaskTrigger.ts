@@ -325,7 +325,11 @@ export default class FixPerformanceTaskTrigger {
    * The repositories a person may pick for a fix no repository was found to
    * hold for certain: every connected one OneUptime AI can work in
    * (CodeRepositoryService.getResolvableRepositories, the candidates the
-   * run's own resolution reads), by name.
+   * run's own resolution reads), by name - the first
+   * MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES of them. The suggestion lists
+   * them to say a pick is asked for (more than one); the trace page's picker
+   * searches the server for the pick (#10921), and a pick is checked by
+   * itself (isRepositoryChoice), so one past them is never refused.
    */
   public static async getRepositoryChoices(
     projectId: ObjectID,
@@ -358,6 +362,31 @@ export default class FixPerformanceTaskTrigger {
         },
       )
       .slice(0, MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES);
+  }
+
+  /*
+   * Whether a repository a person picked is one a pick may name: one the
+   * project connected that AI can work in (the choices' rule,
+   * getResolvableRepositories), asked of that one repository - never looked
+   * for among a first page of them (#10921).
+   */
+  public static async isRepositoryChoice(data: {
+    projectId: ObjectID;
+    pickedRepositoryId?: ObjectID | undefined;
+  }): Promise<boolean> {
+    const pickedId: string = data.pickedRepositoryId
+      ? data.pickedRepositoryId.toString().trim().toLowerCase()
+      : "";
+
+    if (!ObjectID.isValidUUID(pickedId)) {
+      return false;
+    }
+
+    // Keyed as the database writes an id: lower-cased.
+    return await CodeTaskGate.isRepositoryReachable({
+      projectId: data.projectId,
+      repositoryId: new ObjectID(pickedId),
+    });
   }
 
   /*
@@ -754,18 +783,16 @@ export default class FixPerformanceTaskTrigger {
     /*
      * Gate — a repository the person picked is one the project connected
      * and AI can work in; the run works in it, when it is queued and when
-     * it starts (CodeFixTaskContext.pickedCodeRepositoryId).
+     * it starts (CodeFixTaskContext.pickedCodeRepositoryId). Any one of
+     * them, however many the project has (#10921): the pick was checked
+     * against the first MAX_TRACE_PERFORMANCE_FIX_REPOSITORIES of them by
+     * name, so a connected repository past them - which the trace page's
+     * picker finds by a search on the server - was refused.
      */
     if (data.pickedRepositoryId) {
       const pickedId: string = data.pickedRepositoryId.toString().toLowerCase();
-      const choices: Array<TracePerformanceFixRepository> =
-        await FixPerformanceTaskTrigger.getRepositoryChoices(data.projectId);
 
-      if (
-        !choices.some((choice: TracePerformanceFixRepository): boolean => {
-          return choice.id.toLowerCase() === pickedId;
-        })
-      ) {
+      if (!(await FixPerformanceTaskTrigger.isRepositoryChoice(data))) {
         throw new BadDataException(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE);
       }
 

@@ -1,4 +1,5 @@
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
+import { toCallVoiceValue } from "../../Types/Call/CallVoice";
 import ServerTwilioEnvironment, {
   ServerTwilioEnvironmentReading,
 } from "../../Types/CallAndSMS/ServerTwilioEnvironment";
@@ -102,6 +103,30 @@ const toTwilioConfig: (
   return twilioConfig;
 };
 
+/*
+ * The account, with the voice its calls speak with: the one chosen in the
+ * Admin Dashboard (GlobalConfig.twilioCallVoice, #10948), from OneUptime's
+ * list, whoever set the account - the row, or the GLOBAL_TWILIO_ variables,
+ * which say nothing of a voice. None is the account's default voice.
+ */
+const withCallVoice: (
+  config: TwilioConfig | null,
+  globalConfig: GlobalConfig | null | undefined,
+) => TwilioConfig | null = (
+  config: TwilioConfig | null,
+  globalConfig: GlobalConfig | null | undefined,
+): TwilioConfig | null => {
+  const callVoice: string | undefined = toCallVoiceValue(
+    globalConfig?.twilioCallVoice,
+  );
+
+  if (!config || !callVoice) {
+    return config;
+  }
+
+  return { ...config, callVoice: callVoice };
+};
+
 export const toServerTwilioConfig: (
   globalConfig: GlobalConfig | null | undefined,
 ) => TwilioConfig | null = (
@@ -113,11 +138,11 @@ export const toServerTwilioConfig: (
   if (environment.isSet) {
     // The variables are the whole account, and one with a problem sends nothing.
     return ServerTwilioEnvironment.isUsable(environment)
-      ? toTwilioConfig(environment.account)
+      ? withCallVoice(toTwilioConfig(environment.account), globalConfig)
       : null;
   }
 
-  return toTwilioConfig(globalConfig);
+  return withCallVoice(toTwilioConfig(globalConfig), globalConfig);
 };
 
 export default toServerTwilioConfig;

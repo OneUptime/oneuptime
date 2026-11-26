@@ -789,6 +789,9 @@
   "/dashboard/:projectId/security-events/settings/risk-scoring": [
     "security-events"
   ],
+  "/dashboard/:projectId/security-events/settings/erasure-requests": [
+    "security-events"
+  ],
   "/dashboard/:projectId/data-security/overview": [
     "data-security"
   ],

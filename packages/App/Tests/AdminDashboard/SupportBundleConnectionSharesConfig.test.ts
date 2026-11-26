@@ -16,6 +16,8 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 const KEYS: Array<string> = [
   "DATABASE_MAX_QUEUE_JOB_CONNECTIONS",
   "PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS",
+  // Issue #10819: the Test Monitor lane's slots, beside the work lane's.
+  "PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS",
 ];
 
 // AdminHealth's defence-in-depth pattern, as in the other bundle tests.
@@ -46,7 +48,7 @@ describe("support bundle: how the Postgres pool is shared", () => {
     }
   });
 
-  test("both are allow-listed once, beside the pool size they share", () => {
+  test("each is allow-listed once, beside the pool size they share", () => {
     for (const key of KEYS) {
       expect(
         SUPPORT_CONFIG_ALLOW_LIST.filter((entry: string): boolean => {
@@ -67,5 +69,18 @@ describe("support bundle: how the Postgres pool is shared", () => {
 
     expect(config["DATABASE_MAX_QUEUE_JOB_CONNECTIONS"]).toBe("40");
     expect("PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS" in config).toBe(false);
+    expect(
+      "PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS" in config,
+    ).toBe(false);
+  });
+
+  test("an override of the Test Monitor lane reaches the bundle", () => {
+    process.env["PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS"] = "4";
+
+    const config: JSONObject = getRedactedConfig();
+
+    expect(
+      config["PROBE_SCHEDULING_MAX_CONCURRENT_MONITOR_TEST_REQUESTS"],
+    ).toBe("4");
   });
 });

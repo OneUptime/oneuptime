@@ -20,6 +20,14 @@ import {
   isSignedWithAuthToken,
 } from "Common/Server/Utils/TwilioWebhookSignature";
 import { toTwimlText } from "Common/Utils/Call/CallSpeech";
+import { CallVoice, getCallVoice } from "Common/Types/Call/CallVoice";
+import VoiceResponse from "twilio/lib/twiml/VoiceResponse";
+
+/*
+ * The voice an incoming call policy's greetings were always said in: Twilio's
+ * legacy Basic "alice", which a config that chose no voice keeps.
+ */
+export const INCOMING_CALL_DEFAULT_VOICE: string = "alice";
 
 export default class TwilioCallProvider implements ICallProvider {
   private client: Twilio.Twilio;
@@ -183,10 +191,37 @@ export default class TwilioCallProvider implements ICallProvider {
     });
   }
 
+  /*
+   * How an incoming call policy's greetings speak: in the voice chosen for
+   * the config the number belongs to (Types/Call/CallVoice, #10948), with
+   * the language it speaks - or, with none chosen, in "alice", as they
+   * always were. A greeting is the policy owner's own words, said as
+   * written: no SSML.
+   */
+  public getGreetingSayAttributes(): VoiceResponse.SayAttributes {
+    const voice: CallVoice | null = getCallVoice(this.config.callVoice);
+
+    if (!voice) {
+      return {
+        voice: INCOMING_CALL_DEFAULT_VOICE as NonNullable<
+          VoiceResponse.SayAttributes["voice"]
+        >,
+      };
+    }
+
+    // As every <Say> of a call names a voice (Common's CallTwimlSpeech).
+    return {
+      voice: voice.value as NonNullable<VoiceResponse.SayAttributes["voice"]>,
+      language: voice.language as NonNullable<
+        VoiceResponse.SayAttributes["language"]
+      >,
+    };
+  }
+
   public generateGreetingResponse(message: string): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
-    response.say({ voice: "alice" }, toTwimlText(message));
+    response.say(this.getGreetingSayAttributes(), toTwimlText(message));
     return response.toString();
   }
 
@@ -207,7 +242,7 @@ export default class TwilioCallProvider implements ICallProvider {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
     if (message) {
-      response.say({ voice: "alice" }, toTwimlText(message));
+      response.say(this.getGreetingSayAttributes(), toTwimlText(message));
     }
     response.hangup();
     return response.toString();
@@ -219,7 +254,7 @@ export default class TwilioCallProvider implements ICallProvider {
   ): string {
     const response: Twilio.twiml.VoiceResponse =
       new Twilio.twiml.VoiceResponse();
-    response.say({ voice: "alice" }, toTwimlText(message));
+    response.say(this.getGreetingSayAttributes(), toTwimlText(message));
     const dial: ReturnType<Twilio.twiml.VoiceResponse["dial"]> = response.dial({
       action: nextDialOptions.statusCallbackUrl,
       method: "POST",

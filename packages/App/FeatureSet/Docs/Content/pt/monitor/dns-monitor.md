@@ -118,7 +118,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 
 ### Avaliar durante um período de tempo
 
-**Avaliar este critério durante um período de tempo** é uma caixa de seleção sob um filtro, oferecida para **DNS online** e **Tempo de resposta do DNS (em ms)**. Ative-a para julgar uma janela de verificações passadas em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 minutos a 24 horas, em **No último período de**.
+**Avaliar este critério durante um período de tempo** é uma caixa de seleção sob um filtro, oferecida para **DNS online**, **Tempo de resposta do DNS (em ms)** e **Valor do registro DNS**. Ative-a para julgar uma janela de verificações passadas em vez da última: escolha uma agregação em **Avaliar** e uma janela, de 2 minutos a 24 horas, em **No último período de**. Para **Valor do registro DNS**, a única opção é **Verificação anterior**: veja [Quando a resposta DNS muda](#quando-a-resposta-dns-muda).
 
 | Agregação | Corresponde quando |
 | --- | --- |
@@ -126,7 +126,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 | **Todos os valores** | Toda verificação da janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação da janela atende à condição. |
 | **Contagem**, **Porcentagem**, **Mudanças de status** | Quantas verificações atenderam à condição, a proporção delas ou quantas vezes passaram de atendê-la para não atendê-la é comparado com o número definido abaixo. |
-| **Verificação anterior** | Esta verificação, comparada com a verificação anterior da sonda conforme definido em **Variação em relação à verificação anterior**: um tempo de resposta mais de 50% acima dela, por exemplo. Um filtro verdadeiro ou falso corresponde na verificação que começou a atender à condição. |
+| **Verificação anterior** | Esta verificação, comparada com a verificação anterior da sonda conforme definido em **Variação em relação à verificação anterior**: um tempo de resposta mais de 50% acima dela, por exemplo. Um filtro verdadeiro ou falso corresponde na verificação que começou a atender à condição. **Valor do registro DNS** compara a resposta inteira: veja abaixo. |
 
 A opção **Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
 
@@ -138,11 +138,26 @@ A opção **Todos os valores** só corresponde quando a janela está de fato cob
 | **Gatilho** | A falta de dados conta como o problema. | Verificações em que o silêncio é, por si só, uma falha. |
 | **Treat As Zero** | A janela é comparada como um único zero. | Contadores em que nenhum evento significa de fato zero. |
 
+### Quando a resposta DNS muda
+
+Para saber quando a resposta de um nome muda, como um endereço que mudou de lugar, um servidor de e-mail substituído ou um registro adicionado ou sumido, compare **Valor do registro DNS** com a verificação anterior:
+
+1. Adicione um filtro com **Valor do registro DNS** e **Diferente de**.
+2. Marque **Avaliar este critério durante um período de tempo**. **Verificação anterior** é a única opção em **Avaliar** para este filtro, e não precisa de valor.
+3. Em **No último período de**, escolha há quanto tempo a verificação anterior pode ter sido feita: mais que o intervalo de monitoramento.
+
+A resposta é comparada por inteiro: todos os registros do tipo, sem o TTL deles. Os mesmos registros em outra ordem são a mesma resposta, e um nome com outras maiúsculas e minúsculas também, já que nomes DNS não diferenciam maiúsculas de minúsculas. Um registro adicionado, removido ou alterado gera uma resposta diferente. **Igual a** corresponde ao contrário, a uma resposta igual à da verificação anterior, para um critério que deve valer enquanto a resposta estiver estável.
+
+A resposta de cada sonda é comparada com a resposta anterior da mesma sonda, e a de cada etapa com a dela mesma, então um nome que responde de forma diferente em regiões diferentes não é uma mudança. Uma verificação que não recebe resposta, porque o nome não resolve ou a consulta expira, não é comparada: para isso existe o filtro **DNS online**. A próxima verificação que recebe resposta é comparada com a última resposta antes dela, se estiver dentro de **No último período de**. Sem uma resposta anterior na janela, como na primeira verificação do monitor, quem decide é **Se não houver dados**, como em qualquer comparação com a verificação anterior.
+
+O incidente ou o alerta diz qual era a resposta e qual é agora: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Exemplos de critérios
 
 | Objetivo | Filtro | Condição | Valor |
 | --- | --- | --- | --- |
 | Offline quando o nome deixa de resolver | **DNS online** | **Falso** | — |
+| Alertar quando a resposta de um nome muda | **Valor do registro DNS**, avaliado em **Verificação anterior** | **Diferente de** | — |
 | Alertar quando o único registro `A` de um nome muda | **Valor do registro DNS** | **Diferente de** | `93.184.216.34` |
 | Alertar quando um registro `MX` aponta para fora do seu domínio | **Valor do registro DNS** | **Não contém** | `example.com` |
 | Marcar o DNS como degradado quando está lento | **Tempo de resposta do DNS (em ms)** | **Maior que** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Mantenha no topo o critério offline padrão: **DNS online** / **Falso**.
 2. Abaixo dele, adicione um critério com **Valor do registro DNS** / **Igual a** / o valor esperado, que marque o monitor como **Operacional**.
 3. Abaixo desse, adicione um critério com **DNS online** / **Verdadeiro**, que marque o monitor como **Offline** e declare um incidente. Ele só corresponde a respostas que não têm o valor.
+:::
+
+:::details Um critério que compara a resposta com a verificação anterior dispara a cada verificação
+O servidor devolve uma parte diferente de um grande conjunto de registros a cada consulta, como fazem alguns nomes com balanceamento de carga. Cada uma dessas respostas é um conjunto diferente de registros. Consulte em **Servidor DNS (Opcional)** um servidor que devolva o conjunto inteiro, ou verifique o valor que você espera com **Valor do registro DNS** / **Igual a**.
 :::
 
 :::details DNSSEC válido nunca corresponde

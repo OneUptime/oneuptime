@@ -61,15 +61,13 @@ export const getProjectNameRule: (
     return null;
   }
 
-  const instance: BaseModel =
-    typeof model === "function" ? new model() : model;
+  const instance: BaseModel = typeof model === "function" ? new model() : model;
 
   if (instance.getTenantColumn() !== PROJECT_COLUMN) {
     return null;
   }
 
-  const markedColumn: string | null =
-    getUniqueNameWhenRequiredColumn(instance);
+  const markedColumn: string | null = getUniqueNameWhenRequiredColumn(instance);
 
   if (markedColumn) {
     return { column: markedColumn, isAlwaysUnique: false };

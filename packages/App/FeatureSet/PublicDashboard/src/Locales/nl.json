@@ -69,6 +69,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Wat is verzonden, was te groot voor de server om te accepteren, dus dit is niet voltooid. Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Wat is verzonden, is groter dan de 50 MB die OneUptime in één verzoek accepteert, dus dit is niet voltooid. Probeer het opnieuw met minder tegelijk, bijvoorbeeld een kleiner bestand.",
   "This did not finish.": "Dit is niet voltooid.",
+  "The {{itemName}} was not deleted.": "{{itemName}} is niet verwijderd.",
+  "“{{action}}” did not finish.": "\"{{action}}\" is niet voltooid.",
   "The server ran into a problem it could not explain.": "De server liep tegen een probleem aan dat hij niet kon verklaren.",
   "The OneUptime server did not answer.": "De OneUptime-server gaf geen antwoord.",
   "OneUptime could not be reached.": "OneUptime was niet bereikbaar.",

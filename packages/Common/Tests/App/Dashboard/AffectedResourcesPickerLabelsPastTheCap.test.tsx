@@ -55,11 +55,13 @@ jest.mock("../../../UI/Utils/User", () => {
 
 import AffectedResourcesPicker, {
   AffectedResourcesPayload,
+  LABEL_BULK_ADD_PAGE_SIZE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesPicker";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Search from "../../../Types/BaseDatabase/Search";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import { LABEL_SEARCH_PAGE_SIZE } from "../../../UI/Components/EntityDropdown/LabelSearch";
@@ -211,5 +213,123 @@ describe("the Affected Resources picker's Labels tab", () => {
     expect(
       await screen.findByText("No labels match “nothing called this”."),
     ).toBeVisible();
+  });
+});
+
+/*
+ * A LABEL'S BULK ADD TAKES EVERY RESOURCE IT TAGS (#10921).
+ *
+ * "Add resources from 1 label" read the first 10,000 resources of each
+ * kind the label tags, by name, and added those: a label on a fleet past
+ * that size added part of it, and said nothing. It reads them a page at a
+ * time now, ordered by id, until every one is in.
+ */
+describe("the Affected Resources picker's label bulk add", () => {
+  const FLEET_LABEL_ID: string = "a1000000-0000-4000-8000-0000000000fb";
+  const FLEET_SIZE: number = LIMIT_PER_PROJECT + 50;
+
+  beforeEach(() => {
+    server.add(Label, [{ _id: FLEET_LABEL_ID, name: "WB fleet" }]);
+    server.add(
+      Monitor,
+      namesSortingFirst(FLEET_SIZE, "FL").map(
+        (name: string): Record<string, unknown> => {
+          return {
+            _id: ObjectID.generate().toString(),
+            name: name,
+            labels: FLEET_LABEL_ID,
+          };
+        },
+      ),
+    );
+  });
+
+  async function addFromFleetLabel(): Promise<void> {
+    await openLabelsTab();
+
+    await act(async () => {
+      fireEvent.change(screen.getByRole("combobox"), {
+        target: { value: "WB fleet" },
+      });
+    });
+
+    const label: HTMLElement = await screen.findByRole("option", {
+      name: /WB fleet/,
+    });
+
+    await act(async () => {
+      fireEvent.click(label);
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Add resources from 1 label" }),
+      );
+    });
+  }
+
+  function bulkReads(): Array<CappedListCall> {
+    return server.callsFor(Monitor).filter((call: CappedListCall): boolean => {
+      return (
+        call.query["labels"] instanceof Includes &&
+        call.limit === LABEL_BULK_ADD_PAGE_SIZE
+      );
+    });
+  }
+
+  test("adds every monitor a label tags past the 10,000th, a page at a time by id", async () => {
+    await addFromFleetLabel();
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalled();
+    });
+
+    const monitors: Array<string> =
+      (
+        onChange.mock.calls[onChange.mock.calls.length - 1]![0] as {
+          monitors?: Array<string>;
+        }
+      ).monitors || [];
+
+    expect(monitors).toHaveLength(FLEET_SIZE);
+    expect(new Set(monitors).size).toBe(FLEET_SIZE);
+
+    // Two pages, ordered by id so none is skipped or read twice.
+    expect(
+      bulkReads().map((call: CappedListCall): number => {
+        return call.skip;
+      }),
+    ).toEqual([0, LABEL_BULK_ADD_PAGE_SIZE]);
+
+    for (const call of bulkReads()) {
+      expect(call.sort).toEqual({ _id: SortOrder.Ascending });
+      expect((call.query["labels"] as Includes).values).toEqual([
+        FLEET_LABEL_ID,
+      ]);
+    }
+  });
+
+  test("a page that fails part-way adds nothing, and says so", async () => {
+    const list: (options: never) => unknown = server.list.bind(server);
+
+    jest.spyOn(server, "list").mockImplementation(((options: {
+      modelType: unknown;
+      skip?: number;
+    }) => {
+      if (options.modelType === Monitor && (options.skip || 0) > 0) {
+        throw new Error("The server is unavailable.");
+      }
+
+      return list(options as never);
+    }) as never);
+
+    await addFromFleetLabel();
+
+    expect(
+      await screen.findByText(
+        "Failed to fetch resources for the selected labels.",
+      ),
+    ).toBeVisible();
+    expect(onChange).not.toHaveBeenCalled();
   });
 });

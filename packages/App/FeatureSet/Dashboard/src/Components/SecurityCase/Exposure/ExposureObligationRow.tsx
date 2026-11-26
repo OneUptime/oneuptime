@@ -42,6 +42,7 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -59,7 +60,7 @@ export interface ComponentProps {
 
 const DOT: ReactElement = (
   <span aria-hidden="true" className="text-gray-400">
-    ·
+    <InlineSeparator markOnly />
   </span>
 );
 
