@@ -46,4 +46,7 @@ export const XCP_NG_DOCUMENTATION_TRANSLATIONS: SetupGuideTranslations = {
   ko: () => {
     return import("../DocumentationTranslations/ko");
   },
+  "zh-CN": () => {
+    return import("../DocumentationTranslations/zh-CN");
+  },
 };
