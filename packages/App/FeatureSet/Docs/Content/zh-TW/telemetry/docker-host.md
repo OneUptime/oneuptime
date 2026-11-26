@@ -150,7 +150,7 @@ Everything is ready. Begin running and processing data.
 | 容器指標 | 每個容器每 30 秒一次：CPU（用量、百分比、節流）、記憶體（用量、限制、百分比）、網路和區塊 I/O、執行時間、重新啟動次數和處理程序數。 |
 | 容器日誌 | 每個容器的 stdout 和 stderr，來自其 `json-file` 日誌檔案。 |
 
-每個容器的指標和日誌都會歸入一個以該容器命名的服務下。每一行日誌的嚴重性取自它所寫明的等級，例如 `[ERROR]`、`level=warn` 或 `{"level":"info"}`；沒有寫明等級的行則採用其所在串流的嚴重性：stderr 為 `ERROR`，stdout 為 `INFO`。以空白或右括號開頭的行會併入前一行，因此堆疊追蹤會以單一記錄送達。代理程式自身的日誌不會被收集。
+每個容器的指標和日誌都會歸入一個以該容器命名的服務下。每一行日誌的嚴重性取自它所寫明的等級，例如 `[ERROR]`、`level=warn` 或 `{"level":"info"}`，例外的 traceback 視為 `ERROR`。沒有寫明等級的行在 stdout 上為 `INFO`，而在程式寫入各個等級診斷訊息的 stderr 上沒有嚴重性。以空白或右括號開頭的行會併入前一行，因此堆疊追蹤會以單一記錄送達。代理程式自身的日誌不會被收集。
 
 [Docker 監控](/docs/monitor/docker-monitor#收集的指標) 列出了每個指標及其意義。
 

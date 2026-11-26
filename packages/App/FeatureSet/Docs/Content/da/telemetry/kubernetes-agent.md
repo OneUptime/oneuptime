@@ -471,14 +471,14 @@ Kubernetes-hændelser filtreres ikke efter namespace ved agenten: den sender dem
 
 Den accepterer `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` og `FATAL`. `WARN` beholder WARN, ERROR og FATAL og dropper INFO, DEBUG og TRACE; standarden (`""`) beholder alt. Den gælder i begge logtilstande (gennem collectoren i tilstanden `daemonset`, inde i log-taileren i tilstanden `api`), så et preset slår den aldrig fra bag din ryg.
 
-Container-runtimes registrerer ingen alvorlighed, så agenten læser en fra selve logteksten (`[ERROR]`, `WARN:`, `"level":"info"`, …). Hvad der sker med en linje uden genkendeligt niveau, afhænger af logtilstanden, fordi de to tilstande ved forskellige ting:
+Container-runtimes registrerer ingen alvorlighed, så agenten læser det niveau, hver linje nævner: et niveauord (`[ERROR]`, `WARN:`, `"level":"info"`, …), det første bogstav i en klog-linje (`I`, `W`, `E`, `F`), PostgreSQL's `LOG:` eller pinos `"level":30`. En undtagelses traceback eller en panic tæller som ERROR. Hvad der sker med en linje, der ikke nævner noget niveau, afhænger af logtilstanden, fordi de to tilstande ved forskellige ting:
 
 | Tilstand | En linje uden niveau | Hvorfor |
 | --- | --- | --- |
-| `daemonset` | `stderr` tæller som ERROR (beholdes), `stdout` som INFO (droppes af en WARN-tærskel) | Container-runtimen registrerer, hvilken strøm hver linje kom fra. |
+| `daemonset` | `stdout` tæller som INFO (droppes af en WARN-tærskel); `stderr` har ingen alvorlighed, vises som Uspecificeret og beholdes | Container-runtimen registrerer, hvilken strøm hver linje kom fra. stdout er et programs almindelige output, men programmer skriver deres diagnostik på alle niveauer til stderr, så en stderr-linje siger intet om sit niveau. |
 | `api` | Beholdes altid | Kubernetes-API'et `pods/log` fletter stdout og stderr til én strøm uden markør pr. linje, så i stedet for at gætte beholder agenten linjen. |
 
-Så tilstanden `api` dropper med vilje strengt mindre end tilstanden `daemonset`: en Python-traceback eller en `npm ERR!` bærer intet alvorlighedsnøgleord, og at slette den stille er netop den fejl, en tærskel skal beskytte dig mod. I hybridtilstand (`logs.windowsPods.enabled`) gælder begge rækker, efter nodens OS: Linux-pods følger `daemonset`, Windows-pods `api`.
+Så tilstanden `api` dropper med vilje strengt mindre end tilstanden `daemonset`: den kan ikke skelne en stderr-linje, der ikke nævner noget niveau, såsom en `npm ERR!`, fra almindeligt output, og at slette den stille er netop den fejl, en tærskel skal beskytte dig mod. I hybridtilstand (`logs.windowsPods.enabled`) gælder begge rækker, efter nodens OS: Linux-pods følger `daemonset`, Windows-pods `api`.
 
 Hændelser over flere linjer samles igen før filtreringen i begge tilstande, så en Java-stack trace bedømmes ud fra sin første linje og beholdes eller droppes som helhed.
 

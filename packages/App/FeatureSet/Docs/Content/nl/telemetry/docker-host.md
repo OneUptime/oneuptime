@@ -150,7 +150,7 @@ Om een waarde te wijzigen, verwijder je de agent en voer je zijn commando opnieu
 | Containermetrics | CPU (gebruik, percentage, throttling), geheugen (gebruik, limiet, percentage), netwerk- en blok-I/O, uptime, herstarts en aantal processen, per container, elke 30 seconden. |
 | Containerlogs | De stdout en stderr van elke container, uit zijn `json-file`-logbestand. |
 
-De metrics en logs van elke container worden opgeslagen onder een service die naar de container is genoemd. Elke logregel krijgt een severity op basis van het niveau dat hij noemt, zoals `[ERROR]`, `level=warn` of `{"level":"info"}`; een regel die er geen noemt, krijgt die van zijn stream: stderr is `ERROR`, stdout is `INFO`. Regels die beginnen met witruimte of een sluitend haakje worden aan de vorige regel toegevoegd, dus een stacktrace komt binnen als één record. De eigen logs van de agent worden weggelaten.
+De metrics en logs van elke container worden opgeslagen onder een service die naar de container is genoemd. Elke logregel krijgt een severity op basis van het niveau dat hij noemt, zoals `[ERROR]`, `level=warn` of `{"level":"info"}`, en de traceback van een exception telt als `ERROR`. Een regel die er geen noemt, is `INFO` op stdout en heeft geen severity op stderr, waar programma's hun diagnostiek van elk niveau naartoe schrijven. Regels die beginnen met witruimte of een sluitend haakje worden aan de vorige regel toegevoegd, dus een stacktrace komt binnen als één record. De eigen logs van de agent worden weggelaten.
 
 [Docker-monitor](/docs/monitor/docker-monitor#verzamelde-metrieken) toont elke metric en wat die betekent.
 

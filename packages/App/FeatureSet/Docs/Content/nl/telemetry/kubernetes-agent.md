@@ -471,14 +471,14 @@ Kubernetes-events worden bij de agent niet op namespace gefilterd: hij stuurt ze
 
 Hij accepteert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` en `FATAL`. `WARN` behoudt WARN, ERROR en FATAL en laat INFO, DEBUG en TRACE vallen; de standaard (`""`) behoudt alles. Hij geldt in beide logmodi (via de collector in de modus `daemonset`, in de logtailer in de modus `api`), dus een preset zet hem nooit achter je rug om uit.
 
-Container-runtimes registreren geen severity, dus de agent leest die uit de logtekst zelf (`[ERROR]`, `WARN:`, `"level":"info"`, …). Wat er gebeurt met een regel zonder herkenbaar niveau, hangt af van de logmodus, omdat de twee modi verschillende dingen weten:
+Container-runtimes registreren geen severity, dus de agent leest het niveau dat elke regel noemt: een niveauwoord (`[ERROR]`, `WARN:`, `"level":"info"`, …), de eerste letter van een klog-regel (`I`, `W`, `E`, `F`), de `LOG:` van PostgreSQL of de `"level":30` van pino. De traceback van een exception of een panic telt als ERROR. Wat er gebeurt met een regel die geen niveau noemt, hangt af van de logmodus, omdat de twee modi verschillende dingen weten:
 
 | Modus | Een regel zonder niveau | Waarom |
 | --- | --- | --- |
-| `daemonset` | `stderr` telt als ERROR (behouden), `stdout` als INFO (weggelaten door een WARN-drempel) | De container-runtime registreert uit welke stream elke regel kwam. |
+| `daemonset` | `stdout` telt als INFO (weggelaten door een WARN-drempel); `stderr` heeft geen severity, wordt getoond als Niet gespecificeerd en blijft behouden | De container-runtime registreert uit welke stream elke regel kwam. stdout is de gewone uitvoer van een programma, maar programma's schrijven hun diagnostiek van elk niveau naar stderr, dus een stderr-regel zegt niets over zijn niveau. |
 | `api` | Altijd behouden | De Kubernetes-API `pods/log` voegt stdout en stderr samen tot één stream zonder markering per regel, dus in plaats van te gokken behoudt de agent de regel. |
 
-De modus `api` laat dus bewust strikt minder vallen dan de modus `daemonset`: een Python-traceback of een `npm ERR!` bevat geen severity-sleutelwoord, en die ongemerkt verwijderen is precies de fout waartegen een drempel je moet beschermen. In de hybride modus (`logs.windowsPods.enabled`) gelden beide rijen, per OS van de node: Linux-pods volgen `daemonset`, Windows-pods `api`.
+De modus `api` laat dus bewust strikt minder vallen dan de modus `daemonset`: hij kan een stderr-regel die geen niveau noemt, zoals een `npm ERR!`, niet onderscheiden van gewone uitvoer, en die ongemerkt verwijderen is precies de fout waartegen een drempel je moet beschermen. In de hybride modus (`logs.windowsPods.enabled`) gelden beide rijen, per OS van de node: Linux-pods volgen `daemonset`, Windows-pods `api`.
 
 Gebeurtenissen over meerdere regels worden in beide modi vóór het filteren weer samengevoegd, dus een Java-stacktrace wordt beoordeeld op zijn eerste regel en als geheel behouden of weggelaten.
 

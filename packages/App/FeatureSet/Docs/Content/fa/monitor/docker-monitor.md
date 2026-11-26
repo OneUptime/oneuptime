@@ -203,7 +203,7 @@ flowchart TB
 | `resource.container.id` | شناسه کامل کانتینر. |
 | `resource.container.runtime` | همیشه `docker`. |
 | `attributes["log.iostream"]` | `stdout` یا `stderr`. |
-| `severityText` / `severityNumber` | از کلیدواژه سطح، هر جا سطحی در خط آمده باشد، خوانده می‌شود (`[ERROR]`، `app.INFO:`، `{"level":"warn"}`، `level=error`). خطی که سطح ندارد بر پایه جریانش تعیین می‌شود: `stderr` یعنی `ERROR`، `stdout` یعنی `INFO`. |
+| `severityText` / `severityNumber` | از سطحی که خط نام می‌برد، هر جا سطحی در آن آمده باشد، خوانده می‌شود (`[ERROR]`، `app.INFO:`، `{"level":"warn"}`، `level=error`)؛ traceback یک استثنا `ERROR` است. خطی که سطح ندارد در `stdout` برابر `INFO` است و در `stderr` هیچ شدتی ندارد (مشخص‌نشده). |
 | `body` | خطی که کانتینر نوشته است. خطوطی که با فاصله سفید یا پرانتز بسته شروع می‌شوند، مانند فریم‌های ردگیری پشته، به خط پیشین پیوست می‌شوند. |
 | `time` | مهر زمانی دیمن Docker برای آن خط. |
 
