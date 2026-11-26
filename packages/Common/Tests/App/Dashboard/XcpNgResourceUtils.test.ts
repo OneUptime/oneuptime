@@ -121,9 +121,8 @@ describe("numbers and dates as a column holds them", () => {
         now,
       ),
     ).toBe(false);
-    expect(isXcpNgReadingFresh({ metricsUpdatedAt: undefined }, now)).toBe(
-      false,
-    );
+    // A row with no reading yet.
+    expect(isXcpNgReadingFresh({}, now)).toBe(false);
   });
 });
 
