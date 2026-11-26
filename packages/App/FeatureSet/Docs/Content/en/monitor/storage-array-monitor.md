@@ -119,7 +119,7 @@ ONTAP's states come three ways:
 | `netapp_health_*_alerts` | Value 1, with `severity` (`error` or `warning`) and why in its labels | Open problem: a broken disk, a shelf fault, a node that cannot take over its partner, a port down, a system health alert |
 | `netapp_ems_events` | Value 1, with `message`, `severity` and the event's parameters | EMS event, for the one poll that collected it; a paired event's clearing is exported once more as 0 |
 
-A state as a number fires when every reading of the window is below 1, and recovers once a reading is 1 again. An open problem fires while its series is there and recovers once it is gone, as long as `netapp_cluster_new_status` still arrives, so a stopped agent closes nothing. An EMS event fires on its one reading and stays open while it is in the template's hour; it closes an hour after the last one.
+A state as a number fires when every reading of the window is below 1, and recovers once a reading is 1 again. An open problem fires while its series is there and recovers once it is gone, as long as `netapp_cluster_new_status` still arrives, so a stopped agent closes nothing. An EMS event fires on its one reading and stays open while it is in the template's hour; it recovers when an hour passes without another.
 
 ## Pre-built Alert Templates
 
@@ -157,17 +157,17 @@ A criteria fires only when the condition holds for **every** value in its window
 | High Read Latency            | Performance  | Warning  | `purefb_array_performance_latency_usec` filtered to `dimension=usec_per_read_op` and `protocol=all`, Avg, past 10 minutes | > 10000 µs (10 ms) across all protocols; recovers at ≤ 9000                                            |
 | File System Near Full        | File Systems | Warning  | `purefb_file_systems_space_bytes` filtered to `space=available_ratio`, Min per `name`, past 15 minutes        | < 0.1 — less than 10% of a file system's provisioned size is left. One incident per file system; recovers at ≥ 0.11 |
 
-### NetApp ONTAP
+### ONTAP
 
 | Template | Category | Severity | Watches | Fires when |
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Availability | Critical | `netapp_cluster_new_status`, Count, past 10 minutes | No data for the whole window — the agent or Harvest stopped, or the cluster stopped answering Harvest; recovers when data arrives again |
-| Cluster Not Healthy | Array Health | Warning | `netapp_cluster_new_status`, Max, past 10 minutes | < 1 — ONTAP reports the cluster not healthy; recovers at 1 |
+| Cluster Not Healthy | Array Health | Warning | `netapp_cluster_new_status`, Max, past 10 minutes | < 1 — ONTAP reports the cluster not healthy; recovers at ≥ 1 |
 | System Health Alert | Array Health | Warning | `netapp_health_support_alerts`, Max per `name`, past 5 minutes | > 0 — ONTAP's system health monitor raised an alert (a missing path to a shelf, a node connectivity problem). One incident per alert; recovers when ONTAP clears it |
-| Emergency EMS Event | Array Health | Critical | `netapp_ems_events` filtered to `severity=emergency`, Max per `message`, past hour, any reading | > 0 — ONTAP logged an emergency event. One incident per event; closes an hour after the last one |
-| Alert EMS Event | Array Health | Critical | `netapp_ems_events` filtered to `severity=alert`, Max per `message`, past hour, any reading | > 0 — ONTAP logged an alert event (a fan failed). Closes an hour after the last one |
-| Disk Out of Service | Hardware | Warning | `netapp_ems_events` filtered to `message=disk.outOfService`, Max per `disk`, past hour, any reading | > 0 — ONTAP took a disk out of service. Closes an hour after the event |
-| Node Panic | Hardware | Critical | `netapp_ems_events` filtered to `message=sk.panic`, Max per `node`, past hour, any reading | > 0 — a node panicked and rebooted, and its partner took over its storage |
+| Emergency EMS Event | Array Health | Critical | `netapp_ems_events` filtered to `severity=emergency`, Max per `message`, past 1 hour, any reading | > 0 — ONTAP logged an emergency event. One incident per event; recovers when an hour passes without another |
+| Alert EMS Event | Array Health | Critical | `netapp_ems_events` filtered to `severity=alert`, Max per `message`, past 1 hour, any reading | > 0 — ONTAP logged an alert event (a fan failed); recovers when an hour passes without another |
+| Disk Out of Service | Hardware | Warning | `netapp_ems_events` filtered to `message=disk.outOfService`, Max per `disk`, past 1 hour, any reading | > 0 — ONTAP took a disk out of service; recovers when an hour passes without another |
+| Node Panic | Hardware | Critical | `netapp_ems_events` filtered to `message=sk.panic`, Max per `node`, past 1 hour, any reading | > 0 — a node panicked and rebooted, and its partner took over its storage; recovers when an hour passes without another |
 | Aggregate Above 80% | Capacity | Warning | `netapp_aggr_space_used_percent`, Max per `aggr`, past 15 minutes | > 80; recovers at ≤ 72 |
 | Aggregate Above 90% | Capacity | Critical | `netapp_aggr_space_used_percent`, Max per `aggr`, past 5 minutes | > 90 — the volumes on it can no longer grow; recovers at ≤ 81 |
 | Volume Above 90% | Capacity | Warning | `netapp_volume_size_used_percent`, Max per `volume` and `svm`, past 15 minutes | > 90; recovers at ≤ 81 |
@@ -175,23 +175,23 @@ A criteria fires only when the condition holds for **every** value in its window
 | High Read Latency | Performance | Warning | `netapp_cluster_read_latency`, Avg, past 15 minutes | > 10000 µs (10 ms); recovers at ≤ 9000 |
 | High Write Latency | Performance | Warning | `netapp_cluster_write_latency`, Avg, past 15 minutes | > 10000 µs (10 ms); recovers at ≤ 9000 |
 | Volume Latency Above 20 ms | Performance | Warning | `netapp_volume_read_latency`, Avg per `volume` and `svm`, past 15 minutes | > 20000 µs; recovers at ≤ 18000 |
-| Node Not Healthy | Hardware | Critical | `netapp_node_new_status`, Max per `node`, past 10 minutes | < 1 — ONTAP reports the node not healthy; recovers at 1 |
-| Takeover Not Possible | Hardware | Critical | `netapp_health_ha_alerts`, Max per `node`, past 5 minutes | > 0 — a node cannot take over its HA partner, so a failure would take that partner's storage offline |
-| Disk Failed | Hardware | Critical | `netapp_health_disk_alerts` filtered to `container_type=broken`, Max per `disk`, past 5 minutes | > 0 — a disk is broken; recovers once it is replaced |
-| Shelf Fault | Hardware | Critical | `netapp_health_shelf_alerts` filtered to `severity=error`, Max per `shelf`, past 5 minutes | > 0 — ONTAP reports an error on a disk shelf (a power supply, a module, a path) |
-| Node Fan Failed | Hardware | Warning | `netapp_node_failed_fan`, Max per `node`, past 10 minutes | > 0 failed fans; recovers at 0 |
-| Node Power Supply Failed | Hardware | Critical | `netapp_node_failed_power`, Max per `node`, past 10 minutes | > 0 failed power supplies; recovers at 0 |
-| Shelf Power Supply Failed | Hardware | Critical | `netapp_shelf_psu_status`, Max per `shelf`, past 10 minutes | < 1 — a shelf's power supply is not normal; recovers at 1 |
-| Shelf Fan Failed | Hardware | Warning | `netapp_shelf_fan_status`, Max per `shelf`, past 10 minutes | < 1 — a shelf's fan is not normal; recovers at 1 |
-| Ethernet Port Down | Hardware | Warning | `netapp_health_network_ethernet_port_alerts`, Max per `port` and `node`, past 5 minutes | > 0 — an enabled Ethernet port is down |
-| FC Port Link Failures | Hardware | Warning | `netapp_fcp_link_failure`, Max per `port` and `node`, past 15 minutes | > 0 — a Fibre Channel port's link failed in the window; recovers at 0 |
+| Node Not Healthy | Hardware | Critical | `netapp_node_new_status`, Max per `node`, past 10 minutes | < 1 — ONTAP reports the node not healthy; recovers at ≥ 1 |
+| Takeover Not Possible | Hardware | Critical | `netapp_health_ha_alerts`, Max per `node`, past 5 minutes | > 0 — a node cannot take over its HA partner, so a failure would take that partner's storage offline; recovers when it can again |
+| Disk Failed | Hardware | Critical | `netapp_health_disk_alerts` filtered to `container_type=broken`, Max per `disk`, past 5 minutes | > 0 — a disk is broken; recovers when it is replaced |
+| Shelf Fault | Hardware | Critical | `netapp_health_shelf_alerts` filtered to `severity=error`, Max per `shelf`, past 5 minutes | > 0 — ONTAP reports an error on a disk shelf (a power supply, a module, a path); recovers when ONTAP clears it |
+| Node Fan Failed | Hardware | Warning | `netapp_node_failed_fan`, Max per `node`, past 10 minutes | > 0 failed fans; recovers at ≤ 0 |
+| Node Power Supply Failed | Hardware | Critical | `netapp_node_failed_power`, Max per `node`, past 10 minutes | > 0 failed power supplies; recovers at ≤ 0 |
+| Shelf Power Supply Failed | Hardware | Critical | `netapp_shelf_psu_status`, Max per `shelf`, past 10 minutes | < 1 — a shelf's power supply is not normal; recovers at ≥ 1 |
+| Shelf Fan Failed | Hardware | Warning | `netapp_shelf_fan_status`, Max per `shelf`, past 10 minutes | < 1 — a shelf's fan is not normal; recovers at ≥ 1 |
+| Ethernet Port Down | Hardware | Warning | `netapp_health_network_ethernet_port_alerts`, Max per `port` and `node`, past 5 minutes | > 0 — an enabled Ethernet port is down; recovers when its link is up again |
+| FC Port Link Failures | Hardware | Warning | `netapp_fcp_link_failure`, Max per `port` and `node`, past 15 minutes | > 0 — a Fibre Channel port's link failed in the window; recovers at ≤ 0 |
 | SnapMirror Behind Schedule | Replication | Warning | `netapp_snapmirror_lag_time` over `netapp_snapmirror_schedule_seconds`, Max per `destination_location`, past 15 minutes | > 1.5 — a relationship is more than one and a half schedule intervals behind (an hourly one, 90 minutes); recovers at ≤ 1.35 |
-| SnapMirror Relationship Unhealthy | Replication | Critical | `netapp_snapmirror_labels` filtered to `healthy=false`, Max per `destination_location`, past 5 minutes | > 0 — ONTAP reports the relationship unhealthy, with why in its `unhealthy_reason` label |
+| SnapMirror Relationship Unhealthy | Replication | Critical | `netapp_snapmirror_labels` filtered to `healthy=false`, Max per `destination_location`, past 5 minutes | > 0 — ONTAP reports the relationship unhealthy, with why in its `unhealthy_reason` label; recovers when ONTAP reports it healthy |
 | SnapMirror Lag Above 1 Day | Replication | Warning | `netapp_snapmirror_lag_time`, Max per `destination_location`, past 15 minutes | > 86400 s, whatever its schedule; recovers at ≤ 77760 |
-| Aggregate Offline | Availability | Critical | `netapp_aggr_new_status`, Max per `aggr`, past 10 minutes | < 1 — an aggregate is not online, so none of its volumes can be reached |
-| Volume Offline | Availability | Warning | `netapp_volume_new_status`, Max per `volume` and `svm`, past 10 minutes | < 1 — a volume is not online |
-| LUN Offline | Availability | Critical | `netapp_lun_new_status`, Max per `lun`, `volume` and `svm`, past 10 minutes | < 1 — a LUN is not online, and its hosts have lost the disk |
-| SVM Stopped | Availability | Warning | `netapp_svm_labels` filtered to `state=stopped` and `type=data`, Max per `svm`, past 10 minutes | > 0 — a data SVM is stopped. The SVMs ONTAP keeps for itself are never watched |
+| Aggregate Offline | Availability | Critical | `netapp_aggr_new_status`, Max per `aggr`, past 10 minutes | < 1 — an aggregate is not online, so none of its volumes can be reached; recovers at ≥ 1 |
+| Volume Offline | Availability | Warning | `netapp_volume_new_status`, Max per `volume` and `svm`, past 10 minutes | < 1 — a volume is not online; recovers at ≥ 1 |
+| LUN Offline | Availability | Critical | `netapp_lun_new_status`, Max per `lun`, `volume` and `svm`, past 10 minutes | < 1 — a LUN is not online, and its hosts have lost the disk; recovers at ≥ 1 |
+| SVM Stopped | Availability | Warning | `netapp_svm_labels` filtered to `state=stopped` and `type=data`, Max per `svm`, past 10 minutes | > 0 — a data SVM is stopped; recovers when it runs again. The SVMs ONTAP keeps for itself are never watched |
 
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
@@ -213,6 +213,10 @@ The agent sends everything the array exports; the series below are the catalog t
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | One series per alert open on the array (value 1), labeled `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` and `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | One series per alert open on the FlashBlade (value 1), labeled `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` and `kburl` (Pure's knowledge base article) |
+| `netapp_cluster_new_status` | — | ONTAP | — | 1 while ONTAP reports the cluster healthy; also what says the agent still reads it |
+| `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Alerts open in each of ONTAP's health subsystems, by `subsystem` |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | One series per alert ONTAP's system health monitor has open, while it is open |
+| `netapp_ems_events` | — | ONTAP | `count` | One series per EMS event, for the poll that collected it; a paired event's clearing exports it once more as 0 |
 
 ### Capacity
 
@@ -226,6 +230,14 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Share of the FlashBlade's usable capacity in use                                                                                      |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Unused capacity of the FlashBlade                                                                                                     |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Data reduction across the FlashBlade                                                                                                  |
+| `netapp_aggr_space_used_percent` | — | ONTAP | `%` | Share of each aggregate's usable space in use — group by `aggr` |
+| `netapp_aggr_space_total` | — | ONTAP | `bytes` | Usable space of each aggregate; the cluster's capacity is their sum |
+| `netapp_aggr_space_used` | — | ONTAP | `bytes` | Space each aggregate has in use or reserved |
+| `netapp_aggr_space_available` | — | ONTAP | `bytes` | Space left on each aggregate — trend it to forecast when it fills |
+| `netapp_aggr_inode_used_percent` | — | ONTAP | `%` | Share of each aggregate's files (inodes) in use |
+| `netapp_aggr_new_status` | — | ONTAP | — | 1 while an aggregate is online |
+| `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | What each aggregate's data would take without storage efficiency, snapshots and FlexClones aside |
+| `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | What each aggregate's data takes on disk after storage efficiency |
 
 ### Performance
 
@@ -247,6 +259,23 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Write operations per second across all protocols                                                             |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Bytes read per second across all protocols                                                                   |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Bytes written per second across all protocols                                                               |
+| `netapp_cluster_read_latency` | — | ONTAP | `µs` | Average latency of a read across the cluster |
+| `netapp_cluster_write_latency` | — | ONTAP | `µs` | Average latency of a write across the cluster |
+| `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | Read operations per second across the cluster |
+| `netapp_cluster_write_ops` | — | ONTAP | `ops/s` | Write operations per second across the cluster |
+| `netapp_cluster_total_ops` | — | ONTAP | `ops/s` | Every operation per second across the cluster, metadata included |
+| `netapp_cluster_read_data` | — | ONTAP | `bytes/s` | Bytes read per second across the cluster |
+| `netapp_cluster_write_data` | — | ONTAP | `bytes/s` | Bytes written per second across the cluster |
+| `netapp_aggr_read_latency` | — | ONTAP | `µs` | Average latency of a read on each aggregate |
+| `netapp_aggr_write_latency` | — | ONTAP | `µs` | Average latency of a write on each aggregate |
+| `netapp_aggr_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each aggregate |
+| `netapp_aggr_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each aggregate |
+| `netapp_svm_vol_read_latency` | — | ONTAP | `µs` | Average latency of a read on each SVM's volumes |
+| `netapp_svm_vol_write_latency` | — | ONTAP | `µs` | Average latency of a write on each SVM's volumes |
+| `netapp_svm_vol_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each SVM's volumes |
+| `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each SVM's volumes |
+| `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | Bytes read per second from each SVM's volumes |
+| `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | Bytes written per second to each SVM's volumes |
 
 ### Volumes
 
@@ -261,6 +290,32 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_volume_space_bytes`                 | `space=total_provisioned`        | FlashArray | `bytes`   | Size of each volume as hosts see it                           |
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Physical space each volume uses after data reduction          |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Data reduction ratio of each volume                           |
+| `netapp_svm_new_status` | — | ONTAP | — | 1 while an SVM is running — group by `svm` |
+| `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | One series per data SVM that is stopped |
+| `netapp_volume_size_used_percent` | — | ONTAP | `%` | Share of each volume's space in use, as `volume show` reports it — group by `volume` and `svm` |
+| `netapp_volume_size_total` | — | ONTAP | `bytes` | Each volume's usable size, its snapshot reserve aside |
+| `netapp_volume_size_used` | — | ONTAP | `bytes` | Space each volume has in use |
+| `netapp_volume_size_available` | — | ONTAP | `bytes` | Space left in each volume |
+| `netapp_volume_snapshots_size_used` | — | ONTAP | `bytes` | Space each volume's snapshots use |
+| `netapp_volume_inode_used_percent` | — | ONTAP | `%` | Share of each volume's files (inodes) in use |
+| `netapp_volume_sis_total_saved_percent` | — | ONTAP | `%` | Share of each volume's data that deduplication and compression save |
+| `netapp_volume_new_status` | — | ONTAP | — | 1 while a volume is online |
+| `netapp_volume_read_latency` | — | ONTAP | `µs` | Average latency of a read on each volume |
+| `netapp_volume_write_latency` | — | ONTAP | `µs` | Average latency of a write on each volume |
+| `netapp_volume_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each volume |
+| `netapp_volume_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each volume |
+| `netapp_volume_read_data` | — | ONTAP | `bytes/s` | Bytes read per second from each volume |
+| `netapp_volume_write_data` | — | ONTAP | `bytes/s` | Bytes written per second to each volume |
+| `netapp_lun_size_used_percent` | — | ONTAP | `%` | Share of each LUN's size its host has written |
+| `netapp_lun_size` | — | ONTAP | `bytes` | The size each LUN presents to its hosts |
+| `netapp_lun_size_used` | — | ONTAP | `bytes` | Space each LUN uses in its volume |
+| `netapp_lun_new_status` | — | ONTAP | — | 1 while a LUN is online |
+| `netapp_lun_avg_read_latency` | — | ONTAP | `µs` | Average latency of a read on each LUN |
+| `netapp_lun_avg_write_latency` | — | ONTAP | `µs` | Average latency of a write on each LUN |
+| `netapp_lun_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each LUN |
+| `netapp_lun_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each LUN |
+| `netapp_lun_read_data` | — | ONTAP | `bytes/s` | Bytes read per second from each LUN |
+| `netapp_lun_write_data` | — | ONTAP | `bytes/s` | Bytes written per second to each LUN |
 
 ### Hosts
 
@@ -280,6 +335,12 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Average replication lag of each pod replica link                                                                                                             |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replication traffic of each pod, labeled `direction` and `dimension`                                                                                         |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Average mirrored write latency of each ActiveCluster pod                                                                                                     |
+| `netapp_snapmirror_lag_time` | — | ONTAP | `s` | How far each SnapMirror relationship's destination is behind its source |
+| `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | How often each relationship's schedule transfers; the agent writes it from the schedule's name |
+| `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | How long each relationship's last transfer took |
+| `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | How much each relationship's last transfer sent |
+| `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | How many of each relationship's updates have failed; it only grows |
+| `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | One series per relationship ONTAP reports unhealthy, with why in `unhealthy_reason` |
 
 ### Hardware
 
@@ -290,6 +351,32 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Raw capacity of each drive, labeled with its `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) and type                                                            |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Errors per second on each Ethernet and Fibre Channel interface — sustained errors usually mean a bad cable, optic or switch port                                                                              |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Health of each hardware component (blades, fabric modules, power supplies, fans, ...): 1 = healthy, 2 = unused, 0 = unhealthy. Take the minimum per `name`                                                    |
+| `netapp_node_new_status` | — | ONTAP | — | 1 while ONTAP reports a node healthy — group by `node` |
+| `netapp_node_avg_processor_busy` | — | ONTAP | `%` | How busy each node's processors are |
+| `netapp_node_failed_fan` | — | ONTAP | `count` | Failed fans of each node |
+| `netapp_node_failed_power` | — | ONTAP | `count` | Failed power supplies of each node |
+| `netapp_node_uptime` | — | ONTAP | `s` | How long each node has been up; a drop is a reboot or a giveback |
+| `netapp_disk_new_status` | — | ONTAP | — | 1 while a disk reports no outage — group by `disk` |
+| `netapp_health_disk_alerts` | — | ONTAP | `count` | One series per disk ONTAP reports broken or unassigned, while it is |
+| `netapp_shelf_new_status` | — | ONTAP | — | 1 while a disk shelf is online |
+| `netapp_health_shelf_alerts` | — | ONTAP | `count` | One series per fault ONTAP reports on a disk shelf, while it lasts |
+| `netapp_shelf_psu_status` | — | ONTAP | — | 1 while a shelf's power supply is normal |
+| `netapp_shelf_fan_status` | — | ONTAP | — | 1 while a shelf's fan is normal |
+| `netapp_shelf_temperature_status` | — | ONTAP | — | 1 while a shelf's temperature sensor is within its thresholds |
+| `netapp_shelf_temperature_reading` | — | ONTAP | `°C` | What each shelf temperature sensor reads |
+| `netapp_environment_sensor_status` | — | ONTAP | — | 1 while a node's environment sensor is within its thresholds |
+| `netapp_health_node_alerts` | — | ONTAP | `count` | One series per node ONTAP reports unhealthy, while it is |
+| `netapp_health_ha_alerts` | — | ONTAP | `count` | One series per node that cannot take over its HA partner, while it cannot |
+| `netapp_net_port_status` | — | ONTAP | — | 1 while an Ethernet port's link is up |
+| `netapp_health_network_ethernet_port_alerts` | — | ONTAP | `count` | One series per enabled Ethernet port that is down, while it is |
+| `netapp_nic_rx_bytes` | — | ONTAP | `bytes/s` | Bytes each Ethernet port receives per second |
+| `netapp_nic_tx_bytes` | — | ONTAP | `bytes/s` | Bytes each Ethernet port sends per second |
+| `netapp_nic_util_percent` | — | ONTAP | `%` | How much of each Ethernet port's speed is in use |
+| `netapp_nic_rx_total_errors` | — | ONTAP | `count` | Receive errors each Ethernet port counted in the last minute |
+| `netapp_fcp_read_data` | — | ONTAP | `bytes/s` | Bytes read per second through each Fibre Channel port |
+| `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | Bytes written per second through each Fibre Channel port |
+| `netapp_fcp_util_percent` | — | ONTAP | `%` | How much of each Fibre Channel port's speed is in use |
+| `netapp_fcp_link_failure` | — | ONTAP | `count` | Link failures each Fibre Channel port counted in the last minute |
 
 ### File Systems
 
@@ -307,31 +394,6 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefb_buckets_performance_latency_usec` | `dimension=usec_per_read_op` | FlashBlade | `µs`    | Average read latency of each bucket — group by `name` |
 | `purefb_buckets_space_bytes`              | `space=total_physical`       | FlashBlade | `bytes` | Physical space each bucket uses                       |
 | `purefb_buckets_object_count`             | —                            | FlashBlade | `count` | Number of objects in each bucket                      |
-
-### NetApp ONTAP
-
-ONTAP's catalog has 87 entries, in the categories above. The ones most monitors start from:
-
-| Metric | Filter | Unit | Description |
-| --- | --- | --- | --- |
-| `netapp_cluster_new_status` | — | — | 1 while ONTAP reports the cluster healthy; the series that says the agent still reads the cluster |
-| `netapp_cluster_read_latency`, `netapp_cluster_write_latency` | — | `µs` | Average latency of a read and of a write across the cluster |
-| `netapp_cluster_read_ops`, `netapp_cluster_write_ops` | — | `ops/s` | Read and write operations per second across the cluster |
-| `netapp_aggr_space_used_percent` | — | `%` | Share of each aggregate's usable space in use — group by `aggr` |
-| `netapp_aggr_space_available` | — | `bytes` | Space left in each aggregate |
-| `netapp_volume_size_used_percent` | — | `%` | Share of each volume's space in use, as `volume show` reports it — group by `volume` and `svm` |
-| `netapp_volume_read_latency`, `netapp_volume_write_latency` | — | `µs` | Average latency of each volume's reads and writes |
-| `netapp_lun_size_used_percent` | — | `%` | Share of each LUN's size its host has written |
-| `netapp_node_avg_processor_busy` | — | `%` | How busy each node's CPUs are |
-| `netapp_node_failed_fan`, `netapp_node_failed_power` | — | `count` | Failed fans and power supplies of each node |
-| `netapp_disk_new_status` | — | — | 1 while a disk reports no outage, per `disk` |
-| `netapp_shelf_psu_status`, `netapp_shelf_fan_status` | — | — | 1 while a shelf's power supply or fan is normal, per `shelf` |
-| `netapp_nic_util_percent`, `netapp_fcp_util_percent` | — | `%` | How much of each Ethernet and Fibre Channel port's speed is in use |
-| `netapp_snapmirror_lag_time` | — | `s` | How far each SnapMirror relationship's destination is behind its source |
-| `netapp_snapmirror_labels` | `healthy=false` | — | One series per relationship ONTAP reports unhealthy |
-| `netapp_svm_labels` | `state=stopped`, `type=data` | — | One series per data SVM that is stopped |
-| `netapp_health_disk_alerts` | — | `count` | One series per disk ONTAP reports broken or unassigned, while it is |
-| `netapp_ems_events` | — | `count` | One series per EMS event, for the poll that collected it |
 
 ## Criteria
 

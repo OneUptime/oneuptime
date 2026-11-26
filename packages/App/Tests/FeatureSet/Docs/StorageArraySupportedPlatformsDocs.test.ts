@@ -88,7 +88,7 @@ function platformsTable(language: string): {
 }
 
 describe("the supported platforms table", () => {
-  test("the registry ships Pure Storage's three ways in", () => {
+  test("the registry ships Pure Storage's three ways in, and NetApp ONTAP's (#11001)", () => {
     expect(EXPECTED).toEqual([
       {
         displayName: "Pure Storage FlashArray",
@@ -104,6 +104,11 @@ describe("the supported platforms table", () => {
         displayName: "Pure Storage FlashBlade",
         storageSystem: "purestorage.flashblade",
         config: "otel-collector-config.flashblade.yaml",
+      },
+      {
+        displayName: "NetApp ONTAP",
+        storageSystem: "netapp.ontap",
+        config: "otel-collector-config.netapp-ontap.yaml",
       },
     ]);
   });

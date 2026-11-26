@@ -13,6 +13,8 @@ import {
 import { StorageArrayNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesResourceLabels";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import {
@@ -97,7 +99,24 @@ const SHIPPED_CONFIGS: ReadonlyArray<string> = [
   "otel-collector-config.yaml",
   "otel-collector-config.flasharray-exporter.yaml",
   "otel-collector-config.flashblade.yaml",
+  // NetApp ONTAP, through NetApp Harvest (#11001).
+  "otel-collector-config.netapp-ontap.yaml",
 ];
+
+/*
+ * The one endpoint NetApp Harvest serves a whole cluster on: its job reads
+ * /metrics and labels the series `harvest`, and ingest learns which
+ * objects a scrape listed from Harvest's own metadata series (#11001).
+ */
+const HARVEST_ENDPOINT: string = "harvest";
+
+// Each platform's heartbeat template: Array Stopped Reporting.
+const HEARTBEAT_TEMPLATE_IDS: ReadonlyArray<string> =
+  StorageArrayPlatformRegistry.getPlatforms().map(
+    (platform: StorageArrayPlatform): string => {
+      return platform.heartbeat.templateId;
+    },
+  );
 
 const FENCE_LINE: RegExp = /^\s*```/;
 /* The opening fence of a mermaid diagram. */
@@ -260,7 +279,9 @@ function pinnedFilters(metric: StorageArrayMetricDefinition): Array<string> {
  */
 /*
  * The address and token variables of install.sh's PLATFORMS table (#11000):
- * each line's fourth and fifth |-separated fields, each once, in order.
+ * each line's fourth and fifth |-separated fields, and its tenth, the user
+ * a platform's exporter logs in with where it has one (#11001), each once,
+ * in order.
  */
 function platformVariables(): Array<string> {
   const table: RegExpMatchArray | null = readAgentFile("install.sh").match(
@@ -272,8 +293,8 @@ function platformVariables(): Array<string> {
   const names: Array<string> = [];
   for (const line of (table as RegExpMatchArray)[1]!.split("\n")) {
     const fields: Array<string> = line.split("|");
-    for (const name of [fields[3], fields[4]]) {
-      if (name && !names.includes(name)) {
+    for (const name of [fields[3], fields[4], fields[9]]) {
+      if (name && name !== "-" && !names.includes(name)) {
         names.push(name);
       }
     }
@@ -685,12 +706,18 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
+      // "12 for FlashArray, 8 for FlashBlade and 31 for ONTAP", every platform's.
+      const counts: Array<string> = StorageSystemUtil.getAllSystems().map(
+        (system: StorageSystem): string => {
+          return `${count(system)} for ${platformName(system)}`;
+        },
+      );
       expect(intro).toContain(
-        `OneUptime ships ${templates.length} templates — ${count(
-          StorageSystem.PureStorageFlashArray,
-        )} for FlashArray and ${count(
-          StorageSystem.PureStorageFlashBlade,
-        )} for FlashBlade`,
+        `OneUptime ships ${templates.length} templates — ${
+          counts.length > 1
+            ? `${counts.slice(0, -1).join(", ")} and ${counts[counts.length - 1]}`
+            : counts[0]
+        }`,
       );
 
       for (const template of templates) {
@@ -783,8 +810,10 @@ describe("Storage Array docs", (): void => {
         /*
          * Array Stopped Reporting compares a count below 0, which only its
          * Trigger no-data policy can satisfy, so its row says so in words.
+         * (ONTAP's other Availability templates, an aggregate, volume or
+         * LUN offline and an SVM stopped, read a state like any other.)
          */
-        if (template.category === "Availability") {
+        if (HEARTBEAT_TEMPLATE_IDS.includes(template.id)) {
           expect(shape.fire.filterType).toBe(FilterType.LessThan);
           expect(shape.fire.value).toBe(0);
           expect(shape.recover.filterType).toBe(
@@ -954,11 +983,15 @@ describe("Storage Array docs", (): void => {
       expect(markdown).toContain("Defaults to `purestorage.flasharray`");
       expect(markdown).toContain("Defaults to `true`");
 
-      for (const service of ["pure-fa-exporter", "pure-fb-exporter"]) {
+      for (const service of [
+        "pure-fa-exporter",
+        "pure-fb-exporter",
+        "netapp-harvest",
+      ]) {
         expect(compose).toContain(`  ${service}:\n`);
         expect(markdown).toContain(`\`${service}\``);
       }
-      for (const profile of ["flasharray-exporter", "flashblade"]) {
+      for (const profile of ["flasharray-exporter", "flashblade", "netapp-ontap"]) {
         expect(compose).toContain(`profiles: ["${profile}"]`);
         expect(markdown).toContain(`COMPOSE_PROFILES=${profile}`);
       }
@@ -975,8 +1008,16 @@ describe("Storage Array docs", (): void => {
           const endpoint: string =
             job.static_configs[0]!.labels.scrape_endpoint;
 
-          expect(job.metrics_path).toBe(`/metrics/${endpoint}`);
-          expect(scrapes).toContain(`\`/metrics/${endpoint}\``);
+          if (endpoint === HARVEST_ENDPOINT) {
+            // Harvest serves the whole cluster on one path, on the compose network.
+            expect(job.metrics_path).toBe("/metrics");
+            expect(scrapes).toContain(
+              `\`${job.static_configs[0]!.targets[0]}\``,
+            );
+          } else {
+            expect(job.metrics_path).toBe(`/metrics/${endpoint}`);
+            expect(scrapes).toContain(`\`/metrics/${endpoint}\``);
+          }
           expect({
             job: job.job_name,
             stated: scrapes.includes(spokenDuration(job.scrape_interval)),
@@ -993,8 +1034,16 @@ describe("Storage Array docs", (): void => {
         readPage(TELEMETRY_PAGE),
         "## What the agent collects",
       );
+      // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
+      const prefixes: string = StorageArrayPlatformRegistry.getPlatforms()
+        .map((platform: StorageArrayPlatform): string => {
+          return platform.metricPrefix;
+        })
+        .join("|");
       const families: Array<string> = Array.from(
-        collected.matchAll(/`(pure(?:fa|fb)_[a-z_]+)(\*?)`/g),
+        collected.matchAll(
+          new RegExp(`\`((?:${prefixes})[a-z_]*)(\\*?)\``, "g"),
+        ),
       ).map((match: RegExpMatchArray): string => {
         return `${match[1]}${match[2]}`;
       });

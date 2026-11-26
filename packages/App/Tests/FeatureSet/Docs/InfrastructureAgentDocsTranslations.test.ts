@@ -314,6 +314,17 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "Create User…",
     "Create API Token…",
     "Expires In",
+    /*
+     * ONTAP System Manager's, where the read-only REST role and user are
+     * made, and the CLI's login method (#11001).
+     */
+    "Roles",
+    "Add",
+    "REST API path",
+    "Read-Only",
+    "HTTP",
+    "Password",
+    "http",
   ],
   [SERVERLESS]: ["Key Vault Secrets User"],
   // A CloudWatch Metric Stream's output formats, and Azure's and Google Cloud's roles.
@@ -364,6 +375,9 @@ const NAMES: Record<string, Array<string>> = {
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
     "Everpure",
+    "NetApp ONTAP",
+    "Amazon FSx for NetApp ONTAP",
+    "SnapMirror",
   ],
   [DATABASES]: [
     "PostgreSQL",
@@ -654,6 +668,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Hosts.",
     "Pods.",
     "File systems.",
+    "An ONTAP cluster's own objects.",
+    "ONTAP: Harvest polls the cluster, the collector scrapes Harvest.",
   ],
   /*
    * (yes is a Dashboard label since #6369, a recorder decision's value on
