@@ -532,14 +532,42 @@ export default class OutboundProxy {
   }
 
   /*
+   * Whether `noProxy` - a NO_PROXY value; the environment's when left out -
+   * names the URL's host, so that a request to it goes directly whatever
+   * proxy is set. Both readings getProxyFor makes are applied, proxy-from-
+   * env's and axios's own, so an entry means here what it means to every
+   * other request of the server.
+   *
+   * For a client that picks its proxy by a rule of its own and honors
+   * NO_PROXY as axios does: the synthetic runtime's egress proxy sends a
+   * monitor's browser through the one proxy it was always sent through,
+   * apart from the hosts NO_PROXY names.
+   */
+  public static isNamedByNoProxy(
+    url: URL,
+    noProxy?: string | undefined,
+  ): boolean {
+    const scheme: string = url.protocol.replace(/:$/, "").toLowerCase();
+    const port: number =
+      Number.parseInt(url.port, 10) || DEFAULT_PORTS[scheme] || 0;
+
+    return (
+      OutboundProxy.isNamedByProxyFromEnv(url.hostname, port, noProxy) ||
+      OutboundProxy.isNamedByAxios(url, port, noProxy)
+    );
+  }
+
+  /*
    * Whether NO_PROXY names the host as proxy-from-env reads it. `hostname`
-   * is the URL's, an IPv6 address in its brackets.
+   * is the URL's, an IPv6 address in its brackets. `value` stands in for
+   * the environment's NO_PROXY when given.
    */
   private static isNamedByProxyFromEnv(
     hostname: string,
     port: number,
+    value?: string | undefined,
   ): boolean {
-    const noProxy: string = readVariable("no_proxy").toLowerCase();
+    const noProxy: string = (value ?? readVariable("no_proxy")).toLowerCase();
 
     if (!noProxy) {
       return false;
@@ -576,12 +604,18 @@ export default class OutboundProxy {
       });
   }
 
-  // Whether NO_PROXY names the URL's host as axios reads it on its own.
-  private static isNamedByAxios(url: URL, port: number): boolean {
+  /*
+   * Whether NO_PROXY names the URL's host as axios reads it on its own.
+   * `value` stands in for the environment's NO_PROXY when given.
+   */
+  private static isNamedByAxios(
+    url: URL,
+    port: number,
+    value?: string | undefined,
+  ): boolean {
     const noProxy: string = (
-      process.env["no_proxy"] ||
-      process.env["NO_PROXY"] ||
-      ""
+      value ??
+      (process.env["no_proxy"] || process.env["NO_PROXY"] || "")
     ).toLowerCase();
 
     if (!noProxy) {

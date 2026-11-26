@@ -853,7 +853,7 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
             isBrowserKeyOnly
               ? "Create a browser telemetry ingestion key. It is safe to publish in your page, and is accepted only from the origins you list below."
               : isMobileKeyOnly
-                ? "Create a mobile telemetry ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to."
+                ? "Create a mobile ingestion key. It is safe to ship in your app: it sends only the traces, logs, metrics and session replays of the app it is pinned to."
                 : "Create a new telemetry ingestion key for sending data to OneUptime."
           }
           onClose={() => {

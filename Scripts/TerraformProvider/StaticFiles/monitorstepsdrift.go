@@ -293,7 +293,21 @@ func monitorStepsWithoutUnsetValues(written, held interface{}) interface{} {
 }
 
 func monitorStepsWithoutUnsetValuesAt(written, held interface{}, level monitorStepsLevel) interface{} {
-	if level == monitorStepsAtRaw || level == monitorStepsAtWhole {
+	/*
+	 * A setting written with jsonencode() that OneUptime holds with more in
+	 * it - a default of its own, such as the empty watchlistFilters of a
+	 * Security Events step, or a key set in the Dashboard - says what the
+	 * configuration says, as the steps' semantic equality reads it
+	 * (jsonIsSubset): the state keeps what the configuration writes. An
+	 * apply keeps the more (MonitorStepsKeepUnmanaged).
+	 */
+	if level == monitorStepsAtRaw {
+		if jsonIsSubset(written, held) {
+			return written
+		}
+		return held
+	}
+	if level == monitorStepsAtWhole {
 		return held
 	}
 

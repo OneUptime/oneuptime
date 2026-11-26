@@ -1440,7 +1440,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.INCIDENTS_SETTINGS_STATE,
             title: "Incident State",
             icon: IconProp.ArrowCircleRight,
-            keywords: ["acknowledged", "resolved", "incident status"],
+            keywords: [
+              "acknowledged",
+              "resolved",
+              "incident status",
+              // Where a new incident starts, and the card that says so.
+              "initial state",
+              "starting state",
+              "incidents declared by hand",
+              "manually declared incidents",
+              "auto acknowledge",
+            ],
+            settings: ["Start incidents declared by hand acknowledged"],
           },
           {
             page: PageMap.INCIDENTS_SETTINGS_SEVERITY,

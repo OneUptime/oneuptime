@@ -14,6 +14,7 @@ Begge bruger den samme monitortype. Det, der skiller dem ad, er de kriterier, du
 - [Send et heartbeat](#send-et-heartbeat): Fra curl, cron, Node.js, Python eller Go.
 - [Advar, når kaldene stopper](#markér-som-offline-hvis-der-ikke-er-noget-heartbeat-i-10-minutter-en-dødmandsknap): Gør monitoren til en dødmandsknap.
 - [Modtag advarsler](#modtagelse-af-advarsler-fra-et-andet-system): Én hændelse pr. advarsel fra Alertmanager eller Grafana.
+- [Skriv i Slack uden at tilkalde nogen](#skriv-i-slack-uden-at-tilkalde-nogen): Giv en kanal besked, og tilkald kun uden for arbejdstiden.
 - [Abonnér på SNS eller Event Grid](#abonnement-på-amazon-sns-eller-azure-event-grid): Bekræft abonnementet med ét klik.
 :::
 
@@ -421,6 +422,32 @@ Hele payloaden er tilgængelig ved siden af, så både en hændelsestitel `{{ale
 ### Gennemgået eksempel
 
 En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
+
+## Skriv i Slack uden at tilkalde nogen
+
+Et staging-miljø, eller et produkt, hvis problemer kan vente, vil måske have en anmodning skrevet i en chatkanal uden at tilkalde nogen. En advarsel, der ikke nævner nogen vagtpolitik, gør netop det: den skrives i Slack, Microsoft Teams eller Mattermost via projektets arbejdsområderegler og starter ingen eskalering.
+
+:::steps
+1. Åbn kriteriet, og slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**. Lad dens **Vagtpolitikker** være tomme.
+2. Skriv det, anmodningen siger, ind i advarslen, fx `{{requestBody.commonAnnotations.summary}}` i dens beskrivelse. Se [Hændelse- og advarselsskabeloner](/docs/monitor/incident-alert-templating).
+3. Tilføj under **Advarsler → Arbejdsområde → Slack** en regel for denne monitors advarsler, og slå **Skriv i eksisterende kanaler** til. Slack skal først være [forbundet til projektet](/docs/workspace-connections/slack).
+:::
+
+En advarsel, der ikke nævner nogen vagtpolitik, kan stadig tilkalde nogen via projektets regler. Tjek, at ingen regel under **Advarsler → Regler → Vagtregler** tilkalder nogen for disse advarsler, og at ingen regel under **Advarsler → Regler → Hændelsesregler** erklærer en hændelse ud fra dem.
+
+Vil du skrive uden at oprette en advarsel, så slå kun **Når filtre matcher, ændres monitorstatus.** til, og tilføj i stedet reglen under **Monitorer → Arbejdsområde → Slack**. Kanalen får så kun at vide, at monitorens status har ændret sig, uden noget fra anmodningen, og kun når den ændrer sig: flere anmodninger, mens monitoren allerede har den status, skriver ingenting.
+
+### Tilkald kun uden for arbejdstiden
+
+To kriterier med de samme filtre deler ugen mellem sig, i denne rækkefølge:
+
+1. Det første skriver i arbejdstiden. Slå **Evaluér kun disse kriterier på bestemte dage og tidspunkter** til i dets **Indstillinger**, og vælg dagene, tidspunkterne og **Tidszone**. Dets advarsel nævner ingen vagtpolitik.
+2. Det andet tilkalder resten af tiden. Det har ingen tidspunkter, og dets advarsel nævner din vagtpolitik.
+
+Det første kriterium, der matcher en anmodning, afgør, hvad der sker. Uden for dets tidspunkter springes det første kriterium over, så det andet matcher om natten og i weekenden, og kun da bliver nogen tilkaldt. Se [Kun på bestemte dage og tidspunkter](/docs/monitor/criteria-and-statuses#kun-på-bestemte-dage-og-tidspunkter).
+
+- En anmodning vurderes, når den ankommer, efter tidspunkterne, som de er da. Et problem, der begynder kl. 16:55, tilkalder kun nogen efter kl. 17:00, hvis afsenderen sender det igen, som Alertmanager gør én gang pr. `repeat_interval`.
+- En advarsel med **Løs advarsel automatisk** slået til løses, når en anmodning matcher et andet kriterium. Den første anmodning, efter at arbejdstiden begynder, matcher det første kriterium, så den løser nattens advarsel og åbner en, der ikke tilkalder nogen. Lad **Løs advarsel automatisk** være slået fra på det andet kriteriums advarsel for at holde den åben, til nogen løser den.
 
 ## Tjenester, der tjekker URL'en først
 

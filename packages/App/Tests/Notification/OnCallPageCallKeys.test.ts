@@ -119,7 +119,11 @@ function incident(): Incident {
  * The <Gather> action of a page's call, as the Notification service builds
  * it for Twilio: from the worker's own call request.
  */
-async function actionOfCall(isObserverPage: boolean = false): Promise<string> {
+async function actionOfCall(
+  isObserverPage: boolean = false,
+  // The voice the call is placed with (#10948); none for the account's default.
+  voice?: string | undefined,
+): Promise<string> {
   const callRequest: CallRequest =
     await UserNotificationRuleService.generateCallTemplateForIncidentCreated(
       new Phone("+15555550142"),
@@ -132,6 +136,7 @@ async function actionOfCall(isObserverPage: boolean = false): Promise<string> {
 
   const twiml: string = CallService.generateTwimlForCall(callRequest, {
     userOnCallLogTimelineId: ITEM,
+    voice: voice,
   });
 
   const gather: XmlElement = new DOMParser()
@@ -198,6 +203,36 @@ function answeredWith(): string {
   expect(xml).toHaveBeenCalledTimes(1);
 
   return String(xml.mock.calls[0]![2]);
+}
+
+// A key pressed, and what the call said back to it.
+async function answerTo(digits: string, action: string): Promise<string> {
+  (Response.sendXmlResponse as unknown as jest.Mock).mockClear();
+
+  await press(digits, action);
+
+  return answeredWith();
+}
+
+// What an answer says, each <Say>'s text in order.
+function saidIn(twiml: string): Array<string> {
+  return Array.from(
+    new DOMParser()
+      .parseFromString(twiml, "text/xml")
+      .getElementsByTagName("Say"),
+  ).map((say: XmlElement): string => {
+    return say.textContent || "";
+  });
+}
+
+// The address an answer asks again at, or null for one that asks nothing.
+function askedAgainAt(twiml: string): string | null {
+  const gathers: ReturnType<XmlElement["getElementsByTagName"]> =
+    new DOMParser()
+      .parseFromString(twiml, "text/xml")
+      .getElementsByTagName("Gather");
+
+  return gathers.length > 0 ? gathers[0]!.getAttribute("action") : null;
 }
 
 beforeAll(() => {
@@ -291,13 +326,128 @@ describe("a key pressed on a page's call, at the action its TwiML gives Twilio",
     expect(item.status).toBe(UserNotificationStatus.Sent);
   });
 
-  test("any other key acknowledges nothing and escalates nothing, as before", async () => {
+  test("any other key acknowledges nothing and escalates nothing, and asks again instead of hanging up (#10949)", async () => {
     await press("7", await actionOfCall());
 
     expect(updateSpy).not.toHaveBeenCalled();
     expect(passOnSpy).not.toHaveBeenCalled();
     expect(item.status).toBe(UserNotificationStatus.Sent);
-    expect(answeredWith()).toContain("<Say>Invalid input. Good bye</Say>");
+
+    const twiml: string = answeredWith();
+
+    expect(saidIn(twiml)).toEqual([
+      "That key does nothing.",
+      "Press 1 to acknowledge, or 2 to escalate.",
+      "You did not press a key, so this incident is not acknowledged. Good bye.",
+    ]);
+    expect(askedAgainAt(twiml)).not.toBeNull();
+    expect(twiml).not.toContain("Invalid input");
+  });
+
+  test("a wrong key, then 1 at the address the call asked again at: the page is acknowledged, as 1 always did", async () => {
+    const askedAt: string = askedAgainAt(
+      await answerTo("3", await actionOfCall()),
+    )!;
+
+    const twiml: string = await answerTo("1", askedAt);
+
+    expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(item.status).toBe(UserNotificationStatus.Acknowledged);
+    expect(twiml).toContain(
+      "<Say>You have acknowledged this incident. Good bye</Say>",
+    );
+  });
+
+  test("a wrong key, then 2 at that address: the page is escalated, as 2 always did", async () => {
+    passOnSpy.mockResolvedValue({
+      passedOn: true,
+      result: {
+        outcome: "NextRulePaged",
+        isPreview: false,
+        isDirectPage: false,
+        policyName: "Payments",
+        rule: { order: 2, name: "Level 2" },
+        pagedNames: ["Bob Smith"],
+        stillPagedNames: [],
+        ruleCount: 2,
+      },
+    } as never);
+
+    const askedAt: string = askedAgainAt(
+      await answerTo("#", await actionOfCall()),
+    )!;
+
+    const twiml: string = await answerTo("2", askedAt);
+
+    expect(passOnSpy).toHaveBeenCalledWith({
+      userId: ANA,
+      executionLogId: RUN,
+      viaUserOnCallLogTimelineId: ITEM,
+    });
+    expect(twiml).toContain("<Say>You escalated this incident.");
+  });
+
+  test("wrong keys are asked again twice at most, as often as the call says its keys when none is pressed; then the call ends politely, the page left as it was", async () => {
+    let action: string = await actionOfCall();
+    let asked: number = 0;
+
+    for (let pressed: number = 0; pressed < 10; pressed++) {
+      const twiml: string = await answerTo("9", action);
+      const next: string | null = askedAgainAt(twiml);
+
+      if (!next) {
+        expect(saidIn(twiml)).toEqual([
+          "That key does nothing, so this incident is not acknowledged. Good bye.",
+        ]);
+        break;
+      }
+
+      asked++;
+      action = next;
+    }
+
+    expect(asked).toBe(2);
+    expect(updateSpy).not.toHaveBeenCalled();
+    expect(passOnSpy).not.toHaveBeenCalled();
+    expect(item.status).toBe(UserNotificationStatus.Sent);
+  });
+
+  test("an observer's wrong key is asked again with an observer's prompt, and ends saying the page is not marked as heard", async () => {
+    let action: string = await actionOfCall(true);
+
+    const first: string = await answerTo("5", action);
+
+    expect(saidIn(first)).toEqual([
+      "That key does nothing.",
+      "To say you have heard this, press 1. This does not acknowledge the incident.",
+      "You did not press a key, so this page is not marked as heard. Good bye.",
+    ]);
+
+    action = askedAgainAt(first)!;
+    action = askedAgainAt(await answerTo("5", action))!;
+
+    expect(saidIn(await answerTo("5", action))).toEqual([
+      "That key does nothing, so this page is not marked as heard. Good bye.",
+    ]);
+  });
+
+  test("a call placed in a voice answers every key in it (#10948)", async () => {
+    const action: string = await actionOfCall(false, "Polly.Matthew-Neural");
+
+    const again: string = await answerTo("4", action);
+
+    for (const say of Array.from(
+      new DOMParser()
+        .parseFromString(again, "text/xml")
+        .getElementsByTagName("Say"),
+    )) {
+      expect(say.getAttribute("voice")).toBe("Polly.Matthew-Neural");
+      expect(say.getAttribute("language")).toBe("en-US");
+    }
+
+    expect(await answerTo("1", askedAgainAt(again)!)).toContain(
+      '<Say voice="Polly.Matthew-Neural" language="en-US">You have acknowledged this incident. Good bye</Say>',
+    );
   });
 
   test("an observer's 1 says the page is heard", async () => {

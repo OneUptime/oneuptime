@@ -570,10 +570,20 @@ describe("the writers hand the kinds to the message they post", () => {
       "Server/Utils/SecurityCase/SecurityCaseNotifications.ts",
     );
 
+    /*
+     * A new case's notice is posted as the case opens - or, for a case held
+     * while OneUptime AI responds first, as the hold ends with the case
+     * resolved or taken by a person. A hold that ends in an alert is the
+     * list below.
+     */
+    const timesPosted: Partial<Record<NotificationRuleUpdateKind, number>> = {
+      [NotificationRuleUpdateKind.PriorityReached]: 3,
+    };
+
     for (const kind of NotificationRuleUpdates.getChoosableKinds(
       NotificationRuleEventType.SecurityCase,
     )) {
-      expect({ kind, times: 1 }).toEqual({
+      expect({ kind, times: timesPosted[kind] || 1 }).toEqual({
         kind,
         times:
           notices.split(`updateKind:NotificationRuleUpdateKind.${kind},`)
@@ -581,7 +591,16 @@ describe("the writers hand the kinds to the message they post", () => {
       });
     }
 
-    expect(notices).toContain("updateKinds:[data.updateKind],");
+    /*
+     * A held case whose hold ends in an alert is a new case and, handed to
+     * people, OneUptime AI's hand-off too: posted where either is wanted.
+     */
+    expect(notices).toContain(
+      "updateKind:isHandedOff?[NotificationRuleUpdateKind.PriorityReached,NotificationRuleUpdateKind.AI,]:NotificationRuleUpdateKind.PriorityReached,",
+    );
+    expect(notices).toContain(
+      "updateKinds:Array.isArray(data.updateKind)?data.updateKind:[data.updateKind],",
+    );
   });
 
   test("an on-call policy's handoff lines say who is next where a rule wants that, and only there", () => {

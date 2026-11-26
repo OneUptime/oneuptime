@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "Um Proprietário do projeto apagou as configurações de login salvas na sua conta do {{product}}.",
   "A backup code was used to confirm it's you in your {{product}} account": "Um código de backup foi usado para confirmar que é você na sua conta do {{product}}",
   "A backup code was used to confirm it's you.": "Um código de backup foi usado para confirmar que é você.",
   "A backup code was used to sign in to your account.": "Um código de backup foi usado para entrar na sua conta.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "Uma nota deste incidente foi atualizada. Esta é a versão mais recente:",
   "A note on this scheduled event has been updated. Here is the latest version:": "Uma nota deste evento agendado foi atualizada. Esta é a versão mais recente:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "Uma análise pós-incidente foi publicada para um incidente que afetou serviços em que você está inscrito.",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "Um proprietário de projeto apagou as configurações de login salvas na sua conta do {{product}}.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "Um administrador do servidor alterou o endereço de e-mail da sua conta do {{product}} deste endereço para um novo.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "Um administrador do servidor apagou as configurações de login salvas na sua conta do {{product}}.",
   "A server admin made this the email address of your {{product}} account.": "Um administrador do servidor definiu este endereço como o endereço de e-mail da sua conta do {{product}}.",

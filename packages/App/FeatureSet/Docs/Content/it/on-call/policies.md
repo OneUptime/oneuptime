@@ -87,6 +87,16 @@ I minuti si contano da ogni riconoscimento, e una policy avvisa di nuovo al mass
 
 Chi viene avvisato di nuovo lo riconosce dal suo messaggio, o con **Riconosci di nuovo** nella pagina dell'incidente o dell'avviso, e i minuti ripartono; **Escala** lo passa al livello successivo. Risolvere o eliminare l'incidente o l'avviso, archiviare o eliminare la policy, o scegliere **Non avvisare di nuovo** lo ferma. La riga **Dopo un riconoscimento** della scheda dice che cosa fa la policy, e **Altre impostazioni** mostra i minuti mentre è chiusa. **La policy in breve** nella **Panoramica** ed **Riepilogo dell'escalation** dicono la stessa cosa a parole.
 
+## Dare un ruolo dell'incidente alle persone avvisate
+
+I **Ruoli incidente** di un incidente dicono chi ci lavora. Una policy può elencarvi le persone che avvisa: aprite la sua pagina **Regole di escalation**, aprite **Altre impostazioni** in fondo e fate clic su **Modifica** nella scheda **Ruolo dell'incidente**. **Modifica ruolo dell'incidente** chiede un **Ruolo**: uno dei ruoli dell'incidente del vostro progetto, oppure **Nessun ruolo**, da cui parte ogni policy.
+
+Tutte le persone che la policy avvisa poi riguardo a un incidente o a un episodio di incidenti ricevono quel ruolo, a ogni livello e ogni volta che avvisa di nuovo, purché siano membri del progetto. Chi viene avvisato come osservatore non lo riceve. Chi ha già il ruolo lo mantiene così com'è, e un ruolo per una sola persona, come **Comandante dell'incidente**, va alla prima persona avvisata finché nessuno lo ha. Il feed dell'incidente nomina la policy che l'ha aggiunta, e non riceve alcun messaggio a parte sul ruolo: il suo avviso le ha già comunicato l'incidente.
+
+Così la persona reperibile del team che possiede un servizio compare negli incidenti di quel servizio. Create un ruolo come «Responsabile del servizio» in **Incidenti → Impostazioni → Ruoli incidente**, sceglietelo nella policy che avvisa il team pagamenti e fate eseguire quella policy ai monitor dei pagamenti, dai loro criteri o da una regola di reperibilità. Chi è reperibile per i pagamenti compare allora come «Responsabile del servizio» dell'incidente, e chi ne cambia per primo lo stato, riconoscendolo, diventa comunque il suo **Comandante dell'incidente**, anche se una policy gli ha dato un altro ruolo avvisandolo.
+
+La riga **Ruolo delle persone avvisate** della scheda dice quale ruolo dà la policy, e **Altre impostazioni** lo nomina finché è chiusa. Archiviare il ruolo non impedisce alla policy di darlo, e la finestra di archiviazione del ruolo conta la policy tra ciò che lo usa: scegliete **Nessun ruolo** per smettere. Eliminare il ruolo riporta la policy a **Nessun ruolo**.
+
 ## Quando avvisano più policy
 
 Un incidente, un avviso o un episodio esegue ognuna delle sue policy per conto suo, nello stesso momento.
@@ -176,11 +186,14 @@ Le policy di reperibilità sono la risorsa `/api/on-call-duty-policy`, e la riso
 | **Se nessuno riconosce dopo l'ultimo livello** | `repeatPolicyIfNoOneAcknowledges` |
 | **Quante volte ancora?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Dopo quanti minuti?** | `acknowledgementTimeoutInMinutes` |
+| **Ruolo** | `incidentRoleId` |
 | Archiviata | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` è `false` per **Interrompi gli avvisi** e `true` per **Ricomincia da Level 1**. Con `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` deve essere un numero intero pari ad almeno 1: OneUptime rifiuta `0`. Una policy più vecchia salvata con `0` non si ripete mai, e la dashboard la mostra come **Interrompi gli avvisi**.
 
 `acknowledgementTimeoutInMinutes` è `null` per **Non avvisare di nuovo**, e un numero intero di minuti da 5 a 1440 per **Avvisa di nuovo**. OneUptime rifiuta qualsiasi altro valore.
+
+`incidentRoleId` è l'ID di uno dei ruoli dell'incidente del progetto, oppure `null` per **Nessun ruolo**.
 
 Per creare una policy con il suo primo livello in una sola richiesta, vedi [Creare regole con l'API o Terraform](/docs/on-call/escalation-rules#creare-regole-con-lapi-o-terraform).
 

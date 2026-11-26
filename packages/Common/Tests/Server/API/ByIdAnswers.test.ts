@@ -110,6 +110,8 @@ describe("BaseAPI.getItem", () => {
       response,
       probe,
       Probe,
+      // The select names no retired column to answer as null (#10469).
+      { retiredColumns: [] },
     );
   });
 

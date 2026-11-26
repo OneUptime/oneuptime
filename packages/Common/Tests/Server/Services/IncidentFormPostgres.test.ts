@@ -382,7 +382,6 @@ describePostgres("Forms against a migrated Postgres", () => {
       ).toEqual([
         // confdeltype: c = CASCADE, n = SET NULL
         ["createdByUserId", "User", "n"],
-        ["deletedByUserId", "User", "n"],
         // A deleted logo or favicon only leaves the form without it.
         ["faviconFileId", "File", "n"],
         ["logoFileId", "File", "n"],
@@ -404,6 +403,8 @@ describePostgres("Forms against a migrated Postgres", () => {
             ];
           }),
       ).toEqual([
+        // The alert a form made, as it makes incidents and events (#10760).
+        ["alertId", "Alert", "n"],
         ["formId", "Form", "c"],
         ["incidentId", "Incident", "n"],
         ["projectId", "Project", "c"],

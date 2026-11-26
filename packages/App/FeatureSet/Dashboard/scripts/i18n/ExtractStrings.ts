@@ -241,6 +241,30 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Why a pull request a person links to a Data Security issue is refused
+   * (#10831): the issue holds ten already, was set aside, or has it linked
+   * already. The server refuses in English, and the Link Pull Request
+   * dialog says each in the reader's language; the refusals a security
+   * case's links share are read from Types/SecurityCase. Only the words the
+   * file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
+    kind: "keys",
+  },
+  /*
+   * What a Data Security scan could not read (#10930): each warning a
+   * content scan, the telemetry scan and the names-and-addresses model
+   * write, and the formats they name, as a scan's details draw them in the
+   * reader's language. The server writes the same file's English into the
+   * scan. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    kind: "keys",
+  },
+  /*
    * What the compliance page says is wrong with a rule, and why a member
    * fails one: the server sends what it found, and the page words it here
    * (#8632). Only the words the file marks are read.

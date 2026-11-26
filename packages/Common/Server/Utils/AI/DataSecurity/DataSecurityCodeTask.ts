@@ -8,6 +8,7 @@ import {
   DataSecurityFixRepository,
   DataSecurityFixResult,
 } from "../../../../Types/DataSecurity/DataSecurityApiTypes";
+import { TelemetryLeakFixOwnerKind } from "../../../../Types/DataSecurity/TelemetryLeakFix";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../../Types/Exception/PaymentRequiredException";
@@ -113,6 +114,10 @@ export const DATA_SECURITY_FIX_SIGN_IN_MESSAGE: string =
 // A service's telemetry leaks, fixed in its code in one pull request (#10367).
 export const DATA_SECURITY_TELEMETRY_FIX_STARTED_MESSAGE: string =
   "OneUptime AI is working on one pull request for the service's leaks. It will appear under Code, and on each issue it fixes.";
+
+// A RUM application's (#10933): the same pull request, for its front-end code.
+export const DATA_SECURITY_APPLICATION_FIX_STARTED_MESSAGE: string =
+  "OneUptime AI is working on one pull request for the application's leaks. It will appear under Code, and on each issue it fixes.";
 
 // OneUptime asked for a service's telemetry fix with no repository to work in.
 export const DATA_SECURITY_TELEMETRY_FIX_NO_REPOSITORY_MESSAGE: string =
@@ -494,7 +499,10 @@ export default class DataSecurityCodeTask {
     }
 
     return {
-      message: DATA_SECURITY_TELEMETRY_FIX_STARTED_MESSAGE,
+      message:
+        data.fix.ownerKind === TelemetryLeakFixOwnerKind.RumApplication
+          ? DATA_SECURITY_APPLICATION_FIX_STARTED_MESSAGE
+          : DATA_SECURITY_TELEMETRY_FIX_STARTED_MESSAGE,
       aiRunId: run.id?.toString(),
     };
   }

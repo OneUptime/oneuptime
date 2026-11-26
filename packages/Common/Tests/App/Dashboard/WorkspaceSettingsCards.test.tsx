@@ -841,7 +841,7 @@ describe("Microsoft Teams: the organization the project is connected to", () => 
     expect(
       within(dialog).getByTestId("confirm-modal-description").textContent,
     ).toBe(
-      "OneUptime disconnects this project from its Microsoft 365 organization first: it stops posting to that organization's channels, and every member's Microsoft Teams account is disconnected. Rules and summaries are kept. Then a Microsoft 365 admin of the other organization grants consent.",
+      "OneUptime first disconnects this project's Microsoft 365 organization and every member's Microsoft Teams account. Rules and summaries are kept.",
     );
 
     await click("Cancel");

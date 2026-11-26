@@ -184,11 +184,18 @@ The Overview counts the issues fixed where they start apart from the leaks only 
 A pull request OneUptime AI opened for an issue (**Fix with AI**, or one pull request for a [group of issues](#issues-with-one-cause)) has fixed nothing when it merges. OneUptime follows it until production proves it:
 
 - **A leak in code.** OneUptime waits for a recorded deploy of the service that contains the merge, then watches its new version. Where a scrub rule hides the data, the rule must change no value in that version; where no rule does, none of that version's records may hold the data at the places it was found. The new version must also run a day and send at least as many logs or spans as the old one did in the hour the leak was last seen. Then the issue is **Fixed in code**. One value changed, or one record that still holds the data, means the fix did not stop it, and a version that sends too little in a week cannot be told. Deploys are matched by their commit: record them with `oneuptime deploy`, or send `vcs.ref.head.revision` (see [Change Events](/docs/telemetry/change-events)).
+- **A leak in metrics or session replays.** It is proven the same way, by the version that wrote each record: a metric's data points name it among their attributes, a RUM application's browser logs and spans by the release its source maps were uploaded for, and its sessions by the app version the session recorder sends. A metric's data that a pipeline rule removes, or whose points it drops, leaves nothing to read, so that leak cannot be told; a **Redact Attribute** rule leaves its replacement to read.
 - **A store's configuration.** When the pull request merges, its stores are read again at once. Each issue whose check passes after that is **Fixed in infrastructure code**. When a store still fails its check when read again a day after the merge, the fix was **merged, not applied**: the store's owners and the person who asked for the pull request are emailed, once, and the issue's and the store's timelines say so. An apply is usually what is missing.
 - **The scrub rule is kept.** After a verified code fix, the scrub rule that contained the leak stays, so a regression is hidden as soon as it arrives. The issue says the rule has changed nothing since the fix, and offers **Remove Rule**.
 - **A regression.** A verified fix is watched after: when a kept rule changes values again, or the scan finds the data again, the issue opens again and says which version brought it back. It stays open until it is fixed again, even while a rule hides the data.
 
 Each step is on the issue's **Timeline** and the store's, and AI Results counts the fixes verified by kind (see [How well OneUptime AI is doing](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing)).
+
+### Link your own pull request
+
+A fix you wrote yourself is followed the same way. On the issue's page, **Link Pull Request** takes the address of a pull request in a repository connected under **Code** - on GitHub, GitLab, Forgejo or Gitea - and the issue lists it under **Linked pull requests**, with whether it merged. OneUptime follows it to its merge, the deploy that ships it and production's proof, as above, and the issue resolves naming it. Each step is on the issue's **Timeline**. A pull request closed without merging is followed no further, and taking it off the issue stops following it.
+
+Whoever may change the issue may link one, in a repository they may read under **Code**. An issue holds up to 10. An address that is no pull request's, a repository that is not connected or that they may not read, a pull request closed without merging or linked already, and an issue whose risk was accepted or that is not an issue are refused, each saying why.
 
 ## OneUptime AI's analysis
 

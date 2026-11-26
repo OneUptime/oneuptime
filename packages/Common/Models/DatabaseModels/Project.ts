@@ -3716,6 +3716,48 @@ export default class Project extends TenantModel {
     undefined;
 
   /*
+   * Whether an incident someone declares by hand starts acknowledged
+   * (Incidents -> Settings -> Incident State, issue #11137;
+   * Common/Types/Incident/IncidentDeclaredByHandStart). Off for every
+   * project, existing and new, so nothing pages any less until an owner or
+   * admin turns it on. On, an incident declared in the dashboard, Slack or
+   * Microsoft Teams starts in the project's acknowledged state when no state
+   * is picked for it, by the person or its template, and it pages no on-call
+   * policy: whoever declares it is on it. One that pages a policy starts in
+   * the created state, so the policy pages. Incidents created by monitors,
+   * rules, the API and workflows are not affected.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Start Incidents Declared by Hand Acknowledged",
+    description:
+      "Whether an incident someone declares in the dashboard, Slack or Microsoft Teams starts acknowledged, since whoever declares it is already on it. When enabled, such an incident starts in the project's acknowledged state, so no one is paged, unless a state is picked for it (by the person or its template) or it pages an on-call policy: then it starts as it always did. On-call rules do not page an incident that starts acknowledged. Incidents created by monitors, rules, the API and workflows are not affected. Off by default.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    nullable: false,
+    default: false,
+    type: ColumnType.Boolean,
+  })
+  public startIncidentsDeclaredByHandAcknowledged?: boolean = undefined;
+
+  /*
    * The layout every network topology map in the project opens on (issue
    * #5378): one of the ids in Types/NetworkDevice/NetworkTopologyLayout. A
    * Project Owner or Admin sets it from the map itself (Map options ->

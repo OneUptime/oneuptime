@@ -91,6 +91,12 @@ Due domande del provider cambiano questo comportamento, raccolte sotto **Altri c
 
 Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogni progetto di cui la persona fa parte, e i progetti collegati decidono solo dove vengono aggiunti i nuovi arrivati.
 
+## Indirizzi email che il tuo provider di identità non ha verificato
+
+Un provider OpenID Connect globale trova l'account a cui fa accedere tramite l'indirizzo email che invia, come il provider di un progetto, e gli account degli amministratori principali vengono trovati allo stesso modo. Per questo non fa accedere nessuno con un indirizzo che il provider dice di non aver verificato, con un claim `email_verified` uguale a `false` o a qualcosa che non è né true né false. Altrimenti qualcuno potrebbe mettere l'indirizzo di un amministratore principale sul proprio account presso il provider e accedere all'intera istanza al suo posto. Un provider che invia `email_verified` come `true`, o non lo invia, come Microsoft Entra ID, fa accedere le persone come prima.
+
+Tramite authentik 2025.10 e versioni successive nessuno accede finché non modifichi la sua mappatura di ambito `email`, e tramite Keycloak nessuno di cui non abbia verificato l'indirizzo. Cosa cambiare lì, cosa continua ad accedere e cosa vede la persona sono nella pagina [SSO](/docs/identity/sso#indirizzi-email-che-il-tuo-provider-di-identità-non-ha-verificato). Gli amministratori principali con una password possono accedere con quella nel frattempo, su `/accounts/admin-login` finché l'intera istanza richiede l'SSO.
+
 ## Uscire anche dal provider di identità
 
 Uscire da OneUptime lascia la persona connessa al provider di identità, quindi su un computer condiviso la persona successiva che accede con quel provider entra al posto di chi se n'è andato. Su un provider SAML o OpenID Connect, fai clic su **Modifica configurazione** e attiva **Esci anche dal provider di identità** in **Altri campi**: l'uscita da OneUptime chiude allora anche la sessione presso il provider, e il provider rimanda il browser a OneUptime. È disattivato per impostazione predefinita, perché su un portatile personale farebbe uscire la persona anche da ogni altra app che usa il provider.
@@ -183,6 +189,10 @@ Per un provider SAML, la risposta è stata creata per un'altra applicazione: la 
 Ogni risposta del tuo provider di identità fa accedere una sola volta, e solo nei minuti successivi alla sua emissione: dopo viene rifiutata con "SAML response has expired". Accedi di nuovo. Se le risposte continuano a scadere, controlla gli orologi di questo server e del tuo provider di identità.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+Il provider OpenID Connect ha inviato `email_verified` come `false`, o come qualcosa che non è né true né false, quindi OneUptime non ha fatto accedere nessuno, nemmeno un amministratore principale. Fai verificare l'indirizzo presso il tuo provider di identità, o segnalo lì come verificato, e accedi di nuovo. Vedi [Indirizzi email che il tuo provider di identità non ha verificato](#indirizzi-email-che-il-tuo-provider-di-identità-non-ha-verificato).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, un link inviato via e-mail, Google o Microsoft, oppure una registrazione. Accedi invece con uno dei pulsanti SSO della pagina di accesso. Un amministratore principale accede con la sua password su `/accounts/admin-login`; per permettere di nuovo a tutti l'accesso con password, disattiva **Richiedi l'SSO per l'accesso** su **Single sign-on**.
 :::
@@ -193,4 +203,5 @@ L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey, 
 - [SSO](/docs/identity/sso): Configurare il provider SAML o OIDC proprio di un progetto.
 - [SCIM](/docs/identity/scim): Lascia che il tuo provider di identità aggiunga e rimuova persone automaticamente.
 - [Utenti, team e autorizzazioni](/docs/permissions/index): Che cosa permettono di fare i team in cui entrano i nuovi arrivati.
+- [Aiuto e supporto](/docs/self-hosted/help-and-support): Dire a chi ha bisogno di un invito a chi chiederlo.
 :::

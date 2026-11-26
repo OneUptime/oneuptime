@@ -6,6 +6,7 @@ import {
   MAX_CALL_SITE_PLACES,
   TelemetryLeakFixIssue,
   TelemetryLeakFixLeak,
+  TelemetryLeakFixOwnerKind,
   TelemetryLeakFixStrategy,
   TelemetryLeakHandling,
   TelemetryLeakSignal,
@@ -35,6 +36,14 @@ import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
  * so never the pull request. Its description lists the issues it fixes and
  * links to them in OneUptime, by data type, key and signal - it never
  * quotes a record or a template.
+ *
+ * A RUM application's leaks (#10933) are fixed in its front-end code by
+ * the same recipe: the browser code that sets a span attribute, logs a
+ * line or identifies the user to the session recorder (with an opaque
+ * reference, never an email), or one redaction step where the browser
+ * sets up its telemetry or its session recorder - starting from the
+ * original files its source maps name. It reads no production telemetry
+ * either.
  */
 export default class FixSensitiveDataInTelemetryTaskHandler extends SubjectPullRequestTaskHandler {
   public readonly taskType: string =
@@ -58,7 +67,15 @@ export default class FixSensitiveDataInTelemetryTaskHandler extends SubjectPullR
     [TelemetryLeakSignal.Exceptions]: "exceptions",
     [TelemetryLeakSignal.AiCalls]: "AI calls",
     [TelemetryLeakSignal.Metrics]: "metrics",
+    [TelemetryLeakSignal.RumLogs]: "browser logs",
+    [TelemetryLeakSignal.RumSpans]: "browser spans",
+    [TelemetryLeakSignal.RumSessions]: "sessions",
   };
+
+  // Whether the fix is a RUM application's, in its front-end code (#10933).
+  public static isApplication(fix: TelemetryLeakFixTaskContext): boolean {
+    return fix.ownerKind === TelemetryLeakFixOwnerKind.RumApplication;
+  }
 
   // The fix's own context, or a stand-in that names nothing.
   public static fixOf(
@@ -96,8 +113,14 @@ export default class FixSensitiveDataInTelemetryTaskHandler extends SubjectPullR
 
   // What to do, for the way the fix is made.
   private static strategySteps(fix: TelemetryLeakFixTaskContext): string {
-    const callSites: string = `For each leak whose "fix" is "CallSite": change the code at the places in "writtenAt" so the value is no longer sent - leave it out, or replace it with a masked or hashed form. Change only those places.`;
-    const redaction: string = `For the leaks whose "fix" is "RedactionStep": do NOT edit each place that writes them. Add ONE redaction step where the service sets up its telemetry - a span processor, a log processor, a log formatter or the logger's configuration - that removes or masks the keys in "redactionStep.keys"${fix.redactionDataTypes.length > 0 ? ', and the values of the data types in "redactionStep.dataTypesInText" in log lines and messages' : ""}, before any record leaves the service. Add a test that a record carrying such a value comes out of the step without it.`;
+    const isApplication: boolean =
+      FixSensitiveDataInTelemetryTaskHandler.isApplication(fix);
+    const callSites: string = isApplication
+      ? `For each leak whose "fix" is "CallSite": change the browser code at the places in "writtenAt" so the value is no longer sent - leave it out where a span attribute is set or a line is logged, or replace it with a masked or hashed form; where a session's user details hold it ("recorderCall": "identify"), call the session recorder's identify() with an opaque reference to the user, never an email or a name, and leave such traits out; where an attribute the page attaches to the session holds it, stop attaching it. Change only those places.`
+      : `For each leak whose "fix" is "CallSite": change the code at the places in "writtenAt" so the value is no longer sent - leave it out, or replace it with a masked or hashed form. Change only those places.`;
+    const redaction: string = isApplication
+      ? `For the leaks whose "fix" is "RedactionStep": do NOT edit each place that writes them. Add ONE redaction step where the web application sets up its browser telemetry - a span processor or a log record processor of the OpenTelemetry web SDK - that removes or masks the keys in "redactionStep.keys"${fix.redactionDataTypes.length > 0 ? ', and the values of the data types in "redactionStep.dataTypesInText" in log lines and span names' : ""}, before any record is exported; where a session's user details hold it, identify the user to the session recorder with an opaque reference instead, and mark an element that shows such data with the \`oneuptime-mask\` class. Add a test that a record carrying such a value comes out of the step without it.`
+      : `For the leaks whose "fix" is "RedactionStep": do NOT edit each place that writes them. Add ONE redaction step where the service sets up its telemetry - a span processor, a log processor, a log formatter or the logger's configuration - that removes or masks the keys in "redactionStep.keys"${fix.redactionDataTypes.length > 0 ? ', and the values of the data types in "redactionStep.dataTypesInText" in log lines and messages' : ""}, before any record leaves the service. Add a test that a record carrying such a value comes out of the step without it.`;
 
     switch (fix.strategy) {
       case TelemetryLeakFixStrategy.RedactionStep:
@@ -124,9 +147,17 @@ export default class FixSensitiveDataInTelemetryTaskHandler extends SubjectPullR
             .join(", ")} - start there.`
         : 'Its records name no file: find each place by the names, templates and keys in "writtenAt".';
 
-    let prompt: string = `You are a senior engineer stopping a service writing sensitive data to its telemetry.
+    const isApplication: boolean =
+      FixSensitiveDataInTelemetryTaskHandler.isApplication(fix);
+    const intro: string = isApplication
+      ? `You are a senior front-end engineer stopping a web application sending sensitive data from the browser.
 
-OneUptime Data Security found the service "${fix.serviceName || "below"}" writing sensitive data to its telemetry - its logs, spans, exceptions, AI calls or metrics - and found, from the records each leak was seen in, where its code writes it. ${startFrom}
+OneUptime Data Security found the web application "${fix.serviceName || "below"}" sending sensitive data from the browser - in its browser logs, its browser spans or the details its sessions carry - and found, from the records each leak was seen in, where its front-end code writes it: its original source files, as the application's source maps name them, and the page it was written on. ${startFrom}`
+      : `You are a senior engineer stopping a service writing sensitive data to its telemetry.
+
+OneUptime Data Security found the service "${fix.serviceName || "below"}" writing sensitive data to its telemetry - its logs, spans, exceptions, AI calls or metrics - and found, from the records each leak was seen in, where its code writes it. ${startFrom}`;
+
+    let prompt: string = `${intro}
 
 ## The request
 
@@ -134,7 +165,7 @@ ${details.analysisMarkdown}
 
 ## How to work
 
-1. Find each place a leak is written: by its file and line, its function, its span or logger name, its log line's template (each <...> in it stands for a value), or its attribute key, which the code usually writes as a literal.
+1. Find each place a leak is written: by its file and line, its function, its span or logger name, its log line's template (each <...> in it stands for a value)${isApplication ? ", the page it was written on, the session recorder call that gave it" : ""}, or its attribute key, which the code usually writes as a literal.
 ${FixSensitiveDataInTelemetryTaskHandler.strategySteps(fix)}
 ${fix.strategy === TelemetryLeakFixStrategy.CallSitesAndRedactionStep ? "4" : "3"}. Keep what the code does the same, apart from what reaches telemetry.
 ${fix.strategy === TelemetryLeakFixStrategy.CallSitesAndRedactionStep ? "5" : "4"}. Where the repository has tests, add or update one that proves the value is no longer written.
@@ -150,7 +181,7 @@ ${fix.strategy === TelemetryLeakFixStrategy.CallSitesAndRedactionStep ? "6" : "5
 Finish with a summary for the pull request: what you changed and where, and which leaks each change stops. Describe the code only: never quote a log line, a template or a value.`;
 
     if (servicePathInRepository) {
-      prompt = `The service's code is in the \`${servicePathInRepository}\` directory.\n\n${prompt}`;
+      prompt = `The ${isApplication ? "application's front-end" : "service's"} code is in the \`${servicePathInRepository}\` directory.\n\n${prompt}`;
     }
 
     return prompt;
@@ -166,7 +197,7 @@ Finish with a summary for the pull request: what you changed and where, and whic
 
     return `fix: ${shortTitle}
 
-Stops ${fix.leaks.length} leak${fix.leaks.length === 1 ? "" : "s"} of sensitive data into the service's telemetry,
+Stops ${fix.leaks.length} leak${fix.leaks.length === 1 ? "" : "s"} of sensitive data into the ${FixSensitiveDataInTelemetryTaskHandler.isApplication(fix) ? "application's browser telemetry" : "service's telemetry"},
 fixing ${FixSensitiveDataInTelemetryTaskHandler.describeStrategy(fix.strategy)}.
 
 Automatically generated by OneUptime AI Agent.`;
@@ -265,22 +296,30 @@ Automatically generated by OneUptime AI Agent.`;
   ): string {
     const fix: TelemetryLeakFixTaskContext =
       FixSensitiveDataInTelemetryTaskHandler.fixOf(details);
-    const service: string =
-      mdText`${fix.serviceName || "the service"}`.toString();
+    const isApplication: boolean =
+      FixSensitiveDataInTelemetryTaskHandler.isApplication(fix);
+    const service: string = mdText`${
+      fix.serviceName || (isApplication ? "the application" : "the service")
+    }`.toString();
     const issuesLink: string = fix.issuesUrl
-      ? `\n\n[See the service's issues in OneUptime](${fix.issuesUrl})`
+      ? `\n\n[See the ${isApplication ? "application's" : "service's"} issues in OneUptime](${fix.issuesUrl})`
       : "";
     const issues: string =
       fix.issues.length > 0
         ? `### Issues it fixes\n\n${FixSensitiveDataInTelemetryTaskHandler.buildIssuesList(fix)}${issuesLink}\n\n`
         : "";
     const rotate: string = fix.hasSecrets
-      ? "> **Rotate the secret.** A secret was written to this service's telemetry. This change stops new copies only: the secret still works, and the copies already written stay wherever they went - log files, other vendors. Rotate it.\n\n"
+      ? `> **Rotate the secret.** A secret was written to this ${isApplication ? "application's browser" : "service's"} telemetry. This change stops new copies only: the secret still works, and the copies already written stay wherever they went - log files, other vendors. Rotate it.\n\n`
       : "";
+    const heading: string = isApplication
+      ? `## Stop ${service} sending sensitive data from the browser
 
-    return `## Stop ${service} writing sensitive data to its telemetry
+OneUptime Data Security found ${service} sending sensitive data from the browser, and where its front-end code writes each kind. This pull request fixes ${FixSensitiveDataInTelemetryTaskHandler.describeStrategy(fix.strategy)}, so the data no longer leaves the browser in a log line, a span or a session's details - to OneUptime or anywhere else.`
+      : `## Stop ${service} writing sensitive data to its telemetry
 
-OneUptime Data Security found ${service} writing sensitive data to its telemetry, and where its code writes each kind. This pull request fixes ${FixSensitiveDataInTelemetryTaskHandler.describeStrategy(fix.strategy)}, so the data no longer leaves the service in a log line, a span, an exception, an AI call or a metric - to OneUptime or anywhere else.
+OneUptime Data Security found ${service} writing sensitive data to its telemetry, and where its code writes each kind. This pull request fixes ${FixSensitiveDataInTelemetryTaskHandler.describeStrategy(fix.strategy)}, so the data no longer leaves the service in a log line, a span, an exception, an AI call or a metric - to OneUptime or anywhere else.`;
+
+    return `${heading}
 
 ### What it stops
 
@@ -292,7 +331,7 @@ ${agentSummary || "_No summary._"}
 
 ---
 
-> **AI-authored - review before merging.** Check that each change stops the data and changes nothing else. Nothing is merged automatically. Each issue resolves on its own as Fixed in code once the service's new version stops writing the data.
+> **AI-authored - review before merging.** Check that each change stops the data and changes nothing else. Nothing is merged automatically. Each issue resolves on its own as Fixed in code once the ${isApplication ? "application's new release stops sending" : "service's new version stops writing"} the data.
 
 *This PR was automatically generated by [OneUptime AI Agent](https://oneuptime.com)*`;
   }

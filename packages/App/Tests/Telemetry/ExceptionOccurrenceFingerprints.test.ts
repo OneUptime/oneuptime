@@ -15,6 +15,7 @@ import ExceptionUtil, {
   RECORD_SPLIT_PAIR_SQL,
   GroupFingerprintCandidate,
   OccurrenceFingerprints,
+  ResolvedGroups,
   TelemetryExceptionPayload,
   clearExistingV1FingerprintCache,
   groupFingerprintKey,
@@ -397,6 +398,8 @@ function mockPostgres(): void {
   jest.spyOn(logger, "warn").mockImplementation((() => {
     return undefined;
   }) as never);
+  // A failed read is tried again at once (#11027).
+  jest.spyOn(ExceptionUtil, "pauseBeforeLookupRetry").mockResolvedValue();
 }
 
 describe("which exception an occurrence with candidates belongs to", () => {
@@ -492,8 +495,21 @@ describe("which exception an occurrence with candidates belongs to", () => {
     expect(lookups).toHaveLength(1);
   });
 
-  test("a failed read keeps the fingerprint it names for that: v1 for an occurrence no rule changed, the keyed one for one a rule did", async () => {
+  test("a read that fails every try leaves the exception unknown, and its occurrence goes under the fingerprint a new one is made under, never v1 (#11027)", async () => {
     lookupFails = true;
+
+    const resolved: ResolvedGroups = await ExceptionUtil.resolveGroups([
+      HIDDEN,
+      SEEN_AS_IT_CAME,
+    ]);
+
+    expect(resolved.chosen.size).toBe(0);
+    expect(Array.from(resolved.unknown.keys())).toEqual([
+      groupFingerprintKey(HIDDEN),
+      groupFingerprintKey(SEEN_AS_IT_CAME),
+    ]);
+    // Tried three times, once a project.
+    expect(lookups).toHaveLength(3);
 
     const chosen: Map<string, string> = await resolve([
       HIDDEN,
@@ -501,7 +517,8 @@ describe("which exception an occurrence with candidates belongs to", () => {
     ]);
 
     expect(chosen.get(groupFingerprintKey(HIDDEN))).toBe("keyed");
-    expect(chosen.get(groupFingerprintKey(SEEN_AS_IT_CAME))).toBe("v1");
+    // Not v1, which every later occurrence would try first.
+    expect(chosen.get(groupFingerprintKey(SEEN_AS_IT_CAME))).toBe("v2");
     expect(logger.warn).toHaveBeenCalled();
   });
 
@@ -897,13 +914,13 @@ describe("grouping v4's fingerprints, tried after every older one", () => {
     );
 
     /*
-     * That occurrence made an exception of its own under keyed v4. Once
-     * the exceptions can be read again, the one under keyed v3, tried
-     * first, gets every occurrence: it lost one batch, and keeps its place.
+     * That occurrence was stored under keyed v4, and no exception was made
+     * there (#11027: its count waits until the exceptions can be read).
+     * Once they can, the one under keyed v3, tried first, gets every
+     * occurrence: it keeps its place.
      */
     clearExistingV1FingerprintCache();
     lookupFails = false;
-    existing = new Set<string>([fingerprints.keyedV3, fingerprints.keyedV4]);
 
     const next: Map<string, string> =
       await ExceptionUtil.resolveGroupFingerprints([candidate]);
@@ -911,13 +928,16 @@ describe("grouping v4's fingerprints, tried after every older one", () => {
     expect(next.get(groupFingerprintKey(candidate))).toBe(fingerprints.keyedV3);
   });
 
-  test("and one no rule changed keeps v1, as ever", async () => {
+  test("and one no rule changed goes under v4 too, never v1, which every later occurrence tries first (#11027)", async () => {
     lookupFails = true;
 
     const chosen: Map<string, string> =
       await ExceptionUtil.resolveGroupFingerprints([candidateOf(LONDON)]);
 
     expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).toBe(
+      fingerprintsOf(LONDON).v4,
+    );
+    expect(chosen.get(groupFingerprintKey(candidateOf(LONDON)))).not.toBe(
       fingerprintsOf(LONDON).v1,
     );
   });
@@ -947,5 +967,203 @@ describe("grouping v4's fingerprints, tried after every older one", () => {
           .fingerprintV2,
       );
     }
+  });
+});
+
+/*
+ * #11030: WHAT A LOG'S EXCEPTION WAS FOUND BY BEFORE A PHONE NUMBER OR SSN
+ * RULE HID MORE.
+ *
+ * An exception found in a log before #10434 is found by the text the rules
+ * left of it, and since #11030 they leave less of an international number.
+ * The logs ingest hands over what they left before (storedByEarlierRules):
+ * its fingerprints are tried after those of what they leave now, each with
+ * the keyed one it moves to, so the exception is found and moved, not
+ * split.
+ */
+describe("what a log's exception was found by before #11030", () => {
+  const ARRIVED: ExceptionGroupingContent = {
+    exceptionType: "SmsDeliveryError",
+    message: "SMS to +44 161 321 4567 was not delivered",
+    stackTrace: "",
+  };
+  const STORED: ExceptionGroupingContent = {
+    ...ARRIVED,
+    message: "SMS to [REDACTED] was not delivered",
+  };
+  // The US pattern alone hid the last ten digits.
+  const EARLIER: ExceptionGroupingContent = {
+    ...ARRIVED,
+    message: "SMS to +44 [REDACTED] was not delivered",
+  };
+
+  interface EarlierFingerprints {
+    v1: string;
+    keyedV1: string;
+    v2: string;
+    keyedV2: string;
+  }
+
+  function occurrenceOf(data: {
+    stored?: ExceptionGroupingContent;
+    earlier?: ExceptionGroupingContent | undefined;
+    fromLog?: boolean;
+  }): OccurrenceFingerprints {
+    return ExceptionUtil.getOccurrenceFingerprints({
+      projectId: PROJECT_ID,
+      primaryEntityId: SERVICE_ID,
+      arrived: ARRIVED,
+      stored: data.stored || STORED,
+      findsGroupsOfStoredText: data.fromLog !== false,
+      ...(data.earlier ? { storedByEarlierRules: data.earlier } : {}),
+    });
+  }
+
+  function earlierFingerprints(
+    content: ExceptionGroupingContent,
+  ): EarlierFingerprints {
+    const input: {
+      projectId: ObjectID;
+      primaryEntityId: ObjectID;
+      message: string;
+      stackTrace: string;
+      exceptionType: string;
+    } = {
+      projectId: PROJECT_ID,
+      primaryEntityId: SERVICE_ID,
+      ...content,
+    };
+    const v1Text: string = ExceptionUtil.getGroupingTextV1(input);
+    const v2Text: string = ExceptionUtil.getGroupingTexts(input).v2;
+
+    return {
+      v1: ExceptionUtil.getFingerprint(input),
+      keyedV1: KeyedExceptionFingerprint.ofFirstGroupingText({
+        projectId: PROJECT_ID,
+        text: v1Text,
+      }),
+      v2: ExceptionUtil.getFingerprintV2(input),
+      keyedV2: KeyedExceptionFingerprint.ofGroupingText({
+        projectId: PROJECT_ID,
+        text: v2Text,
+      }),
+    };
+  }
+
+  test("tries what the rules left before #11030 right after what they leave now, each with its keyed one, before what it arrived as", () => {
+    const now: OccurrenceFingerprints = occurrenceOf({});
+    const withEarlier: OccurrenceFingerprints = occurrenceOf({
+      earlier: EARLIER,
+    });
+    const earlier: EarlierFingerprints = earlierFingerprints(EARLIER);
+
+    expect(withEarlier.fingerprintCandidates).toEqual([
+      ...now.fingerprintCandidates.slice(0, 2),
+      earlier.v1,
+      earlier.keyedV1,
+      earlier.v2,
+      earlier.keyedV2,
+      ...now.fingerprintCandidates.slice(2),
+    ]);
+    expect(withEarlier.fingerprintsOfStoredText).toEqual([
+      ...(now.fingerprintsOfStoredText || []),
+      earlier.v1,
+      earlier.keyedV1,
+      earlier.v2,
+      earlier.keyedV2,
+    ]);
+  });
+
+  test("an exception found under one of them moves to its keyed one: it hashes the calling code the rule hides now", () => {
+    const now: OccurrenceFingerprints = occurrenceOf({});
+    const withEarlier: OccurrenceFingerprints = occurrenceOf({
+      earlier: EARLIER,
+    });
+    const earlier: EarlierFingerprints = earlierFingerprints(EARLIER);
+
+    expect(withEarlier.fingerprintRekeys).toEqual({
+      ...now.fingerprintRekeys,
+      [earlier.v1]: earlier.keyedV1,
+      [earlier.v2]: earlier.keyedV2,
+    });
+  });
+
+  test("what a new exception is made under, and its own fingerprint, are as without it", () => {
+    const now: OccurrenceFingerprints = occurrenceOf({});
+    const withEarlier: OccurrenceFingerprints = occurrenceOf({
+      earlier: EARLIER,
+    });
+
+    expect(withEarlier.fingerprint).toBe(now.fingerprint);
+    expect(withEarlier.fingerprintV2).toBe(now.fingerprintV2);
+  });
+
+  test("nothing more when the rules left what they leave now, or the occurrence is a span's", () => {
+    expect(occurrenceOf({ earlier: STORED })).toEqual(occurrenceOf({}));
+    expect(occurrenceOf({ earlier: EARLIER, fromLog: false })).toEqual(
+      occurrenceOf({ fromLog: false }),
+    );
+  });
+
+  test("one equal to a fingerprint it arrived as is tried in its own place only", () => {
+    const berlin: ExceptionGroupingContent = {
+      ...ARRIVED,
+      message: "SMS to +49 30 81234567 was not delivered",
+    };
+    const stored: ExceptionGroupingContent = {
+      ...berlin,
+      message: "SMS to [REDACTED] was not delivered",
+    };
+    const withEarlier: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId: PROJECT_ID,
+        primaryEntityId: SERVICE_ID,
+        arrived: berlin,
+        stored,
+        findsGroupsOfStoredText: true,
+        // The US pattern found nothing in it: it was left as it arrived.
+        storedByEarlierRules: berlin,
+      });
+    const without: OccurrenceFingerprints =
+      ExceptionUtil.getOccurrenceFingerprints({
+        projectId: PROJECT_ID,
+        primaryEntityId: SERVICE_ID,
+        arrived: berlin,
+        stored,
+        findsGroupsOfStoredText: true,
+      });
+
+    expect(withEarlier).toEqual(without);
+  });
+
+  test("an exception of before under one of them is what the resolution finds", async () => {
+    clearExistingV1FingerprintCache();
+    existing = new Set<string>([earlierFingerprints(EARLIER).v1]);
+    movedTo = new Map<string, string>();
+    lookups = [];
+    lookupFails = false;
+    splitRecords = [];
+    mockPostgres();
+
+    const occurrence: OccurrenceFingerprints = occurrenceOf({
+      earlier: EARLIER,
+    });
+    const candidate: GroupFingerprintCandidate = {
+      projectId: PROJECT_ID.toString(),
+      v1: occurrence.fingerprint,
+      v2: occurrence.fingerprintV2,
+      candidates: occurrence.fingerprintCandidates,
+      ...(occurrence.fingerprintsOfStoredText
+        ? { storedOnly: occurrence.fingerprintsOfStoredText }
+        : {}),
+    };
+
+    const chosen: Map<string, string> =
+      await ExceptionUtil.resolveGroupFingerprints([candidate]);
+
+    expect(chosen.get(groupFingerprintKey(candidate))).toBe(
+      earlierFingerprints(EARLIER).v1,
+    );
+    jest.restoreAllMocks();
   });
 });

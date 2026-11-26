@@ -1,6 +1,7 @@
 import SnmpMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/SnmpMonitorCriteria";
 import MetricBaselineService, {
   BaselineSummary,
+  MetricSeriesBaselines,
 } from "../../../../../Server/Services/MetricBaselineService";
 import {
   AnomalyDetectionSensitivity,
@@ -422,8 +423,34 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     let getBaselineSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      getBaselineSpy = jest.spyOn(MetricBaselineService, "getBaseline");
+      getBaselineSpy = jest.spyOn(MetricBaselineService, "getSeriesBaselines");
     });
+
+    /*
+     * Each interface is judged against its own history (#10985): this answers
+     * the same baseline as the history of every port these tests walk.
+     */
+    const answerWith: (baseline: BaselineSummary | null) => void = (
+      baseline: BaselineSummary | null,
+    ): void => {
+      const series: MetricSeriesBaselines = {
+        series: new Map<string, BaselineSummary>(
+          baseline
+            ? ["Gi0/1", "Gi0/2"].map(
+                (name: string): [string, BaselineSummary] => {
+                  return [
+                    SnmpMonitorCriteria.getInterfaceSeriesFingerprint(name),
+                    baseline,
+                  ];
+                },
+              )
+            : [],
+        ),
+        fallback: null,
+      };
+
+      getBaselineSpy.mockResolvedValue(series);
+    };
 
     afterEach(() => {
       getBaselineSpy.mockRestore();
@@ -431,7 +458,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     test("AnomalouslyHigh fires when utilization exceeds mean + 3σ (Medium default)", async () => {
       // mean 20, σ 5 → 3σ band is [5, 35]; observed 90 breaches high.
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -451,12 +478,12 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         });
 
       expect(result).toBeTruthy();
-      expect(result).toContain("above the same-hour baseline");
+      expect(result).toContain("above its same-hour baseline");
       expect(result).toContain("90.00%");
     });
 
     test("baseline lookup is keyed by monitorId and the utilization metric name", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -484,7 +511,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("no fire when utilization is inside the expected band", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -508,7 +535,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     test("AnomalouslyLow fires when utilization drops below mean - 3σ", async () => {
       // mean 50, σ 10 → 3σ band is [20, 80]; observed 2 breaches low.
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 50, stddev: 10 }));
+      answerWith(buildBaseline({ mean: 50, stddev: 10 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -528,11 +555,11 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
         });
 
       expect(result).toBeTruthy();
-      expect(result).toContain("below the same-hour baseline");
+      expect(result).toContain("below its same-hour baseline");
     });
 
     test("Anomalous (either direction) fires on a high breach", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -556,7 +583,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
 
     test("High sensitivity (2σ) fires where Medium (3σ) would not", async () => {
       // mean 20, σ 5 → 2σ band tops out at 30; observed 32 breaches at 2σ only.
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -585,7 +612,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("no baseline yet (learning) → never fires", async () => {
-      getBaselineSpy.mockResolvedValue(null);
+      answerWith(null);
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -610,9 +637,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("unreliable (thin) baseline → never fires", async () => {
-      getBaselineSpy.mockResolvedValue(
-        buildBaseline({ mean: 20, stddev: 5, isReliable: false }),
-      );
+      answerWith(buildBaseline({ mean: 20, stddev: 5, isReliable: false }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -637,7 +662,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("zero-variance baseline → never fires", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 0 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 0 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -662,7 +687,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("a zero-variance baseline it has left fires, and says so in words", async () => {
-      getBaselineSpy.mockResolvedValue({
+      answerWith({
         ...buildBaseline({ mean: 0, stddev: 0 }),
         leftFlatHistory: true,
       });
@@ -684,13 +709,15 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
           criteriaFilter,
         });
 
-      expect(result).toContain("SNMP interface utilization 40.00% is above");
+      expect(result).toContain(
+        "SNMP interface Gi0/1 utilization 40.00% is above",
+      );
       expect(result).toContain("which held at 0.00% for all");
       expect(result).not.toContain("σ");
     });
 
     test("back on the value it held, it does not fire", async () => {
-      getBaselineSpy.mockResolvedValue({
+      answerWith({
         ...buildBaseline({ mean: 0, stddev: 0 }),
         leftFlatHistory: true,
       });
@@ -715,7 +742,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("interface scope applies: only the scoped interface's utilization is observed", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,
@@ -743,7 +770,7 @@ describe("SnmpMonitorCriteria.isMonitorInstanceCriteriaFilterMet", () => {
     });
 
     test("no interfaces in the response → no baseline lookup, no fire", async () => {
-      getBaselineSpy.mockResolvedValue(buildBaseline({ mean: 20, stddev: 5 }));
+      answerWith(buildBaseline({ mean: 20, stddev: 5 }));
 
       const criteriaFilter: CriteriaFilter = {
         checkOn: CheckOn.SnmpInterfaceUtilizationPercent,

@@ -3,14 +3,18 @@ import {
   MAX_TELEMETRY_LEAK_FRAMES,
   MAX_TELEMETRY_LEAK_NAME_LENGTH,
   MAX_TELEMETRY_LEAK_PATH_LENGTH,
+  MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH,
   TelemetryLeakFrame,
   TelemetryLeakPlace,
   getTelemetryLeakPlaceKey,
+  readTelemetryLeakFrame,
+  readTelemetryLeakList,
 } from "../../../../Types/DataSecurity/TelemetryLeakFix";
 import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
-import { JSONObject } from "../../../../Types/JSON";
+import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import BUILT_IN_DETECTORS from "../../../../Utils/DataSecurity/Detectors/Index";
 import { alignTelemetryLeakTemplates } from "../../../../Utils/DataSecurity/TelemetryLeakTemplate";
+import UrlScrubber from "../../../../Utils/Rum/UrlScrubber";
 import {
   findSensitiveValues,
   ScanDetector,
@@ -21,6 +25,16 @@ import StackTraceParser, {
   StackFrame,
 } from "../../Telemetry/StackTraceParser";
 import { TelemetrySampleSource } from "./TelemetrySampleSource";
+import {
+  MinifiedStackFrame,
+  ResolvedStackFrame,
+} from "../../../../Types/Telemetry/SourceMap";
+import SourceMapResolver from "../../Telemetry/SourceMapResolver";
+
+// The most of a finding's RUM records whose stacks are resolved through source maps (#10933).
+export const MAX_RUM_STACKS_RESOLVED: number = 3;
+// The most frames of one stack handed to the source maps.
+export const MAX_RUM_FRAMES_RESOLVED: number = 20;
 
 /*
  * THE PLACE IN A SERVICE'S CODE A TELEMETRY RECORD NAMES (#10367): read
@@ -39,10 +53,37 @@ import { TelemetrySampleSource } from "./TelemetrySampleSource";
  *   - a metric's name, where the instrument is created - never one that
  *     holds the data.
  *
+ * A RUM application's records (#10933) name their place the same way, in
+ * its front-end code: a browser log's or span's code location
+ * attributes, its JavaScript stack resolved through the application's
+ * source maps to the original files (the locator resolves them, and hands
+ * them in as readResolvedFrames), its span's name or its line as a
+ * template - and the page it was written on: the path the URL scrubber
+ * keeps of it (no host, no query; a hash route kept, identifiers masked),
+ * as a template. A session's user details name the session recorder call
+ * that gave them (identify) and the page the session started on. Never a
+ * recording: no finding is in one, and nothing here reads one.
+ *
  * Pure - no database, no scanner, no service - so the eval set of recorded
  * findings and the code agent's benchmark read records exactly as the
  * product does.
  */
+
+// The session recorder call that gives a session its user and traits.
+export const RUM_IDENTIFY_CALL: string = "identify";
+
+// A session's user details - its label and its traits - are what identify() gives it.
+const RUM_USER_DETAILS_PREFIX: string = "sessions.identifiedUser";
+
+// The page a RUM record names, most specific first: its path, its URL, a session's entry page.
+const RUM_URL_ALIASES: ReadonlyArray<string> = [
+  "readUrlFull",
+  "readHttpUrl",
+  "readPage",
+];
+
+// A page the scrubber keeps nothing of.
+const REDACTED_PAGE: string = "[redacted]";
 
 function readCell(value: unknown): string {
   if (typeof value === "string") {
@@ -236,6 +277,228 @@ export function readOwnFrames(row: JSONObject): Array<TelemetryLeakFrame> {
 }
 
 /*
+ * The minified frames of a JavaScript stack a RUM record holds, as the
+ * source maps are asked for them: at most MAX_RUM_FRAMES_RESOLVED. None
+ * for a record with no stack.
+ */
+export function readMinifiedFrames(
+  stackTrace: string,
+): Array<MinifiedStackFrame> {
+  if (!stackTrace.trim()) {
+    return [];
+  }
+
+  try {
+    return StackTraceParser.parse(stackTrace)
+      .frames.slice(0, MAX_RUM_FRAMES_RESOLVED)
+      .map((frame: StackFrame): MinifiedStackFrame => {
+        return {
+          functionName: frame.functionName || "",
+          fileName: frame.fileName || "",
+          lineNumber: frame.lineNumber || 0,
+          ...(frame.columnNumber !== undefined
+            ? { columnNumber: frame.columnNumber }
+            : {}),
+          inApp: frame.inApp !== false,
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+/*
+ * The frames a stack's source maps resolved to the application's own
+ * original files - a dependency's (node_modules) and an unresolved
+ * minified bundle's left out - as a place keeps them.
+ */
+export function toOwnResolvedFrames(
+  frames: ReadonlyArray<ResolvedStackFrame>,
+): Array<TelemetryLeakFrame> {
+  const own: Array<TelemetryLeakFrame> = [];
+
+  for (const frame of frames) {
+    const filePath: string = frame.resolved
+      ? SourceMapResolver.cleanSourcePath(frame.originalFileName || "")
+      : "";
+
+    if (
+      !filePath ||
+      frame.inApp === false ||
+      filePath.includes("node_modules/")
+    ) {
+      continue;
+    }
+
+    const functionName: string = (
+      frame.originalFunctionName ||
+      frame.functionName ||
+      ""
+    ).slice(0, MAX_TELEMETRY_LEAK_NAME_LENGTH);
+
+    own.push({
+      filePath: filePath.slice(0, MAX_TELEMETRY_LEAK_PATH_LENGTH),
+      ...(functionName && functionName !== "<anonymous>"
+        ? { functionName }
+        : {}),
+      ...(frame.originalLineNumber
+        ? { lineNumber: frame.originalLineNumber }
+        : {}),
+    });
+
+    if (own.length >= MAX_TELEMETRY_LEAK_FRAMES) {
+      break;
+    }
+  }
+
+  return own;
+}
+
+// Resolves a release's minified frames through its uploaded source maps.
+export type RumFrameResolver = (data: {
+  serviceVersion: string;
+  frames: Array<MinifiedStackFrame>;
+}) => Promise<Array<ResolvedStackFrame>>;
+
+/*
+ * A RUM application's records' JavaScript stacks, resolved through its
+ * builds' source maps to its original files (#10933): at most
+ * MAX_RUM_STACKS_RESOLVED records, each stack once, each by the release
+ * the record names. What resolved goes on the row as readResolvedFrames,
+ * which TelemetryLeakPlaces reads; the stack's own text is dropped here.
+ * A stack that does not resolve - no maps for the release, or a map that
+ * does not hold it - names no file.
+ */
+export async function resolveRumStacks(data: {
+  rows: Array<JSONObject>;
+  resolve: RumFrameResolver;
+}): Promise<void> {
+  const resolved: Map<string, Array<TelemetryLeakFrame>> = new Map();
+  let stacksResolved: number = 0;
+
+  for (const row of data.rows) {
+    const stackTrace: string =
+      typeof row["readStackTrace"] === "string" ? row["readStackTrace"] : "";
+    const serviceVersion: string =
+      typeof row["readServiceVersion"] === "string"
+        ? row["readServiceVersion"].trim()
+        : "";
+
+    delete row["readStackTrace"];
+
+    if (!stackTrace || !serviceVersion) {
+      continue;
+    }
+
+    const key: string = `${serviceVersion}\u0000${stackTrace}`;
+    let frames: Array<TelemetryLeakFrame> | undefined = resolved.get(key);
+
+    if (!frames) {
+      if (stacksResolved >= MAX_RUM_STACKS_RESOLVED) {
+        continue;
+      }
+
+      stacksResolved++;
+
+      const minified: Array<MinifiedStackFrame> =
+        readMinifiedFrames(stackTrace);
+
+      try {
+        frames =
+          minified.length > 0
+            ? toOwnResolvedFrames(
+                await data.resolve({ serviceVersion, frames: minified }),
+              )
+            : [];
+      } catch {
+        // Maps that could not be read resolve nothing: the stack names no file.
+        frames = [];
+      }
+
+      resolved.set(key, frames);
+    }
+
+    if (frames.length > 0) {
+      row["readResolvedFrames"] = frames as unknown as JSONArray;
+    }
+  }
+}
+
+/*
+ * The page - or request - a RUM record was written on, as a place keeps
+ * it: the path the URL scrubber keeps of it, then as a template, so no
+ * value stays in it. Empty when the record names none, or the scrubber
+ * keeps nothing of it.
+ */
+export function readRumPage(
+  row: JSONObject,
+  templateOf: (text: string) => string,
+): string {
+  const readPath: string = readCell(row["readUrlPath"]).trim();
+  const named: string = firstText(row, RUM_URL_ALIASES);
+  // Only a page's path or address: anything else a record put there names no page.
+  const path: string = readPath.startsWith("/") ? readPath : "";
+  const scheme: string = named.slice(0, 8).toLowerCase();
+  const url: string =
+    scheme.startsWith("https://") || scheme.startsWith("http://") ? named : "";
+  let page: string = "";
+
+  try {
+    page = path
+      ? UrlScrubber.getScrubbedPage(`https://page.invalid${path}`)
+      : url
+        ? UrlScrubber.getScrubbedPage(url)
+        : "";
+  } catch {
+    page = "";
+  }
+
+  if (!page || page === REDACTED_PAGE) {
+    return "";
+  }
+
+  return templateOf(page).slice(0, MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH);
+}
+
+/*
+ * A RUM record's own frames, as the locator resolved them through the
+ * application's source maps (readResolvedFrames): the original files, a
+ * dependency's left out. None when it held no stack, or none resolved.
+ */
+export function readResolvedFrames(row: JSONObject): Array<TelemetryLeakFrame> {
+  return readTelemetryLeakList(
+    row["readResolvedFrames"],
+    (value: unknown): TelemetryLeakFrame | null => {
+      const frame: TelemetryLeakFrame | null = readTelemetryLeakFrame(value);
+      const filePath: string = frame ? toLeakFilePath(frame.filePath) : "";
+
+      return frame && filePath ? { ...frame, filePath } : null;
+    },
+    MAX_TELEMETRY_LEAK_FRAMES,
+  );
+}
+
+// A RUM record's place in its front-end code: its own frames first, then its code attributes.
+function readRumCodeLocation(row: JSONObject): Partial<TelemetryLeakPlace> {
+  const frames: Array<TelemetryLeakFrame> = readResolvedFrames(row);
+  const top: TelemetryLeakFrame | undefined = frames[0];
+
+  return {
+    ...readCodeLocation(row),
+    ...(top
+      ? {
+          filePath: top.filePath,
+          ...(top.functionName ? { functionName: top.functionName } : {}),
+          ...(top.lineNumber !== undefined
+            ? { lineNumber: top.lineNumber }
+            : {}),
+        }
+      : {}),
+    ...(frames.length > 0 ? { frames } : {}),
+  };
+}
+
+/*
  * The place one record names, as its signal names it - or null for a
  * record that names none. `templateOf` makes a template of a text the
  * record holds (TelemetryLeakTemplate).
@@ -301,6 +564,46 @@ export function readLeakPlaceOfRow(data: {
         ...(frames.length > 0 ? { frames } : {}),
         ...(exceptionType ? { exceptionType } : {}),
         ...(template ? { template } : {}),
+      };
+      break;
+    }
+    // A RUM application's browser log or span (#10933).
+    case TelemetrySampleSource.RumLogs:
+    case TelemetrySampleSource.RumSpans: {
+      const page: string = readRumPage(row, data.templateOf);
+      const text: string =
+        data.source === TelemetrySampleSource.RumLogs
+          ? data.templateOf(readCell(row["readBody"]))
+          : "";
+      const spanName: string =
+        data.source === TelemetrySampleSource.RumSpans
+          ? data.templateOf(readCell(row["readName"]))
+          : "";
+
+      place = {
+        ...place,
+        ...readRumCodeLocation(row),
+        ...(text ? { template: text } : {}),
+        ...(spanName ? { spanName } : {}),
+        ...(page ? { page } : {}),
+      };
+      break;
+    }
+    /*
+     * A session's: the page it started on, and for its user details (its
+     * label and traits) the recorder call that gave them. A session's own
+     * attributes are the host page's, not identify()'s: their key names them.
+     */
+    case TelemetrySampleSource.RumSessions: {
+      const page: string = readRumPage(row, data.templateOf);
+      const isUserDetail: boolean = data.location.startsWith(
+        RUM_USER_DETAILS_PREFIX,
+      );
+
+      place = {
+        ...place,
+        ...(isUserDetail ? { recorderCall: RUM_IDENTIFY_CALL } : {}),
+        ...(page ? { page } : {}),
       };
       break;
     }

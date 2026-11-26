@@ -247,7 +247,7 @@ Ative **Fluxos de rede**, em **Seus dados do OneUptime** na página **Conexões*
 - o intervalo de cada uma das descobertas dela, enquanto a varredura está em andamento;
 - os hosts e as portas que os monitores dela verificam.
 
-Ele é guardado como um evento informativo, `oneuptime-probe-traffic`, que nomeia a sonda, e nenhuma regra o lê. **Fluxos de rede** diz quantos foram postos de lado no último dia, com **Ver**. Qualquer outra coisa vinda do endereço de uma sonda é contada como o tráfego de qualquer um, e uma varredura além do trabalho da sonda é relatada, nomeando a sonda. Uma sonda é reconhecida pelo endereço de onde ela se apresenta e pelos endereços das suas próprias interfaces de rede, que ela lista sempre que se apresenta.
+Ele é guardado como um evento informativo, `oneuptime-probe-traffic`, que nomeia a sonda, e nenhuma regra o lê. **Fluxos de rede** diz quantos foram postos de lado no último dia, com **Ver**. Qualquer outra coisa vinda do endereço de uma sonda é contada como o tráfego de qualquer um, e uma varredura além do trabalho da sonda é relatada, nomeando a sonda. Uma sonda é reconhecida pelo endereço de onde ela se apresenta e pelos endereços das suas próprias interfaces de rede, que ela lista sempre que se apresenta. Uma sonda personalizada sem a rede do host, como um pod do Kubernetes ou um contêiner em uma rede bridge do Docker, é reconhecida também pelos endereços do seu host, que `PROBE_HOST_IP_ADDRESSES` informa a ela: até tê-los, as consultas dela saem de um endereço pelo qual não é reconhecida e são relatadas como varreduras. Veja [O que uma sonda envia quando se comunica](/docs/probe/custom-probe#o-que-uma-sonda-envia-quando-se-comunica).
 
 ### Conecte um produto de segurança
 

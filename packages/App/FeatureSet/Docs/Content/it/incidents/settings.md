@@ -15,7 +15,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 
 | Pagina                          | Che cosa ci fate                                                                                   |
 | ------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Stato incidente**             | Aggiungere, rinominare, ricolorare e riordinare gli stati che un incidente attraversa.              |
+| **Stato incidente**             | Aggiungere, rinominare, ricolorare e riordinare gli stati che un incidente attraversa, e scegliere se gli incidenti dichiarati a mano partono riconosciuti. Disattivato per impostazione predefinita. |
 | **Gravità incidente**           | Aggiungere, rinominare, ricolorare e riordinare i livelli di gravità.                              |
 | **Modelli di incidenti**        | Precompilare un intero incidente — titolo, descrizione, risorse, policy di reperibilità, proprietari, etichette. |
 | **Modelli di note**             | Testo riutilizzabile per note pubbliche e private.                                                 |

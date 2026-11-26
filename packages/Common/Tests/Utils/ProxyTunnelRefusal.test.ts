@@ -4,6 +4,9 @@ import API from "../../Utils/API";
 import ProxyTunnelRefusal, {
   PROXY_TUNNEL_ERROR_CODE,
 } from "../../Utils/ProxyTunnelRefusal";
+import BrowserProxyTunnelRefusal, {
+  PROXY_TUNNEL_ERROR_CODE as BROWSER_PROXY_TUNNEL_ERROR_CODE,
+} from "../../Utils/ProxyTunnelRefusal.browser";
 import { describe, expect, test } from "@jest/globals";
 import { AxiosError } from "axios";
 
@@ -246,5 +249,29 @@ describe("the API client", () => {
     expect(
       API.getFriendlyErrorMessage(new Error("connect ECONNREFUSED 10.0.0.5")),
     ).toBe("Connection Refused.");
+  });
+});
+
+/*
+ * A browser build takes ProxyTunnelRefusal.browser.ts in this module's place
+ * (the "browser" field of packages/Common/package.json): a browser's
+ * requests never go through OneUptime's outbound proxy, so it meets no such
+ * refusal, and a page does not download the words for one
+ * (Tests/UI/ApiClientBrowserBuild.test.ts holds the build to it).
+ */
+describe("in a browser build (ProxyTunnelRefusal.browser.ts)", () => {
+  test("the code is the server's", () => {
+    expect(BROWSER_PROXY_TUNNEL_ERROR_CODE).toBe(PROXY_TUNNEL_ERROR_CODE);
+  });
+
+  test("there is no refusal to say", () => {
+    expect(
+      BrowserProxyTunnelRefusal.describe(
+        nodeTunnelError("hooks.example.com:443", "HTTP/1.1 403 Forbidden"),
+      ),
+    ).toBeNull();
+    expect(
+      BrowserProxyTunnelRefusal.describe(new Error("Network Error")),
+    ).toBeNull();
   });
 });

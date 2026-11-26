@@ -33,7 +33,7 @@ A name is used once, whatever its case, among the project's global variables, an
 
 ## Before you begin
 
-- **A role that manages variables.** Project Owner and Project Admin, or the **Create Runbook Variable** permission. Runbook Admin reads variables, to pick them in the steps it writes, but does not change them.
+- **A role that manages variables.** Project Owner and Project Admin, or the **Create Runbook Variable** permission. Runbook Admin reads variables, to pick them in the steps it writes, but does not change them. A workflow changes them only when it runs as Project Owner or as a custom role that holds these permissions: see [What workflow steps can do](/docs/workflows/configuration#what-workflow-steps-can-do).
 - **A plan that includes them.** On OneUptime Cloud, runbook variables need the **Growth** plan or above.
 
 ## Create a variable
@@ -84,6 +84,8 @@ An [SSH step](/docs/runbooks/authoring#ssh) picks the secret variable that holds
 @tab Kubeconfig
 A [kubectl step](/docs/runbooks/authoring#kubectl) picks the secret variable that holds the cluster's kubeconfig under **Kubeconfig**, or **The Runner's own access** to use the Runner's.
 :::
+
+A value is filled in exactly as it is written, where the reference is, so whoever can change a variable changes what every step that names it runs. Give the permissions that change variables only to people you would let write those steps. Values from outside OneUptime, such as what a webhook call sends, reach a Bash step as environment variables instead, never as part of its script: see [Values a webhook call sends](/docs/runbooks/triggers#values-a-webhook-call-sends).
 
 On a runbook's **Steps** page, each script and each HTTP request lists the variables its step can use under **Variables — click to copy**, and the editor says when a step names a variable that is not there, or a secret its Runner may not use.
 

@@ -111,8 +111,8 @@ Wählen Sie unter **Weitere Felder** die **Bereinigungsaktion** und die Felder u
 | --- | --- |
 | **E-Mail-Adresse** | E-Mail-Adressen wie `jane@example.com`, auch in einer anderen Schrift, wie `张伟@example.com`, und in einer prozentkodierten URL |
 | **Kreditkartennummer** | Kartennummern wie `4111 1111 1111 1111` oder eine American-Express-Nummer, auch in den Ziffern einer anderen Schrift, wie `４１１１ １１１１ １１１１ １１１１`, und beliebige sechzehn Ziffern in Vierergruppen |
-| **SSN (Sozialversicherungsnummer)** | US-Sozialversicherungsnummern wie `123-45-6789` |
-| **Telefonnummer** | Nordamerikanische Telefonnummern wie `555-123-4567` |
+| **SSN (Sozialversicherungsnummer)** | US-Sozialversicherungsnummern wie `123-45-6789`, auch durch Punkte oder Leerzeichen getrennt und in den Ziffern einer anderen Schrift, wie `１２３-４５-６７８９` |
+| **Telefonnummer** | Telefonnummern wie `555-123-4567` oder `+44 20 7946 0958`, internationale in den Gruppen, in denen man sie schreibt, auch in einer prozentkodierten URL und in den Ziffern einer anderen Schrift, aber keine Dezimalzahl, kein Zeitzonenversatz und keine Version |
 | **IP-Adresse** | Öffentliche IPv4- und IPv6-Adressen wie `203.0.113.7`, `2001:db8::1` oder `2001::1`, auch direkt nach dem Doppelpunkt eines Schlüssels und in einer prozentkodierten URL, aber keine privaten, Loopback- oder Link-local-Adressen |
 | **Sensible Attributschlüssel** | Den ganzen Wert jedes Attributs, dessen Schlüssel geheim aussieht, wie `password`, `token`, `api_key`, `authorization` oder `cookie` |
 | **Benannte Attribute** | Den ganzen Wert der Attribute, die Sie nennen, egal was er enthält, etwa den Namen einer Person unter `customer_name`. Ein Schlüssel nennt auch die darunter verschachtelten Attribute: `user` verbirgt `user.email` |

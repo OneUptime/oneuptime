@@ -15,7 +15,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 
 | Página                          | O que você faz ali                                                                                 |
 | ------------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Estado do incidente**         | Adicionar, renomear, recolorir e reordenar os estados por que um incidente passa.                  |
+| **Estado do incidente**         | Adicionar, renomear, recolorir e reordenar os estados por que um incidente passa, e escolher se os incidentes declarados manualmente começam confirmados. Desativado por padrão. |
 | **Severidade do incidente**     | Adicionar, renomear, recolorir e reordenar os níveis de severidade.                                |
 | **Modelos de incidentes**       | Preencher um incidente inteiro — título, descrição, recursos, políticas de plantão, proprietários, rótulos. |
 | **Modelos de notas**            | Texto reutilizável para notas públicas e privadas.                                                 |

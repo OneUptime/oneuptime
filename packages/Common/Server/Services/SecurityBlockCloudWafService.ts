@@ -526,7 +526,12 @@ export class Service extends ProjectReferencesService<Model> {
     const resolved: ResolvedWebAcl = onCreate.carryForward as ResolvedWebAcl;
     const record: Model = onCreate.createBy.data;
 
-    record.cloudConnectionId = resolved.cloudConnectionId;
+    // The ID column, and no other name of it to be stored instead.
+    RelationIdUtil.stamp(
+      record as unknown as Record<string, unknown>,
+      ["cloudConnectionId", "cloudConnection"],
+      resolved.cloudConnectionId,
+    );
     record.cloudProvider = resolved.cloudProvider;
     record.wafId = resolved.wafId;
     record.name = resolved.name;

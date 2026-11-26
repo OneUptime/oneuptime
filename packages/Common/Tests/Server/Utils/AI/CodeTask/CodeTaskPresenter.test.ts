@@ -46,6 +46,15 @@ import {
   ProductionReviewReport,
 } from "../../../../../Types/CodeRepository/ProductionReview";
 import {
+  ProductionReviewLeakJSON,
+  ProductionReviewSensitiveDataJSON,
+  SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+  SensitiveDataLeakKind,
+  SensitiveDataSink,
+} from "../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
+import DataSensitivity from "../../../../../Types/DataSecurity/DataSensitivity";
+import SecuritySeverity from "../../../../../Types/SecuritySeverity";
+import {
   emptyReport,
   fullReport,
 } from "../../CodeRepository/ProductionReview/ProductionReviewFixtures";
@@ -694,6 +703,9 @@ describe("CodeTaskPresenter.summarize", () => {
       incidentCount: 2,
       suspectDeployCount: report.suspectDeploys.length,
       dataImpactCount: 0,
+      // No Sensitive data section: nothing in the diff, and no check failed.
+      sensitiveDataCount: 0,
+      failsCheck: false,
       headSha: report.pullRequest.headSha,
       reviewedAt: report.reviewedAt,
       posting: ProductionReviewPosting.Link,
@@ -721,6 +733,149 @@ describe("CodeTaskPresenter.summarize", () => {
     expect(read.props).toEqual({ isRoot: true });
   });
 
+  /*
+   * The Sensitive data section (#10376, PR #10757) is read from the pull
+   * request's diff, not from production: the row counts its points and
+   * says when the repository's check failed on one, so the list shows
+   * which pull requests would leak data before anyone opens them.
+   */
+  function leakPoint(
+    change: Partial<ProductionReviewLeakJSON> = {},
+  ): ProductionReviewLeakJSON {
+    return {
+      key: "3f2a9c1b0d4e5f60",
+      kind: SensitiveDataLeakKind.Telemetry,
+      checkId: SENSITIVE_DATA_IN_TELEMETRY_CHECK_ID,
+      sink: SensitiveDataSink.Log,
+      path: "src/billing/charge.ts",
+      line: 44,
+      subject: "email",
+      where: "logger.info",
+      dataTypeIds: ["email-address"],
+      dataTypeNames: ["Email address"],
+      sensitivity: DataSensitivity.Confidential,
+      severity: SecuritySeverity.High,
+      isBlocking: false,
+      failsCheck: false,
+      text: "Writes an email address to a log: `email`, in `logger.info`.",
+      fix: "Leave `email` out, or write a hash of it when you need to tell values apart.",
+      isAiWorded: false,
+      ...change,
+    };
+  }
+
+  // A bucket made public in Terraform: blocking, so it fails a check that asked to.
+  function publicBucketPoint(failsCheck: boolean): ProductionReviewLeakJSON {
+    return leakPoint({
+      key: "9e8d7c6b5a4f3e2d",
+      kind: SensitiveDataLeakKind.Infrastructure,
+      checkId: "public-read",
+      sink: undefined,
+      path: "infra/s3.tf",
+      line: 3,
+      subject: "acl",
+      where: "aws_s3_bucket.exports",
+      value: "public-read",
+      dataTypeIds: [],
+      dataTypeNames: [],
+      severity: SecuritySeverity.Critical,
+      isBlocking: true,
+      failsCheck,
+      text: "Sets `acl` to `public-read`.",
+      fix: "Set it to `private`.",
+    });
+  }
+
+  function sensitiveDataOf(
+    points: Array<ProductionReviewLeakJSON>,
+    isFailOn: boolean,
+  ): ProductionReviewSensitiveDataJSON {
+    return {
+      points,
+      moreCount: 0,
+      droppedCount: 0,
+      isFailOn,
+      isAiRead: false,
+    };
+  }
+
+  // The row a reader who may read every incident of the review sees for it.
+  async function glanceOf(
+    report: ProductionReviewReport,
+  ): Promise<CodeTaskSummaryJSON["productionReview"]> {
+    jest.spyOn(AIRunService, "findBy").mockImplementation(
+      outcomesRead({
+        summary: "",
+        filesChanged: [],
+        productionReview: report,
+      }) as never,
+    );
+    jest
+      .spyOn(IncidentService, "findBy")
+      .mockImplementation(readableIncidents(report) as never);
+
+    const [summary]: Array<CodeTaskSummaryJSON> =
+      await CodeTaskPresenter.summarize({
+        projectId: PROJECT_ID,
+        tasks: [reviewTask()],
+        props: READER,
+      });
+
+    return summary!.productionReview;
+  }
+
+  test("a production review's row counts its Sensitive data points, and says when the check failed on one", async () => {
+    const failed: CodeTaskSummaryJSON["productionReview"] = await glanceOf(
+      fullReport({
+        sensitiveData: sensitiveDataOf(
+          [leakPoint(), publicBucketPoint(true)],
+          true,
+        ),
+      }),
+    );
+
+    expect(failed!.sensitiveDataCount).toBe(2);
+    expect(failed!.failsCheck).toBe(true);
+    // Production's own numbers stay as they were.
+    expect(failed!.exceptionCount).toBe(1);
+    expect(failed!.incidentCount).toBe(2);
+  });
+
+  test("the same points on a repository whose check does not fail on them are counted, and nothing failed", async () => {
+    const counted: CodeTaskSummaryJSON["productionReview"] = await glanceOf(
+      fullReport({
+        sensitiveData: sensitiveDataOf(
+          [leakPoint(), publicBucketPoint(false)],
+          false,
+        ),
+      }),
+    );
+
+    expect(counted!.sensitiveDataCount).toBe(2);
+    expect(counted!.failsCheck).toBe(false);
+  });
+
+  test("a review whose only finding is sensitive data in the diff has something to say", async () => {
+    const report: ProductionReviewReport = emptyReport({
+      sensitiveData: sensitiveDataOf([leakPoint()], true),
+    });
+
+    expect(await glanceOf(report)).toEqual({
+      hasSignal: true,
+      exceptionCount: 0,
+      operationCount: 0,
+      hotFunctionCount: 0,
+      incidentCount: 0,
+      suspectDeployCount: 0,
+      dataImpactCount: 0,
+      sensitiveDataCount: 1,
+      failsCheck: false,
+      headSha: report.pullRequest.headSha,
+      reviewedAt: report.reviewedAt,
+      posting: report.posting,
+    });
+  });
+
   test("a production review that found nothing says so", async () => {
     jest.spyOn(AIRunService, "findBy").mockImplementation(
       outcomesRead({
@@ -739,6 +894,8 @@ describe("CodeTaskPresenter.summarize", () => {
 
     expect(summary!.productionReview!.hasSignal).toBe(false);
     expect(summary!.productionReview!.exceptionCount).toBe(0);
+    expect(summary!.productionReview!.sensitiveDataCount).toBe(0);
+    expect(summary!.productionReview!.failsCheck).toBe(false);
   });
 
   test("a production review not yet reviewed has no glance", async () => {

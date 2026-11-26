@@ -69,6 +69,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "آنچه فرستاده شد بزرگ‌تر از آن بود که سرور بپذیرد، بنابراین این کار تمام نشد. با مقدار کمتری در هر بار دوباره امتحان کنید، مثلاً با فایلی کوچک‌تر.",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "آنچه فرستاده شد بزرگ‌تر از ۵۰ مگابایتی است که OneUptime در یک درخواست می‌پذیرد، بنابراین این کار تمام نشد. با مقدار کمتری در هر بار دوباره امتحان کنید، مثلاً با فایلی کوچک‌تر.",
   "This did not finish.": "این کار تمام نشد.",
+  "The {{itemName}} was not deleted.": "{{itemName}} حذف نشد.",
+  "“{{action}}” did not finish.": "کار «{{action}}» تمام نشد.",
   "The server ran into a problem it could not explain.": "سرور با مشکلی روبه‌رو شد که نتوانست توضیحش دهد.",
   "The OneUptime server did not answer.": "سرور OneUptime پاسخی نداد.",
   "OneUptime could not be reached.": "به OneUptime دسترسی نبود.",

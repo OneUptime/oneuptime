@@ -87,6 +87,16 @@ The minutes are counted from each acknowledgement, and a policy pages again at m
 
 Whoever is paged again acknowledges it from its message, or with **Acknowledge again** on the incident's or alert's page, and the minutes start again; **Escalate** passes it to the next level. Resolving or deleting the incident or alert, archiving or deleting the policy, or choosing **Don't page again** stops it. The card's **After an acknowledgement** row says what the policy does, and **More settings** shows the minutes while it is folded. **Policy at a glance** on the **Overview** and the **Escalation summary** say the same in words.
 
+## Give the people it pages an incident role
+
+An incident's **Incident Roles** say who works on it. A policy can list there the people it pages: open its **Escalation Rules** page, open **More settings** at the bottom, and click **Edit** on the **Incident Role** card. **Edit Incident Role** asks for a **Role**: one of your project's incident roles, or **No role**, which every policy starts with.
+
+Everybody the policy then pages about an incident or an incident episode is given that role on it, at every level and each time it pages again, as long as they are a member of the project. Somebody it pages as an observer is not. Someone who holds the role already keeps it as it is, and a role that takes one person, such as **Incident Commander**, goes to the first person paged while nobody holds it. The incident's feed names the policy that added them, and they are sent no separate message about the role: their page has already told them about the incident.
+
+This is how the on-call person of the team that owns a service shows up on its incidents. Create a role such as "Service Owner" under **Incidents → Settings → Incident Roles**, pick it on the policy that pages the payments team, and have the payments monitors run that policy, from their criteria or an on-call rule. Whoever is on call for payments is then listed as the incident's "Service Owner", and whoever changes its state first, by acknowledging it, still becomes its **Incident Commander**, even when a policy gave them another role when it paged them.
+
+The card's **Role of the people it pages** row says which role the policy gives, and **More settings** names it while it is folded. Archiving the role does not stop the policy giving it, and the role's archive dialog counts the policy among what uses it: pick **No role** to stop. Deleting the role sets the policy back to **No role**.
+
 ## When several policies page
 
 An incident, alert or episode runs each of its policies on its own, at the same time.
@@ -176,11 +186,14 @@ On-call policies are the `/api/on-call-duty-policy` resource, and the `oneuptime
 | **If nobody acknowledges after the last level** | `repeatPolicyIfNoOneAcknowledges` |
 | **How many more times?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **After how many minutes?** | `acknowledgementTimeoutInMinutes` |
+| **Role** | `incidentRoleId` |
 | Archived | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` must be a whole number of 1 or more: OneUptime refuses `0`. An older policy saved with `0` never repeats, and the dashboard shows it as **Stop paging**.
 
 `acknowledgementTimeoutInMinutes` is `null` for **Don't page again**, and a whole number of minutes from 5 to 1440 for **Page again**. OneUptime refuses anything else.
+
+`incidentRoleId` is the ID of one of the project's incident roles, or `null` for **No role**.
 
 To create a policy with its first level in one request, see [Creating rules with the API or Terraform](/docs/on-call/escalation-rules#creating-rules-with-the-api-or-terraform).
 

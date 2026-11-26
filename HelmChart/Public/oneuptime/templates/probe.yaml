@@ -163,8 +163,9 @@ spec:
               value: {{ printf "%.0f" (float64 (default 268435456 $val.syntheticMonitorMaxDiskBytes)) | squote }}
             - name: PROBE_SYNTHETIC_MONITOR_CHROMIUM_SANDBOX_ENABLED
               value: {{ default false $val.syntheticMonitorChromiumSandboxEnabled | squote }}
-            # Whether API, Website, External Status Page and Custom JavaScript
-            # Code monitors on this probe may reach private network addresses.
+            # Whether API, Website, External Status Page, Custom JavaScript
+            # Code and Synthetic monitors on this probe may reach private
+            # network addresses.
             # The probe honors only the exact string "true", so a YAML boolean
             # is rendered quoted. This probe also gets REGISTER_PROBE_KEY
             # below, which makes it a global probe: the setting then applies to

@@ -33,7 +33,7 @@ Bash、JavaScript、SSH、kubectl 和 HTTP 请求步骤会使用变量。AI 步�
 
 ## 开始之前
 
-- **管理变量的角色。** 项目所有者和项目管理员，或拥有 **Create Runbook Variable** 权限。运行手册管理员可以读取变量，以便在自己编写的步骤中选择它们，但不能修改。
+- **管理变量的角色。** 项目所有者和项目管理员，或拥有 **Create Runbook Variable** 权限。运行手册管理员可以读取变量，以便在自己编写的步骤中选择它们，但不能修改。只有以项目所有者身份运行，或以拥有这些权限的自定义角色运行时，工作流才会更改变量：请参阅 [工作流步骤可以做什么](/docs/workflows/configuration#工作流步骤可以做什么)。
 - **包含此功能的套餐。** 在 OneUptime Cloud 上，Runbook 变量需要 **Growth** 或更高的套餐。
 
 ## 创建变量
@@ -84,6 +84,8 @@ curl -s -X POST \
 @tab Kubeconfig
 [kubectl 步骤](/docs/runbooks/authoring#kubectl)在 **Kubeconfig** 中选择保存集群 kubeconfig 的机密变量，或选择 **Runner 自身的访问权限** 来使用 Runner 自己的访问权限。
 :::
+
+值会按书写的原样填入引用所在的位置，因此能更改变量的人，也就更改了每个引用它的步骤所运行的内容。只把更改变量的权限授予你愿意让其编写这些步骤的人。来自 OneUptime 外部的值，例如 Webhook 调用发送的内容，则会作为环境变量传给 Bash 步骤，绝不会成为其脚本的一部分：请参阅 [Webhook 调用发送的值](/docs/runbooks/triggers#webhook-调用发送的值)。
 
 在 Runbook 的 **步骤** 页面上，每个脚本和每个 HTTP 请求下方的 **变量 — 点击复制** 会列出其步骤可以使用的变量；当步骤引用了不存在的变量，或其 Runner 不能使用的机密时，编辑器会提示。
 

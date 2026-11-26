@@ -471,6 +471,40 @@ describe("a card none of whose events WhatsApp can send", () => {
   });
 });
 
+/*
+ * A probe a major release behind (#9977) had no approved template, so its
+ * row had a dash where WhatsApp's switch is. It has one of its own now
+ * (#10913), and the Probes card offers the switch on every row.
+ */
+describe("the Probes card, where WhatsApp sends every event", () => {
+  test("Probe a major release behind has its WhatsApp switch, beside the probe's other events", async () => {
+    await renderPage();
+    await openTab("Monitoring");
+
+    const probes: HTMLElement = cardTitled("Probes");
+
+    expect(columnHeadersOf(probes)).toContain("WhatsApp");
+
+    for (const label of [
+      "Probe status changed",
+      "Probe a major release behind",
+      "Added as probe owner",
+    ]) {
+      expect(
+        within(eventRowIn(probes, label)).getByRole("switch", {
+          name: `WhatsApp for ${label}`,
+        }),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      within(eventRowIn(probes, "Probe a major release behind")).queryByTestId(
+        NOTIFICATION_CHANNEL_NOT_AVAILABLE_TEST_ID,
+      ),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("the On-Call card, where WhatsApp sends all but a reassigned shift", () => {
   test("a reassigned shift has a dash and a line where its WhatsApp switch was; a shift reminder keeps its switch", async () => {
     await renderPage();

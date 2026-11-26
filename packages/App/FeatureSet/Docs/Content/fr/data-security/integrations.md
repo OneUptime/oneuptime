@@ -158,7 +158,7 @@ Tout ce que conserve Sécurité des données est un enregistrement de l'API OneU
 | Enregistrements | Chemin d'API |
 | --- | --- |
 | Les magasins de données, leurs chronologies, leurs détections, qui peut y accéder et chaque identité qui le peut | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Les problèmes, leurs chronologies et les flux de données | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Les problèmes, leurs chronologies, leurs pull requests liées et les flux de données | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Les analyses | `/data-security-scan` |
 | Les types de données personnalisés, les paramètres des contrôles, les paramètres de conformité et les règles de résidence | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Les paramètres du projet | `/data-security-setting` |

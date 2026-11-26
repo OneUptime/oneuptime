@@ -340,6 +340,14 @@ test.describe("Search and Help, on a phone and a laptop", () => {
         );
 
         await learn.getByText(words.howItWorks).click();
+        /*
+         * A finger lifts off the glass; a mouse rests where it clicked. With
+         * Help at the top of the menu (#7473) the dialog opens under that
+         * spot, and in Persian a defined word of its first step lands there:
+         * its definition opens on hover, and the first Escape is spent on it
+         * (TooltipEscape). The pointer leaves, as the phone's finger does.
+         */
+        await page.mouse.move(0, 0);
       } else {
         // A laptop's header has Help, and its menu the same entries.
         await page
@@ -356,6 +364,8 @@ test.describe("Search and Help, on a phone and a laptop", () => {
       await expectNoSidewaysScroll(page, {
         message: `How OneUptime works at ${combination.width}px`,
       });
+      // Nothing over the dialog for an Escape to close first.
+      await expect(page.getByTestId("defined-term-popover")).toHaveCount(0);
       await page.keyboard.press("Escape");
       await expect(dialog).toHaveCount(0);
     });

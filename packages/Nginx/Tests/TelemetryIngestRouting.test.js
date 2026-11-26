@@ -350,25 +350,64 @@ test("the OpAMP location proxies like /telemetry, which serves the same router",
   }
 });
 
+/*
+ * The bytes a number constant of the App comes to, read from its source:
+ * a product of integer literals and constants, each read the same way - in
+ * its file, or where the file imports it from Common. Anything else fails,
+ * so a constant that changes shape is looked at rather than mis-read.
+ */
+function readByteConstant(file, name) {
+  const source = readRepositoryFile(file);
+  const declaration = new RegExp(
+    `(?:export )?const ${name}: number = ([^;]+);`,
+  ).exec(source);
+
+  if (!declaration) {
+    const imported = new RegExp(
+      `import \\{[^}]*\\b${name}\\b[^}]*\\} from "Common/([^"]+)";`,
+    ).exec(source);
+
+    assert.ok(
+      imported,
+      `${name} is neither a number constant of ${file} nor imported there from Common`,
+    );
+
+    return readByteConstant(`packages/Common/${imported[1]}.ts`, name);
+  }
+
+  return declaration[1].split("*").reduce((product, factor) => {
+    const term = factor.trim();
+
+    if (/^\d+$/.test(term)) {
+      return product * Number(term);
+    }
+
+    assert.match(
+      term,
+      /^[A-Z][A-Z0-9_]*$/,
+      `${file}: ${name} = ${declaration[1]} is not a product of integers and constants`,
+    );
+
+    return product * readByteConstant(file, term);
+  }, 1);
+}
+
 test("the OpAMP location takes every message the App does", () => {
   /*
    * The App answers a message over MAX_OPAMP_MESSAGE_BYTES with its own
-   * 413. nginx must let at least that much through, or a supervisor gets
-   * nginx's bare 413 page for a message the App would have read.
+   * 413: the route's reader holds the body to it, RequestBodyLimit's
+   * OPAMP_MESSAGE_MAX_BYTES (#10770). nginx must let at least that much
+   * through, or a supervisor gets nginx's bare 413 page for a message the
+   * App would have read.
    */
-  const route = readRepositoryFile(
+  const appLimit = readByteConstant(
     "packages/App/FeatureSet/Telemetry/API/HostCollectorOpAmp.ts",
-  );
-  const cap = route.match(
-    /export const MAX_OPAMP_MESSAGE_BYTES: number = (\d+) \* (\d+);/,
+    "MAX_OPAMP_MESSAGE_BYTES",
   );
 
-  assert.ok(
-    cap,
-    "MAX_OPAMP_MESSAGE_BYTES is no longer a product of two numbers",
-  );
+  // A cap read as 0 would pass any body cap below.
+  assert.ok(appLimit > 0, `MAX_OPAMP_MESSAGE_BYTES read as ${appLimit}`);
 
-  const appLimit = Number(cap[1]) * Number(cap[2]);
   const opamp = primaryLocations.find((location) => {
     return location.spec === OPAMP_LOCATION;
   });

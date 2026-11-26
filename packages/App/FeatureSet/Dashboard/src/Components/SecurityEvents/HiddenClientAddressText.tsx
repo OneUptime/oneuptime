@@ -16,6 +16,7 @@ import {
   ScrubbedAddressRole,
 } from "Common/Utils/SecurityEvent/ScrubbedAddress";
 import React, { FunctionComponent, ReactElement } from "react";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export const HIDDEN_CLIENT_ADDRESS_TEST_ID: string =
   "security-hidden-client-address";
@@ -124,7 +125,7 @@ export function readFieldValue(
       <span data-testid={CLAIMED_CLIENT_ADDRESS_TEST_ID}>
         <span className="[overflow-wrap:anywhere]">{value}</span>
         <span className="text-gray-500">
-          {" · "}
+          <InlineSeparator />
           {translator.translateText(CLAIMED_NOT_VERIFIED) ||
             CLAIMED_NOT_VERIFIED}
         </span>

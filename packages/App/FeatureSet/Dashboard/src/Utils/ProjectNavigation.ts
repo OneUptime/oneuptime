@@ -25,6 +25,13 @@
  * Teams or Code page a connection came back to - and does so
  * itself, once a project is selected. Sending them to the project's home
  * instead would lose where they were going and what happened.
+ *
+ * /dashboard/status-pages/<id>/resources is listed for the same reason: a
+ * status page's preview links its owner there by the page's id alone
+ * (#9180), and the page finds the project the status page is in and carries
+ * them to its Resources itself (OpenStatusPageResources). The boot-time
+ * selection would otherwise send them to the open project's home before it
+ * could.
  */
 export const projectIndependentRoutes: Array<string> = [
   "/dashboard/user-profile/overview",
@@ -40,6 +47,7 @@ export const projectIndependentRoutes: Array<string> = [
   "/dashboard/project-invitations",
   "/dashboard/my-on-call-policies",
   "/dashboard/connect-return",
+  "/dashboard/status-pages",
   "/dashboard/logout",
 ];
 
