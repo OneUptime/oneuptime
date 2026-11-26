@@ -55,7 +55,6 @@ import {
   StorageArrayOpenProblemSeries,
   StorageArrayPlatform,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
-import StorageArrayStatusUtil from "Common/Types/StorageArray/StorageArrayStatusUtil";
 import {
   StorageArrayInventoryTileWords,
   StorageArrayKindWords,
@@ -455,31 +454,68 @@ export function getOpenProblemRows(data: {
 }
 
 /*
- * The statuses Needs attention asks the inventory for: every platform's
- * words for a part in trouble (StorageArrayStatusUtil), the shared ones
- * first.
+ * The statuses Needs attention asks the inventory for: the words every
+ * platform shares for a part in trouble, then the array's platform's own
+ * (an ONTAP aggregate offline, a disk broken).
  */
-export function getUnhealthyStatusWords(): Array<string> {
+export function getUnhealthyStatusWords(
+  storageSystem: string | null | undefined,
+): Array<string> {
+  const platform: StorageArrayPlatform | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
   return Array.from(
     new Set<string>([
       ...UNHEALTHY_RESOURCE_STATUSES,
-      ...StorageArrayStatusUtil.getCriticalStatuses(),
-      ...StorageArrayStatusUtil.getWarningStatuses(),
+      ...(platform?.componentStatuses.critical || []),
+      ...(platform?.componentStatuses.warning || []),
     ]),
   );
 }
 
-/*
- * The kinds whose own rule decides whether they need attention, which the
- * page reads in reads of their own (a host's paths, a bucket's quota):
- * every other kind needs attention by the status its platform writes.
- */
-const KINDS_WITH_A_RULE: ReadonlyArray<string> = [
-  StorageArrayResourceKind.Host,
-  StorageArrayResourceKind.Bucket,
-  StorageArrayResourceKind.FileSystem,
-  StorageArrayResourceKind.Directory,
+// The kinds whose state is the status the array writes for them.
+const STATUS_KINDS: ReadonlyArray<string> = [
+  StorageArrayResourceKind.Hardware,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.Controller,
+  StorageArrayResourceKind.NetworkInterface,
+  StorageArrayResourceKind.Pod,
 ];
+
+/*
+ * The kinds an array's Needs attention asks the inventory for by their
+ * status: the ones whose state is the status every platform writes, a
+ * kind only its platform has (an ONTAP aggregate, SVM, LUN, SnapMirror
+ * relationship), and a shared kind whose list the platform draws with a
+ * state (an ONTAP volume's online or offline).
+ */
+export function getStatusKinds(
+  storageSystem: string | null | undefined,
+  kinds: ReadonlyArray<string>,
+): Array<string> {
+  return kinds.filter((kind: string): boolean => {
+    return (
+      STATUS_KINDS.includes(kind) ||
+      Boolean(
+        StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem) &&
+          StorageArrayPlatformRegistry.getPlatform(
+            storageSystem,
+          )?.kindDefinitions?.some(
+            (definition: { kind: string }): boolean => {
+              return definition.kind === kind;
+            },
+          ),
+      ) ||
+      Boolean(
+        StorageArrayPlatformRegistry.getKindPage(
+          storageSystem,
+          kind,
+        )?.columns?.some((column: { type: string }): boolean => {
+          return column.type === "status";
+        }),
+      )
+    );
+  });
+}
 
 const StorageArrayOverview: FunctionComponent<
   PageComponentProps
@@ -794,10 +830,9 @@ const StorageArrayOverview: FunctionComponent<
        * FlashArray's hardware and pods, an ONTAP cluster's volumes,
        * aggregates, SVMs, LUNs and SnapMirror relationships too.
        */
-      const statusKinds: Array<string> = kinds.filter(
-        (kind: string): boolean => {
-          return !KINDS_WITH_A_RULE.includes(kind);
-        },
+      const statusKinds: Array<string> = getStatusKinds(
+        item.storageSystem,
+        kinds,
       );
 
       const nearFull: Array<string> = Array.from(ratios.entries())
@@ -813,7 +848,7 @@ const StorageArrayOverview: FunctionComponent<
         reads.push(
           listParts({
             kind: new Includes(statusKinds),
-            status: new Includes(getUnhealthyStatusWords()),
+            status: new Includes(getUnhealthyStatusWords(item.storageSystem)),
           }),
         );
       }

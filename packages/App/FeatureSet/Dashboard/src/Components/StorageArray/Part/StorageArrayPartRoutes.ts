@@ -3,7 +3,6 @@ import ObjectID from "Common/Types/ObjectID";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import RouteParams from "../../../Utils/RouteParams";
-import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import RecommendationFilterUtil, {
   RECOMMENDATION_SELECTION_QUERY_PARAM,
 } from "../../Recommendations/RecommendationFilterUtil";
@@ -63,26 +62,18 @@ function ownPage(
 }
 
 /*
- * Whether a kind only a platform has gets a page per part: on the array's
- * platform, or, where the caller does not know it, on any platform that
- * declares the kind.
+ * Whether a kind only a platform has gets a page per part on the array's
+ * platform. Where the caller does not know the platform, its parts link to
+ * their kind's tab: two platforms can have a kind of one name (an
+ * Aggregate) and only one of them draw a page per part.
  */
 function hasOwnPartPage(
   kind: string,
   storageSystem: string | null | undefined,
 ): boolean {
-  if (storageSystem) {
-    return Boolean(
+  return Boolean(
+    storageSystem &&
       StorageArrayPlatformRegistry.getKindPage(storageSystem, kind)?.part,
-    );
-  }
-  return StorageArrayPlatformRegistry.getPlatforms().some(
-    (platform: StorageArrayPlatform): boolean => {
-      return Boolean(
-        StorageArrayPlatformRegistry.getKindPage(platform.storageSystem, kind)
-          ?.part,
-      );
-    },
   );
 }
 

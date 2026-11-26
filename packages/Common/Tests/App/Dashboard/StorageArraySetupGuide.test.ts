@@ -284,7 +284,7 @@ describe("the platform picker", () => {
     expect(DEFAULT_STORAGE_ARRAY_PLATFORM).toBe("flasharray");
     expect(resolveStorageArrayPlatform(undefined)).toBe("flasharray");
     expect(resolveStorageArrayPlatform(null)).toBe("flasharray");
-    expect(resolveStorageArrayPlatform("netapp")).toBe("flasharray");
+    expect(resolveStorageArrayPlatform("hitachi")).toBe("flasharray");
     expect(resolveStorageArrayPlatform("flashblade")).toBe("flashblade");
     expect(resolveStorageArrayPlatform("flasharray-exporter")).toBe(
       "flasharray-exporter",
@@ -299,7 +299,7 @@ describe("the platform picker", () => {
       getStorageArrayPlatformForSystem(StorageSystem.PureStorageFlashArray),
     ).toBe("flasharray");
     expect(getStorageArrayPlatformForSystem(undefined)).toBeUndefined();
-    expect(getStorageArrayPlatformForSystem("netapp.ontap")).toBeUndefined();
+    expect(getStorageArrayPlatformForSystem("hitachi.vsp")).toBeUndefined();
   });
 
   test("every platform is one shipped config, one storage.system value and one compose profile", () => {
@@ -1017,10 +1017,33 @@ describe("drift guards against agents/StorageArrayAgent", () => {
         read.add(variable);
       }
     }
-    for (const match of readAgentFile("docker-compose.yml").matchAll(
-      /\$\{([A-Z0-9_]+)(?::-[^}]*)?\}/g,
-    )) {
-      read.add(match[1]!);
+    /*
+     * What the compose file reads for the guide's platforms: its services
+     * with no profile, or a profile of one of them. A platform the guide has
+     * no steps for yet (NetApp ONTAP's netapp-harvest, #11123) is not its.
+     */
+    const compose: {
+      services: Record<string, { profiles?: Array<string> | undefined }>;
+    } = yaml.load(readAgentFile("docker-compose.yml")) as never;
+    const guideProfiles: Set<string> = new Set(
+      PLATFORMS.map((platform: StorageArrayPlatform): string => {
+        return STORAGE_ARRAY_PLATFORM_SETTINGS[platform].composeProfile;
+      }),
+    );
+    for (const [name, service] of Object.entries(compose.services)) {
+      if (
+        (service.profiles || []).length > 0 &&
+        !(service.profiles || []).some((profile: string): boolean => {
+          return guideProfiles.has(profile);
+        })
+      ) {
+        continue;
+      }
+      for (const match of yaml
+        .dump(compose.services[name])
+        .matchAll(/\$\{([A-Z0-9_]+)(?::-[^}]*)?\}/g)) {
+        read.add(match[1]!);
+      }
     }
 
     expect(new Set(envTableRows(guideFor("flasharray")).keys())).toEqual(read);

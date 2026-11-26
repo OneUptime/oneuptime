@@ -329,6 +329,7 @@ describe("an Acme array's menu", () => {
     const routes: StorageArrayPartRoutes = getStorageArrayPartRoutes(
       new ObjectID(ARRAY_ID),
     );
+    // Acme draws no page per part: its parts link to their kind's tab.
     expect(routes.getPartRoute(ACME_AGGREGATE_KIND, "aggr1").toString()).toBe(
       `${BASE}/inventory/${ACME_AGGREGATE_KIND}`,
     );
@@ -338,14 +339,17 @@ describe("an Acme array's menu", () => {
     expect(routes.getPartRoute("Drive", "CH0.BAY1").toString()).toBe(
       `${BASE}/hardware`,
     );
-    // A kind no platform defines, or a name Object has, opens the array.
-    for (const kind of ["Lun", "constructor", "toString"]) {
+    /*
+     * A kind no platform defines, or a name Object has, opens the array
+     * (a Lun is ONTAP's since #11001, so a Qtree stands in for it).
+     */
+    for (const kind of ["Qtree", "constructor", "toString"]) {
       expect(routes.getPartRoute(kind, "x").toString()).toBe(BASE);
     }
   });
 
   test("a Pure array gets no tab of that kind: every kind of theirs has a page", () => {
-    for (const system of [FLASHARRAY, FLASHBLADE, "netapp.ontap", null]) {
+    for (const system of [FLASHARRAY, FLASHBLADE, "hitachi.vsp", null]) {
       expect(getPlatformKindMenuItems(system)).toEqual([]);
     }
   });
@@ -373,7 +377,9 @@ describe("an Acme array's counts", () => {
   });
 
   test("its kind is worded and drawn from its definition", () => {
-    expect(getStorageArrayKindWords(ACME_AGGREGATE_KIND)).toEqual({
+    expect(
+      getStorageArrayKindWords(ACME_AGGREGATE_KIND, ACME_STORAGE_SYSTEM),
+    ).toEqual({
       count: { one: "{{count}} aggregate", other: "{{count}} aggregates" },
       icon: IconProp.Database,
     });
@@ -439,18 +445,20 @@ describe("an Acme array's inventory page", () => {
   test("a kind no platform defines still lists, under its own name", async () => {
     mockParts = [
       {
-        ...aggregate("lun-7", 9),
-        kind: "Lun",
-        externalId: "lun-7",
-        name: "lun-7",
+        ...aggregate("qtree-7", 9),
+        kind: "Qtree",
+        externalId: "qtree-7",
+        name: "qtree-7",
       },
     ];
-    mockLastParam = "Lun";
+    mockLastParam = "Qtree";
     render(<StorageArrayInventory {...PAGE_PROPS} />);
     await settle();
 
-    expect(await screen.findByText("lun-7")).toBeInTheDocument();
-    expect(within(document.body).getAllByText("Lun").length).toBeGreaterThan(0);
+    expect(await screen.findByText("qtree-7")).toBeInTheDocument();
+    expect(within(document.body).getAllByText("Qtree").length).toBeGreaterThan(
+      0,
+    );
   });
 });
 
@@ -500,7 +508,11 @@ describe("an Acme array's monitors and Resource Usage", () => {
     ).find((field: ResourceFilterField): boolean => {
       return field.key === "volumeName";
     });
-    expect(volume?.storageSystems).toEqual([FLASHARRAY, ACME_STORAGE_SYSTEM]);
+    expect(volume?.storageSystems).toEqual([
+      FLASHARRAY,
+      "netapp.ontap",
+      ACME_STORAGE_SYSTEM,
+    ]);
     // The first platform's words describe it.
     expect(volume?.description).toContain("FlashArray");
   });

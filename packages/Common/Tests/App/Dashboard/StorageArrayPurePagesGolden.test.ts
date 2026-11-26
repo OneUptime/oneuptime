@@ -10,6 +10,8 @@ import fs from "fs";
 import path from "path";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { getInventoryMenuItems } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/SideMenu";
 import {
@@ -78,7 +80,7 @@ const ARRAY_ID: ObjectID = new ObjectID("58000000-0000-4000-8000-0000000011a0");
 const SYSTEMS: Array<string | null | undefined> = [
   StorageSystem.PureStorageFlashArray,
   StorageSystem.PureStorageFlashBlade,
-  "netapp.ontap",
+  "hitachi.vsp",
   "",
   null,
   undefined,
@@ -243,7 +245,7 @@ async function computeGolden(): Promise<JSONObject> {
     "flasharray",
     "flasharray-exporter",
     "flashblade",
-    "netapp",
+    "hitachi",
     "",
     null,
     undefined,
@@ -287,9 +289,33 @@ function readGolden(): JSONObject {
   return JSON.parse(fs.readFileSync(GOLDEN_PATH, "utf8")) as JSONObject;
 }
 
+/*
+ * The golden is what the pages answered when Pure's were the only
+ * platforms. A filter another platform shares (an ONTAP volume's, #11001)
+ * lists that platform too, so the golden is computed with Pure's alone.
+ */
+async function withPurePlatformsAlone<T>(compute: () => Promise<T>): Promise<T> {
+  const others: Array<StorageArrayPlatform> =
+    StorageArrayPlatformRegistry.getPlatforms().filter(
+      (platform: StorageArrayPlatform): boolean => {
+        return platform.vendorName !== "Pure Storage";
+      },
+    );
+  for (const platform of others) {
+    StorageArrayPlatformRegistry.unregister(platform.storageSystem);
+  }
+  try {
+    return await compute();
+  } finally {
+    for (const platform of others) {
+      StorageArrayPlatformRegistry.register(platform);
+    }
+  }
+}
+
 describe("a Pure Storage array's pages are told about its platform as before #11000", () => {
   test("every switch the pages make on the platform answers as it did", async () => {
-    const computed: JSONObject = await computeGolden();
+    const computed: JSONObject = await withPurePlatformsAlone(computeGolden);
 
     if (process.env["UPDATE_PURE_STORAGE_GOLDEN"] === "1") {
       fs.writeFileSync(
@@ -329,5 +355,67 @@ describe("a Pure Storage array's pages are told about its platform as before #11
       });
     }
     expect(computed).toEqual(golden);
+  });
+
+  /*
+   * And with ONTAP registered beside them, as it is in the product: a Pure
+   * array's every page answers as it did, but for the volume filter the
+   * monitor form shares with ONTAP's volumes, which names ONTAP too.
+   */
+  test("beside ONTAP, a Pure array's pages answer as they did, the shared volume filter naming ONTAP too", async () => {
+    const withoutOntap: (value: JSONValue) => JSONValue = (
+      value: JSONValue,
+    ): JSONValue => {
+      if (Array.isArray(value)) {
+        return value.map(withoutOntap);
+      }
+      if (value && typeof value === "object") {
+        const result: JSONObject = {};
+        for (const [key, inner] of Object.entries(value as JSONObject)) {
+          result[key] =
+            key === "storageSystems" && Array.isArray(inner)
+              ? inner.filter((system: JSONValue): boolean => {
+                  return system !== "netapp.ontap";
+                })
+              : withoutOntap(inner as JSONValue);
+        }
+        return result;
+      }
+      return value;
+    };
+
+    const computedBySystem: JSONObject = (await computeGolden())[
+      "bySystem"
+    ] as JSONObject;
+    const goldenBySystem: JSONObject = readGolden()["bySystem"] as JSONObject;
+    const pure: Array<string> = Object.keys(goldenBySystem).filter(
+      (system: string): boolean => {
+        return system.includes("purestorage.");
+      },
+    );
+    expect(pure.length).toBeGreaterThanOrEqual(2);
+    let namesOntap: boolean = false;
+    for (const system of pure) {
+      const actual: JSONObject = computedBySystem[system] as JSONObject;
+      const expected: JSONObject = goldenBySystem[system] as JSONObject;
+      for (const part of Object.keys(expected)) {
+        if (part === "resourceFilterFields") {
+          namesOntap =
+            namesOntap ||
+            JSON.stringify(actual[part]).includes('"netapp.ontap"');
+          expect({ system, part, value: withoutOntap(actual[part]!) }).toEqual(
+            { system, part, value: expected[part] },
+          );
+          continue;
+        }
+        expect({ system, part, value: actual[part] }).toEqual({
+          system,
+          part,
+          value: expected[part],
+        });
+      }
+    }
+    // The one difference is there: ONTAP's volumes share the filter.
+    expect(namesOntap).toBe(true);
   });
 });
