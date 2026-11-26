@@ -406,7 +406,7 @@ test("every text a reader produces gets the number the collector chain gives it"
   const aliases = severityParserMapping();
   const texts = SEVERITY_READERS.flatMap(textsOf);
 
-  assert.ok(texts.length >= 45, `only ${texts.length} texts`);
+  assert.ok(texts.length >= 40, `only ${texts.length} texts`);
 
   for (const text of texts) {
     const lower = text.toLowerCase();

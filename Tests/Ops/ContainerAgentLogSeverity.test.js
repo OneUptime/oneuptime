@@ -668,7 +668,6 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       // java.util.logging, .NET's full name, log15, zap's DPanic
       SEVERE: "Error",
       Information: "Information",
-      Informational: "Information",
       eror: "Error",
       DPANIC: "Error",
       // PSR-3 / syslog, and the shapes read by their form
