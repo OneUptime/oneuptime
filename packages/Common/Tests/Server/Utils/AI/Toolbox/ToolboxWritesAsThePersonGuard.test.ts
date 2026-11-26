@@ -270,8 +270,68 @@ function isPersonProps(expression: ts.Expression): boolean {
 }
 
 /*
+ * The options object a write is handed: written in the call, or a `const`
+ * the function that makes the call declares as one - so the very object can
+ * be handed to something else first (CreatedNotificationHold.willAddOwners,
+ * #11188) and still be read here. Anything else is no options object.
+ */
+function optionsObjectOf(
+  call: ts.CallExpression,
+): ts.ObjectLiteralExpression | undefined {
+  const options: ts.Expression | undefined = call.arguments[0];
+
+  if (!options) {
+    return undefined;
+  }
+
+  if (ts.isObjectLiteralExpression(options)) {
+    return options;
+  }
+
+  if (!ts.isIdentifier(options)) {
+    return undefined;
+  }
+
+  let scope: ts.Node | undefined = call.parent;
+
+  while (scope && !ts.isFunctionLike(scope)) {
+    scope = scope.parent;
+  }
+
+  let found: ts.ObjectLiteralExpression | undefined = undefined;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === options.text &&
+      (ts.getCombinedNodeFlags(node) & ts.NodeFlags.Const) !== 0 &&
+      node.initializer &&
+      ts.isObjectLiteralExpression(node.initializer) &&
+      node.getStart() < call.getStart()
+    ) {
+      found = node.initializer;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  if (scope) {
+    visit(scope);
+  }
+
+  return found;
+}
+
+/*
  * Whether a write passes the person's props: as `props:` in its options
- * object (`updateOneById({ ..., props: ctx.props })`), or as an argument of
+ * object (`updateOneById({ ..., props: ctx.props })`, or a `const` of the
+ * calling function declared as one: optionsObjectOf), or as an argument of
  * their own, which is how a service method that takes its props last
  * receives them (`MonitorService.addOwners(projectId, monitorId, userIds,
  * teamIds, notify, ctx.props)`, #8513). An options object's props decide
@@ -279,9 +339,9 @@ function isPersonProps(expression: ts.Expression): boolean {
  * else's theirs.
  */
 function passesPersonProps(call: ts.CallExpression): boolean {
-  const options: ts.Expression | undefined = call.arguments[0];
+  const options: ts.ObjectLiteralExpression | undefined = optionsObjectOf(call);
 
-  if (options && ts.isObjectLiteralExpression(options)) {
+  if (options) {
     const props: ts.PropertyAssignment | undefined = options.properties.find(
       (
         property: ts.ObjectLiteralElement,
@@ -856,6 +916,34 @@ describe("the scan's negative controls", () => {
     ).toEqual(["8", "9", "10", "11"]);
     // ctx.props.userId names the person; it is not their props.
     expect(result.notAsThePerson[3]).toContain("MonitorService.addOwners");
+  });
+
+  test("D: reads the props of an options object the calling function declares as a const, and finds someone else's there", () => {
+    const result: GuardResult = checkSnippet(
+      'import MonitorService from "../../../Services/MonitorService";\n' +
+        `export const SetUpTool: ObservabilityTool = {
+  name: "set_up_monitoring",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    const asThePerson = { data: args.monitor, props: ctx.props };
+    const asRoot = { data: args.monitor, props: { isRoot: true } };
+    let changed = { data: args.monitor, props: ctx.props };
+    await MonitorService.create(asThePerson);
+    await MonitorService.create(asRoot);
+    await MonitorService.create(changed);
+    await MonitorService.create(declaredLater);
+    const declaredLater = { data: args.monitor, props: ctx.props };
+  },
+};
+`,
+    );
+
+    // Line 9 hands over a const with the person's props; 10 someone else's, 11 one that can change, 12 one not declared yet.
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["10", "11", "12"]);
   });
 
   test("D: an options object's props decide, whatever props follow it", () => {
