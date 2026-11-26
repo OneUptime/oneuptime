@@ -126,7 +126,8 @@ function issue(id: string, status: string): StoredRow {
 
 let issues: InMemoryTable;
 let respond: jest.SpyInstance;
-let productsOff: jest.SpyInstance;
+// As the helper types it: jest-mock's spy of ServerProducts.getOff.
+let productsOff: ReturnType<typeof everyServerProductIsOn>;
 
 beforeEach(() => {
   productsOff = everyServerProductIsOn();
