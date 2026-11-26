@@ -471,14 +471,14 @@ Kubernetes-Ereignisse werden am Agent nicht nach Namespace gefiltert: Er sendet 
 
 Es akzeptiert `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` und `FATAL`. `WARN` behält WARN, ERROR und FATAL und verwirft INFO, DEBUG und TRACE; der Standard (`""`) behält alles. Es gilt in beiden Log-Modi (über den Collector im Modus `daemonset`, im Log-Tailer im Modus `api`), daher schaltet ein Preset es nie hinter Ihrem Rücken ab.
 
-Container-Laufzeiten erfassen keinen Schweregrad, daher liest der Agent ihn aus dem Logtext selbst (`[ERROR]`, `WARN:`, `"level":"info"`, …). Was mit einer Zeile ohne erkennbare Stufe geschieht, hängt vom Log-Modus ab, weil die beiden Modi Unterschiedliches wissen:
+Container-Laufzeiten erfassen keinen Schweregrad, daher liest der Agent die Stufe, die jede Zeile nennt: ein Level-Wort (`[ERROR]`, `WARN:`, `"level":"info"`, …), den ersten Buchstaben einer klog-Zeile (`I`, `W`, `E`, `F`), das `LOG:` von PostgreSQL oder das `"level":30` von pino. Der Traceback einer Exception oder eine Panic zählt als ERROR. Was mit einer Zeile geschieht, die keine Stufe nennt, hängt vom Log-Modus ab, weil die beiden Modi Unterschiedliches wissen:
 
 | Modus | Eine Zeile ohne Stufe | Warum |
 | --- | --- | --- |
-| `daemonset` | `stderr` zählt als ERROR (behalten), `stdout` als INFO (von einer WARN-Schwelle verworfen) | Die Container-Laufzeit erfasst, aus welchem Stream jede Zeile kam. |
+| `daemonset` | `stdout` zählt als INFO (von einer WARN-Schwelle verworfen); `stderr` hat keinen Schweregrad, wird als Nicht angegeben angezeigt und behalten | Die Container-Laufzeit erfasst, aus welchem Stream jede Zeile kam. stdout ist die gewöhnliche Ausgabe eines Programms, aber Programme schreiben ihre Diagnosen jeder Stufe nach stderr, daher sagt eine stderr-Zeile nichts über ihre Stufe. |
 | `api` | Wird immer behalten | Die Kubernetes-API `pods/log` führt stdout und stderr ohne Markierung pro Zeile in einem Stream zusammen; statt zu raten, behält der Agent die Zeile. |
 
-Der Modus `api` verwirft also bewusst strikt weniger als der Modus `daemonset`: Ein Python-Traceback oder ein `npm ERR!` trägt kein Schweregrad-Schlüsselwort, und es stillschweigend zu löschen, ist genau der Fehler, vor dem eine Schwelle schützen soll. Im Hybridmodus (`logs.windowsPods.enabled`) gelten beide Zeilen, je nach Betriebssystem des Knotens: Linux-Pods folgen `daemonset`, Windows-Pods `api`.
+Der Modus `api` verwirft also bewusst strikt weniger als der Modus `daemonset`: Er kann eine stderr-Zeile, die keine Stufe nennt, etwa ein `npm ERR!`, nicht von gewöhnlicher Ausgabe unterscheiden, und sie stillschweigend zu löschen, ist genau der Fehler, vor dem eine Schwelle schützen soll. Im Hybridmodus (`logs.windowsPods.enabled`) gelten beide Zeilen, je nach Betriebssystem des Knotens: Linux-Pods folgen `daemonset`, Windows-Pods `api`.
 
 Mehrzeilige Ereignisse werden in beiden Modi vor dem Filtern wieder zusammengesetzt, daher wird ein Java-Stacktrace nach seiner ersten Zeile beurteilt und als Ganzes behalten oder verworfen.
 

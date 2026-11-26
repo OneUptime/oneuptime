@@ -123,6 +123,9 @@ export const CHECK_ON_TERMS: Readonly<Record<CheckOn, string>> = {
   [CheckOn.SnmpTransceiverRxPowerDrop]: translationKey(
     "SNMP Transceiver RX Power Drop (in dB)",
   ),
+  [CheckOn.SnmpFibreChannelCounterPerSecond]: translationKey(
+    "SNMP Fibre Channel Counter (per second)",
+  ),
   [CheckOn.DnsResponseTime]: translationKey("DNS Response Time (in ms)"),
   [CheckOn.DnsIsOnline]: translationKey("DNS Is Online"),
   [CheckOn.DnsRecordValue]: translationKey("DNS Record Value"),

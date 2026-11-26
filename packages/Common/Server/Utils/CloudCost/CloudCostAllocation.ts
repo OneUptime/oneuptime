@@ -55,6 +55,10 @@ import {
   placeCloudCost,
   readCloudCostRules,
 } from "../../../Types/Cloud/CloudCostRules";
+import {
+  CloudCostBasis,
+  isCloudCostBasis,
+} from "../../../Types/Cloud/CloudCostBasis";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../../Types/JSON";
@@ -63,6 +67,7 @@ import CloudAccountService from "../../Services/CloudAccountService";
 import CloudCostGroupService from "../../Services/CloudCostGroupService";
 import CloudCostLineItemService from "../../Services/CloudCostLineItemService";
 import CloudCostService from "../../Services/CloudCostService";
+import CloudCostSettingService from "../../Services/CloudCostSettingService";
 import CloudCostViewService from "../../Services/CloudCostViewService";
 import KubernetesCostAllocationService, {
   KubernetesNamespaceShare,
@@ -145,6 +150,8 @@ export interface CloudCostAllocationRequest {
   interval?: CloudCostAllocationInterval | undefined;
   // The currency read: the project's accounts' most common when absent.
   currency?: string | undefined;
+  // The cost basis summed (#11007): the project's when absent.
+  basis?: CloudCostBasis | undefined;
   // Only these accounts' costs; every account's when absent.
   cloudAccountIds?: Array<ObjectID> | undefined;
   // One group's read: its top services, resources and accounts too.
@@ -813,6 +820,11 @@ export class CloudCostAllocationClass {
       );
     }
 
+    // The basis asked for, else the project's: what Costs opens on too.
+    const basis: CloudCostBasis = isCloudCostBasis(request.basis)
+      ? request.basis
+      : await CloudCostSettingService.getCostBasisOfProject(request.projectId);
+
     const window: CloudCostAllocationWindow = toCloudCostAllocationWindow({
       startDate: request.startDate,
       endDate: request.endDate,
@@ -894,6 +906,7 @@ export class CloudCostAllocationClass {
       where,
       groups,
       facts,
+      basis,
     };
     const parts: Array<PartitionedContext> =
       CloudCostAllocationClass.partition(ctx);
@@ -1352,6 +1365,7 @@ export class CloudCostAllocationClass {
       viewId: view.id.toString(),
       viewName: view.name || "",
       currency,
+      basis,
       interval,
       start: toCloudCostBucket(window.start, CloudCostAllocationInterval.Day),
       lastDay: toCloudCostBucket(
@@ -1410,6 +1424,7 @@ export class CloudCostAllocationClass {
     endDate: Date;
     interval?: CloudCostAllocationInterval | undefined;
     currency?: string | undefined;
+    basis?: CloudCostBasis | undefined;
     compareWithPrevious?: boolean | undefined;
     props: DatabaseCommonInteractionProps;
     now?: Date | undefined;
@@ -1437,6 +1452,7 @@ export class CloudCostAllocationClass {
       endDate: data.endDate,
       interval: data.interval,
       currency: data.currency,
+      basis: data.basis,
       compareWithPrevious: data.compareWithPrevious,
       props: data.props,
       now: data.now,

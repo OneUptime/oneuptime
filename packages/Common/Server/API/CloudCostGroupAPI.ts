@@ -26,7 +26,7 @@ import { readAllocationBody } from "./CloudCostViewAPI";
  * Cost groups: the CRUD routes, and
  *
  *   POST /cloud-cost-group/:groupId/spend
- *     { startDate, endDate, interval?, currency?, compareWithPrevious? }
+ *     { startDate, endDate, interval?, currency?, basis?, compareWithPrevious? }
  *     One group's spend in a window: what its rules matched, its line
  *     items, its share of the shared groups, bucket by bucket, against the
  *     window before, and the services, resources and accounts it is charged
@@ -84,6 +84,7 @@ export default class CloudCostGroupAPI extends BaseAPI<
       endDate: body.endDate,
       interval: body.interval,
       currency: body.currency,
+      basis: body.basis,
       compareWithPrevious: body.compareWithPrevious,
       props,
     });
@@ -97,6 +98,7 @@ export default class CloudCostGroupAPI extends BaseAPI<
       viewId: read.allocation.viewId,
       viewName: read.allocation.viewName,
       currency: read.allocation.currency,
+      basis: read.allocation.basis || null,
       interval: read.allocation.interval,
       start: read.allocation.start,
       lastDay: read.allocation.lastDay,

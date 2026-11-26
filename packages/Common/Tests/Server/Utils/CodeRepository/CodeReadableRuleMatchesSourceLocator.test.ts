@@ -28,8 +28,9 @@ import {
  *
  * A finding's and a profile's Fix with AI work in a repository SourceLocator
  * finds (getLocatableRepositories) and refuse any other. Their pickers search
- * Code's repository list held to the same set (codeReadableOnly), judged by
- * CodeReadableRepository. If the two rules ever drifted apart, a picker
+ * Code's repository list held to the same set (codeReadableOnly). Both are
+ * judged by the one rule, CodeReadableRepository - SourceLocator kept a copy
+ * of its own until #11076. If the two reads ever drifted apart, a picker
  * would offer a repository its fix then refuses, or leave out one it takes:
  * here every kind of repository is weighed by both, and they agree.
  */

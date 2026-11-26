@@ -97,8 +97,8 @@ I det øyeblikket et varsel opprettes, går OneUptime gjennom disse trinnene, i 
 
 1. **Det får et nummer og en tilstand.** Varselnummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`ALT-42`). Varselet starter i opprettelsestilstanden din, med mindre skjemaet, API-et, en arbeidsflyt eller Spør AI valgte en annen.
 2. **Personvernregler kjører først**, slik at alt etter dem vet om varselet er privat.
-3. **Feeden og chatverktøyene dine får vite om det.** En oppføring **Varsel opprettet** skrives i **Varselsfeed**, og kanalene som Slack- og Microsoft Teams-reglene dine nevner, får beskjed; en regel kan opprette en kanal for varselet.
-4. **Eiere og etiketter legges til**: de som monitorens kriterier eller forespørselen nevner, deretter de fra samsvarende eier- og etikettregler.
+3. **Eiere og etiketter legges til**: de som monitorens kriterier eller forespørselen nevner, deretter de fra samsvarende eier- og etikettregler.
+4. **Feeden og chatverktøyene dine får vite om det.** En oppføring **Varsel opprettet** skrives i **Varselsfeed** som feedens første oppføring, og kanalene som Slack- og Microsoft Teams-reglene dine nevner, får beskjed; en regel kan opprette en kanal for varselet. Reglene ser eierne og etikettene varselet ble opprettet med, så en regel som spør hvem som eier et varsel, eller hvilke etiketter det har, publiserer det også. Det som er sagt om varselet i mellomtiden, for eksempel eierne som nettopp ble lagt til, kommer etter **Varsel opprettet** i de kanalene.
 5. **Vaktregler legger til policyene sine**, deretter starter runbook-regler de samsvarende runbookene.
 6. **Vaktpolicyer kjører.** Hver policy på varselet tilkaller personene sine parallelt; at én feiler, stopper ikke de andre. Deretter erklærer den første samsvarende hendelsesregelen en hendelse ut fra varselet, med en gang eller når ventetiden er over.
 7. **Grupperingsregler legger det i en episode**, når en av dem samsvarer. Se [Varselepisoder og grupperingsregler](/docs/alerts/episodes).

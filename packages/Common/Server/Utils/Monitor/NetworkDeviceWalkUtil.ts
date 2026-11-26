@@ -313,8 +313,8 @@ export default class NetworkDeviceWalkUtil {
       const lastWalkLog: JSONObject = replacesInterfaces
         ? {
             snmpResponse: {
-              interfaces: JSON.parse(
-                JSON.stringify(data.snmpResponse.interfaces),
+              interfaces: NetworkDeviceWalkUtil.toRateBaselineInterfaces(
+                data.snmpResponse.interfaces || [],
               ),
             },
             monitoredAt: receivedAt,
@@ -789,6 +789,33 @@ export default class NetworkDeviceWalkUtil {
       templateTables: templateTables,
       deviceTables: device.snmpTables,
     }).tables;
+  }
+
+  /*
+   * The interfaces as the rate baseline keeps them: a copy, with a Fibre
+   * Channel port's counters and nothing else of its Fibre Channel side -
+   * its rates, type and down reason are this poll's to report, not the next
+   * one's to rate against, and a director's few hundred ports would
+   * otherwise add them to a jsonb rewritten on every poll.
+   */
+  public static toRateBaselineInterfaces(
+    interfaces: Array<SnmpInterface>,
+  ): Array<JSONObject> {
+    return interfaces.map((walked: SnmpInterface): JSONObject => {
+      const copy: JSONObject = JSON.parse(JSON.stringify(walked));
+
+      if (walked.fibreChannel) {
+        if (walked.fibreChannel.counters) {
+          copy["fibreChannel"] = {
+            counters: JSON.parse(JSON.stringify(walked.fibreChannel.counters)),
+          };
+        } else {
+          delete copy["fibreChannel"];
+        }
+      }
+
+      return copy;
+    });
   }
 
   /*

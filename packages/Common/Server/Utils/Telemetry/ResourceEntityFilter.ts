@@ -11,6 +11,7 @@ import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
 import StorageArrayService from "../../Services/StorageArrayService";
+import XcpNgPoolService from "../../Services/XcpNgPoolService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import IoTFleetService from "../../Services/IoTFleetService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
@@ -25,6 +26,7 @@ import {
   keyForOpenStackCloud,
   keyForStorageArray,
   keyForVMwareVCenter,
+  keyForXcpNgPool,
 } from "../../../Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import {
@@ -369,6 +371,15 @@ function getFacetDefinitions(): Record<string, ResourceFacetDefinition> {
       attributeKey: "resource.vmware.vcenter.name",
       entityKeyFor: keyForVMwareVCenter,
       findIdentifiers: findIdentifierColumn(VMwareVCenterService, "name"),
+    },
+    /*
+     * A pool is its XAPI UUID (xcp_ng.pool.id), never its name, which
+     * follows Xen Orchestra.
+     */
+    xcpNgPoolId: {
+      attributeKey: "resource.xcp_ng.pool.id",
+      entityKeyFor: keyForXcpNgPool,
+      findIdentifiers: findIdentifierColumn(XcpNgPoolService, "poolIdentifier"),
     },
     cephClusterId: {
       attributeKey: "resource.ceph.cluster.name",

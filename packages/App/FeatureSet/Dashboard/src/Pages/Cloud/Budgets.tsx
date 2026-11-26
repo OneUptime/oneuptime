@@ -8,6 +8,16 @@ import {
   getCloudBudgetStatus,
 } from "../../Components/Cloud/CloudBudgetStatus";
 import { formatCloudMoney } from "../../Components/Cloud/CloudCostWords";
+import {
+  CloudCostBasisChoice,
+  useCloudCostBasis,
+} from "../../Components/Cloud/CloudCostBasis";
+import {
+  CLOUD_COST_BASES,
+  CLOUD_COST_BASIS_LABELS,
+  CloudCostBasis,
+  resolveCloudCostBasis,
+} from "Common/Types/Cloud/CloudCostBasis";
 import useCloudAccounts, {
   CloudAccountsRead,
 } from "../../Components/Cloud/UseCloudAccounts";
@@ -102,6 +112,8 @@ const CloudBudgets: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const read: CloudAccountsRead = useCloudAccounts();
+  // The project's cost basis: what a budget with none of its own watches.
+  const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
   // A new budget is in the currency most accounts are billed in.
   const currency: string = read.totals.costs.currency;
   const moreFields: FormFieldCollapsibleSection<CloudBudget> =
@@ -161,6 +173,7 @@ const CloudBudgets: FunctionComponent<
         projectedThisMonth: true,
         lastCheckedAt: true,
         cloudAccountId: true,
+        costBasis: true,
       }}
       filters={[
         {
@@ -294,6 +307,28 @@ const CloudBudgets: FunctionComponent<
                 ) : (
                   <></>
                 )}
+                {/*
+                 * Which cost the figures are: the budget's own basis, else
+                 * the project's - a budget never reads as billed when it
+                 * watches amortized spend.
+                 */}
+                <div
+                  className="mt-1 text-xs text-gray-500"
+                  data-testid="cloud-budget-basis"
+                  data-basis={resolveCloudCostBasis(
+                    item.costBasis,
+                    basisChoice.projectBasis,
+                  )}
+                >
+                  {translator.translateText(
+                    CLOUD_COST_BASIS_LABELS[
+                      resolveCloudCostBasis(
+                        item.costBasis,
+                        basisChoice.projectBasis,
+                      )
+                    ],
+                  )}
+                </div>
               </div>
             );
           },
@@ -359,7 +394,7 @@ const CloudBudgets: FunctionComponent<
           required: true,
           placeholder: "5000",
           description:
-            "What a calendar month may cost, before credits and refunds.",
+            "What a calendar month may cost, on the budget's cost basis: the project's unless you pick one under More fields.",
         },
         {
           field: { cloudAccount: true },
@@ -374,6 +409,20 @@ const CloudBudgets: FunctionComponent<
           required: false,
           placeholder: "All accounts",
           description: "Leave empty for a budget over every account.",
+        },
+        {
+          field: { costBasis: true },
+          title: "Cost Basis",
+          stepId: "budget",
+          collapsibleSection: moreFields,
+          fieldType: FormFieldSchemaType.Dropdown,
+          dropdownOptions: CLOUD_COST_BASES.map((basis: CloudCostBasis) => {
+            return { label: CLOUD_COST_BASIS_LABELS[basis], value: basis };
+          }),
+          required: false,
+          placeholder: "The project's cost basis",
+          description:
+            "The cost the budget watches: billed, amortized or net. Leave empty to follow the project's, set in Cloud settings.",
         },
         {
           field: { currency: true },

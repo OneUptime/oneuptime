@@ -36,6 +36,7 @@ const ROLLING_TIME_STEP_KEYS: Partial<Record<MonitorType, string>> = {
   [MonitorType.Proxmox]: "proxmoxMonitor",
   [MonitorType.OpenStack]: "openstackMonitor",
   [MonitorType.VMware]: "vmwareMonitor",
+  [MonitorType.XcpNg]: "xcpNgMonitor",
   [MonitorType.Ceph]: "cephMonitor",
   [MonitorType.StorageArray]: "storageArrayMonitor",
   [MonitorType.IoTDevice]: "iotMonitor",

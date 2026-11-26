@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64602,
+    "keys": 65322,
     "untranslated": 8281
   },
   "sameAsEnglish": [
@@ -207,6 +207,7 @@
     "name",
     "nova-compute",
     "null",
+    "office-hours",
     "oneuptime",
     "oneuptime-check",
     "oneuptime-checks",
@@ -218,6 +219,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "payments, search, platform-*",
     "persistent volume claim",
     "prod, staging",
     "prod-.*",

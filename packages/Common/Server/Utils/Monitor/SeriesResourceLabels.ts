@@ -171,6 +171,25 @@ export const VMwareVCenterNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * XCP-ng pool identity rides the agent-stamped resource attribute
+ * (`xcp_ng.pool.id` - the pool's XAPI UUID, which the XCP-ng Agent moves
+ * from Xen Orchestra's `pool_id` label onto the resource) and its
+ * ClickHouse `resource.`-prefixed twin. Unlike the clusters above, a pool
+ * is matched on its UUID, never its name (two Xen Orchestras can each
+ * manage a "Production"), so the value maps to the XcpNgPool model's
+ * `poolIdentifier` column. The shipped XCP-ng alert templates group by
+ * the datapoint attribute `xcp_ng.id` (a host's, VM's or storage
+ * repository's UUID), so their series labels do NOT carry these keys; the
+ * deterministic pool link for those monitors comes from the monitor step
+ * config instead (see MonitorResourceContext). These keys cover user-built
+ * monitors that group by the pool attribute.
+ */
+export const XcpNgPoolIdentifierLabelKeys: ReadonlyArray<string> = [
+  "resource.xcp_ng.pool.id",
+  "xcp_ng.pool.id",
+];
+
+/*
  * IoT fleet identity rides the agent-stamped resource attribute
  * (`iot.fleet.name`) and its ClickHouse `resource.`-prefixed twin.
  * Ingest keys fleet rows by name only — there is no `oneuptime.*.id`
@@ -320,6 +339,7 @@ export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
   ...ProxmoxClusterNameLabelKeys,
   ...OpenStackCloudNameLabelKeys,
   ...VMwareVCenterNameLabelKeys,
+  ...XcpNgPoolIdentifierLabelKeys,
   ...CephClusterNameLabelKeys,
   ...StorageArrayNameLabelKeys,
   ...IoTFleetNameLabelKeys,
@@ -348,6 +368,11 @@ export interface SeriesResourceRefs {
   proxmoxClusterNames: Array<string>;
   openStackCloudNames: Array<string>;
   vmwareVCenterNames: Array<string>;
+  /*
+   * XCP-ng pools, by their XAPI UUID (XcpNgPool.poolIdentifier) - the
+   * identifier their telemetry carries, never their name.
+   */
+  xcpNgPoolIdentifiers: Array<string>;
   cephClusterNames: Array<string>;
   storageArrayNames: Array<string>;
   iotFleetNames: Array<string>;
@@ -459,6 +484,10 @@ export default class SeriesResourceLabels {
       vmwareVCenterNames: this.collectLabelValues(
         seriesLabels,
         VMwareVCenterNameLabelKeys,
+      ),
+      xcpNgPoolIdentifiers: this.collectLabelValues(
+        seriesLabels,
+        XcpNgPoolIdentifierLabelKeys,
       ),
       cephClusterNames: this.collectLabelValues(
         seriesLabels,

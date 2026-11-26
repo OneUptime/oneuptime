@@ -1,4 +1,5 @@
 import ServerOwned from "../../Types/Database/ServerOwned";
+import { CloudResourceEnvironment } from "../../Types/Cloud/CloudResourceEnvironment";
 import CloudConnection from "./CloudConnection";
 import Label from "./Label";
 import Project from "./Project";
@@ -217,6 +218,30 @@ export default class CloudAccount extends BaseModel {
     length: ColumnLength.LongText,
   })
   public description?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: true,
+    allowedValues: Object.values(CloudResourceEnvironment),
+    title: "Environment",
+    description:
+      "Whether the account holds production: Production, NonProduction or Unknown. A resource of a non-production account is non-production unless its own tags say production; off-hours schedules stop only non-production resources, and no AI rule acts on production without a person.",
+    defaultValue: CloudResourceEnvironment.Unknown,
+    isDefaultValueColumn: true,
+    example: "NonProduction",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: false,
+    length: ColumnLength.ShortText,
+    default: CloudResourceEnvironment.Unknown,
+  })
+  public environment?: CloudResourceEnvironment = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

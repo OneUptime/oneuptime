@@ -86,6 +86,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
     all: translationKey("All Proxmox clusters"),
     matching: translationKey("Only Proxmox clusters that match conditions"),
   },
+  [RuleCriteriaSubject.XcpNgPools]: {
+    all: translationKey("All XCP-ng pools"),
+    matching: translationKey("Only XCP-ng pools that match conditions"),
+  },
   [RuleCriteriaSubject.OpenStackClouds]: {
     all: translationKey("All OpenStack clouds"),
     matching: translationKey("Only OpenStack clouds that match conditions"),
@@ -175,6 +179,10 @@ export const RULE_CRITERIA_SUBJECT_COPY: Readonly<
   [RuleCriteriaSubject.DataSecurityIssues]: {
     all: translationKey("All issues"),
     matching: translationKey("Only issues that match conditions"),
+  },
+  [RuleCriteriaSubject.CloudSavings]: {
+    all: translationKey("All savings"),
+    matching: translationKey("Only savings that match conditions"),
   },
 };
 

@@ -1,0 +1,186 @@
+receivers:
+  # Xen Orchestra's OpenMetrics plugin (xo-server-openmetrics, Xen
+  # Orchestra 6.9 or later): one endpoint serves every pool this Xen
+  # Orchestra manages, read from each host's XAPI RRDs at 60-second
+  # resolution, with each series labelled by its pool (pool_id, pool_name).
+  # xo-server proxies it at /openmetrics on its own port and certificate.
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: oneuptime-xcp-ng
+          # https, or http for a lab (install.sh derives both values from
+          # XO_URL, e.g. https://xo.example.com:8443 -> https and
+          # xo.example.com:8443).
+          scheme: ${env:XO_SCHEME}
+          metrics_path: /openmetrics/metrics
+          # Xen Orchestra reads the RRDs at 60-second resolution: reading
+          # more often only asks every host for the same minute again.
+          scrape_interval: 60s
+          # Each scrape makes Xen Orchestra ask every host for its RRDs, five
+          # at a time, waiting up to 10 seconds for a host that does not
+          # answer: a slow pool must not cost the scrape of every other one.
+          scrape_timeout: 50s
+          # Xen Orchestra stamps each sample with the RRD minute it belongs
+          # to (in seconds, as OpenMetrics does); keep those times.
+          honor_timestamps: true
+          # The plugin's secret (Settings -> Plugins -> openmetrics), sent as
+          # a Bearer token. It lives in .env (mode 600) and nowhere else.
+          #
+          # A value that is a ${env:...} and nothing else, the collector reads
+          # as YAML: a secret such as `TRUE`, `+12` or `1e3` would be sent as
+          # `true`, `12` or `1000`, and one such as `[x]` or `a: b` would stop
+          # the config loading. Followed by a space, it is read as the text it
+          # is. The space is nothing to HTTP, which drops the whitespace
+          # around a header's value (RFC 9110, 5.5), and Xen Orchestra trims
+          # the header before comparing it too. Keep the space.
+          authorization:
+            type: Bearer
+            credentials: "${env:XO_OPENMETRICS_SECRET} "
+          # Xen Orchestra's certificate is checked against xo-ca.pem and
+          # nothing else - never skipped. install.sh writes that file: XO's
+          # own certificate, pinned by its SHA-256 fingerprint
+          # (XO_TLS_FINGERPRINT); or the CA bundle XO_CA_FILE names; or, for
+          # a certificate this machine already trusts, its CA bundle.
+          # XO_TLS_SERVER_NAME is the name the certificate is checked
+          # against when XO_URL uses an address the certificate does not
+          # list (empty: the host of XO_URL).
+          tls_config:
+            ca_file: /etc/oneuptime/xo-ca.pem
+            server_name: "${env:XO_TLS_SERVER_NAME}"
+          static_configs:
+            # Xen Orchestra's host:port, no scheme, behind "xo=" so the
+            # collector reads it as text (on its own, an IPv6 address such as
+            # [fd00::5]:443 reads as a YAML list, and the config does not
+            # load); the relabeling below takes the address out again.
+            - targets: ["xo=${env:XO_ADDRESS}"]
+          relabel_configs:
+            - source_labels: [__address__]
+              regex: "xo=(.+)"
+              target_label: __address__
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    # One Xen Orchestra can manage many pools, and every host's and VM's
+    # series arrive in one scrape: 512 MiB leaves ample headroom.
+    limit_mib: 512
+    spike_limit_mib: 128
+  # Keep the pools' series (xcp_*) and nothing else: Xen Orchestra's own
+  # process series (xo_*) and the receiver's scrape series (up, scrape_*)
+  # belong to no pool.
+  filter/xcp-ng-only:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'not IsMatch(metric.name, "^xcp_")'
+  # THE TRAP. Xen Orchestra types these eight series `counter`, but each
+  # holds XAPI's per-second rate (bytes or errors per second over the last
+  # minute), which goes down as often as up. Read as counters, every
+  # network and disk throughput chart would be wrong. Each becomes a gauge,
+  # its name and values as Xen Orchestra sends them.
+  transform/xcp-ng-rates:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - convert_sum_to_gauge() where metric.name == "xcp_host_network_receive_bytes_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_host_network_transmit_bytes_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_vm_network_receive_bytes_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_vm_network_transmit_bytes_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_vm_network_receive_errors_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_vm_network_transmit_errors_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_vm_disk_read_bytes_total"
+          - convert_sum_to_gauge() where metric.name == "xcp_vm_disk_write_bytes_total"
+  # One OTLP resource per pool: the series are grouped by their pool's
+  # labels, which move from each datapoint to the resource. A pool XAPI
+  # names nothing has no pool_name (Xen Orchestra sends it empty, which
+  # reads as no label at all), so it is one resource too.
+  groupbyattrs/xcp-ng-pool:
+    keys:
+      - pool_id
+      - pool_name
+  # Stamp each pool's identity. OneUptime registers an XCP-ng pool from
+  # `xcp_ng.pool.id` (the pool's XAPI UUID, which never changes) and names
+  # it from `xcp_ng.pool.name`; every XCP-ng page and monitor scopes on the
+  # pool. One agent therefore adds every pool this Xen Orchestra manages.
+  resource:
+    attributes:
+      - key: xcp_ng.pool.id
+        from_attribute: pool_id
+        action: upsert
+      - key: xcp_ng.pool.name
+        from_attribute: pool_name
+        action: upsert
+      - key: pool_id
+        action: delete
+      - key: pool_name
+        action: delete
+      # Shown as the agent version on each pool's page, with a sign when a
+      # newer one is out. The collector image docker-compose.yml pins, its
+      # last number raised each time these files change on that collector.
+      - key: oneuptime.agent.version
+        value: "0.165.0"
+        action: upsert
+      # The prometheus receiver synthesizes service.name (= the scrape job
+      # name, "oneuptime-xcp-ng") and service.instance.id on every batch per
+      # the Prometheus->OTLP compatibility spec. Drop them: OneUptime routes
+      # batches by service.name first, so leaving them in would register a
+      # phantom Service named after the job instead of routing this data to
+      # the XCP-ng pools discovered from `xcp_ng.pool.id`. Do not remove
+      # these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  # The Xen Orchestra the pools are read from, shown on each pool's Settings
+  # (XO_NAME; install.sh defaults it to XO_URL's host). Set in an OTTL string
+  # rather than as the resource processor's value, which the collector would
+  # read as YAML: a name such as `XO: lab` would arrive as a map, `2026` as a
+  # number. Left off when it is empty, rather than stamped as an empty name.
+  transform/xen-orchestra:
+    error_mode: ignore
+    metric_statements:
+      - context: resource
+        statements:
+          - set(resource.attributes["xen_orchestra.name"], "${env:XO_NAME}")
+          - delete_key(resource.attributes, "xen_orchestra.name") where resource.attributes["xen_orchestra.name"] == ""
+  # What is left without a pool: the host power Xen Orchestra reads over
+  # IPMI (xcp_host_power_consumption_watts{source="ipmi"}), which the plugin
+  # labels from the host alone, with no pool_id. Without a pool OneUptime
+  # could only file it under a phantom resource, so it is dropped; each
+  # VM's estimated share of that power (xcp_vm_power_consumption_watts)
+  # carries its pool and is kept.
+  filter/xcp-ng-pool-only:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'resource.attributes["xcp_ng.pool.id"] == nil'
+  batch:
+    timeout: 10s
+    # Large enough to hold a whole scrape of a large Xen Orchestra. There is
+    # deliberately NO send_batch_max_size: a scrape is never split across
+    # exports, so each pool's inventory (hosts, VMs, storage) arrives whole.
+    send_batch_size: 8192
+
+exporters:
+  otlp_http:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors:
+        [
+          memory_limiter,
+          filter/xcp-ng-only,
+          transform/xcp-ng-rates,
+          groupbyattrs/xcp-ng-pool,
+          resource,
+          transform/xen-orchestra,
+          filter/xcp-ng-pool-only,
+          batch,
+        ]
+      exporters: [otlp_http]

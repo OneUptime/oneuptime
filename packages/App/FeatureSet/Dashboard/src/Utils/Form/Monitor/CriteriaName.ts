@@ -1,3 +1,7 @@
+import SnmpFibreChannelUtil, {
+  FIBRE_CHANNEL_COUNTER_TITLES,
+  FibreChannelCounter,
+} from "Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import {
   CheckOn,
@@ -381,6 +385,19 @@ export default class CriteriaNameUtil {
       subject = `SNMP Transceiver ${
         TRANSCEIVER_READING_TITLES[transceiverReading as TransceiverReadingKind]
       }`;
+    }
+
+    // "SNMP Fibre Channel Credit Loss (per second)" names which counter.
+    const fibreChannelCounter: FibreChannelCounter | undefined =
+      SnmpFibreChannelUtil.parseCounter(
+        criteriaFilter.snmpMonitorOptions?.fibreChannelCounter,
+      );
+
+    if (
+      checkOn === CheckOn.SnmpFibreChannelCounterPerSecond &&
+      fibreChannelCounter
+    ) {
+      subject = `SNMP Fibre Channel ${FIBRE_CHANNEL_COUNTER_TITLES[fibreChannelCounter]} (per second)`;
     }
 
     // Criteria on two fields of one result would otherwise share a name.

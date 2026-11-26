@@ -29,6 +29,11 @@ import OwnedBy, {
   OWNED_BY_QUERY_KEY,
 } from "../../../Types/BaseDatabase/OwnedBy";
 import OwnedByFilter from "./OwnedByFilter";
+import LinkedTo, {
+  LINKED_TO_QUERY_KEY,
+  LinkedToMatch,
+} from "../../../Types/BaseDatabase/LinkedTo";
+import { FindWhereProperty } from "../../../Types/BaseDatabase/Query";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { JSONObject } from "../../../Types/JSON";
@@ -221,12 +226,18 @@ export default class QueryUtil {
     for (const key of Object.keys(filter)) {
       const value: unknown = filter[key];
 
-      if (value instanceof MultiSearch || value instanceof OwnedBy) {
+      if (
+        value instanceof MultiSearch ||
+        value instanceof OwnedBy ||
+        value instanceof LinkedTo
+      ) {
         throw new BadDataException(
           `The filter on ${key} of a related ${model.singularName || "record"} ${
             value instanceof MultiSearch
               ? "searches several fields at once"
-              : "is by owners"
+              : value instanceof OwnedBy
+                ? "is by owners"
+                : "is by linked records"
           }, which a filter on a related record cannot do. Filter the related records with a query of their own.`,
         );
       }
@@ -384,6 +395,32 @@ export default class QueryUtil {
       conditionsOnId.push(
         OwnedByFilter.getIdCondition(modelType, value) as FindOperator<unknown>,
       );
+    }
+
+    /*
+     * The records linked to some records through any of several relations
+     * (LinkedTo, under "linkedTo", #11073): one condition on `_id`, OR'd
+     * across the relations - a subquery on each many-to-many relation's join
+     * table, a comparison of the column beside the id for one held in a
+     * column (Alert.monitorId). The key is no column, so TypeORM never sees
+     * it. QueryPermission has held the caller to each relation's read first.
+     */
+    for (const key in query) {
+      const value: unknown = query[key];
+
+      if (!(value instanceof LinkedTo)) {
+        continue;
+      }
+
+      if (key !== LINKED_TO_QUERY_KEY) {
+        throw new BadDataException(
+          `A filter by linked records goes under "${LINKED_TO_QUERY_KEY}", not "${key}".`,
+        );
+      }
+
+      delete query[key];
+
+      conditionsOnId.push(QueryUtil.getLinkedToCondition(modelType, value));
     }
 
     /*
@@ -1158,6 +1195,96 @@ export default class QueryUtil {
     }
 
     return QueryUtil.getLinkedToAnyCondition(modelType, propertyPath, labelIds);
+  }
+
+  /*
+   * A LinkedTo filter as one condition on the record's id (#11073). AnyOf:
+   * linked to one of the records through any of the relations named - for
+   * a many-to-many relation its join table names one, the related row there
+   * and not deleted (getLinkedToAnyCondition); for a relation held in a
+   * column of the record (an alert's monitorId) the column holds one.
+   * NoneOf: linked to none of them through any - a record linked to nothing
+   * included, as a list's "is not" keeps it (IncludesNone,
+   * notInOrNull). A relation that links no records is refused.
+   */
+  public static getLinkedToCondition<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    linkedTo: LinkedTo,
+  ): FindOperator<unknown> {
+    const model: BaseModel = new modelType();
+    const isAnyOf: boolean = linkedTo.match === LinkedToMatch.AnyOf;
+    const conditions: Array<{
+      columnName?: string | undefined;
+      condition: FindWhereProperty<any>;
+    }> = [];
+
+    for (const [relation, ids] of Object.entries(linkedTo.relations)) {
+      const column: TableColumnMetadata | undefined =
+        model.getTableColumnMetadata(relation);
+      const refusal: BadDataException = new BadDataException(
+        `"${relation}" is not a relation "${LINKED_TO_QUERY_KEY}" can filter ${model.pluralName || "records"} by: a list of linked records (such as "monitors") or the ID of one (such as "monitorId").`,
+      );
+
+      if (!column) {
+        throw refusal;
+      }
+
+      if (column.type === TableColumnType.EntityArray) {
+        if (isAnyOf) {
+          const condition: FindOperator<unknown> | null =
+            QueryUtil.getLinkedToAnyCondition(modelType, relation, ids);
+
+          if (!condition) {
+            throw refusal;
+          }
+
+          conditions.push({
+            condition: condition as FindWhereProperty<any>,
+          });
+          continue;
+        }
+
+        const links: ReturnType<
+          typeof QueryUtil.getManyToManyRelationMetadata
+        > = QueryUtil.getManyToManyRelationMetadata(modelType, relation);
+
+        if (!links) {
+          throw refusal;
+        }
+
+        conditions.push({
+          condition: QueryHelper.noneEntitiesInManyToMany({
+            values: ids,
+            joinTableName: links.joinTableName,
+            ownerColumnName: links.ownerColumnName,
+            relationColumnName: links.relationColumnName,
+            relatedTable: QueryUtil.getManyToManyRelatedTable(
+              modelType,
+              relation,
+            ),
+          }),
+        });
+        continue;
+      }
+
+      if (column.type === TableColumnType.ObjectID) {
+        conditions.push({
+          columnName: relation,
+          condition: isAnyOf
+            ? QueryHelper.any(ids)
+            : QueryHelper.notInOrNull(ids),
+        });
+        continue;
+      }
+
+      throw refusal;
+    }
+
+    return (
+      isAnyOf
+        ? QueryHelper.anyOfConditions(conditions)
+        : QueryHelper.allOfConditions(conditions)
+    ) as FindOperator<unknown>;
   }
 
   /*

@@ -182,6 +182,9 @@ interface World {
   locatable: jest.SpiedFunction<typeof SourceLocator.getLocatableRepositories>;
   matchFrames: jest.SpiedFunction<typeof SourceLocator.matchFrames>;
   canAsk: jest.SpiedFunction<typeof CodeTaskAccess.canAskInRepository>;
+  listAskable: jest.SpiedFunction<
+    typeof CodeTaskAccess.listAskableRepositoryIds
+  >;
   blocker: jest.SpiedFunction<typeof CodeTaskGate.getBlocker>;
   start: jest.SpiedFunction<typeof CodeTaskRuns.start>;
   buildItem: jest.SpiedFunction<typeof CodeTaskContextBuilder.buildItem>;
@@ -234,6 +237,25 @@ function world(change?: {
     canAsk: jest
       .spyOn(CodeTaskAccess, "canAskInRepository")
       .mockResolvedValue(change?.canAsk ?? true),
+    /*
+     * The same rule, asked of many repositories in one read a batch: what
+     * the function panel's choices are weighed with (#11076).
+     */
+    listAskable: jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockImplementation(
+        async (data: {
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Set<string>> => {
+          return change?.canAsk === false
+            ? new Set<string>()
+            : new Set<string>(
+                data.repositoryIds.map((id: ObjectID | string): string => {
+                  return id.toString().toLowerCase();
+                }),
+              );
+        },
+      ),
     blocker: jest
       .spyOn(CodeTaskGate, "getBlocker")
       .mockResolvedValue(change?.blocker || null),
@@ -508,6 +530,53 @@ describe("what the function panel is offered", () => {
     expect((await ProfileFixTaskTrigger.getSuggestion(REQUEST)).offer).toBe(
       SuggestionOffer.None,
     );
+  });
+
+  /*
+   * #11076: each repository was asked about in turn - three reads a
+   * repository - so a project of many repositories paid for each one. The
+   * choices are weighed in one read a batch, the rule every other Fix with
+   * AI asks it by.
+   */
+  test("the repositories to pick from are weighed in one read, never one repository at a time", async () => {
+    const spies: World = world({ located: null });
+
+    await ProfileFixTaskTrigger.getSuggestion(REQUEST);
+
+    expect(spies.listAskable).toHaveBeenCalledTimes(1);
+    expect(spies.listAskable.mock.calls[0]![0]).toMatchObject({
+      props,
+      projectId,
+      repositoryIds: [CHECKOUT_REPOSITORY.id, PLATFORM_REPOSITORY.id],
+    });
+    expect(spies.canAsk).not.toHaveBeenCalled();
+  });
+
+  test("of several, only the ones the person may ask in are offered - in their order", async () => {
+    const spies: World = world({ located: null });
+    spies.listAskable.mockResolvedValue(
+      new Set<string>([PLATFORM_REPOSITORY.id.toLowerCase()]),
+    );
+
+    const suggestion: ProfileFixSuggestion =
+      await ProfileFixTaskTrigger.getSuggestion(REQUEST);
+
+    expect(
+      suggestion.repositories.map((repository: { id: string }) => {
+        return repository.id;
+      }),
+    ).toEqual([PLATFORM_REPOSITORY.id]);
+  });
+
+  test("the repository found to hold the code is weighed alone", async () => {
+    const spies: World = world();
+
+    await ProfileFixTaskTrigger.getSuggestion(REQUEST);
+
+    expect(spies.listAskable).toHaveBeenCalledTimes(1);
+    expect(spies.listAskable.mock.calls[0]![0].repositoryIds).toEqual([
+      CHECKOUT_REPOSITORY.id,
+    ]);
   });
 
   test("Code's gate says no: the step it names", async () => {

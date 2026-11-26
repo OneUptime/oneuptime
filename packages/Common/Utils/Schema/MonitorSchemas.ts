@@ -50,6 +50,7 @@ export const CriteriaFilterSchema: ZodSchema = Zod.object({
     tableColumnOid: Zod.string().optional(),
     tableRow: Zod.string().optional(),
     transceiverReading: Zod.string().optional(),
+    fibreChannelCounter: Zod.string().optional(),
   }).optional(),
   databaseMonitorOptions: Zod.object({
     metricType: Zod.string().optional(),
@@ -266,6 +267,7 @@ export function getMonitorStepSchema(): ZodSchema {
       proxmoxMonitor: Zod.any().optional(),
       openstackMonitor: Zod.any().optional(),
       vmwareMonitor: Zod.any().optional(),
+      xcpNgMonitor: Zod.any().optional(),
       dockerSwarmMonitor: Zod.any().optional(),
       cephMonitor: Zod.any().optional(),
       storageArrayMonitor: Zod.any().optional(),

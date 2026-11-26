@@ -134,6 +134,7 @@ Leave it folded and the device is pinged only: the folded section says so in one
 | SNMP v3 Authentication Key | The authentication passphrase. | With authentication |
 | SNMP v3 Privacy Protocol | DES, AES or AES-256. | With privacy |
 | SNMP v3 Privacy Key | The privacy (encryption) passphrase. | With privacy |
+| SNMP v3 Context | Only for an agent that answers several devices at one address, each in its own context: a Brocade logical switch's `VF:128`. | No |
 :::
 
 Credentials typed on the device win over a credential profile picked beside them, and the device's site can carry a default profile as well. Credentials on a profile are encrypted at rest. Credentials typed onto a device are encrypted at rest too, and guarded by the same read permissions.
@@ -255,6 +256,12 @@ Select devices on the **Devices** list and use:
 
 The **Devices** page shows a banner when the project holds devices on the bound-monitor override with nothing bound — devices that nothing polls and nothing reports on — and links to the selection that fixes them.
 
+### SNMPv3 Contexts
+
+An agent can answer several devices at one address, each in its own SNMPv3 context: a Brocade chassis with Virtual Fabrics answers each logical switch in the context `VF:` and its fabric ID. Add one device per logical switch at that address, with SNMP v3, and set each one's **SNMP v3 Context** on its **Settings** page; a device with no context is polled in the agent's default one. The context is the device's, not its credentials', so it holds whichever credential profile the device uses.
+
+A probe from before SNMPv3 contexts would poll the default context in its place, so until it is updated it only pings such a device. Each SNMPv3 trap names its context too, and is raised on the device polled in that context only; a trap in a context no device is polled in is logged as unmatched.
+
 ## Site Monitoring Defaults
 
 A [Network Site](/docs/monitor/network-sites#monitoring-defaults) carries two defaults for the devices in it. Its **Default Probe** is copied onto a device created or moved into the site without a probe of its own. Its **Default SNMP Credential Profile** is read on every poll of a device in the site that has no credentials of its own. Set both on a site and a device there can be added by its address alone, then pinged and walked from its first poll. The site guide says how far each default reaches down the site tree.
@@ -308,9 +315,11 @@ In the **Health OIDs** editor, **Vendor Health Template** applies a prebuilt set
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU load, total and available RAM, load average | CPU cores (one row per core, however the platform numbers them) |
 | Arista EOS | CPU load, load average, total and available RAM | — |
+| Brocade Fabric OS (SAN switches) | Switch state, firmware version, CPU, memory | Switch status, sensors (temperature, fans, power supplies), field-replaceable units |
 | Cambium Networks cnMatrix | CPU, RAM, flash, temperature, supply voltage | Fans, PoE ports, redundant power supply |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, free memory, Wi-Fi clients, cnMaestro connection | Wi-Fi radios (band, channel, width, TX power, clients, noise floor, airtime, state), SSIDs |
 | Cisco IOS / IOS-XE | CPU, memory used and free, temperature, fan state, power supply state | — |
+| Cisco MDS 9000 (SAN switches) | CPU, memory | Power supplies, modules, fan trays, VSANs |
 | Dell Force10 / OS9 | CPU, memory | — |
 | Extreme Networks EXOS / Switch Engine | CPU, temperature, over-temperature alarm, power state | Power supplies, fans, memory per slot, stack members |
 | Extreme Networks Fabric Engine / VOSS | vIST session, I-SID count | Fabric (IS-IS) adjacencies named by neighbour, CPU and memory per slot, temperature sensors, fans, power supplies |
@@ -518,6 +527,7 @@ The device's `sysObjectID` picks where the readings come from: the vendor's own 
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Yes |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), with loss of signal and transmitter fault flags | No |
 | Cambium Networks cnMatrix (4.5 and later) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | No |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), read as text: `-inf` is no light | No |
 | Every other device | ENTITY-SENSOR-MIB (RFC 3433), matched to ports through ENTITY-MIB | No |
 
 The first poll reads everything. Later polls read only what changes — the readings, and the serial numbers that tell a swapped optic apart — and the rest (thresholds, identity, which optic sits in which port) is read again when an optic is inserted, removed or swapped, and at least once an hour. A device with none of these MIBs costs one request per MIB tried. The read has its own 20-second budget, and a read that times out or is cut short keeps the device's last good optics rather than reporting them gone.
@@ -861,6 +871,7 @@ Criteria check each poll result and trap, and open incidents or alerts.
 | SNMP Interface Is Down | True when an administratively enabled interface is operationally down. | Not evaluated |
 | SNMP Interface Utilization (in %) | The busiest interface's link utilization. | Not evaluated |
 | SNMP Interface Errors (per second) | The worst interface's error rate. | Not evaluated |
+| SNMP Fibre Channel Counter (per second) | One Fibre Channel counter of a SAN switch's ports — CRC errors, discards, credit loss and the rest — per second, on the worst port in scope; `*` raises one alert per port. | Not evaluated |
 | SNMP Transceiver Not Detected | True when a port that had an optic has not reported one for two polls in a row, while the port is enabled. | Not evaluated |
 | SNMP Transceiver Past Alarm Threshold | True when an optic's reading is at or past an alarm threshold the device reports, or the device flags a loss of signal or a transmitter fault. | Not evaluated |
 | SNMP Transceiver Past Warning Threshold | The same at the warning thresholds; an optic past an alarm threshold counts too. | Not evaluated |
@@ -1058,6 +1069,9 @@ Incident and alert templates on a Network Device monitor can use these variables
 | `{{trapOid}}` | The trap OID, on checks a trap triggered |
 | `{{trapSourceIp}}` | The address the trap came from, on checks a trap triggered |
 | `{{trapVarbinds}}` | The varbinds the trap carried, each with `oid` and `value` |
+| `{{trapInterface}}` | The interface a trap is about: the name it carries, or the one the device's walk recorded for its index |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | On an RMON alarm (an MDS port-monitor alarm), the counter that crossed its threshold, and `rising` or `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | On an RMON alarm, the counter's value and the threshold it crossed |
 | `{{tables.<key>.rowCount}}` | The rows walked in an [SNMP table](#snmp-tables), by its key: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | The rows with a status outside their healthy values, each with `name`, `index` and `values.<column>` |
 | `{{tables.<key>.rows}}` | Every row (up to 50), each with `name`, `index` and `values.<column>`, with column names in lower case and spaces as `_` |

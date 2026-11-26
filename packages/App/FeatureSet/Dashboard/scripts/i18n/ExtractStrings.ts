@@ -331,6 +331,22 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   { directory: "packages/Common/Types/CloudConnection", kind: "ui" },
   /*
+   * Acting on savings (#11010): each change's name and sentence, how it is
+   * undone, why one is not offered, its status and what the bill showed;
+   * a resource's environment; what an AI rule for savings does and why
+   * OneUptime AI proposed a change - as Cloud > Savings, its dialogs and
+   * the savings rules draw them. Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudSavingsAction.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+    kind: "keys",
+  },
+  { directory: "packages/Common/Types/Cloud/CloudSavingsAi.ts", kind: "keys" },
+  /*
    * A managed device's status - Online, Offline, Provisioning and the rest -
    * as Inventory > Managed Devices and a device's Inventory page draw it.
    * Only the names the file marks are read: the server words nothing here.
@@ -1112,6 +1128,24 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Billed, amortized and net (#11007): what each is called and counts,
+   * beside the switch on Costs, Overview and an account's Costs, and on
+   * Cloud > Settings > Cost Settings. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostBasis.ts",
+    kind: "keys",
+  },
+  /*
+   * A commitment's state, scope and payment option (#11011), on Cloud >
+   * Spend > Commitments. Only the words the file marks are read: a
+   * commitment's own name and type are its cloud's words, drawn as written.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudCommitmentInventory.ts",
+    kind: "keys",
+  },
+  /*
    * A resource's right-sizing from OneUptime's own readings: its verdict,
    * what to change and why, on its Overview. Only the words the file marks
    * are read: a size is its cloud's own name, drawn as written.
@@ -1159,6 +1193,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/AI/AIActionWords.ts",
+    kind: "keys",
+  },
+  /*
+   * What Ask AI's Data Security actions say on their cards (#10378): what
+   * each changes, what stops working, what it costs and why it asks in
+   * every mode. Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/AI/AIDataSecurityActionWords.ts",
     kind: "keys",
   },
   /*
@@ -1282,6 +1325,10 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
     kind: "keys",
   },
+  {
+    directory: "packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
+    kind: "keys",
+  },
   /*
    * What a monitor's evaluation says, for the Dashboard to word in each
    * reader's language (issue #6542): the sentences the engine stores beside
@@ -1292,6 +1339,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
    */
   {
     directory: "packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
+    kind: "keys",
+  },
+  /*
+   * A SAN switch's Fibre Channel counters and port types - their names and
+   * what each counter means - as the Interfaces page's chart and the
+   * criteria form's counter picker draw them. Only the marked words are
+   * read: the server keeps its own English.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel.ts",
     kind: "keys",
   },
   {

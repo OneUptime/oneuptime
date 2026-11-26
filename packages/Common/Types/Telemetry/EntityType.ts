@@ -73,6 +73,16 @@ enum EntityType {
   VMwareVirtualMachine = "vmware.vm",
   VMwareDatastore = "vmware.datastore",
   /*
+   * XCP-ng pools are OneUptime-defined too. The identity attribute
+   * `xcp_ng.pool.id` is the pool's XAPI UUID: Xen Orchestra puts it on every
+   * series as the pool_id label, and the XCP-ng Agent's collector moves it to
+   * the resource (one OTLP resource per pool, since one Xen Orchestra reports
+   * many pools). It doubles as the typed XcpNgPool row's project-unique
+   * `poolIdentifier`. Hosts, VMs, storage repositories and virtual disks are
+   * inventory rows (XcpNgResource), not entities.
+   */
+  XcpNgPool = "xcp_ng.pool",
+  /*
    * Docker Swarm types are OneUptime-defined (no upstream semconv
    * exists) but follow the same dotted naming convention. The
    * identifying attributes (`docker.swarm.cluster.name`,

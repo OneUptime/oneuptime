@@ -626,6 +626,66 @@ export default class NetworkInterface extends BaseModel {
   })
   @TableColumn({
     required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Fibre Channel Port Type",
+    description:
+      "What a Fibre Channel port is to the fabric, as the SAN switch reports it: E (an inter-switch link), F (a host or an array), N and the rest. Kept while the port is down.",
+    example: "E",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public fibreChannelPortType?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Down Reason",
+    description:
+      "Why the port is down, in the switch's own words: No light, SFP not present, Link failure or not-connected. Empty while it is up.",
+    example: "No light",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public downReason?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
     type: TableColumnType.Date,
     canReadOnRelationQuery: true,
     title: "Last Seen At",

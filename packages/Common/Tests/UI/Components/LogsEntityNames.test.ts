@@ -19,6 +19,7 @@ import {
   buildEntityNameDisplayMap,
   collectAnalyticsEntityIds,
   collectLogsEntityIdsToResolve,
+  collectLogsServiceIdsToRead,
   enrichLogsActiveFilter,
   enrichLogsActiveFilters,
   findLoadedLogsResourceEntity,
@@ -1784,5 +1785,102 @@ describe("ANALYTICS_DIMENSION_LABELS for resource facets", () => {
       label,
     );
     expect(getAnalyticsDimensionLabel(facetKey, [], undefined)).toBe(label);
+  });
+});
+
+/*
+ * Which ids the logs on screen name as services, to read by their ids
+ * (#11072): the viewer read the project's first 10,000 services instead.
+ * Something that says an id is no Service - a row's primaryEntityType, a
+ * chip's key, a parent's own name - keeps it from that read; the entity
+ * resolver names it.
+ */
+describe("collectLogsServiceIdsToRead", () => {
+  test("a row's service is read, unless the row says it is something else", () => {
+    expect(
+      collectLogsServiceIdsToRead({
+        logs: [
+          makeLog(SERVICE_ID),
+          makeLog(FUNCTION_ID, ServiceType.OpenTelemetry),
+          makeLog(RUM_ID, ServiceType.RealUserMonitor),
+          makeLog(HOST_ID, ServiceType.Host),
+          makeLog(),
+        ],
+      }),
+    ).toEqual([SERVICE_ID, FUNCTION_ID].sort());
+  });
+
+  test("a Service chip is read; a chip of another kind, or named by its parent, is not", () => {
+    const chips: Array<ActiveFilter> = [
+      {
+        facetKey: "primaryEntityId",
+        value: SERVICE_ID,
+        displayKey: "Service",
+        displayValue: SERVICE_ID,
+      },
+      {
+        facetKey: "primaryEntityId",
+        value: RUM_ID,
+        displayKey: "RUM Application",
+        displayValue: RUM_ID,
+      },
+      {
+        facetKey: "primaryEntityId",
+        value: FUNCTION_ID,
+        displayKey: "Service",
+        displayValue: "resize-images",
+      },
+      {
+        facetKey: "hostId",
+        value: HOST_ID,
+        displayKey: "Host",
+        displayValue: HOST_ID,
+      },
+    ];
+
+    expect(collectLogsServiceIdsToRead({ filters: chips })).toEqual([
+      SERVICE_ID,
+    ]);
+  });
+
+  test("a chip that leaves a service out is read like one that keeps it", () => {
+    expect(
+      collectLogsServiceIdsToRead({
+        filters: [
+          {
+            facetKey: "!primaryEntityId",
+            value: SERVICE_ID,
+            displayKey: "Service",
+            displayValue: SERVICE_ID,
+          },
+        ],
+      }),
+    ).toEqual([SERVICE_ID]);
+  });
+
+  test("the Service facet's values and the service: suggestions are read; other facets are not", () => {
+    expect(
+      collectLogsServiceIdsToRead({
+        facetData: {
+          primaryEntityId: [{ value: SERVICE_ID, count: 3 }],
+          hostId: [{ value: HOST_ID, count: 1 }],
+        },
+        suggestionIds: [RUM_ID],
+      }),
+    ).toEqual([SERVICE_ID, RUM_ID].sort());
+  });
+
+  test("each id once, in lower case, in order; what is no id is left out", () => {
+    expect(
+      collectLogsServiceIdsToRead({
+        logs: [makeLog(SERVICE_ID), makeLog(SERVICE_ID)],
+        suggestionIds: [
+          SERVICE_ID.toUpperCase(),
+          "checkout-api",
+          "",
+          FUNCTION_ID,
+        ],
+      }),
+    ).toEqual([SERVICE_ID, FUNCTION_ID].sort());
   });
 });

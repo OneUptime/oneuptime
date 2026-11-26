@@ -10,10 +10,12 @@ import {
   HelpItemChange,
   getDefaultHelpAndSupportSettings,
   getInviteMessage,
+  getOwnSupportEmailAddress,
   readHelpAndSupportSettings,
   toHelpAndSupportJSON,
   withHelpItemChanged,
 } from "../../../Types/HelpAndSupport/HelpAndSupport";
+import { withSeededItemsKept } from "../../../Types/HelpAndSupport/HelpAndSupportSeed";
 
 /*
  * WHERE THIS SERVER SENDS ITS PEOPLE FOR HELP, ON THE SERVER (#10864-#10866).
@@ -117,15 +119,24 @@ export class HelpAndSupportServerSettingsClass {
    * everything stored is (readHelpAndSupportSettings).
    */
   public async save(change: HelpItemChange): Promise<HelpAndSupportSettings> {
-    const current: HelpAndSupportSettings = readHelpAndSupportSettings(
-      await this.readStored(),
-    );
+    const stored: unknown = await this.readStored();
+    const current: HelpAndSupportSettings = readHelpAndSupportSettings(stored);
 
     const next: HelpAndSupportSettings = readHelpAndSupportSettings(
       toHelpAndSupportJSON(withHelpItemChanged(current, change)),
     );
 
-    await this.writeStored(toHelpAndSupportJSON(next));
+    /*
+     * Which items were set from the server's configuration is kept for the
+     * page (#10938), but for the one changed now: it is the admin's own.
+     */
+    await this.writeStored(
+      withSeededItemsKept({
+        stored: stored,
+        next: next,
+        changedItem: change.item,
+      }),
+    );
 
     this.generation++;
     this.cached = { settings: next, readAt: this.now() };
@@ -157,6 +168,15 @@ export class HelpAndSupportServerSettingsClass {
       await this.getSettings(),
       DEFAULT_NO_PROJECT_MESSAGE,
     );
+  }
+
+  /*
+   * The server's own support address, which account emails name where they
+   * would say "Ask your server's admin" (#10941), or null: OneUptime's
+   * default, hidden, or not read yet.
+   */
+  public async getOwnSupportEmail(): Promise<string | null> {
+    return getOwnSupportEmailAddress(await this.getSettings());
   }
 }
 

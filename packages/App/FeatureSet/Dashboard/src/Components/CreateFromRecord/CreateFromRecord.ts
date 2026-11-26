@@ -54,6 +54,7 @@ export enum CreateFromRecordKind {
   ProxmoxCluster = "ProxmoxCluster",
   OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
@@ -338,6 +339,29 @@ export const CREATE_FROM_RECORD_KINDS: ReadonlyArray<CreateFromRecordKindDefinit
         },
         [CreatedRecordKind.ScheduledMaintenance]: {
           page: PageMap.VMWARE_VCENTER_VIEW_SCHEDULED_MAINTENANCE,
+          title: SCHEDULED_MAINTENANCE_TAB_TITLE,
+        },
+      },
+    },
+    {
+      kind: CreateFromRecordKind.XcpNgPool,
+      queryParam: "xcpNgPoolId",
+      listTitle: "XCP-ng",
+      listPage: PageMap.XCP_NG_POOLS,
+      viewTitle: "View Pool",
+      viewPage: PageMap.XCP_NG_POOL_VIEW,
+      field: namedRecords("xcpNgPools"),
+      tabs: {
+        [CreatedRecordKind.Incident]: {
+          page: PageMap.XCP_NG_POOL_VIEW_INCIDENTS,
+          title: INCIDENTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.Alert]: {
+          page: PageMap.XCP_NG_POOL_VIEW_ALERTS,
+          title: ALERTS_TAB_TITLE,
+        },
+        [CreatedRecordKind.ScheduledMaintenance]: {
+          page: PageMap.XCP_NG_POOL_VIEW_SCHEDULED_MAINTENANCE,
           title: SCHEDULED_MAINTENANCE_TAB_TITLE,
         },
       },

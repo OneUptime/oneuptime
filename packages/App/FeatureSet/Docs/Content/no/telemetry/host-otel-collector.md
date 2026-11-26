@@ -37,6 +37,7 @@ flowchart TB
 | **Systemd-enheter** (Linux) | Receiveren `systemd`. |
 | **Tjenester** (Windows) | Receiveren `windows_service`. |
 | Inventarelementet | Prosessoren `resourcedetection`, pluss [attributtene du stempler](#inventarattributter-ip-mac-serienummer-produsent-modell-fastvare). |
+| Sky-VM-en den er | Prosessoren `resourcedetection/cloud`: på en EC2-instans, en Compute Engine-VM eller en Azure-VM, hvilken sky, konto, region og instans den er. Se [På en sky-VM](#på-en-sky-vm). |
 | **Agentversjon** | `oneuptime.agent.version` i prosessoren `resource`. |
 
 En vert registreres så snart en batch som har `host.name`, også har `hostmetrics`- eller `process`-målinger, eller et `os.type`-attributt. Prosessoren `resourcedetection` setter alle sammen, og derfor setter hver konfigurasjon den først. `host.id` eller `host.arch` alene registrerer ikke en vert, og telemetri med en Kubernetes-identitet (`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`) lagres i stedet under klyngen sin: overvåk Kubernetes-noder med [Kubernetes-agenten](/docs/telemetry/kubernetes-agent).
@@ -195,6 +196,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -213,11 +231,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [journald]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 @tab macOS
@@ -293,6 +311,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -311,11 +346,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [filelog/system]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 @tab Windows
@@ -401,6 +436,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -419,19 +471,19 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 :::
 
-Hver konfigurasjon er den dashbordet skriver under **Produkter → Infrastruktur → Verter → Dokumentasjon**, med en loggpipeline lagt til: prosessorene er `resourcedetection`, `resource` og `batch`, og eksportøren er `otlphttp/oneuptime`. Den setter ingen `service.name`, så vertens telemetri tilhører verten selv, lagret som `host/<hostname>`. Legg til en `service.name` i prosessoren `resource` bare hvis du vil ha den lagret under en telemetritjeneste med det navnet i stedet.
+Hver konfigurasjon er den dashbordet skriver under **Produkter → Infrastruktur → Verter → Dokumentasjon**, med en loggpipeline lagt til: prosessorene er `resourcedetection`, `resourcedetection/cloud`, `resource` og `batch`, og eksportøren er `otlphttp/oneuptime`. Den setter ingen `service.name`, så vertens telemetri tilhører verten selv, lagret som `host/<hostname>`. Legg til en `service.name` i prosessoren `resource` bare hvis du vil ha den lagret under en telemetritjeneste med det navnet i stedet.
 
 ### Installer og start collectoren
 
@@ -648,7 +700,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
 ```
 
 Receiveren kom først i `otelcol-contrib` v0.142.0, og v0.143.0 er den første utgivelsen som er verdt å kjøre. På alt eldre feiler det å legge til `systemd` ved oppstart med `'receivers' unknown type: "systemd"`; v0.142.0 alene kaller CPU-målingen sin `systemd.unit.cpu.time` og ser etter cgroup-statistikk på hver enhet, noe som logger en scrape-feil for hver enhet som ikke er `.service`.
@@ -750,7 +802,7 @@ processors:
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource, resource/oneuptime-labels, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, resource/oneuptime-labels, batch]
 ```
 
 Etiketter sammenlignes uten skille mellom store og små bokstaver, så en eksisterende `Production`-etikett gjenbrukes i stedet for å dupliseres, og etiketter som er lagt til i OneUptime, fjernes aldri av collectoren.
@@ -797,7 +849,7 @@ processors:
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, resource/oneuptime-hardware, batch]
 ```
 
 Legg `resource/oneuptime-hardware` til prosessorlisten du allerede har, i stedet for å lime inn denne linjen over den: fjerner du `resource`, mister verten sin **Agentversjon**. Behold `resourcedetection` først uansett: det er den som knytter batchen til verten.
@@ -1143,11 +1195,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [filter/drop-metrics, resourcedetection, resource, batch]
+      processors: [filter/drop-metrics, resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [journald]
-      processors: [filter/drop-low-severity, resourcedetection, resource, batch]
+      processors: [filter/drop-low-severity, resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 
@@ -1214,6 +1266,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -1232,7 +1301,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 
@@ -1240,6 +1309,15 @@ Legg til en `logs`-pipeline igjen, med en smal `filelog`- eller `journald`-recei
 
 > [!CAUTION]
 > Pass på hva du kutter. En loggmonitor trenger at loggene kommer inn, så å filtrere bort en alvorlighetsgrad eller en kanal gjør monitorene som overvåker den, tause, og Host-varslingsmalene trenger `*.utilization`-målingene. Trim dataene du ikke handler på, ikke dataene en monitor overvåker, og sjekk nedgangen under **Prosjektinnstillinger → Telemetri og APM → Forbruk** en dag eller to senere (bruk telles per dag) før du drar i neste spak.
+
+## På en sky-VM
+
+Prosessoren `resourcedetection/cloud` spør VM-ens egen metadatatjeneste hvilken sky, konto, region og instans den er, og stempler `cloud.provider`, `cloud.account.id`, `cloud.region` og `host.id`, satt til skyens egen instans-ID. OneUptime knytter så verten til VM-en som [skytilkoblingen](/docs/telemetry/cloud-accounts) viser, slik at hver side lenker til den andre, og vurderer VM-en ut fra minnet verten leser: se [Størrelsestilpasning ut fra OneUptimes egne målinger](/docs/telemetry/cloud-costs#størrelsestilpasning-ut-fra-oneuptimes-egne-målinger).
+
+- **Verten beholder navnet.** `host.name` for hver skydetektor er slått av, så `host.name` forblir det detektoren `system` stempler, og verten beholder siden sin.
+- **Utenfor en sky gjør den ingenting.** På en maskin uten sky finner hver detektor ingen metadatatjeneste og stempler ingenting.
+- **Den leser ingen påloggingsdetaljer.** Den leser bare metadatatjenesten, som ikke trenger noen, og ingen av VM-ens tagger eller etiketter.
+- **En container når den kanskje ikke.** En innsamler i en Docker-container på en EC2-instans når metadatatjenesten bare hvis instansen tillater et andre nettverkshopp (`HttpPutResponseHopLimit` er 2).
 
 ## Selvhostet OneUptime og proxyer
 

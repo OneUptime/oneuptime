@@ -50,7 +50,7 @@ Hver tredje time fjerner OneUptime de oppdagede elementene som har vært stille 
 | --- | --- |
 | Pods, deployments, Proxmox-gjester, OpenStack-instanser og virtuelle VMware-maskiner | 1 dag |
 | Kubernetes-noder og -navnerom, Proxmox-noder, OpenStack-hypervisorer, VMware-verter, -klynger og -datalagre, og databasene og de eksterne tjenestene tracene dine kaller | 7 dager |
-| Tjenester, verter, Kubernetes-, Proxmox- og Ceph-klynger, OpenStack-skyer, lagringsarrayer, vCenters og Docker Swarm-klynger | 30 dager |
+| Tjenester, verter, Kubernetes-, Proxmox- og Ceph-klynger, OpenStack-skyer, lagringsarrayer, vCenters, XCP-ng-pooler og Docker Swarm-klynger | 30 dager |
 
 En relasjon OneUptime har oppdaget, fjernes når den ikke er sett igjen på 30 dager.
 

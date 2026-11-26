@@ -28,6 +28,7 @@ import { getHostConnectionGuide } from "../../../Components/ResourceConnection/R
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import ResourceSecurityCard from "../../../Components/SecurityConnections/ResourceSecurityCard";
 import { OpenStackPlacementOfHost } from "../../../Components/OpenStack/Part/OpenStackPlacementOfHost";
+import { HostCloudMachineCard } from "../../../Components/Cloud/CloudHostLinkCards";
 import { SecurityConnectionKind } from "Common/Types/SecurityCase/SecurityConnection";
 import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
 import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
@@ -2330,6 +2331,11 @@ const HostOverview: FunctionComponent<
        * may read it (Components/SecurityConnections).
        */}
       <OpenStackPlacementOfHost hostId={modelId} />
+      {/*
+       * The cloud VM this host is, when its cloud connection lists it
+       * (#11013): what it costs and how its size fits are on its page.
+       */}
+      <HostCloudMachineCard hostId={modelId} />
       <ResourceSecurityCard
         kind={SecurityConnectionKind.Host}
         modelId={modelId}

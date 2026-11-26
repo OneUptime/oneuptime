@@ -134,6 +134,7 @@ Ping 모니터 상자를 체크하면 모니터 자체의 프로브인 **Ping fr
 | SNMP v3 Authentication Key | 인증 암호입니다. | 인증을 쓸 때 |
 | SNMP v3 Privacy Protocol | DES, AES 또는 AES-256입니다. | 프라이버시를 쓸 때 |
 | SNMP v3 Privacy Key | 프라이버시(암호화) 암호입니다. | 프라이버시를 쓸 때 |
+| SNMP v3 Context | 한 주소에서 여러 장치에 각각 자체 컨텍스트로 응답하는 에이전트에만 해당합니다. Brocade 논리 스위치의 `VF:128` 같은 경우입니다. | 아니요 |
 :::
 
 디바이스에 입력한 자격 증명이 그 옆에서 고른 자격 증명 프로필보다 우선하며, 디바이스의 사이트도 기본 프로필을 가질 수 있습니다. 프로필의 자격 증명은 저장 시 암호화됩니다. 디바이스에 입력한 자격 증명도 저장 시 암호화되며, 같은 읽기 권한으로 보호됩니다.
@@ -255,6 +256,12 @@ flowchart TB
 
 프로젝트에 아무것도 바인딩되지 않은 바인딩된 모니터 재정의 디바이스(아무것도 폴링하지 않고 아무것도 보고하지 않는 디바이스)가 있으면 **디바이스** 페이지에 배너가 표시되고, 이를 고치는 선택으로 연결됩니다.
 
+### SNMPv3 컨텍스트
+
+에이전트는 한 주소에서 여러 장치에 각각 자체 SNMPv3 컨텍스트로 응답할 수 있습니다. Virtual Fabrics를 쓰는 Brocade 섀시는 논리 스위치마다 `VF:`와 그 패브릭 ID의 컨텍스트로 응답합니다. 그 주소에 논리 스위치마다 장치를 하나씩 SNMP v3로 추가하고, 각 장치의 **설정** 페이지에서 **SNMP v3 컨텍스트** 값을 설정합니다. 컨텍스트가 없는 장치는 에이전트의 기본 컨텍스트에서 폴링됩니다. 컨텍스트는 자격 증명이 아니라 장치에 속하므로, 장치가 쓰는 자격 증명 프로필과 관계없이 적용됩니다.
+
+SNMPv3 컨텍스트 이전의 프로브는 대신 기본 컨텍스트를 폴링하므로, 업데이트될 때까지 그런 장치에 ping만 보냅니다. 각 SNMPv3 트랩도 자신의 컨텍스트를 밝히고, 그 컨텍스트에서 폴링되는 장치에서만 발생합니다. 어떤 장치도 폴링되지 않는 컨텍스트의 트랩은 일치하지 않음으로 기록됩니다.
+
 ## 사이트 모니터링 기본값
 
 [네트워크 사이트](/docs/monitor/network-sites#모니터링-기본값)에는 그 안의 디바이스를 위한 기본값이 두 가지 있습니다. **Default Probe**는 자체 프로브 없이 사이트에서 만들어지거나 사이트로 옮겨진 디바이스에 복사됩니다. **Default SNMP Credential Profile**은 자체 자격 증명이 없는 사이트 내 디바이스를 폴링할 때마다 읽힙니다. 사이트에 둘 다 설정하면 그곳의 디바이스는 주소만으로 추가되어 첫 폴링부터 핑을 받고 워크됩니다. 각 기본값이 사이트 트리 아래로 어디까지 미치는지는 사이트 가이드에 있습니다.
@@ -308,9 +315,11 @@ flowchart TB
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU 부하, 전체 및 사용 가능한 RAM, 로드 애버리지 | CPU 코어(플랫폼이 어떻게 번호를 매기든 코어마다 한 행) |
 | Arista EOS | CPU 부하, 로드 애버리지, 전체 및 사용 가능한 RAM | — |
+| Brocade Fabric OS (SAN switches) | 스위치 상태, 펌웨어 버전, CPU, 메모리 | 스위치 상태, 센서(온도, 팬, 전원 공급 장치), 교체 가능 장치(FRU) |
 | Cambium Networks cnMatrix | CPU, RAM, 플래시, 온도, 공급 전압 | 팬, PoE 포트, 이중화 전원 공급 장치 |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, 여유 메모리, Wi-Fi 클라이언트, cnMaestro 연결 | Wi-Fi 무선(대역, 채널, 폭, TX 전력, 클라이언트, 노이즈 플로어, 에어타임, 상태), SSID |
 | Cisco IOS / IOS-XE | CPU, 사용 및 여유 메모리, 온도, 팬 상태, 전원 공급 장치 상태 | — |
+| Cisco MDS 9000 (SAN switches) | CPU, 메모리 | 전원 공급 장치, 모듈, 팬 트레이, VSAN |
 | Dell Force10 / OS9 | CPU, 메모리 | — |
 | Extreme Networks EXOS / Switch Engine | CPU, 온도, 과열 알람, 전원 상태 | 전원 공급 장치, 팬, 슬롯별 메모리, 스택 멤버 |
 | Extreme Networks Fabric Engine / VOSS | vIST 세션, I-SID 수 | 이웃 이름으로 명명된 Fabric(IS-IS) 인접 관계, 슬롯별 CPU와 메모리, 온도 센서, 팬, 전원 공급 장치 |
@@ -518,6 +527,7 @@ Zabbix에서 옮겨 온다면 다음과 같이 대응합니다.
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | 예 |
 | MikroTik RouterOS | MIKROTIK-MIB(`mtxrOpticalTable`), 신호 손실 및 송신기 결함 플래그와 함께 | 아니요 |
 | Cambium Networks cnMatrix(4.5 이상) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | 아니요 |
+| Brocade Fabric OS | FA-EXT-MIB(`swSfpStatTable`), 텍스트로 읽으며 `-inf`는 빛이 없음을 뜻함 | 아니요 |
 | 그 밖의 모든 디바이스 | ENTITY-SENSOR-MIB(RFC 3433), ENTITY-MIB로 포트에 매칭 | 아니요 |
 
 첫 폴링은 모든 것을 읽습니다. 이후 폴링은 바뀌는 것(측정값, 그리고 교체된 광 모듈을 구별하는 시리얼 번호)만 읽고, 나머지(임계값, 정보, 어느 광 모듈이 어느 포트에 있는지)는 광 모듈이 삽입, 제거, 교체될 때와 적어도 한 시간에 한 번 다시 읽습니다. 이 MIB가 하나도 없는 디바이스는 시도한 MIB마다 요청 하나의 비용만 듭니다. 읽기에는 별도의 20초 예산이 있으며, 시간 초과되거나 중간에 끊긴 읽기는 광 모듈이 사라졌다고 보고하지 않고 디바이스의 마지막 정상 광 모듈 정보를 유지합니다.
@@ -861,6 +871,7 @@ flowchart TB
 | SNMP Interface Is Down | 관리상 활성화된 인터페이스가 운영상 다운일 때 true입니다. | 평가 안 됨 |
 | SNMP Interface Utilization (in %) | 가장 바쁜 인터페이스의 링크 사용률입니다. | 평가 안 됨 |
 | SNMP Interface Errors (per second) | 가장 나쁜 인터페이스의 오류율입니다. | 평가 안 됨 |
+| SNMP Fibre Channel Counter (per second) | SAN 스위치 포트의 Fibre Channel 카운터 하나(CRC 오류, 폐기된 프레임, 크레딧 손실 등)의 초당 값으로, 범위에서 가장 나쁜 포트로 판단합니다. `*`는 포트마다 경고를 하나씩 발생시킵니다. | 평가 안 됨 |
 | SNMP Transceiver Not Detected | 광 모듈이 있던 포트가 활성화된 채로 두 번 연속 폴링에서 광 모듈을 보고하지 않으면 true입니다. | 평가 안 됨 |
 | SNMP Transceiver Past Alarm Threshold | 광 모듈의 측정값이 디바이스가 보고하는 알람 임계값에 도달했거나 넘었을 때, 또는 디바이스가 신호 손실이나 송신기 결함을 표시할 때 true입니다. | 평가 안 됨 |
 | SNMP Transceiver Past Warning Threshold | 경고 임계값에서 같은 판정입니다. 알람 임계값을 넘은 광 모듈도 해당합니다. | 평가 안 됨 |
@@ -1058,6 +1069,9 @@ inform에는 v2c와 v3 모두 확인 응답을 보냅니다. 확인 응답이 �
 | `{{trapOid}}` | 트랩이 트리거한 검사에서의 트랩 OID |
 | `{{trapSourceIp}}` | 트랩이 트리거한 검사에서 트랩이 온 주소 |
 | `{{trapVarbinds}}` | 트랩이 담은 varbind로, 각각 `oid`와 `value`가 있습니다 |
+| `{{trapInterface}}` | 트랩이 다루는 인터페이스. 트랩에 담긴 이름이나, 장치의 워크가 그 인덱스에 대해 기록한 이름 |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | RMON 경보(MDS 포트 모니터 경보)에서 임계값을 넘은 카운터와 `rising` 또는 `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | RMON 경보에서 카운터 값과 넘은 임계값 |
 | `{{tables.<key>.rowCount}}` | 키로 지정한 [SNMP 테이블](#snmp-테이블)에서 워크된 행: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | 상태가 정상 값 밖에 있는 행으로, 각각 `name`, `index`, `values.<column>`이 있습니다 |
 | `{{tables.<key>.rows}}` | 모든 행(최대 50개)으로, 각각 `name`, `index`, `values.<column>`이 있으며, 열 이름은 소문자이고 공백은 `_`입니다 |

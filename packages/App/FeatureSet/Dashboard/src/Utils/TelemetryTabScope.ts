@@ -365,6 +365,7 @@ const UNAPPLIED_FACET_LABELS: Dictionary<string> = {
   proxmoxClusterId: translationKey("Proxmox cluster"),
   openStackCloudId: translationKey("OpenStack cloud"),
   vmwareVCenterId: translationKey("vCenter"),
+  xcpNgPoolId: translationKey("XCP-ng pool"),
   cephClusterId: translationKey("Ceph cluster"),
   storageArrayId: translationKey("storage array"),
   serverlessFunctionId: translationKey("serverless function"),

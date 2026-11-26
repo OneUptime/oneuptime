@@ -1629,6 +1629,161 @@ describe("how should we reach you", () => {
   });
 });
 
+/*
+ * A server whose admins took the mobile app away (Admin Dashboard >
+ * Settings > Help and Support, #10945): every sentence of the step that
+ * named the app as a way to be reached says it without the app, and a
+ * server that offers the app reads as it always did.
+ */
+describe("how should we reach you, on a server without the mobile app (#10945)", () => {
+  const hideTheApp: () => void = (): void => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+  };
+
+  afterEach(() => {
+    forgetHelpAndSupport();
+  });
+
+  test("the push row is Push notifications, never Mobile app or browser", async () => {
+    hideTheApp();
+    await renderSetup();
+
+    const row: HTMLElement = screen.getByTestId("on-call-setup-reach-push");
+
+    expect(row).toHaveTextContent(ON_CALL_SETUP_COPY.pushRowWithoutApp);
+    expect(row).not.toHaveTextContent(ON_CALL_SETUP_COPY.pushRow);
+    expect(row).not.toHaveTextContent("app");
+  });
+
+  test("with the app offered, the row reads as it always did", async () => {
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-reach-push")).toHaveTextContent(
+      "Mobile app or browser",
+    );
+  });
+
+  test("a browser that cannot receive push is told to use another window, not to install the app", async () => {
+    hideTheApp();
+    api["getBrowserPushProblem"]!.mockReturnValue(
+      BrowserPushProblem.NotSupported,
+    );
+    await renderSetup();
+
+    const problem: HTMLElement = screen.getByTestId(
+      "on-call-setup-browser-push-problem",
+    );
+
+    expect(problem).toHaveTextContent(
+      "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.",
+    );
+    expect(problem).not.toHaveTextContent("OneUptime On-Call app");
+  });
+
+  test("with the app offered, the same problem still offers the app", async () => {
+    api["getBrowserPushProblem"]!.mockReturnValue(
+      BrowserPushProblem.NotSupported,
+    );
+    await renderSetup();
+
+    expect(
+      screen.getByTestId("on-call-setup-browser-push-problem"),
+    ).toHaveTextContent("or install the OneUptime On-Call app.");
+  });
+
+  test("an iPhone that needs OneUptime on its Home Screen is told how, without the app", async () => {
+    hideTheApp();
+    api["registerThisBrowser"]!.mockRejectedValue(
+      new BrowserPushError(BrowserPushProblem.NeedsHomeScreen),
+    );
+    await renderSetup();
+    await press("on-call-setup-use-this-browser");
+
+    const error: HTMLElement = screen.getByTestId(
+      "on-call-setup-browser-push-error",
+    );
+
+    expect(error).toHaveTextContent(
+      "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen.",
+    );
+    expect(error).not.toHaveTextContent("You can also install");
+  });
+
+  test("self-hosted without Twilio: a member is told email still reaches them, and nothing about the app", async () => {
+    hideTheApp();
+    billingEnabled = false;
+    projectCanSend = { email: true, sms: false, call: false };
+    await renderSetup();
+
+    const notice: HTMLElement = screen.getByTestId("on-call-setup-no-twilio");
+
+    expect(notice).toHaveTextContent(
+      "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email still reaches you.",
+    );
+    expect(notice).not.toHaveTextContent("the app");
+  });
+
+  test("self-hosted without Twilio: a master admin is told the same, with the way to the server's setup", async () => {
+    hideTheApp();
+    billingEnabled = false;
+    jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+    sendingStatus = {
+      channels: [
+        {
+          channel: ServerSendingChannel.SMS,
+          state: ServerSendingState.NotSetUp,
+        },
+        {
+          channel: ServerSendingChannel.Call,
+          state: ServerSendingState.NotSetUp,
+        },
+      ],
+      globalProbes: null,
+    };
+    await renderSetup();
+
+    const notice: HTMLElement = screen.getByTestId("on-call-setup-no-twilio");
+
+    expect(notice).toHaveTextContent(
+      "Set up Twilio for the server; until then, email still reaches you.",
+    );
+    expect(notice).not.toHaveTextContent("the app");
+    expect(
+      screen.getByTestId("on-call-setup-set-up-twilio"),
+    ).toBeInTheDocument();
+  });
+
+  test("with the app offered, a member is told email and the app still reach them, as before", async () => {
+    billingEnabled = false;
+    projectCanSend = { email: true, sms: false, call: false };
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-no-twilio")).toHaveTextContent(
+      "Until then, email and the app still reach you.",
+    );
+  });
+
+  test("a page of the server's own for the app keeps every sentence that names the app", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: {
+          choice: HelpChoice.Link,
+          value: "https://portal.example.com/oneuptime",
+        },
+      }),
+    );
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-reach-push")).toHaveTextContent(
+      "Mobile app or browser",
+    );
+  });
+});
+
 describe("who else is on call", () => {
   const reachDone: () => Promise<void> = async (): Promise<void> => {
     keepRun({ reachConfirmed: true });
@@ -2409,7 +2564,38 @@ describe("the test page", () => {
     expect(
       screen.getByTestId("on-call-setup-not-received"),
     ).toBeInTheDocument();
+    expect(screen.getByTestId("on-call-setup-not-received")).toHaveTextContent(
+      ON_CALL_SETUP_COPY.testDidNotGetItHelp,
+    );
     expect(screen.queryByTestId("on-call-setup-test-continue")).toBeNull();
+  });
+
+  test("on a server without the mobile app, what to check names the email and the phone only (#10945)", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      await atTest();
+      await press("send-test-page");
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Paging));
+      });
+      await press("on-call-setup-did-not-get-it");
+
+      const help: HTMLElement = screen.getByTestId(
+        "on-call-setup-not-received",
+      );
+
+      expect(help).toHaveTextContent(
+        ON_CALL_SETUP_COPY.testDidNotGetItHelpWithoutApp,
+      );
+      expect(help).not.toHaveTextContent("mobile app");
+    } finally {
+      forgetHelpAndSupport();
+    }
   });
 
   test("skipping reaches the summary, but never counts as finished", async () => {

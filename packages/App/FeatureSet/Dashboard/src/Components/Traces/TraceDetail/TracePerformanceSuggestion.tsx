@@ -13,7 +13,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
-  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICK_REFUSAL_MESSAGES,
   TracePerformanceFixRepository,
   TracePerformanceFixSuggestion,
 } from "Common/Utils/Suggestions/TracePerformanceFixSuggestion";
@@ -128,13 +128,21 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
   const [pickedRepositoryId, setPickedRepositoryId] = useState<string>("");
 
   /*
-   * A pick the server refused as no longer one of the connected
-   * repositories - disconnected since it was offered - is no pick: the fix
-   * waits for another, and the search no longer offers it. Any other
-   * refusal keeps the pick, to try again.
+   * A pick the server refused as one the person cannot make - no longer
+   * connected since it was offered, or no longer one they may read or ask
+   * OneUptime AI to work in (#11075) - is no pick: the fix waits for
+   * another, and the search no longer offers it. Any other refusal keeps
+   * the pick, to try again.
    */
   useEffect(() => {
-    if (props.error?.includes(PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE)) {
+    const error: string | null = props.error;
+
+    if (
+      error &&
+      PICK_REFUSAL_MESSAGES.some((message: string): boolean => {
+        return error.includes(message);
+      })
+    ) {
       setPickedRepositoryId("");
     }
   }, [props.error]);
@@ -148,9 +156,10 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
    * certain, and several could: the person picks one before the fix starts
    * (as a telemetry finding's Fix with AI asks), or the run would find none
    * when it starts. The suggestion's list says only that a pick is asked
-   * for; the pick is searched on the server among every connected
-   * repository the person may read (#10921) - the list held the first 200
-   * by name, so one past them could not be picked.
+   * for; the pick is searched on the server among the connected
+   * repositories the person may ask OneUptime AI to work in - the ones the
+   * fix accepts (#10921, #11075). The list held the first 200 by name, so
+   * one past them could not be picked.
    */
   const repositories: Array<TracePerformanceFixRepository> =
     suggestion.repositories || [];
@@ -337,9 +346,10 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
             <CodeRepositorySearchField
               value={pickedRepositoryId || null}
               group={CodeRepositoryListGroup.Connected}
+              isAskableOnly={true}
               isClearable={false}
               placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
-              emptyListText={TELEMETRY_AI_FIX_COPY.noReadableRepository}
+              emptyListText={TELEMETRY_AI_FIX_COPY.noAskableRepository}
               ariaLabelledby={REPOSITORY_LABEL_ID}
               dataTestId={TRACE_FIX_PERFORMANCE_REPOSITORY_PICKER_TEST_ID}
               onChange={(repositoryId: string | null) => {

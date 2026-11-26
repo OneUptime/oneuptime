@@ -93,6 +93,7 @@ export const PRODUCTS_USED_BY_RECORDS: ReadonlyArray<ProductKey> = [
   ProductKey.Proxmox,
   ProductKey.OpenStack,
   ProductKey.VMware,
+  ProductKey.XcpNg,
   ProductKey.Ceph,
   ProductKey.StorageArrays,
   ProductKey.Network,

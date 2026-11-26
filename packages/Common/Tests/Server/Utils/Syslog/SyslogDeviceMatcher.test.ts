@@ -245,10 +245,15 @@ describe("the address is a device this probe polls", () => {
       one(FIREWALL, SyslogDeviceMatchKind.SourceAddress),
     );
     expect(attribution.unmatchedProjectId).toBeNull();
+    /*
+     * The one cache SNMP traps read too: it keeps each device's SNMPv3
+     * context beside its name, for a trap's context to pick among the
+     * logical switches that share an address.
+     */
     expect(probeDevices).toHaveBeenCalledWith({
       probeId: PROBE,
       sourceIpAddress: "10.0.0.1",
-      select: { name: true },
+      select: { name: true, snmpV3ContextName: true },
     });
   });
 

@@ -581,7 +581,11 @@ describe("the kinds, read off the models", () => {
       }
     }
 
-    // The kinds that held their own before #10318, and nothing else.
+    /*
+     * The kinds that held their own before #10318, and the products added
+     * since that match their telemetry on a column of their own: an XCP-ng
+     * pool on its XAPI UUID.
+     */
     expect(declared.sort()).toEqual(
       [
         "CephCluster.name",
@@ -602,6 +606,7 @@ describe("the kinds, read off the models", () => {
         "StorageArray.name",
         "VMwareVCenter.name",
         "WorkflowVariable.name",
+        "XcpNgPool.poolIdentifier",
       ].sort(),
     );
   });

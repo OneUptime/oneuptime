@@ -57,6 +57,8 @@ export default class TelemetryMonitorWindow {
         return this.fromRollingTime(step?.openstackMonitor?.rollingTime);
       case MonitorType.VMware:
         return this.fromRollingTime(step?.vmwareMonitor?.rollingTime);
+      case MonitorType.XcpNg:
+        return this.fromRollingTime(step?.xcpNgMonitor?.rollingTime);
       case MonitorType.DockerSwarm:
         return this.fromRollingTime(step?.dockerSwarmMonitor?.rollingTime);
       case MonitorType.Ceph:

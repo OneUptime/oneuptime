@@ -21,6 +21,7 @@ import PodmanMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Compone
 import ProxmoxMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMetricPicker";
 import StorageArrayMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMetricPicker";
 import VMwareMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMetricPicker";
+import XcpNgMetricPicker from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMetricPicker";
 import {
   getAllCephMetricCategories,
   getAllCephMetrics,
@@ -66,6 +67,11 @@ import {
   getAllProxmoxMetrics,
   getProxmoxMetricCategoryLabel,
 } from "../../../Types/Monitor/ProxmoxMetricCatalog";
+import {
+  getAllXcpNgMetricCategories,
+  getAllXcpNgMetrics,
+  getXcpNgMetricCategoryLabel,
+} from "../../../Types/Monitor/XcpNgMetricCatalog";
 import {
   getAllStorageArrayMetricCategories,
   getAllStorageArrayMetrics,
@@ -262,6 +268,16 @@ const PICKERS: Array<PickerCase> = [
           selectedMetricId={id}
           onMetricSelected={doNothing}
         />
+      );
+    },
+  },
+  {
+    name: "XCP-ng",
+    metrics: getAllXcpNgMetrics(),
+    headings: getAllXcpNgMetricCategories().map(getXcpNgMetricCategoryLabel),
+    draw: (id: string): ReactElement => {
+      return (
+        <XcpNgMetricPicker selectedMetricId={id} onMetricSelected={doNothing} />
       );
     },
   },

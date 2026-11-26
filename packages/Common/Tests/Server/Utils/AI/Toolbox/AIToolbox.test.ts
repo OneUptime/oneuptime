@@ -278,6 +278,18 @@ describe("AIToolbox contract", () => {
         "add_to_on_call_policy",
         "set_how_to_reach_me",
         "set_up_service_monitor",
+        /*
+         * Data Security's buttons, pressed as the person (#10378): some ask
+         * in every mode, Auto-run included (AIToolbox.asksInEveryMode).
+         */
+        "scrub_data_security_finding",
+        "judge_data_security_finding",
+        "change_data_security_issue",
+        "set_data_store_owners",
+        "save_data_security_rule",
+        "respond_on_data_store",
+        "fix_data_security_issue_with_ai",
+        "decide_data_security_proposal",
       ].sort(),
     );
   });

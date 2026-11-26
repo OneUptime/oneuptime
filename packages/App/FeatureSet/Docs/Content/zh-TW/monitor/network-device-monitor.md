@@ -134,6 +134,7 @@ flowchart TB
 | SNMP v3 Authentication Key | 驗證密碼片語。 | 使用驗證時 |
 | SNMP v3 Privacy Protocol | DES、AES 或 AES-256。 | 使用加密時 |
 | SNMP v3 Privacy Key | 隱私（加密）密碼片語。 | 使用加密時 |
+| SNMP v3 Context | 僅用於在一個位址上為多台裝置回應、且每台在各自內容中的代理程式：例如 Brocade 邏輯交換器的 `VF:128`。 | 否 |
 :::
 
 在裝置上輸入的憑證優先於在旁邊選擇的憑證設定檔，裝置所在的站點也可以帶有預設設定檔。設定檔上的憑證會靜態加密。輸入到裝置上的憑證同樣會靜態加密，並受相同的讀取權限保護。
@@ -255,6 +256,12 @@ flowchart TB
 
 當專案中有使用綁定監測器覆寫但沒有綁定任何監測器的裝置（沒有東西輪詢、也沒有東西回報的裝置）時，**裝置** 頁面會顯示一則橫幅，並連結到可修正它們的選取。
 
+### SNMPv3 內容
+
+一個代理程式可以在同一位址上為多台裝置回應，每台在各自的 SNMPv3 內容中：啟用 Virtual Fabrics 的 Brocade 機箱在內容 `VF:` 加其 Fabric ID 中回應每個邏輯交換器。在該位址為每個邏輯交換器新增一台使用 SNMP v3 的裝置，並在其 **設定** 頁面設定 **SNMP v3 內容**；沒有內容的裝置在代理程式的預設內容中輪詢。內容屬於裝置而不是其認證，因此無論裝置使用哪個認證設定檔都有效。
+
+早於 SNMPv3 內容的探測器會改為輪詢預設內容，因此在更新之前，它只會 ping 這樣的裝置。每個 SNMPv3 trap 也帶有其內容，只在該內容中輪詢的裝置上觸發；在沒有裝置輪詢的內容中的 trap 會記錄為未比對。
+
 ## 站點監控預設值
 
 [網路站點](/docs/monitor/network-sites#監控預設值)為其中的裝置提供兩個預設值。它的 **Default Probe** 會複製到在該站點中建立、或移入該站點且沒有自己探測器的裝置上。它的 **Default SNMP Credential Profile** 會在每次輪詢該站點中沒有自己憑證的裝置時被讀取。在站點上設定這兩項後，那裡的裝置只憑位址就能新增，並從首次輪詢起被 Ping 和遍歷。站點指南說明了每個預設值沿著站點樹往下傳遞多遠。
@@ -308,9 +315,11 @@ flowchart TB
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU 負載、總 RAM 和可用 RAM、平均負載 | CPU 核心（每個核心一列，不論平台如何編號） |
 | Arista EOS | CPU 負載、平均負載、總 RAM 和可用 RAM | — |
+| Brocade Fabric OS (SAN switches) | 交換器狀態、韌體版本、CPU、記憶體 | 交換器狀態、感測器（溫度、風扇、電源供應器）、可更換元件（FRU） |
 | Cambium Networks cnMatrix | CPU、RAM、快閃記憶體、溫度、供電電壓 | 風扇、PoE 連接埠、備援電源供應器 |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU、可用記憶體、Wi-Fi 用戶端、cnMaestro 連線 | Wi-Fi 射頻（頻段、頻道、頻寬、發射功率、用戶端、雜訊底限、空中時間、狀態）、SSID |
 | Cisco IOS / IOS-XE | CPU、已用和可用記憶體、溫度、風扇狀態、電源供應器狀態 | — |
+| Cisco MDS 9000 (SAN switches) | CPU、記憶體 | 電源供應器、模組、風扇托盤、VSAN |
 | Dell Force10 / OS9 | CPU、記憶體 | — |
 | Extreme Networks EXOS / Switch Engine | CPU、溫度、過熱警報、電源狀態 | 電源供應器、風扇、每個插槽的記憶體、堆疊成員 |
 | Extreme Networks Fabric Engine / VOSS | vIST 工作階段、I-SID 數量 | 依鄰居命名的 Fabric（IS-IS）相鄰關係、每個插槽的 CPU 和記憶體、溫度感測器、風扇、電源供應器 |
@@ -518,6 +527,7 @@ flowchart TB
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | 是 |
 | MikroTik RouterOS | MIKROTIK-MIB（`mtxrOpticalTable`），帶有訊號遺失和發射器故障旗標 | 否 |
 | Cambium Networks cnMatrix（4.5 及更新版本） | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | 否 |
+| Brocade Fabric OS | FA-EXT-MIB（`swSfpStatTable`），以文字讀取：`-inf` 表示無光 | 否 |
 | 其他所有裝置 | ENTITY-SENSOR-MIB（RFC 3433），透過 ENTITY-MIB 對應到連接埠 | 否 |
 
 首次輪詢會讀取全部內容。之後的輪詢只讀取會變化的內容（讀數，以及用於辨識光模組被更換的序號），其餘內容（臨界值、身分資訊、哪個光模組在哪個連接埠）會在光模組插入、拔出或更換時重新讀取，而且至少每小時讀取一次。沒有任何這些 MIB 的裝置，每嘗試一個 MIB 只花費一次要求。讀取有自己的 20 秒時間預算，逾時或被中斷的讀取會保留裝置上一次正常的光模組資訊，而不會回報它們消失了。
@@ -861,6 +871,7 @@ flowchart TB
 | SNMP Interface Is Down | 管理上已啟用的介面在運作上停擺時為 true。 | 不評估 |
 | SNMP Interface Utilization (in %) | 最繁忙介面的連結使用率。 | 不評估 |
 | SNMP Interface Errors (per second) | 最差介面的錯誤率。 | 不評估 |
+| SNMP Fibre Channel Counter (per second) | SAN 交換器連接埠的一個 Fibre Channel 計數器（CRC 錯誤、捨棄的訊框、額度遺失等）的每秒值，依範圍內最差的連接埠判斷；`*` 為每個連接埠發出一則警示。 | 不評估 |
 | SNMP Transceiver Not Detected | 曾有光模組的連接埠在仍啟用的情況下連續兩次輪詢都沒有回報光模組時為 true。 | 不評估 |
 | SNMP Transceiver Past Alarm Threshold | 光模組的讀數達到或超過裝置回報的警報臨界值，或裝置標示了訊號遺失或發射器故障時為 true。 | 不評估 |
 | SNMP Transceiver Past Warning Threshold | 在警告臨界值上的相同判斷；超過警報臨界值的光模組也算在內。 | 不評估 |
@@ -1058,6 +1069,9 @@ Trap 會透過裝置清單進行比對：
 | `{{trapOid}}` | Trap OID，用於由 Trap 觸發的檢查 |
 | `{{trapSourceIp}}` | Trap 的來源位址，用於由 Trap 觸發的檢查 |
 | `{{trapVarbinds}}` | Trap 攜帶的 varbind，每個都帶有 `oid` 和 `value` |
+| `{{trapInterface}}` | trap 所涉及的介面：trap 攜帶的名稱，或裝置查詢為其索引記錄的名稱 |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | 在 RMON 警報（MDS 連接埠監控警報）中，越過臨界值的計數器，以及 `rising` 或 `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | 在 RMON 警報中，計數器的值和越過的臨界值 |
 | `{{tables.<key>.rowCount}}` | 依鍵指定的 [SNMP 表格](#snmp-表格)中遍歷到的列數：`{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | 狀態超出其健康值的列，每列都帶有 `name`、`index` 和 `values.<column>` |
 | `{{tables.<key>.rows}}` | 每一列（最多 50 列），每列都帶有 `name`、`index` 和 `values.<column>`，欄名為小寫，空格寫作 `_` |

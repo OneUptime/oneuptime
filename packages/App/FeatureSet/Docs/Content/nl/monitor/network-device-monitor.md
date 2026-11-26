@@ -134,6 +134,7 @@ Laat het ingeklapt en het apparaat wordt alleen gepingd: de ingeklapte sectie ze
 | SNMP v3 Authentication Key | De wachtwoordzin voor authenticatie. | Met authenticatie |
 | SNMP v3 Privacy Protocol | DES, AES of AES-256. | Met privacy |
 | SNMP v3 Privacy Key | De wachtwoordzin voor privacy (versleuteling). | Met privacy |
+| SNMP v3 Context | Alleen voor een agent die voor meerdere apparaten op één adres antwoordt, elk in een eigen context: de `VF:128` van een logische Brocade-switch. | Nee |
 :::
 
 Inloggegevens die op het apparaat zijn getypt, gaan voor een inloggegevensprofiel dat ernaast is gekozen, en de locatie van het apparaat kan ook een standaardprofiel hebben. Inloggegevens in een profiel worden versleuteld opgeslagen. Inloggegevens die op een apparaat zijn getypt, worden ook versleuteld opgeslagen en door dezelfde leesrechten beschermd.
@@ -255,6 +256,12 @@ Selecteer apparaten in de lijst **Apparaten** en gebruik:
 
 De pagina **Apparaten** toont een banner als het project apparaten bevat met de override met gekoppelde monitor waaraan niets is gekoppeld — apparaten die niets pollt en waarover niets rapporteert — en linkt naar de selectie die ze oplost.
 
+### SNMPv3-contexten
+
+Een agent kan voor meerdere apparaten op één adres antwoorden, elk in een eigen SNMPv3-context: een Brocade-chassis met Virtual Fabrics antwoordt voor elke logische switch in de context `VF:` en zijn fabric-ID. Voeg per logische switch een apparaat op dat adres toe, met SNMP v3, en stel voor elk de **SNMP v3-context** in op zijn pagina **Instellingen**; een apparaat zonder context wordt gepolld in de standaardcontext van de agent. De context hoort bij het apparaat, niet bij zijn referenties, en geldt dus met elk referentieprofiel dat het apparaat gebruikt.
+
+Een probe van vóór de SNMPv3-contexten zou in plaats daarvan de standaardcontext pollen, dus tot hij is bijgewerkt pingt hij zo'n apparaat alleen. Elke SNMPv3-trap noemt ook zijn context en gaat alleen af op het apparaat dat in die context wordt gepolld; een trap in een context waarin geen apparaat wordt gepolld, wordt als niet gekoppeld gelogd.
+
 ## Standaardinstellingen voor monitoring van een locatie
 
 Een [netwerklocatie](/docs/monitor/network-sites#monitoringstandaarden) heeft twee standaarden voor haar apparaten. Haar **Default Probe** wordt gekopieerd naar een apparaat dat in de locatie wordt aangemaakt, of ernaartoe wordt verplaatst, zonder eigen sonde. Haar **Default SNMP Credential Profile** wordt bij elke poll gelezen van een apparaat in de locatie dat geen eigen inloggegevens heeft. Stel beide in op een locatie en een apparaat daar kan met alleen zijn adres worden toegevoegd, en wordt vanaf zijn eerste poll gepingd en gewalkt. De handleiding over locaties vertelt hoe ver elke standaard in de locatieboom omlaag reikt.
@@ -308,9 +315,11 @@ In de editor **Health OIDs** past **Vendor Health Template** een kant-en-klare s
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU-belasting, totaal en beschikbaar RAM, load average | CPU-kernen (één rij per kern, hoe het platform ze ook nummert) |
 | Arista EOS | CPU-belasting, load average, totaal en beschikbaar RAM | — |
+| Brocade Fabric OS (SAN switches) | Switchstatus, firmwareversie, CPU, geheugen | Switchstatus, sensoren (temperatuur, ventilatoren, voedingen), vervangbare onderdelen (FRU's) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, temperatuur, voedingsspanning | Ventilatoren, PoE-poorten, redundante voeding |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, vrij geheugen, wifi-clients, verbinding met cnMaestro | Wifi-radio's (band, kanaal, breedte, zendvermogen, clients, ruisvloer, airtime, toestand), SSID's |
 | Cisco IOS / IOS-XE | CPU, gebruikt en vrij geheugen, temperatuur, ventilatortoestand, voedingstoestand | — |
+| Cisco MDS 9000 (SAN switches) | CPU, geheugen | Voedingen, modules, ventilatorladen, VSAN's |
 | Dell Force10 / OS9 | CPU, geheugen | — |
 | Extreme Networks EXOS / Switch Engine | CPU, temperatuur, oververhittingsalarm, voedingstoestand | Voedingen, ventilatoren, geheugen per slot, stackleden |
 | Extreme Networks Fabric Engine / VOSS | vIST-sessie, aantal I-SID's | Fabric-adjacencies (IS-IS) genoemd naar de buur, CPU en geheugen per slot, temperatuursensoren, ventilatoren, voedingen |
@@ -518,6 +527,7 @@ De `sysObjectID` van het apparaat bepaalt waar de metingen vandaan komen: eerst 
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), met vlaggen voor signaalverlies en zenderfout | Nee |
 | Cambium Networks cnMatrix (4.5 en later) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nee |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), gelezen als tekst: `-inf` betekent geen licht | Nee |
 | Elk ander apparaat | ENTITY-SENSOR-MIB (RFC 3433), aan poorten gekoppeld via ENTITY-MIB | Nee |
 
 De eerste poll leest alles. Latere polls lezen alleen wat verandert — de metingen, en de serienummers die een verwisselde optic verraden — en de rest (drempels, identiteit, welke optic in welke poort zit) wordt opnieuw gelezen als een optic wordt geplaatst, verwijderd of verwisseld, en minstens één keer per uur. Een apparaat zonder een van deze MIB's kost één verzoek per geprobeerde MIB. Het lezen heeft een eigen budget van 20 seconden, en een leesactie die een time-out krijgt of wordt afgebroken, houdt de laatste goede optics van het apparaat in plaats van ze als verdwenen te melden.
@@ -861,6 +871,7 @@ Criteria controleren elk pollresultaat en elke trap, en openen incidenten of waa
 | SNMP Interface Is Down | Waar als een administratief ingeschakelde interface operationeel uitgevallen is. | Niet beoordeeld |
 | SNMP Interface Utilization (in %) | De linkbenutting van de drukste interface. | Niet beoordeeld |
 | SNMP Interface Errors (per second) | Het foutpercentage van de slechtste interface. | Niet beoordeeld |
+| SNMP Fibre Channel Counter (per second) | Eén Fibre Channel-teller van de poorten van een SAN-switch — CRC-fouten, verworpen frames, creditverlies en de rest — per seconde, op de slechtste poort binnen het bereik; `*` geeft één melding per poort. | Niet beoordeeld |
 | SNMP Transceiver Not Detected | Waar als een poort die een optic had, er twee polls op rij geen heeft gemeld, terwijl de poort ingeschakeld is. | Niet beoordeeld |
 | SNMP Transceiver Past Alarm Threshold | Waar als een meting van een optic op of voorbij een alarmdrempel zit die het apparaat meldt, of het apparaat signaalverlies of een zenderfout meldt. | Niet beoordeeld |
 | SNMP Transceiver Past Warning Threshold | Hetzelfde bij de waarschuwingsdrempels; een optic voorbij een alarmdrempel telt ook. | Niet beoordeeld |
@@ -1058,6 +1069,9 @@ Incident- en waarschuwingssjablonen op een netwerkapparaat-monitor kunnen deze v
 | `{{trapOid}}` | De trap-OID, bij controles die een trap heeft aangestuurd |
 | `{{trapSourceIp}}` | Het adres waar de trap vandaan kwam, bij controles die een trap heeft aangestuurd |
 | `{{trapVarbinds}}` | De varbinds die de trap meedroeg, elk met `oid` en `value` |
+| `{{trapInterface}}` | De interface waar een trap over gaat: de naam die hij meegeeft, of die de walk van het apparaat voor de index vastlegde |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | Bij een RMON-alarm (een MDS-port-monitoralarm) de teller die zijn drempel overschreed, en `rising` of `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | Bij een RMON-alarm de waarde van de teller en de overschreden drempel |
 | `{{tables.<key>.rowCount}}` | De gewalkte rijen in een [SNMP-tabel](#snmp-tabellen), op haar sleutel: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | De rijen met een status buiten hun gezonde waarden, elk met `name`, `index` en `values.<column>` |
 | `{{tables.<key>.rows}}` | Elke rij (tot 50), elk met `name`, `index` en `values.<column>`, met kolomnamen in kleine letters en spaties als `_` |

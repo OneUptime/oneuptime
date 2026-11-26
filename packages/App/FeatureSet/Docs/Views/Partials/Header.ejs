@@ -75,6 +75,16 @@
         </div>
         <% } %>
 
+        <%
+        /*
+         * OneUptime's GitHub, unless this server's admins hid it (Admin
+         * Dashboard > Settings > Help and Support > Report a Bug or Request
+         * a Feature, #10940). A view rendered without the server's links
+         * shows it, as it always did.
+         */
+        var isGitHubShown = typeof helpLinks === 'undefined' || !helpLinks || helpLinks.isGitHubShown !== false;
+        %>
+        <% if (isGitHubShown) { %>
         <!-- GitHub link -->
         <a class="docs-pill flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium"
            aria-label="GitHub"
@@ -86,5 +96,6 @@
             </svg>
             <span class="max-sm:hidden sm:inline">GitHub</span>
         </a>
+        <% } %>
     </div>
 </header>

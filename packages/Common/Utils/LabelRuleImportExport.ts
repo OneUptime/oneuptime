@@ -34,6 +34,7 @@ import ServiceLevelObjectiveLabelRule from "../Models/DatabaseModels/ServiceLeve
 import StatusPageLabelRule from "../Models/DatabaseModels/StatusPageLabelRule";
 import StorageArrayLabelRule from "../Models/DatabaseModels/StorageArrayLabelRule";
 import WorkflowLabelRule from "../Models/DatabaseModels/WorkflowLabelRule";
+import XcpNgPoolLabelRule from "../Models/DatabaseModels/XcpNgPoolLabelRule";
 import Select from "../Types/BaseDatabase/Select";
 import { ColumnAccessControl } from "../Types/BaseDatabase/AccessControl";
 import { getMaxLengthFromTableColumnType } from "../Types/Database/ColumnLength";
@@ -96,6 +97,7 @@ export const LABEL_RULE_MODELS: Array<DatabaseBaseModelType> = [
   StatusPageLabelRule,
   StorageArrayLabelRule,
   WorkflowLabelRule,
+  XcpNgPoolLabelRule,
 ];
 
 /*

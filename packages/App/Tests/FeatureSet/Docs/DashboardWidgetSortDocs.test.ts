@@ -421,6 +421,8 @@ describe("Your own sort and the order everyone sees, against the product", () =>
         DashboardComponentType.HostList,
         DashboardComponentType.KubernetesNodeList,
         DashboardComponentType.ProxmoxNodeList,
+        // The XCP-ng template's hosts.
+        DashboardComponentType.XcpNgHostList,
         DashboardComponentType.DockerSwarmNodeList,
         DashboardComponentType.KubernetesPodList,
         DashboardComponentType.DockerSwarmServiceList,

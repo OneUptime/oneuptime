@@ -76,6 +76,11 @@ export interface ComponentProps {
   networkDeviceTableCatalogue?:
     | Array<NetworkDeviceTableCatalogueEntry>
     | undefined;
+  /*
+   * The device's vendor template, so "Add Recommended Alerts" adds the
+   * alerts only its platform has (a SAN switch's Fibre Channel ones).
+   */
+  networkDeviceVendorTemplateId?: string | undefined;
   isNetworkDeviceCatalogueLoaded?: boolean | undefined;
   /*
    * The project's offline (worst, non-operational) monitor status.
@@ -646,6 +651,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                 ...NetworkDeviceAlertPackUtil.buildCriteriaInstances({
                   downMonitorStatusId: props.offlineMonitorStatusId,
                   upMonitorStatusId: props.upMonitorStatusId,
+                  vendorTemplateId: props.networkDeviceVendorTemplateId,
                   tables: (props.networkDeviceTableCatalogue || []).map(
                     (
                       entry: NetworkDeviceTableCatalogueEntry,

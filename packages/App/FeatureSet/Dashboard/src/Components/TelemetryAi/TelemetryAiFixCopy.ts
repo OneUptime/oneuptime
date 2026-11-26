@@ -188,11 +188,10 @@ export const TELEMETRY_AI_FIX_COPY: {
   /*
    * What a Fix with AI picker's open list says when it has nothing to offer
    * (#10921): none of the repositories the person may ask OneUptime AI to
-   * work in is one the fix works in - and, for Fix performance with AI, none
-   * of the connected ones is theirs to read.
+   * work in is one the fix works in. Fix performance with AI's says the
+   * same (#11075): its picker is held to those repositories too.
    */
   noAskableRepository: string;
-  noReadableRepository: string;
   working: string;
   viewTask: string;
   couldNotStart: string;
@@ -204,7 +203,6 @@ export const TELEMETRY_AI_FIX_COPY: {
   noAskableRepository: translationKey(
     "No connected repository you may ask OneUptime AI to work in.",
   ),
-  noReadableRepository: translationKey("No connected repository you can read."),
   working: translationKey("OneUptime AI is working on it."),
   viewTask: translationKey("View the task"),
   couldNotStart: translationKey("Could not start the fix: {{reason}}"),

@@ -91,6 +91,7 @@ const MODEL_NAME_BY_FACET_KEY: Record<string, string> = {
   proxmoxClusterId: "ProxmoxCluster",
   openStackCloudId: "OpenStackCloud",
   vmwareVCenterId: "VMwareVCenter",
+  xcpNgPoolId: "XcpNgPool",
   cephClusterId: "CephCluster",
   storageArrayId: "StorageArray",
   serverlessFunctionId: "ServerlessFunction",

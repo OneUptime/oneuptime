@@ -88,15 +88,20 @@ import {
 import {
   AZURE_COST_MAX_PAGES,
   describeAzureCostFailure,
+  getAzureCostWindowQpu,
+  isAzureActualCostDue,
+  mergeAzureCostRecords,
   readAzureAdvisor,
   readAzureCosts,
 } from "./AzureCosts";
 import { readAzureCommitments } from "./AzureCommitments";
+import { readAzureCommitmentInventory } from "./AzureCommitmentInventory";
 import { AzureCostReader, AzureCostThrottled } from "./AzureCostManagement";
 import {
   CloudCostState,
   getCloudCostResourceKey,
 } from "../../../../Types/Cloud/CloudCost";
+import { CloudCostBasis } from "../../../../Types/Cloud/CloudCostBasis";
 import { CloudCommitmentSummary } from "../../../../Types/Cloud/CloudCommitments";
 import { CloudResourceMetricStatus } from "../../../../Types/Cloud/CloudResourceMetricCollection";
 import AzureArm, {
@@ -132,6 +137,8 @@ import {
   buildAzureInventoryItems,
   buildAzureInventoryQuery,
   buildAzureSubnetQuery,
+  describeAzureNetworksPastExpandedRows,
+  getAzureNetworksPastExpandedRows,
 } from "./AzureInventory";
 import { readAzureActivityEvent } from "./AzureChanges";
 import {
@@ -1822,6 +1829,11 @@ export default class AzureCloudConnector implements CloudConnector {
       // When the subscriptions not reached may be read: set once one is put off.
       let putOffUntil: Date | null = null;
       let queued: number = 0;
+      // When each subscription's actual cost was last read: once a day.
+      const actualReadAt: Record<string, string> = {
+        ...(options.state.azureActualCostsReadAt || {}),
+      };
+      const readNow: Date = options.now ? options.now() : new Date();
 
       for (const subscriptionId of subscriptionIds) {
         if (putOffUntil) {
@@ -1832,14 +1844,54 @@ export default class AzureCloudConnector implements CloudConnector {
           continue;
         }
 
-        // One the connection has never read in full goes back as far as a first read.
+        const lastActualReadAt: string | undefined =
+          actualReadAt[subscriptionId.toLowerCase()];
+
+        /*
+         * One the connection has never read in full - its actual cost too,
+         * which a subscription read before costs were kept three ways never
+         * had - goes back as far as a first read.
+         */
         const window: { start: Date; end: Date } =
-          options.firstReadWindow && !readAt[subscriptionId.toLowerCase()]
+          options.firstReadWindow &&
+          (!readAt[subscriptionId.toLowerCase()] || !lastActualReadAt)
             ? options.firstReadWindow
             : { start: options.start, end: options.end };
 
+        /*
+         * Amortized cost at every read; actual cost once a day
+         * (isAzureActualCostDue), so the bases do not double the tenant's
+         * query units.
+         */
+        const isActualDue: boolean = isAzureActualCostDue({
+          lastReadAt: lastActualReadAt,
+          now: readNow,
+        });
+
+        /*
+         * Read twice over, a subscription is read whole or put off whole:
+         * one whose two queries would not both fit the tenant's quotas
+         * before the read's time is up waits for the next read, rather than
+         * spending its amortized query for nothing.
+         */
+        if (isActualDue) {
+          const fitsAtMs: number = costs.whenFits({
+            qpu: 2 * getAzureCostWindowQpu(window),
+            scope: `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+          });
+
+          if (fitsAtMs > costs.getDeadlineMs()) {
+            putOffUntil = new Date(fitsAtMs);
+            result.accounts.push(
+              getAzureQueuedCostOutcome(subscriptionId, putOffUntil),
+            );
+            queued++;
+            continue;
+          }
+        }
+
         try {
-          const read: {
+          const amortized: {
             records: CloudCostsResult["records"];
             complete: boolean;
           } = await readAzureCosts({
@@ -1848,10 +1900,30 @@ export default class AzureCloudConnector implements CloudConnector {
             start: window.start,
             end: window.end,
             regionsByResource,
+            type: "AmortizedCost",
           });
+          const actual: {
+            records: CloudCostsResult["records"];
+            complete: boolean;
+          } | null =
+            amortized.complete && isActualDue
+              ? await readAzureCosts({
+                  costs,
+                  subscriptionId,
+                  start: window.start,
+                  end: window.end,
+                  regionsByResource,
+                  type: "ActualCost",
+                })
+              : null;
 
-          if (read.complete) {
-            result.records.push(...read.records);
+          if (amortized.complete && (!actual || actual.complete)) {
+            result.records.push(
+              ...mergeAzureCostRecords({
+                amortized: amortized.records,
+                actual: actual?.records,
+              }),
+            );
             result.accounts.push({
               accountId: subscriptionId,
               state: CloudCostState.Reading,
@@ -1859,7 +1931,16 @@ export default class AzureCloudConnector implements CloudConnector {
               window.end.getTime() !== options.end.getTime()
                 ? { window }
                 : {}),
+              // Without actual cost, the billed figures keep what they had.
+              ...(actual
+                ? {}
+                : { bases: [CloudCostBasis.Amortized, CloudCostBasis.Net] }),
             });
+
+            if (actual) {
+              actualReadAt[subscriptionId.toLowerCase()] =
+                readNow.toISOString();
+            }
             continue;
           }
 
@@ -1924,6 +2005,23 @@ export default class AzureCloudConnector implements CloudConnector {
           } read from ${putOffUntil.toISOString()}, at the first read after it.`,
         );
       }
+
+      /*
+       * When each subscription's actual cost was read, for the next read: a
+       * week at most, so one that leaves the connection is forgotten.
+       */
+      options.state.azureActualCostsReadAt = Object.fromEntries(
+        Object.entries(actualReadAt).filter(
+          ([, at]: [string, string]): boolean => {
+            const time: number = Date.parse(at);
+
+            return (
+              Number.isFinite(time) &&
+              readNow.getTime() - time < 7 * 24 * 60 * 60 * 1000
+            );
+          },
+        ),
+      );
 
       return result;
     } catch (error) {
@@ -2031,6 +2129,17 @@ export default class AzureCloudConnector implements CloudConnector {
         options,
         subscriptionIds,
       });
+
+      // The tenant's reservations and savings plans (AzureCommitmentInventory).
+      result.commitmentInventory = await readAzureCommitmentInventory({
+        arm,
+        subscriptions: subscriptionIds,
+        now: options.now ? options.now() : new Date(),
+      });
+
+      if (result.commitmentInventory.message) {
+        result.warnings.push(result.commitmentInventory.message);
+      }
 
       return result;
     } catch (error) {
@@ -2204,6 +2313,19 @@ export default class AzureCloudConnector implements CloudConnector {
           }`,
         );
       }
+    }
+
+    /*
+     * A network of more subnets than Resource Graph expands of one row has
+     * the rest unlisted: the subnets are listed as far as they go, and none
+     * is taken for gone.
+     */
+    const crowded: Array<{ name: string; subnets: number }> =
+      getAzureNetworksPastExpandedRows(subnets.rows);
+
+    if (crowded.length > 0) {
+      subnets = { rows: subnets.rows, complete: false };
+      subnetWarnings.push(describeAzureNetworksPastExpandedRows(crowded));
     }
 
     // Read together: a VM runs where its interfaces do, a pool's balancer sends to them.

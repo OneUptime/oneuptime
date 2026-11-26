@@ -62,17 +62,20 @@ function csvField(value: string | number): string {
 /*
  * A view's figures as a CSV: one row per group and bucket, then the
  * unallocated - what finance pulls the month's chargeback from. Figures in
- * the read's currency, plain numbers (a CSV is read by a program).
+ * the read's currency and on its cost basis (billed, amortized or net),
+ * both said on each row, plain numbers (a CSV is read by a program).
  */
 export function toCloudCostAllocationCsv(
   allocation: CloudCostAllocationResult,
 ): string {
+  const basis: string = allocation.basis || "";
   const lines: Array<string> = [
     [
       "group",
       "group_id",
       "period_start",
       "currency",
+      "cost_basis",
       "total",
       "cloud",
       "line_items",
@@ -90,6 +93,7 @@ export function toCloudCostAllocationCsv(
         group.id,
         allocation.start,
         allocation.currency,
+        basis,
         group.total,
         group.cloud,
         group.lineItems,
@@ -107,6 +111,7 @@ export function toCloudCostAllocationCsv(
       "",
       allocation.start,
       allocation.currency,
+      basis,
       allocation.unallocated.total,
       allocation.unallocated.cloud,
       allocation.unallocated.lineItems,

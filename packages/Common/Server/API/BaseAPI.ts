@@ -29,10 +29,10 @@ import MoveInListUtil, {
   MoveInListRequest,
   MoveInListResult,
 } from "../../Types/Database/MoveInList";
-import { coerceNumericColumnsInJSON } from "../../Types/Database/NumericColumnValue";
-import { coerceDateColumnsInJSON } from "../../Types/Database/DateColumnValue";
-import { coerceBooleanColumnsInJSON } from "../../Types/Database/BooleanColumnValue";
-import { coerceTextColumnsInJSON } from "../../Types/Database/TextColumnValue";
+import {
+  readCrudCreateItem,
+  readCrudUpdateData,
+} from "../Utils/Database/CrudRouteWrites";
 import ListChangesUtil, { ListChanges } from "../../Types/Database/ListChanges";
 import FieldsLeftOut, {
   FIELDS_LEFT_OUT_HEADER,
@@ -699,23 +699,15 @@ export default class BaseAPI<
      * holds, as on a create. See Types/Database/TextColumnValue.
      */
 
-    const item: PartialEntity<TBaseModel> = coerceTextColumnsInJSON(
-      coerceBooleanColumnsInJSON(
-        coerceDateColumnsInJSON(
-          coerceNumericColumnsInJSON(
-            JSONFunctions.deserialize(dataInBody as JSONObject),
-            entityModel,
-          ),
-          entityModel,
-        ),
-        entityModel,
-      ),
+    /*
+     * Read as CrudRouteWrites reads every write of a record through the
+     * API, so an action that makes a button's write (#10378) coerces
+     * exactly as this route does.
+     */
+    const item: PartialEntity<TBaseModel> = readCrudUpdateData(
+      dataInBody as JSONObject,
       entityModel,
-    ) as PartialEntity<TBaseModel>;
-
-    delete (item as any)["_id"];
-    delete (item as any)["createdAt"];
-    delete (item as any)["updatedAt"];
+    );
 
     /*
      * An update that carries no columns writes nothing. Saying 200 to that is
@@ -785,12 +777,10 @@ export default class BaseAPI<
     await this.onBeforeCreate(req, res);
     const body: JSONObject = req.body;
 
-    const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-      body["data"] as JSONObject,
-      this.entityType,
-    ) as TBaseModel;
-
     /*
+     * Read as CrudRouteWrites reads every create through the API, so an
+     * action that makes a button's create (#10378) builds the same row.
+     *
      * A create builds a brand-new row, so it must not carry the row's own
      * primary key. getRepository().save() treats an entity that already has an
      * id as an update of the existing row rather than an insert, so a stray
@@ -822,7 +812,10 @@ export default class BaseAPI<
      * untouched. `id` needs no handling: it is a prototype accessor derived
      * from `_id` (never an own property), and its setter ignores falsy values.
      */
-    (item as any)["_id"] = undefined;
+    const item: TBaseModel = readCrudCreateItem<TBaseModel>(
+      body["data"] as JSONObject,
+      this.entityType,
+    );
 
     const miscDataProps: JSONObject = JSONFunctions.deserialize(
       body["miscDataProps"] as JSONObject,

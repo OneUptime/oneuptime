@@ -61,6 +61,18 @@ const WRITER_MODULES: Array<RegExp> = [
   /\/SRE\/InvestigationQueue$/,
   // A repository's host - GitHub, GitLab, Forgejo or Gitea - by its writer.
   /\/CodeRepository\/CodeHost\/CodeHostWriter$/,
+  /*
+   * Data Security's buttons, as Ask AI's actions press them (#10378): a
+   * record's write as the CRUD route makes it, the server code of Scrub It,
+   * Fix it from here's responses and Fix with AI, OneUptime AI's proposals,
+   * Apply to Similar, a saved rule's run and the cloud responses.
+   */
+  /\/Database\/CrudRouteWrites$/,
+  /\/DataSecurity\/DataSecurityButtons$/,
+  /\/DataSecurity\/DataSecurityAiProposals$/,
+  /\/DataSecurity\/FindingApplyToSimilar$/,
+  /\/DataSecurity\/DataSecurityResponse$/,
+  /\/Rules\/RuleRun\/RuleRunner$/,
 ];
 
 /*
@@ -87,6 +99,10 @@ const OTHER_READS: Record<string, string> = {
     "Hands out the writer of a GitHub repository, through its GitHub App installation; writes nothing.",
   "CodeHostWriters.openForRepository":
     "Hands out the writer of a GitLab, Forgejo or Gitea repository, through its connection; writes nothing.",
+  "DataSecurityButtons.readFixOnItsWay":
+    "Whether a fix for the issue is already on its way (a task writing, opened or waiting), read as the person before Fix with AI's card (#10378); writes nothing.",
+  "FindingApplyToSimilar.listSimilar":
+    "The findings like one a decision also settles, read as the person for Apply to Similar's card (#10378); writes nothing.",
   "PayAsYouGoBillingService.canUsePayAsYouGo":
     "Whether the project may incur usage charges on OneUptime Cloud (a card on file, a reseller's or a marketplace plan), asked before a setup action's card (#6829); reads the payment setup and keeps the answer in memory, writes nothing.",
 };
@@ -247,6 +263,38 @@ function declaredIn(node: ts.Node): string | undefined {
   return undefined;
 }
 
+/*
+ * A service handed to a record's write as the CRUD route makes it:
+ * `CrudRouteWrites.update({ service: DataStoreFindingService, ..., props:
+ * ctx.props })` (#10378). The write is the CrudRouteWrites call, recorded
+ * with the props it passes; the service only says which table it writes.
+ */
+const CRUD_ROUTE_WRITES: string = "CrudRouteWrites";
+
+function isServiceHandedToCrudWrite(node: ts.Identifier): boolean {
+  const property: ts.Node = node.parent;
+
+  if (
+    !ts.isPropertyAssignment(property) ||
+    property.initializer !== node ||
+    property.name.getText() !== "service"
+  ) {
+    return false;
+  }
+
+  const options: ts.Node = property.parent;
+  const call: ts.Node = options.parent;
+
+  return (
+    ts.isObjectLiteralExpression(options) &&
+    ts.isCallExpression(call) &&
+    call.arguments[0] === options &&
+    ts.isPropertyAccessExpression(call.expression) &&
+    ts.isIdentifier(call.expression.expression) &&
+    call.expression.expression.text === CRUD_ROUTE_WRITES
+  );
+}
+
 // The OTHER_READS entries a scan met.
 const OTHER_READS_MET: Set<string> = new Set<string>();
 
@@ -270,8 +318,68 @@ function isPersonProps(expression: ts.Expression): boolean {
 }
 
 /*
+ * The options object a write is handed: written in the call, or a `const`
+ * the function that makes the call declares as one - so the very object can
+ * be handed to something else first (CreatedNotificationHold.willAddOwners,
+ * #11188) and still be read here. Anything else is no options object.
+ */
+function optionsObjectOf(
+  call: ts.CallExpression,
+): ts.ObjectLiteralExpression | undefined {
+  const options: ts.Expression | undefined = call.arguments[0];
+
+  if (!options) {
+    return undefined;
+  }
+
+  if (ts.isObjectLiteralExpression(options)) {
+    return options;
+  }
+
+  if (!ts.isIdentifier(options)) {
+    return undefined;
+  }
+
+  let scope: ts.Node | undefined = call.parent;
+
+  while (scope && !ts.isFunctionLike(scope)) {
+    scope = scope.parent;
+  }
+
+  let found: ts.ObjectLiteralExpression | undefined = undefined;
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (found) {
+      return;
+    }
+
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === options.text &&
+      (ts.getCombinedNodeFlags(node) & ts.NodeFlags.Const) !== 0 &&
+      node.initializer &&
+      ts.isObjectLiteralExpression(node.initializer) &&
+      node.getStart() < call.getStart()
+    ) {
+      found = node.initializer;
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  if (scope) {
+    visit(scope);
+  }
+
+  return found;
+}
+
+/*
  * Whether a write passes the person's props: as `props:` in its options
- * object (`updateOneById({ ..., props: ctx.props })`), or as an argument of
+ * object (`updateOneById({ ..., props: ctx.props })`, or a `const` of the
+ * calling function declared as one: optionsObjectOf), or as an argument of
  * their own, which is how a service method that takes its props last
  * receives them (`MonitorService.addOwners(projectId, monitorId, userIds,
  * teamIds, notify, ctx.props)`, #8513). An options object's props decide
@@ -279,9 +387,9 @@ function isPersonProps(expression: ts.Expression): boolean {
  * else's theirs.
  */
 function passesPersonProps(call: ts.CallExpression): boolean {
-  const options: ts.Expression | undefined = call.arguments[0];
+  const options: ts.ObjectLiteralExpression | undefined = optionsObjectOf(call);
 
-  if (options && ts.isObjectLiteralExpression(options)) {
+  if (options) {
     const props: ts.PropertyAssignment | undefined = options.properties.find(
       (
         property: ts.ObjectLiteralElement,
@@ -528,7 +636,7 @@ function scanSource(file: string, sourceText: string): FileScan {
               declaredIn: declaredIn(node),
             });
           }
-        } else {
+        } else if (!isServiceHandedToCrudWrite(node)) {
           unseenCalls.push(
             `${file}:${lineOf(sourceFile, node)}: uses ${parent.getText()} other than to call one of ${node.text}'s methods - call it there`,
           );
@@ -858,6 +966,34 @@ describe("the scan's negative controls", () => {
     expect(result.notAsThePerson[3]).toContain("MonitorService.addOwners");
   });
 
+  test("D: reads the props of an options object the calling function declares as a const, and finds someone else's there", () => {
+    const result: GuardResult = checkSnippet(
+      'import MonitorService from "../../../Services/MonitorService";\n' +
+        `export const SetUpTool: ObservabilityTool = {
+  name: "set_up_monitoring",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    const asThePerson = { data: args.monitor, props: ctx.props };
+    const asRoot = { data: args.monitor, props: { isRoot: true } };
+    let changed = { data: args.monitor, props: ctx.props };
+    await MonitorService.create(asThePerson);
+    await MonitorService.create(asRoot);
+    await MonitorService.create(changed);
+    await MonitorService.create(declaredLater);
+    const declaredLater = { data: args.monitor, props: ctx.props };
+  },
+};
+`,
+    );
+
+    // Line 9 hands over a const with the person's props; 10 someone else's, 11 one that can change, 12 one not declared yet.
+    expect(
+      result.notAsThePerson.map((problem: string): string => {
+        return problem.split(":")[1] as string;
+      }),
+    ).toEqual(["10", "11", "12"]);
+  });
+
   test("D: an options object's props decide, whatever props follow it", () => {
     const result: GuardResult = checkSnippet(
       SERVICE_IMPORT +
@@ -947,6 +1083,58 @@ export const SneakyTool: ObservabilityTool = {
     );
     expect(result.unseenCalls[2]).toContain(
       "Snippet.ts:8: calls IncidentServiceClass",
+    );
+  });
+
+  test("D: a service handed to a record's write as the CRUD route makes it is that write's, held to its props (#10378)", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        'import CrudRouteWrites from "../../Database/CrudRouteWrites";\n' +
+        `export const JudgeTool: ObservabilityTool = {
+  name: "judge",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await CrudRouteWrites.update({ service: IncidentService, entityType: Incident, id: args.id, data: {}, props: ctx.props });
+    await CrudRouteWrites.update({ service: IncidentService, entityType: Incident, id: args.id, data: {}, props: { isRoot: true } });
+    await CrudRouteWrites.delete({ service: IncidentService, id: args.id });
+  },
+};
+`,
+    );
+
+    expect(result.unseenCalls).toEqual([]);
+    expect(result.notAsThePerson).toHaveLength(2);
+    expect(result.notAsThePerson[0]).toContain(
+      "Snippet.ts:8: CrudRouteWrites.update",
+    );
+    expect(result.notAsThePerson[1]).toContain(
+      "Snippet.ts:9: CrudRouteWrites.delete",
+    );
+    expect(result.writingTools).toEqual(["judge"]);
+  });
+
+  test("D: a service handed to anything but a record's write is still unseen (#10378)", () => {
+    const result: GuardResult = checkSnippet(
+      SERVICE_IMPORT +
+        'import CrudRouteWrites from "../../Database/CrudRouteWrites";\n' +
+        `async function writeWith(options: JSONObject): Promise<void> {}
+export const SneakyTool: ObservabilityTool = {
+  name: "sneaky",
+  isMutation: true,
+  execute: async (args: JSONObject, ctx: ToolContext) => {
+    await writeWith({ service: IncidentService, props: ctx.props });
+    await CrudRouteWrites.update({ entityType: IncidentService, props: ctx.props });
+  },
+};
+`,
+    );
+
+    expect(result.unseenCalls).toHaveLength(2);
+    expect(result.unseenCalls[0]).toContain(
+      "Snippet.ts:8: uses service: IncidentService other than to call one of IncidentService's methods",
+    );
+    expect(result.unseenCalls[1]).toContain(
+      "Snippet.ts:9: uses entityType: IncidentService other than to call one of IncidentService's methods",
     );
   });
 

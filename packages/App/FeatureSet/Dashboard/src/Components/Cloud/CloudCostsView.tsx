@@ -17,6 +17,12 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
+import CloudCostBasisSwitch, {
+  CloudCostBasisChoice,
+  CloudCostBasisPill,
+  useCloudCostBasis,
+} from "./CloudCostBasis";
 import CloudCostBreakdownCard from "./CloudCostBreakdownCard";
 import {
   CloudCostPoint,
@@ -45,6 +51,7 @@ import {
 import {
   CloudAccountRow,
   CloudAccountsTotals,
+  getCloudAccountsInBasis,
   totalCloudAccounts,
 } from "./UseCloudAccounts";
 
@@ -147,7 +154,15 @@ const CloudDailySpendCard: FunctionComponent<{
   }, [props.unusualDays, props.scope.currency, props.showAccounts, translator]);
 
   return (
-    <Card title={DAILY_SPEND_TITLE} description={DAILY_SPEND_DESCRIPTION}>
+    <Card
+      title={DAILY_SPEND_TITLE}
+      description={DAILY_SPEND_DESCRIPTION}
+      rightElement={
+        props.scope.basis ? (
+          <CloudCostBasisPill basis={props.scope.basis} />
+        ) : undefined
+      }
+    >
       <div
         data-testid="cloud-daily-spend"
         data-unusual-days={getCloudUnusualDaysMarked(props.unusualDays).join(
@@ -191,12 +206,21 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // Billed, amortized or net: the person's pick, else the project's.
+  const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
+  const basis: CloudCostBasis = basisChoice.basis;
+  // Every figure of the page on the basis shown.
+  const accounts: Array<CloudAccountRow> = useMemo(():
+    | Array<CloudAccountRow>
+    | never => {
+    return getCloudAccountsInBasis(props.accounts, basis);
+  }, [props.accounts, basis]);
   const totals: CloudAccountsTotals = useMemo((): CloudAccountsTotals => {
-    return totalCloudAccounts(props.accounts);
-  }, [props.accounts]);
+    return totalCloudAccounts(accounts);
+  }, [accounts]);
   const currency: string = totals.costs.currency;
   const gaps: Array<CloudCostGapRow> = getCloudCostGapRows({
-    accounts: props.accounts,
+    accounts,
     currency,
     kind: "costs",
   });
@@ -237,15 +261,21 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
     projectId: props.projectId,
     cloudAccountIds: props.cloudAccountId ? [props.cloudAccountId] : undefined,
     currency,
+    basis,
   };
-  // The same days the chart marks and the card under it lists.
+  // The same days the chart marks and the card under it lists, on the basis shown.
   const unusualDays: Array<CloudUnusualDayRow> = getCloudUnusualDayRows({
-    accounts: props.accounts,
+    accounts,
     currency,
   });
 
   return (
     <Fragment>
+      <CloudCostBasisSwitch
+        basis={basis}
+        onChange={basisChoice.setBasis}
+        accounts={props.accounts}
+      />
       <CloudStatStrip
         testId="cloud-costs-strip"
         tiles={getCloudCostTiles({
@@ -253,6 +283,7 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
           savings: totals.savings,
           translator,
           savingsRoute: props.savingsRoute,
+          basis,
         })}
       />
       <CloudDailySpendCard
@@ -264,10 +295,11 @@ const CloudCostsView: FunctionComponent<ComponentProps> = (
         rows={unusualDays}
         currency={currency}
         showAccounts={!props.cloudAccountId}
+        basis={basis}
       />
       <CloudCostBreakdownCard
         scope={scope}
-        accounts={props.accounts}
+        accounts={accounts}
         isOneAccount={Boolean(props.cloudAccountId)}
       />
       <CloudCostGapsCard rows={gaps} kind="costs" currency={currency} />

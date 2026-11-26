@@ -49,6 +49,7 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import Team from "Common/Models/DatabaseModels/Team";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -138,6 +139,7 @@ const KIND_MODELS: Readonly<Record<string, KindModel>> = {
   "proxmox-clusters": { modelType: ProxmoxCluster },
   "openstack-clouds": { modelType: OpenStackCloud },
   "vmware-vcenters": { modelType: VMwareVCenter },
+  "xcp-ng-pools": { modelType: XcpNgPool },
   "ceph-clusters": { modelType: CephCluster },
   "storage-arrays": { modelType: StorageArray },
   "network-devices": { modelType: NetworkDevice },

@@ -49,6 +49,7 @@ import LabelService from "Common/Server/Services/LabelService";
 import ProxmoxClusterService from "Common/Server/Services/ProxmoxClusterService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
 import VMwareVCenterService from "Common/Server/Services/VMwareVCenterService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
 import Host from "Common/Models/DatabaseModels/Host";
 import ObjectID from "Common/Types/ObjectID";
 import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
@@ -65,7 +66,7 @@ import {
 } from "@jest/globals";
 
 /*
- * Hosts, Proxmox, Ceph, VMware and storage arrays show an agent version, with
+ * Hosts, Proxmox, Ceph, VMware, XCP-ng and storage arrays show an agent version, with
  * a sign when a newer one is out, only if the server stores the
  * oneuptime.agent.version their collectors now stamp. This walks the ingest
  * boundary with the attributes those collectors really send - read from the
@@ -189,6 +190,24 @@ const CASES: Array<DiscoverCase> = [
     service: VMwareVCenterService,
     version: (): string => {
       return stampOf("VMwareAgent");
+    },
+  },
+  {
+    /*
+     * One agent beside a Xen Orchestra reads every pool it manages, each
+     * by its UUID. As for a Proxmox cluster, hearing the agent is not the
+     * pool read: the version rides the agent's own heartbeat.
+     */
+    name: "an XCP-ng pool",
+    method: "autoDiscoverXcpNgPool",
+    identity: [
+      stringAttribute("xcp_ng.pool.id", "b7569d99-30f8-178a-7d94-801de3e29b5b"),
+      stringAttribute("xcp_ng.pool.name", "Production"),
+    ] as JSONArray,
+    service: XcpNgPoolService,
+    heartbeat: "updateAgentLastSeen",
+    version: (): string => {
+      return stampOf("XcpNgAgent");
     },
   },
   {

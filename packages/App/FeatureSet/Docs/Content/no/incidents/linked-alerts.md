@@ -155,7 +155,7 @@ sequenceDiagram
 
 Når du sender, kontrollerer serveren varslene før den oppretter noe: høyst 50 av dem, hvert et varsel i dette prosjektet som du har lov til å se, og du må ha lov til å knytte varsler til hendelser. Feiler en kontroll, avvises forespørselen, og ingen hendelse opprettes — så en feil varsel-ID bruker aldri opp et hendelsesnummer. Når hendelsen finnes — og når personvernreglene har kjørt, slik at tilknyttingene vet om den er privat — knyttes hvert varsel til før forespørselen returnerer, så hendelsens side **Tilknyttede varsler** allerede viser dem. Feiler en enkelt tilknytting — fordi varselet ble slettet et øyeblikk før, for eksempel — erklæres hendelsen likevel, og de andre varslene knyttes likevel til.
 
-Hendelsens feed får én oppføring **Varsel tilknyttet** som nevner varslene, skrevet etter **Hendelse opprettet**, i stedet for én per varsel — se [Feeden, Slack og Microsoft Teams](#feeden-slack-og-microsoft-teams).
+Hendelsens feed får én oppføring **Varsel tilknyttet** som nevner varslene, i stedet for én per varsel, og den er feedens første oppføring, før **Hendelse opprettet** — se [Feeden, Slack og Microsoft Teams](#feeden-slack-og-microsoft-teams).
 
 ### Varslenes eiere eier hendelsen
 
@@ -312,7 +312,7 @@ Dette gjelder også når begge er private, fordi et privat varsel og en privat h
 
 **Bare hendelsens oppføringer når Slack og Microsoft Teams.** **Varsel tilknyttet** og **Varsel frakoblet** publiseres der hendelsens andre feedoppdateringer går. Oppføringene på varselets side blir i dashbordet, så en tilknytting gir én melding i stedet for to. Se [Slack](/docs/workspace-connections/slack) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams) for å sette opp de kanalene.
 
-**Å erklære en hendelse fra varsler skriver én oppføring, ikke én per varsel.** Tilknyttingene som lages mens hendelsen erklæres, skriver ingen egne oppføringer **Varsel tilknyttet**. I stedet får hendelsen, når oppføringen **Hendelse opprettet** er ute — og hendelsens egne Slack- og Microsoft Teams-kanaler, hvis du bruker dem, er opprettet — én oppføring **Varsel tilknyttet**: "Declared from 3 alerts:", etterfulgt av én linje per varsel med nummer og tittel (et privat varsel uten tittelen). Det er den ene meldingen som publiseres i Slack og Microsoft Teams. Hvert varsel får fortsatt sin egen oppføring **Tilknyttet hendelse**.
+**Å erklære en hendelse fra varsler skriver én oppføring, ikke én per varsel.** Tilknyttingene som lages mens hendelsen erklæres, skriver ingen egne oppføringer **Varsel tilknyttet**. I stedet får hendelsen én oppføring **Varsel tilknyttet**: "Declared from 3 alerts:", etterfulgt av én linje per varsel med nummer og tittel (et privat varsel uten tittelen). Det var erklæringen fra varslene som skapte hendelsen, så dette er den første oppføringen i hendelsens feed, før **Hendelse opprettet** og før eierne og rollene den får mens den erklæres. Det er den ene meldingen som publiseres i Slack og Microsoft Teams, der den kommer etter **Hendelse opprettet**. Hvert varsel får fortsatt sin egen oppføring **Tilknyttet hendelse**.
 
 Begge feedenes dialoger **Filtrer etter hendelsestype**, i menyen **⋯** for hver feed, viser disse hendelsestypene, så du kan vise eller skjule tilknyttingsaktivitet som enhver annen type oppføring. Mer om hendelsens feed i [Hendelsesnotater, eiere og feed](/docs/incidents/notes-owners-and-feed).
 

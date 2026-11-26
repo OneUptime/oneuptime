@@ -1088,6 +1088,7 @@ describe("scope picker", () => {
       "proxmoxClusterId",
       "openStackCloudId",
       "vmwareVCenterId",
+      "xcpNgPoolId",
       "cephClusterId",
       "storageArrayId",
       "serverlessFunctionId",

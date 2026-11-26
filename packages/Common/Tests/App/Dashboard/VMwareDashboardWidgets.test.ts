@@ -534,7 +534,7 @@ describe("VMware dashboard widgets", () => {
       );
     });
 
-    test("the widget catalog lists both widgets under VMware, between Proxmox and Ceph", () => {
+    test("the widget catalog lists both widgets under VMware, between Proxmox and XCP-ng", () => {
       const names: Array<string> = WIDGET_CATALOG.map(
         (category: WidgetCatalogCategory) => {
           return category.name;
@@ -542,8 +542,9 @@ describe("VMware dashboard widgets", () => {
       );
       const vmwareIndex: number = names.indexOf("VMware");
       expect(vmwareIndex).toBeGreaterThan(-1);
+      // The hypervisors together: Proxmox, VMware, XCP-ng.
       expect(names[vmwareIndex - 1]).toBe("Proxmox");
-      expect(names[vmwareIndex + 1]).toBe("Ceph");
+      expect(names[vmwareIndex + 1]).toBe("XCP-ng");
 
       const vmware: WidgetCatalogCategory = WIDGET_CATALOG[
         vmwareIndex

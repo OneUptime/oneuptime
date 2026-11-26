@@ -126,6 +126,7 @@ const KNOWN_HEROES: Array<string> = [
   "Pages/Proxmox/View/Index.tsx",
   "Pages/StorageArray/View/Index.tsx",
   "Pages/VMware/View/Index.tsx",
+  "Pages/XcpNg/View/Index.tsx",
 ];
 
 // The hero row every page used before: controls beside the name from md.
@@ -558,6 +559,7 @@ const DESCRIBED_HEROES: Array<string> = [
   "Pages/Proxmox/View/Index.tsx",
   "Pages/StorageArray/View/Index.tsx",
   "Pages/VMware/View/Index.tsx",
+  "Pages/XcpNg/View/Index.tsx",
 ];
 
 // The line the first four drew before: one line, cut short.
@@ -841,6 +843,8 @@ const HEALTH_HEROES: Array<[string, string, string]> = [
   ],
   ["Pages/Proxmox/View/Index.tsx", "{connectionLabel}", "<ResourceHealthPill"],
   ["Pages/VMware/View/Index.tsx", "{connectionLabel}", "<ResourceHealthPill"],
+  // An XCP-ng pool's health by XcpNgHealth's rules.
+  ["Pages/XcpNg/View/Index.tsx", "{connectionLabel}", "<ResourceHealthPill"],
   // A Docker or Podman host's health by its containers' rules.
   [
     "Pages/Docker/View/Overview.tsx",
@@ -957,6 +961,7 @@ const CONNECTION_PILL_HEROES: Array<string> = [
   "Pages/Proxmox/View/Index.tsx",
   "Pages/StorageArray/View/Index.tsx",
   "Pages/VMware/View/Index.tsx",
+  "Pages/XcpNg/View/Index.tsx",
 ];
 
 // The pill variables a hero's identity draws as `{name}`.
@@ -1231,6 +1236,7 @@ const PART_HERO_RENDER_SITES: Array<string> = [
   "Components/Proxmox/Part/ProxmoxPartHero.tsx",
   "Components/StorageArray/StorageArrayResourceDetail.tsx",
   "Components/VMware/Part/VMwarePartHero.tsx",
+  "Components/XcpNg/Part/XcpNgPartHero.tsx",
   "Pages/OpenStack/View/ProjectDetail.tsx",
 ];
 
@@ -1264,6 +1270,11 @@ const PART_HERO_WRAPPERS: Record<string, Array<string>> = {
     "Pages/VMware/View/DatastoreDetail.tsx",
     "Pages/VMware/View/HostDetail.tsx",
     "Pages/VMware/View/VirtualMachineDetail.tsx",
+  ],
+  XcpNgPartHero: [
+    "Pages/XcpNg/View/HostDetail.tsx",
+    "Pages/XcpNg/View/StorageDetail.tsx",
+    "Pages/XcpNg/View/VmDetail.tsx",
   ],
 };
 

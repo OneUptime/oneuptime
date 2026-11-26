@@ -103,6 +103,10 @@ import {
   CloudCommitmentSummary,
   getCloudCommitmentWindow,
 } from "../../../../Types/Cloud/CloudCommitments";
+import {
+  GCP_COMMITMENT_ASSET_TYPE,
+  readGcpCommitmentInventory,
+} from "./GcpCommitmentInventory";
 import GcpInventoryClient, {
   GCP_INVENTORY_TYPES,
   GcpAsset,
@@ -2286,6 +2290,41 @@ export default class GcpCloudConnector implements CloudConnector {
       if (entry.summary.state !== CloudCostState.Reading) {
         result.warnings.push(entry.summary.message || "");
       }
+    }
+
+    /*
+     * Each project's Compute Engine commitments (GcpCommitmentInventory),
+     * from Cloud Asset Inventory: the Cloud Asset Viewer role the
+     * connection holds reads them, so no role is added for them.
+     */
+    const assets: GcpInventoryClient = new GcpInventoryClient({
+      serviceAccountJson: readCloudSetting(
+        settings.secrets,
+        "serviceAccountJson",
+      ),
+      transport: options.transport,
+      requestTimeoutInMs: options.requestTimeoutInMs,
+      budget: options.budget,
+      sleep: options.sleep,
+    });
+
+    result.commitmentInventory = await readGcpCommitmentInventory({
+      listCommitments: async (
+        project: string,
+      ): Promise<{ commitments: Array<JSONObject>; complete: boolean }> => {
+        const listed: { resources: Array<JSONObject>; complete: boolean } =
+          await assets.listAssetsOfType({
+            projectId: project,
+            assetType: GCP_COMMITMENT_ASSET_TYPE,
+          });
+
+        return { commitments: listed.resources, complete: listed.complete };
+      },
+      projects,
+    });
+
+    if (result.commitmentInventory.message) {
+      result.warnings.push(result.commitmentInventory.message);
     }
 
     return result;

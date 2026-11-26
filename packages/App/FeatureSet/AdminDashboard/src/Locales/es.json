@@ -91,8 +91,8 @@
     "versionModalTitle": "Versión de OneUptime",
     "versionLabel": "Versión",
     "commitLabel": "Commit",
-    "versionUnavailable": "Los datos de versión no están disponibles",
-    "versionUnavailableWithError": "Los datos de versión no están disponibles: {{error}}"
+    "versionUnavailable": "Los datos de la versión no están disponibles",
+    "versionUnavailableWithError": "Los datos de la versión no están disponibles: {{error}}"
   },
   "navbar": {
     "users": "Usuarios",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Chatear en Microsoft Teams",
   "Chat with Support": "Chatear con soporte",
   "Show it": "Mostrarlo",
+  "From this server's configuration": "De la configuración de este servidor",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Algunos ajustes de abajo se establecieron desde la configuración de este servidor (valores de Helm o config.env) mientras no había nada guardado aquí. Un cambio que haga aquí se conserva: un reinicio nunca lo revierte.",
+  "Set from {{variable}} in this server's configuration.": "Establecido desde {{variable}} en la configuración de este servidor.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "No se usó {{variable}} de la configuración de este servidor: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Este ajuste no se puede ocultar. Déjelo vacío para mantener el valor predeterminado de OneUptime.",
+  "Use \"shown\" or \"hidden\".": "Use \"shown\" o \"hidden\".",
   "Support Email": "Correo de soporte",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Ayuda › Correo de soporte, «Contactar con soporte» en la página «Página no encontrada», y la dirección a la que una pantalla de error pide enviar un paquete de soporte.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Ayuda › Correo de soporte, «Contactar con soporte» en la página «Página no encontrada», los correos sobre la cuenta y la dirección a la que una pantalla de error pide enviar un paquete de soporte.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Ayuda › Chatear en Slack. Un enlace propio recibe el nombre del chat que abre: Slack, Microsoft Teams o «Chatear con soporte».",
   "Request Demo": "Solicitar demo",

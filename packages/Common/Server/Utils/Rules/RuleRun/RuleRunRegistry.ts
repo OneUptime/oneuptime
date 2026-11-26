@@ -174,6 +174,11 @@ import VMwareVCenterLabelRule from "../../../../Models/DatabaseModels/VMwareVCen
 import VMwareVCenterOwnerRule from "../../../../Models/DatabaseModels/VMwareVCenterOwnerRule";
 import VMwareVCenterOwnerTeam from "../../../../Models/DatabaseModels/VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "../../../../Models/DatabaseModels/VMwareVCenterOwnerUser";
+import XcpNgPool from "../../../../Models/DatabaseModels/XcpNgPool";
+import XcpNgPoolLabelRule from "../../../../Models/DatabaseModels/XcpNgPoolLabelRule";
+import XcpNgPoolOwnerRule from "../../../../Models/DatabaseModels/XcpNgPoolOwnerRule";
+import XcpNgPoolOwnerTeam from "../../../../Models/DatabaseModels/XcpNgPoolOwnerTeam";
+import XcpNgPoolOwnerUser from "../../../../Models/DatabaseModels/XcpNgPoolOwnerUser";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import WorkflowLabelRule from "../../../../Models/DatabaseModels/WorkflowLabelRule";
 import WorkflowOwnerRule from "../../../../Models/DatabaseModels/WorkflowOwnerRule";
@@ -357,6 +362,11 @@ import VMwareVCenterLabelRuleService from "../../../Services/VMwareVCenterLabelR
 import VMwareVCenterOwnerRuleEngineService from "../../../Services/VMwareVCenterOwnerRuleEngineService";
 import VMwareVCenterOwnerRuleService from "../../../Services/VMwareVCenterOwnerRuleService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
+import XcpNgPoolLabelRuleEngineService from "../../../Services/XcpNgPoolLabelRuleEngineService";
+import XcpNgPoolLabelRuleService from "../../../Services/XcpNgPoolLabelRuleService";
+import XcpNgPoolOwnerRuleEngineService from "../../../Services/XcpNgPoolOwnerRuleEngineService";
+import XcpNgPoolOwnerRuleService from "../../../Services/XcpNgPoolOwnerRuleService";
+import XcpNgPoolService from "../../../Services/XcpNgPoolService";
 import WorkflowLabelRuleEngineService from "../../../Services/WorkflowLabelRuleEngineService";
 import WorkflowLabelRuleService from "../../../Services/WorkflowLabelRuleService";
 import WorkflowOwnerRuleEngineService from "../../../Services/WorkflowOwnerRuleEngineService";
@@ -995,6 +1005,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: WorkflowService,
     engine: WorkflowOwnerRuleEngineService,
     ownerModelTypes: [WorkflowOwnerUser, WorkflowOwnerTeam],
+  }),
+  [RuleRunType.XcpNgPoolLabelRule]: defineRuleRun({
+    ruleModelType: XcpNgPoolLabelRule,
+    resourceModelType: XcpNgPool,
+    ruleService: XcpNgPoolLabelRuleService,
+    resourceService: XcpNgPoolService,
+    engine: XcpNgPoolLabelRuleEngineService,
+  }),
+  [RuleRunType.XcpNgPoolOwnerRule]: defineRuleRun({
+    ruleModelType: XcpNgPoolOwnerRule,
+    resourceModelType: XcpNgPool,
+    ruleService: XcpNgPoolOwnerRuleService,
+    resourceService: XcpNgPoolService,
+    engine: XcpNgPoolOwnerRuleEngineService,
+    ownerModelTypes: [XcpNgPoolOwnerUser, XcpNgPoolOwnerTeam],
   }),
 };
 
