@@ -23,6 +23,11 @@
  *               to left)
  *   ?theme=     dark adds html.dark (handled by server.js)
  *
+ * Beside the Pure arrays, a NetApp ONTAP cluster and an Amazon FSx for
+ * NetApp ONTAP file system (#11001), each what OneUptime keeps of what the
+ * real NetApp Harvest 26.11.0 served for it (OntapInventory.json, which
+ * MakeOntapInventory.ts writes from the recorded scrapes).
+ *
  * Every read is recorded on window.__storageArrayPagesFixture: listRequests,
  * itemRequests, aggregateRequests, apiRequests and unhandled - anything the
  * fixture does not model. The spec asserts `unhandled` is empty.
@@ -55,6 +60,8 @@ import StorageArrayFileSystemDetail from "../../../App/FeatureSet/Dashboard/src/
 import StorageArrayBuckets from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Buckets";
 import StorageArrayBucketDetail from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/BucketDetail";
 import StorageArrayInventory from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Inventory";
+import StorageArrayInventoryPart from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/InventoryPart";
+import StorageArrayDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Documentation";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -80,6 +87,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
+import ONTAP_INVENTORY from "./OntapInventory.json";
 
 /*
  * ---------------------------------------------------------------------------
@@ -128,6 +136,8 @@ const TIB = 1024 * GIB;
 const FLASHARRAY_ID = uuid("58000000", 1);
 const FLASHBLADE_ID = uuid("58000000", 2);
 const ACME_ID = uuid("58000000", 3);
+const ONTAP_ID = uuid("58000000", 4);
+const FSX_ID = uuid("58000000", 5);
 
 /*
  * Acme, a platform that exists only in tests (#11000), registered here the
@@ -228,6 +238,58 @@ const acmeArray = {
   isArchived: false,
   createdAt: new Date(LOADED_AT - 10 * 24 * 60 * MINUTE),
 };
+
+/*
+ * NetApp ONTAP (#11001): an AFF A400 pair, and an Amazon FSx file system,
+ * as the ingest keeps what Harvest served for them. The cluster's disk
+ * 1.0.7 is broken, its shelf's power supply 2 failed, port e0c on node 01
+ * is down, vol_logs and lun_db02 are offline, svm_test is stopped and
+ * vol_erp_dr is three hours behind its hourly schedule.
+ */
+function netAppArray(id, name, recorded, description) {
+  const extras = recorded.extras;
+  return {
+    _id: id,
+    name: name,
+    description: description,
+    // As the agent stamps it (StorageSystem.NetAppOntap).
+    storageSystem: "netapp.ontap",
+    reportedName: extras.reportedName,
+    systemId: extras.systemId,
+    osName: extras.osName,
+    osVersion: extras.osVersion,
+    agentVersion: "14.0.101",
+    otelCollectorStatus: DISCONNECTED ? "disconnected" : "connected",
+    lastSeenAt: LAST_REPORT,
+    capacityBytes: extras.capacityBytes,
+    usedBytes: extras.usedBytes,
+    capacityUsedPercent: extras.capacityUsedPercent,
+    dataReductionRatio: extras.dataReductionRatio,
+    openAlertCount: extras.openAlertCount,
+    criticalAlertCount: extras.criticalAlertCount,
+    warningAlertCount: extras.warningAlertCount,
+    healthStatus: extras.criticalAlertCount > 0 ? 2 : 0,
+    volumeCount: extras.volumeCount,
+    hardwareComponentCount: extras.hardwareComponentCount,
+    unhealthyHardwareCount: extras.unhealthyHardwareCount,
+    countsByKind: recorded.countsByKind,
+    isArchived: false,
+    createdAt: new Date(LOADED_AT - 45 * 24 * 60 * MINUTE),
+  };
+}
+
+const ontapCluster = netAppArray(
+  ONTAP_ID,
+  "ontap-prod-01",
+  ONTAP_INVENTORY.ontap,
+  "The AFF A400 pair behind the file shares and the ERP database.",
+);
+const fsxFileSystem = netAppArray(
+  FSX_ID,
+  "fsx-files-eu",
+  ONTAP_INVENTORY.fsx,
+  "Amazon FSx for NetApp ONTAP, for the team shares in eu-central-1.",
+);
 
 let rowNumber = 0;
 const inventory = [];
@@ -450,6 +512,22 @@ for (const name of ["vol-acme-01", "vol-acme-02"]) {
   });
 }
 
+// The ONTAP cluster's and the FSx file system's parts, as recorded.
+for (const [arrayId, recorded] of [
+  [ONTAP_ID, ONTAP_INVENTORY.ontap],
+  [FSX_ID, ONTAP_INVENTORY.fsx],
+]) {
+  for (const row of recorded.rows) {
+    part(arrayId, { ...row, details: row.details || {} });
+  }
+}
+
+// The series each NetApp array's Overview reads, by the array's name.
+const NETAPP_READINGS = [
+  ["ontap-prod-01", ONTAP_INVENTORY.ontap.readings],
+  ["fsx-files-eu", ONTAP_INVENTORY.fsx.readings],
+];
+
 /*
  * ---------------------------------------------------------------------------
  * The data boundary
@@ -521,7 +599,7 @@ function matches(record, query) {
 }
 
 const store = {
-  StorageArray: [flashArray, flashBlade, acmeArray],
+  StorageArray: [flashArray, flashBlade, acmeArray, ontapCluster, fsxFileSystem],
   StorageArrayResource: inventory,
   IncidentState: [
     { _id: uuid("50000000", 1), name: "Identified", order: 1 },
@@ -812,6 +890,24 @@ AnalyticsModelAPI.getList = async (options) => {
         !attributes["name"] || row.attributes["name"] === attributes["name"]
       );
     });
+  } else if (String(query.name || "").startsWith("netapp_")) {
+    // A NetApp array's latency and open problems, as Harvest served them.
+    data = CALM
+      ? []
+      : NETAPP_READINGS.filter(([name]) => {
+          return name === arrayName;
+        }).flatMap(([name, readings]) => {
+          return readings
+            .filter((series) => {
+              return series.name === query.name;
+            })
+            .map((series) => {
+              return metricRow(options.modelType, series.value, {
+                "resource.storage.array.name": name,
+                ...series.labels,
+              });
+            });
+        });
   } else if (
     String(query.name || "").startsWith("purefa_") ||
     String(query.name || "").startsWith("purefb_")
@@ -849,7 +945,11 @@ AnalyticsModelAPI.aggregate = async (options) => {
   const name = String(query.name || "");
   if (
     modelName !== tableName(Metric) ||
-    !(name.startsWith("purefa_") || name.startsWith("purefb_"))
+    !(
+      name.startsWith("purefa_") ||
+      name.startsWith("purefb_") ||
+      name.startsWith("netapp_")
+    )
   ) {
     fixture.unhandled.push({ kind: "aggregate", modelName, name: query.name });
     return { data: [] };
@@ -873,6 +973,23 @@ AnalyticsModelAPI.aggregate = async (options) => {
 
 // Where a chart's line sits: what the array reports for that series.
 function chartLevel(name, attributes) {
+  if (name.startsWith("netapp_")) {
+    // Near what the recorded cluster read: about 1.8 ms reads, 0.7 ms writes.
+    const write = name.includes("write");
+    if (name.includes("latency")) {
+      return write ? 740 : 1810;
+    }
+    if (name.endsWith("_ops")) {
+      return write ? 2800 : 4000;
+    }
+    if (name.endsWith("_data")) {
+      return write ? 180 * 1024 * 1024 : 420 * 1024 * 1024;
+    }
+    if (name.includes("percent")) {
+      return 87;
+    }
+    return 1000;
+  }
   const dimension = String(attributes["dimension"] || "");
   const write = dimension.includes("write");
   if (name.includes("latency")) {
@@ -1083,6 +1200,8 @@ const PAGES = [
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS, StorageArrayBuckets],
   [PageMap.STORAGE_ARRAY_VIEW_BUCKET_DETAIL, StorageArrayBucketDetail],
   [PageMap.STORAGE_ARRAY_VIEW_INVENTORY, StorageArrayInventory],
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART, StorageArrayInventoryPart],
+  [PageMap.STORAGE_ARRAY_VIEW_DOCUMENTATION, StorageArrayDocumentation],
 ].map(([pageKey, Component]) => {
   return {
     path: RouteMap[pageKey].toString(),
