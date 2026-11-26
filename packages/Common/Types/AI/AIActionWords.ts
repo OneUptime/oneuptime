@@ -438,6 +438,7 @@ export const AI_ACTION_LINES: {
   noVerifiedPhoneForSms: string;
   noVerifiedPhoneForCalls: string;
   noMobileApp: string;
+  noPushDeviceWithoutApp: string;
   nothingReachesYou: string;
   statusPageIsPublic: string;
   statusPageShows: string;
@@ -569,6 +570,14 @@ export const AI_ACTION_LINES: {
   ),
   noMobileApp: translationKey(
     "The mobile app is not set up for you yet. Set it up from Notification Methods to get push notifications.",
+  ),
+  /*
+   * The same, where the server's admins took the mobile app away (Admin
+   * Dashboard > Settings > Help and Support, #10945): push reaches the
+   * person in a browser there.
+   */
+  noPushDeviceWithoutApp: translationKey(
+    "Push notifications are not set up for you yet. Register this browser in Notification Methods to get them.",
   ),
   nothingReachesYou: translationKey(
     "Nothing reaches you yet. Add a notification method in Notification Methods.",

@@ -75,7 +75,7 @@
     "userProfile": "Brukerprofil"
   },
   "help": {
-    "supportEmail": "Support-e-post",
+    "supportEmail": "Støtte-e-post",
     "chatSlack": "Chat på Slack",
     "requestDemo": "Be om demo"
   },
@@ -91,8 +91,8 @@
     "versionModalTitle": "OneUptime-versjon",
     "versionLabel": "Versjon",
     "commitLabel": "Commit",
-    "versionUnavailable": "Versjonsdata er ikke tilgjengelige",
-    "versionUnavailableWithError": "Versjonsdata er ikke tilgjengelige: {{error}}"
+    "versionUnavailable": "Versjonsdata er ikke tilgjengelig",
+    "versionUnavailableWithError": "Versjonsdata er ikke tilgjengelig: {{error}}"
   },
   "navbar": {
     "users": "Brukere",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Chat på Microsoft Teams",
   "Chat with Support": "Chat med støtte",
   "Show it": "Vis den",
+  "From this server's configuration": "Fra serverens konfigurasjon",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Noen av innstillingene nedenfor ble satt fra serverens konfigurasjon (Helm-verdier eller config.env) mens ingenting var lagret her. En endring du gjør her, beholdes: en omstart setter den aldri tilbake.",
+  "Set from {{variable}} in this server's configuration.": "Satt fra {{variable}} i serverens konfigurasjon.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} i serverens konfigurasjon ble ikke brukt: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Denne innstillingen kan ikke skjules. La den stå tom for å beholde OneUptimes standard.",
+  "Use \"shown\" or \"hidden\".": "Bruk \"shown\" eller \"hidden\".",
   "Support Email": "Støtte-e-post",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Hjelp › Støtte-e-post, «Kontakt støtte» på «Fant ikke siden» og adressen en feilskjerm ber folk sende en støttepakke til.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Hjelp › Støtte-e-post, «Kontakt støtte» på «Fant ikke siden», e-poster om kontoen og adressen en feilskjerm ber folk sende en støttepakke til.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Hjelp › Chat på Slack. Din egen lenke får navn etter chatten den åpner: Slack, Microsoft Teams eller «Chat med støtte».",
   "Request Demo": "Be om demo",

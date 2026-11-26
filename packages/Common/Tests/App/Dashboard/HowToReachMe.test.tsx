@@ -2000,6 +2000,55 @@ describe("adding a way to reach you from the ladder", () => {
     }
   });
 
+  test("on a server without the mobile app, a browser that cannot take push is not told to install the app (#10945)", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      givenOnlyEmail();
+      registerBrowserMock.mockRejectedValue(
+        new BrowserPushError(BrowserPushProblem.NotSupported),
+      );
+      renderPage();
+
+      fireEvent.click(
+        within(await addWays()).getByTestId("paging-ladder-use-this-browser"),
+      );
+
+      const error: HTMLElement = await screen.findByTestId(
+        "paging-ladder-browser-error",
+      );
+
+      expect(error).toHaveTextContent(
+        "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.",
+      );
+      expect(error).not.toHaveTextContent("OneUptime On-Call app");
+    } finally {
+      forgetHelpAndSupport();
+    }
+  });
+
+  test("with the app offered, the same browser is offered the app as its way out, as before", async () => {
+    givenOnlyEmail();
+    registerBrowserMock.mockRejectedValue(
+      new BrowserPushError(BrowserPushProblem.NotSupported),
+    );
+    renderPage();
+
+    fireEvent.click(
+      within(await addWays()).getByTestId("paging-ladder-use-this-browser"),
+    );
+
+    expect(
+      await screen.findByTestId("paging-ladder-browser-error"),
+    ).toHaveTextContent(
+      BROWSER_PUSH_PROBLEM_MESSAGES[BrowserPushProblem.NotSupported],
+    );
+  });
+
   test("the app is offered only where the server offers it, and as before where it does not say", () => {
     const base: Parameters<typeof getWaysToOffer>[0] = {
       methods: ONLY_EMAIL,

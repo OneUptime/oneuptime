@@ -155,6 +155,56 @@ describe("who may write where the server sends people for help", () => {
   });
 });
 
+/*
+ * Seeding it from the server's configuration (#10938): one statement that
+ * holds to nothing being saved, so an admin's save, or another server's
+ * seed, is never overwritten, and says whether it wrote.
+ */
+describe("seeding it from the server's configuration", () => {
+  test("writes only while nothing is saved, in one statement", async () => {
+    const compareAndSet: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(GlobalConfigService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(true as never);
+
+    expect(
+      await GlobalConfigService.seedHelpAndSupport({
+        gitHub: { choice: "hidden" },
+        seededFromConfiguration: ["gitHub"],
+      }),
+    ).toBe(true);
+
+    expect(compareAndSet).toHaveBeenCalledTimes(1);
+
+    const args: Record<string, any> = compareAndSet.mock.calls[0]![0] as Record<
+      string,
+      any
+    >;
+
+    expect(args["id"].toString()).toBe(ObjectID.getZeroObjectID().toString());
+    expect(args["data"]).toEqual({
+      helpAndSupport: {
+        gitHub: { choice: "hidden" },
+        seededFromConfiguration: ["gitHub"],
+      },
+    });
+    expect(args["expectedData"]).toEqual({ helpAndSupport: null });
+    // Never the plain write, which would overwrite what an admin saved.
+    expect(updateColumns).not.toHaveBeenCalled();
+  });
+
+  test("says when the settings were saved before, and nothing was written", async () => {
+    jest
+      .spyOn(GlobalConfigService, "compareAndSetColumnsByIdWithoutHooks")
+      .mockResolvedValue(false as never);
+
+    expect(
+      await GlobalConfigService.seedHelpAndSupport({
+        chat: { choice: "hidden" },
+      }),
+    ).toBe(false);
+  });
+});
+
 describe("writing it", () => {
   test("one statement on the one row, without hooks", async () => {
     await GlobalConfigService.writeHelpAndSupport({

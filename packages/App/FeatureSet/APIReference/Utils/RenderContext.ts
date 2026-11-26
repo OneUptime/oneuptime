@@ -24,6 +24,8 @@ import Dictionary from "Common/Types/Dictionary";
 import { ExpressRequest } from "Common/Server/Utils/Express";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import { getPublicOrigin } from "Common/Server/Utils/Sitemap";
+import DocsSiteLinksStore from "Common/Server/Utils/HelpAndSupport/DocsSiteLinksStore";
+import { DocsSiteLinks } from "Common/Types/HelpAndSupport/HelpAndSupport";
 
 export interface ReferenceRenderContext {
   lang: string;
@@ -112,6 +114,25 @@ export function clearNavigationCaches(): void {
   for (const key of Object.keys(searchIndexCache)) {
     delete searchIndexCache[key];
   }
+}
+
+/*
+ * A page's context with what its top bar and footer link to (#10940): Slack,
+ * Support and GitHub, as this server's Admin Dashboard > Settings > Help and
+ * Support says (the reader the App hands DocsSiteLinksStore). Null without
+ * one, and a view rendered so links to what it always did.
+ */
+export interface ReferencePageRenderContext extends ReferenceRenderContext {
+  helpLinks: DocsSiteLinks | null;
+}
+
+export async function buildPageRenderContext(
+  req: ExpressRequest,
+): Promise<ReferencePageRenderContext> {
+  return {
+    ...buildRenderContext(req),
+    helpLinks: await DocsSiteLinksStore.getLinks(req),
+  };
 }
 
 /*

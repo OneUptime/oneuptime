@@ -805,6 +805,28 @@ export const getSupportEmailAddress: (
   return setting.choice === HelpChoice.Default ? ONEUPTIME_SUPPORT_EMAIL : null;
 };
 
+/*
+ * The server's own support address, or null: on OneUptime's default, and
+ * hidden. What an account email names where it would otherwise say "Ask
+ * your server's admin" (#10941): an address an admin set, never
+ * OneUptime's, and nothing at all while the address is hidden.
+ */
+export const getOwnSupportEmailAddress: (
+  settings: HelpAndSupportSettings,
+) => string | null = (settings: HelpAndSupportSettings): string | null => {
+  const setting: HelpItemSetting = settings[HelpItem.SupportEmail];
+
+  if (
+    setting.choice !== HelpChoice.Email ||
+    !setting.value ||
+    getHelpEmailProblem(setting.value) !== null
+  ) {
+    return null;
+  }
+
+  return setting.value;
+};
+
 // Whether the support address is OneUptime's own.
 export const isOneUptimeSupportEmail: (
   settings: HelpAndSupportSettings,
@@ -939,6 +961,68 @@ export const isOneUptimeGitHubShown: (
   settings: HelpAndSupportSettings,
 ) => boolean = (settings: HelpAndSupportSettings): boolean => {
   return settings[HelpItem.GitHub].choice !== HelpChoice.Hidden;
+};
+
+/*
+ * THE DOCS SITE AND THE API REFERENCE (#10940).
+ *
+ * The docs (/docs) and the API reference (/reference) this server serves
+ * link to OneUptime's community in their chrome: the docs' header, its
+ * "Edit on GitHub" and a no's "Tell us on GitHub", and the reference's top
+ * bar links to Slack, Support and GitHub, with a GitHub mark in its footer.
+ * They follow the same settings as the Dashboard:
+ *
+ *   GitHub   every GitHub link, while Report a Bug or Request a Feature is
+ *            shown; none once it is hidden.
+ *   Chat     OneUptime's community Slack on the default, none when hidden,
+ *            and a chat link of the server's own only for a reader who is
+ *            signed in: these pages are public, and a chat link is often
+ *            an invitation into the server's workspace, as env.js holds it
+ *            back for the same reason.
+ *   Support  the reference's Support link, the server's own help page
+ *            (public: the sign-in pages show it) or none; on the default it
+ *            stays the address it always was.
+ *
+ * A server that never changed the page serves its docs exactly as before.
+ */
+export const DOCS_DEFAULT_SUPPORT_URL: string = "/support";
+
+export interface DocsSiteLinks {
+  isGitHubShown: boolean;
+  chat: ChatLink | null;
+  supportUrl: string | null;
+}
+
+export const getDocsSiteLinks: (
+  settings: HelpAndSupportSettings,
+  reader: { isSignedIn: boolean },
+) => DocsSiteLinks = (
+  settings: HelpAndSupportSettings,
+  reader: { isSignedIn: boolean },
+): DocsSiteLinks => {
+  const chat: ChatLink | null = getChatLink(settings);
+  const help: HelpItemSetting = settings[HelpItem.HelpLink];
+
+  let supportUrl: string | null = null;
+
+  if (help.choice === HelpChoice.Default) {
+    supportUrl = DOCS_DEFAULT_SUPPORT_URL;
+  } else if (help.choice === HelpChoice.Link && isSafeHelpLink(help.value)) {
+    supportUrl = help.value;
+  }
+
+  return {
+    isGitHubShown: isOneUptimeGitHubShown(settings),
+    chat: chat && (chat.isOneUptime || reader.isSignedIn) ? chat : null,
+    supportUrl: supportUrl,
+  };
+};
+
+// Whether a chat link of the server's own is set: a reader's session decides it.
+export const hasOwnChatLink: (settings: HelpAndSupportSettings) => boolean = (
+  settings: HelpAndSupportSettings,
+): boolean => {
+  return settings[HelpItem.Chat].choice === HelpChoice.Link;
 };
 
 export enum MobileAppOfferKind {
