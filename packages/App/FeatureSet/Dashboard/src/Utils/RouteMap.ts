@@ -621,6 +621,8 @@ export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAY_VIEW_REPLICATION]: `${RouteParams.ModelID}/replication`,
   [PageMap.STORAGE_ARRAY_VIEW_HARDWARE]: `${RouteParams.ModelID}/hardware`,
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
+  // A kind a platform has of its own, by its name (StorageArrayPlatform.kindDefinitions).
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
@@ -6405,6 +6407,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INVENTORY]
     }`,
   ),
 

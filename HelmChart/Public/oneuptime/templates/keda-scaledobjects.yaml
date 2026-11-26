@@ -73,7 +73,9 @@ KEDA ScaledObjects for various services
 {{/* App KEDA ScaledObject.
      Combined (default) mode: scales on combined queue backlog (waiting + delayed jobs across worker + workflow + telemetry + runbook + AI investigation).
      Split mode (worker.enabled): the worker deployment drains the queues, so the app must
-     NOT scale on queue depth — its queue-size trigger is dropped and it scales on CPU/memory. */}}
+     NOT scale on queue depth — its queue-size trigger is dropped and it scales on CPU/memory.
+     In either mode, app.keda.probeSchedulingQueueDepthThreshold adds a trigger on the
+     probe requests waiting for a slot of the probe scheduling limit. */}}
 {{- if and .Values.keda.enabled .Values.app.enabled .Values.app.keda.enabled (not .Values.app.disableAutoscaler) (not .Values.deployment.disableDeployments) }}
 {{- $appResources := .Values.app.resources | default dict }}
 {{- $appRequests := get $appResources "requests" | default dict }}
@@ -84,11 +86,17 @@ KEDA ScaledObjects for various services
 {{- fail "app.keda.targetMemoryUtilizationPercentage requires app.resources.requests.memory to be set" }}
 {{- end }}
 {{- $appQueueTriggers := list (dict "query" "oneuptime_app_queue_size" "threshold" .Values.app.keda.queueSizeThreshold "port" .Values.app.ports.http) }}
+{{- $probeSchedulingThreshold := int (.Values.app.keda.probeSchedulingQueueDepthThreshold | default 0) }}
 {{- if .Values.worker.enabled }}
-{{- if and (le (int (.Values.app.keda.targetCPUUtilizationPercentage | default 0)) 0) (le (int (.Values.app.keda.targetMemoryUtilizationPercentage | default 0)) 0) }}
-{{- fail "worker.enabled drops the app's queue-size autoscaling trigger; set app.keda.targetCPUUtilizationPercentage (with app.resources.requests.cpu) and/or app.keda.targetMemoryUtilizationPercentage so the api tier still has an autoscaling trigger." }}
+{{- if and (le (int (.Values.app.keda.targetCPUUtilizationPercentage | default 0)) 0) (le (int (.Values.app.keda.targetMemoryUtilizationPercentage | default 0)) 0) (le $probeSchedulingThreshold 0) }}
+{{- fail "worker.enabled drops the app's queue-size autoscaling trigger; set app.keda.targetCPUUtilizationPercentage (with app.resources.requests.cpu) and/or app.keda.targetMemoryUtilizationPercentage, or app.keda.probeSchedulingQueueDepthThreshold, so the api tier still has an autoscaling trigger." }}
 {{- end }}
 {{- $appQueueTriggers = list }}
+{{- end }}
+{{- /* The app pods serve the probes in both modes: their probe scheduling
+     queue depth, all pods together (issue #10819, /metrics/probe-scheduling). */}}
+{{- if gt $probeSchedulingThreshold 0 }}
+{{- $appQueueTriggers = append $appQueueTriggers (dict "threshold" $probeSchedulingThreshold "port" .Values.app.ports.http "urlPath" "/metrics/probe-scheduling" "valueLocation" "queueDepth") }}
 {{- end }}
 {{- $metricsConfig := dict "enabled" .Values.app.keda.enabled "minReplicas" .Values.app.keda.minReplicas "maxReplicas" .Values.app.keda.maxReplicas "pollingInterval" .Values.app.keda.pollingInterval "cooldownPeriod" .Values.app.keda.cooldownPeriod "fallback" .Values.app.keda.fallback "targetCPUUtilizationPercentage" .Values.app.keda.targetCPUUtilizationPercentage "targetMemoryUtilizationPercentage" .Values.app.keda.targetMemoryUtilizationPercentage "triggers" $appQueueTriggers }}
 {{- $appKedaArgs := dict "ServiceName" "app" "Release" .Release "Values" .Values "MetricsConfig" $metricsConfig "DisableAutoscaler" .Values.app.disableAutoscaler }}

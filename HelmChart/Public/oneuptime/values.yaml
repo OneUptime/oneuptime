@@ -2368,17 +2368,20 @@ app:
   # every connection sign-ins and dashboards need (see "Size the Postgres
   # connections" in docs/production-checklist.md). Of a pool of 50, by
   # default: probe scheduling - every request a probe makes for work, and
-  # the pending counts - runs at most 10
-  # requests at once (a fifth of the pool, half of that for one probe), and
-  # the queue jobs this pod runs while worker.enabled is false hold at most
-  # 30 connections (the pool less a fifth kept for requests and less probe
-  # scheduling's share). Requests always have the other 10, and whatever the
-  # others are not using. Empty = those defaults, scaled to the pool.
+  # the pending counts - runs at most 10 requests at once (a fifth of the
+  # pool, shared fairly among the probes asking: one probe alone may use
+  # every slot), Test Monitor runs at most 2 more in a lane of their own,
+  # and the queue jobs this pod runs while worker.enabled is false hold at
+  # most 28 connections (the pool less a fifth kept for requests and less
+  # probe scheduling's 12). Requests always have the other 10, and whatever
+  # the others are not using. Empty = those defaults, scaled to the pool.
   # Set databaseMaxQueueJobConnections to the pool size for no cap. The
   # worker pods (worker.enabled) serve no requests: their jobs keep the
-  # whole pool.
+  # whole pool. With tens of thousands of monitors, read "Running many
+  # monitors" in docs/production-checklist.md before raising these.
   databaseMaxQueueJobConnections:
   probeSchedulingMaxConcurrentRequests:
+  probeSchedulingMaxConcurrentMonitorTestRequests:
   workerConcurrency: 100
   # Max concurrent telemetry ingestion jobs processed by each pod
   telemetryConcurrency: 100
@@ -2479,6 +2482,12 @@ app:
     pollingInterval: 30
     # Cooldown period after scaling (in seconds)
     cooldownPeriod: 300
+    # Also scale up while probe requests wait for a slot of the probe
+    # scheduling limit: when the app pods' queue depth together
+    # (/metrics/probe-scheduling, queueDepth) passes this many per pod. 0 to
+    # disable. Kept in split mode (worker.enabled): the app pods serve the
+    # probes. See "Running many monitors" in docs/production-checklist.md.
+    probeSchedulingQueueDepthThreshold: 0
     # Fallback used when KEDA cannot read the metrics-api endpoint
     # (e.g. all app pods are down). Prevents HPA from flapping between
     # min/max when the queue-size metric goes <unknown>, which would otherwise

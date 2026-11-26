@@ -23,6 +23,11 @@ import {
   getStorageArrayObjectLabel,
 } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayPlatform,
+  StorageArrayResourceFilter,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
 import { STORAGE_ARRAY_TEMPLATE_CATEGORIES } from "../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 import {
   AlertTemplateCategory,
@@ -158,43 +163,65 @@ const ALL_FILTER_KEYS: Array<keyof StorageArrayResourceFilters> = Object.keys(
 ) as Array<keyof StorageArrayResourceFilters>;
 
 // The `{ key: ... }` table entry of one filter, as one squashed string.
-function filterEntry(key: string): string {
-  const start: number = stepFormSource.indexOf(`key: "${key}",`);
-  const ends: Array<number> = [
-    stepFormSource.indexOf("}, {", start),
-    stepFormSource.indexOf("];", start),
-  ].filter((index: number): boolean => {
-    return index !== -1;
-  });
-  return stepFormSource.slice(start, Math.min(...ends));
+/*
+ * The platforms that offer a filter, each with what it says the filter
+ * filters on. Each platform declares its own filters
+ * (StorageArrayPlatform.resourceFilters, #11000); the form draws them under
+ * its own title and placeholder for the filter's key.
+ */
+interface FilterOffering {
+  storageSystem: string;
+  description: string;
+}
+
+function filterOfferings(key: string): Array<FilterOffering> {
+  return StorageArrayPlatformRegistry.getPlatforms().flatMap(
+    (platform: StorageArrayPlatform): Array<FilterOffering> => {
+      return platform.resourceFilters
+        .filter((filter: StorageArrayResourceFilter): boolean => {
+          return filter.key === key;
+        })
+        .map((filter: StorageArrayResourceFilter): FilterOffering => {
+          return {
+            storageSystem: platform.storageSystem,
+            description: filter.description,
+          };
+        });
+    },
+  );
 }
 
 describe("StorageArrayMonitorStepForm resource filters", () => {
   test.each(ALL_FILTER_KEYS)(
     "offers a field for the %s filter and names its label",
     (key: keyof StorageArrayResourceFilters) => {
-      // The field is declared in the resourceFilterFields table by its key...
-      expect(stepFormSource).toContain(`key: "${key}",`);
-      // ...and its description tells the user which label it maps to.
-      expect(filterEntry(key)).toContain(RESOURCE_FILTER_LABELS[key].label);
+      // The form has a title for the field by its key...
+      expect(dense(stepFormSource)).toContain(`${key}:{title:`);
+      // ...and each platform that offers it says which label it maps to.
+      expect(filterOfferings(key).length).toBeGreaterThan(0);
+      for (const offering of filterOfferings(key)) {
+        expect(offering.description).toContain(
+          RESOURCE_FILTER_LABELS[key].label,
+        );
+      }
     },
   );
 
   test.each(ALL_FILTER_KEYS)(
     "offers the %s filter only on the platforms whose series carry it",
     (key: keyof StorageArrayResourceFilters) => {
-      const entry: string = dense(filterEntry(key));
+      const offeredOn: Array<string> = filterOfferings(key).map(
+        (offering: FilterOffering): string => {
+          return offering.storageSystem;
+        },
+      );
       const systems: Array<StorageSystem> =
         RESOURCE_FILTER_LABELS[key].storageSystems;
       for (const system of [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
       ]) {
-        const member: string =
-          system === StorageSystem.PureStorageFlashArray
-            ? "StorageSystem.PureStorageFlashArray"
-            : "StorageSystem.PureStorageFlashBlade";
-        expect({ key, system, offered: entry.includes(member) }).toEqual({
+        expect({ key, system, offered: offeredOn.includes(system) }).toEqual({
           key,
           system,
           offered: systems.includes(system),
@@ -204,11 +231,13 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
   );
 
   test("the platform's fields are picked from the array's storage system, all of them while it is unknown", () => {
+    // The array's platform, from the registry; every field while it has none.
     expect(dense(stepFormSource)).toContain(
-      "if(!StorageSystemUtil.isKnownSystem(storageSystem)){returnresourceFilterFields;}",
+      "StorageArrayPlatformRegistry.getPlatform(storageSystem);",
     );
+    expect(dense(stepFormSource)).toContain("if(!platform){returnfields;}");
     expect(dense(stepFormSource)).toContain(
-      "returnfield.storageSystems.includes(storageSystem);",
+      ".includes(platform.storageSystem,);",
     );
     expect(dense(stepFormSource)).toContain(
       "{getResourceFilterFields(storageSystem).map(",
@@ -253,7 +282,9 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       ).toBe("name");
     }
     // The hardware field names both platforms' labels.
-    expect(filterEntry("componentName")).toContain("`name` on a FlashBlade");
+    for (const offering of filterOfferings("componentName")) {
+      expect(offering.description).toContain("`name` on a FlashBlade");
+    }
   });
 
   test("writes each field back under its own key, spreading the rest", () => {
@@ -277,11 +308,16 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
      * scope attribute to filter on, so a scope dropdown here would be sent
      * to the worker as a filter it cannot map.
      */
-    const declaredKeys: Array<string> = [
-      ...stepFormSource.matchAll(/key: "([a-zA-Z]+)",/g),
-    ].map((match: RegExpMatchArray): string => {
-      return match[1]!;
-    });
+    const declaredKeys: Array<string> =
+      StorageArrayPlatformRegistry.getPlatforms().flatMap(
+        (platform: StorageArrayPlatform): Array<string> => {
+          return platform.resourceFilters.map(
+            (filter: StorageArrayResourceFilter): string => {
+              return filter.key;
+            },
+          );
+        },
+      );
 
     expect(new Set(declaredKeys)).toEqual(new Set<string>(ALL_FILTER_KEYS));
     expect(stepFormSource).not.toContain("scope:");

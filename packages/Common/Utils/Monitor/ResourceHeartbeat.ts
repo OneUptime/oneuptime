@@ -1,6 +1,8 @@
 import Dictionary from "../../Types/Dictionary";
 import MonitorStep, { MonitorStepType } from "../../Types/Monitor/MonitorStep";
 import { OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE } from "../../Types/Monitor/MonitorStepOpenStackMonitor";
+import StorageArrayPlatformRegistry from "../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "../../Types/StorageArray/StorageArrayPlatform";
 
 /*
  * What a resource always sends while it reports, and the attributes that
@@ -16,9 +18,10 @@ import { OPENSTACK_CLOUD_RESOURCE_ATTRIBUTE } from "../../Types/Monitor/MonitorS
  * scrape, with the resource's attributes, and a Ceph agent gets `up` = 1 from
  * every standby mgr while no mgr serves any metric.
  *
- * A storage array names both of Pure's series, so that a monitor whose
- * platform is not known reads the right one; its array name tells the arrays
- * apart. IoT has none: a fleet sends nothing of its own, only its devices do.
+ * A storage array names every platform's heartbeat series
+ * (StorageArrayPlatform.heartbeat), so that a monitor whose platform is not
+ * known reads the right one; its array name tells the arrays apart. IoT has
+ * none: a fleet sends nothing of its own, only its devices do.
  *
  * InfrastructureStoppedReportingTemplates.test.ts holds these to the templates,
  * and MonitorTelemetryMonitorResourceStillReporting.test.ts to the scope the
@@ -137,7 +140,11 @@ export default class ResourceHeartbeatUtil {
 
     if (data.storageArrayMonitor) {
       return {
-        metricNames: ["purefa_info", "purefb_info"],
+        metricNames: StorageArrayPlatformRegistry.getPlatforms().map(
+          (platform: StorageArrayPlatform): string => {
+            return platform.heartbeat.metricName;
+          },
+        ),
         attributes: ResourceHeartbeatUtil.scopedTo(
           "resource.storage.array.name",
           data.storageArrayMonitor.arrayIdentifier,

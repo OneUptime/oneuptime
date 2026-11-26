@@ -18,76 +18,134 @@ import {
 } from "../../../Components/SetupGuide/AgentInstallCommands";
 import { InstallScriptName } from "Common/Types/InstallScripts/InstallScripts";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayAgentConfig,
+  StorageArrayPlatform as StorageArrayPlatformDefinition,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
 
 /*
  * The in-app install guide for the OneUptime Storage Array Agent
  * (agents/StorageArrayAgent): a stock OpenTelemetry collector that scrapes
- * the array's OpenMetrics endpoints with a read-only API token. The guide
- * asks which array it is for — a FlashArray serving its metrics itself, an
- * older FlashArray read through Pure's exporter, or a FlashBlade — and shows
- * only that path, with the install script or Docker Compose as tabs of the
- * install step. Everything else is folded under Advanced and
- * Troubleshooting.
+ * the array's metrics endpoints with a read-only API token. The guide asks
+ * which array it is for - one option per way the agent reads a platform
+ * (StorageArrayPlatform.agentConfigs, from the platform registry: a
+ * FlashArray serving its metrics itself, an older FlashArray read through
+ * Pure's exporter, or a FlashBlade) - and shows only that path, with the
+ * install script or Docker Compose as tabs of the install step. Everything
+ * else is folded under Advanced and Troubleshooting.
+ *
+ * The guide's steps are Pure Storage's: how to make a read-only user on a
+ * Purity array, the native endpoint check, Pure's exporters. A platform
+ * that reads its arrays another way brings steps of its own (#11123 makes
+ * them one guide per platform).
  *
  * Pure Storage renamed itself Everpure in February 2026; FlashArray,
- * FlashBlade, Purity and the purefa_ / purefb_ metrics kept their names.
+ * FlashBlade, Purity and their metric namespaces kept their names.
  */
 
+/*
+ * The agent configs this guide has steps and a collector config for
+ * (STORAGE_ARRAY_COLLECTOR_CONFIGS), by their StorageArrayAgentConfig.key.
+ * The steps are Pure Storage's: a platform's agent config gets an option in
+ * the picker once its steps and its config are here (#11123 gives each
+ * platform a guide of its own).
+ */
 export type StorageArrayPlatform =
   | "flasharray"
   | "flasharray-exporter"
   | "flashblade";
 
-export const STORAGE_ARRAY_PLATFORMS: Array<
-  SetupGuideOption<StorageArrayPlatform>
-> = [
-  {
-    key: "flasharray",
-    label: "FlashArray",
-    description:
-      "Purity//FA 6.7 or later. The agent reads the metrics the array serves itself.",
-    badge: "Recommended",
-  },
-  {
-    key: "flasharray-exporter",
-    label: "FlashArray, older Purity",
-    description:
-      "An older Purity//FA. The agent runs Pure's FlashArray exporter next to it.",
-  },
-  {
-    key: "flashblade",
-    label: "FlashBlade",
-    description: "The agent runs Pure's FlashBlade exporter next to it.",
-  },
+const GUIDE_PLATFORMS: ReadonlyArray<StorageArrayPlatform> = [
+  "flasharray",
+  "flasharray-exporter",
+  "flashblade",
 ];
 
+function isGuidePlatform(key: string): key is StorageArrayPlatform {
+  return (GUIDE_PLATFORMS as ReadonlyArray<string>).includes(key);
+}
+
+// One way the agent reads an array: a platform's agent config, by its key.
+interface GuideAgentConfig {
+  platform: StorageArrayPlatformDefinition;
+  config: StorageArrayAgentConfig;
+  key: StorageArrayPlatform;
+}
+
+/*
+ * Every way the agent reads an array that this guide covers, in the
+ * registry's order.
+ */
+function getAgentConfigs(): Array<GuideAgentConfig> {
+  return StorageArrayPlatformRegistry.getPlatforms().flatMap(
+    (platform: StorageArrayPlatformDefinition): Array<GuideAgentConfig> => {
+      const configs: Array<GuideAgentConfig> = [];
+      for (const config of platform.agentConfigs) {
+        if (isGuidePlatform(config.key)) {
+          configs.push({ platform, config, key: config.key });
+        }
+      }
+      return configs;
+    },
+  );
+}
+
+/*
+ * The setup guide's platform picker: one option per way the agent reads
+ * an array, from every platform the registry holds.
+ */
+export function getStorageArrayPlatformOptions(): Array<
+  SetupGuideOption<StorageArrayPlatform>
+> {
+  return getAgentConfigs().map(
+    (entry: GuideAgentConfig): SetupGuideOption<StorageArrayPlatform> => {
+      return {
+        key: entry.key,
+        label: entry.config.label,
+        description: entry.config.description,
+        ...(entry.config.badge ? { badge: entry.config.badge } : {}),
+      };
+    },
+  );
+}
+
+// The picker's options as the shipped platforms define them.
+export const STORAGE_ARRAY_PLATFORMS: Array<
+  SetupGuideOption<StorageArrayPlatform>
+> = getStorageArrayPlatformOptions();
+
+// The default platform's first option: the agent's own default.
 export const DEFAULT_STORAGE_ARRAY_PLATFORM: StorageArrayPlatform =
-  "flasharray";
+  getAgentConfigs().find((entry: GuideAgentConfig): boolean => {
+    return entry.platform === StorageArrayPlatformRegistry.getDefaultPlatform();
+  })?.key || GUIDE_PLATFORMS[0]!;
 
 export function resolveStorageArrayPlatform(
   platform: string | null | undefined,
 ): StorageArrayPlatform {
   return (
-    resolveSetupGuideOption(STORAGE_ARRAY_PLATFORMS, platform) ||
+    resolveSetupGuideOption(getStorageArrayPlatformOptions(), platform) ||
     DEFAULT_STORAGE_ARRAY_PLATFORM
   );
 }
 
 /*
- * The option an array's own Documentation tab opens on: its platform, once
- * the array has reported one. A FlashArray opens on the native endpoint,
- * which every current Purity//FA serves.
+ * The option an array's own Documentation tab opens on: its platform's
+ * first, once the array has reported one (a FlashArray opens on the native
+ * endpoint, which every current Purity//FA serves).
  */
 export function getStorageArrayPlatformForSystem(
   storageSystem: string | null | undefined,
 ): StorageArrayPlatform | undefined {
-  if (storageSystem === StorageSystem.PureStorageFlashBlade) {
-    return "flashblade";
+  const platform: StorageArrayPlatformDefinition | null =
+    StorageArrayPlatformRegistry.getPlatform(storageSystem);
+  if (!platform) {
+    return undefined;
   }
-  if (storageSystem === StorageSystem.PureStorageFlashArray) {
-    return "flasharray";
-  }
-  return undefined;
+  return getAgentConfigs().find((entry: GuideAgentConfig): boolean => {
+    return entry.platform === platform;
+  })?.key;
 }
 
 /*
@@ -133,8 +191,8 @@ interface PlatformSettings {
   storageSystem: StorageSystem;
   collectorConfigFile: string;
   composeProfile: string;
-  endpointVariable: "PURE_FA_ENDPOINT" | "PURE_FB_ENDPOINT";
-  tokenVariable: "PURE_FA_API_TOKEN" | "PURE_FB_API_TOKEN";
+  endpointVariable: string;
+  tokenVariable: string;
   exampleEndpoint: string;
   // The exporter sidecar the platform needs; null for the native endpoint.
   exporterService: string | null;
@@ -142,48 +200,56 @@ interface PlatformSettings {
   arrayNoun: string;
 }
 
+/*
+ * What the guide writes for one option: its agent config, with the
+ * platform it stamps.
+ */
+export function getStorageArrayPlatformSettings(
+  platform: StorageArrayPlatform,
+): PlatformSettings {
+  const entry: GuideAgentConfig | undefined =
+    getAgentConfigs().find((candidate: GuideAgentConfig): boolean => {
+      return candidate.key === platform;
+    }) || getAgentConfigs()[0];
+  return {
+    storageSystem: entry!.platform.storageSystem as StorageSystem,
+    collectorConfigFile: entry!.config.collectorConfigFile,
+    composeProfile: entry!.config.composeProfile,
+    endpointVariable: entry!.config.endpointVariable,
+    tokenVariable: entry!.config.tokenVariable,
+    exampleEndpoint: entry!.config.exampleEndpoint,
+    exporterService: entry!.config.exporterService,
+    arrayNoun: entry!.config.arrayNoun,
+  };
+}
+
+// Each shipped option's settings, by its key.
 export const STORAGE_ARRAY_PLATFORM_SETTINGS: Record<
   StorageArrayPlatform,
   PlatformSettings
-> = {
-  flasharray: {
-    storageSystem: StorageSystem.PureStorageFlashArray,
-    collectorConfigFile: "otel-collector-config.yaml",
-    composeProfile: "",
-    endpointVariable: "PURE_FA_ENDPOINT",
-    tokenVariable: "PURE_FA_API_TOKEN",
-    exampleEndpoint: "fa-prod-01.example.com",
-    exporterService: null,
-    arrayNoun: "FlashArray",
-  },
-  "flasharray-exporter": {
-    storageSystem: StorageSystem.PureStorageFlashArray,
-    collectorConfigFile: "otel-collector-config.flasharray-exporter.yaml",
-    composeProfile: "flasharray-exporter",
-    endpointVariable: "PURE_FA_ENDPOINT",
-    tokenVariable: "PURE_FA_API_TOKEN",
-    exampleEndpoint: "fa-prod-01.example.com",
-    exporterService: STORAGE_ARRAY_FA_EXPORTER_SERVICE,
-    arrayNoun: "FlashArray",
-  },
-  flashblade: {
-    storageSystem: StorageSystem.PureStorageFlashBlade,
-    collectorConfigFile: "otel-collector-config.flashblade.yaml",
-    composeProfile: "flashblade",
-    endpointVariable: "PURE_FB_ENDPOINT",
-    tokenVariable: "PURE_FB_API_TOKEN",
-    exampleEndpoint: "fb-prod-01.example.com",
-    exporterService: STORAGE_ARRAY_FB_EXPORTER_SERVICE,
-    arrayNoun: "FlashBlade",
-  },
-};
+> = Object.fromEntries(
+  STORAGE_ARRAY_PLATFORMS.map(
+    (
+      option: SetupGuideOption<StorageArrayPlatform>,
+    ): [StorageArrayPlatform, PlatformSettings] => {
+      return [option.key, getStorageArrayPlatformSettings(option.key)];
+    },
+  ),
+) as Record<StorageArrayPlatform, PlatformSettings>;
 
-// The files Docker Compose needs: the compose file and all three configs.
+// The files Docker Compose needs: the compose file and every collector config.
 export const STORAGE_ARRAY_AGENT_FILES: Array<string> = [
   STORAGE_ARRAY_COMPOSE_FILE,
-  "otel-collector-config.yaml",
-  "otel-collector-config.flasharray-exporter.yaml",
-  "otel-collector-config.flashblade.yaml",
+  ...Array.from(
+    new Set(
+      STORAGE_ARRAY_PLATFORMS.map(
+        (option: SetupGuideOption<StorageArrayPlatform>): string => {
+          return STORAGE_ARRAY_PLATFORM_SETTINGS[option.key]
+            .collectorConfigFile;
+        },
+      ),
+    ),
+  ),
 ];
 
 /*
@@ -910,8 +976,9 @@ export function getStorageArrayInstallScriptCommand(data: {
   platform: StorageArrayPlatform;
   arrayName?: string | undefined;
 }): string {
-  const settings: PlatformSettings =
-    STORAGE_ARRAY_PLATFORM_SETTINGS[data.platform];
+  const settings: PlatformSettings = getStorageArrayPlatformSettings(
+    data.platform,
+  );
   const environment: Array<string> = [];
 
   if (isPrefilled(data)) {
@@ -982,8 +1049,9 @@ export function getStorageArrayEnvFile(data: {
   platform: StorageArrayPlatform;
   arrayName: string;
 }): string {
-  const settings: PlatformSettings =
-    STORAGE_ARRAY_PLATFORM_SETTINGS[data.platform];
+  const settings: PlatformSettings = getStorageArrayPlatformSettings(
+    data.platform,
+  );
 
   const lines: Array<string> = [
     `ONEUPTIME_URL=${data.oneuptimeUrl}`,
@@ -1529,7 +1597,7 @@ export function getStorageArraySetupGuide(
     apiKey: options.apiKey,
     hasApiKey: options.hasApiKey,
     platform: options.platform,
-    settings: STORAGE_ARRAY_PLATFORM_SETTINGS[options.platform],
+    settings: getStorageArrayPlatformSettings(options.platform),
     arrayName: knownArrayName || STORAGE_ARRAY_EXAMPLE_NAME,
     isArrayNameKnown: Boolean(knownArrayName),
   };

@@ -9,6 +9,7 @@ import { SecurityTelemetrySourceKind } from "Common/Types/SecurityEvent/Security
 import {
   ERASED_USER_ATTRIBUTES,
   HASHED_USER_ATTRIBUTES,
+  HASHED_USER_SOURCE_ATTRIBUTES,
   ScrubbedUserRole,
   USER_ERASED_ON_REQUEST,
 } from "Common/Utils/SecurityEvent/ScrubbedUser";
@@ -553,6 +554,98 @@ describe("a user Security Events named behind a token", () => {
 
     expect(field?.label).toBe("Target User");
     expect(field?.hashedUser?.signal).toBe(HashedUserSignal.Trace);
+  });
+
+  test("a user the event says was hashed in a span's attribute is searched for there (#11045)", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        time: TIME,
+        principalUser: "alice@example.com",
+        attributes: {
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Principal].in]:
+            "trace",
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Principal].field]:
+            "attributes.user.id",
+        },
+      }),
+      ScrubbedUserRole.Principal,
+    );
+
+    expect(field?.hashedUser).toEqual({
+      hashed: TOKEN,
+      signal: HashedUserSignal.Trace,
+      field: "attributes.user.id",
+      time: TIME,
+    });
+  });
+
+  test("a log line's user that came from the trace its request was followed into says the traces hold it (#11045)", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        time: TIME,
+        principalUser: "alice@example.com",
+        attributes: {
+          // An event read from a log line...
+          [SECURITY_LOG_SOURCE_ATTRIBUTE]: "log",
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+          // ...whose user was the server span's.
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Principal].in]:
+            "trace",
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Principal].field]:
+            "attributes.enduser.id",
+        },
+      }),
+      ScrubbedUserRole.Principal,
+    );
+
+    expect(field?.hashedUser?.signal).toBe(HashedUserSignal.Trace);
+    expect(field?.hashedUser?.field).toBe("attributes.enduser.id");
+  });
+
+  test("a log line's user hashed in one of its attributes says which (#11045)", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        time: TIME,
+        targetUser: "bob",
+        attributes: {
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Target]]: TOKEN,
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Target].in]: "log",
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Target].field]:
+            "attributes.openstack.user_name",
+        },
+      }),
+      ScrubbedUserRole.Target,
+    );
+
+    expect(field?.hashedUser).toEqual({
+      hashed: TOKEN,
+      signal: HashedUserSignal.Log,
+      field: "attributes.openstack.user_name",
+      time: TIME,
+    });
+  });
+
+  test("where the event does not say, or says something unknown, the kind of record the event was read from answers, and no field", () => {
+    const field: SecurityEventDetailField | null = buildEventUserField(
+      event({
+        time: TIME,
+        principalUser: "alice@example.com",
+        attributes: {
+          [SECURITY_LOG_SOURCE_ATTRIBUTE]: SecurityTelemetrySourceKind.Traces,
+          [HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]]: TOKEN,
+          [HASHED_USER_SOURCE_ATTRIBUTES[ScrubbedUserRole.Principal].in]:
+            "metrics",
+        },
+      }),
+      ScrubbedUserRole.Principal,
+    );
+
+    expect(field?.hashedUser).toEqual({
+      hashed: TOKEN,
+      signal: HashedUserSignal.Trace,
+      time: TIME,
+    });
   });
 
   test("a user the logs hold in clear, or a token no one was kept for, says nothing more", () => {

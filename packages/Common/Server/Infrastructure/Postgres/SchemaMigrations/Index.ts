@@ -1197,7 +1197,10 @@ import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-Ad
 import { AddOnCallPolicyIncidentRole1809187670000 } from "./1809187670000-AddOnCallPolicyIncidentRole";
 import { AddOnCallPolicyIncidentRoleIndexAndKey1809187670010 } from "./1809187670010-AddOnCallPolicyIncidentRoleIndexAndKey";
 import { AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000 } from "./1809187680000-AddProjectStartIncidentsDeclaredByHandAcknowledged";
-import { AddProbeSnmpTrapReceiver1809187685110 } from "./1809187685110-AddProbeSnmpTrapReceiver";
+import { AddStorageArrayCountsByKind1809187690000 } from "./1809187690000-AddStorageArrayCountsByKind";
+import { AddSecurityUserErasureRequestNamesToErase1809187691044 } from "./1809187691044-AddSecurityUserErasureRequestNamesToErase";
+import { AddMonitorTestUnansweredIndex1809187700819 } from "./1809187700819-AddMonitorTestUnansweredIndex";
+import { AddProbeSnmpTrapReceiver1809187705110 } from "./1809187705110-AddProbeSnmpTrapReceiver";
 
 export default [
   InitialMigration,
@@ -2399,5 +2402,8 @@ export default [
   AddOnCallPolicyIncidentRole1809187670000,
   AddOnCallPolicyIncidentRoleIndexAndKey1809187670010,
   AddProjectStartIncidentsDeclaredByHandAcknowledged1809187680000,
-  AddProbeSnmpTrapReceiver1809187685110,
+  AddStorageArrayCountsByKind1809187690000,
+  AddSecurityUserErasureRequestNamesToErase1809187691044,
+  AddMonitorTestUnansweredIndex1809187700819,
+  AddProbeSnmpTrapReceiver1809187705110,
 ];

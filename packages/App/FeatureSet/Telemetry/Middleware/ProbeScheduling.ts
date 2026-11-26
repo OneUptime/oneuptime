@@ -16,6 +16,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ProbeCapability, {
   ProbeCapabilityUtil,
 } from "Common/Types/Probe/ProbeCapability";
+import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
 
 /*
  * Holds a request a probe makes for work - /monitor/list, /monitor-test/list,
@@ -23,8 +24,10 @@ import ProbeCapability, {
  * discovery scans, device diagnostics, packet captures, VMware and OpenStack
  * collections and checks, Data Security and Data Observability (issue #8051)
  * - to the process's probe scheduling limit
- * (Common/Server/Utils/Probe/ProbeSchedulingLimiter): it runs once a slot is
- * free, keeps the slot until its answer has gone, and a request the limiter
+ * (Common/Server/Utils/Probe/ProbeSchedulingLimiter), in the lane the route
+ * names: the work lane unless said, the monitor test lane for
+ * /monitor-test/list (#10819). It runs once a slot of its lane is free,
+ * keeps the slot until its answer has gone, and a request the limiter
  * refuses is answered busy here and never reaches the handler, so it claims
  * nothing - what it would have been handed stays due for the next request.
  *
@@ -60,6 +63,8 @@ export interface ProbeSchedulingLimitOptions {
    */
   retriesWhenBusy?: ProbeCapability | null | undefined;
   limiter?: ProbeSchedulingLimiter | undefined;
+  // The limit's lane: the work lane unless said.
+  lane?: ProbeSchedulingLane | undefined;
 }
 
 interface ResponseEvents {
@@ -172,6 +177,7 @@ export default class ProbeSchedulingMiddleware {
       try {
         release = await limiter.acquire(probeId.toString(), {
           signal: abandonedWhenClientLeaves(res),
+          lane: options.lane,
         });
       } catch (error) {
         if (error instanceof ProbeSchedulingAbandonedError) {

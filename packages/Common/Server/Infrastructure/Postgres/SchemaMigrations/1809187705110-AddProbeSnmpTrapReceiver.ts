@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewrites no row, and a probe has none until it reports, every thirty
  * seconds once it runs this release.
  */
-export class AddProbeSnmpTrapReceiver1809187685110
+export class AddProbeSnmpTrapReceiver1809187705110
   implements MigrationInterface
 {
-  public name: string = "AddProbeSnmpTrapReceiver1809187685110";
+  public name: string = "AddProbeSnmpTrapReceiver1809187705110";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "Probe" ADD "snmpTrapReceiver" jsonb`);

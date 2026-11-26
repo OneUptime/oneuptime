@@ -92,6 +92,37 @@ const LABELS_APPLIED_CACHE_NAMESPACE: string = "storage-array-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
 /*
+ * The counts by kind last merged into each array, so a batch that brings
+ * the same counts as the last one issues no statement (mergeCountsByKind).
+ */
+const COUNTS_BY_KIND_CACHE_NAMESPACE: string = "storage-array-counts-by-kind";
+const COUNTS_BY_KIND_THROTTLE_SECONDS: number = 60;
+
+/*
+ * A kind as the inventory writes it (StorageArrayResource.kind): one
+ * PascalCase word. Anything else never reaches the column.
+ */
+const COUNTED_KIND: RegExp = /^[A-Za-z][A-Za-z0-9]{0,63}$/;
+
+/*
+ * Merges a batch's counts into StorageArray.countsByKind, in one statement
+ * that yields instead of queueing behind another writer of the row (as the
+ * heartbeat does), and writes nothing when the row already holds them.
+ */
+export const MERGE_COUNTS_BY_KIND_SQL: string = `WITH "updated" AS (
+  UPDATE "StorageArray"
+     SET "countsByKind" = COALESCE("countsByKind", '{}'::jsonb) || $2::jsonb
+   WHERE "_id" IN (
+     SELECT "_id" FROM "StorageArray"
+      WHERE "_id" = $1
+        AND "deletedAt" IS NULL
+        AND NOT (COALESCE("countsByKind", '{}'::jsonb) @> $2::jsonb)
+      FOR UPDATE SKIP LOCKED
+   )
+  RETURNING "_id"
+) SELECT "_id" FROM "updated"`;
+
+/*
  * A storage array is matched to its telemetry by its name
  * (storage.array.name), so a rename is held to the rules a new storage array
  * is: no spaces around it, never blank, and never another storage array's
@@ -358,6 +389,76 @@ export class Service extends ProjectReferencesService<Model> {
       fingerprint: extrasFingerprint,
       describe: `storage array ${arrayId.toString()}`,
     });
+  }
+
+  /**
+   * Merge one ingest batch's counts by kind into the array's countsByKind
+   * (#11000): only the kinds whose complete list the batch carried
+   * (StorageArraySnapshotScan.deriveStorageArrayCountsByKind), each
+   * replacing the count the row held for that kind and leaving every other
+   * kind's alone - so a volumes scrape never erases the hosts count. A
+   * count that is not a whole number of 0 or more, or a kind that is not
+   * one word, is dropped.
+   *
+   * Gated like the heartbeat: a batch that brings the counts this array
+   * last merged issues no statement until the gate expires (a cache outage
+   * opens it: the statement itself changes nothing when the row already
+   * holds the counts). Returns whether the row was written; false also for
+   * a row another writer held at that instant, whose counts the array's
+   * next batch brings again.
+   */
+  @CaptureSpan()
+  public async mergeCountsByKind(data: {
+    storageArrayId: ObjectID;
+    countsByKind: Record<string, number>;
+  }): Promise<boolean> {
+    const counts: Record<string, number> = {};
+    for (const kind of Object.keys(data.countsByKind).sort()) {
+      const count: unknown = data.countsByKind[kind];
+      if (
+        !COUNTED_KIND.test(kind) ||
+        typeof count !== "number" ||
+        !Number.isSafeInteger(count) ||
+        count < 0
+      ) {
+        continue;
+      }
+      counts[kind] = count;
+    }
+
+    if (Object.keys(counts).length === 0) {
+      return false;
+    }
+
+    const payload: string = JSON.stringify(counts);
+    const arrayIdStr: string = data.storageArrayId.toString();
+
+    let changed: boolean = true;
+    try {
+      changed = await GlobalCache.setStringIfChanged(
+        COUNTS_BY_KIND_CACHE_NAMESPACE,
+        arrayIdStr,
+        payload,
+        {
+          expiresInSeconds: GlobalCache.withJitter(
+            COUNTS_BY_KIND_THROTTLE_SECONDS,
+          ),
+        },
+      );
+    } catch {
+      changed = true;
+    }
+
+    if (!changed) {
+      return false;
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      MERGE_COUNTS_BY_KIND_SQL,
+      [arrayIdStr, payload],
+    );
+
+    return Array.isArray(rows) && rows.length > 0;
   }
 
   /**

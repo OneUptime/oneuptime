@@ -82,6 +82,18 @@ import Monitor from "./Monitor";
   tableDescription:
     "Monitor Test allows you to test monitor configurations before you save them.",
 })
+/*
+ * The tests a probe has not answered yet - in the queue, or handed out and
+ * never answered - oldest first: what every replica of every probe claims
+ * every ten seconds (MonitorTestService.claimMonitorTestsForProbing,
+ * #10819). Answered tests are kept two days and are almost all of a
+ * probe's rows, so the claim read every one of them to find the few
+ * waiting - 2,501 pages for 3 tests among 20,000 answered ones. The index
+ * holds only the unanswered ones, and the claim reads it in its order.
+ */
+@Index(["probeId", "createdAt"], {
+  where: '"monitorStepProbeResponse" IS NULL AND "deletedAt" IS NULL',
+})
 export default class MonitorTest extends BaseModel {
   @ColumnAccessControl({
     create: [

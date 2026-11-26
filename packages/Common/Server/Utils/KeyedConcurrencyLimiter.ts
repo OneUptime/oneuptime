@@ -4,13 +4,18 @@
  *
  * At most `maxRunning` callers hold a slot at once, and at most
  * `maxRunningPerKey` of them for any one key, so one busy key cannot occupy
- * every slot. The rest wait in arrival order, holding nothing else (no
- * database connection, no socket): a released slot goes to the first waiter
- * whose key is under its own limit, so a key at its limit never holds up
- * another key queued behind it. The queue is bounded too - per process and
- * per key - and a caller that finds it full, or waits longer than its wait
- * limit, is refused at once with the limiter's busy error rather than left
- * to hang.
+ * every slot. The rest wait, holding nothing else (no database connection,
+ * no socket), and a released slot goes to a waiter whose key is under its
+ * own limit, so a key at its limit never holds up another key queued behind
+ * it. Which waiter, `order` says: the first to arrive ("arrival", the
+ * default), or the one whose key holds the fewest slots now
+ * ("fewest-running", the first of those to arrive) - fair share: keys that
+ * compete for the slots end up with equal shares, however many callers
+ * each sends, and a key alone may use every slot, where a fixed
+ * maxRunningPerKey below maxRunning can only cap it. The queue is bounded
+ * too - per process and per key - and a caller that finds it full, or waits
+ * longer than its wait limit, is refused at once with the limiter's busy
+ * error rather than left to hang.
  *
  * A caller whose AbortSignal fires while it waits gives up its place at once
  * and never starts (the abandoned error): a client that has gone must not
@@ -37,12 +42,30 @@ export interface KeyedConcurrencyLimits {
   maxWaitMs: number;
 }
 
+// Why a caller was refused.
+export enum KeyedConcurrencyRefusal {
+  // The queue - the process's, or its key's - was full when it arrived.
+  QueueFull = "queue-full",
+  // It waited its whole wait limit for a slot.
+  WaitedTooLong = "waited-too-long",
+}
+
+// Which waiter a released slot goes to.
+export enum KeyedConcurrencyOrder {
+  // The first to arrive that may start.
+  Arrival = "arrival",
+  // The one whose key holds the fewest slots now; the first to arrive of those.
+  FewestRunning = "fewest-running",
+}
+
 export interface KeyedConcurrencyLimiterOptions {
   limits: KeyedConcurrencyLimits;
   // What a refused caller gets: the queue was full, or it waited too long.
-  busyError: () => Error;
+  busyError: (reason: KeyedConcurrencyRefusal) => Error;
   // What a caller gets whose signal fired before its work started.
   abandonedError: () => Error;
+  // Arrival unless said: see the comment at the top.
+  order?: KeyedConcurrencyOrder | undefined;
 }
 
 export interface KeyedConcurrencyWaitOptions {
@@ -128,7 +151,9 @@ export default class KeyedConcurrencyLimiter {
       this.waiting.length >= this.limits.maxWaiting ||
       this.waitingCount(key) >= this.limits.maxWaitingPerKey
     ) {
-      return Promise.reject(this.options.busyError());
+      return Promise.reject(
+        this.options.busyError(KeyedConcurrencyRefusal.QueueFull),
+      );
     }
 
     const maxWaitMs: number = Math.max(
@@ -169,7 +194,9 @@ export default class KeyedConcurrencyLimiter {
         };
         if (Number.isFinite(maxWaitMs)) {
           waiter.timer = setTimeout((): void => {
-            leave(this.options.busyError());
+            leave(
+              this.options.busyError(KeyedConcurrencyRefusal.WaitedTooLong),
+            );
           }, maxWaitMs);
         }
         signal?.addEventListener("abort", onAbort);
@@ -236,22 +263,61 @@ export default class KeyedConcurrencyLimiter {
     this.startWaiters();
   }
 
-  // Hands free slots to waiters in arrival order, skipping full keys.
+  // Hands free slots to waiters, in the limiter's order, skipping full keys.
   private startWaiters(): void {
     if (this.waiting.length === 0) {
       return;
     }
+
+    if (this.options.order === KeyedConcurrencyOrder.FewestRunning) {
+      this.startWaitersOfFewestRunningKeys();
+      return;
+    }
+
     const stillWaiting: Array<Waiter> = [];
     for (const waiter of this.waiting) {
       if (this.canStart(waiter.key)) {
-        this.take(waiter.key);
-        this.countWaiting(waiter.key, -1);
-        waiter.detach();
-        waiter.start();
+        this.startWaiter(waiter);
       } else {
         stillWaiting.push(waiter);
       }
     }
     this.waiting = stillWaiting;
+  }
+
+  /*
+   * One slot at a time, to the waiter whose key holds the fewest now - the
+   * first to arrive of those - while a waiter may start. The queue is
+   * bounded (maxWaiting), so this stays a short walk.
+   */
+  private startWaitersOfFewestRunningKeys(): void {
+    for (;;) {
+      let chosen: number = -1;
+      let chosenRunning: number = Infinity;
+
+      for (let index: number = 0; index < this.waiting.length; index++) {
+        const key: string = this.waiting[index]!.key;
+        const running: number = this.runningCount(key);
+
+        if (running < chosenRunning && this.canStart(key)) {
+          chosen = index;
+          chosenRunning = running;
+        }
+      }
+
+      if (chosen < 0) {
+        return;
+      }
+
+      const waiter: Waiter = this.waiting.splice(chosen, 1)[0]!;
+      this.startWaiter(waiter);
+    }
+  }
+
+  private startWaiter(waiter: Waiter): void {
+    this.take(waiter.key);
+    this.countWaiting(waiter.key, -1);
+    waiter.detach();
+    waiter.start();
   }
 }
